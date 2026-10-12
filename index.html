@@ -95,6 +95,8 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .ib.on { color: var(--accent); }
 .ib.on svg { fill: var(--accent); }
 .row-btns { display: flex; gap: 10px; }
+/* Song view back button floats; it fades out scrolling down and back in scrolling up */
+.backfab { position: fixed; z-index: 25; top: calc(18px + var(--safe-t)); left: calc(max(0px, (100% - 520px) / 2) + 20px); transition: opacity .12s linear; }
 
 /* Chips */
 .chips { display: flex; gap: 8px; margin: 14px 0 0; }
@@ -428,7 +430,8 @@ function renderViewer(id) {
 
   app.innerHTML = `
     <div class="head">
-      <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
+      <span style="width:36px"></span>
+      <button class="ib glass float backfab" id="backfab" data-go="#/" aria-label="Back to library">${icon("back")}</button>
       <div class="row-btns">
         <button class="ib glass ${song.favorite ? "on" : ""}" id="fav" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song">${icon("edit")}</button>
@@ -501,8 +504,8 @@ function renderViewer(id) {
   $("down").onclick = () => step(-1);
   $("up").onclick = () => step(1);
   $("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
-  $("sheet").addEventListener("touchstart", () => scroll.on && stopScroll(), { passive: true });
   window.scrollTo(0, 0);
+  fab.lastY = 0; fab.reveal = 1;
 }
 
 // Render display blocks. Chord/lyric pairs wrap between words with chords riding
@@ -542,19 +545,54 @@ window.addEventListener("resize", () => {
   resizeTimer = setTimeout(() => { if (redraw && route().name === "song" && $("sheet")) redraw(); }, 120);
 });
 
+// Manual scrolling while auto-scroll plays: hold the auto-scroll while the finger
+// (or momentum, or a wheel) is moving, then carry on from wherever the reader left it.
+const hold = { active: false, touching: false, timer: 0 };
+function releaseSoon(ms) {
+  clearTimeout(hold.timer);
+  hold.timer = setTimeout(() => { if (!hold.touching) hold.active = false; }, ms);
+}
+window.addEventListener("touchstart", e => {
+  if (e.target instanceof Element && e.target.closest(".dock")) return;
+  hold.touching = true; hold.active = true; clearTimeout(hold.timer);
+}, { passive: true });
+window.addEventListener("touchend", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
+window.addEventListener("touchcancel", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
+window.addEventListener("wheel", () => { hold.active = true; releaseSoon(250); }, { passive: true });
+
+// Back button fade: scrolling up reveals it gradually, scrolling down hides it.
+const fab = { lastY: 0, reveal: 1 };
+window.addEventListener("scroll", () => {
+  const y = window.scrollY;
+  const d = y - fab.lastY;
+  fab.lastY = y;
+  if (hold.active && !hold.touching) releaseSoon(180); // momentum still moving
+  const btn = $("backfab");
+  if (!btn) return;
+  if (y < 60) fab.reveal = 1;
+  else if (d < 0) fab.reveal = Math.min(1, fab.reveal - d / 140);
+  else fab.reveal = Math.max(0, fab.reveal - d / 60);
+  btn.style.opacity = fab.reveal.toFixed(3);
+  btn.style.pointerEvents = fab.reveal < 0.15 ? "none" : "";
+}, { passive: true });
+
 async function startScroll(song) {
-  scroll.on = true; scroll.last = 0; scroll.carry = 0;
+  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0;
   const btn = $("play");
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   const tick = t => {
     if (!scroll.on) return;
-    if (scroll.last) {
+    if (scroll.last && !hold.active) {
       scroll.carry += (t - scroll.last) / 1000 * song.speed * 0.6;
       const px = Math.floor(scroll.carry);
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) return stopScroll();
+      // At the end: wait a few seconds (the reader may scroll back up), then stop.
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+        scroll.bottomSince ||= t;
+        if (t - scroll.bottomSince > 4000) return stopScroll();
+      } else scroll.bottomSince = 0;
     }
     scroll.last = t;
     scroll.raf = requestAnimationFrame(tick);
