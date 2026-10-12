@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tabs">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Tabs</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎸</text></svg>">
+<style>
+:root {
+  --bg: #0f1115;
+  --surface: #1a1d24;
+  --fg: #e8ecef;
+  --muted: #8a939e;
+  --accent: #d4a574;
+  --glass: rgba(26, 29, 36, 0.72);
+  --rim: rgba(255,255,255,0.08);
+  --radius: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); min-height: 100dvh; }
+.app { max-width: 480px; margin: 0 auto; padding: 16px 16px 96px; }
+h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 16px; }
+.search {
+  width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--rim);
+  background: var(--glass); color: var(--fg); font-size: 1rem; margin-bottom: 16px;
+  backdrop-filter: blur(16px);
+}
+.song {
+  background: var(--surface); border-radius: 16px; padding: 14px 16px; margin-bottom: 8px;
+  display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--rim);
+}
+.song h3 { margin: 0 0 2px; font-size: 1.05rem; }
+.song .artist { color: var(--muted); font-size: 0.85rem; }
+.fav { background: none; border: 0; font-size: 1.3rem; cursor: pointer; color: var(--muted); }
+.fav.on { color: var(--accent); }
+nav {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--rim);
+  border-radius: 28px; padding: 8px; display: flex; gap: 4px;
+}
+nav button {
+  background: none; border: 0; color: var(--muted); padding: 10px 18px; border-radius: 20px;
+  font-weight: 600; cursor: pointer;
+}
+nav button.active { background: var(--accent); color: #0f1115; }
+.viewer { padding-top: 8px; }
+.viewer h1 { font-size: 2.4rem; margin-bottom: 4px; }
+.meta { color: var(--muted); margin-bottom: 20px; }
+.tab {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.95rem; line-height: 1.35; white-space: pre; background: #0a0c10;
+  padding: 16px; border-radius: 16px; overflow-x: auto; border: 1px solid var(--rim);
+}
+.controls {
+  position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%);
+  background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--rim);
+  border-radius: 20px; padding: 12px 16px; display: flex; gap: 12px; align-items: center;
+  width: min(420px, calc(100% - 32px));
+}
+.controls label { font-size: 0.75rem; color: var(--muted); }
+.controls input[type=range] { flex: 1; }
+.btn {
+  background: var(--accent); color: #0f1115; border: 0; border-radius: 12px; padding: 12px 16px;
+  font-weight: 600; cursor: pointer; width: 100%;
+}
+.field { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--rim); background: var(--surface); color: var(--fg); margin-bottom: 12px; }
+textarea.field { min-height: 200px; font-family: ui-monospace, monospace; font-size: 0.9rem; }
+.back { background: none; border: 0; color: var(--fg); font-size: 1.4rem; cursor: pointer; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script type="module">
+import { Tabs } from "./core.js";
+
+let data = Tabs.load();
+let view = "library";
+let currentId = null;
+let scrollInterval = null;
+
+function render() {
+  const app = document.getElementById("app");
+  if (view === "library") {
+    const q = document.getElementById("search")?.value?.toLowerCase() || "";
+    const songs = data.songs.filter(s =>
+      s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)
+    );
+    app.innerHTML = `
+      <h1>Library</h1>
+      <input id="search" class="search" placeholder="Search songs..." value="${q}">
+      ${songs.map(s => `
+        <div class="song" data-id="${s.id}">
+          <div>
+            <h3>${s.title}</h3>
+            <div class="artist">${s.artist || "—"}</div>
+          </div>
+          <button class="fav ${s.favorite ? "on" : ""}" data-fav="${s.id}">♥</button>
+        </div>
+      `).join("") || `<p style="color:var(--muted)">No songs yet. Tap + to add one.</p>`}
+      <nav>
+        <button class="active">Library</button>
+        <button id="add">Add</button>
+        <button id="settings">Settings</button>
+      </nav>
+    `;
+    document.getElementById("search")?.addEventListener("input", render);
+    document.querySelectorAll(".song").forEach(el => {
+      el.addEventListener("click", e => {
+        if (e.target.closest(".fav")) return;
+        currentId = el.dataset.id;
+        view = "viewer";
+        render();
+      });
+    });
+    document.querySelectorAll(".fav").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        Tabs.toggleFavorite(data, btn.dataset.fav);
+        data = Tabs.load();
+        render();
+      });
+    });
+    document.getElementById("add").onclick = () => { view = "add"; render(); };
+    document.getElementById("settings").onclick = () => { view = "settings"; render(); };
+  }
+
+  else if (view === "viewer") {
+    const song = data.songs.find(s => s.id === currentId);
+    if (!song) { view = "library"; return render(); }
+    app.innerHTML = `
+      <button class="back" id="back">‹</button>
+      <div class="viewer">
+        <h1>${song.title}</h1>
+        <div class="meta">${song.artist || ""}</div>
+        <div class="tab" id="tab">${song.tab || ""}</div>
+      </div>
+      <div class="controls">
+        <div style="flex:1">
+          <label>Scroll</label>
+          <input type="range" id="speed" min="10" max="100" value="${data.settings.scrollSpeed}">
+        </div>
+        <button id="play">▶</button>
+      </div>
+      <nav>
+        <button id="lib">Library</button>
+        <button>Add</button>
+        <button>Settings</button>
+      </nav>
+    `;
+    document.getElementById("back").onclick = () => { view = "library"; stopScroll(); render(); };
+    document.getElementById("lib").onclick = () => { view = "library"; stopScroll(); render(); };
+    document.getElementById("play").onclick = toggleScroll;
+    document.getElementById("speed").oninput = e => {
+      data.settings.scrollSpeed = +e.target.value;
+      Tabs.save(data);
+    };
+  }
+
+  else if (view === "add") {
+    app.innerHTML = `
+      <button class="back" id="back">‹</button>
+      <h1>New Song</h1>
+      <input id="title" class="field" placeholder="Title">
+      <input id="artist" class="field" placeholder="Artist">
+      <textarea id="tab" class="field" placeholder="Paste ASCII tab here..."></textarea>
+      <button class="btn" id="save">Save Song</button>
+      <nav>
+        <button id="lib">Library</button>
+        <button class="active">Add</button>
+        <button>Settings</button>
+      </nav>
+    `;
+    document.getElementById("back").onclick = () => { view = "library"; render(); };
+    document.getElementById("lib").onclick = () => { view = "library"; render(); };
+    document.getElementById("save").onclick = () => {
+      const title = document.getElementById("title").value.trim();
+      if (!title) return alert("Title required");
+      Tabs.addSong(data, {
+        title,
+        artist: document.getElementById("artist").value.trim(),
+        tab: document.getElementById("tab").value
+      });
+      data = Tabs.load();
+      view = "library";
+      render();
+    };
+  }
+
+  else if (view === "settings") {
+    app.innerHTML = `
+      <button class="back" id="back">‹</button>
+      <h1>Settings</h1>
+      <p style="color:var(--muted)">Export/import your library as JSON.</p>
+      <button class="btn" id="export" style="margin-bottom:12px">Export Library</button>
+      <button class="btn" id="import">Import Backup</button>
+      <input type="file" id="file" accept=".json" hidden>
+      <nav>
+        <button id="lib">Library</button>
+        <button>Add</button>
+        <button class="active">Settings</button>
+      </nav>
+    `;
+    document.getElementById("back").onclick = () => { view = "library"; render(); };
+    document.getElementById("lib").onclick = () => { view = "library"; render(); };
+    document.getElementById("export").onclick = () => {
+      const blob = new Blob([Tabs.export(data)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "tabs-backup.json";
+      a.click();
+    };
+    document.getElementById("import").onclick = () => document.getElementById("file").click();
+    document.getElementById("file").onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imported = Tabs.import(reader.result);
+        if (imported) { data = imported; alert("Imported"); view = "library"; render(); }
+        else alert("Invalid file");
+      };
+      reader.readAsText(file);
+    };
+  }
+}
+
+function toggleScroll() {
+  const tab = document.getElementById("tab");
+  if (!tab) return;
+  if (scrollInterval) { stopScroll(); return; }
+  const speed = data.settings.scrollSpeed || 40;
+  scrollInterval = setInterval(() => {
+    tab.scrollTop += 1;
+    if (tab.scrollTop + tab.clientHeight >= tab.scrollHeight) stopScroll();
+  }, 1000 / (speed / 10));
+  document.getElementById("play").textContent = "❚❚";
+}
+
+function stopScroll() {
+  clearInterval(scrollInterval);
+  scrollInterval = null;
+  const btn = document.getElementById("play");
+  if (btn) btn.textContent = "▶";
+}
+
+// Register service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
+
+render();
+</script>
+</body>
+</html>
