@@ -1,6 +1,6 @@
 // Tabs service worker
-const CACHE = "tabs-v1.0.0";
-const SHELL = ["./", "index.html", "core.js", "manifest.webmanifest"];
+const CACHE = "tabs-v1.1.0";
+const SHELL = ["./", "index.html", "core.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
