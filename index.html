@@ -134,10 +134,24 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .meta { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .meta b { color: var(--fg-2); font-weight: 500; }
-.sheet { font-family: var(--mono); font-size: var(--sheet-size, 15px); line-height: 1.55; overflow-x: auto; margin: 0 -20px; padding: 0 20px; -webkit-overflow-scrolling: touch; }
-.sheet .ln { white-space: pre; min-height: 1.55em; width: max-content; }
-.sheet .ch { color: var(--accent); font-weight: 600; }
-.sheet .sec { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; white-space: normal; }
+.sheet { font-size: var(--lyric-size, 17px); line-height: 1.45; overflow-wrap: anywhere; }
+.sheet .sec { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; }
+.sheet .sec:first-child { margin-top: 4px; }
+.sheet .gap { height: 0.7em; }
+.sheet .ly { margin: 0 0 0.5em; }
+/* Chord-over-word blocks: each word stays whole; lines wrap between words */
+.sheet .pr { margin: 0 0 0.55em; }
+.sheet .w { white-space: nowrap; }
+.sheet .sg { display: inline-block; vertical-align: baseline; }
+.sheet .sg > .c { display: block; line-height: 1.25; padding-right: 0.45em; min-height: 1.25em; }
+.sheet .sg > .l { white-space: pre; }
+.sheet .sg.free > .c { width: 0; overflow: visible; white-space: nowrap; padding-right: 0; }
+.sheet { overflow-x: clip; }
+.sheet .c { color: var(--accent); font-weight: 650; font-size: 0.88em; letter-spacing: 0.01em; }
+.sheet .crow { display: flex; flex-wrap: wrap; column-gap: 1.1em; row-gap: 0.2em; margin: 0 0 0.55em; }
+/* Tabs: all strings wrap together, a measure at a time */
+.sheet .tab { font-family: var(--mono); font-size: var(--tab-size, 14px); line-height: 1.35; white-space: pre; margin: 0 0 1em; color: var(--fg); }
+.sheet .tab + .tab { margin-top: -0.2em; }
 .player { flex: 1; height: 56px; border-radius: var(--r-bar); display: flex; align-items: center; gap: 12px; padding: 0 8px; }
 .play { width: 40px; height: 40px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; padding: 0; }
 .play svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
@@ -216,7 +230,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, parseSheet, guessKey, transposeKey, prefersFlats, detectPaste } from "./core.js";
+import { Tabs, SPEEDS, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -457,23 +471,18 @@ function renderViewer(id) {
     ].filter(Boolean).join('<span class="dot"></span>');
     const sheet = $("sheet");
     const val = $("val");
+    sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
+    renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps : 0, isChords && prefersFlats(baseKey, steps)));
     if (isChords) {
-      const flats = prefersFlats(baseKey, steps);
-      sheet.innerHTML = parseSheet(song.body || "", steps, flats).map(l =>
-        l.kind === "section" ? `<div class="sec">${esc(l.text)}</div>` :
-        l.kind === "blank" ? `<div class="ln"></div>` :
-        `<div class="ln ${l.kind === "chords" ? "ch" : ""}">${esc(l.text)}</div>`).join("");
       val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
       val.classList.toggle("zero", !steps);
-      fitWidth(sheet, 15);
     } else {
-      sheet.innerHTML = (song.body || "").replace(/\r\n?/g, "\n").split("\n").map(l => `<div class="ln">${esc(l)}</div>`).join("");
-      sheet.style.setProperty("--sheet-size", Math.round(15 * song.size) + "px");
       val.textContent = Math.round(song.size * 100) + "%";
       val.classList.toggle("zero", song.size === 1);
     }
   };
   draw();
+  redraw = draw;
 
   const speed = $("speed");
   const showSpeed = () => {
@@ -496,14 +505,42 @@ function renderViewer(id) {
   window.scrollTo(0, 0);
 }
 
-// Shrink a chord sheet so its longest line fits, keeping chords over the right words.
-function fitWidth(sheet, base) {
-  sheet.style.setProperty("--sheet-size", base + "px");
-  const avail = sheet.clientWidth - 40;
-  const need = Math.max(0, ...[...sheet.querySelectorAll(".ln")].map(l => l.scrollWidth));
-  if (need > avail) sheet.style.setProperty("--sheet-size", Math.max(10, base * avail / need).toFixed(1) + "px");
+// Render display blocks. Chord/lyric pairs wrap between words with chords riding
+// on their word; tab systems are re-wrapped by measure to the screen width.
+let redraw = null;
+function renderBlocks(sheet, blocks) {
+  const word = w => w.space ? " " : `<span class="w">${w.parts.map(p => p.chord
+    ? `<span class="sg${p.free ? " free" : ""}"><span class="c">${esc(p.chord)}</span><span class="l">${esc(p.text)}</span></span>`
+    : esc(p.text)).join("")}</span>`;
+  sheet.innerHTML = blocks.map((b, i) => {
+    if (b.kind === "section") return `<div class="sec">${esc(b.text)}</div>`;
+    if (b.kind === "blank") return `<div class="gap"></div>`;
+    if (b.kind === "lyric") return `<div class="ly">${esc(b.text)}</div>`;
+    if (b.kind === "chords") return `<div class="crow">${b.items.map(c => `<span class="c">${esc(c)}</span>`).join("")}</div>`;
+    if (b.kind === "pair") return `<div class="pr">${b.words.map(word).join("")}</div>`;
+    return `<div class="tabsys" data-i="${i}"></div>`;
+  }).join("");
+
+  const systems = sheet.querySelectorAll(".tabsys");
+  if (!systems.length) return;
+  // Measure one monospace character at the current tab size.
+  const probe = document.createElement("span");
+  probe.className = "tab";
+  probe.style.cssText = "position:absolute;visibility:hidden;margin:0";
+  probe.textContent = "0".repeat(40);
+  sheet.appendChild(probe);
+  const cols = Math.max(12, Math.floor(sheet.clientWidth / (probe.getBoundingClientRect().width / 40)));
+  probe.remove();
+  systems.forEach(el => {
+    el.innerHTML = wrapTab(blocks[+el.dataset.i].lines, cols)
+      .map(rows => `<div class="tab">${rows.map(esc).join("\n")}</div>`).join("");
+  });
 }
-window.addEventListener("resize", () => { const s = $("sheet"); if (s && route().name === "song") fitWidth(s, 15); });
+let resizeTimer = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (redraw && route().name === "song" && $("sheet")) redraw(); }, 120);
+});
 
 async function startScroll(song) {
   scroll.on = true; scroll.last = 0; scroll.carry = 0;

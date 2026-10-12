@@ -251,6 +251,158 @@ export function detectPaste(text) {
   return { title, artist, body, format, key: format === "chords" ? guessKey(body) : "", sections };
 }
 
+// ---------- Wrapping layout ----------
+
+const isTabLine = l => TAB_LINE_RE.test(l) && (l.match(/-/g) || []).length >= 6;
+
+function xposeToken(tok, steps, flats) {
+  const lead = tok.startsWith("(") ? "(" : "";
+  const trail = tok.endsWith(")") && tok.length > 1 ? ")" : "";
+  const bare = tok.slice(lead.length, tok.length - trail.length);
+  return isChord(bare) ? lead + transposeChord(bare, steps, flats) + trail : tok;
+}
+
+// Split a lyric into words, attaching each chord to the character it sits over.
+// Returns items: { space: true } or { parts: [{ chord, text }] }.
+// A word is never split, so a line can only wrap between words.
+export function buildWords(lyric, chordsAt) {
+  const positions = [...chordsAt.keys()].sort((a, b) => a - b);
+  const last = positions.length ? positions[positions.length - 1] : -1;
+  let text = lyric;
+  if (text.length <= last) text += " ".repeat(last + 1 - text.length);
+  const items = [];
+  const re = /\S+|\s+/g;
+  const NBSP = " ";
+  let pending = ""; // chord written over the gap before a word rides on that word
+  let pendingPos = -1;
+  // A chord may hang past its syllable when the next chord is far enough away.
+  const free = (pos, chord, from = pos) => {
+    const next = positions.find(q => q > pos);
+    return next === undefined || next - from > chord.length + 1;
+  };
+  let m;
+  while ((m = re.exec(text))) {
+    const s = m.index, e = s + m[0].length;
+    const inside = positions.filter(p => p >= s && p < e);
+    if (!m[0].trim()) {
+      // Chords over a gap: all but the last stand alone; the last waits for the next word.
+      if (pending) items.push({ parts: [{ chord: pending, text: NBSP }] });
+      for (const p of inside.slice(0, -1)) items.push({ parts: [{ chord: chordsAt.get(p), text: NBSP }] }, { space: true });
+      pending = inside.length ? chordsAt.get(inside[inside.length - 1]) : "";
+      pendingPos = inside.length ? inside[inside.length - 1] : -1;
+      items.push({ space: true });
+      continue;
+    }
+    const cuts = [s, ...inside.filter(p => p > s), e];
+    const parts = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const chord = chordsAt.get(cuts[i]) || "";
+      parts.push({ chord, text: text.slice(cuts[i], cuts[i + 1]), free: !!chord && free(cuts[i], chord) });
+    }
+    if (pending) {
+      if (parts[0].chord) items.push({ parts: [{ chord: pending, text: NBSP }] }, { space: true });
+      else { parts[0].chord = pending; parts[0].free = free(pendingPos, pending, s); }
+      pending = "";
+    }
+    items.push({ parts });
+  }
+  if (pending) items.push({ parts: [{ chord: pending, text: NBSP }] });
+  // Tidy runs of spaces left by chords over gaps.
+  return items.filter((it, i) => !(it.space && (i === 0 || items[i - 1].space)));
+}
+
+// Display blocks for the song view. Unlike parseSheet, these are built to wrap:
+//   { kind: "section" | "blank" | "lyric" | "chords" | "pair" | "tab", ... }
+export function parseBlocks(text, steps = 0, flats = false) {
+  const lines = text.replace(/\r\n?/g, "\n").replace(/\t/g, "    ").split("\n").map(l => l.replace(/\s+$/, ""));
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) { out.push({ kind: "blank" }); continue; }
+
+    if (isTabLine(line) && isTabLine(lines[i + 1] || "")) {
+      const sys = [];
+      while (i < lines.length && isTabLine(lines[i])) sys.push(lines[i++]);
+      i--;
+      out.push({ kind: "tab", lines: sys });
+      continue;
+    }
+
+    const sec = line.match(SECTION_RE);
+    if (sec && !(sec[1] && isChord(sec[1]))) { out.push({ kind: "section", text: (sec[1] || sec[2]).trim() }); continue; }
+
+    const inline = [...line.matchAll(/\[([^\]]+)\]/g)];
+    if (inline.length && inline.every(x => isChord(x[1]))) {
+      const chordsAt = new Map();
+      let lyric = "", idx = 0;
+      for (const x of inline) {
+        lyric += line.slice(idx, x.index);
+        const label = transposeChord(x[1], steps, flats);
+        chordsAt.set(lyric.length, chordsAt.has(lyric.length) ? chordsAt.get(lyric.length) + " " + label : label);
+        idx = x.index + x[0].length;
+      }
+      lyric += line.slice(idx);
+      out.push(lyric.trim() ? { kind: "pair", words: buildWords(lyric, chordsAt) }
+                            : { kind: "chords", items: [...chordsAt.values()] });
+      continue;
+    }
+
+    if (isChordLine(line)) {
+      const chordsAt = new Map();
+      const re = /\S+/g;
+      let m;
+      while ((m = re.exec(line))) chordsAt.set(m.index, xposeToken(m[0], steps, flats));
+      const next = lines[i + 1];
+      const nextIsLyric = next && next.trim() && !isChordLine(next) && !SECTION_RE.test(next) && !isTabLine(next) &&
+        !(/\[[^\]]+\]/.test(next) && [...next.matchAll(/\[([^\]]+)\]/g)].every(x => isChord(x[1])));
+      if (nextIsLyric) {
+        out.push({ kind: "pair", words: buildWords(next, chordsAt) });
+        i++;
+      } else out.push({ kind: "chords", items: [...chordsAt.values()] });
+      continue;
+    }
+
+    out.push({ kind: "lyric", text: line });
+  }
+  // Collapse repeated blanks.
+  return out.filter((b, i) => !(b.kind === "blank" && (i === 0 || out[i - 1].kind === "blank")));
+}
+
+// Wrap a tab system (all strings together) to `cols` characters, breaking at
+// bar lines shared by every string and repeating the string names on each row.
+export function wrapTab(lines, cols) {
+  const width = Math.max(...lines.map(l => l.length));
+  const ls = lines.map(l => l.padEnd(width, " "));
+  if (width <= cols) return [ls];
+  const bars = [];
+  for (let p = 0; p < width; p++) if (ls.every(l => l[p] === "|")) bars.push(p);
+  const labelEnd = bars.length && bars[0] <= 4 ? bars[0] + 1 : 0;
+  const label = ls.map(l => l.slice(0, labelEnd));
+  const room = Math.max(8, cols - labelEnd);
+
+  // Measures: label end → each shared bar (inclusive), then any tail.
+  const cuts = [labelEnd, ...bars.filter(b => b >= labelEnd).map(b => b + 1)];
+  if (cuts[cuts.length - 1] < width) cuts.push(width);
+  const measures = [];
+  for (let k = 0; k < cuts.length - 1; k++) {
+    let a = cuts[k];
+    const b = cuts[k + 1];
+    while (b - a > room) { measures.push([a, a + room]); a += room; } // over-long measure: hard split
+    if (b > a) measures.push([a, b]);
+  }
+
+  const rows = [];
+  let cur = null, len = 0;
+  for (const [a, b] of measures) {
+    if (cur && len + (b - a) > room) { rows.push(cur); cur = null; }
+    if (!cur) { cur = label.slice(); len = 0; }
+    cur = cur.map((r, j) => r + ls[j].slice(a, b));
+    len += b - a;
+  }
+  if (cur) rows.push(cur);
+  return rows.map(r => r.map(l => l.replace(/\s+$/, "")));
+}
+
 // Parse a chord sheet into display lines.
 // Each line: { kind: "chords" | "lyric" | "section" | "blank", text }
 export function parseSheet(text, steps = 0, flats = false) {

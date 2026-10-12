@@ -20,7 +20,8 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Recent songs, favorites and a Tabs filter on the library
 - Slim playback bar: auto-scroll with speed, transpose (or text size for tabs)
 - Transpose per song, with sharps or flats chosen by the resulting key
-- Chord sheets auto-fit to screen width so chords stay over the right words
+- Lyrics wrap to the screen at full size, with each chord riding on its word; words never split
+- Tabs wrap a measure at a time, all strings together, with string names on every row
 - Add and edit in a slide-up sheet; delete from edit
 - Settings (gear, top right): scroll speed, default transpose, dark/light mode, backup
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
