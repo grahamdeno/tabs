@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#0c0d0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,432 +15,506 @@
 <style>
 :root {
   --bg: #0c0d0f;
-  --bg-glow: rgba(255,255,255,0.045);
+  --bg-glow: rgba(255,255,255,0.05);
   --fg: #f3f1ee;
   --fg-2: #c9c7c3;
   --muted: #8f8e8c;
   --accent: #eda27f;
   --accent-deep: #c97a57;
-  --accent-soft: rgba(237,162,127,0.16);
+  --on-accent: #1a120d;
+  --accent-soft: rgba(237,162,127,0.13);
+  --accent-line: rgba(237,162,127,0.4);
   --card: rgba(255,255,255,0.035);
-  --card-2: rgba(255,255,255,0.06);
+  --card-2: rgba(255,255,255,0.07);
   --rim: rgba(255,255,255,0.09);
-  --rim-hi: rgba(255,255,255,0.16);
-  --glass: rgba(38,39,42,0.62);
-  --shadow: 0 10px 30px rgba(0,0,0,0.45);
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
-  --serif: "New York", ui-serif, "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+  --hair: rgba(255,255,255,0.07);
+  --rim-hi: rgba(255,255,255,0.12);
+  --bar: rgba(38,39,42,0.86);
+  --solid: #1b1c1f;
+  --scrim: rgba(4,4,5,0.6);
+  --shadow: 0 8px 24px rgba(0,0,0,0.4);
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --serif: "New York", ui-serif, "Iowan Old Style", Charter, Georgia, serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  --r: 12px;
+  --r-bar: 14px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
   color-scheme: dark;
 }
 :root[data-theme="light"] {
   --bg: #f3f0eb;
-  --bg-glow: rgba(255,255,255,0.7);
+  --bg-glow: rgba(255,255,255,0.8);
   --fg: #1d1c1a;
   --fg-2: #3b3936;
-  --muted: #7d7a75;
+  --muted: #76736e;
   --accent: #c46f48;
   --accent-deep: #a95a37;
-  --accent-soft: rgba(196,111,72,0.12);
-  --card: rgba(255,255,255,0.65);
-  --card-2: rgba(255,255,255,0.9);
+  --on-accent: #fff8f3;
+  --accent-soft: rgba(196,111,72,0.1);
+  --accent-line: rgba(196,111,72,0.4);
+  --card: rgba(255,255,255,0.6);
+  --card-2: rgba(255,255,255,0.92);
   --rim: rgba(0,0,0,0.08);
+  --hair: rgba(0,0,0,0.07);
   --rim-hi: rgba(255,255,255,0.9);
-  --glass: rgba(255,255,255,0.72);
-  --shadow: 0 10px 30px rgba(60,40,20,0.12);
+  --bar: rgba(255,255,255,0.86);
+  --solid: #fbf9f6;
+  --scrim: rgba(40,30,20,0.28);
+  --shadow: 0 8px 24px rgba(60,40,20,0.12);
   color-scheme: light;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html { background: var(--bg); }
 body {
-  margin: 0; min-height: 100dvh; color: var(--fg); font-family: var(--sans);
-  background:
-    radial-gradient(120% 60% at 50% -10%, var(--bg-glow), transparent 60%),
-    var(--bg);
-  background-attachment: fixed;
-  -webkit-font-smoothing: antialiased;
+  margin: 0; min-height: 100dvh; color: var(--fg); font-family: var(--sans); font-size: 16px;
+  background: radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%), var(--bg);
+  background-attachment: fixed; -webkit-font-smoothing: antialiased;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+input, textarea { outline: none; }
+::placeholder { color: var(--muted); }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-.app { max-width: 520px; margin: 0 auto; padding: calc(28px + var(--safe-t)) 20px calc(130px + var(--safe-b)); }
-.app.viewer-page { padding-bottom: calc(190px + var(--safe-b)); }
+.app { max-width: 520px; margin: 0 auto; padding: calc(18px + var(--safe-t)) 20px calc(110px + var(--safe-b)); }
 
-/* Titles */
-.title-sans { font-size: 3.1rem; font-weight: 500; letter-spacing: -0.035em; line-height: 1.05; margin: 12px 4px 26px; }
-.title-serif { font-family: var(--serif); font-weight: 400; font-size: 3.3rem; letter-spacing: -0.02em; line-height: 1.02; margin: 30px 4px 26px; color: var(--fg); }
-
-/* Glass surfaces */
+/* Surfaces */
 .glass {
   background: linear-gradient(180deg, var(--card-2), var(--card));
   border: 1px solid var(--rim);
-  box-shadow: inset 0 1px 0 var(--rim-hi), var(--shadow);
-  -webkit-backdrop-filter: blur(22px) saturate(140%); backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: inset 0 1px 0 var(--rim-hi);
 }
+.float { box-shadow: inset 0 1px 0 var(--rim-hi), var(--shadow); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); background: var(--bar); }
 
-/* Search */
-.search { display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 24px; border-radius: 32px; margin-bottom: 22px; }
-.search svg { color: var(--muted); width: 26px; height: 26px; }
-.search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 1.15rem; color: var(--fg); }
-.search input::placeholder { color: var(--muted); }
+/* Header */
+.head { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin-bottom: 4px; }
+.title { font-family: var(--serif); font-weight: 400; font-size: 40px; letter-spacing: -0.01em; line-height: 1.1; margin: 0; }
+.ib { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--fg-2); flex: none; position: relative; }
+.ib::after { content: ""; position: absolute; inset: -4px; }
+.ib.on { color: var(--accent); }
+.ib.on svg { fill: var(--accent); }
+.row-btns { display: flex; gap: 10px; }
 
-/* Filter chips */
-.chips { display: flex; gap: 8px; margin: -8px 0 16px 2px; }
-.chip { border: 1px solid var(--rim); background: var(--card); color: var(--muted); padding: 7px 14px; border-radius: 999px; font-size: 0.85rem; }
-.chip.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); }
+/* Chips */
+.chips { display: flex; gap: 8px; margin: 14px 0 0; }
+.chip { height: 28px; padding: 0 12px; border-radius: 14px; font-size: 13px; border: 1px solid var(--rim); background: var(--card); color: var(--muted); }
+.chip.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
 
-/* Song list */
-.list { display: flex; flex-direction: column; gap: 10px; }
-.song {
-  display: flex; align-items: center; gap: 12px; padding: 16px 18px 16px 24px; border-radius: 14px;
-  background: linear-gradient(180deg, var(--card-2), var(--card)); border: 1px solid var(--rim);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rim-hi) 50%, transparent);
-  text-align: left; width: 100%;
-}
-.song:active { transform: scale(0.99); }
-.song .txt { flex: 1; min-width: 0; }
-.song h3 { margin: 0 0 4px; font-size: 1.2rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.song .artist { color: var(--muted); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.badge { font-size: 0.66rem; letter-spacing: 0.08em; font-weight: 600; color: var(--muted); border: 1px solid var(--rim); border-radius: 6px; padding: 2px 6px; margin-left: 8px; vertical-align: 3px; }
-.fav { background: none; border: 0; color: var(--accent); padding: 8px; margin: -8px -4px -8px 0; }
-.fav svg { width: 28px; height: 28px; }
-.fav.on svg { fill: var(--accent); }
-.empty { color: var(--muted); text-align: center; padding: 48px 20px; line-height: 1.6; }
-.empty button { margin-top: 18px; }
+/* Sections and lists */
+.label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 22px 4px 8px; }
+.list { border-radius: 16px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 10px; width: 100%; height: 60px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--hair); background: none; text-align: left; color: var(--fg); }
+.row:last-child { border-bottom: 0; }
+.row:active { background: var(--card-2); }
+.row .txt { flex: 1; min-width: 0; }
+.row .t { font-size: 16px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .a { font-size: 13.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .k { font: 500 13px var(--mono); color: var(--muted); min-width: 30px; text-align: right; }
+.heart { width: 14px; height: 14px; fill: var(--accent); flex: none; }
+.recent { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rc { border-radius: 14px; padding: 12px 14px; text-align: left; color: var(--fg); min-width: 0; }
+.rc .t { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc .a { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.empty { color: var(--muted); text-align: center; padding: 56px 24px; line-height: 1.6; font-size: 15px; }
 
-/* Bottom nav */
-nav.tabbar {
-  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + var(--safe-b));
-  width: min(480px, calc(100% - 28px)); height: 92px; border-radius: 34px;
-  display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; z-index: 20;
-  background: var(--glass);
-}
-nav.tabbar button { position: relative; background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--fg-2); font-size: 1rem; height: 100%; }
-nav.tabbar svg { width: 34px; height: 34px; stroke-width: 1.4; }
-nav.tabbar button.active { color: var(--accent); }
-nav.tabbar button.active::after {
-  content: ""; position: absolute; bottom: 12px; width: 120px; height: 10px; border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 70%, transparent), transparent);
-  filter: blur(3px);
-}
-nav.tabbar button.active span { color: var(--fg); }
+/* Bottom bars */
+.dock { position: fixed; left: 50%; bottom: calc(14px + var(--safe-b)); width: min(496px, calc(100% - 24px)); transform: translateX(-50%); z-index: 20; display: flex; gap: 10px; transition: transform .15s; }
+.dock-fade { position: fixed; left: 0; right: 0; bottom: 0; height: calc(110px + var(--safe-b)); background: linear-gradient(180deg, transparent, var(--bg) 70%); pointer-events: none; z-index: 10; }
+.cmd { flex: 1; min-width: 0; height: 52px; border-radius: var(--r-bar); display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; }
+.cmd svg { color: var(--accent); }
+.cmd input { flex: 1; min-width: 0; border: 0; background: none; font-size: 16px; height: 100%; }
+.cmd .clear[hidden] { display: none; }
+.cmd .clear { width: 32px; height: 32px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; padding: 0; }
+.add { width: 52px; height: 52px; border-radius: var(--r-bar); border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); }
+.add svg { width: 20px; height: 20px; stroke-width: 2.2; }
 
-/* Round icon buttons */
-.circle { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--fg); padding: 0; }
-.circle svg { width: 26px; height: 26px; }
-.topbar { display: flex; justify-content: space-between; align-items: center; }
-.head-inline { display: flex; align-items: center; gap: 22px; margin: 4px 0 26px; }
-.head-inline h1 { font-size: 2.7rem; font-weight: 500; letter-spacing: -0.03em; margin: 0; }
-
-/* Viewer */
-.song-title { font-family: var(--serif); font-weight: 400; font-size: clamp(2.6rem, 13vw, 4.4rem); letter-spacing: -0.02em; line-height: 1.02; margin: 26px 2px 10px; overflow-wrap: anywhere; }
-.meta { color: var(--muted); font-size: 1.25rem; margin: 0 2px 30px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.meta .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-.meta .key b { color: var(--fg-2); font-weight: 500; }
-.sheet { font-family: var(--mono); font-size: var(--sheet-size, 1rem); line-height: 1.5; overflow-x: auto; margin: 0 -20px; padding: 0 22px; -webkit-overflow-scrolling: touch; }
-.sheet .ln { white-space: pre; min-height: 1.5em; width: max-content; }
+/* Song view */
+.song-title { font-family: var(--serif); font-weight: 400; font-size: 36px; letter-spacing: -0.01em; line-height: 1.1; margin: 18px 0 6px; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.meta b { color: var(--fg-2); font-weight: 500; }
+.sheet { font-family: var(--mono); font-size: var(--sheet-size, 15px); line-height: 1.55; overflow-x: auto; margin: 0 -20px; padding: 0 20px; -webkit-overflow-scrolling: touch; }
+.sheet .ln { white-space: pre; min-height: 1.55em; width: max-content; }
 .sheet .ch { color: var(--accent); font-weight: 600; }
-.sheet .ly { color: var(--fg); }
-.sheet .sec { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0.9em 0 0.3em; white-space: normal; }
-.sheet .ln.tab { color: var(--fg); letter-spacing: 0.02em; }
+.sheet .sec { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; white-space: normal; }
+.player { flex: 1; height: 56px; border-radius: var(--r-bar); display: flex; align-items: center; gap: 12px; padding: 0 8px; }
+.play { width: 40px; height: 40px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; padding: 0; }
+.play svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.speed { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.speed span { font: 500 13px var(--mono); color: var(--fg-2); width: 34px; text-align: right; }
+.vsep { width: 1px; height: 26px; background: var(--rim); }
+.step { display: flex; align-items: center; gap: 4px; }
+.sb { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--rim); background: var(--card); color: var(--fg-2); display: grid; place-items: center; padding: 0; }
+.sb svg { width: 14px; height: 14px; }
+.step .v { font: 600 13px var(--mono); color: var(--accent); min-width: 28px; text-align: center; }
+.step .v.zero { color: var(--muted); font-weight: 500; }
 
-.controls {
-  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + var(--safe-b)); z-index: 20;
-  width: min(480px, calc(100% - 24px)); border-radius: 34px; padding: 16px 14px 16px 22px;
-  display: flex; align-items: center; gap: 14px; background: var(--glass);
-}
-.ctl-group { display: flex; flex-direction: column; gap: 14px; }
-.ctl-group.grow { flex: 1; min-width: 96px; }
-.ctl-label { color: var(--fg-2); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.ctl-label .val { color: var(--accent); font-variant-numeric: tabular-nums; }
-.ctl-label svg { width: 18px; height: 18px; }
-.pair { display: flex; gap: 10px; }
-.mini { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--fg-2); }
-.mini svg { width: 22px; height: 22px; }
-.mini.hot { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: inset 0 1px 0 var(--rim-hi), 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent); }
-.divider { width: 1px; align-self: stretch; background: var(--rim); margin: 4px 0; }
-.play { width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--fg); flex: none; }
-.play svg { width: 34px; height: 34px; fill: currentColor; stroke: none; }
+input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 28px; background: none; margin: 0; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--accent) var(--fill, 50%), var(--card-2) var(--fill, 50%)); }
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--accent) var(--fill, 50%), var(--card-2) var(--fill, 50%)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: #f6c3a8; border: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #f6c3a8; border: 0; }
 
-/* Range slider */
-input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; background: none; margin: 0; }
-input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--fill, 50%), var(--card-2) var(--fill, 50%)); }
-input[type=range]::-moz-range-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--fill, 50%), var(--card-2) var(--fill, 50%)); }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; margin-top: -12px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f6c3a8, var(--accent) 55%, var(--accent-deep)); border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
-input[type=range]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f6c3a8, var(--accent) 55%, var(--accent-deep)); border: 1px solid rgba(255,255,255,0.35); }
-
-/* Forms */
-.form label.lbl { display: block; color: var(--fg-2); font-size: 1.05rem; margin: 0 2px 10px; }
-.form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.field {
-  width: 100%; border-radius: 16px; padding: 0 26px; height: 64px; font-size: 1.15rem; margin-bottom: 22px;
-  outline: none; color: var(--fg);
-}
-.field::placeholder { color: var(--muted); }
-.field:focus { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
-textarea.field { height: auto; min-height: 44vh; padding: 20px 26px; font-family: var(--mono); font-size: 0.95rem; line-height: 1.5; resize: vertical; white-space: pre; overflow-x: auto; border-radius: 24px; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; padding: 5px; border-radius: 18px; height: 64px; margin-bottom: 22px; }
-.seg button { border: 0; background: none; border-radius: 13px; color: var(--muted); font-size: 1.05rem; }
-.seg button.on { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
-.cta {
-  width: 100%; height: 76px; border-radius: 26px; font-size: 1.6rem; color: var(--accent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 26%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
-  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 0 28px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-.cta:active { transform: scale(0.99); }
-.danger { display: block; margin: 22px auto 0; background: none; border: 0; color: #e07a6c; font-size: 1rem; padding: 10px 16px; }
-.hint { color: var(--muted); font-size: 0.85rem; margin: -12px 4px 22px; line-height: 1.5; }
+/* Sheets (add / edit / paste) */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; animation: fade .2s; }
+.panel { position: fixed; left: 50%; transform: translateX(-50%); width: min(520px, 100%); z-index: 41; background: var(--solid); border: 1px solid var(--rim); }
+.panel.full { top: calc(10px + var(--safe-t)); bottom: 0; border-radius: 18px 18px 0 0; border-bottom: 0; display: flex; flex-direction: column; animation: up .28s cubic-bezier(.2,.8,.2,1); }
+.panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
+@keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
+@keyframes fade { from { opacity: 0; } }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--rim); margin: 8px auto 4px; flex: none; }
+.ph { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 12px; flex: none; }
+.ph h2 { font-size: 17px; font-weight: 600; margin: 0; }
+.tb { border: 0; background: none; font-size: 16px; padding: 8px 10px; color: var(--fg-2); }
+.tb.go { color: var(--accent); font-weight: 600; }
+.pbody { flex: 1; overflow-y: auto; padding: 0 16px calc(20px + var(--safe-b)); display: flex; flex-direction: column; }
+.fields { border-radius: var(--r); margin-bottom: 12px; }
+.fld { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 14px; border-bottom: 1px solid var(--hair); }
+.fld:last-child { border-bottom: 0; }
+.fld .lab { width: 54px; font-size: 15px; color: var(--muted); flex: none; }
+.fld input { flex: 1; min-width: 0; border: 0; background: none; font-size: 16px; height: 44px; }
+.seg { display: flex; padding: 2px; border-radius: 9px; background: var(--card-2); flex: 1; }
+.seg button { flex: 1; height: 28px; border-radius: 7px; border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 500; }
+.seg button.on { background: var(--accent-soft); color: var(--accent); }
+textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r); padding: 14px; font: 14px/1.55 var(--mono); resize: none; white-space: pre; overflow: auto; }
+.detect { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 18px; }
+.detect svg { color: var(--accent); width: 15px; height: 15px; }
+.danger { margin-top: 18px; border: 0; background: none; color: #e07a6c; font-size: 15px; padding: 10px; }
+.pc-head { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg-2); margin-bottom: 12px; }
+.pc-head svg { color: var(--accent); width: 16px; height: 16px; }
+.preview { border-radius: var(--r); background: var(--card); border: 1px solid var(--hair); padding: 10px 14px; height: 96px; overflow: hidden; font: 13px/1.5 var(--mono); white-space: pre; margin-bottom: 12px; -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
+.preview .ch { color: var(--accent); font-weight: 600; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tag { height: 26px; padding: 0 10px; border-radius: 13px; font-size: 12.5px; display: inline-flex; align-items: center; border: 1px solid var(--accent-line); color: var(--accent); background: var(--accent-soft); }
+.actions { display: flex; gap: 10px; margin-top: 2px; }
+.btn { height: 46px; border-radius: var(--r); font-size: 15px; font-weight: 500; border: 1px solid var(--rim); background: var(--card); color: var(--fg-2); flex: 1; }
+.btn.primary { flex: 2; border: 0; background: var(--accent); color: var(--on-accent); font-weight: 600; }
 
 /* Settings */
-.group { border-radius: 30px; padding: 4px 20px; }
-.setting { position: relative; display: flex; align-items: center; gap: 18px; padding: 20px 0; border-bottom: 1px solid var(--rim); width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; text-align: left; color: var(--fg-2); font-size: 1.08rem; }
-.setting:last-child { border-bottom: 0; }
-.setting .tile { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; flex: none; color: var(--fg-2); }
-.setting .tile svg { width: 28px; height: 28px; }
-.setting .tile .acc { stroke: var(--accent); }
-.setting .name { flex: 1; min-width: 0; line-height: 1.25; }
-.setting .value { color: var(--accent); white-space: nowrap; }
-.setting .chev { color: var(--muted); width: 22px; height: 22px; }
-.setting select { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; font-size: 16px; }
-.toggle { width: 84px; height: 46px; border-radius: 23px; position: relative; flex: none; border: 1px solid var(--rim); background: var(--card-2); transition: background .2s; padding: 0; }
-.toggle::after { content: ""; position: absolute; top: 4px; left: 4px; width: 36px; height: 36px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
-.toggle.on { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 25%, transparent); }
-.toggle.on::after { transform: translateX(38px); background: radial-gradient(circle at 40% 35%, #f6c3a8, var(--accent) 60%, var(--accent-deep)); }
-.tip { display: flex; align-items: center; gap: 22px; border-radius: 22px; padding: 18px 22px; margin-top: 26px; color: var(--fg-2); font-size: 1rem; line-height: 1.5; }
-.tip .tile { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; flex: none; }
-.ver { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 22px; }
+.set-group { border-radius: 16px; overflow: hidden; margin-top: 8px; }
+.set { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; padding: 0 14px; border: 0; border-bottom: 1px solid var(--hair); background: none; text-align: left; color: var(--fg); font-size: 16px; }
+.set:last-child { border-bottom: 0; }
+.set .tile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--card-2); border: 1px solid var(--rim); color: var(--fg-2); flex: none; }
+.set .tile svg { width: 17px; height: 17px; }
+.set .name { flex: 1; }
+.set .val { color: var(--accent); font-size: 15px; }
+.set .chev { color: var(--muted); width: 16px; height: 16px; }
+.set select { position: absolute; inset: 0; opacity: 0; width: 100%; font-size: 16px; }
+.toggle { width: 51px; height: 31px; border-radius: 16px; position: relative; flex: none; border: 0; padding: 0; background: var(--card-2); box-shadow: inset 0 0 0 1px var(--rim); transition: background .2s; }
+.toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform .2s; }
+.toggle.on { background: var(--accent); box-shadow: none; }
+.toggle.on::after { transform: translateX(20px); }
+.foot { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 14px 6px 0; }
 
-.toast { position: fixed; left: 50%; top: calc(18px + var(--safe-t)); transform: translate(-50%, -140%); padding: 14px 22px; border-radius: 18px; z-index: 50; transition: transform .25s; font-size: 0.95rem; }
+.toast { position: fixed; left: 50%; top: calc(12px + var(--safe-t)); transform: translate(-50%, -150%); padding: 10px 16px; border-radius: var(--r); z-index: 60; transition: transform .25s; font-size: 14px; background: var(--solid); border: 1px solid var(--rim); box-shadow: var(--shadow); }
 .toast.show { transform: translate(-50%, 0); }
-
-@media (max-width: 380px) {
-  .controls { gap: 10px; padding-left: 18px; }
-  .play { width: 64px; height: 64px; }
-  .mini { width: 40px; height: 40px; }
-  .setting { gap: 14px; font-size: 1rem; }
-  .setting .tile { width: 48px; height: 48px; }
-}
 </style>
 </head>
 <body>
 <div class="app" id="app"></div>
-<div class="toast glass" id="toast"></div>
+<div id="layer"></div>
+<div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, parseSheet, guessKey, transposeKey, prefersFlats } from "./core.js";
+import { Tabs, SPEEDS, parseSheet, guessKey, transposeKey, prefersFlats, detectPaste } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/>',
   heart: '<path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 3.9 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.3 0 5.6 3.1 4.4 6.6-1.7 4.8-9.2 9.4-9.2 9.4z"/>',
-  guitar: '<path d="M14.5 9.5 20 4"/><path d="m18.5 2.5 3 3"/><path d="M9.6 9.1c-1.6-.6-3.5-.2-4.6 1-1 1-1.1 2.3-.6 3.3-1.4.4-2.6 1.6-2.4 3.4.3 2.6 3.4 5 6 4.6 1.6-.2 2.6-1.2 3-2.6 1 .5 2.4.3 3.3-.6 1.2-1.2 1.6-3 1-4.6"/><circle cx="10" cy="14" r="1.6"/><path d="m11.2 12.8 3.3-3.3"/>',
-  plusCircle: '<circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v9M7.5 12h9"/>',
-  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M6 12h12"/>',
+  x: '<path d="M7 7l10 10M17 7 7 17"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   back: '<path d="m14.5 5-7 7 7 7"/>',
   chev: '<path d="m9 5 7 7-7 7"/>',
-  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
-  minus: '<path d="M6 12h12"/>',
-  plus: '<path d="M12 6v12M6 12h12"/>',
-  gauge: '<path d="M4.5 17a9 9 0 1 1 15 0"/><path d="m12 13 3.5-4" class="acc"/><circle cx="12" cy="13" r="1.3"/><path d="M12 5.5v1.5M6.8 7.8l1 1M17.2 7.8l-1 1M4.5 13h1.5M18 13h1.5" class="acc"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  gauge: '<path d="M4.5 17a9 9 0 1 1 15 0"/><path d="m12 13 3.5-4"/><circle cx="12" cy="13" r="1.2"/>',
   note: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
-  upload: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5" class="acc"/><path d="M4 14v5h16v-5"/>',
-  download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" class="acc"/><path d="M4 14v5h16v-5"/>',
-  info: '<path d="M12 10.5v7"/><circle cx="12" cy="7" r=".6" fill="currentColor"/><path d="M9.5 17.5h5"/>',
-  text: '<path d="M5 6V4.5h14V6M12 4.5v15M9.5 19.5h5"/>',
+  upload: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5h16v-5"/>',
+  download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4 14v5h16v-5"/>',
+  clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
+  check: '<path d="M5 12l4 4 10-10"/>',
   play: '<path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/>',
-  pause: '<rect x="6.5" y="5" width="3.8" height="14" rx="1.4"/><rect x="13.7" y="5" width="3.8" height="14" rx="1.4"/>'
+  pause: '<rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/>'
 };
-const icon = (name, cls = "") => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[name]}</svg>`;
+const icon = (n, cls = "") => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = id => document.getElementById(id);
 
 // ---------- State ----------
 let data = Tabs.load();
 let query = "";
-let favOnly = false;
-let draftFormat = "chords";
-const app = document.getElementById("app");
+let filter = "all";
+let draft = null; // prefilled fields for the add sheet
+const app = $("app");
+const layer = $("layer");
 
 function applyTheme() {
-  const theme = data.settings.theme === "light" ? "light" : "dark";
-  document.documentElement.dataset.theme = theme;
-  document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f3f0eb" : "#0c0d0f";
+  const light = data.settings.theme === "light";
+  document.documentElement.dataset.theme = light ? "light" : "dark";
+  document.querySelector('meta[name="theme-color"]').content = light ? "#f3f0eb" : "#0c0d0f";
 }
 
 function toast(msg) {
-  const t = document.getElementById("toast");
+  const t = $("toast");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove("show"), 2200);
+  toast.timer = setTimeout(() => t.classList.remove("show"), 2000);
 }
 
-const go = hash => { location.hash = hash; };
-function route() {
+const go = h => { location.hash = h; };
+const route = () => {
   const [, name = "", id = ""] = location.hash.split("/");
   return { name: name || "library", id: decodeURIComponent(id) };
-}
+};
+const keyOf = s => s.format === "tab" ? "TAB" : (s.key || guessKey(s.body || ""));
 
-const tabbar = active => `
-  <nav class="tabbar glass">
-    <button data-go="#/" class="${active === "library" ? "active" : ""}">${icon("guitar")}<span>Library</span></button>
-    <button data-go="#/add" class="${active === "add" ? "active" : ""}">${icon("plusCircle")}<span>Add</span></button>
-    <button data-go="#/settings" class="${active === "settings" ? "active" : ""}">${icon("gear")}<span>Settings</span></button>
-  </nav>`;
-
-function wireNav() {
-  app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+// Keep bottom bars above the iOS keyboard.
+function followKeyboard() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const off = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  document.querySelectorAll(".kb").forEach(el => {
+    el.style.transform = `translate(-50%, ${-off}px)`;
+  });
 }
+window.visualViewport?.addEventListener("resize", followKeyboard);
+window.visualViewport?.addEventListener("scroll", followKeyboard);
 
 // ---------- Library ----------
 function renderLibrary() {
-  app.className = "app";
+  const hasFav = data.songs.some(s => s.favorite);
+  const hasTab = data.songs.some(s => s.format === "tab");
+  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab)) filter = "all";
   app.innerHTML = `
-    <h1 class="title-sans">Library</h1>
-    <label class="search glass">${icon("search")}<input id="search" type="search" placeholder="Search songs..." value="${esc(query)}" autocomplete="off"></label>
-    ${data.songs.some(s => s.favorite) ? `<div class="chips"><button class="chip ${favOnly ? "" : "on"}" data-f="all">All</button><button class="chip ${favOnly ? "on" : ""}" data-f="fav">Favorites</button></div>` : ""}
-    <div class="list" id="list"></div>
-    ${tabbar("library")}`;
-  const input = document.getElementById("search");
-  input.oninput = () => { query = input.value; renderList(); };
-  app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { favOnly = b.dataset.f === "fav"; renderLibrary(); });
-  wireNav();
+    <div class="head">
+      <h1 class="title">Library</h1>
+      <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
+    </div>
+    ${hasFav || hasTab ? `<div class="chips" id="chips">
+      <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
+      ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
+      ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
+    </div>` : ""}
+    <div id="list"></div>
+    <div class="dock-fade"></div>
+    <div class="dock kb">
+      <label class="cmd glass float">
+        ${icon("search")}
+        <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search, or paste a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or paste a song">
+        <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
+      </label>
+      <button class="add" id="add" aria-label="Add song">${icon("plus")}</button>
+    </div>`;
+  $("settings").onclick = () => go("#/settings");
+  $("add").onclick = () => { draft = null; go("#/add"); };
+  app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
+  const q = $("q");
+  q.oninput = () => { query = q.value; $("clear").hidden = !query; renderList(); };
+  q.onkeydown = e => {
+    if (e.key !== "Enter") return;
+    const first = app.querySelector("#list .row");
+    if (first) first.click();
+  };
+  q.addEventListener("paste", e => {
+    const text = e.clipboardData?.getData("text") || "";
+    if (text.trim().split("\n").filter(l => l.trim()).length < 2) return;
+    e.preventDefault();
+    q.blur();
+    showPasteCard(detectPaste(text));
+  });
+  $("clear").onclick = e => { e.preventDefault(); query = ""; q.value = ""; $("clear").hidden = true; renderList(); q.focus(); };
   renderList();
+  followKeyboard();
+}
+
+function songRow(s) {
+  return `<button class="row" data-id="${esc(s.id)}">
+    <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${esc(s.artist || "Unknown artist")}</div></div>
+    ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
+    <span class="k">${esc(keyOf(s))}</span>
+  </button>`;
 }
 
 function renderList() {
-  const list = document.getElementById("list");
-  const q = query.trim().toLowerCase();
-  if (favOnly && !data.songs.some(s => s.favorite)) favOnly = false;
-  const songs = data.songs.filter(s =>
-    (!favOnly || s.favorite) &&
-    (!q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)));
+  const list = $("list");
   if (!data.songs.length) {
-    list.innerHTML = `<div class="empty">No songs yet.<br>Paste a chord sheet to get started.<br><button class="cta" data-go="#/add" style="height:60px;font-size:1.2rem">Add a Song</button></div>`;
-    wireNav();
+    list.innerHTML = `<div class="empty">No songs yet.<br>Paste a chord sheet into the bar below,<br>or tap + to write one.</div>`;
     return;
   }
-  list.innerHTML = songs.map(s => `
-    <div class="song" role="button" tabindex="0" data-id="${esc(s.id)}">
-      <div class="txt">
-        <h3>${esc(s.title)}${s.format === "tab" ? '<span class="badge">TAB</span>' : ""}</h3>
-        <div class="artist">${esc(s.artist || "Unknown artist")}</div>
-      </div>
-      <button class="fav ${s.favorite ? "on" : ""}" data-fav="${esc(s.id)}" aria-label="Favorite">${icon("heart")}</button>
-    </div>`).join("") || `<div class="empty">No matches.</div>`;
-  list.querySelectorAll(".song").forEach(el => el.onclick = e => {
-    if (e.target.closest(".fav")) return;
-    go("#/song/" + encodeURIComponent(el.dataset.id));
-  });
-  list.querySelectorAll(".fav").forEach(b => b.onclick = e => {
-    e.stopPropagation();
-    Tabs.toggleFavorite(data, b.dataset.fav);
-    b.classList.toggle("on");
-  });
+  const q = query.trim().toLowerCase();
+  const songs = data.songs.filter(s =>
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") &&
+    (!q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)));
+  const recent = !q && filter === "all" && data.songs.length >= 4
+    ? data.songs.filter(s => s.opened).sort((a, b) => b.opened - a.opened).slice(0, 2) : [];
+  const sorted = [...songs].sort((a, b) => a.title.localeCompare(b.title));
+
+  list.innerHTML = `
+    ${recent.length ? `<div class="label">Recent</div><div class="recent">${recent.map(s => `
+      <button class="rc glass" data-id="${esc(s.id)}">
+        <div class="t">${esc(s.title)}</div>
+        <div class="a">${s.format === "tab" ? "Tab" : `Key ${esc(transposeKey(keyOf(s), s.transpose || 0) || "?")}${s.transpose ? `, ${s.transpose > 0 ? "+" : ""}${s.transpose}` : ""}`}</div>
+      </button>`).join("")}</div>` : ""}
+    ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : "All songs"}</div>`}
+    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(songRow).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}".</div>`}`;
+  list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => go("#/song/" + encodeURIComponent(el.dataset.id)));
 }
 
-// ---------- Viewer ----------
+// ---------- Paste card ----------
+function showPasteCard(d) {
+  const preview = parseSheet(d.body).slice(0, 6).map(l =>
+    l.kind === "chords" ? `<span class="ch">${esc(l.text)}</span>` : l.kind === "section" ? `[${esc(l.text)}]` : esc(l.text)).join("\n");
+  const tags = [d.format === "tab" ? "Tab" : "Chords", d.key && `Key ${d.key}`, d.sections && `${d.sections} section${d.sections === 1 ? "" : "s"}`].filter(Boolean);
+  layer.innerHTML = `
+    <div class="scrim" id="scrim"></div>
+    <div class="panel card kb" role="dialog" aria-label="Save pasted song">
+      <div class="pc-head">${icon("clip")}<span>${d.format === "tab" ? "Tab" : "Chord sheet"} detected</span></div>
+      <div class="preview">${preview}</div>
+      <div class="tags">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <div class="fields glass">
+        <label class="fld"><span class="lab">Title</span><input id="p-title" value="${esc(d.title)}" placeholder="Song title" autocomplete="off"></label>
+        <label class="fld"><span class="lab">Artist</span><input id="p-artist" value="${esc(d.artist)}" placeholder="Optional" autocomplete="off"></label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="p-edit">Review</button>
+        <button class="btn primary" id="p-save">Save to Library</button>
+      </div>
+    </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("scrim").onclick = close;
+  const fields = () => ({ title: $("p-title").value.trim(), artist: $("p-artist").value.trim(), format: d.format, key: "", body: d.body });
+  $("p-save").onclick = () => {
+    const f = fields();
+    if (!f.title) { $("p-title").focus(); toast("Add a title first"); return; }
+    const s = Tabs.addSong(data, f);
+    close(); query = "";
+    go("#/song/" + encodeURIComponent(s.id));
+  };
+  $("p-edit").onclick = () => { draft = fields(); close(); go("#/add"); };
+  if (!d.title) setTimeout(() => $("p-title")?.focus(), 250);
+  followKeyboard();
+}
+
+// ---------- Song view ----------
 let scroll = { on: false, raf: 0, last: 0, carry: 0, lock: null };
 
 function renderViewer(id) {
   const song = data.songs.find(s => s.id === id);
   if (!song) return go("#/");
-  app.className = "app viewer-page";
   const isChords = song.format !== "tab";
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
   if (song.speed === undefined) song.speed = SPEEDS[data.settings.scrollSpeed] || SPEEDS.medium;
   if (song.size === undefined) song.size = 1;
+  song.opened = Date.now();
+  Tabs.save(data);
 
   app.innerHTML = `
-    <div class="topbar">
-      <button class="circle glass" data-go="#/" aria-label="Back">${icon("back")}</button>
-      <button class="circle glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit">${icon("edit")}</button>
+    <div class="head">
+      <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
+      <div class="row-btns">
+        <button class="ib glass ${song.favorite ? "on" : ""}" id="fav" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
+        <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song">${icon("edit")}</button>
+      </div>
     </div>
     <h1 class="song-title">${esc(song.title)}</h1>
     <div class="meta" id="meta"></div>
     <div class="sheet" id="sheet"></div>
-    <div class="controls glass">
-      <div class="ctl-group grow">
-        <div class="ctl-label">Scroll</div>
-        <input type="range" id="speed" min="5" max="100" value="${song.speed}" aria-label="Scroll speed">
-      </div>
-      <div class="ctl-group">
-        <div class="ctl-label">${icon("text")}${isChords ? "Transpose" : "Size"} <span class="val" id="val"></span></div>
-        <div class="pair">
-          <button class="mini glass" id="down" aria-label="Down">${icon("minus")}</button>
-          <button class="mini glass hot" id="up" aria-label="Up">${icon("plus")}</button>
+    <div class="dock-fade"></div>
+    <div class="dock">
+      <div class="player glass float">
+        <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
+        <div class="speed">
+          <input type="range" id="speed" min="5" max="100" value="${song.speed}" aria-label="Scroll speed">
+          <span id="sv"></span>
+        </div>
+        <div class="vsep"></div>
+        <div class="step" aria-label="${isChords ? "Transpose" : "Text size"}">
+          <button class="sb" id="down" aria-label="${isChords ? "Transpose down" : "Smaller text"}">${icon("minus")}</button>
+          <span class="v" id="val"></span>
+          <button class="sb" id="up" aria-label="${isChords ? "Transpose up" : "Larger text"}">${icon("plus")}</button>
         </div>
       </div>
-      <div class="divider"></div>
-      <button class="play glass" id="play" aria-label="Auto-scroll">${icon("play")}</button>
     </div>`;
-  wireNav();
+  app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+  $("fav").onclick = () => {
+    Tabs.toggleFavorite(data, song.id);
+    $("fav").classList.toggle("on", !!song.favorite);
+    $("fav").setAttribute("aria-pressed", !!song.favorite);
+  };
 
   const draw = () => {
     const steps = song.transpose || 0;
-    const baseKey = song.key || (isChords ? guessKey(song.body || "") : "");
+    const baseKey = isChords ? (song.key || guessKey(song.body || "")) : "";
     const key = transposeKey(baseKey, steps);
-    document.getElementById("meta").innerHTML = [
-      song.artist ? `<span>${esc(song.artist)}</span>` : "",
-      key ? `<span class="key">Key <b>${esc(key)}</b></span>` : ""
+    $("meta").innerHTML = [
+      song.artist && `<span>${esc(song.artist)}</span>`,
+      key && `<span>Key <b>${esc(key)}</b></span>`,
+      !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>');
-
-    const sheet = document.getElementById("sheet");
-    sheet.style.setProperty("--sheet-size", song.size + "rem");
+    const sheet = $("sheet");
+    const val = $("val");
     if (isChords) {
       const flats = prefersFlats(baseKey, steps);
-      sheet.innerHTML = parseSheet(song.body || "", steps, flats).map(l => {
-        if (l.kind === "section") return `<div class="sec">${esc(l.text)}</div>`;
-        if (l.kind === "chords") return `<div class="ln ch">${esc(l.text)}</div>`;
-        if (l.kind === "blank") return `<div class="ln"></div>`;
-        return `<div class="ln ly">${esc(l.text)}</div>`;
-      }).join("");
-      document.getElementById("val").textContent = steps ? (steps > 0 ? "+" : "") + steps : "";
-      fitWidth(sheet, song.size);
+      sheet.innerHTML = parseSheet(song.body || "", steps, flats).map(l =>
+        l.kind === "section" ? `<div class="sec">${esc(l.text)}</div>` :
+        l.kind === "blank" ? `<div class="ln"></div>` :
+        `<div class="ln ${l.kind === "chords" ? "ch" : ""}">${esc(l.text)}</div>`).join("");
+      val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
+      val.classList.toggle("zero", !steps);
+      fitWidth(sheet, 15);
     } else {
-      sheet.innerHTML = (song.body || "").replace(/\r\n?/g, "\n").split("\n").map(l => `<div class="ln tab">${esc(l)}</div>`).join("");
-      document.getElementById("val").textContent = Math.round(song.size * 100) + "%";
+      sheet.innerHTML = (song.body || "").replace(/\r\n?/g, "\n").split("\n").map(l => `<div class="ln">${esc(l)}</div>`).join("");
+      sheet.style.setProperty("--sheet-size", Math.round(15 * song.size) + "px");
+      val.textContent = Math.round(song.size * 100) + "%";
+      val.classList.toggle("zero", song.size === 1);
     }
   };
   draw();
 
-  const speed = document.getElementById("speed");
-  const fill = () => speed.style.setProperty("--fill", ((speed.value - speed.min) / (speed.max - speed.min) * 100) + "%");
-  fill();
-  speed.oninput = () => { song.speed = +speed.value; fill(); Tabs.save(data); };
+  const speed = $("speed");
+  const showSpeed = () => {
+    speed.style.setProperty("--fill", ((speed.value - 5) / 95 * 100) + "%");
+    $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
+  };
+  showSpeed();
+  speed.oninput = () => { song.speed = +speed.value; showSpeed(); Tabs.save(data); };
 
   const step = dir => {
-    if (isChords) song.transpose = ((((song.transpose || 0) + dir) + 17) % 12) - 5; // range -5..+6
+    if (isChords) song.transpose = ((((song.transpose || 0) + dir) + 17) % 12) - 5; // -5..+6
     else song.size = Math.min(1.6, Math.max(0.6, +(song.size + dir * 0.1).toFixed(2)));
     Tabs.save(data);
     draw();
   };
-  document.getElementById("down").onclick = () => step(-1);
-  document.getElementById("up").onclick = () => step(1);
-  document.getElementById("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
-  document.getElementById("sheet").addEventListener("touchstart", () => scroll.on && stopScroll(), { passive: true });
+  $("down").onclick = () => step(-1);
+  $("up").onclick = () => step(1);
+  $("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
+  $("sheet").addEventListener("touchstart", () => scroll.on && stopScroll(), { passive: true });
   window.scrollTo(0, 0);
 }
 
-// Shrink a chord sheet so its longest line fits the screen, keeping chords aligned.
+// Shrink a chord sheet so its longest line fits, keeping chords over the right words.
 function fitWidth(sheet, base) {
-  sheet.style.setProperty("--sheet-size", base + "rem");
-  const avail = sheet.clientWidth - 44;
-  const need = Math.max(...[...sheet.querySelectorAll(".ln")].map(l => l.scrollWidth), 0);
-  if (need > avail && need) sheet.style.setProperty("--sheet-size", Math.max(0.62, base * avail / need) + "rem");
+  sheet.style.setProperty("--sheet-size", base + "px");
+  const avail = sheet.clientWidth - 40;
+  const need = Math.max(0, ...[...sheet.querySelectorAll(".ln")].map(l => l.scrollWidth));
+  if (need > avail) sheet.style.setProperty("--sheet-size", Math.max(10, base * avail / need).toFixed(1) + "px");
 }
+window.addEventListener("resize", () => { const s = $("sheet"); if (s && route().name === "song") fitWidth(s, 15); });
 
 async function startScroll(song) {
   scroll.on = true; scroll.last = 0; scroll.carry = 0;
-  document.getElementById("play").innerHTML = icon("pause");
+  const btn = $("play");
+  btn.innerHTML = icon("pause");
+  btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last) {
-      scroll.carry += (t - scroll.last) / 1000 * song.speed * 0.6; // px per second
+      scroll.carry += (t - scroll.last) / 1000 * song.speed * 0.6;
       const px = Math.floor(scroll.carry);
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) return stopScroll();
@@ -456,142 +530,157 @@ function stopScroll() {
   cancelAnimationFrame(scroll.raf);
   scroll.lock?.release?.().catch(() => {});
   scroll.lock = null;
-  const btn = document.getElementById("play");
-  if (btn) btn.innerHTML = icon("play");
+  const btn = $("play");
+  if (btn) { btn.innerHTML = icon("play"); btn.setAttribute("aria-label", "Start auto-scroll"); }
 }
 
-// ---------- Add / Edit ----------
+// ---------- Add / Edit sheet ----------
 const PLACEHOLDER = {
-  chords: "Paste chords and lyrics here...\n\n[Verse]\nG              C        G\nBlackbird singing in the dead of night\n\nor inline:  [G]Blackbird [C]singing",
-  tab: "Paste ASCII tab here...\n\ne|-----0-----0-----|\nB|-----1-----1-----|\nG|-----0-----0-----|\nD|-----2-----2-----|\nA|--3--------------|\nE|-----------------|"
+  chords: "Paste or type chords and lyrics\n\n[Verse]\nG              C        G\nWalking down the river road tonight\n\nor inline:  [G]Walking [C]down",
+  tab: "Paste ASCII tab\n\ne|-----0-----0-----|\nB|-----1-----1-----|\nG|-----0-----0-----|\nD|-----2-----2-----|"
 };
 
 function renderForm(id) {
   const song = id ? data.songs.find(s => s.id === id) : null;
   if (id && !song) return go("#/");
-  app.className = "app";
-  if (song) draftFormat = song.format || "chords";
-  app.innerHTML = `
-    <div class="head-inline">
-      <button class="circle glass" id="back" aria-label="Back">${icon("back")}</button>
-      <h1>${song ? "Edit Song" : "New Song"}</h1>
-    </div>
-    <div class="form">
-      <label class="lbl" for="title">Title</label>
-      <input id="title" class="field glass" placeholder="Enter song title" value="${esc(song?.title)}" autocomplete="off">
-      <label class="lbl" for="artist">Artist</label>
-      <input id="artist" class="field glass" placeholder="Enter artist name" value="${esc(song?.artist)}" autocomplete="off">
-      <div class="row2">
-        <div>
-          <label class="lbl">Format</label>
-          <div class="seg glass">
-            <button data-fmt="chords" class="${draftFormat === "chords" ? "on" : ""}">Chords</button>
-            <button data-fmt="tab" class="${draftFormat === "tab" ? "on" : ""}">Tab</button>
+  const src = song || draft || {};
+  let format = src.format || "chords";
+  // Library stays underneath so the sheet reads as a layer.
+  if (!app.innerHTML.trim()) renderLibrary();
+  layer.innerHTML = `
+    <div class="scrim"></div>
+    <div class="panel full" role="dialog" aria-label="${song ? "Edit song" : "New song"}">
+      <div class="grab"></div>
+      <div class="ph">
+        <button class="tb" id="cancel">Cancel</button>
+        <h2>${song ? "Edit Song" : "New Song"}</h2>
+        <button class="tb go" id="save">Save</button>
+      </div>
+      <div class="pbody">
+        <div class="fields glass">
+          <label class="fld"><span class="lab">Title</span><input id="f-title" value="${esc(src.title)}" placeholder="Song title" autocomplete="off"></label>
+          <label class="fld"><span class="lab">Artist</span><input id="f-artist" value="${esc(src.artist)}" placeholder="Artist" autocomplete="off"></label>
+          <div class="fld">
+            <span class="lab">Format</span>
+            <div class="seg">
+              <button data-fmt="chords" class="${format === "chords" ? "on" : ""}">Chords</button>
+              <button data-fmt="tab" class="${format === "tab" ? "on" : ""}">Tab</button>
+            </div>
+            <label id="keywrap" style="display:${format === "tab" ? "none" : "flex"};align-items:center;gap:8px">
+              <span style="font-size:15px;color:var(--muted)">Key</span>
+              <input id="f-key" value="${esc(src.key)}" placeholder="Auto" maxlength="4" autocomplete="off" autocapitalize="characters" style="width:48px;text-align:right">
+            </label>
           </div>
         </div>
-        <div id="keywrap" ${draftFormat === "tab" ? 'style="visibility:hidden"' : ""}>
-          <label class="lbl" for="key">Key</label>
-          <input id="key" class="field glass" placeholder="Auto" value="${esc(song?.key)}" autocomplete="off" autocapitalize="characters" maxlength="4">
-        </div>
+        <textarea class="body glass" id="f-body" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Song content" placeholder="${esc(PLACEHOLDER[format])}">${esc(src.body)}</textarea>
+        <div class="detect" id="detect"></div>
+        ${song ? '<button class="danger" id="delete">Delete Song</button>' : ""}
       </div>
-      <label class="lbl" for="body" id="bodylbl">${draftFormat === "tab" ? "ASCII Tab" : "Chord Sheet"}</label>
-      <textarea id="body" class="field glass" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="${esc(PLACEHOLDER[draftFormat])}">${esc(song?.body)}</textarea>
-      <button class="cta" id="save">Save Song</button>
-      ${song ? '<button class="danger" id="delete">Delete Song</button>' : ""}
-    </div>
-    ${song ? "" : tabbar("add")}`;
-  wireNav();
+    </div>`;
 
-  document.getElementById("back").onclick = () => song ? go("#/song/" + encodeURIComponent(song.id)) : (history.length > 1 ? history.back() : go("#/"));
-  app.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => {
-    draftFormat = b.dataset.fmt;
-    app.querySelectorAll("[data-fmt]").forEach(x => x.classList.toggle("on", x === b));
-    document.getElementById("keywrap").style.visibility = draftFormat === "tab" ? "hidden" : "visible";
-    document.getElementById("bodylbl").textContent = draftFormat === "tab" ? "ASCII Tab" : "Chord Sheet";
-    document.getElementById("body").placeholder = PLACEHOLDER[draftFormat];
+  const detectLine = () => {
+    const body = $("f-body").value;
+    if (!body.trim() || format === "tab") { $("detect").innerHTML = ""; return; }
+    const k = $("f-key").value.trim() || guessKey(body);
+    const secs = parseSheet(body).filter(l => l.kind === "section").length;
+    $("detect").innerHTML = k ? `${icon("check")}<span>Chord sheet in ${esc(k)}${secs ? `, ${secs} section${secs === 1 ? "" : "s"}` : ""}</span>` : "";
+  };
+  detectLine();
+  $("f-body").oninput = detectLine;
+  $("f-key").oninput = detectLine;
+
+  layer.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => {
+    format = b.dataset.fmt;
+    layer.querySelectorAll("[data-fmt]").forEach(x => x.classList.toggle("on", x === b));
+    $("keywrap").style.display = format === "tab" ? "none" : "flex";
+    $("f-body").placeholder = PLACEHOLDER[format];
+    detectLine();
   });
-  document.getElementById("save").onclick = () => {
-    const title = document.getElementById("title").value.trim();
-    if (!title) { toast("Add a title first"); document.getElementById("title").focus(); return; }
-    const rawKey = document.getElementById("key").value.trim();
-    const key = rawKey ? rawKey.charAt(0).toUpperCase() + rawKey.slice(1) : "";
+
+  const close = () => { draft = null; history.length > 1 ? history.back() : go(song ? "#/song/" + encodeURIComponent(song.id) : "#/"); };
+  $("cancel").onclick = close;
+  layer.querySelector(".scrim").onclick = close;
+  $("save").onclick = () => {
+    const title = $("f-title").value.trim();
+    if (!title) { toast("Add a title first"); $("f-title").focus(); return; }
+    const raw = $("f-key").value.trim();
     const fields = {
       title,
-      artist: document.getElementById("artist").value.trim(),
-      format: draftFormat,
-      key: draftFormat === "chords" ? key : "",
-      body: document.getElementById("body").value
+      artist: $("f-artist").value.trim(),
+      format,
+      key: format === "chords" && raw ? raw[0].toUpperCase() + raw.slice(1) : "",
+      body: $("f-body").value
     };
+    draft = null;
     if (song) {
       Tabs.updateSong(data, song.id, fields);
+      history.replaceState(null, "", "#/");
       go("#/song/" + encodeURIComponent(song.id));
     } else {
       const s = Tabs.addSong(data, fields);
-      draftFormat = "chords";
       history.replaceState(null, "", "#/");
       go("#/song/" + encodeURIComponent(s.id));
     }
     toast("Saved");
   };
-  document.getElementById("delete")?.addEventListener("click", () => {
+  $("delete")?.addEventListener("click", () => {
     if (!confirm(`Delete "${song.title}"?`)) return;
     Tabs.deleteSong(data, song.id);
-    go("#/");
+    history.replaceState(null, "", "#/");
+    layer.innerHTML = "";
+    render();
     toast("Deleted");
   });
+  if (!src.title) setTimeout(() => $("f-title")?.focus(), 300);
 }
 
 // ---------- Settings ----------
 function renderSettings() {
-  app.className = "app";
   const s = data.settings;
   const speedName = { slow: "Slow", medium: "Medium", fast: "Fast" }[s.scrollSpeed];
   const t = s.transpose || 0;
-  const semis = n => `${n > 0 ? "+" : ""}${n} Semitone${Math.abs(n) === 1 ? "" : "s"}`;
+  const semis = n => n === 0 ? "None" : `${n > 0 ? "+" : ""}${n} semitone${Math.abs(n) === 1 ? "" : "s"}`;
   app.innerHTML = `
-    <h1 class="title-serif">Settings</h1>
-    <div class="group glass">
-      <div class="setting">
-        <div class="tile glass">${icon("gauge")}</div>
-        <span class="name">Default Scroll Speed</span><span class="value">${speedName}</span>${icon("chev", "chev")}
-        <select id="speed" aria-label="Default scroll speed">
+    <div class="head">
+      <button class="ib glass" id="back" aria-label="Back to library">${icon("back")}</button>
+    </div>
+    <h1 class="title" style="margin:14px 2px 10px">Settings</h1>
+    <div class="label">Playing</div>
+    <div class="set-group glass">
+      <div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Scroll speed</span><span class="val">${speedName}</span>${icon("chev", "chev")}
+        <select id="s-speed" aria-label="Default scroll speed">
           ${Object.keys(SPEEDS).map(k => `<option value="${k}" ${k === s.scrollSpeed ? "selected" : ""}>${k[0].toUpperCase() + k.slice(1)}</option>`).join("")}
         </select>
       </div>
-      <div class="setting">
-        <div class="tile glass">${icon("note")}</div>
-        <span class="name">Transpose Default</span><span class="value">${semis(t)}</span>${icon("chev", "chev")}
-        <select id="transpose" aria-label="Transpose default">
+      <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Default transpose</span><span class="val">${semis(t)}</span>${icon("chev", "chev")}
+        <select id="s-transpose" aria-label="Default transpose">
           ${Array.from({ length: 12 }, (_, i) => i - 5).map(n => `<option value="${n}" ${n === t ? "selected" : ""}>${semis(n)}</option>`).join("")}
         </select>
       </div>
-      <div class="setting">
-        <div class="tile glass">${icon("moon")}</div>
-        <span class="name">Dark Mode</span>
-        <button class="toggle ${s.theme !== "light" ? "on" : ""}" id="theme" role="switch" aria-checked="${s.theme !== "light"}" aria-label="Dark mode"></button>
+    </div>
+    <div class="label">Appearance</div>
+    <div class="set-group glass">
+      <div class="set">
+        <span class="tile">${icon("moon")}</span><span class="name">Dark mode</span>
+        <button class="toggle ${s.theme !== "light" ? "on" : ""}" id="s-theme" role="switch" aria-checked="${s.theme !== "light"}" aria-label="Dark mode"></button>
       </div>
-      <button class="setting" id="export">
-        <div class="tile glass">${icon("upload")}</div>
-        <span class="name">Export Library</span>${icon("chev", "chev")}
-      </button>
-      <button class="setting" id="import">
-        <div class="tile glass">${icon("download")}</div>
-        <span class="name">Import Backup</span>${icon("chev", "chev")}
-      </button>
+    </div>
+    <div class="label">Library</div>
+    <div class="set-group glass">
+      <button class="set" id="s-export"><span class="tile">${icon("upload")}</span><span class="name">Export backup</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <div class="tip glass"><div class="tile glass">${icon("info")}</div><span>Tip: Add this app to your Home Screen for quick access anytime.</span></div>
-    <div class="ver">${data.songs.length} song${data.songs.length === 1 ? "" : "s"} · stored on this device</div>
-    ${tabbar("settings")}`;
-  wireNav();
-
-  document.getElementById("speed").onchange = e => { s.scrollSpeed = e.target.value; Tabs.save(data); renderSettings(); };
-  document.getElementById("transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
-  document.getElementById("theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
-  document.getElementById("export").onclick = async () => {
-    const json = Tabs.export(data);
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
+  $("back").onclick = () => go("#/");
+  $("s-speed").onchange = e => { s.scrollSpeed = e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
+  $("s-export").onclick = async () => {
     const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    const file = new File([json], name, { type: "application/json" });
+    const file = new File([Tabs.export(data)], name, { type: "application/json" });
     if (navigator.canShare?.({ files: [file] })) {
       try { await navigator.share({ files: [file], title: "Tabs backup" }); return; } catch (e) { if (e.name === "AbortError") return; }
     }
@@ -601,8 +690,8 @@ function renderSettings() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
-  document.getElementById("import").onclick = () => document.getElementById("file").click();
-  document.getElementById("file").onchange = e => {
+  $("s-import").onclick = () => $("file").click();
+  $("file").onchange = e => {
     const f = e.target.files[0];
     if (!f) return;
     const reader = new FileReader();
@@ -622,12 +711,12 @@ function renderSettings() {
 function render() {
   stopScroll();
   const r = route();
+  if (r.name !== "add" && r.name !== "edit") layer.innerHTML = "";
   if (r.name === "song") renderViewer(r.id);
-  else if (r.name === "add") { draftFormat = "chords"; renderForm(); }
-  else if (r.name === "edit") renderForm(r.id);
-  else if (r.name === "settings") renderSettings();
-  else renderLibrary();
-  if (r.name !== "song") window.scrollTo(0, 0);
+  else if (r.name === "add") renderForm();
+  else if (r.name === "edit") { const s = data.songs.find(x => x.id === r.id); if (s && !app.querySelector("#sheet")) renderViewer(r.id); renderForm(r.id); }
+  else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
+  else { renderLibrary(); }
 }
 
 window.addEventListener("hashchange", render);

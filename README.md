@@ -14,18 +14,16 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 
 ## Features
 
-- Chord sheets first: chords render in the accent color above the lyrics
-- Accepts chords-over-lyrics or inline ChordPro style (`[G]Blackbird [C]singing`)
-- Section labels like `[Verse]` or `Chorus:` are styled as headers
+- No tab bar: the library is home, with a bottom bar that searches or takes a pasted song
+- Paste a chord sheet into the bar and Tabs detects format, key, sections, title and artist, then offers to save it
+- Chord sheets first: chords in the accent color over the lyrics, chords-over-lyrics or inline `[G]` style
+- Recent songs, favorites and a Tabs filter on the library
+- Slim playback bar: auto-scroll with speed, transpose (or text size for tabs)
 - Transpose per song, with sharps or flats chosen by the resulting key
-- Key shown on the song page, auto-detected from the first chord if not set
-- ASCII tab still supported as a second format, with text size control
-- Library with search and favorites filter
-- Auto-scroll with adjustable speed; keeps the screen awake while scrolling
-- Edit and delete songs
-- Settings: default scroll speed, default transpose, dark/light mode
-- Export / import JSON backup (uses the share sheet on iOS)
-- Fully offline after first load; installable on iOS and Android
+- Chord sheets auto-fit to screen width so chords stay over the right words
+- Add and edit in a slide-up sheet; delete from edit
+- Settings (gear, top right): scroll speed, default transpose, dark/light mode, backup
+- Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
 
 ## Chord sheet format
 

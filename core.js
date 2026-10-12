@@ -225,6 +225,32 @@ function expandInline(line) {
 
 const SECTION_RE = /^\s*(?:\[([^\]]+)\]|((?:intro|verse|pre-?chorus|chorus|bridge|outro|solo|interlude|instrumental|tag|refrain|coda|ending|break|hook)(?:\s*\d+)?)\s*:?)\s*$/i;
 
+// Read a pasted block: format, key, section count, and a title/artist header if present.
+export function detectPaste(text) {
+  let lines = text.replace(/\r\n?/g, "\n").split("\n");
+  while (lines.length && !lines[0].trim()) lines.shift();
+  let title = "", artist = "";
+  const first = (lines[0] || "").trim();
+  const isHeader = first && !isChordLine(first) && !SECTION_RE.test(first) && !TAB_LINE_RE.test(first) &&
+    !/\[[^\]]+\]/.test(first) && first.length <= 80;
+  const next = (lines[1] || "").trim();
+  if (isHeader && (!next || isChordLine(next) || SECTION_RE.test(next) || /^(artist|by)\b/i.test(next))) {
+    const by = first.match(/^(.*?)\s+(?:chords|tabs?|lyrics)?\s*by\s+(.+)$/i);
+    const dash = first.match(/^(.+?)\s+[-–]\s+(.+)$/);
+    if (by) { title = by[1].trim(); artist = by[2].trim(); }
+    else if (dash) { artist = dash[1].trim(); title = dash[2].trim(); }
+    else title = first;
+    lines.shift();
+    const a = (lines[0] || "").trim().match(/^(?:artist:|by)\s*(.+)$/i);
+    if (a) { artist = a[1].trim(); lines.shift(); }
+    while (lines.length && !lines[0].trim()) lines.shift();
+  }
+  const body = lines.join("\n").replace(/\s+$/, "");
+  const format = looksLikeTab(body) ? "tab" : "chords";
+  const sections = body.split("\n").filter(l => SECTION_RE.test(l) && !isChord((l.match(/\[([^\]]+)\]/) || [])[1] || "")).length;
+  return { title, artist, body, format, key: format === "chords" ? guessKey(body) : "", sections };
+}
+
 // Parse a chord sheet into display lines.
 // Each line: { kind: "chords" | "lyric" | "section" | "blank", text }
 export function parseSheet(text, steps = 0, flats = false) {
