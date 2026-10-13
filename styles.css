@@ -615,6 +615,7 @@ body.playing .smap:not(.active) { opacity: .45; }
 body.stage.playing .smap { opacity: 0; pointer-events: none; }
 
 .tappause.hint { width: auto; height: auto; margin: 0; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px; font-size: 15px; animation: fade .2s; }
+.tappause.hint.once { width: max-content; top: auto; bottom: calc(110px + var(--safe-b, 0px)); max-width: min(320px, calc(100vw - 32px)); text-align: center; line-height: 1.35; }
 .stagechip { display: flex; align-items: center; gap: 8px; margin: 10px auto 0; background: none; border: 0; color: var(--muted); font-size: 14px; }
 .stagechip svg { width: 16px; height: 16px; }
 .stagechip b { font-weight: 600; color: var(--fg-2); }

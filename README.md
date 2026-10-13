@@ -56,7 +56,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Smooth screen changes: the song title glides between the library and the song, and sheets settle with a light spring (instant with Reduce Motion)
 - + opens a blank song in the same editor as Edit, in the Text view: paste or type, and the key (or Format: Tab) is detected as you go. Save keeps it; Cancel removes it (asking first if you typed anything). Tab songs edit in the same page, in the Text view. Delete from Edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
 - Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, Make it easier with a capo and simpler chords, or get a Spark amp tone for a song
-- First launch adds an original sample song and shows one-time tips on the real controls (Settings > Show tips again)
+- First launch adds an original sample song and shows one-time tips on the real controls: the library and song page at first, then Edit (including Tap tempo) and Add the first time you open them. Things you meet mid-action get a short note once, without stopping you: tap anywhere to pause (tap twice on stage) and dragging the song map (Settings > Show tips again)
 - Settings (gear, top right), grouped as Playing, Chord diagrams, Defaults for new songs, Appearance, AI help and Library
 - While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android, with a proper launch screen on iPhone

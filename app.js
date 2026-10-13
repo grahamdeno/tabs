@@ -1223,7 +1223,9 @@ function paintMap(target) {
   const m = map.el;
   if (!m || !m.isConnected) return;
   /* Out of the way at the top of the song, where the title and chord cards are. */
-  m.classList.toggle("away", !map.dragging && ($("sheet")?.getBoundingClientRect().top ?? 0) > innerHeight * 0.25);
+  const away = !map.dragging && ($("sheet")?.getBoundingClientRect().top ?? 0) > innerHeight * 0.25;
+  m.classList.toggle("away", away);
+  if (!away && !scroll.on && !chordEdit && !data.settings.tipsSeen?.map) setTimeout(() => { if (map.el === m && !m.classList.contains("away") && !scroll.on) hintOnce("map", "Drag along the sections on the right edge to jump through the song"); }, 600);
   const f = Math.min(1, (scrollY + innerHeight * READ_AT) / document.documentElement.scrollHeight);
   m.querySelector(".sm-fill").style.height = (f * 100) + "%";
   let cur = 0;
@@ -1331,6 +1333,7 @@ function songEditor(song, view = "sheet") {
   window.scrollTo(0, 0);
   paintEdit(song);
   if (song.isNew && !song.title) setTimeout(() => $("ed-title")?.focus({ preventScroll: true }), 300);
+  setTimeout(() => { if (chordEdit === song) showTips(song.isNew ? "add" : "edit"); }, 450);
 }
 function paintEdit(song) {
   const sheet = $("sheet");
@@ -2121,6 +2124,7 @@ async function startScroll(song) {
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false;
   document.body.classList.add("playing");
+  setTimeout(() => { if (scroll.on && viewing === song) data.settings.stage ? hintOnce("pauseStage", "On stage, tap twice anywhere to pause") : hintOnce("pause", "Tap anywhere to pause"); }, 2500);
   wakeControls();
   showChordPop(null);
   $("sheet")?.querySelectorAll(".prow").forEach(el => el.remove());
@@ -2813,8 +2817,36 @@ const TIPS = {
     { at: "#stat", text: "Mark songs you're learning. A play counts when you play a song through." },
     { at: "#nnbtn", text: "Turn on Now and Next to see the chord you're on and what's coming while you play." },
     { at: "#more", text: "With your API key, Make it easier and Spark tone are in this menu too.", needsKey: true }
+  ],
+  edit: [
+    { at: ".ce-w", text: "Tap any word to put a chord over it, or to change the one there." },
+    { at: ".ce-pen", text: "The pencil retypes a line. Tap a section name to rename it, and + adds a line or a section." },
+    { at: "#ed-tap", text: "Tap along with the beat to set the tempo for the count-in and metronome." },
+    { at: "#ed-seg", text: "Text shows the whole song as plain text, for big changes like pasting a new verse." },
+    { at: "#ce-done", text: "Every change saves as you go, with Undo. Done goes back to the song." }
+  ],
+  add: [
+    { at: ".ed-tx", text: "Paste or type the song here. Chord lines turn copper and the key is found as you go. Tab is recognized too." },
+    { at: ".ed-tools", text: "Clean up tidies a messy paste. Scan a page reads a photo of a songbook.", needsKey: true },
+    { at: "#ed-seg", text: "Switch to Sheet to tap words and place chords." },
+    { at: "#ed-tap", text: "Tap along with the beat to set the tempo." },
+    { at: "#ce-done", text: "Save adds it to your library. Cancel drops it." }
   ]
 };
+// A one-time note for things you only meet mid-action (playing, scrolling): it
+// doesn't block anything and fades on its own.
+function hintOnce(key, text, ms = 3200) {
+  const seen = data.settings.tipsSeen && typeof data.settings.tipsSeen === "object" ? data.settings.tipsSeen : {};
+  if (seen[key] || document.querySelector(".tipwrap")) return;
+  data.settings.tipsSeen = { ...seen, [key]: true };
+  Tabs.save(data);
+  document.querySelector(".tappause")?.remove();
+  const h = document.createElement("div");
+  h.className = "tappause hint once";
+  h.textContent = text;
+  document.body.appendChild(h);
+  setTimeout(() => h.remove(), ms);
+}
 function showTips(name) {
   const seen = data.settings.tipsSeen && typeof data.settings.tipsSeen === "object" ? data.settings.tipsSeen : {};
   if (seen[name] || document.querySelector(".tipwrap")) return;

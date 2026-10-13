@@ -47,7 +47,7 @@ const LIB = {
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
   sets: [], trash: [],
-  settings: { v: 5, tipsSeen: { library: true, song: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false }
+  settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false }
 };
 
 let server, browser, base;
@@ -192,7 +192,7 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
   const backup = {
     songs: [{ id: "x", title: "Backup Song", body: "[Verse]\nG\nhello", format: "chords" }, { id: "y", title: "Broken" }],
     sets: [{ id: "s9", name: "Saturday", songIds: ["x"], cover: { type: "photo", tint: "#553322" } }],
-    trash: [], settings: { v: 5, tipsSeen: { library: true, song: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
+    trash: [], settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
     covers: { s9: png }
   };
   await page.goto(base + "#/settings");
@@ -262,4 +262,29 @@ test("an Apple Music link sets the song's length; tapping sets the tempo", { ski
   await page.waitForTimeout(1800);
   const bpm = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "b").bpm);
   assert.ok(bpm >= 105 && bpm <= 122, `about 120 BPM, got ${bpm}`);
+});
+
+test("the editor and Add show their tips once", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, tipsSeen: { library: true, song: true } } });
+  await page.goto(base + "#/song/a");
+  await page.waitForTimeout(400);
+  await page.click("#more");
+  await page.click(".menu [data-m='edit']");
+  await page.waitForTimeout(700);
+  const seen = [];
+  while (await page.locator(".tipwrap").count()) { seen.push(await page.locator(".tiptext").textContent()); await page.click("#tip-next"); await page.waitForTimeout(200); }
+  assert.ok(seen.some(x => /Tap along with the beat/.test(x)), "tap tempo is pointed out");
+  assert.ok(seen.some(x => /Tap any word/.test(x)));
+  await page.click("#ce-done");
+  await page.waitForTimeout(300);
+  await page.click("#more");
+  await page.click(".menu [data-m='edit']");
+  await page.waitForTimeout(700);
+  assert.equal(await page.locator(".tipwrap").count(), 0, "only the first time");
+  await page.click("#ce-done");
+  await page.goto(base + "#/");
+  await page.waitForTimeout(300);
+  await page.click("#add");
+  await page.waitForTimeout(800);
+  assert.match(await page.locator(".tiptext").textContent(), /Paste or type the song here/);
 });
