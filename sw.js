@@ -1,5 +1,5 @@
 // Tabs service worker
-const CACHE = "tabs-v1.11.1";
+const CACHE = "tabs-v1.12.0";
 const SHELL = ["./", "index.html", "core.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -17,6 +17,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
+  if (url.hostname === "api.anthropic.com") return; // never cache AI calls
   if (url.origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request, { cache: "no-cache" }).then(res => {

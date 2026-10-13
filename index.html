@@ -203,6 +203,28 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .scard { flex: none; width: 54px; height: 78px; padding: 0; border-radius: 10px; background: var(--solid); border: 1px solid var(--rim); display: grid; place-items: center; }
 .scard svg { display: block; }
 .scard.sel { border-color: transparent; box-shadow: 0 0 0 1.5px var(--accent); }
+/* AI help */
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; display: inline-block; animation: rot .7s linear infinite; flex: none; }
+@keyframes rot { to { transform: rotate(360deg); } }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn svg { width: 16px; height: 16px; }
+.btn:disabled { opacity: .6; }
+.btn.sm { flex: none; height: 34px; padding: 0 12px; font-size: 14px; border-radius: 10px; }
+.btn.sm.primary { flex: none; }
+.ai-row { display: flex; gap: 8px; margin: 0 0 10px; }
+.chip.ai { display: inline-flex; align-items: center; gap: 6px; height: 32px; color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.chip.ai svg { width: 15px; height: 15px; }
+.chip.ai:disabled { opacity: .55; }
+.ai-note { font-size: 13px; color: #e07a6c; margin: -4px 2px 10px; line-height: 1.4; }
+.detect .err { color: #e07a6c; }
+.detect .sep { color: var(--muted); }
+.link { border: 0; background: none; color: var(--accent); font-size: 13px; padding: 4px 2px; text-decoration: underline; }
+.seg.mini { flex: none; height: 28px; padding: 2px; border-radius: 8px; }
+.seg.mini button { height: 24px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
+.key-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px 12px; border-top: 1px solid var(--hair); }
+.ai-status { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.ai-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rim); }
+.ai-status .dot.on { background: #7ac47f; }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -258,7 +280,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .seg button { flex: 1; height: 28px; border-radius: 7px; border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 500; }
 .seg button.on { background: var(--accent-soft); color: var(--accent); }
 textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r); padding: 14px; font: 14px/1.55 var(--mono); resize: none; white-space: pre; overflow: auto; }
-.detect { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 18px; }
+.detect { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 18px; }
 .detect svg { color: var(--accent); width: 15px; height: 15px; }
 .danger { margin-top: 18px; border: 0; background: none; color: #e07a6c; font-size: 15px; padding: 10px; }
 .pc-head { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg-2); margin-bottom: 12px; }
@@ -317,6 +339,8 @@ const I = {
   upload: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5h16v-5"/>',
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4 14v5h16v-5"/>',
   focus: '<path d="M4 7h16"/><path d="M4 12h16" stroke-width="2.4"/><path d="M4 17h16"/>',
+  wand: '<path d="M4 20 14.5 9.5"/><path d="m13 8 3 3"/><path d="M17 3.5v3M15.5 5h3M20 9v2M19 10h2"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -461,38 +485,171 @@ function renderList() {
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => go("#/song/" + encodeURIComponent(el.dataset.id)));
 }
 
+// ---------- AI help (optional, your own Anthropic key) ----------
+// No server: the key stays in this browser's storage and is sent only to
+// api.anthropic.com, using Anthropic's header for direct browser access.
+// Without a key the app works as usual and the AI options don't appear.
+const AI = { store: "tabs.apikey.v1", fast: "claude-haiku-5-5", vision: "claude-sonnet-5-5" };
+function aiKey() { try { return localStorage.getItem(AI.store) || ""; } catch { return ""; } }
+
+async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, key = aiKey() }) {
+  let r;
+  try {
+    r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content }] })
+    });
+  } catch { throw Object.assign(new Error("network"), { status: 0, model }); }
+  if (!r.ok) {
+    // Read Anthropic's error body so the real reason can be explained.
+    const j = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(j?.error?.message || "HTTP " + r.status), { status: r.status, model });
+  }
+  const j = await r.json();
+  return (j.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+}
+
+// Plain-English reasons, mapped from Anthropic's status codes.
+function aiError(e) {
+  const m = e?.message || "", st = e?.status;
+  if (st === -1) return "Couldn't make sense of that. Try again, or keep the original.";
+  if (!st) return "Could not reach Anthropic. Check the connection, and turn off any content blocker or VPN filtering for this site.";
+  if (st === 401) return "Key not recognized. Copy it again from the Anthropic Console (it starts with sk-ant-).";
+  if (st === 403) return "Key is valid but not allowed to do this. Check the key's workspace permissions in the Console.";
+  if (st === 400 && /credit|balance|billing/i.test(m)) return "The account has no credit. Add credit under Billing in the Console.";
+  if (st === 404) return `Model not found (${e.model}). The model name may need updating.`;
+  if (st === 413 || /too large|exceeds/i.test(m)) return "That photo is too large. Try a closer, simpler shot of the page.";
+  if (st === 429) return "Rate or spend limit reached. Check Limits in the Console, or wait a minute.";
+  if (st >= 500) return "Anthropic is busy or down. Try again in a few minutes.";
+  return `Request failed (HTTP ${st}).`;
+}
+
+function parseJSON(text) {
+  const m = String(text).match(/\{[\s\S]*\}/);
+  try { return JSON.parse(m[0]); } catch { throw Object.assign(new Error("bad json"), { status: -1 }); }
+}
+
+const CLEAN_SYSTEM = `You format guitar chord sheets for a phone app. The input is one song, pasted from a website or photographed from a page.
+Reply with JSON only, no other text: {"title": string, "artist": string, "key": string, "format": "chords" or "tab", "sheet": string}
+Rules for "sheet":
+- Chords go on their own line directly above the lyric line, each chord starting at the column of the syllable where it changes.
+- Section labels go on their own line in square brackets, like [Intro], [Verse 1], [Chorus], [Bridge]. One blank line between sections.
+- Lines of only chords (intros, instrumentals) stay as chord lines. ASCII tab lines are kept exactly as written.
+- If the source states a capo, put [Capo N] as the first line.
+- Keep the song's words and chords exactly as given. Do not add, complete, translate or correct lyrics, do not invent chords, and do not transpose.
+- Use standard chord spellings: G, Am, F#m7, Bb, Dsus4, D/F#.
+- Remove everything that is not the song: ads, ratings, comments, site menus, credits, strumming legends, chord diagram text.
+"title", "artist": from the source if present, else "". "key": the key if stated or clear from the chords (like G or Em), else "". "format": "tab" only if the song is mainly ASCII tab.`;
+
+// Clean up pasted text, or read a photographed page, into the app's chord sheet format.
+async function cleanSheet({ text, image }) {
+  const content = image
+    ? [{ type: "image", source: { type: "base64", media_type: image.type, data: image.data } },
+       { type: "text", text: "Transcribe the chord sheet on this page." }]
+    : [{ type: "text", text: "Clean up this pasted song:\n\n" + text }];
+  const out = parseJSON(await askClaude({ model: image ? AI.vision : AI.fast, system: CLEAN_SYSTEM, content }));
+  const sheet = String(out.sheet || "").replace(/\r\n?/g, "\n").replace(/\s+$/, "");
+  if (!sheet.trim()) throw Object.assign(new Error("empty"), { status: -1 });
+  const d = detectPaste(sheet);
+  return {
+    title: String(out.title || d.title || "").trim(),
+    artist: String(out.artist || d.artist || "").trim(),
+    key: String(out.key || "").trim().slice(0, 4),
+    format: out.format === "tab" || d.format === "tab" ? "tab" : "chords",
+    body: d.title ? d.body : sheet,
+    sections: d.sections
+  };
+}
+
+// Shrink a photo to a size the API accepts quickly, as JPEG base64.
+async function readPhoto(file, max = 1600) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return { type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.85).split(",")[1] };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+const busy = label => `<span class="spin" aria-hidden="true"></span>${label}`;
+
 // ---------- Paste card ----------
-function showPasteCard(d) {
-  const preview = parseSheet(d.body).slice(0, 6).map(l =>
-    l.kind === "chords" ? `<span class="ch">${esc(l.text)}</span>` : l.kind === "section" ? `[${esc(l.text)}]` : esc(l.text)).join("\n");
-  const tags = [d.format === "tab" ? "Tab" : "Chords", d.key && `Key ${d.key}`, d.sections && `${d.sections} section${d.sections === 1 ? "" : "s"}`].filter(Boolean);
+function showPasteCard(original) {
+  let cleaned = null, useCleaned = false, working = false;
+  const cur = () => (useCleaned && cleaned) || original;
   layer.innerHTML = `
     <div class="scrim" id="scrim"></div>
     <div class="panel card kb" role="dialog" aria-label="Save pasted song">
-      <div class="pc-head">${icon("clip")}<span>${d.format === "tab" ? "Tab" : "Chord sheet"} detected</span></div>
-      <div class="preview">${preview}</div>
-      <div class="tags">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <div class="pc-head">${icon("clip")}<span id="p-what"></span><span style="flex:1"></span>
+        <div class="seg mini" id="p-ver" hidden><button data-v="0">Original</button><button data-v="1">Cleaned</button></div>
+      </div>
+      <div class="preview" id="p-prev"></div>
+      <div class="tags" id="p-tags"></div>
+      <div class="ai-note" id="p-note" hidden></div>
       <div class="fields glass">
-        <label class="fld"><span class="lab">Title</span><input id="p-title" value="${esc(d.title)}" placeholder="Song title" autocomplete="off"></label>
-        <label class="fld"><span class="lab">Artist</span><input id="p-artist" value="${esc(d.artist)}" placeholder="Optional" autocomplete="off"></label>
+        <label class="fld"><span class="lab">Title</span><input id="p-title" value="${esc(original.title)}" placeholder="Song title" autocomplete="off"></label>
+        <label class="fld"><span class="lab">Artist</span><input id="p-artist" value="${esc(original.artist)}" placeholder="Optional" autocomplete="off"></label>
       </div>
       <div class="actions">
         <button class="btn" id="p-edit">Review</button>
+        ${aiKey() ? `<button class="btn" id="p-clean">${icon("wand")}Clean up</button>` : ""}
         <button class="btn primary" id="p-save">Save to Library</button>
       </div>
     </div>`;
+  const show = () => {
+    const d = cur();
+    $("p-what").textContent = `${d.format === "tab" ? "Tab" : "Chord sheet"} ${useCleaned ? "cleaned up" : "detected"}`;
+    $("p-prev").innerHTML = parseSheet(d.body).slice(0, 6).map(l =>
+      l.kind === "chords" ? `<span class="ch">${esc(l.text)}</span>` : l.kind === "section" ? `[${esc(l.text)}]` : esc(l.text)).join("\n");
+    const key = d.key || (d.format === "chords" ? guessKey(d.body) : "");
+    const tags = [d.format === "tab" ? "Tab" : "Chords", key && `Key ${key}`, d.sections && `${d.sections} section${d.sections === 1 ? "" : "s"}`].filter(Boolean);
+    $("p-tags").innerHTML = tags.map(t => `<span class="tag">${esc(t)}</span>`).join("");
+    $("p-ver").hidden = !cleaned;
+    layer.querySelectorAll("#p-ver button").forEach(b => b.classList.toggle("on", (b.dataset.v === "1") === useCleaned));
+  };
+  show();
   const close = () => { layer.innerHTML = ""; };
-  $("scrim").onclick = close;
-  const fields = () => ({ title: $("p-title").value.trim(), artist: $("p-artist").value.trim(), format: d.format, key: "", body: d.body });
+  $("scrim").onclick = () => { if (!working) close(); };
+  layer.querySelectorAll("#p-ver button").forEach(b => b.onclick = () => { useCleaned = b.dataset.v === "1"; show(); });
+  $("p-clean")?.addEventListener("click", async () => {
+    if (working) return;
+    if (cleaned) { useCleaned = true; show(); return; }
+    working = true;
+    const btn = $("p-clean");
+    btn.disabled = true; btn.innerHTML = busy("Cleaning");
+    $("p-note").hidden = true;
+    try {
+      cleaned = await cleanSheet({ text: original.body });
+      useCleaned = true;
+      // Fill in what the cleanup found, without overwriting anything typed.
+      if (!$("p-title").value.trim() && cleaned.title) $("p-title").value = cleaned.title;
+      if (!$("p-artist").value.trim() && cleaned.artist) $("p-artist").value = cleaned.artist;
+      show();
+      btn.innerHTML = `${icon("check")}Cleaned`;
+    } catch (e) {
+      $("p-note").textContent = aiError(e); $("p-note").hidden = false;
+      btn.disabled = false; btn.innerHTML = `${icon("wand")}Clean up`;
+    }
+    working = false;
+  });
+  const fields = () => {
+    const d = cur();
+    return { title: $("p-title").value.trim(), artist: $("p-artist").value.trim(), format: d.format, key: useCleaned ? (d.key || "") : "", body: d.body };
+  };
   $("p-save").onclick = () => {
+    if (working) return;
     const f = fields();
     if (!f.title) { $("p-title").focus(); toast("Add a title first"); return; }
     const s = Tabs.addSong(data, f);
     close(); query = "";
     go("#/song/" + encodeURIComponent(s.id));
   };
-  $("p-edit").onclick = () => { draft = fields(); close(); go("#/add"); };
-  if (!d.title) setTimeout(() => $("p-title")?.focus(), 250);
+  $("p-edit").onclick = () => { if (working) return; draft = fields(); close(); go("#/add"); };
+  if (!original.title) setTimeout(() => $("p-title")?.focus(), 250);
   followKeyboard();
 }
 
@@ -1057,6 +1214,11 @@ function renderForm(id) {
             </label>
           </div>
         </div>
+        ${aiKey() ? `<div class="ai-row">
+          <button class="chip ai" id="f-scan">${icon("camera")}Scan a page</button>
+          <button class="chip ai" id="f-clean">${icon("wand")}Clean up</button>
+          <input type="file" id="f-photo" accept="image/*" hidden>
+        </div>` : ""}
         <textarea class="body glass" id="f-body" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Song content" placeholder="${esc(PLACEHOLDER[format])}">${esc(src.body)}</textarea>
         <div class="detect" id="detect"></div>
         ${song ? '<button class="danger" id="delete">Delete Song</button>' : ""}
@@ -1071,7 +1233,48 @@ function renderForm(id) {
     $("detect").innerHTML = k ? `${icon("check")}<span>Chord sheet in ${esc(k)}${secs ? `, ${secs} section${secs === 1 ? "" : "s"}` : ""}</span>` : "";
   };
   detectLine();
-  $("f-body").oninput = detectLine;
+  $("f-body").oninput = () => { undo = null; detectLine(); };
+
+  // AI: clean up the sheet in place, or read a photographed page. Either can be undone.
+  let undo = null;
+  const aiNote = (html) => { $("detect").innerHTML = html; };
+  const applyResult = (r, label) => {
+    undo = { body: $("f-body").value, title: $("f-title").value, artist: $("f-artist").value, key: $("f-key").value, format };
+    $("f-body").value = r.body;
+    if (!$("f-title").value.trim() && r.title) $("f-title").value = r.title;
+    if (!$("f-artist").value.trim() && r.artist) $("f-artist").value = r.artist;
+    if (r.key && !$("f-key").value.trim()) $("f-key").value = r.key;
+    if (r.format !== format) layer.querySelector(`[data-fmt="${r.format}"]`)?.click();
+    detectLine();
+    $("detect").insertAdjacentHTML("beforeend", `<span class="sep">·</span><span>${label}</span><button class="link" id="f-undo">Undo</button>`);
+    $("f-undo").onclick = () => {
+      if (!undo) return;
+      $("f-body").value = undo.body; $("f-title").value = undo.title; $("f-artist").value = undo.artist; $("f-key").value = undo.key;
+      if (undo.format !== format) layer.querySelector(`[data-fmt="${undo.format}"]`)?.click();
+      undo = null; detectLine();
+    };
+  };
+  const run = async (btn, label, doneLabel, job) => {
+    if (btn.disabled) return;
+    const html = btn.innerHTML;
+    layer.querySelectorAll(".chip.ai").forEach(b => b.disabled = true);
+    btn.innerHTML = busy(label);
+    try { applyResult(await job(), doneLabel); }
+    catch (e) { aiNote(`<span class="err">${esc(aiError(e))}</span>`); }
+    btn.innerHTML = html;
+    layer.querySelectorAll(".chip.ai").forEach(b => b.disabled = false);
+  };
+  $("f-clean")?.addEventListener("click", () => {
+    const text = $("f-body").value;
+    if (!text.trim()) { toast("Paste a song first"); $("f-body").focus(); return; }
+    run($("f-clean"), "Cleaning", "Cleaned up", () => cleanSheet({ text }));
+  });
+  $("f-scan")?.addEventListener("click", () => $("f-photo").click());
+  $("f-photo")?.addEventListener("change", e => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (file) run($("f-scan"), "Reading page", "Read from photo", async () => cleanSheet({ image: await readPhoto(file) }));
+  });
   $("f-key").oninput = detectLine;
 
   layer.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => {
@@ -1166,6 +1369,18 @@ function renderSettings() {
         <button class="toggle ${s.theme !== "light" ? "on" : ""}" id="s-theme" role="switch" aria-checked="${s.theme !== "light"}" aria-label="Dark mode"></button>
       </div>
     </div>
+    <div class="label">AI help</div>
+    <div class="set-group glass">
+      <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("wand")}</span>
+        <input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Anthropic API key (sk-ant-...)" value="${esc(aiKey())}" aria-label="Anthropic API key"></label>
+      <div class="key-row">
+        <span class="ai-status"><i class="dot ${aiKey() ? "on" : ""}"></i>${aiKey() ? "On" : "Off"}</span>
+        <button class="btn sm" id="s-test">Test</button>
+        ${aiKey() ? `<button class="btn sm" id="s-remove">Remove</button>` : ""}
+        <button class="btn sm primary" id="s-savekey">Save key</button>
+      </div>
+    </div>
+    <p class="foot" id="s-keymsg">Adds Clean up and Scan a page when adding songs, and Make it easier on a song. The key stays on this phone and is sent only to Anthropic. Only the pasted text or photo is sent for cleanup and scans, and only the song's chord names for Make it easier. Use a key made just for Tabs, with a low monthly spend limit.</p>
     <div class="label">Library</div>
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("upload")}</span><span class="name">Export backup</span>${icon("chev", "chev")}</button>
@@ -1180,6 +1395,27 @@ function renderSettings() {
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
+  $("s-savekey").onclick = () => {
+    const k = $("s-key").value.trim();
+    if (!k) { toast("Paste a key first"); return; }
+    try { localStorage.setItem(AI.store, k); } catch {}
+    renderSettings(); toast("Key saved");
+  };
+  $("s-remove")?.addEventListener("click", () => {
+    try { localStorage.removeItem(AI.store); } catch {}
+    renderSettings(); toast("Key removed from this phone");
+  });
+  $("s-test").onclick = async () => {
+    const k = $("s-key").value.trim() || aiKey();
+    const out = $("s-keymsg");
+    if (!k) { out.textContent = "No key entered."; return; }
+    $("s-test").innerHTML = busy("Testing");
+    try {
+      await askClaude({ key: k, content: "Reply with the word OK.", maxTokens: 1024 });
+      out.textContent = "Key works.";
+    } catch (e) { out.textContent = aiError(e); }
+    $("s-test").textContent = "Test";
+  };
   $("s-export").onclick = async () => {
     const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
     const file = new File([Tabs.export(data)], name, { type: "application/json" });

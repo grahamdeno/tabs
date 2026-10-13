@@ -26,6 +26,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Focus current line (Always, While playing, or Off): the current line stays bright and the rest dim; when paused, tap a line to focus it and play starts from there
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
 - Add and edit in a slide-up sheet; delete from edit
+- Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), or Scan a page from a photo
 - Settings (gear, top right): starting speed, default transpose, dark/light mode, backup
 - While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
@@ -40,6 +41,22 @@ Blackbird singing in the dead of night
 [Chorus]
 [C]Take these [G]broken wings
 ```
+
+## AI help (optional)
+
+Settings > AI help > paste an Anthropic API key > Save key. Without a key the app works the same and the AI options stay hidden.
+
+- **Clean up** (paste card and New Song sheet): the pasted text is sent to a small, fast model and comes back as a chord sheet in this app's format. You can compare it with the original before saving, or undo it in the editor.
+- **Scan a page** (New Song sheet): a photo of a songbook page or handwritten sheet is resized on the phone and read by a larger model, which handles images more accurately.
+
+### About the API key
+
+The key is stored in the browser's local storage and sent directly from the phone to `api.anthropic.com`, using Anthropic's header for browser access. That is a reasonable trade for a personal app with no server, but it has limits worth knowing:
+
+- Anyone with the unlocked phone can read the key from Settings.
+- Any script that ran on this page could read it. The app loads no third-party scripts and escapes all user text before display, which keeps that risk low, but it is not zero.
+
+So use a key made only for Tabs, and in the Anthropic Console give its workspace a low monthly spend limit. If the phone is lost, revoke the key in the Console. Removing it in Settings only clears it from this phone. The key is not included in backups.
 
 ## Development
 
