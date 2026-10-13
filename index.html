@@ -282,6 +282,24 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .nu-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-size: 13px; color: var(--muted); }
 .nu-t .lab { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent); }
 .nu-t b { font-size: 16px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Spark tone */
+.tonebtn { gap: 5px; }
+.tonebtn svg { width: 14px; height: 14px; }
+.panel.tone { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.ampname { font-size: 15px; font-weight: 500; margin: 0 2px 10px; }
+.knobs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.knob { text-align: center; }
+.kv { font: 600 15px var(--mono); color: var(--accent); }
+.kbar { height: 4px; border-radius: 2px; background: var(--card-2); margin: 4px 0 4px; overflow: hidden; }
+.kbar i { display: block; height: 100%; background: var(--accent); }
+.kl { font-size: 11px; color: var(--muted); }
+.chain { display: flex; flex-direction: column; border-radius: var(--r); border: 1px solid var(--hair); margin-bottom: 12px; overflow: hidden; }
+.fx { display: flex; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--hair); font-size: 13.5px; }
+.fx:last-child { border-bottom: 0; }
+.fxn { width: 50px; flex: none; font-weight: 600; color: var(--fg-2); }
+.fxv { color: var(--fg); }
+.fx.off .fxv, .fx.off .fxn { color: var(--muted); font-weight: 400; }
+.tone-foot { font-size: 12px; color: var(--muted); margin: 0 2px 12px; }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -406,6 +424,7 @@ const I = {
   listplus: '<path d="M4 7h11M4 12h11M4 17h7M18 14v6M15 17h6"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
+  amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -825,7 +844,8 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title">${esc(song.title)}</h1>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button></div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>
+      ${aiKey() || song.tone ? `<button class="stat tonebtn" id="tone" aria-label="Spark tone">${icon("amp")}Spark tone</button>` : ""}</div>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -911,6 +931,7 @@ function renderViewer(id) {
   };
   curPaintStat = paintStat;
   $("toset").onclick = () => addToSet(song);
+  $("tone")?.addEventListener("click", () => toneSheet(song));
   const step2 = d => { const x = data.sets.find(z => z.id === setCtx.id), list = setSongs(x), n = list[setCtx.idx + d]; if (!n) return; setCtx = { id: x.id, idx: setCtx.idx + d }; go("#/song/" + encodeURIComponent(n.id)); };
   $("sprev")?.addEventListener("click", () => step2(-1));
   $("snext")?.addEventListener("click", () => step2(1));
@@ -1327,6 +1348,70 @@ function easierSheet(song) {
   layer.innerHTML = `<div class="scrim" id="e-scrim"></div><div class="panel card" id="easy-panel" role="dialog" aria-label="Make it easier"></div>`;
   $("e-scrim").onclick = close;
   if (result) paint(); else ask();
+}
+
+// ---------- Spark tone ----------
+// A starting tone for the Spark amp, from the song's title, artist, key and chord
+// names (no lyrics). Saved with the song; dial it in on the Spark app.
+const TONE_SYSTEM = `You suggest a starting guitar tone on a Positive Grid Spark amp for one song.
+Reply with JSON only, no other text:
+{"sound": string, "amp": string, "gain": number, "bass": number, "mid": number, "treble": number, "master": number,
+ "gate": string, "comp": string, "drive": string, "mod": string, "delay": string, "reverb": string, "guitar": string}
+- "sound": one plain sentence, under 20 words, describing the tone you're aiming for.
+- "amp": the amp style in plain words with the classic amp it is modeled on, like "American clean (Fender Twin style)" or "British crunch (Marshall Plexi style)". Spark's amp models are based on such amps; do not invent exact Spark preset names.
+- Knobs are 0 to 10 in steps of 0.5.
+- Each pedal slot: "Off", or the pedal style and its key settings in a few words, like "Tube Screamer style: drive 3, level 6" or "Hall: level 3, decay 4".
+- "guitar": one short tip on pickup and tone knob.
+If you don't know the song, base it on the artist and the genre the chords suggest, and say so in "sound". No praise.`;
+
+async function suggestTone(song) {
+  const steps = song.transpose || 0, k = songKey(song);
+  const content = `Song: ${song.title}${song.artist ? ` by ${song.artist}` : ""}
+Key: ${transposeKey(k, steps) || "unknown"}
+Chords: ${chordNames(song.body, steps, prefersFlats(k, steps)).join(" ") || "none (tab)"}`;
+  const t = parseJSON(await askClaude({ content, system: TONE_SYSTEM, maxTokens: 3000 }));
+  const knob = v => Math.min(10, Math.max(0, Math.round((+v || 0) * 2) / 2));
+  const str = v => String(v || "Off").slice(0, 90);
+  return { sound: str(t.sound), amp: str(t.amp), gain: knob(t.gain), bass: knob(t.bass), mid: knob(t.mid), treble: knob(t.treble), master: knob(t.master),
+    gate: str(t.gate), comp: str(t.comp), drive: str(t.drive), mod: str(t.mod), delay: str(t.delay), reverb: str(t.reverb), guitar: str(t.guitar), at: new Date().toISOString() };
+}
+
+function toneSheet(song) {
+  let working = false;
+  const knobs = t => ["gain", "bass", "mid", "treble", "master"].map(k =>
+    `<div class="knob"><div class="kv">${t[k]}</div><div class="kbar"><i style="width:${t[k] * 10}%"></i></div><div class="kl">${k[0].toUpperCase() + k.slice(1)}</div></div>`).join("");
+  const chain = t => [["Gate", t.gate], ["Comp", t.comp], ["Drive", t.drive], ["Mod", t.mod], ["Delay", t.delay], ["Reverb", t.reverb]].map(([n, v]) =>
+    `<div class="fx ${/^off$/i.test(v) ? "off" : ""}"><span class="fxn">${n}</span><span class="fxv">${esc(v)}</span></div>`).join("");
+  const paint = () => {
+    const p = $("tone-panel");
+    if (working) { p.innerHTML = `<div class="pc-head">${icon("amp")}<span>Spark tone</span></div><div class="easy-wait">${busy("Dialing in a tone")}</div>`; return; }
+    const t = song.tone;
+    p.innerHTML = `
+      <div class="pc-head">${icon("amp")}<span>Spark tone · ${esc(song.title)}</span></div>
+      <p class="easy-note">${esc(t.sound)}</p>
+      <div class="elabel">Amp</div><div class="ampname">${esc(t.amp)}</div>
+      <div class="knobs">${knobs(t)}</div>
+      <div class="elabel">Pedals, in order</div><div class="chain">${chain(t)}</div>
+      <div class="elabel">Guitar</div><p class="easy-note" style="margin-bottom:10px">${esc(t.guitar)}</p>
+      <p class="tone-foot">A starting point to dial in on the Spark app, then adjust by ear.</p>
+      <div class="actions">${aiKey() ? `<button class="btn" id="t-again">${icon("wand")}Try again</button>` : ""}<button class="btn primary" id="t-done">Done</button></div>`;
+    $("t-done").onclick = close;
+    $("t-again")?.addEventListener("click", ask);
+  };
+  const close = () => { if (!working) layer.innerHTML = ""; };
+  const ask = async () => {
+    working = true; paint();
+    try { song.tone = await suggestTone(song); Tabs.save(data); working = false; paint(); }
+    catch (e) {
+      working = false;
+      $("tone-panel").innerHTML = `<div class="pc-head">${icon("amp")}<span>Spark tone</span></div><p class="ai-note">${esc(aiError(e))}</p>
+        <div class="actions"><button class="btn" id="t-close">Close</button>${aiKey() ? `<button class="btn primary" id="t-retry">Try again</button>` : ""}</div>`;
+      $("t-close").onclick = close; $("t-retry")?.addEventListener("click", ask);
+    }
+  };
+  layer.innerHTML = `<div class="scrim" id="t-scrim"></div><div class="panel card tone" id="tone-panel" role="dialog" aria-label="Spark tone"></div>`;
+  $("t-scrim").onclick = close;
+  if (song.tone) paint(); else if (aiKey()) ask();
 }
 
 // "Chords in this song": each chord once, in order of first use, to learn before playing.
@@ -1918,7 +2003,7 @@ function pickSongs(set, done) {
   $("pk-q").oninput = paint;
   const close = () => { layer.innerHTML = ""; };
   $("pk-scrim").onclick = close; $("pk-cancel").onclick = close;
-  $("pk-add").onclick = () => { set.songIds.push(...chosen); // in the order they were tapped Tabs.save(data); close(); done(); if (chosen.size) toast(`Added ${chosen.size} song${chosen.size === 1 ? "" : "s"}`); };
+  $("pk-add").onclick = () => { set.songIds.push(...chosen); /* in the order they were tapped */ Tabs.save(data); close(); done(); if (chosen.size) toast(`Added ${chosen.size} song${chosen.size === 1 ? "" : "s"}`); };
 }
 
 // From a song: put it in one or more sets, or start a new one.
