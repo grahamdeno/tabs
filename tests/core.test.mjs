@@ -412,6 +412,25 @@ test("saves are batched, and a refused save is reported", () => {
   store.setItem = real; C.Tabs.onSaveError = null;
 });
 
+test("every save is handed on for the safety copy, saying whether the main save worked", () => {
+  const store = globalThis.localStorage, real = store.setItem, seen = [];
+  C.Tabs.onFlush = (json, ok) => seen.push([JSON.parse(json).songs.length, ok]);
+  const d = fresh(); d.songs.push({ id: "x", body: "G" });
+  C.Tabs.save(d); C.Tabs.flush();
+  store.setItem = () => { throw new Error("QuotaExceededError"); };
+  C.Tabs.save(d); C.Tabs.flush();
+  store.setItem = real; C.Tabs.onFlush = null;
+  assert.deepEqual(seen, [[d.songs.length, true], [d.songs.length, false]]);
+});
+
+test("loading says whether the save was there and readable", () => {
+  const store = globalThis.localStorage, keep = store.getItem("tabs-v1");
+  store.removeItem("tabs-v1"); C.Tabs.load(); assert.equal(C.Tabs.loaded, "empty");
+  store.setItem("tabs-v1", "{not json"); C.Tabs.load(); assert.equal(C.Tabs.loaded, "broken");
+  store.setItem("tabs-v1", JSON.stringify(fresh())); C.Tabs.load(); assert.equal(C.Tabs.loaded, "ok");
+  if (keep === null) store.removeItem("tabs-v1"); else store.setItem("tabs-v1", keep);
+});
+
 test("importing a backup: a real export comes back the same", () => {
   const data = C.migrate({ songs: [{ id: "a", title: "River Road", artist: "W", key: "A", format: "chords", body: "[Verse]\nA\nWalking", transpose: 2, favorite: true, listen: { url: "https://music.apple.com/x", service: "Apple Music", art: "https://is1-ssl.mzstatic.com/a.jpg" }, loop: { a: 1, b: 2, build: false } }],
     sets: [{ id: "s1", name: "Friday", songIds: ["a"], cover: { type: "art" } }], trash: [], settings: { theme: "light", countIn: false } });

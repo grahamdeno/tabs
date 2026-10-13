@@ -413,3 +413,19 @@ test("a problem is kept, and Copy diagnostics reports it without song words or t
   assert.match(text, /AI key: set/);
   assert.doesNotMatch(text, /sk-ant-secret|River Road|Walking down/);
 });
+
+test("an unreadable save comes back from the safety copy", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.waitForTimeout(400);
+  // The safety copy follows saves.
+  const copied = await page.evaluate(() => new Promise(ok => {
+    const r = indexedDB.open("tabs-library", 1);
+    r.onsuccess = () => { const g = r.result.transaction("copy").objectStore("copy").get("lib"); g.onsuccess = () => ok(JSON.parse(g.result.json).songs.length); };
+  }));
+  assert.equal(copied, 2);
+  await page.evaluate(() => localStorage.setItem("tabs-v1", "{broken"));
+  await page.reload(); await page.waitForTimeout(600);
+  assert.equal(await page.locator("#list .row").count(), 2);
+  assert.match(await page.innerText("#toast"), /restored from its safety copy/);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.length, 2);
+});

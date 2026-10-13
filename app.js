@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, indexLetter, appleTrackId, lengthChoice, fitLength, tapTempo, VERSION } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, indexLetter, appleTrackId, lengthChoice, fitLength, tapTempo, VERSION, migrate } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -58,6 +58,42 @@ Tabs.onSaveError = () => {
   saveWarned = Date.now();
   toast("Couldn't save: the phone's storage for Tabs is full. Back up, then remove songs or cover photos you don't need.", null, { label: "Back up", fn: () => backupNow() });
 };
+// Safety copy: every save is also written to IndexedDB, which has far more room
+// than the main save. At start, if the main save is missing or unreadable, or
+// its last write failed (storage full), the library comes back from the copy.
+const safeDB = () => new Promise((ok, bad) => {
+  const r = indexedDB.open("tabs-library", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("copy");
+  r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error);
+});
+async function safeTx(mode, fn) {
+  const db = await safeDB();
+  return new Promise((ok, bad) => { const tx = db.transaction("copy", mode); const out = fn(tx.objectStore("copy")); tx.oncomplete = () => ok(out?.result); tx.onerror = () => bad(tx.error); });
+}
+let safeCopy = null;   /* true once a copy is written, false if the phone refused */
+let safeHeld = false;  /* the latest save, held until the start-up check is done; null after */
+const writeSafe = c => safeTx("readwrite", st => st.put(c, "lib")).then(() => { safeCopy = true; }, () => { safeCopy = false; });
+Tabs.onFlush = (json, lsOk) => {
+  const c = { json, lsOk, at: new Date().toISOString() };
+  if (safeHeld !== null) safeHeld = c; else writeSafe(c);
+};
+async function recoverLibrary() {
+  let copy = null;
+  try { copy = await safeTx("readonly", st => st.get("lib")); } catch { /* no IndexedDB */ }
+  const held = safeHeld; safeHeld = null;
+  let restored = false;
+  if (copy?.json && (Tabs.loaded !== "ok" || copy.lsOk === false)) {
+    try {
+      const lib = migrate(JSON.parse(copy.json));
+      if (lib.songs.length) { data = lib; restored = true; }
+    } catch { /* the copy is unreadable too */ }
+  }
+  if (restored) {
+    Tabs.save(data); Tabs.flush();
+    applyTheme(); render();
+    toast("Your library was restored from its safety copy.");
+  } else writeSafe(held || { json: JSON.stringify(data), lsOk: Tabs.loaded === "ok", at: new Date().toISOString() });
+}
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") Tabs.flush(); });
 window.addEventListener("pagehide", () => Tabs.flush());
 let query = "";
@@ -2444,7 +2480,7 @@ function renderSettings() {
       <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device${storageKept ? " and kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device${safeCopy ? ", with a safety copy" : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
   $("back").onclick = () => go("#/");
   $("s-speed")?.addEventListener("change", e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
@@ -3332,6 +3368,7 @@ applyTheme();
 firstLaunch();
 data.songs.filter(s => s.isNew).forEach(settleNew); /* a song being added when the app closed */
 render();
+recoverLibrary();
 coverLoadAll().then(() => {
   /* Forget cover photos of sets that are gone for good (not in the library or Recently deleted). */
   const keep = new Set([...data.sets.map(x => x.id), ...data.trash.filter(t => t.type === "set").map(t => t.item.id)]);

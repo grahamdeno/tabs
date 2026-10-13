@@ -68,11 +68,16 @@ export function migrate(data) {
 const SAVE_DELAY = 150;
 let pending = null, saveTimer = 0;
 export const Tabs = {
+  // `loaded` says how it went: "ok", "empty" (nothing saved) or "broken"
+  // (unreadable), so the app can turn to its safety copy.
+  loaded: "empty",
   load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      this.loaded = raw ? "ok" : "empty";
       return raw ? migrate(JSON.parse(raw)) : blank();
     } catch {
+      this.loaded = "broken";
       return blank();
     }
   },
@@ -88,10 +93,15 @@ export const Tabs = {
     clearTimeout(saveTimer); saveTimer = 0;
     if (!pending) return true;
     const d = pending; pending = null;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); return true; }
-    catch (e) { this.onSaveError?.(e); return false; }
+    const json = JSON.stringify(d);
+    let ok = true;
+    try { localStorage.setItem(STORAGE_KEY, json); }
+    catch (e) { ok = false; this.onSaveError?.(e); }
+    this.onFlush?.(json, ok);
+    return ok;
   },
   onSaveError: null,
+  onFlush: null, // (json, savedOk): the app keeps a safety copy with it
 
   addSong(data, song) {
     const s = {
