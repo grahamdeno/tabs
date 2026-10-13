@@ -97,7 +97,7 @@ Open `index.html` through any static server (ES modules need http, not file://).
 
 Releases: `VERSION` in `core.js` and `CACHE` in `sw.js` must match (a test checks). You don't need to bump them by hand: when app files change on `main` without a bump, the `bump version` workflow raises the patch number in both and commits it. Bump by hand only for a minor or major release. The app opens from its saved copy, so a change only reaches installed apps through a new cache name. On the next launch, or when the app comes back to the foreground, it saves the new release in the background and offers to reload.
 
-Tests: `node --test` (Node 18 or later, no dependencies). They cover chord parsing, transposing, wrapping and fingerings, the library data, the version matching the service worker cache, and that the app script parses. GitHub Actions runs them on every push to `main`.
+Tests: `node --test` (Node 18 or later, no dependencies) runs the unit tests. Browser tests run the real app in a phone-sized Chromium: `npm i --no-save playwright && npx playwright install chromium`, then `node --test tests/e2e/app.e2e.mjs`. They cover chord parsing, transposing, wrapping and fingerings, the library data, the version matching the service worker cache, and that the app script parses. GitHub Actions runs both on every push to `main`.
 
 ## License
 
