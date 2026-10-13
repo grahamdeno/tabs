@@ -1,0 +1,32 @@
+name: update screenshots
+
+# Makes the reference screenshots that every push is compared against, on
+# GitHub's own machines (fonts differ between computers, so references made
+# elsewhere wouldn't match). Run it after an intended change to how screens
+# look: Actions > update screenshots > Run workflow. It commits tests/visual/ci/.
+
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04   # pinned: a new runner image changes fonts, and the references with it
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: rm -rf tests/visual/ci && VISUAL=update VISUAL_DIR=tests/visual/ci node --test tests/e2e/visual.e2e.mjs
+      - name: Commit the references
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/visual/ci
+          git diff --cached --quiet && exit 0
+          git commit -m "Update reference screenshots (made on GitHub)"
+          git pull --rebase
+          git push

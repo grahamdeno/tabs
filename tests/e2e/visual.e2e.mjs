@@ -1,9 +1,11 @@
 // Visual snapshots of the main screens, dark and light, phone and iPad.
-//   VISUAL=update node --test tests/e2e/visual.e2e.mjs   saves new baselines to tests/visual/
+//   VISUAL=update node --test tests/e2e/visual.e2e.mjs   saves new baselines
 //   VISUAL=compare node --test tests/e2e/visual.e2e.mjs  fails on screens that changed
-// Without VISUAL it only saves the screens to test-results/visual/ (CI keeps them
-// as an artifact): fonts differ between machines, so baselines are compared on
-// the machine that made them.
+// Baselines are in tests/visual/ (made on a Mac or this workspace), or the folder
+// in VISUAL_DIR: CI compares against tests/visual/ci/, made on GitHub's own
+// machines by the "update screenshots" workflow, since fonts differ between
+// computers. Screens are always saved to test-results/visual/ (a CI artifact).
+// The clock is fixed so dates and "days ago" don't change the pictures.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -13,7 +15,7 @@ import { base, phone, skip, LIB, useBrowser } from "./harness.mjs";
 
 useBrowser();
 const here = path.dirname(fileURLToPath(import.meta.url));
-const BASE = path.join(here, "..", "visual"), OUT = path.join(here, "..", "..", "test-results", "visual");
+const BASE = process.env.VISUAL_DIR ? path.resolve(process.env.VISUAL_DIR) : path.join(here, "..", "visual"), OUT = path.join(here, "..", "..", "test-results", "visual");
 const mode = process.env.VISUAL || "";
 
 const TIPS = Object.fromEntries("library song edit add map pause pauseStage chord play line tap paste menu strobe searchInvite search nn tuner".split(" ").map(k => [k, true]));
@@ -47,8 +49,9 @@ async function differs(page, a, b) {
 for (const [device, viewport] of [["phone", { width: 390, height: 844 }], ["ipad", { width: 1180, height: 820 }]]) {
   for (const theme of ["dark", "light"]) {
     test(`screens look the same: ${device}, ${theme}`, { skip: skip() }, async t => {
-      const page = await phone(t, lib(theme), { viewport, colorScheme: theme, reducedMotion: "reduce" });
-      fs.mkdirSync(mode === "update" ? BASE : OUT, { recursive: true });
+      const page = await phone(t, lib(theme), { viewport, colorScheme: theme, reducedMotion: "reduce", fixedTime: "2026-10-13T12:00:00" });
+      fs.mkdirSync(OUT, { recursive: true });
+      if (mode === "update") fs.mkdirSync(BASE, { recursive: true });
       const changed = [];
       for (const [name, hash, act] of device === "ipad" ? SHOTS.filter(s => ["library", "song", "edit"].includes(s[0])) : SHOTS) {
         await page.goto(base + hash); await page.reload(); await page.waitForTimeout(450);
@@ -57,7 +60,8 @@ for (const [device, viewport] of [["phone", { width: 390, height: 844 }], ["ipad
         await page.evaluate(() => { document.activeElement?.blur?.(); document.getElementById("toast")?.classList.remove("show"); });
         await page.waitForTimeout(150);
         const file = `${device}_${theme}_${name}.png`, shot = await page.screenshot();
-        fs.writeFileSync(path.join(mode === "update" ? BASE : OUT, file), shot);
+        fs.writeFileSync(path.join(OUT, file), shot);
+        if (mode === "update") fs.writeFileSync(path.join(BASE, file), shot);
         if (mode === "compare") {
           const was = path.join(BASE, file);
           if (!fs.existsSync(was)) { changed.push(`${file} (no baseline)`); continue; }
@@ -65,6 +69,7 @@ for (const [device, viewport] of [["phone", { width: 390, height: 844 }], ["ipad
           if (n > 40) changed.push(`${file} (${n} pixels)`);
         }
       }
+      for (const c of changed) console.log(`PROBLEM screen changed: ${c}`);
       assert.deepEqual(changed, [], "screens changed; look at test-results/visual, then VISUAL=update if intended");
     });
   }

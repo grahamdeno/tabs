@@ -274,6 +274,26 @@ test("a plucked string is read within 2 cents as it rings, in tune or not", () =
   }
 });
 
+test("Drop D, DADGAD, Open G and Eb tunings: each string read within 2 cents, slightly out or not", () => {
+  for (const tuning of ["dropd", "dadgad", "openg", "halfdown"].filter(k => C.TUNINGS[k])) {
+    for (const note of C.TUNINGS[tuning].notes) for (const detune of [0, -11, 7]) {
+      const { out, fr } = pluck(C.noteFreq(note), { detune, rate: 44100, highpass: 120, hum: 0.02 });
+      for (const at of [0.1, 0.35]) {
+        const off = centsOffAt(out, fr, 44100, at);
+        assert.ok(Math.abs(off) < 2, `${tuning} ${note} ${detune} cents, at ${at}s: read ${off.toFixed(1)} cents off`);
+      }
+    }
+  }
+  assert.ok(C.TUNINGS.dropd, "Drop D is one of the tunings");
+});
+
+test("in Drop D, a low string still at E is read as the D string, a whole step sharp", () => {
+  const { out } = pluck(C.noteFreq("E2"), { rate: 44100, highpass: 120 });
+  const s = C.nearestString(C.detectPitch(out.subarray(4410, 4410 + 4096), 44100), "dropd");
+  assert.deepEqual([s.index, s.note], [0, "D2"]);
+  assert.ok(Math.abs(s.cents - 200) <= 1, `${s.cents} cents`);
+});
+
 test("a phone mic's weak low end, hum, hiss and another string ringing don't fool it", () => {
   for (const note of C.TUNINGS.standard.notes) {
     const target = pluck(C.noteFreq(note), { rate: 44100, highpass: 250, hum: 0.05, hiss: 0.02, detune: -9 });
@@ -667,4 +687,29 @@ test("every name a module imports from another app file is exported there", asyn
     for (const n of m[1].split(",").map(x => x.trim().split(/\s+as\s+/)[0]).filter(Boolean)) if (!have.has(n)) missing.push(`${f} imports ${n} from ${m[2]}`);
   }
   assert.deepEqual(missing, []);
+});
+
+// Real recordings in tests/audio (see its README). Skipped when there are none.
+test("real guitar recordings: the right note, steady, no octave mistakes", async t => {
+  const fs = await import("node:fs");
+  const dir = new URL("./audio/", import.meta.url);
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => /\.wav$/i.test(f)) : [];
+  if (!files.length) return t.skip("no recordings yet");
+  for (const f of files) {
+    const b = fs.readFileSync(new URL(f, dir));
+    const ch = b.readUInt16LE(22), rate = b.readUInt32LE(24), bits = b.readUInt16LE(34);
+    assert.equal(bits, 16, `${f}: 16-bit PCM`);
+    let at = 12; while (b.toString("ascii", at, at + 4) !== "data") at += 8 + b.readUInt32LE(at + 4);
+    const n = b.readUInt32LE(at + 4) / 2 / ch, pcm = new Float32Array(n);
+    for (let i = 0; i < n; i++) pcm[i] = b.readInt16LE(at + 8 + i * 2 * ch) / 32768;
+    const want = f.split(/[_.]/)[0];
+    const reads = [];
+    for (let s = Math.round(rate * 0.25); s + 4096 < n && s < rate * 2.5; s += Math.round(rate * 0.25)) {
+      const hz = C.detectPitch(pcm.subarray(s, s + 4096), rate);
+      if (hz > 0) reads.push(1200 * Math.log2(hz / C.noteFreq(want)));
+    }
+    assert.ok(reads.length >= 3, `${f}: heard the string`);
+    for (const c of reads) assert.ok(Math.abs(c) < 50, `${f}: read ${c.toFixed(0)} cents from ${want}`);
+    assert.ok(Math.max(...reads) - Math.min(...reads) < 8, `${f}: steady within ±4 cents (${reads.map(c => c.toFixed(1)).join(", ")})`);
+  }
 });
