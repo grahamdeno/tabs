@@ -99,7 +99,9 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .chead .cs b { color: var(--fg-2); font-weight: 500; }
 
 /* Chips */
-.chips { display: flex; gap: 8px; margin: 14px 0 0; }
+.chips { display: flex; gap: 8px; margin: 14px -20px 0; padding: 0 20px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.chips::-webkit-scrollbar { display: none; }
+.chips > * { flex: none; }
 .chip { height: 28px; padding: 0 12px; border-radius: 14px; font-size: 13px; border: 1px solid var(--rim); background: var(--card); color: var(--muted); }
 .chip.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
 
@@ -810,3 +812,27 @@ body.nn-demo .nn { display: flex; animation: nnin .3s ease-out; }
 .gs-t b { display: block; font-weight: 500; font-size: 15px; color: var(--fg); }
 .gs-t span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
 .gs-show { flex: none; font: 600 13px var(--sans); color: var(--accent); border: 1px solid var(--accent-line); border-radius: 14px; padding: 6px 10px; background: none; }
+
+/* ---------- Library: Key and Tuning filters, A–Z index ---------- */
+.chip.sel { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+.chip.sel .chev { width: 11px; height: 11px; transform: rotate(90deg); opacity: .7; }
+.chip.sel select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
+.azx { position: fixed; z-index: 18; right: 2px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 12px; touch-action: none; -webkit-user-select: none; user-select: none; }
+.azx button { width: 22px; height: min(19px, 2.6vh); padding: 0; border: 0; background: none; font: 600 11px var(--sans); color: var(--accent); line-height: 1; }
+.azx.on { background: var(--card-2); }
+.azx-pop { position: absolute; right: 34px; width: 52px; height: 52px; margin-top: -26px; border-radius: 14px; display: grid; place-items: center; background: var(--solid); border: 1px solid var(--accent-line); color: var(--accent); font: 600 26px var(--serif); box-shadow: var(--shadow); pointer-events: none; }
+.azx-pop[hidden] { display: none; }
+body.searching .azx { display: none; }
+
+.set .seg.mini { margin-left: auto; }
+/* Tuner: why it needs the microphone, before the phone asks */
+.tuner2.asking .tn-gauge, .tuner2.asking .tn-stage, .tuner2.asking .tn-foot { display: none; }
+.tuner2.asking .tn-note { display: none; }
+.tn-mic { margin: auto 6px; padding: 26px 22px 18px; border-radius: 22px; background: var(--card); border: 1px solid var(--rim); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.tn-mic-ic { width: 54px; height: 54px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.tn-mic-ic svg { width: 26px; height: 26px; }
+.tn-mic b { font-size: 19px; font-weight: 600; color: var(--fg); }
+.tn-mic p { margin: 0 0 6px; font-size: 14.5px; line-height: 1.45; color: var(--muted); }
+.tn-mic .btn, .tn-mic .tb { flex: none; }
+.tn-mic .btn { width: 100%; height: 46px; }
+body.has-azx #list .list { margin-right: 22px; }

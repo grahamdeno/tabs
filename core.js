@@ -11,7 +11,7 @@ export const TRASH_DAYS = 30;
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
 const DEFAULT_SETTINGS = {
-  theme: "dark", transpose: 0, diagrams: false, focus: "always", pauseDiagrams: true,
+  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" */ diagrams: false, focus: "always", pauseDiagrams: true,
   speedMode: "length",   // "length" (song length, mm:ss) or "multiplier" (1x style)
   startSpeed: 45,        // 1x-style starting speed for new songs
   startLength: 210,      // song-length starting value, seconds (3:30)
@@ -19,8 +19,9 @@ const DEFAULT_SETTINGS = {
   tunerMode: "acoustic", // tuner: "acoustic", "electric" or "chromatic"
   tunerGuided: true,     // guitar tuner walks the strings low to high
   a4: 440,               // pitch reference for the tuner, Hz
+  micExplained: false,   // the tuner has said why it needs the microphone
   lastBackup: null, backupSnooze: null, tipsSeen: false,
-  v: 5
+  v: 6
 };
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -40,7 +41,9 @@ export function migrate(data) {
   if (v < 3) settings.focus = "always";
   // v4: speed by song length is the default style; count-in on.
   if (v < 4) { settings.speedMode = "length"; settings.countIn = true; }
-  settings.v = 5;
+  // v6: Automatic theme (follow the phone) is the default; the old default, dark, becomes automatic.
+  if (v < 6 && settings.theme !== "light") settings.theme = "auto";
+  settings.v = 6;
   delete settings.scrollSpeed;
   const songs = data.songs.map(s => {
     const song = { ...s };
@@ -266,7 +269,7 @@ export function cleanImport(parsed) {
     const d = DEFAULT_SETTINGS[k];
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
-  if (!["dark", "light"].includes(settings.theme)) delete settings.theme;
+  if (!["auto", "dark", "light"].includes(settings.theme)) delete settings.theme;
   const data = migrate({ songs, sets, trash, settings });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
@@ -850,6 +853,12 @@ const keyRank = k => {
   return m ? KEY_ORDER.indexOf(m[1]) * 2 + (m[2] ? 1 : 0) : 999;
 };
 // mode: "title" | "recent" | "most" | "key". keyOf gives a song's key.
+// The letter a title files under in the A–Z index: accents dropped, digits and
+// symbols under "#".
+export function indexLetter(title) {
+  const c = String(title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().charAt(0).toUpperCase();
+  return /[A-Z]/.test(c) ? c : "#";
+}
 export function sortSongs(songs, mode, keyOf = s => s.key) {
   const byTitle = (a, b) => a.title.localeCompare(b.title);
   const cmp = {

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, appleTrackId, lengthChoice, fitLength, tapTempo } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, indexLetter, appleTrackId, lengthChoice, fitLength, tapTempo } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -62,6 +62,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 window.addEventListener("pagehide", () => Tabs.flush());
 let query = "";
 let filter = "all";
+let keyFilter = "", tuneFilter = ""; /* narrow a big library by key or tuning */
 // Search mode: tapping the bar moves it to the top and folds the library away, so
 // results sit between the bar and the keyboard. (iPhone doesn't resize the page
 // for the keyboard; it pushes the page up instead, which hid results at the top.)
@@ -101,9 +102,13 @@ document.addEventListener("visibilitychange", () => {
   const t = readSysText();
   if (t !== sysText) { sysText = t; if (route().name === "song") redraw?.(); }
 });
+// Theme: Automatic (the default) follows the phone's light or dark appearance.
+const phoneLight = () => !!window.matchMedia?.("(prefers-color-scheme: light)").matches;
+window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (data.settings.theme !== "dark" && data.settings.theme !== "light") applyTheme(); });
 function applyTheme() {
   sysText = readSysText();
-  const light = data.settings.theme === "light";
+  const t = data.settings.theme;
+  const light = t === "light" || (t !== "dark" && phoneLight());
   document.body.classList.toggle("stage", !!data.settings.stage);
   document.documentElement.dataset.theme = light ? "light" : "dark";
   document.querySelector('meta[name="theme-color"]').content = light ? "#f3f0eb" : "#0c0d0f";
@@ -223,6 +228,7 @@ function renderLibrary() {
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
       ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
+      ${moreFilters()}
     </div>` : ""}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -247,6 +253,8 @@ function renderLibrary() {
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   $("add").onclick = () => newSong();
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
+  $("f-key")?.addEventListener("change", e => { keyFilter = e.target.value; if (filter === "sets") filter = "all"; renderLibrary(); });
+  $("f-tune")?.addEventListener("change", e => { tuneFilter = e.target.value; if (filter === "sets") filter = "all"; renderLibrary(); });
   bindShelf();
   const q = $("q");
   const enterSearch = () => {
@@ -361,8 +369,61 @@ function songRow(s, hit) {
   </button>`;
 }
 
+// Key and Tuning chips: only for a library big enough to need them, and only
+// when there's more than one to choose from.
+function moreFilters() {
+  if (data.songs.length < 12) { keyFilter = tuneFilter = ""; return ""; }
+  const keys = [...new Set(data.songs.filter(s => s.format !== "tab").map(keyOf).filter(Boolean))].sort();
+  const tunes = [...new Set(data.songs.map(songTuning))];
+  if (!keys.includes(keyFilter)) keyFilter = "";
+  if (!tunes.includes(tuneFilter)) tuneFilter = "";
+  const chip = (id, label, value, opts) => `<label class="chip sel ${value ? "on" : ""}">${value ? esc(opts.find(o => o[0] === value)[1]) : label}${icon("chev", "chev")}<select id="${id}" aria-label="${label}"><option value="">Any ${label.toLowerCase()}</option>${opts.map(([v, n]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`;
+  return (keys.length > 1 ? chip("f-key", "Key", keyFilter, keys.map(k => [k, `Key of ${k}`])) : "")
+    + (tunes.length > 1 ? chip("f-tune", "Tuning", tuneFilter, tunes.map(t => [t, TUNINGS[t].name])) : "");
+}
+// A–Z index on the right edge of a long list: touch or drag to jump to a letter.
+function bindIndex(list, sorted, sort) {
+  document.querySelector(".azx")?.remove();
+  document.body.classList.remove("has-azx");
+  if (sort !== "title" || sorted.length < 25 || searching) return;
+  const firsts = new Map();
+  list.querySelectorAll(".list [data-id]").forEach(row => {
+    const song = sorted.find(x => x.id === row.dataset.id);
+    const L = indexLetter(song?.title);
+    if (!firsts.has(L)) firsts.set(L, row);
+  });
+  const letters = [..."#ABCDEFGHIJKLMNOPQRSTUVWXYZ"].filter(L => firsts.has(L));
+  if (letters.length < 4) return;
+  const x = document.createElement("div");
+  x.className = "azx";
+  x.setAttribute("aria-label", "Jump to letter");
+  x.innerHTML = letters.map(L => `<button data-l="${L}" tabindex="-1" aria-label="${L === "#" ? "Numbers" : L}">${L}</button>`).join("") + `<b class="azx-pop" hidden></b>`;
+  document.body.appendChild(x);
+  document.body.classList.add("has-azx");
+  const pop = x.querySelector(".azx-pop");
+  let cur = "";
+  const jump = (clientY, final) => {
+    const btns = [...x.querySelectorAll("[data-l]")];
+    const hit = btns.reduce((a, b) => Math.abs(b.getBoundingClientRect().top + b.offsetHeight / 2 - clientY) < Math.abs(a.getBoundingClientRect().top + a.offsetHeight / 2 - clientY) ? b : a);
+    const L = hit.dataset.l;
+    if (L !== cur) {
+      cur = L; tick();
+      const row = firsts.get(L);
+      window.scrollTo({ top: row.getBoundingClientRect().top + scrollY - 120 });
+      pop.textContent = L; pop.hidden = false;
+      pop.style.top = (hit.getBoundingClientRect().top + hit.offsetHeight / 2 - x.getBoundingClientRect().top) + "px";
+    }
+    if (final) setTimeout(() => { pop.hidden = true; cur = ""; }, 500);
+  };
+  x.addEventListener("pointerdown", e => { e.preventDefault(); x.setPointerCapture?.(e.pointerId); x.classList.add("on"); jump(e.clientY); markUsed("index"); });
+  x.addEventListener("pointermove", e => { if (x.classList.contains("on")) jump(e.clientY); });
+  const end = e => { if (!x.classList.contains("on")) return; x.classList.remove("on"); jump(e.clientY, true); };
+  x.addEventListener("pointerup", end); x.addEventListener("pointercancel", end);
+}
+onLeave(() => { document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx"); });
 function renderList() {
   const list = $("list");
+  document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx");
   if (!data.songs.length) {
     list.innerHTML = `<div class="empty">No songs yet.<br>Paste a chord sheet into the bar below,<br>or tap + to write one.</div>`;
     return;
@@ -396,7 +457,8 @@ function renderList() {
     return;
   }
   const pool = searching ? data.songs : data.songs.filter(s =>
-    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning"));
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning")
+    && (!keyFilter || (s.format !== "tab" && keyOf(s) === keyFilter)) && (!tuneFilter || songTuning(s) === tuneFilter));
   /* Searching: title and artist matches first, then songs whose lyrics have the words. */
   const found = q ? searchSongs(pool, q) : null;
   const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
@@ -411,12 +473,13 @@ function renderList() {
         <div class="t">${esc(s.title)}</div>
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
-    ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</span>
+    ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}${keyFilter ? ` · ${esc(keyFilter)}` : ""}${tuneFilter ? ` · ${esc(TUNINGS[tuneFilter].name)}` : ""}${keyFilter || tuneFilter ? ` · ${sorted.length}` : ""}</span>
       <label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>` : findCard(query)}`;
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   bindRows(list);
   bindFind(list);
+  bindIndex(list, sorted, q ? "" : sort);
 }
 function bindRows(list) {
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
@@ -2301,8 +2364,8 @@ function renderSettings() {
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
-        <span class="tile">${icon("moon")}</span><span class="name">Dark mode</span>
-        <button class="toggle ${s.theme !== "light" ? "on" : ""}" id="s-theme" role="switch" aria-checked="${s.theme !== "light"}" aria-label="Dark mode"></button>
+        <span class="tile">${icon("moon")}</span><span class="name">Theme</span>
+        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]].map(([k, n]) => `<button data-t="${k}" class="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
     </div>
     <div class="label">AI help</div>
@@ -2337,7 +2400,7 @@ function renderSettings() {
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
-  $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
+  $("s-theme").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {
     const k = $("s-key").value.trim();
     if (!k) { toast("Paste a key first"); return; }

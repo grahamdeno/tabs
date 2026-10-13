@@ -62,7 +62,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 
 ### Settings
 
-Defaults are in `DEFAULT_SETTINGS` in `core.js`. The tuner keeps `tunerMode` (`"acoustic"`, `"electric"` or `"chromatic"`), `tunerGuided` (boolean), `a4` (pitch reference in Hz) and `lastTuned` (time). `tipsSeen` and `used` record which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `v` is the save format version (now 5); `migrate()` in `core.js` upgrades older saves, one step per version.
+Defaults are in `DEFAULT_SETTINGS` in `core.js`. The tuner keeps `tunerMode` (`"acoustic"`, `"electric"` or `"chromatic"`), `tunerGuided` (boolean), `a4` (pitch reference in Hz) and `lastTuned` (time). `tipsSeen` and `used` record which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `theme` is `"auto"` (follow the phone, the default), `"dark"` or `"light"`; `micExplained` notes the tuner has explained the microphone. `v` is the save format version (now 6); `migrate()` in `core.js` upgrades older saves, one step per version.
 
 ## Backup file
 

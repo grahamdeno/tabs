@@ -198,11 +198,11 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   t.say = say;
   const fail = e => {
     const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
-    say(denied ? "Tabs needs the microphone to hear your guitar. Allow it for this app in your phone's Settings, then open the tuner again."
+    say(denied ? "Tabs can't hear your guitar: the microphone is off for it. To turn it on, open your iPhone's Settings, then Apps > Safari > Microphone, and choose Ask. Then open the tuner again. Meanwhile, tap a key to hear its note."
       : "The microphone isn't available here. Tap a key to hear its note.", "warn");
   };
   if (!navigator.mediaDevices?.getUserMedia) return fail();
-  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
+  const listenNow = () => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
     if (tunerState !== t) { stream.getTracks().forEach(tr => tr.stop()); return; }
     t.stream = stream;
     t.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -215,6 +215,25 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     const spin = now => { animateStrobe(t, now); t.raf = requestAnimationFrame(spin); };
     t.raf = requestAnimationFrame(spin);
   }).catch(fail);
+  /* The first time, say why before the phone asks; after that, just listen. */
+  const permission = navigator.permissions?.query ? navigator.permissions.query({ name: "microphone" }).then(p => p.state, () => "prompt") : Promise.resolve("prompt");
+  permission.then(state => {
+    if (tunerState !== t) return;
+    if (state === "denied") return fail({ name: "NotAllowedError" });
+    if (state === "granted" || st.micExplained) return listenNow();
+    const box = layer.querySelector(".tuner2");
+    box.classList.add("asking");
+    const card = document.createElement("div");
+    card.className = "tn-mic";
+    card.innerHTML = `<span class="tn-mic-ic">${icon("fork")}</span><b>Tabs listens to tune your guitar</b>
+      <p>The microphone is on only while the tuner is open. Nothing is recorded or sent anywhere.</p>
+      <button class="btn primary" id="tn-allow">Allow microphone</button><button class="tb" id="tn-skip">Not now</button>`;
+    box.querySelector(".tn-read").after(card);
+    say("");
+    const done = () => { card.remove(); box.classList.remove("asking"); };
+    $("tn-allow").onclick = () => { st.micExplained = true; Tabs.save(data); done(); say("Starting the microphone…"); listenNow(); };
+    $("tn-skip").onclick = () => { done(); say("Tap a key to hear its note. The tuner listens once you allow the microphone.", "warn"); };
+  });
 }
 
 function idle(t) {

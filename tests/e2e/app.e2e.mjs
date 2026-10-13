@@ -153,14 +153,21 @@ test("a shared song link opens the Shared with you sheet", { skip: skip() }, asy
   assert.match(await page.innerText("[aria-label='Shared with you']"), /River Road/);
 });
 
-test("settings render and the theme switches", { skip: skip() }, async t => {
-  const page = await phone(t);
-  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
-  assert.match(await page.innerText(".app"), /Playing/i);
-  const before = await page.evaluate(() => document.documentElement.dataset.theme);
-  await page.click("#s-theme");
+test("theme: Automatic follows the phone; Dark and Light override it", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { colorScheme: "light" });
+  const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
+  assert.equal(await theme(), "light", "automatic follows a light phone");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.waitForTimeout(100);
+  assert.equal(await theme(), "dark", "and changes with it");
+  await page.goto(base + "#/settings");
   await page.waitForTimeout(200);
-  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.theme), before);
+  await page.click("#s-theme [data-t='light']");
+  assert.equal(await theme(), "light", "Light overrides a dark phone");
+  await page.click("#s-theme [data-t='auto']");
+  assert.equal(await theme(), "dark");
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "auto");
 });
 
 test("security policy allows Apple art, the Anthropic API and song search, and nothing else", { skip: skip() }, async t => {
@@ -308,7 +315,8 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
   const errors = [];
   page.on("pageerror", e => errors.push(String(e)));
   await page.goto(base);
-  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true } } });
+  await page.waitForTimeout(400); /* let the first-launch save land before replacing the library */
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true }, micExplained: true } });
   await page.reload();
   await page.waitForTimeout(300);
   await page.click("#tunerbtn");
@@ -353,4 +361,16 @@ test("Tips & gestures lists every gesture and Show me replays a tip where it hap
   await page.waitForTimeout(1500);
   assert.match(await page.locator(".coach").last().innerText(), /Tap a line to start from it/);
   assert.ok(await page.evaluate(() => document.getElementById("sheet").classList.contains("focus")), "real focus look");
+});
+
+test("tuner: says why it needs the microphone before the phone asks", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => { navigator.mediaDevices.getUserMedia = () => new Promise(() => {}); });
+  await page.click("#tunerbtn");
+  await page.waitForTimeout(500);
+  assert.match(await page.locator(".tn-mic").innerText(), /Nothing is recorded or sent/);
+  await page.click("#tn-allow");
+  assert.equal(await page.locator(".tn-mic").count(), 0);
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.micExplained), true);
 });

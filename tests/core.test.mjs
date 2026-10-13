@@ -126,8 +126,10 @@ const fresh = () => C.migrate({ songs: [
 
 test("migration brings old saves up to date", () => {
   const d = fresh();
-  assert.equal(d.settings.v, 5);
+  assert.equal(d.settings.v, 6);
   assert.equal(d.settings.speedMode, "length");
+  assert.equal(d.settings.theme, "auto");
+  assert.equal(C.migrate({ songs: [], settings: { v: 5, theme: "light" } }).settings.theme, "light", "a chosen light theme stays");
   assert.deepEqual(d.sets, []);
   assert.deepEqual(d.trash, []);
 });
@@ -460,7 +462,7 @@ test("importing a backup: only https links, and only image data for covers of se
   assert.equal(out.data.sets[0].name, "Set");
   assert.equal(out.data.sets[0].cover, undefined);
   assert.deepEqual(out.covers, { s1: png });
-  assert.equal(out.data.settings.theme, "dark");
+  assert.equal(out.data.settings.theme, "auto");
   assert.equal(out.data.settings.countIn, true);
   assert.equal(out.data.settings.startLength, 200);
   assert.equal(out.data.settings.lastTuned, 5);
@@ -472,7 +474,7 @@ test("importing a backup: old saves still migrate", () => {
   assert.equal(s.format, "tab");
   assert.ok(s.body.startsWith("e|"));
   assert.equal(s.playLog.total, 1);
-  assert.equal(out.data.settings.v, 5);
+  assert.equal(out.data.settings.v, 6);
 });
 
 test("song length: Apple Music track numbers from links", () => {
@@ -535,4 +537,13 @@ test("tuner: pitch reference moves every note", () => {
   assert.equal(Math.round(C.centsOff(110, "A2")), 0);
   assert.equal(C.nearestString(110 * 2 ** (10 / 1200), "standard").cents, 10);
   assert.equal(C.nearestString(73.42, "dropd").index, 0);
+});
+
+test("library index letters", () => {
+  assert.equal(C.indexLetter("Harbor Lights"), "H");
+  assert.equal(C.indexLetter("  wonderwall"), "W");
+  assert.equal(C.indexLetter("Érase una vez"), "E");
+  assert.equal(C.indexLetter("+44 Lillian"), "#");
+  assert.equal(C.indexLetter("1979"), "#");
+  assert.equal(C.indexLetter(""), "#");
 });
