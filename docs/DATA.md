@@ -6,16 +6,16 @@ Everything lives on the phone. Backups are the same data as one JSON file.
 
 | Store | Key | Holds |
 |---|---|---|
-| localStorage | `tabs-v1` | The library: songs, sets, Recently deleted, settings |
+| IndexedDB `tabs-library` | store `copy`, key `lib` | **The library** (songs, sets, Recently deleted, settings) as `{ json, at }` |
+| localStorage | `tabs-v1` | A copy of the library, written with each save, plus `_savedAt`. Skipped if it no longer fits (about 5 MB) |
 | localStorage | `tabs.apikey.v1` | Your Anthropic API key. Never in backups or share links |
 | localStorage | `tabs.errors.v1` | The last 20 problems (message, screen, version, time) for Settings > Copy diagnostics. Never sent anywhere, not in backups |
-| IndexedDB `tabs-library` | store `copy`, key `lib` | Safety copy of `tabs-v1`: `{ json, lsOk, at }`. Written on every save and at launch. Restored at launch when the main save is missing, unreadable, or its last write failed (`lsOk: false`) |
 | IndexedDB `tabs-covers` | store `covers`, key = set id | Set cover photos as `data:image/...` URLs |
 | Cache Storage | `tabs-vX.Y.Z`, `tabs-art` | The offline app, and album art from Apple |
 
-Saves are batched (150 ms) and written at once when the app goes to the background. Tabs also asks the browser to keep its storage permanently (`navigator.storage.persist()`); Settings shows whether it did and whether the safety copy is on.
+Saves are batched (150 ms) and written at once when the app goes to the background. At start the newer readable of the two is used (`pickLibrary` in `core.js`); a copy without `_savedAt` (from an older Tabs, which kept the library in localStorage) counts as newest, so it moves into the database once. Without IndexedDB, localStorage alone is used. Tabs also asks the browser to keep its storage permanently (`navigator.storage.persist()`); Settings shows whether it did and whether the safety copy is on.
 
-## Library (`tabs-v1`)
+## Library
 
 ```js
 {

@@ -67,6 +67,25 @@ export function migrate(data) {
 
 const SAVE_DELAY = 150;
 let pending = null, saveTimer = 0;
+// ---------- Choosing the library at start ----------
+// The library lives in the phone's database (IndexedDB) as { json, at }, with a
+// copy in localStorage that carries its own save time (_savedAt). The newer
+// readable one wins. A copy without a time was written by an older Tabs (when
+// localStorage was the main store) or straight in, so it counts as newest,
+// unless the database copy says the last localStorage write failed (lsOk: false).
+export function pickLibrary(main, copyJson) {
+  const read = json => { try { const d = JSON.parse(json); return d && Array.isArray(d.songs) ? d : null; } catch { return null; } };
+  const m = main?.json ? read(main.json) : null, c = copyJson ? read(copyJson) : null;
+  const mAt = Date.parse(main?.at) || 0;
+  const cAt = c ? (c._savedAt ? Date.parse(c._savedAt) || 0 : main?.lsOk === false ? -1 : Infinity) : -Infinity;
+  const from = m && (!c || mAt >= cAt) ? "main" : c ? "copy" : "none";
+  const lib = from === "main" ? m : from === "copy" ? c : null;
+  if (lib) delete lib._savedAt;
+  return { lib: lib ? migrate(lib) : blank(), from, mainBroken: !!main?.json && !m };
+}
+// The localStorage copy: the library's JSON with its save time added.
+export const withSavedAt = (json, at) => json.replace(/}\s*$/, `,"_savedAt":${JSON.stringify(at)}}`);
+
 // ---------- Tip pacing ----------
 // One-time tips are spaced at least 30 seconds apart, except a tip that leads
 // naturally into the next (tap a chord, then Play, then how to pause...).
@@ -86,8 +105,8 @@ const part = v => v instanceof SafeHTML ? v.s : Array.isArray(v) ? v.map(part).j
 export const html = (strings, ...vals) => new SafeHTML(strings.reduce((out, s, i) => out + s + (i < vals.length ? part(vals[i]) : ""), ""));
 
 export const Tabs = {
-  // `loaded` says how it went: "ok", "empty" (nothing saved) or "broken"
-  // (unreadable), so the app can turn to its safety copy.
+  // Without the app's store (tests, or a phone without IndexedDB) the library
+  // lives in localStorage. `loaded` says how that went: "ok", "empty" or "broken".
   loaded: "empty",
   load() {
     try {
@@ -102,7 +121,8 @@ export const Tabs = {
 
   // Saving writes the whole library, so changes made close together are written
   // once, a moment later (and right away when the app goes to the background).
-  // If the phone refuses (storage full), onSaveError is told, so nothing is lost silently.
+  // The app's store (`write`) takes the JSON when it has one; otherwise it goes to
+  // localStorage, and if the phone refuses (storage full) onSaveError is told.
   save(data) {
     pending = data;
     if (!saveTimer) saveTimer = setTimeout(() => this.flush(), SAVE_DELAY);
@@ -112,14 +132,12 @@ export const Tabs = {
     if (!pending) return true;
     const d = pending; pending = null;
     const json = JSON.stringify(d);
-    let ok = true;
-    try { localStorage.setItem(STORAGE_KEY, json); }
-    catch (e) { ok = false; this.onSaveError?.(e); }
-    this.onFlush?.(json, ok);
-    return ok;
+    if (this.write) return this.write(json);
+    try { localStorage.setItem(STORAGE_KEY, json); return true; }
+    catch (e) { this.onSaveError?.(e); return false; }
   },
   onSaveError: null,
-  onFlush: null, // (json, savedOk): the app keeps a safety copy with it
+  write: null, // (json) => true: the app's store
 
   addSong(data, song) {
     const s = {

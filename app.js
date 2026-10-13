@@ -4,12 +4,12 @@ import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, 
 import { chordEdit, newSong, settleNew, songEditor } from "./editor.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { renderSettings, renderTrash } from "./settings.js";
-import { ago, backupNow, copyDiagnostics, needsBackup, noteError, recoverLibrary } from "./store.js";
+import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 
 
 // ---------- State ----------
-let data = Tabs.load();
+let data = await loadLibrary(); /* see store.js */
 /* Replacing the whole library (a restored backup or the safety copy) goes through here. */
 const setData = d => { data = d; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") Tabs.flush(); });
@@ -1930,7 +1930,6 @@ applyTheme();
 firstLaunch();
 data.songs.filter(s => s.isNew).forEach(settleNew); /* a song being added when the app closed */
 render();
-recoverLibrary();
 coverLoadAll().then(() => {
   /* Forget cover photos of sets that are gone for good (not in the library or Recently deleted). */
   const keep = new Set([...data.sets.map(x => x.id), ...data.trash.filter(t => t.type === "set").map(t => t.item.id)]);

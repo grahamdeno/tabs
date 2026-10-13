@@ -462,15 +462,26 @@ test("saves are batched, and a refused save is reported", () => {
   store.setItem = real; C.Tabs.onSaveError = null;
 });
 
-test("every save is handed on for the safety copy, saying whether the main save worked", () => {
-  const store = globalThis.localStorage, real = store.setItem, seen = [];
-  C.Tabs.onFlush = (json, ok) => seen.push([JSON.parse(json).songs.length, ok]);
+test("with the app's store, saves go to it instead of localStorage", () => {
+  const seen = [];
+  C.Tabs.write = json => { seen.push(JSON.parse(json).songs.length); return true; };
   const d = fresh(); d.songs.push({ id: "x", body: "G" });
-  C.Tabs.save(d); C.Tabs.flush();
-  store.setItem = () => { throw new Error("QuotaExceededError"); };
-  C.Tabs.save(d); C.Tabs.flush();
-  store.setItem = real; C.Tabs.onFlush = null;
-  assert.deepEqual(seen, [[d.songs.length, true], [d.songs.length, false]]);
+  C.Tabs.save(d); assert.equal(C.Tabs.flush(), true);
+  C.Tabs.write = null;
+  assert.deepEqual(seen, [d.songs.length]);
+});
+
+test("at start, the newer readable library wins between the database and its copy", () => {
+  const lib = (n, at) => JSON.stringify({ songs: Array.from({ length: n }, (_, i) => ({ id: "s" + i, body: "G" })), sets: [], trash: [], settings: {}, ...(at ? { _savedAt: at } : {}) });
+  const pick = (main, copy) => { const r = C.pickLibrary(main, copy); return [r.from, r.lib.songs.length, r.mainBroken]; };
+  assert.deepEqual(pick({ json: lib(3), at: "2026-10-02T00:00:00Z" }, lib(2, "2026-10-01T00:00:00Z")), ["main", 3, false], "database is newer");
+  assert.deepEqual(pick({ json: lib(3), at: "2026-10-01T00:00:00Z" }, lib(2, "2026-10-02T00:00:00Z")), ["copy", 2, false], "copy is newer (saved as the app closed)");
+  assert.deepEqual(pick({ json: lib(3), at: "2026-10-02T00:00:00Z" }, lib(2)), ["copy", 2, false], "a copy from an older Tabs was the main save");
+  assert.deepEqual(pick({ json: lib(3), at: "2026-10-02T00:00:00Z", lsOk: false }, lib(2)), ["main", 3, false], "unless its last write had failed");
+  assert.deepEqual(pick({ json: "{broken", at: "2026-10-02T00:00:00Z" }, lib(2, "2026-10-01T00:00:00Z")), ["copy", 2, true], "an unreadable database copy");
+  assert.deepEqual(pick(null, "{broken"), ["none", 0, false], "nothing readable: a fresh library");
+  assert.equal(C.pickLibrary({ json: lib(1), at: "2026-10-02T00:00:00Z" }, null).lib._savedAt, undefined);
+  assert.equal(JSON.parse(C.withSavedAt(lib(1), "2026-10-03T00:00:00Z"))._savedAt, "2026-10-03T00:00:00Z");
 });
 
 test("loading says whether the save was there and readable", () => {

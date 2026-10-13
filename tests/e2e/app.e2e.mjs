@@ -201,7 +201,7 @@ test("questions are asked in the app: rename a section, any chord, delete for go
   await page.press("#ask-in", "Enter"); await page.waitForTimeout(400);
   assert.match(await body(), /Cadd9/);
   // Delete for good asks in a sheet; Keep it keeps it.
-  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")); d.trash = [{ type: "song", item: { id: "z", title: "Old Song", body: "G" }, deletedAt: new Date().toISOString() }]; localStorage.setItem("tabs-v1", JSON.stringify(d)); });
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")); delete d._savedAt; d.trash = [{ type: "song", item: { id: "z", title: "Old Song", body: "G" }, deletedAt: new Date().toISOString() }]; localStorage.setItem("tabs-v1", JSON.stringify(d)); });
   await page.goto(base + "#/"); await page.reload(); await page.waitForTimeout(300);
   await page.goto(base + "#/trash"); await page.waitForTimeout(300);
   await page.click("[data-forget]"); await page.waitForTimeout(200);
@@ -379,21 +379,33 @@ test("a problem is kept, and Copy diagnostics reports it without song words or t
   assert.doesNotMatch(text, /sk-ant-secret|River Road|Walking down/);
 });
 
-test("an unreadable save comes back from the safety copy", { skip: skip() }, async t => {
+test("the library lives in the phone's database; its copy brings it back if the database copy is lost", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.waitForTimeout(400);
-  // The safety copy follows saves.
-  const copied = await page.evaluate(() => new Promise(ok => {
+  const inDB = () => page.evaluate(() => new Promise(ok => {
     const r = indexedDB.open("tabs-library", 1);
-    r.onsuccess = () => { const g = r.result.transaction("copy").objectStore("copy").get("lib"); g.onsuccess = () => ok(JSON.parse(g.result.json).songs.length); };
+    r.onsuccess = () => { const g = r.result.transaction("copy").objectStore("copy").get("lib"); g.onsuccess = () => ok(g.result ? JSON.parse(g.result.json).songs.length : -1); };
   }));
-  assert.equal(copied, 2);
-  await page.evaluate(() => localStorage.setItem("tabs-v1", "{broken"));
-  await page.reload(); await page.waitForTimeout(600);
+  assert.equal(await inDB(), 2, "the test library moved into the database");
+  // A change saves to both.
+  await page.goto(base + "#/song/b"); await page.waitForTimeout(300);
+  await page.click(".fav"); await page.waitForTimeout(400);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "b").favorite, true);
+  // The database copy is unreadable: the localStorage copy brings the library back.
+  await page.evaluate(() => new Promise(ok => {
+    const r = indexedDB.open("tabs-library", 1);
+    r.onsuccess = () => { const tx = r.result.transaction("copy", "readwrite"); tx.objectStore("copy").put({ json: "{broken", at: new Date(Date.now() + 1e6).toISOString() }, "lib"); tx.oncomplete = ok; };
+  }));
+  await page.goto(base + "#/"); await page.reload(); await page.waitForTimeout(900);
   assert.equal(await page.locator("#list .row").count(), 2);
   assert.match(await page.innerText("#toast"), /restored from its safety copy/);
-  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.length, 2);
+  assert.equal(await inDB(), 2, "and the database is whole again");
+  // With the copy gone, the database alone has everything.
+  await page.evaluate(() => localStorage.removeItem("tabs-v1"));
+  await page.reload(); await page.waitForTimeout(600);
+  assert.equal(await page.locator("#list .row").count(), 2);
 });
+
 
 test("a page-turner pedal: left plays and pauses, right goes to the next section, held goes back", { skip: skip() }, async t => {
   const long = { ...LIB, songs: [{ ...LIB.songs[0], body: Array.from({ length: 6 }, (_, i) => `[Part ${i + 1}]\n` + "A  D\nWalking down the road\n".repeat(6)).join("\n") }, LIB.songs[1]] };

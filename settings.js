@@ -2,11 +2,12 @@
 import { SPEEDS, TRASH_DAYS, Tabs, html, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
-import { ago, backupNow, copyDiagnostics, problems, safeCopy, storageKept } from "./store.js";
+import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setData } from "./app.js";
 
 // ---------- Settings ----------
 let settingsDefaultsOpen = false;
+const kb = n => n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
 function renderSettings() {
   const s = data.settings;
   const t = s.transpose || 0;
@@ -101,7 +102,7 @@ function renderSettings() {
       <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device${safeCopy ? ", with a safety copy" : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
   $("back").onclick = () => go("#/");
   $("s-speed")?.addEventListener("change", e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });

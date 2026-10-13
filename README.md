@@ -123,7 +123,7 @@ Pedals and keyboards: a Bluetooth page-turner pedal pairs as a keyboard. On a so
 
 Questions: the app never uses the phone's alert boxes. `ask()` in ui.js shows a short sheet (a field with quick picks and a live chord diagram, or a yes/no with a red button). Discarding a new song happens at once with Undo instead of a question.
 
-Storage: the library is saved to localStorage and, on every save, to a safety copy in IndexedDB. At launch, a missing or unreadable save, or one whose last write failed because storage was full, is restored from the copy. See docs/DATA.md.
+Storage: the library lives in the phone's database (IndexedDB), with a copy in localStorage written with each save. At start the newer readable one is used, so a lost or damaged database copy comes back from localStorage, and a library from an older Tabs moves across once. Settings shows where it's stored and its size; Tabs asks the browser to keep its storage permanently. See docs/DATA.md.
 
 Problems: errors are kept on the phone (last 20) and the first in a session shows a note with Copy details. A screen that fails to draw shows a way back instead of a blank page. Settings > Copy diagnostics copies the version, device, library counts, storage and problems, never song words, titles or the API key.
 

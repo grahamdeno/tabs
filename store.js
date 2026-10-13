@@ -1,54 +1,67 @@
-// Tabs storage care: the safety copy in IndexedDB and recovery from it, the
-// storage-full warning, asking to keep storage permanently, backups, and the
+// Tabs storage care: where the library lives (IndexedDB, with a copy in
+// localStorage), the storage-full warning, asking to keep storage permanently, backups, and the
 // problems log behind Settings > Copy diagnostics.
-import { Tabs, VERSION, migrate } from "./core.js";
+import { Tabs, VERSION, pickLibrary, withSavedAt } from "./core.js";
 import { showToCopy, toast } from "./ui.js";
 import { coverCache } from "./sets.js";
-import { aiKey, applyTheme, data, render, setData } from "./app.js";
+import { aiKey, data } from "./app.js";
 
-// Saves are batched (see core.js). Write right away when the app goes to the
-// background or closes, and say so if the phone won't store the library.
-let saveWarned = 0;
-Tabs.onSaveError = () => {
-  if (Date.now() - saveWarned < 60e3) return;
-  saveWarned = Date.now();
-  toast("Couldn't save: the phone's storage for Tabs is full. Back up, then remove songs or cover photos you don't need.", null, { label: "Back up", fn: () => backupNow() });
-};
-// Safety copy: every save is also written to IndexedDB, which has far more room
-// than the main save. At start, if the main save is missing or unreadable, or
-// its last write failed (storage full), the library comes back from the copy.
-const safeDB = () => new Promise((ok, bad) => {
+// ---------- Where the library lives ----------
+// The library is kept in the phone's database (IndexedDB, plenty of room), with
+// a copy in localStorage written with each save (it's instant, and a database
+// write may not finish if the phone closes the app right then).
+// At start the newer readable one is used (pickLibrary in core.js); a library
+// from an older Tabs moves across once. Without IndexedDB, localStorage is used.
+const STORE_KEY = "tabs-v1";
+const libDB = () => new Promise((ok, bad) => {
   const r = indexedDB.open("tabs-library", 1);
   r.onupgradeneeded = () => r.result.createObjectStore("copy");
   r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error);
 });
-async function safeTx(mode, fn) {
-  const db = await safeDB();
-  return new Promise((ok, bad) => { const tx = db.transaction("copy", mode); const out = fn(tx.objectStore("copy")); tx.oncomplete = () => ok(out?.result); tx.onerror = () => bad(tx.error); });
+async function libTx(mode, fn) {
+  const db = await libDB();
+  return new Promise((ok, bad) => { const tx = db.transaction("copy", mode); const out = fn(tx.objectStore("copy")); tx.oncomplete = () => ok(out?.result); tx.onerror = () => bad(tx.error); tx.onabort = () => bad(tx.error); });
 }
-let safeCopy = null;   /* true once a copy is written, false if the phone refused */
-let safeHeld = false;  /* the latest save, held until the start-up check is done; null after */
-const writeSafe = c => safeTx("readwrite", st => st.put(c, "lib")).then(() => { safeCopy = true; }, () => { safeCopy = false; });
-Tabs.onFlush = (json, lsOk) => {
-  const c = { json, lsOk, at: new Date().toISOString() };
-  if (safeHeld !== null) safeHeld = c; else writeSafe(c);
-};
-async function recoverLibrary() {
+const where = { db: false, copy: null, size: 0 }; /* db: saving to IndexedDB; copy: true, or false when it didn't fit */
+let copyNext = null;
+function writeCopy() {
+  if (!copyNext) return;
+  const { json, at } = copyNext; copyNext = null;
+  try { localStorage.setItem(STORE_KEY, withSavedAt(json, at)); where.copy = true; }
+  catch { where.copy = false; /* too big for localStorage: the database still has it */ }
+}
+let saveWarned = 0;
+function saveFailed() {
+  if (Date.now() - saveWarned < 60e3) return;
+  saveWarned = Date.now();
+  toast("Couldn't save: the phone's storage for Tabs is full. Back up, then remove songs or cover photos you don't need.", null, { label: "Back up", fn: () => backupNow() });
+}
+Tabs.onSaveError = saveFailed;
+function writeMain(json) {
+  const at = new Date().toISOString();
+  where.size = json.length;
+  libTx("readwrite", st => st.put({ json, at, lsOk: true }, "lib")).catch(() => {
+    /* The database refused: keep the copy current instead, and say so if that fails too. */
+    copyNext = { json, at }; writeCopy();
+    if (where.copy === false) saveFailed();
+  });
+  copyNext = { json, at }; writeCopy();
+  return true;
+}
+
+async function loadLibrary() {
+  let main = null;
+  try { main = await libTx("readonly", st => st.get("lib")); where.db = true; }
+  catch { where.db = false; }
+  if (!where.db) return Tabs.load();
   let copy = null;
-  try { copy = await safeTx("readonly", st => st.get("lib")); } catch { /* no IndexedDB */ }
-  const held = safeHeld; safeHeld = null;
-  let restored = false;
-  if (copy?.json && (Tabs.loaded !== "ok" || copy.lsOk === false)) {
-    try {
-      const lib = migrate(JSON.parse(copy.json));
-      if (lib.songs.length) { setData(lib); restored = true; }
-    } catch { /* the copy is unreadable too */ }
-  }
-  if (restored) {
-    Tabs.save(data); Tabs.flush();
-    applyTheme(); render();
-    toast("Your library was restored from its safety copy.");
-  } else writeSafe(held || { json: JSON.stringify(data), lsOk: Tabs.loaded === "ok", at: new Date().toISOString() });
+  try { copy = localStorage.getItem(STORE_KEY); } catch { /* blocked */ }
+  const { lib, from, mainBroken } = pickLibrary(main, copy);
+  Tabs.write = writeMain;
+  /* Moving across from an older Tabs, or the copy was newer: bring the database up to date. */
+  if (from === "copy") { Tabs.save(lib); Tabs.flush(); }
+  if (from === "copy" && mainBroken) setTimeout(() => toast("Your library was restored from its safety copy."), 600);
+  return lib;
 }
 // ---------- Problems ----------
 // Errors are kept on this phone (the last 20) so Settings > Copy diagnostics
@@ -83,7 +96,7 @@ async function diagnostics() {
     navigator.userAgent,
     `Home Screen app: ${matchMedia("(display-mode: standalone)").matches || navigator.standalone ? "yes" : "no"}; screen ${innerWidth}x${innerHeight}; offline copy: ${navigator.serviceWorker?.controller ? "yes" : "no"}`,
     `Library: ${data.songs.length} songs, ${data.sets.length} sets, ${data.trash.length} recently deleted`,
-    `Storage: ${est ? `${mb(est.usage)} of ${mb(est.quota)}` : "unknown"}; kept permanently: ${storageKept ? "yes" : storageKept === false ? "no" : "unknown"}; AI key: ${aiKey() ? "set" : "none"}`,
+    `Storage: ${where.db ? "database" : "localStorage only"}, copy ${where.copy === false ? "too big" : where.copy ? "ok" : "not yet"}, library ${mb(where.size || JSON.stringify(data).length)}; ${est ? `${mb(est.usage)} of ${mb(est.quota)}` : "unknown"} used; kept permanently: ${storageKept ? "yes" : storageKept === false ? "no" : "unknown"}; AI key: ${aiKey() ? "set" : "none"}`,
     `Settings: ${JSON.stringify(Object.fromEntries(Object.entries(s).filter(([k]) => !hidden.includes(k))))}`,
     `Problems (${problems.length}):`,
     ...(problems.length ? problems.slice().reverse().map(p => `- ${p.at} v${p.v} ${p.where}: ${p.msg}${p.stack ? "\n  " + p.stack.replace(/\n/g, "\n  ") : ""}`) : ["- none"])
@@ -137,4 +150,4 @@ async function backupNow() {
   return true;
 }
 
-export { ago, backupNow, copyDiagnostics, needsBackup, noteError, problems, recoverLibrary, safeCopy, storageKept };
+export { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError, problems, storageKept, where };
