@@ -246,6 +246,10 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .ib.aa { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg-2); }
 .szpop { position: fixed; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 12px; }
 .szpop .v { font: 600 13px var(--mono); min-width: 46px; text-align: center; color: var(--fg); }
+.countin { position: fixed; left: 50%; transform: translateX(-50%); z-index: 15; width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center;
+  font: 300 64px var(--serif); color: var(--accent); background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); pointer-events: none; }
+.countin.pulse { animation: beat .35s ease-out; }
+@keyframes beat { from { transform: translateX(-50%) scale(1.12); opacity: .6; } }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -263,7 +267,7 @@ body.playing .app.viewer > #strip { filter: grayscale(1); }
 .play { width: 40px; height: 40px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; padding: 0; }
 .play svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
 .speed { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
-.speed span { font: 500 13px var(--mono); color: var(--fg-2); width: 34px; text-align: right; }
+.speed span { font: 500 13px var(--mono); color: var(--fg-2); width: 38px; text-align: right; }
 .vsep { width: 1px; height: 26px; background: var(--rim); }
 .step { display: flex; align-items: center; gap: 4px; }
 .sb { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--rim); background: var(--card); color: var(--fg-2); display: grid; place-items: center; padding: 0; }
@@ -366,6 +370,7 @@ const I = {
   camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   cloud: '<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/><path d="M12 15V10M9.8 12 12 9.8l2.2 2.2"/>',
   trash: '<path d="M4 7h16M10 7V4.5h4V7M6 7l1 13h10l1-13"/>',
+  metro: '<path d="M8 21h8l-2.5-17h-3z"/><path d="M12 16l5-9"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -778,7 +783,9 @@ function renderViewer(id) {
       <div class="player">
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
         <div class="speed">
-          <input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">
+          ${byLength()
+            ? `<input type="range" id="speed" min="60" max="480" step="5" value="${540 - songLength(song)}" aria-label="Song length">`
+            : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
         ${isChords ? `<button class="sb nnbtn ${data.settings.diagrams === true ? "on" : ""}" id="nnbtn" aria-label="Now and Next chords" aria-pressed="${data.settings.diagrams === true}">${icon("fretboard")}</button>` : ""}
@@ -867,12 +874,21 @@ function renderViewer(id) {
   viewing = song;
 
   const speed = $("speed");
+  // Song length style: the slider sets how long the song takes (right = shorter = faster).
   const showSpeed = () => {
-    speed.style.setProperty("--fill", ((speed.value - 4.5) / 94.5 * 100) + "%");
-    $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
+    if (byLength()) {
+      speed.style.setProperty("--fill", ((speed.value - 60) / 420 * 100) + "%");
+      $("sv").textContent = mmss(540 - speed.value);
+    } else {
+      speed.style.setProperty("--fill", ((speed.value - 4.5) / 94.5 * 100) + "%");
+      $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
+    }
   };
   showSpeed();
-  speed.oninput = () => { song.speed = +speed.value; showSpeed(); Tabs.save(data); };
+  speed.oninput = () => {
+    if (byLength()) song.duration = 540 - speed.value; else song.speed = +speed.value;
+    showSpeed(); Tabs.save(data);
+  };
 
   const step = dir => {
     if (isChords) song.transpose = ((((song.transpose || 0) + dir) + 17) % 12) - 5; // -5..+6
@@ -1349,6 +1365,55 @@ window.addEventListener("scroll", () => {
   updateDiagrams();
 }, { passive: true });
 
+// ---------- Speed ----------
+const byLength = () => data.settings.speedMode !== "multiplier";
+const songLength = song => song.duration || data.settings.startLength || 210;
+const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
+// Song length style: the whole song, first line to last, crosses the reading point
+// in the song's length. 1x style: a fixed rate per song.
+function pxPerSecond(song) {
+  if (!byLength()) return song.speed * 0.6;
+  const lines = diag.blocks.filter(b => b.el.isConnected);
+  const range = lines.length > 1 ? lines[lines.length - 1].y - lines[0].y : document.documentElement.scrollHeight - innerHeight;
+  return Math.max(4, range / songLength(song));
+}
+
+// One bar of count-in before scrolling: four beats at the song's tempo (90 if unset),
+// shown large and quiet over the reading point, with a soft click.
+let audio = null;
+function click(accent) {
+  try {
+    audio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
+    o.frequency.value = accent ? 1320 : 880;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(accent ? 0.25 : 0.15, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    o.connect(g).connect(audio.destination);
+    o.start(t); o.stop(t + 0.1);
+  } catch {}
+}
+function countIn(song) {
+  return new Promise(resolve => {
+    const beat = 60000 / (song.bpm || 90);
+    const el = document.createElement("div");
+    el.className = "countin";
+    el.style.top = (innerHeight * READ_AT - 60) + "px";
+    document.body.appendChild(el);
+    let n = 4;
+    const tick = () => {
+      if (!scroll.on) { el.remove(); return resolve(false); }
+      if (n === 0) { el.remove(); return resolve(true); }
+      el.textContent = 5 - n;
+      el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse");
+      click(n === 4);
+      n--;
+      scroll.countTimer = setTimeout(tick, beat);
+    };
+    tick();
+  });
+}
+
 // Wake the player controls on any touch; they fade again after 3 idle seconds.
 let idleTimer = 0;
 function wakeControls() {
@@ -1378,10 +1443,11 @@ async function startScroll(song) {
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
+  if (data.settings.countIn !== false && !(await countIn(song))) return;
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
-      scroll.carry += (t - scroll.last) / 1000 * song.speed * 0.6;
+      scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song);
       const px = Math.floor(scroll.carry);
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
@@ -1398,6 +1464,8 @@ async function startScroll(song) {
 
 function stopScroll() {
   scroll.on = false;
+  clearTimeout(scroll.countTimer);
+  document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");
   wakeControls();
   cancelAnimationFrame(scroll.raf);
@@ -1446,6 +1514,7 @@ function renderForm(id) {
               <input id="f-key" value="${esc(src.key)}" placeholder="Auto" maxlength="4" autocomplete="off" autocapitalize="characters" style="width:48px;text-align:right">
             </label>
           </div>
+          <label class="fld"><span class="lab">Tempo</span><input id="f-bpm" type="number" inputmode="numeric" min="30" max="260" value="${esc(src.bpm || "")}" placeholder="BPM, for the count-in (optional)"></label>
         </div>
         ${aiKey() ? `<div class="ai-row">
           <button class="chip ai" id="f-scan">${icon("camera")}Scan a page</button>
@@ -1530,6 +1599,7 @@ function renderForm(id) {
       artist: $("f-artist").value.trim(),
       format,
       key: format === "chords" && raw ? raw[0].toUpperCase() + raw.slice(1) : "",
+      bpm: Math.min(260, Math.max(30, parseInt($("f-bpm").value, 10))) || undefined,
       body: $("f-body").value
     };
     draft = null;
@@ -1567,10 +1637,26 @@ function renderSettings() {
     <div class="label">Playing</div>
     <div class="set-group glass">
       <div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Speed style</span><span class="val">${s.speedMode === "multiplier" ? "1x style" : "Song length"}</span>${icon("chev", "chev")}
+        <select id="s-mode" aria-label="Speed style">
+          <option value="length" ${s.speedMode !== "multiplier" ? "selected" : ""}>Song length</option>
+          <option value="multiplier" ${s.speedMode === "multiplier" ? "selected" : ""}>1x style</option>
+        </select>
+      </div>
+      ${s.speedMode === "multiplier" ? `<div class="set">
         <span class="tile">${icon("gauge")}</span><span class="name">Starting speed</span><span class="val">${((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1)}x</span>${icon("chev", "chev")}
         <select id="s-speed" aria-label="Starting speed for new songs">
           ${Array.from({ length: 16 }, (_, i) => (i + 5) / 10).map(m => `<option value="${(m * SPEEDS.medium).toFixed(1)}" ${Math.abs(m * SPEEDS.medium - (s.startSpeed || SPEEDS.medium)) < 0.01 ? "selected" : ""}>${m.toFixed(1)}x</option>`).join("")}
         </select>
+      </div>` : `<div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Starting length</span><span class="val">${mmss(s.startLength || 210)}</span>${icon("chev", "chev")}
+        <select id="s-length" aria-label="Starting length for new songs">
+          ${Array.from({ length: 17 }, (_, i) => 120 + i * 15).map(v => `<option value="${v}" ${v === (s.startLength || 210) ? "selected" : ""}>${mmss(v)}</option>`).join("")}
+        </select>
+      </div>`}
+      <div class="set">
+        <span class="tile">${icon("metro")}</span><span class="name">Count-in</span>
+        <button class="toggle ${s.countIn !== false ? "on" : ""}" id="s-count" role="switch" aria-checked="${s.countIn !== false}" aria-label="Count-in"></button>
       </div>
       <div class="set">
         <span class="tile">${icon("note")}</span><span class="name">Default transpose</span><span class="val">${semis(t)}</span>${icon("chev", "chev")}
@@ -1593,7 +1679,7 @@ function renderSettings() {
         </select>
       </div>
     </div>
-    <p class="foot" style="margin-top:10px">New songs start at the starting speed; moving a song's speed slider saves its own speed. While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap a line to start from it, or tap any chord to see its fingering.</p>
+    <p class="foot" style="margin-top:10px">Song length: set how long each song takes and the scroll fits it. 1x style: a speed multiplier. Either way, each song keeps its own setting, and new songs start at the starting value. Count-in plays one bar at the song's tempo (set in Edit) before scrolling. While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap a line to start from it, or tap any chord to see its fingering.</p>
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
@@ -1622,7 +1708,10 @@ function renderSettings() {
     <input type="file" id="file" accept=".json,application/json" hidden>
     <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device${storageKept ? " and kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
   $("back").onclick = () => go("#/");
-  $("s-speed").onchange = e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-speed")?.addEventListener("change", e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); });
+  $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
+  $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
