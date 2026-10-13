@@ -241,10 +241,42 @@ test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", {
   await page.waitForTimeout(450);
   assert.match(await page.locator(".ed-chips").textContent(), /Format\s*Tab/);
   assert.equal(await page.locator("#ed-seg").isVisible(), false, "no Sheet view for tab");
-  page.once("dialog", d => d.accept());
+  // Cancel discards at once (no question), and Undo brings it back to editing.
   await page.click("#ce-cancel");
   await page.waitForTimeout(500);
   assert.deepEqual(await titles(), ["New One", "River Road", "Harbor Lights"]);
+  assert.match(await page.innerText("#toast"), /Song discarded/);
+  await page.click("#toast .tact"); await page.waitForTimeout(600);
+  assert.match(await page.inputValue("#ed-body"), /^e\|---0/);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.length, 4);
+});
+
+test("questions are asked in the app: rename a section, any chord, delete for good", { skip: skip() }, async t => {
+  const page = await phone(t);
+  page.on("dialog", d => { d.dismiss(); throw new Error("native dialog: " + d.message()); });
+  const body = async () => JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").body;
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForTimeout(500);
+  await page.click("[data-sec] >> nth=0"); await page.waitForTimeout(200);
+  assert.equal(await page.inputValue("#ask-in"), "Verse");
+  await page.click(".ask [data-pick='Intro']"); await page.waitForTimeout(400);
+  assert.match(await body(), /^\[Intro\]/);
+  await page.click(".ce-w >> nth=0"); await page.click("#ce-other"); await page.waitForTimeout(200);
+  await page.fill("#ask-in", "Cadd9");
+  assert.equal(await page.textContent("#ask-ok"), "Place Cadd9");
+  assert.equal(await page.locator("#ask-pv svg").count(), 1, "diagram shows as you type");
+  await page.press("#ask-in", "Enter"); await page.waitForTimeout(400);
+  assert.match(await body(), /Cadd9/);
+  // Delete for good asks in a sheet; Keep it keeps it.
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")); d.trash = [{ type: "song", item: { id: "z", title: "Old Song", body: "G" }, deletedAt: new Date().toISOString() }]; localStorage.setItem("tabs-v1", JSON.stringify(d)); });
+  await page.goto(base + "#/"); await page.reload(); await page.waitForTimeout(300);
+  await page.goto(base + "#/trash"); await page.waitForTimeout(300);
+  await page.click("[data-forget]"); await page.waitForTimeout(200);
+  assert.match(await page.innerText(".ask"), /Delete “Old Song” for good\?/);
+  await page.click("#ask-no"); await page.waitForTimeout(200);
+  assert.equal(await page.locator("[data-forget]").count(), 1);
+  await page.click("[data-forget]"); await page.click("#ask-ok"); await page.waitForTimeout(300);
+  assert.equal(await page.locator("[data-forget]").count(), 0);
 });
 
 test("an Apple Music link sets the song's length; tapping sets the tempo", { skip: skip() }, async t => {

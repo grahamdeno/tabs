@@ -200,8 +200,6 @@ function followKeyboard() {
 window.visualViewport?.addEventListener("resize", followKeyboard);
 window.visualViewport?.addEventListener("scroll", followKeyboard);
 
-// ---------- Keeping the library safe ----------
-// Ask the browser to keep this site's storage permanently (it may still decide).
 // ---------- Problems ----------
 // Errors are kept on this phone (the last 20) so Settings > Copy diagnostics
 // can report them. The first one in a session shows a short note with a way to
@@ -244,9 +242,65 @@ async function diagnostics() {
 async function copyDiagnostics() {
   const text = await diagnostics();
   try { await navigator.clipboard.writeText(text); toast("Diagnostics copied. Paste them into a message."); }
-  catch { prompt("Copy these diagnostics", text); }
+  catch { showToCopy("Copy these diagnostics", text); }
 }
 
+// ---------- Sheets: questions asked in the app, not in the phone's alerts ----------
+// ask() shows a short card at the bottom, above any open panel, and calls done
+// with the answer inside the tap, so what follows can still open the keyboard.
+// With a field: { title, text, value, placeholder, picks, ok, okLabel(v), extra, preview(v), readonly }
+//   done(text) on OK or a pick, done(extra.value) on the extra button.
+// A yes/no: { title, text, ok, danger, keep }: done(true) on OK.
+// Cancel, the scrim or Escape just close it.
+function closeAsk() { document.querySelector(".ask")?.remove(); }
+onLeave(() => closeAsk());
+function ask(o, done) {
+  closeAsk();
+  const field = "value" in o || "placeholder" in o;
+  const w = document.createElement("div");
+  w.className = "ask";
+  w.innerHTML = `<div class="scrim"></div><div class="panel card kb" role="dialog" aria-modal="true" aria-labelledby="ask-t">
+    <b class="ask-t" id="ask-t">${esc(o.title)}</b>
+    ${o.text ? `<p class="ask-p">${esc(o.text)}</p>` : ""}
+    ${field ? `<div class="ask-row"><div class="fields glass"><label class="fld"><input id="ask-in" value="${esc(o.value || "")}" placeholder="${esc(o.placeholder || "")}" autocomplete="off" autocapitalize="${o.caps || "sentences"}" spellcheck="false" enterkeyhint="done" aria-labelledby="ask-t" ${o.readonly ? "readonly" : ""}></label></div>${o.preview ? `<div class="ask-pv" id="ask-pv" aria-hidden="true"></div>` : ""}</div>` : ""}
+    ${o.picks ? `<div class="ask-picks">${o.picks.map(x => `<button class="chip ${x === o.value ? "on" : ""}" data-pick="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
+    <div class="actions ${o.danger ? "stack" : ""}">
+      ${o.danger
+        ? `<button class="btn bad" id="ask-ok">${esc(o.ok)}</button><button class="btn" id="ask-no">${esc(o.keep || "Cancel")}</button>`
+        : `${o.extra ? `<button class="btn" id="ask-x">${esc(o.extra.label)}</button>` : o.readonly ? "" : `<button class="btn" id="ask-no">Cancel</button>`}<button class="btn primary" id="ask-ok">${esc(o.ok || "OK")}</button>`}
+    </div></div>`;
+  document.body.appendChild(w);
+  const inp = $("ask-in"), ok = $("ask-ok");
+  const val = () => (inp ? inp.value.trim() : true);
+  const finish = v => { closeAsk(); done?.(v); };
+  const update = () => {
+    if (!inp) return;
+    if (o.preview) $("ask-pv").innerHTML = o.preview(val());
+    if (o.okLabel) ok.textContent = o.okLabel(val());
+    if (!o.readonly && !o.extra) ok.disabled = !val();
+  };
+  ok.onclick = () => (o.readonly ? closeAsk() : finish(val()));
+  $("ask-no")?.addEventListener("click", closeAsk);
+  $("ask-x")?.addEventListener("click", () => finish(o.extra.value));
+  w.querySelector(".scrim").onclick = closeAsk;
+  w.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => finish(b.dataset.pick));
+  w.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeAsk();
+    if (e.key === "Enter" && e.target === inp && !ok.disabled) { e.preventDefault(); ok.click(); }
+  });
+  update();
+  inp?.addEventListener("input", update);
+  if (inp && o.readonly) { inp.focus(); inp.select(); }
+  else if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  else ok.focus();
+  followKeyboard();
+}
+// When copying isn't allowed, show the text ready to select.
+const showToCopy = (title, text) => ask({ title, value: text, readonly: true, ok: "Done" });
+const SECTION_NAMES = ["Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo", "Outro"];
+
+// ---------- Keeping the library safe ----------
+// Ask the browser to keep this site's storage permanently (it may still decide).
 let storageKept = null;
 navigator.storage?.persist?.().then(ok => { storageKept = ok; }).catch(() => {});
 navigator.storage?.persisted?.().then(ok => { if (storageKept === null) storageKept = ok; }).catch(() => {});
@@ -1190,7 +1244,7 @@ async function shareLink(payload, title, near) {
     catch (e) { if (e.name === "AbortError") return; }
   }
   try { await navigator.clipboard.writeText(url); toast("Link copied", near); }
-  catch { prompt("Copy this link", url); }
+  catch { showToCopy("Copy this link", url); }
 }
 const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Tabs)`, $("more"));
 const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (Tabs set)`, $("s-share"));
@@ -1218,7 +1272,7 @@ async function renderImport(code) {
     </div>`;
   const close = () => { layer.innerHTML = ""; };
   $("im-scrim").onclick = close; $("im-no").onclick = close;
-  $("im-copy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(full); toast("Link copied"); } catch { prompt("Copy this link", full); } });
+  $("im-copy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(full); toast("Link copied"); } catch { showToCopy("Copy this link", full); } });
   $("im-yes").onclick = () => {
     close();
     if (got.song) { const s = Tabs.addSong(data, got.song); return go("#/song/" + encodeURIComponent(s.id)); }
@@ -1482,11 +1536,16 @@ function songEditor(song, view = "sheet") {
       $("ce-cancel").onclick = () => {
         flushText(song);
         const typed = String(song.body || "").trim() || $("ed-title")?.value.trim() || song.artist;
-        if (typed && !confirm("Discard this song?")) return;
-        data.songs.splice(data.songs.indexOf(song), 1);
+        /* No question: it goes at once, and Undo brings it back as it was. */
+        const at = data.songs.indexOf(song), view = edView;
+        data.songs.splice(at, 1);
         Tabs.save(data);
         endEdit();
         history.length > 1 ? history.back() : go("#/");
+        if (typed) setTimeout(() => toast("Song discarded", null, { label: "Undo", fn: () => {
+          data.songs.splice(Math.min(at, data.songs.length), 0, song); Tabs.save(data);
+          openEdit = { id: song.id, view }; go("#/song/" + encodeURIComponent(song.id));
+        } }), 50);
       };
     }
   }
@@ -1626,9 +1685,10 @@ function paintSheet(song, sheet) {
       });
     } else if (b.dataset.sec !== undefined) {
       const i = +b.dataset.sec, cur = model.find(l => l.i === i).text;
-      const name = prompt("Section name (leave empty to remove the label)", cur);
-      if (name === null || name.trim() === cur) return;
-      editChange(song, name.trim() ? `Renamed to ${name.trim()}` : "Label removed", () => { song.body = renameSection(song.body, i, name); });
+      ask({ title: "Rename section", value: cur, picks: SECTION_NAMES, ok: "Save", extra: { label: "Remove label", value: "" }, caps: "words" }, name => {
+        if (name === cur) return;
+        editChange(song, name ? `Renamed to ${name}` : "Label removed", () => { song.body = renameSection(song.body, i, name); });
+      });
     } else {
       const after = +b.dataset.after;
       const row = document.createElement("div");
@@ -1641,8 +1701,9 @@ function paintSheet(song, sheet) {
     }
   };
   $("ed-sec").onclick = () => {
-    const name = (prompt("New section name", "Chorus") || "").trim();
-    if (!name) return;
+    ask({ title: "Add a section", placeholder: "Section name", picks: SECTION_NAMES, ok: "Add", caps: "words" }, name => addSection(name));
+  };
+  const addSection = name => {
     const lines = String(song.body || "").split("\n");
     editChange(song, `Added ${name}`, () => { song.body = insertLines(song.body, lines.length - 1, lines.length && lines[lines.length - 1].trim() ? ["", `[${name}]`] : [`[${name}]`]).body; });
     /* Start typing the new section's first line right away. */
@@ -1792,7 +1853,11 @@ function pickChord(song, i, pos, word, current) {
     p.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { st.root = b.dataset.r; paint(); });
     p.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { st.acc = st.acc === b.dataset.a ? "" : b.dataset.a; paint(); });
     p.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { st.qual = b.dataset.q; paint(); });
-    $("ce-other").onclick = () => { const c = (prompt("Chord name, like Cadd9 or D/F#", name()) || "").trim(); if (c) apply(c); };
+    $("ce-other").onclick = () => ask({
+      title: `Chord over “${word}”`, value: name(), placeholder: "Cadd9, D/F#, Asus4…", caps: "none",
+      text: "Type any chord. Names Tabs doesn't have a diagram for are placed as text.",
+      preview: c => (c && chordSVG(c)) || "", okLabel: c => (c ? `Place ${c}` : "Type a chord")
+    }, apply);
     $("ce-place").onclick = () => name() && apply(name());
     $("ce-rm")?.addEventListener("click", () => apply(null));
     $("ce-cancel")?.addEventListener("click", close);
@@ -2023,13 +2088,16 @@ function listenSheet(song, force) {
     $("ls-paste").onclick = async () => {
       let text = "";
       try { text = await navigator.clipboard.readText(); } catch {}
-      if (!/^https?:\/\//.test(text.trim())) text = prompt("Paste the song's link (Apple Music, Spotify or YouTube)") || "";
+      const use = text => {
       const url = (text.match(/https:\/\/\S+/) || [])[0];
       if (!url) return toast("That doesn't look like a link");
       saveListen(song, url);
       layer.innerHTML = "";
       toast(`Saved the ${linkService(url)} link`);
       if (appleTrackId(url)) recordingLength(song, url);
+      };
+      if (/^https?:\/\//.test(text.trim())) return use(text);
+      ask({ title: "Paste the song's link", text: "From Apple Music, Spotify or YouTube: tap Share, then Copy Link.", placeholder: "https://…", caps: "none", ok: "Save link" }, use);
     };
     $("ls-clear")?.addEventListener("click", () => { delete song.listen; Tabs.save(data); layer.innerHTML = ""; const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`; toast("Link removed"); });
   };
@@ -2955,12 +3023,13 @@ function renderTrash() {
   });
   app.querySelectorAll("[data-forget]").forEach(b => b.onclick = () => {
     const t = data.trash[+b.dataset.forget];
-    if (!confirm("Delete for good? This can't be undone.")) return;
-    Tabs.forget(data, t); renderTrash();
+    ask({ title: `Delete “${t.type === "set" ? t.item.name : t.item.title}” for good?`, text: "This can't be undone.", ok: "Delete for good", keep: "Keep it", danger: true },
+      () => { Tabs.forget(data, t); renderTrash(); });
   });
   $("t-empty")?.addEventListener("click", () => {
-    if (!confirm(`Delete all ${data.trash.length} for good? This can't be undone.`)) return;
-    data.trash = []; Tabs.save(data); renderTrash();
+    const n = data.trash.length;
+    ask({ title: `Delete all ${n} for good?`, text: "Everything in Recently deleted goes. This can't be undone.", ok: `Delete ${n === 1 ? "it" : `all ${n}`}`, keep: "Keep them", danger: true },
+      () => { data.trash = []; Tabs.save(data); renderTrash(); });
   });
 }
 

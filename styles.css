@@ -843,3 +843,20 @@ body.has-azx #list .list { margin-right: 22px; }
 .oops p { color: var(--muted); font-size: 15px; line-height: 1.5; margin: 0 0 20px; }
 .oops .actions { justify-content: center; }
 .oops .btn { flex: 1; white-space: nowrap; }
+
+/* In-app questions (ask): above any open panel, below coach callouts */
+.ask .scrim { z-index: 62; }
+.ask .panel { z-index: 63; padding: 18px 16px 16px; }
+.ask-t { display: block; font-size: 17px; font-weight: 600; color: var(--fg); margin: 0 2px 6px; }
+.ask-p { color: var(--muted); font-size: 14px; line-height: 1.4; margin: 0 2px 12px; }
+.ask-row { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; }
+.ask-row .fields { flex: 1; min-width: 0; }
+.ask-row input { font-size: 18px; font-weight: 500; }
+.ask-pv { flex: none; width: 70px; height: 84px; border-radius: 14px; border: 1px solid var(--rim); background: var(--card); display: grid; place-items: center; }
+.ask-pv:empty { display: none; }
+.ask-pv svg { width: 58px; height: auto; }
+.ask-picks { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 16px; }
+.ask-picks .chip { height: 34px; font-size: 14px; }
+.actions.stack { flex-direction: column; }
+.actions.stack .btn { flex: none; width: 100%; }
+.btn.bad { color: #e07a6c; border-color: rgba(224, 122, 108, .4); }
