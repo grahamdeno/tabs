@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#0c0d0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -417,7 +417,9 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .ed-tools { display: flex; gap: 8px; margin: 0 0 12px; }
 .ed-tx { overflow-x: auto; border: 1px solid var(--rim); border-radius: 12px; background: var(--card); -webkit-overflow-scrolling: touch; }
 .ed-tx-in { position: relative; display: inline-block; min-width: 100%; vertical-align: top; }
-.ed-hl, .ed-tx textarea { font: 15px/1.6 var(--mono); padding: 12px 14px 40px; margin: 0; white-space: pre; tab-size: 4; letter-spacing: 0; box-sizing: border-box; }
+/* iPhone enlarges wide blocks of text on its own; keep the editor at its set size. */
+.ed-tx, .ed-tx * { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.ed-hl, .ed-tx textarea { font: 13px/1.55 var(--mono); padding: 12px 14px 40px; margin: 0; white-space: pre; tab-size: 4; letter-spacing: 0; box-sizing: border-box; }
 .ed-hl { color: var(--fg); min-height: 50vh; }
 .ed-hl .hc, .ed-hl div.hc { color: var(--accent); }
 .ed-hl div.hs { color: var(--muted); }
@@ -2041,7 +2043,7 @@ function hlText(text) {
   const model = chordModel(text), chordLines = new Set(), secs = new Set();
   for (const l of model) { if (l.kind === "section") secs.add(l.i); if (l.kind === "chords") chordLines.add(l.i); if (l.kind === "lyric" && l.chordLine >= 0) chordLines.add(l.chordLine); }
   return text.split("\n").map((ln, i) => {
-    const body = secs.has(i) || chordLines.has(i) ? esc(ln) : esc(ln).replace(/\[([^\]\s]{1,12})\]/g, '<span class="hc">[$1]</span>');
+    const body = secs.has(i) || chordLines.has(i) ? esc(ln) : esc(ln).replace(/\[([A-G][#b]?[^\]\s]{0,10})\]/g, '<span class="hc">[$1]</span>');
     return `<div data-l="${i}" class="${chordLines.has(i) ? "hc" : secs.has(i) ? "hs" : ""}">${body || " "}</div>`;
   }).join("");
 }
