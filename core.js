@@ -5,7 +5,7 @@ const STORAGE_KEY = "tabs-v1";
 
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
-const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: false, focus: "always", pauseDiagrams: true, v: 3 };
+const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: false, focus: "always", pauseDiagrams: true, startSpeed: 45, v: 3 };
 
 function blank() {
   return { songs: [], settings: { ...DEFAULT_SETTINGS } };
@@ -60,7 +60,7 @@ export const Tabs = {
       favorite: false,
       format: "chords",
       key: "",
-      speed: SPEEDS.medium, // 1.0x
+      speed: data.settings?.startSpeed || SPEEDS.medium, // starting speed (1.0x unless changed)
       ...song
     };
     data.songs.unshift(s);

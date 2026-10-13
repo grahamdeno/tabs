@@ -281,6 +281,8 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 
 .toast { position: fixed; left: 50%; top: calc(12px + var(--safe-t)); transform: translate(-50%, -150%); padding: 10px 16px; border-radius: var(--r); z-index: 60; transition: transform .25s; font-size: 14px; background: var(--solid); border: 1px solid var(--rim); box-shadow: var(--shadow); }
 .toast.show { transform: translate(-50%, 0); }
+.toast.near { transform: translate(-50%, 6px); opacity: 0; transition: transform .18s ease-out, opacity .18s ease-out; padding: 8px 14px; font-size: 13px; white-space: nowrap; }
+.toast.near.show { transform: translate(-50%, 0); opacity: 1; }
 </style>
 </head>
 <body>
@@ -331,12 +333,25 @@ function applyTheme() {
   document.querySelector('meta[name="theme-color"]').content = light ? "#f3f0eb" : "#0c0d0f";
 }
 
-function toast(msg) {
+// A short message. With `near`, it appears just above that control, where the eye already is.
+function toast(msg, near) {
   const t = $("toast");
-  t.textContent = msg;
-  t.classList.add("show");
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove("show"), 2000);
+  t.classList.remove("show", "near");
+  t.style.left = t.style.top = "";
+  t.textContent = msg;
+  if (near) {
+    const r = near.getBoundingClientRect();
+    const above = (near.closest(".pw") || near).getBoundingClientRect().top;
+    t.classList.add("near");
+    const w = t.offsetWidth;
+    const x = Math.min(window.innerWidth - w / 2 - 12, Math.max(w / 2 + 12, r.left + r.width / 2));
+    t.style.left = x + "px";
+    t.style.top = (above - t.offsetHeight - 10) + "px";
+  }
+  void t.offsetWidth; // restart the transition
+  t.classList.add("show");
+  toast.timer = setTimeout(() => t.classList.remove("show"), near ? 1400 : 2000);
 }
 
 const go = h => { location.hash = h; };
@@ -481,7 +496,7 @@ function renderViewer(id) {
   if (!song) return go("#/");
   const isChords = song.format !== "tab";
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
-  if (song.speed === undefined) song.speed = SPEEDS.medium; // 1.0x; each song then keeps its own
+  if (song.speed === undefined) song.speed = data.settings.startSpeed || SPEEDS.medium; // then each song keeps its own
   if (song.size === undefined) song.size = 1;
   song.opened = Date.now();
   Tabs.save(data);
@@ -598,7 +613,7 @@ function renderViewer(id) {
     diag.nn = on && diag.seq.length > 0;
     diag.idx = null;
     updateDiagrams();
-    toast(on ? "Now and Next on" : "Now and Next off");
+    toast(on ? "Now and Next on" : "Now and Next off", $("nnbtn"));
   });
   window.scrollTo(0, 0);
   fab.lastY = 0; fab.reveal = 1;
@@ -1095,6 +1110,12 @@ function renderSettings() {
     <div class="label">Playing</div>
     <div class="set-group glass">
       <div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Starting speed</span><span class="val">${((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1)}x</span>${icon("chev", "chev")}
+        <select id="s-speed" aria-label="Starting speed for new songs">
+          ${Array.from({ length: 16 }, (_, i) => (i + 5) / 10).map(m => `<option value="${(m * SPEEDS.medium).toFixed(1)}" ${Math.abs(m * SPEEDS.medium - (s.startSpeed || SPEEDS.medium)) < 0.01 ? "selected" : ""}>${m.toFixed(1)}x</option>`).join("")}
+        </select>
+      </div>
+      <div class="set">
         <span class="tile">${icon("note")}</span><span class="name">Default transpose</span><span class="val">${semis(t)}</span>${icon("chev", "chev")}
         <select id="s-transpose" aria-label="Default transpose">
           ${Array.from({ length: 12 }, (_, i) => i - 5).map(n => `<option value="${n}" ${n === t ? "selected" : ""}>${semis(n)}</option>`).join("")}
@@ -1115,7 +1136,7 @@ function renderSettings() {
         </select>
       </div>
     </div>
-    <p class="foot" style="margin-top:10px">While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap a line to start from it, or tap any chord to see its fingering.</p>
+    <p class="foot" style="margin-top:10px">New songs start at the starting speed; moving a song's speed slider saves its own speed. While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap a line to start from it, or tap any chord to see its fingering.</p>
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
@@ -1131,6 +1152,7 @@ function renderSettings() {
     <input type="file" id="file" accept=".json,application/json" hidden>
     <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
   $("back").onclick = () => go("#/");
+  $("s-speed").onchange = e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
