@@ -350,7 +350,15 @@ body.loop-on .app.viewer { padding-bottom: calc(160px + var(--safe-b)); }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
-.sheet > * { transition: opacity .3s; }
+.sheet > * { transition: opacity .3s, transform .2s ease-out; }
+/* Focus current line: heavier and 5% larger without changing how it wraps.
+   The stroke thickens the letters without widening them, and the scale is a
+   transform, so nothing below moves. Lines keep 5% spare width on the right
+   so a scaled line never runs off the edge. */
+.sheet > .pr, .sheet > .ly { margin-right: 5%; }
+.sheet.focus > .cur:is(.pr, .ly) { transform: scale(1.05); transform-origin: left center; -webkit-text-stroke: 0.6px currentColor; }
+.sheet.focus > .cur .c { -webkit-text-stroke: 0; }
+@media (prefers-reduced-motion: reduce) { .sheet > * { transition: opacity .3s; } }
 .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .38; }
 .sheet .c.now .ct { box-shadow: inset 0 -2px 0 var(--accent); }
 /* While playing, the top of the song (header, title, chord strip) goes quiet */
@@ -1251,6 +1259,7 @@ function applyPaused() {
 
 // Paused: the line at the reading point gets its diagrams, each over its chord.
 // Shown after pausing; follows to a new line once a paused scroll comes to rest.
+const FOCUS_SCALE = 1.05; /* matches .sheet.focus > .cur in the styles */
 function showPausedRow(block = pausedBlock()) {
   const sheet = $("sheet");
   if (!sheet) return;
@@ -1262,9 +1271,12 @@ function showPausedRow(block = pausedBlock()) {
   if (!inside.length) { old?.remove(); diag.rowKey = null; return; }
   // One set of cards above the line's first row: its chords in place, then any
   // chords that only appear where the line wraps.
-  const items = inside[0].items.slice();
-  for (const r of inside.slice(1)) for (const it of r.items) if (!items.some(x => x.name === it.name)) items.push(it);
-  const row = { top: inside[0].top, items };
+  /* The focused line is drawn 5% larger from its left edge, so move the cards to match. */
+  const S = sheet.classList.contains("focus") && block.classList.contains("cur") && block.matches(".pr, .ly") ? FOCUS_SCALE : 1;
+  const cy = block.offsetTop + block.offsetHeight / 2;
+  const items = inside[0].items.map(it => ({ ...it, x: it.x * S }));
+  for (const r of inside.slice(1)) for (const it of r.items) if (!items.some(x => x.name === it.name)) items.push({ ...it, x: it.x * S });
+  const row = { top: cy + (inside[0].top - cy) * S, items };
   if (old && diag.rowKey === row.top) return;
   old?.remove();
   diag.rowKey = row.top;

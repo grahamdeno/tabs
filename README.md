@@ -29,7 +29,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Lyrics wrap to the screen at full size, with each chord riding on its word; words never split
 - Tabs wrap a measure at a time, all strings together, with string names on every row
 - Chord diagrams: while playing, a fixed Now and Next panel above the controls shows the chord at the reading line and the next ones (off by default; toggle it from the player or Settings); when paused, the line you're on shows a diagram over each chord, and you can tap any chord for its fingering
-- Focus current line (Always, While playing, or Off): the current line stays bright and the rest dim; when paused, tap a line to focus it and play starts from there
+- Focus current line (Always, While playing, or Off): the current line is heavier and slightly larger, and the rest dim. It never changes how lines wrap, so nothing below jumps; when paused, tap a line to focus it and play starts from there
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
 - Song header keeps just back and favorite; everything else is in the ••• menu: text size (lyrics and chords together), add to set, practice a section, share, edit, and Make it easier and Spark tone with an API key
 - Practice a section (••• menu): tap a section name, or a first and last line, and play repeats it, with a copper bracket in the margin. Build up starts at 80% speed and adds 5% each pass until full speed
