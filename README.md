@@ -52,7 +52,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - After a set is played through, it remembers: a Played stamp on the cover, times played, last run time, songs played, a note for next time, and Play again
 - Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Smooth screen changes: the song title glides between the library and the song, and sheets settle with a light spring (instant with Reduce Motion)
-- Add songs in a slide-up sheet; delete from Edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
+- + opens a blank song in the same editor as Edit, in the Text view: paste or type, and the key (or Format: Tab) is detected as you go. Save keeps it; Cancel removes it (asking first if you typed anything). Tab songs edit in the same page, in the Text view. Delete from Edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
 - Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, Make it easier with a capo and simpler chords, or get a Spark amp tone for a song
 - First launch adds an original sample song and shows one-time tips on the real controls (Settings > Show tips again)
 - Settings (gear, top right), grouped as Playing, Chord diagrams, Defaults for new songs, Appearance, AI help and Library
@@ -75,8 +75,8 @@ Blackbird singing in the dead of night
 
 Settings > AI help > paste an Anthropic API key > Save key. Without a key the app works the same and the AI options stay hidden.
 
-- **Clean up** (paste card and New Song sheet): the pasted text is sent to a small, fast model and comes back as a chord sheet in this app's format. You can compare it with the original before saving, or undo it in the editor.
-- **Scan a page** (New Song sheet): a photo of a songbook page or handwritten sheet is resized on the phone and read by a larger model, which handles images more accurately.
+- **Clean up** (paste card and the editor's Text view): the pasted text is sent to a small, fast model and comes back as a chord sheet in this app's format. You can compare it with the original before saving, or undo it in the editor.
+- **Scan a page** (the editor's Text view): a photo of a songbook page or handwritten sheet is resized on the phone and read by a larger model, which handles images more accurately.
 - **Make it easier** (song view, next to Chords in this song): the song's chord names and the chords you use most across your library go to a small model, which suggests a capo and up to four simpler substitutes. You see the shapes before and after, then Apply. Your sheet is never changed: the suggestion is stored with the song and can be turned off or tried again. No lyrics are sent.
 - **Chord chart with AI** (when a search finds nothing): the song's title and artist go to a larger model with web search, which reads chord sites and returns sections, chords, key, capo, tuning, tempo and a strum pattern, with its sources. Only chord names and section names are kept (each token is checked), so no lyrics are ever copied. Charts can be wrong; check them by ear. Each one uses a few web searches, usually 5 to 15 cents. If your organization has turned web search off, an admin can turn it on in the Console under Settings > Capabilities.
 - **What can I play next?** (search, before you type): the chords you play and your song titles go to a small model, which suggests well-known songs that use mostly those chords, with at most one new chord. Each has a Listen link and a Chart button.

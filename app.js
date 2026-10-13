@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -67,7 +67,6 @@ let filter = "all";
 // for the keyboard; it pushes the page up instead, which hid results at the top.)
 let searching = false;
 let keepSearch = false; /* back from a song opened from results: show the results again */
-let draft = null; // prefilled fields for the add sheet
 // Leaving a screen: each feature registers its own tidy-up next to its code,
 // and render() runs them all before drawing the next screen.
 const leaveHooks = [];
@@ -246,7 +245,7 @@ function renderLibrary() {
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
-  $("add").onclick = () => { draft = null; go("#/add"); };
+  $("add").onclick = () => newSong();
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
   bindShelf();
   const q = $("q");
@@ -586,7 +585,7 @@ function showPasteCard(original) {
     close(); query = "";
     go("#/song/" + encodeURIComponent(s.id));
   };
-  $("p-edit").onclick = () => { if (working) return; draft = fields(); close(); go("#/add"); };
+  $("p-edit").onclick = () => { if (working) return; const f = fields(); close(); newSong(f); };
   if (!original.title) setTimeout(() => $("p-title")?.focus(), 250);
   followKeyboard();
 }
@@ -730,7 +729,7 @@ function renderViewer(id) {
   paintLoop(song);
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
-  else setTimeout(() => { if (viewing === song && !scroll.on && route().name === "song") showTips("song"); }, 500);
+  else setTimeout(() => { if (viewing === song && !scroll.on && !chordEdit && route().name === "song") showTips("song"); }, 500);
 
   const speed = $("speed");
   // Song length style: the slider sets how long the song takes (right = shorter = faster).
@@ -1239,9 +1238,11 @@ onScroll(() => { if (map.el) paintMap(map.dragging ? map.target : undefined); })
 let chordEdit = null;
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
+let openEdit = null;            /* { id, view } to open the editor once the song page draws */
 onLeave(() => {
   if (!chordEdit) return;
   if (edView === "text") flushText(chordEdit);
+  if (chordEdit.isNew) settleNew(chordEdit);
   chordEdit = null; edView = "sheet"; textSnap = null;
   document.body.classList.remove("cedit");
   document.querySelector(".cebar")?.remove();
@@ -1261,8 +1262,28 @@ function editChange(song, label, fn) {
   paintEdit(song);
   if (label) toast(label, null, { label: "Undo", fn: () => { restoreSnap(song, before); Tabs.save(data); paintEdit(song); } });
 }
-function songEditor(song) {
-  if (song.format === "tab") return go("#/edit/" + encodeURIComponent(song.id));
+// ---- Adding a song: a blank song opened in the editor, Text view first ----
+// It lives in the library flagged isNew while you work on it (so every change
+// saves, as in Edit). Save keeps it; Cancel removes it. If the app closes first,
+// a song with words is kept and an empty one is dropped.
+function newSong(fields = {}) {
+  const s = Tabs.addSong(data, { title: "", artist: "", ...fields, isNew: true });
+  if (!fields.format && s.body) s.format = looksLikeTab(s.body) ? "tab" : "chords";
+  openEdit = { id: s.id, view: "text" };
+  go("#/song/" + encodeURIComponent(s.id));
+}
+function settleNew(song) {
+  delete song.isNew;
+  if (!String(song.body || "").trim() && !song.title.trim()) data.songs.splice(data.songs.indexOf(song), 1);
+  else if (!song.title.trim()) song.title = "Untitled";
+  Tabs.save(data);
+}
+function endEdit() {
+  chordEdit = null; edView = "sheet"; textSnap = null;
+  document.body.classList.remove("cedit");
+  document.querySelector(".cebar")?.remove();
+}
+function songEditor(song, view = "sheet") {
   stopScroll();
   chordEdit = song;
   document.body.classList.add("cedit");
@@ -1270,14 +1291,41 @@ function songEditor(song) {
   document.querySelector(".cebar")?.remove();
   const bar = document.createElement("div");
   bar.className = "cebar glass";
-  edView = "sheet";
-  bar.innerHTML = `<div class="seg slide" id="ed-seg" role="tablist" aria-label="Edit view"><button class="on" role="tab" aria-selected="true" data-v="sheet">Sheet</button><button role="tab" aria-selected="false" data-v="text">Text</button></div>
-    <button class="btn sm primary" id="ce-done">Done</button>`;
+  edView = song.format === "tab" ? "text" : view;
+  const text = edView === "text";
+  bar.innerHTML = `<div class="seg slide ${text ? "right" : ""}" id="ed-seg" role="tablist" aria-label="Edit view"><button class="${text ? "" : "on"}" role="tab" aria-selected="${!text}" data-v="sheet">Sheet</button><button class="${text ? "on" : ""}" role="tab" aria-selected="${text}" data-v="text">Text</button></div>
+    <button class="btn sm primary" id="ce-done">${song.isNew ? "Save" : "Done"}</button>`;
   document.body.appendChild(bar);
-  $("ce-done").onclick = () => { leaveText(song); chordEdit = null; document.body.classList.remove("cedit"); bar.remove(); render(); toast("Saved"); };
+  $("ce-done").onclick = () => {
+    if (song.isNew) {
+      const t = $("ed-title")?.value.trim() || song.title.trim();
+      if (!t) { toast("Add a title first"); $("ed-title")?.focus(); return; }
+      flushText(song);
+      song.title = t; delete song.isNew; textSnap = null;
+      Tabs.save(data);
+    } else leaveText(song);
+    endEdit(); render(); toast("Saved");
+  };
   bar.querySelectorAll("[data-v]").forEach(b => b.onclick = () => switchView(song, b.dataset.v));
+  if (song.isNew) {
+    /* Cancel where Back usually is; nothing else up top while adding. */
+    const head = app.querySelector(".head");
+    if (head) {
+      head.innerHTML = `<button class="btn sm glass" id="ce-cancel">Cancel</button>`;
+      $("ce-cancel").onclick = () => {
+        flushText(song);
+        const typed = String(song.body || "").trim() || $("ed-title")?.value.trim() || song.artist;
+        if (typed && !confirm("Discard this song?")) return;
+        data.songs.splice(data.songs.indexOf(song), 1);
+        Tabs.save(data);
+        endEdit();
+        history.length > 1 ? history.back() : go("#/");
+      };
+    }
+  }
   window.scrollTo(0, 0);
   paintEdit(song);
+  if (song.isNew && !song.title) setTimeout(() => $("ed-title")?.focus({ preventScroll: true }), 300);
 }
 function paintEdit(song) {
   const sheet = $("sheet");
@@ -1285,11 +1333,21 @@ function paintEdit(song) {
   /* Title and details, typed in place. */
   const h = app.querySelector(".song-title");
   if (h && !h.querySelector("input")) {
-    h.innerHTML = `<input class="ed-title" id="ed-title" value="${esc(song.title)}" aria-label="Title" autocomplete="off">`;
-    $("ed-title").onchange = e => { const v = e.target.value.trim(); if (v && v !== song.title) editChange(song, "", () => { song.title = v; }); else e.target.value = song.title; };
-  }
+    h.innerHTML = `<input class="ed-title" id="ed-title" value="${esc(song.title)}" placeholder="Song title" aria-label="Title" autocomplete="off">`;
+    $("ed-title").onchange = e => { const v = e.target.value.trim(); if (v && v !== song.title) editChange(song, "", () => { song.title = v; }); else if (!song.isNew) e.target.value = song.title; };
+  } else if (h && document.activeElement !== $("ed-title") && song.title) $("ed-title").value = song.title;
+  paintDetails(song);
+  if (edView === "text") return paintText(song);
+  paintSheet(song, sheet);
+}
+// Artist and the Key, Tuning, Tempo (and Format, for tab) chips. Redrawn as you
+// type in the Text view, so the detected key and format stay current.
+function paintDetails(song) {
+  const h = app.querySelector(".song-title");
   $("ed-details")?.remove();
-  const guess = guessKey(song.body || "");
+  const isTab = song.format === "tab";
+  const showFormat = isTab || looksLikeTab(song.body || "");
+  const guess = isTab ? "" : guessKey(song.body || "");
   const tun = song.tuning || detectTuning(song.body) || "standard";
   const d = document.createElement("div");
   d.className = "ed-details";
@@ -1297,19 +1355,29 @@ function paintEdit(song) {
   d.innerHTML = `
     <input class="ed-artist" id="ed-artist" value="${esc(song.artist || "")}" placeholder="Artist" aria-label="Artist" autocomplete="off">
     <div class="ed-chips">
-      <label class="ed-chip"><span>Key</span><b>${esc(song.key || (guess ? guess + " (auto)" : "Auto"))}</b>
-        <select id="ed-key" aria-label="Key"><option value="">Auto${guess ? ` (${esc(guess)})` : ""}</option>${KEY_LIST.flatMap(k => [k, k + "m"]).map(k => `<option ${k === song.key ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+      ${showFormat ? `<label class="ed-chip"><span>Format</span><b>${isTab ? "Tab" : "Chords"}</b>
+        <select id="ed-format" aria-label="Format"><option value="chords" ${isTab ? "" : "selected"}>Chords</option><option value="tab" ${isTab ? "selected" : ""}>Tab</option></select></label>` : ""}
+      ${isTab ? "" : `<label class="ed-chip"><span>Key</span><b>${esc(song.key || (guess ? guess + " (auto)" : "Auto"))}</b>
+        <select id="ed-key" aria-label="Key"><option value="">Auto${guess ? ` (${esc(guess)})` : ""}</option>${KEY_LIST.flatMap(k => [k, k + "m"]).map(k => `<option ${k === song.key ? "selected" : ""}>${k}</option>`).join("")}</select></label>`}
       <label class="ed-chip"><span>Tuning</span><b>${esc(TUNINGS[tun].name)}</b>
         <select id="ed-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}" ${k === tun ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
       <label class="ed-chip"><span>Tempo</span><input id="ed-bpm" type="number" inputmode="numeric" min="30" max="260" value="${song.bpm || ""}" placeholder="90" aria-label="Tempo in beats per minute"><span>BPM</span></label>
     </div>`;
   h?.after(d);
   $("ed-artist").onchange = e => editChange(song, "", () => { song.artist = e.target.value.trim(); });
-  $("ed-key").onchange = e => editChange(song, `Key: ${e.target.value || "Auto"}`, () => { song.key = e.target.value; });
+  $("ed-format")?.addEventListener("change", e => {
+    const f = e.target.value;
+    if (edView === "text") flushText(song);
+    editChange(song, f === "tab" ? "Format: Tab" : "Format: Chords", () => { song.format = f; song.formatSet = true; });
+    if (f === "tab" && edView === "sheet") switchView(song, "text");
+  });
+  $("ed-seg") && ($("ed-seg").hidden = isTab);
+  if ($("ed-txhint")) $("ed-txhint").textContent = textHint(song);
+  $("ed-key")?.addEventListener("change", e => editChange(song, `Key: ${e.target.value || "Auto"}`, () => { song.key = e.target.value; }));
   $("ed-tuning").onchange = e => editChange(song, `Tuning: ${TUNINGS[e.target.value].name}`, () => { if (e.target.value === "standard") delete song.tuning; else song.tuning = e.target.value; });
   $("ed-bpm").onchange = e => editChange(song, "", () => { const n = Math.min(260, Math.max(30, parseInt(e.target.value, 10))); if (n) song.bpm = n; else delete song.bpm; });
-
-  if (edView === "text") return paintText(song);
+}
+function paintSheet(song, sheet) {
   /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */
   const model = chordModel(song.body);
   const pencil = icon("edit");
@@ -1424,15 +1492,17 @@ function hlText(text) {
     return `<div data-l="${i}" class="${chordLines.has(i) ? "hc" : secs.has(i) ? "hs" : ""}">${body || " "}</div>`;
   }).join("");
 }
+const textHint = song => song.format === "tab" ? "Tab as plain text, one line per string. Section names in brackets, like [Intro]." : "Chords go on their own line above the words, or inline like [G]word. Sections in brackets, like [Chorus].";
+const TEXT_HINT = "Paste or type chords and lyrics, or tab\n\n[Verse]\nG                C         G\nWalking down the river road tonight\n\nor inline:  [G]Walking [C]down";
 function paintText(song) {
   const sheet = $("sheet");
   textSnap ||= snapshot(song);
   sheet.innerHTML = `
     ${aiKey() ? `<div class="ed-tools"><button class="chip ai" id="ed-clean">${icon("wand")}Clean up</button><button class="chip ai" id="ed-scan">${icon("camera")}Scan a page</button><input type="file" id="ed-photo" accept="image/*" hidden></div>` : ""}
     <div class="ed-tx"><div class="ed-tx-in"><pre class="ed-hl" id="ed-hl" aria-hidden="true">${hlText(song.body || "")}</pre>
-      <textarea id="ed-body" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Song text" placeholder="[Verse]&#10;G        C&#10;Words under the chords">${esc(song.body || "")}</textarea></div></div>
-    <p class="ed-hint">Chords go on their own line above the words, or inline like [G]word. Sections in brackets, like [Chorus].</p>
-    <button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`;
+      <textarea id="ed-body" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Song text" placeholder="${esc(TEXT_HINT)}">${esc(song.body || "")}</textarea></div></div>
+    <p class="ed-hint" id="ed-txhint">${textHint(song)}</p>
+    ${song.isNew ? "" : `<button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`}`;
   const ta = $("ed-body");
   ta.oninput = () => {
     $("ed-hl").innerHTML = hlText(ta.value);
@@ -1452,6 +1522,7 @@ function paintText(song) {
         if (!song.title.trim() && r.title) song.title = r.title;
         if (!song.artist && r.artist) song.artist = r.artist;
         if (!song.key && r.key) song.key = r.key;
+        if (r.format && !song.formatSet) song.format = r.format;
       });
     } catch (e) { toast(aiError(e)); btn.innerHTML = html; sheet.querySelectorAll(".chip.ai").forEach(b => b.disabled = false); }
   };
@@ -1464,7 +1535,7 @@ function paintText(song) {
     const file = e.target.files[0]; e.target.value = "";
     if (file) run($("ed-scan"), "Reading page", async () => ({ ...(await cleanSheet({ image: await readPhoto(file) })), label: "Read from photo" }));
   });
-  $("ed-delete").onclick = () => deleteFromEdit(song);
+  $("ed-delete")?.addEventListener("click", () => deleteFromEdit(song));
 }
 function flushText(song) {
   clearTimeout(textTimer);
@@ -1472,7 +1543,9 @@ function flushText(song) {
   if (!ta || ta.value === song.body) return;
   song.body = ta.value;
   delete song.loop;
+  if (song.isNew && !song.formatSet) song.format = looksLikeTab(song.body) ? "tab" : "chords";
   Tabs.save(data);
+  if (chordEdit === song) paintDetails(song);
 }
 // Leaving the text view: save, and offer one Undo for everything typed there.
 function leaveText(song) {
@@ -2050,156 +2123,6 @@ function stopScroll() {
   if (btn) { btn.innerHTML = icon("play"); btn.setAttribute("aria-label", "Start auto-scroll"); }
   updateDiagrams();
   if (btn) { diag.armed = true; showPausedRow(); }
-}
-
-// ---------- Add / Edit sheet ----------
-const PLACEHOLDER = {
-  chords: "Paste or type chords and lyrics\n\n[Verse]\nG              C        G\nWalking down the river road tonight\n\nor inline:  [G]Walking [C]down",
-  tab: "Paste ASCII tab\n\ne|-----0-----0-----|\nB|-----1-----1-----|\nG|-----0-----0-----|\nD|-----2-----2-----|"
-};
-
-function renderForm(id) {
-  const song = id ? data.songs.find(s => s.id === id) : null;
-  if (id && !song) return go("#/");
-  const src = song || draft || {};
-  let format = src.format || "chords";
-  // Library stays underneath so the sheet reads as a layer.
-  if (!app.innerHTML.trim()) renderLibrary();
-  layer.innerHTML = `
-    <div class="scrim"></div>
-    <div class="panel full" role="dialog" aria-label="${song ? "Edit song" : "New song"}">
-      <div class="grab"></div>
-      <div class="ph">
-        <button class="tb" id="cancel">Cancel</button>
-        <h2>${song ? "Edit Song" : "New Song"}</h2>
-        <button class="tb go" id="save">Save</button>
-      </div>
-      <div class="pbody">
-        <div class="fields glass">
-          <label class="fld"><span class="lab">Title</span><input id="f-title" value="${esc(src.title)}" placeholder="Song title" autocomplete="off"></label>
-          <label class="fld"><span class="lab">Artist</span><input id="f-artist" value="${esc(src.artist)}" placeholder="Artist" autocomplete="off"></label>
-          <div class="fld">
-            <span class="lab">Format</span>
-            <div class="seg">
-              <button data-fmt="chords" class="${format === "chords" ? "on" : ""}">Chords</button>
-              <button data-fmt="tab" class="${format === "tab" ? "on" : ""}">Tab</button>
-            </div>
-            <label id="keywrap" style="display:${format === "tab" ? "none" : "flex"};align-items:center;gap:8px">
-              <span style="font-size:15px;color:var(--muted)">Key</span>
-              <input id="f-key" value="${esc(src.key)}" placeholder="Auto" maxlength="4" autocomplete="off" autocapitalize="characters" style="width:48px;text-align:right">
-            </label>
-          </div>
-          <label class="fld"><span class="lab">Tuning</span><select id="f-tuning" class="fsel">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}" ${k === (src.tuning || detectTuning(src.body) || "standard") ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
-          <label class="fld"><span class="lab">Tempo</span><input id="f-bpm" type="number" inputmode="numeric" min="30" max="260" value="${esc(src.bpm || "")}" placeholder="BPM, for the count-in (optional)"></label>
-        </div>
-        ${aiKey() ? `<div class="ai-row">
-          <button class="chip ai" id="f-scan">${icon("camera")}Scan a page</button>
-          <button class="chip ai" id="f-clean">${icon("wand")}Clean up</button>
-          <input type="file" id="f-photo" accept="image/*" hidden>
-        </div>` : ""}
-        <textarea class="body glass" id="f-body" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Song content" placeholder="${esc(PLACEHOLDER[format])}">${esc(src.body)}</textarea>
-        <div class="detect" id="detect"></div>
-        ${song ? '<button class="danger" id="delete">Delete Song</button>' : ""}
-      </div>
-    </div>`;
-
-  const detectLine = () => {
-    const body = $("f-body").value;
-    if (!body.trim() || format === "tab") { $("detect").innerHTML = ""; return; }
-    const k = $("f-key").value.trim() || guessKey(body);
-    const secs = parseSheet(body).filter(l => l.kind === "section").length;
-    $("detect").innerHTML = k ? `${icon("check")}<span>Chord sheet in ${esc(k)}${secs ? `, ${secs} section${secs === 1 ? "" : "s"}` : ""}</span>` : "";
-  };
-  detectLine();
-  $("f-body").oninput = () => { undo = null; detectLine(); };
-
-  // AI: clean up the sheet in place, or read a photographed page. Either can be undone.
-  let undo = null;
-  const aiNote = (html) => { $("detect").innerHTML = html; };
-  const applyResult = (r, label) => {
-    undo = { body: $("f-body").value, title: $("f-title").value, artist: $("f-artist").value, key: $("f-key").value, format };
-    $("f-body").value = r.body;
-    if (!$("f-title").value.trim() && r.title) $("f-title").value = r.title;
-    if (!$("f-artist").value.trim() && r.artist) $("f-artist").value = r.artist;
-    if (r.key && !$("f-key").value.trim()) $("f-key").value = r.key;
-    if (r.format !== format) layer.querySelector(`[data-fmt="${r.format}"]`)?.click();
-    detectLine();
-    $("detect").insertAdjacentHTML("beforeend", `<span class="sep">·</span><span>${label}</span><button class="link" id="f-undo">Undo</button>`);
-    $("f-undo").onclick = () => {
-      if (!undo) return;
-      $("f-body").value = undo.body; $("f-title").value = undo.title; $("f-artist").value = undo.artist; $("f-key").value = undo.key;
-      if (undo.format !== format) layer.querySelector(`[data-fmt="${undo.format}"]`)?.click();
-      undo = null; detectLine();
-    };
-  };
-  const run = async (btn, label, doneLabel, job) => {
-    if (btn.disabled) return;
-    const html = btn.innerHTML;
-    layer.querySelectorAll(".chip.ai").forEach(b => b.disabled = true);
-    btn.innerHTML = busy(label);
-    try { applyResult(await job(), doneLabel); }
-    catch (e) { aiNote(`<span class="err">${esc(aiError(e))}</span>`); }
-    btn.innerHTML = html;
-    layer.querySelectorAll(".chip.ai").forEach(b => b.disabled = false);
-  };
-  $("f-clean")?.addEventListener("click", () => {
-    const text = $("f-body").value;
-    if (!text.trim()) { toast("Paste a song first"); $("f-body").focus(); return; }
-    run($("f-clean"), "Cleaning", "Cleaned up", () => cleanSheet({ text }));
-  });
-  $("f-scan")?.addEventListener("click", () => $("f-photo").click());
-  $("f-photo")?.addEventListener("change", e => {
-    const file = e.target.files[0];
-    e.target.value = "";
-    if (file) run($("f-scan"), "Reading page", "Read from photo", async () => cleanSheet({ image: await readPhoto(file) }));
-  });
-  $("f-key").oninput = detectLine;
-
-  layer.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => {
-    format = b.dataset.fmt;
-    layer.querySelectorAll("[data-fmt]").forEach(x => x.classList.toggle("on", x === b));
-    $("keywrap").style.display = format === "tab" ? "none" : "flex";
-    $("f-body").placeholder = PLACEHOLDER[format];
-    detectLine();
-  });
-
-  const close = () => { draft = null; history.length > 1 ? history.back() : go(song ? "#/song/" + encodeURIComponent(song.id) : "#/"); };
-  $("cancel").onclick = close;
-  layer.querySelector(".scrim").onclick = close;
-  $("save").onclick = () => {
-    const title = $("f-title").value.trim();
-    if (!title) { toast("Add a title first"); $("f-title").focus(); return; }
-    const raw = $("f-key").value.trim();
-    const fields = {
-      title,
-      artist: $("f-artist").value.trim(),
-      format,
-      key: format === "chords" && raw ? raw[0].toUpperCase() + raw.slice(1) : "",
-      bpm: Math.min(260, Math.max(30, parseInt($("f-bpm").value, 10))) || undefined,
-      tuning: $("f-tuning").value === "standard" ? undefined : $("f-tuning").value,
-      body: $("f-body").value
-    };
-    draft = null;
-    if (song) {
-      if (fields.body !== song.body) delete song.loop;
-      Tabs.updateSong(data, song.id, fields);
-      history.replaceState(null, "", "#/");
-      go("#/song/" + encodeURIComponent(song.id));
-    } else {
-      const s = Tabs.addSong(data, fields);
-      history.replaceState(null, "", "#/");
-      go("#/song/" + encodeURIComponent(s.id));
-    }
-    toast("Saved");
-  };
-  $("delete")?.addEventListener("click", () => {
-    const entry = Tabs.deleteSong(data, song.id);
-    history.replaceState(null, "", "#/");
-    layer.innerHTML = "";
-    render();
-    toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
-  });
-  if (!src.title) setTimeout(() => $("f-title")?.focus(), 300);
 }
 
 // ---------- Settings ----------
@@ -2879,10 +2802,17 @@ function render() {
   const r = route();
   leaveHooks.forEach(fn => fn(r));
   app.classList.remove("viewer");
-  if (r.name !== "add" && r.name !== "edit") layer.innerHTML = "";
-  if (r.name === "song") renderViewer(r.id);
-  else if (r.name === "add") renderForm();
-  else if (r.name === "edit") { const s = data.songs.find(x => x.id === r.id); if (s && !app.querySelector("#sheet")) renderViewer(r.id); renderForm(r.id); }
+  layer.innerHTML = "";
+  /* Old links: #/add and #/edit/<id> open the editor. */
+  if (r.name === "add") { history.replaceState(null, "", "#/"); return newSong(); }
+  if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return render(); }
+  if (r.name === "song") {
+    renderViewer(r.id);
+    const want = openEdit;
+    openEdit = null;
+    const song = viewing?.id === r.id && want?.id === r.id ? viewing : null;
+    if (song) songEditor(song, want.view);
+  }
   else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
   else if (r.name === "trash") { renderTrash(); window.scrollTo(0, 0); }
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
@@ -2903,6 +2833,7 @@ window.addEventListener("hashchange", () => {
 });
 applyTheme();
 firstLaunch();
+data.songs.filter(s => s.isNew).forEach(settleNew); /* a song being added when the app closed */
 render();
 coverLoadAll().then(() => {
   /* Forget cover photos of sets that are gone for good (not in the library or Recently deleted). */

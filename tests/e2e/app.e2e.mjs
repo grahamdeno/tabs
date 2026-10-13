@@ -206,3 +206,36 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
   await page.waitForTimeout(400);
   assert.equal(await page.locator(".cover img").first().getAttribute("src"), png);
 });
+
+test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const titles = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.map(s => s.title + (s.isNew ? "*" : "")));
+  await page.click("#add");
+  await page.waitForTimeout(600);
+  assert.equal(await page.locator("#ce-done").textContent(), "Save");
+  assert.ok(await page.locator("#ed-body").isVisible(), "opens in the Text view");
+  await page.fill("#ed-body", "[Verse]\nG       C\nHello there friend");
+  await page.waitForTimeout(450);
+  assert.match(await page.locator(".ed-chips").textContent(), /G \(auto\)/);
+  await page.click("#ce-done");
+  await page.waitForTimeout(200);
+  assert.match(await page.locator("#toast").textContent(), /Add a title first/);
+  await page.fill("#ed-title", "New One");
+  await page.click("#ce-done");
+  await page.waitForTimeout(500);
+  assert.equal(await page.locator("h1.song-title").textContent(), "New One");
+  assert.deepEqual(await titles(), ["New One", "River Road", "Harbor Lights"]);
+
+  await page.goto(base + "#/");
+  await page.waitForTimeout(300);
+  await page.click("#add");
+  await page.waitForTimeout(600);
+  await page.fill("#ed-body", "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|");
+  await page.waitForTimeout(450);
+  assert.match(await page.locator(".ed-chips").textContent(), /Format\s*Tab/);
+  assert.equal(await page.locator("#ed-seg").isVisible(), false, "no Sheet view for tab");
+  page.once("dialog", d => d.accept());
+  await page.click("#ce-cancel");
+  await page.waitForTimeout(500);
+  assert.deepEqual(await titles(), ["New One", "River Road", "Harbor Lights"]);
+});

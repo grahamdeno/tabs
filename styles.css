@@ -211,13 +211,11 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .btn:disabled { opacity: .6; }
 .btn.sm { flex: none; height: 34px; padding: 0 12px; font-size: 14px; border-radius: 10px; }
 .btn.sm.primary { flex: none; }
-.ai-row { display: flex; gap: 8px; margin: 0 0 10px; }
 .chip.ai { display: inline-flex; align-items: center; gap: 6px; height: 32px; color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
 .chip.ai svg { width: 15px; height: 15px; }
 .chip.ai:disabled { opacity: .55; }
 .ai-note { font-size: 13px; color: #e07a6c; margin: -4px 2px 10px; line-height: 1.4; }
-.detect .err, .err { color: #e07a6c; }
-.detect .sep { color: var(--muted); }
+.err { color: #e07a6c; }
 .link { border: 0; background: none; color: var(--accent); font-size: 13px; padding: 4px 2px; text-decoration: underline; }
 .seg.mini { flex: none; height: 28px; padding: 2px; border-radius: 8px; }
 .seg.mini button { height: 24px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
@@ -530,6 +528,8 @@ body.searching .upnext, body.searching .shelf, body.searching .shelf-h { display
 .seg.slide.right::before { transform: translateX(100%); }
 .seg.slide button { position: relative; transition: color .2s; }
 .seg.slide button.on { background: none; }
+.cebar .seg[hidden] { display: none; }
+.cebar #ce-done { margin-left: auto; }
 .ed-tools { display: flex; gap: 8px; margin: 0 0 12px; }
 .ed-tx { overflow-x: auto; border: 1px solid var(--rim); border-radius: 12px; background: var(--card); -webkit-overflow-scrolling: touch; }
 .ed-tx-in { position: relative; display: inline-block; min-width: 100%; vertical-align: top; }
@@ -686,9 +686,6 @@ body.stage.playing { overscroll-behavior: none; }
 .seg { display: flex; padding: 2px; border-radius: 9px; background: var(--card-2); flex: 1; }
 .seg button { flex: 1; height: 28px; border-radius: 7px; border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 500; }
 .seg button.on { background: var(--accent-soft); color: var(--accent); }
-textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r); padding: 14px; font: 14px/1.55 var(--mono); resize: none; white-space: pre; overflow: auto; }
-.detect { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 18px; }
-.detect svg { color: var(--accent); width: 15px; height: 15px; }
 .danger { margin-top: 18px; border: 0; background: none; color: #e07a6c; font-size: 15px; padding: 10px; }
 .pc-head { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg-2); margin-bottom: 12px; }
 .pc-head svg { color: var(--accent); width: 16px; height: 16px; }
