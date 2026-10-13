@@ -48,6 +48,7 @@ for (const theme of ["dark", "light"]) {
         for (const f of found) problems.push(`${screen}: ${f}`);
       }
     }
+    for (const p of problems) console.log(`PROBLEM ${theme} ${p}`);
     assert.deepEqual(problems, []);
   });
 }

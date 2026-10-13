@@ -34,7 +34,7 @@ jobs:
           set -o pipefail
           node --test tests/e2e/*.e2e.mjs 2>&1 | tee e2e.log || {
             # One annotation with what failed, readable from the run's summary and the API.
-            msg=$(grep -E "^not ok|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:" e2e.log | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            msg=$(grep -E "^not ok|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
             echo "::error title=Browser tests failed::$msg"
             exit 1
           }
