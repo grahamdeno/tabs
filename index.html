@@ -94,7 +94,7 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .ib::after { content: ""; position: absolute; inset: -4px; }
 .ib.on { color: var(--accent); }
 .ib.on svg { fill: var(--accent); }
-.row-btns { display: flex; gap: 10px; }
+.row-btns { display: flex; align-items: center; gap: 10px; }
 /* Song view back button floats; it fades out scrolling down and back in scrolling up */
 /* Compact song header: fades out scrolling down, fades in scrolling up */
 .chead { position: fixed; z-index: 25; left: 0; right: 0; top: 0; padding-top: calc(10px + var(--safe-t)); opacity: 0; pointer-events: none; transition: opacity .12s linear; }
@@ -265,7 +265,7 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .row .chev { color: var(--muted); width: 16px; height: 16px; }
 .settitle { border: 0; background: none; padding: 0; text-align: left; color: var(--fg); display: block; margin: 14px 2px 0; }
 .cta svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
-.cta { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.cta { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
 .setrow { gap: 8px; }
 .setrow .num { font: 500 13px var(--mono); color: var(--muted); width: 18px; text-align: right; }
 .setrow .open { border: 0; background: none; padding: 0; text-align: left; color: inherit; flex: 1; min-width: 0; }
@@ -333,6 +333,9 @@ button.mrow:active { background: var(--card-2); }
 .sheet > .loopa { background: var(--accent-soft); border-radius: 6px; }
 .looprow { display: none; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-bottom: 1px solid var(--hair); font-size: 13px; color: var(--muted); }
 .looprow.on { display: flex; }
+.imp-t { margin: 0 2px 14px; font-size: 15px; }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.imp-list { margin-bottom: 12px; max-height: 40vh; overflow-y: auto; }
 .looprow > svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
 .looprow .lt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .looprow .lt b { color: var(--fg); font-weight: 500; }
@@ -435,7 +438,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -513,7 +516,9 @@ function toast(msg, near, action) {
     const w = t.offsetWidth;
     const x = Math.min(window.innerWidth - w / 2 - 12, Math.max(w / 2 + 12, r.left + r.width / 2));
     t.style.left = x + "px";
-    t.style.top = (above - t.offsetHeight - 10) + "px";
+    /* Near a header button there's no room above, so show it just below instead. */
+    const top = above - t.offsetHeight - 10;
+    t.style.top = (top < 12 ? r.bottom + 10 : top) + "px";
   }
   void t.offsetWidth; // restart the transition
   t.classList.add("show");
@@ -628,6 +633,9 @@ function renderLibrary() {
   };
   q.addEventListener("paste", e => {
     const text = e.clipboardData?.getData("text") || "";
+    /* A pasted share link opens the same "Shared with you" sheet as tapping it. */
+    const link = text.match(/#\/import\/([zj][A-Za-z0-9_-]+)/);
+    if (link) { e.preventDefault(); q.blur(); return renderImport(link[1]); }
     if (text.trim().split("\n").filter(l => l.trim()).length < 2) return;
     e.preventDefault();
     q.blur();
@@ -1374,7 +1382,55 @@ function easierSheet(song) {
   if (result) paint(); else ask();
 }
 
-function shareSong(song) { toast("Sharing is coming next"); }
+// ---------- Share ----------
+// The song or set rides inside the link, so it works without a server or an account.
+// Opening the link in Tabs offers to add it; nothing is added without a tap.
+async function shareLink(payload, title, near) {
+  const url = location.origin + location.pathname + "#/import/" + await packShare(payload);
+  if (navigator.share) {
+    try { await navigator.share({ title, text: title, url }); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(url); toast("Link copied", near); }
+  catch { prompt("Copy this link", url); }
+}
+const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Tabs)`, $("more"));
+const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (Tabs set)`, $("s-share"));
+
+async function renderImport(code) {
+  const got = await unpackShare(code);
+  const full = location.origin + location.pathname + "#/import/" + code;
+  /* On iPhone, a link opens in Safari, which has a separate library from the Home Screen app. */
+  const inBrowser = !(navigator.standalone || matchMedia("(display-mode: standalone)").matches);
+  history.replaceState(null, "", location.pathname + "#/");
+  render();
+  if (!got) return toast("That link didn't come through whole. Ask for it again");
+  const songs = got.song ? [got.song] : got.set.songs;
+  const have = songs.filter(x => findSame(data, x));
+  const name = got.song ? `"${esc(got.song.title)}"${got.song.artist ? ` by ${esc(got.song.artist)}` : ""}` : `the set "${esc(got.set.name)}"`;
+  layer.innerHTML = `
+    <div class="scrim" id="im-scrim"></div>
+    <div class="panel card" role="dialog" aria-label="Shared with you">
+      <div class="pc-head">${icon("share")}<span>Shared with you</span></div>
+      <p class="imp-t">Add ${name} to your library?</p>
+      ${got.set ? `<div class="list glass imp-list">${songs.map(x => `<div class="row"><div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist || "Unknown artist")}${findSame(data, x) ? " · already in your library" : ""}</div></div></div>`).join("")}</div>` : ""}
+      ${got.song && have.length ? `<p class="foot" style="margin:0 2px 12px">You already have a song with this name. Adding keeps both.</p>` : ""}
+      ${inBrowser ? `<p class="foot" style="margin:0 2px 12px">Use Tabs from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
+      <div class="actions"><button class="btn" id="im-no">Not now</button><button class="btn primary" id="im-yes">${got.set ? "Add set" : "Add song"}</button></div>
+    </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("im-scrim").onclick = close; $("im-no").onclick = close;
+  $("im-copy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(full); toast("Link copied"); } catch { prompt("Copy this link", full); } });
+  $("im-yes").onclick = () => {
+    close();
+    if (got.song) { const s = Tabs.addSong(data, got.song); return go("#/song/" + encodeURIComponent(s.id)); }
+    /* In a set, songs you already have are reused rather than copied. */
+    const ids = [...songs].reverse().map(x => (findSame(data, x) || Tabs.addSong(data, x)).id).reverse();
+    const set = Tabs.addSet(data, got.set.name);
+    set.songIds = ids; Tabs.save(data);
+    go("#/set/" + encodeURIComponent(set.id));
+  };
+}
 // ---------- Practice a section ----------
 // Pick a section (first and last line, or a section label for the whole section).
 // While playing, the section repeats; Build up starts at 80% speed and adds 5% a pass.
@@ -2119,11 +2175,14 @@ function renderSet(id) {
   app.innerHTML = `
     <div class="head">
       <button class="ib glass" id="back" aria-label="Back to sets">${icon("back")}</button>
-      ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
+      <div class="row-btns">
+        ${songs.length && !setEditing ? `<button class="ib glass" id="s-share" aria-label="Share set">${icon("share")}</button>` : ""}
+        ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
+      </div>
     </div>
     <button class="settitle" id="rename" aria-label="Rename set"><h1 class="title">${esc(set.name)}</h1></button>
     <div class="meta" style="margin:6px 2px 16px">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
-    ${songs.length && !setEditing ? `<button class="cta" id="playset">${icon("play")}Play set</button>` : ""}
+    ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}Play set</button>` : ""}
     <div class="list glass" style="margin-top:16px">
       ${songs.map((s, i) => `<div class="row setrow" data-i="${i}">
         <span class="num">${i + 1}</span>
@@ -2139,6 +2198,7 @@ function renderSet(id) {
   $("back").onclick = () => { setEditing = false; filter = "sets"; go("#/"); };
   $("rename").onclick = () => { const n = prompt("Rename set", set.name); if (n && n.trim()) { set.name = n.trim(); Tabs.save(data); renderSet(id); } };
   $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
+  $("s-share")?.addEventListener("click", () => shareSet(set));
   $("playset")?.addEventListener("click", () => { setCtx = { id, idx: 0, autoplay: true }; go("#/song/" + encodeURIComponent(songs[0].id)); });
   app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { if (setEditing) return; setCtx = { id, idx: +b.dataset.open }; go("#/song/" + encodeURIComponent(songs[+b.dataset.open].id)); });
   const move = (i, j) => { const a = ids(); [a[i], a[j]] = [a[j], a[i]]; set.songIds = a; Tabs.save(data); renderSet(id); };
@@ -2375,6 +2435,7 @@ function render() {
   else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
   else if (r.name === "trash") { renderTrash(); window.scrollTo(0, 0); }
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
+  else if (r.name === "import") renderImport(r.id);
   else { renderLibrary(); }
 }
 

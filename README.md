@@ -30,6 +30,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
 - Song header keeps just back and favorite; everything else is in the ••• menu: text size (lyrics and chords together), add to set, practice a section, share, edit, and Make it easier and Spark tone with an API key
 - Practice a section (••• menu): tap a section name, or a first and last line, and play repeats it, with a copper bracket in the margin. Build up starts at 80% speed and adds 5% each pass until full speed
+- Share a song (••• menu) or a set (share button on the set): the song travels inside the link itself, with no server or account. Opening the link offers to add it; nothing is added without a tap. Your plays, favorites and AI suggestions stay with you. On iPhone, a Home Screen app keeps its own library, so paste the link into Tabs' search bar to add it there
 - Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Smooth screen changes: the song title glides between the library and the song, and sheets settle with a light spring (instant with Reduce Motion)
 - Add and edit in a slide-up sheet; delete from edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)

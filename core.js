@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.22.0";
+export const VERSION = "1.23.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -625,3 +625,50 @@ export function chordShape(name) {
   }
   return finish(shape);
 }
+
+// ---------- Sharing ----------
+// A shared song or set travels inside the link itself (no server): the fields
+// worth sharing, as JSON, compressed where the browser can, in base64url.
+const SHARE_FIELDS = ["title", "artist", "key", "format", "body", "duration", "speed", "tempo", "transpose"];
+export function shareable(song) {
+  const o = {};
+  for (const k of SHARE_FIELDS) if (song[k] !== undefined && song[k] !== "" && song[k] !== 0) o[k] = song[k];
+  return o;
+}
+const b64url = bytes => {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+const unb64url = str => {
+  const s = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(s, c => c.charCodeAt(0));
+};
+async function pipe(bytes, stream) {
+  const out = new Response(new Blob([bytes]).stream().pipeThrough(stream));
+  return new Uint8Array(await out.arrayBuffer());
+}
+// payload: { song } or { set: { name, songs: [...] } }
+export async function packShare(payload) {
+  const raw = new TextEncoder().encode(JSON.stringify({ v: 1, ...payload }));
+  if (typeof CompressionStream === "function") {
+    try { return "z" + b64url(await pipe(raw, new CompressionStream("deflate-raw"))); } catch {}
+  }
+  return "j" + b64url(raw);
+}
+export async function unpackShare(code) {
+  try {
+    let bytes = unb64url(code.slice(1));
+    if (code[0] === "z") bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
+    else if (code[0] !== "j") return null;
+    const p = JSON.parse(new TextDecoder().decode(bytes));
+    const ok = s => s && typeof s.title === "string" && typeof s.body === "string";
+    if (p.song && ok(p.song)) return { song: shareable(p.song) };
+    if (p.set && Array.isArray(p.set.songs) && p.set.songs.every(ok))
+      return { set: { name: String(p.set.name || "Shared set"), songs: p.set.songs.map(shareable) } };
+  } catch {}
+  return null;
+}
+// Same song already in the library? (title and artist, ignoring case and spaces)
+const sameKey = s => `${(s.title || "").trim().toLowerCase()}|${(s.artist || "").trim().toLowerCase()}`;
+export const findSame = (data, song) => data.songs.find(s => sameKey(s) === sameKey(song));

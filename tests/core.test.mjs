@@ -163,3 +163,25 @@ test("plays this week count only the last 7 days", () => {
   const now = Date.now();
   assert.equal(C.playsThisWeek({ plays: [now - 864e5, now - 8 * 864e5] }), 1);
 });
+
+// ---------- Sharing ----------
+
+test("a shared song survives the trip through a link", async () => {
+  const song = { id: "x", title: "River Road", artist: "The Wanderers", body: "G  C\nWalking down", plays: [1, 2], favorite: true, duration: 200 };
+  const code = await C.packShare({ song: C.shareable(song) });
+  assert.match(code, /^[zj][A-Za-z0-9_-]+$/);
+  const back = await C.unpackShare(code);
+  assert.deepEqual(back.song, { title: "River Road", artist: "The Wanderers", body: "G  C\nWalking down", duration: 200 });
+});
+
+test("a shared set keeps its name and song order", async () => {
+  const code = await C.packShare({ set: { name: "Gig", songs: [{ title: "A", body: "G" }, { title: "B", body: "C" }] } });
+  const back = await C.unpackShare(code);
+  assert.equal(back.set.name, "Gig");
+  assert.deepEqual(back.set.songs.map(s => s.title), ["A", "B"]);
+});
+
+test("a damaged share link is refused, not imported", async () => {
+  assert.equal(await C.unpackShare("zNotReallyData"), null);
+  assert.equal(await C.unpackShare("j" + Buffer.from('{"song":{"title":1}}').toString("base64url")), null);
+});
