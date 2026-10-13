@@ -228,7 +228,7 @@ function paint() {
   app.innerHTML = html`
     <div class="head"><button class="btn sm glass" id="sk-cancel">${n ? "Discard" : "Cancel"}</button>
       <button class="btn sm primary" id="sk-done" ${n && !rec ? "" : raw("disabled")}>Make chords</button></div>
-    <div class="skh"><h1 class="title">New sketch</h1><div class="skdots" aria-label="${n} line${n === 1 ? "" : "s"}">${[...Array(n)].map(() => raw('<i class="on"></i>'))}${raw("<i></i>")}</div></div>
+    <div class="skh"><h1 class="title">New sketch</h1><div class="skdots" role="img" aria-label="${n} line${n === 1 ? "" : "s"}">${[...Array(n)].map(() => raw('<i class="on"></i>'))}${raw("<i></i>")}</div></div>
     <div class="skmeter" id="sk-meter" aria-live="polite">${meterHTML(conf)}</div>
     ${big
       ? html`<div class="skwheel big" id="sk-wheel" data-size="240"></div>`
