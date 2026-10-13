@@ -3,14 +3,13 @@
 import { TUNINGS, Tabs, chordModel, chordsUsed, detectTuning, guessKey, insertLines, looksLikeTab, renameSection, setChordAt, setLineText, tapTempo } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
-import { READ_AT, aiError, aiKey, busy, calm, chordSVG, cleanSheet, data, go, readPhoto, render, setOpenEdit, stopScroll } from "./app.js";
+import { READ_AT, aiError, aiKey, busy, calm, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
 
 // ---------- Edit (in place) ----------
 // Edit turns the song page itself into the editor: title and artist are typed in
 // place; key, tuning and tempo are chips; tap a word for its chord; the pencil
 // retypes a line; section names rename; + adds a line or a section. Text flips to
 // the plain-text editor for big jobs. Every change saves at once, with Undo.
-let chordEdit = null;
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
 let taps = [], tapTimer = 0;   /* tap tempo in progress */
@@ -18,7 +17,7 @@ onLeave(() => {
   if (!chordEdit) return;
   if (edView === "text") flushText(chordEdit);
   if (chordEdit.isNew) settleNew(chordEdit);
-  chordEdit = null; edView = "sheet"; textSnap = null;
+  setChordEdit(null); edView = "sheet"; textSnap = null;
   document.body.classList.remove("cedit");
   document.querySelector(".cebar")?.remove();
   $("ed-details")?.remove();
@@ -47,20 +46,14 @@ function newSong(fields = {}) {
   setOpenEdit({ id: s.id, view: "text" });
   go("#/song/" + encodeURIComponent(s.id));
 }
-function settleNew(song) {
-  delete song.isNew;
-  if (!String(song.body || "").trim() && !song.title.trim()) data.songs.splice(data.songs.indexOf(song), 1);
-  else if (!song.title.trim()) song.title = "Untitled";
-  Tabs.save(data);
-}
 function endEdit() {
-  chordEdit = null; edView = "sheet"; textSnap = null;
+  setChordEdit(null); edView = "sheet"; textSnap = null;
   document.body.classList.remove("cedit");
   document.querySelector(".cebar")?.remove();
 }
 function songEditor(song, view = "sheet") {
   stopScroll();
-  chordEdit = song;
+  setChordEdit(song);
   document.body.classList.add("cedit");
   document.querySelector(".smap")?.remove();
   document.querySelector(".cebar")?.remove();
@@ -367,7 +360,7 @@ function leaveText(song) {
   if (before && before.body !== song.body) toast("Text changes saved", null, { label: "Undo", fn: () => { restoreSnap(song, before); Tabs.save(data); paintEdit(song); } });
 }
 function deleteFromEdit(song) {
-  chordEdit = null; edView = "sheet"; textSnap = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove();
+  setChordEdit(null); edView = "sheet"; textSnap = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove();
   const entry = Tabs.deleteSong(data, song.id);
   history.replaceState(null, "", "#/");
   render();
@@ -426,4 +419,4 @@ function pickChord(song, i, pos, word, current) {
   paint();
 }
 
-export { chordEdit, newSong, settleNew, songEditor };
+export { newSong, songEditor };

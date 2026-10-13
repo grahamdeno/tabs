@@ -1,9 +1,7 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
 import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, lengthChoice, fitLength, VERSION } from "./core.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
-import { chordEdit, newSong, settleNew, songEditor } from "./editor.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
-import { renderSettings, renderTrash } from "./settings.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 
@@ -1250,6 +1248,24 @@ onScroll(() => { if (map.el) paintMap(map.dragging ? map.target : undefined); })
 
 let openEdit = null;            /* { id, view } to open the editor once the song page draws */
 const setOpenEdit = v => { openEdit = v; };
+// ---- Edit and Settings load when first opened (editor.js, settings.js) ----
+// The first screen doesn't need them, so the app opens faster; they're fetched
+// quietly a few seconds after it does. The editor's open song lives here, since
+// the song page and the coach check it.
+let chordEdit = null;
+const setChordEdit = s => { chordEdit = s; };
+// A new song left half-added when the app closed: keep it if it has words.
+function settleNew(song) {
+  delete song.isNew;
+  if (!String(song.body || "").trim() && !song.title.trim()) data.songs.splice(data.songs.indexOf(song), 1);
+  else if (!song.title.trim()) song.title = "Untitled";
+  Tabs.save(data);
+}
+const editorMod = () => lazy("editor.js"), settingsMod = () => lazy("settings.js");
+const newSong = (...a) => editorMod().then(m => m.newSong(...a));
+const songEditor = (...a) => editorMod().then(m => m.songEditor(...a));
+const prefetch = () => ["editor.js", "settings.js"].forEach(n => import(`./${n}?v=${VERSION}`).catch(() => {}));
+
 // Feature modules load on first use. Each request names this release
 // (?v=1.2.3) so the service worker answers from the same release as the app
 // that's running, even if a newer one was saved in the background meanwhile.
@@ -1907,8 +1923,7 @@ function renderRoute() {
     const song = viewing?.id === r.id && want?.id === r.id ? viewing : null;
     if (song) songEditor(song, want.view);
   }
-  else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
-  else if (r.name === "trash") { renderTrash(); window.scrollTo(0, 0); }
+  else if (r.name === "settings" || r.name === "trash") settingsMod().then(m => { if (route().name !== r.name) return; (r.name === "settings" ? m.renderSettings : m.renderTrash)(); window.scrollTo(0, 0); });
   else if (r.name === "gestures") { renderGestures(); window.scrollTo(0, 0); }
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else if (r.name === "import") renderImport(r.id);
@@ -1929,6 +1944,7 @@ window.addEventListener("hashchange", () => {
 applyTheme();
 firstLaunch();
 data.songs.filter(s => s.isNew).forEach(settleNew); /* a song being added when the app closed */
+setTimeout(() => (window.requestIdleCallback || (f => f()))(prefetch), 3000);
 render();
 coverLoadAll().then(() => {
   /* Forget cover photos of sets that are gone for good (not in the library or Recently deleted). */
@@ -1952,4 +1968,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo };
+export { $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew };

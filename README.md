@@ -107,9 +107,10 @@ Layout, with no build step:
 - `core.js`: data, parsing, transposing and other logic with no screen code (unit tested).
 - `app.js`: the library, the song page (auto-scroll, Now and Next, the section map, iPad layouts, pedals) and the router. It imports the screens below and shares what they need.
 - `ui.js`: icons, toasts, in-app questions (`ask`), and the hooks features use to tidy up when a screen is left (`onLeave`) and to follow scrolling (`onScroll`, one listener, once per frame). Depends only on `core.js`.
-- `editor.js` (editing in place, adding songs, tap tempo, the chord picker), `sets.js` (sets, playing a set, covers), `settings.js` (Settings, Recently deleted), `coach.js` (tips, Show me demos, Tips & gestures), `store.js` (safety copy, backups, storage, the problems log).
+- Loaded when first opened, then fetched quietly a few seconds after start: `editor.js` (editing in place, adding songs, tap tempo, the chord picker) and `settings.js` (Settings, Recently deleted).
+- Loaded at start: `sets.js` (sets, playing a set, covers), `coach.js` (tips, Show me demos, Tips & gestures), `store.js` (safety copy, backups, storage, the problems log).
 - Markup: build HTML with html`` from `core.js`, which escapes every value unless it is safe markup (another html``, an icon, or raw()). Older templates use `esc()` on every value. A browser test fills every name with markup and checks none of it runs.
-- Shared state lives in the module that owns it; other modules read it through imports and change it only through that module's functions (`setData`, `setOpenEdit`, `setSetCtx`, `setFilter`). ESLint's `no-import-assign` would catch a direct write.
+- Shared state lives in the module that owns it; other modules read it through imports and change it only through that module's functions (`setData`, `setOpenEdit`, `setSetCtx`, `setFilter`). ESLint's `no-import-assign` would catch a direct write, and a unit test checks every imported name is exported by its file.
 - Loaded on first use: `tuner.js` (with `heads.js`, the headstock drawings), `findai.js` (find songs, chord charts, what to learn next), `aitools.js` (Make it easier, Spark tone), `crop.js` (cover photo framing).
 - `sw.js`: the offline copy; it lists every app file, and a test checks the list.
 

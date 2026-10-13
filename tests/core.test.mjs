@@ -650,3 +650,21 @@ test("tips are spaced 30 seconds apart unless one leads into the next", () => {
   assert.equal(C.tipPaced("search", { key: "searchInvite", at: t0 }, t0 + 1e3), true, "the invite leads into search");
   assert.equal(C.tipPaced("chord", { key: "play", at: t0 }, t0 + 1e3), false, "chains run one way");
 });
+
+test("every name a module imports from another app file is exported there", async () => {
+  const fs = await import("node:fs");
+  const files = fs.readdirSync(new URL("..", import.meta.url)).filter(f => f.endsWith(".js") && f !== "sw.js" && f !== "eslint.config.js");
+  const src = Object.fromEntries(files.map(f => [f, fs.readFileSync(new URL("../" + f, import.meta.url), "utf8")]));
+  const exported = f => {
+    const s = src[f], out = new Set();
+    for (const m of s.matchAll(/export\s*\{([^}]*)\}/g)) m[1].split(",").map(x => x.trim().split(/\s+as\s+/).pop()).filter(Boolean).forEach(n => out.add(n));
+    for (const m of s.matchAll(/export\s+(?:async\s+)?(?:const|let|function|class)\s+([A-Za-z_$][\w$]*)/g)) out.add(m[1]);
+    return out;
+  };
+  const missing = [];
+  for (const [f, s] of Object.entries(src)) for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*"\.\/([^"?]+)"/g)) {
+    const have = exported(m[2]);
+    for (const n of m[1].split(",").map(x => x.trim().split(/\s+as\s+/)[0]).filter(Boolean)) if (!have.has(n)) missing.push(`${f} imports ${n} from ${m[2]}`);
+  }
+  assert.deepEqual(missing, []);
+});

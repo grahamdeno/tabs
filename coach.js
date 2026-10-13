@@ -2,8 +2,7 @@
 // Tips & gestures page. Loaded with the app; app.js calls in when a tip is due.
 import { Tabs, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
-import { chordEdit } from "./editor.js";
-import { READ_AT, aiKey, applyPaused, calm, card, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
+import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
 
 // ---------- Coach: one-time help, in place and never in the way ----------
 // "Try it" on the first song (tap a chord, then Play); everything else is shown
