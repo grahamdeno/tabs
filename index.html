@@ -317,6 +317,12 @@ button.mrow:active { background: var(--card-2); }
 .mrow .mh { font-size: 12.5px; color: var(--accent); }
 .mrow.size { border-bottom: 1px solid var(--hair); border-radius: 10px 10px 0 0; margin-bottom: 4px; padding-bottom: 6px; }
 .mrow.size .v { font: 600 13px var(--mono); min-width: 40px; text-align: center; }
+/* Screen transitions */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .22s; animation-timing-function: ease-out; }
+::view-transition-group(song-title) { animation-duration: .32s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+::view-transition-old(song-title), ::view-transition-new(song-title) { height: 100%; width: auto; }
+@media (prefers-reduced-motion: reduce) { *, ::view-transition-group(*) { animation-duration: 0s !important; transition-duration: 0s !important; } }
+.panel.card { animation: up .36s cubic-bezier(.2,1.15,.3,1) !important; }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -353,7 +359,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 /* Sheets (add / edit / paste) */
 .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; animation: fade .2s; }
 .panel { position: fixed; left: 50%; transform: translateX(-50%); width: min(520px, 100%); z-index: 41; background: var(--solid); border: 1px solid var(--rim); }
-.panel.full { top: calc(10px + var(--safe-t)); bottom: 0; border-radius: 18px 18px 0 0; border-bottom: 0; display: flex; flex-direction: column; animation: up .28s cubic-bezier(.2,.8,.2,1); }
+.panel.full { top: calc(10px + var(--safe-t)); bottom: 0; border-radius: 18px 18px 0 0; border-bottom: 0; display: flex; flex-direction: column; animation: up .42s cubic-bezier(.2,1.15,.3,1); }
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
@@ -622,7 +628,7 @@ const STATUS = { learning: "Learning", got: "Got it" };
 function songRow(s) {
   const wk = playsThisWeek(s);
   const sub = [esc(s.artist || "Unknown artist"), STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, wk && `Played ${wk}× this week`].filter(Boolean).join(" · ");
-  return `<button class="row" data-id="${esc(s.id)}">
+  return `<button class="row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
     <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${sub}</div></div>
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
     <span class="k">${esc(keyOf(s))}</span>
@@ -665,7 +671,13 @@ function renderList() {
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(songRow).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}".</div>`}`;
-  list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => { setCtx = null; go("#/song/" + encodeURIComponent(el.dataset.id)); });
+  list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
+    setCtx = null;
+    // Name this row's title so it glides into the song header.
+    list.querySelectorAll("[data-id], .t").forEach(t => t.style.viewTransitionName = "");
+    el.querySelector(".t").style.viewTransitionName = "song-title";
+    go("#/song/" + encodeURIComponent(el.dataset.id));
+  });
 }
 
 // ---------- AI help (optional, your own Anthropic key) ----------
@@ -864,7 +876,7 @@ function renderViewer(id) {
       return `<div class="setbar"><button class="sb" id="sprev" aria-label="Previous song" ${setCtx.idx === 0 ? "disabled" : ""}>${icon("back")}</button>
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
-    <h1 class="song-title">${esc(song.title)}</h1>
+    <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
     <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button></div>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
@@ -2254,7 +2266,17 @@ function render() {
   else { renderLibrary(); }
 }
 
-window.addEventListener("hashchange", render);
+// Screen changes animate with the browser's view transitions where supported:
+// a short cross-fade, and the song title glides between the library row and the
+// song header. Instant when Reduce Motion is on or the browser lacks support.
+const calm = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+let lastOpened = null; // id of the song whose title should glide back to its row
+window.addEventListener("hashchange", () => {
+  if (!document.startViewTransition || calm()) return render();
+  const leaving = route().name !== "song" && viewing ? viewing.id : null;
+  if (leaving) lastOpened = leaving;
+  document.startViewTransition(() => render());
+});
 applyTheme();
 firstLaunch();
 render();
