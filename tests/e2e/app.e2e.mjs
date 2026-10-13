@@ -47,7 +47,7 @@ const LIB = {
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
   sets: [], trash: [],
-  settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false }
+  settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false }
 };
 
 let server, browser, base;
@@ -192,7 +192,7 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
   const backup = {
     songs: [{ id: "x", title: "Backup Song", body: "[Verse]\nG\nhello", format: "chords" }, { id: "y", title: "Broken" }],
     sets: [{ id: "s9", name: "Saturday", songIds: ["x"], cover: { type: "photo", tint: "#553322" } }],
-    trash: [], settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
+    trash: [], settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
     covers: { s9: png }
   };
   await page.goto(base + "#/settings");
@@ -334,4 +334,23 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
   await page.click("#tn-done");
   assert.equal(await page.locator(".tuner2").count(), 0);
   assert.deepEqual(errors, []);
+});
+
+test("Tips & gestures lists every gesture and Show me replays a tip where it happens", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.goto(base + "#/settings");
+  await page.click("#s-tips");
+  await page.waitForTimeout(300);
+  assert.ok(await page.locator(".gs-row").count() >= 20, "all gestures listed");
+  // The page itself scrolls (it isn't a sheet over Settings).
+  await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+  assert.ok(await page.evaluate(() => scrollY > 200));
+  await page.click("[data-demo='search']");
+  await page.waitForTimeout(800);
+  assert.match(await page.locator(".coach").last().innerText(), /Paste a chord sheet to add it/);
+  await page.goto(base + "#/gestures");
+  await page.click("[data-demo='line']");
+  await page.waitForTimeout(1500);
+  assert.match(await page.locator(".coach").last().innerText(), /Tap a line to start from it/);
+  assert.ok(await page.evaluate(() => document.getElementById("sheet").classList.contains("focus")), "real focus look");
 });

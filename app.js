@@ -255,6 +255,7 @@ function renderLibrary() {
     document.body.classList.add("searching");
     window.scrollTo(0, 0);
     renderList();
+    searchOpened();
   };
   const exitSearch = () => {
     searching = false;
@@ -298,14 +299,10 @@ function renderLibrary() {
   $("clear").onclick = e => { e.preventDefault(); query = ""; q.value = ""; $("clear").hidden = true; renderList(); q.focus(); };
   renderList();
   followKeyboard();
-  /* Once there are a few songs: show, once, that pasting a chord sheet here adds it. */
-  if (data.songs.length >= 3 && tipDue("paste") && !searching) setTimeout(() => {
-    if (route().name !== "library" || layer.innerHTML || searching || q.value || document.activeElement === q) return;
-    markSeen("paste");
-    const ph = q.placeholder;
-    q.closest(".cmd")?.classList.add("ph-swap");
-    q.placeholder = "Paste a chord sheet here to add it";
-    setTimeout(() => { q.placeholder = ph; q.closest(".cmd")?.classList.remove("ph-swap"); }, 4500);
+  /* After the first song: invite a tap on search, which does more than find. */
+  if ((used("chord") || tipsSeen().play) && tipDue("searchInvite") && !searching) setTimeout(() => {
+    if (route().name !== "library" || layer.innerHTML || searching || document.activeElement === q || !coachTip("searchInvite")) return;
+    demoSearch();
   }, 900);
 }
 
@@ -1238,12 +1235,8 @@ function paintMap(target) {
     map.coaching = true;
     setTimeout(() => {
       map.coaching = false;
-      if (map.el !== m || m.classList.contains("away") || scroll.on || !tipDue("map")) return;
-      markSeen("map");
-      /* Show the section names for a moment, the way they appear while dragging. */
-      m.classList.add("active");
-      setTimeout(() => { if (!map.dragging) m.classList.remove("active"); }, 2400);
-      coach(m, "Drag to jump to a section", { ms: 2800, place: "left", fixed: true });
+      if (map.el !== m || m.classList.contains("away") || scroll.on || !coachTip("map")) return;
+      demoMap();
     }, 700);
   }
   const f = Math.min(1, (scrollY + innerHeight * READ_AT) / document.documentElement.scrollHeight);
@@ -1355,14 +1348,9 @@ function songEditor(song, view = "sheet") {
   if (song.isNew && !song.title) setTimeout(() => $("ed-title")?.focus({ preventScroll: true }), 300);
   setTimeout(() => {
     if (chordEdit !== song) return;
-    if (song.isNew && tipDue("add") && $("ed-body")) { markSeen("add"); return coach(document.querySelector(".ed-tx"), "Paste or type the song here. Chords turn copper as you go.", { ms: 4000, place: "above" }); }
-    if (!song.isNew && tipDue("tap") && $("ed-tap")) {
-      markSeen("tap");
-      const tap = $("ed-tap");
-      tap.classList.add("coach-twice");
-      setTimeout(() => tap.classList.remove("coach-twice"), 1400);
-      coach(tap, "Tap along with the beat to set the tempo", { ms: 3600, place: "below" });
-    }
+    if (pendingDemo === "tap") { pendingDemo = null; return demoTap(); }
+    if (song.isNew && $("ed-body") && coachTip("add")) return coach(document.querySelector(".ed-tx"), "", { ms: 4000, place: "above", html: `<b>Paste or type the song here</b><span>Chords turn copper as you go.</span>` });
+    if (!song.isNew && $("ed-tap") && coachTip("tap")) demoTap();
   }, 500);
 }
 function paintEdit(song) {
@@ -1420,6 +1408,7 @@ function paintDetails(song) {
   tap.onpointerdown = e => {
     e.preventDefault();
     markUsed("tap");
+    tick(); /* feel each tap land, without looking */
     const now = performance.now();
     if (taps.length && now - taps[taps.length - 1] > 2000) taps = []; /* a pause starts again */
     taps.push(now);
@@ -2157,6 +2146,7 @@ function endMoment(song) {
   $("sheet")?.after(el);
 }
 
+let playsHere = 0; /* plays since the app opened, for pacing tips */
 async function startScroll(song) {
   document.querySelector(".endnote")?.remove();
   /* Count in only when starting from the top: the song's first line is on screen. */
@@ -2165,17 +2155,10 @@ async function startScroll(song) {
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false;
   document.body.classList.add("playing");
+  playsHere++;
   setTimeout(() => {
     const k = data.settings.stage ? "pauseStage" : "pause";
-    if (!scroll.on || viewing !== song || !tipDue(k)) return;
-    markSeen(k);
-    /* Show what a tap does: the pause badge fades in and out, without pausing. */
-    const g = document.createElement("div");
-    g.className = "tappause ghost";
-    g.innerHTML = icon("pause");
-    document.body.appendChild(g);
-    setTimeout(() => g.remove(), 1700);
-    coach(null, k === "pause" ? "Tap anywhere to pause" : "On stage, tap twice anywhere to pause", { ms: 3200 });
+    if (scroll.on && viewing === song && coachTip(k)) demoPause();
   }, 2500);
   wakeControls();
   showChordPop(null);
@@ -2236,14 +2219,11 @@ function stopScroll() {
   if (btn) { btn.innerHTML = icon("play"); btn.setAttribute("aria-label", "Start auto-scroll"); }
   updateDiagrams();
   if (btn) { diag.armed = true; showPausedRow(); }
-  /* The first pause after playing: show that a tapped line is where play starts. */
-  if (was && btn && !chordEdit && tipDue("line")) setTimeout(() => {
-    const line = document.querySelector(".sheet > .cur");
-    if (scroll.on || chordEdit || !line || route().name !== "song") return;
-    markSeen("line");
-    line.classList.add("coach-line");
-    setTimeout(() => line.classList.remove("coach-line"), 2600);
-    coach(line, "Tap a line to start from it", { ms: 3200 });
+  /* After playing: the first pause shows starting from a line; a later one, Now and Next. */
+  if (was && btn && !chordEdit) setTimeout(() => {
+    if (scroll.on || chordEdit || route().name !== "song" || layer.innerHTML) return;
+    if (tipDue("line")) { if (coachTip("line")) demoLine(); return; }
+    if (playsHere >= 2 && !diag.nn && data.settings.diagrams !== true && coachTip("nn")) demoNN();
   }, 700);
 }
 
@@ -2338,7 +2318,7 @@ function renderSettings() {
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
-      <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Gestures</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
@@ -2378,7 +2358,7 @@ function renderSettings() {
   };
   $("s-export").onclick = async () => { if (await backupNow()) { renderSettings(); toast("Backed up"); } };
   $("s-trash").onclick = () => go("#/trash");
-  $("s-tips").onclick = gesturesSheet;
+  $("s-tips").onclick = () => go("#/gestures");
   $("s-import").onclick = () => $("file").click();
   $("file").onchange = e => {
     const f = e.target.files[0];
@@ -2866,11 +2846,12 @@ function firstLaunch() {
 }
 
 // ---------- Coach: one-time help, in place and never in the way ----------
-// Two kinds: "try it" (the first song asks for one tap on a chord, then Play) and
-// "show" (a short caption, and the result fades in, the first time a feature
-// becomes useful). Captions never block a tap; any tap dismisses them. A feature
-// you've already used never gets its tip. Nothing shows while a song is playing,
-// except the note on how to pause.
+// "Try it" on the first song (tap a chord, then Play); everything else is shown
+// once, at the moment it's most useful: a brief spotlight, a callout, and the
+// feature itself doing its thing. Callouts never block a tap and any tap
+// dismisses them. A feature you already use never gets its tip. Tips are paced
+// (30 seconds apart) unless one leads naturally into the next, and nothing shows
+// while a song plays except how to pause. Settings > Tips & gestures replays them.
 const tipsSeen = () => (data.settings.tipsSeen && typeof data.settings.tipsSeen === "object" ? data.settings.tipsSeen : {});
 const used = k => !!(data.settings.used && data.settings.used[k]);
 const tipDue = k => !tipsSeen()[k] && !used(k);
@@ -2881,21 +2862,60 @@ function markUsed(k) {
   Tabs.save(data);
   document.querySelectorAll(`[data-new="${k}"]`).forEach(el => el.remove());
 }
-let coachEl = null, coachTimer = 0;
-// Caption next to `target` (or near the bottom when there's no target).
-function coach(target, text, { ms = 3400, place = "auto", pulse = false, fixed = false } = {}) {
+const COACH_GAP = 30e3;
+const CHAIN = { chord: "play", play: "pause", pause: "line", searchInvite: "search" }; /* tips that lead into the next */
+let lastCoach = { key: "", at: 0 };
+// Claim a one-time tip: due, and not crowding the last one.
+function coachTip(key) {
+  if (!tipDue(key)) return false;
+  if (Date.now() - lastCoach.at < COACH_GAP && CHAIN[lastCoach.key] !== key) return false;
+  markSeen(key);
+  lastCoach = { key, at: Date.now() };
+  return true;
+}
+
+// A light tick you can feel. Android vibrates; on iPhone (iOS 18 and later) a
+// switch control ticks when it toggles, so a hidden one is toggled. Where neither
+// works, nothing happens.
+let hapticEl = null;
+function tick() {
+  try {
+    if (navigator.vibrate) { navigator.vibrate(8); return; }
+    if (!hapticEl) {
+      hapticEl = document.createElement("label");
+      hapticEl.className = "haptic";
+      hapticEl.setAttribute("aria-hidden", "true");
+      hapticEl.innerHTML = `<input type="checkbox" switch tabindex="-1">`;
+      hapticEl.addEventListener("click", e => e.stopPropagation());
+      document.body.appendChild(hapticEl);
+    }
+    hapticEl.click();
+  } catch {}
+}
+
+let coachEl = null, coachDim = null, coachTimer = 0;
+// A callout by `target` (or near the bottom with no target), with a brief
+// spotlight around the target. `html` allows a short list.
+function coach(target, text, { ms = 3600, place = "auto", pulse = false, fixed = false, spot = true, html = "" } = {}) {
   dismissCoach(true);
-  document.querySelectorAll(".coach").forEach(el => el.remove()); /* one at a time, even mid fade */
+  document.querySelectorAll(".coach, .coach-dim").forEach(el => el.remove()); /* one at a time, even mid fade */
   if (target && !target.isConnected) return null;
   const el = document.createElement("div");
   el.className = "coach";
   el.setAttribute("role", "status");
-  el.textContent = text;
+  if (html) el.innerHTML = html; else el.textContent = text;
   document.body.appendChild(el);
   const w = el.offsetWidth, h = el.offsetHeight;
   if (!target) el.classList.add("free");
   else {
     const r = target.getBoundingClientRect();
+    if (spot) {
+      const d = document.createElement("div");
+      d.className = "coach-dim";
+      d.style.cssText = `--cx:${r.left + r.width / 2}px;--cy:${r.top + r.height / 2}px;--rx:${Math.max(70, r.width * 0.72)}px;--ry:${Math.max(40, r.height * 1.1)}px`;
+      document.body.insertBefore(d, el);
+      coachDim = d;
+    }
     if (place === "left") {
       el.style.left = Math.max(12, r.left - w - 12) + "px";
       el.style.top = Math.max(12, r.top + r.height / 2 - h / 2) + "px";
@@ -2918,55 +2938,48 @@ function coach(target, text, { ms = 3400, place = "auto", pulse = false, fixed =
 }
 function dismissCoach(now = false) {
   clearTimeout(coachTimer);
-  const el = coachEl;
+  const el = coachEl, d = coachDim;
+  coachEl = null; coachDim = null;
   if (!el) return;
-  coachEl = null;
   el._target?.classList.remove("coach-pulse");
-  if (now === true) return el.remove();
-  el.classList.add("out");
-  setTimeout(() => el.remove(), 260);
+  if (now === true) { el.remove(); d?.remove(); return; }
+  el.classList.add("out"); d?.classList.add("out");
+  setTimeout(() => { el.remove(); d?.remove(); }, 260);
 }
 document.addEventListener("pointerdown", () => dismissCoach(), true);
 onScroll(() => { if (coachEl && !coachEl._fixed) dismissCoach(); });
 onLeave(() => { dismissCoach(true); clearTimeout(coachFlow?.timer); coachFlow = null; });
 
+// ---- The demos (also replayed by Show me) ----
+const songReady = song => viewing === song && !scroll.on && !chordEdit && route().name === "song" && !layer.innerHTML;
+const midOf = els => els.find(el => { const r = el.getBoundingClientRect(); return r.top > innerHeight * 0.38 && r.bottom < innerHeight * 0.72; })
+  || els.find(el => { const r = el.getBoundingClientRect(); return r.top > 150 && r.bottom < innerHeight - 170; });
+
 // First song: tap a chord (or watch its diagram appear), then Play.
 let coachFlow = null;
-// Settings > Gestures: every hidden gesture in one place, to look up anytime.
-const GESTURES = [
-  ["Library", ["Search by title, artist, or a line you remember", "Paste a chord sheet into search to add it", "+ starts a new song"]],
-  ["Song", ["Tap a chord to see how to play it", "Tap a line, then play, to start from it", "Tap a chord card above the song to mark everywhere it's played", "Drag the sections on the right edge to jump", "Tap the title bar to jump to the top", "− and + transpose (resize for tab)"]],
-  ["Playing", ["Tap anywhere to pause (twice on stage)", "Scroll by hand anytime; it carries on from where you leave it"]],
-  ["Edit", ["Tap a word to place a chord over it", "The pencil retypes a line; tap a section name to rename it", "Text shows the whole song as plain text", "Tap along with the beat to set the tempo"]],
-  ["Sets", ["Add songs by tapping them in the order you'll play", "Play set runs through them; Next up waits if the next song needs another tuning"]],
-  ["Tuner", ["Tap a key to hear its string", "Guided walks the strings low to high", "Near the note, stripes stand still when it's right", "Chromatic reads any note on any instrument"]]
-];
-function gesturesSheet() {
-  layer.innerHTML = `<div class="scrim" id="gs-scrim"></div><div class="panel full gs" role="dialog" aria-label="Gestures"><div class="grab"></div>
-    <div class="ph"><span style="width:56px"></span><h2>Gestures</h2><button class="tb go" id="gs-done">Done</button></div>
-    <div class="pbody">${GESTURES.map(([h, rows]) => `<div class="label">${h}</div><div class="list glass gs-list">${rows.map(r => `<div class="gs-row">${esc(r)}</div>`).join("")}</div>`).join("")}
-      <button class="btn" id="gs-reset" style="display:block;margin:22px auto 6px">Reset tips</button>
-      <p class="foot" style="text-align:center;margin:0">Shows each tip again, once, when it's next useful.</p></div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  $("gs-scrim").onclick = close; $("gs-done").onclick = close;
-  $("gs-reset").onclick = () => { data.settings.tipsSeen = {}; data.settings.used = {}; Tabs.save(data); close(); toast("Tips will show again"); };
+function demoChord(song, force) {
+  const c = midOf([...document.querySelectorAll(".sheet .c[data-ch]")]);
+  if (!c) return false;
+  const label = c.querySelector(".ct") || c;
+  if (force) {
+    showChordPop(c);
+    coach(label, "Tap any chord to see how it's played", { ms: 3200, place: "below" });
+    setTimeout(() => { if (!scroll.on && c.classList.contains("sel")) showChordPop(null); }, 3200);
+    return true;
+  }
+  coach(label, "Tap a chord to see how to play it", { ms: 0, pulse: true, place: "below" });
+  coachFlow = { song, timer: setTimeout(() => {
+    if (viewing !== song || scroll.on || used("chord") || !c.isConnected) return;
+    showChordPop(c);
+    coach(label, "Tap any chord to see how it's played", { ms: 2800, place: "below" });
+    coachFlow = { song, timer: setTimeout(() => { if (!scroll.on && c.classList.contains("sel")) showChordPop(null); coachFlow = null; playCoach(song); }, 3000) };
+  }, 5000) };
+  return true;
 }
 function songCoach(song) {
-  if (viewing !== song || scroll.on || chordEdit || route().name !== "song" || layer.innerHTML) return;
-  if (tipDue("chord")) {
-    const c = [...document.querySelectorAll(".sheet .c[data-ch]")].find(el => { const r = el.getBoundingClientRect(); return r.top > 150 && r.bottom < innerHeight - 170; });
-    if (c) {
-      markSeen("chord");
-      coach(c.querySelector(".ct") || c, "Tap a chord to see how to play it", { ms: 0, pulse: true });
-      coachFlow = { song, timer: setTimeout(() => {
-        if (viewing !== song || scroll.on || used("chord") || !c.isConnected) return;
-        showChordPop(c);
-        coach(c, "Tap any chord to see how it's played", { ms: 2800, place: "below" });
-        coachFlow = { song, timer: setTimeout(() => { if (!scroll.on && c.classList.contains("sel")) showChordPop(null); coachFlow = null; playCoach(song); }, 3000) };
-      }, 5000) };
-      return;
-    }
-  }
+  if (!songReady(song)) return;
+  if (pendingDemo) { const d = pendingDemo; pendingDemo = null; return runDemo(d, song); }
+  if (tipDue("chord") && document.querySelector(".sheet .c[data-ch]")) { if (coachTip("chord")) demoChord(song); return; }
   playCoach(song);
 }
 function chordTapped(chord) {
@@ -2975,13 +2988,170 @@ function chordTapped(chord) {
   clearTimeout(coachFlow.timer);
   const song = coachFlow.song;
   coachFlow = null;
-  coach(chord, "That's how it's played", { ms: 1800, place: "below" });
+  coach(chord.querySelector(".ct") || chord, "That's how it's played", { ms: 1800, place: "below", spot: false });
   setTimeout(() => playCoach(song), 2000);
 }
 function playCoach(song) {
-  if (viewing !== song || scroll.on || chordEdit || !tipDue("play") || !$("play")) return;
-  markSeen("play");
+  if (!songReady(song) || !$("play") || !coachTip("play")) return;
   coach($("play"), "Press play when you're ready", { ms: 5000, pulse: true, place: "above" });
+}
+// While playing: the pause badge fades in and out (without pausing).
+function demoPause() {
+  const stage = !!data.settings.stage;
+  const g = document.createElement("div");
+  g.className = "tappause ghost";
+  g.innerHTML = icon("pause");
+  document.body.appendChild(g);
+  setTimeout(() => g.remove(), 1700);
+  coach(null, stage ? "On stage, tap twice anywhere to pause" : "Tap anywhere to pause", { ms: 3200 });
+}
+// Paused: a line mid-screen gets the real focus look, the way play will start from it.
+function demoLine() {
+  const sheet = $("sheet");
+  const line = midOf([...document.querySelectorAll(".sheet > .pr, .sheet > .ly")]);
+  if (!sheet || !line) return false;
+  const was = diag.block;
+  sheet.classList.add("focus");
+  setCurrent(line);
+  coach(line, "Tap a line to start from it", { ms: 3400, place: "above", html: `<b>Tap a line to start from it</b><span>Play picks up right here.</span>` });
+  setTimeout(() => { if (!scroll.on && diag.block === line && $("sheet") === sheet) { setCurrent(was); applyPaused(); } }, 3400);
+  return true;
+}
+// Paused, with Now and Next off: show the real panel for a moment.
+function demoNN() {
+  const nn = $("nn");
+  if (!nn || !diag.seq.length) return false;
+  const top = $("sheet").getBoundingClientRect().top, line = innerHeight * READ_AT;
+  let idx = 0;
+  for (let i = 0; i < diag.seq.length; i++) if (top + diag.seq[i].y <= line) idx = i;
+  const next = [];
+  let last = diag.seq[idx].name;
+  for (let i = idx + 1; i < diag.seq.length && next.length < 3; i++) if (diag.seq[i].name !== last) { next.push(diag.seq[i].name); last = diag.seq[i].name; }
+  const fade = [0.85, 0.5, 0.28];
+  nn.innerHTML = `<div class="nowcol"><div class="lab">NOW</div><div>${card(diag.seq[idx].name, 1.26)}</div></div><div class="vs"></div>
+    <div style="min-width:0"><div class="lab">NEXT</div><div class="cards">${next.map((n, i) => card(n, 1, fade[i])).join("")}</div></div>`;
+  document.body.classList.add("nn-demo");
+  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on with ${icon("fretboard")} below.</span>` });
+  setTimeout(() => { document.body.classList.remove("nn-demo"); if (!scroll.on) nn.innerHTML = ""; }, 3800);
+  return true;
+}
+// Song map: show the section names, the way they appear while dragging.
+function demoMap() {
+  const m = map.el;
+  if (!m) return false;
+  m.classList.remove("away");
+  m.classList.add("active");
+  setTimeout(() => { if (!map.dragging) { m.classList.remove("active"); paintMap(); } }, 2600);
+  coach(m, "Drag to jump to a section", { ms: 2800, place: "left", fixed: true, spot: false });
+  return true;
+}
+// Tap tempo: the chip taps out 92 BPM, four flashes you can feel, then shows the result.
+function demoTap() {
+  const tap = $("ed-tap");
+  if (!tap) return false;
+  const label = tap.querySelector("span"), beat = 60000 / 92;
+  coach(tap, "", { ms: 4600, place: "below", html: `<b>Tap along with the beat</b><span>Four taps set the tempo.</span>` });
+  if (calm()) { label.textContent = "92 BPM"; tick(); setTimeout(() => { label.textContent = "Tap"; }, 2400); return true; }
+  [0, 1, 2, 3].forEach(i => setTimeout(() => {
+    tap.classList.add("flash"); tick();
+    label.textContent = i < 3 ? `Tap ${3 - i} more` : "92 BPM";
+    setTimeout(() => tap.classList.remove("flash"), 140);
+  }, 300 + i * beat));
+  setTimeout(() => { if (label.isConnected) label.textContent = "Tap"; }, 300 + 3 * beat + 1600);
+  return true;
+}
+// Search: invite a tap, then show what it can do.
+const SEARCH_LIST = () => `<b>Search does more than find</b><ul>
+  <li>Titles, artists, or a lyric you remember</li><li>Paste a chord sheet to add it</li><li>Paste a shared Tabs link to open it</li>
+  <li>Not in your library? ${aiKey() ? "Find it online, or make a chord chart with AI" : "Find it online"}</li></ul>`;
+function demoSearch(force) {
+  const bar = document.querySelector(".cmd");
+  if (!bar) return false;
+  if (force) return !!coach(bar, "", { ms: 6000, place: "above", html: SEARCH_LIST() });
+  return !!coach(bar, "", { ms: 5000, place: "above", pulse: true, html: `<b>Search does more than find</b><span>Tap to see what it can do.</span>` });
+}
+function searchOpened() {
+  markUsed("searchInvite");
+  if (!coachTip("search")) return;
+  setTimeout(() => { const bar = document.querySelector(".cmd"); if (bar && searching) coach(bar, "", { ms: 7000, place: "below", fixed: true, html: SEARCH_LIST() }); }, 380);
+}
+
+// Settings > Tips & gestures: Show me replays a demo on a song (or the screen it belongs to).
+let pendingDemo = null;
+function demoSong() {
+  const chords = data.songs.filter(s => s.format !== "tab" && /\S/.test(s.body || ""));
+  return chords.find(s => s.sample) || [...chords].sort((a, b) => (b.opened || 0) - (a.opened || 0))[0];
+}
+function showMe(name) {
+  if (name === "search") { go("#/"); return setTimeout(() => demoSearch(true), 450); }
+  if (name === "strobe") { go("#/"); return setTimeout(() => openTuner("standard", null, { demo: "strobe" }), 350); }
+  const song = demoSong();
+  if (!song) return toast("Add a chord sheet first");
+  pendingDemo = name;
+  if (name === "tap") openEdit = { id: song.id, view: "sheet" };
+  go("#/song/" + encodeURIComponent(song.id));
+}
+function runDemo(name, song) {
+  if (name === "chord") return demoChord(song, true);
+  if (name === "pause") return demoPause();
+  if (name === "line") return demoLine();
+  if (name === "nn") return demoNN();
+  if (name === "map") {
+    const sec = document.querySelectorAll(".sheet > .sec")[1];
+    if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + scrollY - innerHeight * 0.3 });
+    return setTimeout(demoMap, 450);
+  }
+}
+const GESTURES = [
+  ["On a song", [
+    ["chord", "Tap a chord", "See how to play it", "fretboard"],
+    ["line", "Tap a line", "Play starts from there", "play"],
+    ["map", "Drag the section map", "Jump through the song", "sliders"],
+    ["nn", "Now and Next", "The chord you're on, and what's coming", "fretboard"],
+    ["", "Tap a chord card above the song", "Marks everywhere it's played", "fretboard"],
+    ["", "Tap the title bar", "Back to the top", "up"],
+    ["", "− and +", "Transpose (or resize, for tab)", "plus"],
+    ["", "Tap the status chip", "Mark it Learning or Learned", "check"],
+    ["", "Tap Listen, or the tuning chip", "Hear the recording, or open the tuner", "note"],
+    ["", "Count-in", "Plays only when you start from the top", "metro"]]],
+  ["While playing", [
+    ["pause", "Tap anywhere", "Pause (tap twice on stage)", "pause"],
+    ["", "Scroll by hand", "It carries on from where you leave it", "down"]]],
+  ["Practice a section", [
+    ["", "Tap the first and last line", "Loops that part; Build up adds a line each time", "loop"]]],
+  ["Library and search", [
+    ["search", "Search", "Titles, artists, a lyric; paste a sheet or a link", "search"],
+    ["", "Return", "Opens the top match", "chev"],
+    ["", "Back from a song you searched for", "Your results are still there", "back"]]],
+  ["Editing", [
+    ["tap", "Tap tempo", "Tap along to set the tempo", "pick"],
+    ["", "Tap a word", "Place or change its chord", "edit"],
+    ["", "The pencil, a section name, + Line or + Section", "Retype, rename, or add", "plus"],
+    ["", "Sheet and Text", "Switch views; your place is kept. Every change has Undo", "edit"]]],
+  ["Sets", [
+    ["", "Tap the cover", "Change it", "image"],
+    ["", "Arrows in Edit", "Reorder the songs", "up"],
+    ["", "Next up", "Stop stays on this song; it waits if the next needs another tuning", "fork"]]],
+  ["Tuner", [
+    ["strobe", "Stripes near the note", "They stand still when it's right", "fork"],
+    ["", "Tap a key", "Hear that string", "note"],
+    ["", "Chromatic", "Any note, any instrument; set A4 at the bottom", "fork"]]],
+  ["Deleting", [
+    ["", "Undo", "Right after deleting a song or set", "back"],
+    ["", "Recently deleted", "Keeps them for 30 days (Settings)", "trash"]]]
+];
+function renderGestures() {
+  app.innerHTML = `
+    <div class="head"><button class="ib glass" data-go="#/settings" aria-label="Back to settings">${icon("back")}</button></div>
+    <h1 class="title">Tips &amp; gestures</h1>
+    <p class="gs-intro">Things you can do with a tap or a drag that don't have a button. <b>Show me</b> plays the tip again where it happens.</p>
+    ${GESTURES.map(([h, rows]) => `<div class="label">${h}</div><div class="list glass gs-list">${rows.map(([demo, t, s, ic]) => `
+      <div class="gs-row"><span class="gs-ic">${icon(ic)}</span><div class="gs-t"><b>${esc(t)}</b><span>${esc(s)}</span></div>${demo ? `<button class="gs-show" data-demo="${demo}">Show me</button>` : ""}</div>`).join("")}</div>`).join("")}
+    <button class="btn" id="gs-reset" style="display:block;margin:22px auto 6px">Reset tips</button>
+    <p class="foot" style="text-align:center;margin:0 0 30px">Shows each tip again, once, when it's next useful.</p>`;
+  app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+  app.querySelectorAll("[data-demo]").forEach(b => b.onclick = () => showMe(b.dataset.demo));
+  $("gs-reset").onclick = () => { data.settings.tipsSeen = {}; data.settings.used = {}; lastCoach = { key: "", at: 0 }; Tabs.save(data); toast("Tips will show again"); };
 }
 
 // ---------- Router ----------
@@ -3002,6 +3172,7 @@ function render() {
   }
   else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
   else if (r.name === "trash") { renderTrash(); window.scrollTo(0, 0); }
+  else if (r.name === "gestures") { renderGestures(); window.scrollTo(0, 0); }
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else if (r.name === "import") renderImport(r.id);
   else { renderLibrary(); }
@@ -3044,4 +3215,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { $, data, icon, layer, esc, coach, tipDue, markSeen, markUsed, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw };
+export { $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw };

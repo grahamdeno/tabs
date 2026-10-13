@@ -785,7 +785,28 @@ body.tuning { overflow: hidden; }
 #more { position: relative; }
 #more .newdot { position: absolute; top: 7px; right: 7px; margin: 0; }
 .cmd.ph-swap input::placeholder { color: var(--accent); transition: color .4s; }
-.gs-list { margin-bottom: 14px; }
-.gs-row { padding: 12px 14px; font-size: 15px; color: var(--fg); border-bottom: 1px solid var(--hair); line-height: 1.35; }
-.gs-row:last-child { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) { .coach-pulse, .coach-twice, .tappause.ghost { animation: none; } .tappause.ghost { opacity: .85; } }
+
+.coach b { display: block; font-weight: 600; }
+.coach span { display: block; color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+.coach span svg { width: 15px; height: 15px; vertical-align: -3px; color: var(--accent); }
+.coach ul { margin: 6px 0 0; padding: 0 0 0 16px; color: var(--fg-2); font-size: 13.5px; }
+.coach li { margin: 3px 0; }
+.coach li::marker { color: var(--accent); }
+.coach-dim { position: fixed; inset: 0; z-index: 64; pointer-events: none; background: radial-gradient(var(--rx) var(--ry) at var(--cx) var(--cy), transparent 0 96%, rgba(0,0,0,.5) 100%); animation: fade .3s; }
+:root[data-theme="light"] .coach-dim { background: radial-gradient(var(--rx) var(--ry) at var(--cx) var(--cy), transparent 0 96%, rgba(40,30,20,.3) 100%); }
+.coach-dim.out { opacity: 0; transition: opacity .25s; }
+.ed-tap.flash { background: var(--accent); color: var(--on-accent); border-color: var(--accent); transition: none; }
+body.nn-demo .nn { display: flex; animation: nnin .3s ease-out; }
+.haptic { position: fixed; left: -100px; top: -100px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.gs-intro { color: var(--muted); font-size: 14.5px; line-height: 1.45; margin: 0 0 18px; }
+.gs-intro b { color: var(--fg-2); }
+.gs-list { margin-bottom: 16px; }
+.gs-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--hair); }
+.gs-row:last-child { border-bottom: 0; }
+.gs-ic { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+.gs-ic svg { width: 19px; height: 19px; }
+.gs-t { flex: 1; min-width: 0; }
+.gs-t b { display: block; font-weight: 500; font-size: 15px; color: var(--fg); }
+.gs-t span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+.gs-show { flex: none; font: 600 13px var(--sans); color: var(--accent); border: 1px solid var(--accent-line); border-radius: 14px; padding: 6px 10px; background: none; }

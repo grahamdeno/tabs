@@ -4,7 +4,7 @@
 // Within a few cents a strobe takes over, and it stands still when the note is right.
 import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
 import { HEADS } from "./heads.js";
-import { $, data, icon, layer, esc, coach, tipDue, markSeen, markUsed } from "./app.js";
+import { $, data, icon, layer, esc, coach, coachTip, markUsed } from "./app.js";
 
 let audio = null; /* for reference notes and the chime */
 const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
@@ -87,7 +87,22 @@ function dialSVG() {
   return s + `<g id="tn-needle" class="idle"><line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - R + 2}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="7"/></g></svg>`;
 }
 
-export function openTuner(tuning = "standard", onClose) {
+const strobeTip = () => coach($("tn-strobe"), "", { ms: 3800, place: "below", fixed: true, html: `<b>Stripes stand still when it's right</b><span>They drift left when flat, right when sharp.</span>` });
+// Show me: the strobe drifts, slows, and stands still in green.
+function demoStrobe(t) {
+  t.demoUntil = Date.now() + 4200;
+  $("tn-meter").hidden = true; $("tn-strobe").hidden = false;
+  const steps = [[-14, 0], [-6, 1100], [-2, 2100], [0, 2900]];
+  steps.forEach(([c, at]) => setTimeout(() => {
+    if (tunerState !== t || t.hits.length) return;
+    const good = Math.abs(c) <= 3;
+    $("tn-strobe").classList.toggle("good", good); $("tn-slab").textContent = good ? "STILL" : "FINE TUNE";
+    t.strobe.v = c ? c * 6 : 0;
+  }, at));
+  if (!t.raf) { const spin = now => { animateStrobe(t, now); t.raf = requestAnimationFrame(spin); }; t.raf = requestAnimationFrame(spin); }
+  setTimeout(strobeTip, 200);
+}
+export function openTuner(tuning = "standard", onClose, opts = {}) {
   closeTuner();
   const st = data.settings;
   const t = tunerState = {
@@ -177,6 +192,7 @@ export function openTuner(tuning = "standard", onClose) {
   };
   t.paint = paint;
   paint();
+  if (opts.demo === "strobe") setTimeout(() => demoStrobe(t), 300);
 
   const say = (text, cls = "") => { const m = $("tn-say"); if (m) { m.textContent = text; m.className = "tn-say " + cls; } };
   t.say = say;
@@ -202,6 +218,7 @@ export function openTuner(tuning = "standard", onClose) {
 }
 
 function idle(t) {
+  if (t.demoUntil > Date.now()) return; /* let a Show me demo finish */
   const dot = $("tn-dot"), needle = document.getElementById("tn-needle");
   dot?.classList.add("idle"); needle?.classList.add("idle");
   if ($("tn-strobe")) $("tn-strobe").hidden = true;
@@ -283,7 +300,7 @@ function showGauge(t, cents, good) {
   $("tn-slab").textContent = good ? "STILL" : "FINE TUNE";
   t.strobe.v = fine ? strobeSpeed(cents) : 0;
   /* The first time the strobe appears, say what it means. */
-  if (fine && !good && tipDue("strobe")) { markSeen("strobe"); coach(strobe, "Stripes stand still when it's right", { ms: 3600, place: "below", fixed: true }); }
+  if (fine && !good && coachTip("strobe")) strobeTip();
 }
 
 // Stripes drift left when flat, right when sharp, and stop when it's right.
