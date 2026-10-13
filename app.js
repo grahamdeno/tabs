@@ -1296,8 +1296,8 @@ function songMenu(song, anchor, redrawSong) {
   m.style.right = Math.max(12, innerWidth - r.right) + "px";
   const paint = () => {
     m.innerHTML = items.map(it => it.id === "size"
-      ? `<div class="mrow size"><span class="mi">${icon("text")}</span><span class="ml">Text size</span>
-          <button class="sb" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
+      ? `<div class="mrow size" role="group" aria-label="Text size"><span class="mi">${icon("text")}</span><span class="ml" aria-hidden="true">Text size</span>
+          <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
       : `<button class="mrow" role="menuitem" data-m="${it.id}"><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}${NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : ""}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`).join("");
   };
   paint();
