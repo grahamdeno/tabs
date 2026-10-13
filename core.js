@@ -5,7 +5,7 @@ const STORAGE_KEY = "tabs-v1";
 
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
-const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: true, focus: true };
+const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: true, focus: true, pauseDiagrams: true };
 
 function blank() {
   return { songs: [], settings: { ...DEFAULT_SETTINGS } };
