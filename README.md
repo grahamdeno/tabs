@@ -33,7 +33,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - In a set, the next song's title and first line show quietly near the end of each song
 - Speed by song length (default): set how long a song takes (3:30 to start) and the scroll fits it; or switch to 1x style in Settings. Each song keeps its own setting
 - Count-in: one bar of soft clicks at the song's tempo (set in Edit; 90 if unset) before scrolling starts, only when starting from the top (the first line is on screen); starting partway through scrolls right away
-- Transpose per song, with sharps or flats chosen by the resulting key
+- Transpose per song, with sharps or flats chosen by the resulting key; each step plays the new key's root note for 3 seconds so you can hear where it sits (the default transpose in Settings plays A moved by that many semitones)
 - Lyrics wrap to the screen at full size, with each chord riding on its word; words never split
 - Tabs wrap a measure at a time, all strings together, with string names on every row
 - Chord diagrams: while playing, a fixed Now and Next panel above the controls shows the chord at the reading line and the next ones (off by default; toggle it from the player or Settings); when paused, the line you're on shows a diagram over each chord, and you can tap any chord for its fingering
