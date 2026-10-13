@@ -125,7 +125,7 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .recent { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .rc { border-radius: 14px; padding: 12px 14px; text-align: left; color: var(--fg); min-width: 0; }
 .rc .t { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rc .a { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.rc .a { font-size: 12.5px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty { color: var(--muted); text-align: center; padding: 56px 24px; line-height: 1.6; font-size: 15px; }
 
 /* Bottom bars */
@@ -454,7 +454,7 @@ function renderList() {
     ${recent.length ? `<div class="label">Recent</div><div class="recent">${recent.map(s => `
       <button class="rc glass" data-id="${esc(s.id)}">
         <div class="t">${esc(s.title)}</div>
-        <div class="a">${s.format === "tab" ? "Tab" : `Key ${esc(transposeKey(keyOf(s), s.transpose || 0) || "?")}${s.transpose ? `, ${s.transpose > 0 ? "+" : ""}${s.transpose}` : ""}`}</div>
+        <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : "All songs"}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(songRow).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}".</div>`}`;
