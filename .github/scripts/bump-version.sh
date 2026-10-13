@@ -6,7 +6,7 @@
 set -euo pipefail
 
 BEFORE="${1:-}"
-APP_FILES=(index.html core.js sw.js manifest.webmanifest icons)
+APP_FILES=(index.html "*.js" "*.css" manifest.webmanifest icons)
 
 # New branch, force push past history we don't have, or no "before": nothing to compare.
 if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then

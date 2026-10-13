@@ -8,8 +8,8 @@ on:
     branches: [main]
     paths:
       - index.html
-      - core.js
-      - sw.js
+      - '*.js'
+      - '*.css'
       - manifest.webmanifest
       - icons/**
 

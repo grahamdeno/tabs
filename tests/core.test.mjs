@@ -33,15 +33,15 @@ test("version matches the service worker cache name", () => {
   assert.equal(m[1], C.VERSION);
 });
 
-test("the app script in index.html parses", () => {
-  // A syntax error here stops the whole app from loading, so check it before every release.
+test("every app script parses, and index.html loads them", () => {
+  // A syntax error stops the whole app from loading, so check before every release.
+  const scripts = fs.readdirSync(root).filter(f => f.endsWith(".js"));
+  for (const f of scripts) execFileSync(process.execPath, ["--check", path.join(root, f)], { stdio: "pipe" });
   const html = read("index.html");
-  const start = html.indexOf('<script type="module">');
-  assert.ok(start >= 0, "module script not found");
-  const end = html.indexOf("</script>", start);
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tabs-")), "app.mjs");
-  fs.writeFileSync(file, html.slice(start + '<script type="module">'.length, end));
-  execFileSync(process.execPath, ["--check", file], { stdio: "pipe" });
+  assert.match(html, /<script type="module" src="app.js"><\/script>/);
+  assert.match(html, /<link rel="stylesheet" href="styles.css">/);
+  const shell = read("sw.js");
+  for (const f of ["index.html", "styles.css", ...scripts.filter(f => f !== "sw.js")]) assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
 });
 
 test("the service worker never caches AI calls", () => {
