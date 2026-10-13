@@ -88,7 +88,7 @@ So use a key made only for Tabs, and in the Anthropic Console give its workspace
 
 Open `index.html` through any static server (ES modules need http, not file://). Data lives in `localStorage` under `tabs-v1`. Older tab-only saves are migrated automatically.
 
-Releases: bump `VERSION` in `core.js` and `CACHE` in `sw.js` together (a test checks they match). The app opens from its saved copy, so a change only reaches installed apps through a new cache name. On the next launch, or when the app comes back to the foreground, it saves the new release in the background and offers to reload.
+Releases: `VERSION` in `core.js` and `CACHE` in `sw.js` must match (a test checks). You don't need to bump them by hand: when app files change on `main` without a bump, the `bump version` workflow raises the patch number in both and commits it. Bump by hand only for a minor or major release. The app opens from its saved copy, so a change only reaches installed apps through a new cache name. On the next launch, or when the app comes back to the foreground, it saves the new release in the background and offers to reload.
 
 Tests: `node --test` (Node 18 or later, no dependencies). They cover chord parsing, transposing, wrapping and fingerings, the library data, the version matching the service worker cache, and that the app script parses. GitHub Actions runs them on every push to `main`.
 
