@@ -28,12 +28,12 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Chord diagrams: while playing, a fixed Now and Next panel above the controls shows the chord at the reading line and the next ones (off by default; toggle it from the player or Settings); when paused, the line you're on shows a diagram over each chord, and you can tap any chord for its fingering
 - Focus current line (Always, While playing, or Off): the current line stays bright and the rest dim; when paused, tap a line to focus it and play starts from there
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
-- Text size per song (Aa in the song header), lyrics and chords together
+- Song header keeps just back and favorite; everything else is in the ••• menu: text size (lyrics and chords together), add to set, practice a section, share, edit, and Make it easier and Spark tone with an API key
 - Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Add and edit in a slide-up sheet; delete from edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
 - Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, Make it easier with a capo and simpler chords, or get a Spark amp tone for a song
 - First launch adds an original sample song and shows one-time tips on the real controls (Settings > Show tips again)
-- Settings (gear, top right): starting speed, default transpose, dark/light mode, backup
+- Settings (gear, top right), grouped as Playing, Chord diagrams, Defaults for new songs, Appearance, AI help and Library
 - While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
 

@@ -307,6 +307,16 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .tiptext { margin: 0 0 10px; font-size: 15px; line-height: 1.45; color: var(--fg); }
 .tipbar { display: flex; align-items: center; gap: 6px; }
 .tipn { flex: 1; font-size: 12px; color: var(--muted); }
+/* Song menu */
+.menu { position: fixed; z-index: 35; width: 272px; border-radius: 16px; padding: 6px; background: var(--solid); animation: pop .14s ease-out; }
+.mrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 10px; border: 0; background: none; border-radius: 10px; color: var(--fg); font-size: 15px; text-align: left; }
+button.mrow:active { background: var(--card-2); }
+.mrow .mi { width: 20px; color: var(--fg-2); display: grid; place-items: center; }
+.mrow .mi svg { width: 18px; height: 18px; }
+.mrow .ml { flex: 1; white-space: nowrap; }
+.mrow .mh { font-size: 12.5px; color: var(--accent); }
+.mrow.size { border-bottom: 1px solid var(--hair); border-radius: 10px 10px 0 0; margin-bottom: 4px; padding-bottom: 6px; }
+.mrow.size .v { font: 600 13px var(--mono); min-width: 40px; text-align: center; }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -433,6 +443,10 @@ const I = {
   down: '<path d="m6 9 6 6 6-6"/>',
   amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  dots: '<circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/>',
+  share: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M6 11H5v9h14v-9h-1"/>',
+  loop: '<path d="M17 4l3 3-3 3"/><path d="M4 12V9a2 2 0 0 1 2-2h14"/><path d="M7 20l-3-3 3-3"/><path d="M20 12v3a2 2 0 0 1-2 2H4"/>',
+  sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -841,10 +855,8 @@ function renderViewer(id) {
     <div class="head">
       <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
       <div class="row-btns">
-        <button class="ib glass" id="toset" aria-label="Add to set">${icon("listplus")}</button>
-        <button class="ib glass aa" id="aa" aria-label="Text size" aria-expanded="false">Aa</button>
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
-        <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song">${icon("edit")}</button>
+        <button class="ib glass more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}</button>
       </div>
     </div>
     ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
@@ -853,8 +865,7 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title">${esc(song.title)}</h1>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>
-      ${aiKey() || song.tone ? `<button class="stat tonebtn" id="tone" aria-label="Spark tone">${icon("amp")}Spark tone</button>` : ""}</div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button></div>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -864,7 +875,7 @@ function renderViewer(id) {
           <div class="cs" id="csub"></div>
         </button>
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}" tabindex="-1">${icon("heart")}</button>
-        <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song" tabindex="-1">${icon("edit")}</button>
+        <button class="ib glass more" aria-label="More for this song" aria-haspopup="menu" tabindex="-1">${icon("dots")}</button>
       </div>
     </header>
     <div class="sheet" id="sheet"></div>
@@ -898,32 +909,8 @@ function renderViewer(id) {
       x.setAttribute("aria-pressed", !!song.favorite);
     });
   });
-  // Text size for this song: lyrics and chords together, 70% to 160%.
-  $("aa").onclick = e => {
-    e.stopPropagation();
-    const open = document.querySelector(".szpop");
-    if (open) { open.remove(); $("aa").setAttribute("aria-expanded", "false"); return; }
-    const r = $("aa").getBoundingClientRect();
-    const pop = document.createElement("div");
-    pop.className = "szpop glass float";
-    pop.style.top = (r.bottom + 8) + "px";
-    pop.style.right = (window.innerWidth - r.right) + "px";
-    const paint = () => { pop.querySelector(".v").textContent = Math.round(song.size * 100) + "%"; };
-    pop.innerHTML = `<button class="sb" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v"></span><button class="sb" data-d="1" aria-label="Larger text">${icon("plus")}</button>`;
-    pop.onclick = ev => {
-      ev.stopPropagation();
-      const b = ev.target.closest("[data-d]");
-      if (!b) return;
-      song.size = Math.min(1.6, Math.max(0.7, +(song.size + (+b.dataset.d) * 0.1).toFixed(2)));
-      Tabs.save(data); paint(); draw();
-    };
-    document.body.appendChild(pop);
-    paint();
-    $("aa").setAttribute("aria-expanded", "true");
-    const close = ev => { if (!pop.contains(ev.target)) { pop.remove(); $("aa")?.setAttribute("aria-expanded", "false"); document.removeEventListener("click", close, true); window.removeEventListener("scroll", closeS); } };
-    const closeS = () => { pop.remove(); window.removeEventListener("scroll", closeS); document.removeEventListener("click", close, true); };
-    setTimeout(() => { document.addEventListener("click", close, true); window.addEventListener("scroll", closeS, { passive: true }); });
-  };
+  // One menu for everything about this song: text size, sets, edit, AI help, share, practice.
+  app.querySelectorAll(".more").forEach(btn => btn.onclick = e => { e.stopPropagation(); songMenu(song, btn, draw); });
   // Learning status: tap to cycle none → Learning → Got it.
   const paintStat = () => {
     const st = $("stat");
@@ -939,8 +926,6 @@ function renderViewer(id) {
     toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
   };
   curPaintStat = paintStat;
-  $("toset").onclick = () => addToSet(song);
-  $("tone")?.addEventListener("click", () => toneSheet(song));
   const step2 = d => { const x = data.sets.find(z => z.id === setCtx.id), list = setSongs(x), n = list[setCtx.idx + d]; if (!n) return; setCtx = { id: x.id, idx: setCtx.idx + d }; go("#/song/" + encodeURIComponent(n.id)); };
   $("sprev")?.addEventListener("click", () => step2(-1));
   $("snext")?.addEventListener("click", () => step2(1));
@@ -1360,6 +1345,57 @@ function easierSheet(song) {
   if (result) paint(); else ask();
 }
 
+function shareSong(song) { toast("Sharing is coming next"); }
+function startLoopPick(song) { toast("Practice loop is coming next"); }
+
+// ---------- Song menu ----------
+function songMenu(song, anchor, redrawSong) {
+  const old = document.querySelector(".menu");
+  if (old) { old.remove(); return; }
+  const ez = song.easier;
+  const items = [
+    { id: "size" },
+    { id: "set", icon: "listplus", label: "Add to set" },
+    { id: "loop", icon: "loop", label: "Practice a section" },
+    { id: "share", icon: "share", label: "Share song" },
+    { id: "edit", icon: "edit", label: "Edit song" },
+    (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
+    (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" }
+  ].filter(Boolean);
+  const m = document.createElement("div");
+  m.className = "menu glass float";
+  m.setAttribute("role", "menu");
+  const r = anchor.getBoundingClientRect();
+  m.style.top = (r.bottom + 8) + "px";
+  m.style.right = Math.max(12, innerWidth - r.right) + "px";
+  const paint = () => {
+    m.innerHTML = items.map(it => it.id === "size"
+      ? `<div class="mrow size"><span class="mi">${icon("text")}</span><span class="ml">Text size</span>
+          <button class="sb" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
+      : `<button class="mrow" role="menuitem" data-m="${it.id}"><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`).join("");
+  };
+  paint();
+  document.body.appendChild(m);
+  const close = () => { m.remove(); document.removeEventListener("click", outside, true); window.removeEventListener("scroll", close); };
+  const outside = ev => { if (!m.contains(ev.target)) close(); };
+  setTimeout(() => { document.addEventListener("click", outside, true); window.addEventListener("scroll", close, { passive: true }); });
+  m.onclick = ev => {
+    ev.stopPropagation();
+    const d = ev.target.closest("[data-d]");
+    if (d) {
+      song.size = Math.min(1.6, Math.max(0.7, +(song.size + (+d.dataset.d) * 0.1).toFixed(2)));
+      Tabs.save(data); paint(); redrawSong();
+      return;
+    }
+    const b = ev.target.closest("[data-m]");
+    if (!b) return;
+    close();
+    ({ set: () => addToSet(song), edit: () => go("#/edit/" + encodeURIComponent(song.id)),
+       easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
+       tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song) })[b.dataset.m]?.();
+  };
+}
+
 // ---------- Spark tone ----------
 // A starting tone for the Spark amp, from the song's title, artist, key and chord
 // names (no lyrics). Saved with the song; dial it in on the Spark app.
@@ -1430,8 +1466,7 @@ function renderStrip(sheet, isChords, song) {
   if (!box) return;
   const names = isChords ? [...new Set([...sheet.querySelectorAll(".c[data-ch]")].map(el => el.dataset.ch))] : [];
   const ez = song?.easier;
-  const easyBtn = !aiKey() && !ez ? `<span class="n">${names.length}</span>`
-    : `<button class="chip ai easy ${ez?.on ? "on" : ez ? "off" : ""}" id="easy">${icon("wand")}${ez ? (ez.on ? "Easier" + (ez.capo ? ` · Capo ${ez.capo}` : "") : "Easier off") : "Make it easier"}</button>`;
+  const easyBtn = `<span class="n">${names.length}</span>`;
   box.innerHTML = names.length ? `
     <div class="strip-h"><span>Chords in this song</span>${easyBtn}</div>
     <div class="strip" role="list">${names.map(n =>
@@ -1461,7 +1496,7 @@ function showChordPop(target) {
 }
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet")) return;
-  if (e.target instanceof Element && e.target.closest("#easy")) {
+  if (false) {
     if (!aiKey() && !viewing?.easier) return;
     if (!aiKey() && viewing.easier) { viewing.easier.on = !viewing.easier.on; Tabs.save(data); redraw?.(); return; }
     if (!scroll.on) easierSheet(viewing);
@@ -1805,6 +1840,7 @@ function renderForm(id) {
 }
 
 // ---------- Settings ----------
+let settingsDefaultsOpen = false;
 function renderSettings() {
   const s = data.settings;
   const t = s.transpose || 0;
@@ -1823,29 +1859,16 @@ function renderSettings() {
           <option value="multiplier" ${s.speedMode === "multiplier" ? "selected" : ""}>1x style</option>
         </select>
       </div>
-      ${s.speedMode === "multiplier" ? `<div class="set">
-        <span class="tile">${icon("gauge")}</span><span class="name">Starting speed</span><span class="val">${((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1)}x</span>${icon("chev", "chev")}
-        <select id="s-speed" aria-label="Starting speed for new songs">
-          ${Array.from({ length: 16 }, (_, i) => (i + 5) / 10).map(m => `<option value="${(m * SPEEDS.medium).toFixed(1)}" ${Math.abs(m * SPEEDS.medium - (s.startSpeed || SPEEDS.medium)) < 0.01 ? "selected" : ""}>${m.toFixed(1)}x</option>`).join("")}
-        </select>
-      </div>` : `<div class="set">
-        <span class="tile">${icon("gauge")}</span><span class="name">Starting length</span><span class="val">${mmss(s.startLength || 210)}</span>${icon("chev", "chev")}
-        <select id="s-length" aria-label="Starting length for new songs">
-          ${Array.from({ length: 17 }, (_, i) => 120 + i * 15).map(v => `<option value="${v}" ${v === (s.startLength || 210) ? "selected" : ""}>${mmss(v)}</option>`).join("")}
-        </select>
-      </div>`}
       <div class="set">
         <span class="tile">${icon("metro")}</span><span class="name">Count-in</span>
         <button class="toggle ${s.countIn !== false ? "on" : ""}" id="s-count" role="switch" aria-checked="${s.countIn !== false}" aria-label="Count-in"></button>
       </div>
+    </div>
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo.</p>
+    <div class="label">Chord diagrams</div>
+    <div class="set-group glass">
       <div class="set">
-        <span class="tile">${icon("note")}</span><span class="name">Default transpose</span><span class="val">${semis(t)}</span>${icon("chev", "chev")}
-        <select id="s-transpose" aria-label="Default transpose">
-          ${Array.from({ length: 12 }, (_, i) => i - 5).map(n => `<option value="${n}" ${n === t ? "selected" : ""}>${semis(n)}</option>`).join("")}
-        </select>
-      </div>
-      <div class="set">
-        <span class="tile">${icon("fretboard")}</span><span class="name">Now and Next chords</span>
+        <span class="tile">${icon("fretboard")}</span><span class="name">Now and Next while playing</span>
         <button class="toggle ${s.diagrams === true ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams === true}" aria-label="Now and Next chords"></button>
       </div>
       <div class="set">
@@ -1859,7 +1882,27 @@ function renderSettings() {
         </select>
       </div>
     </div>
-    <p class="foot" style="margin-top:10px">Song length: set how long each song takes and the scroll fits it. 1x style: a speed multiplier. Either way, each song keeps its own setting, and new songs start at the starting value. Count-in plays one bar at the song's tempo (set in Edit) before scrolling. While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap a line to start from it, or tap any chord to see its fingering.</p>
+    <p class="foot">Tap a chord for its fingering, or a line to start from it.</p>
+    <div class="set-group glass" style="margin-top:22px">
+      <button class="set" id="s-defaults" aria-expanded="${!!settingsDefaultsOpen}"><span class="tile">${icon("sliders")}</span><span class="name">Defaults for new songs</span>${icon(settingsDefaultsOpen ? "down" : "chev", "chev")}</button>
+      ${settingsDefaultsOpen ? `${s.speedMode === "multiplier" ? `<div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Starting speed</span><span class="val">${((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1)}x</span>${icon("chev", "chev")}
+        <select id="s-speed" aria-label="Starting speed for new songs">
+          ${Array.from({ length: 16 }, (_, i) => (i + 5) / 10).map(m => `<option value="${(m * SPEEDS.medium).toFixed(1)}" ${Math.abs(m * SPEEDS.medium - (s.startSpeed || SPEEDS.medium)) < 0.01 ? "selected" : ""}>${m.toFixed(1)}x</option>`).join("")}
+        </select>
+      </div>` : `<div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Starting length</span><span class="val">${mmss(s.startLength || 210)}</span>${icon("chev", "chev")}
+        <select id="s-length" aria-label="Starting length for new songs">
+          ${Array.from({ length: 17 }, (_, i) => 120 + i * 15).map(v => `<option value="${v}" ${v === (s.startLength || 210) ? "selected" : ""}>${mmss(v)}</option>`).join("")}
+        </select>
+      </div>`}
+      <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Transpose</span><span class="val">${semis(t)}</span>${icon("chev", "chev")}
+        <select id="s-transpose" aria-label="Default transpose">
+          ${Array.from({ length: 12 }, (_, i) => i - 5).map(n => `<option value="${n}" ${n === t ? "selected" : ""}>${semis(n)}</option>`).join("")}
+        </select>
+      </div>` : ""}
+    </div>
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
@@ -1878,7 +1921,7 @@ function renderSettings() {
         <button class="btn sm primary" id="s-savekey">Save key</button>
       </div>
     </div>
-    <p class="foot" id="s-keymsg">Adds Clean up and Scan a page when adding songs, and Make it easier on a song. The key stays on this phone and is sent only to Anthropic. Only the pasted text or photo is sent for cleanup and scans, and only the song's chord names for Make it easier. Use a key made just for Tabs, with a low monthly spend limit.</p>
+    <p class="foot" id="s-keymsg">Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Tabs, with a low monthly spend limit.</p>
     <div class="label">Library</div>
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
@@ -1893,7 +1936,8 @@ function renderSettings() {
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
-  $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
+  $("s-defaults").onclick = () => { settingsDefaultsOpen = !settingsDefaultsOpen; renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
@@ -2150,18 +2194,16 @@ const TIPS = {
     { at: ".sheet .c[data-ch] .ct", text: "Tap a chord to see how to play it." },
     { at: ".sheet > .pr", text: "Tap a line to start from it. Press play and that line glides to your reading point." },
     { at: "#play", text: "Play scrolls the song. The slider sets how long the song takes, and a count-in clicks you in." },
-    { at: "#aa", text: "Change the text size for this song." },
+    { at: "#more", text: "Text size, add to set, practice a section, share and edit live in this menu." },
     { at: "#stat", text: "Mark songs you're learning. A play counts when you play a song through." },
-    { at: "#toset", text: "Add this song to a set for practice or a gig." },
     { at: "#nnbtn", text: "Turn on Now and Next to see the chord you're on and what's coming while you play." },
-    { at: "#easy", text: "With your API key: Make it easier finds a capo and simpler chords." },
-    { at: "#tone", text: "Spark tone suggests a starting tone for your Spark amp." }
+    { at: "#more", text: "With your API key, Make it easier and Spark tone are in this menu too.", needsKey: true }
   ]
 };
 function showTips(name) {
   const seen = data.settings.tipsSeen && typeof data.settings.tipsSeen === "object" ? data.settings.tipsSeen : {};
   if (seen[name] || document.querySelector(".tipwrap")) return;
-  const steps = TIPS[name].filter(t => document.querySelector(t.at));
+  const steps = TIPS[name].filter(t => document.querySelector(t.at) && (!t.needsKey || aiKey()));
   if (!steps.length) return;
   const done = () => {
     wrap.remove();
