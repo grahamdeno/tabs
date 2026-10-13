@@ -7,7 +7,7 @@
 // so a release is never half old and half new. The page then offers a reload.
 const CACHE = "tabs-v1.35.13";
 const ART = "tabs-art";          // album art for covers, kept across releases
-const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "tuner.js", "findai.js", "aitools.js", "crop.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
+const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "tuner.js", "findai.js", "aitools.js", "crop.js", "heads.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   // cache: "reload" skips the browser's HTTP cache so the new release is fetched in full.

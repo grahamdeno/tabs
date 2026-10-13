@@ -506,3 +506,33 @@ test("tap tempo: median of the latest run of taps", () => {
   assert.equal(C.tapTempo([...at(60, 4), ...at(140, 5, 10000)]), 140); // a pause starts again
   assert.equal(C.tapTempo([0, 100]), 260);
 });
+
+test("tuner: advice, guided order, hold and strobe", () => {
+  assert.equal(C.tuneAdvice(-2).tone, "good");
+  assert.equal(C.tuneAdvice(3).say, "In tune");
+  assert.equal(C.tuneAdvice(-8).say, "Almost · tighten slowly");
+  assert.equal(C.tuneAdvice(9).say, "Almost · loosen slowly");
+  assert.equal(C.tuneAdvice(-30).say, "Tighten");
+  assert.equal(C.tuneAdvice(30).say, "Loosen");
+  assert.equal(C.tuneAdvice(-80).tone, "far");
+  assert.equal(C.guidedTarget([]), 0);
+  assert.equal(C.guidedTarget([true, true]), 2);
+  assert.equal(C.guidedTarget([true, false, true]), 1);
+  assert.equal(C.guidedTarget([true, true, true, true, true, true]), -1);
+  assert.equal(C.heldInTune(0, 5000), false);
+  assert.equal(C.heldInTune(1000, 1900), false);
+  assert.equal(C.heldInTune(1000, 2000), true);
+  assert.equal(C.strobeSpeed(2), 0);
+  assert.ok(C.strobeSpeed(-5) < 0 && C.strobeSpeed(5) > 0);
+  assert.equal(C.strobeSpeed(500), 60);
+});
+
+test("tuner: pitch reference moves every note", () => {
+  assert.equal(Math.round(C.noteFreq("A4")), 440);
+  assert.equal(Math.round(C.noteFreq("A4", 442)), 442);
+  assert.equal(C.nearestNote(442, 442).cents, 0);
+  assert.equal(C.nearestNote(442).cents, 8);
+  assert.equal(Math.round(C.centsOff(110, "A2")), 0);
+  assert.equal(C.nearestString(110 * 2 ** (10 / 1200), "standard").cents, 10);
+  assert.equal(C.nearestString(73.42, "dropd").index, 0);
+});

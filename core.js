@@ -16,6 +16,9 @@ const DEFAULT_SETTINGS = {
   startSpeed: 45,        // 1x-style starting speed for new songs
   startLength: 210,      // song-length starting value, seconds (3:30)
   countIn: true,         // one bar of clicks before scrolling starts
+  tunerMode: "acoustic", // tuner: "acoustic", "electric" or "chromatic"
+  tunerGuided: true,     // guitar tuner walks the strings low to high
+  a4: 440,               // pitch reference for the tuner, Hz
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 5
 };
@@ -871,19 +874,39 @@ export const TUNINGS = {
 const SEMI = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
 const NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 const midiOf = n => { const m = /^([A-G][#b]?)(-?\d)$/.exec(n); return m ? (+m[2] + 1) * 12 + SEMI[m[1]] : NaN; };
-export const noteFreq = n => 440 * 2 ** ((midiOf(n) - 69) / 12);
+export const noteFreq = (n, a4 = 440) => a4 * 2 ** ((midiOf(n) - 69) / 12);
 // Nearest note to a frequency: { name, octave, cents } (cents from -50 to +50).
-export function nearestNote(freq) {
-  const midi = 69 + 12 * Math.log2(freq / 440), r = Math.round(midi);
+export function nearestNote(freq, a4 = 440) {
+  const midi = 69 + 12 * Math.log2(freq / a4), r = Math.round(midi);
   return { name: NAMES[((r % 12) + 12) % 12], octave: Math.floor(r / 12) - 1, cents: Math.round((midi - r) * 100) };
 }
 // Which string of the tuning a frequency is closest to, and how far off in cents.
-export function nearestString(freq, tuning = "standard") {
+export function nearestString(freq, tuning = "standard", a4 = 440) {
   const notes = (TUNINGS[tuning] || TUNINGS.standard).notes;
   let best = 0, bestC = Infinity;
-  notes.forEach((n, i) => { const c = 1200 * Math.log2(freq / noteFreq(n)); if (Math.abs(c) < Math.abs(bestC)) { best = i; bestC = c; } });
+  notes.forEach((n, i) => { const c = 1200 * Math.log2(freq / noteFreq(n, a4)); if (Math.abs(c) < Math.abs(bestC)) { best = i; bestC = c; } });
   return { index: best, note: notes[best], cents: Math.round(bestC) };
 }
+// ---------- Tuner guidance ----------
+// In tune within 3 cents; the strobe takes over within 5; past 50 you're on the
+// wrong note (or far off), so the words say so.
+export const TUNE = { good: 3, strobe: 5, far: 50, hold: 1000 };
+export const centsOff = (freq, note, a4 = 440) => 1200 * Math.log2(freq / noteFreq(note, a4));
+// What to tell the player for a string that's `cents` away (negative = flat).
+export function tuneAdvice(cents) {
+  const a = Math.abs(cents), flat = cents < 0;
+  if (a <= TUNE.good) return { say: "In tune", tone: "good" };
+  if (a > TUNE.far) return { say: flat ? "Way low: tighten" : "Way high: loosen", tone: "far" };
+  if (a <= 12) return { say: flat ? "Almost · tighten slowly" : "Almost · loosen slowly", tone: "close" };
+  return { say: flat ? "Tighten" : "Loosen", tone: "off" };
+}
+// Guided mode works low to high: the first string not yet in tune (-1 when done).
+export const guidedTarget = ok => { for (let i = 0; i < 6; i++) if (!ok[i]) return i; return -1; };
+// A string counts once it has stayed in tune long enough.
+export const heldInTune = (since, now) => !!since && now - since >= TUNE.hold;
+// Strobe drift in pixels per second: still when in tune, faster the further off.
+export const strobeSpeed = cents => Math.abs(cents) <= TUNE.good ? 0 : Math.max(-60, Math.min(60, cents * 6));
+
 // A song's tuning from a line like "Tuning: Drop D" or "Tuning: D A D G B E".
 export function detectTuning(body) {
   const m = /^\s*(?:tuning|tuned)\s*[:\-]?\s*(.+)$/im.exec(String(body || ""));

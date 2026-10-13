@@ -288,3 +288,50 @@ test("the editor and Add show their tips once", { skip: skip() }, async t => {
   await page.waitForTimeout(800);
   assert.match(await page.locator(".tiptext").textContent(), /Paste or type the song here/);
 });
+
+// A pretend microphone: a steady tone whose pitch the test sets with window.__hz.
+const FAKE_MIC = `
+window.__hz = 0;
+navigator.mediaDevices.getUserMedia = async () => {
+  const ctx = new AudioContext(), o = ctx.createOscillator(), g = ctx.createGain(), dest = ctx.createMediaStreamDestination();
+  o.type = "sawtooth"; g.gain.value = 0; o.connect(g).connect(dest); o.start();
+  setInterval(() => { if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = 0.4; } else g.gain.value = 0; }, 20);
+  return dest.stream;
+};`;
+
+test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chromatic reads any note", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  await ctx.addInitScript(FAKE_MIC);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(base);
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true } } });
+  await page.reload();
+  await page.waitForTimeout(300);
+  await page.click("#tunerbtn");
+  await page.waitForTimeout(600);
+  const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent, strobe: !document.getElementById("tn-strobe").hidden }));
+  assert.equal((await read()).say, "Play the E string");
+  assert.equal(await page.locator(".tn-tile.on").textContent(), "Acoustic");
+  const at = (hz, cents) => page.evaluate(f => { window.__hz = f; }, hz * 2 ** (cents / 1200));
+  await at(82.41, -25); await page.waitForTimeout(700);
+  assert.deepEqual(await read(), { note: "E", say: "Tighten", strobe: false });
+  await at(82.41, -4); await page.waitForTimeout(700);
+  assert.equal((await read()).strobe, true, "strobe within 5 cents");
+  for (const hz of [82.41, 110, 146.83, 196, 246.94, 329.63]) { await at(hz, 0); await page.waitForTimeout(1700); }
+  assert.equal((await read()).note, "All in tune");
+  await page.click("[data-mode='chromatic']");
+  await at(185, -12); await page.waitForTimeout(700);
+  const r = await read();
+  assert.equal(r.note, "F♯");
+  assert.equal(r.say, "A little flat");
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
+  assert.equal(s.tunerMode, "chromatic");
+  assert.ok(s.lastTuned > 0);
+  await page.click("#tn-done");
+  assert.equal(await page.locator(".tuner2").count(), 0);
+  assert.deepEqual(errors, []);
+});
