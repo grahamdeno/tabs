@@ -497,3 +497,16 @@ test("menus and panels work from a keyboard: focus moves in, Escape closes", { s
   await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => document.getElementById("layer").children.length), 0);
 });
+
+test("iPad: chords in a rail, songs in a list beside the song; rotating puts them back", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => document.getElementById("strip").parentElement.id), "rail");
+  assert.equal(await page.locator(".side-r").count(), 2);
+  assert.equal(await page.getAttribute(".side-r.on", "data-id"), "a");
+  await page.click(".side-r:not(.on)"); await page.waitForTimeout(500);
+  assert.match(await page.innerText("h1.song-title"), /Harbor Lights/);
+  await page.setViewportSize({ width: 820, height: 1180 }); await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => document.getElementById("strip").parentElement.id), "app");
+  assert.equal(await page.locator(".side").isVisible(), false);
+});

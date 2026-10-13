@@ -863,6 +863,8 @@ function renderViewer(id) {
       </div>
     </header>
     <div class="sheet" id="sheet"></div>
+    <aside class="rail" id="rail" aria-label="Chords"></aside>
+    <nav class="side" id="side" aria-label="Songs"></nav>
     <div class="dock-fade"></div>
     <div class="dock">
       <div class="pw glass float">
@@ -886,6 +888,7 @@ function renderViewer(id) {
       </div>
       </div>
     </div>`;
+  placeWide(); paintSide(song);
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
   app.querySelectorAll(".fav").forEach(b => b.onclick = () => {
     Tabs.toggleFavorite(data, song.id);
@@ -1390,6 +1393,41 @@ function loopCheck(song) {
   paintLoop(song);
   return true;
 }
+
+// ---------- Wide screens (iPad) ----------
+// From 1000px wide, a rail on the right holds Now and Next and the chords in
+// this song, so the song itself gets the middle and larger text. From 1150px,
+// a list of songs on the left (or the set being played) switches songs without
+// going back. Rotating, or resizing in Split View, moves things back.
+const wideMQ = matchMedia("(min-width: 1000px)"), sideMQ = matchMedia("(min-width: 1150px)");
+function placeWide() {
+  const rail = $("rail"), strip = $("strip"), nn = $("nn");
+  document.body.classList.toggle("wide", wideMQ.matches && !!rail);
+  if (!rail || !strip || !nn) return;
+  if (wideMQ.matches) { if (strip.parentElement !== rail) rail.append(nn, strip); }
+  else if (strip.parentElement === rail) { app.querySelector(".metarow").after(strip); $("looprow").before(nn); }
+}
+function paintSide(song) {
+  const side = $("side");
+  if (!side) return;
+  if (!sideMQ.matches) { side.innerHTML = ""; return; }
+  const x = setCtx && data.sets.find(z => z.id === setCtx.id);
+  const list = x ? setSongs(x) : sortSongs(data.songs, data.settings.sort || "title");
+  side.innerHTML = `<div class="side-h">${x ? esc(x.name) : "Songs"}</div>` + list.map((s, i) =>
+    `<button class="side-r ${s.id === song.id ? "on" : ""}" data-id="${esc(s.id)}" data-i="${i}" ${s.id === song.id ? 'aria-current="page"' : ""}><b>${esc(s.title)}</b><span>${esc(s.artist || "")}</span></button>`).join("");
+  side.onclick = e => {
+    const b = e.target.closest(".side-r");
+    if (!b || b.classList.contains("on")) return;
+    if (x) setCtx.idx = +b.dataset.i;
+    go("#/song/" + encodeURIComponent(b.dataset.id));
+  };
+  side.querySelector(".on")?.scrollIntoView({ block: "nearest" });
+}
+[wideMQ, sideMQ].forEach(mq => mq.addEventListener?.("change", () => {
+  if (route().name !== "song" || !viewing || chordEdit) return document.body.classList.remove("wide");
+  placeWide(); paintSide(viewing); redraw?.();
+}));
+onLeave(r => { if (r.name !== "song") document.body.classList.remove("wide"); });
 
 // ---------- Pedals and keyboards ----------
 // A Bluetooth page-turner pedal pairs with the phone as a keyboard, so the song

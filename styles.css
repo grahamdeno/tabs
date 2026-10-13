@@ -31,6 +31,8 @@
   --r-bar: 14px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -157,7 +159,7 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .meta { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .meta b { color: var(--fg-2); font-weight: 500; }
-.sheet { font-size: var(--lyric-size, 17px); line-height: 1.45; overflow-wrap: anywhere; overflow-x: clip; position: relative; }
+.sheet { font-size: calc(var(--lyric-size, 17px) * var(--wide, 1)); line-height: 1.45; overflow-wrap: anywhere; overflow-x: clip; position: relative; }
 .sheet .sec { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; }
 .sheet .sec:first-child { margin-top: 4px; }
 .sheet .gap { height: 0.7em; }
@@ -191,7 +193,7 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .sheet .c { color: var(--accent); font-weight: 650; font-size: 0.88em; letter-spacing: 0.01em; }
 .sheet .crow { display: flex; flex-wrap: wrap; column-gap: 1.1em; row-gap: 0.2em; margin: 0 0 0.55em; }
 /* Tabs: all strings wrap together, a measure at a time */
-.sheet .tab { font-family: var(--mono); font-size: var(--tab-size, 14px); line-height: 1.35; white-space: pre; margin: 0 0 1em; color: var(--fg); }
+.sheet .tab { font-family: var(--mono); font-size: calc(var(--tab-size, 14px) * var(--wide, 1)); line-height: 1.35; white-space: pre; margin: 0 0 1em; color: var(--fg); }
 .sheet .tab + .tab { margin-top: -0.2em; }
 .pw { flex: 1; min-width: 0; border-radius: var(--r-bar); overflow: hidden; }
 .player { height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 8px; }
@@ -871,3 +873,63 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 /* Bigger touch areas for small text controls, without moving them */
 #sort { padding: 10px 0; margin: -10px 0; }
 .stagechip { padding: 8px 10px; margin: 3px auto -7px; }
+
+/* ---------- Wide screens: iPad and phone landscape ---------- */
+.rail, .side { display: none; }
+@media (min-width: 700px) {
+  :root { --wide: 1.25; }
+  .app { max-width: 680px; }
+  .dock { width: min(640px, calc(100% - 48px)); }
+}
+@media (min-width: 1000px) {
+  :root { --wide: 1.5; }
+  body.wide .app.viewer { max-width: none; margin: 0; padding-left: 64px; padding-right: 372px; }
+  body.wide .rail { display: block; position: fixed; top: calc(28px + var(--safe-t)); right: 36px; bottom: calc(100px + var(--safe-b)); width: 300px; overflow-y: auto; z-index: 6; scrollbar-width: none; }
+  body.wide .rail::-webkit-scrollbar { display: none; }
+  body.wide .rail .nn { border: 1px solid var(--accent-line); border-radius: 18px; background: var(--card); margin-bottom: 22px; }
+  body.wide .rail .strip { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; gap: 10px; }
+  body.wide .rail .scard { width: 64px; height: 92px; }
+  body.wide .rail .scard svg { width: 60px; height: auto; }
+  body.wide.nn-on .app.viewer { padding-bottom: calc(110px + var(--safe-b)); }
+  body.wide .smap { right: 340px; }
+  body.wide .dock { left: calc((100% - 336px) / 2); width: min(720px, calc(100% - 440px)); }
+  body.wide .dock-fade { right: 360px; }
+  body.wide .chead { right: 360px; }
+}
+@media (min-width: 1150px) {
+  body.wide .app.viewer { padding-left: 326px; }
+  body.wide .side { display: block; position: fixed; left: 0; top: 0; bottom: 0; width: 290px; padding: calc(24px + var(--safe-t)) 12px calc(24px + var(--safe-b)); border-right: 1px solid var(--hair); background: var(--bg); overflow-y: auto; z-index: 26; }
+  body.wide .dock { left: calc(290px + (100% - 290px - 360px) / 2); width: min(720px, calc(100% - 290px - 420px)); }
+  body.wide .chead { left: 290px; }
+}
+/* Editing on a wide screen: the full width for the song, nothing to tap away to */
+@media (min-width: 1000px) {
+  body.wide.cedit .rail, body.wide.cedit .side { display: none; }
+  body.wide.cedit .app.viewer { max-width: 760px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
+  body.wide .dock-fade { left: 290px; }
+}
+.side-h { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 8px 12px 10px; }
+.side-r { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; border-radius: 12px; background: none; color: var(--fg); }
+.side-r b { display: block; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-r span { display: block; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-r.on { background: var(--accent-soft); }
+.side-r.on b { color: var(--accent); }
+/* Phone on its side: the controls become a slim column on the right, so the
+   song gets the whole height. Now and Next and the loop bar need the height. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --wide: 1.25; }
+  .app.viewer { max-width: none; padding-left: calc(40px + var(--safe-l, 0px)); padding-right: calc(124px + var(--safe-r, 0px)); padding-bottom: 40px; }
+  .app.viewer .dock { left: auto; right: calc(10px + var(--safe-r, 0px)); top: calc(10px + var(--safe-t)); bottom: calc(10px + var(--safe-b)); width: 84px; transform: none; }
+  .app.viewer .pw { display: flex; flex-direction: column; }
+  body .app.viewer .dock .nn, .app.viewer .looprow.on { display: none; }
+  .app.viewer .player { flex: 1; height: auto; flex-direction: column; justify-content: space-between; padding: 12px 0; gap: 6px; }
+  .app.viewer .play { width: 56px; height: 56px; border-radius: 16px; }
+  .app.viewer .speed { flex: 1; flex-direction: column-reverse; justify-content: center; gap: 6px; }
+  .app.viewer .speed input { writing-mode: vertical-lr; direction: rtl; width: 28px; flex: 1; min-height: 60px; max-height: 140px; }
+  .app.viewer .speed span { width: auto; text-align: center; }
+  .app.viewer .vsep { width: 40px; height: 1px; }
+  .app.viewer .step { flex-direction: column-reverse; }
+  .app.viewer .dock-fade { display: none; }
+  .smap { right: calc(100px + var(--safe-r, 0px)); }
+  body.nn-on .app.viewer { padding-bottom: 40px; }
+}
