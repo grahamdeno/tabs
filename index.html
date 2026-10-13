@@ -194,6 +194,14 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .nn .card svg { display: block; }
 .nn .swap { animation: swap .16s ease-out; }
 @keyframes swap { from { opacity: .3; } }
+/* Chords in this song */
+.strip-h { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.strip-h .n { font-weight: 500; letter-spacing: 0; }
+.strip { display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px 10px; padding: 2px 20px 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.strip::-webkit-scrollbar { display: none; }
+.scard { flex: none; width: 54px; height: 78px; padding: 0; border-radius: 10px; background: var(--solid); border: 1px solid var(--rim); display: grid; place-items: center; }
+.scard svg { display: block; }
+.scard.sel { border-color: transparent; box-shadow: 0 0 0 1.5px var(--accent); }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -486,6 +494,7 @@ function renderViewer(id) {
     </div>
     <h1 class="song-title">${esc(song.title)}</h1>
     <div class="meta" id="meta"></div>
+    <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
         <button class="ib glass" data-go="#/" aria-label="Back to library" tabindex="-1">${icon("back")}</button>
@@ -545,6 +554,7 @@ function renderViewer(id) {
     const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
     renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps : 0, isChords && prefersFlats(baseKey, steps)));
+    renderStrip(sheet, isChords);
     layoutDiagrams(sheet, isChords);
     if (isChords) {
       val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
@@ -714,11 +724,27 @@ function updateDiagrams() {
 }
 
 // Tap a chord: show its card above it until the next tap.
+// "Chords in this song": each chord once, in order of first use, to learn before playing.
+function renderStrip(sheet, isChords) {
+  const box = $("strip");
+  if (!box) return;
+  const names = isChords ? [...new Set([...sheet.querySelectorAll(".c[data-ch]")].map(el => el.dataset.ch))] : [];
+  box.innerHTML = names.length ? `
+    <div class="strip-h"><span>Chords in this song</span><span class="n">${names.length}</span></div>
+    <div class="strip" role="list">${names.map(n =>
+      `<button class="scard" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)}: show where it's played">${chordSVG(n)}</button>`).join("")}</div>` : "";
+}
+
+function clearSel() {
+  document.querySelectorAll(".sheet .c.sel, .strip .scard.sel").forEach(el => el.classList.remove("sel"));
+}
+
 function showChordPop(target) {
   const sheet = $("sheet");
   sheet.querySelectorAll(".dpop").forEach(el => el.remove());
-  sheet.querySelectorAll(".c.sel").forEach(el => el.classList.remove("sel"));
+  clearSel();
   if (!target) return;
+  document.querySelectorAll(".strip .scard").forEach(c => c.classList.toggle("sel", c.dataset.name === target.dataset.ch));
   const box = sheet.getBoundingClientRect(), r = target.getBoundingClientRect();
   const s = 1.45, w = CARD_W * s, h = CARD_H * s;
   const cx = r.left - box.left + Math.min(r.width, 40) / 2;
@@ -732,6 +758,17 @@ function showChordPop(target) {
 }
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet")) return;
+  // Strip card: outline it and mark every place that chord is played.
+  const sc = e.target instanceof Element && e.target.closest(".strip .scard");
+  if (sc) {
+    const on = !sc.classList.contains("sel");
+    showChordPop(null);
+    if (on) {
+      sc.classList.add("sel");
+      document.querySelectorAll(".sheet .c[data-ch]").forEach(c => c.classList.toggle("sel", c.dataset.ch === sc.dataset.name));
+    }
+    return;
+  }
   const chord = e.target instanceof Element && e.target.closest(".sheet .c[data-ch]");
   if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");
