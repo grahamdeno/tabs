@@ -409,6 +409,22 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.seg.slide { position: relative; }
+.seg.slide::before { content: ""; position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 7px; background: var(--accent-soft); transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.seg.slide.right::before { transform: translateX(100%); }
+.seg.slide button { position: relative; transition: color .2s; }
+.seg.slide button.on { background: none; }
+.ed-tools { display: flex; gap: 8px; margin: 0 0 12px; }
+.ed-tx { overflow-x: auto; border: 1px solid var(--rim); border-radius: 12px; background: var(--card); -webkit-overflow-scrolling: touch; }
+.ed-tx-in { position: relative; display: inline-block; min-width: 100%; vertical-align: top; }
+.ed-hl, .ed-tx textarea { font: 15px/1.6 var(--mono); padding: 12px 14px 40px; margin: 0; white-space: pre; tab-size: 4; letter-spacing: 0; box-sizing: border-box; }
+.ed-hl { color: var(--fg); min-height: 50vh; }
+.ed-hl .hc, .ed-hl div.hc { color: var(--accent); }
+.ed-hl div.hs { color: var(--muted); }
+.ed-tx textarea { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: none; resize: none; overflow: hidden; color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--fg); outline: none; }
+.ed-tx textarea::placeholder { -webkit-text-fill-color: var(--muted); color: var(--muted); }
+.ed-tx textarea::selection { background: var(--accent-soft); }
+
 .qcancel { display: none; border: 0; background: none; color: var(--accent); font-size: 16px; padding: 0 4px 0 6px; flex: none; }
 body.searching .head, body.searching .weekly, body.searching #chips, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none !important; }
 body.searching .qcancel { display: block; }
@@ -440,6 +456,8 @@ body.searching #list > .label:first-child { margin-top: 8px; }
 .ed-end { margin-top: 6px; }
 
 .empty-hint { font-size: 14px; color: var(--muted); line-height: 1.45; margin: 0 4px 12px; }
+body.cedit .sheet > * { opacity: 1 !important; }
+body.cedit .sheet .prow, body.cedit .sheet .dpop { display: none !important; }
 body.cedit .dock, body.cedit .dock-fade, body.cedit #strip, body.cedit .metarow, body.cedit .chead, body.cedit .smap { display: none !important; }
 .cebar { background: var(--solid) !important; border: 1px solid var(--rim); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
 body.cedit .sheet { padding-bottom: 120px; }
@@ -595,7 +613,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -1481,7 +1499,7 @@ function applyPaused() {
 const FOCUS_SCALE = 1.05; /* matches .sheet.focus > .cur in the styles */
 function showPausedRow(block = pausedBlock()) {
   const sheet = $("sheet");
-  if (!sheet) return;
+  if (!sheet || chordEdit) return;
   const want = diag.armed && !scroll.on && data.settings.pauseDiagrams !== false && diag.rows?.length && block;
   const old = sheet.querySelector(".prow");
   if (!want) { old?.remove(); diag.rowKey = null; return; }
@@ -1851,6 +1869,8 @@ window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? ma
 // the plain-text editor for big jobs. Every change saves at once, with Undo.
 let chordEdit = null;
 let resumeEdit = null;
+let edView = "sheet";          /* "sheet" or "text" */
+let textSnap = null, textTimer = 0;
 const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
 const KEY_LIST = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 const EDIT_FIELDS = ["title", "artist", "key", "tuning", "bpm", "body"];
@@ -1874,11 +1894,12 @@ function songEditor(song) {
   document.querySelector(".cebar")?.remove();
   const bar = document.createElement("div");
   bar.className = "cebar glass";
-  bar.innerHTML = `<div class="seg" role="tablist" aria-label="Edit view"><button class="on" role="tab" aria-selected="true">Sheet</button><button role="tab" aria-selected="false" id="ed-text">Text</button></div>
+  edView = "sheet";
+  bar.innerHTML = `<div class="seg slide" id="ed-seg" role="tablist" aria-label="Edit view"><button class="on" role="tab" aria-selected="true" data-v="sheet">Sheet</button><button role="tab" aria-selected="false" data-v="text">Text</button></div>
     <button class="btn sm primary" id="ce-done">Done</button>`;
   document.body.appendChild(bar);
-  $("ce-done").onclick = () => { chordEdit = null; document.body.classList.remove("cedit"); bar.remove(); render(); toast("Saved"); };
-  $("ed-text").onclick = () => { resumeEdit = song.id; go("#/edit/" + encodeURIComponent(song.id)); };
+  $("ce-done").onclick = () => { leaveText(song); chordEdit = null; document.body.classList.remove("cedit"); bar.remove(); render(); toast("Saved"); };
+  bar.querySelectorAll("[data-v]").forEach(b => b.onclick = () => switchView(song, b.dataset.v));
   window.scrollTo(0, 0);
   paintEdit(song);
 }
@@ -1912,6 +1933,7 @@ function paintEdit(song) {
   $("ed-tuning").onchange = e => editChange(song, `Tuning: ${TUNINGS[e.target.value].name}`, () => { if (e.target.value === "standard") delete song.tuning; else song.tuning = e.target.value; });
   $("ed-bpm").onchange = e => editChange(song, "", () => { const n = Math.min(260, Math.max(30, parseInt(e.target.value, 10))); if (n) song.bpm = n; else delete song.bpm; });
 
+  if (edView === "text") return paintText(song);
   /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */
   const model = chordModel(song.body);
   const pencil = icon("edit");
@@ -1983,14 +2005,112 @@ function paintEdit(song) {
     /* Start typing the new section's first line right away. */
     sheet.querySelectorAll("[data-after]")[sheet.querySelectorAll("[data-after]").length - 1]?.click();
   };
-  $("ed-delete").onclick = () => {
-    chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove();
-    const entry = Tabs.deleteSong(data, song.id);
-    history.replaceState(null, "", "#/");
-    render();
-    toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
-  };
+  $("ed-delete").onclick = () => deleteFromEdit(song);
 }
+// ---- Text view: the same page, the sheet as plain text ----
+// Same title, details and bar; only the song area changes. Chord lines show in
+// copper behind the text, and switching keeps the line you were on in place.
+function switchView(song, v) {
+  if (v === edView) return;
+  /* Remember which line sits at the reading point, and where. */
+  const line = innerHeight * READ_AT;
+  const pick = sel => {
+    let best = null;
+    document.querySelectorAll(sel).forEach(el => { const r = el.getBoundingClientRect(); if (!best || Math.abs(r.top - line) < Math.abs(best.top - line)) best = { el, top: r.top }; });
+    return best;
+  };
+  let anchor = null;
+  if (edView === "sheet") { const b = pick("#sheet [data-line], #sheet [data-sec]"); if (b) anchor = { i: +(b.el.dataset.line ?? b.el.dataset.sec), top: b.top }; }
+  else { const b = pick(".ed-hl [data-l]"); if (b) anchor = { i: +b.el.dataset.l, top: b.top }; leaveText(song); }
+  edView = v;
+  document.querySelectorAll("#ed-seg [data-v]").forEach(b => { const on = b.dataset.v === v; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+  $("ed-seg")?.classList.toggle("right", v === "text");
+  paintEdit(song);
+  $("sheet")?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: calm() ? 0 : 160, easing: "ease-out" });
+  if (!anchor) return;
+  let el = null;
+  if (v === "text") el = document.querySelector(`.ed-hl [data-l="${anchor.i}"]`);
+  else {
+    /* The first line at or after it (a chord line belongs to the lyric below). */
+    let bestI = Infinity;
+    document.querySelectorAll("#sheet [data-line], #sheet [data-sec]").forEach(x => { const i = +(x.dataset.line ?? x.dataset.sec); if (i >= anchor.i && i < bestI) { bestI = i; el = x; } });
+  }
+  if (el) window.scrollBy(0, el.getBoundingClientRect().top - anchor.top);
+}
+function hlText(text) {
+  const model = chordModel(text), chordLines = new Set(), secs = new Set();
+  for (const l of model) { if (l.kind === "section") secs.add(l.i); if (l.kind === "chords") chordLines.add(l.i); if (l.kind === "lyric" && l.chordLine >= 0) chordLines.add(l.chordLine); }
+  return text.split("\n").map((ln, i) => {
+    const body = secs.has(i) || chordLines.has(i) ? esc(ln) : esc(ln).replace(/\[([^\]\s]{1,12})\]/g, '<span class="hc">[$1]</span>');
+    return `<div data-l="${i}" class="${chordLines.has(i) ? "hc" : secs.has(i) ? "hs" : ""}">${body || " "}</div>`;
+  }).join("");
+}
+function paintText(song) {
+  const sheet = $("sheet");
+  textSnap ||= snapshot(song);
+  sheet.innerHTML = `
+    ${aiKey() ? `<div class="ed-tools"><button class="chip ai" id="ed-clean">${icon("wand")}Clean up</button><button class="chip ai" id="ed-scan">${icon("camera")}Scan a page</button><input type="file" id="ed-photo" accept="image/*" hidden></div>` : ""}
+    <div class="ed-tx"><div class="ed-tx-in"><pre class="ed-hl" id="ed-hl" aria-hidden="true">${hlText(song.body || "")}</pre>
+      <textarea id="ed-body" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Song text" placeholder="[Verse]&#10;G        C&#10;Words under the chords">${esc(song.body || "")}</textarea></div></div>
+    <p class="ed-hint">Chords go on their own line above the words, or inline like [G]word. Sections in brackets, like [Chorus].</p>
+    <button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`;
+  const ta = $("ed-body");
+  ta.oninput = () => {
+    $("ed-hl").innerHTML = hlText(ta.value);
+    clearTimeout(textTimer);
+    textTimer = setTimeout(() => flushText(song), 300);
+  };
+  const run = async (btn, label, job) => {
+    if (btn.disabled) return;
+    const html = btn.innerHTML;
+    sheet.querySelectorAll(".chip.ai").forEach(b => b.disabled = true);
+    btn.innerHTML = busy(label);
+    try {
+      flushText(song);
+      const r = await job();
+      editChange(song, r.label, () => {
+        song.body = r.body;
+        if (!song.title.trim() && r.title) song.title = r.title;
+        if (!song.artist && r.artist) song.artist = r.artist;
+        if (!song.key && r.key) song.key = r.key;
+      });
+    } catch (e) { toast(aiError(e)); btn.innerHTML = html; sheet.querySelectorAll(".chip.ai").forEach(b => b.disabled = false); }
+  };
+  $("ed-clean")?.addEventListener("click", () => {
+    if (!ta.value.trim()) return toast("Paste a song first");
+    run($("ed-clean"), "Cleaning", async () => ({ ...(await cleanSheet({ text: ta.value })), label: "Cleaned up" }));
+  });
+  $("ed-scan")?.addEventListener("click", () => $("ed-photo").click());
+  $("ed-photo")?.addEventListener("change", e => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (file) run($("ed-scan"), "Reading page", async () => ({ ...(await cleanSheet({ image: await readPhoto(file) })), label: "Read from photo" }));
+  });
+  $("ed-delete").onclick = () => deleteFromEdit(song);
+}
+function flushText(song) {
+  clearTimeout(textTimer);
+  const ta = $("ed-body");
+  if (!ta || ta.value === song.body) return;
+  song.body = ta.value;
+  delete song.loop;
+  Tabs.save(data);
+}
+// Leaving the text view: save, and offer one Undo for everything typed there.
+function leaveText(song) {
+  if (edView !== "text") return;
+  flushText(song);
+  const before = textSnap;
+  textSnap = null;
+  if (before && before.body !== song.body) toast("Text changes saved", null, { label: "Undo", fn: () => { restoreSnap(song, before); Tabs.save(data); paintEdit(song); } });
+}
+function deleteFromEdit(song) {
+  chordEdit = null; edView = "sheet"; textSnap = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove();
+  const entry = Tabs.deleteSong(data, song.id);
+  history.replaceState(null, "", "#/");
+  render();
+  toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
+}
+
 // Swap a line for a text field; Return or leaving the field saves, Escape cancels.
 function lineInput(row, text, done) {
   row.innerHTML = `<input class="ce-input" value="${esc(text)}" placeholder="Type the line" aria-label="Line text" autocomplete="off" autocapitalize="sentences">`;
@@ -3259,7 +3379,7 @@ function showTips(name) {
 function render() {
   closeTuner();
   if (route().name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); }
-  if (chordEdit) { chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); $("ed-details")?.remove(); }
+  if (chordEdit) { if (edView === "text") flushText(chordEdit); chordEdit = null; edView = "sheet"; textSnap = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); $("ed-details")?.remove(); }
   document.querySelector(".smap")?.remove(); map.el = null;
   stopScroll();
   if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }
