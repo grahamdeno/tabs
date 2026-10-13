@@ -31,13 +31,15 @@ jobs:
       - name: browser tests
         shell: bash
         run: |
-          set -o pipefail
-          node --test tests/e2e/*.e2e.mjs 2>&1 | tee e2e.log || {
+          set +e -o pipefail
+          node --test tests/e2e/*.e2e.mjs 2>&1 | tee e2e.log
+          status=$?
+          if [ $status -ne 0 ]; then
             # One annotation with what failed, readable from the run's summary and the API.
-            msg=$(grep -E "^not ok|Error|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            msg=$( { grep -aE "^not ok|Error|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log || tail -40 e2e.log; } | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
             echo "::error title=Browser tests failed::$msg"
-            exit 1
-          }
+          fi
+          exit $status
       - uses: actions/upload-artifact@v4
         if: always()
         with:
