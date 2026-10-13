@@ -461,3 +461,20 @@ test("an unreadable save comes back from the safety copy", { skip: skip() }, asy
   assert.match(await page.innerText("#toast"), /restored from its safety copy/);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.length, 2);
 });
+
+test("a page-turner pedal: left plays and pauses, right goes to the next section, held goes back", { skip: skip() }, async t => {
+  const long = { ...LIB, songs: [{ ...LIB.songs[0], body: Array.from({ length: 6 }, (_, i) => `[Part ${i + 1}]\n` + "A  D\nWalking down the road\n".repeat(6)).join("\n") }, LIB.songs[1]] };
+  const page = await phone(t, long);
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  const secTop = n => page.evaluate(n => Math.round(document.querySelectorAll("#sheet > .sec")[n].getBoundingClientRect().top - innerHeight * 0.4), n);
+  await page.keyboard.press("PageDown"); await page.waitForTimeout(900);
+  assert.ok(Math.abs(await secTop(1)) < 4, "Part 2 at the reading line");
+  await page.keyboard.press("ArrowRight"); await page.waitForTimeout(900);
+  assert.ok(Math.abs(await secTop(2)) < 4, "Part 3 at the reading line");
+  await page.keyboard.down("PageDown"); await page.waitForTimeout(800); await page.keyboard.up("PageDown"); await page.waitForTimeout(900);
+  assert.ok(Math.abs(await secTop(1)) < 4, "held: back to Part 2");
+  await page.keyboard.press("PageUp"); await page.waitForTimeout(500);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
+  await page.keyboard.press(" "); await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
+});

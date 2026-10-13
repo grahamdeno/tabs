@@ -1368,6 +1368,42 @@ function loopCheck(song) {
   return true;
 }
 
+// ---------- Pedals and keyboards ----------
+// A Bluetooth page-turner pedal pairs with the phone as a keyboard, so the song
+// view answers keys. Left pedal (Page Up, ← or ↑) or Space plays and pauses.
+// Right pedal (Page Down, → or ↓) goes to the next section; held, back one.
+const PEDAL_NEXT = ["PageDown", "ArrowRight", "ArrowDown"], PEDAL_PLAY = ["PageUp", "ArrowLeft", "ArrowUp", " "];
+const pedal = { timer: 0, long: false };
+function stepSection(dir) {
+  const sheet = $("sheet");
+  if (!sheet) return;
+  const now = scrollY, page = innerHeight * 0.7;
+  const tops = [...sheet.querySelectorAll(":scope > .sec")].map(el => Math.max(0, Math.round(el.getBoundingClientRect().top + scrollY - innerHeight * READ_AT)));
+  let to = dir > 0 ? tops.find(y => y > now + 8) : tops.slice().reverse().find(y => y < now - 8);
+  if (to === undefined) to = dir > 0 ? now + page : (tops.length ? 0 : now - page);
+  hold.active = true; releaseSoon(900);
+  window.scrollTo({ top: Math.min(Math.max(0, to), mapMax()), behavior: calm() ? "auto" : "smooth" });
+  diag.pinned = null;
+  tick();
+}
+const pedalOff = e => route().name !== "song" || chordEdit || e.metaKey || e.ctrlKey || e.altKey || layer.innerHTML || document.querySelector(".ask") ||
+  e.target.closest?.("input, textarea, select, [contenteditable]") || (e.key === " " && e.target.closest?.("button, a"));
+document.addEventListener("keydown", e => {
+  if (pedalOff(e)) return;
+  if (PEDAL_PLAY.includes(e.key)) { e.preventDefault(); if (!e.repeat) { markUsed("pedal"); $("play")?.click(); } }
+  else if (PEDAL_NEXT.includes(e.key)) {
+    e.preventDefault();
+    if (e.repeat || pedal.timer) return;
+    markUsed("pedal"); pedal.long = false;
+    pedal.timer = setTimeout(() => { pedal.long = true; stepSection(-1); }, 600);
+  }
+});
+document.addEventListener("keyup", e => {
+  if (!PEDAL_NEXT.includes(e.key) || !pedal.timer) return;
+  clearTimeout(pedal.timer); pedal.timer = 0;
+  if (!pedal.long && !pedalOff(e)) { e.preventDefault(); stepSection(1); }
+});
+
 // ---------- Song map ----------
 // A thin rail on the right edge with a dot for each section. Quiet while you play;
 // touch it and the section names appear, slide to a section and let go to jump.
@@ -3345,6 +3381,10 @@ const GESTURES = [
   ["While playing", [
     ["pause", "Tap anywhere", "Pause (tap twice on stage)", "pause"],
     ["", "Scroll by hand", "It carries on from where you leave it", "down"]]],
+  ["Pedal or keyboard", [
+    ["", "Left pedal, or Space", "Play and pause", "play"],
+    ["", "Right pedal", "Next section; hold it to go back one", "down"],
+    ["", "Any Bluetooth page-turner", "Pair it in the phone's Bluetooth settings; it works like a keyboard", "info"]]],
   ["Practice a section", [
     ["", "Tap the first and last line", "Loops that part; Build up adds a line each time", "loop"]]],
   ["Library and search", [

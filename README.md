@@ -111,6 +111,8 @@ Layout, with no build step:
 
 Releases: `VERSION` in `core.js` and `CACHE` in `sw.js` must match (a test checks). You don't need to bump them by hand: when app files change on `main` without a bump, the `bump version` workflow raises the patch number in both and commits it. Bump by hand only for a minor or major release. The app opens from its saved copy, so a change only reaches installed apps through a new cache name. On the next launch, or when the app comes back to the foreground, it saves the new release in the background and offers to reload. Until you reload, the open app keeps loading its remaining parts (the tuner, AI tools) from its own release: they're requested as `tuner.js?v=1.2.3`, and the service worker keeps the previous release's cache for this.
 
+Pedals and keyboards: a Bluetooth page-turner pedal pairs as a keyboard. On a song, the left pedal (Page Up, ← or ↑) or Space plays and pauses; the right pedal (Page Down, → or ↓) goes to the next section, and holding it goes back one. Keys are ignored while typing, editing or with a panel open.
+
 Questions: the app never uses the phone's alert boxes. `ask()` in app.js shows a short sheet (a field with quick picks and a live chord diagram, or a yes/no with a red button). Discarding a new song happens at once with Undo instead of a question.
 
 Storage: the library is saved to localStorage and, on every save, to a safety copy in IndexedDB. At launch, a missing or unreadable save, or one whose last write failed because storage was full, is restored from the copy. See docs/DATA.md.
