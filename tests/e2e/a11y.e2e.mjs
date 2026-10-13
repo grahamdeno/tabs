@@ -2,6 +2,7 @@
 // axe-core is installed, as in CI) axe finds no serious or critical problems.
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { base, phone, skip, LIB, useBrowser } from "./harness.mjs";
@@ -41,7 +42,8 @@ for (const theme of ["dark", "light"]) {
       if (act) { await act(page); await page.waitForTimeout(400); }
       for (const html of await page.evaluate(unnamed)) problems.push(`${screen}: no name: ${html}`);
       if (axePath) {
-        await page.addScriptTag({ path: axePath });
+        /* Evaluated rather than added as a script tag: the app's CSP allows only its own files. */
+        await page.evaluate(fs.readFileSync(axePath, "utf8"));
         const found = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"], resultTypes: ["violations"] }))
           .violations.filter(v => v.impact === "serious" || v.impact === "critical")
           .map(v => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map(n => n.target.join(" ")).join(" | ")}`));
