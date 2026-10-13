@@ -225,6 +225,16 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .ai-status { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
 .ai-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rim); }
 .ai-status .dot.on { background: #7ac47f; }
+/* Make it easier */
+.strip-h .chip.easy { text-transform: none; letter-spacing: 0; font-weight: 500; height: 28px; font-size: 12.5px; }
+.chip.easy.off { color: var(--muted); border-color: var(--rim); background: var(--card); }
+.easy-wait { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; padding: 18px 2px 22px; }
+.easy-note { font-size: 14px; color: var(--fg-2); line-height: 1.45; margin: 0 2px 12px; }
+.elabel { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 2px 6px; }
+.erow { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px 2px; scrollbar-width: none; }
+.erow::-webkit-scrollbar { display: none; }
+.ecard { flex: none; border-radius: 9px; background: var(--card); border: 1px solid var(--rim); padding: 1px; }
+.ecard svg { display: block; }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -320,7 +330,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape } from "./core.js";
+import { Tabs, SPEEDS, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -726,20 +736,26 @@ function renderViewer(id) {
 
   const draw = () => {
     const steps = song.transpose || 0;
+    const easy = isChords && song.easier?.on ? song.easier : null;
+    const capo = easy ? easy.capo || 0 : 0;
     const baseKey = isChords ? (song.key || guessKey(song.body || "")) : "";
-    const key = transposeKey(baseKey, steps);
+    const key = transposeKey(baseKey, steps); // the key it sounds in
+    const capoTxt = capo ? `Capo <b>${capo}</b>` : "";
     $("meta").innerHTML = [
       song.artist && `<span>${esc(song.artist)}</span>`,
       key && `<span>Key <b>${esc(key)}</b></span>`,
+      capoTxt && `<span>${capoTxt}</span>`,
       !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>');
-    $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, !isChords && "Tab"]
+    $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, capoTxt, !isChords && "Tab"]
       .filter(Boolean).join(" · ");
+    SUBS = easy ? easy.subs || {} : {};
     const sheet = $("sheet");
     const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
-    renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps : 0, isChords && prefersFlats(baseKey, steps)));
-    renderStrip(sheet, isChords);
+    // With a capo the shapes sit lower than the sound: shift the chords down by the capo.
+    renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps - capo : 0, isChords && prefersFlats(baseKey, steps - capo)));
+    renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
     if (isChords) {
       val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
@@ -751,6 +767,7 @@ function renderViewer(id) {
   };
   draw();
   redraw = draw;
+  viewing = song;
 
   const speed = $("speed");
   const showSpeed = () => {
@@ -787,8 +804,11 @@ function renderViewer(id) {
 // Render display blocks. Chord/lyric pairs wrap between words with chords riding
 // on their word; tab systems are re-wrapped by measure to the screen width.
 let redraw = null;
+// Substitutions from Make it easier for the song on screen: shape name → easier chord.
+let SUBS = {};
 function chordLabel(text) {
-  const name = String(text).split(/\s+/)[0].replace(/^\(|\)$/g, "");
+  let name = String(text).split(/\s+/)[0].replace(/^\(|\)$/g, "");
+  if (SUBS[name]) { text = String(text).replace(name, SUBS[name]); name = SUBS[name]; }
   return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : `<span class="c">${esc(text)}</span>`;
 }
 function renderBlocks(sheet, blocks) {
@@ -1005,13 +1025,123 @@ window.addEventListener("scroll", () => {
   }, 220);
 }, { passive: true });
 
+// ---------- Make it easier ----------
+// Claude suggests a capo and a few simpler substitutes. Only chord names are sent:
+// this song's chords and the chords used most across the library. The original
+// sheet is never changed; the suggestion is stored with the song and can be
+// switched off.
+let viewing = null; // the song on screen
+
+function chordNames(body, steps, flats) {
+  const out = [];
+  for (const b of parseBlocks(body || "", steps, flats)) {
+    const raw = b.kind === "pair" ? b.words.flatMap(w => w.parts || []).map(p => p.chord).filter(Boolean)
+      : b.kind === "chords" ? b.items : [];
+    for (const r of raw) {
+      const n = String(r).split(/\s+/)[0].replace(/^\(|\)$/g, "");
+      if (chordShape(n) && !out.includes(n)) out.push(n);
+    }
+  }
+  return out;
+}
+const songKey = s => s.key || guessKey(s.body || "");
+// Shapes you'd play at each capo, for the song as it sounds now.
+function capoTable(song) {
+  const steps = song.transpose || 0, k = songKey(song);
+  return Array.from({ length: 8 }, (_, c) => chordNames(song.body, steps - c, prefersFlats(k, steps - c)));
+}
+// The player's usual chords, across the whole library.
+function commonChords() {
+  const count = {};
+  for (const s of data.songs) if (s.format !== "tab")
+    for (const n of chordNames(s.body, s.transpose || 0, prefersFlats(songKey(s), s.transpose || 0))) count[n] = (count[n] || 0) + 1;
+  return Object.entries(count).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([n]) => n);
+}
+
+const EASY_SYSTEM = `You help a guitarist play a song more easily without changing how it sounds.
+Reply with JSON only, no other text: {"capo": number, "substitutions": {"ShapeName": "EasierChord"}, "note": string}
+- "capo": 0 to 7. The user gives the chord shapes for each capo position. Pick the one that is easiest to play: open chords over barre chords, fewer different shapes, and shapes this player already uses often. Use 0 if no capo helps.
+- "substitutions": at most 4, keyed by shape names from the chosen capo's list. Only swap a chord for a simpler one that keeps the song's sound, like F to Fmaj7, Bm to Bm7, or B7 for a hard B. Leave it empty if nothing clearly helps.
+- "note": one plain sentence, under 20 words, saying what changed and why. No praise.`;
+
+async function suggestEasier(song) {
+  const table = capoTable(song);
+  const content = `Chords as written, in order: ${table[0].join(" ")}
+Shapes at each capo:
+${table.map((t, c) => `Capo ${c}: ${t.join(" ")}`).join("\n")}
+Chords this player uses most: ${commonChords().join(" ") || "unknown"}`;
+  const out = parseJSON(await askClaude({ content, system: EASY_SYSTEM, maxTokens: 4000 }));
+  const capo = Math.max(0, Math.min(7, parseInt(out.capo, 10) || 0));
+  const shapes = table[capo];
+  const subs = {};
+  for (const [from, to] of Object.entries(out.substitutions || {})) {
+    if (Object.keys(subs).length >= 4) break;
+    if (shapes.includes(from) && typeof to === "string" && to !== from && chordShape(to)) subs[from] = to;
+  }
+  const note = String(out.note || "").trim().slice(0, 160);
+  return { capo, subs, note, on: true, before: table[0], after: shapes.map(n => subs[n] || n) };
+}
+
+function easierSheet(song) {
+  let result = song.easier || null, working = false;
+  const cards = names => [...new Set(names)].map(n => `<div class="ecard">${chordSVG(n, 0.82)}</div>`).join("");
+  const paint = () => {
+    const panel = $("easy-panel");
+    if (!panel) return;
+    if (working) {
+      panel.innerHTML = `<div class="pc-head">${icon("wand")}<span>Make it easier</span></div>
+        <div class="easy-wait">${busy("Finding easier shapes")}</div>`;
+      return;
+    }
+    if (!result) return;
+    const same = !result.capo && !Object.keys(result.subs || {}).length;
+    panel.innerHTML = `
+      <div class="pc-head">${icon("wand")}<span>Make it easier</span></div>
+      ${same ? `<p class="easy-note">This song is already about as easy as it gets in this key.</p>` : `
+      <div class="tags">${result.capo ? `<span class="tag">Capo ${result.capo}</span>` : ""}${Object.entries(result.subs || {}).map(([a, b]) => `<span class="tag">${esc(a)} → ${esc(b)}</span>`).join("")}</div>
+      ${result.note ? `<p class="easy-note">${esc(result.note)}</p>` : ""}
+      <div class="elabel">Before</div><div class="erow">${cards(result.before || [])}</div>
+      <div class="elabel">After</div><div class="erow">${cards(result.after || [])}</div>`}
+      <div class="actions">
+        <button class="btn" id="e-again">${icon("wand")}Try again</button>
+        ${same ? `<button class="btn primary" id="e-close">OK</button>`
+          : song.easier === result && result.on ? `<button class="btn primary" id="e-off">Turn off</button>`
+          : `<button class="btn primary" id="e-apply">${song.easier === result ? "Turn on" : "Apply"}</button>`}
+      </div>`;
+    $("e-again").onclick = ask;
+    $("e-close")?.addEventListener("click", close);
+    $("e-off")?.addEventListener("click", () => { result.on = false; Tabs.save(data); close(); redraw?.(); toast("Easier off", $("easy")); });
+    $("e-apply")?.addEventListener("click", () => { result.on = true; song.easier = result; Tabs.save(data); close(); redraw?.(); toast(result.capo ? `Capo ${result.capo}` : "Easier on", $("easy")); });
+  };
+  const close = () => { if (!working) layer.innerHTML = ""; };
+  const ask = async () => {
+    working = true; paint();
+    try { result = await suggestEasier(song); }
+    catch (e) {
+      working = false;
+      $("easy-panel").innerHTML = `<div class="pc-head">${icon("wand")}<span>Make it easier</span></div>
+        <p class="ai-note">${esc(aiError(e))}</p>
+        <div class="actions"><button class="btn" id="e-close">Close</button><button class="btn primary" id="e-retry">Try again</button></div>`;
+      $("e-close").onclick = close; $("e-retry").onclick = ask;
+      return;
+    }
+    working = false; paint();
+  };
+  layer.innerHTML = `<div class="scrim" id="e-scrim"></div><div class="panel card" id="easy-panel" role="dialog" aria-label="Make it easier"></div>`;
+  $("e-scrim").onclick = close;
+  if (result) paint(); else ask();
+}
+
 // "Chords in this song": each chord once, in order of first use, to learn before playing.
-function renderStrip(sheet, isChords) {
+function renderStrip(sheet, isChords, song) {
   const box = $("strip");
   if (!box) return;
   const names = isChords ? [...new Set([...sheet.querySelectorAll(".c[data-ch]")].map(el => el.dataset.ch))] : [];
+  const ez = song?.easier;
+  const easyBtn = !aiKey() && !ez ? `<span class="n">${names.length}</span>`
+    : `<button class="chip ai easy ${ez?.on ? "on" : ez ? "off" : ""}" id="easy">${icon("wand")}${ez ? (ez.on ? "Easier" + (ez.capo ? ` · Capo ${ez.capo}` : "") : "Easier off") : "Make it easier"}</button>`;
   box.innerHTML = names.length ? `
-    <div class="strip-h"><span>Chords in this song</span><span class="n">${names.length}</span></div>
+    <div class="strip-h"><span>Chords in this song</span>${easyBtn}</div>
     <div class="strip" role="list">${names.map(n =>
       `<button class="scard" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)}: show where it's played">${chordSVG(n)}</button>`).join("")}</div>` : "";
 }
@@ -1039,6 +1169,12 @@ function showChordPop(target) {
 }
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet")) return;
+  if (e.target instanceof Element && e.target.closest("#easy")) {
+    if (!aiKey() && !viewing?.easier) return;
+    if (!aiKey() && viewing.easier) { viewing.easier.on = !viewing.easier.on; Tabs.save(data); redraw?.(); return; }
+    if (!scroll.on) easierSheet(viewing);
+    return;
+  }
   // Strip card: outline it and mark every place that chord is played.
   const sc = e.target instanceof Element && e.target.closest(".strip .scard");
   if (sc) {
