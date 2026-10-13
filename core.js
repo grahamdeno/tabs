@@ -277,6 +277,7 @@ export function cleanSong(raw) {
     if (!/^https:\/\//.test(s.listen.url || "")) delete s.listen;
     else if (s.listen.art !== undefined && !/^https:\/\//.test(String(s.listen.art))) { s.listen = { ...s.listen }; delete s.listen.art; }
   }
+  if (s.art !== undefined && !/^https:\/\//.test(String(s.art))) delete s.art; /* album art for set covers: https only */
   if (s.loop && !(Number.isInteger(s.loop.a) && Number.isInteger(s.loop.b))) delete s.loop;
   return s;
 }

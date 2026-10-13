@@ -552,3 +552,24 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   assert.match(await body(), new RegExp(`\\n${chords[0]}\\s+${chords[1] ? chords[1] + "\\n" : "\\n"}Home to you a little more$`));
   assert.deepEqual(errors, []);
 });
+
+test("a set's Album art cover finds art for its songs on Apple Music", { skip: skip() }, async t => {
+  const lib = { ...LIB,
+    songs: [{ ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music" } }, { ...LIB.songs[1], artist: "The Night Ferries" }],
+    sets: [{ id: "s", name: "Friday", songIds: ["a", "b"] }] };
+  const page = await phone(t, lib);
+  const art = n => `https://is1-ssl.mzstatic.com/image/thumb/${n}/100x100bb.jpg`;
+  await page.route("https://itunes.apple.com/lookup**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify({ results: [{ trackId: 111, artworkUrl100: art("river"), trackTimeMillis: 200000 }] }) }));
+  await page.route("https://itunes.apple.com/search**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "The Night Ferries", trackViewUrl: "https://music.apple.com/x", artworkUrl100: art("harbor") }] }) }));
+  await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex") }));
+  await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
+  await page.click("#s-cover"); await page.waitForTimeout(200);
+  await page.click('[data-cv="art"]'); await page.waitForTimeout(800);
+  const songs = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs;
+  assert.match(songs.find(s => s.id === "a").listen.art, /river\/600x600bb/);
+  assert.match(songs.find(s => s.id === "b").art, /harbor\/600x600bb/);
+  assert.match(await page.innerText("#toast"), /Album art for every song/);
+  assert.ok(await page.locator('.cover img[src*="river"]').count() >= 1, "the cover shows the art");
+});

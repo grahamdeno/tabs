@@ -839,3 +839,8 @@ test("sketch: a nudge where another chord clearly holds the melody better", () =
   assert.equal(C.lineHint("x y", notes, [{ chord: "G", at: 0 }, { chord: "Em", at: 2 }], key), null, "no nudge when it already fits");
   assert.deepEqual(C.chordWords("Every road I take keeps bending back", line([64, 64, 64, 64, 64, 64, 64, 64, 64], 0.4), [{ chord: "Em", at: 0 }, { chord: "C", at: 2 }]), [0, 3]);
 });
+
+test("backups keep a song's album art only as an https link", () => {
+  assert.equal(C.cleanSong({ id: "a", body: "G", art: "https://is1-ssl.mzstatic.com/x/600x600bb.jpg" }).art, "https://is1-ssl.mzstatic.com/x/600x600bb.jpg");
+  assert.equal(C.cleanSong({ id: "a", body: "G", art: "javascript:alert(1)" }).art, undefined);
+});

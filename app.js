@@ -1481,7 +1481,9 @@ async function recordingLength(song, url, opts) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
   try {
     const r = await fetch(`https://itunes.apple.com/lookup?id=${id}&entity=song`, { signal: ctl.signal });
-    const ms = r.ok ? ((await r.json()).results || []).find(x => x.trackTimeMillis)?.trackTimeMillis : 0;
+    const hit = r.ok ? ((await r.json()).results || []).find(x => x.trackTimeMillis) : null, ms = hit?.trackTimeMillis;
+    /* A pasted link brings its album art too (for set covers). */
+    if (hit?.artworkUrl100 && song.listen?.url === url && !song.listen.art) { song.listen = { ...song.listen, art: hit.artworkUrl100.replace(/\d+x\d+bb/, "600x600bb") }; Tabs.save(data); }
     if (ms && song.listen?.url === url) useRecordingLength(song, ms / 1000, opts);
   } catch {} finally { clearTimeout(t); }
 }

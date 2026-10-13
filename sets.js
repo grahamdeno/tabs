@@ -1,6 +1,6 @@
 // Tabs sets: the set page, playing a set through, covers (from the songs,
 // album art or a photo) and the new-set sheet.
-import { TUNINGS, Tabs, firstLyric, logSetRun, playsThisWeek, untilLabel } from "./core.js";
+import { TUNINGS, Tabs, appleTrackId, firstLyric, logSetRun, playsThisWeek, rankTracks, untilLabel } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { applyTheme, calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, viewing } from "./app.js";
 
@@ -20,7 +20,7 @@ function paintCoverOpts(set, redraw) {
   const o = $("cvopts"), cur = set.cover?.type || "songs", art = setArt(set);
   o.innerHTML = `
     <button class="cvo ${cur === "songs" ? "on" : ""}" data-cv="songs"><i>${coverSVG(setKeys(set), { name: set.name, small: true, notext: true })}</i>From songs</button>
-    <button class="cvo ${cur === "art" ? "on" : ""}" data-cv="art" ${art.length ? "" : "aria-disabled=\"true\""}><i>${art.length ? `<img src="${esc(art[0])}" alt="">` : icon("note")}</i>Album art</button>
+    <button class="cvo ${cur === "art" ? "on" : ""}" data-cv="art"><i>${art.length ? `<img src="${esc(art[0])}" alt="">` : icon("note")}</i>Album art</button>
     <button class="cvo ${cur === "photo" ? "on" : ""}" data-cv="photo"><i>${coverCache[set.id] ? `<img src="${coverCache[set.id]}" alt="">` : icon("image")}</i>Photo</button>
     <button class="cvo" data-cv="camera"><i>${icon("camera")}</i>Camera</button>
     <input type="file" id="cv-file" accept="image/*" hidden><input type="file" id="cv-cam" accept="image/*" capture="environment" hidden>`;
@@ -29,8 +29,15 @@ function paintCoverOpts(set, redraw) {
     const v = b.dataset.cv;
     if (v === "songs") { set.cover = { type: "songs" }; Tabs.save(data); redraw(); }
     else if (v === "art") {
-      if (!art.length) return toast("Use Listen on songs in this set to find their recordings; their album art can then be the cover");
-      set.cover = { type: "art" }; Tabs.save(data); redraw();
+      set.cover = { type: "art" }; Tabs.save(data);
+      const missing = setSongs(set).filter(x => !songArt(x)).length;
+      if (!missing) return redraw();
+      b.classList.add("busy");
+      fillArt(set).then(n => {
+        redraw();
+        const have = setArt(set).length, all = setSongs(set).length;
+        toast(!have ? "No album art found. Use Listen on these songs to pick their recordings." : have < all ? `Album art for ${have} of ${all} songs. Listen on the others finds theirs.` : "Album art for every song");
+      });
     }
     else if (v === "photo") { if (coverCache[set.id] && cur !== "photo") { set.cover = { ...set.cover, type: "photo" }; Tabs.save(data); return redraw(); } pickFile($("cv-file")); }
     else pickFile($("cv-cam"));
@@ -40,6 +47,8 @@ function renderSet(id) {
   const set = data.sets.find(x => x.id === id);
   if (!set) return go("#/");
   const songs = setSongs(set);
+  /* A set showing album art fills in art for songs added since. */
+  if (set.cover?.type === "art" && songs.some(x => !songArt(x) && !artTried.has(x.id))) fillArt(set).then(n => { if (n && location.hash === "#/set/" + encodeURIComponent(id)) renderSet(id); });
   app.innerHTML = `
     <div class="head">
       <button class="ib glass" id="back" aria-label="Back to sets">${icon("back")}</button>
@@ -256,7 +265,38 @@ function coverSVG(keys, opts = {}) {
 }
 const setKeys = set => setSongs(set).map(s => s.format === "tab" ? "" : keyOf(s));
 // A set's cover: drawn from its songs (the default), its songs' album art, or a photo.
-const setArt = set => setSongs(set).map(s => s.listen?.art).filter(a => /^https:\/\//.test(a || ""));
+const songArt = s => s.listen?.art || s.art;
+const setArt = set => setSongs(set).map(songArt).filter(a => /^https:\/\//.test(a || ""));
+
+// ---- Album art for a set's songs ----
+// A song gets its art when you pick its recording in Listen. For the others,
+// once a set uses album art: songs linked to Apple Music get it from Apple by
+// track number; the rest from an Apple Music search, only when the title and
+// artist clearly match. Kept on the song as `art` (the cover only).
+const artTried = new Set();
+const big = u => String(u).replace(/\d+x\d+bb/, "600x600bb");
+async function getJSON(url) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
+  try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; }
+  catch { return null; } finally { clearTimeout(t); }
+}
+async function fillArt(set) {
+  const need = setSongs(set).filter(s => !songArt(s) && !artTried.has(s.id));
+  need.forEach(s => artTried.add(s.id));
+  let found = 0;
+  const linked = need.map(s => [s, appleTrackId(s.listen?.url || "")]).filter(([, id]) => id);
+  if (linked.length) {
+    const res = (await getJSON(`https://itunes.apple.com/lookup?id=${linked.map(([, id]) => id).join(",")}&entity=song`))?.results || [];
+    linked.forEach(([s, id]) => { const r = res.find(x => String(x.trackId) === id && x.artworkUrl100); if (r) { s.listen = { ...s.listen, art: big(r.artworkUrl100) }; found++; } });
+  }
+  for (const s of need.filter(x => !songArt(x) && x.title && x.artist).slice(0, 12)) {
+    const term = encodeURIComponent(`${s.title} ${s.artist}`);
+    const top = rankTracks((await getJSON(`https://itunes.apple.com/search?term=${term}&entity=song&limit=8`))?.results || [], s.title, s.artist)[0];
+    if (top?.artworkUrl100 && top.score >= 4.5) { s.art = big(top.artworkUrl100); found++; }
+  }
+  if (found) Tabs.save(data);
+  return found;
+}
 function setCover(set, opts = {}) {
   const type = set.cover?.type;
   if (type === "photo" && coverCache[set.id]) return `<div class="cover"><img src="${coverCache[set.id]}" alt=""></div>`;

@@ -45,6 +45,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `tuning` | key of `TUNINGS` | Missing means standard |
 | `favorite` | boolean | |
 | `created` | ISO date | |
+| `art` | string | Album art for set covers, found on Apple Music when the title and artist clearly match (https only). A Listen link's own art comes first |
 | `listen` | `{ url, service, title?, artist?, art?, length? }` | `url` and `art` are https only; `length` is the recording's, in seconds |
 | `loop` | `{ a, b, build }` | Practice a section, line numbers |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
