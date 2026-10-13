@@ -481,7 +481,7 @@ function renderViewer(id) {
   if (!song) return go("#/");
   const isChords = song.format !== "tab";
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
-  if (song.speed === undefined) song.speed = SPEEDS[data.settings.scrollSpeed] || SPEEDS.medium;
+  if (song.speed === undefined) song.speed = SPEEDS.medium; // 1.0x; each song then keeps its own
   if (song.size === undefined) song.size = 1;
   song.opened = Date.now();
   Tabs.save(data);
@@ -518,7 +518,7 @@ function renderViewer(id) {
       <div class="player">
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
         <div class="speed">
-          <input type="range" id="speed" min="5" max="100" value="${song.speed}" aria-label="Scroll speed">
+          <input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">
           <span id="sv"></span>
         </div>
         ${isChords ? `<button class="sb nnbtn ${data.settings.diagrams === true ? "on" : ""}" id="nnbtn" aria-label="Now and Next chords" aria-pressed="${data.settings.diagrams === true}">${icon("fretboard")}</button>` : ""}
@@ -574,7 +574,7 @@ function renderViewer(id) {
 
   const speed = $("speed");
   const showSpeed = () => {
-    speed.style.setProperty("--fill", ((speed.value - 5) / 95 * 100) + "%");
+    speed.style.setProperty("--fill", ((speed.value - 4.5) / 94.5 * 100) + "%");
     $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
   };
   showSpeed();
@@ -768,7 +768,7 @@ function applyPaused() {
   const sheet = $("sheet");
   if (!sheet || scroll.on) return;
   const block = pausedBlock();
-  const on = diag.focus === "always" && !diag.scrolling;
+  const on = diag.focus === "always";
   sheet.classList.toggle("focus", on);
   setCurrent(on ? block : null);
   showPausedRow(block);
@@ -811,11 +811,11 @@ let pausedTimer = 0;
 window.addEventListener("scroll", () => {
   const sheet = $("sheet");
   if (scroll.on || !sheet || route().name !== "song") return;
-  if (!diag.scrolling) {
-    diag.scrolling = true;
-    diag.scrollFrom = window.scrollY;
-    sheet.classList.remove("focus");
-  }
+  if (!diag.scrolling) { diag.scrolling = true; diag.scrollFrom = window.scrollY; }
+  // Focus stays on while scrolling and follows the reading point; a small
+  // nudge keeps a tapped line. Diagrams move once the scroll comes to rest.
+  if (diag.pinned && Math.abs(window.scrollY - diag.scrollFrom) > 40) diag.pinned = null;
+  if (diag.focus === "always") { sheet.classList.add("focus"); setCurrent(pausedBlock()); }
   clearTimeout(pausedTimer);
   pausedTimer = setTimeout(() => {
     diag.scrolling = false;
@@ -1085,7 +1085,6 @@ function renderForm(id) {
 // ---------- Settings ----------
 function renderSettings() {
   const s = data.settings;
-  const speedName = { slow: "Slow", medium: "Medium", fast: "Fast" }[s.scrollSpeed];
   const t = s.transpose || 0;
   const semis = n => n === 0 ? "None" : `${n > 0 ? "+" : ""}${n} semitone${Math.abs(n) === 1 ? "" : "s"}`;
   app.innerHTML = `
@@ -1095,12 +1094,6 @@ function renderSettings() {
     <h1 class="title" style="margin:14px 2px 10px">Settings</h1>
     <div class="label">Playing</div>
     <div class="set-group glass">
-      <div class="set">
-        <span class="tile">${icon("gauge")}</span><span class="name">Scroll speed</span><span class="val">${speedName}</span>${icon("chev", "chev")}
-        <select id="s-speed" aria-label="Default scroll speed">
-          ${Object.keys(SPEEDS).map(k => `<option value="${k}" ${k === s.scrollSpeed ? "selected" : ""}>${k[0].toUpperCase() + k.slice(1)}</option>`).join("")}
-        </select>
-      </div>
       <div class="set">
         <span class="tile">${icon("note")}</span><span class="name">Default transpose</span><span class="val">${semis(t)}</span>${icon("chev", "chev")}
         <select id="s-transpose" aria-label="Default transpose">
@@ -1138,7 +1131,6 @@ function renderSettings() {
     <input type="file" id="file" accept=".json,application/json" hidden>
     <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
   $("back").onclick = () => go("#/");
-  $("s-speed").onchange = e => { s.scrollSpeed = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };

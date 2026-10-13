@@ -60,6 +60,7 @@ export const Tabs = {
       favorite: false,
       format: "chords",
       key: "",
+      speed: SPEEDS.medium, // 1.0x
       ...song
     };
     data.songs.unshift(s);

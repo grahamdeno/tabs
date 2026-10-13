@@ -18,7 +18,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Paste a chord sheet into the bar and Tabs detects format, key, sections, title and artist, then offers to save it
 - Chord sheets first: chords in the accent color over the lyrics, chords-over-lyrics or inline `[G]` style
 - Recent songs, favorites and a Tabs filter on the library
-- Slim playback bar: auto-scroll with speed, transpose (or text size for tabs)
+- Slim playback bar: auto-scroll with speed (each song starts at 1.0x and keeps its own speed), transpose (or text size for tabs)
 - Transpose per song, with sharps or flats chosen by the resulting key
 - Lyrics wrap to the screen at full size, with each chord riding on its word; words never split
 - Tabs wrap a measure at a time, all strings together, with string names on every row
@@ -26,7 +26,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Focus current line (Always, While playing, or Off): the current line stays bright and the rest dim; when paused, tap a line to focus it and play starts from there
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
 - Add and edit in a slide-up sheet; delete from edit
-- Settings (gear, top right): scroll speed, default transpose, dark/light mode, backup
+- Settings (gear, top right): default transpose, dark/light mode, backup
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
 
 ## Chord sheet format
