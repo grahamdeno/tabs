@@ -2342,12 +2342,11 @@ function renderSettings() {
     reader.onload = () => {
       const imported = Tabs.import(reader.result);
       if (!imported) return toast("That file isn't a Tabs backup");
-      data = imported;
-      const covers = data.covers || {};
-      delete data.covers; Tabs.save(data);
-      Object.entries(covers).forEach(([id, url]) => { if (/^data:image\//.test(url)) coverPut(id, url); });
+      data = imported.data;
+      Object.entries(imported.covers).forEach(([id, url]) => coverPut(id, url));
       applyTheme();
-      toast(`Imported ${data.songs.length} song${data.songs.length === 1 ? "" : "s"}`);
+      const n = data.songs.length, bad = imported.skipped;
+      toast(`Imported ${n} song${n === 1 ? "" : "s"}${bad ? `. Skipped ${bad} that couldn't be read.` : ""}`);
       go("#/");
     };
     reader.readAsText(f);

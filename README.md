@@ -93,7 +93,7 @@ So use a key made only for Tabs, and in the Anthropic Console give its workspace
 
 ## Development
 
-Open `index.html` through any static server (ES modules need http, not file://). Data lives in `localStorage` under `tabs-v1`. Older tab-only saves are migrated automatically.
+Open `index.html` through any static server (ES modules need http, not file://). Data lives in `localStorage` under `tabs-v1`; [docs/DATA.md](docs/DATA.md) describes every field, the backup file and how restoring checks it. Older saves are migrated automatically.
 
 Layout, with no build step:
 

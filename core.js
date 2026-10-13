@@ -177,18 +177,101 @@ export const Tabs = {
     return JSON.stringify(data, null, 2);
   },
 
+  // A backup file: checked and cleaned (see docs/DATA.md), then saved.
+  // Returns { data, covers, skipped } or null when the file isn't a Tabs backup.
   import(json) {
-    try {
-      const parsed = JSON.parse(json);
-      if (!parsed.songs || !Array.isArray(parsed.songs)) throw new Error("Invalid format");
-      const data = migrate(parsed);
-      this.save(data);
-      return data;
-    } catch {
-      return null;
-    }
+    let parsed;
+    try { parsed = JSON.parse(json); } catch { return null; }
+    const clean = cleanImport(parsed);
+    if (!clean) return null;
+    this.save(clean.data);
+    return clean;
   }
 };
+
+// ---------- Checking a backup before it replaces the library ----------
+// Files can be hand-edited or come from somewhere else, so every field the app
+// relies on is checked: wrong types are dropped (the app falls back to its
+// defaults), songs without words or an id are skipped, and only https links and
+// image data survive. Unknown fields are kept for newer versions of the app.
+const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
+const SONG_TYPES = {
+  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", created: "string",
+  transpose: "number", size: "number", speed: "number", duration: "number", bpm: "number",
+  favorite: "boolean", easier: "object", loop: "object", listen: "object", playLog: "object", tone: "object"
+};
+const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+export function cleanSong(raw) {
+  if (!isObj(raw)) return null;
+  const s = { ...raw };
+  if (typeof s.id === "number") s.id = String(s.id);
+  if (typeof s.id !== "string" || !s.id) return null;
+  if (s.body === undefined && typeof s.tab === "string") { s.body = s.tab; delete s.tab; }
+  for (const [k, type] of Object.entries(SONG_TYPES)) {
+    if (s[k] === undefined) continue;
+    const ok = type === "object" ? isObj(s[k]) : typeof s[k] === type && (type !== "number" || Number.isFinite(s[k]));
+    if (!ok) delete s[k];
+  }
+  if (typeof s.body !== "string") return null;
+  if (!s.title?.trim()) s.title = "Untitled";
+  if (s.format !== "chords" && s.format !== "tab") delete s.format;
+  if (s.tuning && !TUNINGS[s.tuning]) delete s.tuning;
+  if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
+  if (s.size !== undefined) s.size = fit(s.size, 0.6, 1.6);
+  if (s.duration !== undefined) s.duration = fit(s.duration, 10, 3600);
+  if (s.speed !== undefined) s.speed = fit(s.speed, 1, 200);
+  if (s.bpm !== undefined) s.bpm = fit(Math.round(s.bpm), 30, 260);
+  if (s.listen) {
+    if (!/^https:\/\//.test(s.listen.url || "")) delete s.listen;
+    else if (s.listen.art !== undefined && !/^https:\/\//.test(String(s.listen.art))) { s.listen = { ...s.listen }; delete s.listen.art; }
+  }
+  if (s.loop && !(Number.isInteger(s.loop.a) && Number.isInteger(s.loop.b))) delete s.loop;
+  return s;
+}
+export function cleanSet(raw) {
+  if (!isObj(raw)) return null;
+  const x = { ...raw };
+  if (typeof x.id === "number") x.id = String(x.id);
+  if (typeof x.id !== "string" || !x.id) return null;
+  if (typeof x.name !== "string" || !x.name.trim()) x.name = "Set";
+  x.songIds = (Array.isArray(x.songIds) ? x.songIds : []).map(id => typeof id === "number" ? String(id) : id).filter(id => typeof id === "string");
+  if (x.cover !== undefined && !(isObj(x.cover) && ["songs", "art", "photo"].includes(x.cover.type))) delete x.cover;
+  return x;
+}
+const COVER_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+const COVER_MAX = 4e6; // characters, about 3 MB of photo
+export function cleanImport(parsed) {
+  if (!isObj(parsed) || !Array.isArray(parsed.songs)) return null;
+  let skipped = 0;
+  const seen = new Set();
+  const once = (item, clean) => {
+    const c = clean(item);
+    if (!c || seen.has(c.id)) { skipped++; return null; }
+    seen.add(c.id);
+    return c;
+  };
+  const songs = parsed.songs.map(x => once(x, cleanSong)).filter(Boolean);
+  seen.clear();
+  const sets = (Array.isArray(parsed.sets) ? parsed.sets : []).map(x => once(x, cleanSet)).filter(Boolean);
+  const trash = (Array.isArray(parsed.trash) ? parsed.trash : []).map(t => {
+    if (!isObj(t) || !["song", "set"].includes(t.type)) return null;
+    const item = t.type === "song" ? cleanSong(t.item) : cleanSet(t.item);
+    return item ? { ...t, item } : null;
+  }).filter(Boolean);
+  const settings = {};
+  for (const [k, v] of Object.entries(isObj(parsed.settings) ? parsed.settings : {})) {
+    const d = DEFAULT_SETTINGS[k];
+    if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
+  }
+  if (!["dark", "light"].includes(settings.theme)) delete settings.theme;
+  const data = migrate({ songs, sets, trash, settings });
+  const setIds = new Set(data.sets.map(x => x.id));
+  const covers = {};
+  for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
+    if (setIds.has(id) && typeof url === "string" && url.length <= COVER_MAX && COVER_RE.test(url)) covers[id] = url;
+  }
+  return { data, covers, skipped };
+}
 
 // ---------- Play history ----------
 // { total, last, days: { "2026-10-13": 2, ... } }, keeping the last 60 days of counts.

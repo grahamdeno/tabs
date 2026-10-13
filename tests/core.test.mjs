@@ -409,3 +409,68 @@ test("saves are batched, and a refused save is reported", () => {
   assert.equal(refused, "QuotaExceededError");
   store.setItem = real; C.Tabs.onSaveError = null;
 });
+
+test("importing a backup: a real export comes back the same", () => {
+  const data = C.migrate({ songs: [{ id: "a", title: "River Road", artist: "W", key: "A", format: "chords", body: "[Verse]\nA\nWalking", transpose: 2, favorite: true, listen: { url: "https://music.apple.com/x", service: "Apple Music", art: "https://is1-ssl.mzstatic.com/a.jpg" }, loop: { a: 1, b: 2, build: false } }],
+    sets: [{ id: "s1", name: "Friday", songIds: ["a"], cover: { type: "art" } }], trash: [], settings: { theme: "light", countIn: false } });
+  const out = C.cleanImport(JSON.parse(C.Tabs.export(data)));
+  assert.equal(out.skipped, 0);
+  assert.deepEqual(out.data.songs, data.songs);
+  assert.deepEqual(out.data.sets, data.sets);
+  assert.deepEqual(out.data.settings, data.settings);
+  assert.equal(out.data.settings.theme, "light");
+});
+
+test("importing a backup: rejects files that aren't backups", () => {
+  for (const x of [null, 3, "x", [], {}, { songs: "no" }]) assert.equal(C.cleanImport(x), null);
+  assert.equal(C.Tabs.import("not json"), null);
+});
+
+test("importing a backup: skips unreadable songs and duplicates, drops wrong types", () => {
+  const out = C.cleanImport({ songs: [
+    { id: "a", title: "One", body: "A\nla" },
+    { id: "a", title: "Dupe", body: "x" },
+    { title: "No id", body: "x" },
+    { id: "c", title: "No words" },
+    "junk",
+    { id: 7, title: 5, body: "G\nhey", transpose: 40, size: "big", bpm: 999, favorite: "yes", tuning: "nope", format: "weird", easier: [1], loop: { a: "x" } }
+  ] });
+  assert.equal(out.skipped, 4);
+  assert.deepEqual(out.data.songs.map(s => s.id), ["a", "7"]);
+  const s = out.data.songs[1];
+  assert.equal(s.title, "Untitled");
+  assert.equal(s.transpose, 6);
+  assert.equal(s.bpm, 260);
+  for (const k of ["size", "favorite", "tuning", "easier", "loop"]) assert.equal(s[k], undefined, k);
+  assert.equal(s.format, "chords"); // worked out again from the words
+});
+
+test("importing a backup: only https links, and only image data for covers of sets that exist", () => {
+  const png = "data:image/png;base64,iVBORw0KGgo=";
+  const out = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "x", listen: { url: "javascript:alert(1)", service: "x" } },
+            { id: "b", title: "B", body: "x", listen: { url: "https://music.apple.com/y", service: "Apple Music", art: "http://evil/x.png" } }],
+    sets: [{ id: "s1", name: "", songIds: ["a", 5, null, {}], cover: { type: "bad" } }],
+    covers: { s1: png, gone: png, s2: "data:text/html;base64,PHNjcmlwdD4=" },
+    settings: { theme: "neon", countIn: "yes", lastTuned: 5, startLength: 200 }
+  });
+  assert.equal(out.data.songs[0].listen, undefined);
+  assert.deepEqual(out.data.songs[1].listen, { url: "https://music.apple.com/y", service: "Apple Music" });
+  assert.deepEqual(out.data.sets[0].songIds, ["a", "5"]);
+  assert.equal(out.data.sets[0].name, "Set");
+  assert.equal(out.data.sets[0].cover, undefined);
+  assert.deepEqual(out.covers, { s1: png });
+  assert.equal(out.data.settings.theme, "dark");
+  assert.equal(out.data.settings.countIn, true);
+  assert.equal(out.data.settings.startLength, 200);
+  assert.equal(out.data.settings.lastTuned, 5);
+});
+
+test("importing a backup: old saves still migrate", () => {
+  const out = C.cleanImport({ songs: [{ id: "a", title: "Old", tab: "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|", plays: [Date.now()] }], settings: { v: 1 } });
+  const s = out.data.songs[0];
+  assert.equal(s.format, "tab");
+  assert.ok(s.body.startsWith("e|"));
+  assert.equal(s.playLog.total, 1);
+  assert.equal(out.data.settings.v, 5);
+});

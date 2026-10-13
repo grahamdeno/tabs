@@ -185,3 +185,24 @@ test("security policy allows Apple art, the Anthropic API and song search, and n
   assert.deepEqual(res, { art: true, otherImg: false, anthropic: true, itunes: true, other: false });
   assert.ok(blocked.length >= 2, "blocked requests are reported");
 });
+
+test("restoring a backup brings back songs and set cover photos, and skips broken songs", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const backup = {
+    songs: [{ id: "x", title: "Backup Song", body: "[Verse]\nG\nhello", format: "chords" }, { id: "y", title: "Broken" }],
+    sets: [{ id: "s9", name: "Saturday", songIds: ["x"], cover: { type: "photo", tint: "#553322" } }],
+    trash: [], settings: { v: 5, tipsSeen: { library: true, song: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
+    covers: { s9: png }
+  };
+  await page.goto(base + "#/settings");
+  await page.locator("#file").setInputFiles({ name: "tabs-backup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup)) });
+  await page.waitForTimeout(500);
+  assert.match(await page.locator("#toast").textContent(), /Imported 1 song\. Skipped 1/);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
+  assert.deepEqual(saved.songs.map(s => s.title), ["Backup Song"]);
+  assert.equal(saved.covers, undefined, "photos stay out of the main save");
+  await page.goto(base + "#/set/s9");
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator(".cover img").first().getAttribute("src"), png);
+});
