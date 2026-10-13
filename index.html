@@ -411,6 +411,48 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover.mosaic { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.set-hero { position: relative; text-align: center; margin: 0 0 4px; }
+.set-hero::before { content: ""; position: absolute; left: -20px; right: -20px; top: -120px; height: 520px; background: radial-gradient(110% 70% at 50% 18%, var(--tint), transparent 72%); pointer-events: none; z-index: -1; }
+.sh-big { position: relative; width: min(250px, 66vw); aspect-ratio: 1; margin: 6px auto 0; }
+.sh-cover { display: block; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.55); background: none; }
+.sh-cover .cover { border-radius: 20px; }
+.sh-edc { position: absolute; right: 10px; top: 10px; height: 30px; padding: 0 11px; border-radius: 15px; border: 0; background: rgba(10,10,12,.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.sh-edc svg { width: 14px; height: 14px; }
+.cvopts { display: flex; gap: 8px; justify-content: center; margin: 14px 0 2px; animation: fade .2s; }
+.cvopts[hidden] { display: none; }
+.cvo { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11.5px; color: var(--muted); width: 68px; border: 0; background: none; padding: 0; }
+.cvo i { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 11px; overflow: hidden; border: 1px solid var(--rim); background: var(--card); color: var(--accent); }
+.cvo i > svg { width: 20px; height: 20px; }
+.cvo i img { width: 100%; height: 100%; object-fit: cover; }
+.cvo i .cover { border-radius: 0; place-self: stretch; width: 56px; height: 56px; }
+.pk .cmd { flex: none; }
+.cvo.on { color: var(--fg); }
+.cvo.on i { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.cvo[aria-disabled="true"] { opacity: .5; }
+.set-hero .settitle { display: block; margin: 16px auto 4px; text-align: center; }
+.set-hero .title { font-size: 32px; }
+.set-hero .meta { justify-content: center; margin: 0 0 6px; }
+.set-hero .set-when { justify-content: center; display: inline-flex; margin: 4px 0 12px; padding: 4px 11px; border-radius: 14px; background: var(--accent-soft); border: 1px solid var(--accent-line); font-size: 13px; }
+.crop { position: fixed; inset: 0; z-index: 90; background: #000; display: flex; flex-direction: column; color: #fff; }
+.cr-top { text-align: center; padding: calc(18px + var(--safe-t)) 0 12px; font-size: 16px; }
+.cr-area { position: relative; flex: 1; overflow: hidden; touch-action: none; }
+.cr-area img { position: absolute; left: 0; top: 0; transform-origin: 0 0; user-select: none; -webkit-user-select: none; max-width: none; }
+.cr-frame { position: absolute; left: 20px; right: 20px; top: 50%; aspect-ratio: 1; transform: translateY(-50%); border-radius: 18px; box-shadow: 0 0 0 2000px rgba(0,0,0,.62); border: 1.5px solid rgba(255,255,255,.85); pointer-events: none; max-height: calc(100% - 40px); }
+.cr-hint { text-align: center; font-size: 14px; color: rgba(255,255,255,.7); padding: 10px 0; }
+.cr-bar { display: flex; justify-content: space-between; padding: 6px 18px calc(18px + var(--safe-b)); }
+.cr-bar .tb { color: #fff; font-size: 17px; }
+.cr-bar .tb.go { color: var(--accent); font-weight: 600; }
+
+.pk-top { display: flex; gap: 14px; align-items: center; margin: 2px 0 14px; }
+.pk-cv { width: 92px; height: 92px; border-radius: 13px; overflow: hidden; flex: none; box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+.pk-tt { min-width: 0; }
+.pk-tt b { display: block; font-family: var(--serif); font-weight: 400; font-size: 22px; line-height: 1.1; color: var(--fg); }
+.pk-tt span { display: block; font-size: 13.5px; color: var(--muted); margin-top: 3px; }
+.pk-tt small { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; opacity: .85; }
+.pk-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-right: 2px; }
+.pk-n { font: 600 12px var(--sans); color: var(--accent); width: 18px; text-align: center; flex: none; }
 .set-when { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--accent); margin: 0 2px 16px; }
 .set-when svg { width: 15px; height: 15px; }
 .set-when span { color: var(--muted); }
@@ -690,6 +732,7 @@ const I = {
   stage: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>',
   pick: '<path d="M12 3c4 0 7 2 7 6 0 5-4 10-7 12-3-2-7-7-7-12 0-4 3-6 7-6z"/>',
   calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  image: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="M20.5 15l-5-5L5 20.5"/>',
   amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   dots: '<circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/>',
@@ -815,7 +858,9 @@ function ago(iso) {
 // Share sheet first (Save to Files → iCloud Drive on iPhone); download otherwise.
 async function backupNow() {
   const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  const file = new File([Tabs.export(data)], name, { type: "application/json" });
+  /* Cover photos ride along in the backup (they live outside the main save). */
+  const covers = Object.fromEntries(data.sets.filter(x => x.cover?.type === "photo" && coverCache[x.id]).map(x => [x.id, coverCache[x.id]]));
+  const file = new File([Object.keys(covers).length ? JSON.stringify({ ...data, covers }, null, 2) : Tabs.export(data)], name, { type: "application/json" });
   let done = false;
   if (navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: "Tabs backup" }); done = true; }
@@ -2340,7 +2385,7 @@ function listenSheet(song, force) {
       ${song.listen ? `<button class="danger" id="ls-clear" style="display:block;margin:12px auto 0">Remove link</button>` : ""}`;
     p.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
       const x = state.tracks[+b.dataset.t];
-      saveListen(song, x.trackViewUrl, { title: x.trackName, artist: x.artistName });
+      saveListen(song, x.trackViewUrl, { title: x.trackName, artist: x.artistName, ...(x.artworkUrl100 ? { art: x.artworkUrl100.replace(/\d+x\d+bb/, "600x600bb") } : {}) });
       layer.innerHTML = "";
       openLink(x.trackViewUrl);
     });
@@ -3162,6 +3207,9 @@ function renderSettings() {
       const imported = Tabs.import(reader.result);
       if (!imported) return toast("That file isn't a Tabs backup");
       data = imported;
+      const covers = data.covers || {};
+      delete data.covers; Tabs.save(data);
+      Object.entries(covers).forEach(([id, url]) => { if (/^data:image\//.test(url)) coverPut(id, url); });
       applyTheme();
       toast(`Imported ${data.songs.length} song${data.songs.length === 1 ? "" : "s"}`);
       go("#/");
@@ -3176,6 +3224,84 @@ const setSongs = x => x.songIds.map(id => data.songs.find(s => s.id === id)).fil
 const setLength = x => setSongs(x).reduce((a, s) => a + songLength(s), 0);
 let setEditing = false;
 
+// ---- Cover choices on the set page ----
+function paintCoverOpts(set, redraw) {
+  const o = $("cvopts"), cur = set.cover?.type || "songs", art = setArt(set);
+  o.innerHTML = `
+    <button class="cvo ${cur === "songs" ? "on" : ""}" data-cv="songs"><i>${coverSVG(setKeys(set), { name: set.name, small: true, notext: true })}</i>From songs</button>
+    <button class="cvo ${cur === "art" ? "on" : ""}" data-cv="art" ${art.length ? "" : "aria-disabled=\"true\""}><i>${art.length ? `<img src="${esc(art[0])}" alt="">` : icon("note")}</i>Album art</button>
+    <button class="cvo ${cur === "photo" ? "on" : ""}" data-cv="photo"><i>${coverCache[set.id] ? `<img src="${coverCache[set.id]}" alt="">` : icon("image")}</i>Photo</button>
+    <button class="cvo" data-cv="camera"><i>${icon("camera")}</i>Camera</button>
+    <input type="file" id="cv-file" accept="image/*" hidden><input type="file" id="cv-cam" accept="image/*" capture="environment" hidden>`;
+  const pickFile = input => { input.value = ""; input.onchange = () => { const f = input.files[0]; if (f) cropPhoto(f, async (url, tint) => { await coverPut(set.id, url); set.cover = { type: "photo", tint }; Tabs.save(data); redraw(); toast("Cover updated"); }); }; input.click(); };
+  o.querySelectorAll("[data-cv]").forEach(b => b.onclick = () => {
+    const v = b.dataset.cv;
+    if (v === "songs") { set.cover = { type: "songs" }; Tabs.save(data); redraw(); }
+    else if (v === "art") {
+      if (!art.length) return toast("Use Listen on songs in this set to find their recordings; their album art can then be the cover");
+      set.cover = { type: "art" }; Tabs.save(data); redraw();
+    }
+    else if (v === "photo") { if (coverCache[set.id] && cur !== "photo") { set.cover = { ...set.cover, type: "photo" }; Tabs.save(data); return redraw(); } pickFile($("cv-file")); }
+    else pickFile($("cv-cam"));
+  });
+}
+// Frame a photo for a cover: drag to move, pinch (or scroll) to zoom, then Use photo.
+// Saved as a 600 px square JPEG, with its average color for the page tint.
+function cropPhoto(file, done) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const ov = document.createElement("div");
+    ov.className = "crop";
+    ov.innerHTML = `<div class="cr-top">Frame your cover</div><div class="cr-area" id="cr-area"><img src="${url}" alt="" draggable="false"><div class="cr-frame"></div></div>
+      <div class="cr-hint">Drag and pinch to frame it</div><div class="cr-bar"><button class="tb" id="cr-x">Cancel</button><button class="tb go" id="cr-ok">Use photo</button></div>`;
+    document.body.appendChild(ov);
+    const area = $("cr-area"), el = area.querySelector("img"), frame = area.querySelector(".cr-frame");
+    const F = () => frame.getBoundingClientRect(), A = () => area.getBoundingClientRect();
+    const fr = F(), min = Math.max(fr.width / img.naturalWidth, fr.height / img.naturalHeight);
+    let sc = min, x = 0, y = 0;
+    const clamp = () => {
+      const f = F(), a = A(), w = img.naturalWidth * sc, h = img.naturalHeight * sc;
+      const fx = f.left - a.left, fy = f.top - a.top;
+      x = Math.min(fx, Math.max(fx + f.width - w, x)); y = Math.min(fy, Math.max(fy + f.height - h, y));
+      el.style.width = w + "px"; el.style.transform = `translate(${x}px, ${y}px)`;
+    };
+    { const f = F(), a = A(); x = f.left - a.left - (img.naturalWidth * sc - f.width) / 2; y = f.top - a.top - (img.naturalHeight * sc - f.height) / 2; }
+    clamp();
+    const pts = new Map(); let last = null;
+    const zoomAt = (k, cx, cy) => { const a = A(), nx = sc * k < min ? min / sc : Math.min(k, 6 * min / sc); x = cx - a.left - (cx - a.left - x) * nx; y = cy - a.top - (cy - a.top - y) * nx; sc *= nx; clamp(); };
+    area.onpointerdown = e => { area.setPointerCapture(e.pointerId); pts.set(e.pointerId, e); last = null; };
+    area.onpointermove = e => {
+      if (!pts.has(e.pointerId)) return;
+      const prev = pts.get(e.pointerId); pts.set(e.pointerId, e);
+      if (pts.size === 1) { x += e.clientX - prev.clientX; y += e.clientY - prev.clientY; clamp(); return; }
+      const [p1, p2] = [...pts.values()], d = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+      if (last) zoomAt(d / last, (p1.clientX + p2.clientX) / 2, (p1.clientY + p2.clientY) / 2);
+      last = d;
+    };
+    area.onpointerup = area.onpointercancel = e => { pts.delete(e.pointerId); last = null; };
+    area.onwheel = e => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.08 : 1 / 1.08, e.clientX, e.clientY); };
+    const end = () => { ov.remove(); URL.revokeObjectURL(url); };
+    $("cr-x").onclick = end;
+    $("cr-ok").onclick = () => {
+      const f = F(), a = A(), c = document.createElement("canvas");
+      c.width = c.height = 600;
+      const g = c.getContext("2d");
+      const sx = (f.left - a.left - x) / sc, sy = (f.top - a.top - y) / sc, sw = f.width / sc;
+      g.drawImage(img, sx, sy, sw, sw, 0, 0, 600, 600);
+      const t = document.createElement("canvas"); t.width = t.height = 1;
+      t.getContext("2d").drawImage(c, 0, 0, 1, 1);
+      const [r, gg, b] = t.getContext("2d").getImageData(0, 0, 1, 1).data;
+      /* The photo's hue, lifted so even a dark photo tints the page. */
+      const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), d = mx - mn || 1;
+      const h = mx === mn ? 20 : Math.round(60 * (mx === r ? ((gg - b) / d + 6) % 6 : mx === gg ? (b - r) / d + 2 : (r - gg) / d + 4));
+      done(c.toDataURL("image/jpeg", 0.82), `${h} 45% 42%`);
+      end();
+    };
+  };
+  img.src = url;
+}
+
 function renderSet(id) {
   const set = data.sets.find(x => x.id === id);
   if (!set) return go("#/");
@@ -3188,9 +3314,14 @@ function renderSet(id) {
         ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
       </div>
     </div>
-    <button class="settitle" id="rename" aria-label="Set details: name, date and place"><h1 class="title">${esc(set.name)}</h1></button>
-    <div class="meta" style="margin:6px 2px ${set.when || set.where ? "4px" : "16px"}">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
-    ${set.when || set.where ? `<div class="set-when">${icon("calendar")}${esc([set.when && fullWhen(set.when), set.where].filter(Boolean).join(" · "))}${set.when && untilLabel(set.when) ? ` <span>· ${esc(untilLabel(set.when))}</span>` : ""}</div>` : ""}
+    <div class="set-hero" style="--tint:${setTint(set, 0.45)}">
+      <div class="sh-big"><button class="sh-cover" id="s-cover" aria-label="Change cover">${setCover(set, { fs: 28, kicker: set.when ? fullWhen(set.when).split(" · ")[0] : "" })}</button>
+        <button class="sh-edc" id="s-edc">${icon("image")}Cover</button></div>
+      <div class="cvopts" id="cvopts" hidden></div>
+      <button class="settitle" id="rename" aria-label="Set details: name, date and place"><h1 class="title">${esc(set.name)}</h1></button>
+      <div class="meta">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
+      ${set.when || set.where ? `<div class="set-when">${icon("calendar")}${esc([set.when && fullWhen(set.when), set.where].filter(Boolean).join(" · "))}${set.when && untilLabel(set.when) ? ` <span>· ${esc(untilLabel(set.when))}</span>` : ""}</div>` : ""}
+    </div>
     ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}Play set</button>
       <button class="stagechip ${data.settings.stage ? "on" : ""}" id="s-stagechip" role="switch" aria-checked="${!!data.settings.stage}">${icon("stage")}Stage mode <b>${data.settings.stage ? "On" : "Off"}</b></button>` : ""}
     <div class="list glass" style="margin-top:16px">
@@ -3208,6 +3339,8 @@ function renderSet(id) {
   const ids = () => setSongs(set).map(s => s.id);
   $("back").onclick = () => { setEditing = false; filter = "sets"; go("#/"); };
   $("rename").onclick = () => setSheet(set, () => renderSet(id));
+  const toggleCovers = () => { const o = $("cvopts"); if (o.hidden) { paintCoverOpts(set, () => renderSet(id)); o.hidden = false; } else o.hidden = true; };
+  $("s-cover").onclick = toggleCovers; $("s-edc").onclick = toggleCovers;
   $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
   $("s-share")?.addEventListener("click", () => shareSet(set));
   $("s-stagechip")?.addEventListener("click", () => { data.settings.stage = !data.settings.stage; Tabs.save(data); applyTheme(); renderSet(id); });
@@ -3227,35 +3360,51 @@ function renderSet(id) {
 }
 
 // Choose songs to add to a set.
+// Add songs to a set. The cover at the top grows a ring for each song you pick
+// (in that song's key color), and the length adds up as you go. Songs go in
+// the order you tap them; tap again to take one out.
 function pickSongs(set, done) {
   const pool = [...data.songs].sort((a, b) => a.title.localeCompare(b.title));
-  const chosen = new Set();
+  const chosen = [];
   layer.innerHTML = `
     <div class="scrim" id="pk-scrim"></div>
-    <div class="panel full" role="dialog" aria-label="Add songs">
+    <div class="panel full pk" role="dialog" aria-label="Add songs">
       <div class="grab"></div>
-      <div class="ph"><button class="tb" id="pk-cancel">Cancel</button><h2>Add songs</h2><button class="tb go" id="pk-add">Add</button></div>
+      <div class="ph"><button class="tb" id="pk-cancel">Back</button><h2>Add songs</h2><button class="tb go" id="pk-add">Done</button></div>
       <div class="pbody">
-        <label class="cmd glass" style="height:44px;margin-bottom:12px">${icon("search")}<input id="pk-q" placeholder="Search songs" autocomplete="off"></label>
+        <div class="pk-top"><div class="pk-cv" id="pk-cv"></div><div class="pk-tt"><b>${esc(set.name)}</b><span id="pk-len"></span><small>Each song adds a ring in the color of its key.</small></div></div>
+        <label class="cmd glass" style="height:44px;margin-bottom:12px">${icon("search")}<input id="pk-q" placeholder="Search your songs" autocomplete="off"></label>
         <div class="list glass" id="pk-list"></div>
       </div>
     </div>`;
+  const all = () => [...setSongs(set), ...chosen.map(i => data.songs.find(s => s.id === i))];
+  const top = () => {
+    const songs = all();
+    $("pk-cv").innerHTML = coverSVG(songs.map(s => s.format === "tab" ? "" : keyOf(s)), { name: set.name, small: true, notext: true });
+    const secs = songs.reduce((t, s) => t + songLength(s), 0);
+    $("pk-len").textContent = `${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(secs / 60)} min` : ""}`;
+    $("pk-add").textContent = chosen.length ? `Add ${chosen.length}` : "Done";
+  };
   const paint = () => {
     const q = $("pk-q").value.trim().toLowerCase();
     $("pk-list").innerHTML = pool.filter(s => !q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)).map(s => {
-      const inSet = set.songIds.includes(s.id), on = chosen.has(s.id);
-      return `<button class="row pick ${on ? "on" : ""}" data-pick="${esc(s.id)}" ${inSet ? "disabled" : ""}>
-        <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${inSet ? "Already in this set" : esc(s.artist || "Unknown artist")}</div></div>
-        <span class="check">${on || inSet ? icon("check") : ""}</span></button>`;
+      const inSet = set.songIds.includes(s.id), n = chosen.indexOf(s.id) + 1, k = s.format === "tab" ? "" : keyOf(s);
+      return `<button class="row pick ${n ? "on" : ""}" data-pick="${esc(s.id)}" ${inSet ? "disabled" : ""}>
+        <span class="pk-dot" style="background:${keyColor(k, s.title)}"></span>
+        <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${inSet ? "Already in this set" : `${esc(s.artist || "Unknown artist")}${k ? ` · ${esc(k)}` : ""}`}</div></div>
+        ${n ? `<span class="pk-n">${n}</span>` : ""}<span class="check">${n || inSet ? icon("check") : ""}</span></button>`;
     }).join("");
-    $("pk-list").querySelectorAll("[data-pick]").forEach(b => b.onclick = () => { const i = b.dataset.pick; chosen.has(i) ? chosen.delete(i) : chosen.add(i); paint(); });
-    $("pk-add").textContent = chosen.size ? `Add ${chosen.size}` : "Add";
+    $("pk-list").querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+      const i = b.dataset.pick, at = chosen.indexOf(i);
+      at >= 0 ? chosen.splice(at, 1) : chosen.push(i);
+      paint(); top();
+    });
   };
-  paint();
+  paint(); top();
   $("pk-q").oninput = paint;
   const close = () => { layer.innerHTML = ""; };
   $("pk-scrim").onclick = close; $("pk-cancel").onclick = close;
-  $("pk-add").onclick = () => { set.songIds.push(...chosen); /* in the order they were tapped */ Tabs.save(data); close(); done(); if (chosen.size) toast(`Added ${chosen.size} song${chosen.size === 1 ? "" : "s"}`); };
+  $("pk-add").onclick = () => { set.songIds.push(...chosen); Tabs.save(data); close(); done(); if (chosen.length) toast(`Added ${chosen.length} song${chosen.length === 1 ? "" : "s"}`); };
 }
 
 // From a song: put it in one or more sets, or start a new one.
@@ -3351,7 +3500,41 @@ function coverSVG(keys, opts = {}) {
     ${opts.kicker ? `<div class="cv-k">${esc(opts.kicker)}</div>` : ""}${name && !opts.notext ? `<div class="cv-t" style="font-size:${opts.fs || 22}px">${esc(name)}</div>` : ""}</div>`;
 }
 const setKeys = set => setSongs(set).map(s => s.format === "tab" ? "" : keyOf(s));
-const setCover = (set, opts = {}) => coverSVG(setKeys(set), { name: set.name, ...opts });
+// A set's cover: drawn from its songs (the default), its songs' album art, or a photo.
+const setArt = set => setSongs(set).map(s => s.listen?.art).filter(a => /^https:\/\//.test(a || ""));
+function setCover(set, opts = {}) {
+  const type = set.cover?.type;
+  if (type === "photo" && coverCache[set.id]) return `<div class="cover"><img src="${coverCache[set.id]}" alt=""></div>`;
+  if (type === "art") {
+    const art = setArt(set);
+    if (art.length >= 4) return `<div class="cover mosaic">${art.slice(0, 4).map(a => `<img src="${esc(a)}" alt="" loading="lazy">`).join("")}</div>`;
+    if (art.length) return `<div class="cover"><img src="${esc(art[0])}" alt="" loading="lazy"></div>`;
+  }
+  return coverSVG(setKeys(set), { name: set.name, ...opts });
+}
+// The page tint for a set: the photo's own color, or its first song's key color.
+const setTint = (set, a = 0.5) => set.cover?.type === "photo" && set.cover.tint ? `hsl(${set.cover.tint} / ${a})` : keyColor(setKeys(set)[0], set.name, a);
+
+// Cover photos live in IndexedDB (they're too big for the main save), keyed by set id,
+// and are loaded into memory at start so covers draw without waiting.
+const coverCache = {};
+const coverDB = () => new Promise((ok, bad) => {
+  const r = indexedDB.open("tabs-covers", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("covers");
+  r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error);
+});
+async function coverTx(mode, fn) {
+  const db = await coverDB();
+  return new Promise((ok, bad) => { const tx = db.transaction("covers", mode); const out = fn(tx.objectStore("covers")); tx.oncomplete = () => ok(out?.result ?? out); tx.onerror = () => bad(tx.error); });
+}
+const coverPut = (id, url) => { coverCache[id] = url; return coverTx("readwrite", st => st.put(url, id)).catch(() => {}); };
+const coverDel = id => { delete coverCache[id]; return coverTx("readwrite", st => st.delete(id)).catch(() => {}); };
+async function coverLoadAll() {
+  try {
+    const db = await coverDB();
+    await new Promise(ok => { const st = db.transaction("covers").objectStore("covers"); const c = st.openCursor(); c.onsuccess = () => { const cur = c.result; if (!cur) return ok(); coverCache[cur.key] = cur.value; cur.continue(); }; c.onerror = ok; });
+  } catch {}
+}
 // "Fri 8:00 PM" within the week, "Oct 17 · 8:00 PM" further out.
 function whenText(when, withDay = true) {
   const d = new Date(when);
@@ -3600,6 +3783,7 @@ window.addEventListener("hashchange", () => {
 applyTheme();
 firstLaunch();
 render();
+coverLoadAll().then(() => { if (data.sets.some(x => x.cover?.type === "photo") && ["library", "set"].includes(route().name) && !layer.innerHTML) render(); });
 
 // The app opens from the saved copy (see sw.js). When a new release has been
 // saved in the background, offer to switch to it now; otherwise it's used on the
