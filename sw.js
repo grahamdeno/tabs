@@ -15,12 +15,28 @@ self.addEventListener("install", e => {
   self.skipWaiting();
 });
 
+// The release just before this one is kept, so an app that is still open on
+// it can load its remaining parts (see "Same release" below). Older ones go.
+const ver = k => k.slice(6).split(".").map(Number);
+const newer = (a, b) => { const x = ver(a), y = ver(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return (x[i] || 0) - (y[i] || 0); return 0; };
 self.addEventListener("activate", e => {
   e.waitUntil(
-    caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== ART).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(ks => {
+      const old = ks.filter(k => k.startsWith("tabs-v") && k !== CACHE).sort(newer);
+      const keep = old.filter(k => newer(k, CACHE) < 0).slice(-1);
+      return Promise.all(ks.filter(k => k !== CACHE && k !== ART && !keep.includes(k)).map(k => caches.delete(k)));
+    }).then(() => self.clients.claim())
   );
 });
+
+// Same release: the app asks for its parts as tuner.js?v=1.2.3, and those parts
+// ask for theirs (heads.js) with that address as referrer. Both are answered
+// from that release's cache when it isn't the current one.
+function releaseOf(req, url) {
+  let v = url.searchParams.get("v");
+  if (!v && req.referrer) { try { v = new URL(req.referrer).searchParams.get("v"); } catch { /* no referrer */ } }
+  return v && /^[\d.]+$/.test(v) ? "tabs-v" + v : null;
+}
 
 self.addEventListener("fetch", e => {
   const req = e.request;
@@ -44,14 +60,19 @@ self.addEventListener("fetch", e => {
   }
   if (url.origin !== self.location.origin) return;  // other sites go straight to the network
   const page = req.mode === "navigate";
+  const release = page ? null : releaseOf(req, url);
   e.respondWith((async () => {
+    if (release && release !== CACHE && await caches.has(release)) {
+      const hit = await (await caches.open(release)).match(req, { ignoreSearch: true });
+      if (hit) return hit;
+    }
     const cache = await caches.open(CACHE);
-    const hit = await cache.match(page ? "index.html" : req, { ignoreSearch: page });
+    const hit = await cache.match(page ? "index.html" : req, { ignoreSearch: page || !!release });
     if (hit) return hit;
     // Not saved yet (first visit, or a launch image): fetch it and keep a copy.
     try {
       const res = await fetch(req);
-      if (res.ok) cache.put(req, res.clone());
+      if (res.ok && (!release || release === CACHE)) cache.put(release ? url.origin + url.pathname : req, res.clone());
       return res;
     } catch {
       return Response.error();

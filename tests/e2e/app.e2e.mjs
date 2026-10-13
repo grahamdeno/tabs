@@ -374,3 +374,26 @@ test("tuner: says why it needs the microphone before the phone asks", { skip: sk
   await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.micExplained), true);
 });
+
+test("after an update, an open app still loads its parts from its own release", { skip: skip() }, async t => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  t.after(() => ctx.close());
+  const page = await ctx.newPage();
+  await page.goto(base);
+  await page.waitForFunction(() => navigator.serviceWorker?.ready.then(() => true), null, { timeout: 10000 });
+  await page.reload();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 });
+  // An older release, still in its cache, whose tuner imports its own heads.js.
+  const got = await page.evaluate(async () => {
+    const c = await caches.open("tabs-v0.0.1");
+    const js = b => new Response(b, { headers: { "content-type": "text/javascript" } });
+    await c.put(new Request("./tuner.js"), js('import { WHICH } from "./heads.js"; export const which = () => "old tuner, " + WHICH;'));
+    await c.put(new Request("./heads.js"), js('export const WHICH = "old heads";'));
+    return (await import("./tuner.js?v=0.0.1")).which();
+  });
+  assert.equal(got, "old tuner, old heads");
+  // A page on the current release gets the current parts.
+  await page.reload();
+  const cur = await page.evaluate(async () => typeof (await import("./tuner.js?v=" + (await import("./core.js")).VERSION)).openTuner);
+  assert.equal(cur, "function");
+});

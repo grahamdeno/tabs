@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, indexLetter, appleTrackId, lengthChoice, fitLength, tapTempo } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, indexLetter, appleTrackId, lengthChoice, fitLength, tapTempo, VERSION } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -1726,8 +1726,17 @@ function pickChord(song, i, pos, word, current) {
   paint();
 }
 
+// Feature modules load on first use. Each request names this release
+// (?v=1.2.3) so the service worker answers from the same release as the app
+// that's running, even if a newer one was saved in the background meanwhile.
+// If a module still can't load, a reload brings everything onto one release.
+const lazy = name => import(`./${name}?v=${VERSION}`).catch(err => {
+  toast("Tabs was updated. Reload to use this.", null, { label: "Reload", fn: () => location.reload() });
+  throw err;
+});
+
 // Make it easier and Spark tone load on first use (aitools.js).
-const aiTools = () => import("./aitools.js");
+const aiTools = () => lazy("aitools.js");
 function easierSheet(song) { aiTools().then(m => m.easierSheet(song)); }
 function toneSheet(song) { aiTools().then(m => m.toneSheet(song)); }
 
@@ -1840,7 +1849,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // Chord charts and "What can I play next?" load on first use (findai.js).
-const findAI = () => import("./findai.js");
+const findAI = () => lazy("findai.js");
 // Leave search mode (used when a song is added from a chart).
 function leaveSearch() { if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; } }
 function chartSheet(...args) { findAI().then(m => m.chartSheet(...args)); }
@@ -1988,7 +1997,7 @@ const tunedRecently = () => Date.now() - (data.settings.lastTuned || 0) < TUNED_
 // The tuner itself loads on first use (tuner.js).
 onLeave(() => closeTuner());
 let tunerMod = null;
-const loadTuner = async () => (tunerMod ||= await import("./tuner.js"));
+const loadTuner = async () => (tunerMod ||= await lazy("tuner.js"));
 function openTuner(...args) { markUsed("tuner"); loadTuner().then(m => m.openTuner(...args)); }
 function closeTuner() { tunerMod?.closeTuner(); }
 
@@ -2452,7 +2461,7 @@ const setLength = x => setSongs(x).reduce((a, s) => a + songLength(s), 0);
 let setEditing = false;
 
 // The photo framing screen loads on first use (crop.js).
-function cropPhoto(file, done) { import("./crop.js").then(m => m.cropPhoto(file, done)); }
+function cropPhoto(file, done) { lazy("crop.js").then(m => m.cropPhoto(file, done)); }
 
 // ---- Cover choices on the set page ----
 function paintCoverOpts(set, redraw) {
