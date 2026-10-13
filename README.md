@@ -32,6 +32,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Add and edit in a slide-up sheet; delete from edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
 - Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, Make it easier with a capo and simpler chords, or get a Spark amp tone for a song
+- First launch adds an original sample song and shows one-time tips on the real controls (Settings > Show tips again)
 - Settings (gear, top right): starting speed, default transpose, dark/light mode, backup
 - While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
