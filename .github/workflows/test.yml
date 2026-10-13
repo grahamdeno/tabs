@@ -43,6 +43,7 @@ jobs:
             msg=$( { grep -aE "^not ok|Error|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log || tail -40 e2e.log; } | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
             echo "::error title=Browser tests failed::$msg"
           fi
+          [ "$VISUAL" = compare ] && echo "::notice title=Screens::compared with the references in tests/visual/ci"
           exit $status
       - uses: actions/upload-artifact@v4
         if: always()
