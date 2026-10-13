@@ -4,7 +4,7 @@
 // Within a few cents a strobe takes over, and it stands still when the note is right.
 import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
 import { HEADS } from "./heads.js";
-import { $, data, icon, layer, esc, hintOnce } from "./app.js";
+import { $, data, icon, layer, esc, coach, tipDue, markSeen, markUsed } from "./app.js";
 
 let audio = null; /* for reference notes and the chime */
 const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
@@ -135,6 +135,7 @@ export function openTuner(tuning = "standard", onClose) {
     stage.querySelectorAll(".tn-key").forEach(k => k.onclick = () => {
       const i = +k.dataset.s;
       tone(noteFreq(TUNINGS[t.tuning].notes[i], t.a4));
+      markUsed("tunerKey");
       if (t.guided) { t.cur = i; t.ok[i] = false; t.finished = false; }
       else t.lock = t.lock === i ? -1 : i;
       t.inTuneSince = 0; paint();
@@ -176,7 +177,6 @@ export function openTuner(tuning = "standard", onClose) {
   };
   t.paint = paint;
   paint();
-  hintOnce("tuner", "Tap a key to hear its string. Near the note, stripes appear: tune until they stand still.", 4200);
 
   const say = (text, cls = "") => { const m = $("tn-say"); if (m) { m.textContent = text; m.className = "tn-say " + cls; } };
   t.say = say;
@@ -282,6 +282,8 @@ function showGauge(t, cents, good) {
   strobe.classList.toggle("good", good);
   $("tn-slab").textContent = good ? "STILL" : "FINE TUNE";
   t.strobe.v = fine ? strobeSpeed(cents) : 0;
+  /* The first time the strobe appears, say what it means. */
+  if (fine && !good && tipDue("strobe")) { markSeen("strobe"); coach(strobe, "Stripes stand still when it's right", { ms: 3600, place: "below", fixed: true }); }
 }
 
 // Stripes drift left when flat, right when sharp, and stop when it's right.
