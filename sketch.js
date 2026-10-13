@@ -1,9 +1,9 @@
 // Tabs sketch: sing a song idea line by line, say or type each line's words,
 // and get chords that fit the melody, placed over the words. Everything happens
 // on this phone: the voice is never saved or sent. Loads on first use.
-import { detectPitch, melodyNotes, detectKey, sketchSong, html, raw } from "./core.js";
+import { detectPitch, melodyNotes, detectKey, sketchSong, sungLines, unpackNotes, syllables, html, raw } from "./core.js";
 import { $, app, icon, toast, onLeave, ask } from "./ui.js";
-import { go, markUsed, newSong, tick } from "./app.js";
+import { data, go, markUsed, newSong, tick } from "./app.js";
 
 const MAX_LINE = 30; /* seconds: a line stops itself */
 // The sketch in progress stays while the app is open, so a look elsewhere
@@ -73,10 +73,13 @@ function stopLine(quiet) {
   if (!ln) return;
   const notes = melodyNotes(rec.frames);
   if (rec.recorder && rec.recorder.state !== "inactive") {
+    let done; ln.ready = new Promise(r => { done = r; });
     rec.recorder.onstop = () => {
-      if (!rec.chunks.length) return;
+      done();
+      if (!rec.chunks.length || !notes.length) return;
       if (ln.url) URL.revokeObjectURL(ln.url);
-      ln.url = URL.createObjectURL(new Blob(rec.chunks, { type: rec.recorder.mimeType }));
+      ln.blob = new Blob(rec.chunks, { type: rec.recorder.mimeType });
+      ln.url = URL.createObjectURL(ln.blob);
       /* Add its play button without redrawing, so typing in the words isn't interrupted. */
       const i = sk.lines.indexOf(ln), row = document.querySelector(`.sk-w[data-i="${i}"]`)?.parentElement;
       if (row && !row.querySelector("[data-play]")) {
@@ -168,15 +171,106 @@ const hear = i => { const u = sk.lines[i]?.url; if (u) new Audio(u).play().catch
 function reset() { sk.lines.forEach(l => l.url && URL.revokeObjectURL(l.url)); sk.lines = []; sk.at = -1; }
 
 // Make the song: chords from the melody over the words, opened in the editor
-// (Sheet view) to name it and change any chord with a tap.
-function finish() {
+// (Sheet view) to name it and change any chord with a tap. The melody's notes
+// stay with the song, and the recordings on this phone, for restyling,
+// swapping chords and hearing it back.
+async function finish() {
   stopLine(true);
-  const lines = sk.lines.filter(l => l.notes.length).map(l => ({ words: l.words.trim(), notes: l.notes }));
-  if (!lines.length) return;
-  const s = sketchSong(lines);
+  const kept = sk.lines.filter(l => l.notes.length);
+  if (!kept.length) return;
+  $("sk-done").disabled = true;
+  await Promise.race([Promise.all(kept.map(l => l.ready)), new Promise(r => setTimeout(r, 1500))]);
+  const s = sketchSong(kept.map(l => ({ words: l.words.trim(), notes: l.notes })));
+  const clips = kept.map(l => l.blob || null);
   reset(); closeMic();
-  newSong({ title: "", body: s.body, key: s.sure ? s.key : "", format: "chords", sketch: true }, "sheet");
+  const song = await newSong({ title: "", body: s.body, key: s.sure ? s.key : "", format: "chords", sketch: s.sketch }, "sheet");
+  if (song && clips.some(Boolean)) saveClips(song.id, clips).catch(() => {});
   setTimeout(() => toast(`Chords from your melody${s.key ? `, in ${s.key}` : ""}. Tap any chord to change it.`), 700);
+}
+
+// ---- Recordings kept on this phone (IndexedDB "tabs-sketch"), one per sung line ----
+// Not in backups (they're large); a song deleted for good loses its recording.
+const clipDB = () => new Promise((ok, bad) => {
+  const r = indexedDB.open("tabs-sketch", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("clips");
+  r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error);
+});
+async function clipTx(mode, fn) {
+  const db = await clipDB();
+  return new Promise((ok, bad) => { const tx = db.transaction("clips", mode); const out = fn(tx.objectStore("clips")); tx.oncomplete = () => ok(out?.result); tx.onerror = () => bad(tx.error); });
+}
+const saveClips = (id, clips) => clipTx("readwrite", st => st.put(clips, id));
+const loadClips = id => clipTx("readonly", st => st.get(id)).catch(() => null);
+/* Forget recordings of songs that are gone for good. */
+clipTx("readonly", st => st.getAllKeys()).then(keys => {
+  const keep = new Set([...data.songs.map(s => s.id), ...data.trash.filter(t => t.type === "song").map(t => t.item.id)]);
+  const gone = (keys || []).filter(k => !keep.has(k));
+  if (gone.length) clipTx("readwrite", st => gone.forEach(k => st.delete(k)));
+}).catch(() => {});
+export async function hasRecording(song) { const c = await loadClips(song.id); return !!c?.some(Boolean); }
+
+// ---- Hearing it back, with the words following ----
+// Plays the sung lines in turn. The line being sung is lit, scrolled to the
+// reading line, and within it the chord being sung, timed by the same
+// syllable estimate that placed it.
+let playing = null;
+onLeave(() => stopHearing());
+export function stopHearing() {
+  if (!playing) return;
+  const p = playing; playing = null;
+  p.audio?.pause(); cancelAnimationFrame(p.raf);
+  p.urls.forEach(u => URL.revokeObjectURL(u));
+  document.getElementById("sheet")?.classList.remove("skplay");
+  document.querySelectorAll(".skcur, .skc").forEach(el => el.classList.remove("skcur", "skc"));
+  p.onEnd?.();
+}
+function chordTimes(ln, notes) {
+  const ws = [...String(ln.text || "").matchAll(/\S+/g)];
+  if (!ws.length || !notes.length) return (ln.chords || []).map((_, i) => (i ? notes[Math.min(notes.length - 1, i)]?.start || 0 : 0));
+  const syl = ws.map(m => syllables(m[0]) || 1), total = syl.reduce((a, b) => a + b, 0);
+  return [...(ln.chords || [])].sort((a, b) => a.pos - b.pos).map((c, i) => {
+    if (!i) return 0;
+    let w = ws.findIndex(m => m.index + m[0].length > c.pos); if (w < 0) w = ws.length - 1;
+    const before = syl.slice(0, w).reduce((a, b) => a + b, 0);
+    return notes[Math.min(notes.length - 1, Math.floor(before * notes.length / total))].start;
+  });
+}
+export async function hearSketch(song, onEnd) {
+  stopHearing();
+  const clips = await loadClips(song.id);
+  if (!clips?.some(Boolean)) { toast("This sketch's recording isn't on this phone."); onEnd?.(); return; }
+  const lines = song.sketch.lines, sung = sungLines(song.body, lines.length);
+  const p = playing = { urls: [], onEnd, audio: null, raf: 0 };
+  const sheet = $("sheet");
+  sheet?.classList.add("skplay");
+  /* The recording leads now, not the paused focus line. */
+  sheet?.classList.remove("focus"); sheet?.querySelectorAll(":scope > .cur").forEach(el => el.classList.remove("cur"));
+  const blocks = () => [...document.querySelectorAll("#sheet > .pr, #sheet > .ly, #sheet > .crow")];
+  for (let k = 0; k < lines.length && playing === p; k++) {
+    if (!clips[k]) continue;
+    const notes = unpackNotes(lines[k].n), times = sung[k] ? chordTimes(sung[k], notes) : [];
+    const url = URL.createObjectURL(clips[k]); p.urls.push(url);
+    const audio = p.audio = new Audio(url);
+    document.querySelectorAll(".skcur, .skc").forEach(el => el.classList.remove("skcur", "skc"));
+    const block = blocks()[k];
+    if (block) {
+      block.classList.add("skcur");
+      window.scrollTo({ top: Math.max(0, block.getBoundingClientRect().top + scrollY - innerHeight * 0.4), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
+    const segs = block ? [...block.querySelectorAll(".sg")] : [];
+    const follow = () => {
+      const t = audio.currentTime;
+      let j = -1; times.forEach((x, i) => { if (t >= x) j = i; });
+      segs.forEach((el, i) => el.classList.toggle("skc", i === j));
+      p.raf = requestAnimationFrame(follow);
+    };
+    await new Promise(res => {
+      audio.onended = audio.onerror = res;
+      audio.play().then(() => { p.raf = requestAnimationFrame(follow); }).catch(res);
+    });
+    cancelAnimationFrame(p.raf);
+  }
+  if (playing === p) stopHearing();
 }
 
 export function renderSketch() {

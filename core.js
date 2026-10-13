@@ -1310,48 +1310,75 @@ const MINOR_CHORDS = [[0, true], [8, false], [3, false], [10, false], [7, false]
 const MOVE = { "0>1": 0.3, "0>2": 0.3, "0>3": 0.25, "1>2": 0.3, "1>0": 0.25, "2>0": 0.4, "2>3": 0.2, "3>1": 0.3, "3>4": 0.2, "4>2": 0.35, "5>3": 0.2, "3>2": 0.1, "1>3": 0.1, "0>4": 0.1 };
 export function chordName(pc, minor, flats) { return (flats ? NOTE_FLAT : NOTE_SHARP)[((pc % 12) + 12) % 12] + (minor ? "m" : ""); }
 
-// lines: [{ notes }] (note times from the start of that line). Each line is cut
-// into 1 to 4 equal parts by length; each part gets the chord whose notes it
-// holds best, with smooth moves between chords preferred (a Viterbi path over
-// the whole song). Returns, per line, [{ chord, at }] with at in seconds.
-export function harmonize(lines, key) {
-  if (!key) return lines.map(() => []);
-  const set = key.minor ? MINOR_CHORDS : MAJOR_CHORDS;
+// The chords of a key, each with its tones (pitch classes).
+function keyChords(key) {
   const flats = FLAT_KEYS.has(key.name);
-  const cands = set.map(([s, m], deg) => { const root = (key.tonic + s) % 12; return { deg, root, minor: m, tones: [root, (root + (m ? 3 : 4)) % 12, (root + 7) % 12], name: chordName(root, m, flats) }; });
-  const slots = [];
-  lines.forEach((ln, li) => {
-    const ns = ln.notes || [];
-    if (!ns.length) { slots.push({ li, at: 0, w: null }); return; }
-    const t0 = ns[0].start, t1 = ns[ns.length - 1].start + ns[ns.length - 1].dur;
-    const k = Math.max(1, Math.min(4, Math.round((t1 - t0) / 2)));
-    for (let j = 0; j < k; j++) {
-      const a = t0 + (t1 - t0) * j / k, b = t0 + (t1 - t0) * (j + 1) / k;
-      const w = new Array(12).fill(0);
-      ns.forEach((n, i) => {
-        const over = Math.min(b, n.start + n.dur) - Math.max(a, n.start);
-        if (over > 0) w[((n.midi % 12) + 12) % 12] += over + (n.start >= a - 0.01 && (i === 0 || ns[i - 1].start < a) ? 0.15 : 0);
-      });
-      slots.push({ li, at: a, w, lineEnd: j === k - 1 });
-    }
+  return (key.minor ? MINOR_CHORDS : MAJOR_CHORDS).map(([s, m], deg) => {
+    const root = (key.tonic + s) % 12;
+    return { deg, root, minor: m, tones: [root, (root + (m ? 3 : 4)) % 12, (root + 7) % 12], name: chordName(root, m, flats) };
   });
-  const emit = (c, s) => {
-    if (!s.w) return 0;
-    const tot = s.w.reduce((x, y) => x + y, 0) || 1;
-    let sc = 0;
-    s.w.forEach((x, pc) => { if (x) sc += (c.tones.includes(pc) ? 1 : -0.6) * x + (pc === c.root ? 0.2 * x : 0); });
-    return sc / tot;
-  };
+}
+// How much of the sung time in a stretch is spent on each pitch class; a note
+// starting the stretch counts a little extra (it's where the ear lands).
+function weightsIn(ns, a, b) {
+  const w = new Array(12).fill(0);
+  ns.forEach((n, i) => {
+    const over = Math.min(b, n.start + n.dur) - Math.max(a, n.start);
+    if (over > 0) w[((n.midi % 12) + 12) % 12] += over + (n.start >= a - 0.01 && (i === 0 || ns[i - 1].start < a) ? 0.15 : 0);
+  });
+  return w;
+}
+// How well a chord holds the notes: chord tones count, others count against.
+function fitOf(c, w) {
+  const tot = w.reduce((x, y) => x + y, 0);
+  if (!tot) return 0;
+  let sc = 0;
+  w.forEach((x, pc) => { if (x) sc += (c.tones.includes(pc) ? 1 : -0.6) * x + (pc === c.root ? 0.2 * x : 0); });
+  return sc / tot;
+}
+// A line cut into 1 to 4 equal parts by length.
+function slotsOf(ns) {
+  if (!ns.length) return [{ at: 0, w: null }];
+  const t0 = ns[0].start, t1 = ns[ns.length - 1].start + ns[ns.length - 1].dur;
+  const k = Math.max(1, Math.min(4, Math.round((t1 - t0) / 2)));
+  return Array.from({ length: k }, (_, j) => {
+    const a = t0 + (t1 - t0) * j / k, b = t0 + (t1 - t0) * (j + 1) / k;
+    return { at: a, end: b, w: weightsIn(ns, a, b), lineEnd: j === k - 1 };
+  });
+}
+const moveScore = (p, c, sameLine) => (p.deg === c.deg ? (sameLine ? 0.05 : 0.15) : MOVE[`${p.deg}>${c.deg}`] || 0);
+
+// Rich style: a chord gains a 7th or 9th the melody sings, and the V chord
+// becomes a V7 (it leads home more strongly).
+const SHARE = 0.15;
+export function richName(c, w, key) {
+  const tot = (w || []).reduce((x, y) => x + y, 0) || 1, has = s => (w ? w[(c.root + s) % 12] / tot : 0) >= SHARE;
+  const isV = c.deg === (key.minor ? 4 : 2);
+  if (c.minor) return c.name + (has(10) ? "7" : "");
+  if (has(11) && !isV) return c.name + "maj7";
+  if (has(10) || isV) return c.name + "7";
+  if (has(2)) return c.name + "add9";
+  return c.name;
+}
+
+// lines: [{ notes }] (note times from the start of that line). Each part of a
+// line gets the chord whose notes it holds best, with smooth moves between
+// chords preferred (a Viterbi path over the whole song). style: "simple" (the
+// three-note chords) or "rich". Returns, per line, [{ chord, at }] in seconds.
+export function harmonize(lines, key, { style = "simple" } = {}) {
+  if (!key) return lines.map(() => []);
+  const cands = keyChords(key);
+  const slots = lines.flatMap((ln, li) => slotsOf(ln.notes || []).map(s => ({ ...s, li })));
   const N = slots.length, C = cands.length;
   const best = slots.map(() => new Array(C).fill(-Infinity)), from = slots.map(() => new Array(C).fill(0));
   slots.forEach((s, i) => cands.forEach((c, ci) => {
-    let e = emit(c, s) - c.deg * 0.02;
+    let e = (s.w ? fitOf(c, s.w) : 0) - c.deg * 0.02;
     if (i === 0 && c.deg === 0) e += 0.4;
     if (i === N - 1 && c.deg === 0) e += 0.5;
     if (s.lineEnd && (c.deg === 0 || c.deg === 2)) e += 0.1;
     if (i === 0) { best[0][ci] = e; return; }
     cands.forEach((p, pi) => {
-      const v = best[i - 1][pi] + e + (p.deg === c.deg ? (s.li === slots[i - 1].li ? 0.05 : 0.15) : MOVE[`${p.deg}>${c.deg}`] || 0);
+      const v = best[i - 1][pi] + e + moveScore(p, c, s.li === slots[i - 1].li);
       if (v > best[i][ci]) { best[i][ci] = v; from[i][ci] = pi; }
     });
   }));
@@ -1360,9 +1387,44 @@ export function harmonize(lines, key) {
   for (let i = N - 1; i >= 0; i--) { path[i] = ci; ci = from[i][ci]; }
   const out = lines.map(() => []);
   slots.forEach((s, i) => {
-    const name = cands[path[i]].name, row = out[s.li];
+    const c = cands[path[i]], name = style === "rich" ? richName(c, s.w, key) : c.name, row = out[s.li];
     if (!row.length || row[row.length - 1].chord !== name) row.push({ chord: name, at: s.at });
   });
+  return out;
+}
+
+// Chords for a stretch of melody, best fit first: how well each holds the
+// notes (0 to 1) and which of its notes were sung, longest first.
+export function chordFit(notes, key) {
+  if (!key || !notes.length) return [];
+  const a = notes[0].start, b = notes[notes.length - 1].start + notes[notes.length - 1].dur;
+  const w = weightsIn(notes, a, b), flats = FLAT_KEYS.has(key.name);
+  return keyChords(key).map(c => ({
+    chord: c.name,
+    fit: Math.max(0, Math.min(1, (fitOf(c, w) + 0.2) / 1.4)),
+    holds: c.tones.filter(t => w[t] > 0).sort((x, y) => w[y] - w[x]).map(t => (flats ? NOTE_FLAT : NOTE_SHARP)[t])
+  })).sort((x, y) => y.fit - x.fit);
+}
+
+// Other ways to play one line: the best few chord paths through its parts
+// (each part trying its three best-fitting chords), most natural first.
+export function lineOptions(notes, key, { count = 3, style = "simple" } = {}) {
+  if (!key || !notes.length) return [];
+  const cands = keyChords(key), slots = slotsOf(notes);
+  const tops = slots.map(s => cands.map(c => ({ c, e: fitOf(c, s.w) - c.deg * 0.02 + (s.lineEnd && (c.deg === 0 || c.deg === 2) ? 0.1 : 0) })).sort((x, y) => y.e - x.e).slice(0, 3));
+  let paths = [{ list: [], score: 0 }];
+  tops.forEach(opts => {
+    paths = paths.flatMap(p => opts.map(o => ({ list: [...p.list, o.c], score: p.score + o.e + (p.list.length ? moveScore(p.list[p.list.length - 1], o.c, true) : 0) })));
+  });
+  const seen = new Set(), out = [];
+  for (const p of paths.sort((x, y) => y.score - x.score)) {
+    const changes = [];
+    p.list.forEach((c, j) => { const name = style === "rich" ? richName(c, slots[j].w, key) : c.name; if (!changes.length || changes[changes.length - 1].chord !== name) changes.push({ chord: name, at: slots[j].at }); });
+    const label = changes.map(x => x.chord).join(" · ");
+    if (seen.has(label)) continue;
+    seen.add(label); out.push({ changes, label });
+    if (out.length === count) break;
+  }
   return out;
 }
 
@@ -1402,11 +1464,65 @@ export function chordLine(words, notes, changes) {
   return line + "\n" + lyric;
 }
 
-// The whole sketch as a chord sheet, and its key.
-export function sketchSong(lines) {
+// The whole sketch as a chord sheet, its key, and the sketch itself kept with
+// the song (notes as [midi, start, length], to a hundredth of a second) so its
+// chords can be restyled and swapped later.
+const r2 = x => Math.round(x * 100) / 100;
+export const packNotes = notes => notes.map(n => [n.midi, r2(n.start), r2(n.dur)]);
+export const unpackNotes = packed => (packed || []).map(([midi, start, dur]) => ({ midi, start, dur }));
+export function sketchSong(lines, { style = "simple" } = {}) {
   const all = lines.flatMap(l => l.notes || []);
   const key = detectKey(all);
-  const changes = harmonize(lines, key);
+  const changes = harmonize(lines, key, { style });
   const body = lines.map((l, i) => chordLine(l.words, l.notes || [], changes[i])).join("\n");
-  return { key: key ? key.name : "", sure: !!key?.sure, body };
+  return { key: key ? key.name : "", sure: !!key?.sure, body, sketch: { v: 1, key: key ? key.name : "", style, lines: lines.map(l => ({ n: packNotes(l.notes || []) })) } };
+}
+// The key object for a sketch's saved key name.
+export function sketchKey(name) {
+  const m = /^([A-G][#b]?)(m?)$/.exec(name || "");
+  if (!m) return null;
+  const tonic = (m[2] ? MINOR_NAMES : MAJOR_NAMES).indexOf(name);
+  const pc = tonic >= 0 ? tonic : NOTE_SHARP.indexOf(m[1]) >= 0 ? NOTE_SHARP.indexOf(m[1]) : NOTE_FLAT.indexOf(m[1]);
+  return { tonic: pc, minor: !!m[2], name };
+}
+// The song's lines that were sung, in order (with or without words), from its
+// current text, so edits to the words are kept.
+export function sungLines(body, count) {
+  return chordModel(body).filter(l => l.kind === "lyric" || l.kind === "chords").slice(0, count);
+}
+// Replace sung line k's chords (and keep its words) in the body.
+export function setSungLine(body, k, chordsText) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  const ln = sungLines(body, k + 1)[k];
+  if (!ln) return body;
+  const from = ln.kind === "lyric" && ln.chordLine >= 0 ? ln.chordLine : ln.i;
+  lines.splice(from, ln.i - from + 1, ...chordsText.split("\n"));
+  return lines.join("\n");
+}
+const lineWords = ln => (ln.kind === "lyric" ? ln.text : "");
+// Every sung line re-chorded in a style, keeping the current words.
+export function restyle(body, sketch, style) {
+  const key = sketchKey(sketch?.key);
+  if (!key) return body;
+  const lines = sketch.lines.map(l => ({ notes: unpackNotes(l.n) }));
+  const sung = sungLines(body, lines.length);
+  const changes = harmonize(lines, key, { style });
+  let out = body;
+  for (let k = Math.min(sung.length, lines.length) - 1; k >= 0; k--) out = setSungLine(out, k, chordLine(lineWords(sung[k]), lines[k].notes, changes[k]));
+  return out;
+}
+// The melody under one word of sung line k: from that word to the next chord
+// change (or the line's end), by the same syllable estimate used to place chords.
+export function notesUnder(body, sketch, k, pos) {
+  const ln = sungLines(body, k + 1)[k], notes = unpackNotes(sketch?.lines?.[k]?.n);
+  if (!ln || !notes.length) return notes;
+  const ws = [...String(ln.text || "").matchAll(/\S+/g)];
+  if (!ws.length) return notes;
+  const syl = ws.map(m => syllables(m[0]) || 1), total = syl.reduce((a, b) => a + b, 0);
+  const wordAt = p => { let w = 0; ws.forEach((m, i) => { if (m.index <= p) w = i; }); return w; };
+  const sylBefore = w => syl.slice(0, w).reduce((a, b) => a + b, 0);
+  const w0 = wordAt(pos), nextChord = (ln.chords || []).map(c => c.pos).filter(p => p > ws[w0].index).sort((a, b) => a - b)[0];
+  const w1 = nextChord === undefined ? ws.length : Math.max(w0 + 1, wordAt(nextChord));
+  const i0 = Math.floor(sylBefore(w0) * notes.length / total), i1 = Math.max(i0 + 1, Math.floor(sylBefore(w1) * notes.length / total));
+  return notes.slice(i0, i1);
 }
