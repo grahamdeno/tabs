@@ -48,6 +48,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `loop` | `{ a, b, build }` | Practice a section, line numbers |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
 | `tone` | object | Spark tone result |
+| `sketch` | boolean | Made with Sing it (chords from a sung melody) |
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
 
 ### Set

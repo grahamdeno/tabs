@@ -1239,3 +1239,174 @@ export function chordCounts(songs) {
   for (const s of songs) for (const c of chordsUsed(s.body || "")) n.set(c, (n.get(c) || 0) + 1);
   return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
 }
+
+// ---------- Song sketch: from a sung melody to chords ----------
+// Sing a line, give its words; the melody's notes give the key, chords that
+// hold those notes, and where each chord falls in the words. A first draft to
+// adjust, not the one right answer: a melody fits more than one set of chords.
+const NOTE_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const NOTE_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[s.length >> 1] : 0; };
+export const midiOfHz = hz => 69 + 12 * Math.log2(hz / 440);
+
+// Pitch frames ({ t: seconds, hz, -1 when nothing was heard }) into notes: a
+// steady pitch held at least minDur, vibrato and scoops smoothed out.
+export function melodyNotes(frames, { minDur = 0.09, tol = 0.7 } = {}) {
+  if (!frames.length) return [];
+  const step = median(frames.slice(1).map((f, i) => f.t - frames[i].t)) || 0.02;
+  const v = frames.map(f => (f.hz > 0 ? midiOfHz(f.hz) : null));
+  const sm = v.map((x, i) => {
+    if (x === null) return null;
+    return median(v.slice(Math.max(0, i - 2), i + 3).filter(y => y !== null));
+  });
+  const notes = [];
+  let cur = null;
+  const close = () => {
+    if (cur && cur.end - cur.start + step >= minDur) notes.push({ midi: Math.round(median(cur.vals)), start: cur.start, dur: cur.end - cur.start + step });
+    cur = null;
+  };
+  frames.forEach((f, i) => {
+    const m = sm[i];
+    if (m === null) return close();
+    if (cur && Math.abs(m - median(cur.vals)) <= tol) { cur.vals.push(m); cur.end = f.t; }
+    else { close(); cur = { start: f.t, end: f.t, vals: [m] }; }
+  });
+  close();
+  return notes;
+}
+
+// The key that best fits the notes (Krumhansl-Kessler key profiles, weighted by
+// how long each note is held; the last note leans toward home).
+const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+const MAJOR_NAMES = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const MINOR_NAMES = ["Cm", "C#m", "Dm", "Ebm", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "Bbm", "Bm"];
+export function detectKey(notes) {
+  const h = new Array(12).fill(0);
+  notes.forEach(n => { h[((n.midi % 12) + 12) % 12] += n.dur; });
+  const last = notes[notes.length - 1];
+  if (!notes.length || !h.some(Boolean)) return null;
+  const corr = (p, t) => {
+    const r = i => p[(i - t + 12) % 12], mx = h.reduce((a, b) => a + b) / 12, mp = p.reduce((a, b) => a + b) / 12;
+    let num = 0, dx = 0, dp = 0;
+    for (let i = 0; i < 12; i++) { num += (h[i] - mx) * (r(i) - mp); dx += (h[i] - mx) ** 2; dp += (r(i) - mp) ** 2; }
+    return dx && dp ? num / Math.sqrt(dx * dp) : 0;
+  };
+  const all = [];
+  for (let t = 0; t < 12; t++) {
+    const home = last && ((last.midi % 12) + 12) % 12 === t ? 0.08 : 0;
+    all.push({ tonic: t, minor: false, name: MAJOR_NAMES[t], score: corr(MAJOR_PROFILE, t) + home });
+    all.push({ tonic: t, minor: true, name: MINOR_NAMES[t], score: corr(MINOR_PROFILE, t) + home - 0.02 });
+  }
+  all.sort((a, b) => b.score - a.score);
+  return { ...all[0], sure: all[0].score - all[1].score > 0.05 && all[0].score > 0.5 };
+}
+
+// Chords in the key: [semitones above the tonic, minor?]. Minor keys use a
+// major V (it pulls home). The order follows how often songs use them.
+const MAJOR_CHORDS = [[0, false], [5, false], [7, false], [9, true], [2, true], [4, true]];
+const MINOR_CHORDS = [[0, true], [8, false], [3, false], [10, false], [7, false], [5, true]];
+// How naturally one chord follows another (by degree in the lists above).
+const MOVE = { "0>1": 0.3, "0>2": 0.3, "0>3": 0.25, "1>2": 0.3, "1>0": 0.25, "2>0": 0.4, "2>3": 0.2, "3>1": 0.3, "3>4": 0.2, "4>2": 0.35, "5>3": 0.2, "3>2": 0.1, "1>3": 0.1, "0>4": 0.1 };
+export function chordName(pc, minor, flats) { return (flats ? NOTE_FLAT : NOTE_SHARP)[((pc % 12) + 12) % 12] + (minor ? "m" : ""); }
+
+// lines: [{ notes }] (note times from the start of that line). Each line is cut
+// into 1 to 4 equal parts by length; each part gets the chord whose notes it
+// holds best, with smooth moves between chords preferred (a Viterbi path over
+// the whole song). Returns, per line, [{ chord, at }] with at in seconds.
+export function harmonize(lines, key) {
+  if (!key) return lines.map(() => []);
+  const set = key.minor ? MINOR_CHORDS : MAJOR_CHORDS;
+  const flats = FLAT_KEYS.has(key.name);
+  const cands = set.map(([s, m], deg) => { const root = (key.tonic + s) % 12; return { deg, root, minor: m, tones: [root, (root + (m ? 3 : 4)) % 12, (root + 7) % 12], name: chordName(root, m, flats) }; });
+  const slots = [];
+  lines.forEach((ln, li) => {
+    const ns = ln.notes || [];
+    if (!ns.length) { slots.push({ li, at: 0, w: null }); return; }
+    const t0 = ns[0].start, t1 = ns[ns.length - 1].start + ns[ns.length - 1].dur;
+    const k = Math.max(1, Math.min(4, Math.round((t1 - t0) / 2)));
+    for (let j = 0; j < k; j++) {
+      const a = t0 + (t1 - t0) * j / k, b = t0 + (t1 - t0) * (j + 1) / k;
+      const w = new Array(12).fill(0);
+      ns.forEach((n, i) => {
+        const over = Math.min(b, n.start + n.dur) - Math.max(a, n.start);
+        if (over > 0) w[((n.midi % 12) + 12) % 12] += over + (n.start >= a - 0.01 && (i === 0 || ns[i - 1].start < a) ? 0.15 : 0);
+      });
+      slots.push({ li, at: a, w, lineEnd: j === k - 1 });
+    }
+  });
+  const emit = (c, s) => {
+    if (!s.w) return 0;
+    const tot = s.w.reduce((x, y) => x + y, 0) || 1;
+    let sc = 0;
+    s.w.forEach((x, pc) => { if (x) sc += (c.tones.includes(pc) ? 1 : -0.6) * x + (pc === c.root ? 0.2 * x : 0); });
+    return sc / tot;
+  };
+  const N = slots.length, C = cands.length;
+  const best = slots.map(() => new Array(C).fill(-Infinity)), from = slots.map(() => new Array(C).fill(0));
+  slots.forEach((s, i) => cands.forEach((c, ci) => {
+    let e = emit(c, s) - c.deg * 0.02;
+    if (i === 0 && c.deg === 0) e += 0.4;
+    if (i === N - 1 && c.deg === 0) e += 0.5;
+    if (s.lineEnd && (c.deg === 0 || c.deg === 2)) e += 0.1;
+    if (i === 0) { best[0][ci] = e; return; }
+    cands.forEach((p, pi) => {
+      const v = best[i - 1][pi] + e + (p.deg === c.deg ? (s.li === slots[i - 1].li ? 0.05 : 0.15) : MOVE[`${p.deg}>${c.deg}`] || 0);
+      if (v > best[i][ci]) { best[i][ci] = v; from[i][ci] = pi; }
+    });
+  }));
+  let ci = best[N - 1].indexOf(Math.max(...best[N - 1]));
+  const path = new Array(N);
+  for (let i = N - 1; i >= 0; i--) { path[i] = ci; ci = from[i][ci]; }
+  const out = lines.map(() => []);
+  slots.forEach((s, i) => {
+    const name = cands[path[i]].name, row = out[s.li];
+    if (!row.length || row[row.length - 1].chord !== name) row.push({ chord: name, at: s.at });
+  });
+  return out;
+}
+
+// Rough syllables in a word (vowel groups, a silent final e dropped).
+export function syllables(word) {
+  const w = String(word).toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return 0;
+  const n = (w.replace(/e$/, "").match(/[aeiouy]+/g) || []).length;
+  return Math.max(1, n);
+}
+
+// One line as a chord line over its words. Sung notes stand in for syllables:
+// a chord that changes at the k-th note of n goes over the word holding the
+// matching share of the line's syllables.
+export function chordLine(words, notes, changes) {
+  const ws = String(words || "").trim().split(/\s+/).filter(Boolean);
+  if (!changes.length) return ws.join(" ");
+  if (!ws.length) return changes.map(c => c.chord).join("   ");
+  const syl = ws.map(syllables), total = syl.reduce((a, b) => a + b, 0) || ws.length;
+  const wordAtSyl = s => { let acc = 0; for (let i = 0; i < ws.length; i++) { acc += syl[i] || 1; if (s < acc) return i; } return ws.length - 1; };
+  const at = changes.map((c, i) => {
+    if (i === 0) return 0;
+    let k = notes.findIndex(n => n.start >= c.at - 0.05);
+    if (k < 0) k = notes.length - 1;
+    return wordAtSyl(Math.floor(k * total / Math.max(1, notes.length)));
+  });
+  for (let i = 1; i < at.length; i++) if (at[i] <= at[i - 1]) at[i] = at[i - 1] + 1;
+  const lyric = ws.join(" ");
+  const starts = []; let pos = 0;
+  ws.forEach(w => { starts.push(pos); pos += w.length + 1; });
+  let line = "";
+  changes.forEach((c, i) => {
+    if (at[i] >= ws.length) { line += (line ? " " : "") + c.chord; return; } /* more chords than words: they follow */
+    const col = Math.max(starts[at[i]], line.length ? line.length + 1 : 0);
+    line = line.padEnd(col, " ") + c.chord;
+  });
+  return line + "\n" + lyric;
+}
+
+// The whole sketch as a chord sheet, and its key.
+export function sketchSong(lines) {
+  const all = lines.flatMap(l => l.notes || []);
+  const key = detectKey(all);
+  const changes = harmonize(lines, key);
+  const body = lines.map((l, i) => chordLine(l.words, l.notes || [], changes[i])).join("\n");
+  return { key: key ? key.name : "", sure: !!key?.sure, body };
+}

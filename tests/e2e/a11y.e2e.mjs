@@ -22,7 +22,8 @@ const SCREENS = [
   ["menu", "#/song/a", p => p.click("#more")],
   ["editor", "#/song/a", async p => { await p.click("#more"); await p.click(".menu [data-m='edit']"); }],
   ["question", "#/trash", p => p.click("[data-forget]")],
-  ["tuner", "#/", p => p.click("#tunerbtn")]
+  ["tuner", "#/", p => p.click("#tunerbtn")],
+  ["sketch", "#/sketch"]
 ];
 
 const unnamed = () => {

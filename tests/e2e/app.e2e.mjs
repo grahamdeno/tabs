@@ -476,3 +476,41 @@ test("All songs sorts by artist", { skip: skip() }, async t => {
   await page.selectOption("#sort", "artist"); await page.waitForTimeout(300);
   assert.deepEqual(await page.$$eval("#list .row .t", r => r.map(x => x.textContent)), ["Harbor Lights", "River Road", "Anchor"]);
 });
+
+test("sketch: sing two lines, add their words, get chords in the melody's key", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  await ctx.addInitScript(FAKE_MIC);
+  const page = await ctx.newPage();
+  const errors = []; page.on("pageerror", e => errors.push(String(e)));
+  page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
+  await page.goto(base); await page.waitForTimeout(400);
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
+  await page.reload(); await page.waitForTimeout(300);
+  // From Add: an empty new song offers Sing it.
+  await page.click("#add"); await page.waitForTimeout(600);
+  await page.click("#ed-sing"); await page.waitForTimeout(500);
+  assert.match(await page.innerText("h1"), /New sketch/);
+  const hz = m => 440 * 2 ** ((m - 69) / 12);
+  const singLine = async melody => {
+    await page.click("#sk-rec"); await page.waitForTimeout(300);
+    for (const m of melody) { await page.evaluate(f => { window.__hz = f; }, hz(m)); await page.waitForTimeout(420); }
+    await page.evaluate(() => { window.__hz = 0; }); await page.waitForTimeout(150);
+    await page.click("#sk-rec"); await page.waitForTimeout(400);
+  };
+  await singLine([55, 59, 62, 59, 60, 64, 67, 64]);          // G B D B | C E G E
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.i), "0", "the words field is ready for dictation");
+  await page.keyboard.type("Porch light burning past the second shift");
+  await singLine([62, 66, 57, 62, 59, 55, 55, 55]);          // D F# A D | B G G G
+  await page.fill('.sk-w[data-i="1"]', "Home to you a little more");
+  assert.match(await page.innerText(".sk-chips"), /Sounds like G/);
+  assert.equal(await page.locator(".sk-row").count(), 2);
+  await page.click("#sk-done"); await page.waitForTimeout(1200);
+  const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch);
+  assert.ok(song, "a new song was made");
+  assert.equal(song.key, "G");
+  assert.match(song.body, /^G\s+C\nPorch light burning past the second shift\nD\s+G\nHome to you a little more$/);
+  assert.ok(await page.locator("#ce-done").isVisible(), "it opens in the editor to name it");
+  assert.deepEqual(errors, []);
+});
