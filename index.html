@@ -387,6 +387,10 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.endnote { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 28px 0 8px; font-size: 14px; color: var(--muted); animation: endin .9s ease-out both; }
+.endnote svg { width: 16px; height: 16px; color: var(--accent); }
+@keyframes endin { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .endnote { animation: fade .3s; } }
 .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--rim); margin: 8px auto 4px; flex: none; }
 .ph { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 12px; flex: none; }
 .ph h2 { font-size: 17px; font-weight: 600; margin: 0; }
@@ -1832,7 +1836,20 @@ function wakeControls() {
 }
 ["touchstart", "pointerdown", "wheel", "keydown"].forEach(ev => window.addEventListener(ev, () => { if (scroll.on) wakeControls(); }, { passive: true, capture: true }));
 
+// A quiet note at the end of the sheet when a song is played through. No badges or streaks.
+const nth = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+function endMoment(song) {
+  document.querySelector(".endnote")?.remove();
+  const total = song.plays?.length || 0, week = playsThisWeek(song);
+  const when = total === 1 ? "for the first time" : week === 1 ? "· first time this week" : `· ${nth(week)} time this week`;
+  const el = document.createElement("div");
+  el.className = "endnote";
+  el.innerHTML = `${icon("check")}<span>Played through ${when}</span>`;
+  $("sheet")?.after(el);
+}
+
 async function startScroll(song) {
+  document.querySelector(".endnote")?.remove();
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false;
   document.body.classList.add("playing");
   wakeControls();
@@ -1866,7 +1883,7 @@ async function startScroll(song) {
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
       if (!song.loop && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
-        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); if (setCtx) nextUp(); }
+        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); if (setCtx) nextUp(); }
         scroll.bottomSince ||= t;
         if (t - scroll.bottomSince > 4000) return stopScroll();
       } else scroll.bottomSince = 0;
