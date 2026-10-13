@@ -141,6 +141,15 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 
 /* Song view */
 .song-title { font-family: var(--serif); font-weight: 400; font-size: 36px; letter-spacing: -0.01em; line-height: 1.1; margin: 18px 0 6px; overflow-wrap: anywhere; }
+.metarow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.metarow .meta { margin-bottom: 0; }
+.stat { border: 1px solid var(--rim); background: var(--card); color: var(--muted); font-size: 12.5px; height: 26px; padding: 0 10px; border-radius: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.stat.learning { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.stat.got { color: #7ac47f; border-color: rgba(122,196,127,0.4); background: rgba(122,196,127,0.1); }
+.stat .pl { color: var(--muted); }
+.row .a .st.learning { color: var(--accent); }
+.row .a .st.got { color: #7ac47f; }
+.weekly { font-size: 13px; color: var(--muted); margin: 2px 4px 0; }
 .meta { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .meta b { color: var(--fg-2); font-weight: 500; }
@@ -486,15 +495,19 @@ async function backupNow() {
 function renderLibrary() {
   const hasFav = data.songs.some(s => s.favorite);
   const hasTab = data.songs.some(s => s.format === "tab");
-  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab)) filter = "all";
+  const hasLearn = data.songs.some(s => s.status === "learning");
+  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
+  const week = data.songs.map(playsThisWeek), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
   app.innerHTML = `
     <div class="head">
       <h1 class="title">Library</h1>
       <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
     </div>
-    ${hasFav || hasTab ? `<div class="chips" id="chips">
+    ${weekTotal ? `<div class="weekly">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : ""}
+    ${hasFav || hasTab || hasLearn ? `<div class="chips" id="chips">
       <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
+      ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
     </div>` : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -536,9 +549,12 @@ function renderLibrary() {
   followKeyboard();
 }
 
+const STATUS = { learning: "Learning", got: "Got it" };
 function songRow(s) {
+  const wk = playsThisWeek(s);
+  const sub = [esc(s.artist || "Unknown artist"), STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, wk && `Played ${wk}× this week`].filter(Boolean).join(" · ");
   return `<button class="row" data-id="${esc(s.id)}">
-    <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${esc(s.artist || "Unknown artist")}</div></div>
+    <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${sub}</div></div>
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
     <span class="k">${esc(keyOf(s))}</span>
   </button>`;
@@ -552,7 +568,7 @@ function renderList() {
   }
   const q = query.trim().toLowerCase();
   const songs = data.songs.filter(s =>
-    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") &&
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning") &&
     (!q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)));
   const recent = !q && filter === "all" && data.songs.length >= 4
     ? data.songs.filter(s => s.opened).sort((a, b) => b.opened - a.opened).slice(0, 2) : [];
@@ -564,7 +580,7 @@ function renderList() {
         <div class="t">${esc(s.title)}</div>
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
-    ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : "All songs"}</div>`}
+    ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(songRow).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}".</div>`}`;
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => go("#/song/" + encodeURIComponent(el.dataset.id)));
 }
@@ -762,7 +778,7 @@ function renderViewer(id) {
       </div>
     </div>
     <h1 class="song-title">${esc(song.title)}</h1>
-    <div class="meta" id="meta"></div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button></div>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -832,6 +848,21 @@ function renderViewer(id) {
     const closeS = () => { pop.remove(); window.removeEventListener("scroll", closeS); document.removeEventListener("click", close, true); };
     setTimeout(() => { document.addEventListener("click", close, true); window.addEventListener("scroll", closeS, { passive: true }); });
   };
+  // Learning status: tap to cycle none → Learning → Got it.
+  const paintStat = () => {
+    const st = $("stat");
+    const wk = playsThisWeek(song);
+    st.className = "stat " + (song.status || "none");
+    st.innerHTML = (STATUS[song.status] || "Mark as learning") + (wk ? `<span class="pl">· ${wk}× this week</span>` : "");
+  };
+  paintStat();
+  $("stat").onclick = () => {
+    song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
+    if (!song.status) delete song.status;
+    Tabs.save(data); paintStat();
+    toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
+  };
+  curPaintStat = paintStat;
   $("ctitle").onclick = () => {
     hold.active = true; releaseSoon(900); // let the jump finish before auto-scroll resumes
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1144,6 +1175,7 @@ window.addEventListener("scroll", () => {
 // sheet is never changed; the suggestion is stored with the song and can be
 // switched off.
 let viewing = null; // the song on screen
+let curPaintStat = null; // refreshes the status button after a play is logged
 
 function chordNames(body, steps, flats) {
   const out = [];
@@ -1425,7 +1457,7 @@ function wakeControls() {
 ["touchstart", "pointerdown", "wheel", "keydown"].forEach(ev => window.addEventListener(ev, () => { if (scroll.on) wakeControls(); }, { passive: true, capture: true }));
 
 async function startScroll(song) {
-  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0;
+  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false;
   document.body.classList.add("playing");
   wakeControls();
   showChordPop(null);
@@ -1452,6 +1484,7 @@ async function startScroll(song) {
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); }
         scroll.bottomSince ||= t;
         if (t - scroll.bottomSince > 4000) return stopScroll();
       } else scroll.bottomSince = 0;
