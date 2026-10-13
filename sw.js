@@ -5,7 +5,7 @@
 // the browser checks sw.js for changes on every launch. When it finds a new
 // version, install saves the whole app shell fresh from the server in one go,
 // so a release is never half old and half new. The page then offers a reload.
-const CACHE = "tabs-v1.33.1";
+const CACHE = "tabs-v1.33.2";
 const SHELL = ["./", "index.html", "core.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
