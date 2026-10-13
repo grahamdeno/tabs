@@ -325,3 +325,21 @@ test("section labels and chord lines may carry a repeat mark", () => {
   assert.ok(C.isChordLine("G   D   F#7   Bm   A   (x2)"));
   assert.ok(!C.isChordLine("Lay me down (x2)"));
 });
+
+// ---------- Sets as events ----------
+
+test("the next set is the soonest one still ahead", () => {
+  const now = Date.parse("2026-10-14T12:00");
+  const sets = [{ id: "a", when: "2026-10-20T20:00" }, { id: "b", when: "2026-10-17T20:00" }, { id: "c", when: "2026-10-01T20:00" }, { id: "d" }];
+  assert.equal(C.nextSet(sets, now).id, "b");
+  assert.equal(C.nextSet([{ id: "x", when: "2026-10-14T09:00" }], now).id, "x"); /* started 3 hours ago: still up */
+  assert.equal(C.nextSet([{ id: "y", when: "2026-10-13T20:00" }], now), null);
+});
+
+test("time until a set reads naturally", () => {
+  const now = Date.parse("2026-10-14T12:00");
+  assert.equal(C.untilLabel("2026-10-14T18:00", now), "in 6 hours");
+  assert.equal(C.untilLabel("2026-10-15T20:00", now), "tomorrow");
+  assert.equal(C.untilLabel("2026-10-17T20:00", now), "in 3 days");
+  assert.equal(C.untilLabel("2026-10-14T10:00", now), "now");
+});

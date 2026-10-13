@@ -409,6 +409,48 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.set-when { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--accent); margin: 0 2px 16px; }
+.set-when svg { width: 15px; height: 15px; }
+.set-when span { color: var(--muted); }
+.cover { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; background: #121214; }
+.cover svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cv-t { position: absolute; left: 9%; right: 9%; bottom: 8%; font-family: var(--serif); color: #fff; line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.5); text-align: left; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.cv-k { position: absolute; left: 9%; top: 8%; font: 600 9px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.75); }
+.upnext { display: flex; gap: 14px; align-items: center; border-radius: 20px; padding: 12px; margin: 16px 0 2px; background: linear-gradient(120deg, var(--tint), var(--card)); border: 1px solid var(--rim); cursor: pointer; }
+.un-cv { width: 88px; height: 88px; border-radius: 14px; overflow: hidden; flex: none; box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+.un-t { flex: 1; min-width: 0; }
+.un-t .lab { font: 600 10.5px var(--sans); letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
+.un-t b { display: block; font-family: var(--serif); font-weight: 400; font-size: 21px; color: var(--fg); margin: 3px 0 4px; line-height: 1.12; }
+.un-t span { font-size: 13px; color: var(--muted); }
+.un-play { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; }
+.un-play svg { width: 18px; height: 18px; fill: currentColor; stroke: none; margin-left: 2px; }
+.shelf-h .sh-all { font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 500; text-decoration: none; }
+.shelf { display: flex; gap: 12px; overflow-x: auto; margin: 0 -20px; padding: 0 20px 6px; scroll-padding-left: 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+.shelf::-webkit-scrollbar { display: none; }
+.sh-it { width: 128px; flex: none; border: 0; background: none; padding: 0; text-align: left; scroll-snap-align: start; }
+.sh-cv { width: 128px; height: 128px; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.4); }
+.sh-t { font-size: 13.5px; color: var(--fg); margin: 7px 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-s { font-size: 12px; color: var(--muted); margin: 1px 2px 0; }
+.sh-new .sh-cv { border: 1.5px dashed var(--rim); box-shadow: none; display: grid; place-items: center; color: var(--accent); }
+.sh-new .sh-cv svg { width: 26px; height: 26px; }
+.row-cv { width: 44px; height: 44px; border-radius: 9px; overflow: hidden; flex: none; margin-right: 2px; }
+body.searching .upnext, body.searching .shelf, body.searching .shelf-h { display: none !important; }
+.ns .ns-head { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 10px; }
+.ns .ns-head b { font-size: 16px; font-weight: 600; }
+.ns-body { overflow-y: auto; padding: 4px 20px 30px; }
+.ns-cover { width: 210px; height: 210px; margin: 6px auto 6px; border-radius: 18px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.55); }
+.ns-cap { text-align: center; font-size: 12.5px; color: var(--muted); margin: 8px 0 18px; }
+.ns-f { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--rim); border-radius: 12px; padding: 0 14px; margin-bottom: 10px; min-height: 50px; }
+.ns-f span { font-size: 14px; color: var(--muted); width: 54px; flex: none; }
+.ns-f input { flex: 1; min-width: 0; border: 0; background: none; font-size: 17px; color: var(--fg); height: 48px; }
+.ns-f input[type=datetime-local] { -webkit-appearance: none; appearance: none; text-align: left; }
+.ns-x { border: 0; background: none; color: var(--muted); padding: 4px; }
+.ns-x[hidden] { display: none; }
+.ns-x svg { width: 16px; height: 16px; }
+.ns-lab { font-size: 13px; color: var(--muted); margin: 14px 2px 8px; }
+.ns-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ns-chips .n { color: var(--muted); font-size: 12px; margin-left: 2px; }
+
 .seg.slide { position: relative; }
 .seg.slide::before { content: ""; position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 7px; background: var(--accent-soft); transition: transform .25s cubic-bezier(.2,.8,.2,1); }
 .seg.slide.right::before { transform: translateX(100%); }
@@ -615,7 +657,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -645,6 +687,7 @@ const I = {
   fork: '<path d="M9 3v7a3 3 0 0 0 6 0V3"/><path d="M12 13v8"/>',
   stage: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>',
   pick: '<path d="M12 3c4 0 7 2 7 6 0 5-4 10-7 12-3-2-7-7-7-12 0-4 3-6 7-6z"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   dots: '<circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/>',
@@ -812,6 +855,7 @@ function renderLibrary() {
       ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
     </div>` : ""}
+    ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
       <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
@@ -834,6 +878,7 @@ function renderLibrary() {
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   $("add").onclick = () => { draft = null; go("#/add"); };
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
+  bindShelf();
   const q = $("q");
   const enterSearch = () => {
     if (searching) return;
@@ -884,6 +929,34 @@ function renderLibrary() {
   setTimeout(() => { if (route().name === "library" && !layer.innerHTML) showTips("library"); }, 400);
 }
 
+// ---- Up next and the sets shelf (library, All view) ----
+function setsShelf() {
+  if (!data.sets.length) return "";
+  const up = nextSet(data.sets);
+  const rest = data.sets.filter(x => x !== up)
+    .sort((a, b) => (a.when && b.when ? Date.parse(a.when) - Date.parse(b.when) : a.when ? -1 : b.when ? 1 : 0));
+  const len = x => { const n = setSongs(x).length; return `${n} song${n === 1 ? "" : "s"}${n ? ` · ${Math.round(setLength(x) / 60)} min` : ""}`; };
+  return `
+    ${up ? `<div class="upnext" id="upnext" role="button" tabindex="0" aria-label="Up next: ${esc(up.name)}, ${esc(fullWhen(up.when))}" style="--tint:${keyColor(setKeys(up)[0], up.name, 0.22)}">
+      <div class="un-cv">${setCover(up, { small: true, notext: true })}</div>
+      <div class="un-t"><div class="lab">Up next · ${esc(whenText(up.when))}</div><b>${esc(up.name)}</b><span>${len(up)} · ${esc(untilLabel(up.when))}${up.where ? ` · ${esc(up.where)}` : ""}</span></div>
+      ${setSongs(up).length ? `<button class="un-play" id="un-play" aria-label="Play ${esc(up.name)}">${icon("play")}</button>` : ""}
+    </div>` : ""}
+    <div class="label lrow shelf-h"><span>Your sets</span><button class="linkbtn sh-all" id="sh-all">See all</button></div>
+    <div class="shelf" id="shelf">
+      ${rest.map(x => `<button class="sh-it" data-sh="${esc(x.id)}" aria-label="${esc(x.name)}"><div class="sh-cv">${setCover(x, { fs: 14, small: true })}</div><div class="sh-t">${esc(x.name)}</div><div class="sh-s">${x.when ? esc(whenText(x.when)) : len(x)}</div></button>`).join("")}
+      <button class="sh-it sh-new" id="sh-new" aria-label="New set"><div class="sh-cv">${icon("plus")}</div><div class="sh-t">New set</div></button>
+    </div>`;
+}
+function bindShelf() {
+  const up = nextSet(data.sets);
+  $("upnext")?.addEventListener("click", e => { if (!e.target.closest("#un-play")) go("#/set/" + encodeURIComponent(up.id)); });
+  $("un-play")?.addEventListener("click", () => playSet(up));
+  $("sh-all")?.addEventListener("click", () => { filter = "sets"; renderLibrary(); });
+  $("sh-new")?.addEventListener("click", () => newSet());
+  app.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => go("#/set/" + encodeURIComponent(b.dataset.sh)));
+}
+
 const STATUS = { learning: "Learning", got: "Got it" };
 const SORTS = { title: "A–Z", recent: "Recently played", most: "Most played", key: "Key" };
 // A lyric that matched the search, with the matching words marked.
@@ -922,12 +995,13 @@ function renderList() {
       ${!data.sets.length ? `<p class="empty-hint">A set is a list of songs in playing order, for a gig or a practice session. Play it and each song leads into the next.</p>` : ""}
       <div class="list glass">
         ${sets.map(x => { const n = setSongs(x).length; return `<button class="row" data-set="${esc(x.id)}">
-          <div class="txt"><div class="t">${esc(x.name)}</div><div class="a">${n} song${n === 1 ? "" : "s"}${n ? ` · about ${Math.round(setLength(x) / 60)} min` : ""}</div></div>
+          <div class="row-cv">${setCover(x, { small: true, notext: true })}</div>
+          <div class="txt"><div class="t">${esc(x.name)}</div><div class="a">${x.when ? `${esc(fullWhen(x.when))} · ` : ""}${n} song${n === 1 ? "" : "s"}${n ? ` · about ${Math.round(setLength(x) / 60)} min` : ""}</div></div>
           ${icon("chev", "chev")}</button>`; }).join("")}
         <button class="row newset" id="newset"><div class="txt"><div class="t">${icon("plus")} New set</div></div></button>
       </div>`;
     list.querySelectorAll("[data-set]").forEach(el => el.onclick = () => go("#/set/" + encodeURIComponent(el.dataset.set)));
-    $("newset").onclick = () => { const name = prompt("Name this set", "New set"); if (name === null) return; const x = Tabs.addSet(data, name.trim() || "New set"); go("#/set/" + encodeURIComponent(x.id)); };
+    $("newset").onclick = () => newSet();
     return;
   }
   if (searching && !q) {
@@ -944,7 +1018,7 @@ function renderList() {
   /* Searching: title and artist matches first, then songs whose lyrics have the words. */
   const found = q ? searchSongs(pool, q) : null;
   const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
-  const recent = !q && filter === "all" && sort !== "recent" && data.songs.length >= 4
+  const recent = !q && filter === "all" && sort !== "recent" && data.songs.length >= 4 && !data.sets.length
     ? data.songs.filter(s => s.opened).sort((a, b) => b.opened - a.opened).slice(0, 2) : [];
   const sorted = found ? found.map(x => x.song) : sortSongs(pool, sort, keyOf);
   const hits = new Map((found || []).filter(x => x.line).map(x => [x.song.id, lyricHit(x.line, q)]));
@@ -3112,8 +3186,9 @@ function renderSet(id) {
         ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
       </div>
     </div>
-    <button class="settitle" id="rename" aria-label="Rename set"><h1 class="title">${esc(set.name)}</h1></button>
-    <div class="meta" style="margin:6px 2px 16px">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
+    <button class="settitle" id="rename" aria-label="Set details: name, date and place"><h1 class="title">${esc(set.name)}</h1></button>
+    <div class="meta" style="margin:6px 2px ${set.when || set.where ? "4px" : "16px"}">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
+    ${set.when || set.where ? `<div class="set-when">${icon("calendar")}${esc([set.when && fullWhen(set.when), set.where].filter(Boolean).join(" · "))}${set.when && untilLabel(set.when) ? ` <span>· ${esc(untilLabel(set.when))}</span>` : ""}</div>` : ""}
     ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}Play set</button>
       <button class="stagechip ${data.settings.stage ? "on" : ""}" id="s-stagechip" role="switch" aria-checked="${!!data.settings.stage}">${icon("stage")}Stage mode <b>${data.settings.stage ? "On" : "Off"}</b></button>` : ""}
     <div class="list glass" style="margin-top:16px">
@@ -3130,7 +3205,7 @@ function renderSet(id) {
     <button class="danger" id="delset" style="display:block;margin:22px auto 0">Delete set</button>`;
   const ids = () => setSongs(set).map(s => s.id);
   $("back").onclick = () => { setEditing = false; filter = "sets"; go("#/"); };
-  $("rename").onclick = () => { const n = prompt("Rename set", set.name); if (n && n.trim()) { set.name = n.trim(); Tabs.save(data); renderSet(id); } };
+  $("rename").onclick = () => setSheet(set, () => renderSet(id));
   $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
   $("s-share")?.addEventListener("click", () => shareSet(set));
   $("s-stagechip")?.addEventListener("click", () => { data.settings.stage = !data.settings.stage; Tabs.save(data); applyTheme(); renderSet(id); });
@@ -3202,12 +3277,7 @@ function addToSet(song) {
     x.songIds = x.songIds.includes(song.id) ? x.songIds.filter(i => i !== song.id) : [...x.songIds, song.id];
     Tabs.save(data); addToSet(song);
   });
-  $("as-new").onclick = () => {
-    const name = prompt("Name this set", "New set");
-    if (name === null) return;
-    const x = Tabs.addSet(data, name.trim() || "New set");
-    x.songIds.push(song.id); Tabs.save(data); addToSet(song);
-  };
+  $("as-new").onclick = () => newSet(x => { if (!x.songIds.includes(song.id)) x.songIds.push(song.id); Tabs.save(data); addToSet(song); });
 }
 
 // End of a song in a set: offer the next one, playing it after 5 seconds.
@@ -3248,6 +3318,121 @@ function nextLine() {
   const first = firstLyric(next.body);
   el.innerHTML = `<span class="lab">Next</span><b>${esc(next.title)}</b>${first ? `<span class="fl">${esc(first)}</span>` : ""}${songTuning(next) !== songTuning(viewing) ? `<span class="tn">${esc(TUNINGS[songTuning(next)].name)}</span>` : ""}`;
   document.body.appendChild(el);
+}
+
+// ---------- Set covers ----------
+// Every set gets a cover drawn from what's in it: one ring per song, in a color
+// for that song's key (a warm palette that sits with the copper theme), around a
+// glow in the first song's color. The name sits in the title font at the bottom.
+const PAL = [[20, 75, 68], [38, 70, 66], [8, 60, 62], [345, 45, 66], [280, 32, 70], [200, 38, 64], [160, 30, 62], [45, 35, 78], [28, 55, 58], [330, 35, 60], [215, 30, 70], [12, 45, 72]];
+const FIFTHS = ["C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F"];
+const ENHARM = { "C#": "Db", "D#": "Eb", Gb: "F#", "G#": "Ab", "A#": "Bb", Cb: "B", "E#": "F", Fb: "E", "B#": "C" };
+const hashOf = str => [...String(str)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+function keyColor(k, fallback = "", a = 1) {
+  const root = (/^[A-G][#b]?/.exec(k || "") || [])[0];
+  const i = root ? FIFTHS.indexOf(ENHARM[root] || root) : -1;
+  const [h, sat, l] = PAL[i >= 0 ? (i + 9) % 12 : hashOf(fallback) % 12];
+  return `hsl(${h} ${sat}% ${l}% / ${a})`;
+}
+let coverSeq = 0;
+// keys: the songs' keys in order. opts: { name, kicker, fs (title size in px), small }
+function coverSVG(keys, opts = {}) {
+  const id = "cg" + (++coverSeq), name = opts.name || "";
+  const base = keyColor(keys[0], name);
+  const cx = 148, cy = 58;
+  const rings = keys.slice(0, 9).map((k, i) => {
+    const r = 22 + i * 17, len = 2 * Math.PI * r, gap = len * (0.18 + ((hashOf(name + i) % 30) / 100));
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${keyColor(k, name + i)}" stroke-opacity="${(0.88 - i * 0.06).toFixed(2)}" stroke-width="${opts.small ? 2.4 : 3.2}" stroke-linecap="round" stroke-dasharray="${(len - gap).toFixed(1)} ${gap.toFixed(1)}" transform="rotate(${(i * 47 + hashOf(name) % 90) - 90} ${cx} ${cy})"/>`;
+  }).join("");
+  return `<div class="cover" aria-hidden="true"><svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="${id}" cx="74%" cy="29%" r="70%"><stop offset="0" stop-color="${base}" stop-opacity=".5"/><stop offset=".6" stop-color="${base}" stop-opacity=".08"/><stop offset="1" stop-color="#0d0d0f" stop-opacity="0"/></radialGradient></defs>
+    <rect width="200" height="200" fill="#121214"/><rect width="200" height="200" fill="url(#${id})"/>${rings}<circle cx="${cx}" cy="${cy}" r="4" fill="${base}"/></svg>
+    ${opts.kicker ? `<div class="cv-k">${esc(opts.kicker)}</div>` : ""}${name && !opts.notext ? `<div class="cv-t" style="font-size:${opts.fs || 22}px">${esc(name)}</div>` : ""}</div>`;
+}
+const setKeys = set => setSongs(set).map(s => s.format === "tab" ? "" : keyOf(s));
+const setCover = (set, opts = {}) => coverSVG(setKeys(set), { name: set.name, ...opts });
+// "Fri 8:00 PM" within the week, "Oct 17 · 8:00 PM" further out.
+function whenText(when, withDay = true) {
+  const d = new Date(when);
+  if (isNaN(d)) return "";
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const soon = Math.abs(d - Date.now()) < 6 * 864e5;
+  const day = soon ? d.toLocaleDateString([], { weekday: "short" }) : d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return withDay ? `${day} ${time}` : time;
+}
+const fullWhen = when => { const d = new Date(when); return isNaN(d) ? "" : `${d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`; };
+function playSet(set) {
+  const songs = setSongs(set);
+  if (!songs.length) return go("#/set/" + encodeURIComponent(set.id));
+  setCtx = { id: set.id, idx: 0, autoplay: true };
+  go("#/song/" + encodeURIComponent(songs[0].id));
+}
+
+// ---------- New set (and set details) ----------
+// One calm sheet: the cover takes shape as you type the name. When and Where are
+// optional; a date makes the set show up as "Up next" on the library. "Start from"
+// fills the set from a group of songs you already have.
+function setSheet(existing, done) {
+  const now = new Date(Date.now() + 864e5);
+  const starts = [
+    ["empty", "Empty set", []],
+    ["fav", "Favorites", data.songs.filter(s => s.favorite)],
+    ["learn", "Learning", data.songs.filter(s => s.status === "learning")],
+    ["week", "Played this week", data.songs.filter(s => playsThisWeek(s))]
+  ].filter(x => x[0] === "empty" || x[2].length);
+  let start = "empty";
+  layer.innerHTML = `
+    <div class="scrim" id="ns-scrim"></div>
+    <div class="panel full ns" role="dialog" aria-label="${existing ? "Set details" : "New set"}">
+      <div class="grab"></div>
+      <div class="ns-head"><button class="tb" id="ns-cancel">Cancel</button><b>${existing ? "Set details" : "New set"}</b><button class="tb go" id="ns-ok">${existing ? "Save" : "Next"}</button></div>
+      <div class="ns-body">
+        <div class="ns-cover" id="ns-cover"></div>
+        <p class="ns-cap">${existing ? "The cover is drawn from the name and the songs in the set." : "Your cover starts with the name. Songs add to it."}</p>
+        <label class="ns-f"><input id="ns-name" value="${esc(existing?.name || "")}" placeholder="Name this set" autocomplete="off" aria-label="Set name"></label>
+        <label class="ns-f"><span>When</span><input id="ns-when" type="datetime-local" value="${esc(existing?.when || "")}" aria-label="When"><button class="ns-x" id="ns-noday" ${existing?.when ? "" : "hidden"} aria-label="Clear date">${icon("x")}</button></label>
+        <label class="ns-f"><span>Where</span><input id="ns-where" value="${esc(existing?.where || "")}" placeholder="Optional" autocomplete="off" aria-label="Where"></label>
+        ${existing ? "" : `<div class="ns-lab">Start from</div><div class="ns-chips">${starts.map(([k, l, list]) => `<button class="chip ${k === start ? "on" : ""}" data-st="${k}">${l}${list.length ? ` <span class="n">${list.length}</span>` : ""}</button>`).join("")}</div>`}
+      </div>
+    </div>`;
+  const keysNow = () => existing ? setKeys(existing) : (starts.find(x => x[0] === start)[2]).map(s => keyOf(s));
+  const paint = () => {
+    const name = $("ns-name").value.trim() || "New set";
+    const w = $("ns-when").value;
+    $("ns-cover").innerHTML = coverSVG(keysNow(), { name, fs: 26, kicker: w ? fullWhen(w).split(" · ")[0] : "" });
+    $("ns-noday").hidden = !w;
+  };
+  const close = () => { layer.innerHTML = ""; };
+  $("ns-scrim").onclick = close; $("ns-cancel").onclick = close;
+  $("ns-name").oninput = paint; $("ns-when").oninput = paint; $("ns-when").onchange = paint;
+  $("ns-noday").onclick = e => { e.preventDefault(); $("ns-when").value = ""; paint(); };
+  layer.querySelectorAll("[data-st]").forEach(b => b.onclick = () => {
+    start = b.dataset.st;
+    layer.querySelectorAll("[data-st]").forEach(x => x.classList.toggle("on", x === b));
+    paint();
+  });
+  $("ns-ok").onclick = () => {
+    const name = $("ns-name").value.trim();
+    if (!name) { toast("Give the set a name"); $("ns-name").focus(); return; }
+    const when = $("ns-when").value, where = $("ns-where").value.trim();
+    const set = existing || Tabs.addSet(data, name);
+    set.name = name;
+    if (when) set.when = when; else delete set.when;
+    if (where) set.where = where; else delete set.where;
+    if (!existing) set.songIds = (starts.find(x => x[0] === start)[2]).map(s => s.id);
+    Tabs.save(data);
+    close();
+    done?.(set, !existing && !set.songIds.length);
+  };
+  paint();
+  if (!existing) setTimeout(() => $("ns-name")?.focus(), 350);
+}
+// New set from anywhere: create it, open it, and go straight to adding songs if it's empty.
+function newSet(after) {
+  setSheet(null, (set, empty) => {
+    if (after) return after(set);
+    go("#/set/" + encodeURIComponent(set.id));
+    if (empty) setTimeout(() => pickSongs(set, () => renderSet(set.id)), 450);
+  });
 }
 
 // ---------- Recently deleted ----------

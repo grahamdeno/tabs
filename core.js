@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.32.2";
+export const VERSION = "1.33.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -929,4 +929,24 @@ export function insertLines(body, i, newLines) {
   if (lines.length === 1 && lines[0] === "") lines.length = 0;
   lines.splice(i + 1, 0, ...newLines);
   return { body: lines.join("\n"), at: i + 1 };
+}
+
+// ---------- Sets as events ----------
+// A set can have a date ("when", local time like 2026-10-17T20:00) and a place.
+// The next one is the soonest still ahead, or that started in the last 6 hours.
+export function nextSet(sets, now = Date.now()) {
+  return (sets || []).filter(s => s.when && Date.parse(s.when) > now - 6 * 3600e3)
+    .sort((a, b) => Date.parse(a.when) - Date.parse(b.when))[0] || null;
+}
+// "today", "tomorrow", "in 3 days", "in 2 weeks", or "now" for a set under way.
+export function untilLabel(when, now = Date.now()) {
+  const t = Date.parse(when);
+  if (isNaN(t)) return "";
+  if (t <= now) return now - t < 6 * 3600e3 ? "now" : "";
+  const day = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); };
+  const days = Math.round((day(t) - day(now)) / 864e5);
+  if (days === 0) { const h = Math.round((t - now) / 3600e3); return h <= 1 ? "within the hour" : `in ${h} hours`; }
+  if (days === 1) return "tomorrow";
+  if (days < 14) return `in ${days} days`;
+  return `in ${Math.round(days / 7)} weeks`;
 }
