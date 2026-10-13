@@ -566,3 +566,12 @@ test("library index letters", () => {
   assert.equal(C.indexLetter("1979"), "#");
   assert.equal(C.indexLetter(""), "#");
 });
+
+test("html`` escapes values unless they are safe markup", () => {
+  const evil = `<img src=x onerror="alert(1)">`;
+  assert.equal(String(C.html`<b>${evil}</b>`), `<b>&lt;img src=x onerror=&quot;alert(1)&quot;&gt;</b>`);
+  assert.equal(String(C.html`<i>${C.raw("<svg/>")}</i>`), "<i><svg/></i>");
+  assert.equal(String(C.html`<ul>${["a<", "b"].map(x => C.html`<li>${x}</li>`)}</ul>`), "<ul><li>a&lt;</li><li>b</li></ul>");
+  assert.equal(String(C.html`${null}${undefined}${false}${0}`), "0");
+  assert.equal(`${C.html`<p>${"&"}</p>`}`, "<p>&amp;</p>");
+});

@@ -510,3 +510,17 @@ test("iPad: chords in a rail, songs in a list beside the song; rotating puts the
   assert.equal(await page.evaluate(() => document.getElementById("strip").parentElement.id), "app");
   assert.equal(await page.locator(".side").isVisible(), false);
 });
+
+test("song, artist and set names are shown as text, never run as markup", { skip: skip() }, async t => {
+  const bad = n => `<img src=x onerror="window.__x=(window.__x||0)+${n}">`;
+  const lib = { ...LIB,
+    songs: [{ id: "a", title: bad(1), artist: bad(2), key: "A", format: "chords", body: `[${bad(3)}]\nA   D\n${bad(4)} words` }, LIB.songs[1]],
+    sets: [{ id: "s", name: bad(5), songIds: ["a", "b"], created: "2026-10-01T00:00:00Z" }],
+    trash: [{ type: "song", item: { id: "z", title: bad(6), artist: bad(7), body: "G" }, deletedAt: new Date().toISOString() }] };
+  const page = await phone(t, lib, { viewport: { width: 1180, height: 820 } });
+  for (const h of ["#/", "#/song/a", "#/set/s", "#/trash", "#/settings"]) { await page.goto(base + h); await page.waitForTimeout(400); }
+  await page.goto(base + "#/"); await page.waitForTimeout(300);
+  await page.click("#q"); await page.keyboard.type("img"); await page.waitForTimeout(600);
+  assert.equal(await page.evaluate(() => window.__x), undefined);
+  assert.equal(await page.locator("img[src=x]").count(), 0);
+});

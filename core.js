@@ -67,6 +67,17 @@ export function migrate(data) {
 
 const SAVE_DELAY = 150;
 let pending = null, saveTimer = 0;
+// ---------- Markup ----------
+export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Safe markup: html`<b>${title}</b>` escapes every value, unless the value is
+// itself safe markup (another html``, an icon, or raw() for markup built and
+// checked elsewhere). Arrays are joined; null, undefined and false print
+// nothing. The result works anywhere a string does (innerHTML, `${}`).
+class SafeHTML { constructor(s) { this.s = s; } toString() { return this.s; } }
+export const raw = s => new SafeHTML(String(s ?? ""));
+const part = v => v instanceof SafeHTML ? v.s : Array.isArray(v) ? v.map(part).join("") : v == null || v === false ? "" : esc(v);
+export const html = (strings, ...vals) => new SafeHTML(strings.reduce((out, s, i) => out + s + (i < vals.length ? part(vals[i]) : ""), ""));
+
 export const Tabs = {
   // `loaded` says how it went: "ok", "empty" (nothing saved) or "broken"
   // (unreadable), so the app can turn to its safety copy.
