@@ -105,7 +105,11 @@ Layout, with no build step:
 - `index.html`: the page shell and content security policy.
 - `styles.css`: all styles.
 - `core.js`: data, parsing, transposing and other logic with no screen code (unit tested).
-- `app.js`: the screens. Features register their own tidy-up for leaving a screen (`onLeave`) and their scroll work (`onScroll`, one listener, once per frame).
+- `app.js`: the library, the song page (auto-scroll, Now and Next, the section map, iPad layouts, pedals) and the router. It imports the screens below and shares what they need.
+- `ui.js`: icons, toasts, in-app questions (`ask`), and the hooks features use to tidy up when a screen is left (`onLeave`) and to follow scrolling (`onScroll`, one listener, once per frame). Depends only on `core.js`.
+- `editor.js` (editing in place, adding songs, tap tempo, the chord picker), `sets.js` (sets, playing a set, covers), `settings.js` (Settings, Recently deleted), `coach.js` (tips, Show me demos, Tips & gestures), `store.js` (safety copy, backups, storage, the problems log).
+- Markup: build HTML with html`` from `core.js`, which escapes every value unless it is safe markup (another html``, an icon, or raw()). Older templates use `esc()` on every value. A browser test fills every name with markup and checks none of it runs.
+- Shared state lives in the module that owns it; other modules read it through imports and change it only through that module's functions (`setData`, `setOpenEdit`, `setSetCtx`, `setFilter`). ESLint's `no-import-assign` would catch a direct write.
 - Loaded on first use: `tuner.js` (with `heads.js`, the headstock drawings), `findai.js` (find songs, chord charts, what to learn next), `aitools.js` (Make it easier, Spark tone), `crop.js` (cover photo framing).
 - `sw.js`: the offline copy; it lists every app file, and a test checks the list.
 
@@ -117,7 +121,7 @@ Accessibility: every control has a name for VoiceOver; panels are labelled dialo
 
 Pedals and keyboards: a Bluetooth page-turner pedal pairs as a keyboard. On a song, the left pedal (Page Up, ← or ↑) or Space plays and pauses; the right pedal (Page Down, → or ↓) goes to the next section, and holding it goes back one. Keys are ignored while typing, editing or with a panel open.
 
-Questions: the app never uses the phone's alert boxes. `ask()` in app.js shows a short sheet (a field with quick picks and a live chord diagram, or a yes/no with a red button). Discarding a new song happens at once with Undo instead of a question.
+Questions: the app never uses the phone's alert boxes. `ask()` in ui.js shows a short sheet (a field with quick picks and a live chord diagram, or a yes/no with a red button). Discarding a new song happens at once with Undo instead of a question.
 
 Storage: the library is saved to localStorage and, on every save, to a safety copy in IndexedDB. At launch, a missing or unreadable save, or one whose last write failed because storage was full, is restored from the copy. See docs/DATA.md.
 
