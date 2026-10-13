@@ -356,7 +356,7 @@ body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
    transform, so nothing below moves. Lines keep 5% spare width on the right
    so a scaled line never runs off the edge. */
 .sheet > .pr, .sheet > .ly { margin-right: 5%; }
-.sheet.focus > .cur:is(.pr, .ly) { transform: scale(1.05); transform-origin: left center; -webkit-text-stroke: 0.6px currentColor; }
+.sheet.focus > .cur:is(.pr, .ly) { transform: scale(1.05); transform-origin: left center; -webkit-text-stroke: 0.95px currentColor; }
 .sheet.focus > .cur .c { -webkit-text-stroke: 0; }
 @media (prefers-reduced-motion: reduce) { .sheet > * { transition: opacity .3s; } }
 .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .38; }
@@ -1862,6 +1862,10 @@ function endMoment(song) {
 
 async function startScroll(song) {
   document.querySelector(".endnote")?.remove();
+  /* Count in only when starting from the top: the song's first line is on screen. */
+  const first = $("sheet")?.querySelector(":scope > .pr, :scope > .ly, :scope > .tab, :scope > .crow");
+  const fr = first?.getBoundingClientRect();
+  const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false;
   document.body.classList.add("playing");
   wakeControls();
@@ -1885,7 +1889,7 @@ async function startScroll(song) {
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
-  if (data.settings.countIn !== false && !(await countIn(song))) return;
+  if (data.settings.countIn !== false && atTop && !(await countIn(song))) return;
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
