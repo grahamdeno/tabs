@@ -207,7 +207,7 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
 .sheet > * { transition: opacity .3s; }
-.sheet.focus > *:not(.cur) { opacity: .38; }
+.sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .38; }
 .sheet .c.now .ct { box-shadow: inset 0 -2px 0 var(--accent); }
 .play { width: 40px; height: 40px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; padding: 0; }
 .play svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
@@ -487,7 +487,7 @@ function renderViewer(id) {
   Tabs.save(data);
 
   app.classList.add("viewer");
-  diag.armed = false; diag.rowKey = null;
+  diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
   app.innerHTML = `
     <div class="head">
       <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
@@ -690,7 +690,7 @@ function layoutDiagrams(sheet, isChords) {
   diag.blocks = [...sheet.children].filter(el => !el.classList.contains("dpop") && !el.classList.contains("prow"))
     .map(el => ({ el, y: el.getBoundingClientRect().top - top }));
   diag.nn = isChords && data.settings.diagrams === true && diag.seq.length > 0;
-  diag.focus = data.settings.focus !== false;
+  diag.focus = ["always", "playing", "off"].includes(data.settings.focus) ? data.settings.focus : "always";
   diag.idx = null; diag.block = null; diag.rowKey = null;
   updateDiagrams();
   showPausedRow();
@@ -704,26 +704,21 @@ function updateDiagrams() {
   const sheet = $("sheet");
   const playing = scroll.on && !!sheet;
   document.body.classList.toggle("nn-on", playing && diag.nn);
-  if (sheet) sheet.classList.toggle("focus", playing && diag.focus);
   if (!sheet) return;
   if (!playing) {
     sheet.querySelectorAll(".c.now").forEach(el => el.classList.remove("now"));
-    sheet.querySelectorAll(".cur").forEach(el => el.classList.remove("cur"));
-    diag.idx = null; diag.block = null;
+    diag.idx = null;
+    if (!diag.scrolling) applyPaused();
     return;
   }
+  sheet.classList.toggle("focus", diag.focus !== "off");
   const sheetTop = sheet.getBoundingClientRect().top;
   const line = window.innerHeight * READ_AT;
 
   // Current line: the last line whose top has reached the reading line.
   let b = 0;
   for (let i = 0; i < diag.blocks.length; i++) if (sheetTop + diag.blocks[i].y <= line) b = i;
-  const block = diag.blocks[b]?.el;
-  if (block !== diag.block) {
-    diag.block?.classList.remove("cur");
-    block?.classList.add("cur");
-    diag.block = block;
-  }
+  setCurrent(diag.blocks[b]?.el);
 
   if (!diag.nn) return;
   // Current chord: the last chord that has reached the reading line.
@@ -750,19 +745,51 @@ function updateDiagrams() {
 }
 
 // Tap a chord: show its card above it until the next tap.
+// ---------- Current line when paused ----------
+// The same line gets focus and diagrams: a tapped line, else the first line at the
+// top of the song, else the line at the reading point.
+function setCurrent(block) {
+  if (block === diag.block) return;
+  diag.block?.classList.remove("cur");
+  block?.classList.add("cur");
+  diag.block = block;
+}
+const isLine = el => el && !el.classList.contains("sec") && !el.classList.contains("gap");
+function pausedBlock() {
+  if (diag.pinned?.isConnected) return diag.pinned;
+  if (window.scrollY < 40) return diag.blocks.find(b => isLine(b.el))?.el;
+  const sheet = $("sheet");
+  const top = sheet.getBoundingClientRect().top, line = window.innerHeight * READ_AT;
+  let b = null;
+  for (const x of diag.blocks) if (top + x.y <= line) b = x.el;
+  return b || diag.blocks.find(x => isLine(x.el))?.el;
+}
+function applyPaused() {
+  const sheet = $("sheet");
+  if (!sheet || scroll.on) return;
+  const block = pausedBlock();
+  const on = diag.focus === "always" && !diag.scrolling;
+  sheet.classList.toggle("focus", on);
+  setCurrent(on ? block : null);
+  showPausedRow(block);
+}
+
 // Paused: the line at the reading point gets its diagrams, each over its chord.
 // Shown after pausing; follows to a new line once a paused scroll comes to rest.
-function showPausedRow() {
+function showPausedRow(block = pausedBlock()) {
   const sheet = $("sheet");
   if (!sheet) return;
-  const want = diag.armed && !scroll.on && data.settings.pauseDiagrams !== false && diag.rows?.length;
+  const want = diag.armed && !scroll.on && data.settings.pauseDiagrams !== false && diag.rows?.length && block;
   const old = sheet.querySelector(".prow");
   if (!want) { old?.remove(); diag.rowKey = null; return; }
-  const sheetTop = sheet.getBoundingClientRect().top;
-  const line = window.innerHeight * READ_AT;
-  let row = null;
-  for (const r of diag.rows) if (sheetTop + r.top <= line) row = r;
-  row ||= diag.rows[0];
+  // Chord rows inside the current line (a long line may wrap onto several rows).
+  const inside = diag.rows.filter(r => r.top >= block.offsetTop - 2 && r.top < block.offsetTop + block.offsetHeight);
+  if (!inside.length) { old?.remove(); diag.rowKey = null; return; }
+  // One set of cards above the line's first row: its chords in place, then any
+  // chords that only appear where the line wraps.
+  const items = inside[0].items.slice();
+  for (const r of inside.slice(1)) for (const it of r.items) if (!items.some(x => x.name === it.name)) items.push(it);
+  const row = { top: inside[0].top, items };
   if (old && diag.rowKey === row.top) return;
   old?.remove();
   diag.rowKey = row.top;
@@ -782,9 +809,20 @@ function showPausedRow() {
 }
 let pausedTimer = 0;
 window.addEventListener("scroll", () => {
-  if (!diag.armed || scroll.on) return;
+  const sheet = $("sheet");
+  if (scroll.on || !sheet || route().name !== "song") return;
+  if (!diag.scrolling) {
+    diag.scrolling = true;
+    diag.scrollFrom = window.scrollY;
+    sheet.classList.remove("focus");
+  }
   clearTimeout(pausedTimer);
-  pausedTimer = setTimeout(showPausedRow, 220);
+  pausedTimer = setTimeout(() => {
+    diag.scrolling = false;
+    // A real scroll moves on from a tapped line; a nudge keeps it.
+    if (Math.abs(window.scrollY - diag.scrollFrom) > 40) diag.pinned = null;
+    applyPaused();
+  }, 220);
 }, { passive: true });
 
 // "Chords in this song": each chord once, in order of first use, to learn before playing.
@@ -836,7 +874,16 @@ document.addEventListener("click", e => {
   if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");
     showChordPop(same ? null : chord);
-  } else if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);
+    return;
+  }
+  if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);
+  // Tap a line while paused: it becomes the current line, and play starts from it.
+  const block = e.target instanceof Element && e.target.closest(".sheet > *");
+  if (block && !scroll.on && isLine(block) && !block.classList.contains("prow") && !block.classList.contains("dpop") && diag.focus === "always") {
+    diag.pinned = block;
+    diag.armed = true;
+    applyPaused();
+  }
 });
 
 let resizeTimer = 0;
@@ -894,6 +941,13 @@ async function startScroll(song) {
   showChordPop(null);
   $("sheet")?.querySelectorAll(".prow").forEach(el => el.remove());
   diag.rowKey = null;
+  if (diag.pinned?.isConnected) {
+    // Glide the tapped line to the reading point, then carry on from there.
+    const target = window.scrollY + diag.pinned.getBoundingClientRect().top - window.innerHeight * READ_AT;
+    hold.active = true; releaseSoon(800);
+    window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+  }
+  diag.pinned = null; diag.scrolling = false;
   updateDiagrams();
   const btn = $("play");
   btn.innerHTML = icon("pause");
@@ -1062,11 +1116,13 @@ function renderSettings() {
         <button class="toggle ${s.pauseDiagrams !== false ? "on" : ""}" id="s-pause" role="switch" aria-checked="${s.pauseDiagrams !== false}" aria-label="Diagrams when paused"></button>
       </div>
       <div class="set">
-        <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span>
-        <button class="toggle ${s.focus !== false ? "on" : ""}" id="s-focus" role="switch" aria-checked="${s.focus !== false}" aria-label="Focus current line"></button>
+        <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span><span class="val">${{ always: "Always", playing: "While playing", off: "Off" }[s.focus] || "Always"}</span>${icon("chev", "chev")}
+        <select id="s-focus" aria-label="Focus current line">
+          ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
       </div>
     </div>
-    <p class="foot" style="margin-top:10px">While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap any chord to see its fingering.</p>
+    <p class="foot" style="margin-top:10px">While playing, the chord you're on and the next ones show above the controls (also switchable from the player). When paused, the line you're on shows its diagrams; tap a line to start from it, or tap any chord to see its fingering.</p>
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
@@ -1086,7 +1142,7 @@ function renderSettings() {
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
-  $("s-focus").onclick = () => { s.focus = s.focus === false; Tabs.save(data); renderSettings(); };
+  $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-export").onclick = async () => {
     const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;

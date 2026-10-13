@@ -5,7 +5,7 @@ const STORAGE_KEY = "tabs-v1";
 
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
-const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: false, focus: true, pauseDiagrams: true, v: 2 };
+const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: false, focus: "always", pauseDiagrams: true, v: 3 };
 
 function blank() {
   return { songs: [], settings: { ...DEFAULT_SETTINGS } };
@@ -21,7 +21,11 @@ export function migrate(data) {
   }
   if (!SPEEDS[settings.scrollSpeed]) settings.scrollSpeed = "medium";
   // v2: Now and Next starts off. Older saves had it on only because it was the default.
-  if ((data.settings?.v || 1) < 2) { settings.diagrams = false; settings.v = 2; }
+  const v = data.settings?.v || 1;
+  if (v < 2) settings.diagrams = false;
+  // v3: focus became Always / While playing / Off, defaulting to Always.
+  if (v < 3) settings.focus = "always";
+  settings.v = 3;
   const songs = data.songs.map(s => {
     const song = { ...s };
     if (song.body === undefined) {
