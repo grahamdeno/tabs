@@ -96,7 +96,15 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .ib.on svg { fill: var(--accent); }
 .row-btns { display: flex; gap: 10px; }
 /* Song view back button floats; it fades out scrolling down and back in scrolling up */
-.backfab { position: fixed; z-index: 25; top: calc(18px + var(--safe-t)); left: calc(max(0px, (100% - 520px) / 2) + 20px); transition: opacity .12s linear; }
+/* Compact song header: fades out scrolling down, fades in scrolling up */
+.chead { position: fixed; z-index: 25; left: 0; right: 0; top: 0; padding-top: calc(10px + var(--safe-t)); opacity: 0; pointer-events: none; transition: opacity .12s linear; }
+.chead::before { content: ""; position: absolute; inset: 0 0 -18px; background: var(--bar); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%);
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent); }
+.chead .in { position: relative; max-width: 520px; margin: 0 auto; padding: 0 20px 8px; display: flex; align-items: center; gap: 12px; height: 56px; }
+.chead .ctitle { flex: 1; min-width: 0; border: 0; background: none; padding: 4px 0; text-align: left; color: var(--fg); }
+.chead .ct { font-family: var(--serif); font-size: 17px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chead .cs { font-size: 12.5px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chead .cs b { color: var(--fg-2); font-weight: 500; }
 
 /* Chips */
 .chips { display: flex; gap: 8px; margin: 14px 0 0; }
@@ -430,15 +438,25 @@ function renderViewer(id) {
 
   app.innerHTML = `
     <div class="head">
-      <span style="width:36px"></span>
-      <button class="ib glass float backfab" id="backfab" data-go="#/" aria-label="Back to library">${icon("back")}</button>
+      <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
       <div class="row-btns">
-        <button class="ib glass ${song.favorite ? "on" : ""}" id="fav" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
+        <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song">${icon("edit")}</button>
       </div>
     </div>
     <h1 class="song-title">${esc(song.title)}</h1>
     <div class="meta" id="meta"></div>
+    <header class="chead" id="chead" aria-hidden="true">
+      <div class="in">
+        <button class="ib glass" data-go="#/" aria-label="Back to library" tabindex="-1">${icon("back")}</button>
+        <button class="ctitle" id="ctitle" aria-label="Back to top of song" tabindex="-1">
+          <div class="ct">${esc(song.title)}</div>
+          <div class="cs" id="csub"></div>
+        </button>
+        <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}" tabindex="-1">${icon("heart")}</button>
+        <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song" tabindex="-1">${icon("edit")}</button>
+      </div>
+    </header>
     <div class="sheet" id="sheet"></div>
     <div class="dock-fade"></div>
     <div class="dock">
@@ -457,10 +475,16 @@ function renderViewer(id) {
       </div>
     </div>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
-  $("fav").onclick = () => {
+  app.querySelectorAll(".fav").forEach(b => b.onclick = () => {
     Tabs.toggleFavorite(data, song.id);
-    $("fav").classList.toggle("on", !!song.favorite);
-    $("fav").setAttribute("aria-pressed", !!song.favorite);
+    app.querySelectorAll(".fav").forEach(x => {
+      x.classList.toggle("on", !!song.favorite);
+      x.setAttribute("aria-pressed", !!song.favorite);
+    });
+  });
+  $("ctitle").onclick = () => {
+    hold.active = true; releaseSoon(900); // let the jump finish before auto-scroll resumes
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const draw = () => {
@@ -472,6 +496,8 @@ function renderViewer(id) {
       key && `<span>Key <b>${esc(key)}</b></span>`,
       !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>');
+    $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, !isChords && "Tab"]
+      .filter(Boolean).join(" · ");
     const sheet = $("sheet");
     const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
@@ -560,20 +586,32 @@ window.addEventListener("touchend", () => { hold.touching = false; releaseSoon(1
 window.addEventListener("touchcancel", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
 window.addEventListener("wheel", () => { hold.active = true; releaseSoon(250); }, { passive: true });
 
-// Back button fade: scrolling up reveals it gradually, scrolling down hides it.
+// Compact header fade: scrolling up reveals it gradually, scrolling down hides it.
+// Near the top the full header is in view, so the compact one hands back to it.
 const fab = { lastY: 0, reveal: 1 };
+function updateHeader(d) {
+  const bar = $("chead");
+  if (!bar) return;
+  const y = window.scrollY;
+  const meta = $("meta");
+  const handoff = meta ? meta.offsetTop + meta.offsetHeight - 56 : 120; // full header gone above this
+  if (y < 60) fab.reveal = 1;
+  else if (d < 0) fab.reveal = Math.min(1, fab.reveal - d / 140);
+  else if (d > 0) fab.reveal = Math.max(0, fab.reveal - d / 60);
+  const past = Math.min(1, Math.max(0, (y - handoff) / 40)); // soft cross-fade at the handoff
+  const op = fab.reveal * past;
+  bar.style.opacity = op.toFixed(3);
+  const live = op > 0.15;
+  bar.style.pointerEvents = live ? "auto" : "none";
+  bar.setAttribute("aria-hidden", live ? "false" : "true");
+  bar.querySelectorAll("button").forEach(b => b.tabIndex = live ? 0 : -1);
+}
 window.addEventListener("scroll", () => {
   const y = window.scrollY;
   const d = y - fab.lastY;
   fab.lastY = y;
   if (hold.active && !hold.touching) releaseSoon(180); // momentum still moving
-  const btn = $("backfab");
-  if (!btn) return;
-  if (y < 60) fab.reveal = 1;
-  else if (d < 0) fab.reveal = Math.min(1, fab.reveal - d / 140);
-  else fab.reveal = Math.max(0, fab.reveal - d / 60);
-  btn.style.opacity = fab.reveal.toFixed(3);
-  btn.style.pointerEvents = fab.reveal < 0.15 ? "none" : "";
+  updateHeader(d);
 }, { passive: true });
 
 async function startScroll(song) {
