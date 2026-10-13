@@ -289,6 +289,8 @@ const GESTURES = [
   ["Editing", [
     ["tap", "Tap tempo", "Tap along to set the tempo", "pick"],
     ["", "Sing it, when adding a song", "Sing line by line and say the words; chords come from your melody", "mic"],
+    ["", "On a sung song: Your recording, Simple or Rich", "Hear it back with the words following; Rich adds the 7ths and 9ths you sang", "play"],
+    ["", "Tap a word on a sung song (in Edit)", "Chords that fit your melody there, and other ways to play the line", "pick"],
     ["", "Tap a word", "Place or change its chord", "edit"],
     ["", "The pencil, a section name, + Line or + Section", "Retype, rename, or add", "plus"],
     ["", "Sheet and Text", "Switch views; your place is kept. Every change has Undo", "edit"]]],

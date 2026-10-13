@@ -1,6 +1,6 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { TUNINGS, Tabs, chordModel, chordsUsed, detectTuning, guessKey, insertLines, looksLikeTab, renameSection, setChordAt, setLineText, tapTempo } from "./core.js";
+import { TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
 import { READ_AT, aiError, aiKey, busy, calm, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
@@ -45,6 +45,7 @@ function newSong(fields = {}, view = "text") {
   if (!fields.format && s.body) s.format = looksLikeTab(s.body) ? "tab" : "chords";
   setOpenEdit({ id: s.id, view });
   go("#/song/" + encodeURIComponent(s.id));
+  return s;
 }
 function endEdit() {
   setChordEdit(null); edView = "sheet"; textSnap = null;
@@ -380,15 +381,36 @@ function lineInput(row, text, done) {
   inp.focus();
   inp.setSelectionRange(inp.value.length, inp.value.length);
 }
+// On a song made with Sing it: chords that fit the melody under this word, and
+// other ways to play its whole line (see core.js). Null for other songs.
+function sketchHelp(song, i, pos) {
+  const lines = song.sketch?.lines, key = sketchKey(song.sketch?.key);
+  if (!lines?.length || !key) return null;
+  const sung = sungLines(song.body, lines.length), k = sung.findIndex(l => l.i === i);
+  if (k < 0) return null;
+  const notes = unpackNotes(lines[k].n);
+  const h = {
+    k, notes, words: sung[k].kind === "lyric" ? sung[k].text : "",
+    fits: chordFit(notesUnder(song.body, song.sketch, k, pos), key).slice(0, 4),
+    opts: lineOptions(notes, key, { style: song.sketch.style || "simple" }),
+    now: [...(sung[k].chords || [])].sort((a, b) => a.pos - b.pos).map(c => c.chord).join(" · ")
+  };
+  /* The line as it is now leads the list, marked, so the others read as changes. */
+  if (h.now && !h.opts.some(o => o.label === h.now)) h.opts.unshift({ label: h.now, changes: null });
+  return h;
+}
 function pickChord(song, i, pos, word, current) {
   const parsed = /^([A-G])([#b]?)(.*)$/.exec(current || "") || [];
   const st = { root: parsed[1] || "", acc: parsed[2] || "", qual: QUALS.includes(parsed[3]) ? parsed[3] : "" };
   const name = () => st.root ? st.root + st.acc + st.qual : "";
   const used = chordsUsed(song.body);
+  const sk = sketchHelp(song, i, pos);
   const paint = () => {
     const p = $("ce-panel");
     p.innerHTML = `
       <div class="pc-head">${icon("pick")}<span>Chord over <b class="ce-word">${esc(word)}</b></span></div>
+      ${sk && sk.fits.length ? `<div class="label ce-lab">Fits your melody</div><div class="ce-fit">${sk.fits.map(f => `<button class="ce-fitb ${f.chord === name() ? "on" : ""}" data-u="${esc(f.chord)}" aria-label="${esc(f.chord)}: fits ${Math.round(f.fit * 100)}%${f.holds.length ? `, holds ${esc(f.holds.join(" and "))}` : ""}"><b>${esc(f.chord)}</b><span>${f.holds.length ? `Holds ${esc(f.holds.join(" · "))}` : "Passing"}</span><i><i style="width:${Math.round(f.fit * 100)}%"></i></i></button>`).join("")}</div>` : ""}
+      ${sk && sk.opts.length > 1 ? `<div class="label ce-lab">Whole line, other ways</div><div class="ce-alts">${sk.opts.map((o, j) => `<button class="ce-alt ${o.label === sk.now ? "on" : ""}" data-alt="${j}">${esc(o.label)}<small>${o.label === sk.now ? "now" : ""}</small></button>`).join("")}</div>` : ""}
       ${used.length ? `<div class="label ce-lab">In this song</div><div class="ce-chips">${used.map(c => `<button class="ce-chip ${c === name() ? "on" : ""}" data-u="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}
       <div class="label ce-lab">Any chord</div>
       <div class="ce-chips">${ROOTS.map(r => `<button class="ce-chip ${r === st.root ? "on" : ""}" data-r="${r}">${r}</button>`).join("")}
@@ -407,6 +429,11 @@ function pickChord(song, i, pos, word, current) {
       text: "Type any chord. Names Tabs doesn't have a diagram for are placed as text.",
       preview: c => (c && chordSVG(c)) || "", okLabel: c => (c ? `Place ${c}` : "Type a chord")
     }, apply);
+    p.querySelectorAll("[data-alt]").forEach(b => b.onclick = () => {
+      const o = sk.opts[+b.dataset.alt];
+      close();
+      if (o.changes && o.label !== sk.now) editChange(song, `Line now ${o.label}`, () => { song.body = setSungLine(song.body, sk.k, chordLine(sk.words, sk.notes, o.changes)); });
+    });
     $("ce-place").onclick = () => name() && apply(name());
     $("ce-rm")?.addEventListener("click", () => apply(null));
     $("ce-cancel")?.addEventListener("click", close);

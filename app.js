@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION } from "./core.js";
+import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle } from "./core.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
@@ -547,6 +547,8 @@ function renderViewer(id) {
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
     <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
+      <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -586,6 +588,7 @@ function renderViewer(id) {
       </div>
     </div>`;
   placeWide(); paintSide(song);
+  bindSketchRow(song);
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
   app.querySelectorAll(".fav").forEach(b => b.onclick = () => {
     Tabs.toggleFavorite(data, song.id);
@@ -1091,6 +1094,33 @@ function loopCheck(song) {
   window.scrollTo({ top: Math.max(0, scrollY + first.getBoundingClientRect().top - line), behavior: calm() ? "auto" : "smooth" });
   paintLoop(song);
   return true;
+}
+
+// ---- A song made with Sing it: hear the recording, and Simple or Rich chords ----
+// Rich adds the 7ths and 9ths the melody sings (and a V7); both keep the
+// words as they are now, with Undo.
+function bindSketchRow(song) {
+  const row = $("skrow");
+  if (!row) return;
+  const hear = $("sk-hear");
+  lazy("sketch.js").then(m => m.hasRecording(song).then(has => {
+    if (!has || !hear.isConnected) return;
+    hear.hidden = false;
+    hear.onclick = () => {
+      if (hear.classList.contains("on")) return m.stopHearing();
+      stopScroll();
+      hear.classList.add("on"); hear.querySelector("span").textContent = "Stop";
+      m.hearSketch(song, () => { if (hear.isConnected) { hear.classList.remove("on"); hear.querySelector("span").textContent = "Your recording"; } });
+    };
+  }));
+  row.querySelectorAll("[data-st]").forEach(b => b.onclick = () => {
+    const st = b.dataset.st, was = { body: song.body, style: song.sketch.style || "simple" };
+    if (st === was.style) return;
+    song.body = restyle(song.body, song.sketch, st);
+    song.sketch.style = st;
+    Tabs.save(data); render();
+    toast(st === "rich" ? "Richer chords: 7ths and 9ths you sang" : "Simple chords", null, { label: "Undo", fn: () => { song.body = was.body; song.sketch.style = was.style; Tabs.save(data); render(); } });
+  });
 }
 
 // ---------- Wide screens (iPad) ----------

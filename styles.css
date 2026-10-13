@@ -967,3 +967,27 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 .sk-rec.on i { width: 28px; height: 28px; border-radius: 8px; }
 .sk-tip { text-align: right; font-size: 13.5px; color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .sk-dot { animation: none; } }
+/* A sketch song: hear it back with the words following; Simple or Rich chords */
+.skrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 2px; }
+.sk-hear { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); border-color: var(--accent-line); }
+.sk-hear svg { width: 13px; height: 13px; fill: currentColor; stroke: none; }
+.sk-hear.on { background: var(--accent-soft); }
+.sk-style { margin-left: auto; }
+.sheet.skplay > .pr, .sheet.skplay > .ly, .sheet.skplay > .crow { opacity: .4; transition: opacity .3s; }
+.sheet.skplay > .skcur { opacity: 1; }
+.sheet .sg.skc > .l { color: var(--accent); }
+.sheet .sg.skc > .c .ct { box-shadow: inset 0 -2px 0 var(--accent); }
+/* The chord picker on a sketch song: chords that fit the melody, and whole-line options */
+.ce-fit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.ce-fitb { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 4px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); text-align: left; }
+.ce-fitb.on { border-color: var(--accent-line); background: var(--accent-soft); }
+.ce-fitb b { font-size: 16px; font-weight: 650; }
+.ce-fitb span { font-size: 12px; color: var(--muted); justify-self: end; }
+.ce-fitb i { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--rim); overflow: hidden; display: block; }
+.ce-fitb i i { height: 100%; background: var(--accent); }
+.ce-alts { display: flex; flex-direction: column; gap: 6px; }
+.ce-alt { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); font-size: 15px; font-weight: 500; text-align: left; }
+.ce-alt.on { border-color: var(--accent-line); color: var(--accent); }
+.ce-alt small { font-size: 12px; color: var(--muted); font-weight: 400; }
+#ce-panel { max-height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); overflow-y: auto; }
+.sheet.skplay .prow, .sheet.skplay .dpop { display: none; }

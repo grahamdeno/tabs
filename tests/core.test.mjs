@@ -762,3 +762,52 @@ test("sketch: lines with words become a chord sheet in the melody's key", () => 
   assert.deepEqual(C.chordsUsed(s.body), ["G", "C", "D"]);
   assert.match(s.body, /^G\s+C\nPorch light burning past the second shift\nD\s+G\nHome to you a little more$/);
 });
+
+// ---------- Song sketch, after the song is made ----------
+const tune = () => {
+  const at = (pcs, t0) => line(pcs, 0.5).map(n => ({ ...n, start: n.start + t0 }));
+  return [
+    { words: "Porch light burning past the second shift", notes: [...at([67, 71, 74, 71], 0), ...at([72, 76, 72, 76], 2)] },
+    { words: "Home to you a little more", notes: [...at([74, 78, 72, 69], 0), ...at([71, 67, 67, 67], 2)] }];
+};
+
+test("sketch: kept with the song in a small form, and restyled to Rich", () => {
+  const s = C.sketchSong(tune());
+  assert.deepEqual(s.sketch.lines[0].n.slice(0, 2), [[67, 0, 0.5], [71, 0.5, 0.5]]);
+  assert.deepEqual(C.unpackNotes(s.sketch.lines[0].n)[1], { midi: 71, start: 0.5, dur: 0.5 });
+  assert.deepEqual(C.sketchKey("G"), { tonic: 7, minor: false, name: "G" });
+  assert.deepEqual(C.sketchKey("Bbm"), { tonic: 10, minor: true, name: "Bbm" });
+  // The melody sings C over the D chord: Rich makes it D7 (and the V becomes a 7 anyway).
+  const rich = C.restyle(s.body, s.sketch, "rich");
+  assert.match(rich, /^G\s+C\nPorch light burning past the second shift\nD7\s+G\nHome to you a little more$/);
+  assert.equal(C.restyle(rich, s.sketch, "simple"), s.body, "and back");
+});
+
+test("sketch: restyling keeps words you changed afterwards", () => {
+  const s = C.sketchSong(tune());
+  const edited = s.body.replace("Home to you a little more", "Home to you a little slower");
+  assert.match(C.restyle(edited, s.sketch, "rich"), /Home to you a little slower$/);
+});
+
+test("sketch: chords ranked by how well they hold the melody under a word", () => {
+  const key = C.sketchKey("G");
+  const fit = C.chordFit(line([71, 74, 71, 74]), key);
+  assert.ok(["G", "Bm", "Em"].includes(fit[0].chord));
+  const g = fit.find(f => f.chord === "G");
+  assert.deepEqual(g.holds, ["B", "D"]);
+  assert.ok(g.fit > fit.find(f => f.chord === "C").fit);
+  const s = C.sketchSong(tune());
+  const under = C.notesUnder(s.body, s.sketch, 0, s.body.split("\n")[1].indexOf("second"));
+  assert.ok(under.length >= 1 && under.every(n => [72, 76].includes(n.midi)), "the notes under 'second' are from the C part");
+});
+
+test("sketch: other ways to play a line, most natural first, all different", () => {
+  const opts = C.lineOptions(tune()[0].notes, C.sketchKey("G"));
+  assert.equal(opts.length, 3);
+  assert.equal(opts[0].label, "G · C");
+  assert.equal(new Set(opts.map(o => o.label)).size, 3);
+  const s = C.sketchSong(tune());
+  const swapped = C.setSungLine(s.body, 1, C.chordLine("Home to you a little more", C.unpackNotes(s.sketch.lines[1].n), [{ chord: "Em", at: 0 }, { chord: "D", at: 2 }]));
+  assert.match(swapped, /\nEm\s+D\nHome to you a little more$/);
+  assert.match(swapped, /^G\s+C\nPorch light/, "other lines untouched");
+});

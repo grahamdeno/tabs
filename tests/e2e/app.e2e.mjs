@@ -512,5 +512,32 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   assert.equal(song.key, "G");
   assert.match(song.body, /^G\s+C\nPorch light burning past the second shift\nD\s+G\nHome to you a little more$/);
   assert.ok(await page.locator("#ce-done").isVisible(), "it opens in the editor to name it");
+  assert.deepEqual(song.sketch.lines.map(l => l.n.length), [8, 6], "the melody stays with the song (the three Gs at the end are one held note)");
+
+  // Name it and save; the song page offers the recording and Simple or Rich.
+  await page.fill("#ed-title", "Porch Light"); await page.dispatchEvent("#ed-title", "change");
+  await page.click("#ce-done"); await page.waitForTimeout(900);
+  await page.waitForSelector("#sk-hear:not([hidden])", { timeout: 4000 });
+  await page.click("[data-st='rich']"); await page.waitForTimeout(400);
+  const body = async () => JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch).body;
+  assert.match(await body(), /\nD7\s+G\nHome to you/, "Rich: the V chord becomes D7");
+  await page.click("#toast .tact"); await page.waitForTimeout(400);
+  assert.match(await body(), /\nD\s+G\nHome to you/, "Undo");
+  // Hear it back: the first line is lit while it plays, then Stop.
+  await page.click("#sk-hear"); await page.waitForTimeout(700);
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].findIndex(e => e.classList.contains("skcur"))), 0);
+  assert.match(await page.innerText("#sk-hear"), /Stop/);
+  await page.click("#sk-hear"); await page.waitForTimeout(300);
+  assert.equal(await page.locator("#sheet.skplay").count(), 0);
+
+  // In Edit, a word's chord picker shows chords that fit the melody and other ways for the line.
+  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForTimeout(600);
+  await page.click(".ce-line[data-line='3'] .ce-w >> nth=0"); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".ce-fitb").count(), 4);
+  assert.match(await page.innerText(".ce-alt.on"), /D · G\s*now/);
+  const other = page.locator(".ce-alt:not(.on)").first(), label = (await other.innerText()).trim();
+  await other.click(); await page.waitForTimeout(400);
+  const chords = label.split(" · ");
+  assert.match(await body(), new RegExp(`\\n${chords[0]}\\s+${chords[1] ? chords[1] + "\\n" : "\\n"}Home to you a little more$`));
   assert.deepEqual(errors, []);
 });

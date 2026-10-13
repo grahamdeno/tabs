@@ -11,6 +11,7 @@ Everything lives on the phone. Backups are the same data as one JSON file.
 | localStorage | `tabs.apikey.v1` | Your Anthropic API key. Never in backups or share links |
 | localStorage | `tabs.errors.v1` | The last 20 problems (message, screen, version, time) for Settings > Copy diagnostics. Never sent anywhere, not in backups |
 | IndexedDB `tabs-covers` | store `covers`, key = set id | Set cover photos as `data:image/...` URLs |
+| IndexedDB `tabs-sketch` | store `clips`, key = song id | The Sing it recording: one audio clip per sung line. Not in backups; removed once the song is deleted for good |
 | Cache Storage | `tabs-vX.Y.Z`, `tabs-art` | The offline app, and album art from Apple |
 
 Saves are batched (150 ms) and written at once when the app goes to the background. At start the newer readable of the two is used (`pickLibrary` in `core.js`); a copy without `_savedAt` (from an older Tabs, which kept the library in localStorage) counts as newest, so it moves into the database once. Without IndexedDB, localStorage alone is used. Tabs also asks the browser to keep its storage permanently (`navigator.storage.persist()`); Settings shows whether it did and whether the safety copy is on.
@@ -48,7 +49,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `loop` | `{ a, b, build }` | Practice a section, line numbers |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
 | `tone` | object | Spark tone result |
-| `sketch` | boolean | Made with Sing it (chords from a sung melody) |
+| `sketch` | object | Made with Sing it: `{ v: 1, key, style: "simple" \| "rich", lines: [{ n: [[midi, start, length], ...] }] }`, the sung melody per line (seconds, to 0.01), for restyling and chord suggestions. Older sketches may hold `true` |
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
 
 ### Set
