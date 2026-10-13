@@ -761,7 +761,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, logSetRun, buildChart, chordCounts, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, buildChart, chordCounts, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -1025,9 +1025,12 @@ function renderLibrary() {
   if (keepSearch && query.trim()) searching = true;
   keepSearch = false;
   if (searching) document.body.classList.add("searching");
-  q.oninput = () => { query = q.value; $("clear").hidden = !query; renderList(); };
+  /* Search a beat after typing pauses, not on every key. */
+  let typing = 0;
+  q.oninput = () => { query = q.value; $("clear").hidden = !query; clearTimeout(typing); typing = setTimeout(renderList, query.length > 2 ? 90 : 0); };
   q.onkeydown = e => {
     if (e.key !== "Enter") return;
+    clearTimeout(typing); renderList();
     const first = app.querySelector("#list .row");
     if (first) first.click();
   };
@@ -1507,7 +1510,6 @@ function renderViewer(id) {
   viewing = song;
   paintLoop(song);
   setTimeout(buildMap, 50);
-  if (resumeEdit === song.id) { resumeEdit = null; setTimeout(() => songEditor(song), 0); }
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (viewing === song && !scroll.on && route().name === "song") showTips("song"); }, 500);
 
@@ -2099,7 +2101,6 @@ window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? ma
 // retypes a line; section names rename; + adds a line or a section. Text flips to
 // the plain-text editor for big jobs. Every change saves at once, with Undo.
 let chordEdit = null;
-let resumeEdit = null;
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
 const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
@@ -4097,7 +4098,10 @@ window.addEventListener("hashchange", () => {
 applyTheme();
 firstLaunch();
 render();
-coverLoadAll().then(() => { if (data.sets.some(x => x.cover?.type === "photo") && ["library", "set"].includes(route().name) && !layer.innerHTML) render(); });
+coverLoadAll().then(() => {
+  /* Forget cover photos of sets that are gone for good (not in the library or Recently deleted). */
+  const keep = new Set([...data.sets.map(x => x.id), ...data.trash.filter(t => t.type === "set").map(t => t.item.id)]);
+  Object.keys(coverCache).filter(id => !keep.has(id)).forEach(coverDel); if (data.sets.some(x => x.cover?.type === "photo") && ["library", "set"].includes(route().name) && !layer.innerHTML) render(); });
 
 // The app opens from the saved copy (see sw.js). When a new release has been
 // saved in the background, offer to switch to it now; otherwise it's used on the

@@ -727,10 +727,20 @@ export const findSame = (data, song) => data.songs.find(s => sameKey(s) === same
 
 // ---------- Library search and sort ----------
 // Lyric lines only: no chord lines, section labels, tab staves or inline [G] chords.
+// Remembered per song body, so searching as you type doesn't re-read every sheet.
+const lyricCache = new Map();
 function lyricLines(body) {
-  return String(body || "").split("\n")
-    .map(l => l.replace(/\[[^\]]*\]/g, "").trim())
-    .filter(l => l && !isChordLine(l) && !/^[eBGDAE]\|/.test(l));
+  body = String(body || "");
+  let lines = lyricCache.get(body);
+  if (!lines) {
+    lines = body.split("\n")
+      .map(l => l.replace(/\[[^\]]*\]/g, "").trim())
+      .filter(l => l && !isChordLine(l) && !/^[eBGDAE]\|/.test(l));
+    lines.lower = lines.map(l => l.toLowerCase().replace(/\s+/g, " "));
+    if (lyricCache.size > 2000) lyricCache.clear();
+    lyricCache.set(body, lines);
+  }
+  return lines;
 }
 // Matches title and artist first, then words in the lyrics.
 // Returns [{ song, line }] where line is the lyric that matched (or null).
@@ -741,7 +751,8 @@ export function searchSongs(songs, query) {
   for (const song of songs) {
     if (`${song.title} ${song.artist || ""}`.toLowerCase().includes(q)) { named.push({ song, line: null }); continue; }
     if (q.length < 3) continue;
-    const line = lyricLines(song.body).find(l => l.toLowerCase().replace(/\s+/g, " ").includes(q));
+    const lines = lyricLines(song.body), at = lines.lower.findIndex(l => l.includes(q));
+    const line = at >= 0 ? lines[at] : null;
     if (line) sung.push({ song, line });
   }
   return [...named, ...sung];
