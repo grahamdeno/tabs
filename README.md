@@ -29,6 +29,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Focus current line (Always, While playing, or Off): the current line stays bright and the rest dim; when paused, tap a line to focus it and play starts from there
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
 - Text size per song (Aa in the song header), lyrics and chords together
+- Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Add and edit in a slide-up sheet; delete from edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
 - Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, or Make it easier with a capo and simpler chords
 - Settings (gear, top right): starting speed, default transpose, dark/light mode, backup

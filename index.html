@@ -259,6 +259,29 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
   font: 300 64px var(--serif); color: var(--accent); background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); pointer-events: none; }
 .countin.pulse { animation: beat .35s ease-out; }
 @keyframes beat { from { transform: translateX(-50%) scale(1.12); opacity: .6; } }
+/* Sets */
+.row.newset .t { color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.row.newset svg { width: 16px; height: 16px; }
+.row .chev { color: var(--muted); width: 16px; height: 16px; }
+.settitle { border: 0; background: none; padding: 0; text-align: left; color: var(--fg); display: block; margin: 14px 2px 0; }
+.cta svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+.cta { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.setrow { gap: 8px; }
+.setrow .num { font: 500 13px var(--mono); color: var(--muted); width: 18px; text-align: right; }
+.setrow .open { border: 0; background: none; padding: 0; text-align: left; color: inherit; flex: 1; min-width: 0; }
+.setrow .sb:disabled { opacity: .3; }
+.row.pick .check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--rim); display: grid; place-items: center; color: var(--on-accent); flex: none; }
+.row.pick.on .check { background: var(--accent); border-color: var(--accent); }
+.row.pick:disabled { opacity: .55; }
+.row.pick:disabled .check { background: var(--card-2); color: var(--muted); }
+.row.pick .check svg { width: 13px; height: 13px; stroke-width: 2.4; }
+.setbar { display: flex; align-items: center; gap: 8px; margin: 14px 0 -8px; }
+.setbar .setname { flex: 1; min-width: 0; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.setbar .sb:disabled { opacity: .3; }
+.nextup { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + var(--safe-b)); z-index: 22; width: min(496px, calc(100% - 24px)); border-radius: 14px; padding: 12px 12px 12px 16px; display: flex; align-items: center; gap: 8px; animation: fade .25s; }
+.nu-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-size: 13px; color: var(--muted); }
+.nu-t .lab { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent); }
+.nu-t b { font-size: 16px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -380,6 +403,9 @@ const I = {
   cloud: '<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/><path d="M12 15V10M9.8 12 12 9.8l2.2 2.2"/>',
   trash: '<path d="M4 7h16M10 7V4.5h4V7M6 7l1 13h10l1-13"/>',
   metro: '<path d="M8 21h8l-2.5-17h-3z"/><path d="M12 16l5-9"/>',
+  listplus: '<path d="M4 7h11M4 12h11M4 17h7M18 14v6M15 17h6"/>',
+  up: '<path d="m6 15 6-6 6 6"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -504,8 +530,9 @@ function renderLibrary() {
       <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
     </div>
     ${weekTotal ? `<div class="weekly">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : ""}
-    ${hasFav || hasTab || hasLearn ? `<div class="chips" id="chips">
+    ${data.songs.length ? `<div class="chips" id="chips">
       <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
+      <button class="chip ${filter === "sets" ? "on" : ""}" data-f="sets">Sets</button>
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
       ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
@@ -567,6 +594,20 @@ function renderList() {
     return;
   }
   const q = query.trim().toLowerCase();
+  if (filter === "sets") {
+    const sets = data.sets.filter(x => !q || x.name.toLowerCase().includes(q));
+    list.innerHTML = `
+      <div class="label">Sets</div>
+      <div class="list glass">
+        ${sets.map(x => { const n = setSongs(x).length; return `<button class="row" data-set="${esc(x.id)}">
+          <div class="txt"><div class="t">${esc(x.name)}</div><div class="a">${n} song${n === 1 ? "" : "s"}${n ? ` · about ${Math.round(setLength(x) / 60)} min` : ""}</div></div>
+          ${icon("chev", "chev")}</button>`; }).join("")}
+        <button class="row newset" id="newset"><div class="txt"><div class="t">${icon("plus")} New set</div></div></button>
+      </div>`;
+    list.querySelectorAll("[data-set]").forEach(el => el.onclick = () => go("#/set/" + encodeURIComponent(el.dataset.set)));
+    $("newset").onclick = () => { const name = prompt("Name this set", "New set"); if (name === null) return; const x = Tabs.addSet(data, name.trim() || "New set"); go("#/set/" + encodeURIComponent(x.id)); };
+    return;
+  }
   const songs = data.songs.filter(s =>
     (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning") &&
     (!q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)));
@@ -582,7 +623,7 @@ function renderList() {
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(songRow).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}".</div>`}`;
-  list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => go("#/song/" + encodeURIComponent(el.dataset.id)));
+  list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => { setCtx = null; go("#/song/" + encodeURIComponent(el.dataset.id)); });
 }
 
 // ---------- AI help (optional, your own Anthropic key) ----------
@@ -772,11 +813,17 @@ function renderViewer(id) {
     <div class="head">
       <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
       <div class="row-btns">
+        <button class="ib glass" id="toset" aria-label="Add to set">${icon("listplus")}</button>
         <button class="ib glass aa" id="aa" aria-label="Text size" aria-expanded="false">Aa</button>
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song">${icon("edit")}</button>
       </div>
     </div>
+    ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
+      if (!x || list[setCtx.idx]?.id !== song.id) { setCtx = null; return ""; }
+      return `<div class="setbar"><button class="sb" id="sprev" aria-label="Previous song" ${setCtx.idx === 0 ? "disabled" : ""}>${icon("back")}</button>
+        <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
+        <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title">${esc(song.title)}</h1>
     <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button></div>
     <div id="strip"></div>
@@ -863,6 +910,10 @@ function renderViewer(id) {
     toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
   };
   curPaintStat = paintStat;
+  $("toset").onclick = () => addToSet(song);
+  const step2 = d => { const x = data.sets.find(z => z.id === setCtx.id), list = setSongs(x), n = list[setCtx.idx + d]; if (!n) return; setCtx = { id: x.id, idx: setCtx.idx + d }; go("#/song/" + encodeURIComponent(n.id)); };
+  $("sprev")?.addEventListener("click", () => step2(-1));
+  $("snext")?.addEventListener("click", () => step2(1));
   $("ctitle").onclick = () => {
     hold.active = true; releaseSoon(900); // let the jump finish before auto-scroll resumes
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -903,6 +954,7 @@ function renderViewer(id) {
   draw();
   redraw = draw;
   viewing = song;
+  if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
 
   const speed = $("speed");
   // Song length style: the slider sets how long the song takes (right = shorter = faster).
@@ -1484,7 +1536,7 @@ async function startScroll(song) {
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
-        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); }
+        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); if (setCtx) nextUp(); }
         scroll.bottomSince ||= t;
         if (t - scroll.bottomSince > 4000) return stopScroll();
       } else scroll.bottomSince = 0;
@@ -1790,6 +1842,135 @@ function renderSettings() {
   };
 }
 
+// ---------- Sets ----------
+let setCtx = null; // { id, idx } while playing through a set
+const setSongs = x => x.songIds.map(id => data.songs.find(s => s.id === id)).filter(Boolean);
+const setLength = x => setSongs(x).reduce((a, s) => a + songLength(s), 0);
+let setEditing = false;
+
+function renderSet(id) {
+  const set = data.sets.find(x => x.id === id);
+  if (!set) return go("#/");
+  const songs = setSongs(set);
+  app.innerHTML = `
+    <div class="head">
+      <button class="ib glass" id="back" aria-label="Back to sets">${icon("back")}</button>
+      ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
+    </div>
+    <button class="settitle" id="rename" aria-label="Rename set"><h1 class="title">${esc(set.name)}</h1></button>
+    <div class="meta" style="margin:6px 2px 16px">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
+    ${songs.length && !setEditing ? `<button class="cta" id="playset">${icon("play")}Play set</button>` : ""}
+    <div class="list glass" style="margin-top:16px">
+      ${songs.map((s, i) => `<div class="row setrow" data-i="${i}">
+        <span class="num">${i + 1}</span>
+        <button class="txt open" data-open="${i}"><div class="t">${esc(s.title)}</div><div class="a">${esc(s.artist || "Unknown artist")} · ${mmss(songLength(s))}</div></button>
+        ${setEditing ? `<button class="sb" data-up="${i}" aria-label="Move up" ${i === 0 ? "disabled" : ""}>${icon("up")}</button>
+          <button class="sb" data-down="${i}" aria-label="Move down" ${i === songs.length - 1 ? "disabled" : ""}>${icon("down")}</button>
+          <button class="sb" data-rm="${i}" aria-label="Remove from set">${icon("x")}</button>` : ""}
+      </div>`).join("")}
+      <button class="row newset" id="addsongs"><div class="txt"><div class="t">${icon("plus")} Add songs</div></div></button>
+    </div>
+    <button class="danger" id="delset" style="display:block;margin:22px auto 0">Delete set</button>`;
+  const ids = () => setSongs(set).map(s => s.id);
+  $("back").onclick = () => { setEditing = false; filter = "sets"; go("#/"); };
+  $("rename").onclick = () => { const n = prompt("Rename set", set.name); if (n && n.trim()) { set.name = n.trim(); Tabs.save(data); renderSet(id); } };
+  $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
+  $("playset")?.addEventListener("click", () => { setCtx = { id, idx: 0, autoplay: true }; go("#/song/" + encodeURIComponent(songs[0].id)); });
+  app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { if (setEditing) return; setCtx = { id, idx: +b.dataset.open }; go("#/song/" + encodeURIComponent(songs[+b.dataset.open].id)); });
+  const move = (i, j) => { const a = ids(); [a[i], a[j]] = [a[j], a[i]]; set.songIds = a; Tabs.save(data); renderSet(id); };
+  app.querySelectorAll("[data-up]").forEach(b => b.onclick = () => move(+b.dataset.up, +b.dataset.up - 1));
+  app.querySelectorAll("[data-down]").forEach(b => b.onclick = () => move(+b.dataset.down, +b.dataset.down + 1));
+  app.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const a = ids(); a.splice(+b.dataset.rm, 1); set.songIds = a; Tabs.save(data); renderSet(id); });
+  $("addsongs").onclick = () => pickSongs(set, () => renderSet(id));
+  $("delset").onclick = () => {
+    const entry = Tabs.deleteSet(data, id);
+    setEditing = false; filter = "sets"; go("#/");
+    toast(`Deleted "${set.name}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
+  };
+}
+
+// Choose songs to add to a set.
+function pickSongs(set, done) {
+  const pool = [...data.songs].sort((a, b) => a.title.localeCompare(b.title));
+  const chosen = new Set();
+  layer.innerHTML = `
+    <div class="scrim" id="pk-scrim"></div>
+    <div class="panel full" role="dialog" aria-label="Add songs">
+      <div class="grab"></div>
+      <div class="ph"><button class="tb" id="pk-cancel">Cancel</button><h2>Add songs</h2><button class="tb go" id="pk-add">Add</button></div>
+      <div class="pbody">
+        <label class="cmd glass" style="height:44px;margin-bottom:12px">${icon("search")}<input id="pk-q" placeholder="Search songs" autocomplete="off"></label>
+        <div class="list glass" id="pk-list"></div>
+      </div>
+    </div>`;
+  const paint = () => {
+    const q = $("pk-q").value.trim().toLowerCase();
+    $("pk-list").innerHTML = pool.filter(s => !q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)).map(s => {
+      const inSet = set.songIds.includes(s.id), on = chosen.has(s.id);
+      return `<button class="row pick ${on ? "on" : ""}" data-pick="${esc(s.id)}" ${inSet ? "disabled" : ""}>
+        <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${inSet ? "Already in this set" : esc(s.artist || "Unknown artist")}</div></div>
+        <span class="check">${on || inSet ? icon("check") : ""}</span></button>`;
+    }).join("");
+    $("pk-list").querySelectorAll("[data-pick]").forEach(b => b.onclick = () => { const i = b.dataset.pick; chosen.has(i) ? chosen.delete(i) : chosen.add(i); paint(); });
+    $("pk-add").textContent = chosen.size ? `Add ${chosen.size}` : "Add";
+  };
+  paint();
+  $("pk-q").oninput = paint;
+  const close = () => { layer.innerHTML = ""; };
+  $("pk-scrim").onclick = close; $("pk-cancel").onclick = close;
+  $("pk-add").onclick = () => { set.songIds.push(...chosen); // in the order they were tapped Tabs.save(data); close(); done(); if (chosen.size) toast(`Added ${chosen.size} song${chosen.size === 1 ? "" : "s"}`); };
+}
+
+// From a song: put it in one or more sets, or start a new one.
+function addToSet(song) {
+  layer.innerHTML = `
+    <div class="scrim" id="as-scrim"></div>
+    <div class="panel card" role="dialog" aria-label="Add to set">
+      <div class="pc-head">${icon("listplus")}<span>Add "${esc(song.title)}" to a set</span></div>
+      <div class="list glass" style="margin-bottom:12px">
+        ${data.sets.map(x => `<button class="row pick ${x.songIds.includes(song.id) ? "on" : ""}" data-as="${esc(x.id)}">
+          <div class="txt"><div class="t">${esc(x.name)}</div><div class="a">${setSongs(x).length} songs</div></div>
+          <span class="check">${x.songIds.includes(song.id) ? icon("check") : ""}</span></button>`).join("")}
+        <button class="row newset" id="as-new"><div class="txt"><div class="t">${icon("plus")} New set</div></div></button>
+      </div>
+      <div class="actions"><button class="btn primary" id="as-done">Done</button></div>
+    </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("as-scrim").onclick = close; $("as-done").onclick = close;
+  layer.querySelectorAll("[data-as]").forEach(b => b.onclick = () => {
+    const x = data.sets.find(z => z.id === b.dataset.as);
+    x.songIds = x.songIds.includes(song.id) ? x.songIds.filter(i => i !== song.id) : [...x.songIds, song.id];
+    Tabs.save(data); addToSet(song);
+  });
+  $("as-new").onclick = () => {
+    const name = prompt("Name this set", "New set");
+    if (name === null) return;
+    const x = Tabs.addSet(data, name.trim() || "New set");
+    x.songIds.push(song.id); Tabs.save(data); addToSet(song);
+  };
+}
+
+// End of a song in a set: offer the next one, playing it after 5 seconds.
+function nextUp() {
+  const set = setCtx && data.sets.find(x => x.id === setCtx.id);
+  if (!set) return;
+  const songs = setSongs(set);
+  const next = songs[setCtx.idx + 1];
+  document.querySelector(".nextup")?.remove();
+  if (!next) { toast(`End of "${set.name}"`); return; }
+  const card = document.createElement("div");
+  card.className = "nextup glass float";
+  let left = 5;
+  card.innerHTML = `<div class="nu-t"><span class="lab">NEXT UP · ${setCtx.idx + 2} of ${songs.length}</span><b>${esc(next.title)}</b><span>${esc(next.artist || "")}</span></div>
+    <button class="btn sm" id="nu-stop">Stop</button><button class="btn sm primary" id="nu-go">Play <span id="nu-n">${left}</span></button>`;
+  document.body.appendChild(card);
+  const go2 = () => { clearInterval(timer); card.remove(); setCtx = { id: set.id, idx: setCtx.idx + 1, autoplay: true }; go("#/song/" + encodeURIComponent(next.id)); };
+  const timer = setInterval(() => { left--; const n = $("nu-n"); if (n) n.textContent = left; if (left <= 0) go2(); }, 1000);
+  $("nu-go").onclick = go2;
+  $("nu-stop").onclick = () => { clearInterval(timer); card.remove(); };
+  card.dataset.timer = timer;
+}
+
 // ---------- Recently deleted ----------
 function renderTrash() {
   const left = t => Math.max(1, TRASH_DAYS - Math.floor((Date.now() - Date.parse(t.deletedAt)) / 86400000));
@@ -1826,6 +2007,7 @@ function renderTrash() {
 // ---------- Router ----------
 function render() {
   stopScroll();
+  document.querySelectorAll(".nextup").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); });
   app.classList.remove("viewer");
   const r = route();
   if (r.name !== "add" && r.name !== "edit") layer.innerHTML = "";
@@ -1834,6 +2016,7 @@ function render() {
   else if (r.name === "edit") { const s = data.songs.find(x => x.id === r.id); if (s && !app.querySelector("#sheet")) renderViewer(r.id); renderForm(r.id); }
   else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
   else if (r.name === "trash") { renderTrash(); window.scrollTo(0, 0); }
+  else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else { renderLibrary(); }
 }
 
