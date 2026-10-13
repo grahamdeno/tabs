@@ -1,6 +1,6 @@
 // Tabs coach: one-time tips shown in place, the demos behind Show me, and the
 // Tips & gestures page. Loaded with the app; app.js calls in when a tip is due.
-import { Tabs } from "./core.js";
+import { Tabs, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
 import { chordEdit } from "./editor.js";
 import { READ_AT, aiKey, applyPaused, calm, card, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
@@ -22,13 +22,11 @@ function markUsed(k) {
   Tabs.save(data);
   document.querySelectorAll(`[data-new="${k}"]`).forEach(el => el.remove());
 }
-const COACH_GAP = 30e3;
-const CHAIN = { chord: "play", play: "pause", pause: "line", searchInvite: "search" }; /* tips that lead into the next */
 let lastCoach = { key: "", at: 0 };
 // Claim a one-time tip: due, and not crowding the last one.
 function coachTip(key) {
   if (!tipDue(key)) return false;
-  if (Date.now() - lastCoach.at < COACH_GAP && CHAIN[lastCoach.key] !== key) return false;
+  if (!tipPaced(key, lastCoach, Date.now())) return false;
   markSeen(key);
   lastCoach = { key, at: Date.now() };
   return true;

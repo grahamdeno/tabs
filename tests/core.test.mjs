@@ -236,6 +236,56 @@ test("pitch detection copes with a little noise and a strong overtone", () => {
   }
 });
 
+// A plucked string (Karplus-Strong): a burst of noise circulating in a tuned
+// delay line that loses its overtones as it rings, as a real string does. A
+// first-order allpass sets the exact pitch. Optional mains hum, hiss, a phone
+// microphone's weak low end (high-pass), and another string ringing quietly.
+function pluck(f, { rate = 48000, secs = 0.6, seed = 7, detune = 0, hum = 0.01, hiss = 0.004, highpass = 0 } = {}) {
+  const fr = f * 2 ** (detune / 1200), P = rate / fr;
+  let n0 = Math.floor(P - 0.5), d = P - 0.5 - n0;
+  if (d < 0.1) { n0 -= 1; d += 1; }
+  const c = (1 - d) / (1 + d);
+  let s = seed; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  const line = new Float32Array(n0); let lp = 0;
+  for (let i = 0; i < n0; i++) { lp = 0.6 * lp + 0.4 * rnd(); line[i] = lp; }
+  const out = new Float32Array(Math.round(rate * secs));
+  let at = 0, last = 0, apIn = 0, apOut = 0;
+  for (let k = 0; k < out.length; k++) {
+    const x = line[at], avg = 0.998 * 0.5 * (x + last); last = x;
+    const ap = c * avg + apIn - c * apOut; apIn = avg; apOut = ap;
+    line[at] = ap; at = (at + 1) % n0;
+    out[k] = x + hum * Math.sin(2 * Math.PI * 60 * k / rate) + hiss * rnd();
+  }
+  if (highpass) {
+    const rc = 1 / (2 * Math.PI * highpass), a = rc / (rc + 1 / rate); let py = 0, px = 0;
+    for (let k = 0; k < out.length; k++) { const y = a * (py + out[k] - px); px = out[k]; py = y; out[k] = y; }
+  }
+  return { out, fr };
+}
+const centsOffAt = (out, fr, rate, secs) => { const i = Math.round(secs * rate); return 1200 * Math.log2(C.detectPitch(out.subarray(i, i + 4096), rate) / fr); };
+
+test("a plucked string is read within 2 cents as it rings, in tune or not", () => {
+  for (const note of C.TUNINGS.standard.notes) for (const detune of [0, -23, 14]) {
+    const { out, fr } = pluck(C.noteFreq(note), { detune });
+    for (const at of [0.1, 0.3, 0.5]) {
+      const off = centsOffAt(out, fr, 48000, at);
+      assert.ok(Math.abs(off) < 2, `${note} ${detune} cents, at ${at}s: read ${off.toFixed(1)} cents off`);
+    }
+  }
+});
+
+test("a phone mic's weak low end, hum, hiss and another string ringing don't fool it", () => {
+  for (const note of C.TUNINGS.standard.notes) {
+    const target = pluck(C.noteFreq(note), { rate: 44100, highpass: 250, hum: 0.05, hiss: 0.02, detune: -9 });
+    const other = pluck(C.noteFreq(note === "A2" ? "D3" : "A2"), { rate: 44100, seed: 99 });
+    const mix = target.out.map((x, i) => x + 0.08 * other.out[i]);
+    for (const at of [0.15, 0.4]) {
+      const off = centsOffAt(mix, target.fr, 44100, at);
+      assert.ok(Math.abs(off) < 3, `${note} at ${at}s: read ${off.toFixed(1)} cents off`);
+    }
+  }
+});
+
 test("silence gives no pitch", () => {
   assert.equal(C.detectPitch(new Float32Array(4096), 48000), -1);
 });
@@ -574,4 +624,18 @@ test("html`` escapes values unless they are safe markup", () => {
   assert.equal(String(C.html`<ul>${["a<", "b"].map(x => C.html`<li>${x}</li>`)}</ul>`), "<ul><li>a&lt;</li><li>b</li></ul>");
   assert.equal(String(C.html`${null}${undefined}${false}${0}`), "0");
   assert.equal(`${C.html`<p>${"&"}</p>`}`, "<p>&amp;</p>");
+});
+
+// ---------- Tip pacing ----------
+
+test("tips are spaced 30 seconds apart unless one leads into the next", () => {
+  const t0 = 1e12;
+  assert.equal(C.tipPaced("map", { key: "", at: 0 }, t0), true, "first tip of the session");
+  assert.equal(C.tipPaced("map", { key: "menu", at: t0 }, t0 + 5e3), false, "too soon after another tip");
+  assert.equal(C.tipPaced("map", { key: "menu", at: t0 }, t0 + 30e3), true, "after the gap");
+  assert.equal(C.tipPaced("play", { key: "chord", at: t0 }, t0 + 1e3), true, "chord leads into play");
+  assert.equal(C.tipPaced("pause", { key: "play", at: t0 }, t0 + 1e3), true, "play leads into pause");
+  assert.equal(C.tipPaced("line", { key: "pause", at: t0 }, t0 + 1e3), true, "pause leads into line");
+  assert.equal(C.tipPaced("search", { key: "searchInvite", at: t0 }, t0 + 1e3), true, "the invite leads into search");
+  assert.equal(C.tipPaced("chord", { key: "play", at: t0 }, t0 + 1e3), false, "chains run one way");
 });

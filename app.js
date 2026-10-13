@@ -869,9 +869,11 @@ function pausedBlock() {
   if (window.scrollY < 40) return diag.blocks.find(b => isLine(b.el))?.el;
   const sheet = $("sheet");
   const top = sheet.getBoundingClientRect().top, line = window.innerHeight * READ_AT;
-  let b = null;
-  for (const x of diag.blocks) if (top + x.y <= line) b = x.el;
-  return b || diag.blocks.find(x => isLine(x.el))?.el;
+  let i = -1;
+  diag.blocks.forEach((x, j) => { if (top + x.y <= line) i = j; });
+  /* On a section name or a gap, the line about to be played is the next one. */
+  const next = diag.blocks.slice(Math.max(0, i)).find(x => isLine(x.el));
+  return (i >= 0 && isLine(diag.blocks[i].el) ? diag.blocks[i].el : next?.el) || diag.blocks.find(x => isLine(x.el))?.el;
 }
 function applyPaused() {
   const sheet = $("sheet");

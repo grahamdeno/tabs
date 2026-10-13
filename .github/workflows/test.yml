@@ -16,7 +16,7 @@ jobs:
       - run: node --test
       - run: npx --yes eslint@10.1.0 .
 
-  # The real app in a phone-sized Chromium: loading, playing, search, Edit, sets, sharing, settings.
+  # The real app in Chromium: loading, playing, search, Edit, sets, sharing, settings, iPad.
   browser:
     runs-on: ubuntu-latest
     steps:
@@ -24,6 +24,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.2
       - run: npx playwright install --with-deps chromium
-      - run: node --test tests/e2e/app.e2e.mjs
+      # app: features end to end; regress: the main path at three sizes and both
+      # themes; a11y: names and axe; visual: saves the screens to look at.
+      - run: node --test tests/e2e/*.e2e.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screens
+          path: test-results/visual
+          if-no-files-found: ignore
