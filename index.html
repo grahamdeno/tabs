@@ -395,6 +395,21 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.smap { position: fixed; right: 0; top: calc(118px + var(--safe-t)); bottom: calc(118px + var(--safe-b)); width: 22px; z-index: 18; touch-action: none; transition: opacity .3s; }
+.smap .sm-track, .smap .sm-fill { position: absolute; right: 10px; top: 0; width: 2px; border-radius: 2px; }
+.smap .sm-track { bottom: 0; background: var(--rim); }
+.smap .sm-fill { background: var(--accent); opacity: .8; }
+.smap .sm-m { position: absolute; right: 5px; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; padding: 6px 0; border: 0; background: none; }
+.smap .sm-m i { width: 11px; height: 11px; border-radius: 50%; background: var(--solid); border: 2px solid var(--muted); display: block; box-sizing: border-box; }
+.smap .sm-m.past i { border-color: var(--accent); }
+.smap .sm-m.on i { background: var(--accent); border-color: var(--accent); transform: scale(1.2); }
+.smap .sm-m b { display: none; font: 600 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-2); background: var(--solid); border: 1px solid var(--rim); padding: 5px 9px; border-radius: 9px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.smap .sm-m.on b { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.smap.active .sm-m b { display: block; }
+body.playing .smap:not(.active) { opacity: .45; }
+.smap.away { opacity: 0 !important; pointer-events: none; }
+body.stage.playing .smap { opacity: 0; pointer-events: none; }
+
 .tappause.hint { width: auto; height: auto; margin: 0; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px; font-size: 15px; animation: fade .2s; }
 .stagechip { display: flex; align-items: center; gap: 8px; margin: 10px auto 0; background: none; border: 0; color: var(--muted); font-size: 14px; }
 .stagechip svg { width: 16px; height: 16px; }
@@ -1104,9 +1119,10 @@ function renderViewer(id) {
     }
   };
   draw();
-  redraw = () => { draw(); paintLoop(song); };
+  redraw = () => { draw(); paintLoop(song); buildMap(); };
   viewing = song;
   paintLoop(song);
+  setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (viewing === song && !scroll.on && route().name === "song") showTips("song"); }, 500);
 
@@ -1619,6 +1635,78 @@ function loopCheck(song) {
   paintLoop(song);
   return true;
 }
+
+// ---------- Song map ----------
+// A thin rail on the right edge with a dot for each section. Quiet while you play;
+// touch it and the section names appear, slide to a section and let go to jump.
+const map = { secs: [], el: null, dragging: false, hideTimer: 0 };
+const mapMax = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
+function buildMap() {
+  document.querySelector(".smap")?.remove();
+  map.el = null;
+  const sheet = $("sheet");
+  if (!sheet || route().name !== "song") return;
+  const secs = [...sheet.querySelectorAll(":scope > .sec")];
+  if (secs.length < 2) return;
+  /* Dots sit where each section is in the song; jumping puts its label at the reading line. */
+  const H = document.documentElement.scrollHeight;
+  map.secs = secs.map(el => { const top = el.getBoundingClientRect().top + scrollY; return { el, name: el.textContent.trim(), y: top / H, to: Math.max(0, top - innerHeight * READ_AT) }; });
+  const m = document.createElement("div");
+  m.className = "smap";
+  m.setAttribute("role", "navigation");
+  m.setAttribute("aria-label", "Song sections");
+  m.innerHTML = `<i class="sm-track"></i><i class="sm-fill"></i>${map.secs.map((x, i) =>
+    `<button class="sm-m" data-i="${i}" style="top:${(x.y * 100).toFixed(2)}%" aria-label="Go to ${esc(x.name)}" tabindex="-1"><b>${esc(x.name)}</b><i></i></button>`).join("")}`;
+  document.body.appendChild(m);
+  map.el = m;
+  const pick = e => {
+    const r = m.getBoundingClientRect(), f = (e.clientY - r.top) / r.height;
+    let best = 0;
+    map.secs.forEach((x, i) => { if (Math.abs(x.y - f) < Math.abs(map.secs[best].y - f)) best = i; });
+    return best;
+  };
+  const jump = (i, smooth) => {
+    const top = Math.min(map.secs[i].to, mapMax());
+    hold.active = true; releaseSoon(smooth ? 900 : 300);
+    window.scrollTo({ top, behavior: smooth && !calm() ? "smooth" : "auto" });
+    diag.pinned = null;
+  };
+  m.addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    map.dragging = true; m.setPointerCapture?.(e.pointerId);
+    clearTimeout(map.hideTimer); m.classList.add("active");
+    map.target = pick(e); paintMap(map.target);
+  });
+  m.addEventListener("pointermove", e => {
+    if (!map.dragging) return;
+    const i = pick(e);
+    if (i !== map.target) { map.target = i; paintMap(i); jump(i, false); }
+  });
+  const end = () => {
+    if (!map.dragging) return;
+    map.dragging = false;
+    jump(map.target, true);
+    map.hideTimer = setTimeout(() => { m.classList.remove("active"); paintMap(); }, 900);
+  };
+  m.addEventListener("pointerup", end);
+  m.addEventListener("pointercancel", end);
+  m.addEventListener("click", e => e.stopPropagation());
+  paintMap();
+}
+function paintMap(target) {
+  const m = map.el;
+  if (!m || !m.isConnected) return;
+  /* Out of the way at the top of the song, where the title and chord cards are. */
+  m.classList.toggle("away", !map.dragging && ($("sheet")?.getBoundingClientRect().top ?? 0) > innerHeight * 0.25);
+  const f = Math.min(1, (scrollY + innerHeight * READ_AT) / document.documentElement.scrollHeight);
+  m.querySelector(".sm-fill").style.height = (f * 100) + "%";
+  let cur = 0;
+  /* At the very end the page can't scroll further, so count sections in view. */
+  const line = scrollY >= mapMax() - 2 ? innerHeight * 0.7 : innerHeight * READ_AT + 4;
+  map.secs.forEach((x, i) => { if (x.el.getBoundingClientRect().top <= line) cur = i; });
+  m.querySelectorAll(".sm-m").forEach((b, i) => { b.classList.toggle("on", i === (target ?? cur)); b.classList.toggle("past", i < cur); });
+}
+window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? map.target : undefined); }, { passive: true });
 
 // ---------- Song menu ----------
 function songMenu(song, anchor, redrawSong) {
@@ -2837,6 +2925,7 @@ function showTips(name) {
 // ---------- Router ----------
 function render() {
   closeTuner();
+  document.querySelector(".smap")?.remove(); map.el = null;
   stopScroll();
   if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }
   document.querySelectorAll(".nextup, .nextline").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); });
