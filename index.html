@@ -395,6 +395,11 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.ls-list { margin: 10px 0 6px; }
+.ls-row { gap: 12px; }
+.ls-row img, .ls-art { width: 44px; height: 44px; border-radius: 8px; flex: none; object-fit: cover; background: var(--card); display: grid; place-items: center; color: var(--muted); }
+.ls-more { display: block; margin: 8px auto 4px; font-size: 14px; }
+.ls-actions { margin-top: 14px; }
 .tuner .pc-head { margin-bottom: 4px; }
 .tu-sel { position: relative; margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: var(--fg); }
 .tu-sel .chev { width: 13px; height: 13px; transform: rotate(90deg); color: var(--muted); }
@@ -423,7 +428,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .tu-s.lock { background: var(--accent-soft); border-color: var(--accent); }
 .tu-hint { font-size: 12.5px; color: var(--muted); text-align: center; margin: 10px 0 12px; }
 .ib .dotmark { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-.stat.tunechip svg { width: 13px; height: 13px; color: var(--accent); }
+.stat.listen svg, .stat.tunechip svg { width: 13px; height: 13px; color: var(--accent); }
 
 .tappause { position: fixed; left: 50%; top: 40%; z-index: 60; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--solid) 85%, transparent); border: 1px solid var(--rim); color: var(--fg); pointer-events: none; animation: tp .7s ease-out forwards; }
 .tappause svg { width: 34px; height: 34px; fill: currentColor; stroke: none; }
@@ -490,7 +495,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -973,7 +978,7 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -1029,6 +1034,7 @@ function renderViewer(id) {
   };
   paintStat();
   $("tunechip")?.addEventListener("click", () => openTuner(songTuning(song)));
+  $("listen").onclick = () => listenSheet(song);
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
@@ -1602,6 +1608,8 @@ function songMenu(song, anchor, redrawSong) {
     { id: "size" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
+    { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
+    { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     { id: "share", icon: "share", label: "Share song" },
     { id: "edit", icon: "edit", label: "Edit song" },
@@ -1638,8 +1646,113 @@ function songMenu(song, anchor, redrawSong) {
     close();
     ({ set: () => addToSet(song), edit: () => go("#/edit/" + encodeURIComponent(song.id)),
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
-       tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)) })[b.dataset.m]?.();
+       tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
+       listen: () => listenSheet(song, true),
+       metro: () => { data.settings.metronome = !data.settings.metronome; Tabs.save(data);
+         if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
+         toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", $("more")); } })[b.dataset.m]?.();
   };
+}
+
+// ---------- Listen ----------
+// A link to the recording, Apple Music first. Tabs looks the song up in Apple's
+// public catalog search (no account or key), shows the best match to confirm,
+// and saves it with the song. If the lookup can't run, it opens Apple Music's
+// own search instead, or takes a pasted Apple Music, Spotify or YouTube link.
+const appleSearchURL = song => `https://music.apple.com/search?term=${encodeURIComponent(`${song.title} ${song.artist || ""}`.trim())}`;
+function openLink(url) { if (/^https:\/\//.test(url)) window.open(url, "_blank", "noopener"); }
+async function findTracks(song) {
+  const term = encodeURIComponent(`${song.title} ${song.artist || ""}`.trim());
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
+  try {
+    const r = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=12`, { signal: ctl.signal });
+    if (!r.ok) throw new Error(r.status);
+    return rankTracks((await r.json()).results || [], song.title, song.artist);
+  } finally { clearTimeout(t); }
+}
+function saveListen(song, url, extra = {}) {
+  song.listen = { url, service: linkService(url), ...extra };
+  Tabs.save(data);
+  const chip = $("listen");
+  if (chip) chip.innerHTML = `${icon("note")}${esc(song.listen.service)}`;
+}
+function listenSheet(song, force) {
+  if (song.listen && !force) return openLink(song.listen.url);
+  let state = { busy: true, tracks: [], error: false };
+  const paint = () => {
+    const p = $("ls-panel");
+    if (!p) return;
+    const best = state.tracks[0], sure = best && best.score >= 5;
+    const row = (x, i) => `<button class="row pick ls-row" data-t="${i}">
+        ${x.artworkUrl100 ? `<img src="${esc(x.artworkUrl100)}" alt="" width="44" height="44" loading="lazy">` : `<span class="ls-art">${icon("note")}</span>`}
+        <div class="txt"><div class="t">${esc(x.trackName)}</div><div class="a">${esc(x.artistName)}${x.collectionName ? ` · ${esc(x.collectionName)}` : ""}</div></div>
+        ${icon("chev", "chev")}</button>`;
+    p.innerHTML = `
+      <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
+      ${state.busy ? `<div class="easy-wait">${busy("Looking in Apple Music")}</div>`
+        : state.tracks.length ? `<p class="easy-note">${sure ? "Found it on Apple Music. Is this the one?" : "Pick the right recording:"}</p>
+          <div class="list glass ls-list">${(sure ? state.tracks.slice(0, 1) : state.tracks.slice(0, 5)).map(row).join("")}</div>
+          ${sure && state.tracks.length > 1 ? `<button class="linkbtn ls-more" id="ls-more">Not this one? Show others</button>` : ""}`
+        : `<p class="easy-note">${state.error ? "Couldn't reach Apple Music's catalog just now." : "No match in Apple Music."} Search there, copy the song's link (Share > Copy Link), then tap Paste a link.</p>`}
+      ${song.listen ? `<p class="foot" style="margin:10px 2px 0">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
+      <div class="actions ls-actions">
+        <button class="btn" id="ls-search">Search Apple Music</button>
+        <button class="btn" id="ls-paste">Paste a link</button>
+      </div>
+      ${song.listen ? `<button class="danger" id="ls-clear" style="display:block;margin:12px auto 0">Remove link</button>` : ""}`;
+    p.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+      const x = state.tracks[+b.dataset.t];
+      saveListen(song, x.trackViewUrl, { title: x.trackName, artist: x.artistName });
+      layer.innerHTML = "";
+      openLink(x.trackViewUrl);
+    });
+    $("ls-more")?.addEventListener("click", () => { state.tracks = state.tracks.map(x => ({ ...x, score: 0 })); paint(); });
+    $("ls-search").onclick = () => openLink(appleSearchURL(song));
+    $("ls-paste").onclick = async () => {
+      let text = "";
+      try { text = await navigator.clipboard.readText(); } catch {}
+      if (!/^https?:\/\//.test(text.trim())) text = prompt("Paste the song's link (Apple Music, Spotify or YouTube)") || "";
+      const url = (text.match(/https:\/\/\S+/) || [])[0];
+      if (!url) return toast("That doesn't look like a link");
+      saveListen(song, url);
+      layer.innerHTML = "";
+      toast(`Saved the ${linkService(url)} link`);
+    };
+    $("ls-clear")?.addEventListener("click", () => { delete song.listen; Tabs.save(data); layer.innerHTML = ""; const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`; toast("Link removed"); });
+  };
+  layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen"></div>`;
+  $("ls-scrim").onclick = () => { layer.innerHTML = ""; };
+  paint();
+  findTracks(song).then(t => { state = { busy: false, tracks: t, error: false }; paint(); })
+    .catch(() => { state = { busy: false, tracks: [], error: true }; paint(); });
+}
+
+// ---------- Metronome ----------
+// A steady click at the song's tempo while it scrolls (on from the ••• menu).
+// Beats are scheduled ahead on the audio clock, so they stay even.
+const metro = { timer: 0, next: 0, beat: 0 };
+function startMetronome(song) {
+  stopMetronome();
+  if (!data.settings.metronome) return;
+  try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+  const spb = 60 / (song.bpm || 90);
+  metro.next = audio.currentTime + 0.05; metro.beat = 0;
+  metro.timer = setInterval(() => {
+    while (metro.next < audio.currentTime + 0.12) {
+      clickAt(metro.next, metro.beat % 4 === 0);
+      metro.next += spb; metro.beat++;
+    }
+  }, 25);
+}
+function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; }
+function clickAt(t, accent) {
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.frequency.value = accent ? 1320 : 880;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(accent ? 0.22 : 0.12, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+  o.connect(g).connect(audio.destination);
+  o.start(t); o.stop(t + 0.09);
 }
 
 // ---------- Tuner ----------
@@ -2065,6 +2178,7 @@ async function startScroll(song) {
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   if (data.settings.countIn !== false && atTop && !(await countIn(song))) return;
+  startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
@@ -2087,6 +2201,7 @@ async function startScroll(song) {
 
 function stopScroll() {
   scroll.on = false;
+  stopMetronome();
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");

@@ -629,10 +629,14 @@ export function chordShape(name) {
 // ---------- Sharing ----------
 // A shared song or set travels inside the link itself (no server): the fields
 // worth sharing, as JSON, compressed where the browser can, in base64url.
-const SHARE_FIELDS = ["title", "artist", "key", "format", "body", "duration", "speed", "tempo", "transpose"];
+const SHARE_FIELDS = ["title", "artist", "key", "format", "body", "duration", "speed", "bpm", "transpose", "tuning", "listen"];
 export function shareable(song) {
   const o = {};
   for (const k of SHARE_FIELDS) if (song[k] !== undefined && song[k] !== "" && song[k] !== 0) o[k] = song[k];
+  /* Only a plain https link travels, never anything that could run as code. */
+  if (o.listen) o.listen = /^https:\/\//.test(o.listen.url || "") ? { url: String(o.listen.url), service: linkService(o.listen.url) } : undefined;
+  if (!o.listen) delete o.listen;
+  if (o.tuning && !TUNINGS[o.tuning]) delete o.tuning;
   return o;
 }
 const b64url = bytes => {
@@ -786,4 +790,34 @@ export function detectPitch(buf, sampleRate) {
   const a = cm[tau - 1], b = cm[tau], c = cm[tau + 1], den = a - 2 * b + c;
   const shift = den ? (a - c) / (2 * den) : 0;
   return sampleRate / (tau + shift);
+}
+
+// ---------- Listening links ----------
+// Rank Apple Music search results against a song's title and artist.
+const norm = s => String(s || "").toLowerCase()
+  .replace(/\(.*?\)|\[.*?\]/g, " ")                 /* (Remastered 2011), [Live] */
+  .replace(/\s+-\s+.*$/, " ")                        /* " - Single Version" */
+  .replace(/&/g, " and ").replace(/^the\s+/, "")
+  .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+export function rankTracks(results, title, artist) {
+  const t = norm(title), a = norm(artist);
+  const score = r => {
+    const rt = norm(r.trackName), ra = norm(r.artistName);
+    let s = rt === t ? 3 : rt.startsWith(t) || t.startsWith(rt) ? 1.5 : 0;
+    if (a) s += ra === a ? 3 : ra.includes(a) || a.includes(ra) ? 1.5 : 0;
+    if (/live|karaoke|tribute|cover|instrumental/i.test(`${r.trackName} ${r.collectionName} ${r.artistName}`)) s -= 1;
+    return s;
+  };
+  return results.filter(r => r.trackViewUrl).map(r => ({ r, s: score(r) })).sort((x, y) => y.s - x.s).map(x => ({ ...x.r, score: x.s }));
+}
+// A link someone pasted: which service is it?
+export function linkService(url) {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, "");
+    if (/music\.apple\.com|itunes\.apple\.com/.test(h)) return "Apple Music";
+    if (/spotify\.com/.test(h)) return "Spotify";
+    if (/youtube\.com|youtu\.be/.test(h)) return /music\./.test(h) ? "YouTube Music" : "YouTube";
+    if (/soundcloud\.com/.test(h)) return "SoundCloud";
+    return h;
+  } catch { return ""; }
 }

@@ -252,3 +252,26 @@ test("a song's tuning is read from its sheet", () => {
   assert.equal(C.detectTuning("Tuning: DADGAD"), "dadgad");
   assert.equal(C.detectTuning("G  C\nla la"), "");
 });
+
+// ---------- Listening links ----------
+
+test("the studio version by the same artist ranks first", () => {
+  const r = C.rankTracks([
+    { trackName: "River Road (Live)", artistName: "The Wanderers", collectionName: "Live", trackViewUrl: "x1" },
+    { trackName: "River Road", artistName: "Karaoke Stars", collectionName: "Hits", trackViewUrl: "x2" },
+    { trackName: "River Road (Remastered 2011)", artistName: "Wanderers", collectionName: "Roads", trackViewUrl: "x3" }
+  ], "River Road", "The Wanderers");
+  assert.equal(r[0].trackViewUrl, "x3");
+});
+
+test("pasted links name their service", () => {
+  assert.equal(C.linkService("https://music.apple.com/us/album/x/1?i=2"), "Apple Music");
+  assert.equal(C.linkService("https://open.spotify.com/track/abc"), "Spotify");
+  assert.equal(C.linkService("https://youtu.be/abc"), "YouTube");
+  assert.equal(C.linkService("not a link"), "");
+});
+
+test("a shared listening link must be a plain https link", () => {
+  assert.deepEqual(C.shareable({ title: "A", body: "G", listen: { url: "https://music.apple.com/x" } }).listen, { url: "https://music.apple.com/x", service: "Apple Music" });
+  assert.equal(C.shareable({ title: "A", body: "G", listen: { url: "javascript:alert(1)" } }).listen, undefined);
+});
