@@ -1,6 +1,9 @@
 // Tabs — core logic
 // Personal chord sheet and tab library. All data stays in localStorage.
 
+// Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
+export const VERSION = "1.19.0";
+
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
 export const TRASH_DAYS = 30;
