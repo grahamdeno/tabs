@@ -395,6 +395,27 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+body.cedit .dock, body.cedit .dock-fade, body.cedit #strip, body.cedit .metarow, body.cedit .chead, body.cedit .smap { display: none !important; }
+.cebar { background: var(--solid) !important; border: 1px solid var(--rim); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+body.cedit .sheet { padding-bottom: 120px; }
+.cebar { position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(14px + var(--safe-b)); width: min(496px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 16px; font-size: 14px; color: var(--fg-2); }
+.cebar span { flex: 1; }
+.ce-line { display: flex; flex-wrap: wrap; column-gap: .3em; row-gap: 4px; margin: 0 0 .7em; }
+.ce-w { display: inline-flex; flex-direction: column; align-items: flex-start; border: 0; background: none; padding: 0 1px; font: inherit; color: var(--fg); border-radius: 6px; text-align: left; }
+.ce-w .ce-t { border-bottom: 1px dashed color-mix(in srgb, var(--muted) 50%, transparent); line-height: 1.35; }
+.ce-w .ce-c { font-size: .82em; font-weight: 650; color: var(--accent); min-height: 1.3em; line-height: 1.3; }
+.ce-w:not(.has) .ce-c { color: transparent; }
+.ce-w.sel { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-line); }
+.ce-w.sel:not(.has) .ce-c { color: var(--accent); opacity: .6; }
+.ce-other { color: var(--muted); font-size: .85em; white-space: pre-wrap; margin: 0 0 .6em; }
+.ce-word { color: var(--accent); font-weight: 500; }
+.ce-lab { margin: 10px 0 6px !important; }
+.ce-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ce-chips.q { margin-top: 6px; }
+.ce-chip { min-width: 42px; height: 38px; padding: 0 11px; border-radius: 10px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); font-size: 15px; font-weight: 600; }
+.ce-chips.q .ce-chip { font-weight: 500; color: var(--fg-2); font-size: 14px; }
+.ce-chip.on, .ce-chips.q .ce-chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
 .smap { position: fixed; right: 0; top: calc(118px + var(--safe-t)); bottom: calc(118px + var(--safe-b)); width: 22px; z-index: 18; touch-action: none; transition: opacity .3s; }
 .smap .sm-track, .smap .sm-fill { position: absolute; right: 10px; top: 0; width: 2px; border-radius: 2px; }
 .smap .sm-track { bottom: 0; background: var(--rim); }
@@ -529,7 +550,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -558,6 +579,7 @@ const I = {
   down: '<path d="m6 9 6 6 6-6"/>',
   fork: '<path d="M9 3v7a3 3 0 0 0 6 0V3"/><path d="M12 13v8"/>',
   stage: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>',
+  pick: '<path d="M12 3c4 0 7 2 7 6 0 5-4 10-7 12-3-2-7-7-7-12 0-4 3-6 7-6z"/>',
   amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   dots: '<circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/>',
@@ -1708,6 +1730,92 @@ function paintMap(target) {
 }
 window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? map.target : undefined); }, { passive: true });
 
+// ---------- Edit chords ----------
+// Chosen from the ••• menu. The sheet shows the chords as written; tap a word to
+// add or change the chord over it. Each change saves at once, with Undo.
+let chordEdit = null;
+const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
+function chordEditor(song) {
+  stopScroll();
+  chordEdit = song;
+  document.body.classList.add("cedit");
+  document.querySelector(".smap")?.remove();
+  document.querySelector(".cebar")?.remove();
+  const bar = document.createElement("div");
+  bar.className = "cebar glass";
+  bar.innerHTML = `<span>Tap a word to add or change its chord</span><button class="btn sm primary" id="ce-done">Done</button>`;
+  document.body.appendChild(bar);
+  $("ce-done").onclick = () => { chordEdit = null; document.body.classList.remove("cedit"); bar.remove(); redraw?.(); toast("Chords saved"); };
+  paintChordEdit(song);
+}
+function paintChordEdit(song) {
+  const sheet = $("sheet");
+  if (!sheet) return;
+  sheet.classList.remove("focus");
+  sheet.innerHTML = chordModel(song.body).map(l => {
+    if (l.kind === "section") return `<div class="sec">${esc(l.text)}</div>`;
+    if (l.kind === "blank") return `<div class="gap"></div>`;
+    if (l.kind !== "lyric") return `<div class="ce-other">${esc(l.text)}</div>`;
+    const words = [...l.text.matchAll(/\S+/g)];
+    let prevEnd = 0;
+    const html = words.map(w => {
+      const start = w.index, end = start + w[0].length;
+      /* Chords over this word, or over the gap just before it. */
+      const on = l.chords.filter(c => c.pos >= prevEnd && c.pos < end);
+      prevEnd = end;
+      const pos = on.length ? on[on.length - 1].pos : start;
+      return `<button class="ce-w ${on.length ? "has" : ""}" data-i="${l.i}" data-pos="${pos}" data-word="${esc(w[0])}"><span class="ce-c">${on.length ? esc(on.map(c => c.chord).join(" ")) : "+"}</span><span class="ce-t">${esc(w[0])}</span></button>`;
+    }).join(" ");
+    return `<div class="ce-line">${html}</div>`;
+  }).join("");
+  sheet.querySelectorAll(".ce-w").forEach(b => b.onclick = () => {
+    sheet.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel"));
+    b.classList.add("sel");
+    pickChord(song, +b.dataset.i, +b.dataset.pos, b.dataset.word, b.classList.contains("has") ? b.querySelector(".ce-c").textContent : "");
+  });
+}
+function pickChord(song, i, pos, word, current) {
+  const parsed = /^([A-G])([#b]?)(.*)$/.exec(current || "") || [];
+  const st = { root: parsed[1] || "", acc: parsed[2] || "", qual: QUALS.includes(parsed[3]) ? parsed[3] : "" };
+  const name = () => st.root ? st.root + st.acc + st.qual : "";
+  const used = chordsUsed(song.body);
+  const paint = () => {
+    const p = $("ce-panel");
+    p.innerHTML = `
+      <div class="pc-head">${icon("pick")}<span>Chord over <b class="ce-word">${esc(word)}</b></span></div>
+      ${used.length ? `<div class="label ce-lab">In this song</div><div class="ce-chips">${used.map(c => `<button class="ce-chip ${c === name() ? "on" : ""}" data-u="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}
+      <div class="label ce-lab">Any chord</div>
+      <div class="ce-chips">${ROOTS.map(r => `<button class="ce-chip ${r === st.root ? "on" : ""}" data-r="${r}">${r}</button>`).join("")}
+        <button class="ce-chip ${st.acc === "#" ? "on" : ""}" data-a="#" aria-label="Sharp">♯</button><button class="ce-chip ${st.acc === "b" ? "on" : ""}" data-a="b" aria-label="Flat">♭</button></div>
+      <div class="ce-chips q">${QUALS.map(q => `<button class="ce-chip ${q === st.qual ? "on" : ""}" data-q="${q}">${q || "major"}</button>`).join("")}<button class="ce-chip" id="ce-other">Other…</button></div>
+      <div class="actions" style="margin-top:14px">
+        ${current ? `<button class="btn" id="ce-rm">Remove</button>` : `<button class="btn" id="ce-cancel">Cancel</button>`}
+        <button class="btn primary" id="ce-place" ${name() ? "" : "disabled"}>${name() ? `Place ${esc(name())}` : "Pick a chord"}</button>
+      </div>`;
+    p.querySelectorAll("[data-u]").forEach(b => b.onclick = () => { const m = /^([A-G])([#b]?)(.*)$/.exec(b.dataset.u); st.root = m[1]; st.acc = m[2]; st.qual = m[3]; apply(b.dataset.u); });
+    p.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { st.root = b.dataset.r; paint(); });
+    p.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { st.acc = st.acc === b.dataset.a ? "" : b.dataset.a; paint(); });
+    p.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { st.qual = b.dataset.q; paint(); });
+    $("ce-other").onclick = () => { const c = (prompt("Chord name, like Cadd9 or D/F#", name()) || "").trim(); if (c) apply(c); };
+    $("ce-place").onclick = () => name() && apply(name());
+    $("ce-rm")?.addEventListener("click", () => apply(null));
+    $("ce-cancel")?.addEventListener("click", close);
+  };
+  const close = () => { layer.innerHTML = ""; document.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel")); };
+  const apply = chord => {
+    const before = song.body;
+    song.body = setChordAt(song.body, i, pos, chord);
+    delete song.loop;
+    Tabs.save(data);
+    close();
+    paintChordEdit(song);
+    toast(chord ? `${chord} over “${word}”` : `Removed from “${word}”`, null, { label: "Undo", fn: () => { song.body = before; Tabs.save(data); paintChordEdit(song); } });
+  };
+  layer.innerHTML = `<div class="scrim" id="ce-scrim"></div><div class="panel card" id="ce-panel" role="dialog" aria-label="Choose a chord"></div>`;
+  $("ce-scrim").onclick = close;
+  paint();
+}
+
 // ---------- Song menu ----------
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
@@ -1721,6 +1829,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     { id: "share", icon: "share", label: "Share song" },
+    song.format !== "tab" && { id: "chords", icon: "pick", label: "Edit chords" },
     { id: "edit", icon: "edit", label: "Edit song" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" }
@@ -1757,6 +1866,7 @@ function songMenu(song, anchor, redrawSong) {
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
        tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
        listen: () => listenSheet(song, true),
+       chords: () => chordEditor(song),
        metro: () => { data.settings.metronome = !data.settings.metronome; Tabs.save(data);
          if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
          toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", $("more")); } })[b.dataset.m]?.();
@@ -2093,7 +2203,7 @@ function showChordPop(target) {
 }
 let stageTap = 0;
 document.addEventListener("click", e => {
-  if (route().name !== "song" || !$("sheet")) return;
+  if (route().name !== "song" || !$("sheet") || chordEdit) return;
   if (loopPick && e.target instanceof Element) {
     const el = e.target.closest(".sheet > *");
     if (el && !el.classList.contains("prow") && !el.classList.contains("dpop") && !el.classList.contains("gap")) { e.preventDefault(); pickLoopLine(el); }
@@ -2925,6 +3035,7 @@ function showTips(name) {
 // ---------- Router ----------
 function render() {
   closeTuner();
+  if (chordEdit) { chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); }
   document.querySelector(".smap")?.remove(); map.el = null;
   stopScroll();
   if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }

@@ -275,3 +275,29 @@ test("a shared listening link must be a plain https link", () => {
   assert.deepEqual(C.shareable({ title: "A", body: "G", listen: { url: "https://music.apple.com/x" } }).listen, { url: "https://music.apple.com/x", service: "Apple Music" });
   assert.equal(C.shareable({ title: "A", body: "G", listen: { url: "javascript:alert(1)" } }).listen, undefined);
 });
+
+// ---------- Chord editor ----------
+
+test("placing a chord writes it over the right letter", () => {
+  const body = "[Verse]\nA            D\nWalking down the river road";
+  const road = "Walking down the river road".indexOf("road");
+  const out = C.setChordAt(body, 2, road, "E");
+  assert.equal(out.split("\n")[1].indexOf("E"), road);
+});
+
+test("a chord on a plain lyric line adds a chord line above it", () => {
+  const out = C.setChordAt("la la land", 0, 3, "G");
+  assert.deepEqual(out.split("\n"), ["   G", "la la land"]);
+});
+
+test("removing the last chord removes the chord line", () => {
+  assert.equal(C.setChordAt("   G\nla la land", 1, 3, null), "la la land");
+});
+
+test("inline [G] sheets stay inline", () => {
+  assert.equal(C.setChordAt("[G]Walking down", 0, 8, "C"), "[G]Walking [C]down");
+});
+
+test("chords used are listed in order", () => {
+  assert.deepEqual(C.chordsUsed("A    D\nla la\n[E]la [A]la"), ["A", "D", "E"]);
+});

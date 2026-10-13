@@ -823,3 +823,72 @@ export function linkService(url) {
 }
 // The first sung line of a song (for the "next up" preview on stage).
 export const firstLyric = body => lyricLines(body).find(l => !/^tuning\b/i.test(l) && !/^capo\b/i.test(l)) || "";
+
+// ---------- Chord editor ----------
+// The sheet as editable lines. Each lyric line knows where its chords are
+// (character positions in the lyric) and how they're written: on a chord line
+// above (most sheets) or inline like [G]word.
+//   { kind: "lyric", i, chordLine, inline, text, chords: [{ pos, chord }] }
+//   { kind: "section" | "chords" | "tab" | "blank" | "other", i, text }
+const isInlineLine = l => { const m = [...l.matchAll(/\[([^\]]+)\]/g)]; return m.length > 0 && m.every(x => isChord(x[1])); };
+export function chordModel(body) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) { out.push({ kind: "blank", i, text: "" }); continue; }
+    if (isTabLine(line)) { out.push({ kind: "tab", i, text: line }); continue; }
+    const sec = line.match(SECTION_RE);
+    if (sec && !(sec[1] && isChord(sec[1]))) { out.push({ kind: "section", i, text: (sec[1] || sec[2]).trim() }); continue; }
+    if (isInlineLine(line)) {
+      const chords = []; let text = "", idx = 0;
+      for (const x of line.matchAll(/\[([^\]]+)\]/g)) { text += line.slice(idx, x.index); chords.push({ pos: text.length, chord: x[1] }); idx = x.index + x[0].length; }
+      text += line.slice(idx);
+      out.push(text.trim() ? { kind: "lyric", i, chordLine: -1, inline: true, text, chords } : { kind: "chords", i, text: line });
+      continue;
+    }
+    if (isChordLine(line)) {
+      const next = lines[i + 1];
+      if (next && next.trim() && !isChordLine(next) && !SECTION_RE.test(next) && !isTabLine(next) && !isInlineLine(next)) {
+        const chords = [...line.matchAll(/\S+/g)].map(m => ({ pos: m.index, chord: m[0] }));
+        out.push({ kind: "lyric", i: i + 1, chordLine: i, inline: false, text: next, chords });
+        i++;
+      } else out.push({ kind: "chords", i, text: line });
+      continue;
+    }
+    out.push({ kind: "lyric", i, chordLine: -1, inline: false, text: line, chords: [] });
+  }
+  return out;
+}
+// Set (or with chord = null, remove) the chord at a position in a lyric line.
+// `i` is the lyric's line number in the body. Returns the new body.
+export function setChordAt(body, i, pos, chord) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  const ln = chordModel(body).find(l => l.kind === "lyric" && l.i === i);
+  if (!ln) return body;
+  const chords = ln.chords.filter(c => c.pos !== pos);
+  if (chord) chords.push({ pos, chord });
+  chords.sort((a, b) => a.pos - b.pos);
+  if (ln.inline) {
+    let s = "", idx = 0;
+    for (const c of chords) { s += ln.text.slice(idx, c.pos) + `[${c.chord}]`; idx = c.pos; }
+    lines[i] = s + ln.text.slice(idx);
+    return lines.join("\n");
+  }
+  /* Chord line above: each chord at its position, nudged right only if it would touch the one before. */
+  let row = "";
+  for (const c of chords) {
+    const at = Math.max(c.pos, row.length ? row.length + 1 : 0);
+    row = row.padEnd(at, " ") + c.chord;
+  }
+  if (ln.chordLine >= 0) {
+    if (row) lines[ln.chordLine] = row; else lines.splice(ln.chordLine, 1);
+  } else if (row) lines.splice(i, 0, row);
+  return lines.join("\n");
+}
+// Chords used in a sheet, in order of first use.
+export function chordsUsed(body) {
+  const seen = [];
+  for (const l of chordModel(body)) for (const c of l.chords || []) if (isChord(c.chord) && !seen.includes(c.chord)) seen.push(c.chord);
+  return seen;
+}
