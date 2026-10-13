@@ -27,6 +27,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
 - Add and edit in a slide-up sheet; delete from edit
 - Settings (gear, top right): starting speed, default transpose, dark/light mode, backup
+- While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
 
 ## Chord sheet format
