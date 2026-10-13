@@ -68,6 +68,11 @@ let filter = "all";
 let searching = false;
 let keepSearch = false; /* back from a song opened from results: show the results again */
 let draft = null; // prefilled fields for the add sheet
+// Leaving a screen: each feature registers its own tidy-up next to its code,
+// and render() runs them all before drawing the next screen.
+const leaveHooks = [];
+const onLeave = fn => leaveHooks.push(fn);
+onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); } });
 const app = $("app");
 const layer = $("layer");
 
@@ -1061,6 +1066,7 @@ async function renderImport(code) {
 // Pick a section (first and last line, or a section label for the whole section).
 // While playing, the section repeats; Build up starts at 80% speed and adds 5% a pass.
 let loopPick = null;   // { song, a } while choosing
+onLeave(() => { if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); } });
 let loopRun = { pass: 0 };
 const sheetLines = () => [...($("sheet")?.children || [])].filter(el => !el.classList.contains("prow") && !el.classList.contains("dpop"));
 function startLoopPick(song) {
@@ -1145,6 +1151,7 @@ function loopCheck(song) {
 // A thin rail on the right edge with a dot for each section. Quiet while you play;
 // touch it and the section names appear, slide to a section and let go to jump.
 const map = { secs: [], el: null, dragging: false, hideTimer: 0 };
+onLeave(() => { document.querySelector(".smap")?.remove(); map.el = null; });
 const mapMax = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
 function buildMap() {
   document.querySelector(".smap")?.remove();
@@ -1221,6 +1228,14 @@ window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? ma
 let chordEdit = null;
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
+onLeave(() => {
+  if (!chordEdit) return;
+  if (edView === "text") flushText(chordEdit);
+  chordEdit = null; edView = "sheet"; textSnap = null;
+  document.body.classList.remove("cedit");
+  document.querySelector(".cebar")?.remove();
+  $("ed-details")?.remove();
+});
 const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
 const KEY_LIST = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 const EDIT_FIELDS = ["title", "artist", "key", "tuning", "bpm", "body"];
@@ -1732,6 +1747,7 @@ const TUNED_FOR = 3 * 3600e3;
 const songTuning = s => (s && (s.tuning || detectTuning(s.body))) || "standard";
 const tunedRecently = () => Date.now() - (data.settings.lastTuned || 0) < TUNED_FOR;
 // The tuner itself loads on first use (tuner.js).
+onLeave(() => closeTuner());
 let tunerMod = null;
 const loadTuner = async () => (tunerMod ||= await import("./tuner.js"));
 function openTuner(...args) { loadTuner().then(m => m.openTuner(...args)); }
@@ -2005,6 +2021,7 @@ async function startScroll(song) {
   scroll.raf = requestAnimationFrame(tick);
 }
 
+onLeave(() => stopScroll());
 function stopScroll() {
   scroll.on = false;
   stopMetronome();
@@ -2324,6 +2341,7 @@ function renderSettings() {
 }
 
 // ---------- Sets ----------
+onLeave(() => document.querySelectorAll(".nextup, .nextline").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); }));
 let setCtx = null; // { id, idx } while playing through a set
 const setSongs = x => x.songIds.map(id => data.songs.find(s => s.id === id)).filter(Boolean);
 const setLength = x => setSongs(x).reduce((a, s) => a + songLength(s), 0);
@@ -2845,15 +2863,9 @@ function showTips(name) {
 
 // ---------- Router ----------
 function render() {
-  closeTuner();
-  if (route().name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); }
-  if (chordEdit) { if (edView === "text") flushText(chordEdit); chordEdit = null; edView = "sheet"; textSnap = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); $("ed-details")?.remove(); }
-  document.querySelector(".smap")?.remove(); map.el = null;
-  stopScroll();
-  if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }
-  document.querySelectorAll(".nextup, .nextline").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); });
-  app.classList.remove("viewer");
   const r = route();
+  leaveHooks.forEach(fn => fn(r));
+  app.classList.remove("viewer");
   if (r.name !== "add" && r.name !== "edit") layer.innerHTML = "";
   if (r.name === "song") renderViewer(r.id);
   else if (r.name === "add") renderForm();
