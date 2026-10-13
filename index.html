@@ -235,6 +235,14 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .erow::-webkit-scrollbar { display: none; }
 .ecard { flex: none; border-radius: 9px; background: var(--card); border: 1px solid var(--rim); padding: 1px; }
 .ecard svg { display: block; }
+/* Backup banner */
+.bk { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-radius: 14px; padding: 12px 14px; margin: 16px 0 0; }
+.bk .tile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+.bk .tile svg { width: 17px; height: 17px; }
+.bk-t { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
+.bk-t b { font-size: 15px; font-weight: 600; color: var(--fg); }
+.bk-b { display: flex; gap: 8px; margin-left: auto; }
+.set .val.muted { color: var(--muted); }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -321,6 +329,8 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 
 .toast { position: fixed; left: 50%; top: calc(12px + var(--safe-t)); transform: translate(-50%, -150%); padding: 10px 16px; border-radius: var(--r); z-index: 60; transition: transform .25s; font-size: 14px; background: var(--solid); border: 1px solid var(--rim); box-shadow: var(--shadow); }
 .toast.show { transform: translate(-50%, 0); }
+.toast { display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px); }
+.tact { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 14px; padding: 4px 2px; flex: none; }
 .toast.near { transform: translate(-50%, 6px); opacity: 0; transition: transform .18s ease-out, opacity .18s ease-out; padding: 8px 14px; font-size: 13px; white-space: nowrap; }
 .toast.near.show { transform: translate(-50%, 0); opacity: 1; }
 </style>
@@ -330,7 +340,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -351,6 +361,8 @@ const I = {
   focus: '<path d="M4 7h16"/><path d="M4 12h16" stroke-width="2.4"/><path d="M4 17h16"/>',
   wand: '<path d="M4 20 14.5 9.5"/><path d="m13 8 3 3"/><path d="M17 3.5v3M15.5 5h3M20 9v2M19 10h2"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  cloud: '<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/><path d="M12 15V10M9.8 12 12 9.8l2.2 2.2"/>',
+  trash: '<path d="M4 7h16M10 7V4.5h4V7M6 7l1 13h10l1-13"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -376,12 +388,19 @@ function applyTheme() {
 }
 
 // A short message. With `near`, it appears just above that control, where the eye already is.
-function toast(msg, near) {
+function toast(msg, near, action) {
   const t = $("toast");
   clearTimeout(toast.timer);
   t.classList.remove("show", "near");
   t.style.left = t.style.top = "";
   t.textContent = msg;
+  if (action) {
+    const b = document.createElement("button");
+    b.className = "tact";
+    b.textContent = action.label;
+    b.onclick = () => { clearTimeout(toast.timer); t.classList.remove("show"); action.fn(); };
+    t.appendChild(b);
+  }
   if (near) {
     const r = near.getBoundingClientRect();
     const above = (near.closest(".pw") || near).getBoundingClientRect().top;
@@ -393,7 +412,7 @@ function toast(msg, near) {
   }
   void t.offsetWidth; // restart the transition
   t.classList.add("show");
-  toast.timer = setTimeout(() => t.classList.remove("show"), near ? 1400 : 2000);
+  toast.timer = setTimeout(() => t.classList.remove("show"), action ? 6000 : near ? 1400 : 2000);
 }
 
 const go = h => { location.hash = h; };
@@ -415,6 +434,46 @@ function followKeyboard() {
 window.visualViewport?.addEventListener("resize", followKeyboard);
 window.visualViewport?.addEventListener("scroll", followKeyboard);
 
+// ---------- Keeping the library safe ----------
+// Ask the browser to keep this site's storage permanently (it may still decide).
+let storageKept = null;
+navigator.storage?.persist?.().then(ok => { storageKept = ok; }).catch(() => {});
+navigator.storage?.persisted?.().then(ok => { if (storageKept === null) storageKept = ok; }).catch(() => {});
+
+const WEEK = 7 * 86400000;
+function needsBackup() {
+  if (!data.songs.length) return false;
+  const s = data.settings, now = Date.now();
+  if (s.backupSnooze && now < s.backupSnooze) return false;
+  return !s.lastBackup || now - Date.parse(s.lastBackup) > WEEK;
+}
+function ago(iso) {
+  if (!iso) return "never";
+  const d = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+  return d <= 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`;
+}
+// Share sheet first (Save to Files → iCloud Drive on iPhone); download otherwise.
+async function backupNow() {
+  const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([Tabs.export(data)], name, { type: "application/json" });
+  let done = false;
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Tabs backup" }); done = true; }
+    catch (e) { if (e.name === "AbortError") return false; }
+  }
+  if (!done) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  data.settings.lastBackup = new Date().toISOString();
+  data.settings.backupSnooze = null;
+  Tabs.save(data);
+  return true;
+}
+
 // ---------- Library ----------
 function renderLibrary() {
   const hasFav = data.songs.some(s => s.favorite);
@@ -430,6 +489,11 @@ function renderLibrary() {
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
     </div>` : ""}
+    ${needsBackup() ? `<div class="bk glass" id="bk">
+      <span class="tile">${icon("cloud")}</span>
+      <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
+      <div class="bk-b"><button class="btn sm" id="bk-later">Later</button><button class="btn sm primary" id="bk-go">Back up</button></div>
+    </div>` : ""}
     <div id="list"></div>
     <div class="dock-fade"></div>
     <div class="dock kb">
@@ -441,6 +505,8 @@ function renderLibrary() {
       <button class="add" id="add" aria-label="Add song">${icon("plus")}</button>
     </div>`;
   $("settings").onclick = () => go("#/settings");
+  $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
+  $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   $("add").onclick = () => { draft = null; go("#/add"); };
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
   const q = $("q");
@@ -1448,12 +1514,11 @@ function renderForm(id) {
     toast("Saved");
   };
   $("delete")?.addEventListener("click", () => {
-    if (!confirm(`Delete "${song.title}"?`)) return;
-    Tabs.deleteSong(data, song.id);
+    const entry = Tabs.deleteSong(data, song.id);
     history.replaceState(null, "", "#/");
     layer.innerHTML = "";
     render();
-    toast("Deleted");
+    toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
   });
   if (!src.title) setTimeout(() => $("f-title")?.focus(), 300);
 }
@@ -1519,11 +1584,12 @@ function renderSettings() {
     <p class="foot" id="s-keymsg">Adds Clean up and Scan a page when adding songs, and Make it easier on a song. The key stays on this phone and is sent only to Anthropic. Only the pasted text or photo is sent for cleanup and scans, and only the song's chord names for Make it easier. Use a key made just for Tabs, with a low monthly spend limit.</p>
     <div class="label">Library</div>
     <div class="set-group glass">
-      <button class="set" id="s-export"><span class="tile">${icon("upload")}</span><span class="name">Export backup</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device${storageKept ? " and kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
   $("back").onclick = () => go("#/");
   $("s-speed").onchange = e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
@@ -1552,18 +1618,8 @@ function renderSettings() {
     } catch (e) { out.textContent = aiError(e); }
     $("s-test").textContent = "Test";
   };
-  $("s-export").onclick = async () => {
-    const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    const file = new File([Tabs.export(data)], name, { type: "application/json" });
-    if (navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: "Tabs backup" }); return; } catch (e) { if (e.name === "AbortError") return; }
-    }
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(file);
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
+  $("s-export").onclick = async () => { if (await backupNow()) { renderSettings(); toast("Backed up"); } };
+  $("s-trash").onclick = () => go("#/trash");
   $("s-import").onclick = () => $("file").click();
   $("file").onchange = e => {
     const f = e.target.files[0];
@@ -1581,6 +1637,39 @@ function renderSettings() {
   };
 }
 
+// ---------- Recently deleted ----------
+function renderTrash() {
+  const left = t => Math.max(1, TRASH_DAYS - Math.floor((Date.now() - Date.parse(t.deletedAt)) / 86400000));
+  app.innerHTML = `
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to settings">${icon("back")}</button>
+      ${data.trash.length ? `<button class="tb" id="t-empty" style="color:#e07a6c">Delete all</button>` : ""}</div>
+    <h1 class="title" style="margin:14px 2px 18px">Recently deleted</h1>
+    ${data.trash.length ? `<div class="list glass">${data.trash.map((t, i) => `
+      <div class="row">
+        <div class="txt"><div class="t">${esc(t.type === "set" ? t.item.name : t.item.title)}</div>
+          <div class="a">${t.type === "set" ? "Set" : esc(t.item.artist || "Song")} · ${left(t)} day${left(t) === 1 ? "" : "s"} left</div></div>
+        <button class="btn sm" data-forget="${i}">Delete</button>
+        <button class="btn sm primary" data-restore="${i}">Restore</button>
+      </div>`).join("")}</div>`
+      : `<div class="empty">Nothing here. Deleted songs and sets stay for ${TRASH_DAYS} days.</div>`}
+    <p class="foot">Items are removed for good after ${TRASH_DAYS} days.</p>`;
+  $("back").onclick = () => go("#/settings");
+  app.querySelectorAll("[data-restore]").forEach(b => b.onclick = () => {
+    const t = data.trash[+b.dataset.restore];
+    Tabs.restore(data, t); renderTrash();
+    toast(`Restored "${t.type === "set" ? t.item.name : t.item.title}"`);
+  });
+  app.querySelectorAll("[data-forget]").forEach(b => b.onclick = () => {
+    const t = data.trash[+b.dataset.forget];
+    if (!confirm("Delete for good? This can't be undone.")) return;
+    Tabs.forget(data, t); renderTrash();
+  });
+  $("t-empty")?.addEventListener("click", () => {
+    if (!confirm(`Delete all ${data.trash.length} for good? This can't be undone.`)) return;
+    data.trash = []; Tabs.save(data); renderTrash();
+  });
+}
+
 // ---------- Router ----------
 function render() {
   stopScroll();
@@ -1591,6 +1680,7 @@ function render() {
   else if (r.name === "add") renderForm();
   else if (r.name === "edit") { const s = data.songs.find(x => x.id === r.id); if (s && !app.querySelector("#sheet")) renderViewer(r.id); renderForm(r.id); }
   else if (r.name === "settings") { renderSettings(); window.scrollTo(0, 0); }
+  else if (r.name === "trash") { renderTrash(); window.scrollTo(0, 0); }
   else { renderLibrary(); }
 }
 

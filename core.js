@@ -2,30 +2,40 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 const STORAGE_KEY = "tabs-v1";
+const DAY = 86400000;
+export const TRASH_DAYS = 30;
 
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
-const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: false, focus: "always", pauseDiagrams: true, startSpeed: 45, v: 3 };
+const DEFAULT_SETTINGS = {
+  theme: "dark", transpose: 0, diagrams: false, focus: "always", pauseDiagrams: true,
+  speedMode: "length",   // "length" (song length, mm:ss) or "multiplier" (1x style)
+  startSpeed: 45,        // 1x-style starting speed for new songs
+  startLength: 210,      // song-length starting value, seconds (3:30)
+  countIn: true,         // one bar of clicks before scrolling starts
+  lastBackup: null, backupSnooze: null, tipsSeen: false,
+  v: 4
+};
+
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 function blank() {
-  return { songs: [], settings: { ...DEFAULT_SETTINGS } };
+  return { songs: [], sets: [], trash: [], settings: { ...DEFAULT_SETTINGS } };
 }
 
-// Bring older saves (tab-only, numeric scroll speed) up to the current shape.
+// Bring older saves up to the current shape.
 export function migrate(data) {
   if (!data || !Array.isArray(data.songs)) return blank();
   const settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
-  if (typeof settings.scrollSpeed === "number") {
-    const n = settings.scrollSpeed;
-    settings.scrollSpeed = n < 33 ? "slow" : n < 60 ? "medium" : "fast";
-  }
-  if (!SPEEDS[settings.scrollSpeed]) settings.scrollSpeed = "medium";
-  // v2: Now and Next starts off. Older saves had it on only because it was the default.
   const v = data.settings?.v || 1;
+  // v2: Now and Next starts off. Older saves had it on only because it was the default.
   if (v < 2) settings.diagrams = false;
   // v3: focus became Always / While playing / Off, defaulting to Always.
   if (v < 3) settings.focus = "always";
-  settings.v = 3;
+  // v4: speed by song length is the default style; count-in on.
+  if (v < 4) { settings.speedMode = "length"; settings.countIn = true; }
+  settings.v = 4;
+  delete settings.scrollSpeed;
   const songs = data.songs.map(s => {
     const song = { ...s };
     if (song.body === undefined) {
@@ -36,7 +46,12 @@ export function migrate(data) {
     if (song.key === undefined) song.key = "";
     return song;
   });
-  return { songs, settings };
+  const ids = new Set(songs.map(s => s.id));
+  const sets = (Array.isArray(data.sets) ? data.sets : []).map(x => ({ ...x, songIds: (x.songIds || []).filter(id => ids.has(id) || true) }));
+  // Recently deleted: keep 30 days.
+  const cutoff = Date.now() - TRASH_DAYS * DAY;
+  const trash = (Array.isArray(data.trash) ? data.trash : []).filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
+  return { songs, sets, trash, settings };
 }
 
 export const Tabs = {
@@ -55,12 +70,13 @@ export const Tabs = {
 
   addSong(data, song) {
     const s = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      id: newId(),
       created: new Date().toISOString(),
       favorite: false,
       format: "chords",
       key: "",
-      speed: data.settings?.startSpeed || SPEEDS.medium, // starting speed (1.0x unless changed)
+      speed: data.settings?.startSpeed || SPEEDS.medium,     // 1x style
+      duration: data.settings?.startLength || 210,           // song length style, seconds
       ...song
     };
     data.songs.unshift(s);
@@ -75,9 +91,54 @@ export const Tabs = {
     return song;
   },
 
+  // Deleting moves to Recently deleted, remembering which sets held the song.
   deleteSong(data, id) {
+    const song = data.songs.find(s => s.id === id);
+    if (!song) return null;
+    const inSets = data.sets.filter(x => x.songIds.includes(id)).map(x => ({ id: x.id, at: x.songIds.indexOf(id) }));
     data.songs = data.songs.filter(s => s.id !== id);
+    data.sets.forEach(x => { x.songIds = x.songIds.filter(sid => sid !== id); });
+    const entry = { type: "song", item: song, inSets, deletedAt: new Date().toISOString() };
+    data.trash.unshift(entry);
     this.save(data);
+    return entry;
+  },
+
+  deleteSet(data, id) {
+    const set = data.sets.find(x => x.id === id);
+    if (!set) return null;
+    data.sets = data.sets.filter(x => x.id !== id);
+    const entry = { type: "set", item: set, deletedAt: new Date().toISOString() };
+    data.trash.unshift(entry);
+    this.save(data);
+    return entry;
+  },
+
+  restore(data, entry) {
+    data.trash = data.trash.filter(t => t !== entry);
+    if (entry.type === "song") {
+      if (!data.songs.some(s => s.id === entry.item.id)) data.songs.unshift(entry.item);
+      for (const ref of entry.inSets || []) {
+        const set = data.sets.find(x => x.id === ref.id);
+        if (set && !set.songIds.includes(entry.item.id)) set.songIds.splice(Math.min(ref.at, set.songIds.length), 0, entry.item.id);
+      }
+    } else if (entry.type === "set" && !data.sets.some(x => x.id === entry.item.id)) {
+      entry.item.songIds = entry.item.songIds.filter(id => data.songs.some(s => s.id === id));
+      data.sets.unshift(entry.item);
+    }
+    this.save(data);
+  },
+
+  forget(data, entry) {
+    data.trash = data.trash.filter(t => t !== entry);
+    this.save(data);
+  },
+
+  addSet(data, name) {
+    const set = { id: newId(), name: name || "New set", songIds: [], created: new Date().toISOString() };
+    data.sets.unshift(set);
+    this.save(data);
+    return set;
   },
 
   toggleFavorite(data, id) {
@@ -85,6 +146,12 @@ export const Tabs = {
     if (song) song.favorite = !song.favorite;
     this.save(data);
     return song;
+  },
+
+  // A play counts when a song is played through. Keep the most recent 200.
+  logPlay(data, song) {
+    song.plays = [...(song.plays || []), Date.now()].slice(-200);
+    this.save(data);
   },
 
   export(data) {
@@ -103,6 +170,9 @@ export const Tabs = {
     }
   }
 };
+
+// Plays in the last 7 days.
+export const playsThisWeek = song => (song.plays || []).filter(t => t > Date.now() - 7 * DAY).length;
 
 // ---------- Chords ----------
 
