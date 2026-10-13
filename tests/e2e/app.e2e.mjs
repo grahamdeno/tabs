@@ -493,19 +493,30 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   await page.click("#ed-sing"); await page.waitForTimeout(500);
   assert.match(await page.innerText("h1"), /New sketch/);
   const hz = m => 440 * 2 ** ((m - 69) / 12);
+  const pad = await page.locator("#sk-pad").boundingBox(), px = pad.x + pad.width / 2, py = pad.y + pad.height - 60;
+  // Hold the pad to sing a line; let go to keep it.
   const singLine = async melody => {
-    await page.click("#sk-rec"); await page.waitForTimeout(300);
+    await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(400);
     for (const m of melody) { await page.evaluate(f => { window.__hz = f; }, hz(m)); await page.waitForTimeout(420); }
     await page.evaluate(() => { window.__hz = 0; }); await page.waitForTimeout(150);
-    await page.click("#sk-rec"); await page.waitForTimeout(400);
+    await page.mouse.up(); await page.waitForTimeout(500);
   };
   await singLine([55, 59, 62, 59, 60, 64, 67, 64]);          // G B D B | C E G E
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.i), "0", "the words field is ready for dictation");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "sk-words", "the words field is ready for dictation");
   await page.keyboard.type("Porch light burning past the second shift");
+  await page.evaluate(() => document.activeElement.blur()); await page.waitForTimeout(200);
+  // Slide left while singing: that take goes, nothing is added.
+  await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(400);
+  await page.evaluate(f => { window.__hz = f; }, hz(50)); await page.waitForTimeout(500);
+  await page.mouse.move(px - 120, py, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(400);
+  await page.evaluate(() => { window.__hz = 0; });
+  assert.equal(await page.locator(".sknb-row").count(), 1, "the slid-away take wasn't kept");
   await singLine([62, 66, 57, 62, 59, 55, 55, 55]);          // D F# A D | B G G G
-  await page.fill('.sk-w[data-i="1"]', "Home to you a little more");
-  assert.match(await page.innerText(".sk-chips"), /Sounds like G/);
-  assert.equal(await page.locator(".sk-row").count(), 2);
+  await page.keyboard.type("Home to you a little more");
+  await page.evaluate(() => document.activeElement.blur()); await page.waitForTimeout(200);
+  assert.match(await page.innerText("#sk-meter"), /G major/);
+  assert.equal(await page.locator(".sknb-row").count(), 2);
+  assert.deepEqual(await page.$$eval(".skfam-c", b => b.map(x => x.textContent)), ["G", "C", "D", "Em", "Am", "Bm"], "the key's chords, ready to hear");
   await page.click("#sk-done"); await page.waitForTimeout(1200);
   const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch);
   assert.ok(song, "a new song was made");

@@ -288,7 +288,7 @@ const GESTURES = [
     ["", "Back from a song you searched for", "Your results are still there", "back"]]],
   ["Editing", [
     ["tap", "Tap tempo", "Tap along to set the tempo", "pick"],
-    ["", "Sing it, when adding a song", "Sing line by line and say the words; chords come from your melody", "mic"],
+    ["", "Sing it, when adding a song", "Hold the pad to sing a line, let go to keep it; slide left to redo, up to make the song. The key wheel shows your key appearing", "mic"],
     ["", "On a sung song: Your recording, Simple or Rich", "Hear it back with the words following; Rich adds the 7ths and 9ths you sang", "play"],
     ["", "Tap a word on a sung song (in Edit)", "Chords that fit your melody there, and other ways to play the line", "pick"],
     ["", "Tap a word", "Place or change its chord", "edit"],

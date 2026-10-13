@@ -1299,7 +1299,8 @@ export function detectKey(notes) {
     all.push({ tonic: t, minor: true, name: MINOR_NAMES[t], score: corr(MINOR_PROFILE, t) + home - 0.02 });
   }
   all.sort((a, b) => b.score - a.score);
-  return { ...all[0], sure: all[0].score - all[1].score > 0.05 && all[0].score > 0.5 };
+  const margin = all[0].score - all[1].score;
+  return { ...all[0], margin, sure: margin > 0.05 && all[0].score > 0.5 };
 }
 
 // Chords in the key: [semitones above the tonic, minor?]. Minor keys use a
@@ -1439,10 +1440,10 @@ export function syllables(word) {
 // One line as a chord line over its words. Sung notes stand in for syllables:
 // a chord that changes at the k-th note of n goes over the word holding the
 // matching share of the line's syllables.
-export function chordLine(words, notes, changes) {
+// Which word each chord change falls on (an index; past the last word when
+// there are more chords than words).
+export function chordWords(words, notes, changes) {
   const ws = String(words || "").trim().split(/\s+/).filter(Boolean);
-  if (!changes.length) return ws.join(" ");
-  if (!ws.length) return changes.map(c => c.chord).join("   ");
   const syl = ws.map(syllables), total = syl.reduce((a, b) => a + b, 0) || ws.length;
   const wordAtSyl = s => { let acc = 0; for (let i = 0; i < ws.length; i++) { acc += syl[i] || 1; if (s < acc) return i; } return ws.length - 1; };
   const at = changes.map((c, i) => {
@@ -1452,6 +1453,13 @@ export function chordLine(words, notes, changes) {
     return wordAtSyl(Math.floor(k * total / Math.max(1, notes.length)));
   });
   for (let i = 1; i < at.length; i++) if (at[i] <= at[i - 1]) at[i] = at[i - 1] + 1;
+  return at;
+}
+export function chordLine(words, notes, changes) {
+  const ws = String(words || "").trim().split(/\s+/).filter(Boolean);
+  if (!changes.length) return ws.join(" ");
+  if (!ws.length) return changes.map(c => c.chord).join("   ");
+  const at = chordWords(words, notes, changes);
   const lyric = ws.join(" ");
   const starts = []; let pos = 0;
   ws.forEach(w => { starts.push(pos); pos += w.length + 1; });
@@ -1525,4 +1533,46 @@ export function notesUnder(body, sketch, k, pos) {
   const w1 = nextChord === undefined ? ws.length : Math.max(w0 + 1, wordAt(nextChord));
   const i0 = Math.floor(sylBefore(w0) * notes.length / total), i1 = Math.max(i0 + 1, Math.floor(sylBefore(w1) * notes.length / total));
   return notes.slice(i0, i1);
+}
+
+// ---- While sketching: how sure the key is, its chords, and a nudge per line ----
+// Key confidence as 0 to 5 bars: how far the best key leads the next one, held
+// back until enough has been sung.
+export function keyConfidence(notes) {
+  if (notes.length < 3) return { key: null, bars: 0, state: "listening" };
+  const key = detectKey(notes);
+  if (!key) return { key: null, bars: 0, state: "listening" };
+  let bars = Math.max(1, Math.min(5, Math.round(key.margin / 0.03) + 1));
+  if (notes.length < 8) bars = Math.min(bars, 3);
+  if (notes.length < 5) bars = Math.min(bars, 2);
+  return { key, bars, state: bars >= 5 ? "sure" : bars >= 2 ? "getting surer" : "listening" };
+}
+// The key's six chords: the three major (or minor) ones first, then their partners.
+export const keyFamily = key => (key ? keyChords(key).map(c => c.name) : []);
+// How much of the singing is on each pitch class (shares of the total time).
+export function pitchShares(notes) {
+  const w = new Array(12).fill(0);
+  notes.forEach(n => { w[((n.midi % 12) + 12) % 12] += n.dur; });
+  const tot = w.reduce((a, b) => a + b, 0) || 1;
+  return w.map(x => x / tot);
+}
+// A nudge for one line: where a different chord holds the melody clearly better
+// than the chosen one (the chosen path also weighs smooth moves, so they can
+// differ). At most one per line: the clearest.
+export function lineHint(words, notes, changes, key) {
+  if (!key || !notes.length || !changes.length) return null;
+  const ws = String(words || "").trim().split(/\s+/).filter(Boolean);
+  const at = chordWords(words, notes, changes);
+  let best = null;
+  changes.forEach((c, j) => {
+    const end = changes[j + 1]?.at ?? Infinity, seg = notes.filter(n => n.start >= c.at - 0.01 && n.start < end);
+    if (seg.length < 2) return;
+    const fits = chordFit(seg, key), top = fits[0], cur = fits.find(f => f.chord === c.chord.replace(/(maj7|7|add9)$/, ""));
+    const gain = top.fit - (cur ? cur.fit : 0);
+    if (top.chord !== c.chord && gain >= 0.12 && (!best || gain > best.gain)) {
+      const w = at[j] < ws.length ? ws.slice(at[j], at[j] + 2).join(" ") : "";
+      best = { j, chord: top.chord, gain, words: w, minor: /m$/.test(top.chord) && !/m$/.test(c.chord), major: !/m$/.test(top.chord) && /m$/.test(c.chord) };
+    }
+  });
+  return best;
 }

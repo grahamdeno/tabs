@@ -811,3 +811,31 @@ test("sketch: other ways to play a line, most natural first, all different", () 
   assert.match(swapped, /\nEm\s+D\nHome to you a little more$/);
   assert.match(swapped, /^G\s+C\nPorch light/, "other lines untouched");
 });
+
+// ---------- Sketch screen helpers ----------
+test("sketch: key confidence grows with what's sung", () => {
+  assert.deepEqual(C.keyConfidence(line([67, 71])), { key: null, bars: 0, state: "listening" });
+  const few = C.keyConfidence(line([67, 71, 74, 67]));
+  assert.ok(few.bars <= 2, `${few.bars} bars after four notes`);
+  const many = C.keyConfidence(line([67, 69, 71, 72, 74, 76, 78, 79, 74, 71, 67, 74, 71, 67]));
+  assert.equal(many.key.name, "G");
+  assert.ok(many.bars > few.bars && many.bars >= 4, `${many.bars} bars after a G major line`);
+});
+
+test("sketch: the key's family of chords, and where the singing sits", () => {
+  assert.deepEqual(C.keyFamily(C.sketchKey("G")), ["G", "C", "D", "Em", "Am", "Bm"]);
+  assert.deepEqual(C.keyFamily(C.sketchKey("Am")), ["Am", "F", "C", "G", "E", "Dm"]);
+  const sh = C.pitchShares(line([67, 67, 71, 74]));
+  assert.equal(sh[7], 0.5); assert.equal(sh[11], 0.25);
+});
+
+test("sketch: a nudge where another chord clearly holds the melody better", () => {
+  const key = C.sketchKey("G");
+  // Sung E, G, B (an Em) under a chord the path chose as C: try Em.
+  const notes = [...line([67, 71, 74, 71]), ...line([64, 67, 71, 64]).map(n => ({ ...n, start: n.start + 2 }))];
+  const h = C.lineHint("Every road I take keeps bending back", notes, [{ chord: "G", at: 0 }, { chord: "C", at: 2 }], key);
+  assert.equal(h.chord, "Em"); assert.equal(h.j, 1); assert.equal(h.minor, true);
+  assert.ok(h.words.length > 0);
+  assert.equal(C.lineHint("x y", notes, [{ chord: "G", at: 0 }, { chord: "Em", at: 2 }], key), null, "no nudge when it already fits");
+  assert.deepEqual(C.chordWords("Every road I take keeps bending back", line([64, 64, 64, 64, 64, 64, 64, 64, 64], 0.4), [{ chord: "Em", at: 0 }, { chord: "C", at: 2 }]), [0, 3]);
+});
