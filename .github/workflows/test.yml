@@ -14,6 +14,7 @@ jobs:
         with:
           node-version: 20
       - run: node --test
+      - run: npx --yes eslint@10.1.0 .
 
   # The real app in a phone-sized Chromium: loading, playing, search, Edit, sets, sharing, settings.
   browser:

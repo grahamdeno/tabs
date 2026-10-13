@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, buildChart, chordCounts, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -434,39 +434,6 @@ async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, k
 }
 
 // Plain-English reasons, mapped from Anthropic's status codes.
-// Ask with web search turned on: Claude searches (up to `searches` times) and answers.
-// Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
-async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
-  const messages = [{ role: "user", content }];
-  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: searches }];
-  let out = [];
-  for (let turn = 0; turn < 4; turn++) {
-    let r;
-    try {
-      r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system, tools, messages })
-      });
-    } catch { throw Object.assign(new Error("network"), { status: 0, model }); }
-    if (!r.ok) {
-      const j = await r.json().catch(() => ({}));
-      throw Object.assign(new Error(j?.error?.message || "HTTP " + r.status), { status: r.status, model });
-    }
-    const j = await r.json();
-    out = out.concat(j.content || []);
-    if (j.stop_reason !== "pause_turn") break;
-    messages.push({ role: "assistant", content: j.content });
-  }
-  const text = out.filter(c => c.type === "text").map(c => c.text).join("");
-  const seen = new Map();
-  for (const c of out) {
-    if (c.type === "web_search_tool_result" && Array.isArray(c.content)) c.content.forEach(x => x.url && !seen.has(x.url) && seen.set(x.url, x.title || x.url));
-    for (const ci of c.citations || []) if (ci.url) seen.set(ci.url, ci.title || ci.url);
-  }
-  return { text, sources: [...seen].map(([url, title]) => ({ url, title })).filter(x => /^https:\/\//.test(x.url)) };
-}
-
 function aiError(e) {
   const m = e?.message || "", st = e?.status;
   if (st === 400 && /web search/i.test(m)) return "Web search is turned off for this key's organization. An admin can turn it on in the Anthropic Console under Settings > Capabilities.";
@@ -1041,93 +1008,6 @@ function chordNames(body, steps, flats) {
   return out;
 }
 const songKey = s => s.key || guessKey(s.body || "");
-// Shapes you'd play at each capo, for the song as it sounds now.
-function capoTable(song) {
-  const steps = song.transpose || 0, k = songKey(song);
-  return Array.from({ length: 8 }, (_, c) => chordNames(song.body, steps - c, prefersFlats(k, steps - c)));
-}
-// The player's usual chords, across the whole library.
-function commonChords() {
-  const count = {};
-  for (const s of data.songs) if (s.format !== "tab")
-    for (const n of chordNames(s.body, s.transpose || 0, prefersFlats(songKey(s), s.transpose || 0))) count[n] = (count[n] || 0) + 1;
-  return Object.entries(count).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([n]) => n);
-}
-
-const EASY_SYSTEM = `You help a guitarist play a song more easily without changing how it sounds.
-Reply with JSON only, no other text: {"capo": number, "substitutions": {"ShapeName": "EasierChord"}, "note": string}
-- "capo": 0 to 7. The user gives the chord shapes for each capo position. Pick the one that is easiest to play: open chords over barre chords, fewer different shapes, and shapes this player already uses often. Use 0 if no capo helps.
-- "substitutions": at most 4, keyed by shape names from the chosen capo's list. Only swap a chord for a simpler one that keeps the song's sound, like F to Fmaj7, Bm to Bm7, or B7 for a hard B. Leave it empty if nothing clearly helps.
-- "note": one plain sentence, under 20 words, saying what changed and why. No praise.`;
-
-async function suggestEasier(song) {
-  const table = capoTable(song);
-  const content = `Chords as written, in order: ${table[0].join(" ")}
-Shapes at each capo:
-${table.map((t, c) => `Capo ${c}: ${t.join(" ")}`).join("\n")}
-Chords this player uses most: ${commonChords().join(" ") || "unknown"}`;
-  const out = parseJSON(await askClaude({ content, system: EASY_SYSTEM, maxTokens: 4000 }));
-  const capo = Math.max(0, Math.min(7, parseInt(out.capo, 10) || 0));
-  const shapes = table[capo];
-  const subs = {};
-  for (const [from, to] of Object.entries(out.substitutions || {})) {
-    if (Object.keys(subs).length >= 4) break;
-    if (shapes.includes(from) && typeof to === "string" && to !== from && chordShape(to)) subs[from] = to;
-  }
-  const note = String(out.note || "").trim().slice(0, 160);
-  return { capo, subs, note, on: true, before: table[0], after: shapes.map(n => subs[n] || n) };
-}
-
-function easierSheet(song) {
-  let result = song.easier || null, working = false;
-  const cards = names => [...new Set(names)].map(n => `<div class="ecard">${chordSVG(n, 0.82)}</div>`).join("");
-  const paint = () => {
-    const panel = $("easy-panel");
-    if (!panel) return;
-    if (working) {
-      panel.innerHTML = `<div class="pc-head">${icon("wand")}<span>Make it easier</span></div>
-        <div class="easy-wait">${busy("Finding easier shapes")}</div>`;
-      return;
-    }
-    if (!result) return;
-    const same = !result.capo && !Object.keys(result.subs || {}).length;
-    panel.innerHTML = `
-      <div class="pc-head">${icon("wand")}<span>Make it easier</span></div>
-      ${same ? `<p class="easy-note">This song is already about as easy as it gets in this key.</p>` : `
-      <div class="tags">${result.capo ? `<span class="tag">Capo ${result.capo}</span>` : ""}${Object.entries(result.subs || {}).map(([a, b]) => `<span class="tag">${esc(a)} → ${esc(b)}</span>`).join("")}</div>
-      ${result.note ? `<p class="easy-note">${esc(result.note)}</p>` : ""}
-      <div class="elabel">Before</div><div class="erow">${cards(result.before || [])}</div>
-      <div class="elabel">After</div><div class="erow">${cards(result.after || [])}</div>`}
-      <div class="actions">
-        <button class="btn" id="e-again">${icon("wand")}Try again</button>
-        ${same ? `<button class="btn primary" id="e-close">OK</button>`
-          : song.easier === result && result.on ? `<button class="btn primary" id="e-off">Turn off</button>`
-          : `<button class="btn primary" id="e-apply">${song.easier === result ? "Turn on" : "Apply"}</button>`}
-      </div>`;
-    $("e-again").onclick = ask;
-    $("e-close")?.addEventListener("click", close);
-    $("e-off")?.addEventListener("click", () => { result.on = false; Tabs.save(data); close(); redraw?.(); toast("Easier off", $("easy")); });
-    $("e-apply")?.addEventListener("click", () => { result.on = true; song.easier = result; Tabs.save(data); close(); redraw?.(); toast(result.capo ? `Capo ${result.capo}` : "Easier on", $("easy")); });
-  };
-  const close = () => { if (!working) layer.innerHTML = ""; };
-  const ask = async () => {
-    working = true; paint();
-    try { result = await suggestEasier(song); }
-    catch (e) {
-      working = false;
-      $("easy-panel").innerHTML = `<div class="pc-head">${icon("wand")}<span>Make it easier</span></div>
-        <p class="ai-note">${esc(aiError(e))}</p>
-        <div class="actions"><button class="btn" id="e-close">Close</button><button class="btn primary" id="e-retry">Try again</button></div>`;
-      $("e-close").onclick = close; $("e-retry").onclick = ask;
-      return;
-    }
-    working = false; paint();
-  };
-  layer.innerHTML = `<div class="scrim" id="e-scrim"></div><div class="panel card" id="easy-panel" role="dialog" aria-label="Make it easier"></div>`;
-  $("e-scrim").onclick = close;
-  if (result) paint(); else ask();
-}
-
 // ---------- Share ----------
 // The song or set rides inside the link, so it works without a server or an account.
 // Opening the link in Tabs offers to add it; nothing is added without a tap.
@@ -1629,6 +1509,11 @@ function pickChord(song, i, pos, word, current) {
   paint();
 }
 
+// Make it easier and Spark tone load on first use (aitools.js).
+const aiTools = () => import("./aitools.js");
+function easierSheet(song) { aiTools().then(m => m.easierSheet(song)); }
+function toneSheet(song) { aiTools().then(m => m.toneSheet(song)); }
+
 // ---------- Song menu ----------
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
@@ -1730,119 +1615,12 @@ document.addEventListener("visibilitychange", () => {
   };
 });
 
-const CHART_SYSTEM = `You find how to play one song on guitar, using web search (chord and tab sites, songbooks), and reply with JSON only, no other text:
-{"found": boolean, "title": string, "artist": string, "key": string, "capo": number, "tuning": "standard"|"dropd"|"halfdown"|"wholedown"|"dadgad"|"openg"|"opend", "bpm": number, "strum": string, "sections": [{"name": string, "chords": string, "repeat": number}], "confidence": "high"|"medium"|"low"}
-- Never include lyrics or any words from the song, not even a short phrase. Only chord names and section names.
-- "sections": in the order played, each occurrence listed (Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro). "chords": the chord names for one pass, space separated, like "G D Em C". "repeat": how many times that pass is played in a row.
-- Use the chords most sources agree on, in the key most players use (note a capo if the common version uses one).
-- "strum": a simple pattern with D and U, like "D DU UDU", or "" if unsure. "bpm": the tempo, or 0 if unsure.
-- If you can't find the song, set "found" to false.`;
-function chartSheet(q, preset = {}) {
-  const [t0, a0] = preset.title ? [preset.title, preset.artist || ""] : q.split(/\s+(?:by|-|–)\s+/i);
-  let state = { busy: false, chart: null, err: "" };
-  layer.innerHTML = `<div class="scrim" id="cs-scrim"></div><div class="panel full cs" role="dialog" aria-label="Chord chart with AI"><div class="grab"></div>
-    <div class="ph"><button class="tb" id="cs-x">Cancel</button><h2>Chord chart</h2><span style="width:56px"></span></div><div class="pbody" id="cs-body"></div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  $("cs-scrim").onclick = close; $("cs-x").onclick = close;
-  const paint = () => {
-    const c = state.chart, body = $("cs-body");
-    if (!body) return;
-    if (state.busy) { body.innerHTML = `<div class="easy-wait">${busy("Searching the web for the chords")}</div><p class="foot">This takes about 20 seconds. Only the title and artist are sent.</p>`; return; }
-    if (!c) {
-      body.innerHTML = `
-        <label class="ns-f"><input id="cs-t" value="${esc(t0 || "")}" placeholder="Song title" aria-label="Song title"></label>
-        <label class="ns-f"><input id="cs-a" value="${esc(a0 || "")}" placeholder="Artist (helps find the right one)" aria-label="Artist"></label>
-        ${state.err ? `<p class="err" style="margin:6px 2px">${esc(state.err)}</p>` : ""}
-        <button class="btn primary cta" id="cs-go" style="margin-top:8px">${icon("wand")}Find the chords</button>
-        <p class="foot" style="margin-top:12px">AI searches chord sites and writes a chart: sections, chords, key, capo, tempo and strum. It never copies lyrics. Charts can be wrong, so check it by ear. Each chart uses a few web searches on your key, usually 5 to 15 cents.</p>`;
-      $("cs-go").onclick = findChords;
-      return;
-    }
-    const tn = TUNINGS[c.tuning] ? c.tuning : "standard";
-    body.innerHTML = `
-      <div class="cs-head"><b>${esc(c.title)}</b><span>${esc(c.artist || "")}</span></div>
-      <div class="cs-meta">${[c.key && `Key ${esc(c.key)}`, c.capo > 0 && `Capo ${c.capo}`, tn !== "standard" && TUNINGS[tn].name, c.bpm > 0 && `${Math.round(c.bpm)} BPM`].filter(Boolean).map(x => `<span>${x}</span>`).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
-      <pre class="cs-chart">${esc(c.body)}</pre>
-      <p class="foot">AI-made from the sources below. Check it by ear, and fix anything in Edit.</p>
-      ${c.sources.length ? `<div class="cs-src">${c.sources.slice(0, 4).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}</div>` : ""}
-      <div class="actions" style="margin-top:14px"><button class="btn" id="cs-again">Try again</button><button class="btn primary" id="cs-add">Add to library</button></div>`;
-    $("cs-again").onclick = () => { state.chart = null; paint(); };
-    $("cs-add").onclick = () => {
-      const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body: c.body,
-        ...(c.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, c.bpm))) } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart" });
-      close();
-      if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; }
-      go("#/song/" + encodeURIComponent(s.id));
-      toast("Added. Tap Listen to hear it while you check the chords");
-    };
-  };
-  const findChords = async () => {
-    const title = $("cs-t").value.trim(), artist = $("cs-a").value.trim();
-    if (!title) return toast("Add the song title");
-    state = { busy: true, chart: null, err: "" }; paint();
-    try {
-      const { text, sources } = await askClaudeSearch({ system: CHART_SYSTEM, content: `Song: ${title}${artist ? ` by ${artist}` : ""}` });
-      const j = parseJSON(text);
-      if (!j.found) throw Object.assign(new Error("not found"), { status: -2 });
-      const body = buildChart(j);
-      if (!body.includes("[")) throw Object.assign(new Error("empty"), { status: -1 });
-      state = { busy: false, err: "", chart: { title: String(j.title || title).slice(0, 80), artist: String(j.artist || artist).slice(0, 80), key: String(j.key || "").slice(0, 4), capo: parseInt(j.capo, 10) || 0, tuning: j.tuning, bpm: +j.bpm || 0, confidence: j.confidence, body, sources } };
-    } catch (e) {
-      state = { busy: false, chart: null, err: e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e) };
-    }
-    paint();
-    if (!state.chart) { $("cs-t").value = title; $("cs-a").value = artist; }
-  };
-  paint();
-  if (preset.title) findChords();
-}
-
-// ---- What can I play next? ----
-// Sends only the chords you know and your song titles; suggests well-known songs
-// that use mostly those chords, with at most one new chord to learn.
-const NEXT_SYSTEM = `You suggest songs a guitarist could learn next. You get the chords they already play and the songs they already have.
-Reply with JSON only: {"songs": [{"title": string, "artist": string, "chords": [string], "new": string, "why": string}]}
-- 6 well-known songs, varied in era and style, leaning toward the styles of the songs they have.
-- Each uses mostly chords they know; "new" is at most one chord they don't know yet, or "".
-- "chords": the song's main chords in the common key. "why": under 12 words, plain, no praise.
-- Not songs they already have. No lyrics.`;
-async function nextSongs() {
-  const known = chordCounts(data.songs).slice(0, 24);
-  let state = { busy: true, list: [], err: "" };
-  layer.innerHTML = `<div class="scrim" id="nx-scrim"></div><div class="panel full nx" role="dialog" aria-label="What can I play next?"><div class="grab"></div>
-    <div class="ph"><button class="tb" id="nx-x">Close</button><h2>Play next</h2><span style="width:56px"></span></div><div class="pbody" id="nx-body"></div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  $("nx-scrim").onclick = close; $("nx-x").onclick = close;
-  const paint = () => {
-    const body = $("nx-body");
-    if (!body) return;
-    if (state.busy) { body.innerHTML = `<div class="easy-wait">${busy("Looking for songs that fit your chords")}</div>`; return; }
-    if (state.err) { body.innerHTML = `<p class="err">${esc(state.err)}</p><button class="btn" id="nx-again">Try again</button>`; $("nx-again").onclick = load; return; }
-    body.innerHTML = `
-      <p class="easy-note">You play ${known.length} chords. These songs use mostly those${state.list.some(x => x.new) ? ", plus one new chord to learn" : ""}.</p>
-      <div class="list glass">${state.list.map((x, i) => `<div class="row nx-row">
-        <div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}${x.why ? ` · ${esc(x.why)}` : ""}</div>
-          <div class="nx-ch">${x.chords.map(c => `<span class="${c === x.new ? "new" : ""}">${esc(c)}</span>`).join("")}${x.new && !x.chords.includes(x.new) ? `<span class="new">${esc(x.new)}</span>` : ""}</div></div>
-        <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary" data-nc="${i}">Chart</button></div>
-      </div>`).join("")}</div>
-      <button class="btn" id="nx-more" style="margin-top:12px;width:100%">Show different songs</button>`;
-    body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
-    body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? chartSheet("", { title: x.title, artist: x.artist }) : null; });
-    $("nx-more").onclick = () => load(state.list.map(x => x.title));
-  };
-  const load = async (skip = []) => {
-    state = { busy: true, list: [], err: "" }; paint();
-    try {
-      const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 80).join("; ");
-      const j = parseJSON(await askClaude({ system: NEXT_SYSTEM, maxTokens: 2500,
-        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}` }));
-      const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
-      state = { busy: false, err: "", list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: ok(x.new) ? x.new : "", why: String(x.why || "").slice(0, 80) })) };
-    } catch (e) { state = { busy: false, list: [], err: aiError(e) }; }
-    paint();
-  };
-  load();
-}
+// Chord charts and "What can I play next?" load on first use (findai.js).
+const findAI = () => import("./findai.js");
+// Leave search mode (used when a song is added from a chart).
+function leaveSearch() { if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; } }
+function chartSheet(...args) { findAI().then(m => m.chartSheet(...args)); }
+function nextSongs() { findAI().then(m => m.nextSongs()); }
 
 // ---------- Listen ----------
 // A link to the recording, Apple Music first. Tabs looks the song up in Apple's
@@ -1953,197 +1731,17 @@ function clickAt(t, accent) {
 const TUNED_FOR = 3 * 3600e3;
 const songTuning = s => (s && (s.tuning || detectTuning(s.body))) || "standard";
 const tunedRecently = () => Date.now() - (data.settings.lastTuned || 0) < TUNED_FOR;
-const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
-let tunerState = null;
-function closeTuner() {
-  const t = tunerState;
-  if (!t) return;
-  tunerState = null;
-  clearInterval(t.timer);
-  t.stream?.getTracks().forEach(tr => tr.stop());
-  t.ctx?.close?.().catch(() => {});
-  if (t.ok.filter(Boolean).length >= 3) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
-  layer.innerHTML = "";
-  t.onClose?.();
-}
-function pluck(freq) {
-  try {
-    audio ||= new (window.AudioContext || window.webkitAudioContext)();
-    const t = audio.currentTime, g = audio.createGain();
-    [1, 2, 3].forEach((h, i) => {
-      const o = audio.createOscillator(), og = audio.createGain();
-      o.type = i ? "sine" : "triangle"; o.frequency.value = freq * h;
-      og.gain.value = [0.5, 0.18, 0.08][i];
-      o.connect(og).connect(g); o.start(t); o.stop(t + 2.2);
-    });
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.1);
-    g.connect(audio.destination);
-  } catch {}
-}
-function openTuner(tuning = "standard", onClose) {
-  closeTuner();
-  const t = tunerState = { tuning: TUNINGS[tuning] ? tuning : "standard", lock: -1, ok: [], hits: [], inTuneSince: 0, quietSince: Date.now(), onClose };
-  layer.innerHTML = `
-    <div class="scrim" id="tu-scrim"></div>
-    <div class="panel card tuner" role="dialog" aria-label="Tuner">
-      <div class="pc-head">${icon("fork")}<span>Tuner</span>
-        <label class="tu-sel"><span id="tu-name"></span>${icon("chev", "chev")}<select id="tu-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("")}</select></label></div>
-      <div class="tu-note" aria-live="polite"><b id="tu-n">·</b><span id="tu-c"></span></div>
-      <div class="tu-meter" aria-hidden="true"><i class="tu-zone"></i>${[-40, -30, -20, -10, 0, 10, 20, 30, 40].map(c => `<i class="tu-tick ${c ? "" : "mid"}" style="left:${50 + c}%"></i>`).join("")}<i class="tu-needle" id="tu-needle"></i></div>
-      <div class="tu-msg" id="tu-msg">Starting the microphone…</div>
-      <div class="tu-strings" id="tu-strings"></div>
-      <p class="tu-hint">Tap a string to hear it and tune only that one.</p>
-      <div class="actions"><button class="btn primary" id="tu-done">Done</button></div>
-    </div>`;
-  $("tu-scrim").onclick = closeTuner;
-  $("tu-done").onclick = closeTuner;
-  const sel = $("tu-tuning");
-  sel.value = t.tuning;
-  const paintStrings = () => {
-    const notes = TUNINGS[t.tuning].notes;
-    $("tu-name").textContent = TUNINGS[t.tuning].name;
-    $("tu-strings").innerHTML = notes.map((n, i) => `<button class="tu-s ${t.ok[i] ? "ok" : ""} ${t.lock === i ? "lock" : ""}" data-s="${i}" aria-label="String ${6 - i}, ${noteLabel(n)}${t.ok[i] ? ", in tune" : ""}">
-      <b>${noteLabel(n)}</b><small>${t.ok[i] ? icon("check") : 6 - i}</small></button>`).join("");
-    $("tu-strings").querySelectorAll("[data-s]").forEach(b => b.onclick = () => {
-      const i = +b.dataset.s;
-      t.lock = t.lock === i ? -1 : i;
-      if (t.lock === i) pluck(noteFreq(notes[i]));
-      paintStrings();
-    });
-  };
-  sel.onchange = () => { t.tuning = sel.value; t.ok = []; t.lock = -1; paintStrings(); };
-  paintStrings();
-  const msg = (text, cls = "") => { const m = $("tu-msg"); if (m) { m.textContent = text; m.className = "tu-msg " + cls; } };
-  const fail = e => {
-    const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
-    msg(denied ? "Tabs needs the microphone to hear your guitar. Allow it for this app in your phone's Settings, then open the tuner again."
-      : "The microphone isn't available here. You can still tap a string to hear its note.", "warn");
-  };
-  if (!navigator.mediaDevices?.getUserMedia) return fail();
-  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
-    if (tunerState !== t) { stream.getTracks().forEach(tr => tr.stop()); return; }
-    t.stream = stream;
-    t.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const an = t.ctx.createAnalyser();
-    an.fftSize = 4096;
-    t.ctx.createMediaStreamSource(stream).connect(an);
-    const buf = new Float32Array(an.fftSize);
-    msg("Play a string");
-    t.timer = setInterval(() => listen(t, an, buf, msg, paintStrings), 70);
-  }).catch(fail);
-}
-function listen(t, an, buf, msg, paintStrings) {
-  an.getFloatTimeDomainData(buf);
-  const f = detectPitch(buf, t.ctx.sampleRate);
-  const needle = $("tu-needle");
-  if (!needle) return;
-  const now = Date.now();
-  if (f < 0) {
-    if (now - t.quietSince > 900) { needle.classList.add("idle"); $("tu-n").textContent = "·"; $("tu-c").textContent = ""; msg(t.ok.filter(Boolean).length === 6 ? "All in tune" : "Play a string", t.ok.filter(Boolean).length === 6 ? "good" : ""); t.hits = []; }
-    t.inTuneSince = 0;
-    return;
-  }
-  t.quietSince = now;
-  /* Smooth over the last few readings so the needle doesn't jitter. */
-  t.hits = [...t.hits.slice(-4), f];
-  const fs = [...t.hits].sort((a, b) => a - b)[t.hits.length >> 1];
-  const notes = TUNINGS[t.tuning].notes;
-  let idx, cents;
-  if (t.lock >= 0) { idx = t.lock; cents = Math.round(1200 * Math.log2(fs / noteFreq(notes[idx]))); }
-  else ({ index: idx, cents } = nearestString(fs, t.tuning));
-  const far = Math.abs(cents) > 50;
-  const shown = far ? nearestNote(fs) : null;
-  $("tu-n").textContent = far ? shown.name.replace("b", "♭").replace("#", "♯") : noteLabel(notes[idx]);
-  $("tu-c").textContent = far ? "" : `${cents > 0 ? "+" : ""}${cents}`;
-  needle.classList.remove("idle");
-  const c = far ? Math.max(-50, Math.min(50, shown.cents)) : Math.max(-50, Math.min(50, cents));
-  needle.style.left = (50 + c * 0.9) + "%";
-  const good = !far && Math.abs(cents) <= 4;
-  needle.classList.toggle("good", good);
-  document.querySelectorAll(".tu-s").forEach((b, i) => b.classList.toggle("cur", i === idx));
-  if (far) { msg(cents < 0 ? `Way below ${noteLabel(notes[idx])}: tune up` : `Way above ${noteLabel(notes[idx])}: tune down`, "warn"); t.inTuneSince = 0; return; }
-  if (!good) { msg(cents < 0 ? "Tune up" : "Tune down"); t.inTuneSince = 0; return; }
-  t.inTuneSince ||= now;
-  msg("In tune", "good");
-  if (now - t.inTuneSince > 600 && !t.ok[idx]) {
-    t.ok[idx] = true;
-    paintStrings();
-    if (t.ok.filter(Boolean).length === 6) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
-  }
-}
-
-// ---------- Spark tone ----------
-// A starting tone for the Spark amp, from the song's title, artist, key and chord
-// names (no lyrics). Saved with the song; dial it in on the Spark app.
-const TONE_SYSTEM = `You suggest a starting guitar tone on a Positive Grid Spark amp for one song.
-Reply with JSON only, no other text:
-{"sound": string, "amp": string, "gain": number, "bass": number, "mid": number, "treble": number, "master": number,
- "gate": string, "comp": string, "drive": string, "mod": string, "delay": string, "reverb": string, "guitar": string}
-- "sound": one plain sentence, under 20 words, describing the tone you're aiming for.
-- "amp": the amp style in plain words with the classic amp it is modeled on, like "American clean (Fender Twin style)" or "British crunch (Marshall Plexi style)". Spark's amp models are based on such amps; do not invent exact Spark preset names.
-- Knobs are 0 to 10 in steps of 0.5.
-- Each pedal slot: "Off", or the pedal style and its key settings in a few words, like "Tube Screamer style: drive 3, level 6" or "Hall: level 3, decay 4".
-- "guitar": one short tip on pickup and tone knob.
-If you don't know the song, base it on the artist and the genre the chords suggest, and say so in "sound". No praise.`;
-
-async function suggestTone(song) {
-  const steps = song.transpose || 0, k = songKey(song);
-  const content = `Song: ${song.title}${song.artist ? ` by ${song.artist}` : ""}
-Key: ${transposeKey(k, steps) || "unknown"}
-Chords: ${chordNames(song.body, steps, prefersFlats(k, steps)).join(" ") || "none (tab)"}`;
-  const t = parseJSON(await askClaude({ content, system: TONE_SYSTEM, maxTokens: 3000 }));
-  const knob = v => Math.min(10, Math.max(0, Math.round((+v || 0) * 2) / 2));
-  const str = v => String(v || "Off").slice(0, 90);
-  return { sound: str(t.sound), amp: str(t.amp), gain: knob(t.gain), bass: knob(t.bass), mid: knob(t.mid), treble: knob(t.treble), master: knob(t.master),
-    gate: str(t.gate), comp: str(t.comp), drive: str(t.drive), mod: str(t.mod), delay: str(t.delay), reverb: str(t.reverb), guitar: str(t.guitar), at: new Date().toISOString() };
-}
-
-function toneSheet(song) {
-  let working = false;
-  const knobs = t => ["gain", "bass", "mid", "treble", "master"].map(k =>
-    `<div class="knob"><div class="kv">${t[k]}</div><div class="kbar"><i style="width:${t[k] * 10}%"></i></div><div class="kl">${k[0].toUpperCase() + k.slice(1)}</div></div>`).join("");
-  const chain = t => [["Gate", t.gate], ["Comp", t.comp], ["Drive", t.drive], ["Mod", t.mod], ["Delay", t.delay], ["Reverb", t.reverb]].map(([n, v]) =>
-    `<div class="fx ${/^off$/i.test(v) ? "off" : ""}"><span class="fxn">${n}</span><span class="fxv">${esc(v)}</span></div>`).join("");
-  const paint = () => {
-    const p = $("tone-panel");
-    if (working) { p.innerHTML = `<div class="pc-head">${icon("amp")}<span>Spark tone</span></div><div class="easy-wait">${busy("Dialing in a tone")}</div>`; return; }
-    const t = song.tone;
-    p.innerHTML = `
-      <div class="pc-head">${icon("amp")}<span>Spark tone · ${esc(song.title)}</span></div>
-      <p class="easy-note">${esc(t.sound)}</p>
-      <div class="elabel">Amp</div><div class="ampname">${esc(t.amp)}</div>
-      <div class="knobs">${knobs(t)}</div>
-      <div class="elabel">Pedals, in order</div><div class="chain">${chain(t)}</div>
-      <div class="elabel">Guitar</div><p class="easy-note" style="margin-bottom:10px">${esc(t.guitar)}</p>
-      <p class="tone-foot">A starting point to dial in on the Spark app, then adjust by ear.</p>
-      <div class="actions">${aiKey() ? `<button class="btn" id="t-again">${icon("wand")}Try again</button>` : ""}<button class="btn primary" id="t-done">Done</button></div>`;
-    $("t-done").onclick = close;
-    $("t-again")?.addEventListener("click", ask);
-  };
-  const close = () => { if (!working) layer.innerHTML = ""; };
-  const ask = async () => {
-    working = true; paint();
-    try { song.tone = await suggestTone(song); Tabs.save(data); working = false; paint(); }
-    catch (e) {
-      working = false;
-      $("tone-panel").innerHTML = `<div class="pc-head">${icon("amp")}<span>Spark tone</span></div><p class="ai-note">${esc(aiError(e))}</p>
-        <div class="actions"><button class="btn" id="t-close">Close</button>${aiKey() ? `<button class="btn primary" id="t-retry">Try again</button>` : ""}</div>`;
-      $("t-close").onclick = close; $("t-retry")?.addEventListener("click", ask);
-    }
-  };
-  layer.innerHTML = `<div class="scrim" id="t-scrim"></div><div class="panel card tone" id="tone-panel" role="dialog" aria-label="Spark tone"></div>`;
-  $("t-scrim").onclick = close;
-  if (song.tone) paint(); else if (aiKey()) ask();
-}
+// The tuner itself loads on first use (tuner.js).
+let tunerMod = null;
+const loadTuner = async () => (tunerMod ||= await import("./tuner.js"));
+function openTuner(...args) { loadTuner().then(m => m.openTuner(...args)); }
+function closeTuner() { tunerMod?.closeTuner(); }
 
 // "Chords in this song": each chord once, in order of first use, to learn before playing.
 function renderStrip(sheet, isChords, song) {
   const box = $("strip");
   if (!box) return;
   const names = isChords ? [...new Set([...sheet.querySelectorAll(".c[data-ch]")].map(el => el.dataset.ch))] : [];
-  const ez = song?.easier;
   const easyBtn = `<span class="n">${names.length}</span>`;
   box.innerHTML = names.length ? `
     <div class="strip-h"><span>Chords in this song</span>${easyBtn}</div>
@@ -2731,6 +2329,9 @@ const setSongs = x => x.songIds.map(id => data.songs.find(s => s.id === id)).fil
 const setLength = x => setSongs(x).reduce((a, s) => a + songLength(s), 0);
 let setEditing = false;
 
+// The photo framing screen loads on first use (crop.js).
+function cropPhoto(file, done) { import("./crop.js").then(m => m.cropPhoto(file, done)); }
+
 // ---- Cover choices on the set page ----
 function paintCoverOpts(set, redraw) {
   const o = $("cvopts"), cur = set.cover?.type || "songs", art = setArt(set);
@@ -2752,63 +2353,6 @@ function paintCoverOpts(set, redraw) {
     else pickFile($("cv-cam"));
   });
 }
-// Frame a photo for a cover: drag to move, pinch (or scroll) to zoom, then Use photo.
-// Saved as a 600 px square JPEG, with its average color for the page tint.
-function cropPhoto(file, done) {
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    const ov = document.createElement("div");
-    ov.className = "crop";
-    ov.innerHTML = `<div class="cr-top">Frame your cover</div><div class="cr-area" id="cr-area"><img src="${url}" alt="" draggable="false"><div class="cr-frame"></div></div>
-      <div class="cr-hint">Drag and pinch to frame it</div><div class="cr-bar"><button class="tb" id="cr-x">Cancel</button><button class="tb go" id="cr-ok">Use photo</button></div>`;
-    document.body.appendChild(ov);
-    const area = $("cr-area"), el = area.querySelector("img"), frame = area.querySelector(".cr-frame");
-    const F = () => frame.getBoundingClientRect(), A = () => area.getBoundingClientRect();
-    const fr = F(), min = Math.max(fr.width / img.naturalWidth, fr.height / img.naturalHeight);
-    let sc = min, x = 0, y = 0;
-    const clamp = () => {
-      const f = F(), a = A(), w = img.naturalWidth * sc, h = img.naturalHeight * sc;
-      const fx = f.left - a.left, fy = f.top - a.top;
-      x = Math.min(fx, Math.max(fx + f.width - w, x)); y = Math.min(fy, Math.max(fy + f.height - h, y));
-      el.style.width = w + "px"; el.style.transform = `translate(${x}px, ${y}px)`;
-    };
-    { const f = F(), a = A(); x = f.left - a.left - (img.naturalWidth * sc - f.width) / 2; y = f.top - a.top - (img.naturalHeight * sc - f.height) / 2; }
-    clamp();
-    const pts = new Map(); let last = null;
-    const zoomAt = (k, cx, cy) => { const a = A(), nx = sc * k < min ? min / sc : Math.min(k, 6 * min / sc); x = cx - a.left - (cx - a.left - x) * nx; y = cy - a.top - (cy - a.top - y) * nx; sc *= nx; clamp(); };
-    area.onpointerdown = e => { area.setPointerCapture(e.pointerId); pts.set(e.pointerId, e); last = null; };
-    area.onpointermove = e => {
-      if (!pts.has(e.pointerId)) return;
-      const prev = pts.get(e.pointerId); pts.set(e.pointerId, e);
-      if (pts.size === 1) { x += e.clientX - prev.clientX; y += e.clientY - prev.clientY; clamp(); return; }
-      const [p1, p2] = [...pts.values()], d = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
-      if (last) zoomAt(d / last, (p1.clientX + p2.clientX) / 2, (p1.clientY + p2.clientY) / 2);
-      last = d;
-    };
-    area.onpointerup = area.onpointercancel = e => { pts.delete(e.pointerId); last = null; };
-    area.onwheel = e => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.08 : 1 / 1.08, e.clientX, e.clientY); };
-    const end = () => { ov.remove(); URL.revokeObjectURL(url); };
-    $("cr-x").onclick = end;
-    $("cr-ok").onclick = () => {
-      const f = F(), a = A(), c = document.createElement("canvas");
-      c.width = c.height = 600;
-      const g = c.getContext("2d");
-      const sx = (f.left - a.left - x) / sc, sy = (f.top - a.top - y) / sc, sw = f.width / sc;
-      g.drawImage(img, sx, sy, sw, sw, 0, 0, 600, 600);
-      const t = document.createElement("canvas"); t.width = t.height = 1;
-      t.getContext("2d").drawImage(c, 0, 0, 1, 1);
-      const [r, gg, b] = t.getContext("2d").getImageData(0, 0, 1, 1).data;
-      /* The photo's hue, lifted so even a dark photo tints the page. */
-      const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), d = mx - mn || 1;
-      const h = mx === mn ? 20 : Math.round(60 * (mx === r ? ((gg - b) / d + 6) % 6 : mx === gg ? (b - r) / d + 2 : (r - gg) / d + 4));
-      done(c.toDataURL("image/jpeg", 0.82), `${h} 45% 42%`);
-      end();
-    };
-  };
-  img.src = url;
-}
-
 function renderSet(id) {
   const set = data.sets.find(x => x.id === id);
   if (!set) return go("#/");
@@ -3110,7 +2654,6 @@ function playSet(set) {
 // optional; a date makes the set show up as "Up next" on the library. "Start from"
 // fills the set from a group of songs you already have.
 function setSheet(existing, done) {
-  const now = new Date(Date.now() + 864e5);
   const starts = [
     ["empty", "Empty set", []],
     ["fav", "Favorites", data.songs.filter(s => s.favorite)],
@@ -3356,3 +2899,6 @@ if ("serviceWorker" in navigator) {
     });
   }).catch(() => {});
 }
+
+// Shared with the feature modules that load on first use (tuner.js and others).
+export { $, data, icon, layer, esc, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw };
