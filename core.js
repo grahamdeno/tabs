@@ -821,3 +821,5 @@ export function linkService(url) {
     return h;
   } catch { return ""; }
 }
+// The first sung line of a song (for the "next up" preview on stage).
+export const firstLyric = body => lyricLines(body).find(l => !/^tuning\b/i.test(l) && !/^capo\b/i.test(l)) || "";
