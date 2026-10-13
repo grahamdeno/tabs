@@ -33,6 +33,8 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Stage mode (Settings, or under Play set): larger, brighter text and nothing extra on screen; while a song plays, stray touches don't scroll and one tap doesn't stop it (tap twice to pause)
 - In a set, the next song's title and first line show quietly near the end of each song
 - Speed by song length (default): set how long a song takes (3:30 to start) and the scroll fits it; or switch to 1x style in Settings. Each song keeps its own setting
+- Song length from the recording: linking a song to Apple Music (Listen) sets its length from the track, so song length speed starts close. If you've already set your own length it's offered instead ("Use 3:52"); songs linked earlier pick it up the next time they open
+- Tap tempo: in Edit, tap the Tap chip along with the beat; after four taps it settles a moment after the last one, with Undo
 - Count-in: one bar of soft clicks at the song's tempo (set in Edit; 90 if unset) before scrolling starts, only when starting from the top (the first line is on screen); starting partway through scrolls right away
 - Transpose per song, with sharps or flats chosen by the resulting key
 - Lyrics wrap to the screen at full size, with each chord riding on its word; words never split

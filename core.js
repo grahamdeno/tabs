@@ -953,6 +953,44 @@ export function rankTracks(results, title, artist) {
   return results.filter(r => r.trackViewUrl).map(r => ({ r, s: score(r) })).sort((x, y) => y.s - x.s).map(x => ({ ...x.r, score: x.s }));
 }
 // A link someone pasted: which service is it?
+// ---------- Song length from the recording ----------
+// The Apple Music track number from a link: .../album/name/123?i=456 or .../song/name/456.
+export function appleTrackId(url) {
+  try {
+    const u = new URL(url);
+    if (!/(^|\.)(music|itunes)\.apple\.com$/.test(u.hostname)) return "";
+    const i = u.searchParams.get("i");
+    if (/^\d+$/.test(i || "")) return i;
+    const m = u.pathname.match(/\/song\/(?:[^/]+\/)?(\d+)\/?$/);
+    return m ? m[1] : "";
+  } catch { return ""; }
+}
+// What to do with a recording's length: "set" when the song's length was never
+// chosen (so the recording is the best guess), "offer" when you set your own and
+// it differs, "none" when they already match. Lengths are kept to 1:00 to 8:00,
+// the slider's range.
+export const fitLength = sec => Math.min(480, Math.max(60, Math.round(sec)));
+export function lengthChoice(song, seconds, settings = {}) {
+  if (!(seconds > 0)) return "none";
+  const rec = fitLength(seconds);
+  const unset = !song.durationSet && (song.duration === undefined || song.duration === (settings.startLength || 210));
+  if (unset) return song.duration === rec ? "none" : "set";
+  return Math.abs((song.duration || 0) - rec) > 5 ? "offer" : "none";
+}
+
+// ---------- Tap tempo ----------
+// Beats per minute from tap times (ms). Only the latest run counts: a pause of
+// over 2 seconds starts again. The median gap ignores one stray tap.
+export function tapTempo(times) {
+  let run = [];
+  for (const t of times) { if (run.length && t - run[run.length - 1] > 2000) run = []; run.push(t); }
+  run = run.slice(-9);
+  if (run.length < 2) return 0;
+  const gaps = run.slice(1).map((t, i) => t - run[i]).sort((a, b) => a - b);
+  const mid = gaps[gaps.length >> 1];
+  return Math.min(260, Math.max(30, Math.round(60000 / mid)));
+}
+
 export function linkService(url) {
   try {
     const h = new URL(url).hostname.replace(/^www\./, "");

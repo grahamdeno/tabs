@@ -35,13 +35,14 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `key` | string | `""` means detect from the chords |
 | `transpose` | integer -5 to 6 | Semitones |
 | `size` | number 0.6 to 1.6 | Text size |
-| `duration` | seconds | Song length speed style |
+| `duration` | seconds | Song length speed style. Set from the recording when linked to Apple Music, unless you chose your own |
+| `durationSet` | boolean | You moved the length slider; the recording's length is then offered, not applied |
 | `speed` | number | 1x speed style |
-| `bpm` | integer 30 to 260 | Tempo, for the metronome |
+| `bpm` | integer 30 to 260 | Tempo, for the count-in and metronome. Typed, or tapped in Edit |
 | `tuning` | key of `TUNINGS` | Missing means standard |
 | `favorite` | boolean | |
 | `created` | ISO date | |
-| `listen` | `{ url, service, title?, artist?, art? }` | `url` and `art` are https only |
+| `listen` | `{ url, service, title?, artist?, art?, length? }` | `url` and `art` are https only; `length` is the recording's, in seconds |
 | `loop` | `{ a, b, build }` | Practice a section, line numbers |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
 | `tone` | object | Spark tone result |

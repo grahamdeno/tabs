@@ -474,3 +474,35 @@ test("importing a backup: old saves still migrate", () => {
   assert.equal(s.playLog.total, 1);
   assert.equal(out.data.settings.v, 5);
 });
+
+test("song length: Apple Music track numbers from links", () => {
+  assert.equal(C.appleTrackId("https://music.apple.com/us/album/river-road/123456?i=789012"), "789012");
+  assert.equal(C.appleTrackId("https://music.apple.com/us/song/river-road/789012"), "789012");
+  assert.equal(C.appleTrackId("https://music.apple.com/us/album/river-road/123456"), "");
+  assert.equal(C.appleTrackId("https://open.spotify.com/track/abc?i=5"), "");
+  assert.equal(C.appleTrackId("not a link"), "");
+});
+
+test("song length: set when never chosen, offer when chosen and different", () => {
+  const st = { startLength: 210 };
+  assert.equal(C.lengthChoice({}, 232, st), "set");
+  assert.equal(C.lengthChoice({ duration: 210 }, 232, st), "set");
+  assert.equal(C.lengthChoice({ duration: 232 }, 232.4, st), "none");
+  assert.equal(C.lengthChoice({ duration: 180 }, 232, st), "offer");                 // you moved it before
+  assert.equal(C.lengthChoice({ duration: 210, durationSet: true }, 232, st), "offer");
+  assert.equal(C.lengthChoice({ duration: 230, durationSet: true }, 232, st), "none"); // close enough
+  assert.equal(C.lengthChoice({}, 0, st), "none");
+  assert.equal(C.fitLength(20), 60);
+  assert.equal(C.fitLength(900), 480);
+});
+
+test("tap tempo: median of the latest run of taps", () => {
+  const at = (bpm, n, start = 0) => Array.from({ length: n }, (_, i) => start + i * 60000 / bpm);
+  assert.equal(C.tapTempo([1000]), 0);
+  assert.equal(C.tapTempo(at(120, 5)), 120);
+  assert.equal(C.tapTempo(at(92, 6)), 92);
+  const stray = at(100, 6); stray[3] += 140;               // one late tap
+  assert.equal(C.tapTempo(stray), 100);
+  assert.equal(C.tapTempo([...at(60, 4), ...at(140, 5, 10000)]), 140); // a pause starts again
+  assert.equal(C.tapTempo([0, 100]), 260);
+});

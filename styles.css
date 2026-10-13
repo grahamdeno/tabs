@@ -559,6 +559,10 @@ body.searching #list > .label:first-child { margin-top: 8px; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .ed-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--rim); background: var(--card); font-size: 14px; color: var(--muted); }
 .ed-chip b { color: var(--fg); font-weight: 600; }
+.ed-tap { color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.ed-tap svg { width: 15px; height: 15px; }
+.ed-tap.beat { animation: tapbeat .18s ease-out; }
+@keyframes tapbeat { from { background: var(--accent-soft); border-color: var(--accent); } }
 .ed-chip select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
 .ed-chip input { width: 42px; border: 0; background: none; color: var(--fg); font: 600 16px var(--sans); text-align: right; padding: 0; }
 .ed-hint { font-size: 13px; color: var(--muted); margin: 0 0 10px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }

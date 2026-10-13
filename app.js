@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, looksLikeTab, appleTrackId, lengthChoice, fitLength, tapTempo } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -736,7 +736,7 @@ function renderViewer(id) {
   const showSpeed = () => {
     if (byLength()) {
       speed.style.setProperty("--fill", ((speed.value - 60) / 420 * 100) + "%");
-      $("sv").textContent = mmss(540 - speed.value);
+      $("sv").textContent = mmss(songLength(song)); /* exact, though the slider moves in 5 s steps */
     } else {
       speed.style.setProperty("--fill", ((speed.value - 4.5) / 94.5 * 100) + "%");
       $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
@@ -744,9 +744,12 @@ function renderViewer(id) {
   };
   showSpeed();
   speed.oninput = () => {
-    if (byLength()) song.duration = 540 - speed.value; else song.speed = +speed.value;
+    if (byLength()) { song.duration = 540 - speed.value; song.durationSet = true; } else song.speed = +speed.value;
     showSpeed(); Tabs.save(data);
   };
+  refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
+  /* A linked Apple Music song without its recording length yet: look it up once. */
+  if (song.listen && song.listen.length === undefined && appleTrackId(song.listen.url)) recordingLength(song, song.listen.url, { quiet: true });
 
   const step = dir => {
     if (isChords) song.transpose = ((((song.transpose || 0) + dir) + 17) % 12) - 5; // -5..+6
@@ -777,6 +780,7 @@ function renderViewer(id) {
 // Render display blocks. Chord/lyric pairs wrap between words with chords riding
 // on their word; tab systems are re-wrapped by measure to the screen width.
 let redraw = null;
+let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
 function chordLabel(text) {
@@ -1238,7 +1242,8 @@ onScroll(() => { if (map.el) paintMap(map.dragging ? map.target : undefined); })
 let chordEdit = null;
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
-let openEdit = null;            /* { id, view } to open the editor once the song page draws */
+let openEdit = null;
+let taps = [], tapTimer = 0;   /* tap tempo in progress */            /* { id, view } to open the editor once the song page draws */
 onLeave(() => {
   if (!chordEdit) return;
   if (edView === "text") flushText(chordEdit);
@@ -1362,6 +1367,7 @@ function paintDetails(song) {
       <label class="ed-chip"><span>Tuning</span><b>${esc(TUNINGS[tun].name)}</b>
         <select id="ed-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}" ${k === tun ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
       <label class="ed-chip"><span>Tempo</span><input id="ed-bpm" type="number" inputmode="numeric" min="30" max="260" value="${song.bpm || ""}" placeholder="90" aria-label="Tempo in beats per minute"><span>BPM</span></label>
+      <button class="ed-chip ed-tap" id="ed-tap" aria-label="Tap tempo: tap along with the beat">${icon("pick")}<span>Tap</span></button>
     </div>`;
   h?.after(d);
   $("ed-artist").onchange = e => editChange(song, "", () => { song.artist = e.target.value.trim(); });
@@ -1376,6 +1382,26 @@ function paintDetails(song) {
   $("ed-key")?.addEventListener("change", e => editChange(song, `Key: ${e.target.value || "Auto"}`, () => { song.key = e.target.value; }));
   $("ed-tuning").onchange = e => editChange(song, `Tuning: ${TUNINGS[e.target.value].name}`, () => { if (e.target.value === "standard") delete song.tuning; else song.tuning = e.target.value; });
   $("ed-bpm").onchange = e => editChange(song, "", () => { const n = Math.min(260, Math.max(30, parseInt(e.target.value, 10))); if (n) song.bpm = n; else delete song.bpm; });
+  /* Tap tempo: tap along four or more times; it settles a moment after the last tap. */
+  const tap = $("ed-tap");
+  tap.onpointerdown = e => {
+    e.preventDefault();
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = []; /* a pause starts again */
+    taps.push(now);
+    const bpm = tapTempo(taps);
+    tap.classList.remove("beat"); void tap.offsetWidth; tap.classList.add("beat");
+    tap.querySelector("span").textContent = taps.length < 4 ? `Tap ${4 - taps.length} more` : `${bpm} BPM`;
+    if (bpm) $("ed-bpm").value = bpm;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => {
+      const n = tapTempo(taps); const enough = taps.length >= 4;
+      taps = [];
+      if (enough && n) editChange(song, `Tempo ${n} BPM`, () => { song.bpm = n; });
+      else { tap.querySelector("span").textContent = "Tap"; $("ed-bpm").value = song.bpm || ""; }
+    }, 1600);
+  };
+  tap.onclick = e => e.preventDefault();
 }
 function paintSheet(song, sheet) {
   /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */
@@ -1746,6 +1772,34 @@ function saveListen(song, url, extra = {}) {
   const chip = $("listen");
   if (chip) chip.innerHTML = `${icon("note")}${esc(song.listen.service)}`;
 }
+// The recording's length becomes the song's length (for song length speed) when
+// you haven't set one; if you have, it's offered instead of replacing yours.
+function useRecordingLength(song, seconds, { quiet = false } = {}) {
+  if (song.listen) song.listen.length = Math.round(seconds);
+  const choice = lengthChoice(song, seconds, data.settings);
+  const len = fitLength(seconds);
+  if (choice === "set") {
+    song.duration = len;
+    Tabs.save(data); refreshSpeed();
+    if (!quiet || viewing === song) toast(`Length set from the recording: ${mmss(len)}`);
+  } else {
+    Tabs.save(data);
+    if (choice === "offer" && !quiet && byLength()) toast(`The recording is ${mmss(len)}. Yours is ${mmss(songLength(song))}.`, null, { label: `Use ${mmss(len)}`, fn: () => { song.duration = len; song.durationSet = true; Tabs.save(data); refreshSpeed(); toast(`Length ${mmss(len)}`); } });
+  }
+}
+// A pasted Apple Music link: ask Apple's catalog for the track's length.
+const lookedUp = new Set();
+async function recordingLength(song, url, opts) {
+  const id = appleTrackId(url);
+  if (!id || lookedUp.has(song.id + id)) return;
+  lookedUp.add(song.id + id);
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
+  try {
+    const r = await fetch(`https://itunes.apple.com/lookup?id=${id}&entity=song`, { signal: ctl.signal });
+    const ms = r.ok ? ((await r.json()).results || []).find(x => x.trackTimeMillis)?.trackTimeMillis : 0;
+    if (ms && song.listen?.url === url) useRecordingLength(song, ms / 1000, opts);
+  } catch {} finally { clearTimeout(t); }
+}
 function listenSheet(song, force) {
   if (song.listen && !force) return openLink(song.listen.url);
   let state = { busy: true, tracks: [], error: false };
@@ -1774,6 +1828,7 @@ function listenSheet(song, force) {
       const x = state.tracks[+b.dataset.t];
       saveListen(song, x.trackViewUrl, { title: x.trackName, artist: x.artistName, ...(x.artworkUrl100 ? { art: x.artworkUrl100.replace(/\d+x\d+bb/, "600x600bb") } : {}) });
       layer.innerHTML = "";
+      if (x.trackTimeMillis) useRecordingLength(song, x.trackTimeMillis / 1000);
       openLink(x.trackViewUrl);
     });
     $("ls-more")?.addEventListener("click", () => { state.tracks = state.tracks.map(x => ({ ...x, score: 0 })); paint(); });
@@ -1787,6 +1842,7 @@ function listenSheet(song, force) {
       saveListen(song, url);
       layer.innerHTML = "";
       toast(`Saved the ${linkService(url)} link`);
+      if (appleTrackId(url)) recordingLength(song, url);
     };
     $("ls-clear")?.addEventListener("click", () => { delete song.listen; Tabs.save(data); layer.innerHTML = ""; const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`; toast("Link removed"); });
   };

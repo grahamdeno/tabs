@@ -239,3 +239,27 @@ test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", {
   await page.waitForTimeout(500);
   assert.deepEqual(await titles(), ["New One", "River Road", "Harbor Lights"]);
 });
+
+test("an Apple Music link sets the song's length; tapping sets the tempo", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "Me", trackViewUrl: "https://music.apple.com/us/album/a/1?i=111", trackTimeMillis: 232000 }] }) }));
+  await page.route("https://music.apple.com/**", r => r.fulfill({ status: 200, body: "" }));
+  await page.goto(base + "#/song/b");
+  await page.waitForTimeout(400);
+  await page.click("#listen");
+  await page.waitForTimeout(400);
+  await page.click("[data-t='0']");
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator("#sv").textContent(), "3:52");
+  assert.match(await page.locator("#toast").textContent(), /Length set from the recording: 3:52/);
+
+  await page.click("#more");
+  await page.click(".menu [data-m='edit']");
+  await page.waitForTimeout(300);
+  const box = await page.locator("#ed-tap").boundingBox();
+  for (let i = 0; i < 5; i++) { await page.mouse.click(box.x + 10, box.y + 10); await page.waitForTimeout(500); }
+  await page.waitForTimeout(1800);
+  const bpm = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "b").bpm);
+  assert.ok(bpm >= 105 && bpm <= 122, `about 120 BPM, got ${bpm}`);
+});
