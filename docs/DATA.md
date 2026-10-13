@@ -8,6 +8,7 @@ Everything lives on the phone. Backups are the same data as one JSON file.
 |---|---|---|
 | localStorage | `tabs-v1` | The library: songs, sets, Recently deleted, settings |
 | localStorage | `tabs.apikey.v1` | Your Anthropic API key. Never in backups or share links |
+| localStorage | `tabs.errors.v1` | The last 20 problems (message, screen, version, time) for Settings > Copy diagnostics. Never sent anywhere, not in backups |
 | IndexedDB `tabs-covers` | store `covers`, key = set id | Set cover photos as `data:image/...` URLs |
 | Cache Storage | `tabs-vX.Y.Z`, `tabs-art` | The offline app, and album art from Apple |
 

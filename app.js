@@ -166,6 +166,51 @@ window.visualViewport?.addEventListener("scroll", followKeyboard);
 
 // ---------- Keeping the library safe ----------
 // Ask the browser to keep this site's storage permanently (it may still decide).
+// ---------- Problems ----------
+// Errors are kept on this phone (the last 20) so Settings > Copy diagnostics
+// can report them. The first one in a session shows a short note with a way to
+// copy the details; nothing is ever sent anywhere.
+const ERR_KEY = "tabs.errors.v1";
+const problems = (() => { try { return JSON.parse(localStorage.getItem(ERR_KEY)) || []; } catch { return []; } })();
+let problemNoted = false;
+function noteError(e, { quiet = false, where = "" } = {}) {
+  const err = e?.reason ?? e?.error ?? e;
+  const msg = String(err?.message || e?.message || err || "Unknown error").slice(0, 300);
+  if (/ResizeObserver loop|^Script error\.?$/.test(msg)) return;
+  problems.push({ at: new Date().toISOString(), v: VERSION, where: where || location.hash || "#/", msg,
+    stack: String(err?.stack || "").split("\n").slice(0, 6).join("\n").slice(0, 800) });
+  problems.splice(0, problems.length - 20);
+  try { localStorage.setItem(ERR_KEY, JSON.stringify(problems)); } catch { /* storage full */ }
+  if (quiet || problemNoted) return;
+  problemNoted = true;
+  toast("Something went wrong. Your songs are safe.", null, { label: "Copy details", fn: copyDiagnostics });
+}
+window.addEventListener("error", e => noteError(e));
+window.addEventListener("unhandledrejection", e => noteError(e));
+
+// Everything useful for fixing a problem, and nothing private: no song words,
+// titles or API key.
+async function diagnostics() {
+  const est = await navigator.storage?.estimate?.().catch(() => null);
+  const mb = n => (n / 1048576).toFixed(1) + " MB";
+  const s = data.settings, hidden = ["tipsSeen", "used"];
+  return [
+    `Tabs ${VERSION}, ${new Date().toISOString()}`,
+    navigator.userAgent,
+    `Home Screen app: ${matchMedia("(display-mode: standalone)").matches || navigator.standalone ? "yes" : "no"}; screen ${innerWidth}x${innerHeight}; offline copy: ${navigator.serviceWorker?.controller ? "yes" : "no"}`,
+    `Library: ${data.songs.length} songs, ${data.sets.length} sets, ${data.trash.length} recently deleted`,
+    `Storage: ${est ? `${mb(est.usage)} of ${mb(est.quota)}` : "unknown"}; kept permanently: ${storageKept ? "yes" : storageKept === false ? "no" : "unknown"}; AI key: ${aiKey() ? "set" : "none"}`,
+    `Settings: ${JSON.stringify(Object.fromEntries(Object.entries(s).filter(([k]) => !hidden.includes(k))))}`,
+    `Problems (${problems.length}):`,
+    ...(problems.length ? problems.slice().reverse().map(p => `- ${p.at} v${p.v} ${p.where}: ${p.msg}${p.stack ? "\n  " + p.stack.replace(/\n/g, "\n  ") : ""}`) : ["- none"])
+  ].join("\n");
+}
+async function copyDiagnostics() {
+  const text = await diagnostics();
+  try { await navigator.clipboard.writeText(text); toast("Diagnostics copied. Paste them into a message."); }
+  catch { prompt("Copy these diagnostics", text); }
+}
+
 let storageKept = null;
 navigator.storage?.persist?.().then(ok => { storageKept = ok; }).catch(() => {});
 navigator.storage?.persisted?.().then(ok => { if (storageKept === null) storageKept = ok; }).catch(() => {});
@@ -1731,8 +1776,9 @@ function pickChord(song, i, pos, word, current) {
 // that's running, even if a newer one was saved in the background meanwhile.
 // If a module still can't load, a reload brings everything onto one release.
 const lazy = name => import(`./${name}?v=${VERSION}`).catch(err => {
+  noteError(err, { quiet: true, where: name });
   toast("Tabs was updated. Reload to use this.", null, { label: "Reload", fn: () => location.reload() });
-  throw err;
+  return new Promise(() => {}); /* the feature just doesn't open */
 });
 
 // Make it easier and Spark tone load on first use (aitools.js).
@@ -2395,6 +2441,7 @@ function renderSettings() {
       <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
     <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this device${storageKept ? " and kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`;
@@ -2434,6 +2481,7 @@ function renderSettings() {
   $("s-export").onclick = async () => { if (await backupNow()) { renderSettings(); toast("Backed up"); } };
   $("s-trash").onclick = () => go("#/trash");
   $("s-tips").onclick = () => go("#/gestures");
+  $("s-diag").onclick = copyDiagnostics;
   $("s-import").onclick = () => $("file").click();
   $("file").onchange = e => {
     const f = e.target.files[0];
@@ -3234,14 +3282,26 @@ function renderGestures() {
 }
 
 // ---------- Router ----------
+// A screen that fails to draw shows a way back instead of a blank page.
 function render() {
+  try { renderRoute(); }
+  catch (e) {
+    noteError(e, { quiet: true });
+    layer.innerHTML = "";
+    app.innerHTML = `<div class="oops"><b>This screen didn't open</b><p>Your songs are safe. Going back usually fixes it. If it keeps happening, copy the details and send them along.</p>
+      <div class="actions"><button class="btn" id="oops-copy">Copy details</button><button class="btn primary" id="oops-home">Library</button></div></div>`;
+    $("oops-copy").onclick = copyDiagnostics;
+    $("oops-home").onclick = () => { if (route().name === "library") location.reload(); else go("#/"); };
+  }
+}
+function renderRoute() {
   const r = route();
   leaveHooks.forEach(fn => fn(r));
   app.classList.remove("viewer");
   layer.innerHTML = "";
   /* Old links: #/add and #/edit/<id> open the editor. */
   if (r.name === "add") { history.replaceState(null, "", "#/"); return newSong(); }
-  if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return render(); }
+  if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return renderRoute(); }
   if (r.name === "song") {
     renderViewer(r.id);
     const want = openEdit;

@@ -836,3 +836,10 @@ body.searching .azx { display: none; }
 .tn-mic .btn, .tn-mic .tb { flex: none; }
 .tn-mic .btn { width: 100%; height: 46px; }
 body.has-azx #list .list { margin-right: 22px; }
+
+/* A screen that failed to draw */
+.oops { margin: 22vh 24px 0; text-align: center; }
+.oops b { display: block; font-size: 19px; margin-bottom: 8px; }
+.oops p { color: var(--muted); font-size: 15px; line-height: 1.5; margin: 0 0 20px; }
+.oops .actions { justify-content: center; }
+.oops .btn { flex: 1; white-space: nowrap; }

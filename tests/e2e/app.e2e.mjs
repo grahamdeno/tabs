@@ -397,3 +397,19 @@ test("after an update, an open app still loads its parts from its own release", 
   const cur = await page.evaluate(async () => typeof (await import("./tuner.js?v=" + (await import("./core.js")).VERSION)).openTuner);
   assert.equal(cur, "function");
 });
+
+test("a problem is kept, and Copy diagnostics reports it without song words or the key", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-secret"));
+  await page.evaluate(() => { localStorage.setItem("tabs.errors.v1", JSON.stringify([{ at: "2026-10-01T00:00:00Z", v: "1.0.0", where: "#/", msg: "Earlier problem", stack: "" }])); });
+  await page.reload(); await page.waitForTimeout(300);
+  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
+  assert.match(await page.innerText("#s-diag"), /1 problem/);
+  await page.click("#s-diag"); await page.waitForTimeout(300);
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(text, /Tabs \d+\.\d+\.\d+/);
+  assert.match(text, /2 songs/);
+  assert.match(text, /Earlier problem/);
+  assert.match(text, /AI key: set/);
+  assert.doesNotMatch(text, /sk-ant-secret|River Road|Walking down/);
+});
