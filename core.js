@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS = {
   startLength: 210,      // song-length starting value, seconds (3:30)
   countIn: true,         // one bar of clicks before scrolling starts
   lastBackup: null, backupSnooze: null, tipsSeen: false,
-  v: 4
+  v: 5
 };
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -37,7 +37,7 @@ export function migrate(data) {
   if (v < 3) settings.focus = "always";
   // v4: speed by song length is the default style; count-in on.
   if (v < 4) { settings.speedMode = "length"; settings.countIn = true; }
-  settings.v = 4;
+  settings.v = 5;
   delete settings.scrollSpeed;
   const songs = data.songs.map(s => {
     const song = { ...s };
@@ -47,6 +47,8 @@ export function migrate(data) {
     }
     if (!song.format) song.format = song.body && looksLikeTab(song.body) ? "tab" : "chords";
     if (song.key === undefined) song.key = "";
+    // v5: play history is kept as counts per day instead of one timestamp per play.
+    if (Array.isArray(song.plays)) { song.playLog = compactPlays(song.plays, song.playLog); delete song.plays; }
     return song;
   });
   const ids = new Set(songs.map(s => s.id));
@@ -57,6 +59,8 @@ export function migrate(data) {
   return { songs, sets, trash, settings };
 }
 
+const SAVE_DELAY = 150;
+let pending = null, saveTimer = 0;
 export const Tabs = {
   load() {
     try {
@@ -67,9 +71,21 @@ export const Tabs = {
     }
   },
 
+  // Saving writes the whole library, so changes made close together are written
+  // once, a moment later (and right away when the app goes to the background).
+  // If the phone refuses (storage full), onSaveError is told, so nothing is lost silently.
   save(data) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+    pending = data;
+    if (!saveTimer) saveTimer = setTimeout(() => this.flush(), SAVE_DELAY);
   },
+  flush() {
+    clearTimeout(saveTimer); saveTimer = 0;
+    if (!pending) return true;
+    const d = pending; pending = null;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); return true; }
+    catch (e) { this.onSaveError?.(e); return false; }
+  },
+  onSaveError: null,
 
   addSong(data, song) {
     const s = {
@@ -151,9 +167,9 @@ export const Tabs = {
     return song;
   },
 
-  // A play counts when a song is played through. Keep the most recent 200.
-  logPlay(data, song) {
-    song.plays = [...(song.plays || []), Date.now()].slice(-200);
+  // A play counts when a song is played through (kept as counts per day; see Play history).
+  logPlay(data, song, now = Date.now()) {
+    recordPlay(song, now);
     this.save(data);
   },
 
@@ -174,8 +190,38 @@ export const Tabs = {
   }
 };
 
-// Plays in the last 7 days.
-export const playsThisWeek = song => (song.plays || []).filter(t => t > Date.now() - 7 * DAY).length;
+// ---------- Play history ----------
+// { total, last, days: { "2026-10-13": 2, ... } }, keeping the last 60 days of counts.
+// (Older saves had plays: [timestamps]; the helpers read both.)
+const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const KEEP_DAYS = 60;
+function pruneDays(days, now) {
+  const cut = dayKey(now - KEEP_DAYS * DAY);
+  for (const k of Object.keys(days)) if (k < cut) delete days[k];
+  return days;
+}
+export function compactPlays(plays, log = { total: 0, last: 0, days: {} }, now = Date.now()) {
+  const out = { total: log.total || 0, last: log.last || 0, days: { ...(log.days || {}) } };
+  for (const t of plays) { if (typeof t !== "number") continue; out.total++; out.last = Math.max(out.last, t); const k = dayKey(t); out.days[k] = (out.days[k] || 0) + 1; }
+  pruneDays(out.days, now);
+  return out;
+}
+export function recordPlay(song, now = Date.now()) {
+  const log = Array.isArray(song.plays) ? compactPlays(song.plays, song.playLog, now) : { total: 0, last: 0, days: {}, ...(song.playLog || {}) };
+  delete song.plays;
+  log.days = { ...log.days };
+  log.total++; log.last = now;
+  const k = dayKey(now); log.days[k] = (log.days[k] || 0) + 1;
+  pruneDays(log.days, now);
+  song.playLog = log;
+}
+export const playCount = song => song.playLog?.total ?? (song.plays || []).length;
+// Plays in the last 7 days (today and the 6 days before).
+export function playsThisWeek(song, now = Date.now()) {
+  if (Array.isArray(song.plays)) return song.plays.filter(t => t > now - 7 * DAY).length;
+  const from = dayKey(now - 6 * DAY);
+  return Object.entries(song.playLog?.days || {}).reduce((n, [k, c]) => n + (k >= from ? c : 0), 0);
+}
 
 // ---------- Chords ----------
 
@@ -700,7 +746,7 @@ export function searchSongs(songs, query) {
   }
   return [...named, ...sung];
 }
-export const lastPlayed = s => Math.max(s.opened || 0, ...(s.plays || []));
+export const lastPlayed = s => Math.max(s.opened || 0, s.playLog?.last || 0, ...(s.plays || []));
 const KEY_ORDER = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
 const keyRank = k => {
   const m = /^([A-G][#b]?)(m?)/.exec(k || "");
@@ -711,7 +757,7 @@ export function sortSongs(songs, mode, keyOf = s => s.key) {
   const byTitle = (a, b) => a.title.localeCompare(b.title);
   const cmp = {
     recent: (a, b) => lastPlayed(b) - lastPlayed(a) || byTitle(a, b),
-    most: (a, b) => (b.plays?.length || 0) - (a.plays?.length || 0) || byTitle(a, b),
+    most: (a, b) => playCount(b) - playCount(a) || byTitle(a, b),
     key: (a, b) => keyRank(keyOf(a)) - keyRank(keyOf(b)) || byTitle(a, b)
   }[mode] || byTitle;
   return [...songs].sort(cmp);

@@ -761,7 +761,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, logSetRun, buildChart, chordCounts, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, logSetRun, buildChart, chordCounts, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -812,6 +812,16 @@ const $ = id => document.getElementById(id);
 
 // ---------- State ----------
 let data = Tabs.load();
+// Saves are batched (see core.js). Write right away when the app goes to the
+// background or closes, and say so if the phone won't store the library.
+let saveWarned = 0;
+Tabs.onSaveError = () => {
+  if (Date.now() - saveWarned < 60e3) return;
+  saveWarned = Date.now();
+  toast("Couldn't save: the phone's storage for Tabs is full. Back up, then remove songs or cover photos you don't need.", null, { label: "Back up", fn: () => backupNow() });
+};
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") Tabs.flush(); });
+window.addEventListener("pagehide", () => Tabs.flush());
 let query = "";
 let filter = "all";
 // Search mode: tapping the bar moves it to the top and folds the library away, so
@@ -946,7 +956,7 @@ function renderLibrary() {
   const hasTab = data.songs.some(s => s.format === "tab");
   const hasLearn = data.songs.some(s => s.status === "learning");
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
-  const week = data.songs.map(playsThisWeek), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
+  const week = data.songs.map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
   app.innerHTML = `
     <div class="head">
       <h1 class="title">Library</h1>
@@ -1077,7 +1087,7 @@ function lyricHit(line, q) {
   return `“${from ? "…" : ""}${esc(line.slice(from, i))}<mark>${esc(line.slice(i, i + n))}</mark>${esc(line.slice(i + n))}”`;
 }
 function songRow(s, hit) {
-  const wk = playsThisWeek(s), sort = data.settings.sort, n = s.plays?.length || 0;
+  const wk = playsThisWeek(s), sort = data.settings.sort, n = playCount(s);
   const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
   const sub = hit ? `<span class="hit">${hit}</span>`
@@ -3099,7 +3109,7 @@ function wakeControls() {
 const nth = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
 function endMoment(song) {
   document.querySelector(".endnote")?.remove();
-  const total = song.plays?.length || 0, week = playsThisWeek(song);
+  const total = playCount(song), week = playsThisWeek(song);
   const when = total === 1 ? "for the first time" : week === 1 ? "· first time this week" : `· ${nth(week)} time this week`;
   const el = document.createElement("div");
   el.className = "endnote";

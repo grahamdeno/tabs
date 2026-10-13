@@ -126,7 +126,7 @@ const fresh = () => C.migrate({ songs: [
 
 test("migration brings old saves up to date", () => {
   const d = fresh();
-  assert.equal(d.settings.v, 4);
+  assert.equal(d.settings.v, 5);
   assert.equal(d.settings.speedMode, "length");
   assert.deepEqual(d.sets, []);
   assert.deepEqual(d.trash, []);
@@ -366,4 +366,46 @@ test("an AI chord chart keeps only chords and section names", () => {
 
 test("known chords are ranked by how many songs use them", () => {
   assert.deepEqual(C.chordCounts([{ body: "G C\nla" }, { body: "G D\nla" }]).slice(0, 1), ["G"]);
+});
+
+// ---------- Saving and play history ----------
+
+test("play history is kept as counts per day, and old timestamp lists convert", () => {
+  const now = Date.parse("2026-10-13T12:00");
+  const old = [now - 864e5, now - 864e5 + 1000, now - 20 * 864e5];
+  const d = C.migrate({ songs: [{ id: "a", title: "A", body: "G", plays: old }], settings: { v: 4 } });
+  const s = d.songs[0];
+  assert.equal(s.plays, undefined);
+  assert.equal(C.playCount(s), 3);
+  assert.equal(C.playsThisWeek(s, now), 2);
+  C.recordPlay(s, now);
+  assert.equal(C.playCount(s), 4);
+  assert.equal(C.playsThisWeek(s, now), 3);
+  assert.equal(C.lastPlayed(s), now);
+  assert.ok(JSON.stringify(s.playLog).length < 120);
+});
+
+test("days older than 60 are dropped, but the total stays", () => {
+  const now = Date.parse("2026-10-13T12:00");
+  const s = { playLog: C.compactPlays([now - 90 * 864e5, now], undefined, now) };
+  assert.equal(Object.keys(s.playLog.days).length, 1);
+  assert.equal(C.playCount(s), 2);
+});
+
+test("saves are batched, and a refused save is reported", () => {
+  const store = globalThis.localStorage;
+  let writes = 0, refused = null;
+  const real = store.setItem;
+  store.setItem = function (k, v) { writes++; return real.call(this, k, v); };
+  const d = fresh();
+  C.Tabs.save(d); C.Tabs.save(d); C.Tabs.save(d);
+  assert.equal(writes, 0);
+  C.Tabs.flush();
+  assert.equal(writes, 1);
+  store.setItem = () => { throw new Error("QuotaExceededError"); };
+  C.Tabs.onSaveError = e => { refused = e.message; };
+  C.Tabs.save(d);
+  assert.equal(C.Tabs.flush(), false);
+  assert.equal(refused, "QuotaExceededError");
+  store.setItem = real; C.Tabs.onSaveError = null;
 });
