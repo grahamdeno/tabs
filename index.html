@@ -521,7 +521,7 @@ function renderViewer(id) {
           <input type="range" id="speed" min="5" max="100" value="${song.speed}" aria-label="Scroll speed">
           <span id="sv"></span>
         </div>
-        ${isChords ? `<button class="sb nnbtn ${data.settings.diagrams !== false ? "on" : ""}" id="nnbtn" aria-label="Now and Next chords" aria-pressed="${data.settings.diagrams !== false}">${icon("fretboard")}</button>` : ""}
+        ${isChords ? `<button class="sb nnbtn ${data.settings.diagrams === true ? "on" : ""}" id="nnbtn" aria-label="Now and Next chords" aria-pressed="${data.settings.diagrams === true}">${icon("fretboard")}</button>` : ""}
         <div class="vsep"></div>
         <div class="step" aria-label="${isChords ? "Transpose" : "Text size"}">
           <button class="sb" id="down" aria-label="${isChords ? "Transpose down" : "Smaller text"}">${icon("minus")}</button>
@@ -590,7 +590,7 @@ function renderViewer(id) {
   $("up").onclick = () => step(1);
   $("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
   $("nnbtn")?.addEventListener("click", () => {
-    const on = data.settings.diagrams === false;
+    const on = data.settings.diagrams !== true;
     data.settings.diagrams = on;
     Tabs.save(data);
     $("nnbtn").classList.toggle("on", on);
@@ -689,7 +689,7 @@ function layoutDiagrams(sheet, isChords) {
   }
   diag.blocks = [...sheet.children].filter(el => !el.classList.contains("dpop") && !el.classList.contains("prow"))
     .map(el => ({ el, y: el.getBoundingClientRect().top - top }));
-  diag.nn = isChords && data.settings.diagrams !== false && diag.seq.length > 0;
+  diag.nn = isChords && data.settings.diagrams === true && diag.seq.length > 0;
   diag.focus = data.settings.focus !== false;
   diag.idx = null; diag.block = null; diag.rowKey = null;
   updateDiagrams();
@@ -1055,7 +1055,7 @@ function renderSettings() {
       </div>
       <div class="set">
         <span class="tile">${icon("fretboard")}</span><span class="name">Now and Next chords</span>
-        <button class="toggle ${s.diagrams !== false ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams !== false}" aria-label="Now and Next chords"></button>
+        <button class="toggle ${s.diagrams === true ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams === true}" aria-label="Now and Next chords"></button>
       </div>
       <div class="set">
         <span class="tile">${icon("pause")}</span><span class="name">Diagrams when paused</span>
@@ -1084,7 +1084,7 @@ function renderSettings() {
   $("back").onclick = () => go("#/");
   $("s-speed").onchange = e => { s.scrollSpeed = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
-  $("s-diagrams").onclick = () => { s.diagrams = s.diagrams === false; Tabs.save(data); renderSettings(); };
+  $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onclick = () => { s.focus = s.focus === false; Tabs.save(data); renderSettings(); };
   $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
