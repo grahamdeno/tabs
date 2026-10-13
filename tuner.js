@@ -123,8 +123,8 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       </div>
       <div class="tn-tiles" role="tablist" aria-label="Instrument">${MODES.map(([k, n]) => `<button class="tn-tile" role="tab" data-mode="${k}"><span>${n}</span><i>${k === "chromatic" ? `<svg viewBox="0 0 80 40" aria-hidden="true">${[-3, -2, -1, 0, 1, 2, 3].map(j => `<rect x="${39 + j * 10}" y="${j === 0 ? 2 : j % 2 ? 14 : 9}" width="${j === 0 ? 3 : 1.8}" height="${j === 0 ? 36 : j % 2 ? 22 : 28}" rx="1" fill="currentColor" opacity="${j === 0 ? 1 : 0.55}"/>`).join("")}</svg>` : headSVG(k, t, { mini: true })}</i></button>`).join("")}</div>
       <div class="tn-read">
-        <div class="tn-note" aria-live="polite"><b id="tn-n">·</b><sub id="tn-o"></sub></div>
-        <div class="tn-say" id="tn-say">Starting the microphone…</div>
+        <div class="tn-note"><b id="tn-n">·</b><sub id="tn-o"></sub></div>
+        <div class="tn-say" id="tn-say" role="status">Starting the microphone…</div>
         <div class="tn-c" id="tn-c"></div>
       </div>
       <div class="tn-gauge" id="tn-gauge">

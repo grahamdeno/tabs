@@ -478,3 +478,22 @@ test("a page-turner pedal: left plays and pauses, right goes to the next section
   await page.keyboard.press(" "); await page.waitForTimeout(300);
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
 });
+
+test("menus and panels work from a keyboard: focus moves in, Escape closes", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const inside = sel => page.evaluate(sel => !!document.activeElement.closest(sel), sel);
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.focus("#more"); await page.keyboard.press("Enter"); await page.waitForTimeout(300);
+  assert.equal(await inside(".menu"), true, "focus is in the menu");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "loop");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+  assert.equal(await page.locator(".menu").count(), 0);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "more");
+  await page.keyboard.press("Enter"); await page.waitForTimeout(200);
+  await page.keyboard.press("Enter"); await page.waitForTimeout(400); /* Add to set */
+  assert.equal(await page.getAttribute("#layer [role=dialog]", "aria-modal"), "true");
+  assert.equal(await inside("#layer"), true, "focus is in the panel");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => document.getElementById("layer").children.length), 0);
+});

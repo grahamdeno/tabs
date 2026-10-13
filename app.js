@@ -295,6 +295,29 @@ function ask(o, done) {
   else ok.focus();
   followKeyboard();
 }
+// Panels in the layer behave as dialogs: focus moves in when one opens (unless
+// the panel focused a field itself) and back to what opened it when it closes;
+// Escape closes it the way tapping outside does.
+let layerOpener = null;
+new MutationObserver(() => {
+  const dlg = layer.querySelector("[role=dialog]");
+  if (dlg) {
+    dlg.setAttribute("aria-modal", "true");
+    if (!layer.contains(document.activeElement)) {
+      if (!layerOpener) layerOpener = document.activeElement;
+      if (!dlg.hasAttribute("tabindex")) dlg.tabIndex = -1;
+      dlg.focus({ preventScroll: true });
+    }
+  } else if (!layer.children.length && layerOpener) {
+    if (layerOpener.isConnected && layerOpener !== document.body) layerOpener.focus({ preventScroll: true });
+    layerOpener = null;
+  }
+}).observe(layer, { childList: true });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || document.querySelector(".ask") || !layer.children.length) return;
+  const s = layer.querySelector(".scrim");
+  if (s) { e.preventDefault(); s.click(); }
+});
 // When copying isn't allowed, show the text ready to select.
 const showToCopy = (title, text) => ask({ title, value: text, readonly: true, ok: "Done" });
 const SECTION_NAMES = ["Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo", "Outro"];
@@ -1386,7 +1409,7 @@ function stepSection(dir) {
   diag.pinned = null;
   tick();
 }
-const pedalOff = e => route().name !== "song" || chordEdit || e.metaKey || e.ctrlKey || e.altKey || layer.innerHTML || document.querySelector(".ask") ||
+const pedalOff = e => route().name !== "song" || chordEdit || e.metaKey || e.ctrlKey || e.altKey || layer.innerHTML || document.querySelector(".ask, .menu") ||
   e.target.closest?.("input, textarea, select, [contenteditable]") || (e.key === " " && e.target.closest?.("button, a"));
 document.addEventListener("keydown", e => {
   if (pedalOff(e)) return;
@@ -1963,6 +1986,15 @@ function songMenu(song, anchor, redrawSong) {
   const close = () => { m.remove(); document.removeEventListener("click", outside, true); window.removeEventListener("scroll", close); };
   const outside = ev => { if (!m.contains(ev.target)) close(); };
   setTimeout(() => { document.addEventListener("click", outside, true); window.addEventListener("scroll", close, { passive: true }); });
+  /* Keyboard: focus starts on the first item; arrows move, Escape closes. */
+  m.addEventListener("keydown", ev => {
+    const its = [...m.querySelectorAll("button")], i = its.indexOf(document.activeElement);
+    if (ev.key === "Escape") { ev.preventDefault(); close(); anchor.focus(); }
+    else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); its[(i + (ev.key === "ArrowDown" ? 1 : -1) + its.length) % its.length]?.focus(); }
+    else return;
+    ev.stopPropagation();
+  });
+  m.querySelector("[data-m]")?.focus({ preventScroll: true });
   m.onclick = ev => {
     ev.stopPropagation();
     const d = ev.target.closest("[data-d]");
@@ -3040,7 +3072,7 @@ function renderTrash() {
   const left = t => Math.max(1, TRASH_DAYS - Math.floor((Date.now() - Date.parse(t.deletedAt)) / 86400000));
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to settings">${icon("back")}</button>
-      ${data.trash.length ? `<button class="tb" id="t-empty" style="color:#e07a6c">Delete all</button>` : ""}</div>
+      ${data.trash.length ? `<button class="tb" id="t-empty" style="color:var(--bad)">Delete all</button>` : ""}</div>
     <h1 class="title" style="margin:14px 2px 18px">Recently deleted</h1>
     ${data.trash.length ? `<div class="list glass">${data.trash.map((t, i) => `
       <div class="row">
