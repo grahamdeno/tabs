@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.32.1";
+export const VERSION = "1.32.2";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -192,7 +192,7 @@ const CHORD_RE =
   /^([A-G][#b]?)((?:maj|min|m|M|dim|aug|sus|add|°|ø|\+|-)?(?:\d{1,2})?(?:(?:sus|add|maj|b|#|\+|-)?\d{1,2}|sus)*(?:\([^)\s]*\))?)(?:\/([A-G][#b]?))?$/;
 
 // Tokens that may sit on a chord line without making it a lyric line.
-const FILLER_RE = /^(\||\|\||x\d+|\d+x|N\.?C\.?|\(|\)|-+|\/|%|\.+)$/i;
+const FILLER_RE = /^(\||\|\||[x×]\d+|\d+[x×]|N\.?C\.?|\(|\)|[-–—]+|\/|%|\.+)$/i;
 
 export function isChord(token) {
   return CHORD_RE.test(token);
@@ -205,7 +205,7 @@ export function isChordLine(line) {
   for (const t of tokens) {
     const bare = t.replace(/^\(|\)$/g, "");
     if (isChord(bare)) chords++;
-    else if (!FILLER_RE.test(t)) return false;
+    else if (!FILLER_RE.test(t) && !FILLER_RE.test(bare)) return false; /* "(x2)" counts as filler too */
   }
   return chords > 0;
 }
@@ -303,7 +303,9 @@ function expandInline(line) {
   return { chords, lyric };
 }
 
-const SECTION_RE = /^\s*(?:\[([^\]]+)\]|((?:intro|verse|pre-?chorus|chorus|bridge|outro|solo|interlude|instrumental|tag|refrain|coda|ending|break|hook)(?:\s*\d+)?)\s*:?)\s*$/i;
+// A section label, optionally with a repeat mark: "[Chorus]", "Verse 2:", "[Chorus] (x2)", "Chorus x2".
+const SECTION_RE = /^\s*(?:\[([^\]]+)\]|((?:intro|verse|pre-?chorus|chorus|bridge|outro|solo|interlude|instrumental|tag|refrain|coda|ending|break|hook)(?:\s*\d+)?)\s*:?)\s*(?:[(\[]?\s*[x×]\s*(\d+)\s*[)\]]?)?\s*$/i;
+const secName = m => (m[1] || m[2]).trim() + (m[3] ? ` ×${m[3]}` : "");
 
 // Read a pasted block: format, key, section count, and a title/artist header if present.
 export function detectPaste(text) {
@@ -409,7 +411,7 @@ export function parseBlocks(text, steps = 0, flats = false) {
     }
 
     const sec = line.match(SECTION_RE);
-    if (sec && !(sec[1] && isChord(sec[1]))) { out.push({ kind: "section", text: (sec[1] || sec[2]).trim() }); continue; }
+    if (sec && !(sec[1] && isChord(sec[1]))) { out.push({ kind: "section", text: secName(sec) }); continue; }
 
     const inline = [...line.matchAll(/\[([^\]]+)\]/g)];
     if (inline.length && inline.every(x => isChord(x[1]))) {
@@ -493,7 +495,7 @@ export function parseSheet(text, steps = 0, flats = false) {
 
     const sec = line.match(SECTION_RE);
     if (sec && !(sec[1] && isChord(sec[1]))) {
-      out.push({ kind: "section", text: (sec[1] || sec[2]).trim() });
+      out.push({ kind: "section", text: secName(sec) });
       continue;
     }
 
@@ -839,7 +841,7 @@ export function chordModel(body) {
     if (!line.trim()) { out.push({ kind: "blank", i, text: "" }); continue; }
     if (isTabLine(line)) { out.push({ kind: "tab", i, text: line }); continue; }
     const sec = line.match(SECTION_RE);
-    if (sec && !(sec[1] && isChord(sec[1]))) { out.push({ kind: "section", i, text: (sec[1] || sec[2]).trim() }); continue; }
+    if (sec && !(sec[1] && isChord(sec[1]))) { out.push({ kind: "section", i, text: secName(sec) }); continue; }
     if (isInlineLine(line)) {
       const chords = []; let text = "", idx = 0;
       for (const x of line.matchAll(/\[([^\]]+)\]/g)) { text += line.slice(idx, x.index); chords.push({ pos: text.length, chord: x[1] }); idx = x.index + x[0].length; }

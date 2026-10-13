@@ -316,3 +316,12 @@ test("sections can be renamed and lines added", () => {
   assert.equal(C.renameSection("Chorus:\nla", 0, "Chorus 2"), "[Chorus 2]\nla");
   assert.deepEqual(C.insertLines("a\nb", 0, ["new"]), { body: "a\nnew\nb", at: 1 });
 });
+
+test("section labels and chord lines may carry a repeat mark", () => {
+  const b = C.parseBlocks("[Chorus] (x2)\nG — D — F#7 — Bm — A (×2)\nChorus x3");
+  assert.deepEqual(b.map(x => x.kind), ["section", "chords", "section"]);
+  assert.equal(b[0].text, "Chorus ×2");
+  assert.equal(b[2].text, "Chorus ×3");
+  assert.ok(C.isChordLine("G   D   F#7   Bm   A   (x2)"));
+  assert.ok(!C.isChordLine("Lay me down (x2)"));
+});
