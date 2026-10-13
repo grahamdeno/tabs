@@ -753,8 +753,10 @@ function renderViewer(id) {
     if (isChords) song.transpose = ((((song.transpose || 0) + dir) + 17) % 12) - 5; // -5..+6
     else song.size = Math.min(1.6, Math.max(0.6, +(song.size + dir * 0.1).toFixed(2)));
     Tabs.save(data);
-    draw();
+    /* Quick repeated taps draw once, on the next frame. */
+    if (!drawFrame) drawFrame = requestAnimationFrame(() => { drawFrame = 0; if (viewing === song) draw(); });
   };
+  let drawFrame = 0;
   $("down").onclick = () => step(-1);
   $("up").onclick = () => step(1);
   $("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
@@ -1343,34 +1345,37 @@ function paintEdit(song) {
   sheet.classList.remove("focus");
   sheet.innerHTML = parts.join("");
 
-  sheet.querySelectorAll(".ce-w").forEach(b => b.onclick = () => {
-    sheet.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel"));
-    b.classList.add("sel");
-    pickChord(song, +b.dataset.i, +b.dataset.pos, b.dataset.word, b.classList.contains("has") ? b.querySelector(".ce-c").textContent : "");
-  });
-  sheet.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
-    const i = +b.dataset.edit, ln = model.find(l => l.kind === "lyric" && l.i === i);
-    lineInput(b.closest(".ce-line"), ln.text, text => {
-      if (text === ln.text) return paintEdit(song);
-      editChange(song, text.trim() ? "Line updated" : "Line removed", () => { song.body = setLineText(song.body, i, text); });
-    });
-  });
-  sheet.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => {
-    const i = +b.dataset.sec, cur = model.find(l => l.i === i).text;
-    const name = prompt("Section name (leave empty to remove the label)", cur);
-    if (name === null || name.trim() === cur) return;
-    editChange(song, name.trim() ? `Renamed to ${name.trim()}` : "Label removed", () => { song.body = renameSection(song.body, i, name); });
-  });
-  sheet.querySelectorAll("[data-after]").forEach(b => b.onclick = () => {
-    const after = +b.dataset.after;
-    const row = document.createElement("div");
-    row.className = "ce-line";
-    b.before(row);
-    lineInput(row, "", text => {
-      if (!text.trim()) return paintEdit(song);
-      editChange(song, "Line added", () => { song.body = insertLines(song.body, after, [text]).body; });
-    });
-  });
+  /* One handler for the whole sheet instead of one per word and button. */
+  sheet.onclick = e => {
+    if (chordEdit !== song || edView !== "sheet") return;
+    const b = e.target.closest?.(".ce-w, [data-edit], [data-sec], [data-after]");
+    if (!b || !sheet.contains(b)) return;
+    if (b.classList.contains("ce-w")) {
+      sheet.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel"));
+      b.classList.add("sel");
+      pickChord(song, +b.dataset.i, +b.dataset.pos, b.dataset.word, b.classList.contains("has") ? b.querySelector(".ce-c").textContent : "");
+    } else if (b.dataset.edit !== undefined) {
+      const i = +b.dataset.edit, ln = model.find(l => l.kind === "lyric" && l.i === i);
+      lineInput(b.closest(".ce-line"), ln.text, text => {
+        if (text === ln.text) return paintEdit(song);
+        editChange(song, text.trim() ? "Line updated" : "Line removed", () => { song.body = setLineText(song.body, i, text); });
+      });
+    } else if (b.dataset.sec !== undefined) {
+      const i = +b.dataset.sec, cur = model.find(l => l.i === i).text;
+      const name = prompt("Section name (leave empty to remove the label)", cur);
+      if (name === null || name.trim() === cur) return;
+      editChange(song, name.trim() ? `Renamed to ${name.trim()}` : "Label removed", () => { song.body = renameSection(song.body, i, name); });
+    } else {
+      const after = +b.dataset.after;
+      const row = document.createElement("div");
+      row.className = "ce-line";
+      b.before(row);
+      lineInput(row, "", text => {
+        if (!text.trim()) return paintEdit(song);
+        editChange(song, "Line added", () => { song.body = insertLines(song.body, after, [text]).body; });
+      });
+    }
+  };
   $("ed-sec").onclick = () => {
     const name = (prompt("New section name", "Chorus") || "").trim();
     if (!name) return;
