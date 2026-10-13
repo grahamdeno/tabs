@@ -185,3 +185,30 @@ test("a damaged share link is refused, not imported", async () => {
   assert.equal(await C.unpackShare("zNotReallyData"), null);
   assert.equal(await C.unpackShare("j" + Buffer.from('{"song":{"title":1}}').toString("base64url")), null);
 });
+
+// ---------- Library search and sort ----------
+
+const lib = [
+  { id: "1", title: "River Road", artist: "The Wanderers", key: "A", body: "[Chorus]\nA        F#m\nCarry me home, over the hill", plays: [5, 6, 7], opened: 1 },
+  { id: "2", title: "Harbor Lights", artist: "Me", key: "G", body: "G  C\n[G]Lights on the [C]water", plays: [9], opened: 2 },
+  { id: "3", title: "Blue Morning", artist: "Me", key: "Em", body: "Em  C\nCarry on", opened: 20 }
+];
+
+test("search finds words in the lyrics, after title and artist matches", () => {
+  const r = C.searchSongs(lib, "carry me");
+  assert.deepEqual(r.map(x => x.song.id), ["1"]);
+  assert.equal(r[0].line, "Carry me home, over the hill");
+  assert.deepEqual(C.searchSongs(lib, "me").map(x => x.song.id), ["2", "3"]); /* artist "Me"; too short for lyrics */
+});
+
+test("search ignores chord lines and inline chords", () => {
+  assert.equal(C.searchSongs(lib, "F#m").length, 0);
+  assert.equal(C.searchSongs(lib, "lights on the water")[0].song.id, "2");
+});
+
+test("library sorts by recent, most played and key", () => {
+  assert.deepEqual(C.sortSongs(lib, "recent").map(s => s.id), ["3", "2", "1"]);
+  assert.deepEqual(C.sortSongs(lib, "most").map(s => s.id), ["1", "2", "3"]);
+  assert.deepEqual(C.sortSongs(lib, "key").map(s => s.id), ["3", "2", "1"]);
+  assert.deepEqual(C.sortSongs(lib, "title").map(s => s.id), ["3", "2", "1"]);
+});

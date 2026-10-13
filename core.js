@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.23.0";
+export const VERSION = "1.24.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -672,3 +672,41 @@ export async function unpackShare(code) {
 // Same song already in the library? (title and artist, ignoring case and spaces)
 const sameKey = s => `${(s.title || "").trim().toLowerCase()}|${(s.artist || "").trim().toLowerCase()}`;
 export const findSame = (data, song) => data.songs.find(s => sameKey(s) === sameKey(song));
+
+// ---------- Library search and sort ----------
+// Lyric lines only: no chord lines, section labels, tab staves or inline [G] chords.
+function lyricLines(body) {
+  return String(body || "").split("\n")
+    .map(l => l.replace(/\[[^\]]*\]/g, "").trim())
+    .filter(l => l && !isChordLine(l) && !/^[eBGDAE]\|/.test(l));
+}
+// Matches title and artist first, then words in the lyrics.
+// Returns [{ song, line }] where line is the lyric that matched (or null).
+export function searchSongs(songs, query) {
+  const q = query.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!q) return songs.map(song => ({ song, line: null }));
+  const named = [], sung = [];
+  for (const song of songs) {
+    if (`${song.title} ${song.artist || ""}`.toLowerCase().includes(q)) { named.push({ song, line: null }); continue; }
+    if (q.length < 3) continue;
+    const line = lyricLines(song.body).find(l => l.toLowerCase().replace(/\s+/g, " ").includes(q));
+    if (line) sung.push({ song, line });
+  }
+  return [...named, ...sung];
+}
+export const lastPlayed = s => Math.max(s.opened || 0, ...(s.plays || []));
+const KEY_ORDER = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
+const keyRank = k => {
+  const m = /^([A-G][#b]?)(m?)/.exec(k || "");
+  return m ? KEY_ORDER.indexOf(m[1]) * 2 + (m[2] ? 1 : 0) : 999;
+};
+// mode: "title" | "recent" | "most" | "key". keyOf gives a song's key.
+export function sortSongs(songs, mode, keyOf = s => s.key) {
+  const byTitle = (a, b) => a.title.localeCompare(b.title);
+  const cmp = {
+    recent: (a, b) => lastPlayed(b) - lastPlayed(a) || byTitle(a, b),
+    most: (a, b) => (b.plays?.length || 0) - (a.plays?.length || 0) || byTitle(a, b),
+    key: (a, b) => keyRank(keyOf(a)) - keyRank(keyOf(b)) || byTitle(a, b)
+  }[mode] || byTitle;
+  return [...songs].sort(cmp);
+}

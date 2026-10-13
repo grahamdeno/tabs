@@ -113,6 +113,12 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 
 /* Sections and lists */
 .label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 22px 4px 8px; }
+.label.lrow { display: flex; align-items: center; justify-content: space-between; }
+.sortby { position: relative; display: inline-flex; align-items: center; gap: 3px; text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; color: var(--fg-2); }
+.sortby .chev { width: 13px; height: 13px; transform: rotate(90deg); opacity: .7; }
+.sortby select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
+.row .hit { font-style: italic; }
+.row .hit mark { background: none; color: var(--accent); font-style: normal; }
 .list { border-radius: 16px; overflow: hidden; }
 .row { display: flex; align-items: center; gap: 10px; width: 100%; height: 60px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--hair); background: none; text-align: left; color: var(--fg); }
 .row:last-child { border-bottom: 0; }
@@ -438,7 +444,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -648,9 +654,20 @@ function renderLibrary() {
 }
 
 const STATUS = { learning: "Learning", got: "Got it" };
-function songRow(s) {
-  const wk = playsThisWeek(s);
-  const sub = [esc(s.artist || "Unknown artist"), STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, wk && `Played ${wk}× this week`].filter(Boolean).join(" · ");
+const SORTS = { title: "A–Z", recent: "Recently played", most: "Most played", key: "Key" };
+// A lyric that matched the search, with the matching words marked.
+function lyricHit(line, q) {
+  const i = line.toLowerCase().indexOf(q.trim().toLowerCase());
+  if (i < 0) return `“${esc(line)}”`;
+  const n = q.trim().length, from = Math.max(0, i - 24);
+  return `“${from ? "…" : ""}${esc(line.slice(from, i))}<mark>${esc(line.slice(i, i + n))}</mark>${esc(line.slice(i + n))}”`;
+}
+function songRow(s, hit) {
+  const wk = playsThisWeek(s), sort = data.settings.sort, n = s.plays?.length || 0;
+  const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
+  const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
+  const sub = hit ? `<span class="hit">${hit}</span>`
+    : [esc(s.artist || "Unknown artist"), STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
   return `<button class="row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
     <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${sub}</div></div>
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
@@ -679,12 +696,15 @@ function renderList() {
     $("newset").onclick = () => { const name = prompt("Name this set", "New set"); if (name === null) return; const x = Tabs.addSet(data, name.trim() || "New set"); go("#/set/" + encodeURIComponent(x.id)); };
     return;
   }
-  const songs = data.songs.filter(s =>
-    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning") &&
-    (!q || s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q)));
-  const recent = !q && filter === "all" && data.songs.length >= 4
+  const pool = data.songs.filter(s =>
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning"));
+  /* Searching: title and artist matches first, then songs whose lyrics have the words. */
+  const found = q ? searchSongs(pool, q) : null;
+  const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
+  const recent = !q && filter === "all" && sort !== "recent" && data.songs.length >= 4
     ? data.songs.filter(s => s.opened).sort((a, b) => b.opened - a.opened).slice(0, 2) : [];
-  const sorted = [...songs].sort((a, b) => a.title.localeCompare(b.title));
+  const sorted = found ? found.map(x => x.song) : sortSongs(pool, sort, keyOf);
+  const hits = new Map((found || []).filter(x => x.line).map(x => [x.song.id, lyricHit(x.line, q)]));
 
   list.innerHTML = `
     ${recent.length ? `<div class="label">Recent</div><div class="recent">${recent.map(s => `
@@ -692,8 +712,10 @@ function renderList() {
         <div class="t">${esc(s.title)}</div>
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
-    ${q ? "" : `<div class="label">${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</div>`}
-    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(songRow).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}".</div>`}`;
+    ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</span>
+      <label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`}
+    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}" in titles, artists or lyrics.</div>`}`;
+  $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
     setCtx = null;
     // Name this row's title so it glides into the song header.
@@ -2371,7 +2393,7 @@ function firstLaunch() {
 const TIPS = {
   library: [
     { at: "#list .row", text: "Start with the sample song. Tap it to open." },
-    { at: ".cmd", text: "To add your own, paste a chord sheet here, or tap + to write one." }
+    { at: ".cmd", text: "Search titles, artists or a line you remember from the lyrics. To add a song, paste a chord sheet here, or tap + to write one." }
   ],
   song: [
     { at: ".sheet .c[data-ch] .ct", text: "Tap a chord to see how to play it." },

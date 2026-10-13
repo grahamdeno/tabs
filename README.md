@@ -18,6 +18,8 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Paste a chord sheet into the bar and Tabs detects format, key, sections, title and artist, then offers to save it
 - Chord sheets first: chords in the accent color over the lyrics, chords-over-lyrics or inline `[G]` style
 - Recent songs, favorites, Learning and Tabs filters on the library
+- Search finds titles and artists first, then songs with those words in the lyrics, showing the matching line (chords are ignored)
+- Sort the library A–Z, by recently played, most played, or key (remembered)
 - Learning status per song (Learning / Got it, tap the chip under the title); a play is counted when a song is played through, and the library quietly shows plays this week
 - Slim playback bar: auto-scroll, transpose (or text size for tabs)
 - Speed by song length (default): set how long a song takes (3:30 to start) and the scroll fits it; or switch to 1x style in Settings. Each song keeps its own setting
