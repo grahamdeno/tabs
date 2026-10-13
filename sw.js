@@ -1,9 +1,16 @@
 // Tabs service worker
-const CACHE = "tabs-v1.33.0";
+//
+// Cache-first: the app opens from the saved copy straight away, with no wait on
+// the network. Each release gets its own cache (named after the version), and
+// the browser checks sw.js for changes on every launch. When it finds a new
+// version, install saves the whole app shell fresh from the server in one go,
+// so a release is never half old and half new. The page then offers a reload.
+const CACHE = "tabs-v1.33.1";
 const SHELL = ["./", "index.html", "core.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
+  // cache: "reload" skips the browser's HTTP cache so the new release is fetched in full.
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))));
   self.skipWaiting();
 });
 
@@ -15,17 +22,23 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
-  const url = new URL(e.request.url);
+  const req = e.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
   if (url.hostname === "api.anthropic.com") return; // never cache AI calls
-  if (url.origin !== self.location.origin) return;
-  e.respondWith(
-    fetch(e.request, { cache: "no-cache" }).then(res => {
-      if (res && res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
-      }
+  if (url.origin !== self.location.origin) return;  // other sites go straight to the network
+  const page = req.mode === "navigate";
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const hit = await cache.match(page ? "index.html" : req, { ignoreSearch: page });
+    if (hit) return hit;
+    // Not saved yet (first visit, or a launch image): fetch it and keep a copy.
+    try {
+      const res = await fetch(req);
+      if (res.ok) cache.put(req, res.clone());
       return res;
-    }).catch(() => caches.match(e.request).then(r => r || (e.request.mode === "navigate" ? caches.match("index.html") : undefined)))
-  );
+    } catch {
+      return Response.error();
+    }
+  })());
 });

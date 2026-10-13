@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Tabs">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Tabs</title>
+<link rel="modulepreload" href="core.js">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -3599,7 +3600,21 @@ applyTheme();
 firstLaunch();
 render();
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
+// The app opens from the saved copy (see sw.js). When a new release has been
+// saved in the background, offer to switch to it now; otherwise it's used on the
+// next launch. Coming back to the app also checks for a release, since an
+// installed app that's only resumed never reloads the page.
+if ("serviceWorker" in navigator) {
+  const hadWorker = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (hadWorker) toast("Update ready", null, { label: "Reload", fn: () => location.reload() });
+  });
+  navigator.serviceWorker.register("./sw.js").then(reg => {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+}
 </script>
 </body>
 </html>
