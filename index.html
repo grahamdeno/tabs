@@ -323,6 +323,21 @@ button.mrow:active { background: var(--card-2); }
 ::view-transition-old(song-title), ::view-transition-new(song-title) { height: 100%; width: auto; }
 @media (prefers-reduced-motion: reduce) { *, ::view-transition-group(*) { animation-duration: 0s !important; transition-duration: 0s !important; } }
 .panel.card { animation: up .36s cubic-bezier(.2,1.15,.3,1) !important; }
+/* Practice a section */
+.loopbanner { position: fixed; left: 50%; transform: translateX(-50%); top: calc(12px + var(--safe-t)); z-index: 40; width: min(480px, calc(100% - 24px)); border-radius: 14px; padding: 10px 8px 10px 14px; display: flex; align-items: center; gap: 10px; background: var(--solid); font-size: 14px; animation: fade .2s; }
+.loopbanner span { flex: 1; }
+.sheet > .inloop { position: relative; padding-left: 12px; }
+.sheet > .inloop::before { content: ""; position: absolute; left: 0; top: 0; bottom: -0.55em; width: 2px; background: var(--accent); opacity: .55; }
+.sheet > .loopfirst::before { top: 4px; border-radius: 2px 2px 0 0; }
+.sheet > .looplast::before { bottom: 2px; border-radius: 0 0 2px 2px; }
+.sheet > .loopa { background: var(--accent-soft); border-radius: 6px; }
+.looprow { display: none; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-bottom: 1px solid var(--hair); font-size: 13px; color: var(--muted); }
+.looprow.on { display: flex; }
+.looprow > svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
+.looprow .lt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.looprow .lt b { color: var(--fg); font-weight: 500; }
+.looprow .chip { height: 26px; font-size: 12px; padding: 0 10px; }
+body.loop-on .app.viewer { padding-bottom: calc(160px + var(--safe-b)); }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -895,6 +910,7 @@ function renderViewer(id) {
     <div class="dock">
       <div class="pw glass float">
       <div class="nn" id="nn"></div>
+      <div class="looprow" id="looprow"></div>
       <div class="player">
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
         <div class="speed">
@@ -979,8 +995,9 @@ function renderViewer(id) {
     }
   };
   draw();
-  redraw = draw;
+  redraw = () => { draw(); paintLoop(song); };
   viewing = song;
+  paintLoop(song);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (viewing === song && !scroll.on && route().name === "song") showTips("song"); }, 500);
 
@@ -1358,7 +1375,89 @@ function easierSheet(song) {
 }
 
 function shareSong(song) { toast("Sharing is coming next"); }
-function startLoopPick(song) { toast("Practice loop is coming next"); }
+// ---------- Practice a section ----------
+// Pick a section (first and last line, or a section label for the whole section).
+// While playing, the section repeats; Build up starts at 80% speed and adds 5% a pass.
+let loopPick = null;   // { song, a } while choosing
+let loopRun = { pass: 0 };
+const sheetLines = () => [...($("sheet")?.children || [])].filter(el => !el.classList.contains("prow") && !el.classList.contains("dpop"));
+function startLoopPick(song) {
+  stopScroll();
+  loopPick = { song, a: null };
+  document.querySelector(".loopbanner")?.remove();
+  const b = document.createElement("div");
+  b.className = "loopbanner glass float";
+  b.innerHTML = `<span id="lb-t">Tap the first line of the section, or a section name like Chorus.</span><button class="tb go" id="lb-x">Cancel</button>`;
+  document.body.appendChild(b);
+  $("lb-x").onclick = () => { loopPick = null; b.remove(); paintLoop(song); };
+}
+function pickLoopLine(el) {
+  const lines = sheetLines(), i = lines.indexOf(el), song = loopPick.song;
+  if (i < 0) return;
+  if (loopPick.a === null && el.classList.contains("sec")) {
+    let j = i + 1;
+    while (j < lines.length && !lines[j].classList.contains("sec")) j++;
+    while (j - 1 > i && lines[j - 1].classList.contains("gap")) j--;
+    return finishLoop(song, i, j - 1);
+  }
+  if (loopPick.a === null) {
+    loopPick.a = i;
+    el.classList.add("loopa");
+    $("lb-t").textContent = "Now tap the last line of the section.";
+    return;
+  }
+  finishLoop(song, Math.min(loopPick.a, i), Math.max(loopPick.a, i));
+}
+function finishLoop(song, a, b) {
+  loopPick = null;
+  document.querySelector(".loopbanner")?.remove();
+  song.loop = { a, b, build: song.loop?.build ?? false };
+  Tabs.save(data);
+  loopRun = { pass: 0 };
+  paintLoop(song);
+  toast("Section set. Press play to practice it", $("play"));
+}
+function loopName(song) {
+  const lines = sheetLines();
+  for (let k = song.loop.a; k >= 0; k--) if (lines[k]?.classList.contains("sec")) return lines[k].textContent.trim();
+  return `Lines ${song.loop.a + 1}–${song.loop.b + 1}`;
+}
+function paintLoop(song) {
+  const lines = sheetLines();
+  lines.forEach(el => el.classList.remove("inloop", "loopa", "loopfirst", "looplast"));
+  const row = $("looprow");
+  if (!song.loop || !lines[song.loop.b]) { if (row) row.innerHTML = ""; row?.classList.remove("on"); return; }
+  for (let k = song.loop.a; k <= song.loop.b; k++) lines[k].classList.add("inloop");
+  lines[song.loop.a].classList.add("loopfirst"); lines[song.loop.b].classList.add("looplast");
+  if (!row) return;
+  row.classList.add("on");
+  row.innerHTML = `${icon("loop")}<span class="lt">Practicing <b>${esc(loopName(song))}</b>${loopRun.pass ? ` · pass ${loopRun.pass + 1}` : ""}</span>
+    <button class="chip ${song.loop.build ? "on" : ""}" id="lp-build" aria-pressed="${!!song.loop.build}">Build up</button>
+    <button class="sb" id="lp-x" aria-label="Stop practicing this section">${icon("x")}</button>`;
+  $("lp-build").onclick = () => { song.loop.build = !song.loop.build; Tabs.save(data); paintLoop(song); };
+  $("lp-x").onclick = () => { delete song.loop; Tabs.save(data); loopRun = { pass: 0 }; paintLoop(song); };
+}
+// Speed factor for the current pass.
+const loopFactor = song => song.loop?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1;
+// Called each frame while playing: when the section's last line passes the reading
+// point, glide back to its first line and count a pass.
+function loopCheck(song) {
+  if (!song.loop) return false;
+  const lines = sheetLines(), first = lines[song.loop.a], last = lines[song.loop.b];
+  if (!first || !last) return false;
+  const line = innerHeight * READ_AT;
+  /* A section at the end of the song can't reach the reading line; give it a few seconds at the bottom instead. */
+  const atEnd = scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
+  if (!atEnd) loopRun.endSince = 0; else loopRun.endSince ||= performance.now();
+  const endDone = atEnd && performance.now() - loopRun.endSince > 3000;
+  if (last.getBoundingClientRect().bottom > line - 4 && !endDone) return false;
+  loopRun.endSince = 0;
+  loopRun.pass++;
+  hold.active = true; releaseSoon(900);
+  window.scrollTo({ top: Math.max(0, scrollY + first.getBoundingClientRect().top - line), behavior: calm() ? "auto" : "smooth" });
+  paintLoop(song);
+  return true;
+}
 
 // ---------- Song menu ----------
 function songMenu(song, anchor, redrawSong) {
@@ -1508,6 +1607,11 @@ function showChordPop(target) {
 }
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet")) return;
+  if (loopPick && e.target instanceof Element) {
+    const el = e.target.closest(".sheet > *");
+    if (el && !el.classList.contains("prow") && !el.classList.contains("dpop") && !el.classList.contains("gap")) { e.preventDefault(); pickLoopLine(el); }
+    return;
+  }
   if (false) {
     if (!aiKey() && !viewing?.easier) return;
     if (!aiKey() && viewing.easier) { viewing.easier.on = !viewing.easier.on; Tabs.save(data); redraw?.(); return; }
@@ -1657,6 +1761,11 @@ async function startScroll(song) {
   showChordPop(null);
   $("sheet")?.querySelectorAll(".prow").forEach(el => el.remove());
   diag.rowKey = null;
+  if (song.loop) {
+    const lines = sheetLines(), first = lines[song.loop.a], last = lines[song.loop.b], line = innerHeight * READ_AT;
+    if (first && last && (first.getBoundingClientRect().top > line + 4 || last.getBoundingClientRect().bottom < line)) diag.pinned = first;
+    loopRun = { pass: 0 }; paintLoop(song);
+  }
   if (diag.pinned?.isConnected) {
     // Glide the tapped line to the reading point, then carry on from there.
     const target = window.scrollY + diag.pinned.getBoundingClientRect().top - window.innerHeight * READ_AT;
@@ -1673,11 +1782,12 @@ async function startScroll(song) {
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
-      scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song);
+      if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
+      scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song) * loopFactor(song);
       const px = Math.floor(scroll.carry);
       if (px) { window.scrollBy(0, px); scroll.carry -= px; }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+      if (!song.loop && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
         if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); if (setCtx) nextUp(); }
         scroll.bottomSince ||= t;
         if (t - scroll.bottomSince > 4000) return stopScroll();
@@ -1831,6 +1941,7 @@ function renderForm(id) {
     };
     draft = null;
     if (song) {
+      if (fields.body !== song.body) delete song.loop;
       Tabs.updateSong(data, song.id, fields);
       history.replaceState(null, "", "#/");
       go("#/song/" + encodeURIComponent(song.id));
@@ -2253,6 +2364,7 @@ function showTips(name) {
 // ---------- Router ----------
 function render() {
   stopScroll();
+  if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }
   document.querySelectorAll(".nextup").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); });
   app.classList.remove("viewer");
   const r = route();
