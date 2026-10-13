@@ -395,6 +395,9 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.tappause { position: fixed; left: 50%; top: 40%; z-index: 60; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--solid) 85%, transparent); border: 1px solid var(--rim); color: var(--fg); pointer-events: none; animation: tp .7s ease-out forwards; }
+.tappause svg { width: 34px; height: 34px; fill: currentColor; stroke: none; }
+@keyframes tp { 0% { opacity: 0; transform: scale(.85); } 20% { opacity: 1; transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; } }
 .endnote { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 28px 0 8px; font-size: 14px; color: var(--muted); animation: endin .9s ease-out both; }
 .endnote svg { width: 16px; height: 16px; color: var(--accent); }
 @keyframes endin { from { opacity: 0; transform: translateY(6px); } }
@@ -1706,10 +1709,15 @@ document.addEventListener("click", e => {
     if (el && !el.classList.contains("prow") && !el.classList.contains("dpop") && !el.classList.contains("gap")) { e.preventDefault(); pickLoopLine(el); }
     return;
   }
-  if (false) {
-    if (!aiKey() && !viewing?.easier) return;
-    if (!aiKey() && viewing.easier) { viewing.easier.on = !viewing.easier.on; Tabs.save(data); redraw?.(); return; }
-    if (!scroll.on) easierSheet(viewing);
+  /* While playing, a tap anywhere on the page pauses, so there's no button to aim for. */
+  /* (A target no longer in the page was a button that redrew itself, like play.) */
+  if (scroll.on && e.target instanceof Element && e.target.isConnected && !e.target.closest("button, a, input, select, label, .dock, .menu, .panel, .scrim, .nextup, .chead, .loopbanner")) {
+    stopScroll();
+    const g = document.createElement("div");
+    g.className = "tappause";
+    g.innerHTML = icon("pause");
+    document.body.appendChild(g);
+    setTimeout(() => g.remove(), 700);
     return;
   }
   // Strip card: outline it and mark every place that chord is played.
