@@ -350,3 +350,20 @@ test("a set run records its time and songs played", () => {
   assert.deepEqual(r, { at: 1000 + 18 * 60e3 + 40e3, secs: 1120, songs: 4 });
   assert.equal(set.runs.length, 1);
 });
+
+// ---------- AI chord charts ----------
+
+test("an AI chord chart keeps only chords and section names", () => {
+  const body = C.buildChart({ capo: 2, strum: "D DU UDU", sections: [
+    { name: "Intro", chords: "G D Em C", repeat: 2 },
+    { name: "Verse 1", chords: "G | D | Em | C | hello darkness my old friend" },
+    { name: "Some words here", chords: "Am F" },
+    { name: "Chorus", chords: "nothing here" }
+  ] });
+  assert.equal(body, "Capo 2 · Strum: D DU UDU\n\n[Intro] (x2)\nG   D   Em   C\n\n[Verse 1]\nG   D   Em   C\n\n[Part]\nAm   F");
+  assert.ok(!/darkness|friend|words/.test(body));
+});
+
+test("known chords are ranked by how many songs use them", () => {
+  assert.deepEqual(C.chordCounts([{ body: "G C\nla" }, { body: "G D\nla" }]).slice(0, 1), ["G"]);
+});

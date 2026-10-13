@@ -243,7 +243,7 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .chip.ai svg { width: 15px; height: 15px; }
 .chip.ai:disabled { opacity: .55; }
 .ai-note { font-size: 13px; color: #e07a6c; margin: -4px 2px 10px; line-height: 1.4; }
-.detect .err { color: #e07a6c; }
+.detect .err, .err { color: #e07a6c; }
 .detect .sep { color: var(--muted); }
 .link { border: 0; background: none; color: var(--accent); font-size: 13px; padding: 4px 2px; text-decoration: underline; }
 .seg.mini { flex: none; height: 28px; padding: 2px; border-radius: 8px; }
@@ -411,6 +411,38 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.findcard { margin-top: 18px; border-radius: 16px; border: 1px solid var(--rim); background: var(--card); padding: 16px; }
+.fc-t { font-size: 16px; font-weight: 600; color: var(--fg); }
+.fc-s { font-size: 14px; color: var(--muted); margin: 6px 0 12px; line-height: 1.4; }
+.fc-b { display: flex; flex-wrap: wrap; gap: 8px; }
+.fc-b .chip { display: inline-flex; align-items: center; gap: 6px; }
+.fc-b .chip svg { width: 14px; height: 14px; }
+.fc-ai, .nextidea { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--fg); text-align: left; }
+.fc-ai > svg:first-child, .nextidea > svg:first-child { width: 20px; height: 20px; color: var(--accent); flex: none; }
+.fc-ai span, .nextidea span { flex: 1; font-size: 13px; color: var(--muted); }
+.fc-ai b, .nextidea b { display: block; font-size: 15px; color: var(--fg); font-weight: 600; margin-bottom: 2px; }
+.fc-ai .chev, .nextidea .chev { width: 16px; height: 16px; color: var(--muted); }
+.nextidea { margin-top: 18px; border-color: var(--rim); background: var(--card); }
+.backpaste { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + var(--safe-b)); z-index: 30; width: min(496px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 14px; border-radius: 14px; font-size: 14px; animation: fade .25s; }
+.backpaste span { flex: 1; }
+.cs-head b { display: block; font-family: var(--serif); font-weight: 400; font-size: 26px; color: var(--fg); }
+.cs-head span { font-size: 14px; color: var(--muted); }
+.cs-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.cs-meta span { font-size: 12.5px; padding: 3px 9px; border-radius: 10px; border: 1px solid var(--rim); color: var(--fg-2); }
+.cs-meta .cs-conf.high { color: #7ac47f; border-color: rgba(122,196,127,.4); }
+.cs-meta .cs-conf.medium { color: var(--accent); border-color: var(--accent-line); }
+.cs-meta .cs-conf.low { color: #e07a6c; border-color: rgba(224,122,108,.4); }
+.cs-chart { font: 14px/1.6 var(--mono); color: var(--accent); background: var(--card); border: 1px solid var(--rim); border-radius: 12px; padding: 12px 14px; white-space: pre-wrap; margin: 0 0 8px; max-height: 42vh; overflow: auto; -webkit-text-size-adjust: 100%; }
+.cs-src { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.cs-src a { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-src svg { width: 13px; height: 13px; flex: none; color: var(--accent); }
+.nx .pbody > *, .cs .pbody > * { flex: none; }
+.nx .row.nx-row { align-items: flex-start; height: auto; min-height: 0; padding-top: 12px; padding-bottom: 12px; }
+.nx-ch { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.nx-ch span { font: 600 12px var(--sans); padding: 2px 7px; border-radius: 7px; background: var(--card); border: 1px solid var(--rim); color: var(--fg-2); }
+.nx-ch span.new { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.nx-b { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: none; }
+
 .sh-cover { position: relative; }
 .stamp { position: absolute; right: 12px; top: 12px; transform: rotate(-8deg); font: 700 10.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: #fff; border: 1.5px solid rgba(255,255,255,.85); border-radius: 6px; padding: 4px 7px; background: rgba(0,0,0,.28); }
 .set-played { font-size: 13.5px; color: var(--muted); margin: 0 0 8px; }
@@ -729,7 +761,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, logSetRun, buildChart, chordCounts, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -761,6 +793,7 @@ const I = {
   pick: '<path d="M12 3c4 0 7 2 7 6 0 5-4 10-7 12-3-2-7-7-7-12 0-4 3-6 7-6z"/>',
   calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   image: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="M20.5 15l-5-5L5 20.5"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   dots: '<circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/>',
@@ -1084,8 +1117,10 @@ function renderList() {
     const recentSongs = sortSongs(data.songs.filter(s => lastPlayed(s)), "recent").slice(0, 8);
     const shown = recentSongs.length ? recentSongs : sortSongs(data.songs, "title");
     list.innerHTML = `<div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>
-      <p class="empty-hint" style="margin-top:12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>`;
+      <p class="empty-hint" style="margin-top:12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>
+      ${aiKey() && data.songs.length ? `<button class="nextidea glass" id="nextidea">${icon("wand")}<span><b>What can I play next?</b>Songs that use the chords you already know</span>${icon("chev", "chev")}</button>` : ""}`;
     bindRows(list);
+    $("nextidea")?.addEventListener("click", () => nextSongs());
     return;
   }
   const pool = searching ? data.songs : data.songs.filter(s =>
@@ -1106,9 +1141,10 @@ function renderList() {
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</span>
       <label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`}
-    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}" in titles, artists or lyrics.<br>To add a song, paste its chord sheet into this bar.</div>`}`;
+    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>` : findCard(query)}`;
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   bindRows(list);
+  bindFind(list);
 }
 function bindRows(list) {
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
@@ -1147,8 +1183,42 @@ async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, k
 }
 
 // Plain-English reasons, mapped from Anthropic's status codes.
+// Ask with web search turned on: Claude searches (up to `searches` times) and answers.
+// Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
+async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
+  const messages = [{ role: "user", content }];
+  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: searches }];
+  let out = [];
+  for (let turn = 0; turn < 4; turn++) {
+    let r;
+    try {
+      r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, tools, messages })
+      });
+    } catch { throw Object.assign(new Error("network"), { status: 0, model }); }
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      throw Object.assign(new Error(j?.error?.message || "HTTP " + r.status), { status: r.status, model });
+    }
+    const j = await r.json();
+    out = out.concat(j.content || []);
+    if (j.stop_reason !== "pause_turn") break;
+    messages.push({ role: "assistant", content: j.content });
+  }
+  const text = out.filter(c => c.type === "text").map(c => c.text).join("");
+  const seen = new Map();
+  for (const c of out) {
+    if (c.type === "web_search_tool_result" && Array.isArray(c.content)) c.content.forEach(x => x.url && !seen.has(x.url) && seen.set(x.url, x.title || x.url));
+    for (const ci of c.citations || []) if (ci.url) seen.set(ci.url, ci.title || ci.url);
+  }
+  return { text, sources: [...seen].map(([url, title]) => ({ url, title })).filter(x => /^https:\/\//.test(x.url)) };
+}
+
 function aiError(e) {
   const m = e?.message || "", st = e?.status;
+  if (st === 400 && /web search/i.test(m)) return "Web search is turned off for this key's organization. An admin can turn it on in the Anthropic Console under Settings > Capabilities.";
   if (st === -1) return "Couldn't make sense of that. Try again, or keep the original.";
   if (!st) return "Could not reach Anthropic. Check the connection, and turn off any content blocker or VPN filtering for this site.";
   if (st === 401) return "Key not recognized. Copy it again from the Anthropic Console (it starts with sk-ant-).";
@@ -2363,6 +2433,166 @@ function songMenu(song, anchor, redrawSong) {
          if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
          toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", $("more")); } })[b.dataset.m]?.();
   };
+}
+
+// ---------- Find songs you don't have yet ----------
+// No match in the library: search the web for a chord sheet, then come back and
+// paste it (Tabs offers to as soon as you return). Or, with an API key, get a
+// chord chart from AI: chords and structure only, never lyrics.
+let pendingFind = null; /* { q, at } after sending someone out to look */
+const FIND_SITES = [
+  ["web", "Search the web", q => `https://www.google.com/search?q=${encodeURIComponent(q + " chords")}`],
+  ["ug", "Ultimate Guitar", q => `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(q)}`],
+  ["chordify", "Chordify", q => `https://chordify.net/search/${encodeURIComponent(q)}`]
+];
+function findCard(q) {
+  return `<div class="findcard">
+    <div class="fc-t">“${esc(q.trim())}” isn't in your library yet</div>
+    <p class="fc-s">Find a chord sheet, copy it, and come back. Tabs will offer to add what you copied.</p>
+    <div class="fc-b">${FIND_SITES.map(([k, l]) => `<button class="chip" data-find="${k}">${icon(k === "web" ? "search" : "link")}${l}</button>`).join("")}</div>
+    ${aiKey() ? `<button class="fc-ai" id="fc-ai">${icon("wand")}<span><b>Chord chart with AI</b>Chords, key and structure from the web. No lyrics.</span>${icon("chev", "chev")}</button>` : ""}
+  </div>`;
+}
+function bindFind(list) {
+  list.querySelectorAll("[data-find]").forEach(b => b.onclick = () => {
+    const site = FIND_SITES.find(x => x[0] === b.dataset.find);
+    pendingFind = { q: query.trim(), at: Date.now() };
+    window.open(site[2](query.trim()), "_blank", "noopener");
+  });
+  $("fc-ai")?.addEventListener("click", () => chartSheet(query.trim()));
+}
+// Back from looking: offer to paste what was copied (reading the clipboard needs a tap).
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !pendingFind || Date.now() - pendingFind.at > 30 * 60e3) return;
+  if (route().name !== "library" || document.querySelector(".backpaste")) return;
+  const q = pendingFind.q;
+  const b = document.createElement("div");
+  b.className = "backpaste glass float";
+  b.innerHTML = `<span>Copied the chords for “${esc(q)}”?</span><button class="btn sm primary" id="bp-go">Paste</button><button class="sb" id="bp-x" aria-label="Dismiss">${icon("x")}</button>`;
+  document.body.appendChild(b);
+  $("bp-x").onclick = () => { b.remove(); pendingFind = null; };
+  $("bp-go").onclick = async () => {
+    let text = "";
+    try { text = await navigator.clipboard.readText(); } catch {}
+    if (text.trim().split("\n").filter(l => l.trim()).length < 2) return toast("Nothing to paste yet. Copy the chord sheet first, or press and hold the search bar and tap Paste.");
+    b.remove(); pendingFind = null;
+    if (searching) document.querySelector("#qcancel")?.click();
+    showPasteCard(detectPaste(text));
+  };
+});
+
+const CHART_SYSTEM = `You find how to play one song on guitar, using web search (chord and tab sites, songbooks), and reply with JSON only, no other text:
+{"found": boolean, "title": string, "artist": string, "key": string, "capo": number, "tuning": "standard"|"dropd"|"halfdown"|"wholedown"|"dadgad"|"openg"|"opend", "bpm": number, "strum": string, "sections": [{"name": string, "chords": string, "repeat": number}], "confidence": "high"|"medium"|"low"}
+- Never include lyrics or any words from the song, not even a short phrase. Only chord names and section names.
+- "sections": in the order played, each occurrence listed (Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro). "chords": the chord names for one pass, space separated, like "G D Em C". "repeat": how many times that pass is played in a row.
+- Use the chords most sources agree on, in the key most players use (note a capo if the common version uses one).
+- "strum": a simple pattern with D and U, like "D DU UDU", or "" if unsure. "bpm": the tempo, or 0 if unsure.
+- If you can't find the song, set "found" to false.`;
+function chartSheet(q, preset = {}) {
+  const [t0, a0] = preset.title ? [preset.title, preset.artist || ""] : q.split(/\s+(?:by|-|–)\s+/i);
+  let state = { busy: false, chart: null, err: "" };
+  layer.innerHTML = `<div class="scrim" id="cs-scrim"></div><div class="panel full cs" role="dialog" aria-label="Chord chart with AI"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="cs-x">Cancel</button><h2>Chord chart</h2><span style="width:56px"></span></div><div class="pbody" id="cs-body"></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("cs-scrim").onclick = close; $("cs-x").onclick = close;
+  const paint = () => {
+    const c = state.chart, body = $("cs-body");
+    if (!body) return;
+    if (state.busy) { body.innerHTML = `<div class="easy-wait">${busy("Searching the web for the chords")}</div><p class="foot">This takes about 20 seconds. Only the title and artist are sent.</p>`; return; }
+    if (!c) {
+      body.innerHTML = `
+        <label class="ns-f"><input id="cs-t" value="${esc(t0 || "")}" placeholder="Song title" aria-label="Song title"></label>
+        <label class="ns-f"><input id="cs-a" value="${esc(a0 || "")}" placeholder="Artist (helps find the right one)" aria-label="Artist"></label>
+        ${state.err ? `<p class="err" style="margin:6px 2px">${esc(state.err)}</p>` : ""}
+        <button class="btn primary cta" id="cs-go" style="margin-top:8px">${icon("wand")}Find the chords</button>
+        <p class="foot" style="margin-top:12px">AI searches chord sites and writes a chart: sections, chords, key, capo, tempo and strum. It never copies lyrics. Charts can be wrong, so check it by ear. Each chart uses a few web searches on your key, usually 5 to 15 cents.</p>`;
+      $("cs-go").onclick = findChords;
+      return;
+    }
+    const tn = TUNINGS[c.tuning] ? c.tuning : "standard";
+    body.innerHTML = `
+      <div class="cs-head"><b>${esc(c.title)}</b><span>${esc(c.artist || "")}</span></div>
+      <div class="cs-meta">${[c.key && `Key ${esc(c.key)}`, c.capo > 0 && `Capo ${c.capo}`, tn !== "standard" && TUNINGS[tn].name, c.bpm > 0 && `${Math.round(c.bpm)} BPM`].filter(Boolean).map(x => `<span>${x}</span>`).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
+      <pre class="cs-chart">${esc(c.body)}</pre>
+      <p class="foot">AI-made from the sources below. Check it by ear, and fix anything in Edit.</p>
+      ${c.sources.length ? `<div class="cs-src">${c.sources.slice(0, 4).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}</div>` : ""}
+      <div class="actions" style="margin-top:14px"><button class="btn" id="cs-again">Try again</button><button class="btn primary" id="cs-add">Add to library</button></div>`;
+    $("cs-again").onclick = () => { state.chart = null; paint(); };
+    $("cs-add").onclick = () => {
+      const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body: c.body,
+        ...(c.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, c.bpm))) } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart" });
+      close();
+      if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; }
+      go("#/song/" + encodeURIComponent(s.id));
+      toast("Added. Tap Listen to hear it while you check the chords");
+    };
+  };
+  const findChords = async () => {
+    const title = $("cs-t").value.trim(), artist = $("cs-a").value.trim();
+    if (!title) return toast("Add the song title");
+    state = { busy: true, chart: null, err: "" }; paint();
+    try {
+      const { text, sources } = await askClaudeSearch({ system: CHART_SYSTEM, content: `Song: ${title}${artist ? ` by ${artist}` : ""}` });
+      const j = parseJSON(text);
+      if (!j.found) throw Object.assign(new Error("not found"), { status: -2 });
+      const body = buildChart(j);
+      if (!body.includes("[")) throw Object.assign(new Error("empty"), { status: -1 });
+      state = { busy: false, err: "", chart: { title: String(j.title || title).slice(0, 80), artist: String(j.artist || artist).slice(0, 80), key: String(j.key || "").slice(0, 4), capo: parseInt(j.capo, 10) || 0, tuning: j.tuning, bpm: +j.bpm || 0, confidence: j.confidence, body, sources } };
+    } catch (e) {
+      state = { busy: false, chart: null, err: e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e) };
+    }
+    paint();
+    if (!state.chart) { $("cs-t").value = title; $("cs-a").value = artist; }
+  };
+  paint();
+  if (preset.title) findChords();
+}
+
+// ---- What can I play next? ----
+// Sends only the chords you know and your song titles; suggests well-known songs
+// that use mostly those chords, with at most one new chord to learn.
+const NEXT_SYSTEM = `You suggest songs a guitarist could learn next. You get the chords they already play and the songs they already have.
+Reply with JSON only: {"songs": [{"title": string, "artist": string, "chords": [string], "new": string, "why": string}]}
+- 6 well-known songs, varied in era and style, leaning toward the styles of the songs they have.
+- Each uses mostly chords they know; "new" is at most one chord they don't know yet, or "".
+- "chords": the song's main chords in the common key. "why": under 12 words, plain, no praise.
+- Not songs they already have. No lyrics.`;
+async function nextSongs() {
+  const known = chordCounts(data.songs).slice(0, 24);
+  let state = { busy: true, list: [], err: "" };
+  layer.innerHTML = `<div class="scrim" id="nx-scrim"></div><div class="panel full nx" role="dialog" aria-label="What can I play next?"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="nx-x">Close</button><h2>Play next</h2><span style="width:56px"></span></div><div class="pbody" id="nx-body"></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("nx-scrim").onclick = close; $("nx-x").onclick = close;
+  const paint = () => {
+    const body = $("nx-body");
+    if (!body) return;
+    if (state.busy) { body.innerHTML = `<div class="easy-wait">${busy("Looking for songs that fit your chords")}</div>`; return; }
+    if (state.err) { body.innerHTML = `<p class="err">${esc(state.err)}</p><button class="btn" id="nx-again">Try again</button>`; $("nx-again").onclick = load; return; }
+    body.innerHTML = `
+      <p class="easy-note">You play ${known.length} chords. These songs use mostly those${state.list.some(x => x.new) ? ", plus one new chord to learn" : ""}.</p>
+      <div class="list glass">${state.list.map((x, i) => `<div class="row nx-row">
+        <div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}${x.why ? ` · ${esc(x.why)}` : ""}</div>
+          <div class="nx-ch">${x.chords.map(c => `<span class="${c === x.new ? "new" : ""}">${esc(c)}</span>`).join("")}${x.new && !x.chords.includes(x.new) ? `<span class="new">${esc(x.new)}</span>` : ""}</div></div>
+        <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary" data-nc="${i}">Chart</button></div>
+      </div>`).join("")}</div>
+      <button class="btn" id="nx-more" style="margin-top:12px;width:100%">Show different songs</button>`;
+    body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
+    body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? chartSheet("", { title: x.title, artist: x.artist }) : null; });
+    $("nx-more").onclick = () => load(state.list.map(x => x.title));
+  };
+  const load = async (skip = []) => {
+    state = { busy: true, list: [], err: "" }; paint();
+    try {
+      const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 80).join("; ");
+      const j = parseJSON(await askClaude({ system: NEXT_SYSTEM, maxTokens: 2500,
+        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}` }));
+      const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
+      state = { busy: false, err: "", list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: ok(x.new) ? x.new : "", why: String(x.why || "").slice(0, 80) })) };
+    } catch (e) { state = { busy: false, list: [], err: aiError(e) }; }
+    paint();
+  };
+  load();
 }
 
 // ---------- Listen ----------
@@ -3870,7 +4100,7 @@ if ("serviceWorker" in navigator) {
   });
   navigator.serviceWorker.register("./sw.js").then(reg => {
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") reg.update().catch(() => {});
+      if (document.visibilityState === "visible") reg?.update?.().catch(() => {});
     });
   }).catch(() => {});
 }

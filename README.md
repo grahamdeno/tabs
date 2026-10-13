@@ -18,6 +18,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Paste a chord sheet into the bar and Tabs detects format, key, sections, title and artist, then offers to save it
 - Chord sheets first: chords in the accent color over the lyrics, chords-over-lyrics or inline `[G]` style
 - Recent songs, favorites, Learning and Tabs filters on the library
+- When a search finds nothing, Tabs offers to look for it: Search the web, Ultimate Guitar or Chordify. Copy the chord sheet there and come back; Tabs offers to paste what you copied
 - Tapping the search bar moves it to the top and folds the library away, so results sit between the bar and the keyboard (before you type, it shows recently played songs; Cancel returns to the library). Search finds titles and artists first, then songs with those words in the lyrics, showing the matching line (chords are ignored)
 - Sort the library A–Z, by recently played, most played, or key (remembered)
 - When a song plays through, a quiet note at the end says so ("Played through · 3rd time this week"). No badges or streaks
@@ -77,6 +78,8 @@ Settings > AI help > paste an Anthropic API key > Save key. Without a key the ap
 - **Clean up** (paste card and New Song sheet): the pasted text is sent to a small, fast model and comes back as a chord sheet in this app's format. You can compare it with the original before saving, or undo it in the editor.
 - **Scan a page** (New Song sheet): a photo of a songbook page or handwritten sheet is resized on the phone and read by a larger model, which handles images more accurately.
 - **Make it easier** (song view, next to Chords in this song): the song's chord names and the chords you use most across your library go to a small model, which suggests a capo and up to four simpler substitutes. You see the shapes before and after, then Apply. Your sheet is never changed: the suggestion is stored with the song and can be turned off or tried again. No lyrics are sent.
+- **Chord chart with AI** (when a search finds nothing): the song's title and artist go to a larger model with web search, which reads chord sites and returns sections, chords, key, capo, tuning, tempo and a strum pattern, with its sources. Only chord names and section names are kept (each token is checked), so no lyrics are ever copied. Charts can be wrong; check them by ear. Each one uses a few web searches, usually 5 to 15 cents. If your organization has turned web search off, an admin can turn it on in the Console under Settings > Capabilities.
+- **What can I play next?** (search, before you type): the chords you play and your song titles go to a small model, which suggests well-known songs that use mostly those chords, with at most one new chord. Each has a Listen link and a Chart button.
 - **Spark tone** (chip under the song title): the song's title, artist, key and chord names go to a small model, which suggests a starting tone for a Positive Grid Spark amp: amp style, five knobs, the pedal chain and a guitar tip. Saved with the song; dial it in on the Spark app. No lyrics are sent.
 
 ### About the API key

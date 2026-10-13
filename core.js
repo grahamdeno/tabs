@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.34.0";
+export const VERSION = "1.35.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -955,4 +955,33 @@ export function untilLabel(when, now = Date.now()) {
 export function logSetRun(set, startedAt, played, now = Date.now()) {
   set.runs = [...(set.runs || []), { at: now, secs: Math.round((now - startedAt) / 1000), songs: played }].slice(-50);
   return set.runs[set.runs.length - 1];
+}
+
+// ---------- AI chord charts ----------
+// Turns the AI's answer into a sheet made only of section names and chords.
+// Every token is checked with isChord, so no words from the song can get in:
+// the chart is chords and structure only, never lyrics.
+const SECTION_NAME = /^(intro|verse|pre-?chorus|chorus|bridge|outro|solo|interlude|instrumental|tag|refrain|coda|ending|break|hook|riff)(\s*\d+)?$/i;
+export function buildChart(ai) {
+  const lines = [];
+  const capo = Math.max(0, Math.min(9, parseInt(ai.capo, 10) || 0));
+  const strum = String(ai.strum || "").replace(/[^DUdu\-\s]/g, "").replace(/\s+/g, " ").trim().toUpperCase().slice(0, 24);
+  const head = [capo && `Capo ${capo}`, strum && `Strum: ${strum}`].filter(Boolean).join(" · ");
+  if (head) lines.push(head, "");
+  for (const sec of Array.isArray(ai.sections) ? ai.sections : []) {
+    const name = String(sec.name || "").trim();
+    const chords = String(sec.chords || "").split(/[\s|,]+/).map(t => t.trim()).filter(t => isChord(t));
+    if (!chords.length) continue;
+    const reps = Math.max(1, Math.min(8, parseInt(sec.repeat, 10) || 1));
+    lines.push(`[${SECTION_NAME.test(name) ? name.replace(/\b\w/g, c => c.toUpperCase()) : "Part"}]${reps > 1 ? ` (x${reps})` : ""}`);
+    for (let i = 0; i < chords.length; i += 8) lines.push(chords.slice(i, i + 8).join("   "));
+    lines.push("");
+  }
+  return lines.join("\n").trim();
+}
+// Known chords across a library, most used first.
+export function chordCounts(songs) {
+  const n = new Map();
+  for (const s of songs) for (const c of chordsUsed(s.body || "")) n.set(c, (n.get(c) || 0) + 1);
+  return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
 }
