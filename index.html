@@ -395,6 +395,36 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.tuner .pc-head { margin-bottom: 4px; }
+.tu-sel { position: relative; margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: var(--fg); }
+.tu-sel .chev { width: 13px; height: 13px; transform: rotate(90deg); color: var(--muted); }
+.tu-sel select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
+.tu-note { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 6px 0 10px; min-height: 72px; }
+.tu-note b { font-family: var(--serif); font-weight: 400; font-size: 64px; line-height: 1; color: var(--fg); }
+.tu-note span { font: 500 16px var(--mono); color: var(--muted); min-width: 34px; }
+.tu-meter { position: relative; height: 44px; margin: 0 6px; }
+.tu-meter::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--rim); }
+.tu-zone { position: absolute; left: 46%; width: 8%; top: 6px; bottom: 6px; border-radius: 8px; background: var(--accent-soft); }
+.tu-tick { position: absolute; top: 15px; height: 14px; width: 1px; background: var(--muted); opacity: .45; }
+.tu-tick.mid { top: 8px; height: 28px; opacity: .8; }
+.tu-needle { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--fg-2); transition: left .12s linear, background .2s, opacity .3s; }
+.tu-needle.good { background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+.tu-needle.idle { opacity: .25; left: 50% !important; }
+.tu-msg { text-align: center; font-size: 15px; color: var(--fg-2); margin: 10px 0 14px; min-height: 22px; }
+.tu-msg.good { color: var(--accent); font-weight: 600; }
+.tu-msg.warn { color: var(--muted); font-size: 14px; }
+.tu-strings { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.tu-s { height: 58px; border-radius: 12px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; }
+.tu-s b { font-size: 18px; font-weight: 600; }
+.tu-s small { font-size: 11px; color: var(--muted); height: 14px; display: grid; place-items: center; }
+.tu-s small svg { width: 14px; height: 14px; color: var(--accent); }
+.tu-s.cur { border-color: var(--accent-line); }
+.tu-s.ok b { color: var(--accent); }
+.tu-s.lock { background: var(--accent-soft); border-color: var(--accent); }
+.tu-hint { font-size: 12.5px; color: var(--muted); text-align: center; margin: 10px 0 12px; }
+.ib .dotmark { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.stat.tunechip svg { width: 13px; height: 13px; color: var(--accent); }
+
 .tappause { position: fixed; left: 50%; top: 40%; z-index: 60; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--solid) 85%, transparent); border: 1px solid var(--rim); color: var(--fg); pointer-events: none; animation: tp .7s ease-out forwards; }
 .tappause svg { width: 34px; height: 34px; fill: currentColor; stroke: none; }
 @keyframes tp { 0% { opacity: 0; transform: scale(.85); } 20% { opacity: 1; transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; } }
@@ -413,6 +443,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .fld:last-child { border-bottom: 0; }
 .fld .lab { width: 54px; font-size: 15px; color: var(--muted); flex: none; }
 .fld input { flex: 1; min-width: 0; border: 0; background: none; font-size: 16px; height: 44px; }
+.fld .fsel { flex: 1; min-width: 0; border: 0; background: none; font-size: 16px; height: 44px; color: var(--fg); -webkit-appearance: none; appearance: none; }
 .seg { display: flex; padding: 2px; border-radius: 9px; background: var(--card-2); flex: 1; }
 .seg button { flex: 1; height: 28px; border-radius: 7px; border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 500; }
 .seg button.on { background: var(--accent-soft); color: var(--accent); }
@@ -459,7 +490,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -486,6 +517,7 @@ const I = {
   listplus: '<path d="M4 7h11M4 12h11M4 17h7M18 14v6M15 17h6"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
+  fork: '<path d="M9 3v7a3 3 0 0 0 6 0V3"/><path d="M12 13v8"/>',
   amp: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="13" r="3"/><path d="M15 10h3M15 13h3M15 16h3M6 8h12"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   dots: '<circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/>',
@@ -615,7 +647,10 @@ function renderLibrary() {
   app.innerHTML = `
     <div class="head">
       <h1 class="title">Library</h1>
-      <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
+      <div class="row-btns">
+        <button class="ib glass" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>
+        <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
+      </div>
     </div>
     ${weekTotal ? `<div class="weekly">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : ""}
     ${data.songs.length ? `<div class="chips" id="chips">
@@ -641,6 +676,7 @@ function renderLibrary() {
       <button class="add" id="add" aria-label="Add song">${icon("plus")}</button>
     </div>`;
   $("settings").onclick = () => go("#/settings");
+  $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   $("add").onclick = () => { draft = null; go("#/add"); };
@@ -937,7 +973,7 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button></div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -992,6 +1028,7 @@ function renderViewer(id) {
     st.innerHTML = (STATUS[song.status] || "Mark as learning") + (wk ? `<span class="pl">· ${wk}× this week</span>` : "");
   };
   paintStat();
+  $("tunechip")?.addEventListener("click", () => openTuner(songTuning(song)));
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
@@ -1565,6 +1602,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "size" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
+    { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     { id: "share", icon: "share", label: "Share song" },
     { id: "edit", icon: "edit", label: "Edit song" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
@@ -1600,8 +1638,137 @@ function songMenu(song, anchor, redrawSong) {
     close();
     ({ set: () => addToSet(song), edit: () => go("#/edit/" + encodeURIComponent(song.id)),
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
-       tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song) })[b.dataset.m]?.();
+       tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)) })[b.dataset.m]?.();
   };
+}
+
+// ---------- Tuner ----------
+// Listens through the microphone and shows how far each string is from its note.
+// It shows up where tuning happens: a button on the library (marked when you
+// haven't tuned for a few hours), a chip on songs in another tuning, the set
+// page, and the Next up card when the next song is in a different tuning.
+const TUNED_FOR = 3 * 3600e3;
+const songTuning = s => (s && (s.tuning || detectTuning(s.body))) || "standard";
+const tunedRecently = () => Date.now() - (data.settings.lastTuned || 0) < TUNED_FOR;
+const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
+let tunerState = null;
+function closeTuner() {
+  const t = tunerState;
+  if (!t) return;
+  tunerState = null;
+  clearInterval(t.timer);
+  t.stream?.getTracks().forEach(tr => tr.stop());
+  t.ctx?.close?.().catch(() => {});
+  if (t.ok.filter(Boolean).length >= 3) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
+  layer.innerHTML = "";
+  t.onClose?.();
+}
+function pluck(freq) {
+  try {
+    audio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const t = audio.currentTime, g = audio.createGain();
+    [1, 2, 3].forEach((h, i) => {
+      const o = audio.createOscillator(), og = audio.createGain();
+      o.type = i ? "sine" : "triangle"; o.frequency.value = freq * h;
+      og.gain.value = [0.5, 0.18, 0.08][i];
+      o.connect(og).connect(g); o.start(t); o.stop(t + 2.2);
+    });
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.1);
+    g.connect(audio.destination);
+  } catch {}
+}
+function openTuner(tuning = "standard", onClose) {
+  closeTuner();
+  const t = tunerState = { tuning: TUNINGS[tuning] ? tuning : "standard", lock: -1, ok: [], hits: [], inTuneSince: 0, quietSince: Date.now(), onClose };
+  layer.innerHTML = `
+    <div class="scrim" id="tu-scrim"></div>
+    <div class="panel card tuner" role="dialog" aria-label="Tuner">
+      <div class="pc-head">${icon("fork")}<span>Tuner</span>
+        <label class="tu-sel"><span id="tu-name"></span>${icon("chev", "chev")}<select id="tu-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("")}</select></label></div>
+      <div class="tu-note" aria-live="polite"><b id="tu-n">·</b><span id="tu-c"></span></div>
+      <div class="tu-meter" aria-hidden="true"><i class="tu-zone"></i>${[-40, -30, -20, -10, 0, 10, 20, 30, 40].map(c => `<i class="tu-tick ${c ? "" : "mid"}" style="left:${50 + c}%"></i>`).join("")}<i class="tu-needle" id="tu-needle"></i></div>
+      <div class="tu-msg" id="tu-msg">Starting the microphone…</div>
+      <div class="tu-strings" id="tu-strings"></div>
+      <p class="tu-hint">Tap a string to hear it and tune only that one.</p>
+      <div class="actions"><button class="btn primary" id="tu-done">Done</button></div>
+    </div>`;
+  $("tu-scrim").onclick = closeTuner;
+  $("tu-done").onclick = closeTuner;
+  const sel = $("tu-tuning");
+  sel.value = t.tuning;
+  const paintStrings = () => {
+    const notes = TUNINGS[t.tuning].notes;
+    $("tu-name").textContent = TUNINGS[t.tuning].name;
+    $("tu-strings").innerHTML = notes.map((n, i) => `<button class="tu-s ${t.ok[i] ? "ok" : ""} ${t.lock === i ? "lock" : ""}" data-s="${i}" aria-label="String ${6 - i}, ${noteLabel(n)}${t.ok[i] ? ", in tune" : ""}">
+      <b>${noteLabel(n)}</b><small>${t.ok[i] ? icon("check") : 6 - i}</small></button>`).join("");
+    $("tu-strings").querySelectorAll("[data-s]").forEach(b => b.onclick = () => {
+      const i = +b.dataset.s;
+      t.lock = t.lock === i ? -1 : i;
+      if (t.lock === i) pluck(noteFreq(notes[i]));
+      paintStrings();
+    });
+  };
+  sel.onchange = () => { t.tuning = sel.value; t.ok = []; t.lock = -1; paintStrings(); };
+  paintStrings();
+  const msg = (text, cls = "") => { const m = $("tu-msg"); if (m) { m.textContent = text; m.className = "tu-msg " + cls; } };
+  const fail = e => {
+    const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
+    msg(denied ? "Tabs needs the microphone to hear your guitar. Allow it for this app in your phone's Settings, then open the tuner again."
+      : "The microphone isn't available here. You can still tap a string to hear its note.", "warn");
+  };
+  if (!navigator.mediaDevices?.getUserMedia) return fail();
+  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
+    if (tunerState !== t) { stream.getTracks().forEach(tr => tr.stop()); return; }
+    t.stream = stream;
+    t.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const an = t.ctx.createAnalyser();
+    an.fftSize = 4096;
+    t.ctx.createMediaStreamSource(stream).connect(an);
+    const buf = new Float32Array(an.fftSize);
+    msg("Play a string");
+    t.timer = setInterval(() => listen(t, an, buf, msg, paintStrings), 70);
+  }).catch(fail);
+}
+function listen(t, an, buf, msg, paintStrings) {
+  an.getFloatTimeDomainData(buf);
+  const f = detectPitch(buf, t.ctx.sampleRate);
+  const needle = $("tu-needle");
+  if (!needle) return;
+  const now = Date.now();
+  if (f < 0) {
+    if (now - t.quietSince > 900) { needle.classList.add("idle"); $("tu-n").textContent = "·"; $("tu-c").textContent = ""; msg(t.ok.filter(Boolean).length === 6 ? "All in tune" : "Play a string", t.ok.filter(Boolean).length === 6 ? "good" : ""); t.hits = []; }
+    t.inTuneSince = 0;
+    return;
+  }
+  t.quietSince = now;
+  /* Smooth over the last few readings so the needle doesn't jitter. */
+  t.hits = [...t.hits.slice(-4), f];
+  const fs = [...t.hits].sort((a, b) => a - b)[t.hits.length >> 1];
+  const notes = TUNINGS[t.tuning].notes;
+  let idx, cents;
+  if (t.lock >= 0) { idx = t.lock; cents = Math.round(1200 * Math.log2(fs / noteFreq(notes[idx]))); }
+  else ({ index: idx, cents } = nearestString(fs, t.tuning));
+  const far = Math.abs(cents) > 50;
+  const shown = far ? nearestNote(fs) : null;
+  $("tu-n").textContent = far ? shown.name.replace("b", "♭").replace("#", "♯") : noteLabel(notes[idx]);
+  $("tu-c").textContent = far ? "" : `${cents > 0 ? "+" : ""}${cents}`;
+  needle.classList.remove("idle");
+  const c = far ? Math.max(-50, Math.min(50, shown.cents)) : Math.max(-50, Math.min(50, cents));
+  needle.style.left = (50 + c * 0.9) + "%";
+  const good = !far && Math.abs(cents) <= 4;
+  needle.classList.toggle("good", good);
+  document.querySelectorAll(".tu-s").forEach((b, i) => b.classList.toggle("cur", i === idx));
+  if (far) { msg(cents < 0 ? `Way below ${noteLabel(notes[idx])}: tune up` : `Way above ${noteLabel(notes[idx])}: tune down`, "warn"); t.inTuneSince = 0; return; }
+  if (!good) { msg(cents < 0 ? "Tune up" : "Tune down"); t.inTuneSince = 0; return; }
+  t.inTuneSince ||= now;
+  msg("In tune", "good");
+  if (now - t.inTuneSince > 600 && !t.ok[idx]) {
+    t.ok[idx] = true;
+    paintStrings();
+    if (t.ok.filter(Boolean).length === 6) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
+  }
 }
 
 // ---------- Spark tone ----------
@@ -1970,6 +2137,7 @@ function renderForm(id) {
               <input id="f-key" value="${esc(src.key)}" placeholder="Auto" maxlength="4" autocomplete="off" autocapitalize="characters" style="width:48px;text-align:right">
             </label>
           </div>
+          <label class="fld"><span class="lab">Tuning</span><select id="f-tuning" class="fsel">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}" ${k === (src.tuning || detectTuning(src.body) || "standard") ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
           <label class="fld"><span class="lab">Tempo</span><input id="f-bpm" type="number" inputmode="numeric" min="30" max="260" value="${esc(src.bpm || "")}" placeholder="BPM, for the count-in (optional)"></label>
         </div>
         ${aiKey() ? `<div class="ai-row">
@@ -2056,6 +2224,7 @@ function renderForm(id) {
       format,
       key: format === "chords" && raw ? raw[0].toUpperCase() + raw.slice(1) : "",
       bpm: Math.min(260, Math.max(30, parseInt($("f-bpm").value, 10))) || undefined,
+      tuning: $("f-tuning").value === "standard" ? undefined : $("f-tuning").value,
       body: $("f-body").value
     };
     draft = null;
@@ -2239,7 +2408,7 @@ function renderSet(id) {
     <div class="head">
       <button class="ib glass" id="back" aria-label="Back to sets">${icon("back")}</button>
       <div class="row-btns">
-        ${songs.length && !setEditing ? `<button class="ib glass" id="s-share" aria-label="Share set">${icon("share")}</button>` : ""}
+        ${songs.length && !setEditing ? `<button class="ib glass" id="s-tune" aria-label="Tuner">${icon("fork")}</button><button class="ib glass" id="s-share" aria-label="Share set">${icon("share")}</button>` : ""}
         ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
       </div>
     </div>
@@ -2249,7 +2418,7 @@ function renderSet(id) {
     <div class="list glass" style="margin-top:16px">
       ${songs.map((s, i) => `<div class="row setrow" data-i="${i}">
         <span class="num">${i + 1}</span>
-        <button class="txt open" data-open="${i}"><div class="t">${esc(s.title)}</div><div class="a">${esc(s.artist || "Unknown artist")} · ${mmss(songLength(s))}</div></button>
+        <button class="txt open" data-open="${i}"><div class="t">${esc(s.title)}</div><div class="a">${esc(s.artist || "Unknown artist")} · ${mmss(songLength(s))}${songTuning(s) !== "standard" ? ` · ${TUNINGS[songTuning(s)].name}` : ""}</div></button>
         ${setEditing ? `<button class="sb" data-up="${i}" aria-label="Move up" ${i === 0 ? "disabled" : ""}>${icon("up")}</button>
           <button class="sb" data-down="${i}" aria-label="Move down" ${i === songs.length - 1 ? "disabled" : ""}>${icon("down")}</button>
           <button class="sb" data-rm="${i}" aria-label="Remove from set">${icon("x")}</button>` : ""}
@@ -2262,6 +2431,7 @@ function renderSet(id) {
   $("rename").onclick = () => { const n = prompt("Rename set", set.name); if (n && n.trim()) { set.name = n.trim(); Tabs.save(data); renderSet(id); } };
   $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
   $("s-share")?.addEventListener("click", () => shareSet(set));
+  $("s-tune")?.addEventListener("click", () => openTuner(songTuning(songs[0])));
   $("playset")?.addEventListener("click", () => { setCtx = { id, idx: 0, autoplay: true }; go("#/song/" + encodeURIComponent(songs[0].id)); });
   app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { if (setEditing) return; setCtx = { id, idx: +b.dataset.open }; go("#/song/" + encodeURIComponent(songs[+b.dataset.open].id)); });
   const move = (i, j) => { const a = ids(); [a[i], a[j]] = [a[j], a[i]]; set.songIds = a; Tabs.save(data); renderSet(id); };
@@ -2348,13 +2518,17 @@ function nextUp() {
   const card = document.createElement("div");
   card.className = "nextup glass float";
   let left = 5;
-  card.innerHTML = `<div class="nu-t"><span class="lab">NEXT UP · ${setCtx.idx + 2} of ${songs.length}</span><b>${esc(next.title)}</b><span>${esc(next.artist || "")}</span></div>
-    <button class="btn sm" id="nu-stop">Stop</button><button class="btn sm primary" id="nu-go">Play <span id="nu-n">${left}</span></button>`;
+  /* A different tuning next: don't start on its own; offer the tuner instead. */
+  const retune = songTuning(next) !== songTuning(songs[setCtx.idx]) ? TUNINGS[songTuning(next)].name : "";
+  card.innerHTML = `<div class="nu-t"><span class="lab">NEXT UP · ${setCtx.idx + 2} of ${songs.length}${retune ? ` · ${esc(retune.toUpperCase())}` : ""}</span><b>${esc(next.title)}</b><span>${retune ? `Retune to ${esc(retune)} first` : esc(next.artist || "")}</span></div>
+    ${retune ? `<button class="btn sm" id="nu-tune">${icon("fork")}Tune</button><button class="btn sm primary" id="nu-go">Play</button>`
+      : `<button class="btn sm" id="nu-stop">Stop</button><button class="btn sm primary" id="nu-go">Play <span id="nu-n">${left}</span></button>`}`;
   document.body.appendChild(card);
   const go2 = () => { clearInterval(timer); card.remove(); setCtx = { id: set.id, idx: setCtx.idx + 1, autoplay: true }; go("#/song/" + encodeURIComponent(next.id)); };
-  const timer = setInterval(() => { left--; const n = $("nu-n"); if (n) n.textContent = left; if (left <= 0) go2(); }, 1000);
+  const timer = retune ? 0 : setInterval(() => { left--; const n = $("nu-n"); if (n) n.textContent = left; if (left <= 0) go2(); }, 1000);
   $("nu-go").onclick = go2;
-  $("nu-stop").onclick = () => { clearInterval(timer); card.remove(); };
+  $("nu-stop")?.addEventListener("click", () => { clearInterval(timer); card.remove(); });
+  $("nu-tune")?.addEventListener("click", () => openTuner(songTuning(next)));
   card.dataset.timer = timer;
 }
 
@@ -2486,6 +2660,7 @@ function showTips(name) {
 
 // ---------- Router ----------
 function render() {
+  closeTuner();
   stopScroll();
   if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }
   document.querySelectorAll(".nextup").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); });

@@ -710,3 +710,80 @@ export function sortSongs(songs, mode, keyOf = s => s.key) {
   }[mode] || byTitle;
   return [...songs].sort(cmp);
 }
+
+// ---------- Tuner ----------
+// Strings low to high, as note names with octave.
+export const TUNINGS = {
+  standard: { name: "Standard", notes: ["E2", "A2", "D3", "G3", "B3", "E4"] },
+  dropd: { name: "Drop D", notes: ["D2", "A2", "D3", "G3", "B3", "E4"] },
+  halfdown: { name: "Half step down", notes: ["Eb2", "Ab2", "Db3", "Gb3", "Bb3", "Eb4"] },
+  wholedown: { name: "Whole step down", notes: ["D2", "G2", "C3", "F3", "A3", "D4"] },
+  dadgad: { name: "DADGAD", notes: ["D2", "A2", "D3", "G3", "A3", "D4"] },
+  openg: { name: "Open G", notes: ["D2", "G2", "D3", "G3", "B3", "D4"] },
+  opend: { name: "Open D", notes: ["D2", "A2", "D3", "F#3", "A3", "D4"] }
+};
+const SEMI = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
+const NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const midiOf = n => { const m = /^([A-G][#b]?)(-?\d)$/.exec(n); return m ? (+m[2] + 1) * 12 + SEMI[m[1]] : NaN; };
+export const noteFreq = n => 440 * 2 ** ((midiOf(n) - 69) / 12);
+// Nearest note to a frequency: { name, octave, cents } (cents from -50 to +50).
+export function nearestNote(freq) {
+  const midi = 69 + 12 * Math.log2(freq / 440), r = Math.round(midi);
+  return { name: NAMES[((r % 12) + 12) % 12], octave: Math.floor(r / 12) - 1, cents: Math.round((midi - r) * 100) };
+}
+// Which string of the tuning a frequency is closest to, and how far off in cents.
+export function nearestString(freq, tuning = "standard") {
+  const notes = (TUNINGS[tuning] || TUNINGS.standard).notes;
+  let best = 0, bestC = Infinity;
+  notes.forEach((n, i) => { const c = 1200 * Math.log2(freq / noteFreq(n)); if (Math.abs(c) < Math.abs(bestC)) { best = i; bestC = c; } });
+  return { index: best, note: notes[best], cents: Math.round(bestC) };
+}
+// A song's tuning from a line like "Tuning: Drop D" or "Tuning: D A D G B E".
+export function detectTuning(body) {
+  const m = /^\s*(?:tuning|tuned)\s*[:\-]?\s*(.+)$/im.exec(String(body || ""));
+  if (!m) return "";
+  const t = m[1].toLowerCase().replace(/[()]/g, "").trim();
+  const letters = t.replace(/[^a-g#b ]/g, "").replace(/\s+/g, "");
+  if (/drop\s*d/.test(t) || letters === "dadgbe") return "dropd";
+  if (/dadgad/.test(t.replace(/\s+/g, ""))) return "dadgad";
+  if (/half|e\s*flat|eb|1\/2/.test(t)) return "halfdown";
+  if (/whole|full|d standard/.test(t) || letters === "dgcfad") return "wholedown";
+  if (/open\s*g/.test(t) || letters === "dgdgbd") return "openg";
+  if (/open\s*d/.test(t) || letters === "dadf#ad") return "opend";
+  if (/standard|eadgbe/.test(t.replace(/\s+/g, ""))) return "standard";
+  return "";
+}
+// Pitch of a mono buffer (the YIN method); -1 when it's too quiet or unclear.
+// Searches 60 to 1000 Hz, which covers a guitar in any of the tunings above.
+export function detectPitch(buf, sampleRate) {
+  const n = buf.length;
+  let rms = 0;
+  for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
+  if (Math.sqrt(rms / n) < 0.01) return -1;
+  const minLag = Math.max(2, Math.floor(sampleRate / 1000)), maxLag = Math.min(Math.floor(sampleRate / 60), (n >> 1) - 2);
+  const W = n - maxLag - 2;
+  const d = new Float32Array(maxLag + 2);
+  for (let lag = 1; lag <= maxLag + 1; lag++) {
+    let s = 0;
+    for (let i = 0; i < W; i++) { const x = buf[i] - buf[i + lag]; s += x * x; }
+    d[lag] = s;
+  }
+  /* Cumulative mean normalized difference: dips near 0 at the period. */
+  const cm = new Float32Array(maxLag + 2);
+  cm[0] = 1;
+  let run = 0;
+  for (let lag = 1; lag <= maxLag + 1; lag++) { run += d[lag]; cm[lag] = run ? d[lag] * lag / run : 1; }
+  let tau = -1;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    if (cm[lag] < 0.12) { while (lag + 1 <= maxLag && cm[lag + 1] < cm[lag]) lag++; tau = lag; break; }
+  }
+  if (tau < 0) {
+    /* No clear dip: take the deepest one if it's reasonably clear. */
+    let best = 1;
+    for (let lag = minLag; lag <= maxLag; lag++) if (cm[lag] < best) { best = cm[lag]; tau = lag; }
+    if (best > 0.35) return -1;
+  }
+  const a = cm[tau - 1], b = cm[tau], c = cm[tau + 1], den = a - 2 * b + c;
+  const shift = den ? (a - c) / (2 * den) : 0;
+  return sampleRate / (tau + shift);
+}

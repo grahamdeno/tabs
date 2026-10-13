@@ -212,3 +212,43 @@ test("library sorts by recent, most played and key", () => {
   assert.deepEqual(C.sortSongs(lib, "key").map(s => s.id), ["3", "2", "1"]);
   assert.deepEqual(C.sortSongs(lib, "title").map(s => s.id), ["3", "2", "1"]);
 });
+
+// ---------- Tuner ----------
+
+const tone = (f, rate = 48000, n = 4096, harmonics = [1, 0.5, 0.3]) =>
+  Float32Array.from({ length: n }, (_, i) => harmonics.reduce((s, a, h) => s + 0.3 * a * Math.sin(2 * Math.PI * f * (h + 1) * i / rate), 0));
+
+test("pitch detection hears each open string within 2 cents", () => {
+  for (const note of C.TUNINGS.standard.notes.concat(["D2", "Eb2"])) {
+    const f = C.noteFreq(note), got = C.detectPitch(tone(f), 48000);
+    assert.ok(Math.abs(1200 * Math.log2(got / f)) < 2, `${note}: ${got} vs ${f}`);
+  }
+});
+
+test("pitch detection copes with a little noise and a strong overtone", () => {
+  let seed = 1; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 0.04;
+  for (const note of ["E2", "G3", "E4"]) {
+    const f = C.noteFreq(note), buf = tone(f, 44100, 4096, [0.6, 1, 0.4]).map(x => x + rnd());
+    const got = C.detectPitch(buf, 44100);
+    assert.ok(Math.abs(1200 * Math.log2(got / f)) < 3, `${note}: ${got} vs ${f}`);
+  }
+});
+
+test("silence gives no pitch", () => {
+  assert.equal(C.detectPitch(new Float32Array(4096), 48000), -1);
+});
+
+test("a slightly flat A string is read as A, a few cents flat", () => {
+  const s = C.nearestString(C.noteFreq("A2") * 2 ** (-8 / 1200));
+  assert.equal(s.note, "A2");
+  assert.equal(s.cents, -8);
+  assert.equal(C.nearestNote(440).name, "A");
+});
+
+test("a song's tuning is read from its sheet", () => {
+  assert.equal(C.detectTuning("Tuning: Drop D\n[Verse]"), "dropd");
+  assert.equal(C.detectTuning("tuning - D A D G B E"), "dropd");
+  assert.equal(C.detectTuning("Tuning: Eb (half step down)"), "halfdown");
+  assert.equal(C.detectTuning("Tuning: DADGAD"), "dadgad");
+  assert.equal(C.detectTuning("G  C\nla la"), "");
+});
