@@ -161,9 +161,7 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .sheet .c[data-ch]::after { content: ""; position: absolute; inset: -6px -4px; }
 .sheet .c.sel .ct { background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 4px var(--accent-line); }
 /* Chord diagram cards */
-.drow { position: absolute; left: 0; right: 0; height: 0; z-index: 5; pointer-events: none; visibility: hidden; will-change: opacity, transform; }
-.drow.fadeout { transition: opacity .3s, transform .3s; }
-.dcard, .dpop { position: absolute; top: 0; box-sizing: border-box; border-radius: 10px; background: var(--solid); border: 1px solid var(--rim); box-shadow: 0 6px 18px rgba(0,0,0,0.4); display: grid; place-items: center; }
+.dpop { position: absolute; top: 0; box-sizing: border-box; border-radius: 10px; background: var(--solid); border: 1px solid var(--rim); box-shadow: 0 6px 18px rgba(0,0,0,0.4); display: grid; place-items: center; }
 .dpop { z-index: 6; animation: pop .16s ease-out; }
 @keyframes pop { from { opacity: 0; transform: translateY(4px) scale(.96); } }
 .dptr { position: absolute; bottom: -5px; width: 8px; height: 8px; margin-left: -4px; transform: rotate(45deg); background: var(--solid); border-right: 1px solid var(--rim); border-bottom: 1px solid var(--rim); }
@@ -182,7 +180,26 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 /* Tabs: all strings wrap together, a measure at a time */
 .sheet .tab { font-family: var(--mono); font-size: var(--tab-size, 14px); line-height: 1.35; white-space: pre; margin: 0 0 1em; color: var(--fg); }
 .sheet .tab + .tab { margin-top: -0.2em; }
-.player { flex: 1; height: 56px; border-radius: var(--r-bar); display: flex; align-items: center; gap: 12px; padding: 0 8px; }
+.pw { flex: 1; min-width: 0; border-radius: var(--r-bar); overflow: hidden; }
+.player { height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 8px; }
+/* Now and Next: a fixed panel in the dock while playing; only its contents change */
+.nn { display: none; align-items: flex-end; gap: 14px; padding: 12px 14px; border-bottom: 1px solid var(--hair); }
+body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
+@keyframes nnin { from { opacity: 0; } }
+.nn .lab { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--muted); margin: 0 0 6px 2px; }
+.nn .nowcol .lab { color: var(--accent); }
+.nn .vs { width: 1px; align-self: stretch; background: var(--rim); }
+.nn .cards { display: flex; gap: 8px; align-items: flex-end; min-width: 0; overflow: hidden; }
+.nn .card { flex: none; border-radius: 10px; background: var(--solid); border: 1px solid var(--rim); display: grid; place-items: center; box-sizing: border-box; }
+.nn .card svg { display: block; }
+.nn .swap { animation: swap .16s ease-out; }
+@keyframes swap { from { opacity: .3; } }
+.nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
+body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
+/* Current line focus while playing: other lines dim in place (no motion) */
+.sheet > * { transition: opacity .3s; }
+.sheet.focus > *:not(.cur) { opacity: .38; }
+.sheet .c.now .ct { box-shadow: inset 0 -2px 0 var(--accent); }
 .play { width: 40px; height: 40px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; padding: 0; }
 .play svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
 .speed { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
@@ -278,6 +295,7 @@ const I = {
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   upload: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5h16v-5"/>',
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4 14v5h16v-5"/>',
+  focus: '<path d="M4 7h16"/><path d="M4 12h16" stroke-width="2.4"/><path d="M4 17h16"/>',
   fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
@@ -457,6 +475,7 @@ function renderViewer(id) {
   song.opened = Date.now();
   Tabs.save(data);
 
+  app.classList.add("viewer");
   app.innerHTML = `
     <div class="head">
       <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
@@ -481,7 +500,9 @@ function renderViewer(id) {
     <div class="sheet" id="sheet"></div>
     <div class="dock-fade"></div>
     <div class="dock">
-      <div class="player glass float">
+      <div class="pw glass float">
+      <div class="nn" id="nn"></div>
+      <div class="player">
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
         <div class="speed">
           <input type="range" id="speed" min="5" max="100" value="${song.speed}" aria-label="Scroll speed">
@@ -493,6 +514,7 @@ function renderViewer(id) {
           <span class="v" id="val"></span>
           <button class="sb" id="up" aria-label="${isChords ? "Transpose up" : "Larger text"}">${icon("plus")}</button>
         </div>
+      </div>
       </div>
     </div>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
@@ -523,7 +545,7 @@ function renderViewer(id) {
     const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
     renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps : 0, isChords && prefersFlats(baseKey, steps)));
-    layoutDiagrams(sheet, isChords && data.settings.diagrams !== false);
+    layoutDiagrams(sheet, isChords);
     if (isChords) {
       val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
       val.classList.toggle("zero", !steps);
@@ -592,12 +614,12 @@ function renderBlocks(sheet, blocks) {
   });
 }
 // ---------- Chord diagrams ----------
-// Small fingering cards float above each screen row of chords. While auto-scroll
-// plays, a row's cards fade in as it nears the reading line and out once passed.
-// Tapping a chord shows its card anytime.
-const CARD_W = 54, CARD_H = 78, GAP = 4;
+// Paused: tap any chord for its fingering. Playing: a fixed Now and Next panel in
+// the dock shows the chord at the reading line and the ones coming up, and the
+// current line stays bright while the others dim. Nothing moves over the lyrics.
+const CARD_W = 54, CARD_H = 78;
 const READ_AT = 0.4; // reading line, as a share of screen height
-let diag = { rows: [], on: false };
+let diag = { seq: [], blocks: [], idx: null, block: null, nn: true, focus: true };
 
 function chordSVG(name, scale = 1) {
   const c = chordShape(name);
@@ -623,83 +645,72 @@ function chordSVG(name, scale = 1) {
   return `<svg width="${52 * scale}" height="${76 * scale}" viewBox="0 0 52 76" role="img" aria-label="${esc(name)} chord fingering">${g}</svg>`;
 }
 
-// Measure chord labels and build one floating row of cards per screen row.
-function layoutDiagrams(sheet, enabled) {
-  sheet.querySelectorAll(".drow, .dpop").forEach(el => el.remove());
-  diag.rows = [];
-  if (!enabled) return;
-  const box = sheet.getBoundingClientRect();
-  const width = sheet.clientWidth;
-  const rows = [];
-  sheet.querySelectorAll(".c[data-ch]").forEach(el => {
-    const r = el.getBoundingClientRect();
-    const top = r.top - box.top;
-    let row = rows.find(x => Math.abs(x.top - top) < 6);
-    if (!row) rows.push(row = { top, items: [] });
-    if (!row.items.some(it => it.name === el.dataset.ch)) {
-      row.items.push({ name: el.dataset.ch, x: r.left - box.left + Math.min(r.width, 40) / 2 });
-    }
-  });
-  for (const row of rows) {
-    const n = row.items.length;
-    const scale = Math.min(1, Math.max(0.7, (width + GAP) / (n * (CARD_W + GAP))));
-    const w = CARD_W * scale, h = CARD_H * scale;
-    // Start centered over each chord, push right to clear overlaps, then pull back inside the edge.
-    const lefts = row.items.map(it => it.x - w / 2);
-    for (let i = 0; i < n; i++) {
-      if (i === 0) lefts[i] = Math.max(0, lefts[i]);
-      else lefts[i] = Math.max(lefts[i], lefts[i - 1] + w + GAP);
-    }
-    const over = lefts[n - 1] + w - width;
-    if (over > 0) for (let i = n - 1; i >= 0; i--) {
-      const limit = i === n - 1 ? width - w : lefts[i + 1] - w - GAP;
-      lefts[i] = Math.min(lefts[i], limit);
-    }
-    const el = document.createElement("div");
-    el.className = "drow";
-    el.style.top = (row.top - h - 9) + "px";
-    el.innerHTML = row.items.map((it, i) => {
-      const ptr = Math.min(w - 8, Math.max(8, it.x - lefts[i]));
-      return `<div class="dcard" style="left:${lefts[i].toFixed(1)}px;width:${w}px;height:${h}px">${chordSVG(it.name, scale)}<i class="dptr" style="left:${ptr.toFixed(1)}px"></i></div>`;
-    }).join("");
-    sheet.appendChild(el);
-    diag.rows.push({ el, top: row.top, h: h + 9 });
-  }
+// Record every chord label and every line, top to bottom, for the reading line.
+function layoutDiagrams(sheet, isChords) {
+  sheet.querySelectorAll(".dpop").forEach(el => el.remove());
+  const top = sheet.getBoundingClientRect().top;
+  diag.seq = isChords ? [...sheet.querySelectorAll(".c[data-ch]")].map(el => ({
+    el, name: el.dataset.ch, y: el.getBoundingClientRect().top - top
+  })) : [];
+  diag.blocks = [...sheet.children].filter(el => !el.classList.contains("dpop"))
+    .map(el => ({ el, y: el.getBoundingClientRect().top - top }));
+  diag.nn = isChords && data.settings.diagrams !== false && diag.seq.length > 0;
+  diag.focus = data.settings.focus !== false;
+  diag.idx = null; diag.block = null;
   updateDiagrams();
 }
 
-// Fade each row by its distance from the reading line. Pace follows the scroll.
+function card(name, scale, opacity = 1) {
+  return `<div class="card" style="width:${(CARD_W * scale).toFixed(1)}px;height:${(CARD_H * scale).toFixed(1)}px;opacity:${opacity}">${chordSVG(name, scale)}</div>`;
+}
+
 function updateDiagrams() {
   const sheet = $("sheet");
-  if (!sheet || !diag.rows.length) return;
+  const playing = scroll.on && !!sheet;
+  document.body.classList.toggle("nn-on", playing && diag.nn);
+  if (sheet) sheet.classList.toggle("focus", playing && diag.focus);
+  if (!sheet) return;
+  if (!playing) {
+    sheet.querySelectorAll(".c.now").forEach(el => el.classList.remove("now"));
+    sheet.querySelectorAll(".cur").forEach(el => el.classList.remove("cur"));
+    diag.idx = null; diag.block = null;
+    return;
+  }
   const sheetTop = sheet.getBoundingClientRect().top;
   const line = window.innerHeight * READ_AT;
-  const L = 52; // about one chord-and-lyric line
-  // Only the row just passed and the row approaching can show; they cross-fade,
-  // and each also fades by its own distance so far-apart rows don't linger.
-  const rows = diag.rows;
-  const clamp = v => Math.max(0, Math.min(1, v));
-  for (const r of rows) { r.op = 0; r.dy = 0; r.y = sheetTop + r.top; }
-  if (scroll.on) {
-    const k = rows.findIndex(r => r.y >= line);
-    const next = k >= 0 ? rows[k] : null;
-    const prev = k === -1 ? rows[rows.length - 1] : k > 0 ? rows[k - 1] : null;
-    const t = prev && next ? clamp((line - prev.y) / (next.y - prev.y || 1)) : 1;
-    if (next) {
-      next.op = Math.min(clamp(1 - (next.y - line) / (1.5 * L)), prev ? t : 1);
-      next.dy = (1 - next.op) * 6;
-    }
-    if (prev) {
-      prev.op = Math.min(clamp(1 + (prev.y - line) / L), next ? 1 - t : 1);
-      prev.dy = -(1 - prev.op) * 4;
-    }
+
+  // Current line: the last line whose top has reached the reading line.
+  let b = 0;
+  for (let i = 0; i < diag.blocks.length; i++) if (sheetTop + diag.blocks[i].y <= line) b = i;
+  const block = diag.blocks[b]?.el;
+  if (block !== diag.block) {
+    diag.block?.classList.remove("cur");
+    block?.classList.add("cur");
+    diag.block = block;
   }
-  for (const r of rows) {
-    r.op = r.op * r.op * (3 - 2 * r.op); // ease: less time half-transparent over the lyrics
-    r.el.style.opacity = r.op.toFixed(3);
-    r.el.style.transform = `translateY(${r.dy.toFixed(1)}px)`;
-    r.el.style.visibility = r.op > 0.01 ? "visible" : "hidden";
+
+  if (!diag.nn) return;
+  // Current chord: the last chord that has reached the reading line.
+  let idx = 0;
+  for (let i = 0; i < diag.seq.length; i++) if (sheetTop + diag.seq[i].y <= line) idx = i;
+  if (idx === diag.idx) return;
+  diag.seq[diag.idx]?.el.classList.remove("now");
+  diag.idx = idx;
+  const now = diag.seq[idx];
+  now.el.classList.add("now");
+  // Next: the following chords, skipping repeats of the one before.
+  const next = [];
+  let last = now.name;
+  for (let i = idx + 1; i < diag.seq.length && next.length < 3; i++) {
+    if (diag.seq[i].name !== last) { next.push(diag.seq[i].name); last = diag.seq[i].name; }
   }
+  const fade = [0.85, 0.5, 0.28];
+  $("nn").innerHTML = `
+    <div class="nowcol"><div class="lab">NOW</div><div class="swap">${card(now.name, 1.26)}</div></div>
+    <div class="vs"></div>
+    <div style="min-width:0"><div class="lab">NEXT</div>
+      <div class="cards swap">${next.length ? next.map((n, i) => card(n, 1, fade[i])).join("") : `<div class="none">End of song</div>`}</div>
+    </div>`;
 }
 
 // Tap a chord: show its card above it until the next tap.
@@ -722,7 +733,7 @@ function showChordPop(target) {
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet")) return;
   const chord = e.target instanceof Element && e.target.closest(".sheet .c[data-ch]");
-  if (chord && data.settings.diagrams !== false) {
+  if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");
     showChordPop(same ? null : chord);
   } else if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);
@@ -811,9 +822,7 @@ function stopScroll() {
   scroll.lock = null;
   const btn = $("play");
   if (btn) { btn.innerHTML = icon("play"); btn.setAttribute("aria-label", "Start auto-scroll"); }
-  document.querySelectorAll(".drow").forEach(el => el.classList.add("fadeout"));
   updateDiagrams();
-  setTimeout(() => document.querySelectorAll(".drow").forEach(el => el.classList.remove("fadeout")), 300);
 }
 
 // ---------- Add / Edit sheet ----------
@@ -942,11 +951,15 @@ function renderSettings() {
         </select>
       </div>
       <div class="set">
-        <span class="tile">${icon("fretboard")}</span><span class="name">Chord diagrams</span>
-        <button class="toggle ${s.diagrams !== false ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams !== false}" aria-label="Chord diagrams"></button>
+        <span class="tile">${icon("fretboard")}</span><span class="name">Now and Next chords</span>
+        <button class="toggle ${s.diagrams !== false ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams !== false}" aria-label="Now and Next chords"></button>
+      </div>
+      <div class="set">
+        <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span>
+        <button class="toggle ${s.focus !== false ? "on" : ""}" id="s-focus" role="switch" aria-checked="${s.focus !== false}" aria-label="Focus current line"></button>
       </div>
     </div>
-    <p class="foot" style="margin-top:10px">Chord diagrams appear above each line as it reaches you while scrolling. Tap any chord to see its fingering anytime.</p>
+    <p class="foot" style="margin-top:10px">While playing, the chord you're on and the next ones show above the controls, and the current line stays bright. When paused, tap any chord to see its fingering.</p>
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
@@ -965,6 +978,7 @@ function renderSettings() {
   $("s-speed").onchange = e => { s.scrollSpeed = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams === false; Tabs.save(data); renderSettings(); };
+  $("s-focus").onclick = () => { s.focus = s.focus === false; Tabs.save(data); renderSettings(); };
   $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-export").onclick = async () => {
     const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -998,6 +1012,7 @@ function renderSettings() {
 // ---------- Router ----------
 function render() {
   stopScroll();
+  app.classList.remove("viewer");
   const r = route();
   if (r.name !== "add" && r.name !== "edit") layer.innerHTML = "";
   if (r.name === "song") renderViewer(r.id);

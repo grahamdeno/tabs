@@ -22,7 +22,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Transpose per song, with sharps or flats chosen by the resulting key
 - Lyrics wrap to the screen at full size, with each chord riding on its word; words never split
 - Tabs wrap a measure at a time, all strings together, with string names on every row
-- Chord diagrams: while auto-scrolling, fingering cards fade in above each row of chords as it reaches the reading line, placed over their chords; tap any chord to see its fingering anytime (switch in Settings)
+- Chord diagrams: while playing, a fixed Now and Next panel above the controls shows the chord at the reading line and the next ones, and the current line stays bright while others dim; when paused, tap any chord for its fingering (both switchable in Settings)
 - Add and edit in a slide-up sheet; delete from edit
 - Settings (gear, top right): scroll speed, default transpose, dark/light mode, backup
 - Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
