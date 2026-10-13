@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="Tabs">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Tabs</title>
+<!-- Only this app's own files run. Network: the Anthropic API (your own key) and Apple's
+     song search; images: album art from Apple. Inline styles are allowed for layout. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.mzstatic.com; connect-src 'self' https://api.anthropic.com https://itunes.apple.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="modulepreload" href="core.js">
 <link rel="modulepreload" href="app.js">
 <!-- VERSION (core.js) and CACHE (sw.js) are bumped automatically on push to main; see README, Releases. -->

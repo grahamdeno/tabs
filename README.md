@@ -87,7 +87,7 @@ Settings > AI help > paste an Anthropic API key > Save key. Without a key the ap
 The key is stored in the browser's local storage and sent directly from the phone to `api.anthropic.com`, using Anthropic's header for browser access. That is a reasonable trade for a personal app with no server, but it has limits worth knowing:
 
 - Anyone with the unlocked phone can read the key from Settings.
-- Any script that ran on this page could read it. The app loads no third-party scripts and escapes all user text before display, which keeps that risk low, but it is not zero.
+- Any script that ran on this page could read it. The app loads no third-party scripts, escapes all user text before display, and sets a content security policy: only the app's own scripts run, the page can only talk to `api.anthropic.com` and Apple's song search, and images only come from the app, your photos and Apple's album art. That keeps the risk low, but it is not zero.
 
 So use a key made only for Tabs, and in the Anthropic Console give its workspace a low monthly spend limit. If the phone is lost, revoke the key in the Console. Removing it in Settings only clears it from this phone. The key is not included in backups.
 
@@ -95,9 +95,18 @@ So use a key made only for Tabs, and in the Anthropic Console give its workspace
 
 Open `index.html` through any static server (ES modules need http, not file://). Data lives in `localStorage` under `tabs-v1`. Older tab-only saves are migrated automatically.
 
+Layout, with no build step:
+
+- `index.html`: the page shell and content security policy.
+- `styles.css`: all styles.
+- `core.js`: data, parsing, transposing and other logic with no screen code (unit tested).
+- `app.js`: the screens. Features register their own tidy-up for leaving a screen (`onLeave`) and their scroll work (`onScroll`, one listener, once per frame).
+- Loaded on first use: `tuner.js`, `findai.js` (find songs, chord charts, what to learn next), `aitools.js` (Make it easier, Spark tone), `crop.js` (cover photo framing).
+- `sw.js`: the offline copy; it lists every app file, and a test checks the list.
+
 Releases: `VERSION` in `core.js` and `CACHE` in `sw.js` must match (a test checks). You don't need to bump them by hand: when app files change on `main` without a bump, the `bump version` workflow raises the patch number in both and commits it. Bump by hand only for a minor or major release. The app opens from its saved copy, so a change only reaches installed apps through a new cache name. On the next launch, or when the app comes back to the foreground, it saves the new release in the background and offers to reload.
 
-Tests: `node --test` (Node 18 or later, no dependencies) runs the unit tests. Browser tests run the real app in a phone-sized Chromium: `npm i --no-save playwright && npx playwright install chromium`, then `node --test tests/e2e/app.e2e.mjs`. They cover chord parsing, transposing, wrapping and fingerings, the library data, the version matching the service worker cache, and that the app script parses. GitHub Actions runs both on every push to `main`.
+Tests: `node --test` (Node 18 or later, no dependencies) runs the unit tests. Browser tests run the real app in a phone-sized Chromium: `npm i --no-save playwright && npx playwright install chromium`, then `node --test tests/e2e/app.e2e.mjs`. They cover chord parsing, transposing, wrapping and fingerings, the library data, the version matching the service worker cache, and that the app script parses. GitHub Actions runs both on every push to `main`, plus ESLint (`npx eslint .`) for undefined or unused names.
 
 ## License
 

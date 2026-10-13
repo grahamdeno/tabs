@@ -65,6 +65,7 @@ async function phone(t, lib = LIB, opts = {}) {
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(String(e)));
+  page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
   await page.goto(base);
   await page.waitForTimeout(300);
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), lib);
@@ -160,4 +161,27 @@ test("settings render and the theme switches", { skip: skip() }, async t => {
   await page.click("#s-theme");
   await page.waitForTimeout(200);
   assert.notEqual(await page.evaluate(() => document.documentElement.dataset.theme), before);
+});
+
+test("security policy allows Apple art, the Anthropic API and song search, and nothing else", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const blocked = [];
+  page.removeAllListeners("console");
+  page.on("console", m => { if (/Content Security Policy/i.test(m.text())) blocked.push(m.text()); });
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+  await page.route(/mzstatic\.com|example\.com\/.*\.png/, r => r.fulfill({ status: 200, contentType: "image/png", body: png }));
+  await page.route(/api\.anthropic\.com|itunes\.apple\.com|example\.com\/api/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" }));
+  const res = await page.evaluate(async () => {
+    const img = src => new Promise(ok => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = src; });
+    const get = url => fetch(url).then(() => true, () => false);
+    return {
+      art: await img("https://is1-ssl.mzstatic.com/image/thumb/x/100x100bb.png"),
+      otherImg: await img("https://example.com/pixel.png"),
+      anthropic: await get("https://api.anthropic.com/v1/messages"),
+      itunes: await get("https://itunes.apple.com/search?term=x"),
+      other: await get("https://example.com/api")
+    };
+  });
+  assert.deepEqual(res, { art: true, otherImg: false, anthropic: true, itunes: true, other: false });
+  assert.ok(blocked.length >= 2, "blocked requests are reported");
 });
