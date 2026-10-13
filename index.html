@@ -409,6 +409,15 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.qcancel { display: none; border: 0; background: none; color: var(--accent); font-size: 16px; padding: 0 4px 0 6px; flex: none; }
+body.searching .head, body.searching .weekly, body.searching #chips, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none !important; }
+body.searching .qcancel { display: block; }
+body.searching .dock { top: calc(10px + var(--safe-t)); bottom: auto; transform: translateX(-50%) !important; animation: totop .28s cubic-bezier(.2,.8,.2,1); }
+body.searching #list { padding-top: 52px; }
+body.searching #list > .label:first-child { margin-top: 8px; }
+@keyframes totop { from { opacity: 0; transform: translate(-50%, 24px); } }
+@media (prefers-reduced-motion: reduce) { body.searching .dock { animation: none; } }
+
 .cebar .seg { flex: 0 0 160px; }
 .cebar { justify-content: space-between; }
 .ed-title { width: 100%; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--rim); border-radius: 12px; padding: 4px 10px; letter-spacing: inherit; }
@@ -636,6 +645,11 @@ const $ = id => document.getElementById(id);
 let data = Tabs.load();
 let query = "";
 let filter = "all";
+// Search mode: tapping the bar moves it to the top and folds the library away, so
+// results sit between the bar and the keyboard. (iPhone doesn't resize the page
+// for the keyboard; it pushes the page up instead, which hid results at the top.)
+let searching = false;
+let keepSearch = false; /* back from a song opened from results: show the results again */
 let draft = null; // prefilled fields for the add sheet
 const app = $("app");
 const layer = $("layer");
@@ -706,6 +720,7 @@ const keyOf = s => s.format === "tab" ? "TAB" : (s.key || guessKey(s.body || "")
 function followKeyboard() {
   const vv = window.visualViewport;
   if (!vv) return;
+  if (searching) { document.querySelectorAll(".kb").forEach(el => { el.style.transform = ""; }); return; }
   const off = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
   document.querySelectorAll(".kb").forEach(el => {
     el.style.transform = `translate(-50%, ${-off}px)`;
@@ -791,6 +806,7 @@ function renderLibrary() {
         <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
       </label>
       <button class="add" id="add" aria-label="Add song">${icon("plus")}</button>
+      <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   $("settings").onclick = () => go("#/settings");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
@@ -799,6 +815,33 @@ function renderLibrary() {
   $("add").onclick = () => { draft = null; go("#/add"); };
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
   const q = $("q");
+  const enterSearch = () => {
+    if (searching) return;
+    searching = true;
+    document.body.classList.add("searching");
+    window.scrollTo(0, 0);
+    renderList();
+  };
+  const exitSearch = () => {
+    searching = false;
+    query = ""; q.value = ""; $("clear").hidden = true;
+    document.body.classList.remove("searching");
+    q.blur();
+    renderLibrary();
+  };
+  /* Move the bar before the keyboard opens, so iPhone has nothing to push up. */
+  q.addEventListener("pointerdown", e => {
+    if (searching) return;
+    e.preventDefault();
+    enterSearch();
+    q.focus({ preventScroll: true });
+  });
+  q.addEventListener("focus", () => { enterSearch(); window.scrollTo(0, 0); });
+  q.addEventListener("blur", () => setTimeout(() => { if (searching && !query.trim() && document.activeElement !== q && route().name === "library" && !layer.innerHTML) exitSearch(); }, 200));
+  $("qcancel").onclick = e => { e.preventDefault(); exitSearch(); };
+  if (keepSearch && query.trim()) searching = true;
+  keepSearch = false;
+  if (searching) document.body.classList.add("searching");
   q.oninput = () => { query = q.value; $("clear").hidden = !query; renderList(); };
   q.onkeydown = e => {
     if (e.key !== "Enter") return;
@@ -827,7 +870,9 @@ const SORTS = { title: "A–Z", recent: "Recently played", most: "Most played", 
 function lyricHit(line, q) {
   const i = line.toLowerCase().indexOf(q.trim().toLowerCase());
   if (i < 0) return `“${esc(line)}”`;
-  const n = q.trim().length, from = Math.max(0, i - 24);
+  const n = q.trim().length;
+  let from = Math.max(0, i - 24);
+  if (from) { const sp = line.indexOf(" ", from); from = sp >= 0 && sp < i ? sp + 1 : from; } /* start on a whole word */
   return `“${from ? "…" : ""}${esc(line.slice(from, i))}<mark>${esc(line.slice(i, i + n))}</mark>${esc(line.slice(i + n))}”`;
 }
 function songRow(s, hit) {
@@ -850,7 +895,7 @@ function renderList() {
     return;
   }
   const q = query.trim().toLowerCase();
-  if (filter === "sets") {
+  if (filter === "sets" && !searching) {
     const sets = data.sets.filter(x => !q || x.name.toLowerCase().includes(q));
     list.innerHTML = `
       <div class="label">Sets</div>
@@ -865,7 +910,16 @@ function renderList() {
     $("newset").onclick = () => { const name = prompt("Name this set", "New set"); if (name === null) return; const x = Tabs.addSet(data, name.trim() || "New set"); go("#/set/" + encodeURIComponent(x.id)); };
     return;
   }
-  const pool = data.songs.filter(s =>
+  if (searching && !q) {
+    /* Before typing: recently played songs, ready to tap. */
+    const recentSongs = sortSongs(data.songs.filter(s => lastPlayed(s)), "recent").slice(0, 8);
+    const shown = recentSongs.length ? recentSongs : sortSongs(data.songs, "title");
+    list.innerHTML = `<div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>
+      <p class="empty-hint" style="margin-top:12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>`;
+    bindRows(list);
+    return;
+  }
+  const pool = searching ? data.songs : data.songs.filter(s =>
     (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning"));
   /* Searching: title and artist matches first, then songs whose lyrics have the words. */
   const found = q ? searchSongs(pool, q) : null;
@@ -885,8 +939,12 @@ function renderList() {
       <label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>` : `<div class="empty">No matches for "${esc(query)}" in titles, artists or lyrics.<br>To add a song, paste its chord sheet into this bar.</div>`}`;
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
+  bindRows(list);
+}
+function bindRows(list) {
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
     setCtx = null;
+    if (searching) { keepSearch = !!query.trim(); searching = false; document.body.classList.remove("searching"); }
     // Name this row's title so it glides into the song header.
     list.querySelectorAll("[data-id], .t").forEach(t => t.style.viewTransitionName = "");
     el.querySelector(".t").style.viewTransitionName = "song-title";
@@ -3200,6 +3258,7 @@ function showTips(name) {
 // ---------- Router ----------
 function render() {
   closeTuner();
+  if (route().name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); }
   if (chordEdit) { chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); $("ed-details")?.remove(); }
   document.querySelector(".smap")?.remove(); map.el = null;
   stopScroll();
