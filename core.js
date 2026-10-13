@@ -893,24 +893,22 @@ export function searchSongs(songs, query) {
   return [...named, ...sung];
 }
 export const lastPlayed = s => Math.max(s.opened || 0, s.playLog?.last || 0, ...(s.plays || []));
-const KEY_ORDER = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
-const keyRank = k => {
-  const m = /^([A-G][#b]?)(m?)/.exec(k || "");
-  return m ? KEY_ORDER.indexOf(m[1]) * 2 + (m[2] ? 1 : 0) : 999;
-};
-// mode: "title" | "recent" | "most" | "key". keyOf gives a song's key.
+// mode: "title" | "artist" | "recent" | "most". By artist ignores a leading
+// "The" (The Wanderers files under W) and puts songs with no artist last.
+export const artistSortName = s => String(s.artist || "").replace(/^the\s+/i, "").trim();
 // The letter a title files under in the A–Z index: accents dropped, digits and
 // symbols under "#".
 export function indexLetter(title) {
   const c = String(title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().charAt(0).toUpperCase();
   return /[A-Z]/.test(c) ? c : "#";
 }
-export function sortSongs(songs, mode, keyOf = s => s.key) {
+export function sortSongs(songs, mode) {
   const byTitle = (a, b) => a.title.localeCompare(b.title);
+  const byArtist = (a, b) => { const x = artistSortName(a), y = artistSortName(b); return (!x - !y) || x.localeCompare(y) || byTitle(a, b); };
   const cmp = {
     recent: (a, b) => lastPlayed(b) - lastPlayed(a) || byTitle(a, b),
     most: (a, b) => playCount(b) - playCount(a) || byTitle(a, b),
-    key: (a, b) => keyRank(keyOf(a)) - keyRank(keyOf(b)) || byTitle(a, b)
+    artist: byArtist
   }[mode] || byTitle;
   return [...songs].sort(cmp);
 }

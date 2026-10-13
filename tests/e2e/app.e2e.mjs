@@ -469,3 +469,10 @@ test("song, artist and set names are shown as text, never run as markup", { skip
   assert.equal(await page.evaluate(() => window.__x), undefined);
   assert.equal(await page.locator("img[src=x]").count(), 0);
 });
+
+test("All songs sorts by artist", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, { id: "c", title: "Anchor", artist: "Zed", body: "G\nla" }] });
+  assert.deepEqual(await page.$$eval("#sort option", o => o.map(x => x.textContent)), ["A–Z", "Artist", "Recently played", "Most played"]);
+  await page.selectOption("#sort", "artist"); await page.waitForTimeout(300);
+  assert.deepEqual(await page.$$eval("#list .row .t", r => r.map(x => x.textContent)), ["Harbor Lights", "River Road", "Anchor"]);
+});

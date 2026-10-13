@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, lengthChoice, fitLength, VERSION } from "./core.js";
+import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION } from "./core.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
@@ -201,7 +201,7 @@ function bindShelf() {
 }
 
 const STATUS = { learning: "Learning", got: "Got it" };
-const SORTS = { title: "A–Z", recent: "Recently played", most: "Most played", key: "Key" };
+const SORTS = { title: "A–Z", artist: "Artist", recent: "Recently played", most: "Most played" };
 // A lyric that matched the search, with the matching words marked.
 function lyricHit(line, q) {
   const i = line.toLowerCase().indexOf(q.trim().toLowerCase());
@@ -240,11 +240,11 @@ function moreFilters() {
 function bindIndex(list, sorted, sort) {
   document.querySelector(".azx")?.remove();
   document.body.classList.remove("has-azx");
-  if (sort !== "title" || sorted.length < 25 || searching) return;
+  if (!["title", "artist"].includes(sort) || sorted.length < 25 || searching) return;
   const firsts = new Map();
   list.querySelectorAll(".list [data-id]").forEach(row => {
     const song = sorted.find(x => x.id === row.dataset.id);
-    const L = indexLetter(song?.title);
+    const L = song ? indexLetter(sort === "artist" ? artistSortName(song) || "#" : song.title) : "#";
     if (!firsts.has(L)) firsts.set(L, row);
   });
   const letters = [..."#ABCDEFGHIJKLMNOPQRSTUVWXYZ"].filter(L => firsts.has(L));
@@ -319,7 +319,7 @@ function renderList() {
   const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
   const recent = !q && filter === "all" && sort !== "recent" && data.songs.length >= 4 && !data.sets.length
     ? data.songs.filter(s => s.opened).sort((a, b) => b.opened - a.opened).slice(0, 2) : [];
-  const sorted = found ? found.map(x => x.song) : sortSongs(pool, sort, keyOf);
+  const sorted = found ? found.map(x => x.song) : sortSongs(pool, sort);
   const hits = new Map((found || []).filter(x => x.line).map(x => [x.song.id, lyricHit(x.line, q)]));
 
   list.innerHTML = `

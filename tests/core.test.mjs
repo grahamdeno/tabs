@@ -208,10 +208,11 @@ test("search ignores chord lines and inline chords", () => {
   assert.equal(C.searchSongs(lib, "lights on the water")[0].song.id, "2");
 });
 
-test("library sorts by recent, most played and key", () => {
+test("library sorts by recent, most played and artist", () => {
   assert.deepEqual(C.sortSongs(lib, "recent").map(s => s.id), ["3", "2", "1"]);
   assert.deepEqual(C.sortSongs(lib, "most").map(s => s.id), ["1", "2", "3"]);
-  assert.deepEqual(C.sortSongs(lib, "key").map(s => s.id), ["3", "2", "1"]);
+  const band = [{ id: "a", title: "Z", artist: "The Wanderers" }, { id: "b", title: "B", artist: "" }, { id: "c", title: "Y", artist: "abba" }, { id: "d", title: "A", artist: "Wanderers" }];
+  assert.deepEqual(C.sortSongs(band, "artist").map(s => s.id), ["c", "d", "a", "b"], "The is ignored, no artist goes last, then by title");
   assert.deepEqual(C.sortSongs(lib, "title").map(s => s.id), ["3", "2", "1"]);
 });
 
