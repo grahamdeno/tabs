@@ -5,7 +5,7 @@ const STORAGE_KEY = "tabs-v1";
 
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
-const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0 };
+const DEFAULT_SETTINGS = { theme: "dark", scrollSpeed: "medium", transpose: 0, diagrams: true };
 
 function blank() {
   return { songs: [], settings: { ...DEFAULT_SETTINGS } };
@@ -429,4 +429,119 @@ export function parseSheet(text, steps = 0, flats = false) {
     else out.push({ kind: "lyric", text: line });
   }
   return out;
+}
+
+// ---------- Chord fingerings ----------
+// Strings run low E → high e. Frets: -1 muted, 0 open, n fretted. Fingers: 0 none, 1-4.
+
+const OPEN = {
+  "C": ["x32010", "032010"], "C7": ["x32310", "032410"], "Cmaj7": ["x32000", "032000"], "Cadd9": ["x32030", "021030"],
+  "Csus4": ["x33011", "034011"],
+  "D": ["xx0232", "000132"], "Dm": ["xx0231", "000231"], "D7": ["xx0212", "000213"], "Dm7": ["xx0211", "000211"],
+  "Dmaj7": ["xx0222", "000111"], "Dsus2": ["xx0230", "000130"], "Dsus4": ["xx0233", "000134"], "D6": ["xx0202", "000102"],
+  "E": ["022100", "023100"], "Em": ["022000", "023000"], "E7": ["020100", "020100"], "Em7": ["020000", "020000"],
+  "Emaj7": ["021100", "031200"], "Esus4": ["022200", "023400"], "E5": ["022xxx", "012000"],
+  "G": ["320003", "210003"], "G7": ["320001", "320001"], "Gmaj7": ["320002", "320001"], "G6": ["320000", "210000"],
+  "Gsus4": ["330013", "230014"], "Gadd9": ["300203", "200103"],
+  "A": ["x02220", "001230"], "Am": ["x02210", "002310"], "A7": ["x02020", "002030"], "Am7": ["x02010", "002010"],
+  "Amaj7": ["x02120", "002130"], "Asus2": ["x02200", "001200"], "Asus4": ["x02230", "001230"], "A5": ["x022xx", "001200"],
+  "B7": ["x21202", "021304"], "Fmaj7": ["xx3210", "003210"]
+};
+
+// Movable shapes as fret offsets from the root fret (null = muted) with fingers.
+const E_SHAPE = {
+  "":     [[0, 2, 2, 1, 0, 0], [1, 3, 4, 2, 1, 1], true],
+  "m":    [[0, 2, 2, 0, 0, 0], [1, 3, 4, 1, 1, 1], true],
+  "7":    [[0, 2, 0, 1, 0, 0], [1, 3, 1, 2, 1, 1], true],
+  "m7":   [[0, 2, 0, 0, 0, 0], [1, 3, 1, 1, 1, 1], true],
+  "maj7": [[0, null, 1, 1, 0, null], [1, 0, 3, 4, 2, 0], false],
+  "sus4": [[0, 2, 2, 2, 0, 0], [1, 2, 3, 4, 1, 1], true],
+  "7sus4": [[0, 2, 0, 2, 0, 0], [1, 3, 1, 4, 1, 1], true],
+  "5":    [[0, 2, 2, null, null, null], [1, 3, 4, 0, 0, 0], false]
+};
+const A_SHAPE = {
+  "":     [[null, 0, 2, 2, 2, 0], [0, 1, 2, 3, 4, 1], true],
+  "m":    [[null, 0, 2, 2, 1, 0], [0, 1, 3, 4, 2, 1], true],
+  "7":    [[null, 0, 2, 0, 2, 0], [0, 1, 3, 1, 4, 1], true],
+  "m7":   [[null, 0, 2, 0, 1, 0], [0, 1, 3, 1, 2, 1], true],
+  "maj7": [[null, 0, 2, 1, 2, 0], [0, 1, 3, 2, 4, 1], true],
+  "sus2": [[null, 0, 2, 2, 0, 0], [0, 1, 3, 4, 1, 1], true],
+  "sus4": [[null, 0, 2, 2, 3, 0], [0, 1, 2, 3, 4, 1], true],
+  "7sus4": [[null, 0, 2, 0, 3, 0], [0, 1, 3, 1, 4, 1], true],
+  "dim":  [[null, 0, 1, 2, 1, null], [0, 1, 2, 4, 3, 0], false],
+  "m7b5": [[null, 0, 1, 0, 1, null], [0, 1, 3, 2, 4, 0], false],
+  "6":    [[null, 0, 2, 2, 2, 2], [0, 1, 3, 3, 3, 3], false],
+  "5":    [[null, 0, 2, 2, null, null], [0, 1, 3, 4, 0, 0], false]
+};
+
+// Reduce a chord's quality to one of the shapes above.
+function quality(q) {
+  q = q.replace(/\(([^)]*)\)/g, "$1");
+  if (/^(m7b5|ø7?|min7b5|-7b5)/.test(q)) return "m7b5";
+  if (/^(dim|°)/.test(q)) return "dim";
+  if (/^(maj7|M7|maj9|Δ)/.test(q)) return "maj7";
+  if (/^(m7|min7|-7|m9|m11)/.test(q)) return "m7";
+  if (/^(m6|min6)/.test(q)) return "m";
+  if (/^(m|min|-)(?!aj)/.test(q)) return "m";
+  if (/^(7sus4|7sus)/.test(q)) return "7sus4";
+  if (/^(sus2)/.test(q)) return "sus2";
+  if (/^(sus4|sus)/.test(q)) return "sus4";
+  if (/^(7|9|11|13)/.test(q)) return "7";
+  if (/^6/.test(q)) return "6";
+  if (/^5$/.test(q)) return "5";
+  if (/^add9|^add2/.test(q)) return "add9";
+  return "";
+}
+
+const ROOTS = { C: 0, "B#": 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, Fb: 4, "E#": 5, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11, Cb: 11 };
+const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+function fromStrings(frets, fingers) {
+  return { frets: [...frets].map(c => c === "x" ? -1 : +c), fingers: [...fingers].map(Number) };
+}
+
+function finish(shape) {
+  const played = shape.frets.filter(f => f > 0);
+  const max = played.length ? Math.max(...played) : 0;
+  const min = played.length ? Math.min(...played) : 0;
+  // A barre is the index finger on every string at the lowest fret.
+  if (!shape.barre) {
+    const idx = shape.fingers.map((f, i) => f === 1 && shape.frets[i] === min ? i : -1).filter(i => i >= 0);
+    if (idx.length >= 3) shape.barre = { fret: min, from: idx[0], to: idx[idx.length - 1] };
+  }
+  // Barre chords up the neck show their fret number; open shapes show the nut.
+  shape.base = max <= 4 && !(shape.barre && min > 1) ? 1 : min;
+  return shape;
+}
+
+// Fingering for a chord name such as "F#m", "Bb7", "D/F#". Returns null if unknown.
+export function chordShape(name) {
+  const m = String(name).match(/^([A-G][#b]?)([^/]*)(?:\/.*)?$/);
+  if (!m || ROOTS[m[1]] === undefined) return null;
+  const root = ROOTS[m[1]];
+  let q = quality(m[2]);
+  const sharpRoot = SHARP_NAMES[root];
+  const flatRoot = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"][root];
+  const qName = { "": "", m: "m", "7": "7", m7: "m7", maj7: "maj7", sus2: "sus2", sus4: "sus4", "7sus4": "7sus4", dim: "dim", m7b5: "m7b5", "6": "6", "5": "5", add9: "add9" }[q];
+  for (const r of [sharpRoot, flatRoot, m[1]]) {
+    const hit = OPEN[r + qName];
+    if (hit) return finish(fromStrings(hit[0], hit[1]));
+  }
+  if (q === "add9") q = "";
+  if (q === "sus2" && !A_SHAPE.sus2) q = "";
+  const options = [];
+  const eFret = ((root - 4) + 12) % 12 || 12;
+  const aFret = ((root - 9) + 12) % 12 || 12;
+  if (E_SHAPE[q]) options.push([E_SHAPE[q], eFret]);
+  if (A_SHAPE[q]) options.push([A_SHAPE[q], aFret]);
+  if (!options.length) options.push([E_SHAPE[q.startsWith("m") ? "m" : ""], eFret]);
+  options.sort((a, b) => a[1] - b[1]);
+  const [[offs, fingers, barre], r] = options[0];
+  const frets = offs.map(o => o === null ? -1 : o + r);
+  const shape = { frets, fingers: fingers.slice() };
+  if (barre) {
+    const strings = offs.map((o, i) => o === 0 ? i : -1).filter(i => i >= 0);
+    shape.barre = { fret: r, from: strings[0], to: 5 };
+  }
+  return finish(shape);
 }

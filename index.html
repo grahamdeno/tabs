@@ -156,7 +156,27 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .sheet .sg > .c { display: block; line-height: 1.25; padding-right: 0.45em; min-height: 1.25em; }
 .sheet .sg > .l { white-space: pre; }
 .sheet .sg.free > .c { width: 0; overflow: visible; white-space: nowrap; padding-right: 0; }
-.sheet { overflow-x: clip; }
+.sheet { overflow-x: clip; position: relative; }
+.sheet .c[data-ch] { cursor: pointer; position: relative; }
+.sheet .c[data-ch]::after { content: ""; position: absolute; inset: -6px -4px; }
+.sheet .c.sel .ct { background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 4px var(--accent-line); }
+/* Chord diagram cards */
+.drow { position: absolute; left: 0; right: 0; height: 0; z-index: 5; pointer-events: none; visibility: hidden; will-change: opacity, transform; }
+.drow.fadeout { transition: opacity .3s, transform .3s; }
+.dcard, .dpop { position: absolute; top: 0; box-sizing: border-box; border-radius: 10px; background: var(--solid); border: 1px solid var(--rim); box-shadow: 0 6px 18px rgba(0,0,0,0.4); display: grid; place-items: center; }
+.dpop { z-index: 6; animation: pop .16s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translateY(4px) scale(.96); } }
+.dptr { position: absolute; bottom: -5px; width: 8px; height: 8px; margin-left: -4px; transform: rotate(45deg); background: var(--solid); border-right: 1px solid var(--rim); border-bottom: 1px solid var(--rim); }
+.dcard svg, .dpop svg { display: block; }
+.dn { font: 600 10.5px var(--sans); fill: var(--fg); }
+.dx { stroke: var(--muted); stroke-width: 1.1; stroke-linecap: round; fill: none; }
+.do { fill: none; stroke: var(--fg-2); stroke-width: 1; }
+.dnut { fill: var(--fg); }
+.df { stroke: var(--fg); stroke-opacity: .38; stroke-width: .8; }
+.ds { stroke: var(--fg); stroke-opacity: .55; stroke-width: .8; }
+.dd { fill: var(--accent); }
+.dk { font: 700 5.4px var(--sans); fill: var(--on-accent); }
+.db { font: 7px var(--sans); fill: var(--muted); }
 .sheet .c { color: var(--accent); font-weight: 650; font-size: 0.88em; letter-spacing: 0.01em; }
 .sheet .crow { display: flex; flex-wrap: wrap; column-gap: 1.1em; row-gap: 0.2em; margin: 0 0 0.55em; }
 /* Tabs: all strings wrap together, a measure at a time */
@@ -240,7 +260,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste } from "./core.js";
+import { Tabs, SPEEDS, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -258,6 +278,7 @@ const I = {
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   upload: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5h16v-5"/>',
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4 14v5h16v-5"/>',
+  fretboard: '<path d="M6 4h12M6 4v16M10 4v16M14 4v16M18 4v16M6 9h12M6 14h12"/><circle cx="10" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14" cy="16.5" r="1.4" fill="currentColor"/>',
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
   play: '<path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/>',
@@ -502,6 +523,7 @@ function renderViewer(id) {
     const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
     renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps : 0, isChords && prefersFlats(baseKey, steps)));
+    layoutDiagrams(sheet, isChords && data.settings.diagrams !== false);
     if (isChords) {
       val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
       val.classList.toggle("zero", !steps);
@@ -537,15 +559,19 @@ function renderViewer(id) {
 // Render display blocks. Chord/lyric pairs wrap between words with chords riding
 // on their word; tab systems are re-wrapped by measure to the screen width.
 let redraw = null;
+function chordLabel(text) {
+  const name = String(text).split(/\s+/)[0].replace(/^\(|\)$/g, "");
+  return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : `<span class="c">${esc(text)}</span>`;
+}
 function renderBlocks(sheet, blocks) {
   const word = w => w.space ? " " : `<span class="w">${w.parts.map(p => p.chord
-    ? `<span class="sg${p.free ? " free" : ""}"><span class="c">${esc(p.chord)}</span><span class="l">${esc(p.text)}</span></span>`
+    ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord)}<span class="l">${esc(p.text)}</span></span>`
     : esc(p.text)).join("")}</span>`;
   sheet.innerHTML = blocks.map((b, i) => {
     if (b.kind === "section") return `<div class="sec">${esc(b.text)}</div>`;
     if (b.kind === "blank") return `<div class="gap"></div>`;
     if (b.kind === "lyric") return `<div class="ly">${esc(b.text)}</div>`;
-    if (b.kind === "chords") return `<div class="crow">${b.items.map(c => `<span class="c">${esc(c)}</span>`).join("")}</div>`;
+    if (b.kind === "chords") return `<div class="crow">${b.items.map(chordLabel).join("")}</div>`;
     if (b.kind === "pair") return `<div class="pr">${b.words.map(word).join("")}</div>`;
     return `<div class="tabsys" data-i="${i}"></div>`;
   }).join("");
@@ -565,6 +591,143 @@ function renderBlocks(sheet, blocks) {
       .map(rows => `<div class="tab">${rows.map(esc).join("\n")}</div>`).join("");
   });
 }
+// ---------- Chord diagrams ----------
+// Small fingering cards float above each screen row of chords. While auto-scroll
+// plays, a row's cards fade in as it nears the reading line and out once passed.
+// Tapping a chord shows its card anytime.
+const CARD_W = 54, CARD_H = 78, GAP = 4;
+const READ_AT = 0.4; // reading line, as a share of screen height
+let diag = { rows: [], on: false };
+
+function chordSVG(name, scale = 1) {
+  const c = chordShape(name);
+  if (!c) return "";
+  const sx = i => 9 + i * 7.2, top = 30, fh = 10, base = c.base || 1;
+  const rowY = f => top + (f - base + 0.5) * fh;
+  let g = `<text x="26" y="13" text-anchor="middle" class="dn">${esc(name)}</text>`;
+  c.frets.forEach((f, i) => {
+    if (f < 0) g += `<path class="dx" d="M${sx(i) - 2.4} 21.5L${sx(i) + 2.4} 26.5M${sx(i) + 2.4} 21.5L${sx(i) - 2.4} 26.5"/>`;
+    else if (f === 0) g += `<circle class="do" cx="${sx(i)}" cy="24" r="2.4"/>`;
+  });
+  if (base === 1) g += `<rect class="dnut" x="8" y="28.5" width="37.5" height="2.2" rx=".6"/>`;
+  for (let k = 0; k <= 4; k++) g += `<line class="df" x1="9" y1="${top + k * fh}" x2="45" y2="${top + k * fh}"/>`;
+  for (let i = 0; i < 6; i++) g += `<line class="ds" x1="${sx(i)}" y1="30" x2="${sx(i)}" y2="70"/>`;
+  const b = c.barre;
+  if (b) g += `<rect class="dd" x="${sx(b.from) - 3.5}" y="${rowY(b.fret) - 3.5}" width="${sx(b.to) - sx(b.from) + 7}" height="7" rx="3.5"/>`;
+  c.frets.forEach((f, i) => {
+    if (f <= 0 || (b && f === b.fret && i >= b.from && i <= b.to && c.fingers[i] === 1)) return;
+    g += `<circle class="dd" cx="${sx(i)}" cy="${rowY(f)}" r="3.7"/>`;
+    if (c.fingers[i]) g += `<text class="dk" x="${sx(i)}" y="${rowY(f) + 1.9}" text-anchor="middle">${c.fingers[i]}</text>`;
+  });
+  if (base > 1) g += `<text class="db" x="48" y="${rowY(base) + 2.4}">${base}</text>`;
+  return `<svg width="${52 * scale}" height="${76 * scale}" viewBox="0 0 52 76" role="img" aria-label="${esc(name)} chord fingering">${g}</svg>`;
+}
+
+// Measure chord labels and build one floating row of cards per screen row.
+function layoutDiagrams(sheet, enabled) {
+  sheet.querySelectorAll(".drow, .dpop").forEach(el => el.remove());
+  diag.rows = [];
+  if (!enabled) return;
+  const box = sheet.getBoundingClientRect();
+  const width = sheet.clientWidth;
+  const rows = [];
+  sheet.querySelectorAll(".c[data-ch]").forEach(el => {
+    const r = el.getBoundingClientRect();
+    const top = r.top - box.top;
+    let row = rows.find(x => Math.abs(x.top - top) < 6);
+    if (!row) rows.push(row = { top, items: [] });
+    if (!row.items.some(it => it.name === el.dataset.ch)) {
+      row.items.push({ name: el.dataset.ch, x: r.left - box.left + Math.min(r.width, 40) / 2 });
+    }
+  });
+  for (const row of rows) {
+    const n = row.items.length;
+    const scale = Math.min(1, Math.max(0.7, (width + GAP) / (n * (CARD_W + GAP))));
+    const w = CARD_W * scale, h = CARD_H * scale;
+    // Start centered over each chord, push right to clear overlaps, then pull back inside the edge.
+    const lefts = row.items.map(it => it.x - w / 2);
+    for (let i = 0; i < n; i++) {
+      if (i === 0) lefts[i] = Math.max(0, lefts[i]);
+      else lefts[i] = Math.max(lefts[i], lefts[i - 1] + w + GAP);
+    }
+    const over = lefts[n - 1] + w - width;
+    if (over > 0) for (let i = n - 1; i >= 0; i--) {
+      const limit = i === n - 1 ? width - w : lefts[i + 1] - w - GAP;
+      lefts[i] = Math.min(lefts[i], limit);
+    }
+    const el = document.createElement("div");
+    el.className = "drow";
+    el.style.top = (row.top - h - 9) + "px";
+    el.innerHTML = row.items.map((it, i) => {
+      const ptr = Math.min(w - 8, Math.max(8, it.x - lefts[i]));
+      return `<div class="dcard" style="left:${lefts[i].toFixed(1)}px;width:${w}px;height:${h}px">${chordSVG(it.name, scale)}<i class="dptr" style="left:${ptr.toFixed(1)}px"></i></div>`;
+    }).join("");
+    sheet.appendChild(el);
+    diag.rows.push({ el, top: row.top, h: h + 9 });
+  }
+  updateDiagrams();
+}
+
+// Fade each row by its distance from the reading line. Pace follows the scroll.
+function updateDiagrams() {
+  const sheet = $("sheet");
+  if (!sheet || !diag.rows.length) return;
+  const sheetTop = sheet.getBoundingClientRect().top;
+  const line = window.innerHeight * READ_AT;
+  const L = 52; // about one chord-and-lyric line
+  // Only the row just passed and the row approaching can show; they cross-fade,
+  // and each also fades by its own distance so far-apart rows don't linger.
+  const rows = diag.rows;
+  const clamp = v => Math.max(0, Math.min(1, v));
+  for (const r of rows) { r.op = 0; r.dy = 0; r.y = sheetTop + r.top; }
+  if (scroll.on) {
+    const k = rows.findIndex(r => r.y >= line);
+    const next = k >= 0 ? rows[k] : null;
+    const prev = k === -1 ? rows[rows.length - 1] : k > 0 ? rows[k - 1] : null;
+    const t = prev && next ? clamp((line - prev.y) / (next.y - prev.y || 1)) : 1;
+    if (next) {
+      next.op = Math.min(clamp(1 - (next.y - line) / (1.5 * L)), prev ? t : 1);
+      next.dy = (1 - next.op) * 6;
+    }
+    if (prev) {
+      prev.op = Math.min(clamp(1 + (prev.y - line) / L), next ? 1 - t : 1);
+      prev.dy = -(1 - prev.op) * 4;
+    }
+  }
+  for (const r of rows) {
+    r.op = r.op * r.op * (3 - 2 * r.op); // ease: less time half-transparent over the lyrics
+    r.el.style.opacity = r.op.toFixed(3);
+    r.el.style.transform = `translateY(${r.dy.toFixed(1)}px)`;
+    r.el.style.visibility = r.op > 0.01 ? "visible" : "hidden";
+  }
+}
+
+// Tap a chord: show its card above it until the next tap.
+function showChordPop(target) {
+  const sheet = $("sheet");
+  sheet.querySelectorAll(".dpop").forEach(el => el.remove());
+  sheet.querySelectorAll(".c.sel").forEach(el => el.classList.remove("sel"));
+  if (!target) return;
+  const box = sheet.getBoundingClientRect(), r = target.getBoundingClientRect();
+  const s = 1.45, w = CARD_W * s, h = CARD_H * s;
+  const cx = r.left - box.left + Math.min(r.width, 40) / 2;
+  const left = Math.max(0, Math.min(sheet.clientWidth - w, cx - w / 2));
+  const pop = document.createElement("div");
+  pop.className = "dpop";
+  pop.style.cssText = `left:${left}px;top:${r.top - box.top - h - 10}px;width:${w}px;height:${h}px`;
+  pop.innerHTML = chordSVG(target.dataset.ch, s) + `<i class="dptr" style="left:${Math.min(w - 10, Math.max(10, cx - left))}px"></i>`;
+  sheet.appendChild(pop);
+  target.classList.add("sel");
+}
+document.addEventListener("click", e => {
+  if (route().name !== "song" || !$("sheet")) return;
+  const chord = e.target instanceof Element && e.target.closest(".sheet .c[data-ch]");
+  if (chord && data.settings.diagrams !== false) {
+    const same = chord.classList.contains("sel");
+    showChordPop(same ? null : chord);
+  } else if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);
+});
+
 let resizeTimer = 0;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
@@ -612,10 +775,13 @@ window.addEventListener("scroll", () => {
   fab.lastY = y;
   if (hold.active && !hold.touching) releaseSoon(180); // momentum still moving
   updateHeader(d);
+  updateDiagrams();
 }, { passive: true });
 
 async function startScroll(song) {
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0;
+  showChordPop(null);
+  updateDiagrams();
   const btn = $("play");
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
@@ -645,6 +811,9 @@ function stopScroll() {
   scroll.lock = null;
   const btn = $("play");
   if (btn) { btn.innerHTML = icon("play"); btn.setAttribute("aria-label", "Start auto-scroll"); }
+  document.querySelectorAll(".drow").forEach(el => el.classList.add("fadeout"));
+  updateDiagrams();
+  setTimeout(() => document.querySelectorAll(".drow").forEach(el => el.classList.remove("fadeout")), 300);
 }
 
 // ---------- Add / Edit sheet ----------
@@ -772,7 +941,12 @@ function renderSettings() {
           ${Array.from({ length: 12 }, (_, i) => i - 5).map(n => `<option value="${n}" ${n === t ? "selected" : ""}>${semis(n)}</option>`).join("")}
         </select>
       </div>
+      <div class="set">
+        <span class="tile">${icon("fretboard")}</span><span class="name">Chord diagrams</span>
+        <button class="toggle ${s.diagrams !== false ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams !== false}" aria-label="Chord diagrams"></button>
+      </div>
     </div>
+    <p class="foot" style="margin-top:10px">Chord diagrams appear above each line as it reaches you while scrolling. Tap any chord to see its fingering anytime.</p>
     <div class="label">Appearance</div>
     <div class="set-group glass">
       <div class="set">
@@ -790,6 +964,7 @@ function renderSettings() {
   $("back").onclick = () => go("#/");
   $("s-speed").onchange = e => { s.scrollSpeed = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-transpose").onchange = e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-diagrams").onclick = () => { s.diagrams = s.diagrams === false; Tabs.save(data); renderSettings(); };
   $("s-theme").onclick = () => { s.theme = s.theme === "light" ? "dark" : "light"; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-export").onclick = async () => {
     const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
