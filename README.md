@@ -127,7 +127,12 @@ Storage: the library is saved to localStorage and, on every save, to a safety co
 
 Problems: errors are kept on the phone (last 20) and the first in a session shows a note with Copy details. A screen that fails to draw shows a way back instead of a blank page. Settings > Copy diagnostics copies the version, device, library counts, storage and problems, never song words, titles or the API key.
 
-Tests: `node --test` (Node 18 or later, no dependencies) runs the unit tests. Browser tests run the real app in a phone-sized Chromium: `npm i --no-save playwright && npx playwright install chromium`, then `node --test tests/e2e/app.e2e.mjs`. They cover chord parsing, transposing, wrapping and fingerings, the library data, the version matching the service worker cache, and that the app script parses. GitHub Actions runs both on every push to `main`, plus ESLint (`npx eslint .`) for undefined or unused names.
+Tests: `node --test` (Node 18 or later, no dependencies) runs the unit tests: chord parsing, transposing, wrapping and fingerings, the library data and backups, pitch detection (pure tones, and synthetic plucked strings with a phone mic's weak low end, hum, hiss and another string ringing), tip pacing, html escaping, the version matching the service worker cache, and every app file being saved for offline use. Browser tests run the real app in Chromium: `npm i --no-save playwright axe-core && npx playwright install chromium`, then `node --test tests/e2e/*.e2e.mjs`.
+- `app.e2e.mjs`: features end to end (playing, search, Edit, sets, the tuner with a fake microphone, backups, updates, the safety copy, pedals, iPad).
+- `regress.e2e.mjs`: the main path at 320, 390 and 1180 wide, dark and light.
+- `a11y.e2e.mjs`: every control has a name; with axe-core installed, no serious or critical axe findings.
+- `visual.e2e.mjs`: screen snapshots. `VISUAL=update` saves baselines to `tests/visual/`, `VISUAL=compare` fails on changed screens (on the machine that made the baselines); otherwise screens are saved to `test-results/visual/`, which CI keeps as an artifact.
+GitHub Actions runs all of it on every push to `main` and on pull requests, plus ESLint (`npx eslint .`) for undefined names, unused names and writes to another module's variables. A browser test failure is summarized in one annotation on the run.
 
 ## License
 
