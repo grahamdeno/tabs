@@ -63,7 +63,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { background: var(--bg); }
+html { background: var(--bg); touch-action: manipulation; } /* pinch zoom stays; double-tap zoom goes (stage mode pauses on a double tap) */
 body {
   margin: 0; min-height: 100dvh; color: var(--fg); font-family: var(--sans); font-size: 16px;
   background: radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%), var(--bg);
@@ -718,6 +718,7 @@ body.tuning { overflow: hidden; }
 .tn-tile i svg { height: 64px; width: auto; }
 .tn-tile[data-mode="chromatic"] i svg { height: 36px; margin-top: 8px; }
 .tn-tile.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+:root[data-theme="light"] .tn-tile.on { color: #8f4524; } /* small caps on a copper tint need a deeper copper */
 .tn-read { text-align: center; margin-top: 12px; }
 .tn-note { min-height: 78px; display: flex; align-items: baseline; justify-content: center; }
 .tn-note b { font-family: var(--serif); font-weight: 400; font-size: 72px; line-height: 1; color: var(--fg); }

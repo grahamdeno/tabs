@@ -869,9 +869,11 @@ function pausedBlock() {
   if (window.scrollY < 40) return diag.blocks.find(b => isLine(b.el))?.el;
   const sheet = $("sheet");
   const top = sheet.getBoundingClientRect().top, line = window.innerHeight * READ_AT;
-  let b = null;
-  for (const x of diag.blocks) if (top + x.y <= line) b = x.el;
-  return b || diag.blocks.find(x => isLine(x.el))?.el;
+  let i = -1;
+  diag.blocks.forEach((x, j) => { if (top + x.y <= line) i = j; });
+  /* On a section name or a gap, the line about to be played is the next one. */
+  const next = diag.blocks.slice(Math.max(0, i)).find(x => isLine(x.el));
+  return (i >= 0 && isLine(diag.blocks[i].el) ? diag.blocks[i].el : next?.el) || diag.blocks.find(x => isLine(x.el))?.el;
 }
 function applyPaused() {
   const sheet = $("sheet");
@@ -1294,8 +1296,8 @@ function songMenu(song, anchor, redrawSong) {
   m.style.right = Math.max(12, innerWidth - r.right) + "px";
   const paint = () => {
     m.innerHTML = items.map(it => it.id === "size"
-      ? `<div class="mrow size"><span class="mi">${icon("text")}</span><span class="ml">Text size</span>
-          <button class="sb" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
+      ? `<div class="mrow size" role="group" aria-label="Text size"><span class="mi">${icon("text")}</span><span class="ml" aria-hidden="true">Text size</span>
+          <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
       : `<button class="mrow" role="menuitem" data-m="${it.id}"><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}${NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : ""}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`).join("");
   };
   paint();

@@ -67,6 +67,13 @@ export function migrate(data) {
 
 const SAVE_DELAY = 150;
 let pending = null, saveTimer = 0;
+// ---------- Tip pacing ----------
+// One-time tips are spaced at least 30 seconds apart, except a tip that leads
+// naturally into the next (tap a chord, then Play, then how to pause...).
+export const COACH_GAP = 30e3;
+export const TIP_CHAIN = { chord: "play", play: "pause", pause: "line", searchInvite: "search" };
+export const tipPaced = (key, last, now) => !last?.at || now - last.at >= COACH_GAP || TIP_CHAIN[last.key] === key;
+
 // ---------- Markup ----------
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Safe markup: html`<b>${title}</b>` escapes every value, unless the value is
