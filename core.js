@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.33.2";
+export const VERSION = "1.34.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -949,4 +949,10 @@ export function untilLabel(when, now = Date.now()) {
   if (days === 1) return "tomorrow";
   if (days < 14) return `in ${days} days`;
   return `in ${Math.round(days / 7)} weeks`;
+}
+
+// A set played through: when, how long it took, and how many of its songs were played.
+export function logSetRun(set, startedAt, played, now = Date.now()) {
+  set.runs = [...(set.runs || []), { at: now, secs: Math.round((now - startedAt) / 1000), songs: played }].slice(-50);
+  return set.runs[set.runs.length - 1];
 }

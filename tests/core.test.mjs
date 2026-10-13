@@ -343,3 +343,10 @@ test("time until a set reads naturally", () => {
   assert.equal(C.untilLabel("2026-10-17T20:00", now), "in 3 days");
   assert.equal(C.untilLabel("2026-10-14T10:00", now), "now");
 });
+
+test("a set run records its time and songs played", () => {
+  const set = { id: "s" };
+  const r = C.logSetRun(set, 1000, 4, 1000 + 18 * 60e3 + 40e3);
+  assert.deepEqual(r, { at: 1000 + 18 * 60e3 + 40e3, secs: 1120, songs: 4 });
+  assert.equal(set.runs.length, 1);
+});

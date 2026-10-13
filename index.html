@@ -411,6 +411,34 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.sh-cover { position: relative; }
+.stamp { position: absolute; right: 12px; top: 12px; transform: rotate(-8deg); font: 700 10.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: #fff; border: 1.5px solid rgba(255,255,255,.85); border-radius: 6px; padding: 4px 7px; background: rgba(0,0,0,.28); }
+.set-played { font-size: 13.5px; color: var(--muted); margin: 0 0 8px; }
+.hist { display: flex; gap: 10px; margin: 10px 0 12px; }
+.hist div { flex: 1; border-radius: 12px; border: 1px solid var(--rim); background: var(--card); padding: 10px 12px; text-align: center; }
+.hist b { display: block; font-size: 18px; color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.hist span { font-size: 12px; color: var(--muted); }
+.set-note { display: block; margin: 0 0 14px; }
+.set-note .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.set-note textarea { width: 100%; resize: none; border: 0; border-left: 2px solid var(--accent-line); background: none; color: var(--fg-2); font: 15px/1.45 var(--sans); padding: 4px 0 4px 12px; min-height: 30px; overflow: hidden; }
+.set-note textarea::placeholder { color: var(--muted); }
+
+.titlecard { position: fixed; inset: 0; z-index: 85; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; background: radial-gradient(90% 60% at 50% 35%, var(--tint), transparent 75%), #08080a; color: #fff; animation: fade .35s ease-out; cursor: pointer; }
+.titlecard.out { opacity: 0; transition: opacity .3s; }
+.tc-cv { width: min(270px, 70vw); aspect-ratio: 1; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.7); animation: tcin .9s cubic-bezier(.2,.8,.2,1); }
+.tc-cv .cover { border-radius: 22px; }
+@keyframes tcin { from { transform: scale(.92); opacity: .4; } }
+.tc-k { font: 600 11px var(--sans); letter-spacing: .18em; color: var(--accent); text-transform: uppercase; margin-top: 30px; }
+.titlecard h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; margin: 8px 0 6px; line-height: 1.1; }
+.tc-m { font-size: 14px; color: rgba(255,255,255,.62); }
+.tc-first { margin-top: 30px; font-size: 14.5px; color: rgba(255,255,255,.78); }
+.tc-first b { color: #fff; font-weight: 600; }
+.tc-bar { width: 160px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.14); margin-top: 16px; overflow: hidden; }
+.tc-bar i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: tcbar linear forwards; }
+@keyframes tcbar { from { transform: scaleX(0); } }
+.tc-skip { margin-top: 14px; font-size: 12px; color: rgba(255,255,255,.4); }
+@media (prefers-reduced-motion: reduce) { .tc-cv { animation: none; } }
+
 .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cover.mosaic { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 .set-hero { position: relative; text-align: center; margin: 0 0 4px; }
@@ -418,7 +446,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .sh-big { position: relative; width: min(250px, 66vw); aspect-ratio: 1; margin: 6px auto 0; }
 .sh-cover { display: block; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.55); background: none; }
 .sh-cover .cover { border-radius: 20px; }
-.sh-edc { position: absolute; right: 10px; top: 10px; height: 30px; padding: 0 11px; border-radius: 15px; border: 0; background: rgba(10,10,12,.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.sh-edc { display: inline-flex; align-items: center; gap: 6px; margin: 12px auto 0; height: 28px; padding: 0 10px; border: 0; background: none; color: var(--muted); font-size: 13px; }
 .sh-edc svg { width: 14px; height: 14px; }
 .cvopts { display: flex; gap: 8px; justify-content: center; margin: 14px 0 2px; animation: fade .2s; }
 .cvopts[hidden] { display: none; }
@@ -701,7 +729,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, isChordLine, nextSet, untilLabel, logSetRun, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -2889,7 +2917,7 @@ async function startScroll(song) {
       if (px) { window.scrollBy(0, px); scroll.carry -= px; nextLine(); }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
       if (!song.loop && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
-        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); if (setCtx) nextUp(); }
+        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp(); }
         scroll.bottomSince ||= t;
         if (t - scroll.bottomSince > 4000) return stopScroll();
       } else scroll.bottomSince = 0;
@@ -3315,14 +3343,20 @@ function renderSet(id) {
       </div>
     </div>
     <div class="set-hero" style="--tint:${setTint(set, 0.45)}">
-      <div class="sh-big"><button class="sh-cover" id="s-cover" aria-label="Change cover">${setCover(set, { fs: 28, kicker: set.when ? fullWhen(set.when).split(" · ")[0] : "" })}</button>
-        <button class="sh-edc" id="s-edc">${icon("image")}Cover</button></div>
+      <div class="sh-big"><button class="sh-cover" id="s-cover" aria-label="Change cover">${setCover(set, { fs: 28, kicker: set.when ? fullWhen(set.when).split(" · ")[0] : "" })}${set.runs?.length ? `<span class="stamp">Played</span>` : ""}</button>
+        </div><button class="sh-edc" id="s-edc">${icon("image")}Change cover</button>
       <div class="cvopts" id="cvopts" hidden></div>
       <button class="settitle" id="rename" aria-label="Set details: name, date and place"><h1 class="title">${esc(set.name)}</h1></button>
       <div class="meta">${songs.length} song${songs.length === 1 ? "" : "s"}${songs.length ? ` · about ${Math.round(setLength(set) / 60)} min` : ""}</div>
-      ${set.when || set.where ? `<div class="set-when">${icon("calendar")}${esc([set.when && fullWhen(set.when), set.where].filter(Boolean).join(" · "))}${set.when && untilLabel(set.when) ? ` <span>· ${esc(untilLabel(set.when))}</span>` : ""}</div>` : ""}
+      ${set.runs?.length ? `<div class="set-played">Last played through ${esc(playedOn(set.runs[set.runs.length - 1].at))}${set.where ? ` · ${esc(set.where)}` : ""}</div>` : ""}
+      ${(set.when && !(set.runs?.length && Date.parse(set.when) < Date.now())) || (set.where && !set.runs?.length) ? `<div class="set-when">${icon("calendar")}${esc([set.when && fullWhen(set.when), set.where].filter(Boolean).join(" · "))}${set.when && untilLabel(set.when) ? ` <span>· ${esc(untilLabel(set.when))}</span>` : ""}</div>` : ""}
     </div>
-    ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}Play set</button>
+    ${set.runs?.length && !setEditing ? (() => { const last = set.runs[set.runs.length - 1]; return `<div class="hist">
+      <div><b>${set.runs.length}</b><span>time${set.runs.length === 1 ? "" : "s"} played</span></div>
+      <div><b>${mmss(last.secs)}</b><span>last run time</span></div>
+      <div><b>${last.songs}/${songs.length}</b><span>songs played</span></div></div>`; })() : ""}
+    ${!setEditing ? `<label class="set-note"><span class="sr">Note for this set</span><textarea id="s-note" rows="1" placeholder="${set.runs?.length ? "What did you learn this time?" : "A note for this set (optional)"}">${esc(set.note || "")}</textarea></label>` : ""}
+    ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}${set.runs?.length ? "Play again" : "Play set"}</button>
       <button class="stagechip ${data.settings.stage ? "on" : ""}" id="s-stagechip" role="switch" aria-checked="${!!data.settings.stage}">${icon("stage")}Stage mode <b>${data.settings.stage ? "On" : "Off"}</b></button>` : ""}
     <div class="list glass" style="margin-top:16px">
       ${songs.map((s, i) => `<div class="row setrow" data-i="${i}">
@@ -3345,7 +3379,14 @@ function renderSet(id) {
   $("s-share")?.addEventListener("click", () => shareSet(set));
   $("s-stagechip")?.addEventListener("click", () => { data.settings.stage = !data.settings.stage; Tabs.save(data); applyTheme(); renderSet(id); });
   $("s-tune")?.addEventListener("click", () => openTuner(songTuning(songs[0])));
-  $("playset")?.addEventListener("click", () => { setCtx = { id, idx: 0, autoplay: true }; go("#/song/" + encodeURIComponent(songs[0].id)); });
+  $("playset")?.addEventListener("click", () => playSet(set));
+  const note = $("s-note");
+  if (note) {
+    const fit = () => { note.style.height = "auto"; note.style.height = note.scrollHeight + "px"; };
+    fit();
+    note.oninput = () => { fit(); clearTimeout(note.t); note.t = setTimeout(() => { const v = note.value.trim(); if (v) set.note = v; else delete set.note; Tabs.save(data); }, 400); };
+    note.onblur = () => { clearTimeout(note.t); const v = note.value.trim(); if (v) set.note = v; else delete set.note; Tabs.save(data); };
+  }
   app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { if (setEditing) return; setCtx = { id, idx: +b.dataset.open }; go("#/song/" + encodeURIComponent(songs[+b.dataset.open].id)); });
   const move = (i, j) => { const a = ids(); [a[i], a[j]] = [a[j], a[i]]; set.songIds = a; Tabs.save(data); renderSet(id); };
   app.querySelectorAll("[data-up]").forEach(b => b.onclick = () => move(+b.dataset.up, +b.dataset.up - 1));
@@ -3438,7 +3479,15 @@ function nextUp() {
   const songs = setSongs(set);
   const next = songs[setCtx.idx + 1];
   document.querySelector(".nextup")?.remove();
-  if (!next) { toast(`End of "${set.name}"`); return; }
+  if (!next) {
+    if (setRun?.id === set.id && setRun.played.size) {
+      const run = logSetRun(set, setRun.startedAt, setRun.played.size);
+      Tabs.save(data);
+      setRun = null;
+      toast(`Set played through · ${mmss(run.secs)}`, null, { label: "See set", fn: () => go("#/set/" + encodeURIComponent(set.id)) });
+    } else toast(`End of "${set.name}"`);
+    return;
+  }
   const card = document.createElement("div");
   card.className = "nextup glass float";
   let left = 5;
@@ -3544,12 +3593,37 @@ function whenText(when, withDay = true) {
   const day = soon ? d.toLocaleDateString([], { weekday: "short" }) : d.toLocaleDateString([], { month: "short", day: "numeric" });
   return withDay ? `${day} ${time}` : time;
 }
+const playedOn = t => new Date(t).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 const fullWhen = when => { const d = new Date(when); return isNaN(d) ? "" : `${d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`; };
+// Playing a whole set: a short title card first (the cover, the name, what's first),
+// then the first song starts. Tap to skip it. The run is timed for the set's history.
+let setRun = null; /* { id, startedAt, played: Set of song ids } */
 function playSet(set) {
   const songs = setSongs(set);
   if (!songs.length) return go("#/set/" + encodeURIComponent(set.id));
-  setCtx = { id: set.id, idx: 0, autoplay: true };
-  go("#/song/" + encodeURIComponent(songs[0].id));
+  setRun = { id: set.id, startedAt: Date.now(), played: new Set() };
+  const start = () => { setCtx = { id: set.id, idx: 0, autoplay: true }; go("#/song/" + encodeURIComponent(songs[0].id)); };
+  const when = set.when && Date.parse(set.when);
+  const today = when && new Date(when).toDateString() === new Date().toDateString();
+  const kicker = today ? (new Date().getHours() >= 17 ? "Tonight's set" : "Today's set") : set.runs?.length ? "Playing again" : "Your set";
+  const first = songs[0], fk = first.format === "tab" ? "" : keyOf(first);
+  const card = document.createElement("div");
+  card.className = "titlecard";
+  card.style.setProperty("--tint", setTint(set, 0.55));
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-label", `${set.name}. First up: ${first.title}`);
+  card.innerHTML = `<div class="tc-cv">${setCover(set, { fs: 30 })}</div>
+    <div class="tc-k">${esc(kicker)}</div><h2>${esc(set.name)}</h2>
+    <div class="tc-m">${songs.length} song${songs.length === 1 ? "" : "s"} · about ${Math.round(setLength(set) / 60)} min${set.where ? ` · ${esc(set.where)}` : ""}</div>
+    <div class="tc-first">First up: <b>${esc(first.title)}</b>${fk ? ` · Key of ${esc(fk)}` : ""}</div>
+    <div class="tc-bar"><i></i></div><div class="tc-skip">Tap to start now</div>`;
+  document.body.appendChild(card);
+  const ms = calm() ? 1200 : 2600;
+  card.querySelector(".tc-bar i").style.animationDuration = ms + "ms";
+  let gone = false;
+  const go3 = () => { if (gone) return; gone = true; clearTimeout(t); card.classList.add("out"); setTimeout(() => card.remove(), 300); start(); };
+  const t = setTimeout(go3, ms);
+  card.onclick = go3;
 }
 
 // ---------- New set (and set details) ----------

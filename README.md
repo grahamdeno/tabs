@@ -45,6 +45,10 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Set covers: every set gets a cover drawn from what's in it (one ring per song, colored by its key, with the set name in the title font)
 - Up next: give a set a date and place, and the library opens with it on top ("Up next · Fri 8:00 PM · in 3 days") with one-tap play; your other sets sit on a shelf of covers below
 - New set: a sheet where the cover takes shape as you type the name, with optional When and Where, and Start from Favorites, Learning or Played this week. Tap a set's title later to change its details
+- Add songs to a set: the cover at the top grows a ring for each song you pick, the length adds up, and songs go in the order you tap them
+- Set page: the cover is the hero and the page takes its color. Change cover: from songs, the songs' album art (from Listen links), a photo, or the camera, framed with drag and pinch. Photos are kept on the phone and included in backups
+- Play set opens with a short title card (the cover, the set, what's first; tap to skip)
+- After a set is played through, it remembers: a Played stamp on the cover, times played, last run time, songs played, a note for next time, and Play again
 - Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Smooth screen changes: the song title glides between the library and the song, and sheets settle with a light spring (instant with Reduce Motion)
 - Add songs in a slide-up sheet; delete from Edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
