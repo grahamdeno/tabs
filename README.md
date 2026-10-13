@@ -28,7 +28,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Tuner: hears your guitar through the microphone, with Standard, Drop D, half and whole step down, DADGAD, Open G and Open D. Tap a string to hear its note. It shows up where tuning happens: a button on the library (with a dot when you haven't tuned for a few hours), a chip on songs in another tuning, the set page, and the Next up card, which waits instead of starting when the next song needs a different tuning. A song's tuning comes from Edit, or a line like "Tuning: Drop D" in the sheet
 - Listen: finds the song on Apple Music (Apple's public catalog search, no account), shows the best match to confirm, and saves the link. If the lookup can't run, it opens Apple Music's search, or you can paste an Apple Music, Spotify or YouTube link
 - Metronome (••• menu): a steady click at the song's tempo while it scrolls
-- Edit chords (••• menu): tap a word to add or change the chord over it; This song's chords come first, then any chord. Each change saves with Undo, in the sheet's own style (chord line above or inline)
+- Edit (••• menu) turns the song page into the editor: type the title and artist in place; key, tuning and tempo are chips; tap a word to add or change its chord (this song's chords first, then any chord); the pencil retypes a line; tap a section name to rename it; + adds a line or a section. Every change saves at once with Undo. Text flips to the plain-text editor (with Clean up and Scan a page) for big jobs and comes back when you're done
 - Stage mode (Settings, or under Play set): larger, brighter text and nothing extra on screen; while a song plays, stray touches don't scroll and one tap doesn't stop it (tap twice to pause)
 - In a set, the next song's title and first line show quietly near the end of each song
 - Speed by song length (default): set how long a song takes (3:30 to start) and the scroll fits it; or switch to 1x style in Settings. Each song keeps its own setting
@@ -44,7 +44,7 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - Share a song (••• menu) or a set (share button on the set): the song travels inside the link itself, with no server or account. Opening the link offers to add it; nothing is added without a tap. Your plays, favorites and AI suggestions stay with you. On iPhone, a Home Screen app keeps its own library, so paste the link into Tabs' search bar to add it there
 - Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
 - Smooth screen changes: the song title glides between the library and the song, and sheets settle with a light spring (instant with Reduce Motion)
-- Add and edit in a slide-up sheet; delete from edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
+- Add songs in a slide-up sheet; delete from Edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
 - Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, Make it easier with a capo and simpler chords, or get a Spark amp tone for a song
 - First launch adds an original sample song and shows one-time tips on the real controls (Settings > Show tips again)
 - Settings (gear, top right), grouped as Playing, Chord diagrams, Defaults for new songs, Appearance, AI help and Library

@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "1.29.1";
+export const VERSION = "1.30.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -891,4 +891,40 @@ export function chordsUsed(body) {
   const seen = [];
   for (const l of chordModel(body)) for (const c of l.chords || []) if (isChord(c.chord) && !seen.includes(c.chord)) seen.push(c.chord);
   return seen;
+}
+
+// Retype a lyric line, keeping its chords where they were (clamped to the new
+// length). An empty line removes the lyric and its chord line. Returns the new body.
+export function setLineText(body, i, text) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  const ln = chordModel(body).find(l => l.kind === "lyric" && l.i === i);
+  if (!ln) return body;
+  text = String(text).replace(/\s+$/, "");
+  if (!text.trim()) {
+    const from = ln.chordLine >= 0 ? ln.chordLine : i;
+    lines.splice(from, i - from + 1);
+    return lines.join("\n");
+  }
+  if (ln.inline) {
+    let s = "", idx = 0;
+    for (const c of ln.chords) { const p = Math.min(c.pos, text.length); s += text.slice(idx, p) + `[${c.chord}]`; idx = p; }
+    lines[i] = s + text.slice(idx);
+    return lines.join("\n");
+  }
+  lines[i] = text;
+  return lines.join("\n");
+}
+// Rename a section label (written as [Name]).
+export function renameSection(body, i, name) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  if (!name.trim()) lines.splice(i, 1); else lines[i] = `[${name.trim()}]`;
+  return lines.join("\n");
+}
+// Insert lines after line i (-1 for the very start). Returns { body, at } where
+// `at` is the index of the first inserted line.
+export function insertLines(body, i, newLines) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  if (lines.length === 1 && lines[0] === "") lines.length = 0;
+  lines.splice(i + 1, 0, ...newLines);
+  return { body: lines.join("\n"), at: i + 1 };
 }

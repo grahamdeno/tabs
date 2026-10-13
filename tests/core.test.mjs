@@ -301,3 +301,18 @@ test("inline [G] sheets stay inline", () => {
 test("chords used are listed in order", () => {
   assert.deepEqual(C.chordsUsed("A    D\nla la\n[E]la [A]la"), ["A", "D", "E"]);
 });
+
+test("retyping a line keeps its chords", () => {
+  const out = C.setLineText("G    C\nla la land", 1, "la la la land");
+  assert.equal(out, "G    C\nla la la land");
+  assert.equal(C.setLineText("[G]la [C]land", 0, "la lands"), "[G]la [C]lands");
+});
+
+test("emptying a line removes it and its chord line", () => {
+  assert.equal(C.setLineText("[Verse]\nG    C\nla la land\nnext", 2, ""), "[Verse]\nnext");
+});
+
+test("sections can be renamed and lines added", () => {
+  assert.equal(C.renameSection("Chorus:\nla", 0, "Chorus 2"), "[Chorus 2]\nla");
+  assert.deepEqual(C.insertLines("a\nb", 0, ["new"]), { body: "a\nnew\nb", at: 1 });
+});

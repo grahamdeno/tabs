@@ -409,6 +409,27 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .panel.card { bottom: calc(12px + var(--safe-b)); width: min(496px, calc(100% - 24px)); border-radius: 22px; padding: 16px; box-shadow: 0 -10px 50px rgba(0,0,0,0.5); animation: up .25s cubic-bezier(.2,.8,.2,1); }
 @keyframes up { from { transform: translate(-50%, 40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+.cebar .seg { flex: 0 0 160px; }
+.cebar { justify-content: space-between; }
+.ed-title { width: 100%; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--rim); border-radius: 12px; padding: 4px 10px; letter-spacing: inherit; }
+.ed-details { margin: 8px 0 18px; display: flex; flex-direction: column; gap: 10px; }
+.ed-artist { font-size: 16px; color: var(--fg-2); background: var(--card); border: 1px solid var(--rim); border-radius: 10px; padding: 9px 10px; }
+.ed-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ed-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--rim); background: var(--card); font-size: 14px; color: var(--muted); }
+.ed-chip b { color: var(--fg); font-weight: 600; }
+.ed-chip select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
+.ed-chip input { width: 42px; border: 0; background: none; color: var(--fg); font: 600 16px var(--sans); text-align: right; padding: 0; }
+.ed-hint { font-size: 13px; color: var(--muted); margin: 0 0 10px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.ed-hint svg, .ce-sec svg, .ce-pen svg { width: 14px; height: 14px; }
+.ce-sec { display: flex; width: fit-content; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 0; text-align: left; }
+.ce-sec svg { color: var(--muted); opacity: .7; }
+.ce-line { position: relative; align-items: flex-end; padding-right: 30px; }
+.ce-pen { position: absolute; right: -6px; bottom: 0; border: 0; background: none; color: var(--muted); padding: 6px 8px; opacity: .8; }
+.ce-input { width: 100%; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--accent-line); border-radius: 8px; padding: 6px 8px; }
+.ce-add { display: flex; width: fit-content; align-items: center; gap: 6px; border: 1px dashed var(--rim); background: none; color: var(--muted); border-radius: 10px; padding: 6px 12px; font-size: 13px; margin: 0 0 14px; }
+.ce-add svg { width: 14px; height: 14px; }
+.ed-end { margin-top: 6px; }
+
 .empty-hint { font-size: 14px; color: var(--muted); line-height: 1.45; margin: 0 4px 12px; }
 body.cedit .dock, body.cedit .dock-fade, body.cedit #strip, body.cedit .metarow, body.cedit .chead, body.cedit .smap { display: none !important; }
 .cebar { background: var(--solid) !important; border: 1px solid var(--rim); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
@@ -565,7 +586,7 @@ textarea.body { flex: 1; min-height: 260px; width: 100%; border-radius: var(--r)
 <div id="layer"></div>
 <div class="toast" id="toast" role="status"></div>
 <script type="module">
-import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
+import { Tabs, SPEEDS, TRASH_DAYS, playsThisWeek, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, noteFreq, nearestNote, nearestString, detectTuning, detectPitch, rankTracks, linkService, firstLyric, chordModel, setChordAt, chordsUsed, setLineText, renameSection, insertLines, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, transposeChord } from "./core.js";
 
 // ---------- Icons ----------
 const I = {
@@ -1179,6 +1200,7 @@ function renderViewer(id) {
   viewing = song;
   paintLoop(song);
   setTimeout(buildMap, 50);
+  if (resumeEdit === song.id) { resumeEdit = null; setTimeout(() => songEditor(song), 0); }
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (viewing === song && !scroll.on && route().name === "song") showTips("song"); }, 500);
 
@@ -1764,12 +1786,29 @@ function paintMap(target) {
 }
 window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? map.target : undefined); }, { passive: true });
 
-// ---------- Edit chords ----------
-// Chosen from the ••• menu. The sheet shows the chords as written; tap a word to
-// add or change the chord over it. Each change saves at once, with Undo.
+// ---------- Edit (in place) ----------
+// Edit turns the song page itself into the editor: title and artist are typed in
+// place; key, tuning and tempo are chips; tap a word for its chord; the pencil
+// retypes a line; section names rename; + adds a line or a section. Text flips to
+// the plain-text editor for big jobs. Every change saves at once, with Undo.
 let chordEdit = null;
+let resumeEdit = null;
 const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
-function chordEditor(song) {
+const KEY_LIST = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const EDIT_FIELDS = ["title", "artist", "key", "tuning", "bpm", "body"];
+const snapshot = song => Object.fromEntries(EDIT_FIELDS.map(k => [k, song[k]]));
+function restoreSnap(song, snap) { for (const k of EDIT_FIELDS) { if (snap[k] === undefined) delete song[k]; else song[k] = snap[k]; } }
+// Apply one change with Undo. `label` is the toast; empty for quiet changes.
+function editChange(song, label, fn) {
+  const before = snapshot(song);
+  fn();
+  if (song.body !== before.body) delete song.loop;
+  Tabs.save(data);
+  paintEdit(song);
+  if (label) toast(label, null, { label: "Undo", fn: () => { restoreSnap(song, before); Tabs.save(data); paintEdit(song); } });
+}
+function songEditor(song) {
+  if (song.format === "tab") return go("#/edit/" + encodeURIComponent(song.id));
   stopScroll();
   chordEdit = song;
   document.body.classList.add("cedit");
@@ -1777,19 +1816,61 @@ function chordEditor(song) {
   document.querySelector(".cebar")?.remove();
   const bar = document.createElement("div");
   bar.className = "cebar glass";
-  bar.innerHTML = `<span>Tap a word to add or change its chord</span><button class="btn sm primary" id="ce-done">Done</button>`;
+  bar.innerHTML = `<div class="seg" role="tablist" aria-label="Edit view"><button class="on" role="tab" aria-selected="true">Sheet</button><button role="tab" aria-selected="false" id="ed-text">Text</button></div>
+    <button class="btn sm primary" id="ce-done">Done</button>`;
   document.body.appendChild(bar);
-  $("ce-done").onclick = () => { chordEdit = null; document.body.classList.remove("cedit"); bar.remove(); redraw?.(); toast("Chords saved"); };
-  paintChordEdit(song);
+  $("ce-done").onclick = () => { chordEdit = null; document.body.classList.remove("cedit"); bar.remove(); render(); toast("Saved"); };
+  $("ed-text").onclick = () => { resumeEdit = song.id; go("#/edit/" + encodeURIComponent(song.id)); };
+  window.scrollTo(0, 0);
+  paintEdit(song);
 }
-function paintChordEdit(song) {
+function paintEdit(song) {
   const sheet = $("sheet");
-  if (!sheet) return;
-  sheet.classList.remove("focus");
-  sheet.innerHTML = chordModel(song.body).map(l => {
-    if (l.kind === "section") return `<div class="sec">${esc(l.text)}</div>`;
-    if (l.kind === "blank") return `<div class="gap"></div>`;
-    if (l.kind !== "lyric") return `<div class="ce-other">${esc(l.text)}</div>`;
+  if (!sheet || chordEdit !== song) return;
+  /* Title and details, typed in place. */
+  const h = app.querySelector(".song-title");
+  if (h && !h.querySelector("input")) {
+    h.innerHTML = `<input class="ed-title" id="ed-title" value="${esc(song.title)}" aria-label="Title" autocomplete="off">`;
+    $("ed-title").onchange = e => { const v = e.target.value.trim(); if (v && v !== song.title) editChange(song, "", () => { song.title = v; }); else e.target.value = song.title; };
+  }
+  $("ed-details")?.remove();
+  const guess = guessKey(song.body || "");
+  const tun = song.tuning || detectTuning(song.body) || "standard";
+  const d = document.createElement("div");
+  d.className = "ed-details";
+  d.id = "ed-details";
+  d.innerHTML = `
+    <input class="ed-artist" id="ed-artist" value="${esc(song.artist || "")}" placeholder="Artist" aria-label="Artist" autocomplete="off">
+    <div class="ed-chips">
+      <label class="ed-chip"><span>Key</span><b>${esc(song.key || (guess ? guess + " (auto)" : "Auto"))}</b>
+        <select id="ed-key" aria-label="Key"><option value="">Auto${guess ? ` (${esc(guess)})` : ""}</option>${KEY_LIST.flatMap(k => [k, k + "m"]).map(k => `<option ${k === song.key ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+      <label class="ed-chip"><span>Tuning</span><b>${esc(TUNINGS[tun].name)}</b>
+        <select id="ed-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}" ${k === tun ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
+      <label class="ed-chip"><span>Tempo</span><input id="ed-bpm" type="number" inputmode="numeric" min="30" max="260" value="${song.bpm || ""}" placeholder="90" aria-label="Tempo in beats per minute"><span>BPM</span></label>
+    </div>`;
+  h?.after(d);
+  $("ed-artist").onchange = e => editChange(song, "", () => { song.artist = e.target.value.trim(); });
+  $("ed-key").onchange = e => editChange(song, `Key: ${e.target.value || "Auto"}`, () => { song.key = e.target.value; });
+  $("ed-tuning").onchange = e => editChange(song, `Tuning: ${TUNINGS[e.target.value].name}`, () => { if (e.target.value === "standard") delete song.tuning; else song.tuning = e.target.value; });
+  $("ed-bpm").onchange = e => editChange(song, "", () => { const n = Math.min(260, Math.max(30, parseInt(e.target.value, 10))); if (n) song.bpm = n; else delete song.bpm; });
+
+  /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */
+  const model = chordModel(song.body);
+  const pencil = icon("edit");
+  const parts = [`<p class="ed-hint">Tap a word for its chord. ${pencil} retypes a line.</p>`];
+  const addBtn = after => `<button class="ce-add" data-after="${after}">${icon("plus")}Line</button>`;
+  let last = -1, inSection = false;
+  model.forEach((l, k) => {
+    if (l.kind === "section") {
+      if (inSection) parts.push(addBtn(last));
+      inSection = true;
+      parts.push(`<button class="sec ce-sec" data-sec="${l.i}" aria-label="Rename section ${esc(l.text)}">${esc(l.text)}${pencil}</button>`);
+      last = l.i;
+      return;
+    }
+    if (l.kind === "blank") { parts.push(`<div class="gap"></div>`); return; }
+    last = l.i;
+    if (l.kind !== "lyric") { parts.push(`<div class="ce-other">${esc(l.text)}</div>`); return; }
     const words = [...l.text.matchAll(/\S+/g)];
     let prevEnd = 0;
     const html = words.map(w => {
@@ -1800,13 +1881,68 @@ function paintChordEdit(song) {
       const pos = on.length ? on[on.length - 1].pos : start;
       return `<button class="ce-w ${on.length ? "has" : ""}" data-i="${l.i}" data-pos="${pos}" data-word="${esc(w[0])}"><span class="ce-c">${on.length ? esc(on.map(c => c.chord).join(" ")) : "+"}</span><span class="ce-t">${esc(w[0])}</span></button>`;
     }).join(" ");
-    return `<div class="ce-line">${html}</div>`;
-  }).join("");
+    parts.push(`<div class="ce-line" data-line="${l.i}">${html}<button class="ce-pen" data-edit="${l.i}" aria-label="Retype this line">${pencil}</button></div>`);
+  });
+  parts.push(addBtn(last));
+  parts.push(`<div class="ed-end"><button class="ce-add" id="ed-sec">${icon("plus")}Section</button></div>
+    <button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`);
+  sheet.classList.remove("focus");
+  sheet.innerHTML = parts.join("");
+
   sheet.querySelectorAll(".ce-w").forEach(b => b.onclick = () => {
     sheet.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel"));
     b.classList.add("sel");
     pickChord(song, +b.dataset.i, +b.dataset.pos, b.dataset.word, b.classList.contains("has") ? b.querySelector(".ce-c").textContent : "");
   });
+  sheet.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.edit, ln = model.find(l => l.kind === "lyric" && l.i === i);
+    lineInput(b.closest(".ce-line"), ln.text, text => {
+      if (text === ln.text) return paintEdit(song);
+      editChange(song, text.trim() ? "Line updated" : "Line removed", () => { song.body = setLineText(song.body, i, text); });
+    });
+  });
+  sheet.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.sec, cur = model.find(l => l.i === i).text;
+    const name = prompt("Section name (leave empty to remove the label)", cur);
+    if (name === null || name.trim() === cur) return;
+    editChange(song, name.trim() ? `Renamed to ${name.trim()}` : "Label removed", () => { song.body = renameSection(song.body, i, name); });
+  });
+  sheet.querySelectorAll("[data-after]").forEach(b => b.onclick = () => {
+    const after = +b.dataset.after;
+    const row = document.createElement("div");
+    row.className = "ce-line";
+    b.before(row);
+    lineInput(row, "", text => {
+      if (!text.trim()) return paintEdit(song);
+      editChange(song, "Line added", () => { song.body = insertLines(song.body, after, [text]).body; });
+    });
+  });
+  $("ed-sec").onclick = () => {
+    const name = (prompt("New section name", "Chorus") || "").trim();
+    if (!name) return;
+    const lines = String(song.body || "").split("\n");
+    editChange(song, `Added ${name}`, () => { song.body = insertLines(song.body, lines.length - 1, lines.length && lines[lines.length - 1].trim() ? ["", `[${name}]`] : [`[${name}]`]).body; });
+    /* Start typing the new section's first line right away. */
+    sheet.querySelectorAll("[data-after]")[sheet.querySelectorAll("[data-after]").length - 1]?.click();
+  };
+  $("ed-delete").onclick = () => {
+    chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove();
+    const entry = Tabs.deleteSong(data, song.id);
+    history.replaceState(null, "", "#/");
+    render();
+    toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
+  };
+}
+// Swap a line for a text field; Return or leaving the field saves, Escape cancels.
+function lineInput(row, text, done) {
+  row.innerHTML = `<input class="ce-input" value="${esc(text)}" placeholder="Type the line" aria-label="Line text" autocomplete="off" autocapitalize="sentences">`;
+  const inp = row.querySelector("input");
+  let finished = false;
+  const finish = v => { if (finished) return; finished = true; done(v); };
+  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); finish(inp.value); } if (e.key === "Escape") { finished = true; paintEdit(chordEdit); } };
+  inp.onblur = () => finish(inp.value);
+  inp.focus();
+  inp.setSelectionRange(inp.value.length, inp.value.length);
 }
 function pickChord(song, i, pos, word, current) {
   const parsed = /^([A-G])([#b]?)(.*)$/.exec(current || "") || [];
@@ -1837,13 +1973,8 @@ function pickChord(song, i, pos, word, current) {
   };
   const close = () => { layer.innerHTML = ""; document.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel")); };
   const apply = chord => {
-    const before = song.body;
-    song.body = setChordAt(song.body, i, pos, chord);
-    delete song.loop;
-    Tabs.save(data);
     close();
-    paintChordEdit(song);
-    toast(chord ? `${chord} over “${word}”` : `Removed from “${word}”`, null, { label: "Undo", fn: () => { song.body = before; Tabs.save(data); paintChordEdit(song); } });
+    editChange(song, chord ? `${chord} over “${word}”` : `Removed from “${word}”`, () => { song.body = setChordAt(song.body, i, pos, chord); });
   };
   layer.innerHTML = `<div class="scrim" id="ce-scrim"></div><div class="panel card" id="ce-panel" role="dialog" aria-label="Choose a chord"></div>`;
   $("ce-scrim").onclick = close;
@@ -1863,8 +1994,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     { id: "share", icon: "share", label: "Share song" },
-    song.format !== "tab" && { id: "chords", icon: "pick", label: "Edit chords" },
-    { id: "edit", icon: "edit", label: "Edit song" },
+    { id: "edit", icon: "edit", label: "Edit" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" }
   ].filter(Boolean);
@@ -1896,11 +2026,10 @@ function songMenu(song, anchor, redrawSong) {
     const b = ev.target.closest("[data-m]");
     if (!b) return;
     close();
-    ({ set: () => addToSet(song), edit: () => go("#/edit/" + encodeURIComponent(song.id)),
+    ({ set: () => addToSet(song), edit: () => songEditor(song),
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
        tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
        listen: () => listenSheet(song, true),
-       chords: () => chordEditor(song),
        metro: () => { data.settings.metronome = !data.settings.metronome; Tabs.save(data);
          if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
          toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", $("more")); } })[b.dataset.m]?.();
@@ -3023,7 +3152,7 @@ const TIPS = {
     { at: ".sheet .c[data-ch] .ct", text: "Tap a chord to see how to play it." },
     { at: ".sheet > .pr", text: "Tap a line to start from it. Press play and that line glides to your reading point." },
     { at: "#play", text: "Play scrolls the song. The slider sets how long the song takes, and a count-in clicks you in." },
-    { at: "#more", text: "Text size, sets, practice a section, metronome, tuner, Edit chords and more live in this menu." },
+    { at: "#more", text: "Text size, sets, practice a section, metronome, tuner, Edit and more live in this menu." },
     { at: "#listen", text: "Listen finds this song on Apple Music and keeps the link." },
     { at: "#stat", text: "Mark songs you're learning. A play counts when you play a song through." },
     { at: "#nnbtn", text: "Turn on Now and Next to see the chord you're on and what's coming while you play." },
@@ -3071,7 +3200,7 @@ function showTips(name) {
 // ---------- Router ----------
 function render() {
   closeTuner();
-  if (chordEdit) { chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); }
+  if (chordEdit) { chordEdit = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove(); $("ed-details")?.remove(); }
   document.querySelector(".smap")?.remove(); map.el = null;
   stopScroll();
   if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); }
