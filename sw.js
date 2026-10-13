@@ -1,5 +1,5 @@
 // Tabs service worker
-const CACHE = "tabs-v1.27.0";
+const CACHE = "tabs-v1.28.0";
 const SHELL = ["./", "index.html", "core.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

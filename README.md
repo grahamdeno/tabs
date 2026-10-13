@@ -23,6 +23,14 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - When a song plays through, a quiet note at the end says so ("Played through · 3rd time this week"). No badges or streaks
 - Learning status per song (Learning / Got it, tap the chip under the title); a play is counted when a song is played through, and the library quietly shows plays this week
 - Slim playback bar: auto-scroll, transpose (or text size for tabs)
+- Tap anywhere on the song to pause while it plays (no button to aim for)
+- Song map: a thin rail on the right edge with a dot per section; touch it to see the section names, slide to one and let go to jump
+- Tuner: hears your guitar through the microphone, with Standard, Drop D, half and whole step down, DADGAD, Open G and Open D. Tap a string to hear its note. It shows up where tuning happens: a button on the library (with a dot when you haven't tuned for a few hours), a chip on songs in another tuning, the set page, and the Next up card, which waits instead of starting when the next song needs a different tuning. A song's tuning comes from Edit, or a line like "Tuning: Drop D" in the sheet
+- Listen: finds the song on Apple Music (Apple's public catalog search, no account), shows the best match to confirm, and saves the link. If the lookup can't run, it opens Apple Music's search, or you can paste an Apple Music, Spotify or YouTube link
+- Metronome (••• menu): a steady click at the song's tempo while it scrolls
+- Edit chords (••• menu): tap a word to add or change the chord over it; This song's chords come first, then any chord. Each change saves with Undo, in the sheet's own style (chord line above or inline)
+- Stage mode (Settings, or under Play set): larger, brighter text and nothing extra on screen; while a song plays, stray touches don't scroll and one tap doesn't stop it (tap twice to pause)
+- In a set, the next song's title and first line show quietly near the end of each song
 - Speed by song length (default): set how long a song takes (3:30 to start) and the scroll fits it; or switch to 1x style in Settings. Each song keeps its own setting
 - Count-in: one bar of soft clicks at the song's tempo (set in Edit; 90 if unset) before scrolling starts, only when starting from the top (the first line is on screen); starting partway through scrolls right away
 - Transpose per song, with sharps or flats chosen by the resulting key
@@ -41,7 +49,8 @@ Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
 - First launch adds an original sample song and shows one-time tips on the real controls (Settings > Show tips again)
 - Settings (gear, top right), grouped as Playing, Chord diagrams, Defaults for new songs, Appearance, AI help and Library
 - While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
-- Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android
+- Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android, with a proper launch screen on iPhone
+- Lyrics follow the phone's own text size setting; light mode colors meet contrast guidelines for daylight reading
 
 ## Chord sheet format
 
