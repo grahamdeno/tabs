@@ -72,6 +72,15 @@ let draft = null; // prefilled fields for the add sheet
 // and render() runs them all before drawing the next screen.
 const leaveHooks = [];
 const onLeave = fn => leaveHooks.push(fn);
+// Scrolling: one listener for the whole app, at most once per frame. Features
+// register what they do on scroll with onScroll.
+const scrollHooks = [];
+const onScroll = fn => scrollHooks.push(fn);
+let scrollFrame = 0;
+window.addEventListener("scroll", () => {
+  if (scrollFrame) return;
+  scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; scrollHooks.forEach(fn => fn()); });
+}, { passive: true });
 onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); } });
 const app = $("app");
 const layer = $("layer");
@@ -975,7 +984,7 @@ function showPausedRow(block = pausedBlock()) {
   sheet.appendChild(el);
 }
 let pausedTimer = 0;
-window.addEventListener("scroll", () => {
+onScroll(() => {
   const sheet = $("sheet");
   if (scroll.on || !sheet || route().name !== "song") return;
   if (!diag.scrolling) { diag.scrolling = true; diag.scrollFrom = window.scrollY; }
@@ -990,7 +999,7 @@ window.addEventListener("scroll", () => {
     if (Math.abs(window.scrollY - diag.scrollFrom) > 40) diag.pinned = null;
     applyPaused();
   }, 220);
-}, { passive: true });
+});
 
 // ---------- Make it easier ----------
 // Claude suggests a capo and a few simpler substitutes. Only chord names are sent:
@@ -1218,7 +1227,7 @@ function paintMap(target) {
   map.secs.forEach((x, i) => { if (x.el.getBoundingClientRect().top <= line) cur = i; });
   m.querySelectorAll(".sm-m").forEach((b, i) => { b.classList.toggle("on", i === (target ?? cur)); b.classList.toggle("past", i < cur); });
 }
-window.addEventListener("scroll", () => { if (map.el) paintMap(map.dragging ? map.target : undefined); }, { passive: true });
+onScroll(() => { if (map.el) paintMap(map.dragging ? map.target : undefined); });
 
 // ---------- Edit (in place) ----------
 // Edit turns the song page itself into the editor: title and artist are typed in
@@ -1890,14 +1899,14 @@ function updateHeader(d) {
   bar.setAttribute("aria-hidden", live ? "false" : "true");
   bar.querySelectorAll("button").forEach(b => b.tabIndex = live ? 0 : -1);
 }
-window.addEventListener("scroll", () => {
+onScroll(() => {
   const y = window.scrollY;
   const d = y - fab.lastY;
   fab.lastY = y;
   if (hold.active && !hold.touching) releaseSoon(180); // momentum still moving
   updateHeader(d);
   updateDiagrams();
-}, { passive: true });
+});
 
 // ---------- Speed ----------
 const byLength = () => data.settings.speedMode !== "multiplier";
