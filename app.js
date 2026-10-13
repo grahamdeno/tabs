@@ -262,6 +262,7 @@ function renderLibrary() {
     query = ""; q.value = ""; $("clear").hidden = true;
     document.body.classList.remove("searching");
     q.blur();
+    dismissCoach(true);
     renderLibrary();
   };
   /* Move the bar before the keyboard opens, so iPhone has nothing to push up. */
@@ -272,6 +273,8 @@ function renderLibrary() {
     q.focus({ preventScroll: true });
   });
   q.addEventListener("focus", () => { enterSearch(); window.scrollTo(0, 0); });
+  /* Closing the keyboard (its checkmark doesn't tap the page) also closes a search tip. */
+  q.addEventListener("blur", () => dismissCoach());
   q.addEventListener("blur", () => setTimeout(() => { if (searching && !query.trim() && document.activeElement !== q && route().name === "library" && !layer.innerHTML) exitSearch(); }, 200));
   $("qcancel").onclick = e => { e.preventDefault(); exitSearch(); };
   if (keepSearch && query.trim()) searching = true;
@@ -3151,7 +3154,11 @@ function renderGestures() {
     <p class="foot" style="text-align:center;margin:0 0 30px">Shows each tip again, once, when it's next useful.</p>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
   app.querySelectorAll("[data-demo]").forEach(b => b.onclick = () => showMe(b.dataset.demo));
-  $("gs-reset").onclick = () => { data.settings.tipsSeen = {}; data.settings.used = {}; lastCoach = { key: "", at: 0 }; Tabs.save(data); toast("Tips will show again"); };
+  $("gs-reset").onclick = () => {
+    data.settings.tipsSeen = {}; data.settings.used = {}; lastCoach = { key: "", at: 0 }; Tabs.save(data);
+    window.scrollTo({ top: 0, behavior: calm() ? "auto" : "smooth" }); /* back to the top, where Back is */
+    toast("Tips will show again");
+  };
 }
 
 // ---------- Router ----------
