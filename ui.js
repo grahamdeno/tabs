@@ -44,6 +44,7 @@ const I = {
   clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/>',
   check: '<path d="M5 12l4 4 10-10"/>',
   play: '<path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
   pause: '<rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/>'
 };
 const icon = (n, cls = "") => raw(`<svg class="i ${esc(cls)}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`);

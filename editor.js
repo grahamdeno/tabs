@@ -40,10 +40,10 @@ function editChange(song, label, fn) {
 // It lives in the library flagged isNew while you work on it (so every change
 // saves, as in Edit). Save keeps it; Cancel removes it. If the app closes first,
 // a song with words is kept and an empty one is dropped.
-function newSong(fields = {}) {
+function newSong(fields = {}, view = "text") {
   const s = Tabs.addSong(data, { title: "", artist: "", ...fields, isNew: true });
   if (!fields.format && s.body) s.format = looksLikeTab(s.body) ? "tab" : "chords";
-  setOpenEdit({ id: s.id, view: "text" });
+  setOpenEdit({ id: s.id, view });
   go("#/song/" + encodeURIComponent(s.id));
 }
 function endEdit() {
@@ -211,7 +211,7 @@ function paintSheet(song, sheet) {
   });
   parts.push(addBtn(last));
   parts.push(`<div class="ed-end"><button class="ce-add" id="ed-sec">${icon("plus")}Section</button></div>
-    <button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`);
+    ${song.isNew ? "" : `<button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`}`);
   sheet.classList.remove("focus");
   sheet.innerHTML = parts.join("");
 
@@ -256,7 +256,7 @@ function paintSheet(song, sheet) {
     /* Start typing the new section's first line right away. */
     sheet.querySelectorAll("[data-after]")[sheet.querySelectorAll("[data-after]").length - 1]?.click();
   };
-  $("ed-delete").onclick = () => deleteFromEdit(song);
+  $("ed-delete")?.addEventListener("click", () => deleteFromEdit(song)); /* a new song is dropped with Cancel instead */
 }
 // ---- Text view: the same page, the sheet as plain text ----
 // Same title, details and bar; only the song area changes. Chord lines show in
@@ -302,7 +302,7 @@ function paintText(song) {
   const sheet = $("sheet");
   textSnap ||= snapshot(song);
   sheet.innerHTML = `
-    ${aiKey() ? `<div class="ed-tools"><button class="chip ai" id="ed-clean">${icon("wand")}Clean up</button><button class="chip ai" id="ed-scan">${icon("camera")}Scan a page</button><input type="file" id="ed-photo" accept="image/*" hidden></div>` : ""}
+    ${aiKey() || (song.isNew && !String(song.body || "").trim()) ? `<div class="ed-tools">${song.isNew && !String(song.body || "").trim() ? `<button class="chip ai" id="ed-sing">${icon("mic")}Sing it</button>` : ""}${aiKey() ? `<button class="chip ai" id="ed-clean">${icon("wand")}Clean up</button><button class="chip ai" id="ed-scan">${icon("camera")}Scan a page</button><input type="file" id="ed-photo" accept="image/*" hidden>` : ""}</div>` : ""}
     <div class="ed-tx"><div class="ed-tx-in"><pre class="ed-hl" id="ed-hl" aria-hidden="true">${hlText(song.body || "")}</pre>
       <textarea id="ed-body" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Song text" placeholder="${esc(TEXT_HINT)}">${esc(song.body || "")}</textarea></div></div>
     <p class="ed-hint" id="ed-txhint">${textHint(song)}</p>
@@ -330,6 +330,8 @@ function paintText(song) {
       });
     } catch (e) { toast(aiError(e)); btn.innerHTML = html; sheet.querySelectorAll(".chip.ai").forEach(b => b.disabled = false); }
   };
+  /* Sing it: leave this empty new song (it's dropped) for a sketch. */
+  $("ed-sing")?.addEventListener("click", () => go("#/sketch"));
   $("ed-clean")?.addEventListener("click", () => {
     if (!ta.value.trim()) return toast("Paste a song first");
     run($("ed-clean"), "Cleaning", async () => ({ ...(await cleanSheet({ text: ta.value })), label: "Cleaned up" }));

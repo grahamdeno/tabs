@@ -714,3 +714,51 @@ test("real guitar recordings: the right note, steady, no octave mistakes", async
     assert.ok(Math.max(...reads) - Math.min(...reads) < 8, `${f}: steady within ±4 cents (${reads.map(c => c.toFixed(1)).join(", ")})`);
   }
 });
+
+// ---------- Song sketch ----------
+const hzOf = m => 440 * 2 ** ((m - 69) / 12);
+// Frames every 20 ms for [midi or null, seconds] pieces, with a little vibrato.
+const sing = parts => { const f = []; let t = 0; for (const [m, d] of parts) for (let k = 0; k < Math.round(d / 0.02); k++, t += 0.02) f.push({ t, hz: m === null ? -1 : hzOf(m + 0.3 * Math.sin(t * 30)) }); return f; };
+const line = (pcs, d = 0.5) => { let t = 0; return pcs.map(m => { const n = { midi: m, start: t, dur: d }; t += d; return n; }); };
+
+test("sketch: a sung line becomes steady notes; vibrato, gaps and blips are smoothed", () => {
+  const notes = C.melodyNotes(sing([[67, 0.3], [null, 0.06], [71, 0.26], [74, 0.04], [null, 0.06], [74, 0.4]]));
+  assert.deepEqual(notes.map(n => n.midi), [67, 71, 74]);
+  assert.ok(Math.abs(notes[0].dur - 0.3) < 0.05 && Math.abs(notes[2].dur - 0.4) < 0.05);
+});
+
+test("sketch: the key comes from the melody", () => {
+  assert.equal(C.detectKey(line([67, 69, 71, 72, 74, 76, 78, 79, 74, 71, 67])).name, "G");
+  assert.equal(C.detectKey(line([69, 72, 76, 74, 72, 71, 68, 69, 64, 69])).name, "Am");
+  assert.equal(C.detectKey(line([65, 67, 69, 70, 72, 70, 69, 67, 65])).name, "F");
+  assert.equal(C.detectKey([]), null);
+});
+
+test("sketch: chords that hold the melody, with natural moves", () => {
+  const key = C.detectKey(line([67, 71, 74, 72, 76, 74, 78, 69, 67, 71, 74, 67]));
+  assert.equal(key.name, "G");
+  const notes = [...line([67, 71, 74, 71], 0.5), ...line([72, 76, 79, 76], 0.5).map(n => ({ ...n, start: n.start + 2 })),
+    ...line([74, 78, 69, 74], 0.5).map(n => ({ ...n, start: n.start + 4 })), ...line([67, 71, 74, 67], 0.5).map(n => ({ ...n, start: n.start + 6 }))];
+  assert.deepEqual(C.harmonize([{ notes }], key)[0].map(c => c.chord), ["G", "C", "D", "G"]);
+  const am = C.detectKey(line([69, 72, 76, 74, 72, 71, 68, 69, 64, 69]));
+  const sad = [...line([69, 72, 76, 72]), ...line([65, 69, 72, 69]).map(n => ({ ...n, start: n.start + 2 })), ...line([64, 68, 71, 68]).map(n => ({ ...n, start: n.start + 4 })), ...line([69, 72, 76, 69]).map(n => ({ ...n, start: n.start + 6 }))];
+  assert.deepEqual(C.harmonize([{ notes: sad }], am)[0].map(c => c.chord), ["Am", "F", "E", "Am"]);
+});
+
+test("sketch: each chord goes over the word being sung when it changes", () => {
+  assert.equal(C.syllables("every"), 3); assert.equal(C.syllables("home"), 1); assert.equal(C.syllables("take"), 1); assert.equal(C.syllables("bending"), 2);
+  const notes = line([64, 64, 64, 64, 64, 64, 64, 64, 64], 0.4);
+  const out = C.chordLine("Every road I take keeps bending back", notes, [{ chord: "Em", at: 0 }, { chord: "C", at: notes[5].start }]);
+  assert.equal(out, "Em           C\nEvery road I take keeps bending back", "the 6th of 9 notes: about the 6th of 10 syllables, in \"take\"");
+  assert.equal(C.chordLine("", notes, [{ chord: "G", at: 0 }, { chord: "D", at: 1 }]), "G   D");
+});
+
+test("sketch: lines with words become a chord sheet in the melody's key", () => {
+  const s = C.sketchSong([
+    { words: "Porch light burning past the second shift", notes: [...line([67, 71, 74, 71], 0.5), ...line([72, 76, 72, 76], 0.5).map(n => ({ ...n, start: n.start + 2 }))] },
+    { words: "Home to you a little more", notes: [...line([74, 78, 74, 69], 0.5), ...line([71, 67, 67, 67], 0.5).map(n => ({ ...n, start: n.start + 2 }))] }
+  ]);
+  assert.equal(s.key, "G");
+  assert.deepEqual(C.chordsUsed(s.body), ["G", "C", "D"]);
+  assert.match(s.body, /^G\s+C\nPorch light burning past the second shift\nD\s+G\nHome to you a little more$/);
+});
