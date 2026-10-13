@@ -243,6 +243,9 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .bk-t b { font-size: 15px; font-weight: 600; color: var(--fg); }
 .bk-b { display: flex; gap: 8px; margin-left: auto; }
 .set .val.muted { color: var(--muted); }
+.ib.aa { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg-2); }
+.szpop { position: fixed; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 12px; }
+.szpop .v { font: 600 13px var(--mono); min-width: 46px; text-align: center; color: var(--fg); }
 .nn .none { color: var(--muted); font-size: 13px; padding: 0 2px 6px; }
 body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 /* Current line focus while playing: other lines dim in place (no motion) */
@@ -748,6 +751,7 @@ function renderViewer(id) {
     <div class="head">
       <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
       <div class="row-btns">
+        <button class="ib glass aa" id="aa" aria-label="Text size" aria-expanded="false">Aa</button>
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="ib glass" data-go="#/edit/${encodeURIComponent(song.id)}" aria-label="Edit song">${icon("edit")}</button>
       </div>
@@ -795,6 +799,32 @@ function renderViewer(id) {
       x.setAttribute("aria-pressed", !!song.favorite);
     });
   });
+  // Text size for this song: lyrics and chords together, 70% to 160%.
+  $("aa").onclick = e => {
+    e.stopPropagation();
+    const open = document.querySelector(".szpop");
+    if (open) { open.remove(); $("aa").setAttribute("aria-expanded", "false"); return; }
+    const r = $("aa").getBoundingClientRect();
+    const pop = document.createElement("div");
+    pop.className = "szpop glass float";
+    pop.style.top = (r.bottom + 8) + "px";
+    pop.style.right = (window.innerWidth - r.right) + "px";
+    const paint = () => { pop.querySelector(".v").textContent = Math.round(song.size * 100) + "%"; };
+    pop.innerHTML = `<button class="sb" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v"></span><button class="sb" data-d="1" aria-label="Larger text">${icon("plus")}</button>`;
+    pop.onclick = ev => {
+      ev.stopPropagation();
+      const b = ev.target.closest("[data-d]");
+      if (!b) return;
+      song.size = Math.min(1.6, Math.max(0.7, +(song.size + (+b.dataset.d) * 0.1).toFixed(2)));
+      Tabs.save(data); paint(); draw();
+    };
+    document.body.appendChild(pop);
+    paint();
+    $("aa").setAttribute("aria-expanded", "true");
+    const close = ev => { if (!pop.contains(ev.target)) { pop.remove(); $("aa")?.setAttribute("aria-expanded", "false"); document.removeEventListener("click", close, true); window.removeEventListener("scroll", closeS); } };
+    const closeS = () => { pop.remove(); window.removeEventListener("scroll", closeS); document.removeEventListener("click", close, true); };
+    setTimeout(() => { document.addEventListener("click", close, true); window.addEventListener("scroll", closeS, { passive: true }); });
+  };
   $("ctitle").onclick = () => {
     hold.active = true; releaseSoon(900); // let the jump finish before auto-scroll resumes
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -819,6 +849,7 @@ function renderViewer(id) {
     const sheet = $("sheet");
     const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
+    sheet.style.setProperty("--lyric-size", (17 * song.size).toFixed(1) + "px");
     // With a capo the shapes sit lower than the sound: shift the chords down by the capo.
     renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps - capo : 0, isChords && prefersFlats(baseKey, steps - capo)));
     renderStrip(sheet, isChords, song);
