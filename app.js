@@ -70,27 +70,23 @@ function renderLibrary() {
   const hasLearn = data.songs.some(s => s.status === "learning");
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
   const week = data.songs.map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
-  /* One hand (phone upright): filters, sort and the tuner sit at the bottom,
-     above and beside the search bar. Settings stays at the top. */
-  const one = oneHandMQ.matches;
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
       <h1 class="title">Library</h1>
       <div class="row-btns">
-        ${one ? "" : tunerBtn("ib glass")}
+        ${tunerBtn("ib glass")}
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
       </div>
     </div>
     ${weekTotal ? `<div class="weekly">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : ""}
-    ${data.songs.length ? `<div class="chips${one ? " dchips" : ""}" id="chips">
+    ${data.songs.length ? `<div class="chips" id="chips">
       <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
       <button class="chip ${filter === "sets" ? "on" : ""}" data-f="sets">Sets</button>
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
       ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
       ${moreFilters()}
-      ${one ? '<span class="dsort" id="dsort"></span>' : ""}
     </div>` : ""}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -101,7 +97,6 @@ function renderLibrary() {
     <div id="list"></div>
     <div class="dock-fade"></div>
     <div class="dock kb">
-      ${one ? tunerBtn("add tool glass float") : ""}
       <label class="cmd glass float">
         ${icon("search")}
         <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search, or paste a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or paste a song">
@@ -345,9 +340,8 @@ function renderList() {
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}${keyFilter ? ` · ${esc(keyFilter)}` : ""}${tuneFilter ? ` · ${esc(TUNINGS[tuneFilter].name)}` : ""}${keyFilter || tuneFilter ? ` · ${sorted.length}` : ""}</span>
-      ${$("dsort") ? "" : sortBy(sort)}</div>`}
+      ${sortBy(sort)}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
-  if ($("dsort")) $("dsort").innerHTML = q ? "" : sortBy(sort);
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   bindRows(list);
   bindFind(list);
@@ -753,11 +747,13 @@ function renderViewer(id) {
   ringApi = setupRing({
     settings: data.settings,
     items: [
-      { id: "back", slot: 0, label: back.label, icon: icon("back"), run: () => go(back.to) },
-      { id: "fav", slot: 1, label: "Favorite", icon: icon("heart"), run: () => app.querySelector(".player .fav")?.click() },
+      /* Back lives in the island; the ring holds what you reach for mid-song. */
+      { id: "fav", slot: 0, label: "Favorite", icon: icon("heart"), active: () => !!song.favorite, run: () => app.querySelector(".player .fav")?.click() },
+      { id: "metro", slot: 1, label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
       { id: "key", slot: 2, label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
-      { id: "more", slot: 3, label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
-      inSet && { id: "set", slot: 4, label: "Set", icon: icon("listplus"), run: () => setDial(null) }
+      isChords && { id: "nn", slot: 3, label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
+      { id: "more", slot: 4, label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
+      inSet && { id: "set", slot: 5, label: "Set", icon: icon("listplus"), run: () => setDial(null) }
     ].filter(Boolean),
     grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
     letGo: () => { hold.touching = false; releaseSoon(250); },
@@ -1244,7 +1240,6 @@ function bindSketchRow(song) {
 // this song, so the song itself gets the middle and larger text. From 1150px,
 // a list of songs on the left (or the set being played) switches songs without
 // going back. Rotating, or resizing in Split View, moves things back.
-oneHandMQ.addEventListener?.("change", () => { if (route().name === "library" && !searching) renderLibrary(); });
 const wideMQ = matchMedia("(min-width: 1000px)"), sideMQ = matchMedia("(min-width: 1150px)");
 function placeWide() {
   const rail = $("rail"), strip = $("strip"), nn = $("nn");
@@ -1434,25 +1429,30 @@ function toneSheet(song) { aiTools().then(m => m.toneSheet(song)); }
 const NEW_IN_MENU = { loop: "practice", metro: "metronome", tuner: "tuner", share: "share", easy: "easier", tone: "tone" };
 const newDot = k => used(k) ? "" : `<i class="newdot" data-new="${k}" aria-label="New"></i>`;
 const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k => !used(k));
+function toggleMetronome(song, near) {
+  data.settings.metronome = !data.settings.metronome; Tabs.save(data);
+  if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
+  toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", near);
+}
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
   if (old) { old.remove(); return; }
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier;
+  const ringOn = document.body.classList.contains("ring"); /* Metronome and Now and Next live in the ring then */
   const items = [
     { id: "size" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
-    { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
+    !ringOn && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     { id: "share", icon: "share", label: "Share song" },
     { id: "edit", icon: "edit", label: "Edit" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
-    song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" },
-    document.body.classList.contains("ring") && $("nnbtn") && { id: "nn", icon: "fretboard", label: "Now and Next", hint: data.settings.diagrams === true ? "On" : "Off" }
+    song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
   ].filter(Boolean);
   const m = document.createElement("div");
   m.setAttribute("role", "menu");
@@ -1513,10 +1513,7 @@ function songMenu(song, anchor, redrawSong) {
        tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
-       nn: () => $("nnbtn")?.click(),
-       metro: () => { data.settings.metronome = !data.settings.metronome; Tabs.save(data);
-         if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
-         toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", moreBtn()); } })[b.dataset.m]?.();
+       metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
   };
 }
 

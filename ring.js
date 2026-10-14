@@ -19,7 +19,8 @@ import { arcMap } from "./core.js";
 const HOLD_MS = 500, HOLD_PLAYING_MS = 650;
 const REST_MS = 5000;     /* still this long: Play settles into the corner */
 const CALM_MS = 500;      /* no moving within this long of a touch */
-const SLOTS = [180, 202.5, 225, 247.5, 270];   /* ring angles: left to straight up */
+const SLOTS = [180, 198, 216, 234, 252, 270];   /* ring angles: left to straight up */
+const txt = v => typeof v === "function" ? v() : v;
 let st = null;            /* the current song page's ring */
 
 // ---- Where Play sits ----
@@ -49,7 +50,7 @@ export function setupRing(o) {
     <div class="rc-where glow" aria-hidden="true"></div>
     <div class="rc-isl" id="rc-isl"><button class="rc-back" id="rc-back" aria-label="${o.back?.label || "Back"}">${icon("back")}</button></div>
     <div class="rc-pull" aria-hidden="true">↓ <span></span></div>
-    <div class="sr-only" role="group" aria-label="Song controls">${o.items.map(it => `<button data-ri="${it.id}">${it.label}</button>`).join("")}</div>`;
+    <div class="sr-only" role="group" aria-label="Song controls">${o.items.map(it => `<button data-ri="${it.id}">${txt(it.label)}</button>`).join("")}</div>`;
   app.appendChild(rc);
   st = { o, rc, up: false, want: false, touching: false, lastTouch: 0, lastActive: 0, timer: 0, home: new Map(), cleanup: [] };
   rc.querySelector("#rc-back").onclick = () => o.back?.run();
@@ -259,13 +260,13 @@ function bindHold() {
 
 function openRing(p, live) {
   closeRing();
-  const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = 128;
+  const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = 150;
   const el = document.createElement("div");
   el.className = "ringx";
   el.dataset.live = live ? "1" : "0";
   el.innerHTML = `<div class="ring-bg" style="left:${cx}px;top:${cy}px"></div>
     ${st.o.items.map(it => { const a = SLOTS[it.slot] * Math.PI / 180;
-      return `<button class="ri" data-r="${it.id}" aria-label="${it.label}" style="left:${(cx + R * Math.cos(a)).toFixed(1)}px;top:${(cy + R * Math.sin(a)).toFixed(1)}px">${it.icon}</button>`; }).join("")}
+      return `<button class="ri${it.active?.() ? " act" : ""}" data-r="${it.id}" aria-label="${txt(it.label)}" ${it.active ? `aria-pressed="${!!it.active()}" ` : ""}style="left:${(cx + R * Math.cos(a)).toFixed(1)}px;top:${(cy + R * Math.sin(a)).toFixed(1)}px">${it.icon}</button>`; }).join("")}
     <div class="ring-name glow" style="left:${cx}px;top:${(cy - R - 46).toFixed(1)}px"></div>`;
   document.body.appendChild(el);
   ringEl = el;
@@ -285,7 +286,7 @@ function pick(x, y) {
     if (gap > 30) best = null;
   }
   ringEl.querySelectorAll(".ri").forEach(b => b.classList.toggle("on", !!best && b.dataset.r === best.id));
-  ringEl.querySelector(".ring-name").textContent = best ? best.label : "";
+  ringEl.querySelector(".ring-name").textContent = best ? txt(best.label) : "";
 }
 export function closeRing() {
   if (!ringEl) return;

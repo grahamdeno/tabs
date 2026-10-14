@@ -4,7 +4,7 @@
 // Within a few cents a strobe takes over, and it stands still when the note is right.
 import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
 import { HEADS } from "./heads.js";
-import { $, data, icon, layer, esc, coach, coachTip, markUsed } from "./app.js";
+import { $, data, icon, layer, esc, coach, coachTip, markUsed, toast } from "./app.js";
 
 let audio = null; /* for reference notes and the chime */
 const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
@@ -44,6 +44,8 @@ function tone(freq, { len = 2.1, gain = 0.35, harm = [0.5, 0.18, 0.08] } = {}) {
     g.connect(audio.destination);
   } catch {}
 }
+/* All six in tune: a rising E major arpeggio (E, G#, B, E). */
+const doneChime = () => [659.3, 830.6, 987.8, 1318.5].forEach((f, i) => setTimeout(() => tone(f, { len: i === 3 ? 0.9 : 0.4, gain: 0.07, harm: [0.6] }), i * 120));
 const chime = () => { tone(1318.5, { len: 0.5, gain: 0.08, harm: [0.6] }); setTimeout(() => tone(1760, { len: 0.7, gain: 0.07, harm: [0.6] }), 90); };
 
 // ---- The headstock: the drawing, plus the lit key, post and string ----
@@ -51,7 +53,7 @@ function headSVG(kind, t, { mini = false } = {}) {
   const H = HEADS[kind], notes = TUNINGS[t.tuning].notes;
   const pad = mini ? 10 : 230;
   const cur = mini ? -1 : t.cur, good = !mini && t.good;
-  const col = good ? "var(--good)" : "var(--accent)";
+  const col = good ? "var(--good)" : "var(--tune)"; /* green: the string in hand; brighter when in tune */
   let s = `<svg viewBox="${-pad} 0 ${H.w + pad * 2} ${mini ? 1760 : H.h}" ${mini ? 'aria-hidden="true"' : `role="img" aria-label="${esc(MODES.find(m => m[0] === kind)[1])} headstock"`}><path d="${H.d}" fill="var(--head)" fill-rule="evenodd"/>`;
   if (mini) return s + "</svg>";
   H.strings.forEach((g, i) => {
@@ -176,7 +178,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     } else if (t.finished) {
       $("tn-n").textContent = "All in tune"; $("tn-o").textContent = "";
       $("tn-say").textContent = ""; $("tn-c").textContent = `${TUNINGS[t.tuning].name} · 6 of 6`;
-      layer.querySelector(".tn-note").classList.add("done"); layer.querySelector(".tn-note").classList.remove("glow");
+      layer.querySelector(".tn-note").classList.add("done", "glow");  /* success glows */
       t.cur = -1; paintHead();
       foot.innerHTML = `<button class="btn" id="tn-again">Tune again</button><button class="btn primary" id="tn-back">${back}</button>`;
       $("tn-again").onclick = () => { t.ok = []; t.finished = false; t.cur = t.guided ? 0 : -1; layer.querySelector(".tn-note").classList.remove("done"); paint(); };
@@ -291,10 +293,15 @@ function listen(t, an, buf) {
   t.inTuneSince ||= now;
   if (!heldInTune(t.inTuneSince, now) || t.ok[idx]) return;
   t.ok[idx] = true; t.inTuneSince = 0; t.good = false;
-  chime();
   if (t.ok.filter(Boolean).length === 6) {
+    /* Guided goes E, A, D, G, B, e; after the last: success. */
     t.finished = true; data.settings.lastTuned = Date.now(); Tabs.save(data);
-  } else if (t.guided) t.cur = guidedTarget(t.ok);
+    doneChime();
+    toast("All six strings in tune");
+  } else {
+    chime();
+    if (t.guided) t.cur = guidedTarget(t.ok);
+  }
   t.hits = [];
   t.paint();
 }

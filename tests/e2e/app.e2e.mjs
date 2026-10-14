@@ -301,8 +301,16 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
   assert.equal(await glows(), true, "in tune: the letter glows");
   await at(82.41, -25); await page.waitForTimeout(600);
   assert.equal(await glows(), false, "out of tune: no glow");
-  for (const hz of [82.41, 110, 146.83, 196, 246.94, 329.63]) { await at(hz, 0); await page.waitForTimeout(1700); }
+  const order = [];
+  for (const hz of [82.41, 110, 146.83, 196, 246.94, 329.63]) {
+    order.push(await page.evaluate(() => document.querySelector(".tn-key") && [...document.querySelectorAll("#tn-stage text")].find(x => x.getAttribute("font-weight") === "700")?.textContent));
+    await at(hz, 0); await page.waitForTimeout(1700);
+  }
+  assert.deepEqual(order.map(x => (x || "").replace(/[^A-Ga-g]/g, "")), ["E", "A", "D", "G", "B", "e"], "guided: E, A, D, G, B, e in order");
   assert.equal((await read()).note, "All in tune");
+  assert.match(await page.innerText("#toast"), /All six strings in tune/, "success is announced");
+  assert.equal(await page.evaluate(() => document.querySelector(".tn-note").classList.contains("glow")), true, "and glows");
+  assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--tune")), /#/, "the tuner's green");
   await page.click("[data-mode='chromatic']");
   await at(185, -12); await page.waitForTimeout(700);
   const r = await read();
@@ -731,8 +739,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const page = await phone(t);
   const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right } : null; }, sel);
   const H = 844;
-  assert.ok((await box("#chips")).top > H * 0.8, "filters above the search bar");
-  assert.ok((await box("#tunerbtn")).top > H * 0.85, "tuner beside the search bar");
+  assert.ok((await box("#chips")).top < H * 0.3, "filters at the top (2.6: moved back)");
+  assert.ok((await box("#tunerbtn")).top < 100, "tuner in the header (2.6: moved back)");
   assert.ok(await page.evaluate(() => { const b = document.querySelector("#tunerbtn"), r = b.getBoundingClientRect(), i = b.querySelector("svg").getBoundingClientRect(); return Math.abs((i.top + i.bottom) / 2 - (r.top + r.bottom) / 2) < 2 && Math.abs((i.left + i.right) / 2 - (r.left + r.right) / 2) < 2; }), "the tuner icon is centered");
   const dot = await page.evaluate(() => { const d = document.querySelector("#tunerbtn .dotmark"); return d && getComputedStyle(d).position; });
   if (dot) assert.equal(dot, "absolute", "the not-tuned dot sits in the corner");
@@ -843,7 +851,8 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   /* Hold: the ring. Slide toward More and let go: the menu. */
   c = await center();
   await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600);
-  assert.equal(await page.locator(".ringx .ri").count(), 4, "Back, Favorite, Key, More (no Set outside a set)");
+  assert.equal(await page.locator(".ringx .ri").count(), 5, "Favorite, Metronome, Key, Now and Next, More (no Back: it's in the island; no Set outside a set)");
+  assert.equal(await page.locator(".ringx .ri[data-r='back']").count(), 0);
   const more = await page.evaluate(() => { const r = document.querySelector(".ri[data-r='more']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.mouse.move(more.x, more.y, { steps: 6 });
   assert.match(await page.textContent(".ring-name"), /More/);
@@ -860,8 +869,17 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   assert.match(await page.textContent(".dial-small"), /KEY A/);
   await page.mouse.click(60, 120); await page.waitForTimeout(300);
   assert.equal(await page.locator(".dial").count(), 0);
+  /* Metronome from the ring: on, and the item shows it. */
+  c = await center();
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600); await page.mouse.up(); await page.waitForTimeout(200);
+  await page.click(".ri[data-r='metro']"); await page.waitForTimeout(200);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.metronome, true, "metronome on from the ring");
+  c = await center();
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600); await page.mouse.up(); await page.waitForTimeout(200);
+  assert.equal(await page.getAttribute(".ri[data-r='metro']", "aria-pressed"), "true");
+  await page.mouse.click(60, 120); await page.waitForTimeout(200);
   /* Screen readers get the same controls as buttons. */
-  assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 4);
+  assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 5);
 });
 
 test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps the bar", { skip: skip() }, async t => {
