@@ -1210,9 +1210,24 @@ body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34
 .ib .dotmark, .add.tool .dotmark { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .add.tool .dotmark { top: 14px; right: 17px; }  /* centered just outside the fork's right edge, at its top */
 .ib .dotmark { top: 7px; right: 9.5px; }
-/* Two rings around the dot, like sound from a ringing fork. */
+/* Two rings around the dot, like sound from a ringing fork. Every 7 seconds
+   it rings three times, then the dot and rings are hidden until the next 7. */
+.ib .dotmark, .add.tool .dotmark { animation: fork-flash 7s linear infinite; }
 .ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; }
-.ib .dotmark::before, .add.tool .dotmark::before { inset: -4px; opacity: .7; animation: ringing 2.4s ease-out infinite; }
-.ib .dotmark::after, .add.tool .dotmark::after { inset: -8px; opacity: .4; animation: ringing 2.4s ease-out .5s infinite; }
-@keyframes ringing { 0% { transform: scale(.75); opacity: .8; } 70%, 100% { transform: scale(1.25); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .ib .dotmark::before, .add.tool .dotmark::before { animation: none; opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { animation: none; opacity: .4; } }
+.ib .dotmark::before, .add.tool .dotmark::before { inset: -4px; animation: fork-ring 7s ease-out infinite; }
+.ib .dotmark::after, .add.tool .dotmark::after { inset: -8px; animation: fork-ring 7s ease-out .12s infinite; }
+@keyframes fork-flash {
+  0% { opacity: 0; } 2% { opacity: 1; } 8% { opacity: 1; } 10% { opacity: 0; }
+  12% { opacity: 1; } 18% { opacity: 1; } 20% { opacity: 0; }
+  22% { opacity: 1; } 28% { opacity: 1; } 30%, 100% { opacity: 0; }
+}
+@keyframes fork-ring {
+  0% { transform: scale(.7); opacity: .9; } 9.9% { transform: scale(1.3); opacity: 0; }
+  10% { transform: scale(.7); opacity: .9; } 19.9% { transform: scale(1.3); opacity: 0; }
+  20% { transform: scale(.7); opacity: .9; } 29.9%, 100% { transform: scale(1.3); opacity: 0; }
+}
+/* Reduce Motion: no flashing; the dot and rings stay, still. */
+@media (prefers-reduced-motion: reduce) {
+  .ib .dotmark, .add.tool .dotmark, .ib .dotmark::before, .add.tool .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after { animation: none; }
+  .ib .dotmark::before, .add.tool .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { opacity: .4; }
+}
