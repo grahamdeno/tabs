@@ -663,3 +663,20 @@ test("Listen searches Apple Music in the app: change the words, hear a preview, 
   assert.match(await page.innerText("#toast"), /Saved: Harbor Lights \(Live\)/);
   assert.equal(left, false, "Tabs didn't send you to Apple Music");
 });
+
+test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
+  const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
+  const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });
+  await page.goto(base + "#/song/c"); await page.waitForTimeout(400);
+  await page.click("#more"); await page.click(".menu [data-m='words']"); await page.waitForTimeout(400);
+  assert.equal(await page.isDisabled("#ws-ok"), true, "nothing to save before words");
+  await page.fill("#ws-text", "first line of the verse here\nsecond line goes on\n\n[Chorus]\nthis is the chorus line");
+  await page.waitForTimeout(400);
+  assert.match(await page.textContent("#ws-prev"), /\[Verse\]\nG\s+D\nfirst line of the verse here/);
+  await page.click("#ws-ok"); await page.waitForTimeout(500);
+  const body = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "c").body;
+  assert.match(body, /\[Chorus\]\nC\s+G\nthis is the chorus line/);
+  assert.match(await page.textContent("#sheet"), /first line of.*chorus line/, "the song page shows the words");
+  await page.click("#toast .tact"); await page.waitForTimeout(300);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "c").body, chart, "Undo");
+});

@@ -844,3 +844,31 @@ test("backups keep a song's album art only as an https link", () => {
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "https://is1-ssl.mzstatic.com/x/600x600bb.jpg" }).art, "https://is1-ssl.mzstatic.com/x/600x600bb.jpg");
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "javascript:alert(1)" }).art, undefined);
 });
+
+// ---------- Add the words ----------
+const CHART = "Capo 2 · Strum: D DU UDU\n\n[Intro]\nG   D\n\n[Verse]\nG   D   Em   C\n\n[Chorus] (x2)\nC   G   D\n\n[Verse]\nG   D   Em   C\n\n[Outro]\nG";
+const WORDS = "first line of the verse here\nsecond line goes on and on\n\nthis is the chorus line\nchorus again we sing\n\nanother verse begins now\nand it ends right here";
+
+test("add the words: the chart's chords go over the pasted stanzas, in order", () => {
+  const body = C.mergeWords(CHART, WORDS);
+  assert.ok(body.startsWith("Capo 2 · Strum: D DU UDU\n\n[Intro]\nG   D\n"));
+  assert.match(body, /\[Verse\]\nG\s+D\nfirst line of the verse here\nEm\s+C\nsecond line goes on and on/);
+  assert.match(body, /\[Chorus\]\nC\s+G\nthis is the chorus line\nD\s+C\nchorus again we sing/, "the progression loops");
+  assert.match(body, /\[Verse\]\nG\s+D\nanother verse begins now/);
+  assert.match(body, /\[Outro\]\nG$/);
+  // The second chord sits over the middle word.
+  const [chords, words] = body.split("\n").slice(body.split("\n").indexOf("first line of the verse here") - 1);
+  assert.equal(chords.indexOf("D"), words.indexOf("the "), "over the 4th of 6 words");
+  // It reads back as a normal song: chords placed over words.
+  assert.deepEqual(C.chordsUsed(body).sort(), ["C", "D", "Em", "G"]);
+});
+
+test("add the words: named stanzas find their sections; extra stanzas go at the end", () => {
+  const body = C.mergeWords(CHART, "[Chorus]\nchorus words one\nchorus words two\n\nVerse 1:\nverse words here\n\n[Bridge]\na bridge the chart lacks");
+  assert.match(body, /\[Verse 1\]\nG\s+D\nverse words here/);
+  assert.match(body, /\[Chorus\]\nC\s+G\nchorus words one/);
+  assert.match(body, /\[Bridge\]\n\S+.*\na bridge the chart lacks/, "kept, with a sung section's chords");
+  assert.deepEqual(C.lyricStanzas("Chorus:\na\nb\n\n(Verse 2)\nc").map(s => [s.name, s.kind, s.lines.length]), [["Chorus", "chorus", 2], ["Verse 2", "verse", 1]]);
+  assert.equal(C.mergeWords("no chords here", WORDS), null);
+  assert.equal(C.mergeWords(CHART, "   "), null);
+});

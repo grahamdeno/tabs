@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts } from "./core.js";
+import { Tabs, TUNINGS, buildChart, chordCounts, mergeWords } from "./core.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
@@ -44,7 +44,7 @@ const CHART_SYSTEM = `You find how to play one song on guitar, using web search 
 - If you can't find the song, set "found" to false.`;
 export function chartSheet(q, preset = {}) {
   const [t0, a0] = preset.title ? [preset.title, preset.artist || ""] : q.split(/\s+(?:by|-|–)\s+/i);
-  let state = { busy: false, chart: null, err: "" };
+  let state = { busy: false, chart: preset.chart || null, err: "" };
   layer.innerHTML = `<div class="scrim" id="cs-scrim"></div><div class="panel full cs" role="dialog" aria-label="Chord chart with AI"><div class="grab"></div>
     <div class="ph"><button class="tb" id="cs-x">Cancel</button><h2>Chord chart</h2><span style="width:56px"></span></div><div class="pbody" id="cs-body"></div></div>`;
   const close = () => { layer.innerHTML = ""; };
@@ -70,16 +70,19 @@ export function chartSheet(q, preset = {}) {
       <pre class="cs-chart">${esc(c.body)}</pre>
       <p class="foot">AI-made from the sources below. Check it by ear, and fix anything in Edit.</p>
       ${c.sources.length ? `<div class="cs-src">${c.sources.slice(0, 4).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}</div>` : ""}
-      <div class="actions" style="margin-top:14px"><button class="btn" id="cs-again">Try again</button><button class="btn primary" id="cs-add">Add to library</button></div>`;
+      <button class="btn cta cs-words" id="cs-words">${icon("edit")}Add the words</button>
+      <div class="actions" style="margin-top:10px"><button class="btn" id="cs-again">Try again</button><button class="btn primary" id="cs-add">Add to library</button></div>`;
     $("cs-again").onclick = () => { state.chart = null; paint(); };
-    $("cs-add").onclick = () => {
-      const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body: c.body,
+    const add = (body, note) => {
+      const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body,
         ...(c.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, c.bpm))) } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart" });
       close();
       leaveSearch();
       go("#/song/" + encodeURIComponent(s.id));
-      toast("Added. Tap Listen to hear it while you check the chords");
+      toast(note);
     };
+    $("cs-add").onclick = () => add(c.body, "Added. Tap Listen to hear it while you check the chords");
+    $("cs-words").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library" }, merged => add(merged, "Added with your words. Check the chord spots by ear"), () => chartSheet("", { title: c.title, artist: c.artist, chart: c }));
   };
   const findChords = async () => {
     const title = $("cs-t").value.trim(), artist = $("cs-a").value.trim();
@@ -99,7 +102,39 @@ export function chartSheet(q, preset = {}) {
     if (!state.chart) { $("cs-t").value = title; $("cs-a").value = artist; }
   };
   paint();
-  if (preset.title) findChords();
+  if (preset.title && !preset.chart) findChords();
+}
+
+// ---- Add the words ----
+// Paste the lyrics (copied from wherever you can copy them); the chart's chords
+// are placed over them, section by section (mergeWords in core.js). Tabs never
+// supplies lyrics itself.
+export function wordsSheet(chart, { title = "", ok = "Done" } = {}, done, back) {
+  layer.innerHTML = `<div class="scrim" id="ws-scrim"></div><div class="panel full cs" role="dialog" aria-label="Add the words"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="ws-x">${back ? "Back" : "Cancel"}</button><h2>Add the words</h2><button class="tb" id="ws-ok" disabled>${esc(ok)}</button></div>
+    <div class="pbody">
+      <p class="foot" style="margin:0 2px 10px">Paste the lyrics${title ? ` for <b>${esc(title)}</b>` : ""}. Blank lines between verses help; names like [Chorus] help more. Tabs puts the chart's chords over them, two to a line; fix any spot in Edit.</p>
+      <button class="btn" id="ws-paste" style="width:100%;margin-bottom:10px">${icon("clip")}Paste</button>
+      <textarea id="ws-text" class="ws-text" rows="9" placeholder="Paste or type the lyrics here" aria-label="Lyrics" autocapitalize="sentences"></textarea>
+      <div class="label" style="margin:14px 2px 6px">With the chords</div>
+      <pre class="cs-chart" id="ws-prev">${esc(chart)}</pre></div></div>`;
+  const ta = $("ws-text"), prev = $("ws-prev"), okb = $("ws-ok");
+  let merged = null, timer = 0;
+  const update = () => {
+    merged = mergeWords(chart, ta.value);
+    prev.textContent = merged || chart;
+    okb.disabled = !merged;
+  };
+  ta.oninput = () => { clearTimeout(timer); timer = setTimeout(update, 250); };
+  const leave = () => (back ? back() : (layer.innerHTML = ""));
+  $("ws-scrim").onclick = leave; $("ws-x").onclick = leave;
+  $("ws-paste").onclick = async () => {
+    let text = "";
+    try { text = await navigator.clipboard.readText(); } catch { /* not allowed: paste into the box */ }
+    if (!text.trim()) { ta.focus(); return toast("Press and hold in the box, then tap Paste"); }
+    ta.value = text; update();
+  };
+  okb.onclick = () => { update(); if (!merged) return; layer.innerHTML = ""; done(merged); };
 }
 
 // ---- What can I play next? ----

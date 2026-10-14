@@ -1579,3 +1579,79 @@ export function lineHint(words, notes, changes, key) {
   });
   return best;
 }
+
+// ---------- Add the words: a chord chart's chords over lyrics you paste ----------
+// A chart (from Chord chart) has sections of chords and no words. Your pasted
+// lyrics come in stanzas (blank lines between them), with or without names
+// like [Chorus] or "Verse 2:". Walking the chart in order, each sung section
+// takes the next stanza (one of its kind, when the stanza is named); the
+// section's chords run through its lines, two to a line, looping as the song
+// does. Intros, solos and outros stay as chord lines. Stanzas left over go at
+// the end with their kind's chords.
+const KINDS = { verse: "verse", "pre-chorus": "pre", prechorus: "pre", chorus: "chorus", refrain: "chorus", hook: "chorus", bridge: "bridge", tag: "chorus", coda: "outro", outro: "outro", ending: "outro", intro: "intro", solo: "solo", interlude: "solo", instrumental: "solo", break: "solo", riff: "intro" };
+const kindOf = name => KINDS[String(name || "").toLowerCase().replace(/\s*\d+$/, "").replace(/\s+/g, "-").replace(/^pre-?chorus$/, "pre-chorus")] || "";
+const SUNG = new Set(["verse", "pre", "chorus", "bridge"]);
+function chartSections(body) {
+  const head = [], secs = [];
+  let cur = null;
+  for (const line of String(body || "").split("\n")) {
+    const sec = line.match(SECTION_RE);
+    if (sec) { const name = (sec[1] || sec[2] || "").replace(/\s*\(x\d+\)\s*$/i, "").trim(); cur = { name, kind: kindOf(name), chords: [] }; secs.push(cur); continue; }
+    if (!line.trim()) continue;
+    if (cur && isChordLine(line)) cur.chords.push(...line.trim().split(/\s+/).filter(isChord));
+    else if (!cur) head.push(line);
+  }
+  return { head, secs: secs.filter(s => s.chords.length) };
+}
+export function lyricStanzas(text) {
+  const out = [];
+  let cur = null;
+  for (let raw of String(text || "").replace(/\r\n?/g, "\n").split("\n")) {
+    const line = raw.trim();
+    if (!line) { cur = null; continue; }
+    const named = line.match(/^\[([^\]]+)\]$/) || line.match(/^\(?((?:intro|verse|pre-?chorus|chorus|bridge|outro|refrain|hook|tag)(?:\s*\d+)?)\)?\s*:?$/i);
+    if (named) { cur = { name: named[1].replace(/\s*[x×]\s*\d+$/i, "").trim(), kind: kindOf(named[1].replace(/\s*[x×]\s*\d+$/i, "").replace(/\s*:\s*.*$/, "")), lines: [] }; out.push(cur); continue; }
+    if (!cur) { cur = { name: "", kind: "", lines: [] }; out.push(cur); }
+    cur.lines.push(line);
+  }
+  return out.filter(s => s.lines.length);
+}
+// One stanza under a progression: two chords a line (or one, for a one-chord
+// progression), the second over the middle of the line, looping.
+function stanzaLines(lines, chords) {
+  const out = [];
+  let at = 0;
+  const per = chords.length === 1 ? 1 : 2;
+  for (const line of lines) {
+    const words = [...line.matchAll(/\S+/g)];
+    const take = Array.from({ length: per }, () => chords[at++ % chords.length]);
+    const cols = per === 1 || words.length < 2 ? [0] : [0, words[Math.floor(words.length / 2)].index];
+    let row = "";
+    take.slice(0, cols.length).forEach((c, i) => { row = row.padEnd(i ? Math.max(cols[i], row.length + 1) : 0, " ") + c; });
+    if (cols.length < take.length) row += " " + take.slice(cols.length).join(" ");
+    out.push(row, line);
+  }
+  return out;
+}
+export function mergeWords(chartBody, lyricsText) {
+  const { head, secs } = chartSections(chartBody);
+  const stanzas = lyricStanzas(lyricsText);
+  if (!secs.length || !stanzas.length) return null;
+  const out = [...head];
+  if (head.length) out.push("");
+  const byKind = k => secs.find(s => s.kind === k) || secs.find(s => SUNG.has(s.kind)) || secs[0];
+  const left = [...stanzas];
+  const emit = (name, lines) => { out.push(`[${name}]`, ...lines, ""); };
+  for (const sec of secs) {
+    if (!SUNG.has(sec.kind) && sec.kind) { emit(sec.name, [sec.chords.join("   ")]); continue; }
+    const i = left.findIndex(st => !st.kind || st.kind === sec.kind);
+    if (i < 0) continue;
+    /* An unnamed stanza takes the next sung section; a named one waits for its kind. */
+    if (left[i].kind === "" || i === 0 || left.slice(0, i).every(st => st.kind && st.kind !== sec.kind)) {
+      const st = left.splice(i, 1)[0];
+      emit(st.name || sec.name, stanzaLines(st.lines, sec.chords));
+    }
+  }
+  for (const st of left) { const sec = byKind(st.kind); emit(st.name || sec.name, stanzaLines(st.lines, sec.chords)); }
+  return out.join("\n").trim();
+}

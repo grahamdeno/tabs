@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle } from "./core.js";
+import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
@@ -1338,7 +1338,8 @@ function songMenu(song, anchor, redrawSong) {
     { id: "share", icon: "share", label: "Share song" },
     { id: "edit", icon: "edit", label: "Edit" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
-    (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" }
+    (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
+    song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
   ].filter(Boolean);
   const m = document.createElement("div");
   m.className = "menu glass float";
@@ -1382,6 +1383,7 @@ function songMenu(song, anchor, redrawSong) {
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
        tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
        listen: () => listenSheet(song, true),
+       words: () => wordsFor(song),
        metro: () => { data.settings.metronome = !data.settings.metronome; Tabs.save(data);
          if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
          toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", $("more")); } })[b.dataset.m]?.();
@@ -1434,6 +1436,14 @@ document.addEventListener("visibilitychange", () => {
   };
 });
 
+// Add the words to a chord chart already in the library (see findai.js).
+function wordsFor(song) {
+  findAI().then(m => m.wordsSheet(song.body, { title: song.title, ok: "Save" }, merged => {
+    const was = song.body;
+    song.body = merged; delete song.loop; Tabs.save(data); render();
+    toast("Words added. Check the chord spots by ear", null, { label: "Undo", fn: () => { song.body = was; Tabs.save(data); render(); } });
+  }));
+}
 // Chord charts and "What can I play next?" load on first use (findai.js).
 const findAI = () => lazy("findai.js");
 // Leave search mode (used when a song is added from a chart).
