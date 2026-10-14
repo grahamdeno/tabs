@@ -38,6 +38,8 @@ test("search moves to the top, finds lyrics, and offers to find what's missing",
   assert.ok(await page.evaluate(() => document.body.classList.contains("searching")));
   await page.keyboard.type("willows"); await page.waitForTimeout(300);
   assert.match(await page.innerText("#list"), /River Road/);
+  assert.match(await page.innerText(".findcard.more"), /Find “willows” elsewhere/, "matches still leave a way to look further");
+  assert.ok(await page.locator(".findcard.more [data-find='ug']").count());
   await page.fill("#q", "zzz unknown"); await page.dispatchEvent("#q", "input"); await page.waitForTimeout(300);
   assert.ok(await page.locator(".findcard").count());
   await page.tap("#qcancel"); await page.waitForTimeout(300);
