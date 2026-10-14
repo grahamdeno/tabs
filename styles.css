@@ -348,6 +348,8 @@ body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 .sheet > .pr, .sheet > .ly { margin-right: 5%; }
 .sheet.focus > .cur:is(.pr, .ly) { transform: scale(1.05); transform-origin: left center; -webkit-text-stroke: 0.78px currentColor; }
 .sheet.focus > .cur .c { -webkit-text-stroke: 0; }
+/* The next line is in focus too, a little softer, to read ahead. */
+.sheet.focus > .cur2:is(.pr, .ly) { opacity: .72; transform: none; -webkit-text-stroke: 0.4px currentColor; }
 @media (prefers-reduced-motion: reduce) { .sheet > * { transition: opacity .3s; } }
 .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .38; }
 /* Daylight: dimmed lines stay readable on the light background. */
