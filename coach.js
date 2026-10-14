@@ -250,7 +250,23 @@ function showMe(name) {
   if (name === "tap") setOpenEdit({ id: song.id, view: "sheet" });
   go("#/song/" + encodeURIComponent(song.id));
 }
+/* One hand: point at the control where it is. Only on a phone held upright. */
+const ONE_HAND = {
+  ring: () => [document.getElementById("play"), "<b>Hold Play</b><span>Slide to Favorite, Metronome, Key, Now and Next or More, and let go.</span>"],
+  arc: () => { wakeRing(); return [document.querySelector(".rc-track"), "<b>Sweep the arc</b><span>Up moves forward, down moves back. One full sweep goes end to end.</span>"]; },
+  pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Library\u201d and let go.</span>"],
+  speed: () => [document.getElementById("dialbtn"), "<b>Hold the time</b><span>Then sweep around the corner to set the song's length.</span>"],
+  setdial: () => [document.getElementById("setdial"), "<b>Hold \u201c4 of 9\u201d</b><span>Sweep through the set; let go to open a song.</span>"],
+  rise: () => { wakeRing(); return [document.getElementById("play"), "<b>Play rises to your thumb</b><span>While the phone is in your hand; it settles after 5 seconds still.</span>"]; }
+};
+/* Lift Play as a touch would. */
+const wakeRing = () => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); };
 function runDemo(name, song) {
+  if (ONE_HAND[name]) {
+    if (!document.body.classList.contains("ring")) return toast("This one is for a phone held upright, with Song controls set to Hold Play");
+    if (name === "setdial" && !document.getElementById("setdial")) return toast("Open a song from a set, then hold \u201c4 of 9\u201d");
+    return setTimeout(() => { const [el, html] = ONE_HAND[name](); if (el) setTimeout(() => coach(el, "", { ms: 6000, place: "above", fixed: true, html }), 400); }, 300);
+  }
   if (name === "chord") return demoChord(song, true);
   if (name === "pause") return demoPause();
   if (name === "line") return demoLine();
@@ -261,50 +277,42 @@ function runDemo(name, song) {
     return setTimeout(demoMap, 450);
   }
 }
+// Grouped by where you are; only things without a visible button (2.6.4).
 const GESTURES = [
+  ["One hand (phone held upright)", [
+    ["ring", "Hold Play", "A ring opens: Favorite, Metronome, Key, Now and Next, More, and Set in a set. Slide to one and let go, or let go and tap", "play"],
+    ["arc", "Sweep the arc", "Moves through the song: slowly for a line or two, one full sweep end to end. The section glows as you go", "loop"],
+    ["pull", "Pull down at the top of a song", "Let go at \u201cRelease for Library\u201d to go back (when paused)", "back"],
+    ["speed", "Hold the time", "The speed dial: sweep the corner to set the song's length", "gauge"],
+    ["setdial", "Hold \u201c4 of 9\u201d in a set", "The set dial: sweep through the set, let go to open a song", "listplus"],
+    ["rise", "Pick up the phone", "Play rises to your thumb; it settles back after 5 seconds still", "up"]]],
   ["On a song", [
-    ["chord", "Tap a chord", "See how to play it", "fretboard"],
+    ["chord", "Tap a chord", "See how to play it; tap a chord card above the song to mark everywhere it's played", "fretboard"],
     ["line", "Tap a line", "Play starts from there", "play"],
-    ["map", "Drag the section map", "Jump through the song", "sliders"],
+    ["map", "Drag the song map", "Jump through the song's sections (Settings > Song map)", "sections"],
     ["nn", "Now and Next", "The chord you're on, and what's coming", "fretboard"],
-    ["", "Tap a chord card above the song", "Marks everywhere it's played", "fretboard"],
     ["", "Tap the title bar", "Back to the top", "up"],
-    ["", "− and +", "Transpose (or resize, for tab)", "plus"],
-    ["", "Tap the status chip", "Mark it Learning or Learned", "check"],
-    ["", "Tap Listen, or the tuning chip", "Hear the recording, or open the tuner", "note"],
+    ["", "Key", "Hold Play, then Key; or \u2212 and + in the bar on iPad (resizes tab)", "plus"],
     ["", "Count-in", "Plays only when you start from the top", "metro"]]],
   ["While playing", [
-    ["pause", "Tap anywhere", "Pause (tap twice on stage)", "pause"],
-    ["", "Scroll by hand", "It carries on from where you leave it", "down"]]],
+    ["pause", "Tap anywhere", "Pause (tap twice on stage). Scroll by hand and it carries on from there", "pause"]]],
   ["Pedal or keyboard", [
-    ["", "Left pedal, or Space", "Play and pause", "play"],
-    ["", "Right pedal", "Next section; hold it to go back one", "down"],
-    ["", "Any Bluetooth page-turner", "Pair it in the phone's Bluetooth settings; it works like a keyboard", "info"]]],
+    ["", "Left pedal (or Space) and right pedal", "Left plays and pauses; right goes to the next section, hold it to go back one. Any Bluetooth page-turner works", "play"]]],
   ["Practice a section", [
     ["", "Tap the first and last line", "Loops that part; Build up adds a line each time", "loop"]]],
-  ["Library and search", [
-    ["search", "Search", "Titles, artists, a lyric; paste a sheet or a link", "search"],
-    ["", "Return", "Opens the top match", "chev"],
-    ["", "Back from a song you searched for", "Your results are still there", "back"]]],
+  ["Search", [
+    ["search", "Search", "Titles, artists, a lyric; paste a sheet or a link. Return opens the top match", "search"]]],
   ["Editing", [
     ["tap", "Tap tempo", "Tap along to set the tempo", "pick"],
-    ["", "Sing it, when adding a song", "Hold the pad to sing a line, let go to keep it; slide left to redo, up to make the song. The key wheel shows your key appearing", "mic"],
-    ["", "On a sung song: Your recording, Simple or Rich", "Hear it back with the words following; Rich adds the 7ths and 9ths you sang", "play"],
-    ["", "Tap a word on a sung song (in Edit)", "Chords that fit your melody there, and other ways to play the line", "pick"],
-    ["", "Tap a word", "Place or change its chord", "edit"],
-    ["", "The pencil, a section name, + Line or + Section", "Retype, rename, or add", "plus"],
-    ["", "Sheet and Text", "Switch views; your place is kept. Every change has Undo", "edit"]]],
+    ["", "Tap a word", "Place or change its chord; on a sung song, chords that fit your melody", "edit"],
+    ["", "Sing it, when adding a song", "Hold the pad to sing a line, let go to keep it. Then hear it back with Your recording; Rich adds the 7ths and 9ths you sang", "mic"]]],
   ["Sets", [
-    ["", "Tap the cover", "Change it", "image"],
-    ["", "Arrows in Edit", "Reorder the songs", "up"],
     ["", "Next up", "Stop stays on this song; it waits if the next needs another tuning", "fork"]]],
   ["Tuner", [
-    ["strobe", "Stripes near the note", "They stand still when it's right", "fork"],
-    ["", "Tap a key", "Hear that string", "note"],
-    ["", "Chromatic", "Any note, any instrument; set A4 at the bottom", "fork"]]],
+    ["strobe", "Stripes near the note", "They stand still when it's right. Tap a key to hear that string", "fork"],
+    ["", "Guided", "Goes E, A, D, G, B, e by itself and tells you when all six are in tune", "check"]]],
   ["Deleting", [
-    ["", "Undo", "Right after deleting a song or set", "back"],
-    ["", "Recently deleted", "Keeps them for 30 days (Settings)", "trash"]]]
+    ["", "Undo, or Recently deleted", "Undo right after; Recently deleted keeps songs and sets for 30 days", "trash"]]]
 ];
 function renderGestures() {
   app.innerHTML = `

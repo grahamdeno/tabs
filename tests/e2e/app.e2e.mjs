@@ -1053,6 +1053,20 @@ test("2.5 Back: in the island; pull down at the top; the library opens at its to
   assert.equal(await page.evaluate(() => location.hash), "#/", "a full pull goes back");
 });
 
+test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me points at the ring", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
+  await page.goto(base + "#/gestures"); await page.waitForTimeout(300);
+  const labels = await page.evaluate(() => [...document.querySelectorAll(".label")].map(x => x.textContent));
+  assert.match(labels[0], /One hand/i, "one-hand group first");
+  const text = await page.innerText("#app");
+  for (const t of ["Hold Play", "Sweep the arc", "Pull down at the top", "Hold the time"]) assert.ok(text.includes(t), t);
+  for (const t of ["Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
+  assert.ok(await page.locator(".gs-row").count() <= 24, "trimmed");
+  await page.click(".gs-show[data-demo='ring']"); await page.waitForTimeout(1800);
+  assert.match(await page.evaluate(() => location.hash), /#\/song\//);
+  assert.ok(await page.locator(".coach").count() >= 1, "the tip points at Play");
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });
