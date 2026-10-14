@@ -10,8 +10,19 @@ const ART = "tabs-art";          // album art for covers, kept across releases
 const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "ui.js", "store.js", "sets.js", "settings.js", "editor.js", "coach.js", "tuner.js", "findai.js", "aitools.js", "crop.js", "sketch.js", "heads.js", "dial.js", "ring.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
-  // cache: "reload" skips the browser's HTTP cache so the new release is fetched in full.
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))));
+  // Fetch every file fresh: cache: "reload" skips the phone's HTTP cache, and
+  // the ?fresh= query skips a web cache that may still hold the last release's
+  // copy for a few minutes after it changes. Each file is saved under its plain
+  // address. If core.js isn't this release's (its VERSION differs), the install
+  // fails and the phone tries again later, instead of keeping a mix of two
+  // releases under one name (2.6.1: the library showed 2.5 parts with 2.6 styles).
+  const v = CACHE.slice("tabs-v".length);
+  e.waitUntil(caches.open(CACHE).then(cache => Promise.all(SHELL.map(async u => {
+    const res = await fetch(new Request(`${u}${u.includes("?") ? "&" : "?"}fresh=${v}`, { cache: "reload" }));
+    if (!res.ok) throw new Error(`${u}: ${res.status}`);
+    if (u === "core.js" && !(await res.clone().text()).includes(`VERSION = "${v}"`)) throw new Error("core.js is from another release");
+    await cache.put(u, res);
+  }))));
   self.skipWaiting();
 });
 
