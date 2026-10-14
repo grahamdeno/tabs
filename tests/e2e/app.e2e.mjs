@@ -573,3 +573,19 @@ test("a set's Album art cover finds art for its songs on Apple Music", { skip: s
   assert.match(await page.innerText("#toast"), /Album art for every song/);
   assert.ok(await page.locator('.cover img[src*="river"]').count() >= 1, "the cover shows the art");
 });
+
+test("Back from a song opened in a set returns to that set; from the library, to the library", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Friday", songIds: ["a", "b"] }] });
+  const hash = () => page.evaluate(() => location.hash);
+  await page.goto(base + "#/set/s"); await page.waitForTimeout(300);
+  await page.click("[data-open='0']"); await page.waitForTimeout(400);
+  assert.equal(await page.getAttribute(".head [data-go]", "aria-label"), "Back to Friday");
+  await page.click("#snext"); await page.waitForTimeout(400);               // on to the next song in the set
+  await page.click(".head [data-go]"); await page.waitForTimeout(400);
+  assert.equal(await hash(), "#/set/s");
+  await page.goto(base + "#/"); await page.waitForTimeout(300);
+  await page.click('#list .row[data-id="a"]'); await page.waitForTimeout(400);
+  assert.equal(await page.getAttribute(".head [data-go]", "aria-label"), "Back to library");
+  await page.click(".head [data-go]"); await page.waitForTimeout(400);
+  assert.equal(await hash(), "#/");
+});

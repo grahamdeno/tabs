@@ -531,10 +531,13 @@ function renderViewer(id) {
   Tabs.save(data);
 
   app.classList.add("viewer");
+  /* Back goes where the song was opened from: its set, when played from one. */
+  const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : { to: "#/", label: "Back to library" };
   diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
   app.innerHTML = `
     <div class="head">
-      <button class="ib glass" data-go="#/" aria-label="Back to library">${icon("back")}</button>
+      <button class="ib glass" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
       <div class="row-btns">
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="ib glass more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
@@ -552,7 +555,7 @@ function renderViewer(id) {
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
-        <button class="ib glass" data-go="#/" aria-label="Back to library" tabindex="-1">${icon("back")}</button>
+        <button class="ib glass" data-go="${back.to}" aria-label="${esc(back.label)}" tabindex="-1">${icon("back")}</button>
         <button class="ctitle" id="ctitle" aria-label="Back to top of song" tabindex="-1">
           <div class="ct">${esc(song.title)}</div>
           <div class="cs" id="csub"></div>
