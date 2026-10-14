@@ -66,7 +66,7 @@ export function openDial(o) {
       const major = !labels && i % 5 === 0, cur = i === lit;
       const [x0, y0] = at(i, R - (major ? 42 : 36)), [x1, y1] = at(i, R - 16);
       t += `<line x1="${fmt(x0)}" y1="${fmt(y0)}" x2="${fmt(x1)}" y2="${fmt(y1)}" class="${cur ? "cur" : i < lit ? "lit" : ""}"${i <= lit ? ' filter="url(#dial-glow)"' : ""}/>`;
-      if (labels) { const [lx, ly] = at(i, R - 58); l += `<text x="${fmt(lx)}" y="${fmt(ly + 4)}" text-anchor="middle" class="${cur ? "cur" : ""}"${cur ? ' filter="url(#dial-glow)"' : ""}>${i + 1}</text>`; }
+      if (labels) { const [lx, ly] = at(i, R - 58); l += `<text x="${fmt(lx)}" y="${fmt(ly + 4)}" text-anchor="middle" class="${cur ? "cur" : ""}"${cur ? ' filter="url(#dial-glow)"' : ""}>${o.tick ? o.tick(i) : i + 1}</text>`; }
     }
     ticks.innerHTML = t; names.innerHTML = l;
     const r = o.read(value);

@@ -813,6 +813,71 @@ test("2.1 glow: count-in and the chord you're on glow; gig day counts down on Up
   assert.doesNotMatch(await page.evaluate(() => getComputedStyle(document.querySelector("#nn .cards .dn")).filter), /glow-f/, "Next stays plain");
 });
 
+test("2.2 ring: Play rests in the corner, rises with a touch, settles when still; hold it for the ring", { skip: skip() }, async t => {
+  const ring = { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch" } };
+  const page = await phone(t, ring);
+  const center = () => page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => document.getElementById("play").parentElement.id), "rc", "Play sits in the ring controls");
+  let c = await center();
+  assert.ok(c.x > 330 && c.y > 780, `Play rests in the corner (${c.x}, ${c.y})`);
+  await page.mouse.click(120, 300); await page.waitForTimeout(900);
+  c = await center();
+  assert.ok(Math.abs(c.x - 390 * 0.66) < 6 && Math.abs(c.y - 844 * 0.79) < 6, `a touch lifts Play to the thumb (${c.x}, ${c.y})`);
+  assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), true);
+  await page.waitForTimeout(5800);
+  c = await center();
+  assert.ok(c.x > 330 && c.y > 780, "still for 5 seconds: back in the corner");
+  /* A tap on Play still plays and pauses. */
+  await page.click("#play"); await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
+  await page.click("#play"); await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
+  /* Hold: the ring. Slide toward More and let go: the menu. */
+  c = await center();
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(450);
+  assert.equal(await page.locator(".ringx .ri").count(), 4, "Back, Favorite, Key, More (no Set outside a set)");
+  const more = await page.evaluate(() => { const r = document.querySelector(".ri[data-r='more']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.mouse.move(more.x, more.y, { steps: 6 });
+  assert.match(await page.textContent(".ring-name"), /More/);
+  await page.mouse.up(); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".menu.msheet").count(), 1, "the More menu opens");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "holding didn't start playback");
+  await page.mouse.click(120, 200); await page.waitForTimeout(300);
+  /* Let go without choosing: the ring stays to tap; Key opens the key dial. */
+  c = await center();
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(450); await page.mouse.up(); await page.waitForTimeout(200);
+  assert.equal(await page.locator(".ringx").count(), 1, "stays open");
+  await page.click(".ri[data-r='key']"); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".dial.key").count(), 1, "the key dial");
+  assert.match(await page.textContent(".dial-small"), /KEY A/);
+  await page.mouse.click(60, 120); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".dial").count(), 0);
+  /* Screen readers get the same controls as buttons. */
+  assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 4);
+});
+
+test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps the bar", { skip: skip() }, async t => {
+  const songs = [...LIB.songs, { id: "x0", title: "One", artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }];
+  const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, controls: "ring", follow: "hand", motionAsked: true } });
+  await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
+  await page.click("[data-open='0']"); await page.waitForTimeout(5800);
+  assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), false, "settled");
+  await page.evaluate(() => { for (let i = 0; i < 6; i++) window.dispatchEvent(new DeviceMotionEvent("devicemotion", { accelerationIncludingGravity: { x: 0, y: -9.8, z: 0 }, rotationRate: { alpha: 20, beta: 10, gamma: 5 } })); });
+  await page.waitForTimeout(700);
+  assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), true, "picking the phone up lifts Play");
+  const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(450);
+  assert.equal(await page.locator(".ringx .ri[data-r='set']").count(), 1, "Set in a set");
+  await page.mouse.up(); await page.mouse.click(60, 120); await page.waitForTimeout(200);
+  assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the island");
+
+  const pad = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring" } }, { viewport: { width: 1180, height: 820 } });
+  await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
+  assert.equal(await pad.evaluate(() => document.body.classList.contains("ring")), false, "iPad: no ring");
+  assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });

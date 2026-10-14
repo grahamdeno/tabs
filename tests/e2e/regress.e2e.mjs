@@ -14,7 +14,7 @@ const lib = theme => ({
   songs: [{ id: "a", title: "River Road", artist: "The Wanderers", key: "A", format: "chords", body: LONG, duration: 40 },
           { id: "t", title: "Tab Study", artist: "P", format: "tab", body: TAB }],
   sets: [{ id: "s", name: "Friday", songIds: ["a", "t"] }], trash: [],
-  settings: { v: 6, theme, tipsSeen: TIPS, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", micExplained: true }
+  settings: { v: 6, theme, controls: "bar", tipsSeen: TIPS, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", micExplained: true }
 });
 
 for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [1180, 820, "dark"]]) {
