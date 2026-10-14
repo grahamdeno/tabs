@@ -304,9 +304,9 @@ function renderList() {
     /* Before typing: recently played songs, ready to tap. */
     const recentSongs = sortSongs(data.songs.filter(s => lastPlayed(s)), "recent").slice(0, 8);
     const shown = recentSongs.length ? recentSongs : sortSongs(data.songs, "title");
-    list.innerHTML = `<div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>
-      <p class="empty-hint" style="margin-top:12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>
-      ${aiKey() && data.songs.length ? `<button class="nextidea glass" id="nextidea">${icon("wand")}<span><b>What can I play next?</b>Songs that use the chords you already know</span>${icon("chev", "chev")}</button>` : ""}`;
+    list.innerHTML = `<p class="empty-hint" style="margin:4px 0 12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>
+      ${aiKey() && data.songs.length ? `<button class="nextidea glass" id="nextidea">${icon("wand")}<span><b>What can I play next?</b>Songs that use the chords you already know</span>${icon("chev", "chev")}</button>` : ""}
+      <div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>`;
     bindRows(list);
     $("nextidea")?.addEventListener("click", () => nextSongs());
     return;
