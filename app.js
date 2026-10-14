@@ -1593,9 +1593,28 @@ function listenSheet(song, force) {
 }
 // A copied link (Apple Music, Spotify or YouTube) becomes the song's recording.
 // Apple Music links bring the length and album art with them.
+// Apple Music's Copy Link puts a link (not plain text) on the clipboard, and
+// Safari's readText() can come back empty for that. read() sees every kind,
+// so the one system Paste tap is enough. Only one read, so one prompt.
+async function readClipboard() {
+  const clip = navigator.clipboard;
+  if (!clip?.read) return clip?.readText ? clip.readText() : "";
+  const items = await clip.read();
+  const kinds = [];
+  for (const item of items) {
+    kinds.push(...item.types);
+    for (const type of ["text/uri-list", "text/plain"]) {
+      if (!item.types.includes(type)) continue;
+      const text = (await (await item.getType(type)).text()).trim();
+      if (text) return type === "text/uri-list" ? text.split(/\r?\n/).find(l => l && !l.startsWith("#")) || "" : text;
+    }
+  }
+  if (kinds.length) noteError(new Error(`Clipboard had no text or link (${kinds.join(", ").slice(0, 120)})`), { quiet: true, where: "paste" });
+  return "";
+}
 async function pasteListen(song, close, { apple = false } = {}) {
   let text = "";
-  try { text = await navigator.clipboard.readText(); } catch { /* not allowed: ask below */ }
+  try { text = await readClipboard(); } catch { /* not allowed: ask below */ }
   const use = text => {
     const url = (text.match(/https:\/\/\S+/) || [])[0];
     if (!url) return toast("That doesn't look like a link");
@@ -1606,7 +1625,7 @@ async function pasteListen(song, close, { apple = false } = {}) {
     toast(`Saved the ${linkService(url)} link`);
     if (appleTrackId(url)) recordingLength(song, url);
   };
-  if (/^https?:\/\//.test(text.trim())) return use(text);
+  if (/https:\/\/\S+/.test(text)) return use(text);
   ask({ title: "Paste the song's link", text: apple ? "In Apple Music: tap ••• or Share, then Copy Link." : "From Apple Music, Spotify or YouTube: tap Share, then Copy Link.", placeholder: "https://…", caps: "none", ok: "Save link" }, use);
 }
 function clearListen(song, close) {

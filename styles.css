@@ -644,6 +644,7 @@ body.stage .sheet { color: #fff; }
 :root[data-theme="light"] body.stage .sheet { color: #000; }
 body.stage .sheet .c { filter: saturate(1.2) brightness(1.12); }
 body.stage .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .6; }
+body.stage .sheet.focus > .cur2:is(.pr, .ly) { opacity: .85; }
 body.stage.playing { overscroll-behavior: none; }
 
 .ls-list { margin: 10px 0 6px; max-height: min(46dvh, 420px); overflow-y: auto; }
