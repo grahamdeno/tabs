@@ -183,4 +183,8 @@ document.addEventListener("keydown", e => {
 const showToCopy = (title, text) => ask({ title, value: text, readonly: true, ok: "Done" });
 const SECTION_NAMES = ["Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo", "Outro"];
 
+// One hand: a phone held upright. Controls move to the bottom, in reach of the
+// thumb (2.0). iPad and landscape keep their layouts.
+const oneHandMQ = matchMedia("(max-width: 699px) and (orientation: portrait)");
+export { oneHandMQ };
 export { html, raw, $, I, SECTION_NAMES, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast };

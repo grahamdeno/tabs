@@ -1,7 +1,7 @@
 // Tabs sets: the set page, playing a set through, covers (from the songs,
 // album art or a photo) and the new-set sheet.
 import { TUNINGS, Tabs, appleTrackId, firstLyric, logSetRun, playsThisWeek, rankTracks, untilLabel } from "./core.js";
-import { $, app, esc, icon, layer, onLeave, toast } from "./ui.js";
+import { $, app, esc, icon, layer, oneHandMQ, onLeave, toast } from "./ui.js";
 import { noteError } from "./store.js";
 import { applyTheme, calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, viewing } from "./app.js";
 
@@ -127,12 +127,13 @@ function pickSongs(set, done) {
     <div class="scrim" id="pk-scrim"></div>
     <div class="panel full pk" role="dialog" aria-label="Add songs">
       <div class="grab"></div>
-      <div class="ph"><button class="tb" id="pk-cancel">Back</button><h2>Add songs</h2><button class="tb go" id="pk-add">Done</button></div>
+      <div class="ph"><button class="tb" id="pk-cancel">Back</button><h2>Add songs</h2>${oneHandMQ.matches ? '<span style="width:56px"></span>' : '<button class="tb go" id="pk-add">Done</button>'}</div>
       <div class="pbody">
         <div class="pk-top"><div class="pk-cv" id="pk-cv"></div><div class="pk-tt"><b>${esc(set.name)}</b><span id="pk-len"></span><small>Each song adds a ring in the color of its key.</small></div></div>
         <label class="cmd glass" style="height:44px;margin-bottom:12px">${icon("search")}<input id="pk-q" placeholder="Search your songs" autocomplete="off"></label>
         <div class="list glass" id="pk-list"></div>
       </div>
+      ${oneHandMQ.matches ? '<div class="pfoot"><button class="btn primary" id="pk-add">Done</button></div>' : ""}
     </div>`;
   const all = () => [...setSongs(set), ...chosen.map(i => data.songs.find(s => s.id === i))];
   const top = () => {

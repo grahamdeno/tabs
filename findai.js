@@ -1,6 +1,7 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
 import { Tabs, TUNINGS, buildChart, chordCounts, mergeWords } from "./core.js";
+import { oneHandMQ } from "./ui.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
@@ -58,7 +59,7 @@ export function chartSheet(q, preset = {}) {
         <label class="ns-f"><input id="cs-t" value="${esc(t0 || "")}" placeholder="Song title" aria-label="Song title"></label>
         <label class="ns-f"><input id="cs-a" value="${esc(a0 || "")}" placeholder="Artist (helps find the right one)" aria-label="Artist"></label>
         ${state.err ? `<p class="err" style="margin:6px 2px">${esc(state.err)}</p>` : ""}
-        <button class="btn primary cta" id="cs-go" style="margin-top:8px">${icon("wand")}Find the chords</button>
+        <button class="btn primary cta cs-act" id="cs-go" style="margin-top:8px">${icon("wand")}Find the chords</button>
         <p class="foot" style="margin-top:12px">AI searches chord sites and writes a chart: sections, chords, key, capo, tempo and strum. It never copies lyrics. Charts can be wrong, so check it by ear. Each chart uses a few web searches on your key, usually 5 to 15 cents.</p>`;
       $("cs-go").onclick = findChords;
       return;
@@ -111,13 +112,14 @@ export function chartSheet(q, preset = {}) {
 // supplies lyrics itself.
 export function wordsSheet(chart, { title = "", ok = "Done" } = {}, done, back) {
   layer.innerHTML = `<div class="scrim" id="ws-scrim"></div><div class="panel full cs" role="dialog" aria-label="Add the words"><div class="grab"></div>
-    <div class="ph"><button class="tb" id="ws-x">${back ? "Back" : "Cancel"}</button><h2>Add the words</h2><button class="tb" id="ws-ok" disabled>${esc(ok)}</button></div>
+    <div class="ph"><button class="tb" id="ws-x">${back ? "Back" : "Cancel"}</button><h2>Add the words</h2>${oneHandMQ.matches ? '<span style="width:56px"></span>' : `<button class="tb" id="ws-ok" disabled>${esc(ok)}</button>`}</div>
     <div class="pbody">
       <p class="foot" style="margin:0 2px 10px">Paste the lyrics${title ? ` for <b>${esc(title)}</b>` : ""}. Blank lines between verses help; names like [Chorus] help more. Tabs puts the chart's chords over them, two to a line; fix any spot in Edit.</p>
       <button class="btn" id="ws-paste" style="width:100%;margin-bottom:10px">${icon("clip")}Paste</button>
       <textarea id="ws-text" class="ws-text" rows="9" placeholder="Paste or type the lyrics here" aria-label="Lyrics" autocapitalize="sentences"></textarea>
       <div class="label" style="margin:14px 2px 6px">With the chords</div>
-      <pre class="cs-chart" id="ws-prev">${esc(chart)}</pre></div></div>`;
+      <pre class="cs-chart" id="ws-prev">${esc(chart)}</pre></div>
+    ${oneHandMQ.matches ? `<div class="pfoot"><button class="btn primary" id="ws-ok" disabled>${esc(ok)}</button></div>` : ""}</div>`;
   const ta = $("ws-text"), prev = $("ws-prev"), okb = $("ws-ok");
   let merged = null, timer = 0;
   const update = () => {
