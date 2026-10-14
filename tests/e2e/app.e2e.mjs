@@ -664,6 +664,34 @@ test("Listen searches Apple Music in the app: change the words, hear a preview, 
   assert.equal(left, false, "Tabs didn't send you to Apple Music");
 });
 
+test("Listen still finds songs when Safari blocks Apple's reply, and offers a way on when Apple can't be reached", { skip: skip() }, async t => {
+  const page = await phone(t);
+  let down = false;
+  const hit = { trackName: "Harbor Lights", artistName: "Me", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", artworkUrl100: "" };
+  await page.route("https://itunes.apple.com/search**", r => {
+    const cb = new URL(r.request().url()).searchParams.get("callback");
+    if (down) return r.abort();
+    /* The plain request is blocked (as Safari does when Apple's reply lacks the CORS header); the script way works. */
+    if (!cb) return r.abort("accessdenied");
+    r.fulfill({ status: 200, contentType: "text/javascript", body: `${cb}(${JSON.stringify({ results: [hit] })});` });
+  });
+  await page.goto(base + "#/song/b"); await page.waitForTimeout(400);
+  await page.click("#listen"); await page.waitForTimeout(1200);
+  assert.equal(await page.locator(".ls-row").count(), 1, "found by the fallback");
+  down = true;
+  await page.fill("#ls-q", "Harbor"); await page.press("#ls-q", "Enter"); await page.waitForTimeout(1500);
+  assert.match(await page.innerText("#ls-res"), /Couldn't reach/);
+  const log = await page.evaluate(() => localStorage.getItem("tabs.errors.v1"));
+  assert.match(log, /Apple catalog search/, "the reason is kept for diagnostics");
+  let opened = "";
+  await page.context().route("https://music.apple.com/**", r => { opened = r.request().url(); r.fulfill({ status: 200, body: "" }); });
+  await page.click("#ls-apple"); await page.waitForTimeout(800);
+  assert.match(opened, /music\.apple\.com\/search\?term=Harbor/, "opens Apple Music's own search");
+  down = false;
+  await page.click("#ls-retry"); await page.waitForTimeout(1200);
+  assert.equal(await page.locator(".ls-row").count(), 1, "Try again works");
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });

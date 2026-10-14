@@ -2,6 +2,7 @@
 // album art or a photo) and the new-set sheet.
 import { TUNINGS, Tabs, appleTrackId, firstLyric, logSetRun, playsThisWeek, rankTracks, untilLabel } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, toast } from "./ui.js";
+import { noteError } from "./store.js";
 import { applyTheme, calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, viewing } from "./app.js";
 
 // ---------- Sets ----------
@@ -275,23 +276,47 @@ const setArt = set => setSongs(set).map(songArt).filter(a => /^https:\/\//.test(
 // artist clearly match. Kept on the song as `art` (the cover only).
 const artTried = new Set();
 const big = u => String(u).replace(/\d+x\d+bb/, "600x600bb");
-async function getJSON(url) {
-  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
-  try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; }
-  catch { return null; } finally { clearTimeout(t); }
+// Apple's public catalog (no account or key). A normal request first; Safari
+// often blocks it because Apple's reply doesn't always carry the header that
+// lets a web app read it. Then the same request runs the way Apple's own docs
+// offer for web pages: as a script that hands back the results (JSONP).
+// Failures are noted (quietly) for Settings > Copy diagnostics.
+let calls = 0;
+function jsonp(url, ms) {
+  return new Promise((ok, fail) => {
+    const cb = `tabsCatalog${++calls}`, s = document.createElement("script");
+    const done = () => { clearTimeout(t); window[cb] = () => {}; s.remove(); };
+    const t = setTimeout(() => { done(); fail(new Error("no answer")); }, ms);
+    window[cb] = j => { done(); ok(j); };
+    s.onerror = () => { done(); fail(new Error("script didn't load")); };
+    s.src = `${url}&callback=${cb}`;
+    document.head.append(s);
+  });
 }
+async function itunes(path, params) {
+  const url = `https://itunes.apple.com/${path}?${new URLSearchParams(params)}`;
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 6000);
+  let first;
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (r.ok) return await r.json();
+    first = `status ${r.status}`;
+  } catch (e) { first = e.name === "AbortError" ? "no answer" : e.message; } finally { clearTimeout(t); }
+  try { return await jsonp(url, 9000); }
+  catch (e) { noteError(new Error(`Apple catalog ${path}: ${first}; then ${e.message}`), { quiet: true, where: "apple-catalog" }); throw e; }
+}
+const getJSON = (path, params) => itunes(path, params).catch(() => null);
 async function fillArt(set) {
   const need = setSongs(set).filter(s => !songArt(s) && !artTried.has(s.id));
   need.forEach(s => artTried.add(s.id));
   let found = 0;
   const linked = need.map(s => [s, appleTrackId(s.listen?.url || "")]).filter(([, id]) => id);
   if (linked.length) {
-    const res = (await getJSON(`https://itunes.apple.com/lookup?id=${linked.map(([, id]) => id).join(",")}&entity=song`))?.results || [];
+    const res = (await getJSON("lookup", { id: linked.map(([, id]) => id).join(","), entity: "song" }))?.results || [];
     linked.forEach(([s, id]) => { const r = res.find(x => String(x.trackId) === id && x.artworkUrl100); if (r) { s.listen = { ...s.listen, art: big(r.artworkUrl100) }; found++; } });
   }
   for (const s of need.filter(x => !songArt(x) && x.title && x.artist).slice(0, 12)) {
-    const term = encodeURIComponent(`${s.title} ${s.artist}`);
-    const top = rankTracks((await getJSON(`https://itunes.apple.com/search?term=${term}&entity=song&limit=8`))?.results || [], s.title, s.artist)[0];
+    const top = rankTracks((await getJSON("search", { term: `${s.title} ${s.artist}`, media: "music", entity: "song", limit: 8 }))?.results || [], s.title, s.artist)[0];
     if (top?.artworkUrl100 && top.score >= 4.5) { s.art = big(top.artworkUrl100); found++; }
   }
   if (found) Tabs.save(data);
@@ -439,4 +464,4 @@ function newSet(after) {
   });
 }
 
-export { addToSet, coverPut, setSetCtx, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText };
+export { itunes, addToSet, coverPut, setSetCtx, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText };

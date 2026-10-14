@@ -1,7 +1,7 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
 import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
-import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
+import { addToSet, itunes, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 
@@ -1459,13 +1459,8 @@ function nextSongs() { findAI().then(m => m.nextSongs()); }
 const appleSearchURL = song => `https://music.apple.com/search?term=${encodeURIComponent(`${song.title} ${song.artist || ""}`.trim())}`;
 function openLink(url) { if (/^https:\/\//.test(url)) window.open(url, "_blank", "noopener"); }
 async function findTracks(song, q) {
-  const term = encodeURIComponent(q || `${song.title} ${song.artist || ""}`.trim());
-  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
-  try {
-    const r = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=12`, { signal: ctl.signal });
-    if (!r.ok) throw new Error(r.status);
-    return rankTracks((await r.json()).results || [], song.title, song.artist);
-  } finally { clearTimeout(t); }
+  const j = await itunes("search", { term: q || `${song.title} ${song.artist || ""}`.trim(), media: "music", entity: "song", limit: 12 });
+  return rankTracks(j?.results || [], song.title, song.artist);
 }
 function saveListen(song, url, extra = {}) {
   song.listen = { url, service: linkService(url), ...extra };
@@ -1495,14 +1490,12 @@ async function recordingLength(song, url, opts) {
   const id = appleTrackId(url);
   if (!id || lookedUp.has(song.id + id)) return;
   lookedUp.add(song.id + id);
-  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
   try {
-    const r = await fetch(`https://itunes.apple.com/lookup?id=${id}&entity=song`, { signal: ctl.signal });
-    const hit = r.ok ? ((await r.json()).results || []).find(x => x.trackTimeMillis) : null, ms = hit?.trackTimeMillis;
+    const hit = ((await itunes("lookup", { id, entity: "song" }))?.results || []).find(x => x.trackTimeMillis), ms = hit?.trackTimeMillis;
     /* A pasted link brings its album art too (for set covers). */
     if (hit?.artworkUrl100 && song.listen?.url === url && !song.listen.art) { song.listen = { ...song.listen, art: hit.artworkUrl100.replace(/\d+x\d+bb/, "600x600bb") }; Tabs.save(data); }
     if (ms && song.listen?.url === url) useRecordingLength(song, ms / 1000, opts);
-  } catch {} finally { clearTimeout(t); }
+  } catch { /* noted for diagnostics */ }
 }
 // Listen: find the recording without leaving Tabs. Apple Music's catalog is
 // searched here (title and artist to start; change the words to search again),
@@ -1523,7 +1516,9 @@ function listenSheet(song, force) {
   const results = () => {
     const best = state.tracks[0], sure = state.q === first && best && best.score >= 5 && !state.all;
     if (state.busy) return `<div class="easy-wait">${busy("Looking in Apple Music")}</div>`;
-    if (!state.tracks.length) return `<p class="easy-note">${state.error ? "Couldn't reach Apple Music's catalog just now." : "No match. Try fewer words, or the artist's name."}</p>`;
+    if (state.error) return `<p class="easy-note">Couldn't reach Apple Music's catalog just now.</p>
+      <div class="ls-other"><button class="linkbtn" id="ls-retry">Try again</button><button class="linkbtn" id="ls-apple">Search in Apple Music</button></div>`;
+    if (!state.tracks.length) return `<p class="easy-note">No match. Try fewer words, or the artist's name.</p>`;
     return `<p class="easy-note">${sure ? "Found it on Apple Music. Is this the one?" : "Tap the right recording:"}</p>
       <div class="list glass ls-list">${(sure ? state.tracks.slice(0, 1) : state.tracks.slice(0, 8)).map(row).join("")}</div>
       ${sure && state.tracks.length > 1 ? `<button class="linkbtn ls-more" id="ls-more">Not this one? Show others</button>` : ""}`;
@@ -1551,6 +1546,8 @@ function listenSheet(song, force) {
       audio.play().catch(() => { stopPreview(); toast("The preview couldn't play"); });
     });
     $("ls-more")?.addEventListener("click", () => { state.all = true; paintResults(); });
+    $("ls-retry")?.addEventListener("click", () => search(state.q || first));
+    $("ls-apple")?.addEventListener("click", () => openLink(`https://music.apple.com/search?term=${encodeURIComponent(state.q || first)}`));
   };
   let seq = 0;
   const search = q => {
@@ -1570,6 +1567,7 @@ function listenSheet(song, force) {
       ${song.listen ? `<button class="danger" id="ls-clear">Remove link</button>` : ""}</div></div>`;
   $("ls-scrim").onclick = close;
   const q = $("ls-q");
+  q.value = first;
   let typing = 0;
   q.oninput = () => { clearTimeout(typing); typing = setTimeout(() => { if (q.value.trim()) search(q.value.trim()); }, 600); };
   $("ls-form").onsubmit = e => { e.preventDefault(); clearTimeout(typing); q.blur(); if (q.value.trim()) search(q.value.trim()); };
