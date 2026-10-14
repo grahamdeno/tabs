@@ -882,11 +882,18 @@ test("gig day countdown: same day and before the start only", () => {
   assert.equal(C.gigCountdown("", now), "");
 });
 
-test("arc sweep: slow is fine, quick covers the song, never below fine", () => {
-  const fine = 10, coarse = 100;
-  assert.equal(C.sweepGain({ speed: 0.02, fine, coarse }), 10, "slow: a screen per arc");
-  assert.equal(C.sweepGain({ speed: 0.5, fine, coarse }), 100, "quick: the whole song per arc");
-  const mid = C.sweepGain({ speed: 0.23, fine, coarse });
-  assert.ok(mid > 10 && mid < 55, `in between, eased toward fine (${mid})`);
-  assert.equal(C.sweepGain({ speed: 0.5, fine: 10, coarse: 4 }), 10, "a short song never moves less than fine");
+test("arc sweep: fine near the start, reaches the ends exactly, no jumps", () => {
+  const o = { from: 190, a0: 187, a1: 264, y0: 0, max: 4000, fine: 11 };
+  assert.equal(C.arcMap({ ...o, a: 264 }), 4000, "bottom to top of the arc: the end of the song");
+  assert.equal(C.arcMap({ ...o, a: 270 }), 4000, "past the end stays at the end");
+  const small = C.arcMap({ ...o, a: 192 });
+  assert.ok(small > 15 && small < 30, `a 2 degree nudge moves about two lines (${small})`);
+  let prev = 0, biggest = 0;
+  for (let a = 190; a <= 264; a += 0.5) { const y = C.arcMap({ ...o, a }); biggest = Math.max(biggest, y - prev); assert.ok(y >= prev, "always forward"); prev = y; }
+  assert.ok(biggest < 4000 / 20, `no single half-degree step moves more than 5% of the song (${biggest})`);
+  assert.equal(C.arcMap({ ...o, from: 260, y0: 4000, a: 187 }), 0, "top to bottom: the start");
+  const late = C.arcMap({ ...o, from: 262, y0: 1000, a: 264 });
+  assert.ok(late - 1000 < 600, `starting near the top end doesn't squeeze the song into a few degrees (${late})`);
+  assert.equal(C.arcMap({ ...o, a: 200, whole: false }), 110, "one screen: steady fine pace");
+  assert.equal(C.arcMap({ ...o, y0: 4000, a: 230 }), 4000, "already at the end");
 });

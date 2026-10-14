@@ -1201,13 +1201,27 @@ export function nextSet(sets, now = Date.now()) {
 // "today", "tomorrow", "in 3 days", "in 2 weeks", or "now" for a set under way.
 // Gig day: the time left until a set starts, as h:mm:ss, on its own calendar
 // day and only before it starts. Anything else: "" (no countdown).
-// The ring's arc (2.4): how far the song moves per degree of sweep. Slow
-// sweeps move finely (fine: about a screen per arc); quick ones approach the
-// whole song per arc (coarse). Speed is in degrees per millisecond.
-export const SWEEP = { slow: 0.06, fast: 0.4 };
-export function sweepGain({ speed, fine, coarse }) {
-  const w = Math.min(1, Math.max(0, (speed - SWEEP.slow) / (SWEEP.fast - SWEEP.slow)));
-  return fine + (Math.max(coarse, fine) - fine) * w * w;  /* eases in, so ordinary movement stays fine */
+// The ring's arc (2.4.6): where a sweep puts the song. The pace comes from how
+// far the thumb has swept, not how fast, so it's steady: near where the thumb
+// landed it's fine (about a screen per arc), and it picks up smoothly so that
+// reaching the end of the arc reaches the end of the song (or the start, going
+// down). Moving back retraces the same path. A sweep that starts close to an
+// end of the arc gets at least a third of the arc's room, so the rest of the
+// song is never squeezed into a few degrees.
+// a, from: angles (180 left, 270 up); a0, a1: the arc's ends; y0: the scroll
+// position when the sweep began; max: the furthest scroll; fine: px per degree.
+export function arcMap({ a, from, a0, a1, y0, max, fine, whole = true }) {
+  const clamp = y => Math.min(max, Math.max(0, y));
+  if (!whole) return clamp(y0 + (a - from) * fine);
+  const span = a1 - a0, up = a >= from;
+  /* Within 2 degrees of an end counts as the end (a thumb rarely hits it exactly). */
+  const room = Math.max((up ? a1 - from : from - a0) - 2, span / 3);
+  const dist = up ? max - y0 : y0;
+  if (dist <= 0) return clamp(y0);
+  const u = Math.min(1, Math.abs(a - from) / room);
+  const c = Math.min(1, fine * room / dist);           /* the starting pace, as a share of the straight line */
+  const g = c * u + (1 - c) * u * u;                   /* fine at first, then picks up evenly; g(1) = 1 */
+  return clamp(up ? y0 + dist * g : y0 - dist * g);
 }
 export function gigCountdown(when, now = Date.now()) {
   const t = Date.parse(when);

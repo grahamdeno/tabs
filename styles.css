@@ -1232,3 +1232,8 @@ body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34
   .ib .dotmark, .add.tool .dotmark, .ib .dotmark::before, .add.tool .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after { animation: none; }
   .ib .dotmark::before, .add.tool .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { opacity: .4; }
 }
+/* 2.4.6: while sweeping the arc, the page keeps still: no chord diagrams,
+   compact header or line resizing until you let go */
+body.ring-sweep .sheet .prow, body.ring-sweep .sheet .dpop { display: none; }
+body.ring-sweep .chead { opacity: 0 !important; pointer-events: none !important; }
+body.ring-sweep .sheet > * { transition: none !important; }

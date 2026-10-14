@@ -12,7 +12,7 @@
 // motion sensors (asked for once); without them, a touch on the screen counts.
 // Play never moves under a finger or just after a touch.
 import { icon, oneHandMQ } from "./ui.js";
-import { sweepGain } from "./core.js";
+import { arcMap } from "./core.js";
 
 /* Press this long on Play for the ring: iPhone's own long-press time, and a
    little longer while a song plays, so a firm tap to pause stays a pause. */
@@ -142,45 +142,34 @@ function paintTrack() {
 // the thumb and carries on from the new place when you let go.
 //
 // Whole song (the default): one full sweep, end to end, covers the whole
-// song, so a long song is one sweep from top to bottom. To keep long songs
-// easy to land in, the arc is speed-sensitive, like a trackpad: a slow sweep
-// moves finely (about a screen per arc), a quick one covers ground. And a
-// sweep that runs from one end of the arc to the other always lands on the
-// song's end or start. While sweeping, the section you're in glows by Play.
+// song. The pace comes from how far you've swept (arcMap in core.js): fine
+// near where the thumb lands, picking up smoothly to land exactly on the end.
+// While sweeping, the section you're in glows by Play, and the page keeps
+// still (no diagrams or header) until you let go.
 // One screen (the 2.3 behavior): the whole arc is about one screen.
 const angleOf = (x, y) => 180 + Math.atan2(innerHeight - y, innerWidth - x) * 180 / Math.PI;  /* 180 left, 270 up */
 function bindTrack() {
   const hit = st.rc.querySelector(".rc-hit");
   const where = st.rc.querySelector(".rc-where");
-  let from = null, last = 0, lastT = 0, y = 0, frame = 0;
+  let from = null, y0 = 0, target = 0, frame = 0, apply = 0;
   hit.addEventListener("touchstart", e => e.preventDefault(), { passive: false });  /* the page doesn't scroll too */
   hit.addEventListener("pointerdown", e => {
     e.preventDefault();
-    from = last = angleOf(e.clientX, e.clientY); lastT = e.timeStamp || performance.now(); y = scrollY;
+    from = angleOf(e.clientX, e.clientY); y0 = target = scrollY;
     document.body.classList.add("ring-sweep");
     st.o.grab?.();
     showWhere();
   });
   const showWhere = () => { if (where) where.textContent = st.o.where?.() || ""; };
+  /* One scroll per screen refresh, however often the finger reports. */
+  const flush = () => { apply = 0; if (Math.round(target) !== Math.round(scrollY)) window.scrollTo(0, target); showWhere(); };
   const move = e => {
     if (from == null) return;
     e.preventDefault();
-    const a = angleOf(e.clientX, e.clientY), t = e.timeStamp || performance.now();
-    const { a0, span } = arcRange(), max = document.documentElement.scrollHeight - innerHeight;
-    const d = a - last, dt = Math.max(1, t - lastT);
-    last = a; lastT = t;
-    const whole = st.o.settings.arcSweep !== "screen";
-    const fine = innerHeight / span;
-    const gain = whole ? sweepGain({ speed: Math.abs(d) / dt, fine, coarse: max / span }) : fine;
-    y = Math.min(max, Math.max(0, y + d * gain));
-    /* End to end in one sweep: all the way. */
-    if (whole) {
-      const f0 = (from - a0) / span, f = (a - a0) / span;
-      if (f0 <= 0.2 && f >= 0.92) y = max;
-      if (f0 >= 0.8 && f <= 0.08) y = 0;
-    }
-    window.scrollTo(0, y);
-    showWhere();
+    const { a0, a1, span } = arcRange();
+    target = arcMap({ a: angleOf(e.clientX, e.clientY), from, a0, a1, y0, max: document.documentElement.scrollHeight - innerHeight,
+      fine: innerHeight / span, whole: st.o.settings.arcSweep !== "screen" });
+    if (!apply) apply = requestAnimationFrame(flush);
     wake();
   };
   const up = () => {

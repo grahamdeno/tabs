@@ -944,6 +944,7 @@ test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the sect
   await lift();
   p = at(a0 + 2); await page.mouse.move(p.x, p.y); await page.mouse.down();
   for (let a = a0 + 2; a <= 263; a += 6) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(15); }
+  p = at(263); await page.mouse.move(p.x, p.y); await page.waitForTimeout(50);
   await page.mouse.up(); await page.waitForTimeout(300);
   assert.ok(await page.evaluate(() => scrollY) >= max - 2, "a full sweep up reaches the end");
   await lift();
@@ -952,6 +953,37 @@ test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the sect
   p = at(a0 + 1); await page.mouse.move(p.x, p.y);
   await page.mouse.up(); await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => scrollY), 0, "a full sweep down reaches the start");
+});
+
+test("2.4.6 arc: real touch sweeps move steadily, never jump, never reverse", { skip: skip() }, async t => {
+  const long = { ...LIB.songs[0], body: Array.from({ length: 14 }, (_, i) => LIB.songs[0].body.replace("[Chorus]", `[Chorus ${i + 1}]`)).join("\n\n") };
+  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  const cdp = await page.context().newCDPSession(page);
+  const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21), a0 = 180 + Math.asin(30 / r) * 180 / Math.PI;
+  const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
+  const touch = (type, p) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: p ? [{ x: p.x, y: p.y }] : [] });
+  const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+  const sweep = async (from, to, degPerSec) => {
+    await touch("touchStart", { x: 100, y: 300 }); await touch("touchEnd"); await page.waitForTimeout(900); /* lift Play */
+    await page.evaluate(() => { window.__ys = []; const f = () => { window.__ys.push(scrollY); window.__raf = requestAnimationFrame(f); }; f(); });
+    const steps = Math.ceil(Math.abs(to - from) / degPerSec * 60); let p = at(from);
+    await touch("touchStart", p);
+    for (let i = 1; i <= steps; i++) { p = at(from + (to - from) * i / steps); await touch("touchMove", p); await page.waitForTimeout(16); }
+    await touch("touchEnd"); await page.waitForTimeout(300);
+    const ys = await page.evaluate(() => { cancelAnimationFrame(window.__raf); return window.__ys; });
+    const d = ys.slice(1).map((y, i) => y - ys[i]).filter(Boolean);
+    return { moved: ys.at(-1) - ys[0], biggest: Math.max(0, ...d.map(Math.abs)), reversals: d.filter((x, i) => i && Math.sign(x) !== Math.sign(d[i - 1])).length, end: ys.at(-1) };
+  };
+  const slow = await sweep(a0 + 4, a0 + 20, 25);
+  assert.ok(slow.moved > 60 && slow.moved < 400, `slow: fine (${slow.moved})`);
+  assert.ok(slow.biggest <= 14 && slow.reversals === 0, `slow: steady (${JSON.stringify(slow)})`);
+  await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(300);
+  const full = await sweep(a0 + 3, 262.5, 250);
+  assert.ok(full.end >= max - 2, `a quick full sweep reaches the end (${full.end} of ${max})`);
+  assert.ok(full.biggest < max * 0.12 && full.reversals === 0, `no jump: biggest frame ${full.biggest} of ${max}`);
+  const back = await sweep(255, 230, 40);
+  assert.ok(back.moved < 0 && back.reversals === 0, `back up the song, steadily (${JSON.stringify(back)})`);
 });
 
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
