@@ -48,7 +48,7 @@ function renderSettings() {
         <button class="toggle ${s.pauseDiagrams !== false ? "on" : ""}" id="s-pause" role="switch" aria-checked="${s.pauseDiagrams !== false}" aria-label="Diagrams when paused"></button>
       </div>
       <div class="set">
-        <span class="tile">${icon("list")}</span><span class="name">Song map</span>
+        <span class="tile">${icon("sections")}</span><span class="name">Song map</span>
         <button class="toggle ${s.songMap !== false ? "on" : ""}" id="s-map" role="switch" aria-checked="${s.songMap !== false}" aria-label="Song map: the section rail on the right edge"></button>
       </div>
       <div class="set">
