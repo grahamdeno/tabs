@@ -305,6 +305,10 @@ async function itunes(path, params) {
   try { return await jsonp(url, 9000); }
   catch (e) { noteError(new Error(`Apple catalog ${path}: ${first}; then ${e.message}`), { quiet: true, where: "apple-catalog" }); throw e; }
 }
+// The page's security rules come from the index.html it opened with. After an
+// update in the background, the page can still be the older one, whose rules
+// don't allow the second way yet; a restart picks up the new page.
+const catalogBlocked = () => !/script-src[^;]*itunes\.apple\.com/.test(document.querySelector("meta[http-equiv='Content-Security-Policy']")?.content || "script-src itunes.apple.com");
 const getJSON = (path, params) => itunes(path, params).catch(() => null);
 async function fillArt(set) {
   const need = setSongs(set).filter(s => !songArt(s) && !artTried.has(s.id));
@@ -464,4 +468,4 @@ function newSet(after) {
   });
 }
 
-export { itunes, addToSet, coverPut, setSetCtx, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText };
+export { itunes, catalogBlocked, addToSet, coverPut, setSetCtx, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText };

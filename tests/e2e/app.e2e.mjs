@@ -692,6 +692,12 @@ test("Listen still finds songs when Safari blocks Apple's reply, and offers a wa
   down = false;
   await page.click("#ls-retry"); await page.waitForTimeout(1200);
   assert.equal(await page.locator(".ls-row").count(), 1, "Try again works");
+  /* A page opened before the update has older rules: offer a restart instead. */
+  page.removeAllListeners("console");
+  await page.evaluate(() => { const m = document.querySelector("meta[http-equiv='Content-Security-Policy']"); m.content = m.content.replace(/script-src[^;]*/, "script-src 'self'"); });
+  down = true;
+  await page.fill("#ls-q", "Harbor two"); await page.press("#ls-q", "Enter"); await page.waitForTimeout(1500);
+  assert.equal(await page.locator("#ls-restart").count(), 1, "offers a restart");
 });
 
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
