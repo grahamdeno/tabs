@@ -1208,8 +1208,8 @@ body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34
    like a fork ringing */
 /* Over the top-right of the fork icon itself, inside the button. */
 .ib .dotmark, .add.tool .dotmark { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-.add.tool .dotmark { top: 14px; right: 19px; }  /* centered on the fork's top-right corner */
-.ib .dotmark { top: 7px; right: 11px; }
+.add.tool .dotmark { top: 14px; right: 17px; }  /* centered just outside the fork's right edge, at its top */
+.ib .dotmark { top: 7px; right: 9.5px; }
 /* Two rings around the dot, like sound from a ringing fork. */
 .ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; }
 .ib .dotmark::before, .add.tool .dotmark::before { inset: -4px; opacity: .7; animation: ringing 2.4s ease-out infinite; }
