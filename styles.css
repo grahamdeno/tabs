@@ -641,7 +641,17 @@ body.stage .sheet .c { filter: saturate(1.2) brightness(1.12); }
 body.stage .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .6; }
 body.stage.playing { overscroll-behavior: none; }
 
-.ls-list { margin: 10px 0 6px; }
+.ls-list { margin: 10px 0 6px; max-height: min(46dvh, 420px); overflow-y: auto; }
+.ls-q { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--rim); margin: 2px 0 6px; }
+.ls-qi svg { width: 16px; height: 16px; color: var(--muted); }
+.ls-q input { flex: 1; min-width: 0; border: 0; background: none; font-size: 16px; color: var(--fg); height: 40px; }
+.ls-item { display: flex; align-items: center; }
+.ls-item .ls-row { flex: 1; min-width: 0; }
+.ls-pv { flex: none; margin: 0 10px 0 4px; width: 36px; height: 36px; border-radius: 50%; color: var(--accent); border-color: var(--accent-line); }
+.ls-pv svg { fill: currentColor; stroke: none; width: 13px; height: 13px; }
+.ls-pv.on { background: var(--accent-soft); }
+.ls-other { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+.ls-other .danger { margin: 0; }
 .ls-row { gap: 12px; }
 .ls-row img, .ls-art { width: 44px; height: 44px; border-radius: 8px; flex: none; object-fit: cover; background: var(--card); display: grid; place-items: center; color: var(--muted); }
 .ls-more { display: block; margin: 8px auto 4px; font-size: 14px; }

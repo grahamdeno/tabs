@@ -1448,8 +1448,8 @@ function nextSongs() { findAI().then(m => m.nextSongs()); }
 // own search instead, or takes a pasted Apple Music, Spotify or YouTube link.
 const appleSearchURL = song => `https://music.apple.com/search?term=${encodeURIComponent(`${song.title} ${song.artist || ""}`.trim())}`;
 function openLink(url) { if (/^https:\/\//.test(url)) window.open(url, "_blank", "noopener"); }
-async function findTracks(song) {
-  const term = encodeURIComponent(`${song.title} ${song.artist || ""}`.trim());
+async function findTracks(song, q) {
+  const term = encodeURIComponent(q || `${song.title} ${song.artist || ""}`.trim());
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 7000);
   try {
     const r = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=12`, { signal: ctl.signal });
@@ -1472,11 +1472,12 @@ function useRecordingLength(song, seconds, { quiet = false } = {}) {
   if (choice === "set") {
     song.duration = len;
     Tabs.save(data); refreshSpeed();
-    if (!quiet || viewing === song) toast(`Length set from the recording: ${mmss(len)}`);
+    if (!quiet || viewing === song) { toast(`Length set from the recording: ${mmss(len)}`); return true; }
   } else {
     Tabs.save(data);
-    if (choice === "offer" && !quiet && byLength()) toast(`The recording is ${mmss(len)}. Yours is ${mmss(songLength(song))}.`, null, { label: `Use ${mmss(len)}`, fn: () => { song.duration = len; song.durationSet = true; Tabs.save(data); refreshSpeed(); toast(`Length ${mmss(len)}`); } });
+    if (choice === "offer" && !quiet && byLength()) { toast(`The recording is ${mmss(len)}. Yours is ${mmss(songLength(song))}.`, null, { label: `Use ${mmss(len)}`, fn: () => { song.duration = len; song.durationSet = true; Tabs.save(data); refreshSpeed(); toast(`Length ${mmss(len)}`); } }); return true; }
   }
+  return false;
 }
 // A pasted Apple Music link: ask Apple's catalog for the track's length.
 const lookedUp = new Set();
@@ -1493,60 +1494,91 @@ async function recordingLength(song, url, opts) {
     if (ms && song.listen?.url === url) useRecordingLength(song, ms / 1000, opts);
   } catch {} finally { clearTimeout(t); }
 }
+// Listen: find the recording without leaving Tabs. Apple Music's catalog is
+// searched here (title and artist to start; change the words to search again),
+// each result can be previewed (30 seconds, from Apple), and a tap saves it,
+// with its album art and length. Paste a link is for Spotify or YouTube.
+let preview = null;
+function stopPreview() { if (preview) { preview.audio.pause(); preview = null; document.querySelectorAll(".ls-pv.on").forEach(b => { b.classList.remove("on"); b.innerHTML = icon("play"); }); } }
+onLeave(() => stopPreview());
 function listenSheet(song, force) {
   if (song.listen && !force) return openLink(song.listen.url);
-  let state = { busy: true, tracks: [], error: false };
-  const paint = () => {
-    const p = $("ls-panel");
-    if (!p) return;
-    const best = state.tracks[0], sure = best && best.score >= 5;
-    const row = (x, i) => `<button class="row pick ls-row" data-t="${i}">
-        ${x.artworkUrl100 ? `<img src="${esc(x.artworkUrl100)}" alt="" width="44" height="44" loading="lazy">` : `<span class="ls-art">${icon("note")}</span>`}
-        <div class="txt"><div class="t">${esc(x.trackName)}</div><div class="a">${esc(x.artistName)}${x.collectionName ? ` · ${esc(x.collectionName)}` : ""}</div></div>
-        ${icon("chev", "chev")}</button>`;
-    p.innerHTML = `
-      <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
-      ${state.busy ? `<div class="easy-wait">${busy("Looking in Apple Music")}</div>`
-        : state.tracks.length ? `<p class="easy-note">${sure ? "Found it on Apple Music. Is this the one?" : "Pick the right recording:"}</p>
-          <div class="list glass ls-list">${(sure ? state.tracks.slice(0, 1) : state.tracks.slice(0, 5)).map(row).join("")}</div>
-          ${sure && state.tracks.length > 1 ? `<button class="linkbtn ls-more" id="ls-more">Not this one? Show others</button>` : ""}`
-        : `<p class="easy-note">${state.error ? "Couldn't reach Apple Music's catalog just now." : "No match in Apple Music."} Search there, copy the song's link (Share > Copy Link), then tap Paste a link.</p>`}
-      ${song.listen ? `<p class="foot" style="margin:10px 2px 0">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
-      <div class="actions ls-actions">
-        <button class="btn" id="ls-search">Search Apple Music</button>
-        <button class="btn" id="ls-paste">Paste a link</button>
-      </div>
-      ${song.listen ? `<button class="danger" id="ls-clear" style="display:block;margin:12px auto 0">Remove link</button>` : ""}`;
-    p.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+  const first = `${song.title} ${song.artist || ""}`.trim();
+  let state = { busy: true, tracks: [], error: false, q: first, all: false };
+  const close = () => { stopPreview(); layer.innerHTML = ""; };
+  const row = (x, i) => `<div class="ls-item"><button class="row pick ls-row" data-t="${i}">
+      ${x.artworkUrl100 ? `<img src="${esc(x.artworkUrl100)}" alt="" width="44" height="44" loading="lazy">` : `<span class="ls-art">${icon("note")}</span>`}
+      <div class="txt"><div class="t">${esc(x.trackName)}</div><div class="a">${esc(x.artistName)}${x.collectionName ? ` · ${esc(x.collectionName)}` : ""}</div></div></button>
+      ${x.previewUrl ? `<button class="sb ls-pv" data-pv="${i}" aria-label="Hear a preview of ${esc(x.trackName)}">${icon("play")}</button>` : ""}</div>`;
+  const results = () => {
+    const best = state.tracks[0], sure = state.q === first && best && best.score >= 5 && !state.all;
+    if (state.busy) return `<div class="easy-wait">${busy("Looking in Apple Music")}</div>`;
+    if (!state.tracks.length) return `<p class="easy-note">${state.error ? "Couldn't reach Apple Music's catalog just now." : "No match. Try fewer words, or the artist's name."}</p>`;
+    return `<p class="easy-note">${sure ? "Found it on Apple Music. Is this the one?" : "Tap the right recording:"}</p>
+      <div class="list glass ls-list">${(sure ? state.tracks.slice(0, 1) : state.tracks.slice(0, 8)).map(row).join("")}</div>
+      ${sure && state.tracks.length > 1 ? `<button class="linkbtn ls-more" id="ls-more">Not this one? Show others</button>` : ""}`;
+  };
+  const paintResults = () => {
+    const box = $("ls-res");
+    if (!box) return;
+    stopPreview();
+    box.innerHTML = results();
+    box.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
       const x = state.tracks[+b.dataset.t];
       saveListen(song, x.trackViewUrl, { title: x.trackName, artist: x.artistName, ...(x.artworkUrl100 ? { art: x.artworkUrl100.replace(/\d+x\d+bb/, "600x600bb") } : {}) });
-      layer.innerHTML = "";
-      if (x.trackTimeMillis) useRecordingLength(song, x.trackTimeMillis / 1000);
-      openLink(x.trackViewUrl);
+      close();
+      if (x.trackTimeMillis && useRecordingLength(song, x.trackTimeMillis / 1000)) return;
+      toast(`Saved: ${x.trackName}`, null, { label: "Listen", fn: () => openLink(x.trackViewUrl) });
     });
-    $("ls-more")?.addEventListener("click", () => { state.tracks = state.tracks.map(x => ({ ...x, score: 0 })); paint(); });
-    $("ls-search").onclick = () => openLink(appleSearchURL(song));
-    $("ls-paste").onclick = async () => {
-      let text = "";
-      try { text = await navigator.clipboard.readText(); } catch {}
-      const use = text => {
+    box.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => {
+      const x = state.tracks[+b.dataset.pv], was = preview?.i;
+      stopPreview();
+      if (was === +b.dataset.pv) return;
+      const audio = new Audio(x.previewUrl);
+      preview = { audio, i: +b.dataset.pv };
+      b.classList.add("on"); b.innerHTML = icon("pause");
+      audio.onended = stopPreview;
+      audio.play().catch(() => { stopPreview(); toast("The preview couldn't play"); });
+    });
+    $("ls-more")?.addEventListener("click", () => { state.all = true; paintResults(); });
+  };
+  let seq = 0;
+  const search = q => {
+    const n = ++seq;
+    state = { ...state, busy: true, q };
+    paintResults();
+    findTracks(song, q).then(t => { if (n === seq) { state = { ...state, busy: false, tracks: t, error: false }; paintResults(); } })
+      .catch(() => { if (n === seq) { state = { ...state, busy: false, tracks: [], error: true }; paintResults(); } });
+  };
+  layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen">
+    <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
+    <form class="ls-q" id="ls-form" role="search"><span class="ls-qi">${icon("search")}</span>
+      <input id="ls-q" type="search" value="${esc(first)}" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search Apple Music"></form>
+    <div id="ls-res"></div>
+    ${song.listen ? `<p class="foot" style="margin:10px 2px 0">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
+    <div class="ls-other"><button class="linkbtn" id="ls-paste">Paste a Spotify or YouTube link</button>
+      ${song.listen ? `<button class="danger" id="ls-clear">Remove link</button>` : ""}</div></div>`;
+  $("ls-scrim").onclick = close;
+  const q = $("ls-q");
+  let typing = 0;
+  q.oninput = () => { clearTimeout(typing); typing = setTimeout(() => { if (q.value.trim()) search(q.value.trim()); }, 600); };
+  $("ls-form").onsubmit = e => { e.preventDefault(); clearTimeout(typing); q.blur(); if (q.value.trim()) search(q.value.trim()); };
+  $("ls-paste").onclick = async () => {
+    let text = "";
+    try { text = await navigator.clipboard.readText(); } catch { /* not allowed: ask below */ }
+    const use = text => {
       const url = (text.match(/https:\/\/\S+/) || [])[0];
       if (!url) return toast("That doesn't look like a link");
       saveListen(song, url);
-      layer.innerHTML = "";
+      close();
       toast(`Saved the ${linkService(url)} link`);
       if (appleTrackId(url)) recordingLength(song, url);
-      };
-      if (/^https?:\/\//.test(text.trim())) return use(text);
-      ask({ title: "Paste the song's link", text: "From Apple Music, Spotify or YouTube: tap Share, then Copy Link.", placeholder: "https://…", caps: "none", ok: "Save link" }, use);
     };
-    $("ls-clear")?.addEventListener("click", () => { delete song.listen; Tabs.save(data); layer.innerHTML = ""; const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`; toast("Link removed"); });
+    if (/^https?:\/\//.test(text.trim())) return use(text);
+    ask({ title: "Paste the song's link", text: "From Spotify or YouTube: tap Share, then Copy Link.", placeholder: "https://…", caps: "none", ok: "Save link" }, use);
   };
-  layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen"></div>`;
-  $("ls-scrim").onclick = () => { layer.innerHTML = ""; };
-  paint();
-  findTracks(song).then(t => { state = { busy: false, tracks: t, error: false }; paint(); })
-    .catch(() => { state = { busy: false, tracks: [], error: true }; paint(); });
+  $("ls-clear")?.addEventListener("click", () => { delete song.listen; Tabs.save(data); close(); const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`; toast("Link removed"); });
+  search(first);
 }
 
 // ---------- Metronome ----------

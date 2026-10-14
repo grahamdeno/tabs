@@ -634,3 +634,32 @@ test("while playing, the focus line skips section names to the section's first l
   assert.ok(!/\bsec\b/.test(cur.cls || ""), `the focus is not on the section name (${cur.cls})`);
   assert.equal(cur.afterChorus, true, "it's the Chorus's first line");
 });
+
+test("Listen searches Apple Music in the app: change the words, hear a preview, tap to save", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const terms = [];
+  const track = (name, artist, id) => ({ trackName: name, artistName: artist, collectionName: "Album", trackViewUrl: `https://music.apple.com/us/album/a/1?i=${id}`, artworkUrl100: `https://is1-ssl.mzstatic.com/${id}/100x100bb.jpg`, previewUrl: `https://audio-ssl.itunes.apple.com/${id}.m4a` });
+  await page.route("https://itunes.apple.com/search**", r => {
+    const q = new URL(r.request().url()).searchParams.get("term"); terms.push(q);
+    const results = /live/i.test(q) ? [track("Harbor Lights (Live)", "Me", 222)] : [track("Harbor Lights", "Someone Else", 111), track("Harbor", "Me", 112)];
+    r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ results }) });
+  });
+  await page.route("https://audio-ssl.itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "audio/mp4", body: "" }));
+  await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a", "hex") }));
+  let left = false; page.on("popup", () => { left = true; });
+  await page.goto(base + "#/song/b"); await page.waitForTimeout(400);
+  await page.click("#listen"); await page.waitForTimeout(500);
+  assert.equal(await page.inputValue("#ls-q"), "Harbor Lights Me");
+  assert.equal(await page.locator(".ls-row").count(), 2);
+  assert.equal(await page.locator(".ls-pv").count(), 2, "each result can be previewed");
+  await page.fill("#ls-q", "Harbor Lights live"); await page.press("#ls-q", "Enter"); await page.waitForTimeout(500);
+  assert.equal(terms.at(-1), "Harbor Lights live");
+  assert.match(await page.innerText(".ls-row"), /Harbor Lights \(Live\)/);
+  await page.click(".ls-row"); await page.waitForTimeout(400);
+  const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "b");
+  assert.match(song.listen.url, /i=222/);
+  assert.match(song.listen.art, /222\/600x600bb/);
+  assert.equal(await page.locator("#ls-panel").count(), 0, "the sheet closes");
+  assert.match(await page.innerText("#toast"), /Saved: Harbor Lights \(Live\)/);
+  assert.equal(left, false, "Tabs didn't send you to Apple Music");
+});
