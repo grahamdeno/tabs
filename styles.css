@@ -22,6 +22,7 @@
   --scrim: rgba(4,4,5,0.6);
   --head: #efe7da;
   --good: #8fd3a3;
+  --tune: #5fb383;      /* the tuner: the string you're tuning (green; brightens to --good in tune) */
   --good-soft: rgba(143,211,163,0.14);
   --shadow: 0 8px 24px rgba(0,0,0,0.4);
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
@@ -58,6 +59,7 @@
   --scrim: rgba(40,30,20,0.28);
   --head: #2b2420;
   --good: #2f8a52;
+  --tune: #4f9d6e;
   --good-soft: rgba(47,138,82,0.12);
   --shadow: 0 8px 24px rgba(60,40,20,0.12);
   color-scheme: light;
@@ -1103,18 +1105,6 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
   .menu.msheet .mrow.size { border-bottom: 0; border-top: 1px solid var(--hair); border-radius: 0 0 10px 10px; margin: 4px 0 0; padding-top: 6px; padding-bottom: 0; }
 }
 @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
-/* One hand, library: filters and sort ride just above the search bar, and the
-   tuner sits beside it, matching the + button. */
-.add.tool { position: relative; background: var(--bar); color: var(--fg-2); box-shadow: none; border: 1px solid var(--rim); }
-.add.tool svg { stroke-width: 1.8; }
-.add.tool .dotmark { position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-@media (max-width: 699px) and (orientation: portrait) {
-  .chips.dchips { position: fixed; z-index: 19; left: 0; right: 0; bottom: calc(76px + var(--safe-b)); margin: 0; padding: 0 12px; align-items: center; }
-  .chips.dchips .dsort { margin-left: auto; padding: 0 4px 0 8px; }
-  .app:not(.viewer) { padding-bottom: calc(150px + var(--safe-b)); }
-  /* The filters ride over the list: fade it out fully behind them. */
-  .app:not(.viewer) .dock-fade { height: calc(170px + var(--safe-b)); background: linear-gradient(180deg, transparent, var(--bg) 42%); }
-}
 /* One hand, full-height sheets: the main action is the lowest button. */
 .pfoot { flex: none; padding: 10px 16px calc(12px + var(--safe-b)); border-top: 1px solid var(--hair); }
 .pfoot .btn { width: 100%; }
@@ -1183,7 +1173,7 @@ body.ring .app.viewer .dock-fade { height: calc(100px + var(--safe-b)); }
 /* The ring around Play */
 .ringx { position: fixed; inset: 0; z-index: 66; opacity: 0; transition: opacity .14s; }
 .ringx.on { opacity: 1; }
-.ring-bg { position: fixed; width: 336px; height: 336px; margin: -168px 0 0 -168px; border-radius: 50%; background: color-mix(in srgb, var(--solid) 94%, transparent); border: 1px solid var(--rim); box-shadow: 0 12px 40px rgba(0,0,0,.45); transform: scale(.7); transition: transform .18s cubic-bezier(.2,1,.3,1); }
+.ring-bg { position: fixed; width: 384px; height: 384px; margin: -192px 0 0 -192px; border-radius: 50%; background: color-mix(in srgb, var(--solid) 94%, transparent); border: 1px solid var(--rim); box-shadow: 0 12px 40px rgba(0,0,0,.45); transform: scale(.7); transition: transform .18s cubic-bezier(.2,1,.3,1); }
 .ringx.on .ring-bg { transform: none; }
 .ri { position: fixed; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; transition: transform .1s, border-color .1s; }
 .ri svg { width: 20px; height: 20px; }
@@ -1243,3 +1233,8 @@ body.ring .rc-isl .rc-back svg { width: 18px; height: 18px; }
 .rc-pull { position: fixed; left: 50%; top: calc(14px + var(--safe-t)); transform: translateX(-50%); padding: 8px 14px; border-radius: 18px; background: var(--solid); border: 1px solid var(--rim); color: var(--fg-2); font: 500 13px var(--sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: color .12s, border-color .12s, box-shadow .12s; }
 .rc-pull.go { color: var(--glow-c); border-color: var(--accent); box-shadow: 0 0 14px rgba(255,150,70,.4); text-shadow: var(--glow); }
 body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }
+/* 2.6: ring items that are on (Favorite, Metronome, Now and Next) */
+.ri.act { border-color: var(--accent-line); color: var(--accent); }
+.ri.act svg { fill: currentColor; fill-opacity: .2; }
+/* 2.6: the tuner's success: "All in tune" glows green */
+.tn-note.done.glow b { color: var(--good); text-shadow: 0 0 6px color-mix(in srgb, var(--good) 80%, transparent), 0 0 18px color-mix(in srgb, var(--good) 50%, transparent); }
