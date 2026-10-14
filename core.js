@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.1.1";
+export const VERSION = "2.2.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -20,6 +20,8 @@ const DEFAULT_SETTINGS = {
   tunerGuided: true,     // guitar tuner walks the strings low to high
   a4: 440,               // pitch reference for the tuner, Hz
   micExplained: false,   // the tuner has said why it needs the microphone
+  controls: "ring",      // phone upright: "ring" (hold Play) or "bar"
+  follow: "hand",        // ring: Play rises with "hand" (motion), "touch", or stays in the "corner"
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
 };

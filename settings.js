@@ -2,6 +2,7 @@
 import { SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
+import { askMotion } from "./ring.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setData } from "./app.js";
 
@@ -52,8 +53,20 @@ function renderSettings() {
           ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
         </select>
       </div>
+      <div class="set">
+        <span class="tile">${icon("play")}</span><span class="name">Song controls</span><span class="val">${s.controls === "bar" ? "Bar" : "Hold Play"}</span>${icon("chev", "chev")}
+        <select id="s-controls" aria-label="Song controls">
+          ${[["ring", "Hold Play (ring)"], ["bar", "Bar"]].map(([v, t]) => `<option value="${v}" ${v === (s.controls || "ring") ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
+      </div>
+      ${s.controls === "bar" ? "" : `<div class="set">
+        <span class="tile">${icon("gauge")}</span><span class="name">Play button</span><span class="val">${{ hand: "Follows your hand", touch: "Follows your touch", corner: "Stays in the corner" }[s.follow || "hand"]}</span>${icon("chev", "chev")}
+        <select id="s-follow" aria-label="Play button">
+          ${[["hand", "Follows your hand"], ["touch", "Follows your touch"], ["corner", "Stays in the corner"]].map(([v, t]) => `<option value="${v}" ${v === (s.follow || "hand") ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
+      </div>`}
     </div>
-    <p class="foot">Tap a chord for its fingering, or a line to start from it.</p>
+    <p class="foot">Tap a chord for its fingering, or a line to start from it. On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still.</p>
     <div class="set-group glass" style="margin-top:22px">
       <button class="set" id="s-defaults" aria-expanded="${!!settingsDefaultsOpen}"><span class="tile">${icon("sliders")}</span><span class="name">Defaults for new songs</span>${icon(settingsDefaultsOpen ? "down" : "chev", "chev")}</button>
       ${settingsDefaultsOpen ? `${s.speedMode === "multiplier" ? `<div class="set">
@@ -115,6 +128,12 @@ function renderSettings() {
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-controls").onchange = e => { s.controls = e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-follow")?.addEventListener("change", async e => {
+    s.follow = e.target.value;
+    if (s.follow === "hand" && !(await askMotion())) { s.follow = "touch"; toast("Motion wasn't allowed, so Play follows your touch"); }
+    Tabs.save(data); renderSettings();
+  });
   $("s-theme").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {
     const k = $("s-key").value.trim();
