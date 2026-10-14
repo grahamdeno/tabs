@@ -6,6 +6,7 @@
 import { detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, pitchShares, lineHint, packNotes, sungLines, unpackNotes, syllables, html, raw } from "./core.js";
 import { $, app, icon, toast, onLeave, ask } from "./ui.js";
 import { data, go, markUsed, newSong, tick } from "./app.js";
+import { noteError } from "./store.js";
 
 const MAX_LINE = 30; /* seconds: a line stops itself */
 // The sketch in progress stays while the app is open, so a look elsewhere
@@ -20,19 +21,31 @@ onLeave(r => { if (r.name !== "sketch") { stopLine("drop-quiet"); closeMic(); } 
 function closeMic() {
   if (!mic) return;
   mic.stream.getTracks().forEach(t => t.stop());
-  mic.ctx.close?.().catch?.(() => {});
+  try { mic.src.disconnect(); } catch { /* already */ }
   mic = null;
 }
+// iPhone only lets audio run when it's started inside a touch: the audio
+// context is made (or woken) right in the pad's touch, before the microphone
+// is asked for; made later, it can stay asleep and hear only silence.
+let audioCtx = null;
+function primeAudio() {
+  try {
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state !== "running") audioCtx.resume?.().catch?.(() => {});
+  } catch { /* no Web Audio */ }
+}
 async function openMic() {
-  if (mic) { await mic.ctx.resume?.(); return mic; }
+  primeAudio();
+  if (mic && mic.stream.getAudioTracks().some(t => t.readyState === "live")) { await mic.ctx.resume?.(); return mic; }
   if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("no mic"), { name: "NotSupportedError" });
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = audioCtx;
   await ctx.resume?.();
   const an = ctx.createAnalyser();
   an.fftSize = 2048;
-  ctx.createMediaStreamSource(stream).connect(an);
-  mic = { stream, ctx, an, buf: new Float32Array(an.fftSize) };
+  const src = ctx.createMediaStreamSource(stream);
+  src.connect(an);
+  mic = { stream, ctx, an, src, buf: new Float32Array(an.fftSize) };
   return mic;
 }
 const micTrouble = e => toast(e?.name === "NotAllowedError" || e?.name === "SecurityError"
@@ -53,19 +66,28 @@ async function startLine() {
   if (!rec) return;
   rec.t0 = m.ctx.currentTime;
   try {
-    rec.recorder = new MediaRecorder(m.stream);
+    /* The recording takes its own copy of the microphone, so it can't starve the listening. */
+    rec.recorder = new MediaRecorder(new MediaStream(m.stream.getAudioTracks().map(t => t.clone())));
     rec.recorder.ondataavailable = e => e.data.size && rec.chunks.push(e.data);
     rec.recorder.start();
   } catch { rec.recorder = null; /* hearing it back is a nicety */ }
   rec.timer = setInterval(() => {
     m.an.getFloatTimeDomainData(m.buf);
     const t = m.ctx.currentTime - rec.t0;
-    rec.frames.push({ t, hz: detectPitch(m.buf, m.ctx.sampleRate) });
+    let e = 0; for (let k = 0; k < m.buf.length; k++) e += m.buf[k] * m.buf[k];
+    const level = Math.sqrt(e / m.buf.length);
+    rec.peak = Math.max(rec.peak || 0, level); rec.level = level;
+    rec.frames.push({ t, hz: detectPitch(m.buf, m.ctx.sampleRate, 0.0025) });
     if (t > MAX_LINE) stopLine("keep");
   }, 25);
   let n = 0;
   clearInterval(ui);
-  ui = setInterval(() => { drawRibbon(); if (++n % 3 === 0) { rec.live = melodyNotes(rec.frames); drawKey(); drawLiveChords(); } }, 110);
+  ui = setInterval(() => {
+    drawRibbon();
+    /* The rings swell with your voice: proof the phone is hearing you. */
+    const p = $("sk-pad"); if (p) p.style.setProperty("--lv", Math.min(1, (rec.level || 0) * 12).toFixed(2));
+    if (++n % 3 === 0) { rec.live = melodyNotes(rec.frames); drawKey(); drawLiveChords(); }
+  }, 110);
   tick();
 }
 // how: "keep" (let go), "drop" (slide left: this take goes), "drop-quiet" (leaving).
@@ -96,7 +118,14 @@ function stopLine(how = "keep") {
     rec.recorder.stop();
   }
   if (how === "drop-quiet") return;
-  if (how === "keep" && !notes.length) { paint(); return toast("Nothing sung was heard. Sing a little louder, close to the phone."); }
+  if (how === "keep" && !notes.length) {
+    paint();
+    const pitched = rec.frames.filter(f => f.hz > 0).length, secs = rec.frames.at(-1)?.t || 0;
+    noteError(new Error(`Sketch heard no notes: ${rec.frames.length} frames over ${secs.toFixed(1)}s, ${pitched} with pitch, peak level ${(rec.peak || 0).toFixed(4)}, audio ${mic?.ctx.state || "none"} at ${mic?.ctx.sampleRate || 0} Hz, track ${mic?.stream.getAudioTracks()[0]?.readyState || "none"}${mic?.stream.getAudioTracks()[0]?.muted ? " (muted)" : ""}`), { quiet: true, where: "sketch" });
+    return toast(secs < 0.6 ? "That was too short to hear. Hold the pad while you sing the whole line."
+      : !(rec.peak > 0.0005) ? "The microphone sent only silence. Settings > Copy diagnostics, and send them to me."
+      : "No steady notes were heard. Sing the line (not speak it), a little closer to the phone.");
+  }
   if (!keep) { paint(); return toast(rec.i < sk.lines.length ? `Line ${rec.i + 1} kept as it was` : "That take is gone. Hold to sing it again."); }
   tick(); markUsed("sketch");
   /* Words next: the line opens for typing in the same tap, so the keyboard
@@ -221,6 +250,16 @@ function rowHTML(l, i, key) {
       <button class="sb" data-del="${i}" aria-label="Remove line ${i + 1}">${icon("x")}</button></div></div>`;
 }
 function paint() {
+  /* Keep the pad the finger is on: iPhone stops sending a touch whose element is replaced. */
+  const held = gest ? $("sk-pad") : null;
+  paintAll();
+  if (held) {
+    const fresh = $("sk-pad");
+    held.className = fresh.className; held.innerHTML = fresh.innerHTML; held.setAttribute("aria-label", fresh.getAttribute("aria-label"));
+    fresh.replaceWith(held);
+  }
+}
+function paintAll() {
   const rec = sk.rec, n = sk.lines.length, key = plan();
   const conf = keyConfidence(allNotes()), next = sk.again >= 0 ? sk.again : n;
   const big = !!rec || !n;
@@ -301,7 +340,8 @@ function gestEnd(e) {
   gest = null; clearTimeout(d.timer);
   window.removeEventListener("pointermove", gestMove); window.removeEventListener("pointerup", gestEnd); window.removeEventListener("pointercancel", gestEnd);
   padClass("");
-  if (e.type === "pointercancel") return;
+  /* A cancelled touch (iPhone's microphone question, a call): keep singing hands-free. */
+  if (e.type === "pointercancel") { if (sk.rec) { sk.rec.latched = true; padLabel("Tap to keep the line", "Slide left to redo · up to finish"); } return; }
   if (d.intent === "finish") { if (sk.rec) stopLine("keep"); if (sk.lines.length) finish(); else paint(); return; }
   if (d.intent === "redo") return stopLine("drop");
   if (!sk.rec) return;
@@ -313,7 +353,10 @@ function gestEnd(e) {
 // A quick tap sings hands-free until the next tap. Space or Return work too.
 function bindPad() {
   const pad = $("sk-pad");
+  if (pad.dataset.bound) return;
+  pad.dataset.bound = "1";
   pad.addEventListener("pointerdown", e => {
+    primeAudio();
     e.preventDefault();
     if (gest) return;
     gest = { x: e.clientX, y: e.clientY, at: Date.now(), was: !!sk.rec, intent: "" };
@@ -325,7 +368,7 @@ function bindPad() {
   });
   pad.addEventListener("keydown", e => {
     if (e.key !== " " && e.key !== "Enter") return;
-    e.preventDefault();
+    e.preventDefault(); primeAudio();
     if (sk.rec) stopLine("keep"); else { startLine().then(() => { if (sk.rec) { sk.rec.latched = true; padLabel("Press again to keep the line"); } }); }
   });
 }

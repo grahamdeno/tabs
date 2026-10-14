@@ -267,7 +267,7 @@ window.__hz = 0;
 navigator.mediaDevices.getUserMedia = async () => {
   const ctx = new AudioContext(), o = ctx.createOscillator(), g = ctx.createGain(), dest = ctx.createMediaStreamDestination();
   o.type = "sawtooth"; g.gain.value = 0; o.connect(g).connect(dest); o.start();
-  setInterval(() => { if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = 0.4; } else g.gain.value = 0; }, 20);
+  setInterval(() => { if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = window.__gain ?? 0.4; } else g.gain.value = 0; }, 20);
   return dest.stream;
 };`;
 
@@ -588,4 +588,33 @@ test("Back from a song opened in a set returns to that set; from the library, to
   assert.equal(await page.getAttribute(".head [data-go]", "aria-label"), "Back to library");
   await page.click(".head [data-go]"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/");
+});
+
+test("sketch: a quiet voice is still heard; silence says so and is logged; the pad stays under the finger", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  await ctx.addInitScript(FAKE_MIC);
+  const page = await ctx.newPage();
+  await page.goto(base); await page.waitForTimeout(400);
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
+  await page.goto(base + "#/sketch"); await page.waitForTimeout(500);
+  const pad = await page.locator("#sk-pad").boundingBox(), px = pad.x + pad.width / 2, py = pad.y + pad.height - 60;
+  const hold = async (hzs, gain) => {
+    await page.evaluate(g => { window.__gain = g; window.__padAtStart = document.getElementById("sk-pad"); }, gain);
+    await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(400);
+    const same = await page.evaluate(() => document.getElementById("sk-pad") === window.__padAtStart && document.getElementById("sk-pad").classList.contains("on"));
+    for (const hz of hzs) { await page.evaluate(f => { window.__hz = f; }, hz); await page.waitForTimeout(400); }
+    await page.evaluate(() => { window.__hz = 0; }); await page.waitForTimeout(150);
+    await page.mouse.up(); await page.waitForTimeout(500);
+    return same;
+  };
+  // About a quarter of the old threshold: a voice at arm's length.
+  assert.equal(await hold([196, 247, 294, 247, 262], 0.012), true, "the same pad, now recording, is under the finger");
+  assert.equal(await page.locator(".sknb-row").count(), 1, "a quiet line is kept");
+  await page.evaluate(() => document.activeElement?.blur());
+  // Silence: a clear message, and the details go to the problems log.
+  await hold([196, 247, 294], 0);
+  assert.match(await page.innerText("#toast"), /only silence/);
+  assert.match(await page.evaluate(() => localStorage.getItem("tabs.errors.v1")), /Sketch heard no notes: .* peak level 0\.0000/);
 });

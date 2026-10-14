@@ -978,11 +978,13 @@ export function detectTuning(body) {
 }
 // Pitch of a mono buffer (the YIN method); -1 when it's too quiet or unclear.
 // Searches 60 to 1000 Hz, which covers a guitar in any of the tunings above.
-export function detectPitch(buf, sampleRate) {
+// minRms: below this level it's silence (a voice at arm's length is quieter
+// than a guitar at the phone, so the sketch passes a lower one).
+export function detectPitch(buf, sampleRate, minRms = 0.01) {
   const n = buf.length;
   let rms = 0;
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
-  if (Math.sqrt(rms / n) < 0.01) return -1;
+  if (Math.sqrt(rms / n) < minRms) return -1;
   const minLag = Math.max(2, Math.floor(sampleRate / 1000)), maxLag = Math.min(Math.floor(sampleRate / 60), (n >> 1) - 2);
   const W = n - maxLag - 2;
   const d = new Float32Array(maxLag + 2);
