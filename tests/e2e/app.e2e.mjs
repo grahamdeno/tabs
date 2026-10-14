@@ -733,6 +733,9 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const H = 844;
   assert.ok((await box("#chips")).top > H * 0.8, "filters above the search bar");
   assert.ok((await box("#tunerbtn")).top > H * 0.85, "tuner beside the search bar");
+  assert.ok(await page.evaluate(() => { const b = document.querySelector("#tunerbtn"), r = b.getBoundingClientRect(), i = b.querySelector("svg").getBoundingClientRect(); return Math.abs((i.top + i.bottom) / 2 - (r.top + r.bottom) / 2) < 2 && Math.abs((i.left + i.right) / 2 - (r.left + r.right) / 2) < 2; }), "the tuner icon is centered");
+  const dot = await page.evaluate(() => { const d = document.querySelector("#tunerbtn .dotmark"); return d && getComputedStyle(d).position; });
+  if (dot) assert.equal(dot, "absolute", "the not-tuned dot sits in the corner");
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
   assert.equal(await box(".head"), null, "song page top has no buttons");
   for (const sel of [".oh-back", ".player .fav", "#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);

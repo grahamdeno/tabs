@@ -1107,11 +1107,13 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
    tuner sits beside it, matching the + button. */
 .add.tool { position: relative; background: var(--bar); color: var(--fg-2); box-shadow: none; border: 1px solid var(--rim); }
 .add.tool svg { stroke-width: 1.8; }
+.add.tool .dotmark { position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 @media (max-width: 699px) and (orientation: portrait) {
   .chips.dchips { position: fixed; z-index: 19; left: 0; right: 0; bottom: calc(76px + var(--safe-b)); margin: 0; padding: 0 12px; align-items: center; }
   .chips.dchips .dsort { margin-left: auto; padding: 0 4px 0 8px; }
   .app:not(.viewer) { padding-bottom: calc(150px + var(--safe-b)); }
-  .app:not(.viewer) .dock-fade { height: calc(150px + var(--safe-b)); }
+  /* The filters ride over the list: fade it out fully behind them. */
+  .app:not(.viewer) .dock-fade { height: calc(170px + var(--safe-b)); background: linear-gradient(180deg, transparent, var(--bg) 42%); }
 }
 /* One hand, full-height sheets: the main action is the lowest button. */
 .pfoot { flex: none; padding: 10px 16px calc(12px + var(--safe-b)); border-top: 1px solid var(--hair); }
