@@ -330,7 +330,7 @@ function renderList() {
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}${keyFilter ? ` · ${esc(keyFilter)}` : ""}${tuneFilter ? ` · ${esc(TUNINGS[tuneFilter].name)}` : ""}${keyFilter || tuneFilter ? ` · ${sorted.length}` : ""}</span>
       <label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`}
-    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>` : findCard(query)}`;
+    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   bindRows(list);
   bindFind(list);
@@ -1400,10 +1400,11 @@ const FIND_SITES = [
   ["ug", "Ultimate Guitar", q => `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(q)}`],
   ["chordify", "Chordify", q => `https://chordify.net/search/${encodeURIComponent(q)}`]
 ];
-function findCard(q) {
-  return `<div class="findcard">
-    <div class="fc-t">“${esc(q.trim())}” isn't in your library yet</div>
-    <p class="fc-s">Find a chord sheet, copy it, and come back. Tabs will offer to add what you copied.</p>
+// With matches in the library it still shows, smaller, under them ("Find more").
+function findCard(q, more = false) {
+  return `<div class="findcard${more ? " more" : ""}">
+    <div class="fc-t">${more ? `Find “${esc(q.trim())}” elsewhere` : `“${esc(q.trim())}” isn't in your library yet`}</div>
+    ${more ? "" : `<p class="fc-s">Find a chord sheet, copy it, and come back. Tabs will offer to add what you copied.</p>`}
     <div class="fc-b">${FIND_SITES.map(([k, l]) => `<button class="chip" data-find="${k}">${icon(k === "web" ? "search" : "link")}${l}</button>`).join("")}</div>
     ${aiKey() ? `<button class="fc-ai" id="fc-ai">${icon("wand")}<span><b>Chord chart with AI</b>Chords, key and structure from the web. No lyrics.</span>${icon("chev", "chev")}</button>` : ""}
   </div>`;
