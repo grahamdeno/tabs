@@ -761,6 +761,7 @@ function renderViewer(id) {
     ].filter(Boolean),
     grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
     letGo: () => { hold.touching = false; releaseSoon(250); },
+    where: () => { const line = innerHeight * READ_AT; let name = ""; for (const el of document.querySelectorAll("#sheet > .sec")) { if (el.getBoundingClientRect().top <= line) name = el.textContent.trim(); else break; } return name; },
     playing: () => scroll.on,
     followMode: () => data.settings.follow || "hand"
   });

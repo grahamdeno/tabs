@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.3.1";
+export const VERSION = "2.4.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
   micExplained: false,   // the tuner has said why it needs the microphone
   controls: "ring",      // phone upright: "ring" (hold Play) or "bar"
   follow: "hand",        // ring: Play rises with "hand" (motion), "touch", or stays in the "corner"
+  arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
 };
@@ -1200,6 +1201,14 @@ export function nextSet(sets, now = Date.now()) {
 // "today", "tomorrow", "in 3 days", "in 2 weeks", or "now" for a set under way.
 // Gig day: the time left until a set starts, as h:mm:ss, on its own calendar
 // day and only before it starts. Anything else: "" (no countdown).
+// The ring's arc (2.4): how far the song moves per degree of sweep. Slow
+// sweeps move finely (fine: about a screen per arc); quick ones approach the
+// whole song per arc (coarse). Speed is in degrees per millisecond.
+export const SWEEP = { slow: 0.06, fast: 0.4 };
+export function sweepGain({ speed, fine, coarse }) {
+  const w = Math.min(1, Math.max(0, (speed - SWEEP.slow) / (SWEEP.fast - SWEEP.slow)));
+  return fine + (Math.max(coarse, fine) - fine) * w * w;  /* eases in, so ordinary movement stays fine */
+}
 export function gigCountdown(when, now = Date.now()) {
   const t = Date.parse(when);
   if (isNaN(t) || t <= now) return "";

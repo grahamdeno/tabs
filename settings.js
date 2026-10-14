@@ -64,9 +64,15 @@ function renderSettings() {
         <select id="s-follow" aria-label="Play button">
           ${[["hand", "Follows your hand"], ["touch", "Follows your touch"], ["corner", "Stays in the corner"]].map(([v, t]) => `<option value="${v}" ${v === (s.follow || "hand") ? "selected" : ""}>${t}</option>`).join("")}
         </select>
+      </div>
+      <div class="set">
+        <span class="tile">${icon("loop")}</span><span class="name">Arc sweep</span><span class="val">${s.arcSweep === "screen" ? "One screen" : "Whole song"}</span>${icon("chev", "chev")}
+        <select id="s-arc" aria-label="Arc sweep">
+          ${[["song", "Whole song"], ["screen", "One screen"]].map(([v, t]) => `<option value="${v}" ${v === (s.arcSweep || "song") ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
       </div>`}
     </div>
-    <p class="foot">Tap a chord for its fingering, or a line to start from it. On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still.</p>
+    <p class="foot">Tap a chord for its fingering, or a line to start from it. On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still. Sweep the arc to move through the song: slowly for a line or two, quickly to cover ground; one full sweep goes end to end.</p>
     <div class="set-group glass" style="margin-top:22px">
       <button class="set" id="s-defaults" aria-expanded="${!!settingsDefaultsOpen}"><span class="tile">${icon("sliders")}</span><span class="name">Defaults for new songs</span>${icon(settingsDefaultsOpen ? "down" : "chev", "chev")}</button>
       ${settingsDefaultsOpen ? `${s.speedMode === "multiplier" ? `<div class="set">
@@ -128,6 +134,7 @@ function renderSettings() {
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
+  $("s-arc")?.addEventListener("change", e => { s.arcSweep = e.target.value; Tabs.save(data); renderSettings(); });
   $("s-controls").onchange = e => { s.controls = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-follow")?.addEventListener("change", async e => {
     s.follow = e.target.value;

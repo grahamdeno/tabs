@@ -881,3 +881,12 @@ test("gig day countdown: same day and before the start only", () => {
   assert.equal(C.gigCountdown(new Date(2026, 9, 14, 16, 0, 0).toISOString(), now), "", "already started");
   assert.equal(C.gigCountdown("", now), "");
 });
+
+test("arc sweep: slow is fine, quick covers the song, never below fine", () => {
+  const fine = 10, coarse = 100;
+  assert.equal(C.sweepGain({ speed: 0.02, fine, coarse }), 10, "slow: a screen per arc");
+  assert.equal(C.sweepGain({ speed: 0.5, fine, coarse }), 100, "quick: the whole song per arc");
+  const mid = C.sweepGain({ speed: 0.23, fine, coarse });
+  assert.ok(mid > 10 && mid < 55, `in between, eased toward fine (${mid})`);
+  assert.equal(C.sweepGain({ speed: 0.5, fine: 10, coarse: 4 }), 10, "a short song never moves less than fine");
+});

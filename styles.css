@@ -1201,3 +1201,15 @@ body.ring.ring-sweep .rc .rc-track { opacity: 1; }
 body.ring.ring-sweep .rc-t1 { stroke-opacity: 1; stroke-width: 4; filter: url(#glow-f); }
 /* 2.3.1: no rubber-band bounce of the whole page on the song screen */
 body.ring { overscroll-behavior: none; }
+/* 2.4: while sweeping, the section you're in glows above Play */
+.rc-where { display: none; }
+body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34vw - 24px); bottom: calc(21vh + 40px); transform: translateX(calc(50% - 24px)); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; text-transform: none; }
+/* 2.4: the tuner's not-tuned dot sits over the corner with a ring around it,
+   like a fork ringing */
+.ib .dotmark, .add.tool .dotmark { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+/* Two rings around the dot, like sound from a ringing fork. */
+.ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; }
+.ib .dotmark::before, .add.tool .dotmark::before { inset: -5px; opacity: .7; animation: ringing 2.4s ease-out infinite; }
+.ib .dotmark::after, .add.tool .dotmark::after { inset: -10px; opacity: .4; animation: ringing 2.4s ease-out .5s infinite; }
+@keyframes ringing { 0% { transform: scale(.75); opacity: .8; } 70%, 100% { transform: scale(1.25); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ib .dotmark::before, .add.tool .dotmark::before { animation: none; opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { animation: none; opacity: .4; } }
