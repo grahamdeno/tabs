@@ -563,7 +563,7 @@ test("a set's Album art cover finds art for its songs on Apple Music", { skip: s
   const art = n => `https://is1-ssl.mzstatic.com/image/thumb/${n}/100x100bb.jpg`;
   await page.route("https://itunes.apple.com/lookup**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackId: 111, artworkUrl100: art("river"), trackTimeMillis: 200000 }] }) }));
-  await page.route(/itunes\.apple\.com\/+search/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+  await page.route("https://itunes.apple.com/search**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "The Night Ferries", trackViewUrl: "https://music.apple.com/x", artworkUrl100: art("harbor") }] }) }));
   await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex") }));
   await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
@@ -643,8 +643,7 @@ test("Listen searches Apple Music in the app: change the words, hear a preview, 
   const page = await phone(t);
   const terms = [];
   const track = (name, artist, id) => ({ trackName: name, artistName: artist, collectionName: "Album", trackViewUrl: `https://music.apple.com/us/album/a/1?i=${id}`, artworkUrl100: `https://is1-ssl.mzstatic.com/${id}/100x100bb.jpg`, previewUrl: `https://audio-ssl.itunes.apple.com/${id}.m4a` });
-  await page.route(/itunes\.apple\.com\/+search/, r => {
-    assert.match(r.request().url(), /apple\.com\/\/search\?/, "searches go to //search (Apple sends iPhones on /search to the Music app)");
+  await page.route("https://itunes.apple.com/search**", r => {
     const q = new URL(r.request().url()).searchParams.get("term"); terms.push(q);
     const results = /live/i.test(q) ? [track("Harbor Lights (Live)", "Me", 222)] : [track("Harbor Lights", "Someone Else", 111), track("Harbor", "Me", 112)];
     r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ results }) });
@@ -673,7 +672,7 @@ test("Listen still finds songs when Safari blocks Apple's reply, and offers a wa
   const page = await phone(t);
   let down = false;
   const hit = { trackName: "Harbor Lights", artistName: "Me", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", artworkUrl100: "" };
-  await page.route(/itunes\.apple\.com\/+search/, r => {
+  await page.route("https://itunes.apple.com/search**", r => {
     const cb = new URL(r.request().url()).searchParams.get("callback");
     if (down) return r.abort();
     /* The plain request is blocked (as Safari does when Apple's reply lacks the CORS header); the script way works. */
@@ -701,6 +700,26 @@ test("Listen still finds songs when Safari blocks Apple's reply, and offers a wa
   down = true;
   await page.fill("#ls-q", "Harbor two"); await page.press("#ls-q", "Enter"); await page.waitForTimeout(1500);
   assert.equal(await page.locator("#ls-restart").count(), 1, "offers a restart");
+});
+
+test("iPhone: Listen opens Apple Music's search, and Paste on return saves the link", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1", permissions: ["clipboard-read", "clipboard-write"] });
+  let searched = false, opened = "";
+  await page.route("https://itunes.apple.com/search**", r => { searched = true; r.abort(); });
+  await page.context().route("https://music.apple.com/**", r => { opened = r.request().url(); r.fulfill({ status: 200, body: "" }); });
+  await page.goto(base + "#/song/b"); await page.waitForTimeout(400);
+  await page.click("#listen"); await page.waitForTimeout(300);
+  assert.equal(await page.locator("#ls-q").count(), 0, "no in-app search on an iPhone");
+  await page.click("#ls-open"); await page.waitForTimeout(800);
+  assert.match(opened, /music\.apple\.com\/search\?term=Harbor%20Lights%20Me/);
+  assert.equal(searched, false, "Apple's catalog search isn't tried");
+  await page.evaluate(() => navigator.clipboard.writeText("https://music.apple.com/us/album/harbor/1?i=777"));
+  await page.evaluate(() => { Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
+  await page.waitForTimeout(200);
+  await page.click("#bp-go"); await page.waitForTimeout(400);
+  const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "b");
+  assert.match(song.listen.url, /i=777/);
+  assert.equal(await page.locator(".bp-listen").count(), 0, "the offer goes away");
 });
 
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {

@@ -1,7 +1,7 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
 import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
-import { addToSet, itunes, catalogBlocked, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
+import { addToSet, itunes, catalogBlocked, appleBlocksSearch, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 
@@ -1518,6 +1518,7 @@ function stopPreview() { if (preview) { preview.audio.pause(); preview = null; d
 onLeave(() => stopPreview());
 function listenSheet(song, force) {
   if (song.listen && !force) return openLink(song.listen.url);
+  if (appleBlocksSearch()) return listenApple(song);
   const first = `${song.title} ${song.artist || ""}`.trim();
   let state = { busy: true, tracks: [], error: false, q: first, all: false };
   const close = () => { stopPreview(); layer.innerHTML = ""; };
@@ -1586,23 +1587,63 @@ function listenSheet(song, force) {
   let typing = 0;
   q.oninput = () => { clearTimeout(typing); typing = setTimeout(() => { if (q.value.trim()) search(q.value.trim()); }, 600); };
   $("ls-form").onsubmit = e => { e.preventDefault(); clearTimeout(typing); q.blur(); if (q.value.trim()) search(q.value.trim()); };
-  $("ls-paste").onclick = async () => {
-    let text = "";
-    try { text = await navigator.clipboard.readText(); } catch { /* not allowed: ask below */ }
-    const use = text => {
-      const url = (text.match(/https:\/\/\S+/) || [])[0];
-      if (!url) return toast("That doesn't look like a link");
-      saveListen(song, url);
-      close();
-      toast(`Saved the ${linkService(url)} link`);
-      if (appleTrackId(url)) recordingLength(song, url);
-    };
-    if (/^https?:\/\//.test(text.trim())) return use(text);
-    ask({ title: "Paste the song's link", text: "From Spotify or YouTube: tap Share, then Copy Link.", placeholder: "https://…", caps: "none", ok: "Save link" }, use);
-  };
-  $("ls-clear")?.addEventListener("click", () => { delete song.listen; Tabs.save(data); close(); const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`; toast("Link removed"); });
+  $("ls-paste").onclick = () => pasteListen(song, close);
+  $("ls-clear")?.addEventListener("click", () => clearListen(song, close));
   search(first);
 }
+// A copied link (Apple Music, Spotify or YouTube) becomes the song's recording.
+// Apple Music links bring the length and album art with them.
+async function pasteListen(song, close, { apple = false } = {}) {
+  let text = "";
+  try { text = await navigator.clipboard.readText(); } catch { /* not allowed: ask below */ }
+  const use = text => {
+    const url = (text.match(/https:\/\/\S+/) || [])[0];
+    if (!url) return toast("That doesn't look like a link");
+    pendingListen = null;
+    document.querySelector(".backpaste")?.remove();
+    saveListen(song, url);
+    close();
+    toast(`Saved the ${linkService(url)} link`);
+    if (appleTrackId(url)) recordingLength(song, url);
+  };
+  if (/^https?:\/\//.test(text.trim())) return use(text);
+  ask({ title: "Paste the song's link", text: apple ? "In Apple Music: tap ••• or Share, then Copy Link." : "From Apple Music, Spotify or YouTube: tap Share, then Copy Link.", placeholder: "https://…", caps: "none", ok: "Save link" }, use);
+}
+function clearListen(song, close) {
+  delete song.listen; Tabs.save(data); close();
+  const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`;
+  toast("Link removed");
+}
+// iPhone: Apple's catalog can't be searched from a web page there (see sets.js),
+// so Listen opens Apple Music's search. Copy the link, come back, tap Paste.
+let pendingListen = null; /* { id, at } while you're in Apple Music */
+onLeave(() => document.querySelector(".bp-listen")?.remove());
+function listenApple(song) {
+  const close = () => { layer.innerHTML = ""; };
+  layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen">
+    <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
+    <p class="easy-note">Find the recording in Apple Music, tap ••• or Share, then Copy Link. Come back and tap Paste.</p>
+    <button class="btn primary ls-open" id="ls-open">${icon("search")}Find on Apple Music</button>
+    ${song.listen ? `<p class="foot" style="margin:10px 2px 0">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
+    <div class="ls-other"><button class="linkbtn" id="ls-paste">Paste a link</button>
+      ${song.listen ? `<button class="danger" id="ls-clear">Remove link</button>` : ""}</div></div>`;
+  $("ls-scrim").onclick = close;
+  $("ls-open").onclick = () => { pendingListen = { id: song.id, at: Date.now() }; close(); openLink(appleSearchURL(song)); };
+  $("ls-paste").onclick = () => pasteListen(song, close, { apple: true });
+  $("ls-clear")?.addEventListener("click", () => clearListen(song, close));
+}
+// Back from Apple Music: offer to paste the link (reading the clipboard needs a tap).
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !pendingListen || Date.now() - pendingListen.at > 30 * 60e3) return;
+  const song = data.songs.find(s => s.id === pendingListen.id);
+  if (!song || viewing !== song || document.querySelector(".backpaste")) return;
+  const b = document.createElement("div");
+  b.className = "backpaste glass float bp-listen";
+  b.innerHTML = `<span>Copied the Apple Music link?</span><button class="btn sm primary" id="bp-go">Paste</button><button class="sb" id="bp-x" aria-label="Dismiss">${icon("x")}</button>`;
+  document.body.appendChild(b);
+  $("bp-x").onclick = () => { b.remove(); pendingListen = null; };
+  $("bp-go").onclick = () => pasteListen(song, () => {}, { apple: true });
+});
 
 // ---------- Metronome ----------
 // A steady click at the song's tempo while it scrolls (on from the ••• menu).

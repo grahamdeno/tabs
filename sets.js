@@ -293,11 +293,14 @@ function jsonp(url, ms) {
     document.head.append(s);
   });
 }
-// On an iPhone, Apple answers /search with a redirect into the Music app
-// (musics://), which a web page can't follow. The same search at //search is
-// answered normally, so searches use that address. (Checked October 2026.)
+// On an iPhone, Apple answers every catalog search with a redirect into the
+// Music app (musics://), which a web page can't follow (tested October 2026,
+// with every header Safari sends). Lookups by track number still work. So on
+// an iPhone, Listen opens Apple Music's own search and Tabs doesn't search the
+// catalog for album art; elsewhere (an iPad, a computer) the search runs here.
+const appleBlocksSearch = () => /iPhone|iPod/.test(navigator.userAgent);
 async function itunes(path, params) {
-  const url = `https://itunes.apple.com/${path === "search" ? "/search" : path}?${new URLSearchParams(params)}`;
+  const url = `https://itunes.apple.com/${path}?${new URLSearchParams(params)}`;
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 6000);
   let first;
   try {
@@ -322,7 +325,7 @@ async function fillArt(set) {
     const res = (await getJSON("lookup", { id: linked.map(([, id]) => id).join(","), entity: "song" }))?.results || [];
     linked.forEach(([s, id]) => { const r = res.find(x => String(x.trackId) === id && x.artworkUrl100); if (r) { s.listen = { ...s.listen, art: big(r.artworkUrl100) }; found++; } });
   }
-  for (const s of need.filter(x => !songArt(x) && x.title && x.artist).slice(0, 12)) {
+  for (const s of appleBlocksSearch() ? [] : need.filter(x => !songArt(x) && x.title && x.artist).slice(0, 12)) {
     const top = rankTracks((await getJSON("search", { term: `${s.title} ${s.artist}`, media: "music", entity: "song", limit: 8 }))?.results || [], s.title, s.artist)[0];
     if (top?.artworkUrl100 && top.score >= 4.5) { s.art = big(top.artworkUrl100); found++; }
   }
@@ -471,4 +474,4 @@ function newSet(after) {
   });
 }
 
-export { itunes, catalogBlocked, addToSet, coverPut, setSetCtx, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText };
+export { itunes, catalogBlocked, appleBlocksSearch, addToSet, coverPut, setSetCtx, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText };
