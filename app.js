@@ -1437,6 +1437,8 @@ function toggleMetronome(song, near) {
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
   if (old) { old.remove(); return; }
+  /* Opening the menu mid-song pauses it, so the scrolling doesn't close it. */
+  if (scroll.on) stopScroll();
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier;
@@ -2118,7 +2120,7 @@ function stopScroll() {
   if (btn) { diag.armed = true; showPausedRow(); }
   /* After playing: the first pause shows starting from a line; a later one, Now and Next. */
   if (was && btn && !chordEdit) setTimeout(() => {
-    if (scroll.on || chordEdit || route().name !== "song" || layer.innerHTML) return;
+    if (scroll.on || chordEdit || route().name !== "song" || layer.innerHTML || document.querySelector(".menu, .ringx, .dial")) return;
     if (tipDue("line")) { if (coachTip("line")) demoLine(); return; }
     if (playsHere >= 2 && !diag.nn && data.settings.diagrams !== true && coachTip("nn")) demoNN();
   }, 700);
