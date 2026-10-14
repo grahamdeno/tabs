@@ -885,6 +885,42 @@ test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps
   assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
 });
 
+test("2.3 sweep the track: up the arc moves forward in the song, down moves back", { skip: skip() }, async t => {
+  const long = { ...LIB.songs[0], body: Array.from({ length: 6 }, () => LIB.songs[0].body).join("\n\n") };
+  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.mouse.click(120, 300); await page.waitForTimeout(900);
+  const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21);
+  const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
+  const lit = () => page.evaluate(() => document.querySelector(".rc-t1").getAttribute("d"));
+  const before = await lit();
+  let p = at(190);
+  await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let a = 192; a <= 220; a += 4) { p = at(a); await page.mouse.move(p.x, p.y); }
+  const y1 = await page.evaluate(() => scrollY);
+  assert.ok(y1 > 200, `sweeping up the arc moves forward (${y1})`);
+  for (let a = 216; a >= 204; a -= 4) { p = at(a); await page.mouse.move(p.x, p.y); }
+  const y2 = await page.evaluate(() => scrollY);
+  assert.ok(y2 < y1 - 60, `sweeping down moves back (${y2} < ${y1})`);
+  await page.mouse.up(); await page.waitForTimeout(200);
+  assert.notEqual(await lit(), before, "the lit part shows the new place");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "sweeping doesn't press Play");
+  /* While playing: auto-scroll carries on from the new place. */
+  await page.click("#play"); await page.waitForTimeout(400);
+  /* (a tap on the words would pause, so lift Play with a touch elsewhere) */
+  await page.evaluate(() => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); });
+  await page.waitForTimeout(800);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
+  p = at(190); await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let a = 192; a <= 214; a += 4) { p = at(a); await page.mouse.move(p.x, p.y); }
+  const held = await page.evaluate(() => scrollY); await page.waitForTimeout(500);
+  assert.ok(Math.abs(await page.evaluate(() => scrollY) - held) < 3, "holds still under the thumb");
+  await page.mouse.up(); await page.waitForTimeout(1500);
+  const after = await page.evaluate(() => [scrollY, document.documentElement.scrollHeight - innerHeight, document.getElementById("play").getAttribute("aria-label"), document.body.className]);
+  assert.ok(after[0] > held || after[0] >= after[1] - 2, `then carries on (${held} -> ${after})`);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "still playing");
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });

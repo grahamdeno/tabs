@@ -759,7 +759,8 @@ function renderViewer(id) {
       { id: "more", slot: 3, label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
       inSet && { id: "set", slot: 4, label: "Set", icon: icon("listplus"), run: () => setDial(null) }
     ].filter(Boolean),
-    speedFrac: () => (speed.value - speed.min) / (speed.max - speed.min),
+    grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
+    letGo: () => { hold.touching = false; releaseSoon(250); },
     playing: () => scroll.on,
     followMode: () => data.settings.follow || "hand"
   });
@@ -1865,7 +1866,7 @@ document.addEventListener("click", e => {
   }
   /* While playing, a tap anywhere on the page pauses, so there's no button to aim for. */
   /* (A target no longer in the page was a button that redrew itself, like play.) */
-  if (scroll.on && e.target instanceof Element && e.target.isConnected && !e.target.closest("button, a, input, select, label, .dock, .menu, .panel, .scrim, .nextup, .chead, .loopbanner")) {
+  if (scroll.on && e.target instanceof Element && e.target.isConnected && !e.target.closest("button, a, input, select, label, .dock, .menu, .panel, .scrim, .nextup, .chead, .loopbanner, .rc, .ringx, .dial")) {
     /* On stage a single stray touch shouldn't stop the song: tap twice to pause. */
     if (data.settings.stage && Date.now() - (stageTap || 0) > 1500) {
       stageTap = Date.now();

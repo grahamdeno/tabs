@@ -1194,3 +1194,8 @@ body.ring .app.viewer .dock-fade { height: calc(100px + var(--safe-b)); }
 body.cedit.ring .rc { display: none; }
 /* 2.2.1: no iPhone selection or tap highlight on the ring controls */
 body.ring .rc, body.ring .rc *, .ringx, .ringx * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+/* 2.3: sweep the track to move through the song */
+.rc-hit { fill: none; stroke: transparent; stroke-width: 44; stroke-linecap: round; pointer-events: none; }
+body.ring.ring-up .rc .rc-hit { pointer-events: stroke; cursor: grab; }
+body.ring.ring-sweep .rc .rc-track { opacity: 1; }
+body.ring.ring-sweep .rc-t1 { stroke-opacity: 1; stroke-width: 4; filter: url(#glow-f); }

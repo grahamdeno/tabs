@@ -33,7 +33,8 @@ export const ringActive = settings => oneHandMQ.matches && settings.controls !==
 
 /**
  * setupRing(o) on the song page.
- *  o.settings, o.items: [{ id, label, icon, run(anchor), slot }], o.speedFrac(): 0..1,
+ *  o.settings, o.items: [{ id, label, icon, run(anchor), slot }],
+ *  o.grab() / o.letGo(): auto-scroll holds still while the track is swept,
  *  o.playing(): bool, o.followMode(): "hand" | "touch" | "corner"
  */
 export function setupRing(o) {
@@ -42,7 +43,7 @@ export function setupRing(o) {
   const rc = document.createElement("div");
   rc.className = "rc";
   rc.id = "rc";
-  rc.innerHTML = `<svg class="rc-track" aria-hidden="true"><path class="rc-t0"/><path class="rc-t1"/></svg>
+  rc.innerHTML = `<svg class="rc-track" aria-hidden="true"><path class="rc-t0"/><path class="rc-t1"/><path class="rc-hit"/></svg>
     <div class="rc-isl" id="rc-isl"></div>
     <div class="sr-only" role="group" aria-label="Song controls">${o.items.map(it => `<button data-ri="${it.id}">${it.label}</button>`).join("")}</div>`;
   app.appendChild(rc);
@@ -56,6 +57,7 @@ export function setupRing(o) {
   st.cleanup.push(() => { oneHandMQ.removeEventListener?.("change", mq); removeEventListener("resize", place); });
   apply(true);
   bindHold();
+  bindTrack();
   bindFollow();
   return { refresh: () => paintTrack(), lift: () => wake() };
 }
@@ -99,17 +101,57 @@ function position() {
   paintTrack();
 }
 
-// The track: an arc around the corner through Play's lifted spot. Its lit part
-// shows the speed (left end slower, top end faster).
+// The track: an arc around the corner through Play's lifted spot. Its lit
+// part shows your place in the song (bottom end the start, top end the end).
+const A0 = 182, SPAN = 86;
+const place = () => { const max = document.documentElement.scrollHeight - innerHeight; return max > 0 ? scrollY / max : 0; };
 function paintTrack() {
   if (!st) return;
   const { W, H, r } = spots();
   const svg = st.rc.querySelector(".rc-track");
   svg.setAttribute("width", W); svg.setAttribute("height", H);
   const pt = a => `${(W + r * Math.cos(a * Math.PI / 180)).toFixed(1)} ${(H + r * Math.sin(a * Math.PI / 180)).toFixed(1)}`;
-  const f = Math.min(1, Math.max(0, st.o.speedFrac()));
-  svg.querySelector(".rc-t0").setAttribute("d", `M ${pt(182)} A ${r} ${r} 0 0 1 ${pt(268)}`);
-  svg.querySelector(".rc-t1").setAttribute("d", `M ${pt(182)} A ${r} ${r} 0 0 1 ${pt(182 + 86 * f)}`);
+  const f = Math.min(1, Math.max(0, place()));
+  const arc = `M ${pt(A0)} A ${r} ${r} 0 0 1 ${pt(A0 + SPAN)}`;
+  svg.querySelector(".rc-t0").setAttribute("d", arc);
+  svg.querySelector(".rc-hit").setAttribute("d", arc);
+  svg.querySelector(".rc-t1").setAttribute("d", `M ${pt(A0)} A ${r} ${r} 0 0 1 ${pt(A0 + SPAN * Math.max(f, 0.004))}`);
+}
+
+// ---- Sweep the track to move through the song ----
+// Like a scroll wheel: up the arc moves forward, down it moves back; one full
+// sweep is about one screen. Auto-scroll holds still under the thumb and
+// carries on from the new place when you let go.
+const angleOf = (x, y) => Math.atan2(innerHeight - y, innerWidth - x) * 180 / Math.PI;  /* 0 left, 90 up */
+function bindTrack() {
+  const hit = st.rc.querySelector(".rc-hit");
+  let from = null, y0 = 0, frame = 0;
+  hit.addEventListener("touchstart", e => e.preventDefault(), { passive: false });  /* the page doesn't scroll too */
+  hit.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    from = angleOf(e.clientX, e.clientY); y0 = scrollY;
+    document.body.classList.add("ring-sweep");
+    st.o.grab?.();
+  });
+  const move = e => {
+    if (from == null) return;
+    e.preventDefault();
+    const d = angleOf(e.clientX, e.clientY) - from;
+    window.scrollTo(0, Math.max(0, y0 + d / SPAN * innerHeight));
+    wake();
+  };
+  const up = () => {
+    if (from == null) return;
+    from = null;
+    document.body.classList.remove("ring-sweep");
+    st.o.letGo?.();
+  };
+  const onScroll = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; paintTrack(); }); };
+  addEventListener("pointermove", move, { passive: false });
+  addEventListener("pointerup", up);
+  addEventListener("pointercancel", up);
+  addEventListener("scroll", onScroll, { passive: true });
+  st.cleanup.push(() => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); removeEventListener("scroll", onScroll); });
 }
 
 // ---- Hold Play for the ring ----
