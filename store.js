@@ -84,6 +84,9 @@ function noteError(e, { quiet = false, where = "" } = {}) {
 }
 window.addEventListener("error", e => noteError(e));
 window.addEventListener("unhandledrejection", e => noteError(e));
+// Anything the page's security policy blocks (a request to a site Tabs doesn't
+// allow) is noted too, so Copy diagnostics names the address.
+document.addEventListener("securitypolicyviolation", e => noteError(new Error(`Blocked by policy (${e.effectiveDirective || e.violatedDirective}): ${String(e.blockedURI).slice(0, 120)}`), { quiet: true, where: "policy" }));
 
 // Everything useful for fixing a problem, and nothing private: no song words,
 // titles or API key.
