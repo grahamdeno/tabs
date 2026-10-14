@@ -1199,3 +1199,5 @@ body.ring .rc, body.ring .rc *, .ringx, .ringx * { -webkit-user-select: none; us
 body.ring.ring-up .rc .rc-hit { pointer-events: stroke; cursor: grab; }
 body.ring.ring-sweep .rc .rc-track { opacity: 1; }
 body.ring.ring-sweep .rc-t1 { stroke-opacity: 1; stroke-width: 4; filter: url(#glow-f); }
+/* 2.3.1: no rubber-band bounce of the whole page on the song screen */
+body.ring { overscroll-behavior: none; }

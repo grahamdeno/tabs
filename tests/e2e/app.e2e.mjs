@@ -894,6 +894,8 @@ test("2.3 sweep the track: up the arc moves forward in the song, down moves back
   const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
   const lit = () => page.evaluate(() => document.querySelector(".rc-t1").getAttribute("d"));
   const before = await lit();
+  const startY = await page.evaluate(() => +document.querySelector(".rc-hit").getAttribute("d").split(" ")[2]);
+  assert.ok(startY < 844 - 29, `the arc stays clear of the home bar (${startY})`);
   let p = at(190);
   await page.mouse.move(p.x, p.y); await page.mouse.down();
   for (let a = 192; a <= 220; a += 4) { p = at(a); await page.mouse.move(p.x, p.y); }

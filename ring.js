@@ -103,7 +103,22 @@ function position() {
 
 // The track: an arc around the corner through Play's lifted spot. Its lit
 // part shows your place in the song (bottom end the start, top end the end).
-const A0 = 182, SPAN = 86;
+// The arc stops short of the bottom edge, where iPhone's home bar swipe lives
+// (the safe area plus a margin), and of the right edge.
+let safeB = null;
+function safeBottom() {
+  if (safeB == null) {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;bottom:0;height:env(safe-area-inset-bottom);width:1px;visibility:hidden";
+    document.body.appendChild(probe); safeB = probe.offsetHeight || 0; probe.remove();
+  }
+  return safeB;
+}
+function arcRange() {
+  const { r } = spots();
+  const a0 = 180 + Math.asin(Math.min(0.9, (safeBottom() + 30) / r)) * 180 / Math.PI;
+  return { a0, a1: 264, span: 264 - a0 };
+}
 const place = () => { const max = document.documentElement.scrollHeight - innerHeight; return max > 0 ? scrollY / max : 0; };
 function paintTrack() {
   if (!st) return;
@@ -112,10 +127,11 @@ function paintTrack() {
   svg.setAttribute("width", W); svg.setAttribute("height", H);
   const pt = a => `${(W + r * Math.cos(a * Math.PI / 180)).toFixed(1)} ${(H + r * Math.sin(a * Math.PI / 180)).toFixed(1)}`;
   const f = Math.min(1, Math.max(0, place()));
-  const arc = `M ${pt(A0)} A ${r} ${r} 0 0 1 ${pt(A0 + SPAN)}`;
+  const { a0, a1, span } = arcRange();
+  const arc = `M ${pt(a0)} A ${r} ${r} 0 0 1 ${pt(a1)}`;
   svg.querySelector(".rc-t0").setAttribute("d", arc);
   svg.querySelector(".rc-hit").setAttribute("d", arc);
-  svg.querySelector(".rc-t1").setAttribute("d", `M ${pt(A0)} A ${r} ${r} 0 0 1 ${pt(A0 + SPAN * Math.max(f, 0.004))}`);
+  svg.querySelector(".rc-t1").setAttribute("d", `M ${pt(a0)} A ${r} ${r} 0 0 1 ${pt(a0 + span * Math.max(f, 0.004))}`);
 }
 
 // ---- Sweep the track to move through the song ----
@@ -137,7 +153,7 @@ function bindTrack() {
     if (from == null) return;
     e.preventDefault();
     const d = angleOf(e.clientX, e.clientY) - from;
-    window.scrollTo(0, Math.max(0, y0 + d / SPAN * innerHeight));
+    window.scrollTo(0, Math.max(0, y0 + d / arcRange().span * innerHeight));
     wake();
   };
   const up = () => {
