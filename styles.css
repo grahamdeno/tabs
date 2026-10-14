@@ -1076,9 +1076,11 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
   .app.viewer .chead .ib { display: none; }
   .app.viewer .player { display: grid; height: auto; padding: 10px 8px 8px; gap: 8px 6px;
     grid-template-columns: auto auto auto 1fr auto auto;
-    grid-template-areas: "speed speed speed speed speed nn" "back fav more . step play"; }
+    grid-template-areas: "dial dial dial set . nn" "back fav more . step play"; }
   .app.viewer .player .oh { display: grid; }
-  .app.viewer .player .speed { grid-area: speed; padding-left: 4px; }
+  .app.viewer .player .speed { display: none; }
+  .app.viewer .player .dialbtn { grid-area: dial; }
+  .app.viewer .player .setdial { grid-area: set; justify-self: start; }
   .app.viewer .player .nnbtn { grid-area: nn; }
   .app.viewer .player .vsep { display: none; }
   .app.viewer .player .step { grid-area: step; margin-right: 6px; }
@@ -1090,6 +1092,11 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
   body.loop-on .app.viewer { padding-bottom: calc(200px + var(--safe-b)); }
   body.nn-on .app.viewer { padding-bottom: calc(290px + var(--safe-b)); }
   .app.viewer .dock-fade { height: calc(150px + var(--safe-b)); }
+  /* Things that sit above the bar move up with it (the bar has two rows). */
+  .nextup, .backpaste { bottom: calc(134px + var(--safe-b)); }
+  .nextline { bottom: calc(140px + var(--safe-b)); }
+  .smap { bottom: calc(140px + var(--safe-b)); }
+  .coach.free { bottom: calc(140px + var(--safe-b)); }
   /* The ••• menu rises from the bottom: same rows, within reach. */
   .menu.msheet { left: 8px; right: 8px; bottom: calc(8px + var(--safe-b)); width: auto; border-radius: 22px; padding: 2px 8px 8px; animation: rise .22s cubic-bezier(.2,1,.3,1); transition: transform .12s; }
   .menu.msheet .grab { margin: 8px auto 6px; }
@@ -1113,3 +1120,35 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 @media (max-width: 699px) and (orientation: portrait) {
   .cs .pbody .cs-act { order: 9; margin-top: auto; }
 }
+
+/* ---------- 2.1: the corner dial and the glow ----------
+   The glow is for values you glance at (a dial's reading, the count-in, the
+   chord you're on, in tune, a gig countdown): one at a time, never on buttons
+   or the words. */
+:root { --glow-c: #ffd2a0; --glow: 0 0 4px rgba(255,170,90,.9), 0 0 12px rgba(255,140,60,.65), 0 0 28px rgba(255,120,40,.4); }
+:root[data-theme="light"] { --glow-c: var(--accent-deep); --glow: 0 0 6px rgba(237,140,80,.45), 0 0 16px rgba(237,140,80,.25); }
+.glow { color: var(--glow-c); text-shadow: var(--glow); }
+.dialbtn { display: none; white-space: nowrap; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--rim); background: var(--card); color: var(--fg-2); font: 500 13px var(--mono); touch-action: none; -webkit-user-select: none; user-select: none; }
+.dialbtn svg { width: 16px; height: 16px; color: var(--accent); }
+@media (max-width: 699px) and (orientation: portrait) { .app.viewer .player .dialbtn.oh { display: inline-flex; } }
+.dial { position: fixed; inset: 0; z-index: 70; touch-action: none; opacity: 0; transition: opacity .15s; }
+.dial.on { opacity: 1; }
+.dial svg { position: absolute; inset: 0; transform-origin: 100% 100%; transform: scale(.82); transition: transform .2s cubic-bezier(.2,1,.3,1); }
+.dial.on svg { transform: none; }
+.dial-bg { fill: var(--solid); fill-opacity: .95; stroke: var(--rim); }
+.dial-ticks line { stroke: var(--muted); stroke-opacity: .7; stroke-width: 2.4; stroke-linecap: round; }
+.dial-ticks line.lit { stroke: #ffab5e; stroke-opacity: 1; }
+.dial-ticks line.cur { stroke: var(--glow-c); stroke-opacity: 1; stroke-width: 3.4; }
+:root[data-theme="light"] .dial-ticks line.lit { stroke: var(--accent); }
+.dial-labels text { font: 500 11px var(--sans); fill: var(--muted); }
+.dial-labels text.cur { font-weight: 700; font-size: 14px; fill: var(--glow-c); }
+.dial-big { font: 600 38px var(--sans); fill: var(--glow-c); font-variant-numeric: tabular-nums; }
+.dial.set .dial-big { font-size: 19px; }
+.dial-small { font: 500 11px var(--sans); fill: var(--muted); letter-spacing: .08em; }
+.dial-end { font: 500 10px var(--sans); fill: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .dial, .dial svg { transition: none; } }
+/* Count-in, the chord you're on, in tune: the glow */
+.countin { color: var(--glow-c); text-shadow: var(--glow); }
+.nn .nowcol .dn { fill: var(--glow-c); filter: url(#glow-f); }
+.tn-note.glow b { color: var(--glow-c); text-shadow: var(--glow); transition: color .2s, text-shadow .2s; }
+.un-cd { font: 600 26px var(--sans); font-variant-numeric: tabular-nums; letter-spacing: .01em; margin: 4px 0 2px; }

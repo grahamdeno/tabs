@@ -1,5 +1,6 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
+import { gigCountdown, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
+import { openDial } from "./dial.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast } from "./ui.js";
 import { addToSet, itunes, catalogBlocked, appleBlocksSearch, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
@@ -188,7 +189,9 @@ function setsShelf() {
   return `
     ${up ? `<div class="upnext" id="upnext" role="button" tabindex="0" aria-label="Up next: ${esc(up.name)}, ${esc(fullWhen(up.when))}" style="--tint:${keyColor(setKeys(up)[0], up.name, 0.22)}">
       <div class="un-cv">${setCover(up, { small: true, notext: true })}</div>
-      <div class="un-t"><div class="lab">Up next · ${esc(whenText(up.when))}</div><b>${esc(up.name)}</b><span>${len(up)} · ${esc(untilLabel(up.when))}${up.where ? ` · ${esc(up.where)}` : ""}</span></div>
+      <div class="un-t"><div class="lab">Up next · ${gigCountdown(up.when) ? "Today" : esc(whenText(up.when))}</div><b>${esc(up.name)}</b>
+        ${gigCountdown(up.when) ? `<div class="un-cd glow" id="un-cd" aria-hidden="true">${gigCountdown(up.when)}</div>` : ""}
+        <span>${gigCountdown(up.when) ? `until ${esc(whenText(up.when, false))} · ${len(up)}` : `${len(up)} · ${esc(untilLabel(up.when))}`}${up.where ? ` · ${esc(up.where)}` : ""}</span></div>
       ${setSongs(up).length ? `<button class="un-play" id="un-play" aria-label="Play ${esc(up.name)}">${icon("play")}</button>` : ""}
     </div>` : ""}
     <div class="label lrow shelf-h"><span>Your sets</span><button class="linkbtn sh-all" id="sh-all">See all</button></div>
@@ -197,8 +200,13 @@ function setsShelf() {
       <button class="sh-it sh-new" id="sh-new" aria-label="New set"><div class="sh-cv">${icon("plus")}</div><div class="sh-t">New set</div></button>
     </div>`;
 }
+let gigTimer = 0;
+onLeave(() => clearInterval(gigTimer));
 function bindShelf() {
   const up = nextSet(data.sets);
+  /* Gig day: the countdown ticks every second while the library is open. */
+  clearInterval(gigTimer);
+  if ($("un-cd")) gigTimer = setInterval(() => { const el = $("un-cd"), t = el && gigCountdown(up.when); if (!el) return clearInterval(gigTimer); if (t) el.textContent = t; else { clearInterval(gigTimer); renderLibrary(); } }, 1000);
   $("upnext")?.addEventListener("click", e => { if (!e.target.closest("#un-play")) go("#/set/" + encodeURIComponent(up.id)); });
   $("un-play")?.addEventListener("click", () => playSet(up));
   $("sh-all")?.addEventListener("click", () => { filter = "sets"; renderLibrary(); });
@@ -585,6 +593,9 @@ function renderViewer(id) {
         <button class="sb oh oh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
         <button class="sb oh fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="sb oh more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        <button class="oh dialbtn" id="dialbtn" aria-label="Song speed. Hold and sweep to change">${icon("gauge")}<span></span></button>
+        ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
+          return x && list[setCtx.idx]?.id === song.id ? `<button class="oh dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed">
           ${byLength()
             ? `<input type="range" id="speed" min="60" max="480" step="5" value="${540 - songLength(song)}" aria-label="Song length">`
@@ -688,12 +699,41 @@ function renderViewer(id) {
       speed.style.setProperty("--fill", ((speed.value - 4.5) / 94.5 * 100) + "%");
       $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
     }
+    const db = $("dialbtn")?.querySelector("span");
+    if (db) db.textContent = $("sv").textContent;
   };
   showSpeed();
   speed.oninput = () => {
     if (byLength()) { song.duration = 540 - speed.value; song.durationSet = true; } else song.speed = +speed.value;
     showSpeed(); Tabs.save(data);
   };
+  /* One hand: the speed is a dial in the corner (dial.js). Hold the time in
+     the bar and sweep; a tap opens it to sweep anywhere. Arrow keys step it. */
+  const speedDial = e => openDial({ min: +speed.min, max: +speed.max, step: +speed.step, value: +speed.value, label: "Song speed", event: e,
+    read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
+    input: v => { speed.value = v; speed.oninput(); } });
+  const dialBtn = $("dialbtn");
+  if (dialBtn) {
+    dialBtn.addEventListener("pointerdown", e => { e.preventDefault(); speedDial(e); });
+    dialBtn.addEventListener("click", e => { if (e.detail === 0) speedDial(null); });
+    dialBtn.addEventListener("keydown", e => {
+      const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      speed.value = Math.min(+speed.max, Math.max(+speed.min, +speed.value + d * +speed.step)); speed.oninput();
+    });
+  }
+  /* In a set: hold "4 of 9" and sweep through the set's songs; let go to open one. */
+  $("setdial")?.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    const x = data.sets.find(z => z.id === setCtx?.id);
+    if (!x) return;
+    const list = setSongs(x), here = setCtx.idx;
+    const short = t => t.length > 20 ? t.slice(0, 19) + "…" : t;
+    openDial({ labels: list.map(z => z.title), value: here, label: `Songs in ${x.name}`, event: e, cls: "set",
+      read: i => ({ big: short(list[i].title), small: `${i + 1} of ${list.length}${keyOf(list[i]) ? ` · Key ${keyOf(list[i])}` : ""} · ${mmss(songLength(list[i]))}` }),
+      done: i => { if (i !== here) { setSetCtx({ id: x.id, idx: i }); go("#/song/" + encodeURIComponent(list[i].id)); } } });
+  });
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
   /* A linked Apple Music song without its recording length yet: look it up once. */
   if (song.listen && song.listen.length === undefined && appleTrackId(song.listen.url)) recordingLength(song, song.listen.url, { quiet: true });
