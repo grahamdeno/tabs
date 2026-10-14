@@ -177,6 +177,8 @@ test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", {
   assert.match(await page.locator(".ed-chips").textContent(), /Format\s*Tab/);
   assert.equal(await page.locator("#ed-seg").isVisible(), false, "no Sheet view for tab");
   // Cancel discards at once (no question), and Undo brings it back to editing.
+  await page.evaluate(() => document.activeElement.blur()); /* close the keyboard first, as on a phone */
+  await page.waitForTimeout(50);
   await page.click("#ce-cancel");
   await page.waitForTimeout(500);
   assert.deepEqual(await titles(), ["New One", "River Road", "Harbor Lights"]);
@@ -1101,4 +1103,24 @@ test("Add the words: paste lyrics on a chord chart and the chords go over them",
   assert.match(await page.textContent("#sheet"), /first line of.*chorus line/, "the song page shows the words");
   await page.click("#toast .tact"); await page.waitForTimeout(300);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "c").body, chart, "Undo");
+});
+
+test("typing in Text on a phone opens writing mode; the editor fills the top and the bar rides above", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { isMobile: true });
+  await page.click("#add");
+  await page.waitForTimeout(600);
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await page.focus("#ed-body");
+  await page.waitForTimeout(450);
+  assert.ok(await page.evaluate(() => document.body.classList.contains("writing")), "writing mode on");
+  const box = await page.locator(".ed-tx").boundingBox(), bar = await page.locator(".cebar").boundingBox();
+  assert.ok(box.y >= 0 && box.y < 30, `editor at the top (y=${box.y})`);
+  assert.ok(bar.y >= box.y + box.height, "bar sits below the editor, not over it");
+  assert.ok(await page.locator("#ce-done").isVisible(), "Save stays one tap away while typing");
+  await page.keyboard.type("[Verse]\nG\nHello" + "\nline".repeat(60));
+  const st = await page.evaluate(() => document.querySelector(".ed-tx").scrollTop);
+  assert.ok(st > 0, "the editor follows the caret down");
+  await page.evaluate(() => document.activeElement.blur());
+  await page.waitForTimeout(100);
+  assert.ok(!(await page.evaluate(() => document.body.classList.contains("writing"))), "writing mode off when the keyboard closes");
 });

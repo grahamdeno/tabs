@@ -14,6 +14,7 @@ let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
 let taps = [], tapTimer = 0;   /* tap tempo in progress */
 onLeave(() => {
+  stopWriting();
   if (!chordEdit) return;
   if (edView === "text") flushText(chordEdit);
   if (chordEdit.isNew) settleNew(chordEdit);
@@ -48,6 +49,7 @@ function newSong(fields = {}, view = "text") {
   return s;
 }
 function endEdit() {
+  stopWriting();
   setChordEdit(null); edView = "sheet"; textSnap = null;
   document.body.classList.remove("cedit");
   document.querySelector(".cebar")?.remove();
@@ -65,6 +67,8 @@ function songEditor(song, view = "sheet") {
   bar.innerHTML = `<div class="seg slide ${text ? "right" : ""}" id="ed-seg" role="tablist" aria-label="Edit view"><button class="${text ? "" : "on"}" role="tab" aria-selected="${!text}" data-v="sheet">Sheet</button><button class="${text ? "on" : ""}" role="tab" aria-selected="${text}" data-v="text">Text</button></div>
     <button class="btn sm primary" id="ce-done">${song.isNew ? "Save" : "Done"}</button>`;
   document.body.appendChild(bar);
+  /* Tapping the bar while typing keeps the keyboard up, so taps land where aimed. */
+  bar.addEventListener("pointerdown", e => { if (writing && e.target.closest("button")) e.preventDefault(); });
   $("ce-done").onclick = () => {
     if (song.isNew) {
       const t = $("ed-title")?.value.trim() || song.title.trim();
@@ -262,8 +266,63 @@ function paintSheet(song, sheet) {
 // ---- Text view: the same page, the sheet as plain text ----
 // Same title, details and bar; only the song area changes. Chord lines show in
 // copper behind the text, and switching keeps the line you were on in place.
+// ---- Writing mode ----
+// On a phone, the keyboard pushes the page up and the top of the song slides out
+// of view. While typing in Text, the editor instead fills the space above the
+// keyboard, the bar (Sheet/Text and Save) sits on the keyboard, and everything
+// else steps aside until the keyboard closes.
+const writeMQ = matchMedia("(pointer: coarse)");
+let writing = null; /* { y, off } while in writing mode */
+function fitWriting() {
+  const vv = window.visualViewport, st = document.body.style;
+  st.setProperty("--vv-top", (vv ? vv.offsetTop : 0) + "px");
+  st.setProperty("--vv-h", (vv ? vv.height : innerHeight) + "px");
+  const bar = document.querySelector(".cebar");
+  if (bar) st.setProperty("--bar-h", bar.offsetHeight + "px");
+}
+const lineH = ta => parseFloat(getComputedStyle(ta).lineHeight) || 24;
+let charW = 0;
+function caretXY(ta) {
+  const cs = getComputedStyle(ta);
+  if (!charW) { const c = document.createElement("canvas").getContext("2d"); c.font = `${cs.fontSize} ${cs.fontFamily}`; charW = c.measureText("0").width || 9.6; }
+  const before = ta.value.slice(0, ta.selectionEnd), nl = before.lastIndexOf("\n");
+  const row = before.split("\n").length - 1, col = before.slice(nl + 1).replace(/\t/g, "    ").length;
+  return { x: parseFloat(cs.paddingLeft) + col * charW, y: parseFloat(cs.paddingTop) + row * lineH(ta) };
+}
+/* Keep the line being typed in view; when it has to move, bring it to the upper third. */
+function keepCaret() {
+  const ta = $("ed-body"), box = document.querySelector(".ed-tx");
+  if (!writing || !ta || !box) return;
+  const { x, y } = caretXY(ta), h = lineH(ta), view = box.clientHeight, w = box.clientWidth;
+  if (y < box.scrollTop + 4 || y + h > box.scrollTop + view - 8) box.scrollTop = Math.max(0, y - view / 3);
+  if (x < box.scrollLeft + 14 || x > box.scrollLeft + w - 28) box.scrollLeft = Math.max(0, x - w / 2);
+}
+function onViewport() { if (!writing) return; fitWriting(); keepCaret(); }
+function startWriting() {
+  if (writing || !writeMQ.matches) return;
+  writing = { y: window.scrollY };
+  fitWriting();
+  document.body.classList.add("writing");
+  window.visualViewport?.addEventListener("resize", onViewport);
+  window.visualViewport?.addEventListener("scroll", onViewport);
+  document.addEventListener("selectionchange", keepCaret);
+  /* Once the keyboard has settled, line up the caret. */
+  requestAnimationFrame(() => { fitWriting(); keepCaret(); });
+  setTimeout(onViewport, 350);
+}
+function stopWriting() {
+  if (!writing) return;
+  const { y } = writing;
+  writing = null;
+  document.body.classList.remove("writing");
+  window.visualViewport?.removeEventListener("resize", onViewport);
+  window.visualViewport?.removeEventListener("scroll", onViewport);
+  document.removeEventListener("selectionchange", keepCaret);
+  window.scrollTo(0, y);
+}
 function switchView(song, v) {
   if (v === edView) return;
+  stopWriting();
   /* Remember which line sits at the reading point, and where. */
   const line = innerHeight * READ_AT;
   const pick = sel => {
@@ -309,8 +368,11 @@ function paintText(song) {
     <p class="ed-hint" id="ed-txhint">${textHint(song)}</p>
     ${song.isNew ? "" : `<button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`}`;
   const ta = $("ed-body");
+  ta.addEventListener("focus", startWriting);
+  ta.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== ta) stopWriting(); }, 0));
   ta.oninput = () => {
     $("ed-hl").innerHTML = hlText(ta.value);
+    keepCaret();
     clearTimeout(textTimer);
     textTimer = setTimeout(() => flushText(song), 300);
   };
@@ -363,6 +425,7 @@ function leaveText(song) {
   if (before && before.body !== song.body) toast("Text changes saved", null, { label: "Undo", fn: () => { restoreSnap(song, before); Tabs.save(data); paintEdit(song); } });
 }
 function deleteFromEdit(song) {
+  stopWriting();
   setChordEdit(null); edView = "sheet"; textSnap = null; document.body.classList.remove("cedit"); document.querySelector(".cebar")?.remove();
   const entry = Tabs.deleteSong(data, song.id);
   history.replaceState(null, "", "#/");

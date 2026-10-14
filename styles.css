@@ -559,6 +559,14 @@ body.searching .upnext, body.searching .shelf, body.searching .shelf-h { display
 .ed-tx textarea::placeholder { -webkit-text-fill-color: var(--muted); color: var(--muted); }
 .ed-tx textarea::selection { background: var(--accent-soft); }
 
+/* Writing mode (phone, typing in Text): the editor fills the space above the
+   keyboard and the bar rides on the keyboard. --vv-* follow the visible area. */
+body.writing::before { content: ""; position: fixed; inset: -50vh 0; z-index: 24; background: var(--bg); }
+body.writing .ed-tx { position: fixed; z-index: 25; left: 8px; right: 8px; top: calc(var(--vv-top, 0px) + var(--safe-t) + 8px); height: calc(var(--vv-h, 100vh) - var(--safe-t) - var(--bar-h, 56px) - 24px); overflow: auto; overscroll-behavior: contain; }
+body.writing .ed-tx-in { min-height: 100%; }
+body.writing .cebar { bottom: auto; top: calc(var(--vv-top, 0px) + var(--vv-h, 100vh) - var(--bar-h, 56px) - 8px); box-shadow: none; }
+body.writing .coach, body.writing .coach-dim { display: none; }
+
 .qcancel { display: none; border: 0; background: none; color: var(--accent); font-size: 16px; padding: 0 4px 0 6px; flex: none; }
 body.searching .head, body.searching .weekly, body.searching #chips, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none; }
 body.searching .qcancel { display: block; }
