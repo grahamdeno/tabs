@@ -2,6 +2,7 @@
 // Tips & gestures page. Loaded with the app; app.js calls in when a tip is due.
 import { Tabs, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
+import { setSetCtx } from "./sets.js";
 import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
 
 // ---------- Coach: one-time help, in place and never in the way ----------
@@ -188,7 +189,8 @@ function demoNN() {
   nn.innerHTML = `<div class="nowcol"><div class="lab">NOW</div><div>${card(diag.seq[idx].name, 1.26)}</div></div><div class="vs"></div>
     <div style="min-width:0"><div class="lab">NEXT</div><div class="cards">${next.map((n, i) => card(n, 1, fade[i])).join("")}</div></div>`;
   document.body.classList.add("nn-demo");
-  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on with ${icon("fretboard")} below.</span>` });
+  const ring = document.body.classList.contains("ring");
+  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on ${ring ? "by holding Play, then Now and Next" : `with ${icon("fretboard")} below`}.</span>` });
   setTimeout(() => { document.body.classList.remove("nn-demo"); if (!scroll.on) nn.innerHTML = ""; }, 3800);
   return true;
 }
@@ -244,6 +246,15 @@ function demoSong() {
 function showMe(name) {
   if (name === "search") { go("#/"); return setTimeout(() => demoSearch(true), 450); }
   if (name === "strobe") { go("#/"); return setTimeout(() => openTuner("standard", null, { demo: "strobe" }), 350); }
+  /* The set dial needs a song opened from a set. */
+  if (name === "setdial") {
+    const set = data.sets.find(x => x.songIds.some(id => data.songs.some(s => s.id === id)));
+    if (!set) return toast("Make a set first; then hold \u201c4 of 9\u201d on one of its songs");
+    const idx = set.songIds.findIndex(id => data.songs.some(s => s.id === id));
+    setSetCtx({ id: set.id, idx });
+    pendingDemo = name;
+    return go("#/song/" + encodeURIComponent(set.songIds[idx]));
+  }
   const song = demoSong();
   if (!song) return toast("Add a chord sheet first");
   pendingDemo = name;
@@ -253,8 +264,8 @@ function showMe(name) {
 /* One hand: point at the control where it is. Only on a phone held upright. */
 const ONE_HAND = {
   ring: () => [document.getElementById("play"), "<b>Hold Play</b><span>Slide to Favorite, Metronome, Key, Now and Next or More, and let go.</span>"],
-  arc: () => { wakeRing(); return [document.querySelector(".rc-track"), "<b>Sweep the arc</b><span>Up moves forward, down moves back. One full sweep goes end to end.</span>"]; },
-  pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Library\u201d and let go.</span>"],
+  arc: () => { wakeRing(); return [document.getElementById("play"), "<b>Sweep the arc Play sits on</b><span>Up moves forward, down moves back. One full sweep goes end to end.</span>"]; },
+  pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Library\u201d and let go.</span>", "below"],
   speed: () => [document.getElementById("dialbtn"), "<b>Hold the time</b><span>Then sweep around the corner to set the song's length.</span>"],
   setdial: () => [document.getElementById("setdial"), "<b>Hold \u201c4 of 9\u201d</b><span>Sweep through the set; let go to open a song.</span>"],
   rise: () => { wakeRing(); return [document.getElementById("play"), "<b>Play rises to your thumb</b><span>While the phone is in your hand; it settles after 5 seconds still.</span>"]; }
@@ -265,7 +276,7 @@ function runDemo(name, song) {
   if (ONE_HAND[name]) {
     if (!document.body.classList.contains("ring")) return toast("This one is for a phone held upright, with Song controls set to Hold Play");
     if (name === "setdial" && !document.getElementById("setdial")) return toast("Open a song from a set, then hold \u201c4 of 9\u201d");
-    return setTimeout(() => { const [el, html] = ONE_HAND[name](); if (el) setTimeout(() => coach(el, "", { ms: 6000, place: "above", fixed: true, html }), 400); }, 300);
+    return setTimeout(() => { const [el, html, place = "above"] = ONE_HAND[name](); if (el) setTimeout(() => coach(el, "", { ms: 6000, place, fixed: true, html }), 400); }, 300);
   }
   if (name === "chord") return demoChord(song, true);
   if (name === "pause") return demoPause();

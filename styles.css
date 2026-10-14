@@ -1240,3 +1240,5 @@ body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):no
 .tn-note.done.glow b { color: var(--good); text-shadow: 0 0 6px color-mix(in srgb, var(--good) 80%, transparent), 0 0 18px color-mix(in srgb, var(--good) 50%, transparent); }
 /* 2.6.5: no iPhone text selection or callout on the dials */
 .dial, .dial *, .dialbtn, .dialbtn * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+/* 2.6.6: the Now and Next tip shows its panel in ring mode too */
+body.ring.nn-demo .app.viewer .dock { display: flex !important; }
