@@ -12,6 +12,7 @@
 // motion sensors (asked for once); without them, a touch on the screen counts.
 // Play never moves under a finger or just after a touch.
 import { icon, oneHandMQ } from "./ui.js";
+import { sweepGain } from "./core.js";
 
 /* Press this long on Play for the ring: iPhone's own long-press time, and a
    little longer while a song plays, so a firm tap to pause stays a pause. */
@@ -35,6 +36,7 @@ export const ringActive = settings => oneHandMQ.matches && settings.controls !==
  * setupRing(o) on the song page.
  *  o.settings, o.items: [{ id, label, icon, run(anchor), slot }],
  *  o.grab() / o.letGo(): auto-scroll holds still while the track is swept,
+ *  o.where(): the section at the reading point (shown while sweeping),
  *  o.playing(): bool, o.followMode(): "hand" | "touch" | "corner"
  */
 export function setupRing(o) {
@@ -44,6 +46,7 @@ export function setupRing(o) {
   rc.className = "rc";
   rc.id = "rc";
   rc.innerHTML = `<svg class="rc-track" aria-hidden="true"><path class="rc-t0"/><path class="rc-t1"/><path class="rc-hit"/></svg>
+    <div class="rc-where glow" aria-hidden="true"></div>
     <div class="rc-isl" id="rc-isl"></div>
     <div class="sr-only" role="group" aria-label="Song controls">${o.items.map(it => `<button data-ri="${it.id}">${it.label}</button>`).join("")}</div>`;
   app.appendChild(rc);
@@ -135,25 +138,49 @@ function paintTrack() {
 }
 
 // ---- Sweep the track to move through the song ----
-// Like a scroll wheel: up the arc moves forward, down it moves back; one full
-// sweep is about one screen. Auto-scroll holds still under the thumb and
-// carries on from the new place when you let go.
-const angleOf = (x, y) => Math.atan2(innerHeight - y, innerWidth - x) * 180 / Math.PI;  /* 0 left, 90 up */
+// Up the arc moves forward, down it moves back. Auto-scroll holds still under
+// the thumb and carries on from the new place when you let go.
+//
+// Whole song (the default): one full sweep, end to end, covers the whole
+// song, so a long song is one sweep from top to bottom. To keep long songs
+// easy to land in, the arc is speed-sensitive, like a trackpad: a slow sweep
+// moves finely (about a screen per arc), a quick one covers ground. And a
+// sweep that runs from one end of the arc to the other always lands on the
+// song's end or start. While sweeping, the section you're in glows by Play.
+// One screen (the 2.3 behavior): the whole arc is about one screen.
+const angleOf = (x, y) => 180 + Math.atan2(innerHeight - y, innerWidth - x) * 180 / Math.PI;  /* 180 left, 270 up */
 function bindTrack() {
   const hit = st.rc.querySelector(".rc-hit");
-  let from = null, y0 = 0, frame = 0;
+  const where = st.rc.querySelector(".rc-where");
+  let from = null, last = 0, lastT = 0, y = 0, frame = 0;
   hit.addEventListener("touchstart", e => e.preventDefault(), { passive: false });  /* the page doesn't scroll too */
   hit.addEventListener("pointerdown", e => {
     e.preventDefault();
-    from = angleOf(e.clientX, e.clientY); y0 = scrollY;
+    from = last = angleOf(e.clientX, e.clientY); lastT = e.timeStamp || performance.now(); y = scrollY;
     document.body.classList.add("ring-sweep");
     st.o.grab?.();
+    showWhere();
   });
+  const showWhere = () => { if (where) where.textContent = st.o.where?.() || ""; };
   const move = e => {
     if (from == null) return;
     e.preventDefault();
-    const d = angleOf(e.clientX, e.clientY) - from;
-    window.scrollTo(0, Math.max(0, y0 + d / arcRange().span * innerHeight));
+    const a = angleOf(e.clientX, e.clientY), t = e.timeStamp || performance.now();
+    const { a0, span } = arcRange(), max = document.documentElement.scrollHeight - innerHeight;
+    const d = a - last, dt = Math.max(1, t - lastT);
+    last = a; lastT = t;
+    const whole = st.o.settings.arcSweep !== "screen";
+    const fine = innerHeight / span;
+    const gain = whole ? sweepGain({ speed: Math.abs(d) / dt, fine, coarse: max / span }) : fine;
+    y = Math.min(max, Math.max(0, y + d * gain));
+    /* End to end in one sweep: all the way. */
+    if (whole) {
+      const f0 = (from - a0) / span, f = (a - a0) / span;
+      if (f0 <= 0.2 && f >= 0.92) y = max;
+      if (f0 >= 0.8 && f <= 0.08) y = 0;
+    }
+    window.scrollTo(0, y);
+    showWhere();
     wake();
   };
   const up = () => {

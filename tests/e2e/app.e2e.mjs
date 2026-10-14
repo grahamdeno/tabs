@@ -923,6 +923,37 @@ test("2.3 sweep the track: up the arc moves forward in the song, down moves back
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "still playing");
 });
 
+test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the section glows", { skip: skip() }, async t => {
+  const long = { ...LIB.songs[0], body: Array.from({ length: 12 }, (_, i) => LIB.songs[0].body.replace("[Chorus]", `[Chorus ${i + 1}]`)).join("\n\n") };
+  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  const lift = async () => { await page.mouse.click(120, 300); await page.waitForTimeout(800); };
+  await lift();
+  const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21), a0 = 180 + Math.asin(30 / r) * 180 / Math.PI;
+  const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
+  const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+  assert.ok(max > 3000, "a long song");
+  /* Slow: a fifth of the arc, gently, moves less than a screen. */
+  let p = at(a0 + 3); await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let a = a0 + 3; a <= a0 + 18; a += 1) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(40); }
+  const slow = await page.evaluate(() => scrollY);
+  assert.ok(slow > 20 && slow < 844, `slow sweep moves finely (${slow})`);
+  assert.match(await page.textContent(".rc-where"), /VERSE|Verse|CHORUS|Chorus/i, "the section glows while sweeping");
+  await page.mouse.up(); await page.waitForTimeout(300);
+  /* End to end in one sweep: the end of the song. */
+  await lift();
+  p = at(a0 + 2); await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let a = a0 + 2; a <= 263; a += 6) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(15); }
+  await page.mouse.up(); await page.waitForTimeout(300);
+  assert.ok(await page.evaluate(() => scrollY) >= max - 2, "a full sweep up reaches the end");
+  await lift();
+  p = at(262); await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let a = 262; a >= a0 + 1; a -= 6) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(15); }
+  p = at(a0 + 1); await page.mouse.move(p.x, p.y);
+  await page.mouse.up(); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => scrollY), 0, "a full sweep down reaches the start");
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });
