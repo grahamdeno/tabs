@@ -986,6 +986,46 @@ test("2.4.6 arc: real touch sweeps move steadily, never jump, never reverse", { 
   assert.ok(back.moved < 0 && back.reversals === 0, `back up the song, steadily (${JSON.stringify(back)})`);
 });
 
+test("2.5 Settings > Song map turns the section rail off and on", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  assert.equal(await page.locator(".smap").count(), 1, "on by default");
+  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
+  await page.click("#s-map"); await page.waitForTimeout(200);
+  assert.equal(await page.getAttribute("#s-map", "aria-checked"), "false");
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  assert.equal(await page.locator(".smap").count(), 0, "off: no rail");
+  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
+  await page.click("#s-map"); await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  assert.equal(await page.locator(".smap").count(), 1, "back on");
+});
+
+test("2.5 Back: in the island; pull down at the top; the library opens at its top", { skip: skip() }, async t => {
+  const songs = Array.from({ length: 30 }, (_, i) => ({ id: "s" + i, title: "Song " + String(i).padStart(2, "0"), artist: "A", format: "chords", body: "[Verse]\nG C\nla" }));
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...songs], settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
+  await page.evaluate(() => scrollTo(0, 1500)); await page.waitForTimeout(200);
+  await page.evaluate(() => { location.hash = "#/song/s25"; }); await page.waitForTimeout(500);
+  const b = await page.evaluate(() => { const r = document.getElementById("rc-back").getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(document.getElementById("rc-back")).display }; });
+  assert.ok(b.y > 760 && b.v !== "none", `Back sits in the island (${JSON.stringify(b)})`);
+  await page.click("#rc-back"); await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => location.hash), "#/");
+  assert.equal(await page.evaluate(() => scrollY), 0, "the library opens at its top");
+  /* Pull down at the top of a song. */
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForTimeout(500);
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: y == null ? [] : [{ x: 150, y }] });
+  await touch("touchStart", 300);
+  for (let y = 300; y <= 360; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); }
+  await touch("touchEnd"); await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => location.hash), "#/song/a", "a short pull springs back");
+  await touch("touchStart", 300);
+  for (let y = 300; y <= 420; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); }
+  assert.match(await page.textContent(".rc-pull"), /Release for Library/);
+  assert.equal(await page.evaluate(() => document.querySelector(".rc-pull").classList.contains("go")), true);
+  await touch("touchEnd"); await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => location.hash), "#/", "a full pull goes back");
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });

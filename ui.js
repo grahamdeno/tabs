@@ -25,6 +25,7 @@ const I = {
   cloud: '<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/><path d="M12 15V10M9.8 12 12 9.8l2.2 2.2"/>',
   trash: '<path d="M4 7h16M10 7V4.5h4V7M6 7l1 13h10l1-13"/>',
   metro: '<path d="M8 21h8l-2.5-17h-3z"/><path d="M12 16l5-9"/>',
+  sections: '<path d="M18 4v16"/><circle cx="18" cy="8" r="1.8"/><circle cx="18" cy="15" r="1.8"/><path d="M5 8h8M5 15h8"/>',
   listplus: '<path d="M4 7h11M4 12h11M4 17h7M18 14v6M15 17h6"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
