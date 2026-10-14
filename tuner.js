@@ -176,7 +176,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     } else if (t.finished) {
       $("tn-n").textContent = "All in tune"; $("tn-o").textContent = "";
       $("tn-say").textContent = ""; $("tn-c").textContent = `${TUNINGS[t.tuning].name} · 6 of 6`;
-      layer.querySelector(".tn-note").classList.add("done");
+      layer.querySelector(".tn-note").classList.add("done"); layer.querySelector(".tn-note").classList.remove("glow");
       t.cur = -1; paintHead();
       foot.innerHTML = `<button class="btn" id="tn-again">Tune again</button><button class="btn primary" id="tn-back">${back}</button>`;
       $("tn-again").onclick = () => { t.ok = []; t.finished = false; t.cur = t.guided ? 0 : -1; layer.querySelector(".tn-note").classList.remove("done"); paint(); };
@@ -245,6 +245,7 @@ function idle(t) {
   t.strobe.v = 0; t.hits = []; t.inTuneSince = 0;
   if (t.finished && t.mode !== "chromatic") return;
   $("tn-n").textContent = "·"; $("tn-o").textContent = ""; $("tn-c").textContent = "";
+  layer.querySelector(".tn-note")?.classList.remove("glow");
   if (t.mode === "chromatic") return t.say("Play a note");
   const notes = TUNINGS[t.tuning].notes;
   t.say(t.guided && t.cur >= 0 ? `Play the ${stringName(notes, t.cur)} string` : t.lock >= 0 ? `Play the ${stringName(notes, t.lock)} string` : "Play a string");
@@ -275,6 +276,7 @@ function listen(t, an, buf) {
   if (!t.guided && t.lock < 0 && idx !== t.cur) { t.cur = idx; t.good = good; t.paintHead(); }
   if (good !== t.good) { t.good = good; t.paintHead(); }
   $("tn-n").textContent = stringName(notes, idx); $("tn-o").textContent = octave(notes[idx]);
+  layer.querySelector(".tn-note")?.classList.toggle("glow", good); /* in tune: the letter glows */
   $("tn-c").textContent = `${cents > 0 ? "+" : ""}${cents} cents · ${fs.toFixed(1)} Hz`;
   let text = good ? "In tune · hold it" : adv.say;
   if (adv.tone === "far") {
@@ -301,6 +303,7 @@ function readChromatic(t, fs) {
   const n = nearestNote(fs, t.a4);
   const good = Math.abs(n.cents) <= TUNE.good;
   $("tn-n").textContent = n.name.replace("b", "♭").replace("#", "♯"); $("tn-o").textContent = n.octave;
+  layer.querySelector(".tn-note")?.classList.toggle("glow", good);
   $("tn-c").textContent = `${n.cents > 0 ? "+" : ""}${n.cents} cents · ${fs.toFixed(1)} Hz`;
   const a = Math.abs(n.cents);
   t.say(good ? "In tune" : a <= 12 ? (n.cents < 0 ? "A little flat" : "A little sharp") : n.cents < 0 ? "Flat" : "Sharp", good ? "good" : a <= 12 ? "close" : "off");

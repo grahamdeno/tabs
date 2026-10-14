@@ -872,3 +872,12 @@ test("add the words: named stanzas find their sections; extra stanzas go at the 
   assert.equal(C.mergeWords("no chords here", WORDS), null);
   assert.equal(C.mergeWords(CHART, "   "), null);
 });
+
+test("gig day countdown: same day and before the start only", () => {
+  const now = new Date(2026, 9, 14, 17, 14, 50).getTime();
+  assert.equal(C.gigCountdown(new Date(2026, 9, 14, 20, 0, 0).toISOString(), now), "2:45:10");
+  assert.equal(C.gigCountdown(new Date(2026, 9, 14, 17, 15, 0).toISOString(), now), "0:00:10");
+  assert.equal(C.gigCountdown(new Date(2026, 9, 15, 20, 0, 0).toISOString(), now), "", "tomorrow: no countdown");
+  assert.equal(C.gigCountdown(new Date(2026, 9, 14, 16, 0, 0).toISOString(), now), "", "already started");
+  assert.equal(C.gigCountdown("", now), "");
+});

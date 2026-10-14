@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.0.0";
+export const VERSION = "2.1.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1196,6 +1196,16 @@ export function nextSet(sets, now = Date.now()) {
     .sort((a, b) => Date.parse(a.when) - Date.parse(b.when))[0] || null;
 }
 // "today", "tomorrow", "in 3 days", "in 2 weeks", or "now" for a set under way.
+// Gig day: the time left until a set starts, as h:mm:ss, on its own calendar
+// day and only before it starts. Anything else: "" (no countdown).
+export function gigCountdown(when, now = Date.now()) {
+  const t = Date.parse(when);
+  if (isNaN(t) || t <= now) return "";
+  const a = new Date(t), b = new Date(now);
+  if (a.toDateString() !== b.toDateString()) return "";
+  const s = Math.floor((t - now) / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
 export function untilLabel(when, now = Date.now()) {
   const t = Date.parse(when);
   if (isNaN(t)) return "";

@@ -37,6 +37,8 @@
 <body>
 <div class="app" id="app"></div>
 <div id="layer"></div>
+<!-- The glow (2.1): one soft halo, used for values you glance at -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="glow-f" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 <div class="toast" id="toast" role="status"></div>
 <script type="module" src="app.js"></script>
 </body>

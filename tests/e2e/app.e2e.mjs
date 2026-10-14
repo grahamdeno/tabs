@@ -296,6 +296,11 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
   assert.deepEqual(await read(), { note: "E", say: "Tighten", strobe: false });
   await at(82.41, -4); await page.waitForTimeout(700);
   assert.equal((await read()).strobe, true, "strobe within 5 cents");
+  const glows = () => page.evaluate(() => document.querySelector(".tn-note").classList.contains("glow"));
+  await at(82.41, -1); await page.waitForTimeout(500);
+  assert.equal(await glows(), true, "in tune: the letter glows");
+  await at(82.41, -25); await page.waitForTimeout(600);
+  assert.equal(await glows(), false, "out of tune: no glow");
   for (const hz of [82.41, 110, 146.83, 196, 246.94, 329.63]) { await at(hz, 0); await page.waitForTimeout(1700); }
   assert.equal((await read()).note, "All in tune");
   await page.click("[data-mode='chromatic']");
@@ -743,6 +748,66 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   assert.equal(await pad.evaluate(() => document.querySelector(".oh-back").offsetParent), null, "iPad: no bar copies");
   await pad.goto(base + "#/"); await pad.waitForTimeout(400);
   assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: tuner at the top");
+});
+
+test("2.1 speed dial: hold the time and sweep the corner; the length follows and saves", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  const before = await page.innerText("#dialbtn");
+  const b = await page.locator("#dialbtn").boundingBox();
+  const x = b.x + 20, y = b.y + 16;
+  await page.mouse.move(x, y); await page.mouse.down();
+  assert.equal(await page.locator(".dial").count(), 1, "the dial opens on press");
+  await page.mouse.move(x + 60, y - 140, { steps: 8 });
+  const shown = await page.textContent(".dial-big");
+  await page.mouse.up(); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".dial").count(), 0, "it closes on release");
+  const after = await page.innerText("#dialbtn");
+  assert.notEqual(after.trim(), before.trim(), "the length changed");
+  assert.equal(after.trim(), shown.trim(), "the bar shows what the dial showed");
+  assert.ok(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").durationSet, "saved");
+  /* A tap opens it to sweep anywhere; a tap off it closes it. */
+  await page.click("#dialbtn"); await page.waitForTimeout(200);
+  assert.equal(await page.locator(".dial").count(), 1);
+  await page.mouse.click(60, 120); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".dial").count(), 0);
+});
+
+test("2.1 set dial: in a set, sweep to a song and let go to open it", { skip: skip() }, async t => {
+  const songs = [...LIB.songs, ...["One", "Two", "Three"].map((title, i) => ({ id: "x" + i, title, artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }))];
+  const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0", "x1", "x2"] }] });
+  await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
+  await page.click("[data-open='0']"); await page.waitForTimeout(500);
+  await page.click("#play"); await page.waitForTimeout(600); /* works while playing too */
+  assert.match(await page.innerText("#setdial"), /1 of 4/);
+  const b = await page.locator("#setdial").boundingBox();
+  const x = b.x + 20, y = b.y + 16;
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x + 60, y - 160, { steps: 8 });
+  const pick = await page.textContent(".dial-big");
+  assert.notEqual(pick, "River Road", "sweeping moves through the set");
+  await page.mouse.up(); await page.waitForTimeout(600);
+  assert.match(await page.innerText("h1.song-title"), new RegExp(pick));
+  assert.match(await page.innerText("#setdial"), /of 4/);
+});
+
+test("2.1 glow: count-in and the chord you're on glow; gig day counts down on Up Next", { skip: skip() }, async t => {
+  const soon = new Date(Date.now() + 50 * 60e3), when = `${soon.getFullYear()}-${String(soon.getMonth() + 1).padStart(2, "0")}-${String(soon.getDate()).padStart(2, "0")}T${String(soon.getHours()).padStart(2, "0")}:${String(soon.getMinutes()).padStart(2, "0")}`;
+  const sameDay = soon.toDateString() === new Date().toDateString();
+  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a"], when }], settings: { ...LIB.settings, diagrams: true, countIn: true } });
+  if (sameDay) {
+    const a = await page.textContent("#un-cd");
+    assert.match(a, /^0:[45]\d:\d\d$/, "a countdown on gig day");
+    await page.waitForTimeout(1300);
+    assert.notEqual(await page.textContent("#un-cd"), a, "it ticks");
+    assert.match(await page.evaluate(() => getComputedStyle(document.querySelector("#un-cd")).textShadow), /px/, "it glows");
+  }
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.click("#play"); await page.waitForSelector(".countin", { timeout: 3000 });
+  assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".countin")).textShadow), /px/, "the count-in glows");
+  await page.waitForSelector("#nn .nowcol .dn", { timeout: 8000 });
+  assert.match(await page.evaluate(() => getComputedStyle(document.querySelector("#nn .nowcol .dn")).filter), /glow-f/, "Now glows");
+  assert.doesNotMatch(await page.evaluate(() => getComputedStyle(document.querySelector("#nn .cards .dn")).filter), /glow-f/, "Next stays plain");
 });
 
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
