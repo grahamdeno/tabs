@@ -864,10 +864,21 @@ function updateDiagrams() {
 // ---------- Current line when paused ----------
 // The same line gets focus and diagrams: a tapped line, else the first line at the
 // top of the song, else the line at the reading point.
+// Focus covers two lines: the current one and the one after it (section names
+// and gaps skipped), so a speed that is slightly off still leaves room to read
+// ahead or catch up.
+function nextLineOf(block) {
+  let el = block?.nextElementSibling;
+  while (el && !el.matches(".pr, .ly")) el = el.nextElementSibling;
+  return el;
+}
 function setCurrent(block) {
   if (block === diag.block) return;
   diag.block?.classList.remove("cur");
+  diag.block2?.classList.remove("cur", "cur2");
   block?.classList.add("cur");
+  diag.block2 = nextLineOf(block);
+  diag.block2?.classList.add("cur", "cur2");
   diag.block = block;
 }
 const isLine = el => el && !el.classList.contains("sec") && !el.classList.contains("gap");

@@ -352,6 +352,7 @@ body.nn-on .app.viewer { padding-bottom: calc(250px + var(--safe-b)); }
 .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .38; }
 /* Daylight: dimmed lines stay readable on the light background. */
 :root[data-theme="light"] .sheet.focus > *:not(.cur):not(.prow):not(.dpop) { opacity: .5; }
+.s-ver { text-align: center; margin-top: 18px; opacity: .7; }
 .sheet .c.now .ct { box-shadow: inset 0 -2px 0 var(--accent); }
 /* While playing, the top of the song (header, title, chord strip) goes quiet */
 .app.viewer > .head, .app.viewer > .song-title, .app.viewer > .meta, .app.viewer > #strip { transition: opacity .3s, filter .3s; }
