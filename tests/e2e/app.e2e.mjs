@@ -563,7 +563,7 @@ test("a set's Album art cover finds art for its songs on Apple Music", { skip: s
   const art = n => `https://is1-ssl.mzstatic.com/image/thumb/${n}/100x100bb.jpg`;
   await page.route("https://itunes.apple.com/lookup**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackId: 111, artworkUrl100: art("river"), trackTimeMillis: 200000 }] }) }));
-  await page.route("https://itunes.apple.com/search**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+  await page.route(/itunes\.apple\.com\/+search/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "The Night Ferries", trackViewUrl: "https://music.apple.com/x", artworkUrl100: art("harbor") }] }) }));
   await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex") }));
   await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
@@ -643,7 +643,8 @@ test("Listen searches Apple Music in the app: change the words, hear a preview, 
   const page = await phone(t);
   const terms = [];
   const track = (name, artist, id) => ({ trackName: name, artistName: artist, collectionName: "Album", trackViewUrl: `https://music.apple.com/us/album/a/1?i=${id}`, artworkUrl100: `https://is1-ssl.mzstatic.com/${id}/100x100bb.jpg`, previewUrl: `https://audio-ssl.itunes.apple.com/${id}.m4a` });
-  await page.route("https://itunes.apple.com/search**", r => {
+  await page.route(/itunes\.apple\.com\/+search/, r => {
+    assert.match(r.request().url(), /apple\.com\/\/search\?/, "searches go to //search (Apple sends iPhones on /search to the Music app)");
     const q = new URL(r.request().url()).searchParams.get("term"); terms.push(q);
     const results = /live/i.test(q) ? [track("Harbor Lights (Live)", "Me", 222)] : [track("Harbor Lights", "Someone Else", 111), track("Harbor", "Me", 112)];
     r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ results }) });
@@ -672,7 +673,7 @@ test("Listen still finds songs when Safari blocks Apple's reply, and offers a wa
   const page = await phone(t);
   let down = false;
   const hit = { trackName: "Harbor Lights", artistName: "Me", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", artworkUrl100: "" };
-  await page.route("https://itunes.apple.com/search**", r => {
+  await page.route(/itunes\.apple\.com\/+search/, r => {
     const cb = new URL(r.request().url()).searchParams.get("callback");
     if (down) return r.abort();
     /* The plain request is blocked (as Safari does when Apple's reply lacks the CORS header); the script way works. */

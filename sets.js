@@ -293,8 +293,11 @@ function jsonp(url, ms) {
     document.head.append(s);
   });
 }
+// On an iPhone, Apple answers /search with a redirect into the Music app
+// (musics://), which a web page can't follow. The same search at //search is
+// answered normally, so searches use that address. (Checked October 2026.)
 async function itunes(path, params) {
-  const url = `https://itunes.apple.com/${path}?${new URLSearchParams(params)}`;
+  const url = `https://itunes.apple.com/${path === "search" ? "/search" : path}?${new URLSearchParams(params)}`;
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 6000);
   let first;
   try {
