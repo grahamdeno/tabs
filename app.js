@@ -828,9 +828,12 @@ function updateDiagrams() {
   const sheetTop = sheet.getBoundingClientRect().top;
   const line = window.innerHeight * READ_AT;
 
-  // Current line: the last line whose top has reached the reading line.
+  // Current line: the last line whose top has reached the reading line. A
+  // section name or a gap is never the current line: the line about to be
+  // played (the section's first) takes the focus as soon as its name arrives.
   let b = 0;
   for (let i = 0; i < diag.blocks.length; i++) if (sheetTop + diag.blocks[i].y <= line) b = i;
+  while (b < diag.blocks.length - 1 && !isLine(diag.blocks[b].el)) b++;
   setCurrent(diag.blocks[b]?.el);
 
   if (!diag.nn) return;

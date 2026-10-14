@@ -618,3 +618,19 @@ test("sketch: a quiet voice is still heard; silence says so and is logged; the p
   assert.match(await page.innerText("#toast"), /only silence/);
   assert.match(await page.evaluate(() => localStorage.getItem("tabs.errors.v1")), /Sketch heard no notes: .* peak level 0\.0000/);
 });
+
+test("while playing, the focus line skips section names to the section's first line", { skip: skip() }, async t => {
+  const long = { ...LIB.songs[0], body: LIB.songs[0].body + "\n\n" + LIB.songs[0].body.replace("[Chorus]", "[Chorus 2]").replace("[Verse]", "[Verse 2]") };
+  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, focus: "always" } });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.click("#play"); await page.waitForTimeout(300);
+  // Put the Chorus name exactly at the reading line.
+  await page.evaluate(() => {
+    const sec = [...document.querySelectorAll("#sheet > .sec")].find(e => /chorus/i.test(e.textContent));
+    window.scrollTo(0, sec.getBoundingClientRect().top + scrollY - innerHeight * 0.4 + 2);
+  });
+  await page.waitForTimeout(250);
+  const cur = await page.evaluate(() => { const c = document.querySelector("#sheet > .cur"); const sec = [...document.querySelectorAll("#sheet > .sec")].find(e => /chorus/i.test(e.textContent)); return { cls: c?.className, text: c?.textContent.slice(0, 30), prev: c?.previousElementSibling?.className, secTop: sec.getBoundingClientRect().top - innerHeight * 0.4, afterChorus: /chorus/i.test(c?.previousElementSibling?.textContent || "") }; });
+  assert.ok(!/\bsec\b/.test(cur.cls || ""), `the focus is not on the section name (${cur.cls})`);
+  assert.equal(cur.afterChorus, true, "it's the Chorus's first line");
+});
