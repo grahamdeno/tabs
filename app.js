@@ -762,6 +762,7 @@ function renderViewer(id) {
     grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
     letGo: () => { hold.touching = false; releaseSoon(250); },
     where: () => { const line = innerHeight * READ_AT; let name = ""; for (const el of document.querySelectorAll("#sheet > .sec")) { if (el.getBoundingClientRect().top <= line) name = el.textContent.trim(); else break; } return name; },
+    back: { label: back.label, run: () => go(back.to) },
     playing: () => scroll.on,
     followMode: () => data.settings.follow || "hand"
   });
@@ -1321,6 +1322,7 @@ function buildMap() {
   map.el = null;
   const sheet = $("sheet");
   if (!sheet || route().name !== "song") return;
+  if (data.settings.songMap === false) return; /* Settings > Song map */
   const secs = [...sheet.querySelectorAll(":scope > .sec")];
   if (secs.length < 2) return;
   /* Dots sit where each section is in the song; jumping puts its label at the reading line. */
@@ -2198,7 +2200,7 @@ function renderRoute() {
   else if (r.name === "sketch") lazy("sketch.js").then(m => { if (route().name === "sketch") m.renderSketch(); });
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else if (r.name === "import") renderImport(r.id);
-  else { renderLibrary(); }
+  else { renderLibrary(); window.scrollTo(0, 0); } /* the library always opens at its top */
 }
 
 // Screen changes animate with the browser's view transitions where supported:

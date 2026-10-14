@@ -1237,3 +1237,9 @@ body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34
 body.ring-sweep .sheet .prow, body.ring-sweep .sheet .dpop { display: none; }
 body.ring-sweep .chead { opacity: 0 !important; pointer-events: none !important; }
 body.ring-sweep .sheet > * { transition: none !important; }
+/* 2.5: Back in the island; pull down at the top to go back */
+body.ring .rc-isl .rc-back { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; flex: none; }
+body.ring .rc-isl .rc-back svg { width: 18px; height: 18px; }
+.rc-pull { position: fixed; left: 50%; top: calc(14px + var(--safe-t)); transform: translateX(-50%); padding: 8px 14px; border-radius: 18px; background: var(--solid); border: 1px solid var(--rim); color: var(--fg-2); font: 500 13px var(--sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: color .12s, border-color .12s, box-shadow .12s; }
+.rc-pull.go { color: var(--glow-c); border-color: var(--accent); box-shadow: 0 0 14px rgba(255,150,70,.4); text-shadow: var(--glow); }
+body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }

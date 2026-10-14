@@ -48,6 +48,10 @@ function renderSettings() {
         <button class="toggle ${s.pauseDiagrams !== false ? "on" : ""}" id="s-pause" role="switch" aria-checked="${s.pauseDiagrams !== false}" aria-label="Diagrams when paused"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("list")}</span><span class="name">Song map</span>
+        <button class="toggle ${s.songMap !== false ? "on" : ""}" id="s-map" role="switch" aria-checked="${s.songMap !== false}" aria-label="Song map: the section rail on the right edge"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span><span class="val">${{ always: "Always", playing: "While playing", off: "Off" }[s.focus] || "Always"}</span>${icon("chev", "chev")}
         <select id="s-focus" aria-label="Focus current line">
           ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
@@ -72,7 +76,7 @@ function renderSettings() {
         </select>
       </div>`}
     </div>
-    <p class="foot">Tap a chord for its fingering, or a line to start from it. On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still. Sweep the arc to move through the song: slowly for a line or two, quickly to cover ground; one full sweep goes end to end.</p>
+    <p class="foot">Tap a chord for its fingering, or a line to start from it. The song map is the rail of sections on the right edge; touch it and slide to jump to a section. On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still. Sweep the arc to move through the song: slowly for a line or two, quickly to cover ground; one full sweep goes end to end.</p>
     <div class="set-group glass" style="margin-top:22px">
       <button class="set" id="s-defaults" aria-expanded="${!!settingsDefaultsOpen}"><span class="tile">${icon("sliders")}</span><span class="name">Defaults for new songs</span>${icon(settingsDefaultsOpen ? "down" : "chev", "chev")}</button>
       ${settingsDefaultsOpen ? `${s.speedMode === "multiplier" ? `<div class="set">
@@ -132,6 +136,7 @@ function renderSettings() {
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-defaults").onclick = () => { settingsDefaultsOpen = !settingsDefaultsOpen; renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
+  $("s-map").onclick = () => { s.songMap = s.songMap === false; Tabs.save(data); renderSettings(); };
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-arc")?.addEventListener("change", e => { s.arcSweep = e.target.value; Tabs.save(data); renderSettings(); });

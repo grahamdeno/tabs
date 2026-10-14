@@ -47,10 +47,12 @@ export function setupRing(o) {
   rc.id = "rc";
   rc.innerHTML = `<svg class="rc-track" aria-hidden="true"><path class="rc-t0"/><path class="rc-t1"/><path class="rc-hit"/></svg>
     <div class="rc-where glow" aria-hidden="true"></div>
-    <div class="rc-isl" id="rc-isl"></div>
+    <div class="rc-isl" id="rc-isl"><button class="rc-back" id="rc-back" aria-label="${o.back?.label || "Back"}">${icon("back")}</button></div>
+    <div class="rc-pull" aria-hidden="true">↓ <span></span></div>
     <div class="sr-only" role="group" aria-label="Song controls">${o.items.map(it => `<button data-ri="${it.id}">${it.label}</button>`).join("")}</div>`;
   app.appendChild(rc);
   st = { o, rc, up: false, want: false, touching: false, lastTouch: 0, lastActive: 0, timer: 0, home: new Map(), cleanup: [] };
+  rc.querySelector("#rc-back").onclick = () => o.back?.run();
   rc.querySelectorAll("[data-ri]").forEach(b => b.onclick = () => o.items.find(x => x.id === b.dataset.ri)?.run(document.getElementById("play")));
 
   const place = () => apply(true);
@@ -61,6 +63,7 @@ export function setupRing(o) {
   apply(true);
   bindHold();
   bindTrack();
+  bindPull();
   bindFollow();
   return { refresh: () => paintTrack(), lift: () => wake() };
 }
@@ -184,6 +187,39 @@ function bindTrack() {
   addEventListener("pointercancel", up);
   addEventListener("scroll", onScroll, { passive: true });
   st.cleanup.push(() => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); removeEventListener("scroll", onScroll); });
+}
+
+// ---- Pull down at the top to go back ----
+// At the top of the song (and not playing), keep pulling the page down: a
+// glowing "Release for Library" (or the set's name) appears; let go past it to
+// go back. Pull less and it springs back.
+const PULL = 90;
+function bindPull() {
+  const tip = st.rc.querySelector(".rc-pull"), label = tip.querySelector("span");
+  label.textContent = `Release for ${(st.o.back?.label || "Back").replace(/^Back to /, "").replace(/^library$/i, "Library")}`;
+  let y0 = null, dy = 0;
+  const reset = () => { y0 = null; dy = 0; tip.style.opacity = ""; tip.classList.remove("go"); document.getElementById("app").style.removeProperty("--pull"); };
+  const start = e => {
+    if (!document.body.classList.contains("ring") || st.o.playing() || scrollY > 0 || e.touches.length !== 1) return;
+    if (e.target.closest?.(".rc, .ringx, .dial, .smap, .menu, #layer *")) return;
+    y0 = e.touches[0].clientY; dy = 0;
+  };
+  const move = e => {
+    if (y0 == null) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy <= 0 || scrollY > 0) { if (dy < -4) reset(); return; }
+    e.preventDefault();
+    const pull = Math.min(dy, PULL * 1.6) * 0.5;   /* the page follows at half the finger's pace */
+    document.getElementById("app").style.setProperty("--pull", pull + "px");
+    tip.style.opacity = Math.min(1, dy / PULL);
+    tip.classList.toggle("go", dy >= PULL);
+  };
+  const end = () => { if (y0 == null) return; const go = dy >= PULL; reset(); if (go) st.o.back?.run(); };
+  addEventListener("touchstart", start, { passive: true });
+  addEventListener("touchmove", move, { passive: false });
+  addEventListener("touchend", end);
+  addEventListener("touchcancel", reset);
+  st.cleanup.push(() => { removeEventListener("touchstart", start); removeEventListener("touchmove", move); removeEventListener("touchend", end); removeEventListener("touchcancel", reset); document.getElementById("app").style.removeProperty("--pull"); });
 }
 
 // ---- Hold Play for the ring ----

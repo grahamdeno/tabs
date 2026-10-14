@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.4.6";
+export const VERSION = "2.5.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
   micExplained: false,   // the tuner has said why it needs the microphone
   controls: "ring",      // phone upright: "ring" (hold Play) or "bar"
   follow: "hand",        // ring: Play rises with "hand" (motion), "touch", or stays in the "corner"
+  songMap: true,          // the section rail on the right edge of a song
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
