@@ -3,7 +3,7 @@
 import { TUNINGS, Tabs, appleTrackId, firstLyric, logSetRun, playsThisWeek, rankTracks, untilLabel } from "./core.js";
 import { $, app, esc, icon, layer, oneHandMQ, onLeave, toast } from "./ui.js";
 import { noteError } from "./store.js";
-import { applyTheme, calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, viewing } from "./app.js";
+import { applyTheme, calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, tunedRecently, viewing } from "./app.js";
 
 // ---------- Sets ----------
 onLeave(() => document.querySelectorAll(".nextup, .nextline").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); }));
@@ -54,7 +54,7 @@ function renderSet(id) {
     <div class="head">
       <button class="ib glass" id="back" aria-label="Back to sets">${icon("back")}</button>
       <div class="row-btns">
-        ${songs.length && !setEditing ? `<button class="ib glass" id="s-tune" aria-label="Tuner">${icon("fork")}</button><button class="ib glass" id="s-share" aria-label="Share set">${icon("share")}</button>` : ""}
+        ${songs.length && !setEditing ? `<button class="ib glass" id="s-tune" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button><button class="ib glass" id="s-share" aria-label="Share set">${icon("share")}</button>` : ""}
         ${songs.length ? `<button class="tb ${setEditing ? "go" : ""}" id="s-edit">${setEditing ? "Done" : "Edit"}</button>` : ""}
       </div>
     </div>
@@ -94,7 +94,11 @@ function renderSet(id) {
   $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
   $("s-share")?.addEventListener("click", () => shareSet(set));
   $("s-stagechip")?.addEventListener("click", () => { data.settings.stage = !data.settings.stage; Tabs.save(data); applyTheme(); renderSet(id); });
-  $("s-tune")?.addEventListener("click", () => openTuner(songTuning(songs[0])));
+  $("s-tune")?.addEventListener("click", () => openTuner(songTuning(songs[0]), () => {
+    /* Tuned just now: clear the reminder dot without redrawing the page. */
+    const b = $("s-tune");
+    if (b && tunedRecently()) { b.querySelector(".dotmark")?.remove(); b.setAttribute("aria-label", "Tuner"); }
+  }));
   $("playset")?.addEventListener("click", () => playSet(set));
   const note = $("s-note");
   if (note) {

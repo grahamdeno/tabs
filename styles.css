@@ -435,7 +435,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .hist span { font-size: 12px; color: var(--muted); }
 .set-note { display: block; margin: 0 0 14px; }
 .set-note .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.set-note textarea { width: 100%; resize: none; border: 0; border-left: 2px solid var(--accent-line); background: none; color: var(--fg-2); font: 15px/1.45 var(--sans); padding: 4px 0 4px 12px; min-height: 30px; overflow: hidden; }
+.set-note textarea { width: 100%; resize: none; border: 0; border-left: 2px solid var(--accent-line); background: none; color: var(--fg-2); font: 16px/1.45 var(--sans); padding: 4px 0 4px 12px; min-height: 30px; overflow: hidden; }
 .set-note textarea::placeholder { color: var(--muted); }
 
 .titlecard { position: fixed; inset: 0; z-index: 85; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; background: radial-gradient(90% 60% at 50% 35%, var(--tint), transparent 75%), #08080a; color: #fff; animation: fade .35s ease-out; cursor: pointer; }
@@ -550,7 +550,8 @@ body.searching .upnext, body.searching .shelf, body.searching .shelf-h { display
 .ed-tx-in { position: relative; display: inline-block; min-width: 100%; vertical-align: top; }
 /* iPhone enlarges wide blocks of text on its own; keep the editor at its set size. */
 .ed-tx, .ed-tx * { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-.ed-hl, .ed-tx textarea { font: 13px/1.55 var(--mono); padding: 12px 14px 40px; margin: 0; white-space: pre; tab-size: 4; letter-spacing: 0; box-sizing: border-box; }
+/* 16px: iPhone zooms into any text field set smaller than that when it gets focus. */
+.ed-hl, .ed-tx textarea { font: 16px/1.55 var(--mono); padding: 12px 14px 40px; margin: 0; white-space: pre; tab-size: 4; letter-spacing: 0; box-sizing: border-box; }
 .ed-hl { color: var(--fg); min-height: 50vh; }
 .ed-hl .hc, .ed-hl div.hc { color: var(--accent); }
 .ed-hl div.hs { color: var(--muted); }
@@ -585,7 +586,7 @@ body.searching #list > .label:first-child { margin-top: 8px; }
 .ce-sec { display: flex; width: fit-content; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 0; text-align: left; }
 .ce-sec svg { color: var(--muted); opacity: .7; }
 .ce-pen { position: absolute; right: -6px; bottom: 0; border: 0; background: none; color: var(--muted); padding: 6px 8px; opacity: .8; }
-.ce-input { width: 100%; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--accent-line); border-radius: 8px; padding: 6px 8px; }
+.ce-input { width: 100%; font: inherit; font-size: max(16px, 1em); color: var(--fg); background: var(--card); border: 1px solid var(--accent-line); border-radius: 8px; padding: 6px 8px; }
 .ce-add { display: flex; width: fit-content; align-items: center; gap: 6px; border: 1px dashed var(--rim); background: none; color: var(--muted); border-radius: 10px; padding: 6px 12px; font-size: 13px; margin: 0 0 14px; }
 .ce-add svg { width: 14px; height: 14px; }
 .ed-end { margin-top: 6px; }
