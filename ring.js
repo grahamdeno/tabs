@@ -13,7 +13,9 @@
 // Play never moves under a finger or just after a touch.
 import { icon, oneHandMQ } from "./ui.js";
 
-const HOLD_MS = 320;      /* press this long on Play for the ring */
+/* Press this long on Play for the ring: iPhone's own long-press time, and a
+   little longer while a song plays, so a firm tap to pause stays a pause. */
+const HOLD_MS = 500, HOLD_PLAYING_MS = 650;
 const REST_MS = 5000;     /* still this long: Play settles into the corner */
 const CALM_MS = 500;      /* no moving within this long of a touch */
 const SLOTS = [180, 202.5, 225, 247.5, 270];   /* ring angles: left to straight up */
@@ -120,7 +122,7 @@ function bindHold() {
     if (!document.body.classList.contains("ring")) return;
     opened = false; startX = e.clientX; startY = e.clientY;
     clearTimeout(timer);
-    timer = setTimeout(() => { opened = true; openRing(p, true); }, HOLD_MS);
+    timer = setTimeout(() => { opened = true; openRing(p, true); }, st.o.playing() ? HOLD_PLAYING_MS : HOLD_MS);
   };
   const move = e => {
     if (!ringEl) { if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) clearTimeout(timer); return; }

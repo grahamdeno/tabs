@@ -833,9 +833,16 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
   await page.click("#play"); await page.waitForTimeout(300);
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
+  /* A firm tap (400 ms) is still a tap: no ring. */
+  c = await center();
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(400); await page.mouse.up(); await page.waitForTimeout(250);
+  assert.equal(await page.locator(".ringx").count(), 0, "a firm tap doesn't open the ring");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "it played");
+  await page.click("#play"); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("play")).webkitUserSelect || getComputedStyle(document.getElementById("play")).userSelect), "none");
   /* Hold: the ring. Slide toward More and let go: the menu. */
   c = await center();
-  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(450);
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600);
   assert.equal(await page.locator(".ringx .ri").count(), 4, "Back, Favorite, Key, More (no Set outside a set)");
   const more = await page.evaluate(() => { const r = document.querySelector(".ri[data-r='more']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.mouse.move(more.x, more.y, { steps: 6 });
@@ -846,7 +853,7 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   await page.mouse.click(120, 200); await page.waitForTimeout(300);
   /* Let go without choosing: the ring stays to tap; Key opens the key dial. */
   c = await center();
-  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(450); await page.mouse.up(); await page.waitForTimeout(200);
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600); await page.mouse.up(); await page.waitForTimeout(200);
   assert.equal(await page.locator(".ringx").count(), 1, "stays open");
   await page.click(".ri[data-r='key']"); await page.waitForTimeout(300);
   assert.equal(await page.locator(".dial.key").count(), 1, "the key dial");
@@ -867,7 +874,7 @@ test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps
   await page.waitForTimeout(700);
   assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), true, "picking the phone up lifts Play");
   const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(450);
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600);
   assert.equal(await page.locator(".ringx .ri[data-r='set']").count(), 1, "Set in a set");
   await page.mouse.up(); await page.mouse.click(60, 120); await page.waitForTimeout(200);
   assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the island");
