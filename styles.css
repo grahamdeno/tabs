@@ -1238,3 +1238,5 @@ body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):no
 .ri.act svg { fill: currentColor; fill-opacity: .2; }
 /* 2.6: the tuner's success: "All in tune" glows green */
 .tn-note.done.glow b { color: var(--good); text-shadow: 0 0 6px color-mix(in srgb, var(--good) 80%, transparent), 0 0 18px color-mix(in srgb, var(--good) 50%, transparent); }
+/* 2.6.5: no iPhone text selection or callout on the dials */
+.dial, .dial *, .dialbtn, .dialbtn * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }

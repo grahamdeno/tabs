@@ -1067,6 +1067,25 @@ test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me 
   assert.ok(await page.locator(".coach").count() >= 1, "the tip points at Play");
 });
 
+test("2.6.5 speed dial: a wobble doesn't change it; Undo restores; nothing selectable", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  const before = (await page.innerText("#dialbtn")).trim();
+  const b = await page.locator("#dialbtn").boundingBox();
+  const x = b.x + 20, y = b.y + 16;
+  await page.mouse.move(x, y); await page.mouse.down();
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".dial-big")).webkitUserSelect || getComputedStyle(document.querySelector(".dial-big")).userSelect), "none");
+  await page.mouse.move(x + 6, y - 8, { steps: 3 }); await page.mouse.up(); await page.waitForTimeout(300);
+  if (await page.locator(".dial").count()) { await page.mouse.click(60, 120); await page.waitForTimeout(300); }
+  assert.equal((await page.innerText("#dialbtn")).trim(), before, "a small wobble changes nothing");
+  await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 60, y - 140, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(300);
+  assert.notEqual((await page.innerText("#dialbtn")).trim(), before, "a real sweep changes it");
+  assert.match(await page.innerText("#toast"), /Length .*Undo/s);
+  await page.click("#toast .tact"); await page.waitForTimeout(300);
+  assert.equal((await page.innerText("#dialbtn")).trim(), before, "Undo puts it back");
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").duration, 200);
+});
+
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });

@@ -41,6 +41,7 @@ export function openDial(o) {
 
   const layer = document.createElement("div");
   layer.className = "dial" + (o.cls ? " " + o.cls : "");
+  layer.addEventListener("contextmenu", e => e.preventDefault());
   layer.setAttribute("role", "slider");
   layer.setAttribute("aria-label", o.label || "Dial");
   layer.setAttribute("aria-valuemin", min); layer.setAttribute("aria-valuemax", max);
@@ -77,11 +78,15 @@ export function openDial(o) {
 
   const set = v => { v = snap(v); if (v === value) return; value = v; changed = true; paint(); o.input?.(value); };
   const down = (x, y) => { from = angleOf(x, y); start = value; moved = false; };
+  /* A press that wobbles a little doesn't change anything: the value only
+     moves once the thumb has swept 6 degrees, and then from where it is. */
+  const DEAD = 6;
   const move = (x, y) => {
     if (from == null) return;
     const d = angleOf(x, y) - from;
-    if (Math.abs(d) > 2) moved = true;
-    set(start + d / SPAN * (max - min));
+    if (Math.abs(d) < DEAD && !moved) return;
+    moved = true;
+    set(start + (d - Math.sign(d) * DEAD) / SPAN * (max - min));
   };
   const finish = () => { closeDial(); o.done?.(value, changed); };
   const onMove = e => { if (from != null) { e.preventDefault(); move(e.clientX, e.clientY); } };

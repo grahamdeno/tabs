@@ -705,9 +705,15 @@ function renderViewer(id) {
   };
   /* One hand: the speed is a dial in the corner (dial.js). Hold the time in
      the bar and sweep; a tap opens it to sweep anywhere. Arrow keys step it. */
-  const speedDial = e => openDial({ min: +speed.min, max: +speed.max, step: +speed.step, value: +speed.value, label: "Song speed", event: e,
-    read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
-    input: v => { speed.value = v; speed.oninput(); } });
+  /* A change can be undone right away (in case a thumb moved it by mistake). */
+  const speedDial = e => { const was = { v: speed.value, d: song.duration, set: song.durationSet, sp: song.speed };
+    openDial({ min: +speed.min, max: +speed.max, step: +speed.step, value: +speed.value, label: "Song speed", event: e,
+      read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
+      input: v => { speed.value = v; speed.oninput(); },
+      done: (v, changed) => { if (changed) toast(byLength() ? `Length ${mmss(songLength(song))}` : `Speed ${$("sv").textContent}`, null, { label: "Undo", fn: () => {
+        speed.value = was.v; song.duration = was.d; song.durationSet = was.set; song.speed = was.sp;
+        if (was.d === undefined) delete song.duration; if (was.set === undefined) delete song.durationSet;
+        Tabs.save(data); refreshSpeed(); toast(byLength() ? `Length back to ${mmss(songLength(song))}` : "Speed restored"); } }); } }); };
   const dialBtn = $("dialbtn");
   if (dialBtn) {
     dialBtn.addEventListener("pointerdown", e => { e.preventDefault(); speedDial(e); });
@@ -736,11 +742,12 @@ function renderViewer(id) {
     if (!isChords) return openDial({ min: 0.6, max: 1.6, step: 0.1, value: song.size, label: "Text size", cls: "key",
       read: v => ({ big: `${Math.round(v * 100)}%`, small: "TEXT SIZE" }),
       input: v => { song.size = +v.toFixed(2); Tabs.save(data); draw(); } });
-    const base = song.key || guessKey(song.body || ""), steps = Array.from({ length: 12 }, (_, i) => i - 5);
+    const base = song.key || guessKey(song.body || ""), steps = Array.from({ length: 12 }, (_, i) => i - 5), was = song.transpose || 0;
     openDial({ labels: steps.map(n => base ? transposeKey(base, n) : `${n > 0 ? "+" : ""}${n}`), value: (song.transpose || 0) + 5, label: "Key", cls: "key",
       tick: i => base ? transposeKey(base, steps[i]) : String(steps[i]),
       read: i => ({ big: steps[i] ? `${steps[i] > 0 ? "+" : ""}${steps[i]}` : "0", small: base ? `KEY ${transposeKey(base, steps[i])}` : "TRANSPOSE" }),
-      input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); } });
+      input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
+      done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
   /* One hand: the island, hold Play for the ring, Play follows your hand (ring.js). */
   const inSet = !!$("setdial");
