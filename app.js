@@ -1,6 +1,6 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
 import { Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
-import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast } from "./ui.js";
+import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast } from "./ui.js";
 import { addToSet, itunes, catalogBlocked, appleBlocksSearch, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
@@ -68,22 +68,27 @@ function renderLibrary() {
   const hasLearn = data.songs.some(s => s.status === "learning");
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
   const week = data.songs.map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
+  /* One hand (phone upright): filters, sort and the tuner sit at the bottom,
+     above and beside the search bar. Settings stays at the top. */
+  const one = oneHandMQ.matches;
+  const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
       <h1 class="title">Library</h1>
       <div class="row-btns">
-        <button class="ib glass" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>
+        ${one ? "" : tunerBtn("ib glass")}
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
       </div>
     </div>
     ${weekTotal ? `<div class="weekly">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : ""}
-    ${data.songs.length ? `<div class="chips" id="chips">
+    ${data.songs.length ? `<div class="chips${one ? " dchips" : ""}" id="chips">
       <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
       <button class="chip ${filter === "sets" ? "on" : ""}" data-f="sets">Sets</button>
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
       ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
       ${moreFilters()}
+      ${one ? '<span class="dsort" id="dsort"></span>' : ""}
     </div>` : ""}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -94,6 +99,7 @@ function renderLibrary() {
     <div id="list"></div>
     <div class="dock-fade"></div>
     <div class="dock kb">
+      ${one ? tunerBtn("add tool glass float") : ""}
       <label class="cmd glass float">
         ${icon("search")}
         <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search, or paste a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or paste a song">
@@ -226,6 +232,7 @@ function songRow(s, hit) {
 
 // Key and Tuning chips: only for a library big enough to need them, and only
 // when there's more than one to choose from.
+const sortBy = sort => `<label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label>`;
 function moreFilters() {
   if (data.songs.length < 12) { keyFilter = tuneFilter = ""; return ""; }
   const keys = [...new Set(data.songs.filter(s => s.format !== "tab").map(keyOf).filter(Boolean))].sort();
@@ -329,8 +336,9 @@ function renderList() {
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}${keyFilter ? ` · ${esc(keyFilter)}` : ""}${tuneFilter ? ` · ${esc(TUNINGS[tuneFilter].name)}` : ""}${keyFilter || tuneFilter ? ` · ${sorted.length}` : ""}</span>
-      <label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`}
+      ${$("dsort") ? "" : sortBy(sort)}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
+  if ($("dsort")) $("dsort").innerHTML = q ? "" : sortBy(sort);
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   bindRows(list);
   bindFind(list);
@@ -540,7 +548,7 @@ function renderViewer(id) {
       <button class="ib glass" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
       <div class="row-btns">
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
-        <button class="ib glass more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        <button class="ib glass more" id="more-top" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
       </div>
     </div>
     ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
@@ -574,6 +582,9 @@ function renderViewer(id) {
       <div class="looprow" id="looprow"></div>
       <div class="player">
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
+        <button class="sb oh oh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
+        <button class="sb oh fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
+        <button class="sb oh more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         <div class="speed">
           ${byLength()
             ? `<input type="range" id="speed" min="60" max="480" step="5" value="${540 - songLength(song)}" aria-label="Song length">`
@@ -991,7 +1002,10 @@ async function shareLink(payload, title, near) {
   try { await navigator.clipboard.writeText(url); toast("Link copied", near); }
   catch { showToCopy("Copy this link", url); }
 }
-const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Tabs)`, $("more"));
+// The ••• button you can see: in the song bar on a phone held upright (one
+// hand), at the top on larger screens.
+const moreBtn = () => [...document.querySelectorAll("button.more")].find(b => b.offsetParent) || $("more");
+const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Tabs)`, moreBtn());
 const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (Tabs set)`, $("s-share"));
 
 async function renderImport(code) {
@@ -1145,6 +1159,7 @@ function bindSketchRow(song) {
 // this song, so the song itself gets the middle and larger text. From 1150px,
 // a list of songs on the left (or the set being played) switches songs without
 // going back. Rotating, or resizing in Split View, moves things back.
+oneHandMQ.addEventListener?.("change", () => { if (route().name === "library" && !searching) renderLibrary(); });
 const wideMQ = matchMedia("(min-width: 1000px)"), sideMQ = matchMedia("(min-width: 1150px)");
 function placeWide() {
   const rail = $("rail"), strip = $("strip"), nn = $("nn");
@@ -1337,7 +1352,7 @@ function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
   if (old) { old.remove(); return; }
   markSeen("menu");
-  document.querySelector("#more .newdot")?.remove();
+  document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier;
   const items = [
     { id: "size" },
@@ -1353,13 +1368,22 @@ function songMenu(song, anchor, redrawSong) {
     song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
   ].filter(Boolean);
   const m = document.createElement("div");
-  m.className = "menu glass float";
   m.setAttribute("role", "menu");
-  const r = anchor.getBoundingClientRect();
-  m.style.top = (r.bottom + 8) + "px";
-  m.style.right = Math.max(12, innerWidth - r.right) + "px";
+  /* One hand (phone upright): the menu rises from the bottom, and what you
+     reach for mid-song (Text size, Metronome, Tuner) sits lowest. */
+  const sheet = oneHandMQ.matches;
+  if (sheet) {
+    const low = ["loop", "tuner", "metro", "size"];
+    items.sort((a, b) => low.indexOf(a.id) - low.indexOf(b.id));
+    m.className = "menu glass float msheet";
+  } else {
+    m.className = "menu glass float";
+    const r = anchor.getBoundingClientRect();
+    m.style.top = (r.bottom + 8) + "px";
+    m.style.right = Math.max(12, innerWidth - r.right) + "px";
+  }
   const paint = () => {
-    m.innerHTML = items.map(it => it.id === "size"
+    m.innerHTML = (sheet ? '<div class="grab" aria-hidden="true"></div>' : "") + items.map(it => it.id === "size"
       ? `<div class="mrow size" role="group" aria-label="Text size"><span class="mi">${icon("text")}</span><span class="ml" aria-hidden="true">Text size</span>
           <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
       : `<button class="mrow" role="menuitem" data-m="${it.id}"><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}${NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : ""}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`).join("");
@@ -1369,6 +1393,13 @@ function songMenu(song, anchor, redrawSong) {
   const close = () => { m.remove(); document.removeEventListener("click", outside, true); window.removeEventListener("scroll", close); };
   const outside = ev => { if (!m.contains(ev.target)) close(); };
   setTimeout(() => { document.addEventListener("click", outside, true); window.addEventListener("scroll", close, { passive: true }); });
+  /* Swipe the sheet down to close it. */
+  if (sheet) {
+    let y0 = null;
+    m.addEventListener("touchstart", ev => { y0 = ev.touches[0].clientY; }, { passive: true });
+    m.addEventListener("touchmove", ev => { if (y0 != null) m.style.transform = `translateY(${Math.max(0, ev.touches[0].clientY - y0)}px)`; }, { passive: true });
+    m.addEventListener("touchend", ev => { const dy = y0 == null ? 0 : ev.changedTouches[0].clientY - y0; y0 = null; if (dy > 70) close(); else m.style.transform = ""; });
+  }
   /* Keyboard: focus starts on the first item; arrows move, Escape closes. */
   m.addEventListener("keydown", ev => {
     const its = [...m.querySelectorAll("button")], i = its.indexOf(document.activeElement);
@@ -1397,7 +1428,7 @@ function songMenu(song, anchor, redrawSong) {
        words: () => wordsFor(song),
        metro: () => { data.settings.metronome = !data.settings.metronome; Tabs.save(data);
          if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
-         toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", $("more")); } })[b.dataset.m]?.();
+         toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", moreBtn()); } })[b.dataset.m]?.();
   };
 }
 
@@ -1642,10 +1673,10 @@ function listenApple(song) {
   layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen">
     <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
     <p class="easy-note">Find the recording in Apple Music, tap ••• or Share, then Copy Link. Come back and tap Paste.</p>
-    <button class="btn primary ls-open" id="ls-open">${icon("search")}Find on Apple Music</button>
-    ${song.listen ? `<p class="foot" style="margin:10px 2px 0">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
-    <div class="ls-other"><button class="linkbtn" id="ls-paste">Paste a link</button>
-      ${song.listen ? `<button class="danger" id="ls-clear">Remove link</button>` : ""}</div></div>`;
+    ${song.listen ? `<p class="foot" style="margin:0 2px 10px">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
+    <div class="ls-other" style="margin:0 0 12px"><button class="linkbtn" id="ls-paste">Paste a link</button>
+      ${song.listen ? `<button class="danger" id="ls-clear">Remove link</button>` : ""}</div>
+    <button class="btn primary ls-open" id="ls-open">${icon("search")}Find on Apple Music</button></div>`;
   $("ls-scrim").onclick = close;
   $("ls-open").onclick = () => { pendingListen = { id: song.id, at: Date.now() }; close(); openLink(appleSearchURL(song)); };
   $("ls-paste").onclick = () => pasteListen(song, close, { apple: true });

@@ -30,8 +30,12 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await is(() => document.querySelectorAll(".sheet .pr").length > 5, "song renders");
     await fits("song");
     await is(() => document.getElementById("sheet").classList.contains("focus"), "focus line at open");
+    /* On a short phone the chord can sit behind the song bar: bring it up first. */
+    await page.evaluate(() => { const el = document.querySelector(".sheet .c[data-ch='F#m']"); if (el.getBoundingClientRect().bottom > innerHeight - 160) scrollBy(0, el.getBoundingClientRect().top - innerHeight / 3); });
+    await page.waitForTimeout(500);
     await page.click(".sheet .c[data-ch='F#m'] .ct", { force: true }); await page.waitForTimeout(150);
     await is(() => !!document.querySelector(".dpop"), "tapping a chord shows its diagram");
+    await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(400);
 
     await page.click("#play"); await page.waitForTimeout(300);
     await is(() => !!document.querySelector(".countin"), "count-in from the top");

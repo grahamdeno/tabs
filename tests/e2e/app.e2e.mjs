@@ -391,7 +391,7 @@ test("the library lives in the phone's database; its copy brings it back if the 
   assert.equal(await inDB(), 2, "the test library moved into the database");
   // A change saves to both.
   await page.goto(base + "#/song/b"); await page.waitForTimeout(300);
-  await page.click(".fav"); await page.waitForTimeout(400);
+  await page.click(".fav:visible"); await page.waitForTimeout(400);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "b").favorite, true);
   // The database copy is unreadable: the localStorage copy brings the library back.
   await page.evaluate(() => new Promise(ok => {
@@ -433,7 +433,7 @@ test("menus and panels work from a keyboard: focus moves in, Escape closes", { s
   await page.focus("#more"); await page.keyboard.press("Enter"); await page.waitForTimeout(300);
   assert.equal(await inside(".menu"), true, "focus is in the menu");
   await page.keyboard.press("ArrowDown");
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "loop");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "listen", "on a phone held upright the menu is a bottom sheet; mid-song items sit lowest");
   await page.keyboard.press("Escape"); await page.waitForTimeout(200);
   assert.equal(await page.locator(".menu").count(), 0);
   assert.equal(await page.evaluate(() => document.activeElement.id), "more");
@@ -581,14 +581,14 @@ test("Back from a song opened in a set returns to that set; from the library, to
   const hash = () => page.evaluate(() => location.hash);
   await page.goto(base + "#/set/s"); await page.waitForTimeout(300);
   await page.click("[data-open='0']"); await page.waitForTimeout(400);
-  assert.equal(await page.getAttribute(".head [data-go]", "aria-label"), "Back to Friday");
+  assert.equal(await page.getAttribute(".oh-back", "aria-label"), "Back to Friday");
   await page.click("#snext"); await page.waitForTimeout(400);               // on to the next song in the set
-  await page.click(".head [data-go]"); await page.waitForTimeout(400);
+  await page.click(".oh-back"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/set/s");
   await page.goto(base + "#/"); await page.waitForTimeout(300);
   await page.click('#list .row[data-id="a"]'); await page.waitForTimeout(400);
-  assert.equal(await page.getAttribute(".head [data-go]", "aria-label"), "Back to library");
-  await page.click(".head [data-go]"); await page.waitForTimeout(400);
+  assert.equal(await page.getAttribute(".oh-back", "aria-label"), "Back to library");
+  await page.click(".oh-back"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/");
 });
 
@@ -720,6 +720,29 @@ test("iPhone: Listen opens Apple Music's search, and Paste on return saves the l
   const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "b");
   assert.match(song.listen.url, /i=777/);
   assert.equal(await page.locator(".bp-listen").count(), 0, "the offer goes away");
+});
+
+test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad keeps its layout", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right } : null; }, sel);
+  const H = 844;
+  assert.ok((await box("#chips")).top > H * 0.8, "filters above the search bar");
+  assert.ok((await box("#tunerbtn")).top > H * 0.85, "tuner beside the search bar");
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  assert.equal(await box(".head"), null, "song page top has no buttons");
+  for (const sel of [".oh-back", ".player .fav", "#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
+  assert.ok((await box("#play")).right > 330, "Play at the bottom right");
+  await page.click("#more"); await page.waitForTimeout(300);
+  const m = await box(".menu");
+  assert.ok(m.bottom > H - 40 && m.top > H * 0.35, "the menu rises from the bottom");
+  assert.match(await page.evaluate(() => [...document.querySelectorAll(".menu .mrow")].at(-1).textContent), /Text size/, "Text size lowest");
+
+  const pad = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
+  await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
+  assert.ok(await pad.evaluate(() => document.querySelector(".head [data-go]").getBoundingClientRect().top < 100), "iPad: buttons stay at the top");
+  assert.equal(await pad.evaluate(() => document.querySelector(".oh-back").offsetParent), null, "iPad: no bar copies");
+  await pad.goto(base + "#/"); await pad.waitForTimeout(400);
+  assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: tuner at the top");
 });
 
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
