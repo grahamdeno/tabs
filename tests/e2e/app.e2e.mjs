@@ -635,6 +635,8 @@ test("while playing, the focus line skips section names to the section's first l
   const cur = await page.evaluate(() => { const c = document.querySelector("#sheet > .cur"); const sec = [...document.querySelectorAll("#sheet > .sec")].find(e => /chorus/i.test(e.textContent)); return { cls: c?.className, text: c?.textContent.slice(0, 30), prev: c?.previousElementSibling?.className, secTop: sec.getBoundingClientRect().top - innerHeight * 0.4, afterChorus: /chorus/i.test(c?.previousElementSibling?.textContent || "") }; });
   assert.ok(!/\bsec\b/.test(cur.cls || ""), `the focus is not on the section name (${cur.cls})`);
   assert.equal(cur.afterChorus, true, "it's the Chorus's first line");
+  const two = await page.evaluate(() => { const c = [...document.querySelectorAll("#sheet > .cur")]; return { n: c.length, second: c[1]?.classList.contains("cur2"), next: c[0]?.nextElementSibling === c[1] || c[0]?.nextElementSibling?.matches(".sec, .gap") }; });
+  assert.deepEqual(two, { n: 2, second: true, next: true }, "focus covers the current line and the next one");
 });
 
 test("Listen searches Apple Music in the app: change the words, hear a preview, tap to save", { skip: skip() }, async t => {

@@ -450,7 +450,7 @@ export async function hearSketch(song, onEnd) {
   const sheet = $("sheet");
   sheet?.classList.add("skplay");
   /* The recording leads now, not the paused focus line. */
-  sheet?.classList.remove("focus"); sheet?.querySelectorAll(":scope > .cur").forEach(el => el.classList.remove("cur"));
+  sheet?.classList.remove("focus"); sheet?.querySelectorAll(":scope > .cur").forEach(el => el.classList.remove("cur", "cur2"));
   const blocks = () => [...document.querySelectorAll("#sheet > .pr, #sheet > .ly, #sheet > .crow")];
   for (let k = 0; k < lines.length && playing === p; k++) {
     if (!clips[k]) continue;
