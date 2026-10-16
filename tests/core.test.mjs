@@ -970,3 +970,34 @@ test("pickNudge: no weather falls back to learning, then a neglected favorite, t
   assert.equal(C.pickNudge({ songs: s, now: at(2026, 10, 17, 9), mood: "clear" }).kind, "clear", "a weekend favorite");
   assert.equal(C.pickNudge({ songs: s, now: at(2026, 10, 17, 9), mood: "clear" }).songId, C.pickNudge({ songs: s, now: at(2026, 10, 17, 16), mood: "clear" }).songId, "steady through the day");
 });
+
+// ---- Strum it (2.9) ----
+const VOICE = { G: [43, 47, 50, 55, 59, 67], C: [48, 52, 55, 60, 64], D: [50, 57, 62, 66], Em: [40, 47, 52, 55, 59, 64], Am: [45, 52, 57, 60, 64], F: [41, 48, 53, 57, 60, 65], A7: [45, 52, 55, 61, 64], E: [40, 47, 52, 56, 59, 64] };
+const strum = (name, at, len = 0.7) => VOICE[name].map((m, i) => ({ midi: m, start: at + i * 0.012, dur: len, amp: 0.6 + (i % 2) * 0.2 }));
+test("nameChord: open chords from their notes", () => {
+  for (const [name, v] of Object.entries(VOICE)) {
+    const w = new Array(12).fill(0); v.forEach(m => { w[m % 12] += 1; });
+    assert.equal(C.nameChord(w, v[0] % 12).chord, name, name);
+  }
+});
+test("strumChords: a progression of strums, repeats merged", () => {
+  const notes = [...strum("G", 0), ...strum("G", 0.75), ...strum("C", 1.5), ...strum("C", 2.25), ...strum("D", 3), ...strum("Em", 3.75)];
+  assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["G", "C", "D", "Em"]);
+  assert.ok(Math.abs(C.strumChords(notes)[1].at - 1.5) < 0.26, "the change lands within a quarter second");
+});
+test("strumChords: a stray wrong note doesn't change the chord; a riff names notes", () => {
+  const notes = [...strum("Am", 0), { midi: 66, start: 0.3, dur: 0.08, amp: 0.2 }, ...strum("Am", 0.75)];
+  assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["Am"]);
+  assert.deepEqual(C.riffNotes([{ midi: 55, start: 0, dur: 0.2 }, { midi: 59, start: 0.25, dur: 0.2 }]).map(n => n.name), ["G3", "B3"]);
+});
+test("chordToneNotes: played chords as their tones, for the key", () => {
+  const n = C.chordToneNotes([{ chord: "G", at: 0, dur: 2 }, { chord: "Am", at: 2, dur: 2 }]);
+  assert.deepEqual(n.map(x => x.midi % 12), [7, 11, 2, 9, 0, 4]);
+  assert.equal(C.detectKey(C.chordToneNotes([{ chord: "G", at: 0, dur: 2 }, { chord: "C", at: 2, dur: 2 }, { chord: "D", at: 4, dur: 2 }, { chord: "G", at: 6, dur: 2 }])).name, "G");
+});
+test("strumChords: a ringing chord's root-and-fifth tail isn't a power chord; real power chords stay", () => {
+  const tail = (root, at) => [{ midi: root, start: at, dur: 1.2, amp: 0.6 }, { midi: root + 7, start: at + 0.01, dur: 1.2, amp: 0.5 }];
+  const notes = [...strum("Am", 0), ...strum("Am", 0.75), ...tail(45, 1.5)];
+  assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["Am"]);
+  assert.deepEqual(C.strumChords([...tail(40, 0), ...tail(45, 1.3)]).map(c => c.chord), ["E5", "A5"]);
+});

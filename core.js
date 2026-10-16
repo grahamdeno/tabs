@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.8.0";
+export const VERSION = "2.9.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -362,6 +362,109 @@ export function playsThisWeek(song, now = Date.now()) {
   if (Array.isArray(song.plays)) return song.plays.filter(t => t > now - 7 * DAY).length;
   const from = dayKey(now - 6 * DAY);
   return Object.entries(song.playLog?.days || {}).reduce((n, [k, c]) => n + (k >= from ? c : 0), 0);
+}
+
+// ---------- Strum it (2.9): chords from played notes ----------
+// Notes come from Basic Pitch ({ midi, start, dur, amp }), many at once. A strum
+// is a burst of note starts; between strums, the notes still sounding are
+// weighed by pitch class (louder and longer count more, the lowest note a
+// little extra as the bass) and matched to chord shapes. Repeats merge.
+const STRUM_NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const SHAPES = [["", [0, 4, 7], 0], ["m", [0, 3, 7], 0], ["7", [0, 4, 7, 10], 0.06], ["m7", [0, 3, 7, 10], 0.06], ["maj7", [0, 4, 7, 11], 0.08], ["sus4", [0, 5, 7], 0.08], ["sus2", [0, 2, 7], 0.08], ["5", [0, 7], 0.12]];
+export function nameChord(w, bass = -1) {
+  const total = w.reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  let best = null, second = -Infinity;
+  for (let r = 0; r < 12; r++) for (const [suf, iv, cost] of SHAPES) {
+    const tones = iv.map(i => (r + i) % 12);
+    /* A 7th, sus or added note has to be clearly there, not a ring-over. */
+    if (iv.length > 3 && w[tones[3]] < total * 0.1) continue;
+    let inside = 0;
+    tones.forEach(t => { inside += w[t]; });
+    const missing = tones.filter(t => w[t] < total * 0.04).length;
+    const score = (inside - (total - inside) * 1.2) / total - missing * 0.35 - cost + (bass === r ? 0.12 : 0);
+    if (!best || score > best.score) { if (best) second = Math.max(second, best.score); best = { chord: STRUM_NAMES[r] + suf, root: r, score }; }
+    else second = Math.max(second, score);
+  }
+  return best && { chord: best.chord, root: best.root, sure: Math.max(0, Math.min(1, (best.score - second) * 4 + best.score * 0.5)) };
+}
+// What the model hears beyond the played notes: overtones (an octave, a 12th,
+// two octaves... above a louder note starting with it), quiet ghosts, and
+// pitches off the guitar's range. Repeated starts of one held note join up.
+const OVERTONES = [12, 19, 24, 28, 31];
+export function cleanNotes(notes, { rel = 0.3 } = {}) {
+  const ns = (notes || []).filter(n => n.midi >= 40 && n.midi <= 88 && n.dur > 0.04);
+  const top = Math.max(0, ...ns.map(n => n.amp || 0));
+  return ns.filter(n => (n.amp || 0) >= top * rel && !ns.some(o => o !== n && OVERTONES.includes(n.midi - o.midi) && Math.abs(o.start - n.start) < 0.08 && (o.amp || 0) > (n.amp || 0)));
+}
+export function strumChords(notes, { hop = 0.25, min = 0.45 } = {}) {
+  /* The model hears a held note as many short ones, so strums can't be found
+     from note starts. Instead: name the chord in each quarter second from
+     everything sounding in it (the strings mute at a change), then fold runs
+     shorter than min into the chord before them (or after, at the start). */
+  const ns = cleanNotes(notes);
+  if (!ns.length) return [];
+  const t0 = Math.min(...ns.map(n => n.start)), t1 = Math.max(...ns.map(n => n.start + n.dur));
+  const runs = [];
+  for (let a = t0; a < t1; a += hop) {
+    const b = a + hop, w = new Array(12).fill(0);
+    let bass = 999, sounding = 0;
+    for (const n of ns) {
+      const lap = Math.min(b, n.start + n.dur) - Math.max(a, n.start);
+      if (lap <= 0) continue;
+      w[n.midi % 12] += (n.amp || 0.5) * lap; sounding += lap;
+      bass = Math.min(bass, n.midi);
+    }
+    if (sounding < hop * 0.5) continue;   /* a gap: little or nothing ringing */
+    const c = nameChord(w, bass < 999 ? bass % 12 : -1);
+    if (!c) continue;
+    const p = runs[runs.length - 1];
+    if (p && p.chord === c.chord && a - (p.at + p.dur) < hop * 1.5) { p.dur = b - p.at; p.sure = Math.max(p.sure, c.sure); }
+    else runs.push({ chord: c.chord, at: a, dur: hop, sure: c.sure });
+  }
+  /* A chord left to ring loses its quieter strings first, until only the root
+     and fifth are heard: a "5" reading among real chords is that tail (or a
+     half-heard strum), not a power chord. Played alone, power chords stay. */
+  const fades = runs.some(r => !/5$/.test(r.chord));
+  const isFade = r => fades && /5$/.test(r.chord);
+  for (let i = runs.findIndex(isFade); i >= 0 && runs.length > 1; i = runs.findIndex(isFade)) {
+    const r = runs[i], into = i > 0 ? runs[i - 1] : runs[1];
+    if (i > 0) into.dur = r.at + r.dur - into.at; else { into.dur = into.at + into.dur - r.at; into.at = r.at; }
+    runs.splice(i, 1);
+  }
+  for (let j = runs.length - 1; j > 0; j--) if (runs[j].chord === runs[j - 1].chord) { runs[j - 1].dur = runs[j].at + runs[j].dur - runs[j - 1].at; runs.splice(j, 1); }
+  for (let i = runs.findIndex(r => r.dur < min); i >= 0 && runs.length > 1; i = runs.findIndex(r => r.dur < min)) {
+    const r = runs[i], into = i > 0 ? runs[i - 1] : runs[1];
+    if (i > 0) into.dur = r.at + r.dur - into.at; else { into.dur = into.at + into.dur - r.at; into.at = r.at; }
+    runs.splice(i, 1);
+    for (let j = runs.length - 1; j > 0; j--) if (runs[j].chord === runs[j - 1].chord) { runs[j - 1].dur = runs[j].at + runs[j].dur - runs[j - 1].at; runs.splice(j, 1); }
+  }
+  return runs.map(r => ({ chord: r.chord, at: +r.at.toFixed(2), dur: +r.dur.toFixed(2), sure: +r.sure.toFixed(2) }));
+}
+// Played chords as notes (their tones, for their time), so the key and the
+// chord places can be worked out as they are for a sung melody.
+export function chordToneNotes(chords) {
+  const out = [];
+  for (const c of chords || []) {
+    const m = /^([A-G][#b]?)(.*)$/.exec(c.chord || "");
+    if (!m) continue;
+    const root = STRUM_NAMES.indexOf(m[1]) >= 0 ? STRUM_NAMES.indexOf(m[1]) : { Db: 1, "D#": 3, Gb: 6, "G#": 8, "A#": 10 }[m[1]];
+    const shape = SHAPES.find(x => x[0] === m[2]) || SHAPES[m[2].startsWith("m") ? 1 : 0];
+    shape[1].forEach(iv => out.push({ midi: 60 + ((root + iv) % 12), start: c.at, dur: Math.max(0.2, c.dur || 1) }));
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
+// Single notes of a riff (no strum): the notes in order, as names with octave.
+// A note started again right where it was still sounding is the same note.
+export function riffNotes(notes) {
+  const out = [];
+  for (const n of cleanNotes(notes, { rel: 0.45 }).sort((a, b) => a.start - b.start)) {
+    const p = out[out.length - 1];
+    if (p && p.midi === n.midi && n.start - (p.at + p.dur) < 0.06) { p.dur = n.start + n.dur - p.at; continue; }
+    if (p && n.start - p.at < 0.07) { if ((n.amp || 0) > p.amp) Object.assign(p, { midi: n.midi, amp: n.amp || 0 }); continue; }
+    out.push({ midi: n.midi, at: n.start, dur: n.dur, amp: n.amp || 0 });
+  }
+  return out.map(n => ({ midi: n.midi, name: STRUM_NAMES[n.midi % 12] + (Math.floor(n.midi / 12) - 1), at: n.at, dur: n.dur }));
 }
 
 // ---------- Today: practice streak and a nudge (2.8) ----------

@@ -3,12 +3,55 @@
 // sing hands-free); let go to keep it, slide left to redo, slide up to make
 // the song. A key wheel shows the key appearing as you sing and the chords it
 // offers. Everything happens on this phone. Loads on first use.
-import { detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, pitchShares, lineHint, packNotes, sungLines, unpackNotes, syllables, html, raw } from "./core.js";
+import { detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, pitchShares, lineHint, packNotes, sungLines, unpackNotes, syllables, strumChords, riffNotes, cleanNotes, chordToneNotes, html, raw } from "./core.js";
 import { $, app, icon, toast, onLeave, ask } from "./ui.js";
 import { data, go, markUsed, newSong, tick } from "./app.js";
+import { Tabs } from "./core.js";
 import { noteError } from "./store.js";
 
 const MAX_LINE = 30; /* seconds: a line stops itself */
+// Strum it (2.9): how a line is heard. "sing": your voice, chords that fit the
+// melody (as before). "strum": your guitar, the chords you played (Basic Pitch,
+// strum.js, loaded on first use). "both": both, and where they disagree the
+// line offers You played / Melody fits. The choice is remembered.
+const MODES = [["sing", "Sing it"], ["strum", "Strum it"], ["both", "Both"]];
+const mode = () => (MODES.some(m => m[0] === data.settings.sketchMode) ? data.settings.sketchMode : "sing");
+const hears = () => mode() !== "sing";
+let ear = null; /* strum.js, once loaded */
+let earState = ""; /* "", "loading", "ready", "failed" */
+function loadEar() {
+  if (ear || earState === "loading") return;
+  earState = "loading"; paint();
+  import("./strum.js").then(async m => { if (!(await m.ready())) throw new Error("model"); ear = m; earState = "ready"; paint(); })
+    .catch(() => { earState = "failed"; paint(); });
+}
+// The line's recording, heard for chords (or a riff). One at a time.
+let hearQueue = Promise.resolve();
+export async function listenTo(blob) {
+  const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+  const n = buf.length, x = new Float32Array(n);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < n; i++) x[i] += d[i] / buf.numberOfChannels; }
+  ear ||= await import("./strum.js");
+  const notes = await ear.hear(x, buf.sampleRate);
+  return readPlaying(notes);
+}
+// Chords if you strummed (notes starting together);
+// otherwise the single notes of a riff. Also a melody line for the key.
+export function readPlaying(notes) {
+  const ns = cleanNotes(notes);
+  /* A strum starts several strings together; a riff starts one note at a time.
+     So: chords when a good share of notes (30%; stray notes in the quiet
+     before and after a line lower it) begin within 60 ms of another note. */
+  const together = ns.filter(n => ns.some(o => o !== n && Math.abs(o.start - n.start) < 0.06)).length;
+  const strummed = ns.length >= 3 && together / ns.length >= 0.3;
+  const chords = strummed ? strumChords(notes) : [];
+  const riff = chords.length ? [] : riffNotes(notes);
+  /* The top voice stands in for a melody: the key and the chord places use it. */
+  const top = [];
+  for (const n of [...ns].sort((a, b) => a.start - b.start)) { const p = top[top.length - 1]; if (p && n.start < p.start + p.dur - 0.05) { if (n.midi > p.midi) Object.assign(p, { midi: n.midi }); } else top.push({ midi: n.midi, start: n.start, dur: n.dur }); }
+  return { chords, riff, melody: top };
+}
 // The sketch in progress stays while the app is open, so a look elsewhere
 // doesn't lose it. Each line: { words, notes, dur, url, blob, custom (chords
 // you chose over the suggestion) }. `again` is a line being sung again.
@@ -97,11 +140,14 @@ function stopLine(how = "keep") {
   clearInterval(rec.timer); clearInterval(ui);
   sk.rec = null; sk.again = -1;
   const notes = melodyNotes(rec.frames);
-  const keep = how === "keep" && notes.length > 0;
+  const strumOnly = mode() === "strum";
+  const keep = how === "keep" && (notes.length > 0 || (strumOnly && !!rec.recorder && (rec.frames.at(-1)?.t || 0) > 0.6));
   let ln = sk.lines[rec.i];
   if (keep) {
     if (!ln) { ln = { words: "", notes: [], dur: 0 }; sk.lines.push(ln); }
-    ln.notes = notes; ln.dur = rec.frames.at(-1)?.t || 0; delete ln.custom;
+    ln.notes = notes; ln.dur = rec.frames.at(-1)?.t || 0; delete ln.custom; delete ln.played; delete ln.riff; delete ln.melodyPick;
+    ln.via = mode();
+    if (hears()) ln.hearing = true;
   }
   if (rec.recorder && rec.recorder.state !== "inactive") {
     let done; const ready = new Promise(r => { done = r; });
@@ -114,11 +160,13 @@ function stopLine(how = "keep") {
       ln.url = URL.createObjectURL(ln.blob);
       const b = document.querySelector(`[data-play="${sk.lines.indexOf(ln)}"]`);
       if (b) b.hidden = false;
+      if (ln.hearing) hearLine(ln);
     };
     rec.recorder.stop();
   }
   if (how === "drop-quiet") return;
-  if (how === "keep" && !notes.length) {
+  if (keep && ln.hearing && !rec.recorder) { ln.hearing = false; toast("This phone can't record the line, so Tabs can't hear the guitar. Sing it still works."); }
+  if (how === "keep" && !keep) {
     paint();
     const pitched = rec.frames.filter(f => f.hz > 0).length, secs = rec.frames.at(-1)?.t || 0;
     noteError(new Error(`Sketch heard no notes: ${rec.frames.length} frames over ${secs.toFixed(1)}s, ${pitched} with pitch, peak level ${(rec.peak || 0).toFixed(4)}, audio ${mic?.ctx.state || "none"} at ${mic?.ctx.sampleRate || 0} Hz, track ${mic?.stream.getAudioTracks()[0]?.readyState || "none"}${mic?.stream.getAudioTracks()[0]?.muted ? " (muted)" : ""}`), { quiet: true, where: "sketch" });
@@ -127,12 +175,32 @@ function stopLine(how = "keep") {
       : "No steady notes were heard. Sing the line (not speak it), a little closer to the phone.");
   }
   if (!keep) { paint(); return toast(rec.i < sk.lines.length ? `Line ${rec.i + 1} kept as it was` : "That take is gone. Hold to sing it again."); }
-  tick(); markUsed("sketch");
+  tick(); markUsed("sketch"); if (hears()) markUsed("strum");
   /* Words next: the line opens for typing in the same tap, so the keyboard
      (and its microphone, for dictation) is ready. */
   sk.editing = ln.words ? -1 : rec.i;
   paint();
   if (sk.editing >= 0) $("sk-words")?.focus();
+}
+
+// Hear a kept line's recording: the played chords (or riff) arrive a few
+// seconds after you let go. In Strum it they become the line's chords; in Both
+// they lead too, and the melody's own chords stay one tap away.
+function hearLine(ln) {
+  hearQueue = hearQueue.then(async () => {
+    if (!sk.lines.includes(ln) || !ln.blob) return;
+    try {
+      const r = await listenTo(ln.blob);
+      if (!r.melody.length && !ln.notes.length) { ln.hearing = false; paint(); return toast("Nothing clear was heard. Hold the phone nearer the guitar and try the line again."); }
+      /* Strum it: the chords played stand in for the melody (key, chord places). */
+      if (ln.via === "strum") ln.notes = r.chords.length ? chordToneNotes(r.chords) : r.melody.length ? r.melody : ln.notes;
+      else if (!ln.notes.length) ln.notes = r.melody;
+      ln.played = r.chords.map(c => ({ chord: c.chord, at: c.at }));
+      ln.riff = r.riff.length >= 3 ? r.riff.map(n => n.name) : null;
+      if (ln.played.length) ln.custom = ln.played;
+    } catch { toast("Couldn't hear the guitar in that line. The melody's chords stand in."); }
+    ln.hearing = false; paint();
+  });
 }
 
 // ---- The song so far: the key, each line's chords, and nudges ----
@@ -141,7 +209,7 @@ function plan() {
   const lines = sk.lines.filter(l => l.notes.length);
   const key = detectKey(lines.flatMap(l => l.notes));
   const harm = key ? harmonize(lines, key) : lines.map(() => []);
-  sk.lines.forEach(l => { l.changes = l.custom || harm[lines.indexOf(l)] || []; });
+  sk.lines.forEach(l => { l.melodyChords = harm[lines.indexOf(l)] || []; l.changes = l.custom || l.melodyChords; });
   return key;
 }
 
@@ -238,21 +306,34 @@ function rowHTML(l, i, key) {
   const over = new Map(); at.forEach((w, j) => over.set(w, (over.get(w) ? over.get(w) + " " : "") + pretty(l.changes[j].chord)));
   const extra = at.map((w, j) => (w >= ws.length ? pretty(l.changes[j].chord) : "")).filter(Boolean).join(" ");
   /* One nudge at a time: on the line just sung, if it has one. */
-  const hint = i === sk.lines.length - 1 && !l.custom && key && lineHint(l.words, l.notes, l.changes || [], key);
+  const hint = i === sk.lines.length - 1 && !l.custom && !l.via?.match(/strum|both/) && key && lineHint(l.words, l.notes, l.changes || [], key);
+  /* Both: when the guitar and the melody disagree, either is one tap away. */
+  const melody = l.via === "both" && l.played?.length ? (l.melodyChords || []).map(c => c.chord).join(" ") : "";
+  const played = l.played?.map(c => c.chord).join(" ") || "";
+  const cmp = melody && played && melody !== played;
   const editing = sk.editing === i;
   return html`<div class="sknb-row" data-row="${i}"><b class="sknb-n">${i + 1}</b>
     <div class="sknb-txt">${editing
       ? html`<input id="sk-words" class="sknb-in" value="${l.words}" placeholder="Say or type the words" autocapitalize="sentences" enterkeyhint="done" aria-label="Words for line ${i + 1}">`
       : html`<button class="sknb-line" data-edit="${i}" aria-label="Line ${i + 1}: ${l.words || "no words yet"}. Tap to change the words">${ws.length ? ws.map((w, k) => html`<span class="sknb-w">${over.has(k) && html`<b>${over.get(k)}</b>`}${w}</span> `) : html`<span class="sknb-none">${over.get(0) && html`<span class="sknb-w"><b>${over.get(0)}</b>&nbsp;</span>`}Tap to add the words</span>`}${extra && html`<span class="sknb-w"><b>${extra}</b>&nbsp;</span>`}</button>`}
+    ${l.hearing && html`<span class="sknb-hear"><i class="spin"></i>Hearing your chords…</span>`}
+    ${l.riff && !l.hearing && html`<span class="sknb-riff">Riff: ${l.riff.join(" ")}</span>`}
+    ${cmp && !editing && html`<div class="skcmp" role="group" aria-label="Chords for line ${i + 1}"><button data-pick="${i}" data-src="played" class="${l.melodyPick ? "" : "on"}" aria-pressed="${!l.melodyPick}">You played<b>${played}</b></button><button data-pick="${i}" data-src="melody" class="${l.melodyPick ? "on" : ""}" aria-pressed="${!!l.melodyPick}">Melody fits<b>${melody}</b></button></div>`}
     ${hint && !editing && html`<button class="sknb-hint" data-hint="${i}" data-j="${hint.j}" data-chord="${hint.chord}">${hint.words ? `“${hint.words}” — ` : ""}try ${pretty(hint.chord)} here${hint.minor ? ", it sounds like you leaned minor" : hint.major ? ", it sounds brighter there" : ""} <span aria-hidden="true">↗</span></button>`}</div>
     <div class="sknb-acts"><button class="sb" data-play="${i}" aria-label="Hear line ${i + 1}" ${l.url ? "" : raw("hidden")}>${icon("play")}</button>
       <button class="sb" data-again="${i}" aria-label="Sing line ${i + 1} again">${icon("loop")}</button>
       <button class="sb" data-del="${i}" aria-label="Remove line ${i + 1}">${icon("x")}</button></div></div>`;
 }
+let repainting = false; /* the old words box blurs as it's replaced: not a "done typing" */
 function paint() {
   /* Keep the pad the finger is on: iPhone stops sending a touch whose element is replaced. */
   const held = gest ? $("sk-pad") : null;
-  paintAll();
+  /* Chords can arrive while you type a line's words: keep the box, its text and the cursor. */
+  const w = document.activeElement?.id === "sk-words" ? document.activeElement : null;
+  const typing = w && { value: w.value, a: w.selectionStart, b: w.selectionEnd };
+  repainting = true;
+  try { paintAll(); } finally { repainting = false; }
+  if (typing) { const n = $("sk-words"); if (n) { n.value = typing.value; n.focus({ preventScroll: true }); try { n.setSelectionRange(typing.a, typing.b); } catch { /* not a text box */ } } }
   if (held) {
     const fresh = $("sk-pad");
     held.className = fresh.className; held.innerHTML = fresh.innerHTML; held.setAttribute("aria-label", fresh.getAttribute("aria-label"));
@@ -268,20 +349,22 @@ function paintAll() {
     <div class="head"><button class="btn sm glass" id="sk-cancel">${n ? "Discard" : "Cancel"}</button>
       <button class="btn sm primary" id="sk-done" ${n && !rec ? "" : raw("disabled")}>Make chords</button></div>
     <div class="skh"><h1 class="title">New sketch</h1><div class="skdots" role="img" aria-label="${n} line${n === 1 ? "" : "s"}">${[...Array(n)].map(() => raw('<i class="on"></i>'))}${raw("<i></i>")}</div></div>
+    <div class="seg skmode" role="group" aria-label="How Tabs listens">${MODES.map(([k, n]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}" ${rec ? raw("disabled") : ""}>${n}</button>`)}</div>
+    ${hears() && earState !== "ready" ? html`<div class="skear">${earState === "failed" ? html`Couldn't load the chord listener. Check the connection, then switch again.` : html`<i class="spin"></i>Getting the chord listener ready (about 2 MB, once)`}</div>` : ""}
     <div class="skmeter" id="sk-meter" aria-live="polite">${meterHTML(conf)}</div>
     ${big
       ? html`<div class="skwheel big" id="sk-wheel" data-size="240"></div>`
-      : html`<div class="skwheel-row"><div class="skwheel small" id="sk-wheel" data-size="116"></div><div class="skfam">${fam.length ? html`<span>Your melody can use</span><div>${fam.map(c => html`<button class="skfam-c" data-chord="${c}" aria-label="Hear ${c}">${pretty(c)}</button>`)}</div><small>Tap a chord to hear it</small>` : html`<span>Sing a few more notes to find the key</span>`}</div></div>`}
+      : html`<div class="skwheel-row"><div class="skwheel small" id="sk-wheel" data-size="116"></div><div class="skfam">${fam.length ? html`<span>${mode() === "strum" ? "Chords in your key" : "Your melody can use"}</span><div>${fam.map(c => html`<button class="skfam-c" data-chord="${c}" aria-label="Hear ${c}">${pretty(c)}</button>`)}</div><small>Tap a chord to hear it</small>` : html`<span>Sing a few more notes to find the key</span>`}</div></div>`}
     ${rec
-      ? html`<div class="sklive"><div class="sk-lab on">Line ${rec.i + 1} · listening</div><svg id="sk-rib" viewBox="0 0 346 86" preserveAspectRatio="none" role="img" aria-label="Your melody"></svg>
+      ? html`<div class="sklive"><div class="sk-lab on">Line ${rec.i + 1} · ${hears() ? "listening to your guitar" : "listening"}</div><svg id="sk-rib" viewBox="0 0 346 86" preserveAspectRatio="none" role="img" aria-label="Your melody"></svg>
           <div class="skwords">${sk.lines[rec.i]?.words || "Say the words after you let go"}</div><div class="skchips" id="sk-live"></div></div>`
       : n
-        ? html`<div class="sknb">${sk.lines.map((l, i) => rowHTML(l, i, key))}<div class="sknb-next">${sk.again >= 0 ? `sing line ${sk.again + 1} again…` : "sing the next line…"}</div></div>`
-        : html`<p class="skintro">Hold the pad and sing a line; let go to keep it. Then say or type its words. The wheel shows your key as it appears.</p>`}
+        ? html`<div class="sknb">${sk.lines.map((l, i) => rowHTML(l, i, key))}<div class="sknb-next">${sk.again >= 0 ? `${mode() === "strum" ? "play" : "sing"} line ${sk.again + 1} again…` : `${mode() === "strum" ? "play" : "sing"} the next line…`}</div></div>`
+        : html`<p class="skintro">${mode() === "strum" ? "Hold the pad and strum a line; let go to keep it. Tabs names the chords you played (or the notes of a riff), then you add the words." : mode() === "both" ? "Hold the pad, then sing and strum a line together; let go to keep it. The chords you played lead, and the melody's choice is one tap away." : "Hold the pad and sing a line; let go to keep it. Then say or type its words. The wheel shows your key as it appears."}</p>`}
     <div class="skpad ${rec ? "on" : ""} ${big ? "" : "small"}" id="sk-pad" role="button" tabindex="0" aria-label="${rec ? `Stop line ${rec.i + 1} and keep it` : `Sing line ${next + 1}`}">
       <i class="skpad-ring"></i><i class="skpad-ring r2"></i><i class="skpad-dot"></i>
-      <b id="sk-pad-t">${rec ? (rec.latched ? "Tap to keep the line" : "Release to keep the line") : `Hold to sing line ${next + 1}${sk.again >= 0 ? " again" : ""}`}</b>
-      <span id="sk-pad-s">${rec ? "Slide left to redo · up to finish" : n ? "Swipe up to make the song" : "Or tap once to sing hands-free"}</span></div>`.toString();
+      <b id="sk-pad-t">${rec ? (rec.latched ? "Tap to keep the line" : "Release to keep the line") : `Hold to ${mode() === "strum" ? "play" : mode() === "both" ? "sing and play" : "sing"} line ${next + 1}${sk.again >= 0 ? " again" : ""}`}</b>
+      <span id="sk-pad-s">${rec ? "Slide left to redo · up to finish" : n ? "Swipe up to make the song" : `Or tap once to ${mode() === "strum" ? "play" : "sing"} hands-free`}</span></div>`.toString();
   drawKey(); drawRibbon(); drawLiveChords();
   bind();
 }
@@ -296,7 +379,7 @@ function bind() {
     const i = sk.editing;
     w.oninput = () => { sk.lines[i].words = w.value; };
     w.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); w.blur(); } };
-    w.onblur = () => { if (sk.editing === i && !sk.rec) { sk.editing = -1; paint(); } };
+    w.onblur = () => { if (!repainting && sk.editing === i && !sk.rec) { sk.editing = -1; paint(); } };
   }
   app.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { sk.editing = +b.dataset.edit; paint(); $("sk-words")?.focus(); });
   app.querySelectorAll("[data-hint]").forEach(b => b.onclick = () => {
@@ -304,6 +387,17 @@ function bind() {
     l.custom = l.changes.map((c, k) => (k === j ? { ...c, chord: b.dataset.chord } : c));
     paint(); strum(b.dataset.chord);
     toast(`${pretty(b.dataset.chord)} it is`, null, { label: "Undo", fn: () => { delete l.custom; paint(); } });
+  });
+  app.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const l = sk.lines[+b.dataset.pick];
+    if (b.dataset.src === "melody") { l.melodyPick = true; delete l.custom; } else { l.melodyPick = false; l.custom = l.played; }
+    paint(); tick();
+  });
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
+    if (sk.rec) return;
+    data.settings.sketchMode = b.dataset.mode; Tabs.save(data);
+    if (hears()) loadEar();
+    paint();
   });
   app.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { const u = sk.lines[+b.dataset.play]?.url; if (u) new Audio(u).play().catch(() => {}); });
   app.querySelectorAll("[data-again]").forEach(b => b.onclick = () => { sk.again = +b.dataset.again; sk.editing = -1; paint(); toast(`Hold the pad to sing line ${sk.again + 1} again`); });
@@ -379,12 +473,14 @@ function reset() { sk.lines.forEach(l => l.url && URL.revokeObjectURL(l.url)); s
 // melody stays with the song, and the recordings on this phone.
 async function finish() {
   stopLine("drop-quiet");
-  const kept = sk.lines.filter(l => l.notes.length);
-  if (!kept.length) return;
+  if (!sk.lines.length) return;
   const d = $("sk-done"); if (d) d.disabled = true;
-  await Promise.race([Promise.all(kept.map(l => l.ready)), new Promise(r => setTimeout(r, 1500))]);
+  await Promise.race([Promise.all(sk.lines.map(l => l.ready)), new Promise(r => setTimeout(r, 1500))]);
+  if (sk.lines.some(l => l.hearing)) { toast("Still hearing your chords. One moment…"); await Promise.race([hearQueue, new Promise(r => setTimeout(r, 30000))]); }
+  const kept = sk.lines.filter(l => l.notes.length);
+  if (!kept.length) { if (d) d.disabled = false; return; }
   const key = plan();
-  const body = kept.map(l => chordLine(l.words.trim(), l.notes, l.changes || [])).join("\n");
+  const body = kept.map(l => l.riff && !l.played?.length ? `Riff: ${l.riff.join(" ")}${l.words.trim() ? `\n${l.words.trim()}` : ""}` : chordLine(l.words.trim(), l.notes, l.changes || [])).join("\n");
   const name = key ? key.name : "";
   const sketch = { v: 1, key: name, style: "simple", lines: kept.map(l => ({ n: packNotes(l.notes) })) };
   const clips = kept.map(l => l.blob || null);
@@ -480,6 +576,7 @@ export async function hearSketch(song, onEnd) {
 }
 
 export function renderSketch() {
+  if (hears()) loadEar();
   paint();
   window.scrollTo(0, 0);
 }

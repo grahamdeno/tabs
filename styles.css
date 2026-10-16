@@ -1052,6 +1052,19 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 .skc.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .skchips small { font-size: 12px; color: var(--muted); margin-left: 4px; }
 .skintro { color: var(--muted); font-size: 15px; line-height: 1.5; text-align: center; margin: 8px 18px 0; }
+/* Strum it (2.9) */
+.seg.skmode { display: flex; margin: 4px 0 10px; padding: 3px; border-radius: 12px; background: var(--card); border: 1px solid var(--rim); }
+.seg.skmode button { flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: none; color: var(--fg-2); font-size: 14px; }
+.seg.skmode button.on { background: var(--card-2); color: var(--fg); font-weight: 600; box-shadow: 0 1px 0 var(--rim); }
+.seg.skmode button:disabled { opacity: .5; }
+.skear { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.skear .spin, .sknb-hear .spin { margin: 0; }
+.sknb-hear { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; font-size: 13px; color: var(--muted); }
+.sknb-riff { display: block; margin: 6px 0 2px; font: 600 13px var(--mono); color: var(--accent); }
+.skcmp { display: flex; gap: 8px; margin: 8px 0 4px; }
+.skcmp button { flex: 1; text-align: left; padding: 7px 10px; border-radius: 12px; border: 1px solid var(--rim); background: var(--card); color: var(--muted); font-size: 12px; }
+.skcmp button.on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--fg-2); }
+.skcmp b { display: block; margin-top: 2px; font: 600 14px var(--mono); color: var(--accent); }
 .sknb { border-radius: 18px; background: var(--card); border: 1px solid var(--rim); padding: 2px 12px; }
 .sknb-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--hair); }
 .sknb-n { width: 14px; padding-top: 24px; font-size: 12px; color: var(--muted); flex: none; }

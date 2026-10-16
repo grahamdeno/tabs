@@ -1,0 +1,34 @@
+name: vendor basic pitch
+# Bundles Spotify's Basic Pitch (Apache-2.0) with TensorFlow.js for the browser
+# into vendor/basic-pitch/, loaded only when Strum it is used.
+on:
+  workflow_dispatch:
+  push: { branches: ["strum-*"], paths: [".github/workflows/vendor-bp.yml"] }
+permissions: { contents: write }
+jobs:
+  vendor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: bundle
+        run: |
+          mkdir -p /tmp/bp && cd /tmp/bp && npm init -y >/dev/null
+          npm install --no-audit --no-fund @spotify/basic-pitch@1.0.1 esbuild@0.28.2
+          printf '%s\n' 'export { BasicPitch, outputToNotesPoly, addPitchBendsToNoteEvents, noteFramesToTime } from "@spotify/basic-pitch";' 'import * as tf from "@tensorflow/tfjs";' 'export { tf };' > entry.js
+          npx esbuild entry.js --bundle --format=esm --platform=browser --minify --legal-comments=none --outfile=bp.js
+          V=$GITHUB_WORKSPACE/vendor/basic-pitch
+          rm -rf $V && mkdir -p $V/model
+          cp bp.js $V/bp.js
+          cp node_modules/@spotify/basic-pitch/model/* $V/model/
+          cp node_modules/@spotify/basic-pitch/LICENSE $V/LICENSE-basic-pitch.txt || true
+          T=$(node -p "require('path').dirname(require.resolve('@tensorflow/tfjs/package.json'))")
+          cp $T/LICENSE $V/LICENSE-tfjs.txt || true
+          printf '%s\n' "@spotify/basic-pitch 1.0.1 (Apache-2.0)" "@tensorflow/tfjs $(node -p "require('$T/package.json').version") (Apache-2.0)" "tfjs copies: $(find node_modules -path '*@tensorflow/tfjs/package.json' | wc -l)" "Bundled by .github/workflows/vendor-bp.yml" > $V/VERSIONS.txt
+          ls -la $V $V/model
+      - name: commit
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/basic-pitch; git diff --cached --quiet && exit 0
+          git commit -m "Vendor Basic Pitch for Strum it (made on GitHub)"; git pull --rebase; git push

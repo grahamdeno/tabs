@@ -5,9 +5,10 @@
 // the browser checks sw.js for changes on every launch. When it finds a new
 // version, install saves the whole app shell fresh from the server in one go,
 // so a release is never half old and half new. The page then offers a reload.
-const CACHE = "tabs-v2.8.0";
+const CACHE = "tabs-v2.9.0";
 const ART = "tabs-art";          // album art for covers, kept across releases
-const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "ui.js", "store.js", "sets.js", "settings.js", "editor.js", "coach.js", "tuner.js", "findai.js", "aitools.js", "crop.js", "sketch.js", "heads.js", "dial.js", "ring.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
+const VENDOR = "tabs-vendor";    // libraries loaded on first use (vendor/), kept across releases
+const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "ui.js", "store.js", "sets.js", "settings.js", "editor.js", "coach.js", "tuner.js", "findai.js", "aitools.js", "crop.js", "sketch.js", "heads.js", "dial.js", "ring.js", "strum.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   // Fetch every file fresh: cache: "reload" skips the phone's HTTP cache, and
@@ -35,7 +36,7 @@ self.addEventListener("activate", e => {
     caches.keys().then(ks => {
       const old = ks.filter(k => k.startsWith("tabs-v") && k !== CACHE).sort(newer);
       const keep = old.filter(k => newer(k, CACHE) < 0).slice(-1);
-      return Promise.all(ks.filter(k => k !== CACHE && k !== ART && !keep.includes(k)).map(k => caches.delete(k)));
+      return Promise.all(ks.filter(k => k !== CACHE && k !== ART && k !== VENDOR && !keep.includes(k)).map(k => caches.delete(k)));
     }).then(() => self.clients.claim())
   );
 });
@@ -70,6 +71,18 @@ self.addEventListener("fetch", e => {
     return;
   }
   if (url.origin !== self.location.origin) return;  // other sites go straight to the network
+  // Libraries under vendor/ (Basic Pitch for Strum it, about 2 MB): fetched the
+  // first time they're used and kept across releases. A new version of one
+  // gets a new folder name, so a saved copy is never stale.
+  if (url.pathname.includes("/vendor/")) {
+    e.respondWith((async () => {
+      const cache = await caches.open(VENDOR), key = url.origin + url.pathname;
+      const hit = await cache.match(key);
+      if (hit) return hit;
+      try { const res = await fetch(key); if (res.ok) cache.put(key, res.clone()); return res; } catch { return Response.error(); }
+    })());
+    return;
+  }
   const page = req.mode === "navigate";
   const release = page ? null : releaseOf(req, url);
   e.respondWith((async () => {
