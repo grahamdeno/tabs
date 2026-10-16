@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
+import { gigCountdown, streakOf, pickNudge, weatherMood, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast } from "./ui.js";
@@ -64,6 +64,58 @@ const keyOf = s => s.format === "tab" ? "TAB" : (s.key || guessKey(s.body || "")
 
 
 // ---------- Library ----------
+// ---- Today (2.8): the practice streak and one song for today ----
+// The quiet stat line under the title grows into a Today line: seven dots for
+// the last week (today dashed until you play), the streak, and at most one
+// nudge that opens a song. The nudge waits on a gig day (Up next has the
+// floor) and goes once you've played today. Weather comes from Open-Meteo for
+// a city chosen in Settings, fetched once a day; no location access.
+const WX = "tabs.wx.v1";
+const NUDGE_ICON = { streak: "flame", rain: "rain", cold: "snow", clear: "sun", hot: "sun", learn: "note", idle: "heart" };
+const todayKey = () => new Date().toDateString();
+function wxMood() {
+  const p = data.settings.place;
+  if (!p) return "";
+  let c = null;
+  try { c = JSON.parse(localStorage.getItem(WX) || "null"); } catch {}
+  if (c && c.day === todayKey() && c.lat === p.lat && c.lon === p.lon) return weatherMood(c.code, c.tmax);
+  fetchWeather(p);
+  return "";
+}
+let wxAsked = "";
+async function fetchWeather(p) {
+  const ask = todayKey() + p.lat + p.lon;
+  if (wxAsked === ask) return;
+  wxAsked = ask;
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=1`);
+    if (!r.ok) return;
+    const j = await r.json();
+    const code = j?.daily?.weather_code?.[0], tmax = j?.daily?.temperature_2m_max?.[0];
+    if (code == null) return;
+    try { localStorage.setItem(WX, JSON.stringify({ day: todayKey(), lat: p.lat, lon: p.lon, code, tmax })); } catch {}
+    const el = $("today");
+    if (el && route().name === "library" && !searching) { el.outerHTML = todayHTML(...weekStats()); bindToday(); }
+  } catch { /* offline: no weather today */ }
+}
+const weekStats = () => { const w = data.songs.map(s => playsThisWeek(s)); return [w.reduce((a, b) => a + b, 0), w.filter(Boolean).length]; };
+function todayHTML(weekTotal, weekSongs) {
+  const plays = weekTotal ? `${weekTotal} play${weekTotal === 1 ? "" : "s"} this week` : "";
+  if (data.settings.nudge === false) return weekTotal ? `<div class="weekly" id="today">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : "";
+  const st = streakOf(data.songs);
+  const n = pickNudge({ songs: data.songs, mood: wxMood(), gigToday: data.sets.some(x => gigCountdown(x.when)) });
+  if (!plays && !n) return "";
+  const dots = `<span class="t-dots" aria-hidden="true">${st.week.map((on, i) => `<i class="${on ? "on" : i === 6 ? "now" : ""}"></i>`).join("")}</span>`;
+  const stat = st.days >= 2 ? `<b>${st.days}-day streak</b>${plays ? ` · ${plays}` : ""}` : plays ? `This week: ${plays.replace(" this week", "")} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}` : "";
+  return `<div class="today" id="today">
+    ${stat ? `<div class="weekly t-stat"${st.days >= 2 ? ` aria-label="${st.days}-day practice streak${st.today ? "" : ", not played yet today"}"` : ""}>${st.days >= 2 ? dots : ""}<span>${stat}</span></div>` : ""}
+    ${n ? `<button class="nudge" id="nudge" data-song="${esc(n.songId)}">${icon(NUDGE_ICON[n.kind] || "note")}<span><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span>${icon("chev", "chev")}</button>` : ""}
+  </div>`;
+}
+function bindToday() {
+  $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
+}
+
 function renderLibrary() {
   const hasFav = data.songs.some(s => s.favorite);
   const hasTab = data.songs.some(s => s.format === "tab");
@@ -79,7 +131,7 @@ function renderLibrary() {
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
       </div>
     </div>
-    ${weekTotal ? `<div class="weekly">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : ""}
+    ${todayHTML(weekTotal, weekSongs)}
     ${data.songs.length ? `<div class="chips" id="chips">
       <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
       <button class="chip ${filter === "sets" ? "on" : ""}" data-f="sets">Sets</button>
@@ -105,6 +157,7 @@ function renderLibrary() {
       <button class="add" id="add" aria-label="Add song">${icon("plus")}</button>
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
+  bindToday();
   $("settings").onclick = () => go("#/settings");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });

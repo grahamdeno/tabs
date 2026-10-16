@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.7.1";
+export const VERSION = "2.8.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   controls: "ring",      // phone upright: "ring" (hold Play) or "bar"
   follow: "hand",        // ring: Play rises with "hand" (motion), "touch", or stays in the "corner"
   songMap: true,          // the section rail on the right edge of a song
+  nudge: true,            // the library's Today line: practice streak and a song for today (2.8)
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
@@ -361,6 +362,77 @@ export function playsThisWeek(song, now = Date.now()) {
   if (Array.isArray(song.plays)) return song.plays.filter(t => t > now - 7 * DAY).length;
   const from = dayKey(now - 6 * DAY);
   return Object.entries(song.playLog?.days || {}).reduce((n, [k, c]) => n + (k >= from ? c : 0), 0);
+}
+
+// ---------- Today: practice streak and a nudge (2.8) ----------
+// A day counts when any song was played to its end (the play log). The streak
+// runs back from today, or from yesterday while today has no play yet.
+const playDays = songs => {
+  const set = new Set();
+  for (const s of songs || []) {
+    if (Array.isArray(s.plays)) s.plays.forEach(t => typeof t === "number" && set.add(dayKey(t)));
+    Object.entries(s.playLog?.days || {}).forEach(([k, n]) => n > 0 && set.add(k));
+  }
+  return set;
+};
+export function streakOf(songs, now = Date.now()) {
+  const days = playDays(songs);
+  const at = i => dayKey(now - i * DAY);
+  const today = days.has(at(0));
+  let n = 0;
+  for (let i = today ? 0 : 1; days.has(at(i)); i++) n++;
+  return { days: n, today, week: Array.from({ length: 7 }, (_, i) => days.has(at(6 - i))) };
+}
+// Daily weather to the few moods the nudge knows (WMO weather codes).
+export function weatherMood(code, tmax) {
+  code = +code; tmax = +tmax;
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86 || (!isNaN(tmax) && tmax <= 4)) return "cold";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) return "rain";
+  if (!isNaN(tmax) && tmax >= 32) return "hot";
+  if (code <= 1 && tmax >= 15) return "clear";
+  return "";
+}
+// One suggestion for today, or null. Nothing on a gig day (Up next has it) or
+// once you've played today. In the evening a streak worth keeping comes first;
+// then the weather; then a learning song or a favorite left too long. Picks are
+// steady through the day (the same song each time you look).
+export function pickNudge({ songs = [], now = Date.now(), mood = "", gigToday = false } = {}) {
+  if (gigToday || !songs.length) return null;
+  const st = streakOf(songs, now);
+  if (st.today) return null;
+  const d = new Date(now), day = dayKey(now);
+  const seed = [...day].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const pick = list => list.length ? list[seed % list.length] : null;
+  const last = s => lastPlayed(s) || 0;
+  const idle = (s, days) => now - last(s) > days * DAY;
+  const out = (kind, text, s) => s ? { kind, text, songId: s.id, title: s.title } : null;
+  const byPlays = (a, b) => playsThisWeek(b, now) - playsThisWeek(a, now) || last(b) - last(a);
+  if (d.getHours() >= 18 && st.days >= 2) {
+    const s = [...songs].filter(x => last(x)).sort(byPlays)[0];
+    const r = out("streak", `One song keeps your ${st.days}-day streak`, s);
+    if (r) return r;
+  }
+  if (mood === "rain") {
+    const slow = songs.filter(s => idle(s, 14)).sort((a, b) => (a.bpm || 999) - (b.bpm || 999));
+    const r = out("rain", "Rainy day, perfect for a slow song", slow[0] && (slow[0].bpm ? slow[0] : pick(slow)));
+    if (r) return r;
+  }
+  if (mood === "cold") {
+    const fav = [...songs].sort((a, b) => playCount(b) - playCount(a))[0];
+    const r = out("cold", "Cold out. Warm up your hands with an old favorite", playCount(fav) ? fav : null);
+    if (r) return r;
+  }
+  if (mood === "clear" && (d.getDay() === 0 || d.getDay() === 6)) {
+    const r = out("clear", "Nice out. Take one to the porch", pick(songs.filter(s => s.favorite)) || pick(songs.filter(s => playCount(s))));
+    if (r) return r;
+  }
+  if (mood === "hot") {
+    const r = out("hot", "Too hot to go out. Good day to learn something new", pick(songs.filter(s => s.status === "learning")));
+    if (r) return r;
+  }
+  const learn = pick(songs.filter(s => s.status === "learning" && idle(s, 3)));
+  if (learn) return out("learn", "Keep at it, still on your learning list", learn);
+  return out("idle", "It's been a while", pick(songs.filter(s => s.favorite && last(s) && idle(s, 21))));
 }
 
 // ---------- Chords ----------

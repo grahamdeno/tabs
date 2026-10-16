@@ -158,6 +158,20 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .row .a .st.learning { color: var(--accent); }
 .row .a .st.got { color: #7ac47f; }
 .weekly { font-size: 13px; color: var(--muted); margin: 2px 4px 0; }
+/* Today (2.8): streak dots and the nudge, under the title */
+.today { margin: 2px 4px 0; display: flex; flex-direction: column; gap: 6px; }
+.today .weekly { margin: 0; display: flex; align-items: center; gap: 8px; }
+.today .weekly b { color: var(--fg-2); font-weight: 600; }
+.t-dots { display: inline-flex; gap: 3px; flex: none; }
+.t-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--rim); }
+.t-dots i.on { background: var(--accent); box-shadow: 0 0 5px var(--glow-c, rgba(255,150,70,.55)); }
+.t-dots i.now { background: none; border: 1.3px dashed var(--accent); }
+.nudge { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 2px 0; border: 0; background: none; color: var(--fg-2); text-align: left; }
+.nudge > svg:first-child { width: 20px; height: 20px; color: var(--accent); flex: none; }
+.nudge span { flex: 1; min-width: 0; }
+.nudge small { display: block; font-size: 12.5px; color: var(--muted); }
+.nudge b { display: block; font-size: 15px; color: var(--fg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nudge .chev { width: 14px; height: 14px; color: var(--muted); flex: none; }
 .meta { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .meta b { color: var(--fg-2); font-weight: 500; }
@@ -593,7 +607,7 @@ body.writing .cebar { bottom: auto; top: calc(var(--vv-top, 0px) + var(--vv-h, 1
 body.writing .coach, body.writing .coach-dim { display: none; }
 
 .qcancel { display: none; border: 0; background: none; color: var(--accent); font-size: 16px; padding: 0 4px 0 6px; flex: none; }
-body.searching .head, body.searching .weekly, body.searching #chips, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none; }
+body.searching .head, body.searching .weekly, body.searching .today, body.searching #chips, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none; }
 body.searching .qcancel { display: block; }
 body.searching .dock { top: calc(10px + var(--safe-t)); bottom: auto; transform: translateX(-50%) !important; animation: totop .28s cubic-bezier(.2,.8,.2,1); }
 body.searching #list { padding-top: 52px; }
