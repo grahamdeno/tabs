@@ -20,6 +20,10 @@ const HOLD_MS = 500, HOLD_PLAYING_MS = 650;
 const REST_MS = 5000;     /* still this long: Play settles into the corner */
 const CALM_MS = 500;      /* no moving within this long of a touch */
 const SLOTS = [180, 198, 216, 234, 252, 270];   /* ring angles: left to straight up */
+/* Seven items (a song in a set, with German): closer angles on a wider ring,
+   so each button keeps a full thumb's width (about 47 px between centres). */
+const SLOTS7 = [180, 195, 210, 225, 240, 255, 270];
+const layout = () => (st.o.items.some(it => it.slot > 5) ? { at: SLOTS7, R: 178 } : { at: SLOTS, R: 150 });
 const txt = v => typeof v === "function" ? v() : v;
 let st = null;            /* the current song page's ring */
 
@@ -260,12 +264,12 @@ function bindHold() {
 
 function openRing(p, live) {
   closeRing();
-  const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = 150;
+  const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, { at: ANG, R } = layout();
   const el = document.createElement("div");
   el.className = "ringx";
   el.dataset.live = live ? "1" : "0";
-  el.innerHTML = `<div class="ring-bg" style="left:${cx}px;top:${cy}px"></div>
-    ${st.o.items.map(it => { const a = SLOTS[it.slot] * Math.PI / 180;
+  el.innerHTML = `<div class="ring-bg" style="left:${cx}px;top:${cy}px${R > 150 ? `;width:${2 * (R + 42)}px;height:${2 * (R + 42)}px;margin:${-(R + 42)}px 0 0 ${-(R + 42)}px` : ""}"></div>
+    ${st.o.items.map(it => { const a = ANG[it.slot] * Math.PI / 180;
       return `<button class="ri${it.active?.() ? " act" : ""}" data-r="${it.id}" aria-label="${txt(it.label)}" ${it.active ? `aria-pressed="${!!it.active()}" ` : ""}style="left:${(cx + R * Math.cos(a)).toFixed(1)}px;top:${(cy + R * Math.sin(a)).toFixed(1)}px">${it.icon}</button>`; }).join("")}
     <div class="ring-name glow" style="left:${cx}px;top:${(cy - R - 46).toFixed(1)}px"></div>`;
   document.body.appendChild(el);
@@ -282,7 +286,8 @@ function pick(x, y) {
   if (d > 44) {
     let ang = Math.atan2(y - cy, x - cx) * 180 / Math.PI; if (ang < 0) ang += 360;
     let gap = 999;
-    for (const it of st.o.items) { const g = Math.abs(SLOTS[it.slot] - ang); if (g < gap) { gap = g; best = it; } }
+    const ANG = layout().at;
+    for (const it of st.o.items) { const g = Math.abs(ANG[it.slot] - ang); if (g < gap) { gap = g; best = it; } }
     if (gap > 30) best = null;
   }
   ringEl.querySelectorAll(".ri").forEach(b => b.classList.toggle("on", !!best && b.dataset.r === best.id));

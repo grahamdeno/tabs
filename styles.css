@@ -1335,3 +1335,5 @@ body.ring.nn-demo .app.viewer .dock { display: flex !important; }
 .dc-r { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rim); font-size: 13px; color: var(--fg-2); line-height: 1.4; }
 .dc-r b { width: 76px; flex: none; color: var(--muted); font-weight: 500; }
 .dc-b { display: flex; gap: 8px; margin-top: 10px; } .dc-b .btn { flex: 1; }
+/* 2.11: the DE chip fills as a translation runs in the background. */
+.stat.dechip.busy { background: linear-gradient(90deg, var(--accent-soft) calc(var(--p, 0) * 100%), var(--card) calc(var(--p, 0) * 100%)); }

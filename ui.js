@@ -70,6 +70,40 @@ window.addEventListener("scroll", () => {
 }, { passive: true });
 const app = $("app");
 const layer = $("layer");
+// Sheets in the layer close with a swipe down (2.11): from the handle or
+// title row, or from the content once it's scrolled to the top. They follow
+// the finger, and spring back from a short pull. Closing goes through the
+// sheet's own scrim, so each sheet tidies up as it does on a tap outside.
+(() => {
+  let d = null;
+  const back = p => { p.style.transition = "translate .2s cubic-bezier(.2,1,.3,1)"; p.style.translate = ""; };
+  layer.addEventListener("touchstart", e => {
+    const p = e.target.closest?.(".panel");
+    if (!p || e.touches.length > 1 || e.target.closest("input, textarea, select, .dial")) return;
+    const body = p.querySelector(".pbody"), inBody = !!body?.contains(e.target);
+    if (inBody && body.scrollTop > 0) return;
+    d = { p, body, inBody, y: e.touches[0].clientY, t: Date.now(), dy: 0 };
+  }, { passive: true });
+  layer.addEventListener("touchmove", e => {
+    if (!d) return;
+    if (d.inBody && d.body.scrollTop > 0) { back(d.p); d = null; return; }
+    const dy = e.touches[0].clientY - d.y;
+    if (dy <= 0) { if (d.dy) d.p.style.translate = ""; d.dy = 0; return; }
+    d.dy = dy;
+    d.p.style.transition = "none"; d.p.style.translate = `0 ${dy}px`;
+    if (dy > 6 && e.cancelable) e.preventDefault();   /* the sheet moves, not the page */
+  }, { passive: false });
+  const end = () => {
+    if (!d) return;
+    const { p, dy, t } = d; d = null;
+    if (dy > 110 || (dy > 40 && dy / (Date.now() - t) > 0.5)) {
+      p.style.transition = "translate .18s ease-in"; p.style.translate = `0 ${innerHeight}px`;
+      setTimeout(() => { const s = layer.querySelector(".scrim"); if (s) s.click(); else layer.innerHTML = ""; }, 170);
+    } else if (dy) back(p);
+  };
+  layer.addEventListener("touchend", end);
+  layer.addEventListener("touchcancel", () => { if (d) { back(d.p); d = null; } });
+})();
 // A short message. With `near`, it appears just above that control, where the eye already is.
 function toast(msg, near, action) {
   const t = $("toast");

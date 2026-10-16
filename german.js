@@ -4,7 +4,7 @@
 // shared or backed up. core.js applies a level to the display (germanBlocks).
 // Loaded on first use.
 import { Tabs, parseBlocks, sungText, deSource, cleanGerman, deSpans, DE_LEVELS } from "./core.js";
-import { $, data, esc, icon, layer, toast, busy, AI, aiKey, askClaude, aiError, parseJSON } from "./app.js";
+import { $, data, esc, icon, layer, toast, busy, AI, aiKey, askClaude, aiError, parseJSON, deJobs, go } from "./app.js";
 
 const SYSTEM = `You help an English speaker learn German through songs they play. You get numbered lines of a song from their own library, as JSON. Reply with JSON only:
 {"lines":[{"i":number,"de":string,"s":[{"w":number,"n":number,"l":1|2|3,"de":string,"g":"der"|"die"|"das"|"","lemma":string,"en":string,"pl":string,"built":string,"note":string}]}]}
@@ -23,24 +23,60 @@ const fresh = song => !!song.de && song.de.src === deSource(linesOf(song));
 
 async function ask(lines, extra = "") {
   const content = JSON.stringify(lines.map((l, i) => ({ i, line: l.text }))) + extra;
-  const j = parseJSON(await askClaude({ model: AI.vision, system: SYSTEM, content, maxTokens: 16000 }));
+  /* Streamed, so the connection never sits silent while the reply is written. */
+  const j = parseJSON(await askClaude({ model: AI.vision, system: SYSTEM, content, maxTokens: 8000, stream: true }));
   return cleanGerman(j, lines);
 }
-// Translate the whole song, in batches (long songs stay within one reply each).
-async function translate(song, step) {
-  const lines = linesOf(song), out = [];
-  for (let k = 0; k < lines.length; k += 14) {
-    step?.(k, lines.length);
-    out.push(...await ask(lines.slice(k, k + 14)));
-  }
-  song.de = { v: 1, src: deSource(lines), at: new Date().toISOString(), lines: out };
+// ---- Translating in the background (2.11) ----
+// Six lines a request, two requests at a time. Each batch lands in the song as
+// it arrives, so the first verse turns German while the rest is on its way, and
+// you can keep reading, playing or leave the song. Lines already done are kept
+// if the connection drops; the next start picks up the rest.
+const BATCH = 6, AT_ONCE = 2;
+const progress = (song, lines) => document.dispatchEvent(new CustomEvent("tabs:de-progress", { detail: { id: song.id, lines } }));
+export function startTranslation(song) {
+  if (deJobs.has(song.id)) return deJobs.get(song.id).promise;
+  const lines = linesOf(song), src = deSource(lines);
+  if (!song.de || song.de.src !== src || song.de.lines?.length !== lines.length) song.de = { v: 1, src, at: new Date().toISOString(), lines: lines.map(() => null), partial: true };
   if (!song.deLevel) song.deLevel = data.settings.deLevel || 1;
   Tabs.save(data);
+  const todo = lines.map((_, i) => i).filter(i => !song.de.lines[i]);
+  const batches = [];
+  for (let k = 0; k < todo.length; k += BATCH) batches.push(todo.slice(k, k + BATCH));
+  const job = { total: lines.length, done: lines.length - todo.length, err: null };
+  deJobs.set(song.id, job);
+  progress(song, false);
+  const runBatch = async idx => {
+    let out;
+    try { out = await ask(idx.map(i => lines[i])); }
+    catch (e) { if (e.status === 0 || e.status >= 500) out = await ask(idx.map(i => lines[i])); else throw e; }   /* one retry for a dropped connection or a busy service */
+    if (song.de?.src !== src) return;   /* deleted or changed meanwhile */
+    idx.forEach((i, k) => { song.de.lines[i] = out[k]; });
+    job.done += idx.length; Tabs.save(data); progress(song, true);
+  };
+  job.promise = (async () => {
+    const queue = [...batches];
+    const worker = async () => { while (queue.length) await runBatch(queue.shift()); };
+    try {
+      await Promise.all(Array.from({ length: Math.min(AT_ONCE, queue.length) }, worker));
+      if (song.de?.src === src) { delete song.de.partial; song.de.at = new Date().toISOString(); Tabs.save(data); }
+      deJobs.delete(song.id); progress(song, true);
+      const here = location.hash === "#/song/" + encodeURIComponent(song.id);
+      toast(here ? "German ready for every line" : `German ready: ${song.title}`, null, here ? undefined : { label: "Open", fn: () => go("#/song/" + encodeURIComponent(song.id)) });
+    } catch (e) {
+      job.err = aiError(e);
+      if (deJobs.get(song.id) === job) deJobs.delete(song.id);
+      progress(song, false);
+      toast(`German stopped at ${job.done} of ${job.total} lines. ${job.err}`, null, { label: "Retry", fn: () => startTranslation(song) });
+    }
+  })();
+  return job.promise;
 }
+const partial = song => !!song.de?.partial || !!song.de?.lines?.some(l => !l);
 // One line of the song at a level, as plain text (the level picker's example).
 function sample(song, level) {
   const lines = linesOf(song);
-  const i = Math.max(0, song.de.lines.findIndex(t => t.s.some(x => x.l <= Math.min(level, 3))));
+  const i = Math.max(0, song.de.lines.findIndex(t => t && t.s.some(x => x.l <= Math.min(level, 3))));
   const t = song.de.lines[i], tok = lines[i]?.tokens || [];
   if (!t) return "";
   if (level >= 4) return esc(t.de);
@@ -62,7 +98,23 @@ export function germanSheet(song, redraw) {
   const paint = () => {
     const body = $("de-body");
     if (!body) return;
-    if (state.busy) { body.innerHTML = `<div class="easy-wait">${busy(state.step || "Translating the song")}</div><p class="foot">A few seconds per verse. Only this song's words are sent, to Anthropic.</p>`; return; }
+    const job = deJobs.get(song.id);
+    if (job) {
+      body.innerHTML = `<div class="easy-wait">${busy(`Translating: ${job.done} of ${job.total} lines`)}</div>
+        <p class="easy-note">Keep reading or playing. The song turns German verse by verse, and the DE chip shows how far along it is. You can close this, or leave the song: you'll hear when it's ready.</p>
+        <button class="btn primary cta" id="de-ok" style="width:100%">OK</button>`;
+      $("de-ok").onclick = close;
+      return;
+    }
+    if (fresh(song) && partial(song)) {
+      const left = song.de.lines.filter(l => !l).length;
+      body.innerHTML = `<p class="easy-note">${left} of ${song.de.lines.length} lines still need translating. The rest are ready to practice.</p>
+        ${aiKey() ? `<button class="btn primary cta" id="de-go" style="width:100%">${icon("chat")}Finish translating</button>` : ""}
+        <button class="btn" id="de-levels" style="width:100%;margin-top:10px">Choose a level</button>`;
+      $("de-go")?.addEventListener("click", go);
+      $("de-levels").onclick = () => { state.levels = true; paint(); };
+      if (!state.levels) return;
+    }
     if (!fresh(song)) {
       const stale = !!song.de;
       body.innerHTML = `<p class="easy-note">${stale ? "The song's words changed since it was translated. Translate it again to practice with the new words." : "Practice German with this song: common words first, then phrases, then the whole song. Tap any German word for its meaning, gender and a short grammar note."}</p>
@@ -85,13 +137,14 @@ export function germanSheet(song, redraw) {
     $("de-del").onclick = del;
     $("de-go")?.addEventListener("click", go);
   };
-  const go = async () => {
-    state = { busy: true, err: "", step: "" }; paint();
-    try { await translate(song, (k, n) => { state.step = n > 14 ? `Translating lines ${k + 1} to ${Math.min(n, k + 14)} of ${n}` : "Translating the song"; paint(); }); state = { busy: false, err: "" }; redraw?.(); }
-    catch (e) { state = { busy: false, err: e?.status === -1 ? "The translation didn't come back complete. Try again." : aiError(e) }; }
-    paint();
+  /* Start in the background and get out of the way: the song turns German as lines arrive. */
+  const go = () => {
+    startTranslation(song);
+    close(); redraw?.();
+    toast(`Translating ${song.title}. Keep playing; it turns German verse by verse.`);
   };
   const del = () => {
+    if (deJobs.has(song.id)) deJobs.delete(song.id);
     const was = { de: song.de, lvl: song.deLevel };
     delete song.de; song.deLevel = 0; Tabs.save(data); redraw?.(); close();
     toast("Translation deleted", null, { label: "Undo", fn: () => { song.de = was.de; song.deLevel = was.lvl; Tabs.save(data); redraw?.(); } });
