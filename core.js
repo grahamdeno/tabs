@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.6.8";
+export const VERSION = "2.7.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1690,4 +1690,47 @@ export function mergeWords(chartBody, lyricsText) {
   }
   for (const st of left) { const sec = byKind(st.kind); emit(st.name || sec.name, stanzaLines(st.lines, sec.chords)); }
   return out.join("\n").trim();
+}
+
+// ---- Get the song (2.7) ----
+// LRCLIB returns many recordings of a song (album, live, covers, karaoke).
+// pickVersions ranks the ones that have words: the title and artist must match;
+// then the one closest to the length the chart found (within 4 seconds); with
+// no length, the length most versions share (the album cut is copied most);
+// studio before live, covers or karaoke unless the title asks for them; timed
+// words before plain. Duplicates (same album and length) are dropped.
+const normT = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\(.*?\)|\[.*?\]/g, " ").replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
+const ODD = /\b(live|karaoke|cover|tribute|remix|instrumental|drumless|backing|acapella|a cappella|sped up|slowed|demo|8 ?bit|lullaby|piano version|re ?recorded)\b/;
+export function pickVersions(list, { title = "", artist = "", duration = 0 } = {}) {
+  const t = normT(title), a = normT(artist);
+  const ok = (list || []).filter(x => x && !x.instrumental && (x.plainLyrics || "").trim()
+    && (!t || normT(x.trackName).includes(t) || t.includes(normT(x.trackName)))
+    && (!a || normT(x.artistName).includes(a) || a.includes(normT(x.artistName))));
+  const seen = new Set(), uniq = [];
+  for (const x of ok) { const k = normT(x.albumName) + "|" + Math.round(x.duration || 0); if (!seen.has(k)) { seen.add(k); uniq.push(x); } }
+  const counts = {};
+  ok.forEach(x => { const d = Math.round(x.duration || 0); for (let k = d - 2; k <= d + 2; k++) counts[k] = (counts[k] || 0) + 1; });
+  const common = +Object.keys(counts).sort((p, q) => counts[q] - counts[p] || p - q)[0] || 0;
+  const want = duration > 0 ? duration : common;
+  const low = v => String(v || "").toLowerCase();
+  const odd = x => !ODD.test(low(title)) && ODD.test(low(x.albumName + " " + x.trackName));
+  const score = x => (Math.abs((x.duration || 0) - want) <= 4 ? 0 : 1000 + Math.abs((x.duration || 0) - want)) + (odd(x) ? 500 : 0) + (x.syncedLyrics ? 0 : 5);
+  return uniq.sort((p, q) => score(p) - score(q));
+}
+// The chart's tempo (from chord sites) against a measured one (GetSongBPM).
+// They agree within 4%, or when one counts double time. The measured tempo
+// wins when they disagree; in double time the chart's count stands.
+export function tempoPick(chart, measured) {
+  chart = +chart || 0; measured = +measured || 0;
+  const near = (p, q) => Math.abs(p - q) <= q * 0.04;
+  if (!measured) return { bpm: Math.round(chart), agree: false, measured: 0, chart };
+  if (!chart) return { bpm: Math.round(measured), agree: false, measured, chart };
+  if (near(chart, measured)) return { bpm: Math.round(measured), agree: true, measured, chart };
+  if (near(chart, measured * 2) || near(chart, measured / 2)) return { bpm: Math.round(chart), agree: true, measured, chart };
+  return { bpm: Math.round(measured), agree: false, measured, chart };
+}
+// Beats in a bar from a time signature like "3/4" (2 to 12; 4 otherwise).
+export function beatsOf(sig) {
+  const n = parseInt(String(sig || "").split("/")[0], 10);
+  return n >= 2 && n <= 12 ? n : 4;
 }

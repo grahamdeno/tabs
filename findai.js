@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts, mergeWords } from "./core.js";
+import { Tabs, TUNINGS, buildChart, chordCounts, mergeWords, pickVersions, tempoPick, beatsOf } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
@@ -37,12 +37,24 @@ async function askClaudeSearch({ model = AI.vision, system, content, maxTokens =
 }
 
 const CHART_SYSTEM = `You find how to play one song on guitar, using web search (chord and tab sites, songbooks), and reply with JSON only, no other text:
-{"found": boolean, "title": string, "artist": string, "key": string, "capo": number, "tuning": "standard"|"dropd"|"halfdown"|"wholedown"|"dadgad"|"openg"|"opend", "bpm": number, "strum": string, "sections": [{"name": string, "chords": string, "repeat": number}], "confidence": "high"|"medium"|"low"}
+{"found": boolean, "title": string, "artist": string, "album": string, "duration": number, "key": string, "capo": number, "tuning": "standard"|"dropd"|"halfdown"|"wholedown"|"dadgad"|"openg"|"opend", "bpm": number, "strum": string, "sections": [{"name": string, "chords": string, "repeat": number}], "confidence": "high"|"medium"|"low"}
 - Never include lyrics or any words from the song, not even a short phrase. Only chord names and section names.
 - "sections": in the order played, each occurrence listed (Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro). "chords": the chord names for one pass, space separated, like "G D Em C". "repeat": how many times that pass is played in a row.
 - Use the chords most sources agree on, in the key most players use (note a capo if the common version uses one).
 - "strum": a simple pattern with D and U, like "D DU UDU", or "" if unsure. "bpm": the tempo, or 0 if unsure.
+- "album": the studio album (or single) the song first came out on, or "". "duration": that recording's length in seconds, or 0 if unsure.
 - If you can't find the song, set "found" to false.`;
+// One AI chord chart: chords and section names only, plus the facts that help
+// find the right recording (album, length). Throws status -2 when not found.
+async function findChart(title, artist) {
+  const { text, sources } = await askClaudeSearch({ system: CHART_SYSTEM, content: `Song: ${title}${artist ? ` by ${artist}` : ""}` });
+  const j = parseJSON(text);
+  if (!j.found) throw Object.assign(new Error("not found"), { status: -2 });
+  const body = buildChart(j);
+  if (!body.includes("[")) throw Object.assign(new Error("empty"), { status: -1 });
+  return { title: String(j.title || title).slice(0, 80), artist: String(j.artist || artist).slice(0, 80), album: String(j.album || "").slice(0, 80), duration: Math.max(0, Math.min(1800, +j.duration || 0)),
+    key: String(j.key || "").slice(0, 4), capo: parseInt(j.capo, 10) || 0, tuning: j.tuning, bpm: +j.bpm || 0, confidence: j.confidence, body, sources };
+}
 export function chartSheet(q, preset = {}) {
   const [t0, a0] = preset.title ? [preset.title, preset.artist || ""] : q.split(/\s+(?:by|-|–)\s+/i);
   let state = { busy: false, chart: preset.chart || null, err: "" };
@@ -90,12 +102,7 @@ export function chartSheet(q, preset = {}) {
     if (!title) return toast("Add the song title");
     state = { busy: true, chart: null, err: "" }; paint();
     try {
-      const { text, sources } = await askClaudeSearch({ system: CHART_SYSTEM, content: `Song: ${title}${artist ? ` by ${artist}` : ""}` });
-      const j = parseJSON(text);
-      if (!j.found) throw Object.assign(new Error("not found"), { status: -2 });
-      const body = buildChart(j);
-      if (!body.includes("[")) throw Object.assign(new Error("empty"), { status: -1 });
-      state = { busy: false, err: "", chart: { title: String(j.title || title).slice(0, 80), artist: String(j.artist || artist).slice(0, 80), key: String(j.key || "").slice(0, 4), capo: parseInt(j.capo, 10) || 0, tuning: j.tuning, bpm: +j.bpm || 0, confidence: j.confidence, body, sources } };
+      state = { busy: false, err: "", chart: await findChart(title, artist) };
     } catch (e) {
       state = { busy: false, chart: null, err: e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e) };
     }
@@ -106,11 +113,152 @@ export function chartSheet(q, preset = {}) {
   if (preset.title && !preset.chart) findChords();
 }
 
+// ---- Get the song (2.7) ----
+// One tap from a search miss: the AI chart (chords and section names only),
+// the words from LRCLIB and, with a GetSongBPM key, the measured tempo and
+// time signature, all at once. Tabs puts the chords over the words here on the
+// phone (mergeWords) and shows one review before saving.
+const LRC = "https://lrclib.net/api";
+export const BPM_STORE = "tabs.bpmkey.v1";
+export function bpmKey() { try { return localStorage.getItem(BPM_STORE) || ""; } catch { return ""; } }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+// GET JSON, waiting and trying again when the service is busy (429) or the
+// network drops. 404 means "none" (null).
+async function getJSON(url, tries = 3) {
+  for (let i = 0; ; i++) {
+    let r;
+    try { r = await fetch(url, { cache: "no-store" }); }
+    catch (e) { if (i + 1 < tries) { await wait(1200); continue; } throw Object.assign(e, { status: 0 }); }
+    if (r.status === 404) return null;
+    if (r.status === 429 && i + 1 < tries) { await wait(Math.min(4000, 1000 * (parseFloat(r.headers.get("retry-after")) || 1.5))); continue; }
+    if (!r.ok) throw Object.assign(new Error("HTTP " + r.status), { status: r.status });
+    return r.json();
+  }
+}
+const mmssOf = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+const same = (p, q) => { const n = v => String(v || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/&/g, "and").replace(/[^a-z0-9]+/g, ""); return n(p) && n(q) && (n(p).includes(n(q)) || n(q).includes(n(p))); };
+// Words: the free-text search started at once, then (once the chart names the
+// song) an exact lookup by title, artist, album and length if that found none.
+async function lrcVersions(early, c) {
+  let list = (await early.catch(() => null)) || [];
+  let out = pickVersions(list, c);
+  if (!out.length) {
+    const q = `track_name=${encodeURIComponent(c.title)}&artist_name=${encodeURIComponent(c.artist)}`;
+    const one = await getJSON(`${LRC}/get?${q}${c.album ? `&album_name=${encodeURIComponent(c.album)}` : ""}${c.duration ? `&duration=${Math.round(c.duration)}` : ""}`).catch(() => null);
+    list = [...(one ? [one] : []), ...((await getJSON(`${LRC}/search?${q}`).catch(() => null)) || [])];
+    out = pickVersions(list, c);
+  }
+  return out;
+}
+// Tempo and time signature from GetSongBPM (key in the URL: a header would
+// need a preflight that the service refuses).
+async function bpmLookup(c, key) {
+  const url = lookup => `https://api.getsong.co/search/?api_key=${encodeURIComponent(key)}&type=${lookup.includes("artist:") ? "both" : "song"}&lookup=${encodeURIComponent(lookup)}`;
+  const find = j => (Array.isArray(j?.search) ? j.search : []).find(x => same(x.title, c.title) && (!c.artist || same(x.artist?.name, c.artist)));
+  let hit = find(await getJSON(url(`song:${c.title} artist:${c.artist}`), 2));
+  if (!hit) hit = find(await getJSON(url(c.title), 2));
+  return hit ? { tempo: +hit.tempo || 0, sig: String(hit.time_sig || ""), id: hit.id } : null;
+}
+export function getSong(q, preset = {}) {
+  const title0 = (preset.title || q || "").trim(), artist0 = (preset.artist || "").trim();
+  const key = bpmKey();
+  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, tempo: null, beats: 4, err: "", note: { words: "LRCLIB", tempo: "GetSongBPM", chart: "AI · searching" } };
+  let alive = true;
+  const close = () => { alive = false; layer.innerHTML = ""; };
+  const mount = () => {
+    layer.innerHTML = `<div class="scrim" id="gs-scrim"></div><div class="panel full cs gs" role="dialog" aria-label="Get the song"><div class="grab"></div>
+      <div class="ph"><button class="tb" id="gs-x">Cancel</button><h2>Get the song</h2><span style="width:56px"></span></div><div class="pbody" id="gs-body"></div></div>`;
+    $("gs-scrim").onclick = close; $("gs-x").onclick = close;
+    paint();
+  };
+  const version = () => st.versions[st.vi] || null;
+  const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
+  const ROW = { ok: `<span class="gs-st ok">${icon("check")}</span>`, busy: `<span class="gs-st"><span class="spin"></span></span>`, wait: `<span class="gs-st wait"></span>`, none: `<span class="gs-st none">–</span>` };
+  const add = (body, lrc = true) => {
+    const c = st.chart, v = version(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
+    const len = Math.round(v?.duration || c.duration || 0);
+    const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body,
+      ...(t?.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, t.bpm))) } : {}), ...(st.beats !== 4 ? { beats: st.beats } : {}),
+      ...(len >= 60 ? { duration: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
+      ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}) });
+    close(); leaveSearch();
+    go("#/song/" + encodeURIComponent(s.id));
+    toast(body === c.body ? "Added. Tap Listen to hear it while you check the chords" : "Added with the words. Check the chord spots by ear");
+  };
+  const paint = () => {
+    const body = $("gs-body");
+    if (!body || !alive) return;
+    const c = st.chart;
+    if (st.view === "error") {
+      body.innerHTML = `<div class="cs-head"><b>${esc(title0)}</b><span>${esc(artist0)}</span></div><p class="err" style="margin:10px 2px">${esc(st.err)}</p>
+        <div class="actions"><button class="btn" id="gs-own">Find it yourself</button><button class="btn primary" id="gs-again">Try again</button></div>`;
+      $("gs-own").onclick = close; $("gs-again").onclick = () => { close(); getSong(q, preset); };
+      return;
+    }
+    if (st.view === "work") {
+      const r = st.rows;
+      const row = (k, label) => r[k] ? `<div class="gs-row">${ROW[r[k]]}<span class="${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
+      body.innerHTML = `<div class="cs-head"><b>${esc(c?.title || title0)}</b><span>${esc(c?.artist || artist0)}</span></div>
+        <div class="gs-rows glass">${row("words", "Words")}${row("tempo", st.mt ? `Tempo ${Math.round(st.mt.tempo)}${st.mt.sig ? `, ${esc(st.mt.sig)}` : ""}` : "Tempo")}${row("chart", c ? `Chords and key${c.key ? ` · ${esc(c.key)}` : ""}` : "Chords and key")}${row("merge", "Chords over the words")}</div>
+        <p class="foot" style="margin-top:12px">Only the title and artist are sent. The AI chart takes about 20 seconds and uses a few web searches on your key, usually 5 to 15 cents.</p>`;
+      return;
+    }
+    if (st.view === "versions") {
+      body.innerHTML = `<div class="gs-vh"><b>Which recording?</b><span>Words and timing differ between versions.</span></div>
+        ${st.versions.slice(0, 8).map((v, i) => `<button class="gs-ver${i === st.vi ? " on" : ""}" data-v="${i}"><i></i><span><b>${esc(v.albumName || v.trackName)}</b><small>${mmssOf(v.duration || 0)}${v.syncedLyrics ? " · timed" : ""}</small></span></button>`).join("")}
+        <button class="gs-ver" id="gs-paste"><i></i><span><b>None of these: paste the words</b></span></button>`;
+      body.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { st.vi = +b.dataset.v; st.view = "review"; paint(); });
+      $("gs-paste").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library" }, b => add(b, false), mount);
+      return;
+    }
+    const v = version(), m = merged(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
+    const tempoChip = t?.bpm > 0 ? `<span class="${t.agree ? "agree" : ""}">${t.bpm} BPM${t.agree ? ` ${icon("check")}` : ""}${!t.agree && t.measured && t.chart ? ` <small>· chart said ${Math.round(t.chart)}</small>` : ""}</span>` : "";
+    body.innerHTML = `
+      <div class="cs-head"><b>${esc(c.title)}</b><span>${esc(c.artist || "")}</span></div>
+      ${v ? `<button class="gs-pick" id="gs-pick">${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}${st.versions.length > 1 ? ` ${icon("chev")}` : ""}</button>` : `<p class="gs-pick none">No words found on LRCLIB</p>`}
+      <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
+      <pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>
+      <p class="foot">${m ? "Check the chord spots by ear. Edit fixes any line." : "Paste the words, or add the chords alone."}</p>
+      <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
+        ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Words from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>
+      <div class="actions" style="margin-top:12px"><button class="btn" id="gs-edit">${m ? "Edit" : "Paste the words"}</button><button class="btn primary" id="gs-add">Add to library</button></div>`;
+    $("gs-pick")?.addEventListener("click", () => { if (st.versions.length > 1) { st.view = "versions"; paint(); } });
+    $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
+    $("gs-add").onclick = () => add(m || c.body);
+  };
+  mount();
+  const run = async () => {
+    const early = getJSON(`${LRC}/search?q=${encodeURIComponent(`${title0} ${artist0}`.trim())}`);
+    early.then(l => { if (st.rows.words === "busy" && !(l || []).length) st.note.words = "LRCLIB · looking again"; paint(); }, () => {});
+    try { st.chart = await findChart(title0, artist0); }
+    catch (e) {
+      if (!alive) return;
+      st.view = "error"; st.err = e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e);
+      return paint();
+    }
+    if (!alive) return;
+    const c = st.chart;
+    st.rows.chart = "ok"; st.note.chart = "AI"; paint();
+    const words = lrcVersions(early, c).then(list => { st.versions = list; st.rows.words = list.length ? "ok" : "none"; st.note.words = list.length ? `LRCLIB${list[0].syncedLyrics ? " · timed" : ""}` : "LRCLIB · none found"; paint(); }, () => { st.rows.words = "none"; st.note.words = "LRCLIB · busy, try later"; paint(); });
+    let measured = null;
+    const tempo = key ? (st.rows.tempo = "busy", paint(), bpmLookup(c, key).then(r => { measured = st.mt = r; st.rows.tempo = r ? "ok" : "none"; if (!r) st.note.tempo = "GetSongBPM · none found"; }, e => { st.rows.tempo = "none"; st.note.tempo = e.status === 401 ? "GetSongBPM · check the key in Settings" : "GetSongBPM · busy"; })) : Promise.resolve();
+    await Promise.all([words, tempo]);
+    if (!alive) return;
+    st.tempo = tempoPick(c.bpm, measured?.tempo || 0);
+    if (measured?.sig) { st.sig = measured.sig; st.beats = beatsOf(measured.sig); }
+    st.rows.merge = st.versions.length ? "ok" : "none"; paint();
+    await wait(450);
+    if (!alive) return;
+    st.view = "review"; paint();
+  };
+  run();
+}
+
 // ---- Add the words ----
 // Paste the lyrics (copied from wherever you can copy them); the chart's chords
 // are placed over them, section by section (mergeWords in core.js). Tabs never
 // supplies lyrics itself.
-export function wordsSheet(chart, { title = "", ok = "Done" } = {}, done, back) {
+export function wordsSheet(chart, { title = "", ok = "Done", text = "" } = {}, done, back) {
   layer.innerHTML = `<div class="scrim" id="ws-scrim"></div><div class="panel full cs" role="dialog" aria-label="Add the words"><div class="grab"></div>
     <div class="ph"><button class="tb" id="ws-x">${back ? "Back" : "Cancel"}</button><h2>Add the words</h2>${oneHandMQ.matches ? '<span style="width:56px"></span>' : `<button class="tb" id="ws-ok" disabled>${esc(ok)}</button>`}</div>
     <div class="pbody">
@@ -128,6 +276,7 @@ export function wordsSheet(chart, { title = "", ok = "Done" } = {}, done, back) 
     okb.disabled = !merged;
   };
   ta.oninput = () => { clearTimeout(timer); timer = setTimeout(update, 250); };
+  if (text) { ta.value = text; update(); }
   const leave = () => (back ? back() : (layer.innerHTML = ""));
   $("ws-scrim").onclick = leave; $("ws-x").onclick = leave;
   $("ws-paste").onclick = async () => {
@@ -169,7 +318,7 @@ export async function nextSongs() {
       </div>`).join("")}</div>
       <button class="btn" id="nx-more" style="margin-top:12px;width:100%">Show different songs</button>`;
     body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
-    body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? chartSheet("", { title: x.title, artist: x.artist }) : null; });
+    body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist }) : null; });
     $("nx-more").onclick = () => load(state.list.map(x => x.title));
   };
   const load = async (skip = []) => {

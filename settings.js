@@ -5,6 +5,7 @@ import { coverPut } from "./sets.js";
 import { askMotion } from "./ring.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setData } from "./app.js";
+const bpmKey = () => { try { return localStorage.getItem("tabs.bpmkey.v1") || ""; } catch { return ""; } };
 
 // ---------- Settings ----------
 let settingsDefaultsOpen = false;
@@ -116,6 +117,18 @@ function renderSettings() {
       </div>
     </div>
     <p class="foot" id="s-keymsg">Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Tabs, with a low monthly spend limit.</p>
+    <div class="label">Tempo data</div>
+    <div class="set-group glass">
+      <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("metro")}</span>
+        <input id="s-bpmkey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="GetSongBPM API key" value="${esc(bpmKey())}" aria-label="GetSongBPM API key"></label>
+      <div class="key-row">
+        <span class="ai-status"><i class="dot ${bpmKey() ? "on" : ""}"></i>${bpmKey() ? "On" : "Off"}</span>
+        ${bpmKey() ? `<button class="btn sm" id="s-bpmremove">Remove</button>` : ""}
+        <button class="btn sm primary" id="s-bpmsave">Save key</button>
+      </div>
+    </div>
+    <p class="foot">Get the song checks the chart's tempo and time signature against GetSongBPM's measured data. The free key is at <a href="https://getsongbpm.com/api" target="_blank" rel="noopener">getsongbpm.com/api</a>; it stays on this phone and is sent only to GetSongBPM, with the song's title and artist. Words come from <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, which needs no key.</p>
+    <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>
     <div class="label">Library</div>
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
@@ -153,6 +166,17 @@ function renderSettings() {
     try { localStorage.setItem(AI.store, k); } catch {}
     renderSettings(); toast("Key saved");
   };
+  const BPM = "tabs.bpmkey.v1";
+  $("s-bpmsave").onclick = () => {
+    const k = $("s-bpmkey").value.trim();
+    if (!k) { toast("Paste a key first"); return; }
+    try { localStorage.setItem(BPM, k); } catch {}
+    renderSettings(); toast("Key saved");
+  };
+  $("s-bpmremove")?.addEventListener("click", () => {
+    try { localStorage.removeItem(BPM); } catch {}
+    renderSettings(); toast("Key removed from this phone");
+  });
   $("s-remove")?.addEventListener("click", () => {
     try { localStorage.removeItem(AI.store); } catch {}
     renderSettings(); toast("Key removed from this phone");

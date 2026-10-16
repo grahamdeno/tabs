@@ -897,3 +897,37 @@ test("arc sweep: fine near the start, reaches the ends exactly, no jumps", () =>
   assert.equal(C.arcMap({ ...o, a: 200, whole: false }), 110, "one screen: steady fine pace");
   assert.equal(C.arcMap({ ...o, y0: 4000, a: 230 }), 4000, "already at the end");
 });
+
+// ---- Get the song (2.7) ----
+const V = (albumName, duration, extra = {}) => ({ trackName: "Harbor Lights", artistName: "The Cape Fear", albumName, duration, instrumental: false, plainLyrics: "a line\nanother", syncedLyrics: "[00:01.00] a line", ...extra });
+test("pickVersions: the length the chart found picks the recording", () => {
+  const list = [V("Live at the Pier", 260), V("Northern Coast", 221), V("Karaoke Hits", 221), V("Northern Coast", 221), V("Other Song", 221, { trackName: "Other" })];
+  const r = C.pickVersions(list, { title: "Harbor Lights", artist: "The Cape Fear", duration: 222 });
+  assert.equal(r[0].albumName, "Northern Coast");
+  assert.equal(r.length, 3, "duplicates and other titles dropped");
+  assert.equal(r[1].albumName, "Karaoke Hits", "karaoke after the studio cut");
+});
+test("pickVersions: with no length, the length most versions share wins", () => {
+  const list = [V("Live", 248), V("Best of", 259), V("90s Hits", 259), V("Morning Glory", 261), V("Cover", 165)];
+  assert.equal(Math.round(C.pickVersions(list, { title: "Harbor Lights" })[0].duration / 10), 26);
+});
+test("pickVersions: no words, instrumental or the wrong artist never count", () => {
+  const list = [V("A", 200, { instrumental: true }), V("B", 200, { plainLyrics: "" }), V("C", 200, { artistName: "Someone Else" })];
+  assert.deepEqual(C.pickVersions(list, { title: "Harbor Lights", artist: "The Cape Fear", duration: 200 }), []);
+});
+test("pickVersions: a live title keeps live versions first", () => {
+  const list = [V("Northern Coast", 221), V("Live at the Pier", 260)];
+  assert.equal(C.pickVersions(list, { title: "Harbor Lights (Live)", duration: 0 })[0].albumName, "Northern Coast", "both lengths tie on count");
+  assert.equal(C.pickVersions(list, { title: "Harbor Lights", duration: 260 })[0].albumName, "Live at the Pier", "length beats the live penalty");
+});
+test("tempoPick: agreement, double time and disagreement", () => {
+  assert.deepEqual(C.tempoPick(90, 92), { bpm: 92, agree: true, measured: 92, chart: 90 });
+  assert.equal(C.tempoPick(90, 180).bpm, 90, "double time: the chart's count stands");
+  assert.equal(C.tempoPick(90, 180).agree, true);
+  assert.deepEqual(C.tempoPick(100, 120), { bpm: 120, agree: false, measured: 120, chart: 100 });
+  assert.equal(C.tempoPick(0, 120).bpm, 120);
+  assert.equal(C.tempoPick(88, 0).bpm, 88);
+});
+test("beatsOf reads the top of a time signature", () => {
+  assert.equal(C.beatsOf("3/4"), 3); assert.equal(C.beatsOf("6/8"), 6); assert.equal(C.beatsOf(""), 4); assert.equal(C.beatsOf("1/4"), 4);
+});

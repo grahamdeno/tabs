@@ -105,14 +105,14 @@ test("theme: Automatic follows the phone; Dark and Light override it", { skip: s
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "auto");
 });
 
-test("security policy allows Apple art, the Anthropic API and song search, and nothing else", { skip: skip() }, async t => {
+test("security policy allows Apple art, the Anthropic API, song search, LRCLIB and GetSongBPM, and nothing else", { skip: skip() }, async t => {
   const page = await phone(t);
   const blocked = [];
   page.removeAllListeners("console");
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) blocked.push(m.text()); });
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
   await page.route(/mzstatic\.com|example\.com\/.*\.png/, r => r.fulfill({ status: 200, contentType: "image/png", body: png }));
-  await page.route(/api\.anthropic\.com|itunes\.apple\.com|example\.com\/api/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" }));
+  await page.route(/api\.anthropic\.com|itunes\.apple\.com|lrclib\.net|api\.getsong\.co|example\.com\/api/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" }));
   const res = await page.evaluate(async () => {
     const img = src => new Promise(ok => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = src; });
     const get = url => fetch(url).then(() => true, () => false);
@@ -121,10 +121,12 @@ test("security policy allows Apple art, the Anthropic API and song search, and n
       otherImg: await img("https://example.com/pixel.png"),
       anthropic: await get("https://api.anthropic.com/v1/messages"),
       itunes: await get("https://itunes.apple.com/search?term=x"),
+      lrclib: await get("https://lrclib.net/api/search?q=x"),
+      getsong: await get("https://api.getsong.co/search/?type=song&lookup=x"),
       other: await get("https://example.com/api")
     };
   });
-  assert.deepEqual(res, { art: true, otherImg: false, anthropic: true, itunes: true, other: false });
+  assert.deepEqual(res, { art: true, otherImg: false, anthropic: true, itunes: true, lrclib: true, getsong: true, other: false });
   assert.ok(blocked.length >= 2, "blocked requests are reported");
 });
 

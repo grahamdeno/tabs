@@ -1542,7 +1542,7 @@ function findCard(q, more = false) {
     <div class="fc-t">${more ? `Find “${esc(q.trim())}” elsewhere` : `“${esc(q.trim())}” isn't in your library yet`}</div>
     ${more ? "" : `<p class="fc-s">Find a chord sheet, copy it, and come back. Tabs will offer to add what you copied.</p>`}
     <div class="fc-b">${FIND_SITES.map(([k, l]) => `<button class="chip" data-find="${k}">${icon(k === "web" ? "search" : "link")}${l}</button>`).join("")}</div>
-    ${aiKey() ? `<button class="fc-ai" id="fc-ai">${icon("wand")}<span><b>Chord chart with AI</b>Chords, key and structure from the web. No lyrics.</span>${icon("chev", "chev")}</button>` : ""}
+    ${aiKey() ? `<button class="fc-ai" id="fc-ai">${icon("wand")}<span><b>Get the song</b>Chords, words and tempo in one go</span>${icon("chev", "chev")}</button>` : ""}
   </div>`;
 }
 function bindFind(list) {
@@ -1551,7 +1551,7 @@ function bindFind(list) {
     pendingFind = { q: query.trim(), at: Date.now() };
     window.open(site[2](query.trim()), "_blank", "noopener");
   });
-  $("fc-ai")?.addEventListener("click", () => chartSheet(query.trim()));
+  $("fc-ai")?.addEventListener("click", () => getSong(query.trim()));
 }
 // Back from looking: offer to paste what was copied (reading the clipboard needs a tap).
 document.addEventListener("visibilitychange", () => {
@@ -1586,6 +1586,7 @@ const findAI = () => lazy("findai.js");
 // Leave search mode (used when a song is added from a chart).
 function leaveSearch() { if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; } }
 function chartSheet(...args) { findAI().then(m => m.chartSheet(...args)); }
+function getSong(...args) { findAI().then(m => m.getSong(...args)); }
 function nextSongs() { findAI().then(m => m.nextSongs()); }
 
 // ---------- Listen ----------
@@ -1801,7 +1802,7 @@ function startMetronome(song) {
   metro.next = audio.currentTime + 0.05; metro.beat = 0;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
-      clickAt(metro.next, metro.beat % 4 === 0);
+      clickAt(metro.next, metro.beat % (song.beats || 4) === 0);
       metro.next += spb; metro.beat++;
     }
   }, 25);
@@ -1994,7 +1995,7 @@ function pxPerSecond(song) {
   return Math.max(4, range / songLength(song));
 }
 
-// One bar of count-in before scrolling: four beats at the song's tempo (90 if unset),
+// One bar of count-in before scrolling: a bar of beats (four unless the song says) at the song's tempo (90 if unset),
 // shown large and quiet over the reading point, with a soft click.
 let audio = null;
 function click(accent) {
@@ -2016,13 +2017,14 @@ function countIn(song) {
     el.className = "countin";
     el.style.top = (innerHeight * READ_AT - 60) + "px";
     document.body.appendChild(el);
-    let n = 4;
+    const beats = song.beats || 4;
+    let n = beats;
     const tick = () => {
       if (!scroll.on) { el.remove(); return resolve(false); }
       if (n === 0) { el.remove(); return resolve(true); }
-      el.textContent = 5 - n;
+      el.textContent = beats + 1 - n;
       el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse");
-      click(n === 4);
+      click(n === beats);
       n--;
       scroll.countTimer = setTimeout(tick, beat);
     };
