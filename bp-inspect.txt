@@ -1,0 +1,106 @@
+== versions
+@spotify/basic-pitch 1.0.1
+@tensorflow/tfjs 4.22.0
+esbuild 0.28.2
+== basic-pitch package.json
+{
+ "main": "cjs/index.js",
+ "module": "esm/index.js",
+ "types": "types",
+ "dependencies": {
+  "@tensorflow/tfjs": "^3.2.0",
+  "@tonejs/midi": "^2.0.28"
+ },
+ "license": "Apache-2.0"
+}
+== files
+node_modules/@webgpu/types/dist/index.d.ts
+node_modules/@webgpu/types/LICENSE
+node_modules/@webgpu/types/README.md
+node_modules/@webgpu/types/package.json
+node_modules/@tensorflow/tfjs-backend-webgl/dist/backend_webgl_test_registry.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/pool_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/batchnorm_packed_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/argminmax_packed_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tf-backend-webgl.fesm.js.map
+node_modules/@tensorflow/tfjs-backend-webgl/dist/argminmax_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/depth_to_space_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/concat_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/top_k_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/im2col_packed_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/pack_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/version.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/conv_packed_gpu_depthwise.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/crop_and_resize_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/int.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/shared.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/reshape.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/kernel_funcs_utils.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/arg_min_max.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/arg_min_max.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/int.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/kernel_funcs_utils.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/shared.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/reduce.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/reshape.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/kernel_utils/reduce.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/resize_nearest_neighbor_backprop_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/mean_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/argminmax_packed_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/transpose_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tfjs-backend-webgl_lib.externs.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tf-backend-webgl.node.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/clip_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/reverse_packed_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/resize_bilinear_backprop_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/segment_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/avg_pool_backprop_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/fft_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/diag_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/transform_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/reduce_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/binaryop_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/gpgpu_math.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/glsl_version.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/encode_float_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tf-backend-webgl.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tf-backend-webgl.fesm.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/pad_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/index.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/slice_packed_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/gather_nd_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/reduce_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/texture_manager.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/encode_float_packed_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/canvas_util.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/addn_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/webgl.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/multinomial_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tile_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/backend_webgl.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/dilation_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/encode_matrix_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/webgl_types.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/select_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/conv_packed_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/fft_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/glsl_version.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/mirror_pad_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/mulmat_packed_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/backend_webgl_test_registry.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/tf-backend-webgl.fesm.min.js.map
+node_modules/@tensorflow/tfjs-backend-webgl/dist/binaryop_complex_gpu.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/conv_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/depth_to_space_gpu.d.ts
+node_modules/@tensorflow/tfjs-backend-webgl/dist/gpgpu_context.js
+node_modules/@tensorflow/tfjs-backend-webgl/dist/register_all_kernels.js
+sed: couldn't write 73 items to stdout: Broken pipe
+find: ‘standard output’: Broken pipe
+find: write error
+== model sizes
+172	node_modules/@spotify/basic-pitch/model/model.json
+728	node_modules/@spotify/basic-pitch/model/group1-shard1of1.bin
+904	node_modules/@spotify/basic-pitch/model
+== install tail
+
+added 82 packages in 8s
