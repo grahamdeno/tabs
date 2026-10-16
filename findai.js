@@ -290,46 +290,76 @@ export function wordsSheet(chart, { title = "", ok = "Done", text = "" } = {}, d
 
 // ---- What can I play next? ----
 // Sends only the chords you know and your song titles; suggests well-known songs
-// that use mostly those chords, with at most one new chord to learn.
+// that use mostly those chords. "My level" adds at most one new chord; "A step
+// up" (2.12) asks for songs a little harder than the ones you have: up to two
+// new chords or a trickier change or rhythm. The choice is remembered.
 const NEXT_SYSTEM = `You suggest songs a guitarist could learn next. You get the chords they already play and the songs they already have.
-Reply with JSON only: {"songs": [{"title": string, "artist": string, "chords": [string], "new": string, "why": string}]}
+Reply with JSON only: {"songs": [{"title": string, "artist": string, "chords": [string], "new": [string], "why": string}]}
 - 6 well-known songs, varied in era and style, leaning toward the styles of the songs they have.
-- Each uses mostly chords they know; "new" is at most one chord they don't know yet, or "".
-- "chords": the song's main chords in the common key. "why": under 12 words, plain, no praise.
+- "chords": the song's main chords in the common key. "new": the chords in it they don't play yet.
 - Not songs they already have. No lyrics.`;
+const NEXT_LEVEL = {
+  same: `- Their level: each song uses mostly chords they know; "new" has at most one chord.
+- "why": under 12 words, plain, no praise.`,
+  step: `- A step up: each song is a little harder than the hardest songs they have, but still within reach. Up to two new chords (a barre chord, a seventh, a sus), or a quicker chord change, or a busier strum or rhythm. Not a big jump.
+- "why": under 12 words, plain, no praise, naming what makes it a step up (for example "First barre chord: F" or "Faster changes between G and C").`
+};
 export async function nextSongs() {
   const known = chordCounts(data.songs).slice(0, 24);
+  const level = () => data.settings.nextLevel === "step" ? "step" : "same";
   let state = { busy: true, list: [], err: "" };
+  const foot = oneHandMQ.matches;
   layer.innerHTML = `<div class="scrim" id="nx-scrim"></div><div class="panel full nx" role="dialog" aria-label="What can I play next?"><div class="grab"></div>
-    <div class="ph"><button class="tb" id="nx-x">Close</button><h2>Play next</h2><span style="width:56px"></span></div><div class="pbody" id="nx-body"></div></div>`;
+    <div class="ph"><button class="tb" id="nx-x">Close</button><h2>Play next</h2><span style="width:56px"></span></div><div class="pbody" id="nx-body"></div>${foot ? `<div class="pfoot" id="nx-foot"></div>` : ""}</div>`;
   const close = () => { layer.innerHTML = ""; };
   $("nx-scrim").onclick = close; $("nx-x").onclick = close;
+  const controls = () => `<div class="nx-ctl">
+      <div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}>${n}</button>`).join("")}</div>
+      <button class="btn" id="nx-more"${state.busy || state.err ? " hidden" : ""}>Show different songs</button></div>`;
+  const bindControls = () => {
+    document.querySelectorAll("#nx-level [data-lv]").forEach(b => b.onclick = () => {
+      if (b.dataset.lv === level()) return;
+      data.settings.nextLevel = b.dataset.lv; Tabs.save(data); load();
+    });
+    const more = $("nx-more");
+    if (more) more.onclick = () => load(state.list.map(x => x.title));
+  };
   const paint = () => {
     const body = $("nx-body");
     if (!body) return;
-    if (state.busy) { body.innerHTML = `<div class="easy-wait">${busy("Looking for songs that fit your chords")}</div>`; return; }
-    if (state.err) { body.innerHTML = `<p class="err">${esc(state.err)}</p><button class="btn" id="nx-again">Try again</button>`; $("nx-again").onclick = load; return; }
-    body.innerHTML = `
-      <p class="easy-note">You play ${known.length} chords. These songs use mostly those${state.list.some(x => x.new) ? ", plus one new chord to learn" : ""}.</p>
+    if (foot) $("nx-foot").innerHTML = controls();
+    const tail = foot ? "" : controls();
+    if (state.busy) body.innerHTML = `<div class="easy-wait">${busy(level() === "step" ? "Looking for songs a step up from yours" : "Looking for songs that fit your chords")}</div>${tail}`;
+    else if (state.err) { body.innerHTML = `<p class="err">${esc(state.err)}</p><button class="btn" id="nx-again">Try again</button>${tail}`; $("nx-again").onclick = () => load(); }
+    else {
+      const anyNew = state.list.some(x => x.new.length);
+      const note = level() === "step"
+        ? `A step up from your songs: a few new chords or trickier changes, still within reach.`
+        : `You play ${known.length} chords. These songs use mostly those${anyNew ? ", plus one new chord to learn" : ""}.`;
+      body.innerHTML = `
+      <p class="easy-note">${note}</p>
       <div class="list glass">${state.list.map((x, i) => `<div class="row nx-row">
-        <div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}${x.why ? ` · ${esc(x.why)}` : ""}</div>
-          <div class="nx-ch">${x.chords.map(c => `<span class="${c === x.new ? "new" : ""}">${esc(c)}</span>`).join("")}${x.new && !x.chords.includes(x.new) ? `<span class="new">${esc(x.new)}</span>` : ""}</div></div>
+        <div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}</div>${x.why ? `<div class="nx-why">${esc(x.why)}</div>` : ""}
+          <div class="nx-ch">${x.chords.map(c => `<span class="${x.new.includes(c) ? "new" : ""}">${esc(c)}</span>`).join("")}${x.new.filter(c => !x.chords.includes(c)).map(c => `<span class="new">${esc(c)}</span>`).join("")}</div></div>
         <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary" data-nc="${i}">Chart</button></div>
-      </div>`).join("")}</div>
-      <button class="btn" id="nx-more" style="margin-top:12px;width:100%">Show different songs</button>`;
-    body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
-    body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist }) : null; });
-    $("nx-more").onclick = () => load(state.list.map(x => x.title));
+      </div>`).join("")}</div>${tail}`;
+      body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
+      body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist }) : null; });
+    }
+    bindControls();
   };
   const load = async (skip = []) => {
+    const lv = level();
     state = { busy: true, list: [], err: "" }; paint();
     try {
       const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 80).join("; ");
-      const j = parseJSON(await askClaude({ system: NEXT_SYSTEM, maxTokens: 2500,
+      const j = parseJSON(await askClaude({ system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 2500,
         content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}` }));
+      if (lv !== level()) return; // switched while this was loading
       const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
-      state = { busy: false, err: "", list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: ok(x.new) ? x.new : "", why: String(x.why || "").slice(0, 80) })) };
-    } catch (e) { state = { busy: false, list: [], err: aiError(e) }; }
+      const max = lv === "step" ? 2 : 1;
+      state = { busy: false, err: "", list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: [].concat(x.new || []).filter(ok).slice(0, max), why: String(x.why || "").slice(0, 80) })) };
+    } catch (e) { if (lv !== level()) return; state = { busy: false, list: [], err: aiError(e) }; }
     paint();
   };
   load();
