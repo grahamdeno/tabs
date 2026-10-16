@@ -467,7 +467,16 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .nx-b { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: none; }
 .nx-ctl { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .pfoot .nx-ctl { margin-top: 0; }
+.nx-ctl > *, .nx-ctl > .btn.primary { flex: none; }
 .nx-ctl .seg { width: 100%; }
+.nx-err { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 40px 12px 12px; }
+.nx-err > svg { width: 28px; height: 28px; color: var(--accent); opacity: .8; margin-bottom: 4px; }
+.nx-err b { font-size: 17px; font-weight: 600; color: var(--fg); }
+.nx-err p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--fg-2); max-width: 30ch; }
+.nx-err details { margin-top: 10px; width: 100%; text-align: left; font-size: 13px; color: var(--muted); }
+.nx-err summary { text-align: center; cursor: pointer; }
+.nx-err pre { margin: 8px 0 0; padding: 10px; border-radius: 10px; background: var(--card); border: 1px solid var(--rim); white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 40vh; overflow: auto; }
+.nx .pbody .nx-ctl .btn, .nx-ctl .btn { width: 100%; }
 .nx-ctl .seg button { flex: 1; height: 36px; }
 .nx-why { font-size: 13px; color: var(--fg-2); margin-top: 3px; line-height: 1.35; }
 

@@ -479,9 +479,26 @@ function aiError(e) {
   return `Request failed (HTTP ${st}).`;
 }
 
+// The first whole JSON object in a reply. Skips code fences, words before or
+// after, and stray braces in that text (2.12.1: a "{" in a note ahead of the
+// JSON made Play next fail every time). A trailing comma is forgiven.
 function parseJSON(text) {
-  const m = String(text).match(/\{[\s\S]*\}/);
-  try { return JSON.parse(m[0]); } catch { throw Object.assign(new Error("bad json"), { status: -1 }); }
+  const t = String(text);
+  for (let i = t.indexOf("{"); i >= 0; i = t.indexOf("{", i + 1)) {
+    let depth = 0, str = false, esc = false;
+    for (let k = i; k < t.length; k++) {
+      const c = t[k];
+      if (str) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') str = false; continue; }
+      if (c === '"') str = true;
+      else if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) {
+        const s = t.slice(i, k + 1);
+        for (const x of [s, s.replace(/,\s*([}\]])/g, "$1")]) { try { const j = JSON.parse(x); if (j && typeof j === "object") return j; } catch { /* next */ } }
+        break;
+      }
+    }
+  }
+  throw Object.assign(new Error("bad json"), { status: -1, raw: t.slice(0, 600) });
 }
 
 const CLEAN_SYSTEM = `You format guitar chord sheets for a phone app. The input is one song, pasted from a website or photographed from a page.

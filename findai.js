@@ -294,7 +294,7 @@ export function wordsSheet(chart, { title = "", ok = "Done", text = "" } = {}, d
 // up" (2.12) asks for songs a little harder than the ones you have: up to two
 // new chords or a trickier change or rhythm. The choice is remembered.
 const NEXT_SYSTEM = `You suggest songs a guitarist could learn next. You get the chords they already play and the songs they already have.
-Reply with JSON only: {"songs": [{"title": string, "artist": string, "chords": [string], "new": [string], "why": string}]}
+Reply with JSON only, no other text and no code fences: {"songs": [{"title": string, "artist": string, "chords": [string], "new": [string], "why": string}]}
 - 6 well-known songs, varied in era and style, leaning toward the styles of the songs they have.
 - "chords": the song's main chords in the common key. "new": the chords in it they don't play yet.
 - Not songs they already have. No lyrics.`;
@@ -315,14 +315,15 @@ export async function nextSongs() {
   $("nx-scrim").onclick = close; $("nx-x").onclick = close;
   const controls = () => `<div class="nx-ctl">
       <div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}>${n}</button>`).join("")}</div>
-      <button class="btn" id="nx-more"${state.busy || state.err ? " hidden" : ""}>Show different songs</button></div>`;
+      ${state.busy ? "" : state.err ? `<button class="btn primary" id="nx-again">Try again</button>` : `<button class="btn" id="nx-more">Show different songs</button>`}</div>`;
   const bindControls = () => {
     document.querySelectorAll("#nx-level [data-lv]").forEach(b => b.onclick = () => {
       if (b.dataset.lv === level()) return;
       data.settings.nextLevel = b.dataset.lv; Tabs.save(data); load();
     });
-    const more = $("nx-more");
+    const more = $("nx-more"), again = $("nx-again");
     if (more) more.onclick = () => load(state.list.map(x => x.title));
+    if (again) again.onclick = () => load(state.skip);
   };
   const paint = () => {
     const body = $("nx-body");
@@ -330,7 +331,8 @@ export async function nextSongs() {
     if (foot) $("nx-foot").innerHTML = controls();
     const tail = foot ? "" : controls();
     if (state.busy) body.innerHTML = `<div class="easy-wait">${busy(level() === "step" ? "Looking for songs a step up from yours" : "Looking for songs that fit your chords")}</div>${tail}`;
-    else if (state.err) { body.innerHTML = `<p class="err">${esc(state.err)}</p><button class="btn" id="nx-again">Try again</button>${tail}`; $("nx-again").onclick = () => load(); }
+    else if (state.err) body.innerHTML = `<div class="nx-err" role="alert">${icon("wand")}<b>No suggestions this time</b><p>${esc(state.err)}</p>
+        ${state.raw ? `<details><summary>What came back</summary><pre>${esc(state.raw)}</pre></details>` : ""}</div>${tail}`;
     else {
       const anyNew = state.list.some(x => x.new.length);
       const note = level() === "step"
@@ -350,16 +352,23 @@ export async function nextSongs() {
   };
   const load = async (skip = []) => {
     const lv = level();
-    state = { busy: true, list: [], err: "" }; paint();
+    state = { busy: true, list: [], err: "", skip }; paint();
     try {
       const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 80).join("; ");
-      const j = parseJSON(await askClaude({ system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 2500,
-        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}` }));
+      const ask = () => askClaude({ system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 4000,
+        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}` });
+      // An unreadable reply is usually a one-off, so ask once more before saying so.
+      let j;
+      try { j = parseJSON(await ask()); } catch (e) { if (e.status !== -1 || lv !== level()) throw e; j = parseJSON(await ask()); }
       if (lv !== level()) return; // switched while this was loading
       const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
       const max = lv === "step" ? 2 : 1;
-      state = { busy: false, err: "", list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: [].concat(x.new || []).filter(ok).slice(0, max), why: String(x.why || "").slice(0, 80) })) };
-    } catch (e) { if (lv !== level()) return; state = { busy: false, list: [], err: aiError(e) }; }
+      state = { busy: false, err: "", skip, list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: [].concat(x.new || []).filter(ok).slice(0, max), why: String(x.why || "").slice(0, 80) })) };
+      if (!state.list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
+    } catch (e) {
+      if (lv !== level()) return;
+      state = { busy: false, list: [], skip, err: e.status === -1 ? "The reply came back in a form Tabs couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || "" };
+    }
     paint();
   };
   load();
