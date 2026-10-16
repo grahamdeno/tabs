@@ -364,6 +364,60 @@ export function playsThisWeek(song, now = Date.now()) {
   return Object.entries(song.playLog?.days || {}).reduce((n, [k, c]) => n + (k >= from ? c : 0), 0);
 }
 
+// ---------- Strum it (2.9): chords from played notes ----------
+// Notes come from Basic Pitch ({ midi, start, dur, amp }), many at once. A strum
+// is a burst of note starts; between strums, the notes still sounding are
+// weighed by pitch class (louder and longer count more, the lowest note a
+// little extra as the bass) and matched to chord shapes. Repeats merge.
+const STRUM_NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const SHAPES = [["", [0, 4, 7], 0], ["m", [0, 3, 7], 0], ["7", [0, 4, 7, 10], 0.06], ["m7", [0, 3, 7, 10], 0.06], ["maj7", [0, 4, 7, 11], 0.08], ["sus4", [0, 5, 7], 0.08], ["sus2", [0, 2, 7], 0.08], ["5", [0, 7], 0.12]];
+export function nameChord(w, bass = -1) {
+  const total = w.reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  let best = null, second = -Infinity;
+  for (let r = 0; r < 12; r++) for (const [suf, iv, cost] of SHAPES) {
+    const tones = iv.map(i => (r + i) % 12);
+    let inside = 0;
+    tones.forEach(t => { inside += w[t]; });
+    const missing = tones.filter(t => w[t] < total * 0.04).length;
+    const score = (inside - (total - inside) * 1.2) / total - missing * 0.35 - cost + (bass === r ? 0.12 : 0);
+    if (!best || score > best.score) { if (best) second = Math.max(second, best.score); best = { chord: STRUM_NAMES[r] + suf, root: r, score }; }
+    else second = Math.max(second, score);
+  }
+  return { chord: best.chord, root: best.root, sure: Math.max(0, Math.min(1, (best.score - second) * 4 + best.score * 0.5)) };
+}
+export function strumChords(notes, { gap = 0.09, min = 0.3 } = {}) {
+  const ns = (notes || []).filter(n => n.dur > 0.04 && n.midi >= 36 && n.midi <= 90).sort((a, b) => a.start - b.start);
+  if (!ns.length) return [];
+  const onsets = [];
+  for (const n of ns) if (!onsets.length || n.start - onsets[onsets.length - 1].last > gap) onsets.push({ at: n.start, last: n.start, count: 1 }); else { onsets[onsets.length - 1].last = n.start; onsets[onsets.length - 1].count++; }
+  const strums = onsets.filter(o => o.count >= 2);
+  const end = Math.max(...ns.map(n => n.start + n.dur));
+  const out = [];
+  strums.forEach((o, i) => {
+    const a = o.at, b = i + 1 < strums.length ? strums[i + 1].at : end;
+    const w = new Array(12).fill(0);
+    let bassMidi = 999;
+    for (const n of ns) {
+      const lap = Math.min(b, n.start + n.dur) - Math.max(a - 0.03, n.start);
+      if (lap <= 0) continue;
+      w[n.midi % 12] += (n.amp || 0.5) * Math.min(lap, 1);
+      if (n.start <= o.last + 0.03 && n.start >= a - 0.03) bassMidi = Math.min(bassMidi, n.midi);
+    }
+    const c = nameChord(w, bassMidi < 999 ? bassMidi % 12 : -1);
+    if (!c) return;
+    const prev = out[out.length - 1];
+    if (prev && prev.chord === c.chord) { prev.dur = b - prev.at; prev.strums++; prev.sure = Math.max(prev.sure, c.sure); }
+    else out.push({ chord: c.chord, at: a, dur: b - a, strums: 1, sure: c.sure });
+  });
+  /* A blip shorter than min between two of the same chord folds into them. */
+  return out.filter((c, i) => c.dur >= min || out.length === 1 || i === out.length - 1).reduce((acc, c) => { const p = acc[acc.length - 1]; if (p && p.chord === c.chord) { p.dur = c.at + c.dur - p.at; p.strums += c.strums; } else acc.push({ ...c }); return acc; }, []);
+}
+// Single notes of a riff (no strum): the notes in order, as names with octave.
+export function riffNotes(notes) {
+  return (notes || []).filter(n => n.dur > 0.06).sort((a, b) => a.start - b.start).map(n => ({ midi: n.midi, name: STRUM_NAMES[n.midi % 12] + (Math.floor(n.midi / 12) - 1), at: n.start, dur: n.dur }));
+}
+
 // ---------- Today: practice streak and a nudge (2.8) ----------
 // A day counts when any song was played to its end (the play log). The streak
 // runs back from today, or from yesterday while today has no play yet.
