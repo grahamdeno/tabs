@@ -1057,3 +1057,14 @@ test("the AI rules hold: charts never carry lyrics; German only translates the l
   assert.match(de, /Translate only the lines given\. Never add, complete or look up lyrics\./);
   assert.match(read("README.md"), /Translation exception \(German practice\)/);
 });
+test("deSpans: Common is a small step up from Basic: two more words a line at most, nouns first", () => {
+  const sw = [
+    { w: 0, n: 1, l: 2, de: "Graue", g: "" }, { w: 1, n: 1, l: 1, de: "Boote", g: "das" },
+    { w: 3, n: 1, l: 2, de: "langsam", g: "" }, { w: 5, n: 1, l: 2, de: "Hafen", g: "der" },
+    { w: 7, n: 1, l: 2, de: "Mauer", g: "die" }, { w: 0, n: 8, l: 3, de: "ganze Zeile", g: "" }];
+  assert.deepEqual(C.deSpans(sw, 1).map(x => x.de), ["Boote"]);
+  assert.deepEqual(C.deSpans(sw, 2).map(x => x.de), ["Boote", "Hafen", "Mauer"], "Basic plus two nouns; the adjective and adverb wait");
+  assert.deepEqual(C.deSpans(sw.filter(x => x.g === "" && x.l === 2), 2).map(x => x.de), ["Graue", "langsam"], "with no nouns, two others");
+  assert.deepEqual(C.deSpans(sw, 3).map(x => x.de), ["ganze Zeile"], "Intermediate: the phrase");
+  assert.equal(C.deSpans(sw.filter(x => x.l !== 3), 3).length, 5, "Intermediate without a phrase: every word");
+});

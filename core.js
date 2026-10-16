@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.11.0";
+export const VERSION = "2.11.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -509,7 +509,13 @@ export function deSpans(swaps, level) {
   const chosen = [], free = (w, n) => !chosen.some(c => w < c.w + c.n && c.w < w + n);
   const pick = list => list.forEach(x => { if (free(x.w, x.n)) chosen.push(x); });
   if (level >= 3) pick(swaps.filter(x => x.l === 3).sort((a, b) => b.n - a.n));
-  pick(swaps.filter(x => x.l <= Math.min(level, 2)).sort((a, b) => a.l - b.l));
+  /* Common is a small step up from Basic (2.11.1): at most two more words a
+     line, nouns before adjectives and adverbs, single words before pairs.
+     Intermediate takes them all. */
+  const common = swaps.filter(x => x.l === 2).sort((a, b) => (!!b.g - !!a.g) || a.n - b.n || a.w - b.w);
+  pick(swaps.filter(x => x.l === 1));
+  if (level >= 3) pick(common);
+  else if (level === 2) common.forEach(x => { if (chosen.filter(c => c.l === 2).length < 2 && free(x.w, x.n)) chosen.push(x); });
   return chosen.sort((a, b) => a.w - b.w);
 }
 const edge = t => { const m = /^([^\p{L}\p{N}]*)([\s\S]*?)([^\p{L}\p{N}]*)$/u.exec(t); return { lead: m[1], trail: m[3] }; };

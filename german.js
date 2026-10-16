@@ -11,7 +11,7 @@ const SYSTEM = `You help an English speaker learn German through songs they play
 - "de": the whole line in natural, singable German, not word for word, about the same length.
 - "s": swaps that replace English words in place. Words are numbered from 0, split by spaces exactly as given; "w" is the first word replaced, "n" how many. Never put punctuation in a swap's "de".
 - l 1 (Basic): up to two very common nouns or fixed words per line (night, love, home, heart, day, yes, no, today).
-- l 2 (Common): other everyday nouns, adjectives and adverbs, in the form they take here (adjective endings, plural nouns). No verbs at levels 1 and 2.
+- l 2 (Common): other everyday nouns, adjectives and adverbs, in the form they take here (adjective endings, plural nouns). No verbs at levels 1 and 2. (The app shows at most two of these a line at Common, nouns first, and all of them at Intermediate, so mark every one you find.)
 - l 3 (Intermediate): phrases of two or more words, verbs included, in correct German grammar, together covering most of the line. They may contain level 1 and 2 words.
 - Swaps of one level never overlap each other.
 - Nouns: "g" the singular article, "lemma" the singular with article ("das Boot"), "pl" the plural with article ("die Boote"). Other words: "g" "", "lemma" the dictionary form.
