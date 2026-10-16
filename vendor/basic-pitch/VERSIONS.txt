@@ -1,0 +1,4 @@
+@spotify/basic-pitch 1.0.1 (Apache-2.0)
+@tensorflow/tfjs 3.21.0 (Apache-2.0)
+tfjs copies: 1
+Bundled by .github/workflows/vendor-bp.yml
