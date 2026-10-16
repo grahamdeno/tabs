@@ -15,7 +15,7 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
   await page.route(/api\.anthropic\.com/, r => {
     const sys = JSON.stringify(JSON.parse(r.request().postData()).system);
     systems.push(sys);
-    r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(/A step up/.test(sys) ? STEP : SAME) }], stop_reason: "end_turn" }) });
+    r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(/real step up/.test(sys) ? STEP : SAME) }], stop_reason: "end_turn" }) });
   });
   await page.reload(); await page.waitForTimeout(400);
   await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
@@ -25,7 +25,7 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
   assert.equal(await page.getAttribute("#nx-level [data-lv='same']", "aria-pressed"), "true");
 
   await page.click("#nx-level [data-lv='step']"); await page.waitForTimeout(500);
-  assert.match(systems[1], /A step up/);
+  assert.match(systems[1], /real step up/);
   const body = await page.innerText("#nx-body");
   assert.match(body, /Breakwater/); assert.match(body, /First barre chords/); assert.match(body, /A step up from your songs/);
   assert.equal(await page.locator(".nx-ch span.new").count(), 2, "both new chords are marked");
@@ -33,7 +33,7 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
   await page.click("#nx-x"); await page.waitForTimeout(200);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.nextLevel, "step");
   await page.click("#nextidea"); await page.waitForTimeout(500);
-  assert.match(systems[2], /A step up/, "the choice is remembered");
+  assert.match(systems[2], /real step up/, "the choice is remembered");
 });
 
 // 2.12.1: replies with a stray brace before the JSON, one bad reply, or two.
@@ -76,4 +76,22 @@ test("Play next: two unreadable replies show a clear message, Try again in the f
   await page.click("#nx-again"); await page.waitForTimeout(700);
   assert.match(await page.innerText("#nx-body"), /Breakwater/);
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/nx-ok.png" });
+});
+
+test("Play next: songs already shown are sent along so the list moves on (2.13.1)", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => { localStorage.setItem("tabs.apikey.v1", "sk-ant-test"); localStorage.removeItem("tabs.nextseen.v1"); });
+  const asks = [];
+  await page.route(/api\.anthropic\.com/, r => {
+    asks.push(JSON.parse(r.request().postData()).messages[0].content);
+    r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(SAME) }], stop_reason: "end_turn" }) });
+  });
+  await page.reload(); await page.waitForTimeout(400);
+  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
+  await page.click("#nextidea"); await page.waitForTimeout(500);
+  assert.doesNotMatch(asks[0], /Already suggested/);
+  await page.click("#nx-x"); await page.waitForTimeout(200);
+  await page.click("#nextidea"); await page.waitForTimeout(500);
+  assert.match(asks[1], /Already suggested: Low Tide/);
+  assert.match(asks[1], /Variety number: \d+/);
 });

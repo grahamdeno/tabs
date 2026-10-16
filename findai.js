@@ -297,13 +297,25 @@ const NEXT_SYSTEM = `You suggest songs a guitarist could learn next. You get the
 Reply with JSON only, no other text and no code fences: {"songs": [{"title": string, "artist": string, "chords": [string], "new": [string], "why": string}]}
 - 6 well-known songs, varied in era and style, leaning toward the styles of the songs they have.
 - "chords": the song's main chords in the common key. "new": the chords in it they don't play yet.
-- Not songs they already have. No lyrics.`;
+- Not songs they already have, and not songs listed as already suggested. Skip the picks that top every beginner list unless one fits unusually well; include some less expected songs.
+- No lyrics.`;
 const NEXT_LEVEL = {
   same: `- Their level: each song uses mostly chords they know; "new" has at most one chord.
 - "why": under 12 words, plain, no praise.`,
-  step: `- A step up: each song is a little harder than the hardest songs they have, but still within reach. Up to two new chords (a barre chord, a seventh, a sus), or a quicker chord change, or a busier strum or rhythm. Not a big jump.
-- "why": under 12 words, plain, no praise, naming what makes it a step up (for example "First barre chord: F" or "Faster changes between G and C").`
+  step: `- A real step up (2.13.1): every song must clearly stretch them past the hardest songs they have. Each brings at least two of these: two or three chords they don't play, including a full barre chord (F, Bm, B, C#m, F#m) or a seventh or extended chord; fast or frequent chord changes; a riff, lead line or single-note intro; fingerpicking or a syncopated or muted strum. Learnable in a week or two of practice. No beginner songs.
+- "why": under 12 words, plain, no praise, naming what makes it harder (for example "Barre chords F and Bm, plus a picked intro").`
 };
+const SEEN = "tabs.nextseen.v1";
+function nextSeen(add = []) {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(SEEN) || "[]"); } catch {}
+  if (!Array.isArray(list)) list = [];
+  if (add.length) {
+    list = [...add, ...list.filter(t => !add.includes(t))].slice(0, 60);
+    try { localStorage.setItem(SEEN, JSON.stringify(list)); } catch {}
+  }
+  return list.filter(t => typeof t === "string").slice(0, 60);
+}
 export async function nextSongs() {
   const known = chordCounts(data.songs).slice(0, 24);
   const level = () => data.settings.nextLevel === "step" ? "step" : "same";
@@ -336,7 +348,7 @@ export async function nextSongs() {
     else {
       const anyNew = state.list.some(x => x.new.length);
       const note = level() === "step"
-        ? `A step up from your songs: a few new chords or trickier changes, still within reach.`
+        ? `A step up from your songs: barre chords, faster changes, riffs or picking.`
         : `You play ${known.length} chords. These songs use mostly those${anyNew ? ", plus one new chord to learn" : ""}.`;
       body.innerHTML = `
       <p class="easy-note">${note}</p>
@@ -355,15 +367,19 @@ export async function nextSongs() {
     state = { busy: true, list: [], err: "", skip }; paint();
     try {
       const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 80).join("; ");
+      // Songs already shown (last 60, kept on this phone) go along so the list
+      // moves on instead of repeating, with a fresh number to vary the picks.
+      const seen = nextSeen().filter(t => !skip.includes(t));
       const ask = () => askClaude({ system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 4000,
-        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}` });
+        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` });
       // An unreadable reply is usually a one-off, so ask once more before saying so.
       let j;
       try { j = parseJSON(await ask()); } catch (e) { if (e.status !== -1 || lv !== level()) throw e; j = parseJSON(await ask()); }
       if (lv !== level()) return; // switched while this was loading
       const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
-      const max = lv === "step" ? 2 : 1;
+      const max = lv === "step" ? 3 : 1;
       state = { busy: false, err: "", skip, list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: [].concat(x.new || []).filter(ok).slice(0, max), why: String(x.why || "").slice(0, 80) })) };
+      nextSeen(state.list.map(x => x.title));
       if (!state.list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
     } catch (e) {
       if (lv !== level()) return;
