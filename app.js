@@ -418,19 +418,42 @@ function bindRows(list) {
 const AI = { store: "tabs.apikey.v1", fast: "claude-haiku-5-5", vision: "claude-sonnet-5-5" };
 function aiKey() { try { return localStorage.getItem(AI.store) || ""; } catch { return ""; } }
 
-async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, key = aiKey() }) {
+// stream: the reply arrives as it's written. A long reply (German practice)
+// otherwise keeps the connection silent for a minute or more, and iPhone gives
+// up on it, which looks like "Could not reach Anthropic" (2.11).
+async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, key = aiKey(), stream = false }) {
   let r;
   try {
     r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content }] })
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content }], ...(stream ? { stream: true } : {}) })
     });
   } catch { throw Object.assign(new Error("network"), { status: 0, model }); }
   if (!r.ok) {
     // Read Anthropic's error body so the real reason can be explained.
     const j = await r.json().catch(() => ({}));
     throw Object.assign(new Error(j?.error?.message || "HTTP " + r.status), { status: r.status, model });
+  }
+  if (stream && r.body && /event-stream/.test(r.headers.get("content-type") || "")) {
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "", text = "";
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        for (let k = buf.indexOf("\n\n"); k >= 0; k = buf.indexOf("\n\n")) {
+          const data = buf.slice(0, k).split("\n").filter(l => l.startsWith("data:")).map(l => l.slice(5).trim()).join("");
+          buf = buf.slice(k + 2);
+          if (!data) continue;
+          let ev; try { ev = JSON.parse(data); } catch { continue; }
+          if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") text += ev.delta.text;
+          else if (ev.type === "error") throw Object.assign(new Error(ev.error?.message || "stream error"), { status: ev.error?.type === "overloaded_error" ? 529 : 500, model });
+        }
+      }
+    } catch (e) { if (e.status) throw e; throw Object.assign(new Error("network"), { status: 0, model }); }
+    return text;
   }
   const j = await r.json();
   return (j.content || []).filter(c => c.type === "text").map(c => c.text).join("");
@@ -723,8 +746,7 @@ function renderViewer(id) {
     /* German practice: only while the translation matches the words on screen. */
     const lvl = song.deLevel || 0, fresh = song.de && song.de.src === deSource(sungText(blocks));
     if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true });
-    const dc = $("dechip");
-    if (dc) { dc.hidden = !song.de; dc.innerHTML = `<b>DE</b>${!fresh ? "Update" : DE_LEVELS[lvl]}`; dc.classList.toggle("on", !!(lvl && fresh)); }
+    paintDeChip(song, fresh, lvl);
     renderBlocks(sheet, blocks);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
@@ -809,6 +831,8 @@ function renderViewer(id) {
       input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
       done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
+  /* German practice: the level dial once the song is translated, else the sheet to translate it. */
+  const deOpen = () => { const fresh = song.de && song.de.src === deSource(sungText(parseBlocks(song.body || ""))); if (fresh && !deJobs.has(song.id)) deDial(); else germanSheet(song, () => draw()); };
   /* German practice level on the corner dial: Off, Basic … Fluent. */
   const deDial = () => {
     const was = song.deLevel || 0;
@@ -830,8 +854,8 @@ function renderViewer(id) {
       isChords && { id: "nn", slot: 3, label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
       { id: "more", slot: 4, label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
       inSet && { id: "set", slot: 5, label: "Set", icon: icon("listplus"), run: () => setDial(null) },
-      /* German practice takes the last place when it isn't the set's (in a set it's in More). */
-      !inSet && song.de && { id: "de", slot: 5, label: () => `German: ${DE_LEVELS[song.deLevel || 0]}`, icon: `<b class="ri-t">DE</b>`, active: () => !!song.deLevel, run: () => deDial() }
+      /* German practice: the last place (after Set in a set, where the ring widens to seven). */
+      deEligible(song) && { id: "de", slot: inSet ? 6 : 5, label: () => deJobs.has(song.id) ? "German: translating" : song.de ? `German: ${DE_LEVELS[song.deLevel || 0]}` : "German practice", icon: `<b class="ri-t">DE</b>`, active: () => !!(song.de && song.deLevel), run: () => deOpen() }
     ].filter(Boolean),
     grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
     letGo: () => { hold.touching = false; releaseSoon(250); },
@@ -1535,7 +1559,6 @@ function songMenu(song, anchor, redrawSong) {
     { id: "edit", icon: "edit", label: "Edit" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
-    (aiKey() || song.de) && firstLyric(song.body) && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
     song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
   ].filter(Boolean);
   const m = document.createElement("div");
@@ -1657,9 +1680,36 @@ function wordsFor(song) {
     toast("Words added. Check the chord spots by ear", null, { label: "Undo", fn: () => { song.body = was; Tabs.save(data); render(); } });
   }));
 }
+// German practice: songs with words, when there's a key or a translation.
+// The chip under the title is its home in every layout; it shows progress
+// while a translation runs in the background (german.js keeps deJobs).
+const deJobs = new Map();
+const deEligible = song => !!firstLyric(song.body) && (!!aiKey() || !!song.de);
+function paintDeChip(song, fresh, lvl) {
+  const dc = $("dechip");
+  if (!dc) return;
+  const job = deJobs.get(song.id);
+  dc.hidden = !deEligible(song);
+  dc.classList.toggle("on", !!(lvl && fresh) || !!job);
+  dc.classList.toggle("busy", !!job);
+  dc.style.setProperty("--p", job ? (job.done / Math.max(1, job.total)).toFixed(2) : 0);
+  dc.innerHTML = `<b>DE</b>${job ? `${job.done} of ${job.total} lines` : !song.de ? "German" : !fresh ? "Update" : song.de.lines?.some(l => !l) ? "Finish" : DE_LEVELS[lvl]}`;
+}
+// A translation's progress: the chip now; the sheet once lines land (not
+// mid-song: it waits for a pause so the scrolling doesn't jump).
+let deWaiting = 0;
+document.addEventListener("tabs:de-progress", e => {
+  if (!viewing || viewing.id !== e.detail?.id || route().name !== "song") return;
+  const blocks = parseBlocks(viewing.body || ""), fresh = viewing.de && viewing.de.src === deSource(sungText(blocks));
+  paintDeChip(viewing, fresh, viewing.deLevel || 0);
+  if (!e.detail.lines) return;
+  if (!scroll.on) { redraw?.(); return; }
+  clearInterval(deWaiting);
+  deWaiting = setInterval(() => { if (!scroll.on) { clearInterval(deWaiting); if (viewing && route().name === "song") redraw?.(); } }, 800);
+});
 // German practice loads on first use (german.js). A line translated again
 // (Report on a word card) asks the song to redraw.
-document.addEventListener("tabs:redraw", () => { if (viewing) redraw?.(); });
+document.addEventListener("tabs:redraw", () => { if (viewing && route().name === "song") redraw?.(); });
 // German practice loads on first use (german.js).
 function germanSheet(...args) { lazy("german.js").then(m => m.germanSheet(...args)); }
 // Chord charts and "What can I play next?" load on first use (findai.js).
@@ -2332,4 +2382,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
