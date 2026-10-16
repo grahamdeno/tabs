@@ -575,7 +575,7 @@ function fluentBlock(b, line, i, en) {
   return { ...b, words, en };
 }
 // Without the translations: what a backup file holds.
-export const withoutGerman = data => ({ ...data, songs: (data.songs || []).map(s => { if (!s.de) return s; const { de, ...rest } = s; return rest; }) });
+export const withoutGerman = data => ({ ...data, songs: (data.songs || []).map(s => { if (!s.de) return s; const { de: _de, ...rest } = s; return rest; }) });
 
 // ---------- Today: practice streak and a nudge (2.8) ----------
 // A day counts when any song was played to its end (the play log). The streak
