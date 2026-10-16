@@ -1585,7 +1585,6 @@ function wordsFor(song) {
 const findAI = () => lazy("findai.js");
 // Leave search mode (used when a song is added from a chart).
 function leaveSearch() { if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; } }
-function chartSheet(...args) { findAI().then(m => m.chartSheet(...args)); }
 function getSong(...args) { findAI().then(m => m.getSong(...args)); }
 function nextSongs() { findAI().then(m => m.nextSongs()); }
 
