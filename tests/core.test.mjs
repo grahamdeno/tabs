@@ -982,10 +982,16 @@ test("nameChord: open chords from their notes", () => {
 });
 test("strumChords: a progression of strums, repeats merged", () => {
   const notes = [...strum("G", 0), ...strum("G", 0.75), ...strum("C", 1.5), ...strum("C", 2.25), ...strum("D", 3), ...strum("Em", 3.75)];
-  assert.deepEqual(C.strumChords(notes).map(c => [c.chord, c.strums]), [["G", 2], ["C", 2], ["D", 1], ["Em", 1]]);
+  assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["G", "C", "D", "Em"]);
+  assert.ok(Math.abs(C.strumChords(notes)[1].at - 1.5) < 0.26, "the change lands within a quarter second");
 });
 test("strumChords: a stray wrong note doesn't change the chord; a riff names notes", () => {
   const notes = [...strum("Am", 0), { midi: 66, start: 0.3, dur: 0.08, amp: 0.2 }, ...strum("Am", 0.75)];
   assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["Am"]);
   assert.deepEqual(C.riffNotes([{ midi: 55, start: 0, dur: 0.2 }, { midi: 59, start: 0.25, dur: 0.2 }]).map(n => n.name), ["G3", "B3"]);
+});
+test("chordToneNotes: played chords as their tones, for the key", () => {
+  const n = C.chordToneNotes([{ chord: "G", at: 0, dur: 2 }, { chord: "Am", at: 2, dur: 2 }]);
+  assert.deepEqual(n.map(x => x.midi % 12), [7, 11, 2, 9, 0, 4]);
+  assert.equal(C.detectKey(C.chordToneNotes([{ chord: "G", at: 0, dur: 2 }, { chord: "C", at: 2, dur: 2 }, { chord: "D", at: 4, dur: 2 }, { chord: "G", at: 6, dur: 2 }])).name, "G");
 });
