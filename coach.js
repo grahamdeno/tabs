@@ -11,7 +11,7 @@ import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map
 // feature itself doing its thing. Callouts never block a tap and any tap
 // dismisses them. A feature you already use never gets its tip. Tips are paced
 // (30 seconds apart) unless one leads naturally into the next, and nothing shows
-// while a song plays except how to pause. Settings > Tips & gestures replays them.
+// while a song plays except how to pause. Settings > Help > Tips & gestures replays them.
 const tipsSeen = () => (data.settings.tipsSeen && typeof data.settings.tipsSeen === "object" ? data.settings.tipsSeen : {});
 const used = k => !!(data.settings.used && data.settings.used[k]);
 const tipDue = k => !tipsSeen()[k] && !used(k);
@@ -235,7 +235,7 @@ function searchOpened() {
   setTimeout(() => { const bar = document.querySelector(".cmd"); if (bar && searching) coach(bar, "", { ms: 7000, place: "below", fixed: true, html: SEARCH_LIST() }); }, 380);
 }
 
-// Settings > Tips & gestures: Show me replays a demo on a song (or the screen it belongs to).
+// Settings > Help > Tips & gestures: Show me replays a demo on a song (or the screen it belongs to).
 let pendingDemo = null;
 /* The editor asks whether a demo is waiting for it, and takes it. */
 const takeDemo = name => { if (pendingDemo !== name) return false; pendingDemo = null; return true; };
@@ -300,7 +300,7 @@ const GESTURES = [
   ["On a song", [
     ["chord", "Tap a chord", "See how to play it; tap a chord card above the song to mark everywhere it's played", "fretboard"],
     ["line", "Tap a line", "Play starts from there", "play"],
-    ["map", "Drag the song map", "Jump through the song's sections (Settings > Song map)", "sections"],
+    ["map", "Drag the song map", "Jump through the song's sections (Settings > Chord diagrams > Song map)", "sections"],
     ["nn", "Now and Next", "The chord you're on, and what's coming", "fretboard"],
     ["", "Tap the title bar", "Back to the top", "up"],
     ["", "Key", "Hold Play, then Key; or \u2212 and + in the bar on iPad (resizes tab)", "plus"],
@@ -327,7 +327,7 @@ const GESTURES = [
 ];
 function renderGestures() {
   app.innerHTML = `
-    <div class="head"><button class="ib glass" data-go="#/settings" aria-label="Back to settings">${icon("back")}</button></div>
+    <div class="head"><button class="ib glass" data-go="#/settings/help" aria-label="Back to settings">${icon("back")}</button></div>
     <h1 class="title">Tips &amp; gestures</h1>
     <p class="gs-intro">Things you can do with a tap or a drag that don't have a button. <b>Show me</b> plays the tip again where it happens.</p>
     ${GESTURES.map(([h, rows]) => `<div class="label">${h}</div><div class="list glass gs-list">${rows.map(([demo, t, s, ic]) => `

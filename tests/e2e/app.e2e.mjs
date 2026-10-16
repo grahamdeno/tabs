@@ -95,7 +95,7 @@ test("theme: Automatic follows the phone; Dark and Light override it", { skip: s
   await page.emulateMedia({ colorScheme: "dark" });
   await page.waitForTimeout(100);
   assert.equal(await theme(), "dark", "and changes with it");
-  await page.goto(base + "#/settings");
+  await page.goto(base + "#/settings/look");
   await page.waitForTimeout(200);
   await page.click("#s-theme [data-t='light']");
   assert.equal(await theme(), "light", "Light overrides a dark phone");
@@ -141,7 +141,7 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
     trash: [], settings: { v: 5, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
     covers: { s9: png }
   };
-  await page.goto(base + "#/settings");
+  await page.goto(base + "#/settings/library");
   await page.locator("#file").setInputFiles({ name: "tabs-backup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup)) });
   await page.waitForTimeout(500);
   assert.match(await page.locator("#toast").textContent(), /Imported 1 song\. Skipped 1/);
@@ -332,7 +332,7 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
 
 test("Tips & gestures lists every gesture and Show me replays a tip where it happens", { skip: skip() }, async t => {
   const page = await phone(t);
-  await page.goto(base + "#/settings");
+  await page.goto(base + "#/settings/help");
   await page.click("#s-tips");
   await page.waitForTimeout(300);
   assert.ok(await page.locator(".gs-row").count() >= 20, "all gestures listed");
@@ -389,7 +389,7 @@ test("a problem is kept, and Copy diagnostics reports it without song words or t
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-secret"));
   await page.evaluate(() => { localStorage.setItem("tabs.errors.v1", JSON.stringify([{ at: "2026-10-01T00:00:00Z", v: "1.0.0", where: "#/", msg: "Earlier problem", stack: "" }])); });
   await page.reload(); await page.waitForTimeout(300);
-  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
+  await page.goto(base + "#/settings/help"); await page.waitForTimeout(300);
   assert.match(await page.innerText("#s-diag"), /1 problem/);
   await page.click("#s-diag"); await page.waitForTimeout(300);
   const text = await page.evaluate(() => navigator.clipboard.readText());
@@ -1023,12 +1023,12 @@ test("2.5 Settings > Song map turns the section rail off and on", { skip: skip()
   const page = await phone(t);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
   assert.equal(await page.locator(".smap").count(), 1, "on by default");
-  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
+  await page.goto(base + "#/settings/diagrams"); await page.waitForTimeout(300);
   await page.click("#s-map"); await page.waitForTimeout(200);
   assert.equal(await page.getAttribute("#s-map", "aria-checked"), "false");
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
   assert.equal(await page.locator(".smap").count(), 0, "off: no rail");
-  await page.goto(base + "#/settings"); await page.waitForTimeout(300);
+  await page.goto(base + "#/settings/diagrams"); await page.waitForTimeout(300);
   await page.click("#s-map"); await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
   assert.equal(await page.locator(".smap").count(), 1, "back on");
 });
@@ -1127,4 +1127,12 @@ test("typing in Text on a phone opens writing mode; the editor fills the top and
   await page.evaluate(() => document.activeElement.blur());
   await page.waitForTimeout(100);
   assert.ok(!(await page.evaluate(() => document.body.classList.contains("writing"))), "writing mode off when the keyboard closes");
+});
+
+test("2.13 Library: no Key chip in a big library; the Tuning chip stays", { skip: skip() }, async t => {
+  const keys = ["G", "C", "D", "A", "E", "F"];
+  const songs = Array.from({ length: 14 }, (_, i) => ({ id: "k" + i, title: "Song " + i, artist: "A", format: "chords", key: keys[i % 6], tuning: i % 2 ? "dropd" : undefined, body: `[Verse]\n${keys[i % 6]}\nla` }));
+  const page = await phone(t, { ...LIB, songs });
+  assert.equal(await page.locator("#f-key").count(), 0, "no Key chip");
+  assert.equal(await page.locator("#f-tune").count(), 1, "Tuning chip still there");
 });

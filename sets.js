@@ -285,7 +285,7 @@ const big = u => String(u).replace(/\d+x\d+bb/, "600x600bb");
 // often blocks it because Apple's reply doesn't always carry the header that
 // lets a web app read it. Then the same request runs the way Apple's own docs
 // offer for web pages: as a script that hands back the results (JSONP).
-// Failures are noted (quietly) for Settings > Copy diagnostics.
+// Failures are noted (quietly) for Settings > Help > Copy diagnostics.
 let calls = 0;
 function jsonp(url, ms) {
   return new Promise((ok, fail) => {

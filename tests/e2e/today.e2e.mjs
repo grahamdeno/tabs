@@ -46,7 +46,7 @@ test("Today: quiet once you've played today; the setting turns it back to the we
   assert.match(await page.innerText("#today"), /3-day streak/);
   assert.equal(await page.locator("#nudge").count(), 0, "played today: no nudge");
   assert.equal(await page.locator("#today .t-dots i.now").count(), 0);
-  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForTimeout(300);
+  await page.evaluate(() => { location.hash = "#/settings/today"; }); await page.waitForTimeout(300);
   await page.click("#s-nudge"); await page.waitForTimeout(200);
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForTimeout(300);
   assert.match(await page.innerText("#today"), /This week: 3 plays across 1 song/);
@@ -56,7 +56,7 @@ test("Today: quiet once you've played today; the setting turns it back to the we
 test("Settings: find a city for the weather, and remove it", { skip: skip() }, async t => {
   const page = await phone(t, lib({ place: undefined }));
   await page.route(/geocoding-api\.open-meteo\.com/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ results: [{ name: "Wilmington", admin1: "North Carolina", country_code: "US", latitude: 34.2257, longitude: -77.9447 }, { name: "Wilmington", admin1: "Delaware", country_code: "US", latitude: 39.74, longitude: -75.55 }] }) }));
-  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForTimeout(300);
+  await page.evaluate(() => { location.hash = "#/settings/today"; }); await page.waitForTimeout(300);
   await page.fill("#s-city", "Wilmington");
   await page.click("#s-cityfind"); await page.waitForTimeout(300);
   assert.equal(await page.locator("[data-city]").count(), 2);

@@ -171,7 +171,7 @@ function stopLine(how = "keep") {
     const pitched = rec.frames.filter(f => f.hz > 0).length, secs = rec.frames.at(-1)?.t || 0;
     noteError(new Error(`Sketch heard no notes: ${rec.frames.length} frames over ${secs.toFixed(1)}s, ${pitched} with pitch, peak level ${(rec.peak || 0).toFixed(4)}, audio ${mic?.ctx.state || "none"} at ${mic?.ctx.sampleRate || 0} Hz, track ${mic?.stream.getAudioTracks()[0]?.readyState || "none"}${mic?.stream.getAudioTracks()[0]?.muted ? " (muted)" : ""}`), { quiet: true, where: "sketch" });
     return toast(secs < 0.6 ? "That was too short to hear. Hold the pad while you sing the whole line."
-      : !(rec.peak > 0.0005) ? "The microphone sent only silence. Settings > Copy diagnostics, and send them to me."
+      : !(rec.peak > 0.0005) ? "The microphone sent only silence. Settings > Help > Copy diagnostics, and send them to me."
       : "No steady notes were heard. Sing the line (not speak it), a little closer to the phone.");
   }
   if (!keep) { paint(); return toast(rec.i < sk.lines.length ? `Line ${rec.i + 1} kept as it was` : "That take is gone. Hold to sing it again."); }

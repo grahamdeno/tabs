@@ -63,8 +63,13 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await page.goto(base + "#/set/s"); await page.waitForTimeout(300);
     await fits("set");
     await page.goto(base + "#/settings"); await page.waitForTimeout(300);
-    await is(() => document.querySelectorAll(".set").length > 10, "settings renders");
+    await is(() => document.querySelectorAll("[data-page]").length === 8, "settings menu renders");
     await fits("settings");
+    for (const pg of ["playing", "diagrams", "look", "newsongs", "today", "keys", "library", "help"]) {
+      await page.goto(base + "#/settings/" + pg); await page.waitForTimeout(200);
+      await is(() => document.querySelectorAll(".set, .fld").length >= 1, pg + " renders");
+      await fits("settings " + pg);
+    }
     await page.goto(base + "#/trash"); await page.waitForTimeout(200);
     assert.match(await page.innerText("h1"), /Recently deleted/);
     await page.goto(base + "#/gestures"); await page.waitForTimeout(200);

@@ -1,6 +1,6 @@
 // Tabs storage care: where the library lives (IndexedDB, with a copy in
 // localStorage), the storage-full warning, asking to keep storage permanently, backups, and the
-// problems log behind Settings > Copy diagnostics.
+// problems log behind Settings > Help > Copy diagnostics.
 import { Tabs, VERSION, pickLibrary, withSavedAt, withoutGerman } from "./core.js";
 import { showToCopy, toast } from "./ui.js";
 import { coverCache } from "./sets.js";
@@ -64,7 +64,7 @@ async function loadLibrary() {
   return lib;
 }
 // ---------- Problems ----------
-// Errors are kept on this phone (the last 20) so Settings > Copy diagnostics
+// Errors are kept on this phone (the last 20) so Settings > Help > Copy diagnostics
 // can report them. The first one in a session shows a short note with a way to
 // copy the details; nothing is ever sent anywhere.
 const ERR_KEY = "tabs.errors.v1";

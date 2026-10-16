@@ -121,7 +121,7 @@ export function germanSheet(song, redraw) {
         ${state.err ? `<p class="err">${esc(state.err)}</p>` : ""}
         ${aiKey() ? `<button class="btn primary cta" id="de-go" style="width:100%">${icon("chat")}${stale ? "Translate again" : "Translate this song"}</button>
         <p class="foot" style="margin-top:10px">Uses your Anthropic key once for this song, usually a few cents. The translation stays on this phone, isn't shared or backed up, and can be deleted here.</p>`
-        : `<p class="foot">Add your Anthropic key in Settings > AI help to translate songs.</p>`}
+        : `<p class="foot">Add your Anthropic key in Settings > Keys to translate songs.</p>`}
         ${stale ? `<button class="btn" id="de-del" style="width:100%;margin-top:10px">Delete the old translation</button>` : ""}`;
       $("de-go")?.addEventListener("click", go);
       $("de-del")?.addEventListener("click", del);

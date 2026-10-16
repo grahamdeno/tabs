@@ -8,18 +8,20 @@ import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setDat
 const bpmKey = () => { try { return localStorage.getItem("tabs.bpmkey.v1") || ""; } catch { return ""; } };
 
 // ---------- Settings ----------
-let settingsDefaultsOpen = false;
 const kb = n => n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
 function renderSettings() {
   const s = data.settings;
   const t = s.transpose || 0;
   const semis = n => n === 0 ? "None" : `${n > 0 ? "+" : ""}${n} semitone${Math.abs(n) === 1 ? "" : "s"}`;
-  app.innerHTML = `
+  const page = location.hash.split("/")[2] || "";
+  const dot = k => `<i class="dot ${k ? "on" : ""}"></i>`;
+  const head = (title, back) => `
     <div class="head">
-      <button class="ib glass" id="back" aria-label="Back to library">${icon("back")}</button>
+      <button class="ib glass" id="back" aria-label="${back}">${icon("back")}</button>
     </div>
-    <h1 class="title" style="margin:14px 2px 10px">Settings</h1>
-    <div class="label">Playing</div>
+    <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
+  const PAGES = {
+    playing: ["Playing", `
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("gauge")}</span><span class="name">Speed style</span><span class="val">${s.speedMode === "multiplier" ? "1x style" : "Song length"}</span>${icon("chev", "chev")}
@@ -37,8 +39,8 @@ function renderSettings() {
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>
-    <div class="label">Chord diagrams</div>
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("fretboard")}</span><span class="name">Now and Next while playing</span>
@@ -57,6 +59,14 @@ function renderSettings() {
         <select id="s-focus" aria-label="Focus current line">
           ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
         </select>
+      </div>
+    </div>
+    <p class="foot">Tap a chord for its fingering, or a line to start from it. The song map is the rail of sections on the right edge; touch it and slide to jump to a section.</p>`],
+    look: ["Look", `
+    <div class="set-group glass">
+      <div class="set">
+        <span class="tile">${icon("moon")}</span><span class="name">Theme</span>
+        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]].map(([k, n]) => `<button data-t="${k}" class="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
       <div class="set">
         <span class="tile">${icon("play")}</span><span class="name">Song controls</span><span class="val">${s.controls === "bar" ? "Bar" : "Hold Play"}</span>${icon("chev", "chev")}
@@ -77,10 +87,10 @@ function renderSettings() {
         </select>
       </div>`}
     </div>
-    <p class="foot">Tap a chord for its fingering, or a line to start from it. The song map is the rail of sections on the right edge; touch it and slide to jump to a section. On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still. Sweep the arc to move through the song: slowly for a line or two, quickly to cover ground; one full sweep goes end to end.</p>
-    <div class="set-group glass" style="margin-top:22px">
-      <button class="set" id="s-defaults" aria-expanded="${!!settingsDefaultsOpen}"><span class="tile">${icon("sliders")}</span><span class="name">Defaults for new songs</span>${icon(settingsDefaultsOpen ? "down" : "chev", "chev")}</button>
-      ${settingsDefaultsOpen ? `${s.speedMode === "multiplier" ? `<div class="set">
+    <p class="foot">On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still. Sweep the arc to move through the song: slowly for a line or two, quickly to cover ground; one full sweep goes end to end.</p>`],
+    newsongs: ["New songs", `
+    <div class="set-group glass">
+      ${s.speedMode === "multiplier" ? `<div class="set">
         <span class="tile">${icon("gauge")}</span><span class="name">Starting speed</span><span class="val">${((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1)}x</span>${icon("chev", "chev")}
         <select id="s-speed" aria-label="Starting speed for new songs">
           ${Array.from({ length: 16 }, (_, i) => (i + 5) / 10).map(m => `<option value="${(m * SPEEDS.medium).toFixed(1)}" ${Math.abs(m * SPEEDS.medium - (s.startSpeed || SPEEDS.medium)) < 0.01 ? "selected" : ""}>${m.toFixed(1)}x</option>`).join("")}
@@ -96,16 +106,10 @@ function renderSettings() {
         <select id="s-transpose" aria-label="Default transpose">
           ${Array.from({ length: 12 }, (_, i) => i - 5).map(n => `<option value="${n}" ${n === t ? "selected" : ""}>${semis(n)}</option>`).join("")}
         </select>
-      </div>` : ""}
-    </div>
-    <div class="label">Appearance</div>
-    <div class="set-group glass">
-      <div class="set">
-        <span class="tile">${icon("moon")}</span><span class="name">Theme</span>
-        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]].map(([k, n]) => `<button data-t="${k}" class="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
     </div>
-    <div class="label">Today</div>
+    <p class="foot">Where a new song starts. Each song keeps its own once you change it.</p>`],
+    today: ["Today", `
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("flame")}</span><span class="name">Streak and daily nudge</span>
@@ -120,8 +124,10 @@ function renderSettings() {
       </div>
       <div id="s-cities"></div>` : ""}
     </div>
-    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; Tabs never asks for your location. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>
-    <div class="label">AI help</div>
+    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; Tabs never asks for your location. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
+    keys: ["Keys", `
+    <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
+    <div class="label">Anthropic · AI help</div>
     <div class="set-group glass">
       <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("wand")}</span>
         <input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Anthropic API key (sk-ant-...)" value="${esc(aiKey())}" aria-label="Anthropic API key"></label>
@@ -132,8 +138,9 @@ function renderSettings() {
         <button class="btn sm primary" id="s-savekey">Save key</button>
       </div>
     </div>
-    <p class="foot" id="s-keymsg">Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Tabs, with a low monthly spend limit.</p>
-    <div class="label">Tempo data</div>
+    <p class="foot" id="s-keymsg" aria-live="polite"></p>
+    <details class="foot s-why"><summary>What it's used for</summary>Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Tabs, with a low monthly spend limit.</details>
+    <div class="label">GetSongBPM · Tempo data</div>
     <div class="set-group glass">
       <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("metro")}</span>
         <input id="s-bpmkey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="GetSongBPM API key" value="${esc(bpmKey())}" aria-label="GetSongBPM API key"></label>
@@ -143,27 +150,60 @@ function renderSettings() {
         <button class="btn sm primary" id="s-bpmsave">Save key</button>
       </div>
     </div>
-    <p class="foot">Get the song checks the chart's tempo and time signature against GetSongBPM's measured data. The free key is at <a href="https://getsongbpm.com/api" target="_blank" rel="noopener">getsongbpm.com/api</a>; it stays on this phone and is sent only to GetSongBPM, with the song's title and artist. Words come from <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, which needs no key.</p>
-    <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>
-    <div class="label">Library</div>
+    <details class="foot s-why"><summary>What it's used for</summary>Get the song checks the chart's tempo and time signature against GetSongBPM's measured data. The free key is at <a href="https://getsongbpm.com/api" target="_blank" rel="noopener">getsongbpm.com/api</a>; it stays on this phone and is sent only to GetSongBPM, with the song's title and artist. Words come from <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, which needs no key.</details>
+    <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>`],
+    library: ["Library and backups", `
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
-      <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
-      <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>
-    <p class="foot s-ver" id="s-ver">Tabs ${VERSION}</p>`;
-  $("back").onclick = () => go("#/");
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`],
+    help: ["Help", `
+    <div class="set-group glass">
+      <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
+    </div>`]
+  };
+  if (PAGES[page]) {
+    app.innerHTML = head(PAGES[page][0], "Back to settings") + PAGES[page][1];
+  } else {
+    // The main menu: one row per page, each showing where it stands (2.13).
+    const city = s.place?.name?.split(",")[0];
+    const diagOn = [s.diagrams === true, s.pauseDiagrams !== false, s.songMap !== false, (s.focus || "always") !== "off"].filter(Boolean).length;
+    const theme = { dark: "Dark", light: "Light" }[s.theme] || "Auto";
+    const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
+    const n = data.songs.length;
+    app.innerHTML = head("Settings", "Back to library") + `
+    <div class="set-group glass">
+      ${row("playing", "play", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "Count-in", s.stage && "Stage"].filter(Boolean).join(" · "))}
+      ${row("diagrams", "fretboard", "Chord diagrams", `${diagOn} of 4 on`)}
+      ${row("look", "moon", "Look", `${theme} · ${s.controls === "bar" ? "Bar" : "Hold Play"}`)}
+      ${row("newsongs", "sliders", "New songs", `${s.speedMode === "multiplier" ? ((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1) + "x" : mmss(s.startLength || 210)} · ${t ? semis(t) : "No transpose"}`)}
+    </div>
+    <div class="set-group glass s-gap">
+      ${row("today", "flame", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
+      ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
+    </div>
+    <div class="set-group glass s-gap">
+      ${row("library", "cloud", "Library and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
+      ${row("help", "info", "Help", problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : "Tips, diagnostics", true)}
+    </div>
+    <p class="foot s-ver" id="s-ver">Tabs ${VERSION}</p>
+    <div class="s-dock"><button class="btn primary" id="s-backup">${icon("cloud")}Back up now</button><span>Last backup ${esc(ago(s.lastBackup) || "never")}</span></div>`;
+  }
+  document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/");
+  app.querySelectorAll("[data-page]").forEach(b => b.onclick = () => go("#/settings/" + b.dataset.page));
+  document.getElementById("s-backup")?.addEventListener("click", async () => { if (await backupNow()) { renderSettings(); toast("Backed up"); } });
+  // Each page has only its own controls; the rest are skipped.
+  const $ = id => document.getElementById(id) || { addEventListener() {}, querySelectorAll: () => [] };
   $("s-speed")?.addEventListener("change", e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
-  $("s-defaults").onclick = () => { settingsDefaultsOpen = !settingsDefaultsOpen; renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-map").onclick = () => { s.songMap = s.songMap === false; Tabs.save(data); renderSettings(); };
   $("s-nudge").onclick = () => { s.nudge = s.nudge === false; Tabs.save(data); renderSettings(); };
@@ -198,7 +238,7 @@ function renderSettings() {
     if (s.follow === "hand" && !(await askMotion())) { s.follow = "touch"; toast("Motion wasn't allowed, so Play follows your touch"); }
     Tabs.save(data); renderSettings();
   });
-  $("s-theme").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
+  app.querySelectorAll("#s-theme [data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {
     const k = $("s-key").value.trim();
     if (!k) { toast("Paste a key first"); return; }
@@ -270,7 +310,7 @@ function renderTrash() {
       </div>`)}</div>`
       : html`<div class="empty">Nothing here. Deleted songs and sets stay for ${TRASH_DAYS} days.</div>`}
     <p class="foot">Items are removed for good after ${TRASH_DAYS} days.</p>`;
-  $("back").onclick = () => go("#/settings");
+  $("back").onclick = () => go("#/settings/library");
   app.querySelectorAll("[data-restore]").forEach(b => b.onclick = () => {
     const t = data.trash[+b.dataset.restore];
     Tabs.restore(data, t); renderTrash();
