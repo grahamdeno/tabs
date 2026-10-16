@@ -32,6 +32,15 @@ test("Today: streak dots, and on a rainy day a slow song that opens with a tap",
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
 });
 
+test("Today: a forecast that arrives late still shows when the week has no plays (2.11.2)", { skip: skip() }, async t => {
+  const quiet = { ...lib(), songs: LIB.songs.slice(0, 2).map(s => ({ ...s, favorite: false, status: undefined, playLog: log(15) })) };
+  const page = await phone(t, quiet);
+  await page.route(/api\.open-meteo\.com/, async r => { await new Promise(res => setTimeout(res, 300)); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
+  await page.evaluate(() => localStorage.removeItem("tabs.wx.v1"));
+  await page.reload(); await page.waitForTimeout(1000);
+  assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song/);
+});
+
 test("Today: quiet once you've played today; the setting turns it back to the weekly line", { skip: skip() }, async t => {
   const page = await phone(t, lib({ place: undefined }, true));
   assert.match(await page.innerText("#today"), /3-day streak/);

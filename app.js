@@ -95,7 +95,7 @@ async function fetchWeather(p) {
     if (code == null) return;
     try { localStorage.setItem(WX, JSON.stringify({ day: todayKey(), lat: p.lat, lon: p.lon, code, tmax })); } catch {}
     const el = $("today");
-    if (el && route().name === "library" && !searching) { el.outerHTML = todayHTML(...weekStats()); bindToday(); }
+    if (el && route().name === "library" && !searching) { el.outerHTML = todayHTMLOrSpot(...weekStats()); bindToday(); }
   } catch { /* offline: no weather today */ }
 }
 const weekStats = () => { const w = data.songs.map(s => playsThisWeek(s)); return [w.reduce((a, b) => a + b, 0), w.filter(Boolean).length]; };
@@ -112,6 +112,10 @@ function todayHTML(weekTotal, weekSongs) {
     ${n ? `<button class="nudge" id="nudge" data-song="${esc(n.songId)}">${icon(NUDGE_ICON[n.kind] || "note")}<span><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span>${icon("chev", "chev")}</button>` : ""}
   </div>`;
 }
+// An empty, hidden #today keeps a place for the line when there's nothing to
+// show yet, so a forecast that arrives after the library is drawn can still
+// fill it in (2.11.2: with no plays this week the weather never appeared).
+const todayHTMLOrSpot = (...a) => todayHTML(...a) || `<div id="today" hidden></div>`;
 function bindToday() {
   $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
 }
@@ -131,7 +135,7 @@ function renderLibrary() {
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
       </div>
     </div>
-    ${todayHTML(weekTotal, weekSongs)}
+    ${todayHTMLOrSpot(weekTotal, weekSongs)}
     ${data.songs.length ? `<div class="chips" id="chips">
       <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
       <button class="chip ${filter === "sets" ? "on" : ""}" data-f="sets">Sets</button>
