@@ -1001,3 +1001,59 @@ test("strumChords: a ringing chord's root-and-fifth tail isn't a power chord; re
   assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["Am"]);
   assert.deepEqual(C.strumChords([...tail(40, 0), ...tail(45, 1.3)]).map(c => c.chord), ["E5", "A5"]);
 });
+
+// ---- German practice (2.10) ----
+const DE_SONG = "[Verse]\nG               D\nGrey boats lean on the harbor wall,\nEm         C\nWaiting on a tide to call\n\nBring the lights home";
+const DE = { v: 1, lines: [
+  { de: "Graue Boote lehnen an der Hafenmauer", s: [{ w: 1, n: 1, l: 1, de: "Boote", g: "das" }, { w: 0, n: 1, l: 2, de: "Graue", g: "" }, { w: 6, n: 1, l: 2, de: "Hafenmauer", g: "die" }, { w: 2, n: 5, l: 3, de: "lehnen an der Hafenmauer", g: "" }] },
+  { de: "Warten, bis die Flut sie ruft", s: [{ w: 3, n: 1, l: 2, de: "Flut", g: "die" }] },
+  { de: "Bring die Lichter heim", s: [{ w: 2, n: 1, l: 1, de: "Lichter", g: "das" }] }
+] };
+const words = b => b.words.filter(w => !w.space).map(w => w.parts.map(p => (p.chord ? `[${p.chord}]` : "") + p.text).join(""));
+test("sungText: the sung lines as the AI sees them", () => {
+  const L = C.sungText(C.parseBlocks(DE_SONG));
+  assert.deepEqual(L.map(l => l.text), ["Grey boats lean on the harbor wall,", "Waiting on a tide to call", "Bring the lights home"]);
+  assert.equal(C.deSource(L), C.deSource(C.sungText(C.parseBlocks(DE_SONG))));
+});
+test("germanBlocks: Basic swaps a noun and keeps every chord on its word", () => {
+  const b = C.germanBlocks(C.parseBlocks(DE_SONG), DE, 1);
+  const pr = b.filter(x => x.kind === "pair");
+  assert.deepEqual(words(pr[0]), ["[G]Grey", "Boote", "lean", "[D]on", "the", "harbor", "wall,"]);
+  assert.equal(b.find(x => x.kind === "lyric").segs.map(s => s.text).join(" "), "Bring the Lichter home");
+});
+test("germanBlocks: Common adds adjectives and keeps punctuation; Intermediate takes the phrase", () => {
+  const c = C.germanBlocks(C.parseBlocks(DE_SONG), DE, 2).filter(x => x.kind === "pair")[0];
+  assert.deepEqual(words(c), ["[G]Graue", "Boote", "lean", "[D]on", "the", "harbor", "Hafenmauer,"]);
+  const m = C.germanBlocks(C.parseBlocks(DE_SONG), DE, 3).filter(x => x.kind === "pair")[0];
+  assert.deepEqual(words(m), ["[G]Graue", "Boote", "lehnen an der Hafenmauer,", "[D]"], "the phrase keeps the chord inside it");
+  const g = m.words.find(w => !w.space && w.parts[0].text === "Boote").parts[0].de;
+  assert.equal(g.g, "das");
+});
+test("germanBlocks: Fluent spreads the German line under the chords; English can sit underneath", () => {
+  const f = C.germanBlocks(C.parseBlocks(DE_SONG), DE, 4, { english: true }).filter(x => x.kind === "pair");
+  assert.deepEqual(words(f[0]), ["[G]Graue", "Boote", "lehnen", "[D]an", "der", "Hafenmauer"]);
+  assert.equal(f[0].en, "Grey boats lean on the harbor wall,");
+  const bl = C.parseBlocks(DE_SONG);
+  assert.equal(C.germanBlocks(bl, DE, 0), bl, "off: unchanged");
+});
+test("cleanGerman: keeps swaps inside the line and drops the rest", () => {
+  const L = C.sungText(C.parseBlocks(DE_SONG));
+  const j = { lines: [{ i: 0, de: "Graue Boote <b>", s: [{ w: 1, n: 1, l: 1, de: "Boote,", g: "das" }, { w: 6, n: 4, l: 2, de: "zu lang" }, { w: 0, n: 1, l: 7, de: "x" }] }] };
+  const out = C.cleanGerman(j, L);
+  assert.equal(out.length, 3);
+  assert.deepEqual(out[0].s.map(x => x.de), ["Boote"]);
+  assert.equal(out[0].de, "Graue Boote b");
+  assert.deepEqual(out[1], { de: "", s: [] });
+});
+test("translations never travel: not in a shared song, not in a backup", () => {
+  const song = { id: "x", title: "T", body: DE_SONG, de: DE, deLevel: 2 };
+  assert.equal(C.shareable(song).de, undefined);
+  assert.equal(JSON.parse(C.Tabs.export({ songs: [song], sets: [] })).songs[0].de, undefined);
+  assert.ok(song.de, "the song itself keeps it");
+});
+test("the AI rules hold: charts never carry lyrics; German only translates the lines it's given", () => {
+  const find = read("findai.js"), de = read("german.js");
+  assert.match(find, /Never include lyrics or any words from the song/);
+  assert.match(de, /Translate only the lines given\. Never add, complete or look up lyrics\./);
+  assert.match(read("README.md"), /Translation exception \(German practice\)/);
+});

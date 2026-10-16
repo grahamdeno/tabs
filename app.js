@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, streakOf, pickNudge, weatherMood, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
+import { gigCountdown, streakOf, pickNudge, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast } from "./ui.js";
@@ -613,7 +613,7 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button><button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <div id="strip"></div>
@@ -682,6 +682,7 @@ function renderViewer(id) {
   paintStat();
   $("tunechip")?.addEventListener("click", () => openTuner(songTuning(song)));
   $("listen").onclick = () => listenSheet(song);
+  $("dechip").onclick = () => germanSheet(song, () => draw());
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
@@ -718,7 +719,13 @@ function renderViewer(id) {
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
     sheet.style.setProperty("--lyric-size", (17 * song.size * sysText * (data.settings.stage ? 1.2 : 1)).toFixed(1) + "px");
     // With a capo the shapes sit lower than the sound: shift the chords down by the capo.
-    renderBlocks(sheet, parseBlocks(song.body || "", isChords ? steps - capo : 0, isChords && prefersFlats(baseKey, steps - capo)));
+    let blocks = parseBlocks(song.body || "", isChords ? steps - capo : 0, isChords && prefersFlats(baseKey, steps - capo));
+    /* German practice: only while the translation matches the words on screen. */
+    const lvl = song.deLevel || 0, fresh = song.de && song.de.src === deSource(sungText(blocks));
+    if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true });
+    const dc = $("dechip");
+    if (dc) { dc.hidden = !song.de; dc.innerHTML = `<b>DE</b>${!fresh ? "Update" : DE_LEVELS[lvl]}`; dc.classList.toggle("on", !!(lvl && fresh)); }
+    renderBlocks(sheet, blocks);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
     if (isChords) {
@@ -802,6 +809,15 @@ function renderViewer(id) {
       input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
       done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
+  /* German practice level on the corner dial: Off, Basic … Fluent. */
+  const deDial = () => {
+    const was = song.deLevel || 0;
+    openDial({ labels: DE_LEVELS, value: was, label: "German level", cls: "key",
+      tick: i => DE_LEVELS[i].slice(0, i === 3 ? 5 : 6),
+      read: i => ({ big: DE_LEVELS[i], small: i ? "GERMAN" : "GERMAN OFF" }),
+      input: i => { song.deLevel = i; if (i) data.settings.deLevel = i; Tabs.save(data); draw(); },
+      done: (i, changed) => { if (changed) toast(i ? `German: ${DE_LEVELS[i]}` : "German off", null, { label: "Undo", fn: () => { song.deLevel = was; Tabs.save(data); draw(); } }); } });
+  };
   /* One hand: the island, hold Play for the ring, Play follows your hand (ring.js). */
   const inSet = !!$("setdial");
   ringApi = setupRing({
@@ -813,7 +829,9 @@ function renderViewer(id) {
       { id: "key", slot: 2, label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
       isChords && { id: "nn", slot: 3, label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
       { id: "more", slot: 4, label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
-      inSet && { id: "set", slot: 5, label: "Set", icon: icon("listplus"), run: () => setDial(null) }
+      inSet && { id: "set", slot: 5, label: "Set", icon: icon("listplus"), run: () => setDial(null) },
+      /* German practice takes the last place when it isn't the set's (in a set it's in More). */
+      !inSet && song.de && { id: "de", slot: 5, label: () => `German: ${DE_LEVELS[song.deLevel || 0]}`, icon: `<b class="ri-t">DE</b>`, active: () => !!song.deLevel, run: () => deDial() }
     ].filter(Boolean),
     grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
     letGo: () => { hold.touching = false; releaseSoon(250); },
@@ -877,15 +895,18 @@ function chordLabel(text) {
   return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : `<span class="c">${esc(text)}</span>`;
 }
 function renderBlocks(sheet, blocks) {
+  /* German practice: a German word carries its card's key and its noun gender. */
+  const txt = p => p.de ? `<span class="de${p.de.g ? " g-" + p.de.g : ""}" data-de="${esc(p.de.k)}">${esc(p.text)}</span>` : esc(p.text);
   const word = w => w.space ? " " : `<span class="w">${w.parts.map(p => p.chord
-    ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord)}<span class="l">${esc(p.text)}</span></span>`
-    : esc(p.text)).join("")}</span>`;
+    ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord)}<span class="l">${txt(p)}</span></span>`
+    : txt(p)).join("")}</span>`;
+  const under = b => b.en ? `<span class="de-en">${esc(b.en)}</span>` : "";
   sheet.innerHTML = blocks.map((b, i) => {
     if (b.kind === "section") return `<div class="sec">${esc(b.text)}</div>`;
     if (b.kind === "blank") return `<div class="gap"></div>`;
-    if (b.kind === "lyric") return `<div class="ly">${esc(b.text)}</div>`;
+    if (b.kind === "lyric") return `<div class="ly">${b.segs ? b.segs.map(txt).join(" ") : esc(b.text)}${under(b)}</div>`;
     if (b.kind === "chords") return `<div class="crow">${b.items.map(chordLabel).join("")}</div>`;
-    if (b.kind === "pair") return `<div class="pr">${b.words.map(word).join("")}</div>`;
+    if (b.kind === "pair") return `<div class="pr">${b.words.map(word).join("")}${under(b)}</div>`;
     return `<div class="tabsys" data-i="${i}"></div>`;
   }).join("");
 
@@ -1514,6 +1535,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "edit", icon: "edit", label: "Edit" },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
+    (aiKey() || song.de) && firstLyric(song.body) && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
     song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
   ].filter(Boolean);
   const m = document.createElement("div");
@@ -1575,6 +1597,7 @@ function songMenu(song, anchor, redrawSong) {
        tone: () => toneSheet(song), share: () => shareSong(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
+       de: () => germanSheet(song, redrawSong),
        metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
   };
 }
@@ -1634,6 +1657,11 @@ function wordsFor(song) {
     toast("Words added. Check the chord spots by ear", null, { label: "Undo", fn: () => { song.body = was; Tabs.save(data); render(); } });
   }));
 }
+// German practice loads on first use (german.js). A line translated again
+// (Report on a word card) asks the song to redraw.
+document.addEventListener("tabs:redraw", () => { if (viewing) redraw?.(); });
+// German practice loads on first use (german.js).
+function germanSheet(...args) { lazy("german.js").then(m => m.germanSheet(...args)); }
 // Chord charts and "What can I play next?" load on first use (findai.js).
 const findAI = () => lazy("findai.js");
 // Leave search mode (used when a song is added from a chart).
@@ -1962,6 +1990,9 @@ document.addEventListener("click", e => {
     }
     return;
   }
+  /* A German word: its card (meaning, gender, why this form). */
+  const dw = e.target instanceof Element && e.target.closest(".sheet .de[data-de]");
+  if (dw && !scroll.on && viewing) { showChordPop(null); lazy("german.js").then(m => m.wordCard(viewing, dw)); return; }
   const chord = e.target instanceof Element && e.target.closest(".sheet .c[data-ch]");
   if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");

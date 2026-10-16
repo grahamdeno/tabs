@@ -1303,3 +1303,35 @@ body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):no
 .dial, .dial *, .dialbtn, .dialbtn * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 /* 2.6.6: the Now and Next tip shows its panel in ring mode too */
 body.ring.nn-demo .app.viewer .dock { display: flex !important; }
+
+/* German practice (2.10): German words in the sheet, gender by a dotted line
+   (der blue, die rose, das green; other words copper), the level sheet and the word card. */
+:root { --de-der: #6f9fd8; --de-die: #d27f90; --de-das: #5fae7c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --de-der: #8db8ec; --de-die: #eba1ae; --de-das: #8fd3a3; } }
+:root[data-theme="dark"] { --de-der: #8db8ec; --de-die: #eba1ae; --de-das: #8fd3a3; }
+.sheet .de { color: var(--accent); font-weight: 600; border-bottom: 2px dotted currentColor; cursor: pointer; }
+.de.g-der { color: var(--de-der); } .de.g-die { color: var(--de-die); } .de.g-das { color: var(--de-das); }
+.de-sheet .de, .de-lv em .de { font-weight: 600; border-bottom: 2px dotted currentColor; }
+.de-sheet .de:not(.g-der):not(.g-die):not(.g-das) { color: var(--accent); }
+.de-en { display: block; font-size: .72em; color: var(--muted); font-weight: 400; margin-top: 1px; }
+.stat.dechip[hidden] { display: none; }
+.stat.dechip b { font-size: 11px; color: var(--accent); letter-spacing: .04em; }
+.stat.dechip.on { border-color: var(--accent-line); color: var(--fg-2); }
+.de-levels { display: flex; flex-direction: column; gap: 8px; }
+.de-lv { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); text-align: left; }
+.de-lv i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; margin-top: 2px; }
+.de-lv.on { border-color: var(--accent-line); background: var(--accent-soft); } .de-lv.on i { border: 5px solid var(--accent); }
+.de-lv b { display: block; font-size: 15px; font-weight: 600; } .de-lv small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.de-lv em { display: block; font-style: normal; font-size: 14px; color: var(--fg-2); margin-top: 5px; }
+.de-row { display: flex; align-items: center; justify-content: space-between; margin: 12px 2px 4px; font-size: 14px; color: var(--fg-2); }
+.panel.de-sheet { bottom: 0; max-height: calc(100dvh - 40px - var(--safe-t)); border-radius: 18px 18px 0 0; border-bottom: 0; display: flex; flex-direction: column; animation: up .42s cubic-bezier(.2,1.15,.3,1); }
+.de-sheet .pbody { min-height: 0; }
+.de-sheet .pbody > * { flex: none; }
+.decard { background: var(--solid); border: 1px solid var(--rim); box-shadow: 0 14px 40px rgba(0,0,0,.35); position: fixed; left: 12px; right: 12px; max-width: 480px; margin: 0 auto; z-index: 40; padding: 14px 16px; border-radius: 18px; animation: fade .2s; }
+.dc-w { font: 400 24px var(--serif); color: var(--fg); }
+.dc-w .art { font-weight: 600; }
+.dc-w .art.g-der { color: var(--de-der); } .dc-w .art.g-die { color: var(--de-die); } .dc-w .art.g-das { color: var(--de-das); }
+.dc-t { font-size: 14.5px; color: var(--fg-2); margin: 3px 0 8px; }
+.dc-r { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rim); font-size: 13px; color: var(--fg-2); line-height: 1.4; }
+.dc-r b { width: 76px; flex: none; color: var(--muted); font-weight: 500; }
+.dc-b { display: flex; gap: 8px; margin-top: 10px; } .dc-b .btn { flex: 1; }
