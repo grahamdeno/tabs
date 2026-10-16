@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.9.0";
+export const VERSION = "2.10.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -231,7 +231,7 @@ export const Tabs = {
   },
 
   export(data) {
-    return JSON.stringify(data, null, 2);
+    return JSON.stringify(withoutGerman(data), null, 2);
   },
 
   // A backup file: checked and cleaned (see docs/DATA.md), then saved.
@@ -466,6 +466,116 @@ export function riffNotes(notes) {
   }
   return out.map(n => ({ midi: n.midi, name: STRUM_NAMES[n.midi % 12] + (Math.floor(n.midi / 12) - 1), at: n.at, dur: n.dur }));
 }
+
+// ---------- German practice (2.10) ----------
+// A song's sung lines, translated once (german.js, with your Anthropic key) and
+// kept with the song as song.de: per line the whole line in German ("de") and
+// swaps ("s") that replace English words in place, each at a level: 1 Basic
+// (very common nouns), 2 Common (everyday nouns, adjectives), 3 Intermediate
+// (phrases, verbs, real grammar). Level 4 (Fluent) sings the whole line.
+// Translations never travel: SHARE_FIELDS leaves them out, and so do backups.
+export const DE_LEVELS = ["Off", "Basic", "Common", "Intermediate", "Fluent"];
+const deWords = w => w.parts.map(p => p.text).join("");
+// The sung lines, in order, as the AI sees them (words split by spaces).
+export function sungText(blocks) {
+  const out = [];
+  (blocks || []).forEach((b, bi) => {
+    const tokens = b.kind === "pair" ? b.words.filter(w => !w.space).map(deWords).filter(t => t.trim()) : b.kind === "lyric" ? String(b.text).trim().split(/\s+/).filter(Boolean) : [];
+    if (tokens.length) out.push({ bi, tokens, text: tokens.join(" ") });
+  });
+  return out;
+}
+export function deSource(lines) {
+  let h = 2166136261;
+  for (const c of lines.map(l => l.text).join("\n")) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return h.toString(36);
+}
+// The AI's reply, checked: swaps inside the line, levels 1-3, short strings.
+export function cleanGerman(j, lines) {
+  const str = (v, n = 120) => String(v ?? "").replace(/[<>]/g, "").trim().slice(0, n);
+  const byI = new Map((Array.isArray(j?.lines) ? j.lines : []).map(l => [+l?.i, l]));
+  return lines.map((ln, i) => {
+    const l = byI.get(i) || {};
+    const s = (Array.isArray(l.s) ? l.s : []).map(x => ({
+      w: Math.floor(+x?.w), n: Math.max(1, Math.floor(+x?.n || 1)), l: Math.floor(+x?.l), de: str(x?.de, 80).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""),
+      g: ["der", "die", "das"].includes(x?.g) ? x.g : "", lemma: str(x?.lemma, 60), en: str(x?.en, 60), pl: str(x?.pl, 60), built: str(x?.built, 120), note: str(x?.note, 200)
+    })).filter(x => x.de && x.w >= 0 && x.l >= 1 && x.l <= 3 && x.w + x.n <= ln.tokens.length);
+    return { de: str(l.de, 300), s };
+  });
+}
+// Which swaps show at a level: Intermediate phrases first (longest first),
+// then the single words of the lower levels where nothing covers them yet.
+export function deSpans(swaps, level) {
+  const chosen = [], free = (w, n) => !chosen.some(c => w < c.w + c.n && c.w < w + n);
+  const pick = list => list.forEach(x => { if (free(x.w, x.n)) chosen.push(x); });
+  if (level >= 3) pick(swaps.filter(x => x.l === 3).sort((a, b) => b.n - a.n));
+  pick(swaps.filter(x => x.l <= Math.min(level, 2)).sort((a, b) => a.l - b.l));
+  return chosen.sort((a, b) => a.w - b.w);
+}
+const edge = t => { const m = /^([^\p{L}\p{N}]*)([\s\S]*?)([^\p{L}\p{N}]*)$/u.exec(t); return { lead: m[1], trail: m[3] }; };
+// The song's display blocks with German put in at a level. Chords stay on
+// their word (a swap keeps the first word's chords; the words it covers keep
+// theirs, without text). Fluent spreads the German line under the chords by
+// position. Each German part carries { k: "line.swap", g } for its card.
+export function germanBlocks(blocks, de, level, { english = false } = {}) {
+  if (!de?.lines || !level) return blocks;
+  const lines = sungText(blocks), at = new Map(lines.map((l, i) => [l.bi, i]));
+  return blocks.map((b, bi) => {
+    const i = at.get(bi), t = i == null ? null : de.lines[i];
+    if (!t) return b;
+    const en = english ? lines[i].text : "";
+    if (level >= 4 && t.de) return fluentBlock(b, t.de, i, en);
+    const spans = deSpans(t.s || [], level);
+    if (!spans.length) return b;
+    if (b.kind === "lyric") {
+      const tok = lines[i].tokens, segs = [];
+      for (let w = 0; w < tok.length; w++) {
+        const sp = spans.find(x => x.w === w);
+        if (sp) { const a = edge(tok[w]), z = edge(tok[w + sp.n - 1]); segs.push({ text: a.lead + sp.de + z.trail, de: { k: `${i}.${t.s.indexOf(sp)}`, g: sp.g } }); w += sp.n - 1; }
+        else segs.push({ text: tok[w] });
+      }
+      return { ...b, segs, en };
+    }
+    let wi = -1;
+    const out = [];
+    const words = b.words;
+    for (let k = 0; k < words.length; k++) {
+      const w = words[k];
+      if (w.space) { out.push(w); continue; }
+      if (!deWords(w).trim()) { out.push(w); continue; }
+      wi++;
+      const sp = spans.find(x => x.w === wi), inside = spans.find(x => wi > x.w && wi < x.w + x.n);
+      if (sp) {
+        const lastTok = lines[i].tokens[sp.w + sp.n - 1], a = edge(deWords(w)), z = edge(lastTok);
+        out.push({ parts: w.parts.map((p, pi) => pi === 0 ? { ...p, text: a.lead + sp.de + z.trail, de: { k: `${i}.${t.s.indexOf(sp)}`, g: sp.g } } : { ...p, text: "" }) });
+      } else if (inside) {
+        const chords = w.parts.filter(p => p.chord).map(p => ({ ...p, text: "" }));
+        if (out.length && out[out.length - 1].space) out.pop();   /* no gap inside a phrase */
+        if (chords.length) { out.push({ space: true }); out.push({ parts: chords }); }
+      } else out.push(w);
+    }
+    return { ...b, words: out, en };
+  });
+}
+function fluentBlock(b, line, i, en) {
+  const dw = line.split(/\s+/).filter(Boolean);
+  if (b.kind === "lyric") return { ...b, segs: [{ text: line, de: { k: `${i}.f`, g: "" } }], en };
+  const real = b.words.filter(w => !w.space && deWords(w).trim());
+  const enN = Math.max(1, real.length), chordsAt = new Map();
+  real.forEach((w, j) => w.parts.forEach(p => { if (p.chord) { const k = Math.min(dw.length - 1, Math.round(j * dw.length / enN)); (chordsAt.get(k) || chordsAt.set(k, []).get(k)).push(p); } }));
+  /* Chords in the line that sit on no word (a chord row inside the pair) ride along at the end. */
+  const loose = b.words.filter(w => !w.space && !deWords(w).trim()).flatMap(w => w.parts.filter(p => p.chord));
+  const words = [];
+  dw.forEach((d, k) => {
+    if (k) words.push({ space: true });
+    const cs = chordsAt.get(k) || [];
+    words.push({ parts: cs.length ? [...cs.slice(0, -1).map(p => ({ ...p, text: "" })), { ...cs[cs.length - 1], text: d, de: { k: `${i}.f`, g: "" } }] : [{ text: d, de: { k: `${i}.f`, g: "" } }] });
+  });
+  if (loose.length) { words.push({ space: true }); words.push({ parts: loose.map(p => ({ ...p, text: "" })) }); }
+  return { ...b, words, en };
+}
+// Without the translations: what a backup file holds.
+export const withoutGerman = data => ({ ...data, songs: (data.songs || []).map(s => { if (!s.de) return s; const { de, ...rest } = s; return rest; }) });
 
 // ---------- Today: practice streak and a nudge (2.8) ----------
 // A day counts when any song was played to its end (the play log). The streak

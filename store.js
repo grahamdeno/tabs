@@ -1,7 +1,7 @@
 // Tabs storage care: where the library lives (IndexedDB, with a copy in
 // localStorage), the storage-full warning, asking to keep storage permanently, backups, and the
 // problems log behind Settings > Copy diagnostics.
-import { Tabs, VERSION, pickLibrary, withSavedAt } from "./core.js";
+import { Tabs, VERSION, pickLibrary, withSavedAt, withoutGerman } from "./core.js";
 import { showToCopy, toast } from "./ui.js";
 import { coverCache } from "./sets.js";
 import { aiKey, data } from "./app.js";
@@ -134,7 +134,7 @@ async function backupNow() {
   const name = `tabs-backup-${new Date().toISOString().slice(0, 10)}.json`;
   /* Cover photos ride along in the backup (they live outside the main save). */
   const covers = Object.fromEntries(data.sets.filter(x => x.cover?.type === "photo" && coverCache[x.id]).map(x => [x.id, coverCache[x.id]]));
-  const file = new File([Object.keys(covers).length ? JSON.stringify({ ...data, covers }, null, 2) : Tabs.export(data)], name, { type: "application/json" });
+  const file = new File([Object.keys(covers).length ? JSON.stringify({ ...withoutGerman(data), covers }, null, 2) : Tabs.export(data)], name, { type: "application/json" });
   let done = false;
   if (navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: "Tabs backup" }); done = true; }
