@@ -105,6 +105,22 @@ function renderSettings() {
         <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]].map(([k, n]) => `<button data-t="${k}" class="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
     </div>
+    <div class="label">Today</div>
+    <div class="set-group glass">
+      <div class="set">
+        <span class="tile">${icon("flame")}</span><span class="name">Streak and daily nudge</span>
+        <button class="toggle ${s.nudge !== false ? "on" : ""}" id="s-nudge" role="switch" aria-checked="${s.nudge !== false}" aria-label="Streak and daily nudge in the library"></button>
+      </div>
+      ${s.nudge !== false ? `<label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("sun")}</span>
+        <input id="s-city" type="text" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="City for weather (optional)" value="${esc(s.place?.name || "")}" aria-label="City for weather"></label>
+      <div class="key-row">
+        <span class="ai-status"><i class="dot ${s.place ? "on" : ""}"></i>${s.place ? "Weather on" : "No weather"}</span>
+        ${s.place ? `<button class="btn sm" id="s-cityremove">Remove</button>` : ""}
+        <button class="btn sm primary" id="s-cityfind">Find</button>
+      </div>
+      <div id="s-cities"></div>` : ""}
+    </div>
+    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; Tabs never asks for your location. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>
     <div class="label">AI help</div>
     <div class="set-group glass">
       <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("wand")}</span>
@@ -150,6 +166,29 @@ function renderSettings() {
   $("s-defaults").onclick = () => { settingsDefaultsOpen = !settingsDefaultsOpen; renderSettings(); };
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-map").onclick = () => { s.songMap = s.songMap === false; Tabs.save(data); renderSettings(); };
+  $("s-nudge").onclick = () => { s.nudge = s.nudge === false; Tabs.save(data); renderSettings(); };
+  const findCity = async () => {
+    const name = $("s-city").value.trim(), out = $("s-cities");
+    if (!name) { toast("Type a city first"); return; }
+    $("s-cityfind").innerHTML = busy("Finding");
+    let list = [];
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=5&language=en&format=json`);
+      list = r.ok ? ((await r.json()).results || []) : [];
+    } catch { toast("Couldn't reach the weather service. Try again when online"); }
+    if ($("s-cityfind")) $("s-cityfind").textContent = "Find";
+    if (!list.length) { out.innerHTML = `<p class="foot" style="margin:0 14px 12px">No place by that name.</p>`; return; }
+    const label = c => [c.name, c.admin1, c.country_code].filter(Boolean).join(", ");
+    out.innerHTML = `<div class="city-list">${list.map((c, i) => `<button class="set" data-city="${i}"><span class="name">${esc(label(c))}</span>${icon("chev", "chev")}</button>`).join("")}</div>`;
+    out.querySelectorAll("[data-city]").forEach(b => b.onclick = () => {
+      const c = list[+b.dataset.city];
+      s.place = { name: label(c), lat: Math.round(c.latitude * 100) / 100, lon: Math.round(c.longitude * 100) / 100 };
+      Tabs.save(data); renderSettings(); toast("Weather on for " + c.name);
+    });
+  };
+  $("s-cityfind")?.addEventListener("click", findCity);
+  $("s-city")?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); findCity(); } });
+  $("s-cityremove")?.addEventListener("click", () => { delete s.place; Tabs.save(data); renderSettings(); toast("Weather off"); });
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-arc")?.addEventListener("change", e => { s.arcSweep = e.target.value; Tabs.save(data); renderSettings(); });

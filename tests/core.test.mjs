@@ -931,3 +931,42 @@ test("tempoPick: agreement, double time and disagreement", () => {
 test("beatsOf reads the top of a time signature", () => {
   assert.equal(C.beatsOf("3/4"), 3); assert.equal(C.beatsOf("6/8"), 6); assert.equal(C.beatsOf(""), 4); assert.equal(C.beatsOf("1/4"), 4);
 });
+
+// ---- Today: streak and nudge (2.8) ----
+const DAYMS = 86400000;
+const at = (y, m, d, h = 9) => new Date(y, m - 1, d, h).getTime();
+const NOW = at(2026, 10, 16, 10); /* a Friday */
+const played = (...ago) => ({ total: ago.length, last: Math.max(...ago.map(n => NOW - n * DAYMS)), days: Object.fromEntries(ago.map(n => { const d = new Date(NOW - n * DAYMS); return [`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, 1]; })) });
+test("streakOf counts back from today, or from yesterday until today's play", () => {
+  assert.deepEqual(C.streakOf([{ playLog: played(0, 1, 2) }], NOW).days, 3);
+  const y = C.streakOf([{ playLog: played(1, 2, 4) }], NOW);
+  assert.equal(y.days, 2); assert.equal(y.today, false);
+  assert.deepEqual(y.week, [false, false, true, false, true, true, false]);
+  assert.equal(C.streakOf([{ playLog: played(2, 3) }], NOW).days, 0, "a missed day breaks it");
+  assert.equal(C.streakOf([{ playLog: played(1) }, { playLog: played(2) }], NOW).days, 2, "across songs");
+});
+test("weatherMood reads WMO codes and temperature", () => {
+  assert.equal(C.weatherMood(61, 18), "rain"); assert.equal(C.weatherMood(95, 25), "rain");
+  assert.equal(C.weatherMood(73, 0), "cold"); assert.equal(C.weatherMood(3, 2), "cold");
+  assert.equal(C.weatherMood(0, 34), "hot"); assert.equal(C.weatherMood(1, 22), "clear"); assert.equal(C.weatherMood(3, 22), "");
+});
+test("pickNudge: rain picks a slow song not played lately", () => {
+  const songs = [{ id: "f", title: "Fast", bpm: 140, playLog: played(30) }, { id: "s", title: "Slow", bpm: 70, playLog: played(30) }, { id: "r", title: "Recent", bpm: 60, playLog: played(2) }];
+  assert.deepEqual(C.pickNudge({ songs, now: NOW, mood: "rain" }), { kind: "rain", text: "Rainy day, perfect for a slow song", songId: "s", title: "Slow" });
+});
+test("pickNudge: evening streak first; nothing once played today or on a gig day", () => {
+  const songs = [{ id: "a", title: "A", playLog: played(1, 2, 3) }, { id: "b", title: "B", playLog: played(1) }];
+  const eve = at(2026, 10, 16, 19);
+  const r = C.pickNudge({ songs, now: eve, mood: "rain" });
+  assert.equal(r.kind, "streak"); assert.match(r.text, /3-day streak/);
+  assert.equal(C.pickNudge({ songs: [{ id: "a", title: "A", playLog: played(0) }], now: NOW, mood: "rain" }), null);
+  assert.equal(C.pickNudge({ songs, now: NOW, mood: "rain", gigToday: true }), null);
+});
+test("pickNudge: no weather falls back to learning, then a neglected favorite, then nothing", () => {
+  assert.equal(C.pickNudge({ songs: [{ id: "l", title: "L", status: "learning", playLog: played(5) }], now: NOW }).kind, "learn");
+  assert.equal(C.pickNudge({ songs: [{ id: "v", title: "V", favorite: true, playLog: played(40) }], now: NOW }).kind, "idle");
+  assert.equal(C.pickNudge({ songs: [{ id: "n", title: "N" }], now: NOW }), null);
+  const s = [{ id: "1", title: "1", favorite: true, playLog: played(1) }, { id: "2", title: "2", favorite: true, playLog: played(1) }];
+  assert.equal(C.pickNudge({ songs: s, now: at(2026, 10, 17, 9), mood: "clear" }).kind, "clear", "a weekend favorite");
+  assert.equal(C.pickNudge({ songs: s, now: at(2026, 10, 17, 9), mood: "clear" }).songId, C.pickNudge({ songs: s, now: at(2026, 10, 17, 16), mood: "clear" }).songId, "steady through the day");
+});
