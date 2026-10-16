@@ -34,8 +34,8 @@ async function run(page, plan) {
     for (let i = 0; i < out.length; i++) out[i] = out[i] * 0.5 + (rnd() * 2 - 1) * 0.004;
     const t0 = performance.now();
     const notes = await S.hear(out, sr);
-    if (plan[0] === "Am") window.__dbg = C.cleanNotes(notes).filter(n => n.start > 3 && n.start < 6).sort((a, b) => a.start - b.start).map(n => [n.midi, +n.start.toFixed(2), +n.dur.toFixed(2), +n.amp.toFixed(2)]);
-    return { dbg: window.__dbg || null, ms: Math.round(performance.now() - t0), chords: C.strumChords(notes).map(c => c.chord), riff: C.riffNotes(notes).map(n => n.midi), n: notes.length, raw: plan[0].riff ? notes.slice(0, 40).map(n => [n.midi, +n.start.toFixed(2), +n.dur.toFixed(2), +n.amp.toFixed(2)]) : [] };
+    const K = await import("./sketch.js"); const rp = K.readPlaying(notes);
+    return { rp: [rp.chords.map(c => c.chord), rp.riff.map(n => n.midi)], ms: Math.round(performance.now() - t0), chords: C.strumChords(notes).map(c => c.chord), riff: C.riffNotes(notes).map(n => n.midi), n: notes.length, raw: plan[0].riff ? notes.slice(0, 40).map(n => [n.midi, +n.start.toFixed(2), +n.dur.toFixed(2), +n.amp.toFixed(2)]) : [] };
   }, plan);
 }
 
@@ -45,8 +45,9 @@ test("Strum it hears synthesized strums: chords in order", { skip: skip(), timeo
     if (process.env.ONE && prog[0] !== process.env.ONE) continue;
     const r = await run(page, prog);
     console.log("# ", prog.join(" "), "→", r.chords.join(" "), `(${r.n} notes, ${r.ms} ms)`);
-    if (process.env.RAW) console.log("# raw", JSON.stringify(r.raw), JSON.stringify(r.dbg));
+    if (process.env.RAW) console.log("# raw", JSON.stringify(r.raw));
     assert.deepEqual(r.chords, prog);
+    assert.deepEqual(r.rp[0], prog, "read as chords, not a riff");
   }
 });
 
@@ -57,6 +58,7 @@ test("Strum it hears a riff: single notes in order", { skip: skip(), timeout: 12
   console.log("# riff", riff.join(" "), "→", r.riff.join(" "));
   if (process.env.RAW) console.log("# raw", JSON.stringify(r.raw));
   assert.deepEqual(r.riff, riff);
+  assert.deepEqual(r.rp, [[], riff], "read as a riff, not chords");
 });
 
 // The whole path on the Sing it screen: Strum it, hold the pad while a guitar
@@ -129,7 +131,7 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
 // (riff_55-59-62.wav, MIDI notes in the name) must give those notes in order.
 import fs from "node:fs";
 import path from "node:path";
-const DIR = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "audio", "chords");
+const DIR = process.env.STRUM_DIR || path.join(path.dirname(new URL(import.meta.url).pathname), "..", "audio", "chords");
 const REAL = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter(f => /\.wav$/i.test(f)) : [];
 test("Strum it hears the real recordings in tests/audio/chords", { skip: skip() || (!REAL.length && "no recordings yet"), timeout: 600000 }, async t => {
   const page = await phone(t, LIB);

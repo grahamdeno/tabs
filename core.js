@@ -422,6 +422,17 @@ export function strumChords(notes, { hop = 0.25, min = 0.45 } = {}) {
     if (p && p.chord === c.chord && a - (p.at + p.dur) < hop * 1.5) { p.dur = b - p.at; p.sure = Math.max(p.sure, c.sure); }
     else runs.push({ chord: c.chord, at: a, dur: hop, sure: c.sure });
   }
+  /* A chord left to ring loses its quieter strings first, until only the root
+     and fifth are heard: a "5" reading among real chords is that tail (or a
+     half-heard strum), not a power chord. Played alone, power chords stay. */
+  const fades = runs.some(r => !/5$/.test(r.chord));
+  const isFade = r => fades && /5$/.test(r.chord);
+  for (let i = runs.findIndex(isFade); i >= 0 && runs.length > 1; i = runs.findIndex(isFade)) {
+    const r = runs[i], into = i > 0 ? runs[i - 1] : runs[1];
+    if (i > 0) into.dur = r.at + r.dur - into.at; else { into.dur = into.at + into.dur - r.at; into.at = r.at; }
+    runs.splice(i, 1);
+  }
+  for (let j = runs.length - 1; j > 0; j--) if (runs[j].chord === runs[j - 1].chord) { runs[j - 1].dur = runs[j].at + runs[j].dur - runs[j - 1].at; runs.splice(j, 1); }
   for (let i = runs.findIndex(r => r.dur < min); i >= 0 && runs.length > 1; i = runs.findIndex(r => r.dur < min)) {
     const r = runs[i], into = i > 0 ? runs[i - 1] : runs[1];
     if (i > 0) into.dur = r.at + r.dur - into.at; else { into.dur = into.at + into.dur - r.at; into.at = r.at; }

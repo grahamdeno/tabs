@@ -995,3 +995,9 @@ test("chordToneNotes: played chords as their tones, for the key", () => {
   assert.deepEqual(n.map(x => x.midi % 12), [7, 11, 2, 9, 0, 4]);
   assert.equal(C.detectKey(C.chordToneNotes([{ chord: "G", at: 0, dur: 2 }, { chord: "C", at: 2, dur: 2 }, { chord: "D", at: 4, dur: 2 }, { chord: "G", at: 6, dur: 2 }])).name, "G");
 });
+test("strumChords: a ringing chord's root-and-fifth tail isn't a power chord; real power chords stay", () => {
+  const tail = (root, at) => [{ midi: root, start: at, dur: 1.2, amp: 0.6 }, { midi: root + 7, start: at + 0.01, dur: 1.2, amp: 0.5 }];
+  const notes = [...strum("Am", 0), ...strum("Am", 0.75), ...tail(45, 1.5)];
+  assert.deepEqual(C.strumChords(notes).map(c => c.chord), ["Am"]);
+  assert.deepEqual(C.strumChords([...tail(40, 0), ...tail(45, 1.3)]).map(c => c.chord), ["E5", "A5"]);
+});

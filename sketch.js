@@ -36,13 +36,16 @@ export async function listenTo(blob) {
   const notes = await ear.hear(x, buf.sampleRate);
   return readPlaying(notes);
 }
-// Chords if you strummed (three or more notes at once, much of the time);
+// Chords if you strummed (notes starting together);
 // otherwise the single notes of a riff. Also a melody line for the key.
 export function readPlaying(notes) {
   const ns = cleanNotes(notes);
-  const span = ns.length ? Math.max(...ns.map(n => n.start + n.dur)) - Math.min(...ns.map(n => n.start)) : 0;
-  const poly = span ? ns.reduce((a, n) => a + n.dur, 0) / span : 0;
-  const chords = poly >= 1.8 ? strumChords(notes) : [];
+  /* A strum starts several strings together; a riff starts one note at a time.
+     So: chords when a good share of notes (30%; stray notes in the quiet
+     before and after a line lower it) begin within 60 ms of another note. */
+  const together = ns.filter(n => ns.some(o => o !== n && Math.abs(o.start - n.start) < 0.06)).length;
+  const strummed = ns.length >= 3 && together / ns.length >= 0.3;
+  const chords = strummed ? strumChords(notes) : [];
   const riff = chords.length ? [] : riffNotes(notes);
   /* The top voice stands in for a melody: the key and the chord places use it. */
   const top = [];
