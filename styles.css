@@ -1242,10 +1242,10 @@ body.ring .app.viewer .dock-fade { height: calc(100px + var(--safe-b)); }
 .ringx.on { opacity: 1; }
 .ring-bg { position: fixed; width: 384px; height: 384px; margin: -192px 0 0 -192px; border-radius: 50%; background: color-mix(in srgb, var(--solid) 94%, transparent); border: 1px solid var(--rim); box-shadow: 0 12px 40px rgba(0,0,0,.45); transform: scale(.7); transition: transform .18s cubic-bezier(.2,1,.3,1); }
 .ringx.on .ring-bg { transform: none; }
-.ri { position: fixed; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; transition: transform .1s, border-color .1s; }
+.ri { position: fixed; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 14px; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; transition: transform .1s, border-color .1s; }
 .ri svg { width: 20px; height: 20px; }
 .ri .ri-t { font: 700 13px var(--sans); color: var(--accent); }
-.ri.on { transform: scale(1.18); border-color: var(--accent); color: var(--glow-c); box-shadow: 0 0 14px rgba(255,150,70,.45); }
+.ri.on { transform: scale(1.1); border-color: var(--accent); color: var(--glow-c); box-shadow: 0 0 14px rgba(255,150,70,.45); }
 .ring-name { position: fixed; transform: translateX(-50%); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { body.ring .rc #play, body.ring .rc-isl, .ring-bg, .ringx, body.ring .rc .rc-track { transition: none; } }
 body.cedit.ring .rc { display: none; }
@@ -1404,3 +1404,6 @@ body.ring .rc #play.hint-under { z-index: 23; }
 .fld.fld-k { min-height: 52px; }
 .tile.ftile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--card-2); border: 1px solid var(--rim); color: var(--fg-2); }
 .foot.pn { margin: 0 2px 12px; }
+
+/* 2.18.0: rounded-square ring buttons on a wider ring; Play's glow off while it's open. */
+body.ring-open .rc #play { box-shadow: none; }

@@ -23,7 +23,10 @@ const SLOTS = [180, 198, 216, 234, 252, 270];   /* ring angles: left to straight
 /* Seven items (a song in a set, with German): closer angles on a wider ring,
    so each button keeps a full thumb's width (about 47 px between centres). */
 const SLOTS7 = [180, 195, 210, 225, 240, 255, 270];
-const layout = () => (st.o.items.some(it => it.slot > 5) ? { at: SLOTS7, R: 178 } : { at: SLOTS, R: 150 });
+/* 2.18: the buttons are rounded squares, so the ring is wider to keep a clear
+   gap between corners (about 62 px between centres). The angles are the same,
+   so each button is in the same direction from Play as before. */
+const layout = () => (st.o.items.some(it => it.slot > 5) ? { at: SLOTS7, R: 232 } : { at: SLOTS, R: 200 });
 const txt = v => typeof v === "function" ? v() : v;
 let st = null;            /* the current song page's ring */
 
@@ -274,6 +277,7 @@ function openRing(p, live) {
       return `<button class="ri${it.active?.() ? " act" : ""}" data-r="${it.id}" aria-label="${txt(it.label)}" ${it.active ? `aria-pressed="${!!it.active()}" ` : ""}style="left:${(cx + R * Math.cos(a)).toFixed(1)}px;top:${(cy + R * Math.sin(a)).toFixed(1)}px">${it.icon}</button>`; }).join("")}
     <div class="ring-name glow" style="left:${cx}px;top:${(cy - R - 46).toFixed(1)}px"></div>`;
   document.body.appendChild(el);
+  document.body.classList.add("ring-open"); /* Play's glow hides under the menu */
   ringEl = el;
   requestAnimationFrame(() => el.classList.add("on"));
   el.querySelectorAll(".ri").forEach(b => b.onclick = ev => { ev.stopPropagation(); const it = st.o.items.find(x => x.id === b.dataset.r); closeRing(); it?.run(p); });
@@ -292,12 +296,16 @@ function pick(x, y) {
     if (gap > 30) best = null;
   }
   ringEl.querySelectorAll(".ri").forEach(b => b.classList.toggle("on", !!best && b.dataset.r === best.id));
-  ringEl.querySelector(".ring-name").textContent = best ? txt(best.label) : "";
+  const nm = ringEl.querySelector(".ring-name");
+  nm.textContent = best ? txt(best.label) : "";
+  /* The wider ring (2.18) puts the name near the right edge: keep it on screen. */
+  nm.style.left = Math.min(+ringEl.dataset.cx, innerWidth - 12 - nm.offsetWidth / 2) + "px";
 }
 export function closeRing() {
   if (!ringEl) return;
   const el = ringEl;
   ringEl = null;
+  document.body.classList.remove("ring-open");
   el.classList.remove("on");
   setTimeout(() => el.remove(), 150);
 }
