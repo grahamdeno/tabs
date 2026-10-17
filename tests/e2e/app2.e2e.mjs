@@ -424,7 +424,8 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   /* Hold: the ring. Slide toward More and let go: the menu. */
   c = await center();
   await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600);
-  assert.equal(await page.locator(".ringx .ri").count(), 5, "Favorite, Metronome, Key, Now and Next, More (no Back: it's in the island; no Set outside a set)");
+  assert.deepEqual(await page.$$eval(".ringx .ri", els => els.map(e => e.dataset.r)), ["metro", "key", "nn", "tuner", "fav", "more"], "2.26.0: Tempo, Key, Chords lowest, then Tuner, Favorite, More (no Back: it's in the island; no Set outside a set)");
+  assert.deepEqual(await page.$$eval(".ringx .ri-l", els => els.map(e => e.textContent)), ["TEMPO", "KEY", "CHORDS", "TUNER", "FAVORITE", "MORE"], "each named on the panel");
   assert.equal(await page.locator(".ringx .ri[data-r='back']").count(), 0);
   const more = await page.evaluate(() => { const r = document.querySelector(".ri[data-r='more']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.mouse.move(more.x, more.y, { steps: 6 });
@@ -461,7 +462,7 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "the song paused");
   await page.mouse.click(60, 120); await page.waitForTimeout(300);
   /* Screen readers get the same controls as buttons. */
-  assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 5);
+  assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 6);
 });
 
 test("2.16.5 speed dial: a tap that slips a little near the corner closes it without changing the time", { skip: skip() }, async t => {

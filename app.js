@@ -869,7 +869,7 @@ function renderViewer(id) {
       done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
   /* German practice: the level dial once the song is translated, else the sheet to translate it. */
-  const deOpen = () => { const fresh = song.de && song.de.src === deSource(sungText(parseBlocks(song.body || ""))); if (fresh && !deJobs.has(song.id)) deDial(); else germanSheet(song, () => draw()); };
+  songDeOpen = () => { const fresh = song.de && song.de.src === deSource(sungText(parseBlocks(song.body || ""))); if (fresh && !deJobs.has(song.id)) deDial(); else germanSheet(song, () => draw()); };
   /* German practice level on the corner dial: Off, Basic … Fluent. */
   const deDial = () => {
     const was = song.deLevel || 0;
@@ -884,16 +884,18 @@ function renderViewer(id) {
   ringApi = setupRing({
     settings: data.settings,
     items: [
-      /* Back lives in the island; the ring holds what you reach for mid-song. */
-      { id: "fav", slot: 0, label: "Favorite", icon: icon("heart"), active: () => !!song.favorite, run: () => app.querySelector(".player .fav")?.click() },
-      { id: "metro", slot: 1, label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
-      { id: "key", slot: 2, label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
-      isChords && { id: "nn", slot: 3, label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
-      { id: "more", slot: 4, label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
-      inSet && { id: "set", slot: 5, label: "Set", icon: icon("listplus"), run: () => setDial(null) },
-      /* German practice: the last place (after Set in a set, where the ring widens to seven). */
-      deEligible(song) && { id: "de", slot: inSet ? 6 : 5, label: () => deJobs.has(song.id) ? "German: translating" : song.de ? `German: ${DE_LEVELS[song.deLevel || 0]}` : "German practice", icon: `<b class="ri-t">DE</b>`, active: () => !!(song.de && song.deLevel), run: () => deOpen() }
-    ].filter(Boolean),
+      /* Back lives in the island; the ring holds what you reach for mid-song.
+         2.26.0: what you touch while playing sits lowest, nearest the thumb's
+         natural sweep; Tuner joins; German moves to More. Each place is the
+         next one along the arc. */
+      { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
+      { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
+      isChords && { id: "nn", short: "Chords", label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
+      { id: "tuner", short: "Tuner", label: "Tuner", icon: icon("fork"), run: () => { if (scroll.on) stopScroll(); openTuner(songTuning(song)); } },
+      { id: "fav", short: "Favorite", label: "Favorite", icon: icon("heart"), active: () => !!song.favorite, run: () => app.querySelector(".player .fav")?.click() },
+      { id: "more", short: "More", label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
+      inSet && { id: "set", short: "Set", label: "Set", icon: icon("listplus"), run: () => setDial(null) }
+    ].filter(Boolean).map((it, i) => ({ ...it, slot: i })),
     grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
     letGo: () => { hold.touching = false; releaseSoon(250); },
     where: () => { const line = innerHeight * READ_AT; let name = ""; for (const el of document.querySelectorAll("#sheet > .sec")) { if (el.getBoundingClientRect().top <= line) name = el.textContent.trim(); else break; } return name; },
@@ -1169,9 +1171,12 @@ function showPausedRow(block = pausedBlock()) {
   const lefts = row.items.map(it => it.x - w / 2);
   for (let i = 0; i < n; i++) lefts[i] = i === 0 ? Math.max(0, lefts[i]) : Math.max(lefts[i], lefts[i - 1] + w + GAP);
   if (lefts[n - 1] + w > width) for (let i = n - 1; i >= 0; i--) lefts[i] = Math.min(lefts[i], i === n - 1 ? width - w : lefts[i + 1] - w - GAP);
+  /* 2.26.0: over the first line the cards would cover "Chords in this song"
+     above the sheet, so there they hang below the line instead. */
+  const below = row.top - h - 9 < 0;
   const el = document.createElement("div");
-  el.className = "prow";
-  el.style.top = (row.top - h - 9) + "px";
+  el.className = "prow" + (below ? " below" : "");
+  el.style.top = (below ? block.offsetTop + block.offsetHeight + 9 : row.top - h - 9) + "px";
   el.innerHTML = row.items.map((it, i) =>
     `<div class="pcard" style="left:${lefts[i].toFixed(1)}px;width:${w}px;height:${h}px">${chordSVG(it.name, scale)}<i class="dptr" style="left:${Math.min(w - 8, Math.max(8, it.x - lefts[i])).toFixed(1)}px"></i></div>`).join("");
   sheet.appendChild(el);
@@ -1542,6 +1547,7 @@ function songMenu(song, anchor, redrawSong) {
     !ringOn && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
+    ringOn && deEligible(song) && songDeOpen && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
     { id: "share", icon: "share", label: "Share song" },
     { id: "duet", icon: "pick", label: "Play together" },
     { id: "edit", icon: "edit", label: "Edit" },
@@ -1605,7 +1611,7 @@ function songMenu(song, anchor, redrawSong) {
     close();
     ({ set: () => addToSet(song), edit: () => songEditor(song),
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
-       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)),
+       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
@@ -1672,6 +1678,7 @@ function wordsFor(song) {
 // The chip under the title is its home in every layout; it shows progress
 // while a translation runs in the background (german.js keeps deJobs).
 const deJobs = new Map();
+let songDeOpen = null; /* the open song's German: the dial, or the sheet when it needs work (2.26.0: in More) */
 const deEligible = song => !!firstLyric(song.body) && (!!aiKey() || !!song.de);
 function paintDeChip(song, fresh, lvl) {
   const dc = $("dechip");

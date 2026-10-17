@@ -1497,3 +1497,25 @@ body.ring-open .rc #play { box-shadow: inset 0 1px 0 rgba(255,220,190,.45); }
 .dial-labels text.sc { font: 700 10px var(--sans); fill: #3a2810; }
 .dial-small { fill: #c9b48c; font-weight: 700; letter-spacing: .14em; font-size: 10px; }
 .dial.set .dial-small { letter-spacing: .04em; }
+
+/* 2.26.0: the hold-Play menu is a black tolex panel with a thin gold edge, like
+   an amp cabinet. Buttons are black with a chrome rim, each named in gold on
+   the panel. What's on shows by a jewel lamp in the button's corner, the same
+   lamp as the song bar and the library chips, instead of a copper outline. */
+.ring-bg { background: var(--tolex), radial-gradient(circle, #1d1d20, #0e0e10); background-size: 120px 120px, auto;
+  -webkit-backdrop-filter: none; backdrop-filter: none; border: 2px solid #b8935a;
+  box-shadow: inset 0 0 0 4px #0b0b0c, inset 0 0 0 5px rgba(184,147,90,.5), 0 12px 40px rgba(0,0,0,.6); }
+.ri { background: radial-gradient(circle at 50% 30%, #2c2c30, #111113); border: 1px solid #8e8e94; color: #e9e9ec;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 3px 6px rgba(0,0,0,.6); }
+.ri .ri-t { color: #e8cf9c; }
+.ri.act { border-color: #8e8e94; color: #ffc27a; }
+.ri::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; display: none;
+  background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); box-shadow: 0 0 0 1.2px rgba(0,0,0,.5); }
+.ri[aria-pressed]::after { display: block; }
+.ri.act::after { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08); box-shadow: 0 0 0 1.2px rgba(0,0,0,.5), 0 0 7px 1px rgba(255,140,40,.7); }
+.ri.on { border-color: #d9bd85; color: #fff3e0; box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 14px rgba(255,190,110,.45); }
+.ri-l { position: fixed; transform: translate(-50%, -50%); font: 800 8.5px var(--sans); letter-spacing: .12em; color: #d9bd85; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; }
+.ringx.on .ri-l { opacity: 1; }
+.ring-name { color: #f1e3c4; }
+@media (prefers-reduced-motion: reduce) { .ri-l { transition: none; } }
+.prow.below .dptr { bottom: auto; top: -5px; border: 0; border-left: 1px solid var(--rim); border-top: 1px solid var(--rim); }

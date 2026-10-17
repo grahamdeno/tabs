@@ -265,6 +265,14 @@ function bindHold() {
   st.cleanup.push(() => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); });
 }
 
+/* 2.26.0: each place has its name printed on the panel just inside it, like
+   the writing under an amp's controls. Pushed in further where the name runs
+   along the radius (the left side) so it clears the button. */
+function label(it, a, cx, cy, R) {
+  if (!it.short) return "";
+  const w = it.short.length * 6.4, d = R - 32 - Math.abs(Math.cos(a)) * w / 2 - Math.abs(Math.sin(a)) * 4;
+  return `<span class="ri-l" data-for="${it.id}" aria-hidden="true" style="left:${(cx + d * Math.cos(a)).toFixed(1)}px;top:${(cy + d * Math.sin(a)).toFixed(1)}px">${txt(it.short).toUpperCase()}</span>`;
+}
 function openRing(p, live) {
   closeRing();
   st.o.opened?.();
@@ -274,7 +282,7 @@ function openRing(p, live) {
   el.dataset.live = live ? "1" : "0";
   el.innerHTML = `<div class="ring-bg" style="left:${cx}px;top:${cy}px${R > 150 ? `;width:${2 * (R + 42)}px;height:${2 * (R + 42)}px;margin:${-(R + 42)}px 0 0 ${-(R + 42)}px` : ""}"></div>
     ${st.o.items.map(it => { const a = ANG[it.slot] * Math.PI / 180;
-      return `<button class="ri${it.active?.() ? " act" : ""}" data-r="${it.id}" aria-label="${txt(it.label)}" ${it.active ? `aria-pressed="${!!it.active()}" ` : ""}style="left:${(cx + R * Math.cos(a)).toFixed(1)}px;top:${(cy + R * Math.sin(a)).toFixed(1)}px">${it.icon}</button>`; }).join("")}
+      return `<button class="ri${it.active?.() ? " act" : ""}" data-r="${it.id}" aria-label="${txt(it.label)}" ${it.active ? `aria-pressed="${!!it.active()}" ` : ""}style="left:${(cx + R * Math.cos(a)).toFixed(1)}px;top:${(cy + R * Math.sin(a)).toFixed(1)}px">${it.icon}</button>${label(it, a, cx, cy, R)}`; }).join("")}
     <div class="ring-name glow" style="left:${cx}px;top:${(cy - R - 46).toFixed(1)}px"></div>`;
   document.body.appendChild(el);
   document.body.classList.add("ring-open"); /* Play's glow hides under the menu */
