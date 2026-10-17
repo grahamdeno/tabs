@@ -342,7 +342,11 @@ export async function nextSongs() {
     if (!body) return;
     if (foot) $("nx-foot").innerHTML = controls();
     const tail = foot ? "" : controls();
-    if (state.busy) body.innerHTML = `<div class="easy-wait">${busy(level() === "step" ? "Looking for songs a step up from yours" : "Looking for songs that fit your chords")}</div>${tail}`;
+    if (state.busy) {
+      body.innerHTML = `<div class="easy-wait">${busy(level() === "step" ? "Looking for songs a step up from yours" : "Looking for songs that fit your chords")}</div>${tail}`;
+      const was = state;
+      setTimeout(() => { const w = body.querySelector(".easy-wait"); if (state === was && w) w.lastChild.textContent = " Still looking, this can take a few more seconds"; }, 9000);
+    }
     else if (state.err) body.innerHTML = `<div class="nx-err" role="alert">${icon("wand")}<b>No suggestions this time</b><p>${esc(state.err)}</p>
         ${state.raw ? `<details><summary>What came back</summary><pre>${esc(state.raw)}</pre></details>` : ""}</div>${tail}`;
     else {
@@ -366,13 +370,16 @@ export async function nextSongs() {
     const lv = level();
     state = { busy: true, list: [], err: "", skip }; paint();
     try {
-      const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 80).join("; ");
+      const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 60).join("; ");
       // Songs already shown (last 60, kept on this phone) go along so the list
       // moves on instead of repeating, with a fresh number to vary the picks.
-      const seen = nextSeen().filter(t => !skip.includes(t));
+      const seen = nextSeen().filter(t => !skip.includes(t)).slice(0, 30);
       const work = changesOf(data.songs).work.map(c => `${c.a} to ${c.b}`);
-      const ask = () => askClaude({ system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 4000,
-        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}${work.length ? `\nChanges I'm working on: ${work.join(", ")}. Include them where they fit.` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` });
+      /* Streamed (2.16.2): the reply arrives as it's written, so iPhone keeps the
+         connection open; and after 45 s with nothing, say so instead of waiting on. */
+      const ask = () => Promise.race([askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 2000,
+        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}${work.length ? `\nChanges I'm working on: ${work.join(", ")}. Include them where they fit.` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` }),
+        new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("slow"), { status: -2 })), 45000))]);
       // An unreadable reply is usually a one-off, so ask once more before saying so.
       let j;
       try { j = parseJSON(await ask()); } catch (e) { if (e.status !== -1 || lv !== level()) throw e; j = parseJSON(await ask()); }
@@ -384,7 +391,7 @@ export async function nextSongs() {
       if (!state.list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
     } catch (e) {
       if (lv !== level()) return;
-      state = { busy: false, list: [], skip, err: e.status === -1 ? "The reply came back in a form Tabs couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || "" };
+      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form Tabs couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || "" };
     }
     paint();
   };

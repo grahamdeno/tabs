@@ -95,3 +95,20 @@ test("Play next: songs already shown are sent along so the list moves on (2.13.1
   assert.match(asks[1], /Already suggested: Low Tide/);
   assert.match(asks[1], /Variety number: \d+/);
 });
+
+test("Play next: the reply is streamed, so a long wait keeps the connection alive (2.16.2)", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
+  let streamed = false;
+  await page.route(/api\.anthropic\.com/, r => {
+    streamed = JSON.parse(r.request().postData()).stream === true;
+    const text = JSON.stringify(SAME), half = text.length >> 1;
+    const ev = d => `event: content_block_delta\ndata: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: d } })}\n\n`;
+    r.fulfill({ status: 200, contentType: "text/event-stream", headers: cors, body: ev(text.slice(0, half)) + ev(text.slice(half)) + "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n" });
+  });
+  await page.reload(); await page.waitForTimeout(400);
+  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
+  await page.click("#nextidea"); await page.waitForTimeout(600);
+  assert.equal(streamed, true);
+  assert.match(await page.innerText("#nx-body"), /Low Tide/);
+});
