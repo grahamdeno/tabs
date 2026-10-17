@@ -1,69 +1,67 @@
-# Tabs: notes for Claude
+# Working on Tabs
 
-Personal guitar PWA (chord sheets first), live on GitHub Pages from `main`.
-No build step, no server, no dependencies at run time. The README's
-Development section and docs/DATA.md have the full detail; this is the short
-version for starting work quickly.
+Tabs is Graham's personal guitar PWA: plain ES modules, no build step, live on
+GitHub Pages from `main`. The README's Development section is the architecture
+map; docs/DATA.md describes every stored field. Read those before guessing.
 
-## Standing rules from the owner
+## Standing rules (from Graham)
 
-- Releases: a feature (or set of features) is a minor release (2.15.0); a fix
-  is a patch on the release where the defect was found (2.15.1). Bump
-  `VERSION` in `core.js` and `CACHE` in `sw.js` together (a test checks).
+- Versions: a feature is a minor release (2.15.0), a fix is a patch (2.16.1),
+  numbered from the release where the defect was found. Bump `VERSION` in
+  `core.js` and `CACHE` in `sw.js` together (a test checks they match).
 - Don't change the search bar.
-- When he asks for a mockup or an explanation, give it before building.
-  Mockups: render the real app in Playwright and inject markup that uses the
-  app's own classes, then send the screenshot.
-- The AI never supplies lyrics. The one exception: German practice may
-  translate the words of a song already in his library.
-- API keys stay on the phone only (localStorage). Never in backups, share
-  links, the repo, or a server. Don't change how keys are stored.
-- Phone used one-handed, right thumb: put actions within thumb reach (the
-  bottom of the screen, `.pfoot` in sheets).
-- Plain, professional wording in the UI and in replies; no em dashes.
-- Every change ends with: tests pass, README updated where a feature is
-  described, commit with a release message, push to `main`.
+- When Graham asks for mockups or an explanation first, give those and wait
+  for a go before building.
+- The AI never supplies lyrics. The one exception is German practice, which
+  translates lyrics of songs already in his library.
+- API keys stay on the phone only. Never put a key in the code or in a backup,
+  and don't change how keys are stored.
+- He uses the phone one-handed, mostly right hand: put actions people reach
+  for mid-song in thumb reach (bottom of sheets, `pfoot` / the ring).
+- Writing he sees (UI text, README, commit messages, replies): plain and
+  direct, no em dashes.
 
 ## Where things are
 
-| File | What |
+| Area | File |
 |---|---|
-| `core.js` | Logic with no screen code, all unit tested: parsing, transposing, chords, data and backups, share links, Today and Changes, tuner math, pitch detection |
-| `app.js` | Library, song page (auto-scroll, count-in, Now and Next, map), router, AI helpers (`askClaude`, `parseJSON`, `aiError`), share links, Play together |
-| `ui.js` | Icons (`I`, `icon()`), toasts, `ask()` sheets, `onLeave`, `onScroll` |
-| `settings.js` | Settings menu and its pages (`#/settings/<page>`), Recently deleted |
-| `coach.js` | One-time tips (`coachTip`, `tipDue`, `markUsed`), Show me demos, Tips & gestures |
-| `ring.js` | One-hand controls: the island, hold Play for the ring, Play follows the hand |
-| `findai.js` | Get the song, chord charts, What can I play next? |
-| `tuner.js` | Tuner (headstock drawings in `heads.js`) |
-| `german.js`, `aitools.js`, `sketch.js`, `strum.js`, `sets.js`, `editor.js`, `store.js`, `dial.js`, `crop.js` | One feature each; see the comment at the top of each file |
-| `sw.js` | Offline copy; its `SHELL` list must name every app file (a test checks) |
-| `styles.css` | All styles; newest features are appended at the end with a version comment |
+| Pure logic, parsing, chords, Changes, tuner math (unit tested) | `core.js` |
+| Library, song page, playback, sharing, Play together, router | `app.js` |
+| Ring controls, Play following the hand | `ring.js` |
+| Settings menu and pages, Recently deleted | `settings.js` |
+| Tips, Show me demos, Tips & gestures | `coach.js` |
+| Play next, chord charts, Get the song | `findai.js` |
+| Tuner | `tuner.js` (+ `heads.js`) |
+| German practice | `german.js` |
+| Offline copy; lists every app file | `sw.js` |
 
-Lazy modules are loaded on first use; a new module must be added to `SHELL`
-in `sw.js`. Shared state is changed only through its owner's setters.
+A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 
 ## Tests
 
-- Unit: `node --test tests/core.test.mjs` (seconds).
 - Quick check while working: `node tests/quick.mjs` runs the unit tests plus
   the browser tests that cover the files changed since `origin/main`.
-- Full: `node --test --test-concurrency=3 tests/*.test.mjs tests/e2e/*.e2e.mjs`
-  (run it in the background before every push). Without the concurrency flag
-  this two-core machine runs one file at a time.
-- Browser test helpers are in `tests/e2e/harness.mjs`: `phone(t, lib, opts)`
-  opens a fresh phone with a library; `LIB` is the test library. Mock the AI
-  with `page.route(/api\.anthropic\.com/, ...)`.
-- Prefer waiting on a condition (`waitForSelector`, `waitForFunction`) over
-  `waitForTimeout`.
-- Screenshots: CI compares against `tests/visual/ci/`. After a change to how
-  a screen looks, run the update screenshots workflow:
-  `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`
-  (it commits to `main`, so fetch and rebase before the next push).
+- Full run before every push: `node --test --test-concurrency=4 tests/*.test.mjs tests/e2e/*.e2e.mjs`
+  (about 4.5 minutes here, down from 10.5 at one file at a time; run it in
+  the background). Most long sleeps in the tests are real timers being
+  checked (Play settling after 5 s), so leave those.
+- Browser tests use `phone()` from `tests/e2e/harness.mjs`; mock network calls
+  with `page.route`. Prefer `waitForSelector` / `waitForFunction` over fixed
+  `waitForTimeout` sleeps in new tests.
+- Screenshots for Graham: write a throwaway `tests/e2e/zz_*.e2e.mjs` that
+  saves to `$SHOT`, run it, then delete it.
+- Visual references: CI compares against `tests/visual/ci`. After a release
+  that changes how a screen looks, run the "update screenshots" workflow
+  (`gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`).
+- ESLint runs in CI only (npm isn't reachable from the cloud sandbox).
 
-## This environment
+## Releasing
 
-- `gh` can push and dispatch workflows, but branch deletion is blocked.
-- The npm registry and most websites are blocked from the shell, so ESLint
-  runs only in CI. `api.anthropic.com` can't be called without a key; test
-  AI features with mocks.
+1. Change, add or update tests, bump the version, update the README feature
+   list when behavior changes.
+2. Commit with a message that says what changed for Graham, in plain words.
+3. Full test run, then `git fetch origin main && git rebase origin/main` and
+   push to `main`. The screenshot workflow commits to `main` too, so always
+   rebase first.
+4. The cloud sandbox can't delete branches or call GitHub's write APIs other
+   than workflow dispatch; ask Graham to do those on github.com.
