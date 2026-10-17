@@ -52,6 +52,7 @@ function applyTheme() {
   const light = t === "light" || (t !== "dark" && phoneLight());
   document.body.classList.toggle("stage", !!data.settings.stage);
   document.documentElement.dataset.theme = light ? "light" : "dark";
+  document.documentElement.dataset.tolex = data.settings.tolex ? "on" : "off";
   document.querySelector('meta[name="theme-color"]').content = light ? "#f3f0eb" : "#0c0d0f";
 }
 

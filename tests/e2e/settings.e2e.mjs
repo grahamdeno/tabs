@@ -30,3 +30,14 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   assert.match(await page.innerText("h1"), /Settings/, "an unknown page shows the menu");
   assert.deepEqual(errs, []);
 });
+
+test("Settings > Look: Amp covering turns the tolex grain on and off (2.20.0)", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "off", "off by default");
+  await page.click("#s-tolex"); await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "on");
+  assert.match(await page.evaluate(() => getComputedStyle(document.body).backgroundImage), /svg/, "the grain is drawn");
+  await page.reload(); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "on", "kept");
+});

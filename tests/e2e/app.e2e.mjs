@@ -82,10 +82,13 @@ test("a shared song link opens the Shared with you sheet", { skip: skip() }, asy
   const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
   await page.click("#more"); await page.waitForTimeout(150);
-  await page.click(".menu [data-m='share']"); await page.waitForTimeout(400);
+  await page.click(".menu [data-m='share']");
+  /* Waited for, not slept on, so a busy test machine doesn't flake (2.20.0). */
+  await page.waitForFunction(async () => /#\/import\//.test(await navigator.clipboard.readText()), null, { timeout: 8000 });
   const url = await page.evaluate(() => navigator.clipboard.readText());
   assert.match(url, /#\/import\/z/);
-  await page.goto(url); await page.reload(); await page.waitForTimeout(500);
+  await page.goto(url); await page.reload();
+  await page.waitForSelector("[aria-label='Shared with you']", { timeout: 8000 });
   assert.match(await page.innerText("[aria-label='Shared with you']"), /River Road/);
 });
 

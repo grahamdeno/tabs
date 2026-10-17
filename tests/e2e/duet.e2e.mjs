@@ -27,7 +27,8 @@ test("Play together: share a start time, and the friend's phone joins and starts
   // The friend: an empty library, a link that starts in nine seconds (room for a busy test machine).
   const friend = await phone(t, { ...LIB, songs: [] });
   const code = await friend.evaluate(async g => (await import("./core.js")).packShare({ song: g.song, duet: { at: Date.now() + 9000, bpm: 240 } }), got);
-  await friend.goto(base + "#/import/" + code); await friend.reload(); await friend.waitForTimeout(500);
+  await friend.goto(base + "#/import/" + code); await friend.reload();
+  await friend.waitForSelector("[aria-label='Play together']", { timeout: 8000 });
   const join = await friend.innerText("[aria-label='Play together']");
   assert.match(join, /River Road/); assert.match(join, /until the count-in/);
   if (process.env.SHOT) await friend.screenshot({ path: process.env.SHOT + "/duet-join.png" });
@@ -44,7 +45,8 @@ test("Play together: share a start time, and the friend's phone joins and starts
 test("Play together: a link opened after its start time just offers the song", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [] });
   const code = await page.evaluate(async s => (await import("./core.js")).packShare({ song: s, duet: { at: Date.now() - 60000, bpm: 90 } }), { title: "Late Song", body: "G C\nla" });
-  await page.goto(base + "#/import/" + code); await page.reload(); await page.waitForTimeout(500);
+  await page.goto(base + "#/import/" + code); await page.reload();
+  await page.waitForSelector("[aria-label='Shared with you']", { timeout: 8000 });
   assert.match(await page.innerText("[aria-label='Shared with you']"), /Late Song/);
   assert.equal(await page.locator(".duet-wait, #dj-yes").count(), 0);
 });

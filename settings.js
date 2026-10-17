@@ -68,6 +68,10 @@ function renderSettings() {
         <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]].map(([k, n]) => `<button data-t="${k}" class="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
       <div class="set">
+        <span class="tile">${icon("amp")}</span><span class="name">Amp covering</span>
+        <button class="toggle ${s.tolex ? "on" : ""}" id="s-tolex" role="switch" aria-checked="${!!s.tolex}" aria-label="Amp covering: a fine tolex grain behind the app"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("play")}</span><span class="name">Song controls</span><span class="val">${s.controls === "bar" ? "Bar" : "Hold Play"}</span>${icon("chev", "chev")}
         <select id="s-controls" aria-label="Song controls">
           ${[["ring", "Hold Play (ring)"], ["bar", "Bar"]].map(([v, t]) => `<option value="${v}" ${v === (s.controls || "ring") ? "selected" : ""}>${t}</option>`).join("")}
@@ -201,6 +205,7 @@ function renderSettings() {
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
+  $("s-tolex").onclick = () => { s.tolex = !s.tolex; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
