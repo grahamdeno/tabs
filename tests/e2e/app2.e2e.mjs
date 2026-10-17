@@ -404,7 +404,8 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   assert.ok(c.x > 330 && c.y > 780, `Play rests in the corner (${c.x}, ${c.y})`);
   await page.mouse.click(120, 300); await page.waitForTimeout(900);
   c = await center();
-  assert.ok(Math.abs(c.x - 390 * 0.66) < 6 && Math.abs(c.y - 844 * 0.79) < 6, `a touch lifts Play to the thumb (${c.x}, ${c.y})`);
+  /* 2.28.0: lifted, Play rides the arc where the song is: at the top of the song, the arc's bottom end. */
+  assert.ok(Math.abs(Math.hypot(390 - c.x, 844 - c.y) - Math.hypot(390 * 0.34, 844 * 0.21)) < 6 && c.y > 780, `a touch lifts Play onto the arc, at the song's start (${c.x}, ${c.y})`);
   assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), true);
   await page.waitForTimeout(5800);
   c = await center();
