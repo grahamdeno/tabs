@@ -93,7 +93,7 @@ function apply(force) {
   const on = ringActive(st.o.settings);
   document.body.classList.toggle("ring", on);
   const isl = st.rc.querySelector(".rc-isl");
-  const parts = ["dialbtn", "setdial", "play"].map(id => document.getElementById(id)).filter(Boolean);
+  const parts = ["dialbtn", "setdial", "jewel", "play"].map(id => document.getElementById(id)).filter(Boolean);
   if (on) {
     for (const el of parts) if (el.parentElement !== isl && el.parentElement !== st.rc) {
       st.home.set(el, { parent: el.parentElement, next: el.nextSibling });

@@ -696,6 +696,7 @@ function renderViewer(id) {
       <div class="looprow" id="looprow"></div>
       <div class="player">
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
+        <span class="jewel" id="jewel" aria-hidden="true"></span>
         <button class="sb oh oh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
         <button class="sb oh fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="sb oh more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
