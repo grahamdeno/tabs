@@ -1639,3 +1639,6 @@ body.cedit.ring #rc { display: none; } /* 2.30.1: editing hides Play and the arc
 .add .add-note circle { fill: currentColor; }
 .add .add-bdg { position: absolute; right: 2px; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #2a1d0c; color: #ffc27a;
   font: 800 13px/15px var(--sans); font-style: normal; text-align: center; box-shadow: 0 0 0 1.5px #e6cb92; pointer-events: none; }
+/* 2.32.1: the note is brushed silver, drawn filled. */
+.add .add-note { width: 28px; height: 28px; stroke-width: initial; filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+.add .add-note circle { fill: initial; }
