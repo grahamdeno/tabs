@@ -231,7 +231,7 @@ test("typing in Text on a phone opens writing mode; the editor fills the top and
   await page.waitForTimeout(450);
   assert.ok(await page.evaluate(() => document.body.classList.contains("writing")), "writing mode on");
   const box = await page.locator(".ed-tx").boundingBox(), bar = await page.locator(".cebar").boundingBox();
-  assert.ok(box.y >= 0 && box.y < 30, `editor at the top (y=${box.y})`);
+  assert.ok(box.y >= 0 && box.y < 70, `editor at the top, under the title strip (y=${box.y})`);
   assert.ok(bar.y >= box.y + box.height, "bar sits below the editor, not over it");
   assert.ok(await page.locator("#ce-done").isVisible(), "Save stays one tap away while typing");
   await page.keyboard.type("[Verse]\nG\nHello" + "\nline".repeat(60));
@@ -284,4 +284,22 @@ test("2.30.1: editing or adding a song hides Play and the arc", { skip: skip() }
   await page.mouse.click(200, 300); await page.waitForTimeout(700);
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("rc")).display), "none", "no Play or arc on the new song page");
   assert.equal(await page.locator("#play").isVisible(), false);
+});
+
+test("2.33.0: writing mode keeps the song in view: a strip with title, artist and key; Return comes back to the pad", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { isMobile: true });
+  await page.click("#add"); await page.waitForTimeout(600);
+  await page.focus("#ed-body"); await page.waitForTimeout(400);
+  assert.ok(await page.locator("#ed-strip").isVisible(), "the strip shows while writing");
+  assert.match(await page.innerText("#ed-strip"), /Add a title/);
+  const s = await page.locator("#ed-strip").boundingBox(), p = await page.locator(".ed-tx").boundingBox();
+  assert.ok(p.y >= s.y + s.height, "the pad sits below the strip");
+  await page.keyboard.type("[Verse]\nG       C\nHello there");
+  await page.click("#ed-strip"); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "ed-title", "tap the strip: the title");
+  await page.keyboard.type("Porch Light"); await page.keyboard.press("Enter");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "ed-artist", "Return: the artist");
+  await page.keyboard.type("Me"); await page.keyboard.press("Enter"); await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "ed-body", "Return again: back to the pad");
+  assert.match(await page.innerText("#ed-strip"), /Porch Light\s*·\s*Me\s*·\s*Key G/);
 });

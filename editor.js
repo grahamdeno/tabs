@@ -22,6 +22,7 @@ onLeave(() => {
   setChordEdit(null); edView = "sheet"; textSnap = null;
   document.body.classList.remove("cedit");
   document.querySelector(".cebar")?.remove();
+  document.querySelector(".ed-strip")?.remove();
   $("ed-details")?.remove();
 });
 const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
@@ -54,6 +55,7 @@ function endEdit() {
   setChordEdit(null); edView = "sheet"; textSnap = null;
   document.body.classList.remove("cedit");
   document.querySelector(".cebar")?.remove();
+  document.querySelector(".ed-strip")?.remove();
 }
 function songEditor(song, view = "sheet") {
   stopScroll();
@@ -72,6 +74,15 @@ function songEditor(song, view = "sheet") {
     <div class="seg slide ${text ? "" : "right"}" id="ed-seg" role="tablist" aria-label="Edit view"><button class="${text ? "on" : ""}" role="tab" aria-selected="${text}" data-v="text">Edit</button><button class="${text ? "" : "on"}" role="tab" aria-selected="${!text}" data-v="sheet">Preview</button></div>
     <button class="ce-save" id="ce-done">${song.isNew ? "Save" : "Done"}</button></div>`;
   document.body.appendChild(bar);
+  /* 2.33.0: while typing, a slim strip above the pad keeps the song in view:
+     title, artist and key. Tap it to edit them; Return comes back to the pad. */
+  document.querySelector(".ed-strip")?.remove();
+  const strip = document.createElement("button");
+  strip.className = "ed-strip";
+  strip.id = "ed-strip";
+  document.body.appendChild(strip);
+  strip.onclick = () => { const t = $("ed-title"); if (!t) return; t.focus({ preventScroll: true }); t.scrollIntoView({ block: "center" }); };
+  paintStrip(song);
   /* Tapping the bar while typing keeps the keyboard up, so taps land where aimed. */
   bar.addEventListener("pointerdown", e => { if (writing && e.target.closest("button")) e.preventDefault(); });
   $("ce-done").onclick = () => {
@@ -116,6 +127,16 @@ function songEditor(song, view = "sheet") {
     if (!song.isNew && $("ed-tap") && coachTip("tap")) demoTap();
   }, 500);
 }
+function paintStrip(song) {
+  const el = $("ed-strip");
+  if (!el) return;
+  const title = ($("ed-title")?.value ?? song.title ?? "").trim(), artist = ($("ed-artist")?.value ?? song.artist ?? "").trim();
+  const key = song.format === "tab" ? "" : song.key || guessKey(song.body || "");
+  el.setAttribute("aria-label", title ? `${title}${artist ? ", " + artist : ""}. Edit title and artist` : "Add a title");
+  el.innerHTML = title
+    ? `<b>${esc(title)}</b>${artist ? `<i>·</i><span>${esc(artist)}</span>` : ""}${key ? `<i>·</i><em>Key ${esc(key)}</em>` : ""}<span class="go">Edit ›</span>`
+    : `<b class="none">Add a title</b><span class="go">Title ›</span>`;
+}
 function paintEdit(song) {
   const sheet = $("sheet");
   if (!sheet || chordEdit !== song) return;
@@ -133,7 +154,8 @@ function paintEdit(song) {
 // type in the Text view, so the detected key and format stay current.
 function paintDetails(song) {
   const h = app.querySelector(".song-title");
-  $("ed-details")?.remove();
+  /* Redrawn while a field in it may be losing focus (Return to the next field). */
+  try { $("ed-details")?.remove(); } catch { $("ed-details")?.replaceWith(document.createTextNode("")); }
   const isTab = song.format === "tab";
   const showFormat = isTab || looksLikeTab(song.body || "");
   const guess = isTab ? "" : guessKey(song.body || "");
@@ -156,6 +178,12 @@ function paintDetails(song) {
     </div>`;
   h?.after(d);
   $("ed-sum")?.addEventListener("click", () => { detailsOpen = !detailsOpen; paintDetails(song); });
+  paintStrip(song);
+  /* Return moves on: title to artist, artist back to the song text. */
+  /* Save first (that redraws these fields), then focus the fresh next one. */
+  const toNext = (el, next) => el && el.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); el.dispatchEvent(new Event("change")); next()?.focus({ preventScroll: true }); } });
+  if ($("ed-title") && !$("ed-title").dataset.nx) { $("ed-title").dataset.nx = "1"; toNext($("ed-title"), () => $("ed-artist")); }
+  toNext($("ed-artist"), () => $("ed-body"));
   $("ed-artist").onchange = e => editChange(song, "", () => { song.artist = e.target.value.trim(); });
   $("ed-format")?.addEventListener("change", e => {
     const f = e.target.value;
