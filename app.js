@@ -408,8 +408,69 @@ function renderList() {
   bindFind(list);
   bindIndex(list, sorted, q ? "" : sort);
 }
+// 2.27.0: swipe a song in the list. Left shows Delete (a long swipe deletes
+// at once; Undo brings it back, and it stays in Recently deleted for 30
+// days). Right toggles Favorite. Only on the plain list, never the cards.
+let swOpen = null;
+function closeSwipe() { if (!swOpen) return; const r = swOpen; swOpen = null; r.style.transform = ""; r.parentNode.querySelectorAll(".sw-act").forEach(a => a.style.width = ""); setTimeout(() => r.parentNode?.classList.remove("swiping"), 200); }
+function swipeDelete(id) {
+  const song = data.songs.find(x => x.id === id);
+  if (!song) return;
+  swOpen = null;
+  const entry = Tabs.deleteSong(data, id);
+  renderLibrary();
+  toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); renderLibrary(); toast("Restored"); } });
+}
+function bindSwipe(list) {
+  list.querySelectorAll(".list .row[data-id]").forEach(row => {
+    const wrap = document.createElement("div");
+    wrap.className = "sw";
+    row.before(wrap);
+    wrap.innerHTML = `<button class="sw-act sw-fav" tabindex="-1" aria-hidden="true">${icon("heart")}</button><button class="sw-act sw-del" tabindex="-1" aria-label="Delete">${icon("trash")}</button>`;
+    wrap.appendChild(row);
+    const del = wrap.querySelector(".sw-del"), fav = wrap.querySelector(".sw-fav");
+    del.onclick = e => { e.stopPropagation(); swipeDelete(row.dataset.id); };
+    let x0 = 0, y0 = 0, dx = 0, on = false, dead = false, base = 0;
+    const paint = d => {
+      row.style.transform = d ? `translateX(${d}px)` : "";
+      del.style.width = Math.max(0, -d) + "px"; fav.style.width = Math.max(0, d) + "px";
+      del.classList.toggle("go", -d > row.offsetWidth * 0.6); fav.classList.toggle("go", d > 72);
+    };
+    row.addEventListener("pointerdown", e => { if (e.pointerType === "mouse" && e.button) return; x0 = e.clientX; y0 = e.clientY; dx = 0; on = false; dead = false; base = swOpen === row ? -84 : 0; if (swOpen && swOpen !== row) closeSwipe(); });
+    row.addEventListener("pointermove", e => {
+      if (dead || (!x0 && !y0)) return;
+      const mx = e.clientX - x0, my = e.clientY - y0;
+      if (!on) { if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) { dead = true; return; } if (Math.abs(mx) < 12) return; on = true; wrap.classList.add("swiping"); try { row.setPointerCapture(e.pointerId); } catch {} }
+      dx = base + mx; paint(dx);
+    });
+    const end = () => {
+      if (!on) { x0 = y0 = 0; return; }
+      on = false; x0 = y0 = 0; row.dataset.swiped = "1"; setTimeout(() => delete row.dataset.swiped, 400);
+      if (-dx > row.offsetWidth * 0.6) { paint(-row.offsetWidth); setTimeout(() => swipeDelete(row.dataset.id), 160); return; }
+      if (dx > 72) {
+        const song = data.songs.find(x => x.id === row.dataset.id);
+        if (song) { song.favorite = !song.favorite; Tabs.save(data); tick(); toast(song.favorite ? "Added to Favorites" : "Removed from Favorites"); }
+        paint(0); setTimeout(renderLibrary, 220); return;
+      }
+      if (-dx > 50) { paint(-84); swOpen = row; return; }
+      paint(0); if (swOpen === row) swOpen = null; setTimeout(() => wrap.classList.remove("swiping"), 200);
+    };
+    row.addEventListener("pointerup", end);
+    row.addEventListener("pointercancel", end);
+  });
+  /* The first time, one row slides a little to show the trash, then settles. */
+  const first = list.querySelector(".list .sw .row");
+  if (first && !searching && data.songs.length > 2 && coachTip("swipe")) {
+    const w = first.parentNode, d = w.querySelector(".sw-del");
+    setTimeout(() => { w.classList.add("swiping", "hint"); first.style.transform = "translateX(-72px)"; d.style.width = "72px";
+      setTimeout(() => { first.style.transform = ""; d.style.width = ""; setTimeout(() => w.classList.remove("swiping", "hint"), 400); }, 1100); }, 900);
+  }
+}
+document.addEventListener("pointerdown", e => { if (swOpen && !e.target.closest(".sw")) closeSwipe(); }, true);
 function bindRows(list) {
+  bindSwipe(list);
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
+    if (el.dataset.swiped) { delete el.dataset.swiped; return; }
     setSetCtx(null);
     if (searching) { keepSearch = !!query.trim(); searching = false; document.body.classList.remove("searching"); }
     // Name this row's title so it glides into the song header.

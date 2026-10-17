@@ -13,7 +13,7 @@ const changed = new Set([
 
 // Which browser test files cover which app files.
 const COVERS = {
-  "app.js": ["app", "regress", "duet", "changes", "today"],
+  "app.js": ["app", "regress", "duet", "changes", "today", "swipe"],
   "core.js": ["app", "changes", "today"],
   "ui.js": ["app", "regress"],
   "settings.js": ["settings", "today"],
