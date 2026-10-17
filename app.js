@@ -431,8 +431,13 @@ function bpmKey() { try { return localStorage.getItem(BPM_STORE) || ""; } catch 
 // stream: the reply arrives as it's written. A long reply (German practice)
 // otherwise keeps the connection silent for a minute or more, and iPhone gives
 // up on it, which looks like "Could not reach Anthropic" (2.11).
+// Why the last reply ended ("end_turn", "max_tokens", "refusal"...), for the
+// "What came back" note when a reply has no text (2.16.6).
+let lastStop = "";
+const aiLastStop = () => lastStop;
 async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, key = aiKey(), stream = false }) {
   let r;
+  lastStop = "";
   try {
     r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -459,6 +464,7 @@ async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, k
           if (!data) continue;
           let ev; try { ev = JSON.parse(data); } catch { continue; }
           if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") text += ev.delta.text;
+          else if (ev.type === "message_delta" && ev.delta?.stop_reason) lastStop = ev.delta.stop_reason;
           else if (ev.type === "error") throw Object.assign(new Error(ev.error?.message || "stream error"), { status: ev.error?.type === "overloaded_error" ? 529 : 500, model });
         }
       }
@@ -466,6 +472,7 @@ async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, k
     return text;
   }
   const j = await r.json();
+  lastStop = j.stop_reason || "";
   return (j.content || []).filter(c => c.type === "text").map(c => c.text).join("");
 }
 
@@ -2183,4 +2190,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { aiLastStop, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

@@ -2,7 +2,7 @@
 // "What can I play next?". Loaded the first time either is opened.
 import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf } from "./core.js";
 import { oneHandMQ } from "./ui.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, BPM_STORE, bpmKey } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, BPM_STORE, bpmKey, aiLastStop } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
 async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
@@ -375,7 +375,7 @@ export async function nextSongs() {
       const work = changesOf(data.songs).work.map(c => `${c.a} to ${c.b}`);
       /* Streamed (2.16.2): the reply arrives as it's written, so iPhone keeps the
          connection open; and after 45 s with nothing, say so instead of waiting on. */
-      const ask = () => Promise.race([askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 2000,
+      const ask = () => Promise.race([askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 8000, /* room to think first (2.16.6) */
         content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}${work.length ? `\nChanges I'm working on: ${work.join(", ")}. Include them where they fit.` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` }),
         new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("slow"), { status: -2 })), 45000))]);
       // An unreadable reply is usually a one-off, so ask once more before saying so.
@@ -389,7 +389,7 @@ export async function nextSongs() {
       if (!state.list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
     } catch (e) {
       if (lv !== level()) return;
-      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form Tabs couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || "" };
+      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form Tabs couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
     }
     paint();
   };

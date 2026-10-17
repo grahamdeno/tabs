@@ -112,3 +112,21 @@ test("Play next: the reply is streamed, so a long wait keeps the connection aliv
   assert.equal(streamed, true);
   assert.match(await page.innerText("#nx-body"), /Low Tide/);
 });
+
+test("Play next: an empty reply says why it ended, and the AI gets room to think (2.16.6)", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
+  const max = [];
+  await page.route(/api\.anthropic\.com/, r => {
+    max.push(JSON.parse(r.request().postData()).max_tokens);
+    const ev = (e, d) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`;
+    r.fulfill({ status: 200, contentType: "text/event-stream", headers: cors, body:
+      ev("content_block_delta", { type: "content_block_delta", delta: { type: "thinking_delta", thinking: "Let me think about harder songs..." } }) +
+      ev("message_delta", { type: "message_delta", delta: { stop_reason: "max_tokens" } }) + ev("message_stop", { type: "message_stop" }) });
+  });
+  await page.reload(); await page.waitForTimeout(400);
+  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
+  await page.click("#nextidea"); await page.waitForSelector(".nx-err");
+  assert.ok(max.every(m => m >= 8000), `room to think: ${max}`);
+  assert.match(await page.textContent(".nx-err details pre"), /stopped with: max_tokens/);
+});
