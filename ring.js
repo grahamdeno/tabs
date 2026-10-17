@@ -1,4 +1,4 @@
-// Tabs ring controls (2.2): the song page's controls for one hand.
+// Tabs ring controls: the song page's controls for one hand.
 //
 // On a phone held upright, the song bar becomes a small island in the lower
 // right: the speed (hold it for the speed dial), "4 of 9" in a set (hold it
@@ -23,7 +23,7 @@ const SLOTS = [180, 198, 216, 234, 252, 270];   /* ring angles: left to straight
 /* Seven items (a song in a set, with German): closer angles on a wider ring,
    so each button keeps a full thumb's width (about 47 px between centres). */
 const SLOTS7 = [180, 195, 210, 225, 240, 255, 270];
-/* 2.18: the buttons are rounded squares, so the ring is wider to keep a clear
+/* the buttons are rounded squares, so the ring is wider to keep a clear
    gap between corners (about 62 px between centres). The angles are the same,
    so each button is in the same direction from Play as before. */
 const layout = () => (st.o.items.some(it => it.slot > 5) ? { at: SLOTS7, R: 232 } : { at: SLOTS, R: 200 });
@@ -157,7 +157,7 @@ function paintTrack() {
 // near where the thumb lands, picking up smoothly to land exactly on the end.
 // While sweeping, the section you're in glows by Play, and the page keeps
 // still (no diagrams or header) until you let go.
-// One screen (the 2.3 behavior): the whole arc is about one screen.
+// One screen: the whole arc is about one screen.
 const angleOf = (x, y) => 180 + Math.atan2(innerHeight - y, innerWidth - x) * 180 / Math.PI;  /* 180 left, 270 up */
 function bindTrack() {
   const hit = st.rc.querySelector(".rc-hit");
@@ -244,7 +244,7 @@ function bindHold() {
     clearTimeout(timer);
     timer = setTimeout(() => { opened = true; openRing(p, true); }, st.o.playing() ? HOLD_PLAYING_MS : HOLD_MS);
   };
-  /* 2.29.0: lifted, Play is the handle for the track, like a spring-loaded
+  /* lifted, Play is the handle for the track, like a spring-loaded
      fader. Slide it along the arc and the song moves exactly as a sweep of
      the track does (fine at first, then covering ground); Play rides under
      the thumb and glides back to its spot when you let go. */
@@ -303,7 +303,7 @@ function bindHold() {
   st.cleanup.push(() => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); });
 }
 
-/* 2.26.0: each place has its name printed on the panel just inside it, like
+/* each place has its name printed on the panel just inside it, like
    the writing under an amp's controls. Pushed in further where the name runs
    along the radius (the left side) so it clears the button. */
 function label(it, a, cx, cy, R) {
@@ -344,7 +344,7 @@ function pick(x, y) {
   ringEl.querySelectorAll(".ri").forEach(b => b.classList.toggle("on", !!best && b.dataset.r === best.id));
   const nm = ringEl.querySelector(".ring-name");
   nm.textContent = best ? txt(best.label) : "";
-  /* The wider ring (2.18) puts the name near the right edge: keep it on screen. */
+  /* The wider ring puts the name near the right edge: keep it on screen. */
   nm.style.left = Math.min(+ringEl.dataset.cx, innerWidth - 12 - nm.offsetWidth / 2) + "px";
 }
 export function closeRing() {
@@ -398,7 +398,7 @@ function tick() {
   if (st.touching || now - st.lastTouch < CALM_MS || ringEl) return;
   st.up = want;
   position();
-  if (want) st.o.rose?.(); /* the app may show the first-time hold hint (2.16) */
+  if (want) st.o.rose?.(); /* the app may show the first-time hold hint */
 }
 
 // Ask for the motion sensors (iPhone asks once, from a tap). Resolves true when allowed.

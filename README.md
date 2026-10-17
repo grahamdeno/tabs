@@ -1,81 +1,66 @@
 # Tabs
 
-A personal chord sheet and guitar tab PWA. Offline-first, localStorage only, no accounts.
+A personal chord sheet and guitar tab app for the phone. It works offline, keeps everything on the device, and needs no account.
 
-Paste chord sheets (or ASCII tabs), transpose, auto-scroll, and add to your home screen.
+Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it to the home screen to use it as an app.
 
-Built in the same style as [threads](https://github.com/grahamdeno/threads) and [scales](https://github.com/grahamdeno/scales).
+## What it does
 
-## Live
+### Library
+- The library is home. The bottom bar searches, or takes a pasted chord sheet and works out its format, key, sections, title and artist.
+- Search moves the bar to the top so results sit above the keyboard. It matches titles and artists first, then lyrics (showing the matching line). When nothing matches, it offers the web, Ultimate Guitar or Chordify, then Get the song.
+- Filters for All, Sets, Favorites, Learning and Tabs, each with a lamp lit on your pick. Sort A to Z, by artist (a leading "The" is ignored), recently played or most played. Long lists get a letter index on the right edge.
+- Swipe a song left to delete it (a long swipe deletes at once, with Undo), right to toggle Favorite.
+- Today, under the title: a week of dots and your practice streak (a day counts when a song plays to its end), and until you've played, one song to try. The pick can follow the time of day, the weather for a city you set (Open-Meteo, once a day, never your location), a change you rarely play, or a Learning song left too long. Tap the line for Changes: the chord changes you played this week and the ones your songs have that you play least.
 
-Once GitHub Pages is enabled on the `main` branch (root), the app will be at:
+### Playing a song
+- Chords sit over the words in copper, chord-over-lyric or inline `[G]` style. Lyrics wrap at full size with each chord riding its word; tabs wrap a measure at a time with string names on every row.
+- Auto-scroll by song length (default; it fits the scroll to how long the song takes) or by speed. Each song keeps its own. Linking a recording sets the length from the track.
+- Tap anywhere to pause. Count-in from the top, metronome, transpose with sharps or flats chosen by the resulting key, text size, practice a section (with Build up from 80% speed), and a song map on the right edge to jump between sections.
+- Chord help: Chords in this song (a strip of fingerings under the title), Now and Next diagrams while playing, a diagram over each chord on the line you pause on, and tap any chord for its fingering.
+- Focus current line: the current line is heavier and the rest dim, without ever changing how lines wrap.
+- Stage mode: larger, brighter text and nothing extra; stray touches don't scroll and one tap doesn't stop a song.
+- One-handed controls on a phone held upright: the song bar is a gold plate with Back, the speed dial and Play. Play rises to the thumb on an arc; sweep the arc, or slide Play along it, to move through the song. Hold Play for a ring of controls (Tempo, Key, Chords, Tuner, Favorite, More, and Set in a set). The speed dial is a backlit meter in the corner.
+- Bluetooth page-turner pedals work: left or Space plays and pauses, right goes to the next section, holding right goes back one.
 
-`https://grahamdeno.github.io/tabs/`
+### Sets
+- Group songs into sets with a date and place. The next one shows at the top of the library with one-tap play.
+- Every set gets a drawn cover (a ring per song, colored by key), or album art, a photo or the camera.
+- Play set opens with a title card; at the end of each song a Next up card plays the next after 5 seconds and waits if the next song needs a different tuning. A finished set remembers when it was played, how long it ran, and a note for next time.
 
-## Features
+### Adding and editing songs
+- The add button opens a new song on a writing pad, with ways to start under it: Paste, Type, Sing or strum, and with an AI key, Scan a page and Find the chords with AI. Key, Tuning and Tempo fold into one line showing what was found.
+- Edit turns the song page into the editor: title and artist in place, tap a word to set its chord, the pencil retypes a line, tap a section name to rename it, + adds a line or section. Every change saves at once with Undo. Edit / Preview switches between the text and the finished sheet. While typing, a strip above the pad keeps the title, artist and key in view.
+- Tap tempo, tunings (from Edit or a "Tuning: Drop D" line), and Delete with Undo. Deleted songs and sets stay in Recently deleted for 30 days.
+- Sing it: hold the pad and sing a line; Tabs finds the key and chords that hold your melody and places them over your words. Strum it does the same from the guitar, using Basic Pitch on the phone to hear what you played. Nothing is sent anywhere.
 
-- Every sheet closes with a swipe down (from its handle or title, or from the content scrolled to the top); a short pull springs back
-- No tab bar: the library is home, with a bottom bar that searches or takes a pasted song
-- Paste a chord sheet into the bar and Tabs detects format, key, sections, title and artist, then offers to save it
-- Chord sheets first: chords in the accent color over the lyrics, chords-over-lyrics or inline `[G]` style
-- Recent songs, favorites, Learning and Tabs filters on the library
-- Today, under the library's title: seven dots for the last week and your practice streak (a day counts when a song plays to its end), and until you play today, one song to try, which opens with a tap. In the evening a streak worth keeping comes first; with a city set in Settings > Today, the weather picks the song (a slow one on a rainy day, an old favorite when it's cold, a favorite for the porch on a clear weekend); otherwise a Learning song or a favorite left too long. It stays quiet on a gig day, when Up next has the floor. Weather from Open-Meteo, once a day, for the city's position only; Tabs never asks for your location. Logic in `core.js` (`streakOf`, `weatherMood`, `pickNudge`)
-- Changes: tap the Today line to see the chord changes you played this week (G to C, Am to F), counted when a song plays to its end, in the shapes you play. "To work on" lists the changes your songs have that you play least; the daily suggestion can point at one ("Work on Am to F. This one has it 8 times"), and What can I play next? asks for songs that include them. Nothing new is stored; it comes from the plays Tabs already keeps
-- Play together: in a song's ••• menu, pick a start in 1, 2 or 5 minutes and share the link. Your friend's phone opens a countdown and adds the song; at the start time both phones count in and scroll to the song's length together, each by its own clock. No server and no audio: only the song, the start time and the tempo travel in the link. Pausing or jumping on one phone doesn't reach the other
-- When a search finds nothing, Tabs offers to look for it: Search the web, Ultimate Guitar or Chordify. Copy the chord sheet there and come back; Tabs offers to paste what you copied
-- Tapping the search bar moves it to the top and folds the library away, so results sit between the bar and the keyboard (before you type, it shows recently played songs; Cancel returns to the library). Search finds titles and artists first, then songs with those words in the lyrics, showing the matching line (chords are ignored)
-- Sing it: when adding a song, hold the pad and sing a line (a quick tap sings hands-free); let go to keep it, slide left to redo, slide up to make the song. A key wheel shows the notes you sing landing in a key, a meter how sure it is, and the key's chords (tap one to hear it); while you sing, a filled melody line and the chords that fit. Kept lines read like a notebook, chords over your words, with a nudge where another chord fits the line just sung. Say or type each line's words. Tabs follows your melody, finds its key, picks chords that hold the notes you sang (favoring natural moves like G to C to D), places each chord over the word where it changes, and opens the result in the editor to name it and change any chord with a tap. Afterwards the song page offers **Your recording** (hear it back with the line and chord being sung lit) and **Simple or Rich** chords (Rich adds the 7ths and 9ths you sang, and a V7), and in Edit, tapping a word shows the chords that fit the melody there, with fit bars, and other ways to play the whole line. All on the phone: the melody is kept with the song, the recording only on this phone, never sent. Logic in `core.js` (`melodyNotes`, `detectKey`, `harmonize`, `chordLine`, `sketchSong`, `restyle`, `chordFit`, `lineOptions`), screen in `sketch.js` (loaded on first use)
-- Strum it (in Sing it, a switch at the top: Sing it, Strum it, Both; remembered): hold the pad and strum a line on the guitar; let go to keep it, then add the words. A few seconds later the line shows the chords you actually played, placed over the words by when you changed chord, and the key comes from them. Play single notes instead and the line keeps them as a riff (`Riff: G3 B3 D4`). Both listens to your voice and your guitar together: the sheet uses the chords you played, and where your melody suggests something else, the line offers You played / Melody fits with one tap. Typing a line's words isn't interrupted when its chords arrive. Hearing the guitar uses Basic Pitch (Spotify, Apache-2.0), which turns the recording into notes on the phone (`strum.js`, with the library in `vendor/basic-pitch/`, about 2 MB, downloaded the first time Strum it is chosen and kept across updates); `core.js` names the chords (`cleanNotes` drops overtones and ghost notes, `strumChords` names each quarter second from what's sounding and folds blips, `riffNotes`, `chordToneNotes`). Nothing is sent anywhere. Sing it alone never loads it.
-- Sort the library A–Z, by artist (a leading "The" is ignored), by recently played or most played (remembered)
-- When a song plays through, a quiet note at the end says so ("Played through · 3rd time this week"). No badges or streaks
-- Learning status per song (Learning / Got it, tap the chip under the title); a play is counted when a song is played through, and the library quietly shows plays this week
-- Slim playback bar: auto-scroll, transpose (or text size for tabs)
-- Tap anywhere on the song to pause while it plays (no button to aim for)
-- Song map: a thin rail on the right edge with a dot per section; touch it to see the section names, slide to one and let go to jump
-- Large libraries: sorted A to Z or by artist with 25 or more songs, an index on the right edge jumps to a letter as you touch or drag it, with a light tick on each letter
-- Look: dark glass with copper for what you play (chords, Play, +) and a little Marshall amp: thin bronze piping on the bars, lists and sheets, and bronze small labels. The bottom bars are clear glass with a bright rim, in the spirit of Liquid Glass; sheets are frosted, so the song shows softly through. The hold-Play menu is a black tolex panel with a thin gold edge: black buttons with a chrome rim, each named in gold (Tempo, Key, Chords, Tuner, Favorite, More, and Set in a set), what you reach for mid-song lowest, and a jewel lamp in the corner of whatever is on. A small amber jewel lamp beside the controls glows while a song plays. With the hold-Play controls, the bar at the bottom of a song is a brushed gold plate like an amp's front panel, with Back and the time in dark recesses and Play in a deeper copper. The add button on the library (a brushed silver music note with a small + badge) is the same deeper copper, set in a band of the same brushed gold as the song bar, so it sits exactly as Play does. The filter chips (All, Sets, Favorites) each have a small jewel lamp, lit on the one you've picked. The speed dial is a backlit amp meter in the corner: a cream face with whole minutes marked, a needle that swings as you sweep, and the reading in a dark window above it. Play next has the same feel: a bronze heading, a jewel lamp that warms up while the AI looks, each song on a tolex card with its new chords in copper and a gold Add, and the level switch on a gold plate with a lamp lit on your pick. Get the song works like a channel strip: a jewel lamp per step (finding the lyrics, finding the tempo, working out the chords, lining the chords up with the lyrics), dark while waiting, warming while working, lit when done. The app icon and the iPhone launch screen are the Fret pick on black leather. Settings > Look > Amp covering (off by default) adds a fine pebbled grain behind everything, like the tolex on an amp cabinet; cream in the light theme
-- Theme: Automatic (the default) follows the phone's light or dark appearance; Dark and Light override it (Settings > Look)
-- The first time the tuner opens, it says why it needs the microphone (and that nothing is recorded or sent) before the phone asks; if it's been turned off, it says how to turn it back on
-- Tuner: three ways to tune, chosen with tiles at the top. **Acoustic** (the default) and **Electric** show the guitar's headstock: the key to turn lights copper, its string lights down to the nut, and the words say Tighten or Loosen. **Guided** (on by default) walks the strings low to high and moves on once a string has held in tune for a second, with a soft chime; turn it off and it follows whichever string you play. Near the note (within 5 cents) the meter becomes a strobe whose stripes stand still when the string is right. Tap a key to hear its note. **Chromatic** reads any note on any instrument, with an adjustable pitch reference (A4, 430 to 450 Hz). Tunings: Standard, Drop D, half and whole step down, DADGAD, Open G and Open D. The tuner shows up where tuning happens: a button on the library (with a dot when you haven't tuned for a few hours), a chip on songs in another tuning, the set page, and the Next up card, which waits instead of starting when the next song needs a different tuning. A song's tuning comes from Edit, or a line like "Tuning: Drop D" in the sheet
-- Listen: searches Apple Music inside Tabs (Apple's public catalog, no account), starting with the title and artist; change the words to search again. Hear a 30-second preview of any result, and tap the right one to save it with its album art and length, without leaving the app. Spotify or YouTube links can still be pasted
-- Metronome (••• menu): a steady click at the song's tempo while it scrolls
-- Edit (••• menu) turns the song page into the editor: type the title and artist in place; key, tuning and tempo are chips; tap a word to add or change its chord (this song's chords first, then any chord); the pencil retypes a line; tap a section name to rename it; + adds a line or a section. Every change saves at once with Undo. Text switches the same page to the song as plain text for big jobs (chord lines shown in copper, Clean up and Scan a page on hand); switching either way keeps the line you were on in place, and the text changes can be undone in one step
-- Stage mode (Settings > Playing, or under Play set): larger, brighter text and nothing extra on screen; while a song plays, stray touches don't scroll and one tap doesn't stop it (tap twice to pause)
-- In a set, the next song's title and first line show quietly near the end of each song
-- Speed by song length (default): set how long a song takes (3:30 to start) and the scroll fits it; or switch to 1x style in Settings > Playing. Each song keeps its own setting
-- Song length from the recording: linking a song to Apple Music (Listen) sets its length from the track, so song length speed starts close. If you've already set your own length it's offered instead ("Use 3:52"); songs linked earlier pick it up the next time they open
-- Tap tempo: in Edit, tap the Tap chip along with the beat; after four taps it settles a moment after the last one, with Undo
-- Count-in: one bar of soft clicks at the song's tempo (set in Edit; 90 if unset) before scrolling starts, only when starting from the top (the first line is on screen); starting partway through scrolls right away
-- Transpose per song, with sharps or flats chosen by the resulting key
-- Lyrics wrap to the screen at full size, with each chord riding on its word; words never split
-- Tabs wrap a measure at a time, all strings together, with string names on every row
-- Chord diagrams: while playing, a fixed Now and Next panel above the controls shows the chord at the reading line and the next ones (off by default; toggle it from the player or Settings); when paused, the line you're on shows a diagram over each chord (under it on the first line, so Chords in this song stays clear), and you can tap any chord for its fingering
-- Focus current line (Always, While playing, or Off): the current line is heavier and slightly larger, and the rest dim. It never changes how lines wrap, so nothing below jumps; when paused, tap a line to focus it and play starts from there
-- Chords in this song: a strip under the title shows each chord's fingering once, in order of first use; tap a card to mark everywhere that chord is played
-- Song header keeps just back and favorite; everything else is in the ••• menu: text size (lyrics and chords together), add to set, practice a section, share, edit, and Make it easier and Spark tone with an API key
-- Practice a section (••• menu): tap a section name, or a first and last line, and play repeats it, with a copper bracket in the margin. Build up starts at 80% speed and adds 5% each pass until full speed
-- Share a song (••• menu) or a set (share button on the set): the song travels inside the link itself, with no server or account. Opening the link offers to add it; nothing is added without a tap. Your plays, favorites and AI suggestions stay with you. On iPhone, a Home Screen app keeps its own library, so paste the link into Tabs' search bar to add it there
-- Set covers: every set gets a cover drawn from what's in it (one ring per song, colored by its key, with the set name in the title font)
-- Up next: give a set a date and place, and the library opens with it on top ("Up next · Fri 8:00 PM · in 3 days") with one-tap play; your other sets sit on a shelf of covers below
-- New set: a sheet where the cover takes shape as you type the name, with optional When and Where, and Start from Favorites, Learning or Played this week. Tap a set's title later to change its details
-- Add songs to a set: the cover at the top grows a ring for each song you pick, the length adds up, and songs go in the order you tap them
-- Set page: the cover is the hero and the page takes its color. Change cover: from songs, the songs' album art (from Listen links), a photo, or the camera, framed with drag and pinch. Photos are kept on the phone and included in backups
-- Play set opens with a short title card (the cover, the set, what's first; tap to skip)
-- After a set is played through, it remembers: a Played stamp on the cover, times played, last run time, songs played, a note for next time, and Play again
-- Setlists: group songs into sets (Sets in the library), reorder, and Play set; at the end of each song a Next up card plays the next one after 5 seconds. Add a song to sets from its header
-- Swipe a song in the library: left shows Delete, and a long swipe deletes at once (with Undo; it stays in Recently deleted for 30 days). Right toggles Favorite. The first time, one row slides a little to show you
-- Smooth screen changes: the song title glides between the library and the song, and sheets settle with a light spring (instant with Reduce Motion)
-- New song page (2.30.0): the writing area is a pad, dark ruled with a copper margin in the dark theme and a cream legal pad in the light theme. While it's empty, buttons under it offer ways to start: Paste, Type, Sing or strum, and with an AI key Scan a page and Find the chords with AI. Key, Tuning and Tempo fold into one line (what was found from the text, like Key G) with Details to open them. The bar at the bottom is a gold plate in thumb reach: Cancel, Edit / Preview, and Save in copper; Clean up and Scan sit just above it once there's text
-- Writing mode keeps the song in view: while the keyboard is up, a slim strip above the pad shows the title, artist and key. Tap it to edit them; Return moves from title to artist and back to the pad
-- + opens a blank song in the same editor as Edit, in the Text view: paste or type, and the key (or Format: Tab) is detected as you go. Save keeps it; Cancel removes it (asking first if you typed anything). Tab songs edit in the same page, in the Text view. Delete from Edit (with Undo; deleted songs and sets stay in Recently deleted for 30 days)
-- Optional AI help with your own Anthropic API key: Clean up a messy paste into a tidy chord sheet (with title, artist and key), Scan a page from a photo, Make it easier with a capo and simpler chords, or get a Spark amp tone for a song
-- Lifted onto the arc, Play is also the handle for it, like a spring-loaded fader: slide Play along the arc and the song moves just as a sweep of the arc does (fine at first, then covering ground). Let go and Play glides back to its spot. A tap still plays and pauses; holding still still opens the menu
-- The first time Play glides up to the arc, a glass circle grows, shrinks and bounces where the ring opens, then a note says to press and hold Play for more. Once only, and not if you've already opened the ring
-- Help that stays out of the way. The first song asks you to try one thing, tapping a chord (if you don't, its diagram appears to show you), then points at Play. Everything else is shown once, at the moment it's most useful, with a brief spotlight and the real feature doing its thing: the pause badge on your first play, a line mid-screen in the real focus look on your first pause, Now and Next fading in on a later pause, the section names on the song map, the strobe in the tuner, and Tap tempo tapping out 92 BPM in your first Edit (with a haptic tick where the phone allows; your real taps tick too). After your first song, search invites a tap and then shows everything it can do. Tips are spaced at least 30 seconds apart unless one leads into the next, never appear while a song plays (except how to pause), and skip anything you already use. Menu items you haven't tried carry a small dot. Settings > Help > Tips & gestures lists every gesture, with Show me to replay a tip where it happens, and Reset tips
-- Settings (gear, top right): a short menu, each row showing where it stands, that opens a page for Playing, Chord diagrams, Look, New songs, Today, Keys, Library and backups, and Help. Back up now sits at the bottom of the menu, in reach of your thumb
-- While playing, the header, title and chord strip dim and turn grey, and the player controls fade after 3 idle seconds (play/pause stays bright; any touch brings them back)
-- Keeps the screen awake while scrolling; offline after first load; installable on iOS and Android, with a proper launch screen on iPhone
-- Lyrics follow the phone's own text size setting; light mode colors meet contrast guidelines for daylight reading
+### Tuner
+- Acoustic and Electric show the headstock: the key to turn lights up and the words say Tighten or Loosen. Guided walks the strings low to high. Near the note the meter becomes a strobe. Chromatic reads any note, with an adjustable A4 (430 to 450 Hz).
+- Standard, Drop D, half and whole step down, DADGAD, Open G and Open D. It shows up where tuning happens: the library, songs in another tuning, sets and Next up.
+
+### Listening and sharing
+- Listen searches Apple Music's public catalog inside the app, plays 30-second previews, and saves the right recording with its album art and length. Spotify or YouTube links can be pasted too.
+- Share a song or a set as a link. The song travels inside the link; no server. Opening one offers to add it.
+- Play together: pick a start a few minutes ahead and share the link. Both phones count in and scroll together, each by its own clock.
+
+### Help and settings
+- Tips appear once, at the moment they're useful, spaced out and never while a song plays. Settings > Help > Tips & gestures lists every gesture with Show me.
+- Settings is a short menu (Playing, Chord diagrams, Look, New songs, Today, Keys, Library and backups, Help), with Back up now at the bottom in thumb reach.
+- Theme follows the phone, or set Dark or Light. Amp covering (Settings > Look) adds a tolex grain behind everything.
+
+## Look
+
+Dark glass with copper for what you play, and the details of a guitar amp. Every screen draws from the same materials, defined once at the top of the amp theme in `styles.css`:
+
+- **Piping:** a thin bronze edge on bars, lists, cards, sheets and the ring.
+- **Plate:** brushed gold, like an amp's front panel (the song bar, the editor's bar, the add button's frame, Play next's level switch).
+- **Recess:** dark wells set into a plate.
+- **Copper:** the main action (Play, Save, add, primary buttons).
+- **Chrome:** amp-control buttons (the ring, the editor's tool buttons). Light metal in the light theme; the ring always stays dark.
+- **Lamp:** the amber jewel lamp, off, warming or lit (the song bar, filter chips, ring buttons, Play next, Get the song).
+- **Tolex:** black pebbled covering for the ring and result cards.
+
+Liquid Glass is used only on bars that float over content (the search bar, the full player bar). Sheets are frosted; plates are solid. The app icon and iPhone launch screens are the Fret pick on black leather.
 
 ## Chord sheet format
 
@@ -90,74 +75,88 @@ Blackbird singing in the dead of night
 
 ## AI help (optional)
 
-Settings > Keys > paste an Anthropic API key > Save key. Without a key the app works the same and the AI options stay hidden.
+Settings > Keys > paste an Anthropic API key. Without a key the app works the same and the AI options stay hidden.
 
-- **Clean up** (paste card and the editor's Text view): the pasted text is sent to a small, fast model and comes back as a chord sheet in this app's format. You can compare it with the original before saving, or undo it in the editor.
-- **Scan a page** (the editor's Text view): a photo of a songbook page or handwritten sheet is resized on the phone and read by a larger model, which handles images more accurately.
-- **Make it easier** (song view, next to Chords in this song): the song's chord names and the chords you use most across your library go to a small model, which suggests a capo and up to four simpler substitutes. You see the shapes before and after, then Apply. Your sheet is never changed: the suggestion is stored with the song and can be turned off or tried again. No lyrics are sent.
-- **Get the song** (when a search finds nothing, and from What can I play next?): one tap gathers three things at once. The song's title and artist go to a larger model with web search, which reads chord sites and returns sections, chords, key, capo, tuning, tempo, strum and the album and length of the original recording, with its sources. Only chord names and section names are kept (each token is checked), so the AI never writes lyrics. The words come from [LRCLIB](https://lrclib.net), a free, open lyrics database, picked by title, artist and length (the album cut first; tap the version line to choose a live or other recording). With a GetSongBPM key, the measured tempo and time signature come from [GetSongBPM](https://getsongbpm.com) and are checked against the chart's. Tabs puts the chords over the words on the phone (as Add the words does) and shows one review: Add to library, or Edit the words first. The saved song gets the tempo, the beats in a bar (for the count-in and metronome) and the recording's length (for the scroll). If no words are found, you can paste them or add the chords alone. Charts can be wrong; check them by ear. Each one uses a few web searches, usually 5 to 15 cents. If your organization has turned web search off, an admin can turn it on in the Console under Settings > Capabilities.
-- **Add the words** (on a chord chart, or a chart song's ••• menu): paste the lyrics you've copied, and Tabs puts the chart's chords over them, section by section (names like [Chorus] match their sections; two chords a line, looping). Apple Music's lyrics aren't available to apps like this.
-- **German practice** (the DE chip under the title, or with the hold-Play controls, More > German practice): the song's sung lines, and only those, go to a larger model, which returns each line in natural German plus graded swaps. Tap Translate and the sheet closes: the song turns German verse by verse in the background (six lines a request, two at a time, streamed so iPhone never drops a silent connection), the chip fills as it goes, and you hear when it's done even if you've left the song. Lines already done are kept if the connection drops; Finish picks up the rest. Pick a level: Basic (the most common nouns), Common (everyday nouns and adjectives), Intermediate (whole phrases with real grammar), Fluent (the whole song in German, chords spread along the line by position), or Off. Nouns show their gender as a dotted line (der blue, die rose, das green). Tap a German word for its card: meaning, article and plural, how a compound is built, why it takes this form in this line, Hear it (the most natural German voice the phone has: a downloaded Premium or Enhanced voice first, from iPhone Settings > Accessibility > Spoken Content > Voices) and Report (that line is checked and translated again). English under each line is optional. New songs start at Basic; your last level is remembered. The translation is kept with the song on this phone; it's dropped when the song's words change (the chip offers Update), and it's never in a shared song or a backup.
+- **Clean up:** a messy paste comes back as a tidy chord sheet, which you can compare before saving or undo.
+- **Scan a page:** a photo of a songbook page or handwritten sheet is read into a chord sheet.
+- **Make it easier:** suggests a capo and up to four simpler chords. The sheet is never changed; the suggestion is stored alongside and can be turned off. No lyrics are sent.
+- **Get the song:** the title and artist go to a larger model with web search, which reads chord sites and returns sections, chords, key, capo, tuning, tempo and strum, with sources. Only chord and section names are kept, each one checked. The lyrics come from LRCLIB, matched by title, artist and length; the tempo from GetSongBPM when you've added that key. Tabs lines the chords up with the lyrics on the phone. Each chart costs a few cents of web searches.
+- **Add the words:** paste lyrics you've copied and Tabs puts a chart's chords over them, section by section.
+- **What can I play next?:** suggests well-known songs that use mostly your chords, or with A step up, songs that are clearly harder. Songs already shown aren't repeated.
+- **Spark tone:** a starting tone for a Positive Grid Spark amp. No lyrics are sent.
+- **German practice:** see below.
 
-  **Translation exception (German practice):** The AI may translate the words of a song that's already in your library into German, only when you turn on German practice for that song. Translations are saved on this phone with the song, are never included when a song or set is shared or exported, and can be deleted at any time. The AI still never supplies, finds or completes lyrics, and Get the song stays chords only. (Tests check all of this: `tests/core.test.mjs`, `tests/e2e/german.e2e.mjs`.)
-- **What can I play next?** (search, before you type): the chords you play and your song titles go to a small model, which suggests well-known songs that use mostly those chords, with at most one new chord. Switch to **A step up** at the bottom for songs clearly harder than yours: new chords including a barre or seventh, plus faster changes, a riff or picking, each with a line on what makes it harder. The choice is remembered, and songs already shown (the last 60) aren't suggested again. Each song has a Listen link and a Chart button.
-- **Spark tone** (chip under the song title): the song's title, artist, key and chord names go to a small model, which suggests a starting tone for a Positive Grid Spark amp: amp style, five knobs, the pedal chain and a guitar tip. Saved with the song; dial it in on the Spark app. No lyrics are sent.
+**Lyrics rule.** The AI never supplies, finds or completes lyrics.
+
+**Translation exception (German practice):** for a song already in your library, the AI may translate its sung lines into German, only when you turn it on for that song. Translations stay on the phone with the song, are never shared or exported, and are dropped when the song's words change. Tests check this (`tests/core.test.mjs`, `tests/e2e/german.e2e.mjs`). German practice has levels from a few common nouns to fully German, shows each noun's gender, and has a word card with meaning, grammar and a German voice.
 
 ### About the API key
 
-The key is stored in the browser's local storage and sent directly from the phone to `api.anthropic.com`, using Anthropic's header for browser access. That is a reasonable trade for a personal app with no server, but it has limits worth knowing:
+The key is stored in the browser's local storage and sent straight from the phone to `api.anthropic.com`. That's a reasonable trade for a personal app with no server, with limits:
 
-- Anyone with the unlocked phone can read the key from Settings.
-- Any script that ran on this page could read it. The app loads no third-party scripts, escapes all user text before display, and sets a content security policy: only the app's own scripts run, the page can only talk to `api.anthropic.com`, Apple's song search, LRCLIB, GetSongBPM and Open-Meteo, and images only come from the app, your photos and Apple's album art. That keeps the risk low, but it is not zero.
+- Anyone with the unlocked phone can read it in Settings.
+- Any script on the page could read it. The app loads no third-party scripts, escapes all user text, and its content security policy only lets it talk to `api.anthropic.com`, Apple's song search, LRCLIB, GetSongBPM and Open-Meteo.
 
-So use a key made only for Tabs, and in the Anthropic Console give its workspace a low monthly spend limit. If the phone is lost, revoke the key in the Console. Removing it in Settings only clears it from this phone. The key is not included in backups.
+Use a key made only for Tabs with a low monthly spend limit, and revoke it in the Console if the phone is lost. Keys are never put in backups.
 
 ## Development
 
-Open `index.html` through any static server (ES modules need http, not file://). Data lives in `localStorage` under `tabs-v1`; [docs/DATA.md](docs/DATA.md) describes every field, the backup file and how restoring checks it. Older saves are migrated automatically.
+Open `index.html` through any static server (ES modules need http). Plain ES modules, no build step.
 
-Layout, with no build step:
+| File | What's in it |
+|---|---|
+| `index.html` | Page shell and content security policy |
+| `styles.css` | All styles; the amp theme materials are at the end |
+| `core.js` | Data, parsing, chords, transposing, Changes, tuner math. No screen code; unit tested |
+| `app.js` | Library, song page (auto-scroll, Now and Next, song map, iPad layouts, pedals), Find songs, router |
+| `ui.js` | Icons, toasts, `ask()` questions, `onLeave` and `onScroll` hooks. Depends only on `core.js` |
+| `editor.js` | Editing in place, new songs, writing mode, tap tempo, chord picker |
+| `settings.js` | Settings menu and pages, Recently deleted |
+| `sets.js` | Sets, playing a set, covers |
+| `coach.js` | Tips, Show me demos, Tips & gestures |
+| `store.js` | Safety copy, backups, storage, problems log |
+| `share.js` | Share links, opening a shared link, Play together |
+| `listen.js` | Listen: recordings, previews, length from the recording |
+| `ring.js` | One-handed controls: the island, the arc, the hold-Play ring, Play following the hand |
+| `dial.js` | The corner dial (speed meter, key, set picker) |
+| `findai.js` | Play next, chord charts, Get the song |
+| `aitools.js` | Make it easier, Spark tone |
+| `tuner.js`, `heads.js` | Tuner and headstock drawings |
+| `sketch.js`, `strum.js` | Sing it, Strum it (`strum.js` loads `vendor/basic-pitch/`) |
+| `german.js` | German practice |
+| `crop.js` | Cover photo framing |
+| `sw.js` | Offline copy; lists every app file (a test checks the list) |
 
-- `index.html`: the page shell and content security policy.
-- `styles.css`: all styles.
-- `core.js`: data, parsing, transposing and other logic with no screen code (unit tested).
-- `app.js`: the library, the song page (auto-scroll, Now and Next, the section map, iPad layouts, pedals) and the router. It imports the screens below and shares what they need.
-- `ui.js`: icons, toasts, in-app questions (`ask`), and the hooks features use to tidy up when a screen is left (`onLeave`) and to follow scrolling (`onScroll`, one listener, once per frame). Depends only on `core.js`.
-- Loaded when first opened, then fetched quietly a few seconds after start: `editor.js` (editing in place, adding songs, tap tempo, the chord picker) and `settings.js` (Settings, Recently deleted).
-- Loaded at start: `sets.js` (sets, playing a set, covers), `coach.js` (tips, Show me demos, Tips & gestures), `store.js` (safety copy, backups, storage, the problems log).
-- Markup: build HTML with html`` from `core.js`, which escapes every value unless it is safe markup (another html``, an icon, or raw()). Older templates use `esc()` on every value. A browser test fills every name with markup and checks none of it runs.
-- Shared state lives in the module that owns it; other modules read it through imports and change it only through that module's functions (`setData`, `setOpenEdit`, `setSetCtx`, `setFilter`). ESLint's `no-import-assign` would catch a direct write, and a unit test checks every imported name is exported by its file.
-- Loaded on first use: `tuner.js` (with `heads.js`, the headstock drawings), `findai.js` (find songs, chord charts, what to learn next), `aitools.js` (Make it easier, Spark tone), `crop.js` (cover photo framing), `sketch.js` (Sing it), `german.js` (German practice), `strum.js` (Strum it; it loads `vendor/basic-pitch/`).
-- `share.js`: share links for songs and sets, opening a shared link, and Play together. `listen.js`: Listen (finding a recording, previews, taking the song's length from the recording). Both split out of `app.js` in 2.16.3; they import what they need from it.
-- `sw.js`: the offline copy; it lists every app file, and a test checks the list.
+`editor.js` and `settings.js` load on first use and are fetched quietly a few seconds after start; the tuner, AI tools, Sing it, Strum it, German practice and cover framing load on first use.
 
-Releases: `VERSION` in `core.js` and `CACHE` in `sw.js` must match (a test checks). You don't need to bump them by hand: when app files change on `main` without a bump, the `bump version` workflow raises the patch number in both and commits it. Bump by hand only for a minor or major release. Numbering from 2.0.0 on: a new feature or set of features is a minor release (2.1.0) or, for a large change, a major one (3.0.0), set by hand in the release commit; fixes are patches on the release where the defect was found (a defect in 2.1.0 is fixed in 2.1.1, then 2.1.2), which is what the workflow does. The app opens from its saved copy, so a change only reaches installed apps through a new cache name. On the next launch, or when the app comes back to the foreground, it saves the new release in the background and offers to reload. Until you reload, the open app keeps loading its remaining parts (the tuner, AI tools) from its own release: they're requested as `tuner.js?v=1.2.3`, and the service worker keeps the previous release's cache for this.
+Conventions:
+- Build markup with html`` from `core.js`, which escapes every value unless it's safe markup (another html``, an icon, or `raw()`). Older templates use `esc()` on every value. A browser test fills every name with markup and checks none of it runs.
+- Shared state lives in the module that owns it; other modules read it through imports and change it only through that module's functions (`setData`, `setOpenEdit`, `setSetCtx`, `setFilter`). ESLint's `no-import-assign` catches a direct write.
+- The app never uses the phone's alert boxes; `ask()` shows a short sheet instead. Discarding something happens at once with Undo rather than a question.
+- Accessibility: every control has a VoiceOver name, panels are labelled dialogs that take focus and close with Escape, focus is always outlined, red text meets contrast in both themes, and Reduce Motion turns animation off.
+- Wide screens: from 700 px text is larger; from 1000 px the song gets a rail with Now and Next; from 1150 px a song list on the left. A phone on its side gets a slim column of controls.
 
-Wide screens: from 700px wide (iPad), text is larger and the page wider. From 1000px, the song gets a rail on the right with Now and Next and its chords; from 1150px, a list of songs (or the set being played) on the left switches songs without going back. A phone on its side gets a slim column of controls on the right, with the speed slider upright. Editing on a wide screen uses a centered column. Rotating moves everything back.
+Data: the library lives in IndexedDB with a copy in localStorage written on every save; at start the newer readable one wins. Older saves migrate automatically. [docs/DATA.md](docs/DATA.md) describes every field, the backup file and how a restore is checked.
 
-Accessibility: every control has a name for VoiceOver; panels are labelled dialogs that take focus and close with Escape; the song menu works with arrow keys; keyboard focus is always outlined; red text meets contrast in both themes (`--bad`); the tuner announces its advice, not every note; Reduce Motion turns animation off.
+Problems: the last 20 errors are kept on the phone, and the first in a session shows a note with Copy details. Settings > Help > Copy diagnostics copies the version, device, counts and storage, never song words, titles or keys.
 
-Pedals and keyboards: a Bluetooth page-turner pedal pairs as a keyboard. On a song, the left pedal (Page Up, ← or ↑) or Space plays and pauses; the right pedal (Page Down, → or ↓) goes to the next section, and holding it goes back one. Keys are ignored while typing, editing or with a panel open.
+### Releases
 
-Questions: the app never uses the phone's alert boxes. `ask()` in ui.js shows a short sheet (a field with quick picks and a live chord diagram, or a yes/no with a red button). Discarding a new song happens at once with Undo instead of a question.
+`VERSION` in `core.js` and `CACHE` in `sw.js` must match (a test checks). A feature is a minor release (2.30.0); a fix is a patch on the release where the defect was found (2.30.1). If app files change on `main` without a bump, the bump version workflow raises the patch number. The app opens from its saved copy, so a change only reaches installed apps through a new cache name; on the next launch it downloads the release in the background and offers to reload. Parts loaded later are requested as `tuner.js?v=1.2.3` so they always come from the same release as the open app.
 
-Storage: the library lives in the phone's database (IndexedDB), with a copy in localStorage written with each save. At start the newer readable one is used, so a lost or damaged database copy comes back from localStorage, and a library from an older Tabs moves across once. Settings shows where it's stored and its size; Tabs asks the browser to keep its storage permanently. See docs/DATA.md.
+### Tests
 
-Problems: errors are kept on the phone (last 20) and the first in a session shows a note with Copy details. A screen that fails to draw shows a way back instead of a blank page. Settings > Help > Copy diagnostics copies the version, device, library counts, storage and problems, never song words, titles or the API key.
+- `node --test` runs the unit tests (no dependencies): chord parsing, transposing, wrapping, fingerings, library data and backups, pitch detection on synthetic and real recordings (`tests/audio/`), tip pacing, escaping, and the version matching the cache.
+- Browser tests run the real app in Chromium: `npm i --no-save playwright axe-core && npx playwright install chromium`, then `node --test --test-concurrency=4 tests/e2e/*.e2e.mjs`. `app`, `app2` and `app3` cover features end to end; `regress` walks the main path at 320, 390 and 1180 wide in both themes; `a11y` checks names and axe findings; `visual` compares screens against `tests/visual/ci/`.
+- `node tests/quick.mjs` runs the unit tests plus only the browser tests that cover files changed since `origin/main`.
+- GitHub Actions runs everything plus ESLint on every push. Visual references are remade with the update screenshots workflow after an intended change to how screens look.
 
-Tests: `node --test` (Node 18 or later, no dependencies) runs the unit tests: chord parsing, transposing, wrapping and fingerings, the library data and backups, pitch detection (pure tones; synthetic plucked strings in standard, Drop D, DADGAD, Open G and half-step-down, in tune or not, with a phone mic's weak low end, hum, hiss and another string ringing; and real recordings dropped into `tests/audio/`), tip pacing, html escaping, the version matching the service worker cache, and every app file being saved for offline use. Browser tests run the real app in Chromium: `npm i --no-save playwright axe-core && npx playwright install chromium`, then `node --test tests/e2e/*.e2e.mjs`.
-- `app.e2e.mjs`, `app2.e2e.mjs`, `app3.e2e.mjs`: features end to end, split in three so they run side by side (playing, search, Edit, sets, the tuner with a fake microphone, backups, updates, the safety copy, pedals, iPad).
-- `regress.e2e.mjs`: the main path at 320, 390 and 1180 wide, dark and light.
-- `a11y.e2e.mjs`: every control has a name; with axe-core installed, no serious or critical axe findings.
-- `visual.e2e.mjs`: screen snapshots with the clock fixed. CI compares every push against references in `tests/visual/ci/`, made on GitHub's machines by the **update screenshots** workflow (Actions > update screenshots > Run workflow, after an intended change to how screens look). Locally, `VISUAL=update` and `VISUAL=compare` use `tests/visual/`. Screens are saved to `test-results/visual/`, which CI keeps as an artifact.
-GitHub Actions runs all of it on every push to `main` and on pull requests, plus ESLint (`npx eslint .`) for undefined names, unused names and writes to another module's variables. A browser test failure is summarized in one annotation on the run.
+## Credits
 
-## Song data and credits
-
-- **Words:** [LRCLIB](https://lrclib.net), no key needed. Words are fetched only when you tap Get the song, stored with the song on your phone, and never shared by Tabs.
-- **Strum it** uses [Basic Pitch](https://github.com/spotify/basic-pitch-ts) by Spotify and TensorFlow.js (both Apache-2.0), bundled into `vendor/basic-pitch/` by `.github/workflows/vendor-bp.yml`.
-- **Weather data by [Open-Meteo.com](https://open-meteo.com)** (CC BY 4.0), for the optional weather in Settings > Today. No key; only the chosen city's position is sent, once a day.
-- **Tempo data by [GetSongBPM.com](https://getsongbpm.com).** Optional: Settings > Keys > paste a free key from [getsongbpm.com/api](https://getsongbpm.com/api). The key stays on the phone (local storage, not in backups) and goes only to GetSongBPM with the song's title and artist.
+- Lyrics: [LRCLIB](https://lrclib.net). Fetched only for Get the song, stored on the phone, never shared by Tabs.
+- Tempo data by [GetSongBPM.com](https://getsongbpm.com). Optional free key from [getsongbpm.com/api](https://getsongbpm.com/api), kept on the phone and out of backups.
+- Weather data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0). Only the chosen city's position is sent, once a day.
+- Strum it uses [Basic Pitch](https://github.com/spotify/basic-pitch-ts) by Spotify and TensorFlow.js (both Apache-2.0), bundled into `vendor/basic-pitch/` by `.github/workflows/vendor-bp.yml`.
 
 ## License
 

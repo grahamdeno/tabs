@@ -6,7 +6,7 @@
   --fg-2: #c9c7c3;
   --muted: #8f8e8c;
   --accent: #eda27f;
-  --bad: var(--bad);
+  --bad: #e07a6c;
   --bad-line: rgba(224,122,108,.4);
   --accent-deep: #c97a57;
   --on-accent: #1a120d;
@@ -158,7 +158,7 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .row .a .st.learning { color: var(--accent); }
 .row .a .st.got { color: #7ac47f; }
 .weekly { font-size: 13px; color: var(--muted); margin: 2px 4px 0; }
-/* Today (2.8): streak dots and the nudge, under the title */
+/* Today: streak dots and the nudge, under the title */
 .today { margin: 2px 4px 0; display: flex; flex-direction: column; gap: 6px; }
 .today .weekly { margin: 0; display: flex; align-items: center; gap: 8px; }
 .today .weekly b { color: var(--fg-2); font-weight: 600; }
@@ -431,7 +431,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .cs-src a { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cs-src svg { width: 13px; height: 13px; flex: none; color: var(--accent); }
 .nx .pbody > *, .cs .pbody > * { flex: none; }
-/* Get the song (2.7) */
+/* Get the song */
 .gs-rows { border-radius: 14px; padding: 2px 14px; margin-top: 14px; }
 .gs-row { display: flex; align-items: center; gap: 10px; min-height: 48px; font-size: 15px; border-bottom: 1px solid var(--rim); }
 .gs-row:last-child { border-bottom: 0; }
@@ -834,7 +834,7 @@ body.tuning { overflow: hidden; }
 #tn-needle line { stroke: var(--accent); } #tn-needle circle { fill: var(--accent); }
 #tn-needle.good line { stroke: var(--good); } #tn-needle.good circle { fill: var(--good); }
 #tn-needle.idle { opacity: .25; }
-#tn-needle { transform-box: view-box; transform-origin: 150px 176px; transition: transform .16s cubic-bezier(.3,.7,.4,1), opacity .3s; } /* glides between readings (2.16.1) */
+#tn-needle { transform-box: view-box; transform-origin: 150px 176px; transition: transform .16s cubic-bezier(.3,.7,.4,1), opacity .3s; } /* glides between readings */
 .tuner2.chrom .tn-note b { font-size: 92px; }
 .tn-foot { display: flex; align-items: center; gap: 10px; min-height: 48px; flex: none; }
 .tn-foot .btn { flex: 1; height: 46px; }
@@ -1058,7 +1058,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 .skc.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .skchips small { font-size: 12px; color: var(--muted); margin-left: 4px; }
 .skintro { color: var(--muted); font-size: 15px; line-height: 1.5; text-align: center; margin: 8px 18px 0; }
-/* Strum it (2.9) */
+/* Strum it */
 .seg.skmode { display: flex; margin: 4px 0 10px; padding: 3px; border-radius: 12px; background: var(--card); border: 1px solid var(--rim); }
 .seg.skmode button { flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: none; color: var(--fg-2); font-size: 14px; }
 .seg.skmode button.on { background: var(--card-2); color: var(--fg); font-weight: 600; box-shadow: 0 1px 0 var(--rim); }
@@ -1130,7 +1130,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 .ws-text { width: 100%; box-sizing: border-box; min-height: 180px; border-radius: 12px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); font: 16px/1.5 var(--sans); padding: 12px 14px; resize: vertical; }
 #ws-prev { white-space: pre; color: var(--fg-2); }
 
-/* ---------- One hand: a phone held upright (2.0) ----------
+/* ---------- One hand: a phone held upright ----------
    Controls you use often sit at the bottom, in reach of the thumb. Same sizes
    and look as before; only the places change. iPad and landscape keep their
    layouts, so the bar's Back, favorite and ••• are hidden there. */
@@ -1180,7 +1180,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
   .cs .pbody .cs-act { order: 9; margin-top: auto; }
 }
 
-/* ---------- 2.1: the corner dial and the glow ----------
+/* ---------- the corner dial and the glow ----------
    The glow is for values you glance at (a dial's reading, the count-in, the
    chord you're on, in tune, a gig countdown): one at a time, never on buttons
    or the words. */
@@ -1212,12 +1212,12 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 .tn-note.glow b { color: var(--glow-c); text-shadow: var(--glow); transition: color .2s, text-shadow .2s; }
 .un-cd { font: 600 26px var(--sans); font-variant-numeric: tabular-nums; letter-spacing: .01em; margin: 4px 0 2px; }
 
-/* ---------- 2.2: one-hand ring controls (phone upright; ring.js) ----------
+/* ---------- one-hand ring controls (phone upright; ring.js) ----------
    The bar becomes an island in the lower right; Play sits in its corner, or
    rises to the thumb's resting spot on the speed track while the phone is in
    your hand. Hold Play for the ring. */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-#rc { display: none; } /* the ring controls; .rc alone is also the Recent cards (2.19.1) */
+#rc { display: none; } /* the ring controls; .rc alone is also the Recent cards */
 body.ring #rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
 body.ring .rc > * { pointer-events: auto; }
 body.ring .rc .rc-track { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
@@ -1249,19 +1249,19 @@ body.ring .app.viewer .dock-fade { height: calc(100px + var(--safe-b)); }
 .ring-name { position: fixed; transform: translateX(-50%); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { body.ring .rc #play, body.ring .rc-isl, .ring-bg, .ringx, body.ring .rc .rc-track { transition: none; } }
 body.cedit.ring .rc { display: none; }
-/* 2.2.1: no iPhone selection or tap highlight on the ring controls */
+/* no iPhone selection or tap highlight on the ring controls */
 body.ring .rc, body.ring .rc *, .ringx, .ringx * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-/* 2.3: sweep the track to move through the song */
+/* sweep the track to move through the song */
 .rc-hit { fill: none; stroke: transparent; stroke-width: 44; stroke-linecap: round; pointer-events: none; }
 body.ring.ring-up .rc .rc-hit { pointer-events: stroke; cursor: grab; }
 body.ring.ring-sweep .rc .rc-track { opacity: 1; }
 body.ring.ring-sweep .rc-t1 { stroke-opacity: 1; stroke-width: 4; filter: url(#glow-f); }
-/* 2.3.1: no rubber-band bounce of the whole page on the song screen */
+/* no rubber-band bounce of the whole page on the song screen */
 body.ring { overscroll-behavior: none; }
-/* 2.4: while sweeping, the section you're in glows above Play */
+/* while sweeping, the section you're in glows above Play */
 .rc-where { display: none; }
 body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34vw - 24px); bottom: calc(21vh + 40px); transform: translateX(calc(50% - 24px)); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; text-transform: none; }
-/* 2.4: the tuner's not-tuned dot sits over the corner with a ring around it,
+/* the tuner's not-tuned dot sits over the corner with a ring around it,
    like a fork ringing */
 /* Over the top-right of the fork icon itself, inside the button. */
 .ib .dotmark, .add.tool .dotmark { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
@@ -1289,28 +1289,28 @@ body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34
   .ib .dotmark, .add.tool .dotmark, .ib .dotmark::before, .add.tool .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after { animation: none; }
   .ib .dotmark::before, .add.tool .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { opacity: .4; }
 }
-/* 2.4.6: while sweeping the arc, the page keeps still: no chord diagrams,
+/* while sweeping the arc, the page keeps still: no chord diagrams,
    compact header or line resizing until you let go */
 body.ring-sweep .sheet .prow, body.ring-sweep .sheet .dpop { display: none; }
 body.ring-sweep .chead { opacity: 0 !important; pointer-events: none !important; }
 body.ring-sweep .sheet > * { transition: none !important; }
-/* 2.5: Back in the island; pull down at the top to go back */
+/* Back in the island; pull down at the top to go back */
 body.ring .rc-isl .rc-back { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; flex: none; }
 body.ring .rc-isl .rc-back svg { width: 18px; height: 18px; }
 .rc-pull { position: fixed; left: 50%; top: calc(14px + var(--safe-t)); transform: translateX(-50%); padding: 8px 14px; border-radius: 18px; background: var(--solid); border: 1px solid var(--rim); color: var(--fg-2); font: 500 13px var(--sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: color .12s, border-color .12s, box-shadow .12s; }
 .rc-pull.go { color: var(--glow-c); border-color: var(--accent); box-shadow: 0 0 14px rgba(255,150,70,.4); text-shadow: var(--glow); }
 body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }
-/* 2.6: ring items that are on (Favorite, Metronome, Now and Next) */
+/* ring items that are on (Favorite, Metronome, Now and Next) */
 .ri.act { border-color: var(--accent-line); color: var(--accent); }
 .ri.act svg { fill: currentColor; fill-opacity: .2; }
-/* 2.6: the tuner's success: "All in tune" glows green */
+/* the tuner's success: "All in tune" glows green */
 .tn-note.done.glow b { color: var(--good); text-shadow: 0 0 6px color-mix(in srgb, var(--good) 80%, transparent), 0 0 18px color-mix(in srgb, var(--good) 50%, transparent); }
-/* 2.6.5: no iPhone text selection or callout on the dials */
+/* no iPhone text selection or callout on the dials */
 .dial, .dial *, .dialbtn, .dialbtn * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-/* 2.6.6: the Now and Next tip shows its panel in ring mode too */
+/* the Now and Next tip shows its panel in ring mode too */
 body.ring.nn-demo .app.viewer .dock { display: flex !important; }
 
-/* German practice (2.10): German words in the sheet, gender by a dotted line
+/* German practice: German words in the sheet, gender by a dotted line
    (der blue, die rose, das green; other words copper), the level sheet and the word card. */
 :root { --de-der: #6f9fd8; --de-die: #d27f90; --de-das: #5fae7c; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --de-der: #8db8ec; --de-die: #eba1ae; --de-das: #8fd3a3; } }
@@ -1341,10 +1341,10 @@ body.ring.nn-demo .app.viewer .dock { display: flex !important; }
 .dc-r { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rim); font-size: 13px; color: var(--fg-2); line-height: 1.4; }
 .dc-r b { width: 76px; flex: none; color: var(--muted); font-weight: 500; }
 .dc-b { display: flex; gap: 8px; margin-top: 10px; } .dc-b .btn { flex: 1; }
-/* 2.11: the DE chip fills as a translation runs in the background. */
+/* the DE chip fills as a translation runs in the background. */
 .stat.dechip.busy { background: linear-gradient(90deg, var(--accent-soft) calc(var(--p, 0) * 100%), var(--card) calc(var(--p, 0) * 100%)); }
 
-/* Settings menu (2.13): one row per page, Back up now in thumb reach. */
+/* Settings menu: one row per page, Back up now in thumb reach. */
 .set-group.s-gap { margin-top: 18px; }
 .s-keys { display: inline-flex; align-items: center; gap: 5px; }
 .s-keys .dot { margin-left: 6px; }
@@ -1357,7 +1357,7 @@ details.s-why { margin-top: 4px; }
 details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px; }
 #s-keymsg:empty { display: none; }
 
-/* Changes (2.14): the Today line opens the week's chord changes. */
+/* Changes: the Today line opens the week's chord changes. */
 .today .t-stat { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; min-height: 32px; width: 100%; cursor: pointer; }
 .today .t-stat .chev { width: 14px; height: 14px; color: var(--muted); margin-left: auto; flex: none; }
 .chg-list { display: flex; flex-direction: column; margin: 2px 0 8px; }
@@ -1372,7 +1372,7 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
 .chg.work .bar i { background: var(--accent-line); }
 .chg-lab { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 2px 2px; }
 
-/* Play together (2.15): a shared start time, a countdown on both phones. */
+/* Play together: a shared start time, a countdown on both phones. */
 .duet-t { font: 600 17px var(--sans); color: var(--fg); margin: 2px 2px 4px; }
 .duet-a { font-size: 13.5px; color: var(--muted); margin: 0 2px 10px; }
 .duet-when { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0 16px; }
@@ -1382,7 +1382,7 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
 .duet-seg button { height: 36px; }
 .duet-wait .actions .btn { flex: 1; }
 
-/* First-time hint (2.16): where the ring opens, a glass circle grows, shrinks,
+/* First-time hint: where the ring opens, a glass circle grows, shrinks,
    bounces and goes, and Play comes back on top of it. */
 .ring-hint { position: fixed; z-index: 21; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; pointer-events: none; transform: scale(.16); opacity: 0; animation: ringHint 1.7s cubic-bezier(.3,.7,.3,1) forwards; }
 @keyframes ringHint {
@@ -1396,131 +1396,159 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
   100% { transform: scale(.16); opacity: 0; }
 }
 body.ring .rc #play.hint-under { z-index: 23; }
-/* 2.17.0: the song bar and Play share the library bar's shape (rounded
-   rectangles like the search bar and +); the ring and arc stay round. */
 @media (prefers-reduced-motion: reduce) { .ring-hint { display: none; } }
 
-/* Shared bits that were inline styles (2.16.3 tidy-up). */
+/* Small shared pieces that used to be inline styles. */
 .fld.fld-k { min-height: 52px; }
 .tile.ftile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--card-2); border: 1px solid var(--rim); color: var(--fg-2); }
 .foot.pn { margin: 0 2px 12px; }
+.prow.below .dptr { bottom: auto; top: -5px; border: 0; border-left: 1px solid var(--rim); border-top: 1px solid var(--rim); }
 
-/* 2.18.0: rounded-square ring buttons on a wider ring; Play's glow off while it's open. */
-body.ring-open .rc #play { box-shadow: none; }
+/* ==========================================================================
+   Amp theme
+   Everything below draws from one set of materials, so a gold plate, a copper
+   button or a lamp looks the same wherever it appears:
+     piping     the thin bronze edge on bars, lists, cards, sheets and the ring
+     plate      brushed gold, like an amp's front panel; holds recesses
+     recess     dark wells set into a plate (Back, the time, Cancel, switches)
+     copper     the main action (Play, Save, add, primary buttons)
+     chrome     amp-control buttons (the ring, the editor's tool buttons)
+     lamp       the amber jewel lamp: off, warming, or lit
+     tolex      black pebbled covering for the ring and result cards
+   Liquid Glass is kept for bars that float over the song or library, where
+   seeing content slide underneath helps. Sheets are frosted; plates are solid.
+   ========================================================================== */
+:root {
+  --bronze: #b8935a;
+  --bronze-line: rgba(184,147,90,.42);
+  --plate: repeating-linear-gradient(90deg, rgba(255,250,230,.07) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(90,60,20,.05) 3px 4px), linear-gradient(180deg, #e6cb92, #cfab6a 42%, #b08b4f);
+  --plate-edge: #6d5326;
+  --plate-shadow: inset 0 1px 0 rgba(255,246,220,.75), inset 0 -1px 0 rgba(60,40,10,.35), 0 10px 28px rgba(0,0,0,.4);
+  --recess: linear-gradient(180deg, #1f1910, #2e2517);
+  --recess-edge: rgba(40,26,8,.7);
+  --recess-shadow: inset 0 2px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,244,214,.5);
+  --recess-fg: #f1e3c4;
+  --recess-dim: #a99b80;
+  --recess-on: #ffc27a;
+  --copper: linear-gradient(180deg, #c8804f, #9c5631);
+  --copper-fg: #fff3e6;
+  --copper-hi: inset 0 1px 0 rgba(255,220,190,.45);
+  --copper-glow: 0 8px 22px rgba(156,86,49,.45);
+  --chrome: radial-gradient(circle at 50% 25%, #2b2b2f, #111113);
+  --chrome-edge: #8e8e94;
+  --chrome-fg: #e9e9ec;
+  --chrome-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 3px 8px rgba(0,0,0,.5);
+  --lamp-off: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%);
+  --lamp-warm: radial-gradient(circle at 35% 30%, #ffd9a0 0 12%, #d9822f 40%, #8a3d10 80%);
+  --lamp-on: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08);
+  --lamp-ring: 0 0 0 1.5px rgba(0,0,0,.5);
+  --lamp-glow: 0 0 8px 2px rgba(255,140,40,.6);
+  --tolex-card: var(--tolex), radial-gradient(circle at 30% 0, #202023, #121214);
+  --tolex-inset: inset 0 0 0 3px #0b0b0c, inset 0 0 0 4px rgba(184,147,90,.22);
+  --gold-text: #d9bd85;
+  --glass-tint: rgba(28,28,31,.38);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.03) 40%, rgba(255,255,255,0) 62%, rgba(255,255,255,.06));
+  --glass-rim: rgba(255,255,255,.3);
+  --tolex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cdefs%3E%3Cfilter id='t' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.38' numOctaves='3' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='2.4' lighting-color='%23fff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='50'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix in='l' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.17 0.17 0.17 0 -0.36' result='hi'/%3E%3CfeColorMatrix in='l' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.16 -0.16 -0.16 0 0.36' result='lo'/%3E%3CfeMerge%3E%3CfeMergeNode in='lo'/%3E%3CfeMergeNode in='hi'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='220' height='220' filter='url(%23t)'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"] {
+  --bronze: #86663a;
+  --bronze-line: rgba(134,102,58,.38);
+  --lamp-off: radial-gradient(circle at 35% 30%, rgba(255,240,220,.7) 0 14%, #c9a27a 50%, #a07a52 90%);
+  --lamp-ring: 0 0 0 1.5px rgba(0,0,0,.18);
+  --tolex-card: var(--card);
+  --tolex-inset: inset 0 0 0 3px var(--card), inset 0 0 0 4px rgba(134,102,58,.2);
+  --gold-text: #86663a;
+  --chrome: radial-gradient(circle at 50% 25%, #ffffff, #e6e6e9);
+  --chrome-edge: #a3a3a9;
+  --chrome-fg: #2a2a2d;
+  --chrome-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(0,0,0,.12);
+  --glass-tint: rgba(255,255,255,.42);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.15) 45%, rgba(255,255,255,0) 65%, rgba(255,255,255,.3));
+  --glass-rim: rgba(255,255,255,.9);
+}
 
-/* 2.19.0: a little Marshall. Thin bronze piping on the bars, lists, sheets and
-   the ring, like the gold piping on an amp cabinet, and bronze small labels.
-   The copper (chords, Play, +) stays as it is. Sheets and the ring are frosted
-   glass: the song shows softly through. */
-:root { --bronze: #b8935a; --bronze-line: rgba(184,147,90,.34); }
-:root[data-theme="light"] { --bronze: #86663a; --bronze-line: rgba(134,102,58,.32); }
-.cmd, body.ring .rc-isl, .list.glass, .set-group, .ring-bg, .panel { border-color: var(--bronze-line); }
-.label, .sheet .sec, .strip-h { color: var(--bronze); }
-.panel.card, .ring-bg { background: var(--bar); -webkit-backdrop-filter: blur(24px) saturate(150%); backdrop-filter: blur(24px) saturate(150%); }
+/* ---- Piping and labels ---- */
+.cmd, .float, body.ring .rc-isl, .list.glass, .set-group, .panel, .ring-bg, .ed-strip, .gs .gs-rows.glass, .nx .nx-row { border-color: var(--bronze-line); }
+.label, .sheet .sec, .strip-h, .ed-new { color: var(--bronze); }
+/* Sheet titles that name a tool (Play next, Get the song) read like panel lettering. */
+.nx .ph h2, .gs .ph h2 { font: 700 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
 
-/* 2.20.0: Amp covering (Settings > Look), off by default. A fine pebbled grain
-   like the tolex on an amp cabinet, behind everything; light catches the top
-   left of each bump. Drawn once as a small tile, so scrolling costs nothing. */
-:root { --tolex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cdefs%3E%3Cfilter id='t' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.38' numOctaves='3' seed='11' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' surfaceScale='2.4' lighting-color='%23fff' result='l'%3E%3CfeDistantLight azimuth='235' elevation='50'/%3E%3C/feDiffuseLighting%3E%3CfeColorMatrix in='l' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.17 0.17 0.17 0 -0.36' result='hi'/%3E%3CfeColorMatrix in='l' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.16 -0.16 -0.16 0 0.36' result='lo'/%3E%3CfeMerge%3E%3CfeMergeNode in='lo'/%3E%3CfeMergeNode in='hi'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='220' height='220' filter='url(%23t)'/%3E%3C/svg%3E"); }
-:root[data-tolex="on"] body { background-image: var(--tolex), radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%); background-size: 220px 220px, auto; background-repeat: repeat, no-repeat; }
-/* Light theme: a cream covering, the grain washed back so faded lines stay readable. */
-:root[data-tolex="on"][data-theme="light"] body { background-image: linear-gradient(rgba(243,240,235,.6), rgba(243,240,235,.6)), var(--tolex), radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%); background-size: auto, 220px 220px, auto; background-repeat: no-repeat, repeat, no-repeat; }
-
-/* 2.21.0: clearer glass on the bars, closer to Liquid Glass: mostly see-through,
-   a light blur that lifts the colour behind, a bright rim along the top and a
-   faint one along the bottom. The bronze piping stays. The fade behind the
-   library's bar is lighter, so songs visibly slide under it. */
-:root { --glass-tint: rgba(28,28,31,.38); --glass-sheen: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.03) 40%, rgba(255,255,255,0) 62%, rgba(255,255,255,.06)); --glass-rim: rgba(255,255,255,.3); }
-:root[data-theme="light"] { --glass-tint: rgba(255,255,255,.42); --glass-sheen: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.15) 45%, rgba(255,255,255,0) 65%, rgba(255,255,255,.3)); --glass-rim: rgba(255,255,255,.9); }
-.cmd, body.ring .rc-isl {
+/* ---- Liquid Glass: the bars that float over content ----
+   Mostly see-through, a light blur that lifts the colour behind, a bright rim
+   along the top and a faint one along the bottom. */
+.cmd, .float {
   background: var(--glass-sheen), var(--glass-tint);
   -webkit-backdrop-filter: blur(12px) saturate(190%) brightness(1.06); backdrop-filter: blur(12px) saturate(190%) brightness(1.06);
   box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 rgba(255,255,255,.07), 0 10px 28px rgba(0,0,0,.35);
 }
-.add { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent); }
+/* Sheets are frosted: the page shows softly through but text stays easy to read. */
+.panel.card { background: var(--bar); -webkit-backdrop-filter: blur(24px) saturate(150%); backdrop-filter: blur(24px) saturate(150%); }
 .dock-fade { height: calc(76px + var(--safe-b)); background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg) 80%, transparent) 85%); }
+/* The library's search bar and add button sit on one line at the song bar's height. */
+.dock { align-items: center; }
+.dock > .cmd { height: 60px; border-radius: 18px; }
 
-/* 2.22.0: the jewel lamp: a small amber light beside the
-   controls, lit while a song plays, like an amp's power lamp. */
-.jewel { width: 12px; height: 12px; border-radius: 50%; flex: none; margin: 0 4px; align-self: center;
-  background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.35) 0 14%, #6b3a12 40%, #2e1606 80%);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.45), inset 0 0 2px rgba(0,0,0,.6); transition: background .3s, box-shadow .3s; }
-body.playing .jewel { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 32%, #e2661c 66%, #8a2d08);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 10px 2px rgba(255,140,40,.6); }
-body.stage .jewel { display: none; }
+/* ---- Amp covering (Settings > Look): the tolex grain behind every screen ----
+   One small tile, repeated, so scrolling costs nothing. The light theme washes
+   it back to a cream covering so faded lines stay readable. */
+:root[data-tolex="on"] body { background-image: var(--tolex), radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%); background-size: 220px 220px, auto; background-repeat: repeat, no-repeat; }
+:root[data-tolex="on"][data-theme="light"] body { background-image: linear-gradient(rgba(243,240,235,.6), rgba(243,240,235,.6)), var(--tolex), radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%); background-size: auto, 220px 220px, auto; background-repeat: no-repeat, repeat, no-repeat; }
 
-/* 2.23.0: the gold control plate. With the hold-Play controls, the bar at the
-   bottom of a song is a brushed gold plate like an amp's front panel; Back and
-   the time sit in dark recesses, and Play is a deeper copper so the two golds
-   don't clash. */
-body.ring .rc-isl {
-  background: repeating-linear-gradient(90deg, rgba(255,250,230,.07) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(90,60,20,.05) 3px 4px),
-    linear-gradient(180deg, #e6cb92, #cfab6a 42%, #b08b4f 100%);
-  border-color: #6d5326;
+/* ---- Buttons ----
+   Two families. Everyday buttons (.btn) are quiet cards with a copper .primary
+   for the main action. Amp controls (.chrome) are black with a chrome rim. */
+.btn.primary, .ce-save, body.ring .rc #play, .nx .nx-ch span.new { background: var(--copper); color: var(--copper-fg); border: 0; box-shadow: var(--copper-hi); }
+body.ring .rc #play { box-shadow: var(--copper-hi), var(--copper-glow); }
+body.ring-open .rc #play { box-shadow: var(--copper-hi); }
+body.knob-drag .rc #play { transition: none; }
+.ri, .ed-tl, .ed-tile { background: var(--chrome); border: 1px solid var(--chrome-edge); color: var(--chrome-fg); box-shadow: var(--chrome-shadow); }
+
+/* ---- Plates and recesses ---- */
+body.ring .rc-isl, .ce-plate, .nx #nx-level {
+  background: var(--plate); border: 1px solid var(--plate-edge); box-shadow: var(--plate-shadow);
   -webkit-backdrop-filter: none; backdrop-filter: none;
-  box-shadow: inset 0 1px 0 rgba(255,246,220,.75), inset 0 -1px 0 rgba(60,40,10,.35), 0 10px 28px rgba(0,0,0,.4);
 }
-body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn {
-  background: linear-gradient(180deg, #1f1910, #2e2517); border: 1px solid rgba(40,26,8,.7); color: #f1e3c4;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,244,214,.5);
+.ce-plate, .nx #nx-level { display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 6px; box-sizing: border-box; border-radius: 18px; }
+body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn, .ce-rec, .cebar .ce-plate .seg, .nx #nx-level button {
+  background: var(--recess); border: 1px solid var(--recess-edge); color: var(--recess-fg); box-shadow: var(--recess-shadow);
 }
-body.ring .rc #play { background: linear-gradient(180deg, #c8804f, #9c5631); color: #fff3e6;
-  box-shadow: inset 0 1px 0 rgba(255,220,190,.45), 0 8px 22px rgba(156,86,49,.45); }
-body.ring-open .rc #play { box-shadow: inset 0 1px 0 rgba(255,220,190,.45); }
 
-/* 2.24.0: the + on the library matches Play's deeper copper. */
-.add { background: linear-gradient(180deg, #c8804f, #9c5631); color: #fff3e6;
-  box-shadow: inset 0 1px 0 rgba(255,220,190,.45), 0 8px 22px rgba(156,86,49,.45); }
+/* The add button: copper set into a 6 px band of plate, exactly like Play on the song bar.
+   The note is drawn filled in brushed silver, with a small + badge. */
+.add { position: relative; box-sizing: border-box; width: 60px; height: 60px; margin: 0; border: 6px solid transparent; border-radius: 18px; color: var(--copper-fg);
+  background: var(--copper) padding-box, var(--plate) border-box;
+  box-shadow: 0 0 0 1px var(--plate-edge), var(--copper-hi), 0 10px 28px rgba(0,0,0,.4); }
+.add .add-note { width: 28px; height: 28px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+.add .add-bdg { position: absolute; right: 2px; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #2a1d0c; color: var(--recess-on);
+  font: 800 13px/15px var(--sans); font-style: normal; text-align: center; box-shadow: 0 0 0 1.5px #e6cb92; pointer-events: none; }
 
-/* 2.25.0: the speed dial as a backlit amp meter (dial.js draws it). */
-.dial-rim { fill: #1b1712; stroke: var(--bronze); stroke-opacity: .6; stroke-width: 1.5; }
-.dial-bg { fill: url(#dial-face); fill-opacity: 1; stroke: rgba(0,0,0,.5); }
-.dial-ticks line, .dial-ticks line.lit, .dial-ticks line.cur, :root[data-theme="light"] .dial-ticks line.lit { stroke: #2a1d0c; stroke-opacity: .85; stroke-width: 1.5; }
-.dial-ticks line.mj { stroke-width: 2.6; stroke-opacity: 1; }
-.dial-ticks line.hot { stroke: #b3261e; stroke-opacity: 1; }
-.dial-needle { stroke: #151008; stroke-width: 2.4; stroke-linecap: round; }
-.dial-pivot { fill: #0c0a08; stroke: var(--bronze); stroke-opacity: .7; }
-.dial-win { fill: #16110b; stroke: var(--bronze); stroke-opacity: .55; }
-.dial-big { fill: #ffc27a; font-family: var(--mono); font-size: 32px; }
-.dial-small { fill: #2a1d0c; font-weight: 800; letter-spacing: .25em; }
-.dial-end { fill: #5a4220; font-weight: 800; letter-spacing: .12em; font-size: 9px; }
-.dial-labels text { fill: #4a3518; }
-.dial-labels text.cur { fill: #151008; font-weight: 800; }
-/* Filter chips: a small jewel lamp each, lit on the one that's selected. */
+/* ---- Lamps ----
+   One lamp in four sizes. .on is lit, .warm pulses while something is working. */
+.jewel, .gs-lamp, .nx-lamp, .nx-jewel, #chips .chip::before, .ri[aria-pressed]::after {
+  border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
+body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, #chips .chip.on::before, .ri.act::after, .nx-jewel {
+  background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
+.gs-lamp.warm { background: var(--lamp-warm); animation: lampwarm 1.2s ease-in-out infinite alternate; }
+.nx-jewel { animation: lampwarm 1.6s ease-in-out infinite alternate; }
+@keyframes lampwarm { from { filter: brightness(.55); box-shadow: var(--lamp-ring); } }
+@media (prefers-reduced-motion: reduce) { .gs-lamp.warm, .nx-jewel { animation: none; } }
+.jewel { width: 12px; height: 12px; margin: 0 4px; align-self: center; }
+body.stage .jewel { display: none; }
+.gs-lamp { width: 12px; height: 12px; }
+.nx-lamp { width: 8px; height: 8px; }
+.nx-jewel { width: 34px; height: 34px; }
+
+/* ---- Tolex cards: the result cards in Play next and Get the song ---- */
+.nx .nx-row, .gs .gs-rows.glass { border-width: 1px; border-style: solid; border-radius: 16px; background: var(--tolex-card); background-size: 120px 120px, auto; box-shadow: var(--tolex-inset);
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ---- Library ---- */
+/* Filter chips: a lamp each, lit on the one you've picked. */
 #chips .chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 10px; }
-#chips .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
-  background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); box-shadow: 0 0 0 1.5px rgba(0,0,0,.45); }
-:root[data-theme="light"] #chips .chip::before { background: radial-gradient(circle at 35% 30%, rgba(255,240,220,.7) 0 14%, #c9a27a 50%, #a07a52 90%); box-shadow: 0 0 0 1.5px rgba(0,0,0,.15); }
-#chips .chip.on::before, :root[data-theme="light"] #chips .chip.on::before { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08);
-  box-shadow: 0 0 0 1.5px rgba(0,0,0,.45), 0 0 7px 1px rgba(255,140,40,.65); }
-.dial.set .dial-big { font-family: var(--sans); }
-.dial-labels text.sc { font: 700 10px var(--sans); fill: #3a2810; }
-.dial-small { fill: #c9b48c; font-weight: 700; letter-spacing: .14em; font-size: 10px; }
-.dial.set .dial-small { letter-spacing: .04em; }
-
-/* 2.26.0: the hold-Play menu is a black tolex panel with a thin gold edge, like
-   an amp cabinet. Buttons are black with a chrome rim, each named in gold on
-   the panel. What's on shows by a jewel lamp in the button's corner, the same
-   lamp as the song bar and the library chips, instead of a copper outline. */
-.ring-bg { background: var(--tolex), radial-gradient(circle, #1d1d20, #0e0e10); background-size: 120px 120px, auto;
-  -webkit-backdrop-filter: none; backdrop-filter: none; border: 2px solid #b8935a;
-  box-shadow: inset 0 0 0 4px #0b0b0c, inset 0 0 0 5px rgba(184,147,90,.5), 0 12px 40px rgba(0,0,0,.6); }
-.ri { background: radial-gradient(circle at 50% 30%, #2c2c30, #111113); border: 1px solid #8e8e94; color: #e9e9ec;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 3px 6px rgba(0,0,0,.6); }
-.ri .ri-t { color: #e8cf9c; }
-.ri.act { border-color: #8e8e94; color: #ffc27a; }
-.ri::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; display: none;
-  background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); box-shadow: 0 0 0 1.2px rgba(0,0,0,.5); }
-.ri[aria-pressed]::after { display: block; }
-.ri.act::after { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08); box-shadow: 0 0 0 1.2px rgba(0,0,0,.5), 0 0 7px 1px rgba(255,140,40,.7); }
-.ri.on { border-color: #d9bd85; color: #fff3e0; box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 14px rgba(255,190,110,.45); }
-.ri-l { position: fixed; transform: translate(-50%, -50%); font: 800 8.5px var(--sans); letter-spacing: .12em; color: #d9bd85; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; }
-.ringx.on .ri-l { opacity: 1; }
-.ring-name { color: #f1e3c4; }
-@media (prefers-reduced-motion: reduce) { .ri-l { transition: none; } }
-.prow.below .dptr { bottom: auto; top: -5px; border: 0; border-left: 1px solid var(--rim); border-top: 1px solid var(--rim); }
-
-/* 2.27.0: swipe a song in the library: Delete on the left, Favorite on the right. */
+#chips .chip::before { content: ""; width: 7px; height: 7px; }
+/* Swipe a song: Delete on the left, Favorite on the right. The buttons sit
+   behind the row and widen as it slides. */
 .sw { position: relative; overflow: hidden; }
 .sw .row { position: relative; z-index: 1; touch-action: pan-y; }
 .sw.swiping .row { transition: transform .2s cubic-bezier(.2,1,.3,1); }
@@ -1532,59 +1560,75 @@ body.ring-open .rc #play { box-shadow: inset 0 1px 0 rgba(255,220,190,.45); }
 .sw-act.go svg { transform: scale(1.25); }
 .sw:not(.swiping) .sw-act { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .sw .row, .sw-act, .sw.swiping .row { transition: none; } }
-/* 2.27.0: the + sits in a thin gold bezel, like a switch mounted on an amp panel. */
-.add { box-shadow: 0 0 0 2px #2a1d0c, 0 0 0 5px #c8a465, 0 0 0 6px #6d5326, inset 0 1px 0 rgba(255,220,190,.45), 0 8px 22px rgba(156,86,49,.45); }
-/* 2.28.1: the + is the same size and shape as Play (48 px), inside its gold rim. */
-.add { width: 48px; height: 48px; border-radius: var(--r); margin: 0 2px; }
-body.knob-drag .rc #play { transition: none; }
-/* 2.29.1: the +'s frame is a band of the same brushed gold as the song bar's
-   plate (6 px, dark edge, no gap), so the copper sits in gold exactly as Play does. */
-.add { box-sizing: border-box; width: 60px; height: 60px; margin: 0; border: 6px solid transparent; border-radius: 18px;
-  background: linear-gradient(180deg, #c8804f, #9c5631) padding-box,
-    repeating-linear-gradient(90deg, rgba(255,250,230,.07) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(90,60,20,.05) 3px 4px) border-box,
-    linear-gradient(180deg, #e6cb92, #cfab6a 42%, #b08b4f) border-box;
-  box-shadow: 0 0 0 1px #6d5326, inset 0 1px 0 rgba(255,220,190,.45), 0 10px 28px rgba(0,0,0,.4); }
-/* 2.29.2: the search bar and + read as one row: same height (60, like the
-   song bar), same corners, centred on one line. How search works is unchanged. */
-.dock { align-items: center; }
-.dock > .cmd { height: 60px; border-radius: 18px; }
 
-/* 2.30.0: the editor. The bottom bar is a gold plate like the song bar:
-   Cancel and Edit / Preview in dark recesses, Save in copper; tools ride
-   just above it. */
-.ed-new { font: 400 15px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--bronze); padding: 10px 2px; }
+/* ---- Speed dial: a backlit amp meter (dial.js draws the parts) ---- */
+.dial-rim { fill: #1b1712; stroke: var(--bronze); stroke-opacity: .6; stroke-width: 1.5; }
+.dial-bg { fill: url(#dial-face); fill-opacity: 1; stroke: rgba(0,0,0,.5); }
+.dial-ticks line, .dial-ticks line.lit, .dial-ticks line.cur, :root[data-theme="light"] .dial-ticks line.lit { stroke: #2a1d0c; stroke-opacity: .85; stroke-width: 1.5; }
+.dial-ticks line.mj { stroke-width: 2.6; stroke-opacity: 1; }
+.dial-ticks line.hot { stroke: #b3261e; stroke-opacity: 1; }
+.dial-needle { stroke: #151008; stroke-width: 2.4; stroke-linecap: round; }
+.dial-pivot { fill: #0c0a08; stroke: var(--bronze); stroke-opacity: .7; }
+.dial-win { fill: #16110b; stroke: var(--bronze); stroke-opacity: .55; }
+.dial-big { fill: var(--recess-on); font-family: var(--mono); font-size: 32px; }
+.dial.set .dial-big { font-family: var(--sans); }
+.dial-small { fill: #c9b48c; font-weight: 700; letter-spacing: .14em; font-size: 10px; }
+.dial.set .dial-small { letter-spacing: .04em; }
+.dial-end { fill: #5a4220; font-weight: 800; letter-spacing: .12em; font-size: 9px; }
+.dial-labels text { fill: #4a3518; }
+.dial-labels text.cur { fill: #151008; font-weight: 800; }
+.dial-labels text.sc { font: 700 10px var(--sans); fill: #3a2810; }
+
+/* ---- The hold-Play menu: a tolex panel with a gold edge ----
+   Each button is named in gold on the panel; a lamp in its corner shows what's on. */
+.ring-bg { background: var(--tolex), radial-gradient(circle, #1d1d20, #0e0e10); background-size: 120px 120px, auto; border: 2px solid var(--bronze);
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 4px #0b0b0c, inset 0 0 0 5px var(--bronze-line), 0 12px 40px rgba(0,0,0,.6); }
+/* The ring is always dark tolex, so its buttons keep the dark chrome in either theme. */
+.ringx { --chrome: radial-gradient(circle at 50% 25%, #2b2b2f, #111113); --chrome-edge: #8e8e94; --chrome-fg: #e9e9ec; --chrome-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 3px 8px rgba(0,0,0,.5); }
+.ri .ri-t { color: #e8cf9c; }
+.ri.act { border-color: var(--chrome-edge); color: var(--recess-on); }
+.ri.on { border-color: var(--gold-text); color: #fff3e0; box-shadow: var(--chrome-shadow), 0 0 14px rgba(255,190,110,.45); }
+.ri::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; display: none; }
+.ri[aria-pressed]::after { display: block; }
+.ri-l { position: fixed; transform: translate(-50%, -50%); font: 800 8.5px var(--sans); letter-spacing: .12em; color: var(--gold-text); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; }
+:root[data-theme="light"] .ri-l { color: #d9bd85; }
+.ringx.on .ri-l { opacity: 1; }
+.ring-name { color: var(--recess-fg); }
+@media (prefers-reduced-motion: reduce) { .ri-l { transition: none; } }
+
+/* ---- Editor ----
+   The bottom bar is a gold plate: Cancel and Edit / Preview in recesses, Save
+   in copper. Tools sit just above it once there's text. */
+.ed-new { font: 400 15px var(--sans); letter-spacing: .14em; text-transform: uppercase; padding: 10px 2px; }
 .cebar.plate { flex-direction: column; align-items: stretch; gap: 8px; padding: 0; border: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
-.ce-plate { display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 6px; box-sizing: border-box; border-radius: 18px; border: 1px solid #6d5326;
-  background: repeating-linear-gradient(90deg, rgba(255,250,230,.07) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(90,60,20,.05) 3px 4px), linear-gradient(180deg, #e6cb92, #cfab6a 42%, #b08b4f);
-  box-shadow: inset 0 1px 0 rgba(255,246,220,.75), inset 0 -1px 0 rgba(60,40,10,.35), 0 10px 28px rgba(0,0,0,.4); }
-.ce-rec, .cebar .ce-plate .seg { height: 48px; border-radius: 12px; border: 1px solid rgba(40,26,8,.7); background: linear-gradient(180deg, #1f1910, #2e2517); color: #f1e3c4;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,244,214,.5); font: 600 15px var(--sans); padding: 0 16px; flex: none; }
+.ce-rec, .cebar .ce-plate .seg { height: 48px; border-radius: 12px; font: 600 15px var(--sans); padding: 0 16px; flex: none; }
 .cebar .ce-plate .seg { flex: 1; padding: 4px; display: flex; box-sizing: border-box; }
-.cebar .ce-plate .seg button { flex: 1; height: 38px; border: 0; background: none; color: #a99b80; font: 600 14px var(--sans); }
-.cebar .ce-plate .seg button.on { color: #ffc27a; }
+.cebar .ce-plate .seg button { flex: 1; height: 38px; border: 0; background: none; color: var(--recess-dim); font: 600 14px var(--sans); }
+.cebar .ce-plate .seg button.on { color: var(--recess-on); }
 .cebar .ce-plate .seg.slide::before { top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: #3a2f1f; border-radius: 9px; }
 .cebar .ce-plate .seg[hidden] { display: none; }
-.ce-save { margin-left: auto; height: 48px; padding: 0 22px; border-radius: 12px; border: 0; background: linear-gradient(180deg, #c8804f, #9c5631); color: #fff3e6; font: 700 15px var(--sans); box-shadow: inset 0 1px 0 rgba(255,220,190,.45); flex: none; }
+.ce-save { margin-left: auto; height: 48px; padding: 0 22px; border-radius: 12px; font: 700 15px var(--sans); flex: none; }
 .ed-toolrow { display: flex; gap: 8px; }
 .ed-toolrow:empty { display: none; }
-.ed-tl, .ed-tile { display: flex; align-items: center; justify-content: center; gap: 7px; height: 42px; flex: 1; border-radius: 12px; border: 1px solid #8e8e94; color: #e9e9ec; font: 600 13px var(--sans);
-  background: radial-gradient(circle at 50% 20%, #2a2a2e, #111113); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 3px 8px rgba(0,0,0,.45); }
+.ed-tl, .ed-tile { display: flex; align-items: center; justify-content: center; gap: 7px; height: 42px; flex: 1; border-radius: 12px; font: 600 13px var(--sans); }
 .ed-tl svg, .ed-tile svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.ed-tile:disabled, .ed-tl:disabled { opacity: .55; }
+/* Ways to start a new, empty song, under the pad. */
 .ed-start { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 12px; }
 .ed-start[hidden] { display: none; }
 .ed-tile { height: 72px; justify-content: flex-start; gap: 12px; padding: 0 14px; border-radius: 16px; text-align: left; font-size: 15px; }
 .ed-tile svg { width: 24px; height: 24px; }
-.ed-tile small { display: block; font-weight: 400; font-size: 11.5px; color: #9c968d; margin-top: 2px; }
-.ed-tile.wide { grid-column: 1 / 3; height: 52px; justify-content: center; border-color: rgba(184,147,90,.6); }
-.ed-tile:disabled, .ed-tl:disabled { opacity: .55; }
+.ed-tile small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.ed-tile.wide { grid-column: 1 / 3; height: 52px; justify-content: center; }
+/* Key, Tuning and Tempo folded into one line on a new song. */
 .ed-sum { display: flex; align-items: center; gap: 6px; width: 100%; height: 40px; padding: 0 2px; border: 0; background: none; color: var(--muted); font: 400 14px var(--sans); text-align: left; }
 .ed-sum b { color: var(--fg); font-weight: 600; }
 .ed-sum .found { font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
 .ed-sum .more { margin-left: auto; color: var(--bronze); }
 .ed-chips[hidden] { display: none; }
-/* The writing area is a pad: dark ruled lines with a copper margin in the
-   dark theme, a cream legal pad in the light theme. Each line of text sits on
-   a rule. */
+/* The writing area is a pad: dark ruled lines with a copper margin in the dark
+   theme, a cream legal pad in the light theme. The rules repeat every line
+   height (1.55em) from the top padding, so each line of text sits on one. */
 .ed-hl, .ed-tx textarea { padding-left: 38px; }
 .ed-tx { background: #141416; }
 .ed-hl { background-image: linear-gradient(90deg, transparent 27px, rgba(232,160,122,.5) 27px 28.5px, transparent 28.5px),
@@ -1598,52 +1642,9 @@ body.knob-drag .rc #play { transition: none; }
 :root[data-theme="light"] .ed-tx textarea::placeholder { color: #8a7d66; -webkit-text-fill-color: #8a7d66; }
 .sheet:has(.ed-tx) { padding-bottom: 150px; }
 .ed-tx:has(~ .ed-start:not([hidden])) .ed-hl { min-height: 200px; }
-body.cedit.ring #rc { display: none; } /* 2.30.1: editing hides Play and the arc again (the 2.19.1 #rc rule had outranked this) */
-
-/* 2.31.0: Play next in the amp style. Bronze heading and a thin gold edge;
-   the AI's wait is a jewel lamp warming up; each song is a tolex card with a
-   gold edge, its new chords in copper and a gold Add; the level switch is a
-   gold plate with a lamp lit on your pick. */
-.panel.nx { border-color: rgba(184,147,90,.5); }
-.nx .ph h2 { font: 700 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
-.nx-warm { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 90px 0 40px; text-align: center; color: var(--muted); font-size: 15px; }
-.nx-jewel { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08);
-  box-shadow: 0 0 0 4px rgba(0,0,0,.5), 0 0 26px 8px rgba(255,140,40,.45); animation: nxwarm 1.6s ease-in-out infinite alternate; }
-@keyframes nxwarm { from { filter: brightness(.55); box-shadow: 0 0 0 4px rgba(0,0,0,.5), 0 0 8px 2px rgba(255,140,40,.2); } }
-@media (prefers-reduced-motion: reduce) { .nx-jewel { animation: none; } }
-.nx .list.glass { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; display: flex; flex-direction: column; gap: 10px; }
-.nx .nx-row { height: auto; align-items: flex-start; padding: 14px 14px 14px 16px; border: 1px solid rgba(184,147,90,.5); border-radius: 16px;
-  background: var(--tolex), radial-gradient(circle at 30% 0, #202023, #121214); background-size: 120px 120px, auto;
-  box-shadow: inset 0 0 0 3px #0b0b0c, inset 0 0 0 4px rgba(184,147,90,.25); }
-.nx .nx-row .t { font-size: 17px; font-weight: 600; }
-.nx-why { color: #d9bd85; }
-.nx .nx-ch span.new { background: linear-gradient(180deg, #c8804f, #9c5631); color: #fff3e6; border-color: transparent; }
-.nx .nx-add { background: linear-gradient(180deg, #e6cb92, #b08b4f); color: #2a1d0c; border: 1px solid #6d5326; box-shadow: inset 0 1px 0 rgba(255,246,220,.7); }
-:root[data-theme="light"] .nx .nx-row { background: var(--card); box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px rgba(184,147,90,.25); }
-:root[data-theme="light"] .nx-why { color: #86663a; }
-.nx .nx-ctl { flex-direction: column-reverse; align-items: stretch; gap: 10px; }
-.nx .nx-ctl > .btn { height: 44px; border-radius: 12px; border: 1px solid #8e8e94; color: #e9e9ec; background: radial-gradient(circle at 50% 20%, #2a2a2e, #111113); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
-.nx .nx-ctl > .btn.primary { background: linear-gradient(180deg, #c8804f, #9c5631); color: #fff3e6; border: 0; }
-.nx #nx-level { height: 60px; padding: 0 6px; gap: 8px; box-sizing: border-box; border-radius: 18px; border: 1px solid #6d5326; align-items: center;
-  background: repeating-linear-gradient(90deg, rgba(255,250,230,.07) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(90,60,20,.05) 3px 4px), linear-gradient(180deg, #e6cb92, #cfab6a 42%, #b08b4f);
-  box-shadow: inset 0 1px 0 rgba(255,246,220,.75), 0 8px 20px rgba(0,0,0,.35); }
-.nx #nx-level button { flex: 1; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 9px; color: #a99b80; font: 600 15px var(--sans);
-  background: linear-gradient(180deg, #1f1910, #2e2517); box-shadow: inset 0 2px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,244,214,.5); }
-.nx #nx-level button.on { color: #ffc27a; }
-.nx-lamp { width: 8px; height: 8px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); }
-.nx #nx-level button.on .nx-lamp { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08); box-shadow: 0 0 7px 1px rgba(255,140,40,.7); }
-/* 2.32.0: the add button is a music note with a + badge, so anyone can tell
-   it adds a song; copper in its gold plate like Play. */
-.add { position: relative; }
-.add .add-note { width: 26px; height: 26px; stroke-width: 1.9; }
-.add .add-note circle { fill: currentColor; }
-.add .add-bdg { position: absolute; right: 2px; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #2a1d0c; color: #ffc27a;
-  font: 800 13px/15px var(--sans); font-style: normal; text-align: center; box-shadow: 0 0 0 1.5px #e6cb92; pointer-events: none; }
-/* 2.32.1: the note is brushed silver, drawn filled. */
-.add .add-note { width: 28px; height: 28px; stroke-width: initial; filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
-.add .add-note circle { fill: initial; }
-
-/* 2.33.0: writing mode keeps the song in view: a slim strip above the pad. */
+/* Editing hides Play and the arc (the ring controls are id #rc). */
+body.cedit.ring #rc { display: none; }
+/* Writing mode: a slim strip above the pad keeps the title, artist and key in view. */
 .ed-strip { display: none; }
 body.writing .ed-strip { display: flex; position: fixed; z-index: 26; left: 8px; right: 8px; top: calc(var(--vv-top, 0px) + var(--safe-t) + 8px); height: 40px; box-sizing: border-box;
   align-items: center; gap: 8px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--bronze-line); background: var(--card); color: var(--muted); font: 400 14px var(--sans); text-align: left; white-space: nowrap; overflow: hidden; }
@@ -1655,20 +1656,20 @@ body.writing .ed-strip { display: flex; position: fixed; z-index: 26; left: 8px;
 .ed-strip .go { margin-left: auto; color: var(--bronze); flex: none; padding-left: 6px; }
 body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); height: calc(var(--vv-h, 100vh) - var(--safe-t) - var(--bar-h, 56px) - 72px); }
 
-/* 2.34.0: Get the song as a channel strip: bronze heading, a tolex card with
-   a gold edge, and a jewel lamp per step. */
-.panel.gs { border-color: rgba(184,147,90,.5); }
-.gs .ph h2 { font: 700 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
-.gs .gs-rows.glass { border: 1px solid rgba(184,147,90,.5); border-radius: 16px; -webkit-backdrop-filter: none; backdrop-filter: none;
-  background: var(--tolex), radial-gradient(circle at 30% 0, #202023, #121214); background-size: 120px 120px, auto;
-  box-shadow: inset 0 0 0 3px #0b0b0c, inset 0 0 0 4px rgba(184,147,90,.22); }
-:root[data-theme="light"] .gs .gs-rows.glass { background: var(--card); box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px rgba(184,147,90,.22); }
+/* ---- Play next ----
+   While the AI looks, a large lamp warms up. Each song is a tolex card; the
+   level switch is a plate with a lamp lit on your pick. */
+.nx-warm { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 90px 0 40px; text-align: center; color: var(--muted); font-size: 15px; }
+.nx .list.glass { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; display: flex; flex-direction: column; gap: 10px; }
+.nx .nx-row { height: auto; align-items: flex-start; padding: 14px 14px 14px 16px; }
+.nx .nx-row .t { font-size: 17px; font-weight: 600; }
+.nx-why { color: var(--gold-text); }
+.nx .nx-ctl { flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+.nx .nx-ctl > .btn { height: 46px; }
+.nx #nx-level button { flex: 1; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--recess-dim); font: 600 15px var(--sans); }
+.nx #nx-level button.on { color: var(--recess-on); }
+
+/* ---- Get the song: a lamp per step, like a channel strip ---- */
 .gs .gs-row { gap: 14px; }
 .gs .gs-src { color: var(--muted); }
-.gs .gs-row:has(.gs-lamp.on) .gs-src { color: #d9bd85; }
-:root[data-theme="light"] .gs .gs-row:has(.gs-lamp.on) .gs-src { color: #86663a; }
-.gs-lamp { width: 12px; height: 12px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); box-shadow: 0 0 0 2px rgba(0,0,0,.5); }
-.gs-lamp.on { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08); box-shadow: 0 0 0 2px rgba(0,0,0,.5), 0 0 10px 2px rgba(255,140,40,.6); }
-.gs-lamp.warm { background: radial-gradient(circle at 35% 30%, #ffd9a0 0 12%, #d9822f 40%, #8a3d10 80%); animation: gswarm 1.2s ease-in-out infinite alternate; }
-@keyframes gswarm { from { box-shadow: 0 0 0 2px rgba(0,0,0,.5); filter: brightness(.6); } to { box-shadow: 0 0 0 2px rgba(0,0,0,.5), 0 0 8px 2px rgba(255,140,40,.45); } }
-@media (prefers-reduced-motion: reduce) { .gs-lamp.warm { animation: none; } }
+.gs .gs-row:has(.gs-lamp.on) .gs-src { color: var(--gold-text); }

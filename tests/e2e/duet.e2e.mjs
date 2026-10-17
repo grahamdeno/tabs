@@ -1,4 +1,4 @@
-// Play together (2.15): the link carries the song, a start time and the tempo;
+// Play together: the link carries the song, a start time and the tempo;
 // both phones count in at that moment and scroll together. No server.
 import test from "node:test";
 import assert from "node:assert/strict";

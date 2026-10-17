@@ -1,4 +1,4 @@
-// Swipe a song in the library (2.27.0): left for Delete (with Undo), right for Favorite.
+// Swipe a song in the library: left for Delete (with Undo), right for Favorite.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser } from "./harness.mjs";

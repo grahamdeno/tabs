@@ -288,7 +288,7 @@ function runDemo(name, song) {
     return setTimeout(demoMap, 450);
   }
 }
-// Grouped by where you are; only things without a visible button (2.6.4).
+// Grouped by where you are; only things without a visible button.
 const GESTURES = [
   ["One hand (phone held upright)", [
     ["ring", "Hold Play", "A ring opens: Favorite, Metronome, Key, Now and Next, More, and Set in a set. Slide to one and let go, or let go and tap", "play"],

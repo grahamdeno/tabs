@@ -1,4 +1,4 @@
-// Changes (2.14): chord changes counted from plays, in the Today line and a sheet.
+// Changes: chord changes counted from plays, in the Today line and a sheet.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser } from "./harness.mjs";

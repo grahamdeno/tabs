@@ -83,7 +83,7 @@ test("a shared song link opens the Shared with you sheet", { skip: skip() }, asy
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
   await page.click("#more"); await page.waitForTimeout(150);
   await page.click(".menu [data-m='share']");
-  /* Waited for, not slept on, so a busy test machine doesn't flake (2.20.0). */
+  /* Waited for, not slept on, so a busy test machine doesn't flake. */
   await page.waitForFunction(async () => /#\/import\//.test(await navigator.clipboard.readText()), null, { timeout: 8000 });
   const url = await page.evaluate(() => navigator.clipboard.readText());
   assert.match(url, /#\/import\/z/);

@@ -172,7 +172,7 @@ function renderSettings() {
   if (PAGES[page]) {
     app.innerHTML = head(PAGES[page][0], "Back to settings") + PAGES[page][1];
   } else {
-    // The main menu: one row per page, each showing where it stands (2.13).
+    // The main menu: one row per page, each showing where it stands.
     const city = s.place?.name?.split(",")[0];
     const diagOn = [s.diagrams === true, s.pauseDiagrams !== false, s.songMap !== false, (s.focus || "always") !== "off"].filter(Boolean).length;
     const theme = { dark: "Dark", light: "Light" }[s.theme] || "Auto";

@@ -1,4 +1,4 @@
-// Settings menu (2.13): a short menu that opens one page per area.
+// Settings menu: a short menu that opens one page per area.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser } from "./harness.mjs";

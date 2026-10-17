@@ -1,5 +1,5 @@
 // Tips & gestures: every Show me plays its demo, on screen, in both song
-// layouts (2.6.6). One-hand tips explain themselves when the ring isn't in use.
+// layouts. One-hand tips explain themselves when the ring isn't in use.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { base, phone, skip, LIB, useBrowser } from "./harness.mjs";

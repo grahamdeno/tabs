@@ -1,5 +1,5 @@
-// Tabs sharing (split from app.js in 2.16.3): song and set links, opening a
-// shared link, and Play together (2.15). The song or set rides inside the
+// Tabs sharing : song and set links, opening a
+// shared link, and Play together. The song or set rides inside the
 // link, so it works without a server or an account.
 import { Tabs, findSame, packShare, shareable, unpackShare } from "./core.js";
 import { $, esc, icon, layer, onLeave, showToCopy, sound, toast } from "./ui.js";
@@ -23,7 +23,7 @@ async function shareLink(payload, title, near) {
 // hand), at the top on larger screens.
 const moreBtn = () => [...document.querySelectorAll("button.more")].find(b => b.offsetParent) || $("more");
 const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Tabs)`, moreBtn());
-// ---------- Play together (2.15) ----------
+// ---------- Play together ----------
 // No server: the link carries the song, a start time and the tempo. Both
 // phones count in at that moment by their own clocks and scroll to the
 // song's length, so they stay together. Pause or jump on one phone doesn't

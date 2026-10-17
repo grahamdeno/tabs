@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.34.0";
+export const VERSION = "2.34.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS = {
   controls: "ring",      // phone upright: "ring" (hold Play) or "bar"
   follow: "hand",        // ring: Play rises with "hand" (motion), "touch", or stays in the "corner"
   songMap: true,          // the section rail on the right edge of a song
-  nudge: true,            // the library's Today line: practice streak and a song for today (2.8)
+  nudge: true,            // the library's Today line: practice streak and a song for today
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
@@ -364,7 +364,7 @@ export function playsThisWeek(song, now = Date.now()) {
   return Object.entries(song.playLog?.days || {}).reduce((n, [k, c]) => n + (k >= from ? c : 0), 0);
 }
 
-// ---------- Strum it (2.9): chords from played notes ----------
+// ---------- Strum it: chords from played notes ----------
 // Notes come from Basic Pitch ({ midi, start, dur, amp }), many at once. A strum
 // is a burst of note starts; between strums, the notes still sounding are
 // weighed by pitch class (louder and longer count more, the lowest note a
@@ -467,7 +467,7 @@ export function riffNotes(notes) {
   return out.map(n => ({ midi: n.midi, name: STRUM_NAMES[n.midi % 12] + (Math.floor(n.midi / 12) - 1), at: n.at, dur: n.dur }));
 }
 
-// ---------- German practice (2.10) ----------
+// ---------- German practice ----------
 // A song's sung lines, translated once (german.js, with your Anthropic key) and
 // kept with the song as song.de: per line the whole line in German ("de") and
 // swaps ("s") that replace English words in place, each at a level: 1 Basic
@@ -509,7 +509,7 @@ export function deSpans(swaps, level) {
   const chosen = [], free = (w, n) => !chosen.some(c => w < c.w + c.n && c.w < w + n);
   const pick = list => list.forEach(x => { if (free(x.w, x.n)) chosen.push(x); });
   if (level >= 3) pick(swaps.filter(x => x.l === 3).sort((a, b) => b.n - a.n));
-  /* Common is a small step up from Basic (2.11.1): at most two more words a
+  /* Common is a small step up from Basic: at most two more words a
      line, nouns before adjectives and adverbs, single words before pairs.
      Intermediate takes them all. */
   const common = swaps.filter(x => x.l === 2).sort((a, b) => (!!b.g - !!a.g) || a.n - b.n || a.w - b.w);
@@ -583,7 +583,7 @@ function fluentBlock(b, line, i, en) {
 // Without the translations: what a backup file holds.
 export const withoutGerman = data => ({ ...data, songs: (data.songs || []).map(s => { if (!s.de) return s; const { de: _de, ...rest } = s; return rest; }) });
 
-// ---------- Today: practice streak and a nudge (2.8) ----------
+// ---------- Today: practice streak and a nudge ----------
 // A day counts when any song was played to its end (the play log). The streak
 // runs back from today, or from yesterday while today has no play yet.
 const playDays = songs => {
@@ -613,7 +613,7 @@ export function weatherMood(code, tmax) {
 }
 // One suggestion for today, or null. Nothing on a gig day (Up next has it) or
 // once you've played today. In the evening a streak worth keeping comes first;
-// then the weather; then a change you barely play (2.14); then a learning
+// then the weather; then a change you barely play; then a learning
 // song or a favorite left too long. Picks are
 // steady through the day (the same song each time you look).
 export function pickNudge({ songs = [], now = Date.now(), mood = "", gigToday = false } = {}) {
@@ -650,7 +650,7 @@ export function pickNudge({ songs = [], now = Date.now(), mood = "", gigToday = 
     const r = out("hot", "Too hot to go out. Good day to learn something new", pick(songs.filter(s => s.status === "learning")));
     if (r) return r;
   }
-  // A change your songs have that you've barely played this week (2.14).
+  // A change your songs have that you've barely played this week.
   const ch = changesOf(songs, now);
   const w = ch.played && ch.work.find(c => c.best.n >= 2);
   if (w) {
@@ -1154,7 +1154,7 @@ export async function unpackShare(code) {
     else if (code[0] !== "j") return null;
     const p = JSON.parse(new TextDecoder().decode(bytes));
     const ok = s => s && typeof s.title === "string" && typeof s.body === "string";
-    // Play together (2.15): a start time and tempo ride along with the song.
+    // Play together: a start time and tempo ride along with the song.
     const duet = p.duet && Number.isFinite(p.duet.at) && p.duet.at > 1.6e12 && p.duet.at < 4e12
       ? { at: Math.round(p.duet.at), bpm: Math.min(300, Math.max(30, +p.duet.bpm || 90)) } : null;
     if (p.song && ok(p.song)) return duet ? { song: shareable(p.song), duet } : { song: shareable(p.song) };
@@ -1248,7 +1248,7 @@ export function nearestString(freq, tuning = "standard", a4 = 440) {
   return { index: best, note: notes[best], cents: Math.round(bestC) };
 }
 // A reading an octave off (a plucked low E heard as E3, or a high one as its
-// lower octave) folded back to the string meant (2.16.1). With a target string,
+// lower octave) folded back to the string meant. With a target string,
 // fold toward it; without one, only when the reading itself is near no string.
 export function octaveFix(freq, tuning = "standard", a4 = 440, idx = -1) {
   const notes = (TUNINGS[tuning] || TUNINGS.standard).notes;
@@ -1258,7 +1258,7 @@ export function octaveFix(freq, tuning = "standard", a4 = 440, idx = -1) {
   for (const f of [freq / 2, freq * 2]) if (near(f) <= 60) return f;
   return freq;
 }
-// The most natural German voice the phone has (2.17.1): Premium, then
+// The most natural German voice the phone has: Premium, then
 // Enhanced (downloaded in iPhone Settings > Accessibility > Spoken Content),
 // then a neural or natural voice in other browsers; Germany's German first.
 // The playful novelty voices are left for last. null when there's none.
@@ -1527,7 +1527,7 @@ export function nextSet(sets, now = Date.now()) {
 // "today", "tomorrow", "in 3 days", "in 2 weeks", or "now" for a set under way.
 // Gig day: the time left until a set starts, as h:mm:ss, on its own calendar
 // day and only before it starts. Anything else: "" (no countdown).
-// The ring's arc (2.4.6): where a sweep puts the song. The pace comes from how
+// The ring's arc: where a sweep puts the song. The pace comes from how
 // far the thumb has swept, not how fast, so it's steady: near where the thumb
 // landed it's fine (about a screen per arc), and it picks up smoothly so that
 // reaching the end of the arc reaches the end of the song (or the start, going
@@ -1597,7 +1597,7 @@ export function buildChart(ai) {
   }
   return lines.join("\n").trim();
 }
-// ---------- Changes (2.14): the moves between chords you play ----------
+// ---------- Changes: the moves between chords you play ----------
 // A song's chord changes in the shapes your hands make (its transpose
 // applied), as unordered pairs: G to C and C to G are one change. Counted from
 // plays already logged, so nothing new is stored. A pair is "a|b", sorted.
@@ -2072,7 +2072,7 @@ export function mergeWords(chartBody, lyricsText) {
   return out.join("\n").trim();
 }
 
-// ---- Get the song (2.7) ----
+// ---- Get the song ----
 // LRCLIB returns many recordings of a song (album, live, covers, karaoke).
 // pickVersions ranks the ones that have words: the title and artist must match;
 // then the one closest to the length the chart found (within 4 seconds); with

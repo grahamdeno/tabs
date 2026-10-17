@@ -113,7 +113,7 @@ export function chartSheet(q, preset = {}) {
   if (preset.title && !preset.chart) findChords();
 }
 
-// ---- Get the song (2.7) ----
+// ---- Get the song ----
 // One tap from a search miss: the AI chart (chords and section names only),
 // the words from LRCLIB and, with a GetSongBPM key, the measured tempo and
 // time signature, all at once. Tabs puts the chords over the words here on the
@@ -171,7 +171,7 @@ export function getSong(q, preset = {}) {
   };
   const version = () => st.versions[st.vi] || null;
   const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
-  /* 2.34.0: a jewel lamp per step, like a channel strip: dark while waiting,
+  /* a jewel lamp per step, like a channel strip: dark while waiting,
      warming while working, lit when done. Said in a musician's words, not the
      names of the services behind them. */
   const ROW = { ok: `<i class="gs-lamp on"></i>`, busy: `<i class="gs-lamp warm"></i>`, wait: `<i class="gs-lamp"></i>`, none: `<i class="gs-lamp"></i>` };
@@ -292,7 +292,7 @@ export function wordsSheet(chart, { title = "", ok = "Done", text = "" } = {}, d
 // ---- What can I play next? ----
 // Sends only the chords you know and your song titles; suggests well-known songs
 // that use mostly those chords. "My level" adds at most one new chord; "A step
-// up" (2.12) asks for songs a little harder than the ones you have: up to two
+// up" asks for songs a little harder than the ones you have: up to two
 // new chords or a trickier change or rhythm. The choice is remembered.
 const NEXT_SYSTEM = `You suggest songs a guitarist could learn next. You get the chords they already play and the songs they already have.
 Reply with JSON only, no other text and no code fences: {"songs": [{"title": string, "artist": string, "chords": [string], "new": [string], "why": string}]}
@@ -344,7 +344,7 @@ export async function nextSongs() {
     if (foot) $("nx-foot").innerHTML = controls();
     const tail = foot ? "" : controls();
     if (state.busy) {
-      /* 2.31.0: the amp warms up: a jewel lamp glows while the AI works. */
+      /* the amp warms up: a jewel lamp glows while the AI works. */
       body.innerHTML = `<div class="easy-wait nx-warm" role="status"><i class="nx-jewel" aria-hidden="true"></i><span>${level() === "step" ? "Warming up: songs a step up from yours" : "Warming up: songs that fit your chords"}</span></div>${tail}`;
       const was = state;
       setTimeout(() => { const w = body.querySelector(".easy-wait"); if (state === was && w) w.lastChild.textContent = " Still looking, this can take a few more seconds"; }, 9000);
@@ -377,9 +377,9 @@ export async function nextSongs() {
       // moves on instead of repeating, with a fresh number to vary the picks.
       const seen = nextSeen().filter(t => !skip.includes(t)).slice(0, 30);
       const work = changesOf(data.songs).work.map(c => `${c.a} to ${c.b}`);
-      /* Streamed (2.16.2): the reply arrives as it's written, so iPhone keeps the
+      /* Streamed: the reply arrives as it's written, so iPhone keeps the
          connection open; and after 45 s with nothing, say so instead of waiting on. */
-      const ask = () => Promise.race([askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 8000, /* room to think first (2.16.6) */
+      const ask = () => Promise.race([askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 8000, /* room to think first */
         content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}${work.length ? `\nChanges I'm working on: ${work.join(", ")}. Include them where they fit.` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` }),
         new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("slow"), { status: -2 })), 45000))]);
       // An unreadable reply is usually a one-off, so ask once more before saying so.

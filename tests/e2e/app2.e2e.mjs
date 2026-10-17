@@ -394,7 +394,7 @@ test("2.1 glow: count-in and the chord you're on glow; gig day counts down on Up
 });
 
 test("2.2 ring: Play rests in the corner, rises with a touch, settles when still; hold it for the ring", { skip: skip() }, async t => {
-  /* The first-rise hint (2.16) keeps Play up while it plays; it's covered in ringhint.e2e. */
+  /* The first-rise hint keeps Play up while it plays; it's covered in ringhint.e2e. */
   const ring = { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch", tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } };
   const page = await phone(t, ring);
   const center = () => page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });

@@ -66,7 +66,7 @@ const keyOf = s => s.format === "tab" ? "TAB" : (s.key || guessKey(s.body || "")
 
 
 // ---------- Library ----------
-// ---- Today (2.8): the practice streak and one song for today ----
+// ---- Today: the practice streak and one song for today ----
 // The quiet stat line under the title grows into a Today line: seven dots for
 // the last week (today dashed until you play), the streak, and at most one
 // nudge that opens a song. The nudge waits on a gig day (Up next has the
@@ -116,13 +116,13 @@ function todayHTML(weekTotal, weekSongs) {
 }
 // An empty, hidden #today keeps a place for the line when there's nothing to
 // show yet, so a forecast that arrives after the library is drawn can still
-// fill it in (2.11.2: with no plays this week the weather never appeared).
+// fill it in (with no plays this week the weather never appeared).
 const todayHTMLOrSpot = (...a) => todayHTML(...a) || `<div id="today" hidden></div>`;
 function bindToday() {
   $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
   $("t-stat")?.addEventListener("click", showChanges);
 }
-// Changes (2.14): the chord changes you played this week, from songs played to
+// Changes: the chord changes you played this week, from songs played to
 // their end, and the ones your songs have that you play least.
 function showChanges() {
   const { most, work } = changesOf(data.songs);
@@ -408,7 +408,7 @@ function renderList() {
   bindFind(list);
   bindIndex(list, sorted, q ? "" : sort);
 }
-// 2.27.0: swipe a song in the list. Left shows Delete (a long swipe deletes
+// swipe a song in the list. Left shows Delete (a long swipe deletes
 // at once; Undo brings it back, and it stays in Recently deleted for 30
 // days). Right toggles Favorite. Only on the plain list, never the cards.
 let swOpen = null;
@@ -492,9 +492,9 @@ function bpmKey() { try { return localStorage.getItem(BPM_STORE) || ""; } catch 
 
 // stream: the reply arrives as it's written. A long reply (German practice)
 // otherwise keeps the connection silent for a minute or more, and iPhone gives
-// up on it, which looks like "Could not reach Anthropic" (2.11).
+// up on it, which looks like "Could not reach Anthropic".
 // Why the last reply ended ("end_turn", "max_tokens", "refusal"...), for the
-// "What came back" note when a reply has no text (2.16.6).
+// "What came back" note when a reply has no text.
 let lastStop = "";
 const aiLastStop = () => lastStop;
 async function askClaude({ model = AI.fast, system, content, maxTokens = 8000, key = aiKey(), stream = false }) {
@@ -555,7 +555,7 @@ function aiError(e) {
 }
 
 // The first whole JSON object in a reply. Skips code fences, words before or
-// after, and stray braces in that text (2.12.1: a "{" in a note ahead of the
+// after, and stray braces in that text (a "{" in a note ahead of the
 // JSON made Play next fail every time). A trailing comma is forgiven.
 function parseJSON(text) {
   const t = String(text);
@@ -946,7 +946,7 @@ function renderViewer(id) {
     settings: data.settings,
     items: [
       /* Back lives in the island; the ring holds what you reach for mid-song.
-         2.26.0: what you touch while playing sits lowest, nearest the thumb's
+         what you touch while playing sits lowest, nearest the thumb's
          natural sweep; Tuner joins; German moves to More. Each place is the
          next one along the arc. */
       { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
@@ -1232,9 +1232,9 @@ function showPausedRow(block = pausedBlock()) {
   const lefts = row.items.map(it => it.x - w / 2);
   for (let i = 0; i < n; i++) lefts[i] = i === 0 ? Math.max(0, lefts[i]) : Math.max(lefts[i], lefts[i - 1] + w + GAP);
   if (lefts[n - 1] + w > width) for (let i = n - 1; i >= 0; i--) lefts[i] = Math.min(lefts[i], i === n - 1 ? width - w : lefts[i + 1] - w - GAP);
-  /* 2.26.0: over the first line the cards would cover "Chords in this song"
+  /* over the first line the cards would cover "Chords in this song"
      above the sheet, so there they hang below the line instead. */
-  /* Compared on screen, against the sheet's top and the chord boxes themselves (2.26.2). */
+  /* Compared on screen, against the sheet's top and the chord boxes themselves. */
   const cardsTop = block.getBoundingClientRect().top + (row.top - h - 9 - block.offsetTop);
   const strip = $("strip")?.querySelector(".strip"), sr = strip?.offsetParent ? strip.getBoundingClientRect() : null, shr = sheet.getBoundingClientRect();
   const stripBottom = sr && sr.left < shr.right && sr.right > shr.left && sr.bottom <= block.getBoundingClientRect().top ? sr.bottom : -Infinity; /* only when it's above the song (iPad keeps it in the side rail) */
@@ -1743,7 +1743,7 @@ function wordsFor(song) {
 // The chip under the title is its home in every layout; it shows progress
 // while a translation runs in the background (german.js keeps deJobs).
 const deJobs = new Map();
-let songDeOpen = null; /* the open song's German: the dial, or the sheet when it needs work (2.26.0: in More) */
+let songDeOpen = null; /* the open song's German: the dial, or the sheet when it needs work (in More) */
 const deEligible = song => !!firstLyric(song.body) && (!!aiKey() || !!song.de);
 function paintDeChip(song, fresh, lvl) {
   const dc = $("dechip");
@@ -2210,7 +2210,7 @@ function renderRoute() {
 // Screen changes animate with the browser's view transitions where supported:
 // a short cross-fade, and the song title glides between the library row and the
 // song header. Instant when Reduce Motion is on or the browser lacks support.
-// The first time Play glides up to the arc (2.16): a glass circle grows,
+// The first time Play glides up to the arc: a glass circle grows,
 // shrinks and settles where the ring will open, then a note says to hold
 // Play. Once only, and never once you've opened the ring yourself.
 function ringHint() {

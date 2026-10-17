@@ -1,11 +1,11 @@
-// Tabs corner dial (2.1): a value you sweep with the thumb, drawn as an arc of
+// Tabs corner dial: a value you sweep with the thumb, drawn as an arc of
 // ticks around the bottom-right corner of the screen. It grows out of the
 // corner while you hold, and the value glows as it changes.
 //
 // Hold a dial button and sweep along the arc: the change is relative to where
 // you started, so pressing never jumps the value. A tap without sweeping
 // leaves the dial open; sweep anywhere on it, and tap it again to close. A tap
-// never changes the value, even one that slips a little (2.16.5).
+// never changes the value, even one that slips a little.
 // Used for the song's speed and, in a set, for picking a song.
 
 const SPAN = 82;          /* degrees of arc the full range covers */
@@ -49,7 +49,7 @@ export function openDial(o) {
   layer.setAttribute("aria-valuemin", min); layer.setAttribute("aria-valuemax", max);
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("width", W); svg.setAttribute("height", H);
-  /* 2.25.0: drawn as a backlit amp meter: a cream face in the corner circle,
+  /* drawn as a backlit amp meter: a cream face in the corner circle,
      a needle from the corner that swings as you sweep, and the reading and its name
      in a dark window above the face, clear of the thumb. */
   const bw = labels ? Math.min(W - 24, R + 10) : 150, bx = W - 12 - bw, by = H - R - 88;
@@ -100,8 +100,7 @@ export function openDial(o) {
   let x0 = 0, y0 = 0, t0 = 0, far = 0, wasChanged = false;
   const down = (x, y) => { from = angleOf(x, y); start = value; moved = false; x0 = x; y0 = y; t0 = Date.now(); far = 0; wasChanged = changed; };
   /* A press that wobbles a little doesn't change anything: the value only
-     moves once the thumb has swept 6 degrees and travelled 12 pixels (2.16.4:
-     near the corner a few pixels is many degrees, so angle alone let a tap
+     moves once the thumb has swept 6 degrees and travelled 12 pixels (near the corner a few pixels is many degrees, so angle alone let a tap
      read as a sweep), and then from where it is. */
   const DEAD = 6, DEAD_PX = 12;
   const move = (x, y) => {
@@ -118,7 +117,7 @@ export function openDial(o) {
     if (from == null) return;
     from = null;
     /* A quick touch that hardly moved is a tap, and a tap never changes the
-       value (2.16.5): put back what it was when the touch began. */
+       value: put back what it was when the touch began. */
     if (moved && Date.now() - t0 < 250 && far < 16) {
       moved = false;
       if (value !== start) { value = start; changed = wasChanged; paint(); o.input?.(value); }

@@ -1,4 +1,4 @@
-// German practice (2.10): translate a song once, pick a level, tap a word.
+// German practice: translate a song once, pick a level, tap a word.
 // The song and its translation are invented.
 import test from "node:test";
 import assert from "node:assert/strict";

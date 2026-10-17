@@ -70,7 +70,7 @@ window.addEventListener("scroll", () => {
 }, { passive: true });
 const app = $("app");
 const layer = $("layer");
-// Sheets in the layer close with a swipe down (2.11): from the handle or
+// Sheets in the layer close with a swipe down: from the handle or
 // title row, or from the content once it's scrolled to the top. They follow
 // the finger, and spring back from a short pull. Closing goes through the
 // sheet's own scrim, so each sheet tidies up as it does on a tap outside.
@@ -224,11 +224,11 @@ const showToCopy = (title, text) => ask({ title, value: text, readonly: true, ok
 const SECTION_NAMES = ["Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo", "Outro"];
 
 // One hand: a phone held upright. Controls move to the bottom, in reach of the
-// thumb (2.0). iPad and landscape keep their layouts.
+// thumb. iPad and landscape keep their layouts.
 const oneHandMQ = matchMedia("(max-width: 699px) and (orientation: portrait)");
 export { oneHandMQ };
 
-// One audio engine for the whole app (2.16.3): count-in, metronome, Play
+// One audio engine for the whole app: count-in, metronome, Play
 // together, the tuner and Strum it share it. iPhone limits how many can run
 // and only lets one start from a touch, so it's made the first time a feature
 // needs sound (never just for opening the app, so music playing alongside

@@ -1,4 +1,4 @@
-// Strum it (2.9): Basic Pitch (vendor/basic-pitch) hears synthesized guitar
+// Strum it: Basic Pitch (vendor/basic-pitch) hears synthesized guitar
 // strums and riffs, and strumChords / riffNotes name them. Synthetic plucked
 // strings (Karplus-Strong) with a little room noise stand in for a phone mic;
 // real recordings go in tests/audio/chords (see its README).

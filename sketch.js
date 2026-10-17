@@ -10,7 +10,7 @@ import { Tabs } from "./core.js";
 import { noteError } from "./store.js";
 
 const MAX_LINE = 30; /* seconds: a line stops itself */
-// Strum it (2.9): how a line is heard. "sing": your voice, chords that fit the
+// Strum it: how a line is heard. "sing": your voice, chords that fit the
 // melody (as before). "strum": your guitar, the chords you played (Basic Pitch,
 // strum.js, loaded on first use). "both": both, and where they disagree the
 // line offers You played / Melody fits. The choice is remembered.
@@ -70,7 +70,7 @@ function closeMic() {
 // iPhone only lets audio run when it's started inside a touch: the audio
 // context is made (or woken) right in the pad's touch, before the microphone
 // is asked for; made later, it can stay asleep and hear only silence.
-const primeAudio = () => sound(); /* the app's one audio engine (2.16.3) */
+const primeAudio = () => sound(); /* the app's one audio engine */
 async function openMic() {
   primeAudio();
   if (mic && mic.stream.getAudioTracks().some(t => t.readyState === "live")) { await mic.ctx.resume?.(); return mic; }

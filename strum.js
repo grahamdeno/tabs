@@ -1,4 +1,4 @@
-// Strum it (2.9): hears the guitar. Basic Pitch (Spotify, Apache-2.0) turns
+// Strum it: hears the guitar. Basic Pitch (Spotify, Apache-2.0) turns
 // audio into notes on the phone; core.js names the chords (strumChords) or the
 // riff (riffNotes). The library and its model (about 2 MB) load the first
 // time Strum it is used, and nothing is sent anywhere.

@@ -1,4 +1,4 @@
-// First-time hold hint (2.16): the first time Play glides up to the arc, a
+// First-time hold hint: the first time Play glides up to the arc, a
 // glass circle grows, shrinks and bounces, then a note says to hold Play.
 import test from "node:test";
 import assert from "node:assert/strict";

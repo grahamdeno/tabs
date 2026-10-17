@@ -1,4 +1,4 @@
-// Today (2.8): the practice streak and one song for today under the library title.
+// Today: the practice streak and one song for today under the library title.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser } from "./harness.mjs";

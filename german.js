@@ -1,4 +1,4 @@
-// German practice (2.10): a song's own words, a little more German at each
+// German practice: a song's own words, a little more German at each
 // level. The song is translated once with your Anthropic key (only songs in
 // your library, only when you ask), kept with the song on this phone, and never
 // shared or backed up. core.js applies a level to the display (germanBlocks).
@@ -27,7 +27,7 @@ async function ask(lines, extra = "") {
   const j = parseJSON(await askClaude({ model: AI.vision, system: SYSTEM, content, maxTokens: 8000, stream: true }));
   return cleanGerman(j, lines);
 }
-// ---- Translating in the background (2.11) ----
+// ---- Translating in the background ----
 // Six lines a request, two requests at a time. Each batch lands in the song as
 // it arrives, so the first verse turns German while the rest is on its way, and
 // you can keep reading, playing or leave the song. Lines already done are kept
@@ -157,7 +157,7 @@ function speak(text) {
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "de-DE";
-    const v = bestGermanVoice(speechSynthesis.getVoices()); /* the most natural one installed (2.17.1) */
+    const v = bestGermanVoice(speechSynthesis.getVoices()); /* the most natural one installed */
     if (v) u.voice = v;
     u.rate = 0.9;
     speechSynthesis.cancel(); speechSynthesis.speak(u);

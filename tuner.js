@@ -21,7 +21,7 @@ export function closeTuner() {
   clearInterval(t.timer);
   cancelAnimationFrame(t.raf);
   t.stream?.getTracks().forEach(tr => tr.stop());
-  t.src?.disconnect?.(); /* the shared audio engine stays (2.16.3) */
+  t.src?.disconnect?.(); /* the shared audio engine stays */
   if (t.ok.filter(Boolean).length >= 3) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
   layer.innerHTML = "";
   document.body.classList.remove("tuning");
@@ -117,7 +117,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     inTuneSince: 0, quietSince: Date.now(), hits: [], strobe: { x: 0, v: 0, last: 0 }, onClose
   };
   document.body.classList.add("tuning");
-  /* iPhone (2.16.1): start the audio inside the tap that opened the tuner, so
+  /* iPhone: start the audio inside the tap that opened the tuner, so
      it isn't left paused after the microphone prompt; any later touch wakes it too. */
   t.ctx = sound();
   const back = /^#\/song\//.test(location.hash) ? "Back to the song" : /^#\/set\//.test(location.hash) ? "Back to the set" : "Done";
@@ -266,7 +266,7 @@ function listen(t, an, buf) {
   an.getFloatTimeDomainData(buf);
   const now = Date.now();
   /* A pluck's first instant is noisy and sharp: skip readings for a moment
-     after the level jumps (2.16.1), so the needle doesn't jolt. */
+     after the level jumps, so the needle doesn't jolt. */
   let e = 0; for (let i = 0; i < buf.length; i += 4) e += buf[i] * buf[i];
   const lvl = Math.sqrt(e / (buf.length / 4));
   if (lvl > 0.02 && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 120; t.hits = []; }
@@ -279,7 +279,7 @@ function listen(t, an, buf) {
     return;
   }
   t.quietSince = now;
-  /* Octave slips (2.16.1): fold toward the string being tuned, or any string. */
+  /* Octave slips: fold toward the string being tuned, or any string. */
   if (t.mode !== "chromatic") f = octaveFix(f, t.tuning, t.a4, t.guided ? t.cur : t.lock);
   /* Smooth over the last few readings so the display doesn't jitter. */
   t.hits = [...t.hits.slice(-4), f];
@@ -289,7 +289,7 @@ function listen(t, an, buf) {
   const notes = TUNINGS[t.tuning].notes;
   let idx = t.guided ? t.cur : t.lock >= 0 ? t.lock : nearestString(fs, t.tuning, t.a4).index;
   if (idx < 0) return;
-  /* Steadier (2.16.1): another string takes over only after three readings in a row. */
+  /* Steadier: another string takes over only after three readings in a row. */
   if (!t.guided && t.lock < 0 && t.cur >= 0 && idx !== t.cur && t.hits.length > 1) {
     t.pend = t.pend?.k === idx ? { k: idx, n: t.pend.n + 1 } : { k: idx, n: 1 };
     if (t.pend.n < 3) idx = t.cur;
@@ -330,7 +330,7 @@ function listen(t, an, buf) {
 
 function readChromatic(t, fs) {
   let n = nearestNote(fs, t.a4);
-  /* Steadier (2.16.1): near the edge between two notes, a new note shows only
+  /* Steadier: near the edge between two notes, a new note shows only
      after three readings in a row; meanwhile the old one reads its cents. */
   const key = n.name + n.octave;
   if (t.shown && key !== t.shown.key) {

@@ -898,7 +898,7 @@ test("arc sweep: fine near the start, reaches the ends exactly, no jumps", () =>
   assert.equal(C.arcMap({ ...o, y0: 4000, a: 230 }), 4000, "already at the end");
 });
 
-// ---- Get the song (2.7) ----
+// ---- Get the song ----
 const V = (albumName, duration, extra = {}) => ({ trackName: "Harbor Lights", artistName: "The Cape Fear", albumName, duration, instrumental: false, plainLyrics: "a line\nanother", syncedLyrics: "[00:01.00] a line", ...extra });
 test("pickVersions: the length the chart found picks the recording", () => {
   const list = [V("Live at the Pier", 260), V("Northern Coast", 221), V("Karaoke Hits", 221), V("Northern Coast", 221), V("Other Song", 221, { trackName: "Other" })];
@@ -932,7 +932,7 @@ test("beatsOf reads the top of a time signature", () => {
   assert.equal(C.beatsOf("3/4"), 3); assert.equal(C.beatsOf("6/8"), 6); assert.equal(C.beatsOf(""), 4); assert.equal(C.beatsOf("1/4"), 4);
 });
 
-// ---- Today: streak and nudge (2.8) ----
+// ---- Today: streak and nudge ----
 const DAYMS = 86400000;
 const at = (y, m, d, h = 9) => new Date(y, m - 1, d, h).getTime();
 const NOW = at(2026, 10, 16, 10); /* a Friday */
@@ -971,7 +971,7 @@ test("pickNudge: no weather falls back to learning, then a neglected favorite, t
   assert.equal(C.pickNudge({ songs: s, now: at(2026, 10, 17, 9), mood: "clear" }).songId, C.pickNudge({ songs: s, now: at(2026, 10, 17, 16), mood: "clear" }).songId, "steady through the day");
 });
 
-// ---- Strum it (2.9) ----
+// ---- Strum it ----
 const VOICE = { G: [43, 47, 50, 55, 59, 67], C: [48, 52, 55, 60, 64], D: [50, 57, 62, 66], Em: [40, 47, 52, 55, 59, 64], Am: [45, 52, 57, 60, 64], F: [41, 48, 53, 57, 60, 65], A7: [45, 52, 55, 61, 64], E: [40, 47, 52, 56, 59, 64] };
 const strum = (name, at, len = 0.7) => VOICE[name].map((m, i) => ({ midi: m, start: at + i * 0.012, dur: len, amp: 0.6 + (i % 2) * 0.2 }));
 test("nameChord: open chords from their notes", () => {
@@ -1002,7 +1002,7 @@ test("strumChords: a ringing chord's root-and-fifth tail isn't a power chord; re
   assert.deepEqual(C.strumChords([...tail(40, 0), ...tail(45, 1.3)]).map(c => c.chord), ["E5", "A5"]);
 });
 
-// ---- German practice (2.10) ----
+// ---- German practice ----
 const DE_SONG = "[Verse]\nG               D\nGrey boats lean on the harbor wall,\nEm         C\nWaiting on a tide to call\n\nBring the lights home";
 const DE = { v: 1, lines: [
   { de: "Graue Boote lehnen an der Hafenmauer", s: [{ w: 1, n: 1, l: 1, de: "Boote", g: "das" }, { w: 0, n: 1, l: 2, de: "Graue", g: "" }, { w: 6, n: 1, l: 2, de: "Hafenmauer", g: "die" }, { w: 2, n: 5, l: 3, de: "lehnen an der Hafenmauer", g: "" }] },
@@ -1069,7 +1069,7 @@ test("deSpans: Common is a small step up from Basic: two more words a line at mo
   assert.equal(C.deSpans(sw.filter(x => x.l !== 3), 3).length, 5, "Intermediate without a phrase: every word");
 });
 
-// ---------- Changes (2.14) ----------
+// ---------- Changes ----------
 test("songChanges: unordered pairs in the shapes played, repeats and tabs skipped", () => {
   const m = C.songChanges({ body: "[Verse]\nG       C\nla la la\n[Chorus]\nAm F Am F G G" });
   assert.deepEqual([...m].map(([k, x]) => `${k}:${x.n}`).sort(), ["Am|C:1", "Am|F:3", "C|G:1", "F|G:1"]);

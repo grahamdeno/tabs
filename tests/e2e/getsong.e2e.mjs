@@ -1,4 +1,4 @@
-// Get the song (2.7): one tap from a search miss gathers the AI chart, the
+// Get the song: one tap from a search miss gathers the AI chart, the
 // words (LRCLIB) and the tempo (GetSongBPM), and saves one playable song.
 // The song and its words are invented.
 import test from "node:test";

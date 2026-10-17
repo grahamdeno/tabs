@@ -1,4 +1,4 @@
-// Tabs Listen (split from app.js in 2.16.3): find a recording, keep its link,
+// Tabs Listen : find a recording, keep its link,
 // play a preview, and take the song's length from the recording.
 import { Tabs, appleTrackId, fitLength, lengthChoice, linkService, rankTracks } from "./core.js";
 import { $, ask, esc, icon, layer, onLeave, toast } from "./ui.js";

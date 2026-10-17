@@ -1,4 +1,4 @@
-// What can I play next? (2.12): My level or A step up. The songs are invented.
+// What can I play next?: My level or A step up. The songs are invented.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser } from "./harness.mjs";
@@ -36,7 +36,7 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
   assert.match(systems[2], /real step up/, "the choice is remembered");
 });
 
-// 2.12.1: replies with a stray brace before the JSON, one bad reply, or two.
+// replies with a stray brace before the JSON, one bad reply, or two.
 async function openWith(t, replies, extra = {}) {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, ...extra } });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));

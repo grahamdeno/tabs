@@ -13,7 +13,7 @@ import { READ_AT, aiError, aiKey, busy, calm, chordEdit, chordSVG, cleanSheet, d
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
 let taps = [], tapTimer = 0;   /* tap tempo in progress */
-let detailsOpen = false;       /* a new song's Key, Tuning, Tempo: folded into one line until opened (2.30.0) */
+let detailsOpen = false;       /* a new song's Key, Tuning, Tempo: folded into one line until opened */
 onLeave(() => {
   stopWriting();
   if (!chordEdit) return;
@@ -64,7 +64,7 @@ function songEditor(song, view = "sheet") {
   document.querySelector(".smap")?.remove();
   document.querySelector(".cebar")?.remove();
   const bar = document.createElement("div");
-  /* 2.30.0: a gold plate like the song bar, all in thumb reach: Cancel (new
+  /* a gold plate like the song bar, all in thumb reach: Cancel (new
      songs), Edit / Preview, and Save in copper. Tools ride just above it. */
   bar.className = "cebar plate";
   edView = song.format === "tab" ? "text" : view;
@@ -74,7 +74,7 @@ function songEditor(song, view = "sheet") {
     <div class="seg slide ${text ? "" : "right"}" id="ed-seg" role="tablist" aria-label="Edit view"><button class="${text ? "on" : ""}" role="tab" aria-selected="${text}" data-v="text">Edit</button><button class="${text ? "" : "on"}" role="tab" aria-selected="${!text}" data-v="sheet">Preview</button></div>
     <button class="ce-save" id="ce-done">${song.isNew ? "Save" : "Done"}</button></div>`;
   document.body.appendChild(bar);
-  /* 2.33.0: while typing, a slim strip above the pad keeps the song in view:
+  /* while typing, a slim strip above the pad keeps the song in view:
      title, artist and key. Tap it to edit them; Return comes back to the pad. */
   document.querySelector(".ed-strip")?.remove();
   const strip = document.createElement("button");
@@ -397,7 +397,7 @@ function paintText(song) {
   const sheet = $("sheet");
   textSnap ||= snapshot(song);
   const empty = song.isNew && !String(song.body || "").trim();
-  /* 2.30.0: a new, empty song offers ways to start, under the pad; once
+  /* a new, empty song offers ways to start, under the pad; once
      there's text, the tools sit just above the bar. */
   sheet.innerHTML = `
     <div class="ed-tx"><div class="ed-tx-in"><pre class="ed-hl" id="ed-hl" aria-hidden="true">${hlText(song.body || "")}</pre>
