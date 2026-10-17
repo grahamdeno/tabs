@@ -1544,3 +1544,7 @@ body.knob-drag .rc #play { transition: none; }
     repeating-linear-gradient(90deg, rgba(255,250,230,.07) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(90,60,20,.05) 3px 4px) border-box,
     linear-gradient(180deg, #e6cb92, #cfab6a 42%, #b08b4f) border-box;
   box-shadow: 0 0 0 1px #6d5326, inset 0 1px 0 rgba(255,220,190,.45), 0 10px 28px rgba(0,0,0,.4); }
+/* 2.29.2: the search bar and + read as one row: same height (60, like the
+   song bar), same corners, centred on one line. How search works is unchanged. */
+.dock { align-items: center; }
+.dock > .cmd { height: 60px; border-radius: 18px; }
