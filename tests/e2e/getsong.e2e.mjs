@@ -66,7 +66,7 @@ test("Get the song: no GetSongBPM key and no words still adds the chords", { ski
   await page.click("#fc-ai");
   await page.waitForSelector("#gs-add", { timeout: 8000 });
   assert.equal(calls.bpm.length, 0, "no key: GetSongBPM isn't asked");
-  assert.match(await page.innerText(".gs-pick"), /No words found/);
+  assert.match(await page.innerText(".gs-pick"), /No lyrics found/);
   assert.match(await page.innerText(".cs-meta"), /90 BPM/, "the chart's tempo");
   assert.match(await page.innerText("#gs-edit"), /Paste the words/);
   await page.click("#gs-add"); await page.waitForTimeout(400);

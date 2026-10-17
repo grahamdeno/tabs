@@ -160,7 +160,7 @@ async function bpmLookup(c, key) {
 export function getSong(q, preset = {}) {
   const title0 = (preset.title || q || "").trim(), artist0 = (preset.artist || "").trim();
   const key = bpmKey();
-  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, tempo: null, beats: 4, err: "", note: { words: "LRCLIB", tempo: "GetSongBPM", chart: "AI · searching" } };
+  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, tempo: null, beats: 4, err: "", note: { words: "Looking", tempo: "", chart: "Listening" } };
   let alive = true;
   const close = () => { alive = false; layer.innerHTML = ""; };
   const mount = () => {
@@ -171,7 +171,10 @@ export function getSong(q, preset = {}) {
   };
   const version = () => st.versions[st.vi] || null;
   const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
-  const ROW = { ok: `<span class="gs-st ok">${icon("check")}</span>`, busy: `<span class="gs-st"><span class="spin"></span></span>`, wait: `<span class="gs-st wait"></span>`, none: `<span class="gs-st none">–</span>` };
+  /* 2.34.0: a jewel lamp per step, like a channel strip: dark while waiting,
+     warming while working, lit when done. Said in a musician's words, not the
+     names of the services behind them. */
+  const ROW = { ok: `<i class="gs-lamp on"></i>`, busy: `<i class="gs-lamp warm"></i>`, wait: `<i class="gs-lamp"></i>`, none: `<i class="gs-lamp"></i>` };
   const add = (body, lrc = true) => {
     const c = st.chart, v = version(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
     const len = Math.round(v?.duration || c.duration || 0);
@@ -197,8 +200,8 @@ export function getSong(q, preset = {}) {
       const r = st.rows;
       const row = (k, label) => r[k] ? `<div class="gs-row">${ROW[r[k]]}<span class="${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
       body.innerHTML = `<div class="cs-head"><b>${esc(c?.title || title0)}</b><span>${esc(c?.artist || artist0)}</span></div>
-        <div class="gs-rows glass">${row("words", "Words")}${row("tempo", st.mt ? `Tempo ${Math.round(st.mt.tempo)}${st.mt.sig ? `, ${esc(st.mt.sig)}` : ""}` : "Tempo")}${row("chart", c ? `Chords and key${c.key ? ` · ${esc(c.key)}` : ""}` : "Chords and key")}${row("merge", "Chords over the words")}</div>
-        <p class="foot" style="margin-top:12px">Only the title and artist are sent. The AI chart takes about 20 seconds and uses a few web searches on your key, usually 5 to 15 cents.</p>`;
+        <div class="gs-rows glass">${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("chart", "Working out the chords")}${row("merge", "Lining the chords up with the lyrics")}</div>
+        <p class="foot" style="margin-top:12px">Only the song's name is sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key.</p>`;
       return;
     }
     if (st.view === "versions") {
@@ -213,12 +216,12 @@ export function getSong(q, preset = {}) {
     const tempoChip = t?.bpm > 0 ? `<span class="${t.agree ? "agree" : ""}">${t.bpm} BPM${t.agree ? ` ${icon("check")}` : ""}${!t.agree && t.measured && t.chart ? ` <small>· chart said ${Math.round(t.chart)}</small>` : ""}</span>` : "";
     body.innerHTML = `
       <div class="cs-head"><b>${esc(c.title)}</b><span>${esc(c.artist || "")}</span></div>
-      ${v ? `<button class="gs-pick" id="gs-pick">${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}${st.versions.length > 1 ? ` ${icon("chev")}` : ""}</button>` : `<p class="gs-pick none">No words found on LRCLIB</p>`}
+      ${v ? `<button class="gs-pick" id="gs-pick">${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}${st.versions.length > 1 ? ` ${icon("chev")}` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
       <pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>
       <p class="foot">${m ? "Check the chord spots by ear. Edit fixes any line." : "Paste the words, or add the chords alone."}</p>
       <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
-        ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Words from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>
+        ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Lyrics from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>
       <div class="actions" style="margin-top:12px"><button class="btn" id="gs-edit">${m ? "Edit" : "Paste the words"}</button><button class="btn primary" id="gs-add">Add to library</button></div>`;
     $("gs-pick")?.addEventListener("click", () => { if (st.versions.length > 1) { st.view = "versions"; paint(); } });
     $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
@@ -227,7 +230,7 @@ export function getSong(q, preset = {}) {
   mount();
   const run = async () => {
     const early = getJSON(`${LRC}/search?q=${encodeURIComponent(`${title0} ${artist0}`.trim())}`);
-    early.then(l => { if (st.rows.words === "busy" && !(l || []).length) st.note.words = "LRCLIB · looking again"; paint(); }, () => {});
+    early.then(l => { if (st.rows.words === "busy" && !(l || []).length) st.note.words = "Still looking"; paint(); }, () => {});
     try { st.chart = await findChart(title0, artist0); }
     catch (e) {
       if (!alive) return;
@@ -236,15 +239,15 @@ export function getSong(q, preset = {}) {
     }
     if (!alive) return;
     const c = st.chart;
-    st.rows.chart = "ok"; st.note.chart = "AI"; paint();
-    const words = lrcVersions(early, c).then(list => { st.versions = list; st.rows.words = list.length ? "ok" : "none"; st.note.words = list.length ? `LRCLIB${list[0].syncedLyrics ? " · timed" : ""}` : "LRCLIB · none found"; paint(); }, () => { st.rows.words = "none"; st.note.words = "LRCLIB · busy, try later"; paint(); });
+    st.rows.chart = "ok"; st.note.chart = c.key ? `Key ${c.key}` : "Done"; paint();
+    const words = lrcVersions(early, c).then(list => { st.versions = list; st.rows.words = list.length ? "ok" : "none"; st.note.words = list.length ? "Found" : "None found"; paint(); }, () => { st.rows.words = "none"; st.note.words = "Busy, try later"; paint(); });
     let measured = null;
-    const tempo = key ? (st.rows.tempo = "busy", paint(), bpmLookup(c, key).then(r => { measured = st.mt = r; st.rows.tempo = r ? "ok" : "none"; if (!r) st.note.tempo = "GetSongBPM · none found"; }, e => { st.rows.tempo = "none"; st.note.tempo = e.status === 401 ? "GetSongBPM · check the key in Settings" : "GetSongBPM · busy"; })) : Promise.resolve();
+    const tempo = key ? (st.rows.tempo = "busy", paint(), bpmLookup(c, key).then(r => { measured = st.mt = r; st.rows.tempo = r ? "ok" : "none"; st.note.tempo = r ? `${Math.round(r.tempo)} BPM${r.sig ? ` · ${r.sig}` : ""}` : "Not found"; }, e => { st.rows.tempo = "none"; st.note.tempo = e.status === 401 ? "Check the tempo key in Settings" : "Busy, try later"; })) : Promise.resolve();
     await Promise.all([words, tempo]);
     if (!alive) return;
     st.tempo = tempoPick(c.bpm, measured?.tempo || 0);
     if (measured?.sig) { st.sig = measured.sig; st.beats = beatsOf(measured.sig); }
-    st.rows.merge = st.versions.length ? "ok" : "none"; paint();
+    st.rows.merge = st.versions.length ? "ok" : "none"; st.note.merge = st.versions.length ? "Done" : "No lyrics to line up"; paint();
     await wait(450);
     if (!alive) return;
     st.view = "review"; paint();

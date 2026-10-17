@@ -1654,3 +1654,21 @@ body.writing .ed-strip { display: flex; position: fixed; z-index: 26; left: 8px;
 .ed-strip em { font-style: normal; font-weight: 600; color: var(--accent); flex: none; }
 .ed-strip .go { margin-left: auto; color: var(--bronze); flex: none; padding-left: 6px; }
 body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); height: calc(var(--vv-h, 100vh) - var(--safe-t) - var(--bar-h, 56px) - 72px); }
+
+/* 2.34.0: Get the song as a channel strip: bronze heading, a tolex card with
+   a gold edge, and a jewel lamp per step. */
+.panel.gs { border-color: rgba(184,147,90,.5); }
+.gs .ph h2 { font: 700 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
+.gs .gs-rows.glass { border: 1px solid rgba(184,147,90,.5); border-radius: 16px; -webkit-backdrop-filter: none; backdrop-filter: none;
+  background: var(--tolex), radial-gradient(circle at 30% 0, #202023, #121214); background-size: 120px 120px, auto;
+  box-shadow: inset 0 0 0 3px #0b0b0c, inset 0 0 0 4px rgba(184,147,90,.22); }
+:root[data-theme="light"] .gs .gs-rows.glass { background: var(--card); box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px rgba(184,147,90,.22); }
+.gs .gs-row { gap: 14px; }
+.gs .gs-src { color: var(--muted); }
+.gs .gs-row:has(.gs-lamp.on) .gs-src { color: #d9bd85; }
+:root[data-theme="light"] .gs .gs-row:has(.gs-lamp.on) .gs-src { color: #86663a; }
+.gs-lamp { width: 12px; height: 12px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); box-shadow: 0 0 0 2px rgba(0,0,0,.5); }
+.gs-lamp.on { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08); box-shadow: 0 0 0 2px rgba(0,0,0,.5), 0 0 10px 2px rgba(255,140,40,.6); }
+.gs-lamp.warm { background: radial-gradient(circle at 35% 30%, #ffd9a0 0 12%, #d9822f 40%, #8a3d10 80%); animation: gswarm 1.2s ease-in-out infinite alternate; }
+@keyframes gswarm { from { box-shadow: 0 0 0 2px rgba(0,0,0,.5); filter: brightness(.6); } to { box-shadow: 0 0 0 2px rgba(0,0,0,.5), 0 0 8px 2px rgba(255,140,40,.45); } }
+@media (prefers-reduced-motion: reduce) { .gs-lamp.warm { animation: none; } }
