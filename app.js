@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, streakOf, pickNudge, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
+import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast } from "./ui.js";
@@ -71,7 +71,7 @@ const keyOf = s => s.format === "tab" ? "TAB" : (s.key || guessKey(s.body || "")
 // floor) and goes once you've played today. Weather comes from Open-Meteo for
 // a city chosen in Settings, fetched once a day; no location access.
 const WX = "tabs.wx.v1";
-const NUDGE_ICON = { streak: "flame", rain: "rain", cold: "snow", clear: "sun", hot: "sun", learn: "note", idle: "heart" };
+const NUDGE_ICON = { change: "fretboard", streak: "flame", rain: "rain", cold: "snow", clear: "sun", hot: "sun", learn: "note", idle: "heart" };
 const todayKey = () => new Date().toDateString();
 function wxMood() {
   const p = data.settings.place;
@@ -108,7 +108,7 @@ function todayHTML(weekTotal, weekSongs) {
   const dots = `<span class="t-dots" aria-hidden="true">${st.week.map((on, i) => `<i class="${on ? "on" : i === 6 ? "now" : ""}"></i>`).join("")}</span>`;
   const stat = st.days >= 2 ? `<b>${st.days}-day streak</b>${plays ? ` · ${plays}` : ""}` : plays ? `This week: ${plays.replace(" this week", "")} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}` : "";
   return `<div class="today" id="today">
-    ${stat ? `<div class="weekly t-stat"${st.days >= 2 ? ` aria-label="${st.days}-day practice streak${st.today ? "" : ", not played yet today"}"` : ""}>${st.days >= 2 ? dots : ""}<span>${stat}</span></div>` : ""}
+    ${stat ? `<button class="weekly t-stat" id="t-stat" aria-label="${st.days >= 2 ? `${st.days}-day practice streak${st.today ? "" : ", not played yet today"}. ` : ""}Your changes this week">${st.days >= 2 ? dots : ""}<span>${stat}</span>${icon("chev", "chev")}</button>` : ""}
     ${n ? `<button class="nudge" id="nudge" data-song="${esc(n.songId)}">${icon(NUDGE_ICON[n.kind] || "note")}<span><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span>${icon("chev", "chev")}</button>` : ""}
   </div>`;
 }
@@ -118,6 +118,24 @@ function todayHTML(weekTotal, weekSongs) {
 const todayHTMLOrSpot = (...a) => todayHTML(...a) || `<div id="today" hidden></div>`;
 function bindToday() {
   $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
+  $("t-stat")?.addEventListener("click", showChanges);
+}
+// Changes (2.14): the chord changes you played this week, from songs played to
+// their end, and the ones your songs have that you play least.
+function showChanges() {
+  const { most, work } = changesOf(data.songs);
+  const max = Math.max(1, ...most.map(c => c.week));
+  const row = (c, w) => `<div class="chg${w ? " work" : ""}"><b>${esc(c.a)}<em>→</em>${esc(c.b)}</b><div class="bar"><i style="width:${Math.max(4, Math.round(c.week / max * 100))}%"></i></div><small>${c.week}</small></div>`;
+  const first = work[0];
+  layer.innerHTML = `<div class="scrim" id="chg-scrim"></div><div class="panel card" role="dialog" aria-label="Your changes this week">
+    <div class="pc-head">${icon("fretboard")}<span>Your changes this week</span></div>
+    ${most.length ? `<div class="chg-lab">Most played</div><div class="chg-list">${most.map(c => row(c)).join("")}</div>` : `<p class="foot" style="margin:6px 2px 10px">Play a song to its end and its changes show up here.</p>`}
+    ${work.length ? `<div class="chg-lab">To work on</div><div class="chg-list">${work.map(c => row(c, true)).join("")}</div>` : ""}
+    <p class="foot" style="margin:0 2px 12px">Counted when a song plays to its end, in the shapes you play. To work on: changes your songs have that you play least.</p>
+    <div class="actions"><button class="btn" id="chg-x">Close</button>${first ? `<button class="btn primary" id="chg-go">Play ${esc(first.a)} to ${esc(first.b)}</button>` : ""}</div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("chg-scrim").onclick = close; $("chg-x").onclick = close;
+  $("chg-go")?.addEventListener("click", () => { close(); go("#/song/" + encodeURIComponent(first.best.id)); });
 }
 
 function renderLibrary() {

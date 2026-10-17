@@ -1068,3 +1068,23 @@ test("deSpans: Common is a small step up from Basic: two more words a line at mo
   assert.deepEqual(C.deSpans(sw, 3).map(x => x.de), ["ganze Zeile"], "Intermediate: the phrase");
   assert.equal(C.deSpans(sw.filter(x => x.l !== 3), 3).length, 5, "Intermediate without a phrase: every word");
 });
+
+// ---------- Changes (2.14) ----------
+test("songChanges: unordered pairs in the shapes played, repeats and tabs skipped", () => {
+  const m = C.songChanges({ body: "[Verse]\nG       C\nla la la\n[Chorus]\nAm F Am F G G" });
+  assert.deepEqual([...m].map(([k, x]) => `${k}:${x.n}`).sort(), ["Am|C:1", "Am|F:3", "C|G:1", "F|G:1"]);
+  assert.equal(C.songChanges({ body: "G C", transpose: 2 }).has("A|D"), true, "transpose gives the shapes you play");
+  assert.equal(C.songChanges({ format: "tab", body: "G C" }).size, 0);
+});
+test("changesOf: most played this week, and changes your songs have that you play least", () => {
+  const songs = [
+    { id: "a", title: "A", body: "G C G C D G", playLog: played(1, 2, 3) },
+    { id: "b", title: "B", body: "Am F Am F Am F C" }
+  ];
+  const r = C.changesOf(songs, NOW);
+  assert.equal(r.most[0].key, "C|G"); assert.equal(r.most[0].week, 9);
+  assert.deepEqual(r.work.map(c => [c.a, c.b, c.best.id, c.best.n]), [["Am", "F", "b", 5]]);
+  const n = C.pickNudge({ songs, now: NOW });
+  assert.deepEqual(n, { kind: "change", text: "Work on Am to F. This one has it 5 times", songId: "b", title: "B" });
+  assert.equal(C.pickNudge({ songs: [songs[1]], now: NOW }), null, "no plays this week: no change nudge");
+});

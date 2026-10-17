@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts, mergeWords, pickVersions, tempoPick, beatsOf } from "./core.js";
+import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
@@ -370,8 +370,9 @@ export async function nextSongs() {
       // Songs already shown (last 60, kept on this phone) go along so the list
       // moves on instead of repeating, with a fresh number to vary the picks.
       const seen = nextSeen().filter(t => !skip.includes(t));
+      const work = changesOf(data.songs).work.map(c => `${c.a} to ${c.b}`);
       const ask = () => askClaude({ system: `${NEXT_SYSTEM}\n${NEXT_LEVEL[lv]}`, maxTokens: 4000,
-        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` });
+        content: `Chords I play: ${known.join(" ")}\nSongs I have: ${have}${skip.length ? `\nNot these either: ${skip.join("; ")}` : ""}${seen.length ? `\nAlready suggested: ${seen.join("; ")}` : ""}${work.length ? `\nChanges I'm working on: ${work.join(", ")}. Include them where they fit.` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}` });
       // An unreadable reply is usually a one-off, so ask once more before saying so.
       let j;
       try { j = parseJSON(await ask()); } catch (e) { if (e.status !== -1 || lv !== level()) throw e; j = parseJSON(await ask()); }

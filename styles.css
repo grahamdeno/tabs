@@ -1364,3 +1364,18 @@ body.ring.nn-demo .app.viewer .dock { display: flex !important; }
 details.s-why { margin-top: 4px; }
 details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px; }
 #s-keymsg:empty { display: none; }
+
+/* Changes (2.14): the Today line opens the week's chord changes. */
+.today .t-stat { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; min-height: 32px; width: 100%; cursor: pointer; }
+.today .t-stat .chev { width: 14px; height: 14px; color: var(--muted); margin-left: auto; flex: none; }
+.chg-list { display: flex; flex-direction: column; margin: 2px 0 8px; }
+.chg { display: grid; grid-template-columns: 96px 1fr 30px; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--hair); }
+.chg:last-child { border-bottom: 0; }
+.chg b { font: 600 15px var(--sans); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chg b em { font-style: normal; color: var(--muted); margin: 0 4px; }
+.chg .bar { height: 6px; border-radius: 3px; background: var(--card-2); overflow: hidden; }
+.chg .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.chg small { font-size: 12.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.chg.work b { color: var(--accent); }
+.chg.work .bar i { background: var(--accent-line); }
+.chg-lab { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 2px 2px; }

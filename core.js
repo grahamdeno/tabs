@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.13.1";
+export const VERSION = "2.14.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -613,7 +613,8 @@ export function weatherMood(code, tmax) {
 }
 // One suggestion for today, or null. Nothing on a gig day (Up next has it) or
 // once you've played today. In the evening a streak worth keeping comes first;
-// then the weather; then a learning song or a favorite left too long. Picks are
+// then the weather; then a change you barely play (2.14); then a learning
+// song or a favorite left too long. Picks are
 // steady through the day (the same song each time you look).
 export function pickNudge({ songs = [], now = Date.now(), mood = "", gigToday = false } = {}) {
   if (gigToday || !songs.length) return null;
@@ -647,6 +648,13 @@ export function pickNudge({ songs = [], now = Date.now(), mood = "", gigToday = 
   }
   if (mood === "hot") {
     const r = out("hot", "Too hot to go out. Good day to learn something new", pick(songs.filter(s => s.status === "learning")));
+    if (r) return r;
+  }
+  // A change your songs have that you've barely played this week (2.14).
+  const ch = changesOf(songs, now);
+  const w = ch.played && ch.work.find(c => c.best.n >= 2);
+  if (w) {
+    const r = out("change", `Work on ${w.a} to ${w.b}. This one has it ${w.best.n} times`, songs.find(s => s.id === w.best.id));
     if (r) return r;
   }
   const learn = pick(songs.filter(s => s.status === "learning" && idle(s, 3)));
@@ -1563,6 +1571,61 @@ export function buildChart(ai) {
   }
   return lines.join("\n").trim();
 }
+// ---------- Changes (2.14): the moves between chords you play ----------
+// A song's chord changes in the shapes your hands make (its transpose
+// applied), as unordered pairs: G to C and C to G are one change. Counted from
+// plays already logged, so nothing new is stored. A pair is "a|b", sorted.
+const changeCache = new Map();
+export function songChanges(song) {
+  if (!song || song.format === "tab") return new Map();
+  const steps = song.transpose || 0, key = steps + "\n" + (song.body || "");
+  if (changeCache.has(key)) return changeCache.get(key);
+  const seq = [];
+  for (const l of chordModel(song.body || "")) {
+    const cs = l.kind === "lyric" ? l.chords.map(c => c.chord) : l.kind === "chords" ? l.text.split(/\s+/).map(t => t.replace(/^\(|\)$/g, "")) : [];
+    for (const c of cs) if (c && isChord(c)) seq.push(transposeChord(c, steps, /^[A-G]b/.test(c)));
+  }
+  const out = new Map();
+  for (let i = 1; i < seq.length; i++) {
+    const a = seq[i - 1], b = seq[i];
+    if (a === b) continue;
+    const k = a < b ? a + "|" + b : b + "|" + a, x = out.get(k) || { n: 0, dir: {} };
+    x.n++; x.dir[a + ">" + b] = (x.dir[a + ">" + b] || 0) + 1;
+    out.set(k, x);
+  }
+  if (changeCache.size > 500) changeCache.clear();
+  changeCache.set(key, out);
+  return out;
+}
+// Every change in the library: how often you played it in the last 7 days
+// (plays of a song to its end, times how often the change is in it), and how
+// often it appears across your songs. "most": the ones you play most.
+// "work": changes your songs have (twice or more) that you play least, each
+// with the song that has it most.
+export function changesOf(songs, now = Date.now()) {
+  const all = new Map();
+  for (const s of songs) {
+    const w = playsThisWeek(s, now);
+    for (const [k, x] of songChanges(s)) {
+      const c = all.get(k) || { key: k, week: 0, inSongs: 0, dir: {}, songs: [] };
+      c.week += w * x.n; c.inSongs += x.n; c.songs.push({ id: s.id, title: s.title, n: x.n });
+      for (const [d, n] of Object.entries(x.dir)) c.dir[d] = (c.dir[d] || 0) + n;
+      all.set(k, c);
+    }
+  }
+  const list = [...all.values()].map(c => {
+    const [d] = Object.entries(c.dir).sort((x, y) => y[1] - x[1])[0]; // a tie: the way it first comes up
+    const [a, b] = d.split(">");
+    c.songs.sort((x, y) => y.n - x.n || (x.title < y.title ? -1 : 1));
+    return { key: c.key, a, b, week: c.week, inSongs: c.inSongs, best: c.songs[0] };
+  });
+  const most = list.filter(c => c.week > 0).sort((x, y) => y.week - x.week || y.inSongs - x.inSongs).slice(0, 4);
+  const top = most[0]?.week || 0;
+  const work = list.filter(c => c.inSongs >= 2 && !most.includes(c) && c.week <= Math.max(2, top / 10))
+    .sort((x, y) => x.week - y.week || y.inSongs - x.inSongs || (x.key < y.key ? -1 : 1)).slice(0, 2);
+  return { most, work, played: list.some(c => c.week > 0) };
+}
+
 // Known chords across a library, most used first.
 export function chordCounts(songs) {
   const n = new Map();
