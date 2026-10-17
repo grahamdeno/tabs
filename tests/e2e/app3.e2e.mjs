@@ -277,3 +277,11 @@ test("2.19.1 Library: the Recent cards show (the ring's styles had been hiding t
   const shown = await page.evaluate(() => [...document.querySelectorAll(".recent .rc")].map(el => el.offsetParent !== null && el.getBoundingClientRect().height > 20));
   assert.deepEqual(shown, [true, true], "two Recent cards, visible");
 });
+
+test("2.30.1: editing or adding a song hides Play and the arc", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
+  await page.click("#add"); await page.waitForTimeout(700);
+  await page.mouse.click(200, 300); await page.waitForTimeout(700);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("rc")).display), "none", "no Play or arc on the new song page");
+  assert.equal(await page.locator("#play").isVisible(), false);
+});

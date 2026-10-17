@@ -1598,3 +1598,4 @@ body.knob-drag .rc #play { transition: none; }
 :root[data-theme="light"] .ed-tx textarea::placeholder { color: #8a7d66; -webkit-text-fill-color: #8a7d66; }
 .sheet:has(.ed-tx) { padding-bottom: 150px; }
 .ed-tx:has(~ .ed-start:not([hidden])) .ed-hl { min-height: 200px; }
+body.cedit.ring #rc { display: none; } /* 2.30.1: editing hides Play and the arc again (the 2.19.1 #rc rule had outranked this) */
