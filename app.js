@@ -177,7 +177,7 @@ function renderLibrary() {
         <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search, or paste a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or paste a song">
         <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
       </label>
-      <button class="add" id="add" aria-label="Add song">${icon("plus")}</button>
+      <button class="add" id="add" aria-label="Add song">${icon("note", "add-note")}<i class="add-bdg" aria-hidden="true">+</i></button>
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();

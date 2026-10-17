@@ -1632,3 +1632,10 @@ body.cedit.ring #rc { display: none; } /* 2.30.1: editing hides Play and the arc
 .nx #nx-level button.on { color: #ffc27a; }
 .nx-lamp { width: 8px; height: 8px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); }
 .nx #nx-level button.on .nx-lamp { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08); box-shadow: 0 0 7px 1px rgba(255,140,40,.7); }
+/* 2.32.0: the add button is a music note with a + badge, so anyone can tell
+   it adds a song; copper in its gold plate like Play. */
+.add { position: relative; }
+.add .add-note { width: 26px; height: 26px; stroke-width: 1.9; }
+.add .add-note circle { fill: currentColor; }
+.add .add-bdg { position: absolute; right: 2px; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #2a1d0c; color: #ffc27a;
+  font: 800 13px/15px var(--sans); font-style: normal; text-align: center; box-shadow: 0 0 0 1.5px #e6cb92; pointer-events: none; }
