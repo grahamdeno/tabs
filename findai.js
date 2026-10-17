@@ -2,7 +2,7 @@
 // "What can I play next?". Loaded the first time either is opened.
 import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf } from "./core.js";
 import { oneHandMQ } from "./ui.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, BPM_STORE, bpmKey } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
 async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
@@ -119,8 +119,6 @@ export function chartSheet(q, preset = {}) {
 // time signature, all at once. Tabs puts the chords over the words here on the
 // phone (mergeWords) and shows one review before saving.
 const LRC = "https://lrclib.net/api";
-export const BPM_STORE = "tabs.bpmkey.v1";
-export function bpmKey() { try { return localStorage.getItem(BPM_STORE) || ""; } catch { return ""; } }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // GET JSON, waiting and trying again when the service is busy (429) or the
 // network drops. 404 means "none" (null).

@@ -4,8 +4,7 @@ import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { askMotion } from "./ring.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
-import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setData } from "./app.js";
-const bpmKey = () => { try { return localStorage.getItem("tabs.bpmkey.v1") || ""; } catch { return ""; } };
+import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
 // ---------- Settings ----------
 const kb = n => n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
@@ -115,7 +114,7 @@ function renderSettings() {
         <span class="tile">${icon("flame")}</span><span class="name">Streak and daily nudge</span>
         <button class="toggle ${s.nudge !== false ? "on" : ""}" id="s-nudge" role="switch" aria-checked="${s.nudge !== false}" aria-label="Streak and daily nudge in the library"></button>
       </div>
-      ${s.nudge !== false ? `<label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("sun")}</span>
+      ${s.nudge !== false ? `<label class="fld fld-k"><span class="tile ftile">${icon("sun")}</span>
         <input id="s-city" type="text" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="City for weather (optional)" value="${esc(s.place?.name || "")}" aria-label="City for weather"></label>
       <div class="key-row">
         <span class="ai-status"><i class="dot ${s.place ? "on" : ""}"></i>${s.place ? "Weather on" : "No weather"}</span>
@@ -129,7 +128,7 @@ function renderSettings() {
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>
     <div class="set-group glass">
-      <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("wand")}</span>
+      <label class="fld fld-k"><span class="tile ftile">${icon("wand")}</span>
         <input id="s-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Anthropic API key (sk-ant-...)" value="${esc(aiKey())}" aria-label="Anthropic API key"></label>
       <div class="key-row">
         <span class="ai-status"><i class="dot ${aiKey() ? "on" : ""}"></i>${aiKey() ? "On" : "Off"}</span>
@@ -142,7 +141,7 @@ function renderSettings() {
     <details class="foot s-why"><summary>What it's used for</summary>Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Tabs, with a low monthly spend limit.</details>
     <div class="label">GetSongBPM · Tempo data</div>
     <div class="set-group glass">
-      <label class="fld" style="min-height:52px"><span class="tile" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--rim);color:var(--fg-2)">${icon("metro")}</span>
+      <label class="fld fld-k"><span class="tile ftile">${icon("metro")}</span>
         <input id="s-bpmkey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="GetSongBPM API key" value="${esc(bpmKey())}" aria-label="GetSongBPM API key"></label>
       <div class="key-row">
         <span class="ai-status"><i class="dot ${bpmKey() ? "on" : ""}"></i>${bpmKey() ? "On" : "Off"}</span>
@@ -245,7 +244,7 @@ function renderSettings() {
     try { localStorage.setItem(AI.store, k); } catch {}
     renderSettings(); toast("Key saved");
   };
-  const BPM = "tabs.bpmkey.v1";
+  const BPM = BPM_STORE;
   $("s-bpmsave").onclick = () => {
     const k = $("s-bpmkey").value.trim();
     if (!k) { toast("Paste a key first"); return; }

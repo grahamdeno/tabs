@@ -272,8 +272,6 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .bk-b { display: flex; gap: 8px; margin-left: auto; }
 .set .val.muted { color: var(--muted); }
 .ib.aa { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg-2); }
-.szpop { position: fixed; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 12px; }
-.szpop .v { font: 600 13px var(--mono); min-width: 46px; text-align: center; color: var(--fg); }
 .countin { position: fixed; left: 50%; transform: translateX(-50%); z-index: 15; width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center;
   font: 300 64px var(--serif); color: var(--accent); background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); pointer-events: none; }
 .countin.pulse { animation: beat .35s ease-out; }
@@ -302,8 +300,6 @@ body.nn-on .nn { display: flex; animation: nnin .2s ease-out; }
 .nu-t .lab { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent); }
 .nu-t b { font-size: 16px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Spark tone */
-.tonebtn { gap: 5px; }
-.tonebtn svg { width: 14px; height: 14px; }
 .panel.tone { max-height: calc(100dvh - 40px); overflow-y: auto; }
 .ampname { font-size: 15px; font-weight: 500; margin: 0 2px 10px; }
 .knobs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
@@ -727,7 +723,6 @@ body.stage.playing { overscroll-behavior: none; }
 .ls-row { gap: 12px; }
 .ls-row img, .ls-art { width: 44px; height: 44px; border-radius: 8px; flex: none; object-fit: cover; background: var(--card); display: grid; place-items: center; color: var(--muted); }
 .ls-more { display: block; margin: 8px auto 4px; font-size: 14px; }
-.ls-actions { margin-top: 14px; }
 .ib .dotmark { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .stat.listen svg, .stat.tunechip svg { width: 13px; height: 13px; color: var(--accent); }
 
@@ -1405,3 +1400,8 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
 }
 body.ring .rc #play.hint-under { z-index: 23; }
 @media (prefers-reduced-motion: reduce) { .ring-hint { display: none; } }
+
+/* Shared bits that were inline styles (2.16.3 tidy-up). */
+.fld.fld-k { min-height: 52px; }
+.tile.ftile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--card-2); border: 1px solid var(--rim); color: var(--fg-2); }
+.foot.pn { margin: 0 2px 12px; }

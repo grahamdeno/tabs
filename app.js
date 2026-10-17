@@ -131,7 +131,7 @@ function showChanges() {
     <div class="pc-head">${icon("fretboard")}<span>Your changes this week</span></div>
     ${most.length ? `<div class="chg-lab">Most played</div><div class="chg-list">${most.map(c => row(c)).join("")}</div>` : `<p class="foot" style="margin:6px 2px 10px">Play a song to its end and its changes show up here.</p>`}
     ${work.length ? `<div class="chg-lab">To work on</div><div class="chg-list">${work.map(c => row(c, true)).join("")}</div>` : ""}
-    <p class="foot" style="margin:0 2px 12px">Counted when a song plays to its end, in the shapes you play. To work on: changes your songs have that you play least.</p>
+    <p class="foot pn">Counted when a song plays to its end, in the shapes you play. To work on: changes your songs have that you play least.</p>
     <div class="actions"><button class="btn" id="chg-x">Close</button>${first ? `<button class="btn primary" id="chg-go">Play ${esc(first.a)} to ${esc(first.b)}</button>` : ""}</div></div>`;
   const close = () => { layer.innerHTML = ""; };
   $("chg-scrim").onclick = close; $("chg-x").onclick = close;
@@ -435,6 +435,9 @@ function bindRows(list) {
 // Without a key the app works as usual and the AI options don't appear.
 const AI = { store: "tabs.apikey.v1", fast: "claude-haiku-5-5", vision: "claude-sonnet-5-5" };
 function aiKey() { try { return localStorage.getItem(AI.store) || ""; } catch { return ""; } }
+/* The GetSongBPM key, stored the same way (read by Get the song and Settings). */
+const BPM_STORE = "tabs.bpmkey.v1";
+function bpmKey() { try { return localStorage.getItem(BPM_STORE) || ""; } catch { return ""; } }
 
 // stream: the reply arrives as it's written. A long reply (German practice)
 // otherwise keeps the connection silent for a minute or more, and iPhone gives
@@ -1252,7 +1255,7 @@ function duetSheet(song) {
     <p class="duet-t">Start both phones at the same moment</p>
     <div class="seg duet-seg" id="du-mins" role="group" aria-label="Start in">${DUET_MINS.map(m => `<button data-min="${m}" class="${m === duetMins ? "on" : ""}" aria-pressed="${m === duetMins}">In ${m} min</button>`).join("")}</div>
     <div class="duet-when"><big id="du-when">${clockTime(startAt(duetMins))}</big><span>${song.bpm || 90} BPM · one bar count-in · ${mmss(songLength(song))}</span></div>
-    <p class="foot" style="margin:0 2px 12px">Your friend gets the song in the link. At the start time both phones count in and scroll together. Keep Tabs open on this song.</p>
+    <p class="foot pn">Your friend gets the song in the link. At the start time both phones count in and scroll together. Keep Tabs open on this song.</p>
     <div class="actions"><button class="btn" id="du-no">Not now</button><button class="btn primary" id="du-go">${icon("share")} Share link</button></div></div>`;
   const tick = setInterval(draw, 1000);
   const close = () => { clearInterval(tick); layer.innerHTML = ""; };
@@ -1281,7 +1284,7 @@ function duetJoin(shared, d) {
     <div class="pc-head">${icon("pick")}<span>Play together</span></div>
     <p class="duet-t">${esc(shared.title)}</p><p class="duet-a">${esc(shared.artist || "Unknown artist")} · ${d.bpm} BPM</p>
     <div class="duet-when"><big id="dj-left">${mmssLeft(d.at - Date.now())}</big><span>until the count-in at ${clockTime(d.at)}</span></div>
-    <p class="foot" style="margin:0 2px 12px">${same ? "You have this song already." : "The song is added to your library."} Keep this screen open; it starts on its own.</p>
+    <p class="foot pn">${same ? "You have this song already." : "The song is added to your library."} Keep this screen open; it starts on its own.</p>
     <div class="actions"><button class="btn" id="dj-no">Not now</button><button class="btn primary" id="dj-yes">Join</button></div></div>`;
   const tick = setInterval(() => {
     if (!$("dj-left")) return clearInterval(tick);
@@ -1351,8 +1354,8 @@ async function renderImport(code) {
       <div class="pc-head">${icon("share")}<span>Shared with you</span></div>
       <p class="imp-t">Add ${name} to your library?</p>
       ${got.set ? `<div class="list glass imp-list">${songs.map(x => `<div class="row"><div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist || "Unknown artist")}${findSame(data, x) ? " · already in your library" : ""}</div></div></div>`).join("")}</div>` : ""}
-      ${got.song && have.length ? `<p class="foot" style="margin:0 2px 12px">You already have a song with this name. Adding keeps both.</p>` : ""}
-      ${inBrowser ? `<p class="foot" style="margin:0 2px 12px">Use Tabs from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
+      ${got.song && have.length ? `<p class="foot pn">You already have a song with this name. Adding keeps both.</p>` : ""}
+      ${inBrowser ? `<p class="foot pn">Use Tabs from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
       <div class="actions"><button class="btn" id="im-no">Not now</button><button class="btn primary" id="im-yes">${got.set ? "Add set" : "Add song"}</button></div>
     </div>`;
   const close = () => { layer.innerHTML = ""; };
@@ -2547,4 +2550,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
