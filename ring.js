@@ -235,18 +235,55 @@ let ringEl = null;
 function bindHold() {
   const p = document.getElementById("play");
   if (!p) return;
-  let timer = 0, startX = 0, startY = 0, opened = false;
+  let timer = 0, startX = 0, startY = 0, opened = false, pressing = false, sliding = false, dragged = false;
+  let from = 0, y0 = 0, ty = 0, frame = 0;
+  const where = st.rc.querySelector(".rc-where");
   const down = e => {
     if (!document.body.classList.contains("ring")) return;
-    opened = false; startX = e.clientX; startY = e.clientY;
+    opened = false; dragged = sliding = false; pressing = true; startX = e.clientX; startY = e.clientY;
     clearTimeout(timer);
     timer = setTimeout(() => { opened = true; openRing(p, true); }, st.o.playing() ? HOLD_PLAYING_MS : HOLD_MS);
   };
+  /* 2.29.0: lifted, Play is the handle for the track, like a spring-loaded
+     fader. Slide it along the arc and the song moves exactly as a sweep of
+     the track does (fine at first, then covering ground); Play rides under
+     the thumb and glides back to its spot when you let go. */
+  const knobAt = a => {
+    const { r } = spots();
+    p.style.right = (-r * Math.cos(a * Math.PI / 180) - 24).toFixed(1) + "px";
+    p.style.bottom = (-r * Math.sin(a * Math.PI / 180) - 24).toFixed(1) + "px";
+  };
+  const slide = (x, y) => {
+    const { a0, a1, span } = arcRange(), a = Math.min(a1, Math.max(a0, angleOf(x, y)));
+    knobAt(a);
+    ty = arcMap({ a, from, a0, a1, y0, max: document.documentElement.scrollHeight - innerHeight, fine: innerHeight / span, whole: st.o.settings.arcSweep !== "screen" });
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (Math.round(ty) !== Math.round(scrollY)) window.scrollTo(0, ty); if (where) where.textContent = st.o.where?.() || ""; });
+  };
   const move = e => {
-    if (!ringEl) { if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) clearTimeout(timer); return; }
+    if (!ringEl) {
+      if (!pressing) return;
+      if (!sliding && Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+        clearTimeout(timer);
+        if (!document.body.classList.contains("ring-up")) { pressing = false; return; }
+        sliding = dragged = true;
+        try { p.setPointerCapture(e.pointerId); } catch {}
+        from = angleOf(startX, startY); y0 = scrollY;
+        document.body.classList.add("ring-sweep", "knob-drag");
+        st.o.grab?.();
+      }
+      if (sliding) { slide(e.clientX, e.clientY); wake(); }
+      return;
+    }
     if (ringEl.dataset.live === "1") pick(e.clientX, e.clientY);
   };
   const up = () => {
+    pressing = false;
+    if (sliding) {
+      sliding = false;
+      document.body.classList.remove("ring-sweep", "knob-drag");
+      p.style.right = p.style.bottom = "";   /* glides back to its spot */
+      st.o.letGo?.();
+    }
     clearTimeout(timer);
     if (!ringEl || ringEl.dataset.live !== "1") return;
     ringEl.dataset.live = "0";
@@ -255,8 +292,9 @@ function bindHold() {
     /* Let go without choosing: the ring stays open to tap. */
   };
   /* After a hold, the click that follows isn't a play/pause. */
-  const click = e => { if (opened) { e.stopImmediatePropagation(); e.preventDefault(); opened = false; } };
+  const click = e => { if (opened || dragged) { e.stopImmediatePropagation(); e.preventDefault(); opened = dragged = false; } };
   p.addEventListener("pointerdown", down);
+  p.style.touchAction = "none";
   p.addEventListener("click", click, true);
   p.addEventListener("contextmenu", e => { if (document.body.classList.contains("ring")) e.preventDefault(); });
   addEventListener("pointermove", move);

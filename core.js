@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.28.1";
+export const VERSION = "2.29.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
