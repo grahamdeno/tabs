@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.14.0";
+export const VERSION = "2.15.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1154,7 +1154,10 @@ export async function unpackShare(code) {
     else if (code[0] !== "j") return null;
     const p = JSON.parse(new TextDecoder().decode(bytes));
     const ok = s => s && typeof s.title === "string" && typeof s.body === "string";
-    if (p.song && ok(p.song)) return { song: shareable(p.song) };
+    // Play together (2.15): a start time and tempo ride along with the song.
+    const duet = p.duet && Number.isFinite(p.duet.at) && p.duet.at > 1.6e12 && p.duet.at < 4e12
+      ? { at: Math.round(p.duet.at), bpm: Math.min(300, Math.max(30, +p.duet.bpm || 90)) } : null;
+    if (p.song && ok(p.song)) return duet ? { song: shareable(p.song), duet } : { song: shareable(p.song) };
     if (p.set && Array.isArray(p.set.songs) && p.set.songs.every(ok))
       return { set: { name: String(p.set.name || "Shared set"), songs: p.set.songs.map(shareable) } };
   } catch {}
