@@ -1425,3 +1425,17 @@ body.ring-open .rc #play { box-shadow: none; }
 :root[data-tolex="on"] body { background-image: var(--tolex), radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%); background-size: 220px 220px, auto; background-repeat: repeat, no-repeat; }
 /* Light theme: a cream covering, the grain washed back so faded lines stay readable. */
 :root[data-tolex="on"][data-theme="light"] body { background-image: linear-gradient(rgba(243,240,235,.6), rgba(243,240,235,.6)), var(--tolex), radial-gradient(120% 50% at 50% -10%, var(--bg-glow), transparent 60%); background-size: auto, 220px 220px, auto; background-repeat: no-repeat, repeat, no-repeat; }
+
+/* 2.21.0: clearer glass on the bars, closer to Liquid Glass: mostly see-through,
+   a light blur that lifts the colour behind, a bright rim along the top and a
+   faint one along the bottom. The bronze piping stays. The fade behind the
+   library's bar is lighter, so songs visibly slide under it. */
+:root { --glass-tint: rgba(28,28,31,.38); --glass-sheen: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.03) 40%, rgba(255,255,255,0) 62%, rgba(255,255,255,.06)); --glass-rim: rgba(255,255,255,.3); }
+:root[data-theme="light"] { --glass-tint: rgba(255,255,255,.42); --glass-sheen: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.15) 45%, rgba(255,255,255,0) 65%, rgba(255,255,255,.3)); --glass-rim: rgba(255,255,255,.9); }
+.cmd, body.ring .rc-isl {
+  background: var(--glass-sheen), var(--glass-tint);
+  -webkit-backdrop-filter: blur(12px) saturate(190%) brightness(1.06); backdrop-filter: blur(12px) saturate(190%) brightness(1.06);
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 rgba(255,255,255,.07), 0 10px 28px rgba(0,0,0,.35);
+}
+.add { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent); }
+.dock-fade { height: calc(76px + var(--safe-b)); background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg) 80%, transparent) 85%); }
