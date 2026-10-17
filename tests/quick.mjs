@@ -25,7 +25,7 @@ const COVERS = {
   "coach.js": ["tips", "ringhint"],
   "german.js": ["german"],
   "sets.js": ["app", "regress"],
-  "editor.js": ["app", "regress"],
+  "editor.js": ["app", "regress", "strum"],
   "sketch.js": ["strum"], "strum.js": ["strum"],
   "store.js": ["app"],
   "styles.css": ["regress", "a11y"],

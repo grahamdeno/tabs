@@ -13,6 +13,7 @@ import { READ_AT, aiError, aiKey, busy, calm, chordEdit, chordSVG, cleanSheet, d
 let edView = "sheet";          /* "sheet" or "text" */
 let textSnap = null, textTimer = 0;
 let taps = [], tapTimer = 0;   /* tap tempo in progress */
+let detailsOpen = false;       /* a new song's Key, Tuning, Tempo: folded into one line until opened (2.30.0) */
 onLeave(() => {
   stopWriting();
   if (!chordEdit) return;
@@ -61,11 +62,15 @@ function songEditor(song, view = "sheet") {
   document.querySelector(".smap")?.remove();
   document.querySelector(".cebar")?.remove();
   const bar = document.createElement("div");
-  bar.className = "cebar glass";
+  /* 2.30.0: a gold plate like the song bar, all in thumb reach: Cancel (new
+     songs), Edit / Preview, and Save in copper. Tools ride just above it. */
+  bar.className = "cebar plate";
   edView = song.format === "tab" ? "text" : view;
   const text = edView === "text";
-  bar.innerHTML = `<div class="seg slide ${text ? "right" : ""}" id="ed-seg" role="tablist" aria-label="Edit view"><button class="${text ? "" : "on"}" role="tab" aria-selected="${!text}" data-v="sheet">Sheet</button><button class="${text ? "on" : ""}" role="tab" aria-selected="${text}" data-v="text">Text</button></div>
-    <button class="btn sm primary" id="ce-done">${song.isNew ? "Save" : "Done"}</button>`;
+  bar.innerHTML = `<div class="ed-toolrow" id="ed-toolrow"></div><div class="ce-plate">
+    ${song.isNew ? `<button class="ce-rec" id="ce-cancel">Cancel</button>` : ""}
+    <div class="seg slide ${text ? "" : "right"}" id="ed-seg" role="tablist" aria-label="Edit view"><button class="${text ? "on" : ""}" role="tab" aria-selected="${text}" data-v="text">Edit</button><button class="${text ? "" : "on"}" role="tab" aria-selected="${!text}" data-v="sheet">Preview</button></div>
+    <button class="ce-save" id="ce-done">${song.isNew ? "Save" : "Done"}</button></div>`;
   document.body.appendChild(bar);
   /* Tapping the bar while typing keeps the keyboard up, so taps land where aimed. */
   bar.addEventListener("pointerdown", e => { if (writing && e.target.closest("button")) e.preventDefault(); });
@@ -81,10 +86,10 @@ function songEditor(song, view = "sheet") {
   };
   bar.querySelectorAll("[data-v]").forEach(b => b.onclick = () => switchView(song, b.dataset.v));
   if (song.isNew) {
-    /* Cancel where Back usually is; nothing else up top while adding. */
+    /* Up top just says what this is; Cancel is in the bar, in thumb reach. */
     const head = app.querySelector(".head");
-    if (head) {
-      head.innerHTML = `<button class="btn sm glass" id="ce-cancel">Cancel</button>`;
+    if (head) head.innerHTML = `<div class="ed-new">New song</div>`;
+    {
       $("ce-cancel").onclick = () => {
         flushText(song);
         const typed = String(song.body || "").trim() || $("ed-title")?.value.trim() || song.artist;
@@ -138,7 +143,8 @@ function paintDetails(song) {
   d.id = "ed-details";
   d.innerHTML = `
     <input class="ed-artist" id="ed-artist" value="${esc(song.artist || "")}" placeholder="Artist" aria-label="Artist" autocomplete="off">
-    <div class="ed-chips">
+    ${song.isNew ? `<button class="ed-sum" id="ed-sum" aria-expanded="${detailsOpen}">${isTab ? "<b>Tab</b>" : `Key <b>${esc(song.key || guess || "Auto")}</b>${!song.key && guess ? '<i class="found">Found</i>' : ""}`} · <b>${esc(TUNINGS[tun].name)}</b> · <b>${song.bpm || 90}</b> BPM<span class="more">${detailsOpen ? "Done" : "Details"} ›</span></button>` : ""}
+    <div class="ed-chips" ${song.isNew && !detailsOpen ? "hidden" : ""}>
       ${showFormat ? `<label class="ed-chip"><span>Format</span><b>${isTab ? "Tab" : "Chords"}</b>
         <select id="ed-format" aria-label="Format"><option value="chords" ${isTab ? "" : "selected"}>Chords</option><option value="tab" ${isTab ? "selected" : ""}>Tab</option></select></label>` : ""}
       ${isTab ? "" : `<label class="ed-chip"><span>Key</span><b>${esc(song.key || (guess ? guess + " (auto)" : "Auto"))}</b>
@@ -149,6 +155,7 @@ function paintDetails(song) {
       <button class="ed-chip ed-tap" id="ed-tap" aria-label="Tap tempo: tap along with the beat">${icon("pick")}<span>Tap</span></button>
     </div>`;
   h?.after(d);
+  $("ed-sum")?.addEventListener("click", () => { detailsOpen = !detailsOpen; paintDetails(song); });
   $("ed-artist").onchange = e => editChange(song, "", () => { song.artist = e.target.value.trim(); });
   $("ed-format")?.addEventListener("change", e => {
     const f = e.target.value;
@@ -335,7 +342,7 @@ function switchView(song, v) {
   else { const b = pick(".ed-hl [data-l]"); if (b) anchor = { i: +b.el.dataset.l, top: b.top }; leaveText(song); }
   edView = v;
   document.querySelectorAll("#ed-seg [data-v]").forEach(b => { const on = b.dataset.v === v; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
-  $("ed-seg")?.classList.toggle("right", v === "text");
+  $("ed-seg")?.classList.toggle("right", v === "sheet");
   paintEdit(song);
   $("sheet")?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: calm() ? 0 : 160, easing: "ease-out" });
   if (!anchor) return;
@@ -357,21 +364,43 @@ function hlText(text) {
   }).join("");
 }
 const textHint = song => song.format === "tab" ? "Tab as plain text, one line per string. Section names in brackets, like [Intro]." : "Chords go on their own line above the words, or inline like [G]word. Sections in brackets, like [Chorus].";
-const TEXT_HINT = "Paste or type chords and lyrics, or tab\n\n[Verse]\nG                C         G\nWalking down the river road tonight\n\nor inline:  [G]Walking [C]down";
+const TEXT_HINT = "Paste or type the song\n\n[Verse]\nG          C\nWalking down the road\n\nor inline: [G]Walking [C]down";
 function paintText(song) {
   const sheet = $("sheet");
   textSnap ||= snapshot(song);
+  const empty = song.isNew && !String(song.body || "").trim();
+  /* 2.30.0: a new, empty song offers ways to start, under the pad; once
+     there's text, the tools sit just above the bar. */
   sheet.innerHTML = `
-    ${aiKey() || (song.isNew && !String(song.body || "").trim()) ? `<div class="ed-tools">${song.isNew && !String(song.body || "").trim() ? `<button class="chip ai" id="ed-sing">${icon("mic")}Sing it</button>` : ""}${aiKey() ? `<button class="chip ai" id="ed-clean">${icon("wand")}Clean up</button><button class="chip ai" id="ed-scan">${icon("camera")}Scan a page</button><input type="file" id="ed-photo" accept="image/*" hidden>` : ""}</div>` : ""}
     <div class="ed-tx"><div class="ed-tx-in"><pre class="ed-hl" id="ed-hl" aria-hidden="true">${hlText(song.body || "")}</pre>
       <textarea id="ed-body" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Song text" placeholder="${esc(TEXT_HINT)}">${esc(song.body || "")}</textarea></div></div>
+    <div class="ed-start" id="ed-start" ${empty ? "" : "hidden"}>
+      <button class="ed-tile" id="ed-paste">${icon("clip")}<span><b>Paste</b><small>From a website or notes</small></span></button>
+      <button class="ed-tile" id="ed-type">${icon("edit")}<span><b>Type</b><small>Chords and words</small></span></button>
+      <button class="ed-tile" id="ed-sing">${icon("mic")}<span><b>Sing or strum</b><small>Hold and play a line</small></span></button>
+      ${aiKey() ? `<button class="ed-tile" id="ed-scan0">${icon("camera")}<span><b>Scan a page</b><small>Photo of a songbook</small></span></button>
+      <button class="ed-tile wide" id="ed-find">${icon("wand")}<span><b>Find the chords with AI</b></span></button>` : ""}
+    </div>
+    <input type="file" id="ed-photo" accept="image/*" hidden>
     <p class="ed-hint" id="ed-txhint">${textHint(song)}</p>
     ${song.isNew ? "" : `<button class="danger" id="ed-delete" style="display:block;margin:28px auto 0">Delete Song</button>`}`;
   const ta = $("ed-body");
+  const tools = () => {
+    const row = $("ed-toolrow"), has = !!ta.value.trim();
+    $("ed-start") && ($("ed-start").hidden = !song.isNew || has);
+    if (!row) return;
+    row.innerHTML = has && aiKey() ? `<button class="ed-tl" id="ed-clean">${icon("wand")}Clean up</button><button class="ed-tl" id="ed-scan">${icon("camera")}Scan</button>` : "";
+    $("ed-clean")?.addEventListener("click", () => {
+      if (!ta.value.trim()) return toast("Paste a song first");
+      run($("ed-clean"), "Cleaning", async () => ({ ...(await cleanSheet({ text: ta.value })), label: "Cleaned up" }));
+    });
+    $("ed-scan")?.addEventListener("click", () => $("ed-photo").click());
+  };
   ta.addEventListener("focus", startWriting);
   ta.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== ta) stopWriting(); }, 0));
   ta.oninput = () => {
     $("ed-hl").innerHTML = hlText(ta.value);
+    tools();
     keepCaret();
     clearTimeout(textTimer);
     textTimer = setTimeout(() => flushText(song), 300);
@@ -379,7 +408,7 @@ function paintText(song) {
   const run = async (btn, label, job) => {
     if (btn.disabled) return;
     const html = btn.innerHTML;
-    sheet.querySelectorAll(".chip.ai").forEach(b => b.disabled = true);
+    document.querySelectorAll(".ed-tl, .ed-tile").forEach(b => b.disabled = true);
     btn.innerHTML = busy(label);
     try {
       flushText(song);
@@ -391,19 +420,28 @@ function paintText(song) {
         if (!song.key && r.key) song.key = r.key;
         if (r.format && !song.formatSet) song.format = r.format;
       });
-    } catch (e) { toast(aiError(e)); btn.innerHTML = html; sheet.querySelectorAll(".chip.ai").forEach(b => b.disabled = false); }
+    } catch (e) { toast(aiError(e)); btn.innerHTML = html; document.querySelectorAll(".ed-tl, .ed-tile").forEach(b => b.disabled = false); }
   };
   /* Sing it: leave this empty new song (it's dropped) for a sketch. */
   $("ed-sing")?.addEventListener("click", () => go("#/sketch"));
-  $("ed-clean")?.addEventListener("click", () => {
-    if (!ta.value.trim()) return toast("Paste a song first");
-    run($("ed-clean"), "Cleaning", async () => ({ ...(await cleanSheet({ text: ta.value })), label: "Cleaned up" }));
-  });
-  $("ed-scan")?.addEventListener("click", () => $("ed-photo").click());
   $("ed-photo")?.addEventListener("change", e => {
     const file = e.target.files[0]; e.target.value = "";
-    if (file) run($("ed-scan"), "Reading page", async () => ({ ...(await cleanSheet({ image: await readPhoto(file) })), label: "Read from photo" }));
+    if (file) run($("ed-scan") || $("ed-scan0"), "Reading page", async () => ({ ...(await cleanSheet({ image: await readPhoto(file) })), label: "Read from photo" }));
   });
+  $("ed-scan0")?.addEventListener("click", () => $("ed-photo").click());
+  $("ed-type")?.addEventListener("click", () => ta.focus());
+  $("ed-paste")?.addEventListener("click", async () => {
+    let t = "";
+    try { t = await navigator.clipboard.readText(); } catch {}
+    if (!t.trim()) { ta.focus(); return toast("Nothing to paste. Copy the song first, or touch and hold the page to paste"); }
+    ta.value = t; ta.oninput(); flushText(song);
+  });
+  $("ed-find")?.addEventListener("click", () => {
+    const title = $("ed-title")?.value.trim() || "";
+    if (!title) { toast("Type the song's title first"); return $("ed-title")?.focus(); }
+    import("./findai.js").then(m => m.getSong(title, { title, artist: $("ed-artist")?.value.trim() || "" }));
+  });
+  tools();
   $("ed-delete")?.addEventListener("click", () => deleteFromEdit(song));
 }
 function flushText(song) {
