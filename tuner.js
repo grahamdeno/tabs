@@ -2,7 +2,7 @@
 // Three ways to tune: Acoustic and Electric show the guitar's headstock and light
 // the key to turn (Guided walks the strings low to high), Chromatic reads any note.
 // Within a few cents a strobe takes over, and it stands still when the note is right.
-import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
+import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
 import { HEADS } from "./heads.js";
 import { $, data, icon, layer, esc, coach, coachTip, markUsed, toast } from "./app.js";
 
@@ -116,6 +116,9 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     inTuneSince: 0, quietSince: Date.now(), hits: [], strobe: { x: 0, v: 0, last: 0 }, onClose
   };
   document.body.classList.add("tuning");
+  /* iPhone (2.16.1): start the audio inside the tap that opened the tuner, so
+     it isn't left paused after the microphone prompt; any later touch wakes it too. */
+  try { t.ctx = new (window.AudioContext || window.webkitAudioContext)(); t.ctx.resume?.().catch(() => {}); } catch {}
   const back = /^#\/song\//.test(location.hash) ? "Back to the song" : /^#\/set\//.test(location.hash) ? "Back to the set" : "Done";
   layer.innerHTML = `
     <div class="tuner2" role="dialog" aria-label="Tuner">
@@ -207,7 +210,10 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   const listenNow = () => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
     if (tunerState !== t) { stream.getTracks().forEach(tr => tr.stop()); return; }
     t.stream = stream;
-    t.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    t.ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (t.ctx.state !== "running") t.ctx.resume?.().catch(() => {});
+    const wakeUp = () => { if (t.ctx && t.ctx.state !== "running") t.ctx.resume?.().catch(() => {}); };
+    layer.querySelector(".tuner2")?.addEventListener("pointerdown", wakeUp);
     const an = t.ctx.createAnalyser();
     an.fftSize = 4096;
     t.ctx.createMediaStreamSource(stream).connect(an);
@@ -233,7 +239,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     box.querySelector(".tn-read").after(card);
     say("");
     const done = () => { card.remove(); box.classList.remove("asking"); };
-    $("tn-allow").onclick = () => { st.micExplained = true; Tabs.save(data); done(); say("Starting the microphone…"); listenNow(); };
+    $("tn-allow").onclick = () => { st.micExplained = true; Tabs.save(data); done(); say("Starting the microphone…"); t.ctx?.resume?.().catch(() => {}); listenNow(); };
     $("tn-skip").onclick = () => { done(); say("Tap a key to hear its note. The tuner listens once you allow the microphone.", "warn"); };
   });
 }
@@ -244,7 +250,7 @@ function idle(t) {
   dot?.classList.add("idle"); needle?.classList.add("idle");
   if ($("tn-strobe")) $("tn-strobe").hidden = true;
   if (t.mode !== "chromatic" && $("tn-meter")) $("tn-meter").hidden = t.finished;
-  t.strobe.v = 0; t.hits = []; t.inTuneSince = 0;
+  t.strobe.v = 0; t.hits = []; t.inTuneSince = 0; t.shown = null; t.pend = null;
   if (t.finished && t.mode !== "chromatic") return;
   $("tn-n").textContent = "·"; $("tn-o").textContent = ""; $("tn-c").textContent = "";
   layer.querySelector(".tn-note")?.classList.remove("glow");
@@ -256,22 +262,36 @@ function idle(t) {
 function listen(t, an, buf) {
   if (tunerState !== t) return;
   an.getFloatTimeDomainData(buf);
-  const f = detectPitch(buf, t.ctx.sampleRate);
   const now = Date.now();
+  /* A pluck's first instant is noisy and sharp: skip readings for a moment
+     after the level jumps (2.16.1), so the needle doesn't jolt. */
+  let e = 0; for (let i = 0; i < buf.length; i += 4) e += buf[i] * buf[i];
+  const lvl = Math.sqrt(e / (buf.length / 4));
+  if (lvl > 0.02 && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 120; t.hits = []; }
+  t.lvl = lvl;
+  if (now < (t.attackUntil || 0)) return;
+  let f = detectPitch(buf, t.ctx.sampleRate);
   if (f < 0) {
     if (now - t.quietSince > 900 && t.hits.length) idle(t);
     t.inTuneSince = 0;
     return;
   }
   t.quietSince = now;
+  /* Octave slips (2.16.1): fold toward the string being tuned, or any string. */
+  if (t.mode !== "chromatic") f = octaveFix(f, t.tuning, t.a4, t.guided ? t.cur : t.lock);
   /* Smooth over the last few readings so the display doesn't jitter. */
   t.hits = [...t.hits.slice(-4), f];
   const fs = [...t.hits].sort((a, b) => a - b)[t.hits.length >> 1];
   if (t.mode === "chromatic") return readChromatic(t, fs);
   if (t.finished) return;
   const notes = TUNINGS[t.tuning].notes;
-  const idx = t.guided ? t.cur : t.lock >= 0 ? t.lock : nearestString(fs, t.tuning, t.a4).index;
+  let idx = t.guided ? t.cur : t.lock >= 0 ? t.lock : nearestString(fs, t.tuning, t.a4).index;
   if (idx < 0) return;
+  /* Steadier (2.16.1): another string takes over only after three readings in a row. */
+  if (!t.guided && t.lock < 0 && t.cur >= 0 && idx !== t.cur && t.hits.length > 1) {
+    t.pend = t.pend?.k === idx ? { k: idx, n: t.pend.n + 1 } : { k: idx, n: 1 };
+    if (t.pend.n < 3) idx = t.cur;
+  } else t.pend = null;
   const cents = Math.round(centsOff(fs, notes[idx], t.a4));
   const adv = tuneAdvice(cents);
   const good = adv.tone === "good";
@@ -307,7 +327,18 @@ function listen(t, an, buf) {
 }
 
 function readChromatic(t, fs) {
-  const n = nearestNote(fs, t.a4);
+  let n = nearestNote(fs, t.a4);
+  /* Steadier (2.16.1): near the edge between two notes, a new note shows only
+     after three readings in a row; meanwhile the old one reads its cents. */
+  const key = n.name + n.octave;
+  if (t.shown && key !== t.shown.key) {
+    t.pend = t.pend?.k === key ? { k: key, n: t.pend.n + 1 } : { k: key, n: 1 };
+    if (t.pend.n < 3 && Math.abs(n.cents) > 35) {
+      const c = Math.round(1200 * Math.log2(fs / t.shown.f));
+      if (Math.abs(c) < 80) n = { ...t.shown.n, cents: c };
+    }
+  } else t.pend = null;
+  if (!t.shown || n.name + n.octave !== t.shown.key) t.shown = { key: n.name + n.octave, n, f: fs * Math.pow(2, -n.cents / 1200) };
   const good = Math.abs(n.cents) <= TUNE.good;
   $("tn-n").textContent = n.name.replace("b", "♭").replace("#", "♯"); $("tn-o").textContent = n.octave;
   layer.querySelector(".tn-note")?.classList.toggle("glow", good);
@@ -315,7 +346,7 @@ function readChromatic(t, fs) {
   const a = Math.abs(n.cents);
   t.say(good ? "In tune" : a <= 12 ? (n.cents < 0 ? "A little flat" : "A little sharp") : n.cents < 0 ? "Flat" : "Sharp", good ? "good" : a <= 12 ? "close" : "off");
   const needle = document.getElementById("tn-needle");
-  if (needle) { needle.classList.remove("idle"); needle.classList.toggle("good", good); needle.setAttribute("transform", `rotate(${(n.cents * 1.4).toFixed(1)} 150 176)`); }
+  if (needle) { needle.classList.remove("idle"); needle.classList.toggle("good", good); needle.style.transform = `rotate(${(Math.max(-50, Math.min(50, n.cents)) * 1.4).toFixed(1)}deg)`; }
 }
 
 function showGauge(t, cents, good) {

@@ -1088,3 +1088,11 @@ test("changesOf: most played this week, and changes your songs have that you pla
   assert.deepEqual(n, { kind: "change", text: "Work on Am to F. This one has it 5 times", songId: "b", title: "B" });
   assert.equal(C.pickNudge({ songs: [songs[1]], now: NOW }), null, "no plays this week: no change nudge");
 });
+
+test("octaveFix: folds an octave slip back to the string meant (2.16.1)", () => {
+  const E2 = C.noteFreq("E2"), A2 = C.noteFreq("A2");
+  assert.ok(Math.abs(C.octaveFix(E2 * 2, "standard", 440, 0) - E2) < 0.01, "low E heard as E3, tuning the low E");
+  assert.ok(Math.abs(C.octaveFix(A2 * 1.01, "standard", 440, 1) - A2 * 1.01) < 0.01, "an ordinary reading stays");
+  assert.ok(Math.abs(C.octaveFix(A2 / 2, "standard", 440, -1) - A2) < 0.01, "no target: near no string, folded to one");
+  assert.equal(C.octaveFix(280, "standard", 440, -1), 280, "nothing near: left alone");
+});

@@ -1137,3 +1137,23 @@ test("2.13 Library: no Key chip in a big library; the Tuning chip stays", { skip
   assert.equal(await page.locator("#f-key").count(), 0, "no Key chip");
   assert.equal(await page.locator("#f-tune").count(), 1, "Tuning chip still there");
 });
+
+test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is running", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  await ctx.addInitScript(FAKE_MIC);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(base); await page.waitForTimeout(400);
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true }, micExplained: true } });
+  await page.reload(); await page.waitForTimeout(300);
+  await page.click("#tunerbtn"); await page.waitForTimeout(600);
+  const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent }));
+  await page.evaluate(() => { window.__hz = 82.41 * 2 * 2 ** (-20 / 1200); }); await page.waitForTimeout(800);
+  const r = await read();
+  assert.equal(r.note, "E"); assert.equal(r.say, "Tighten", "read as the low E, 20 cents flat, not a far-off note");
+  await page.click("#tn-done");
+  assert.deepEqual(errors, []);
+});

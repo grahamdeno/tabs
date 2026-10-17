@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.16.0";
+export const VERSION = "2.16.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1246,6 +1246,17 @@ export function nearestString(freq, tuning = "standard", a4 = 440) {
   let best = 0, bestC = Infinity;
   notes.forEach((n, i) => { const c = 1200 * Math.log2(freq / noteFreq(n, a4)); if (Math.abs(c) < Math.abs(bestC)) { best = i; bestC = c; } });
   return { index: best, note: notes[best], cents: Math.round(bestC) };
+}
+// A reading an octave off (a plucked low E heard as E3, or a high one as its
+// lower octave) folded back to the string meant (2.16.1). With a target string,
+// fold toward it; without one, only when the reading itself is near no string.
+export function octaveFix(freq, tuning = "standard", a4 = 440, idx = -1) {
+  const notes = (TUNINGS[tuning] || TUNINGS.standard).notes;
+  const off = (f, i) => Math.abs(1200 * Math.log2(f / noteFreq(notes[i], a4)));
+  const near = f => idx >= 0 ? off(f, idx) : Math.min(...notes.map((_, i) => off(f, i)));
+  if (near(freq) <= 60) return freq;
+  for (const f of [freq / 2, freq * 2]) if (near(f) <= 60) return f;
+  return freq;
 }
 // ---------- Tuner guidance ----------
 // In tune within 3 cents; the strobe takes over within 5; past 50 you're on the

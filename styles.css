@@ -839,7 +839,7 @@ body.tuning { overflow: hidden; }
 #tn-needle line { stroke: var(--accent); } #tn-needle circle { fill: var(--accent); }
 #tn-needle.good line { stroke: var(--good); } #tn-needle.good circle { fill: var(--good); }
 #tn-needle.idle { opacity: .25; }
-#tn-needle { transition: transform .1s linear; }
+#tn-needle { transform-box: view-box; transform-origin: 150px 176px; transition: transform .16s cubic-bezier(.3,.7,.4,1), opacity .3s; } /* glides between readings (2.16.1) */
 .tuner2.chrom .tn-note b { font-size: 92px; }
 .tn-foot { display: flex; align-items: center; gap: 10px; min-height: 48px; flex: none; }
 .tn-foot .btn { flex: 1; height: 46px; }
