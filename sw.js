@@ -8,7 +8,7 @@
 const CACHE = "tabs-v2.16.3";
 const ART = "tabs-art";          // album art for covers, kept across releases
 const VENDOR = "tabs-vendor";    // libraries loaded on first use (vendor/), kept across releases
-const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "ui.js", "store.js", "sets.js", "settings.js", "editor.js", "coach.js", "tuner.js", "findai.js", "german.js", "aitools.js", "crop.js", "sketch.js", "heads.js", "dial.js", "ring.js", "strum.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
+const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "ui.js", "store.js", "sets.js", "settings.js", "editor.js", "coach.js", "tuner.js", "findai.js", "german.js", "aitools.js", "crop.js", "sketch.js", "heads.js", "dial.js", "ring.js", "strum.js", "share.js", "listen.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   // Fetch every file fresh: cache: "reload" skips the phone's HTTP cache, and

@@ -26,7 +26,9 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 | Area | File |
 |---|---|
 | Pure logic, parsing, chords, Changes, tuner math (unit tested) | `core.js` |
-| Library, song page, playback, sharing, Play together, router | `app.js` |
+| Library, song page, playback, Find songs, router | `app.js` |
+| Share links, opening a shared link, Play together | `share.js` |
+| Listen: recordings, previews, length from the recording | `listen.js` |
 | Ring controls, Play following the hand | `ring.js` |
 | Settings menu and pages, Recently deleted | `settings.js` |
 | Tips, Show me demos, Tips & gestures | `coach.js` |
@@ -50,9 +52,12 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   `waitForTimeout` sleeps in new tests.
 - Screenshots for Graham: write a throwaway `tests/e2e/zz_*.e2e.mjs` that
   saves to `$SHOT`, run it, then delete it.
-- Visual references: CI compares against `tests/visual/ci`. After a release
-  that changes how a screen looks, run the "update screenshots" workflow
-  (`gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`).
+- Visual references: CI compares against `tests/visual/ci`, so a release that
+  changes how a screen looks shows as a visual difference in CI until they're
+  remade. Graham's rule: don't remake them after each UI change. Count
+  releases and ask him after 10. Last remade after 2.16.0; releases since:
+  2.16.1, 2.16.2, 2.16.3 (3 of 10). To remake when he says yes:
+  `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint runs in CI only (npm isn't reachable from the cloud sandbox).
 
 ## Releasing
