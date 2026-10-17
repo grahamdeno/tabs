@@ -79,9 +79,9 @@ test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the sect
   const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
   const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
   assert.ok(max > 3000, "a long song");
-  /* Slow: a fifth of the arc, gently, moves less than a screen (away from Play, which sits on the arc at the song's place: 2.28.0). */
-  let p = at(a0 + 30); await page.mouse.move(p.x, p.y); await page.mouse.down();
-  for (let a = a0 + 30; a <= a0 + 45; a += 1) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(40); }
+  /* Slow: a fifth of the arc, gently, moves less than a screen. */
+  let p = at(a0 + 3); await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let a = a0 + 3; a <= a0 + 18; a += 1) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(40); }
   const slow = await page.evaluate(() => scrollY);
   assert.ok(slow > 20 && slow < 844, `slow sweep moves finely (${slow})`);
   assert.match(await page.textContent(".rc-where"), /VERSE|Verse|CHORUS|Chorus/i, "the section glows while sweeping");
@@ -121,9 +121,9 @@ test("2.4.6 arc: real touch sweeps move steadily, never jump, never reverse", { 
     const d = ys.slice(1).map((y, i) => y - ys[i]).filter(Boolean);
     return { moved: ys.at(-1) - ys[0], biggest: Math.max(0, ...d.map(Math.abs)), reversals: d.filter((x, i) => i && Math.sign(x) !== Math.sign(d[i - 1])).length, end: ys.at(-1) };
   };
-  const slow = await sweep(a0 + 30, a0 + 46, 25); /* away from Play, which sits on the arc (2.28.0) */
-  assert.ok(slow.moved > 60 && slow.moved < 844, `slow: fine, under a screen (${slow.moved})`);
-  assert.ok(slow.biggest <= Math.max(14, slow.moved / 20) && slow.reversals === 0, `slow: steady (${JSON.stringify(slow)})`);
+  const slow = await sweep(a0 + 4, a0 + 20, 25);
+  assert.ok(slow.moved > 60 && slow.moved < 400, `slow: fine (${slow.moved})`);
+  assert.ok(slow.biggest <= 14 && slow.reversals === 0, `slow: steady (${JSON.stringify(slow)})`);
   await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(300);
   const full = await sweep(a0 + 3, 262.5, 250);
   assert.ok(full.end >= max - 2, `a quick full sweep reaches the end (${full.end} of ${max})`);

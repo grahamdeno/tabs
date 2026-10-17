@@ -113,7 +113,6 @@ function position() {
   if (!document.body.classList.contains("ring")) return;
   document.body.classList.toggle("ring-up", st.up);
   paintTrack();
-  if (!st.up) placeKnob(0);
 }
 
 // The track: an arc around the corner through Play's lifted spot. Its lit
@@ -147,18 +146,6 @@ function paintTrack() {
   svg.querySelector(".rc-t0").setAttribute("d", arc);
   svg.querySelector(".rc-hit").setAttribute("d", arc);
   svg.querySelector(".rc-t1").setAttribute("d", `M ${pt(a0)} A ${r} ${r} 0 0 1 ${pt(a0 + span * Math.max(f, 0.004))}`);
-  placeKnob(st.knobF ?? f);
-}
-// 2.28.0: lifted, Play is the knob on the track, like a fader on a sound
-// board: it sits where you are in the song (bottom end the start, top end the
-// end) and creeps along as the song plays. In the corner it's just Play.
-function placeKnob(f) {
-  const p = document.getElementById("play");
-  if (!p) return;
-  if (!document.body.classList.contains("ring-up")) { p.style.right = p.style.bottom = ""; return; }
-  const { W, H, r } = spots(), { a0, span } = arcRange(), a = (a0 + span * f) * Math.PI / 180;
-  p.style.right = (W - (W + r * Math.cos(a)) - 24).toFixed(1) + "px";
-  p.style.bottom = (H - (H + r * Math.sin(a)) - 24).toFixed(1) + "px";
 }
 
 // ---- Sweep the track to move through the song ----
@@ -248,49 +235,18 @@ let ringEl = null;
 function bindHold() {
   const p = document.getElementById("play");
   if (!p) return;
-  let timer = 0, startX = 0, startY = 0, opened = false, pressing = false, sliding = false, dragged = false, frame = 0, ty = 0;
-  const where = st.rc.querySelector(".rc-where");
+  let timer = 0, startX = 0, startY = 0, opened = false;
   const down = e => {
     if (!document.body.classList.contains("ring")) return;
-    opened = false; dragged = false; sliding = false; pressing = true; startX = e.clientX; startY = e.clientY;
+    opened = false; startX = e.clientX; startY = e.clientY;
     clearTimeout(timer);
     timer = setTimeout(() => { opened = true; openRing(p, true); }, st.o.playing() ? HOLD_PLAYING_MS : HOLD_MS);
   };
-  /* Slide Play along the track (2.28.0): once the thumb moves before the hold
-     time, Play follows it on the arc and the song goes to that place. */
-  const slide = (x, y) => {
-    const { a0, span } = arcRange();
-    /* End stops: within 2 degrees of an end counts as the end, as on the track. */
-    const raw = (angleOf(x, y) - a0) / span, f = raw < 2 / span ? 0 : raw > 1 - 2 / span ? 1 : raw;
-    st.knobF = f;
-    ty = f * Math.max(0, document.documentElement.scrollHeight - innerHeight);
-    placeKnob(f);
-    if (!frame) frame = requestAnimationFrame(() => { frame = 0; window.scrollTo(0, ty); if (where) where.textContent = st.o.where?.() || ""; });
-  };
   const move = e => {
-    if (!ringEl) {
-      if (!pressing) return;
-      if (!sliding && Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
-        clearTimeout(timer);
-        if (!document.body.classList.contains("ring-up")) { pressing = false; return; }
-        sliding = dragged = true;
-        try { p.setPointerCapture(e.pointerId); } catch {}
-        document.body.classList.add("ring-sweep", "knob-drag");
-        st.o.grab?.();
-      }
-      if (sliding) { e.preventDefault?.(); slide(e.clientX, e.clientY); wake(); }
-      return;
-    }
+    if (!ringEl) { if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) clearTimeout(timer); return; }
     if (ringEl.dataset.live === "1") pick(e.clientX, e.clientY);
   };
   const up = () => {
-    pressing = false;
-    if (sliding) {
-      sliding = false; st.knobF = null;
-      document.body.classList.remove("ring-sweep", "knob-drag");
-      st.o.letGo?.();
-      paintTrack();
-    }
     clearTimeout(timer);
     if (!ringEl || ringEl.dataset.live !== "1") return;
     ringEl.dataset.live = "0";
@@ -299,9 +255,8 @@ function bindHold() {
     /* Let go without choosing: the ring stays open to tap. */
   };
   /* After a hold, the click that follows isn't a play/pause. */
-  const click = e => { if (opened || dragged) { e.stopImmediatePropagation(); e.preventDefault(); opened = dragged = false; } };
+  const click = e => { if (opened) { e.stopImmediatePropagation(); e.preventDefault(); opened = false; } };
   p.addEventListener("pointerdown", down);
-  p.style.touchAction = "none";
   p.addEventListener("click", click, true);
   p.addEventListener("contextmenu", e => { if (document.body.classList.contains("ring")) e.preventDefault(); });
   addEventListener("pointermove", move);
@@ -321,10 +276,7 @@ function label(it, a, cx, cy, R) {
 function openRing(p, live) {
   closeRing();
   st.o.opened?.();
-  const r = p.getBoundingClientRect(), px = r.left + r.width / 2, py = r.top + r.height / 2, { at: ANG, R } = layout();
-  /* Play can be anywhere on the track now (2.28.0): the ring moves to stay on
-     screen, with Play inside it. */
-  const cx = Math.min(innerWidth - 30, Math.max(R + 36, px)), cy = Math.min(innerHeight - 30, Math.max(R + 90, py));
+  const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, { at: ANG, R } = layout();
   const el = document.createElement("div");
   el.className = "ringx";
   el.dataset.live = live ? "1" : "0";
@@ -338,21 +290,17 @@ function openRing(p, live) {
   requestAnimationFrame(() => el.classList.add("on"));
   el.querySelectorAll(".ri").forEach(b => b.onclick = ev => { ev.stopPropagation(); const it = st.o.items.find(x => x.id === b.dataset.r); closeRing(); it?.run(p); });
   el.addEventListener("click", e => { if (e.target === el || e.target.classList.contains("ring-bg")) closeRing(); });
-  el.dataset.cx = cx; el.dataset.cy = cy; el.dataset.px = px; el.dataset.py = py;
+  el.dataset.cx = cx; el.dataset.cy = cy;
 }
 // The item in the direction of the thumb, once it's moved off Play.
 function pick(x, y) {
-  /* Measured from where Play is: the direction you slide picks the item (2.28.0: Play may sit off the ring's centre). */
-  const px = +ringEl.dataset.px, py = +ringEl.dataset.py, d = Math.hypot(x - px, y - py);
+  const cx = +ringEl.dataset.cx, cy = +ringEl.dataset.cy, d = Math.hypot(x - cx, y - cy);
   let best = null;
   if (d > 44) {
-    const ang = Math.atan2(y - py, x - px);
+    let ang = Math.atan2(y - cy, x - cx) * 180 / Math.PI; if (ang < 0) ang += 360;
     let gap = 999;
-    for (const b of ringEl.querySelectorAll(".ri")) {
-      const br = b.getBoundingClientRect(), ia = Math.atan2(br.top + br.height / 2 - py, br.left + br.width / 2 - px);
-      let g = Math.abs(ang - ia) * 180 / Math.PI; if (g > 180) g = 360 - g;
-      if (g < gap) { gap = g; best = st.o.items.find(it => it.id === b.dataset.r); }
-    }
+    const ANG = layout().at;
+    for (const it of st.o.items) { const g = Math.abs(ANG[it.slot] - ang); if (g < gap) { gap = g; best = it; } }
     if (gap > 30) best = null;
   }
   ringEl.querySelectorAll(".ri").forEach(b => b.classList.toggle("on", !!best && b.dataset.r === best.id));
