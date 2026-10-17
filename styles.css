@@ -1217,8 +1217,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
    rises to the thumb's resting spot on the speed track while the phone is in
    your hand. Hold Play for the ring. */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.rc { display: none; }
-body.ring .rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
+#rc { display: none; } /* the ring controls; .rc alone is also the Recent cards (2.19.1) */
+body.ring #rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
 body.ring .rc > * { pointer-events: auto; }
 body.ring .rc .rc-track { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
 body.ring.ring-up .rc .rc-track { opacity: 1; }

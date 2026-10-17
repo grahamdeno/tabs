@@ -269,3 +269,11 @@ test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is 
   await page.click("#tn-done");
   assert.deepEqual(errors, []);
 });
+
+test("2.19.1 Library: the Recent cards show (the ring's styles had been hiding them)", { skip: skip() }, async t => {
+  const now = Date.now();
+  const songs = ["One", "Two", "Three", "Four"].map((title, i) => ({ id: "r" + i, title, artist: "A", format: "chords", body: "[Verse]\nG C\nla", opened: now - i * 60000 }));
+  const page = await phone(t, { ...LIB, songs, sets: [], settings: { ...LIB.settings, controls: "ring" } }, { isMobile: true });
+  const shown = await page.evaluate(() => [...document.querySelectorAll(".recent .rc")].map(el => el.offsetParent !== null && el.getBoundingClientRect().height > 20));
+  assert.deepEqual(shown, [true, true], "two Recent cards, visible");
+});

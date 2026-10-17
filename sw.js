@@ -5,7 +5,7 @@
 // the browser checks sw.js for changes on every launch. When it finds a new
 // version, install saves the whole app shell fresh from the server in one go,
 // so a release is never half old and half new. The page then offers a reload.
-const CACHE = "tabs-v2.19.0";
+const CACHE = "tabs-v2.19.1";
 const ART = "tabs-art";          // album art for covers, kept across releases
 const VENDOR = "tabs-vendor";    // libraries loaded on first use (vendor/), kept across releases
 const SHELL = ["./", "index.html", "styles.css", "app.js", "core.js", "ui.js", "store.js", "sets.js", "settings.js", "editor.js", "coach.js", "tuner.js", "findai.js", "german.js", "aitools.js", "crop.js", "sketch.js", "heads.js", "dial.js", "ring.js", "strum.js", "share.js", "listen.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];

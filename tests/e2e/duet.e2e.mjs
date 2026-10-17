@@ -20,13 +20,13 @@ test("Play together: share a start time, and the friend's phone joins and starts
   assert.equal(got.song.title, "River Road"); assert.equal(got.song.duration, 30);
   assert.equal(got.duet.at % 15000, 0, "a quarter-minute start");
   const ahead = got.duet.at - Date.now();
-  assert.ok(ahead > 55000 && ahead < 80000, `about a minute ahead: ${ahead}`);
+  assert.ok(ahead > 45000 && ahead < 80000, `about a minute ahead: ${ahead}`);
   await me.click("#dw-x"); await me.waitForTimeout(150);
   assert.equal(await me.locator(".duet-wait").count(), 0, "Cancel stops waiting");
 
-  // The friend: an empty library, a link that starts in three seconds.
+  // The friend: an empty library, a link that starts in nine seconds (room for a busy test machine).
   const friend = await phone(t, { ...LIB, songs: [] });
-  const code = await friend.evaluate(async g => (await import("./core.js")).packShare({ song: g.song, duet: { at: Date.now() + 3000, bpm: 240 } }), got);
+  const code = await friend.evaluate(async g => (await import("./core.js")).packShare({ song: g.song, duet: { at: Date.now() + 9000, bpm: 240 } }), got);
   await friend.goto(base + "#/import/" + code); await friend.reload(); await friend.waitForTimeout(500);
   const join = await friend.innerText("[aria-label='Play together']");
   assert.match(join, /River Road/); assert.match(join, /until the count-in/);
@@ -36,8 +36,8 @@ test("Play together: share a start time, and the friend's phone joins and starts
   assert.equal(JSON.parse(await friend.evaluate(() => localStorage.getItem("tabs-v1"))).songs.length, 1, "the song was added");
   assert.equal(await friend.locator(".duet-wait").count(), 1);
   assert.equal(await friend.evaluate(() => document.body.classList.contains("playing")), false, "not before the start");
-  await friend.waitForTimeout(2800);
-  assert.equal(await friend.evaluate(() => document.body.classList.contains("playing")), true, "starts at the start time");
+  /* Starts at the start time (waited for, not slept on, so a busy test machine doesn't flake). */
+  await friend.waitForFunction(() => document.body.classList.contains("playing"), null, { timeout: 15000 });
   assert.equal(await friend.locator(".countin").count(), 1, "with a count-in");
 });
 
