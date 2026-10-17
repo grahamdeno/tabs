@@ -339,6 +339,7 @@ test("2.1 speed dial: hold the time and sweep the corner; the length follows and
   const b = await page.locator("#dialbtn").boundingBox();
   const x = b.x + 20, y = b.y + 16;
   await page.mouse.move(x, y); await page.mouse.down();
+  await page.waitForSelector(".dial", { timeout: 2000 }).catch(() => {});
   assert.equal(await page.locator(".dial").count(), 1, "the dial opens on press");
   await page.mouse.move(x + 60, y - 140, { steps: 8 });
   const shown = await page.textContent(".dial-big");
