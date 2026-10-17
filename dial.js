@@ -4,7 +4,8 @@
 //
 // Hold a dial button and sweep along the arc: the change is relative to where
 // you started, so pressing never jumps the value. A tap without sweeping
-// leaves the dial open; sweep anywhere on it, and tap off it to close.
+// leaves the dial open; sweep anywhere on it, and tap it again to close. A tap
+// never changes the value, even one that slips a little (2.16.5).
 // Used for the song's speed and, in a set, for picking a song.
 
 const SPAN = 82;          /* degrees of arc the full range covers */
@@ -77,14 +78,18 @@ export function openDial(o) {
   paint();
 
   const set = v => { v = snap(v); if (v === value) return; value = v; changed = true; paint(); o.input?.(value); };
-  const down = (x, y) => { from = angleOf(x, y); start = value; moved = false; };
+  let x0 = 0, y0 = 0, t0 = 0, far = 0, wasChanged = false;
+  const down = (x, y) => { from = angleOf(x, y); start = value; moved = false; x0 = x; y0 = y; t0 = Date.now(); far = 0; wasChanged = changed; };
   /* A press that wobbles a little doesn't change anything: the value only
-     moves once the thumb has swept 6 degrees, and then from where it is. */
-  const DEAD = 6;
+     moves once the thumb has swept 6 degrees and travelled 12 pixels (2.16.4:
+     near the corner a few pixels is many degrees, so angle alone let a tap
+     read as a sweep), and then from where it is. */
+  const DEAD = 6, DEAD_PX = 12;
   const move = (x, y) => {
     if (from == null) return;
+    far = Math.max(far, Math.hypot(x - x0, y - y0));
     const d = angleOf(x, y) - from;
-    if (Math.abs(d) < DEAD && !moved) return;
+    if ((Math.abs(d) < DEAD || far < DEAD_PX) && !moved) return;
     moved = true;
     set(start + (d - Math.sign(d) * DEAD) / SPAN * (max - min));
   };
@@ -93,6 +98,12 @@ export function openDial(o) {
   const onUp = () => {
     if (from == null) return;
     from = null;
+    /* A quick touch that hardly moved is a tap, and a tap never changes the
+       value (2.16.5): put back what it was when the touch began. */
+    if (moved && Date.now() - t0 < 250 && far < 16) {
+      moved = false;
+      if (value !== start) { value = start; changed = wasChanged; paint(); o.input?.(value); }
+    }
     if (moved || !o.event) finish();   /* swept: done. A tap that opened it: stay open */
     o.event = null;
   };

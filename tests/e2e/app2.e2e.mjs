@@ -462,3 +462,18 @@ test("2.2 ring: Play rests in the corner, rises with a touch, settles when still
   /* Screen readers get the same controls as buttons. */
   assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 5);
 });
+
+test("2.16.5 speed dial: a tap that slips a little near the corner closes it without changing the time", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  const before = (await page.innerText("#dialbtn")).trim();
+  await page.click("#dialbtn"); await page.waitForSelector(".dial");
+  /* Tap on the wheel close to the corner, drifting 8 px: about 9 degrees there. */
+  const x = 390 - 20, y = 844 - 25;
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x - 8, y, { steps: 3 });
+  await page.mouse.up(); await page.waitForTimeout(300);
+  assert.equal(await page.locator(".dial").count(), 0, "the tap closed it");
+  assert.equal((await page.innerText("#dialbtn")).trim(), before, "the time didn't change");
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").duration, 200, "nothing saved");
+});
