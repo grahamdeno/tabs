@@ -1407,3 +1407,13 @@ body.ring .rc #play.hint-under { z-index: 23; }
 
 /* 2.18.0: rounded-square ring buttons on a wider ring; Play's glow off while it's open. */
 body.ring-open .rc #play { box-shadow: none; }
+
+/* 2.19.0: a little Marshall. Thin bronze piping on the bars, lists, sheets and
+   the ring, like the gold piping on an amp cabinet, and bronze small labels.
+   The copper (chords, Play, +) stays as it is. Sheets and the ring are frosted
+   glass: the song shows softly through. */
+:root { --bronze: #b8935a; --bronze-line: rgba(184,147,90,.34); }
+:root[data-theme="light"] { --bronze: #86663a; --bronze-line: rgba(134,102,58,.32); }
+.cmd, body.ring .rc-isl, .list.glass, .set-group, .ring-bg, .panel { border-color: var(--bronze-line); }
+.label, .sheet .sec, .strip-h { color: var(--bronze); }
+.panel.card, .ring-bg { background: var(--bar); -webkit-backdrop-filter: blur(24px) saturate(150%); backdrop-filter: blur(24px) saturate(150%); }

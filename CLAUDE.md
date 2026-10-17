@@ -9,7 +9,8 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - Versions: a feature is a minor release (2.15.0), a fix is a patch (2.16.1),
   numbered from the release where the defect was found. Bump `VERSION` in
   `core.js` and `CACHE` in `sw.js` together (a test checks they match).
-- Don't change the search bar.
+- Don't change how the search bar works. Its look may follow the rest of the
+  app (Graham, 2.19.0: bronze piping and frosted glass like the other bars).
 - When Graham asks for mockups or an explanation first, give those and wait
   for a go before building.
 - The AI never supplies lyrics. The one exception is German practice, which
@@ -56,7 +57,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
   releases and ask him after 10. Last remade after 2.16.0; releases since:
-  2.16.1 to 2.16.6, 2.17.0, 2.17.1, 2.18.0 (9 of 10). To remake when he says yes:
+  2.16.1 to 2.16.6, 2.17.0, 2.17.1, 2.18.0, 2.19.0 (10 of 10: ask Graham). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint runs in CI only (npm isn't reachable from the cloud sandbox).
 
