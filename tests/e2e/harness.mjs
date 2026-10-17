@@ -72,8 +72,18 @@ export async function phone(t, lib = LIB, { fixedTime, ...opts } = {}) {
   await page.waitForTimeout(300);
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), lib);
   await page.reload();
-  await page.waitForTimeout(300);
+  await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0); /* drawn, rather than a fixed wait */
   t.after(async () => { assert.deepEqual(errors, [], "page errors"); await ctx.close(); });
   return page;
 }
 export const skip = () => !chromium && "Playwright not installed";
+
+// A pretend microphone: a steady tone whose pitch the test sets with window.__hz.
+export const FAKE_MIC = `
+window.__hz = 0;
+navigator.mediaDevices.getUserMedia = async () => {
+  const ctx = new AudioContext(), o = ctx.createOscillator(), g = ctx.createGain(), dest = ctx.createMediaStreamDestination();
+  o.type = "sawtooth"; g.gain.value = 0; o.connect(g).connect(dest); o.start();
+  setInterval(() => { if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = window.__gain ?? 0.4; } else g.gain.value = 0; }, 20);
+  return dest.stream;
+};`;

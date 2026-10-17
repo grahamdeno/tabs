@@ -57,7 +57,8 @@ for (const [device, viewport] of [["phone", { width: 390, height: 844 }], ["ipad
         await page.goto(base + hash); await page.reload(); await page.waitForTimeout(450);
         if (act) { await act(page); await page.waitForTimeout(400); }
         await page.mouse.move(0, 0);
-        await page.evaluate(() => { document.activeElement?.blur?.(); document.getElementById("toast")?.classList.remove("show"); });
+        /* The version changes every release; keep it out of the comparison. */
+        await page.evaluate(() => { document.activeElement?.blur?.(); document.getElementById("toast")?.classList.remove("show"); document.querySelectorAll(".s-ver").forEach(el => { el.textContent = "Tabs"; }); });
         await page.waitForTimeout(150);
         const file = `${device}_${theme}_${name}.png`, shot = await page.screenshot();
         fs.writeFileSync(path.join(OUT, file), shot);
