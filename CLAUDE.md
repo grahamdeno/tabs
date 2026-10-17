@@ -44,10 +44,11 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 
 - Quick check while working: `node tests/quick.mjs` runs the unit tests plus
   the browser tests that cover the files changed since `origin/main`.
-- Full run before every push: `node --test --test-concurrency=4 tests/*.test.mjs tests/e2e/*.e2e.mjs`
-  (about 4.5 minutes here, down from 10.5 at one file at a time; run it in
-  the background). Most long sleeps in the tests are real timers being
-  checked (Play settling after 5 s), so leave those.
+- Graham (2.26.0): don't run the full suite here, it costs too many tokens.
+  Before a push run only `node tests/quick.mjs`; the full suite runs in CI
+  on every push (`.github/workflows/test.yml`). Check the CI result instead
+  with `gh run list -L 1` if needed. Most long sleeps in the tests are real
+  timers being checked (Play settling after 5 s), so leave those.
 - Browser tests use `phone()` from `tests/e2e/harness.mjs`; mock network calls
   with `page.route`. Prefer `waitForSelector` / `waitForFunction` over fixed
   `waitForTimeout` sleeps in new tests.
@@ -57,7 +58,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
   releases and ask him after 10. Last remade after 2.16.0; releases since:
-  2.16.1 to 2.16.6, 2.17.0, 2.17.1, 2.18.0, 2.19.0, 2.19.1, 2.20.0, 2.21.0, 2.22.0, 2.23.0, 2.24.0, 2.24.1, 2.25.0, 2.26.0 (19: asked at 2.19.0, waiting). To remake when he says yes:
+  2.16.1 to 2.16.6, 2.17.0, 2.17.1, 2.18.0, 2.19.0, 2.19.1, 2.20.0, 2.21.0, 2.22.0, 2.23.0, 2.24.0, 2.24.1, 2.25.0, 2.26.0, 2.26.1 (20: asked at 2.19.0, waiting). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint runs in CI only (npm isn't reachable from the cloud sandbox).
 
@@ -66,7 +67,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 1. Change, add or update tests, bump the version, update the README feature
    list when behavior changes.
 2. Commit with a message that says what changed for Graham, in plain words.
-3. Full test run, then `git fetch origin main && git rebase origin/main` and
+3. Quick test run, then `git fetch origin main && git rebase origin/main` and
    push to `main`. The screenshot workflow commits to `main` too, so always
    rebase first.
 4. The cloud sandbox can't delete branches or call GitHub's write APIs other
