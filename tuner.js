@@ -4,9 +4,9 @@
 // Within a few cents a strobe takes over, and it stands still when the note is right.
 import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
 import { HEADS } from "./heads.js";
+import { sound } from "./ui.js";
 import { $, data, icon, layer, esc, coach, coachTip, markUsed, toast } from "./app.js";
 
-let audio = null; /* for reference notes and the chime */
 const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
 /* String names on the headstock: the top string is "e" when it doubles the low E. */
 const stringName = (notes, i) => { const n = noteLabel(notes[i]); return i === 5 && n === noteLabel(notes[0]) ? n.toLowerCase() : n; };
@@ -21,7 +21,7 @@ export function closeTuner() {
   clearInterval(t.timer);
   cancelAnimationFrame(t.raf);
   t.stream?.getTracks().forEach(tr => tr.stop());
-  t.ctx?.close?.().catch(() => {});
+  t.src?.disconnect?.(); /* the shared audio engine stays (2.16.3) */
   if (t.ok.filter(Boolean).length >= 3) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
   layer.innerHTML = "";
   document.body.classList.remove("tuning");
@@ -30,7 +30,8 @@ export function closeTuner() {
 
 function tone(freq, { len = 2.1, gain = 0.35, harm = [0.5, 0.18, 0.08] } = {}) {
   try {
-    audio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const audio = sound();
+    if (!audio) return;
     const t = audio.currentTime, g = audio.createGain();
     harm.forEach((a, i) => {
       const o = audio.createOscillator(), og = audio.createGain();
@@ -118,7 +119,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   document.body.classList.add("tuning");
   /* iPhone (2.16.1): start the audio inside the tap that opened the tuner, so
      it isn't left paused after the microphone prompt; any later touch wakes it too. */
-  try { t.ctx = new (window.AudioContext || window.webkitAudioContext)(); t.ctx.resume?.().catch(() => {}); } catch {}
+  t.ctx = sound();
   const back = /^#\/song\//.test(location.hash) ? "Back to the song" : /^#\/set\//.test(location.hash) ? "Back to the set" : "Done";
   layer.innerHTML = `
     <div class="tuner2" role="dialog" aria-label="Tuner">
@@ -210,13 +211,14 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   const listenNow = () => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
     if (tunerState !== t) { stream.getTracks().forEach(tr => tr.stop()); return; }
     t.stream = stream;
-    t.ctx ||= new (window.AudioContext || window.webkitAudioContext)();
-    if (t.ctx.state !== "running") t.ctx.resume?.().catch(() => {});
+    t.ctx = sound();
+    if (!t.ctx) return fail();
     const wakeUp = () => { if (t.ctx && t.ctx.state !== "running") t.ctx.resume?.().catch(() => {}); };
     layer.querySelector(".tuner2")?.addEventListener("pointerdown", wakeUp);
     const an = t.ctx.createAnalyser();
     an.fftSize = 4096;
-    t.ctx.createMediaStreamSource(stream).connect(an);
+    t.src = t.ctx.createMediaStreamSource(stream);
+    t.src.connect(an);
     const buf = new Float32Array(an.fftSize);
     idle(t);
     t.timer = setInterval(() => listen(t, an, buf), 70);
@@ -239,7 +241,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     box.querySelector(".tn-read").after(card);
     say("");
     const done = () => { card.remove(); box.classList.remove("asking"); };
-    $("tn-allow").onclick = () => { st.micExplained = true; Tabs.save(data); done(); say("Starting the microphone…"); t.ctx?.resume?.().catch(() => {}); listenNow(); };
+    $("tn-allow").onclick = () => { st.micExplained = true; Tabs.save(data); done(); say("Starting the microphone…"); sound(); listenNow(); };
     $("tn-skip").onclick = () => { done(); say("Tap a key to hear its note. The tuner listens once you allow the microphone.", "warn"); };
   });
 }

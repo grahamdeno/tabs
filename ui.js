@@ -227,4 +227,19 @@ const SECTION_NAMES = ["Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo
 // thumb (2.0). iPad and landscape keep their layouts.
 const oneHandMQ = matchMedia("(max-width: 699px) and (orientation: portrait)");
 export { oneHandMQ };
+
+// One audio engine for the whole app (2.16.3): count-in, metronome, Play
+// together, the tuner and Strum it share it. iPhone limits how many can run
+// and only lets one start from a touch, so it's made the first time a feature
+// needs sound (never just for opening the app, so music playing alongside
+// isn't interrupted) and woken by any touch if iPhone has paused it.
+let audioCtx = null;
+export function sound() {
+  try {
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state !== "running") audioCtx.resume?.()?.catch?.(() => {});
+  } catch { return null; }
+  return audioCtx;
+}
+addEventListener("pointerdown", () => { if (audioCtx && audioCtx.state !== "running") audioCtx.resume?.()?.catch?.(() => {}); }, true);
 export { html, raw, $, I, SECTION_NAMES, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast };

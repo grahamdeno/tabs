@@ -2,7 +2,7 @@
 import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, packShare, unpackShare, shareable, findSame, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, rankTracks, linkService, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, lengthChoice, fitLength, VERSION, restyle, firstLyric } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
-import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast } from "./ui.js";
+import { $, I, app, ask, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, showToCopy, toast, sound } from "./ui.js";
 import { addToSet, itunes, catalogBlocked, appleBlocksSearch, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
@@ -1240,7 +1240,7 @@ let duetMins = 2, duet = null; // duet: { song, at, timer } while waiting
 const clockTime = t => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
 const mmssLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
 const startAt = mins => Math.ceil((Date.now() + mins * 60000) / 15000) * 15000; // on a quarter minute, easy to read out
-function wakeAudio() { try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume?.(); } catch {} }
+const wakeAudio = () => sound();
 function duetSheet(song) {
   if (scroll.on) stopScroll();
   const draw = () => {
@@ -2068,7 +2068,8 @@ const metro = { timer: 0, next: 0, beat: 0 };
 function startMetronome(song) {
   stopMetronome();
   if (!data.settings.metronome) return;
-  try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+  const audio = sound();
+  if (!audio) return;
   const spb = 60 / (song.bpm || 90);
   metro.next = audio.currentTime + 0.05; metro.beat = 0;
   metro.timer = setInterval(() => {
@@ -2080,6 +2081,8 @@ function startMetronome(song) {
 }
 function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; }
 function clickAt(t, accent) {
+  const audio = sound();
+  if (!audio) return;
   const o = audio.createOscillator(), g = audio.createGain();
   o.frequency.value = accent ? 1320 : 880;
   g.gain.setValueAtTime(0.0001, t);
@@ -2271,10 +2274,10 @@ function pxPerSecond(song) {
 
 // One bar of count-in before scrolling: a bar of beats (four unless the song says) at the song's tempo (90 if unset),
 // shown large and quiet over the reading point, with a soft click.
-let audio = null;
 function click(accent) {
   try {
-    audio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const audio = sound();
+    if (!audio) return;
     const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
     o.frequency.value = accent ? 1320 : 880;
     g.gain.setValueAtTime(0.0001, t);

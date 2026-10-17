@@ -4,7 +4,7 @@
 // the song. A key wheel shows the key appearing as you sing and the chords it
 // offers. Everything happens on this phone. Loads on first use.
 import { detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, pitchShares, lineHint, packNotes, sungLines, unpackNotes, syllables, strumChords, riffNotes, cleanNotes, chordToneNotes, html, raw } from "./core.js";
-import { $, app, icon, toast, onLeave, ask } from "./ui.js";
+import { $, app, icon, toast, onLeave, ask, sound } from "./ui.js";
 import { data, go, markUsed, newSong, tick } from "./app.js";
 import { Tabs } from "./core.js";
 import { noteError } from "./store.js";
@@ -28,7 +28,7 @@ function loadEar() {
 // The line's recording, heard for chords (or a riff). One at a time.
 let hearQueue = Promise.resolve();
 export async function listenTo(blob) {
-  const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = sound();
   const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
   const n = buf.length, x = new Float32Array(n);
   for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < n; i++) x[i] += d[i] / buf.numberOfChannels; }
@@ -70,19 +70,13 @@ function closeMic() {
 // iPhone only lets audio run when it's started inside a touch: the audio
 // context is made (or woken) right in the pad's touch, before the microphone
 // is asked for; made later, it can stay asleep and hear only silence.
-let audioCtx = null;
-function primeAudio() {
-  try {
-    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state !== "running") audioCtx.resume?.().catch?.(() => {});
-  } catch { /* no Web Audio */ }
-}
+const primeAudio = () => sound(); /* the app's one audio engine (2.16.3) */
 async function openMic() {
   primeAudio();
   if (mic && mic.stream.getAudioTracks().some(t => t.readyState === "live")) { await mic.ctx.resume?.(); return mic; }
   if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("no mic"), { name: "NotSupportedError" });
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-  const ctx = audioCtx;
+  const ctx = sound();
   await ctx.resume?.();
   const an = ctx.createAnalyser();
   an.fftSize = 2048;
@@ -287,8 +281,8 @@ let synth = null;
 function strum(name) {
   const m = /^([A-G][#b]?)(m?)/.exec(name);
   if (!m) return;
-  synth ||= mic?.ctx || new (window.AudioContext || window.webkitAudioContext)();
-  synth.resume?.();
+  synth = sound();
+  if (!synth) return;
   const root = 48 + PC[m[1]], third = m[2] ? 3 : 4, now = synth.currentTime;
   [0, 7, 12, 12 + third, 19].forEach((s, i) => {
     const f = 440 * 2 ** ((root + s - 69) / 12), o = synth.createOscillator(), g = synth.createGain(), lp = synth.createBiquadFilter();
