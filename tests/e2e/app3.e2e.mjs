@@ -242,12 +242,12 @@ test("typing in Text on a phone opens writing mode; the editor fills the top and
   assert.ok(!(await page.evaluate(() => document.body.classList.contains("writing"))), "writing mode off when the keyboard closes");
 });
 
-test("2.13 Library: no Key chip in a big library; the Tuning chip stays", { skip: skip() }, async t => {
+test("2.13/2.16.4 Library: no Key or Tuning chip in a big library", { skip: skip() }, async t => {
   const keys = ["G", "C", "D", "A", "E", "F"];
   const songs = Array.from({ length: 14 }, (_, i) => ({ id: "k" + i, title: "Song " + i, artist: "A", format: "chords", key: keys[i % 6], tuning: i % 2 ? "dropd" : undefined, body: `[Verse]\n${keys[i % 6]}\nla` }));
   const page = await phone(t, { ...LIB, songs });
   assert.equal(await page.locator("#f-key").count(), 0, "no Key chip");
-  assert.equal(await page.locator("#f-tune").count(), 1, "Tuning chip still there");
+  assert.equal(await page.locator("#f-tune").count(), 0, "no Tuning chip (2.16.4)");
 });
 
 test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is running", { skip: skip() }, async t => {

@@ -19,7 +19,6 @@ window.addEventListener("pagehide", () => Tabs.flush());
 let query = "";
 let filter = "all";
 const setFilter = f => { filter = f; };
-let tuneFilter = ""; /* narrow a big library by tuning (the Key chip went in 2.13) */
 // Search mode: tapping the bar moves it to the top and folds the library away, so
 // results sit between the bar and the keyboard. (iPhone doesn't resize the page
 // for the keyboard; it pushes the page up instead, which hid results at the top.)
@@ -162,7 +161,6 @@ function renderLibrary() {
       ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
       ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
       ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
-      ${moreFilters()}
     </div>` : ""}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -188,7 +186,6 @@ function renderLibrary() {
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   $("add").onclick = () => newSong();
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
-  $("f-tune")?.addEventListener("change", e => { tuneFilter = e.target.value; if (filter === "sets") filter = "all"; renderLibrary(); });
   bindShelf();
   const q = $("q");
   const enterSearch = () => {
@@ -310,16 +307,7 @@ function songRow(s, hit) {
   </button>`;
 }
 
-// Tuning chip: only for a library big enough to need it, and only when there's
-// more than one tuning to choose from.
 const sortBy = sort => `<label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label>`;
-function moreFilters() {
-  if (data.songs.length < 12) { tuneFilter = ""; return ""; }
-  const tunes = [...new Set(data.songs.map(songTuning))];
-  if (!tunes.includes(tuneFilter)) tuneFilter = "";
-  const chip = (id, label, value, opts) => `<label class="chip sel ${value ? "on" : ""}">${value ? esc(opts.find(o => o[0] === value)[1]) : label}${icon("chev", "chev")}<select id="${id}" aria-label="${label}"><option value="">Any ${label.toLowerCase()}</option>${opts.map(([v, n]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`;
-  return (tunes.length > 1 ? chip("f-tune", "Tuning", tuneFilter, tunes.map(t => [t, TUNINGS[t].name])) : "");
-}
 // A–Z index on the right edge of a long list: touch or drag to jump to a letter.
 function bindIndex(list, sorted, sort) {
   document.querySelector(".azx")?.remove();
@@ -396,8 +384,7 @@ function renderList() {
     return;
   }
   const pool = searching ? data.songs : data.songs.filter(s =>
-    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning")
-    && (!tuneFilter || songTuning(s) === tuneFilter));
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning"));
   /* Searching: title and artist matches first, then songs whose lyrics have the words. */
   const found = q ? searchSongs(pool, q) : null;
   const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
@@ -412,7 +399,7 @@ function renderList() {
         <div class="t">${esc(s.title)}</div>
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
-    ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}${tuneFilter ? ` · ${esc(TUNINGS[tuneFilter].name)}` : ""}${tuneFilter ? ` · ${sorted.length}` : ""}</span>
+    ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</span>
       ${sortBy(sort)}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });

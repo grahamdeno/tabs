@@ -898,9 +898,6 @@ body.nn-demo .nn { display: flex; animation: nnin .3s ease-out; }
 .gs-show { flex: none; font: 600 13px var(--sans); color: var(--accent); border: 1px solid var(--accent-line); border-radius: 14px; padding: 6px 10px; background: none; }
 
 /* ---------- Library: Key and Tuning filters, A–Z index ---------- */
-.chip.sel { position: relative; display: inline-flex; align-items: center; gap: 4px; }
-.chip.sel .chev { width: 11px; height: 11px; transform: rotate(90deg); opacity: .7; }
-.chip.sel select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
 .azx { position: fixed; z-index: 18; right: 2px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 12px; touch-action: none; -webkit-user-select: none; user-select: none; }
 .azx button { width: 22px; height: min(19px, 2.6vh); padding: 0; border: 0; background: none; font: 600 11px var(--sans); color: var(--accent); line-height: 1; }
 .azx.on { background: var(--card-2); }
