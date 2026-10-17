@@ -32,12 +32,3 @@ test("no hold hint once you've opened the ring yourself", { skip: skip() }, asyn
   assert.equal(await page.locator(".ring-hint").count(), 0);
 });
 
-test("2.24.0: the time knob's pointer turns with the speed, slowest left", { skip: skip() }, async t => {
-  const k = async d => {
-    const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: d } : s), settings: { ...LIB.settings, controls: "ring", follow: "touch", micExplained: true, tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } }, { isMobile: true });
-    await page.goto(base + "#/song/a"); await page.waitForSelector(".rc-isl #dialbtn");
-    return parseFloat(await page.evaluate(() => document.getElementById("dialbtn").style.getPropertyValue("--k")));
-  };
-  const slow = await k(480), fast = await k(60);
-  assert.ok(slow <= -130 && fast >= 130, `pointer ${slow} to ${fast}`);
-});

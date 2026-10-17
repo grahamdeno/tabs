@@ -149,7 +149,7 @@ function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <h1 class="title script">Library</h1>
+      <h1 class="title">Library</h1>
       <div class="row-btns">
         ${tunerBtn("ib glass")}
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
@@ -813,9 +813,7 @@ function renderViewer(id) {
       $("sv").textContent = (speed.value / SPEEDS.medium).toFixed(1) + "x";
     }
     const db = $("dialbtn")?.querySelector("span");
-    if (db) { db.textContent = $("sv").textContent;
-      /* The knob's pointer: -135° at the slowest, +135° at the fastest. */
-      db.parentNode.style.setProperty("--k", (((speed.value - speed.min) / (speed.max - speed.min)) * 270 - 135).toFixed(1) + "deg"); }
+    if (db) db.textContent = $("sv").textContent;
     ringApi?.refresh();
   };
   showSpeed();
