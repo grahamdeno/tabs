@@ -1389,3 +1389,19 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
 .duet-seg { margin: 6px 0 4px; }
 .duet-seg button { height: 36px; }
 .duet-wait .actions .btn { flex: 1; }
+
+/* First-time hint (2.16): where the ring opens, a glass circle grows, shrinks,
+   bounces and goes, and Play comes back on top of it. */
+.ring-hint { position: fixed; z-index: 21; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; pointer-events: none; transform: scale(.16); opacity: 0; animation: ringHint 1.7s cubic-bezier(.3,.7,.3,1) forwards; }
+@keyframes ringHint {
+  0% { transform: scale(.16); opacity: 0; }
+  12% { opacity: 1; }
+  32% { transform: scale(1); }
+  50% { transform: scale(.5); }
+  64% { transform: scale(.82); }
+  76% { transform: scale(.66); }
+  86% { transform: scale(.74); opacity: 1; }
+  100% { transform: scale(.16); opacity: 0; }
+}
+body.ring .rc #play.hint-under { z-index: 23; }
+@media (prefers-reduced-motion: reduce) { .ring-hint { display: none; } }

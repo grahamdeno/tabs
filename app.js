@@ -897,7 +897,9 @@ function renderViewer(id) {
     where: () => { const line = innerHeight * READ_AT; let name = ""; for (const el of document.querySelectorAll("#sheet > .sec")) { if (el.getBoundingClientRect().top <= line) name = el.textContent.trim(); else break; } return name; },
     back: { label: back.label, run: () => go(back.to) },
     playing: () => scroll.on,
-    followMode: () => data.settings.follow || "hand"
+    followMode: () => data.settings.follow || "hand",
+    rose: () => ringHint(),
+    opened: () => markUsed("ringHint")
   });
   offerMotion();
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
@@ -2487,6 +2489,26 @@ function renderRoute() {
 // Screen changes animate with the browser's view transitions where supported:
 // a short cross-fade, and the song title glides between the library row and the
 // song header. Instant when Reduce Motion is on or the browser lacks support.
+// The first time Play glides up to the arc (2.16): a glass circle grows,
+// shrinks and settles where the ring will open, then a note says to hold
+// Play. Once only, and never once you've opened the ring yourself.
+function ringHint() {
+  if (scroll.on || !document.body.classList.contains("ring") || !tipDue("ringHint") || document.querySelector(".coach, .ringx")) return;
+  setTimeout(() => {
+    const p = $("play");
+    if (!p || scroll.on || !document.body.classList.contains("ring-up") || !coachTip("ringHint")) return;
+    ringApi?.lift?.(); /* keep Play up while it plays out */
+    const say = () => { if ($("play")?.isConnected && !scroll.on) coach($("play"), "", { ms: 5200, place: "above", html: "<b>Press and hold Play for more</b><span>A ring opens with Favorite, Metronome, Key and More. Slide to one and let go.</span>" }); };
+    if (calm()) return say();
+    const r = p.getBoundingClientRect(), g = document.createElement("div");
+    g.className = "ring-hint glass"; g.setAttribute("aria-hidden", "true");
+    g.style.left = (r.left + r.width / 2) + "px"; g.style.top = (r.top + r.height / 2) + "px";
+    p.before(g); /* beside Play, so Play stays on top of the glass */
+    p.classList.add("hint-under");
+    const keep = setInterval(() => ringApi?.lift?.(), 400);
+    g.addEventListener("animationend", () => { g.remove(); p.classList.remove("hint-under"); clearInterval(keep); say(); }, { once: true });
+  }, 380); /* after the glide (0.3 s) */
+}
 const calm = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 let lastOpened = null; // id of the song whose title should glide back to its row
 window.addEventListener("hashchange", () => {

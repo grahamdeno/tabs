@@ -264,6 +264,7 @@ function bindHold() {
 
 function openRing(p, live) {
   closeRing();
+  st.o.opened?.();
   const r = p.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, { at: ANG, R } = layout();
   const el = document.createElement("div");
   el.className = "ringx";
@@ -343,6 +344,7 @@ function tick() {
   if (st.touching || now - st.lastTouch < CALM_MS || ringEl) return;
   st.up = want;
   position();
+  if (want) st.o.rose?.(); /* the app may show the first-time hold hint (2.16) */
 }
 
 // Ask for the motion sensors (iPhone asks once, from a tap). Resolves true when allowed.
