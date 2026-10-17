@@ -1471,3 +1471,29 @@ body.ring-open .rc #play { box-shadow: inset 0 1px 0 rgba(255,220,190,.45); }
 /* 2.24.0: the + on the library matches Play's deeper copper. */
 .add { background: linear-gradient(180deg, #c8804f, #9c5631); color: #fff3e6;
   box-shadow: inset 0 1px 0 rgba(255,220,190,.45), 0 8px 22px rgba(156,86,49,.45); }
+
+/* 2.25.0: the speed dial as a backlit amp meter (dial.js draws it). */
+.dial-rim { fill: #1b1712; stroke: var(--bronze); stroke-opacity: .6; stroke-width: 1.5; }
+.dial-bg { fill: url(#dial-face); fill-opacity: 1; stroke: rgba(0,0,0,.5); }
+.dial-ticks line, .dial-ticks line.lit, .dial-ticks line.cur, :root[data-theme="light"] .dial-ticks line.lit { stroke: #2a1d0c; stroke-opacity: .85; stroke-width: 1.5; }
+.dial-ticks line.mj { stroke-width: 2.6; stroke-opacity: 1; }
+.dial-ticks line.hot { stroke: #b3261e; stroke-opacity: 1; }
+.dial-needle { stroke: #151008; stroke-width: 2.4; stroke-linecap: round; }
+.dial-pivot { fill: #0c0a08; stroke: var(--bronze); stroke-opacity: .7; }
+.dial-win { fill: #16110b; stroke: var(--bronze); stroke-opacity: .55; }
+.dial-big { fill: #ffc27a; font-family: var(--mono); font-size: 32px; }
+.dial-small { fill: #2a1d0c; font-weight: 800; letter-spacing: .25em; }
+.dial-end { fill: #5a4220; font-weight: 800; letter-spacing: .12em; font-size: 9px; }
+.dial-labels text { fill: #4a3518; }
+.dial-labels text.cur { fill: #151008; font-weight: 800; }
+/* Filter chips: a small jewel lamp each, lit on the one that's selected. */
+#chips .chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 10px; }
+#chips .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, rgba(255,230,190,.3) 0 14%, #6b3a12 45%, #2e1606 85%); box-shadow: 0 0 0 1.5px rgba(0,0,0,.45); }
+:root[data-theme="light"] #chips .chip::before { background: radial-gradient(circle at 35% 30%, rgba(255,240,220,.7) 0 14%, #c9a27a 50%, #a07a52 90%); box-shadow: 0 0 0 1.5px rgba(0,0,0,.15); }
+#chips .chip.on::before, :root[data-theme="light"] #chips .chip.on::before { background: radial-gradient(circle at 35% 30%, #fff1c9 0 12%, #ffb24a 34%, #e2661c 70%, #8a2d08);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.45), 0 0 7px 1px rgba(255,140,40,.65); }
+.dial.set .dial-big { font-family: var(--sans); }
+.dial-labels text.sc { font: 700 10px var(--sans); fill: #3a2810; }
+.dial-small { fill: #c9b48c; font-weight: 700; letter-spacing: .14em; font-size: 10px; }
+.dial.set .dial-small { letter-spacing: .04em; }

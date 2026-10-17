@@ -478,3 +478,28 @@ test("2.16.5 speed dial: a tap that slips a little near the corner closes it wit
   assert.equal((await page.innerText("#dialbtn")).trim(), before, "the time didn't change");
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").duration, 200, "nothing saved");
 });
+
+test("2.25.0 speed dial is a meter: the needle swings with the length, and whole minutes are marked", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 235 } : s) });
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.click("#dialbtn"); await page.waitForSelector(".dial-needle");
+  const tip = () => page.evaluate(() => { const n = document.querySelector(".dial-needle"); return [+n.getAttribute("x2"), +n.getAttribute("y2")]; });
+  const before = await tip();
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll(".dial-labels .sc")].map(e => e.textContent)), ["2:00", "3:00", "4:00", "5:00", "6:00", "7:00"]);
+  assert.match(await page.textContent(".dial-small"), /SONG LENGTH/);
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.evaluate(() => { const s = document.getElementById("speed"); s.value = 480; s.oninput(); });
+  await page.mouse.click(60, 120); await page.waitForTimeout(250);
+  await page.click("#dialbtn"); await page.waitForSelector(".dial-needle");
+  const after = await tip();
+  assert.ok(after[1] < before[1], `faster points higher: ${before} then ${after}`);
+});
+
+test("2.25.0 filter chips: the selected one's lamp is lit", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map((s, i) => ({ ...s, favorite: i === 0 })) });
+  const glow = sel => page.evaluate(s => getComputedStyle(document.querySelector(s), "::before").boxShadow, sel);
+  assert.match(await glow("#chips [data-f='all']"), /255, 140, 40/);
+  assert.doesNotMatch(await glow("#chips [data-f='fav']"), /255, 140, 40/);
+  await page.click("#chips [data-f='fav']"); await page.waitForTimeout(200);
+  assert.match(await glow("#chips [data-f='fav']"), /255, 140, 40/);
+});

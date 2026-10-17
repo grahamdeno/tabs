@@ -29,6 +29,7 @@ function angleOf(x, y) {
  *  o.input(v)             called as the value changes
  *  o.done(v, changed)     called when the dial closes
  *  o.label                accessible name
+ *  o.marks                optional values to label on the scale
  *  o.event                the pointerdown that opened it (to sweep straight away)
  */
 export function openDial(o) {
@@ -48,12 +49,21 @@ export function openDial(o) {
   layer.setAttribute("aria-valuemin", min); layer.setAttribute("aria-valuemax", max);
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("width", W); svg.setAttribute("height", H);
-  svg.innerHTML = `<defs><filter id="dial-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  /* 2.25.0: drawn as a backlit amp meter: a cream face in the corner circle,
+     a needle from the corner that swings as you sweep, and the reading and its name
+     in a dark window above the face, clear of the thumb. */
+  const bw = labels ? Math.min(W - 24, R + 10) : 150, bx = W - 12 - bw, by = H - R - 88;
+  svg.innerHTML = `<defs><filter id="dial-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <radialGradient id="dial-face" gradientUnits="userSpaceOnUse" cx="${W}" cy="${H}" r="${R}"><stop offset="0" stop-color="#ffecc0"/><stop offset=".6" stop-color="#f3d38f"/><stop offset="1" stop-color="#c99a4f"/></radialGradient></defs>
+    <circle class="dial-rim" cx="${W}" cy="${H}" r="${R + 6}"/>
     <circle class="dial-bg" cx="${W}" cy="${H}" r="${R}"/>
     <g class="dial-ticks"></g><g class="dial-labels"></g>
-    <text class="dial-big" x="${fmt(W - R * 0.45)}" y="${fmt(H - R * 0.42)}" text-anchor="middle" filter="url(#dial-glow)"></text>
-    <text class="dial-small" x="${fmt(W - R * 0.45)}" y="${fmt(H - R * 0.42 + 24)}" text-anchor="middle"></text>
-    ${labels ? "" : `<text class="dial-end" x="${fmt(W - R + 52)}" y="${H - 10}">slower</text><text class="dial-end" x="${fmt(W - 14)}" y="${fmt(H - R + 62)}" text-anchor="end">faster</text>`}`;
+    ${labels || o.marks ? "" : `<text class="dial-end" x="${fmt(W - R + 52)}" y="${H - 10}">SLOWER</text><text class="dial-end" x="${fmt(W - 14)}" y="${fmt(H - R + 62)}" text-anchor="end">FASTER</text>`}
+    <line class="dial-needle" x1="${W}" y1="${H}" x2="${W}" y2="${H}"/>
+    <circle class="dial-pivot" cx="${W}" cy="${H}" r="30"/>
+    <rect class="dial-win" x="${fmt(bx)}" y="${fmt(by)}" width="${fmt(bw)}" height="66" rx="12"/>
+    <text class="dial-big" x="${fmt(bx + bw / 2)}" y="${fmt(by + 37)}" text-anchor="middle" filter="url(#dial-glow)"></text>
+    <text class="dial-small" x="${fmt(bx + bw / 2)}" y="${fmt(by + 55)}" text-anchor="middle"></text>`;
   layer.appendChild(svg);
   document.body.appendChild(layer);
   requestAnimationFrame(() => layer.classList.add("on"));
@@ -65,11 +75,20 @@ export function openDial(o) {
     const f = (value - min) / (max - min || 1), lit = Math.round(f * (n - 1));
     let t = "", l = "";
     for (let i = 0; i < n; i++) {
-      const major = !labels && i % 5 === 0, cur = i === lit;
-      const [x0, y0] = at(i, R - (major ? 42 : 36)), [x1, y1] = at(i, R - 16);
-      t += `<line x1="${fmt(x0)}" y1="${fmt(y0)}" x2="${fmt(x1)}" y2="${fmt(y1)}" class="${cur ? "cur" : i < lit ? "lit" : ""}"${i <= lit ? ' filter="url(#dial-glow)"' : ""}/>`;
-      if (labels) { const [lx, ly] = at(i, R - 58); l += `<text x="${fmt(lx)}" y="${fmt(ly + 4)}" text-anchor="middle" class="${cur ? "cur" : ""}"${cur ? ' filter="url(#dial-glow)"' : ""}>${o.tick ? o.tick(i) : i + 1}</text>`; }
+      const major = !labels && !o.marks && i % 5 === 0, cur = i === lit, hot = !labels && i >= n - 4;
+      const [x0, y0] = at(i, R - (major ? 44 : 34)), [x1, y1] = at(i, R - 14);
+      t += `<line x1="${fmt(x0)}" y1="${fmt(y0)}" x2="${fmt(x1)}" y2="${fmt(y1)}" class="${[cur ? "cur" : i < lit ? "lit" : "", major ? "mj" : "", hot ? "hot" : ""].join(" ").trim()}"/>`;
+      if (labels) { const [lx, ly] = at(i, R - 58); l += `<text x="${fmt(lx)}" y="${fmt(ly + 4)}" text-anchor="middle" class="${cur ? "cur" : ""}">${o.tick ? o.tick(i) : i + 1}</text>`; }
     }
+    /* Marked values (whole minutes for the song length) get a heavy tick and a label. */
+    for (const v of o.marks || []) {
+      const p = (v - min) / (max - min) * (n - 1), [x0, y0] = at(p, R - 44), [x1, y1] = at(p, R - 14), [lx, ly] = at(p, R - 60);
+      t += `<line x1="${fmt(x0)}" y1="${fmt(y0)}" x2="${fmt(x1)}" y2="${fmt(y1)}" class="mj"/>`;
+      l += `<text x="${fmt(lx)}" y="${fmt(ly + 4)}" text-anchor="middle" class="sc">${o.read(v).big}</text>`;
+    }
+    /* The needle points at the value itself, between ticks when it falls there. */
+    const [nx, ny] = at(f * (n - 1), R - 10), needle = svg.querySelector(".dial-needle");
+    needle.setAttribute("x2", fmt(nx)); needle.setAttribute("y2", fmt(ny));
     ticks.innerHTML = t; names.innerHTML = l;
     const r = o.read(value);
     big.textContent = r.big; small.textContent = r.small || "";

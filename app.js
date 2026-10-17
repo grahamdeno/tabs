@@ -826,6 +826,7 @@ function renderViewer(id) {
   /* A change can be undone right away (in case a thumb moved it by mistake). */
   const speedDial = e => { const was = { v: speed.value, d: song.duration, set: song.durationSet, sp: song.speed };
     openDial({ min: +speed.min, max: +speed.max, step: +speed.step, value: +speed.value, label: "Song speed", event: e,
+      marks: byLength() ? [2, 3, 4, 5, 6, 7].map(m => 540 - m * 60) : null,
       read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
       input: v => { speed.value = v; speed.oninput(); },
       done: (v, changed) => { if (changed) toast(byLength() ? `Length ${mmss(songLength(song))}` : `Speed ${$("sv").textContent}`, null, { label: "Undo", fn: () => {
