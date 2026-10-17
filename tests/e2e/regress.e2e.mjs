@@ -48,7 +48,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await is(() => document.body.classList.contains("nn-on") && document.querySelectorAll("#nn svg").length > 0, "Now and Next shows");
     await page.click("#nnbtn"); await page.click("#play"); await page.waitForTimeout(500);
     await is(() => !!document.querySelector(".prow"), "diagrams when paused");
-    await is(() => [...document.querySelectorAll(".prow .pcard")].every(c => c.getBoundingClientRect().top >= document.getElementById("sheet").getBoundingClientRect().top - 1), "2.26.0: the cards never cover Chords in this song");
+    await is(() => [...document.querySelectorAll(".prow .pcard")].every(c => c.getBoundingClientRect().top >= Math.max(document.getElementById("sheet").getBoundingClientRect().top, (r => r && r.right > document.getElementById("sheet").getBoundingClientRect().left && r.left < document.getElementById("sheet").getBoundingClientRect().right ? r.bottom : -1e9)(document.querySelector("#strip .strip")?.getBoundingClientRect())) - 1), "2.26.2: the cards never cover Chords in this song");
     await page.click("#up"); await page.waitForTimeout(200);
     assert.match(await page.innerText("#meta"), /Key Bb/, "transpose up");
     await page.click("#down");

@@ -1173,7 +1173,11 @@ function showPausedRow(block = pausedBlock()) {
   if (lefts[n - 1] + w > width) for (let i = n - 1; i >= 0; i--) lefts[i] = Math.min(lefts[i], i === n - 1 ? width - w : lefts[i + 1] - w - GAP);
   /* 2.26.0: over the first line the cards would cover "Chords in this song"
      above the sheet, so there they hang below the line instead. */
-  const below = row.top - h - 9 < 0;
+  /* Compared on screen, against the sheet's top and the chord boxes themselves (2.26.2). */
+  const cardsTop = block.getBoundingClientRect().top + (row.top - h - 9 - block.offsetTop);
+  const strip = $("strip")?.querySelector(".strip"), sr = strip?.offsetParent ? strip.getBoundingClientRect() : null, shr = sheet.getBoundingClientRect();
+  const stripBottom = sr && sr.left < shr.right && sr.right > shr.left && sr.bottom <= block.getBoundingClientRect().top ? sr.bottom : -Infinity; /* only when it's above the song (iPad keeps it in the side rail) */
+  const below = cardsTop < Math.max(shr.top, stripBottom + 4);
   const el = document.createElement("div");
   el.className = "prow" + (below ? " below" : "");
   el.style.top = (below ? block.offsetTop + block.offsetHeight + 9 : row.top - h - 9) + "px";
