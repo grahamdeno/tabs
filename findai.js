@@ -324,7 +324,7 @@ export async function nextSongs() {
   const close = () => { layer.innerHTML = ""; };
   $("nx-scrim").onclick = close; $("nx-x").onclick = close;
   const controls = () => `<div class="nx-ctl">
-      <div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}>${n}</button>`).join("")}</div>
+      <div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}><i class="nx-lamp" aria-hidden="true"></i>${n}</button>`).join("")}</div>
       ${state.busy ? "" : state.err ? `<button class="btn primary" id="nx-again">Try again</button>` : `<button class="btn" id="nx-more">Show different songs</button>`}</div>`;
   const bindControls = () => {
     document.querySelectorAll("#nx-level [data-lv]").forEach(b => b.onclick = () => {
@@ -341,7 +341,8 @@ export async function nextSongs() {
     if (foot) $("nx-foot").innerHTML = controls();
     const tail = foot ? "" : controls();
     if (state.busy) {
-      body.innerHTML = `<div class="easy-wait">${busy(level() === "step" ? "Looking for songs a step up from yours" : "Looking for songs that fit your chords")}</div>${tail}`;
+      /* 2.31.0: the amp warms up: a jewel lamp glows while the AI works. */
+      body.innerHTML = `<div class="easy-wait nx-warm" role="status"><i class="nx-jewel" aria-hidden="true"></i><span>${level() === "step" ? "Warming up: songs a step up from yours" : "Warming up: songs that fit your chords"}</span></div>${tail}`;
       const was = state;
       setTimeout(() => { const w = body.querySelector(".easy-wait"); if (state === was && w) w.lastChild.textContent = " Still looking, this can take a few more seconds"; }, 9000);
     }
@@ -357,7 +358,7 @@ export async function nextSongs() {
       <div class="list glass">${state.list.map((x, i) => `<div class="row nx-row">
         <div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}</div>${x.why ? `<div class="nx-why">${esc(x.why)}</div>` : ""}
           <div class="nx-ch">${x.chords.map(c => `<span class="${x.new.includes(c) ? "new" : ""}">${esc(c)}</span>`).join("")}${x.new.filter(c => !x.chords.includes(c)).map(c => `<span class="new">${esc(c)}</span>`).join("")}</div></div>
-        <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary" data-nc="${i}">Chart</button></div>
+        <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary nx-add" data-nc="${i}" aria-label="Add ${esc(x.title)}: get its chord chart">Add</button></div>
       </div>`).join("")}</div>${tail}`;
       body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
       body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist }) : null; });
