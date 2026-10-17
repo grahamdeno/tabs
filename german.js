@@ -3,7 +3,7 @@
 // your library, only when you ask), kept with the song on this phone, and never
 // shared or backed up. core.js applies a level to the display (germanBlocks).
 // Loaded on first use.
-import { Tabs, parseBlocks, sungText, deSource, cleanGerman, deSpans, DE_LEVELS } from "./core.js";
+import { Tabs, parseBlocks, sungText, deSource, cleanGerman, deSpans, DE_LEVELS, bestGermanVoice } from "./core.js";
 import { $, data, esc, icon, layer, toast, busy, AI, aiKey, askClaude, aiError, parseJSON, deJobs, go } from "./app.js";
 
 const SYSTEM = `You help an English speaker learn German through songs they play. You get numbered lines of a song from their own library, as JSON. Reply with JSON only:
@@ -157,10 +157,15 @@ function speak(text) {
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "de-DE";
-    const v = speechSynthesis.getVoices().find(x => /^de/i.test(x.lang));
+    const v = bestGermanVoice(speechSynthesis.getVoices()); /* the most natural one installed (2.17.1) */
     if (v) u.voice = v;
     u.rate = 0.9;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
+    /* Only a basic voice here: say once where a natural one comes from. */
+    if (!/premium|enhanced|erweitert|verbessert|neural|natural/i.test(v?.name || "") && !data.settings.deVoiceTip) {
+      data.settings.deVoiceTip = true; Tabs.save(data);
+      setTimeout(() => toast("For a more natural voice, download a German one: iPhone Settings > Accessibility > Spoken Content > Voices > German, then Anna (Premium)."), 1200);
+    }
   } catch { toast("This phone can't speak German aloud here."); }
 }
 let cardOff = null;

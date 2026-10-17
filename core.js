@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.17.0";
+export const VERSION = "2.17.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1257,6 +1257,18 @@ export function octaveFix(freq, tuning = "standard", a4 = 440, idx = -1) {
   if (near(freq) <= 60) return freq;
   for (const f of [freq / 2, freq * 2]) if (near(f) <= 60) return f;
   return freq;
+}
+// The most natural German voice the phone has (2.17.1): Premium, then
+// Enhanced (downloaded in iPhone Settings > Accessibility > Spoken Content),
+// then a neural or natural voice in other browsers; Germany's German first.
+// The playful novelty voices are left for last. null when there's none.
+const NOVELTY = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Bahh|Bells|Boing|Bubbles|Cellos|Wobble|Good News|Bad News|Jester|Organ|Superstar|Trinoids|Whisper|Zarvox|Albert|Fred|Junior|Kathy|Ralph)\b/i;
+export function bestGermanVoice(voices = []) {
+  const score = v => (/premium/i.test(v.name) ? 40 : 0) + (/enhanced|erweitert|verbessert/i.test(v.name) ? 25 : 0)
+    + (/neural|natural|online/i.test(v.name) ? 15 : 0) + (/^de[-_]DE/i.test(v.lang) ? 3 : 0) + (v.default ? 1 : 0)
+    - (NOVELTY.test(v.name) ? 50 : 0);
+  const de = voices.filter(v => /^de/i.test(v.lang || ""));
+  return de.length ? de.reduce((a, b) => (score(b) > score(a) ? b : a)) : null;
 }
 // ---------- Tuner guidance ----------
 // In tune within 3 cents; the strobe takes over within 5; past 50 you're on the

@@ -1096,3 +1096,13 @@ test("octaveFix: folds an octave slip back to the string meant (2.16.1)", () => 
   assert.ok(Math.abs(C.octaveFix(A2 / 2, "standard", 440, -1) - A2) < 0.01, "no target: near no string, folded to one");
   assert.equal(C.octaveFix(280, "standard", 440, -1), 280, "nothing near: left alone");
 });
+
+test("bestGermanVoice: Premium, then Enhanced, Germany first, novelty voices last (2.17.1)", () => {
+  const v = (name, lang, extra = {}) => ({ name, lang, ...extra });
+  const compact = v("Anna", "de-DE", { default: true }), enh = v("Helena (Enhanced)", "de-DE"), prem = v("Anna (Premium)", "de-DE"), eddy = v("Eddy (German (Germany))", "de-DE");
+  assert.equal(C.bestGermanVoice([compact, enh, prem, v("Samantha", "en-US")]), prem);
+  assert.equal(C.bestGermanVoice([compact, enh]), enh);
+  assert.equal(C.bestGermanVoice([eddy, compact]), compact);
+  assert.equal(C.bestGermanVoice([v("Petra", "de-AT"), v("Markus", "de-DE")]).name, "Markus");
+  assert.equal(C.bestGermanVoice([v("Samantha", "en-US")]), null);
+});
