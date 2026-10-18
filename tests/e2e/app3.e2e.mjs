@@ -399,6 +399,39 @@ test("a song's groove is found once, used for the song, and changed in Edit", { 
   assert.ok(await page.$("#ed-g-find"), "Find again is there with a key");
 });
 
+test("a bass riff: drawn in Edit, kept on the song, and played on each chord", { skip: skip() }, async t => {
+  const song = { id: "rf1", title: "Riff Song", artist: "Me", key: "G", format: "chords", bpm: 240, body: "[Verse]\nG   G   G   G" };
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: false, bass: true, countIn: false, controls: "bar" } });
+  await page.evaluate(() => {
+    window.__osc = [];
+    const C = window.AudioContext || window.webkitAudioContext, o = C.prototype.createOscillator;
+    C.prototype.createOscillator = function () { const n = o.call(this); window.__osc.push(n); return n; };
+  });
+  const errors = []; page.on("pageerror", e => errors.push(String(e)));
+  const groove = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "rf1").groove);
+  await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
+  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForSelector("#ed-g-bass");
+  await page.selectOption("#ed-g-bass", "riff"); await page.waitForSelector(".rf-c");
+  assert.equal((await page.$$(".rf-c")).length, 16, "sixteen steps");
+  assert.equal(await page.innerText(".rf-c[data-k='0']"), "1", "a root on the beat to start from");
+  for (let i = 0; i < 3; i++) await page.click(".rf-c[data-k='8']"); /* rest, root, third, fifth */
+  assert.equal(await page.innerText(".rf-c[data-k='8']"), "5");
+  await page.click("#rf-play"); await page.click("#rf-ok");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "rf1").groove?.riff);
+  assert.deepEqual(await groove(), { src: "you", bass: "riff", riff: "1.......5......." });
+  assert.ok(await page.$("#ed-g-riff"), "Edit riff is there");
+  await page.click("#ed-g-riff"); await page.waitForSelector(".rf-c");
+  assert.equal(await page.innerText(".rf-c[data-k='8']"), "5", "the riff opens as it was saved");
+  await page.click("#rf-scrim");
+  await page.evaluate(() => { window.__osc.length = 0; });
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".list .row");
+  await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
+  await page.click("#play"); await page.waitForTimeout(1300); await page.click("#play");
+  const f = await page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
+  assert.ok(f.includes(98) && f.includes(146.8), `the riff plays the root (98 Hz) and the fifth (146.8 Hz) of G (${f})`);
+  assert.deepEqual(errors, []);
+});
+
 test("Settings: the metronome's switch, volume and sound; a song with no tempo gets one", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false, controls: "bar" } });
   await page.route("https://api.anthropic.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: '{"bpm": 120, "beats": 4}' }], stop_reason: "end_turn" }) }));

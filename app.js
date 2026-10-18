@@ -1901,8 +1901,8 @@ function bassBeat(song, t, b, beats, spb, quiet, drum, groove) {
   const off = soundOffset(song), now = seq[bass.idx].name;
   const next = seq.slice(bass.idx + 1).find(x => x.name !== now);
   const swing = DRUM_SWING[groove.swing] || 0.5;
-  const style = bassStyle(groove.bass, drum, beats, groove.swing);
-  for (const h of bassHits(style, chordBass(now, off), next ? chordBass(next.name, off) : null, b, beats, swing)) bassNote(h.m, t + h.at * spb, h.len * spb, h.v);
+  const style = bassStyle(groove.bass, drum, beats, groove.swing, groove.riff);
+  for (const h of bassHits(style, chordBass(now, off), next ? chordBass(next.name, off) : null, b, beats, swing, groove.riff)) bassNote(h.m, t + h.at * spb, h.len * spb, h.v);
 }
 /* Settings plays a bar of G and a bar of C in the chosen style and volume. */
 function bassPreview() {
@@ -1911,6 +1911,13 @@ function bassPreview() {
   const t = audio.currentTime + 0.05, spb = 0.5, style = bassStyle(data.settings.bassStyle, "rock", 4, data.settings.metroSwing);
   const G = chordBass("G"), C = chordBass("C"), swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
   for (let b = 0; b < 8; b++) for (const h of bassHits(style, b < 4 ? G : C, b < 4 ? C : G, b % 4, 4, swing)) bassNote(h.m, t + (b + h.at) * spb, h.len * spb, h.v);
+}
+/* The riff editor plays the riff on G, then C, so you hear it move with the chord. */
+function riffPreview(riff, swingKey = "straight") {
+  const audio = sound();
+  if (!audio || !riff) return;
+  const t = audio.currentTime + 0.05, spb = 0.4, swing = DRUM_SWING[swingKey] || 0.5, G = chordBass("G"), C = chordBass("C");
+  for (let b = 0; b < 8; b++) for (const h of bassHits("riff", b < 4 ? G : C, b < 4 ? C : G, b % 4, 4, swing, riff)) bassNote(h.m, t + (b + h.at) * spb, h.len * spb, h.v);
 }
 /* A synthesized bass guitar: a triangle for the body, a filtered saw for the
    finger, and a sine an octave up so a phone speaker (which can't play the low
@@ -2485,4 +2492,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { aiLastStop, bassPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.46.0";
+export const VERSION = "2.47.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2409,7 +2409,8 @@ export function chordBass(name, offset = 0) {
 }
 /* Which pattern plays. A pick wins; Auto follows the drum beat, and a full
    swing walks. Walking needs four beats. */
-export function bassStyle(pick, drum, beats = 4, swing = "straight") {
+export function bassStyle(pick, drum, beats = 4, swing = "straight", riff = "") {
+  if (pick === "riff") return beats === 4 ? (validRiff(riff) ? "riff" : "pulse") : "fifth"; /* a riff is a bar of four beats */
   let s = BASS_STYLES.some(([k]) => k === pick && k !== "auto") ? pick : "auto";
   if (s === "auto") s = swing === "full" && beats === 4 ? "walk" : drum === "ballad" || drum === "half" ? "root" : drum === "six8" || drum === "waltz" ? "fifth" : "pulse";
   return s === "walk" && beats !== 4 ? "fifth" : s;
@@ -2417,11 +2418,25 @@ export function bassStyle(pick, drum, beats = 4, swing = "straight") {
 /* The notes on pulse b of a bar: { m: midi note, at: where in the pulse (0 to 1),
    len: how long, in pulses, v: how hard }. cur and next come from chordBass;
    next is the chord after this one (for the walk's approach note). */
-export function bassHits(style, cur, next, b, beats = 4, swing = 0.5) {
+export function bassHits(style, cur, next, b, beats = 4, swing = 0.5, riff = "") {
   if (!cur) return [];
   const hits = [], hit = (m, at, len, v) => hits.push({ m, at, len, v });
   const low = bassPitch(cur.bass), rootP = bassPitch(cur.root), fifthP = rootP + cur.fifth > 52 ? rootP + cur.fifth - 12 : rootP + cur.fifth;
   const compound = beats >= 6 && beats % 3 === 0, even = beats % 2 === 0 && !compound;
+  if (style === "riff" && validRiff(riff) && beats === 4) {
+    /* Each character is a sixteenth. The eighth-note off-beat moves with swing,
+       and a note rings until the next one. */
+    const pitch = { 1: low, 3: rootP + (cur.third ?? cur.fifth), 5: rootP + cur.fifth, 7: rootP + 10, 8: rootP + 12 };
+    const at = i => (i < 2 ? i * swing / 2 : swing + (i - 2) * (1 - swing) / 2);
+    for (let i = 0; i < 4; i++) {
+      const k = b * 4 + i, c = riff[k];
+      if (c === ".") continue;
+      let n = k + 1;
+      while (n < 16 && riff[n] === ".") n++;
+      hit(pitch[c], at(i), Math.max(0.15, (n - k) / 4 * 0.9), i === 0 ? (b === 0 ? 1 : 0.9) : i === 2 ? 0.8 : 0.65);
+    }
+    return hits;
+  }
   if (style === "walk") {
     if (b === 0) hit(low, 0, 0.9, 1);
     else if (b === 1) hit(rootP + (cur.third ?? cur.fifth), 0, 0.9, 0.75);
@@ -2477,19 +2492,26 @@ export function bassWhere(idx, rows, L, onBar) {
 // optional: a part a song doesn't have comes from Settings. src is "ai" for
 // what was found and "you" once you have changed it (a groove with only src
 // "you" means: keep the defaults, don't look it up again).
-export const GROOVE = { beat: ["rock", "half", "ballad", "four"], swing: ["straight", "light", "full"], bass: ["root", "fifth", "pulse", "walk"] };
+export const GROOVE = { beat: ["rock", "half", "ballad", "four"], swing: ["straight", "light", "full"], bass: ["root", "fifth", "pulse", "walk", "riff"] };
+/* A riff is one bar of a bass part in sixteenth notes, 16 characters, in
+   degrees of whatever chord it is played on: "." no new note, 1 root, 3 third,
+   5 fifth, 7 flat seventh, 8 root an octave up. */
+export const RIFF_STEPS = [".", "1", "3", "5", "7", "8"];
+export const validRiff = r => typeof r === "string" && /^[.13578]{16}$/.test(r) && /[13578]/.test(r);
 export function cleanGroove(raw, src = raw?.src) {
   if (!isObj(raw)) return null;
   const g = { src: src === "ai" ? "ai" : "you" };
   for (const k of Object.keys(GROOVE)) if (GROOVE[k].includes(raw[k])) g[k] = raw[k];
+  if (validRiff(raw.riff)) g.riff = raw.riff;
+  if (g.bass === "riff" && !g.riff) delete g.bass; /* a riff style needs a riff */
   return g;
 }
 /* The settings a song plays with: its own groove first, then Settings. */
 export function grooveOf(song, settings = {}) {
   const g = song?.groove || {};
-  return { beat: g.beat || settings.metroBeat || "auto", swing: g.swing || settings.metroSwing || "straight", bass: g.bass || settings.bassStyle || "auto" };
+  return { beat: g.beat || settings.metroBeat || "auto", swing: g.swing || settings.metroSwing || "straight", bass: g.bass || settings.bassStyle || "auto", riff: g.riff || "" };
 }
-const BASS_WORDS = { root: "root bass", fifth: "root and fifth bass", pulse: "pulse bass", walk: "walking bass" };
+const BASS_WORDS = { root: "root bass", fifth: "root and fifth bass", pulse: "pulse bass", walk: "walking bass", riff: "a bass riff" };
 /* "Half time, light swing, walking bass": what a groove says, for a toast. */
 export function grooveText(g) {
   return [g?.beat && drumBeatName(g.beat), (g?.swing === "light" || g?.swing === "full") && `${g.swing} swing`, g?.bass && BASS_WORDS[g.bass]].filter(Boolean).join(", ") || "the defaults";
