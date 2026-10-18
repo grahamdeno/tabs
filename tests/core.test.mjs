@@ -1106,3 +1106,16 @@ test("bestGermanVoice: Premium, then Enhanced, Germany first, novelty voices las
   assert.equal(C.bestGermanVoice([v("Petra", "de-AT"), v("Markus", "de-DE")]).name, "Markus");
   assert.equal(C.bestGermanVoice([v("Samantha", "en-US")]), null);
 });
+
+test("tuner sensitivity: a quiet string at playing distance reads with the room's level, not a fixed one", () => {
+  const sr = 48000, n = 4096, f0 = 110, out = new Float32Array(n);
+  let seed = 7; const noise = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5);
+  for (let i = 0; i < n; i++) {
+    const t = i / sr; let v = 0;
+    for (let h = 1; h <= 6; h++) v += Math.sin(2 * Math.PI * f0 * h * t) / (h * h);
+    out[i] = 0.0045 * v + 0.0004 * noise();
+  }
+  assert.equal(C.detectPitch(out, sr), -1, "the old fixed level (0.01) misses it");
+  const f = C.detectPitch(out, sr, 0.0015);
+  assert.ok(Math.abs(1200 * Math.log2(f / f0)) < 3, `heard at a lower level: ${f.toFixed(2)} Hz`);
+});

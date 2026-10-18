@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.35.1";
+export const VERSION = "2.35.2";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1309,7 +1309,10 @@ export function detectTuning(body) {
 // Searches 60 to 1000 Hz, which covers a guitar in any of the tunings above.
 // minRms: below this level it's silence (a voice at arm's length is quieter
 // than a guitar at the phone, so the sketch passes a lower one).
-export function detectPitch(buf, sampleRate, minRms = 0.01) {
+// clarity: how deep the clearest dip must be when there's no obvious one
+// (lower is stricter). The tuner loosens it while a note it already caught
+// is fading, so a decaying string keeps reading.
+export function detectPitch(buf, sampleRate, minRms = 0.01, clarity = 0.35) {
   const n = buf.length;
   let rms = 0;
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
@@ -1335,7 +1338,7 @@ export function detectPitch(buf, sampleRate, minRms = 0.01) {
     /* No clear dip: take the deepest one if it's reasonably clear. */
     let best = 1;
     for (let lag = minLag; lag <= maxLag; lag++) if (cm[lag] < best) { best = cm[lag]; tau = lag; }
-    if (best > 0.35) return -1;
+    if (best > clarity) return -1;
   }
   const a = cm[tau - 1], b = cm[tau], c = cm[tau + 1], den = a - 2 * b + c;
   const shift = den ? (a - c) / (2 * den) : 0;

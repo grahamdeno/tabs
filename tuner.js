@@ -221,7 +221,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     t.src.connect(an);
     const buf = new Float32Array(an.fftSize);
     idle(t);
-    t.timer = setInterval(() => listen(t, an, buf), 70);
+    t.timer = setInterval(() => listen(t, an, buf), 45);
     const spin = now => { animateStrobe(t, now); t.raf = requestAnimationFrame(spin); };
     t.raf = requestAnimationFrame(spin);
   }).catch(fail);
@@ -265,24 +265,32 @@ function listen(t, an, buf) {
   if (tunerState !== t) return;
   an.getFloatTimeDomainData(buf);
   const now = Date.now();
-  /* A pluck's first instant is noisy and sharp: skip readings for a moment
-     after the level jumps, so the needle doesn't jolt. */
   let e = 0; for (let i = 0; i < buf.length; i += 4) e += buf[i] * buf[i];
   const lvl = Math.sqrt(e / (buf.length / 4));
-  if (lvl > 0.02 && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 120; t.hits = []; }
+  /* How loud the room is when nothing is playing. It drifts down quickly and
+     up slowly, so a ringing string never counts as background. Anything a
+     little above it is worth listening to, which catches a guitar held at
+     playing distance; a fixed level only heard one right next to the phone. */
+  t.floor = t.floor == null ? Math.min(lvl, 0.004) : lvl < t.floor ? t.floor * 0.7 + lvl * 0.3 : t.floor * 0.995 + Math.min(lvl, t.floor * 3) * 0.005;
+  const sounding = now - (t.quietSince || 0) < 400 && t.hits.length > 0;
+  const minRms = Math.min(0.01, Math.max(0.0012, t.floor * (sounding ? 1.6 : 2.5)));
+  /* A pluck's first instant is noisy and sharp: skip readings for a moment
+     after the level jumps, so the marker doesn't jolt. */
+  if (lvl > Math.max(minRms * 4, 0.006) && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 60; t.hits = []; }
   t.lvl = lvl;
   if (now < (t.attackUntil || 0)) return;
-  let f = detectPitch(buf, t.ctx.sampleRate);
+  /* While a note is ringing, accept a less crisp reading so it holds as it fades. */
+  let f = detectPitch(buf, t.ctx.sampleRate, minRms, sounding ? 0.45 : 0.35);
   if (f < 0) {
-    if (now - t.quietSince > 900 && t.hits.length) idle(t);
+    if (now - t.quietSince > 1400 && t.hits.length) idle(t);
     t.inTuneSince = 0;
     return;
   }
   t.quietSince = now;
   /* Octave slips: fold toward the string being tuned, or any string. */
   if (t.mode !== "chromatic") f = octaveFix(f, t.tuning, t.a4, t.guided ? t.cur : t.lock);
-  /* Smooth over the last few readings so the display doesn't jitter. */
-  t.hits = [...t.hits.slice(-4), f];
+  /* Smooth over the last three readings: steady, but quick to follow the peg. */
+  t.hits = [...t.hits.slice(-2), f];
   const fs = [...t.hits].sort((a, b) => a - b)[t.hits.length >> 1];
   if (t.mode === "chromatic") return readChromatic(t, fs);
   if (t.finished) return;
