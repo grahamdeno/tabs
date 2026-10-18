@@ -796,35 +796,48 @@ body.tuning { overflow: hidden; }
 .tn-tile[data-mode="chromatic"] i svg { height: 36px; margin-top: 8px; }
 .tn-tile.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
 :root[data-theme="light"] .tn-tile.on { color: #8f4524; } /* small caps on a copper tint need a deeper copper */
-.tn-read { text-align: center; margin-top: 12px; }
-.tn-note { min-height: 78px; display: flex; align-items: baseline; justify-content: center; }
+.tn-read { text-align: center; margin-top: 18px; }
+/* Strings show the advice only: the headstock already says which string.
+   Chromatic and "All in tune" keep the big letter. */
+.tn-note { min-height: 78px; display: none; align-items: baseline; justify-content: center; }
+.tuner2.chrom .tn-note, .tn-note.done { display: flex; }
 .tn-note b { font-family: var(--serif); font-weight: 400; font-size: 72px; line-height: 1; color: var(--fg); }
 .tn-note sub { font-size: 22px; color: var(--muted); margin-left: 2px; vertical-align: baseline; }
 .tn-note.done b { font-size: 46px; color: var(--good); }
-.tn-say { font: 600 15px var(--sans); color: var(--fg-2); min-height: 20px; margin-top: 4px; }
-.tn-say.off, .tn-say.close, .tn-say.far { color: var(--accent); }
-.tn-say.good { color: var(--good); }
+.tn-sayrow { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 24px; }
+.tn-say { font: 500 18px var(--sans); color: var(--fg); }
 .tn-say.warn { font-weight: 400; font-size: 14px; color: var(--muted); padding: 0 10px; }
-.tn-c { font: 500 12.5px var(--mono); color: var(--muted); min-height: 16px; margin-top: 3px; }
-.tn-gauge { position: relative; height: 62px; margin: 12px 8px 0; flex: none; }
+.tn-c { font: 500 12.5px var(--mono); color: var(--muted); min-height: 16px; margin-top: 3px; display: none; }
+.tuner2.chrom .tn-c, .tn-note.done + .tn-sayrow + .tn-c { display: block; }
+.tn-gauge { position: relative; margin: 14px 4px 0; flex: none; text-align: center; }
 .tn-gauge[hidden] { display: block; visibility: hidden; }
+.tuner2.chrom .tn-gauge { display: none; }
+/* The meter window: a dark well with bronze piping, lit softly from behind. */
+.tn-win { position: relative; height: 66px; border-radius: 14px; border: 1px solid var(--bronze-line);
+  background: radial-gradient(60% 90% at 50% 50%, rgba(255,194,122,.1), transparent 70%), var(--recess);
+  box-shadow: var(--recess-shadow), 0 0 0 3px rgba(0,0,0,.35); overflow: hidden; }
 .tn-meter, .tn-strobe { position: absolute; inset: 0; }
 .tn-meter[hidden], .tn-strobe[hidden] { display: none; }
-.tn-band { position: absolute; left: 0; right: 0; top: 20px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--accent-line), var(--rim) 30%, var(--rim) 70%, var(--accent-line)); }
-.tn-zone { position: absolute; left: 47.3%; width: 5.4%; top: 8px; height: 28px; border-radius: 9px; background: var(--good-soft); border: 1px solid color-mix(in srgb, var(--good) 45%, transparent); }
-.tn-dot { position: absolute; top: 10px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 6px var(--accent-soft); transition: left .1s linear, opacity .3s; }
-.tn-dot.good { background: var(--good); box-shadow: 0 0 0 6px var(--good-soft), 0 0 18px var(--good); }
-.tn-dot.idle { opacity: .25; left: 50%; }
-.tn-meter span { position: absolute; top: 40px; font: 600 10.5px var(--sans); letter-spacing: .12em; color: var(--muted); }
-.tn-meter span:last-child { right: 0; }
-.tn-sw { position: absolute; left: 0; right: 0; top: 0; height: 44px; border-radius: 12px; overflow: hidden; border: 1px solid var(--rim); background: var(--card);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent); mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent); }
-.tn-sw i { position: absolute; left: 0; right: 0; background-image: repeating-linear-gradient(105deg, var(--accent) 0 var(--w), transparent var(--w) calc(var(--w) * 2)); opacity: .9; }
-.tn-sw i:nth-child(1) { top: 5px; height: 14px; --w: 16px; }
-.tn-sw i:nth-child(2) { top: 23px; height: 9px; --w: 9px; }
-.tn-sw i:nth-child(3) { top: 35px; height: 5px; --w: 5px; }
+.tn-tick { position: absolute; top: 24px; width: 1.5px; height: 22px; margin-left: -.75px; border-radius: 1px; background: rgba(241,227,196,.38); }
+.tn-tick.big { top: 18px; height: 34px; background: rgba(241,227,196,.6); }
+.tn-zone { position: absolute; left: 47.3%; width: 5.4%; top: 12px; bottom: 8px; border-radius: 5px; background: rgba(255,255,255,.07); }
+.tn-mid { position: absolute; left: 50%; top: 8px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--recess-fg); }
+.tn-dot { position: absolute; top: 18px; width: 6px; height: 34px; margin-left: -3px; border-radius: 3px; --c: #e0a43a; background: var(--c); box-shadow: 0 0 10px var(--c); transition: left .1s linear, opacity .3s; }
+.tn-dot.far { --c: #d9534f; }
+.tn-dot.good { --c: var(--good); }
+.tn-dot.idle { opacity: 0; left: 50%; }
+/* The label sits on the side toward the center, so it never runs off the window. */
+.tn-dot span { position: absolute; top: -16px; right: 10px; font: 600 11px var(--sans); color: var(--c); white-space: nowrap; }
+.tn-dot.flat span { right: auto; left: 10px; }
+.tn-pill { display: inline-block; min-height: 26px; margin-top: 10px; padding: 0 12px; border-radius: 13px; font: 500 12.5px/26px var(--sans); font-variant-numeric: tabular-nums; color: var(--recess-dim); background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.07); }
+.tn-pill:empty { visibility: hidden; }
+.tn-sw { position: absolute; left: 10px; right: 10px; top: 8px; height: 38px; border-radius: 8px; overflow: hidden; }
+.tn-sw i { position: absolute; left: 0; right: 0; background-image: repeating-linear-gradient(105deg, #ffc27a 0 var(--w), transparent var(--w) calc(var(--w) * 2)); opacity: .9; }
+.tn-sw i:nth-child(1) { top: 2px; height: 13px; --w: 16px; }
+.tn-sw i:nth-child(2) { top: 19px; height: 8px; --w: 9px; }
+.tn-sw i:nth-child(3) { top: 30px; height: 5px; --w: 5px; }
 .tn-strobe.good .tn-sw i { background-image: repeating-linear-gradient(90deg, var(--good) 0 var(--w), transparent var(--w) calc(var(--w) * 2)); }
-.tn-strobe span { position: absolute; left: 0; right: 0; top: 48px; text-align: center; font: 600 10.5px var(--sans); letter-spacing: .12em; color: var(--muted); }
+.tn-strobe span { position: absolute; left: 0; right: 0; top: 49px; text-align: center; font: 600 10px var(--sans); letter-spacing: .14em; color: var(--recess-dim); }
 .tn-strobe.good span { color: var(--good); }
 .tn-stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; padding: 8px 0; }
 .tn-stage > svg { height: 100%; max-height: 380px; width: auto; max-width: 100%; }
@@ -1678,3 +1691,17 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
    Roundhand on iPhone), cream in the dark theme, dark bronze in the light theme. ---- */
 .title.script { font-family: "Snell Roundhand", "Apple Chancery", "Brush Script MT", "Segoe Script", cursive; font-weight: 700; font-size: 46px; letter-spacing: 0; color: #efe2c2; text-shadow: 0 1px 0 rgba(0,0,0,.55), 0 0 14px rgba(239,226,194,.12); }
 :root[data-theme="light"] .title.script { color: #6e5128; text-shadow: none; }
+
+/* ---- The tuner: an amp front ----
+   Tolex behind everything, the instrument tiles as channel buttons with a
+   lamp on the one in use, and a pilot lamp that lights while a note is heard. */
+.tuner2 { background: var(--tolex), radial-gradient(120% 60% at 50% 0, #1d1d20, #0c0c0d); background-size: 220px 220px, auto; }
+:root[data-theme="light"] .tuner2 { background: linear-gradient(rgba(243,240,235,.6), rgba(243,240,235,.6)), var(--tolex), var(--bg); background-size: auto, 220px 220px, auto; }
+.tn-tile { background: var(--tolex-card); background-size: 120px 120px, auto; border-color: var(--bronze-line); box-shadow: var(--tolex-inset); }
+.tn-tile.on { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--tolex-card); background-size: auto, 120px 120px, auto; }
+.tn-tile > span { display: inline-flex; align-items: center; gap: 6px; }
+.tn-tile > span::before, .tn-lamp { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
+.tn-tile.on > span::before, .tn-lamp.on { background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
+.tn-lamp { width: 10px; height: 10px; }
+.tn-sayrow:has(.warn) .tn-lamp, .tuner2.chrom .tn-lamp { display: none; }
+:root[data-theme="light"] .tn-pill { background: var(--card); border-color: var(--bronze-line); color: var(--fg-2); }

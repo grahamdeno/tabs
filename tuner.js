@@ -75,6 +75,9 @@ function headSVG(kind, t, { mini = false } = {}) {
   return s + "</svg>";
 }
 
+// The meter's scale: a tick every 5 cents from -50 to +50, longer at 25 and 50.
+const ticks = () => Array.from({ length: 21 }, (_, k) => k === 10 ? "" : `<i class="tn-tick${k % 5 ? "" : " big"}" style="left:${5 + k * 4.5}%"></i>`).join("");
+
 // ---- Chromatic dial: cents from -50 to +50 across a 140 degree arc ----
 function dialSVG() {
   const cx = 150, cy = 176, R = 124;
@@ -130,12 +133,15 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       <div class="tn-tiles" role="tablist" aria-label="Instrument">${MODES.map(([k, n]) => `<button class="tn-tile" role="tab" data-mode="${k}"><span>${n}</span><i>${k === "chromatic" ? `<svg viewBox="0 0 80 40" aria-hidden="true">${[-3, -2, -1, 0, 1, 2, 3].map(j => `<rect x="${39 + j * 10}" y="${j === 0 ? 2 : j % 2 ? 14 : 9}" width="${j === 0 ? 3 : 1.8}" height="${j === 0 ? 36 : j % 2 ? 22 : 28}" rx="1" fill="currentColor" opacity="${j === 0 ? 1 : 0.55}"/>`).join("")}</svg>` : headSVG(k, t, { mini: true })}</i></button>`).join("")}</div>
       <div class="tn-read">
         <div class="tn-note"><b id="tn-n">·</b><sub id="tn-o"></sub></div>
-        <div class="tn-say" id="tn-say" role="status">Starting the microphone…</div>
+        <div class="tn-sayrow"><i class="tn-lamp" id="tn-lamp" aria-hidden="true"></i><span class="tn-say" id="tn-say" role="status">Starting the microphone…</span></div>
         <div class="tn-c" id="tn-c"></div>
       </div>
       <div class="tn-gauge" id="tn-gauge">
-        <div class="tn-meter" id="tn-meter"><i class="tn-band"></i><i class="tn-zone"></i><i class="tn-dot idle" id="tn-dot"></i><span>♭ LOW</span><span>HIGH ♯</span></div>
-        <div class="tn-strobe" id="tn-strobe" hidden><div class="tn-sw"><i></i><i></i><i></i></div><span id="tn-slab">FINE TUNE</span></div>
+        <div class="tn-win">
+          <div class="tn-meter" id="tn-meter">${ticks()}<i class="tn-zone"></i><i class="tn-mid"></i><i class="tn-dot idle" id="tn-dot"><span id="tn-tag"></span></i></div>
+          <div class="tn-strobe" id="tn-strobe" hidden><div class="tn-sw"><i></i><i></i><i></i></div><span id="tn-slab">FINE TUNE</span></div>
+        </div>
+        <div class="tn-pill" id="tn-pill"></div>
       </div>
       <div class="tn-stage" id="tn-stage"></div>
       <div class="tn-foot" id="tn-foot"></div>
@@ -253,6 +259,8 @@ function idle(t) {
   if ($("tn-strobe")) $("tn-strobe").hidden = true;
   if (t.mode !== "chromatic" && $("tn-meter")) $("tn-meter").hidden = t.finished;
   t.strobe.v = 0; t.hits = []; t.inTuneSince = 0; t.shown = null; t.pend = null;
+  $("tn-lamp")?.classList.remove("on");
+  if ($("tn-pill")) $("tn-pill").textContent = "";
   if (t.finished && t.mode !== "chromatic") return;
   $("tn-n").textContent = "·"; $("tn-o").textContent = ""; $("tn-c").textContent = "";
   layer.querySelector(".tn-note")?.classList.remove("glow");
@@ -273,16 +281,16 @@ function listen(t, an, buf) {
      playing distance; a fixed level only heard one right next to the phone. */
   t.floor = t.floor == null ? Math.min(lvl, 0.004) : lvl < t.floor ? t.floor * 0.7 + lvl * 0.3 : t.floor * 0.995 + Math.min(lvl, t.floor * 3) * 0.005;
   const sounding = now - (t.quietSince || 0) < 400 && t.hits.length > 0;
-  const minRms = Math.min(0.01, Math.max(0.0012, t.floor * (sounding ? 1.6 : 2.5)));
+  const minRms = Math.min(0.01, Math.max(0.001, t.floor * (sounding ? 1.3 : 2)));
   /* A pluck's first instant is noisy and sharp: skip readings for a moment
      after the level jumps, so the marker doesn't jolt. */
-  if (lvl > Math.max(minRms * 4, 0.006) && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 60; t.hits = []; }
+  if (lvl > Math.max(minRms * 4, 0.006) && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 35; t.hits = []; }
   t.lvl = lvl;
   if (now < (t.attackUntil || 0)) return;
   /* While a note is ringing, accept a less crisp reading so it holds as it fades. */
-  let f = detectPitch(buf, t.ctx.sampleRate, minRms, sounding ? 0.45 : 0.35);
+  let f = detectPitch(buf, t.ctx.sampleRate, minRms, sounding ? 0.5 : 0.4);
   if (f < 0) {
-    if (now - t.quietSince > 1400 && t.hits.length) idle(t);
+    if (now - t.quietSince > 2000 && t.hits.length) idle(t);
     t.inTuneSince = 0;
     return;
   }
@@ -310,7 +318,8 @@ function listen(t, an, buf) {
   $("tn-n").textContent = stringName(notes, idx); $("tn-o").textContent = octave(notes[idx]);
   layer.querySelector(".tn-note")?.classList.toggle("glow", good); /* in tune: the letter glows */
   $("tn-c").textContent = `${cents > 0 ? "+" : ""}${cents} cents · ${fs.toFixed(1)} Hz`;
-  let text = good ? "In tune · hold it" : adv.say;
+  const name = stringName(notes, idx);
+  let text = good ? `${name} is in tune · hold it` : adv.tone === "off" ? `${adv.say} the ${name} string` : adv.say;
   if (adv.tone === "far") {
     const near = nearestString(fs, t.tuning, t.a4);
     text = near.index !== idx && Math.abs(near.cents) <= 50
@@ -350,6 +359,7 @@ function readChromatic(t, fs) {
   } else t.pend = null;
   if (!t.shown || n.name + n.octave !== t.shown.key) t.shown = { key: n.name + n.octave, n, f: fs * Math.pow(2, -n.cents / 1200) };
   const good = Math.abs(n.cents) <= TUNE.good;
+  $("tn-lamp")?.classList.add("on");
   $("tn-n").textContent = n.name.replace("b", "♭").replace("#", "♯"); $("tn-o").textContent = n.octave;
   layer.querySelector(".tn-note")?.classList.toggle("glow", good);
   $("tn-c").textContent = `${n.cents > 0 ? "+" : ""}${n.cents} cents · ${fs.toFixed(1)} Hz`;
@@ -359,11 +369,17 @@ function readChromatic(t, fs) {
   if (needle) { needle.classList.remove("idle"); needle.classList.toggle("good", good); needle.style.transform = `rotate(${(Math.max(-50, Math.min(50, n.cents)) * 1.4).toFixed(1)}deg)`; }
 }
 
+/* The marker is green in tune, amber when close, red when well off, and
+   says which way it's off. Very close, the strobe takes over the window. */
 function showGauge(t, cents, good) {
   const fine = Math.abs(cents) <= TUNE.strobe;
   $("tn-meter").hidden = fine; $("tn-strobe").hidden = !fine;
+  $("tn-lamp").classList.add("on");
+  $("tn-pill").textContent = `${cents > 0 ? "+" : ""}${cents} cents`;
   const dot = $("tn-dot");
-  dot.classList.remove("idle"); dot.classList.toggle("good", good);
+  dot.classList.remove("idle"); dot.classList.toggle("good", good); dot.classList.toggle("far", !good && Math.abs(cents) > 25);
+  dot.classList.toggle("flat", cents < 0);
+  $("tn-tag").textContent = good ? "" : cents < 0 ? "Too low" : "Too high";
   dot.style.left = (50 + Math.max(-50, Math.min(50, cents)) * 0.9) + "%";
   const strobe = $("tn-strobe");
   strobe.classList.toggle("good", good);

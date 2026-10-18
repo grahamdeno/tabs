@@ -294,7 +294,7 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
   assert.equal(await page.locator(".tn-tile.on").textContent(), "Acoustic");
   const at = (hz, cents) => page.evaluate(f => { window.__hz = f; }, hz * 2 ** (cents / 1200));
   await at(82.41, -25); await page.waitForTimeout(700);
-  assert.deepEqual(await read(), { note: "E", say: "Tighten", strobe: false });
+  assert.deepEqual(await read(), { note: "E", say: "Tighten the E string", strobe: false });
   await at(82.41, -4); await page.waitForTimeout(700);
   assert.equal((await read()).strobe, true, "strobe within 5 cents");
   const glows = () => page.evaluate(() => document.querySelector(".tn-note").classList.contains("glow"));

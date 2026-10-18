@@ -35,7 +35,9 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Sing it: hold the pad and sing a line; Tabs finds the key and chords that hold your melody and places them over your words. Strum it does the same from the guitar, using Basic Pitch on the phone to hear what you played. Nothing is sent anywhere.
 
 ### Tuner
-- Acoustic and Electric show the headstock: the key to turn lights up and the words say Tighten or Loosen. Guided walks the strings low to high. Near the note the meter becomes a strobe. Chromatic reads any note, with an adjustable A4 (430 to 450 Hz).
+- Looks like the front of an amp: tolex behind it, the instrument tiles as channel buttons with a lamp on the one in use, and a pilot lamp that lights while it hears a note.
+- Acoustic and Electric show the headstock: the key to turn lights up and one line says what to do ("Loosen the E string"). Below it, a meter window shows how far off you are, with a marker that is green in tune, amber when close and red when well off, and the cents underneath. Guided walks the strings low to high. Near the note the meter becomes a strobe. Chromatic reads any note, with an adjustable A4 (430 to 450 Hz).
+- Hears a string at playing distance: it learns how loud the room is and listens just above that, and keeps the reading while the string fades.
 - Standard, Drop D, half and whole step down, DADGAD, Open G and Open D. It shows up where tuning happens: the library, songs in another tuning, sets and Next up.
 
 ### Listening and sharing

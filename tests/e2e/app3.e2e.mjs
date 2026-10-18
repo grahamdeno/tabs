@@ -265,7 +265,7 @@ test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is 
   const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent }));
   await page.evaluate(() => { window.__hz = 82.41 * 2 * 2 ** (-20 / 1200); }); await page.waitForTimeout(800);
   const r = await read();
-  assert.equal(r.note, "E"); assert.equal(r.say, "Tighten", "read as the low E, 20 cents flat, not a far-off note");
+  assert.equal(r.note, "E"); assert.equal(r.say, "Tighten the E string", "read as the low E, 20 cents flat, not a far-off note");
   await page.click("#tn-done");
   assert.deepEqual(errors, []);
 });
