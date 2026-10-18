@@ -92,7 +92,7 @@ export function renderRoad() {
       : `${stat ? `<div class="today"><button class="weekly t-stat" id="rd-stat">${st.days >= 2 ? lamps : ""}<span>${stat}</span>${icon("chev", "chev")}</button></div>` : ""}
     <div class="rd-say">${louie(say.mood, { pose: say.pose, size: 96 })}<p class="rd-bubble">${esc(say.text)}</p></div>`}
     ${card}
-    ${first ? "" : `<button class="pf-card rd-map" id="rd-map">${miniTurf(t.cells, t.rings)}<span class="rd-map-t"><h2>Tour Map</h2><span class="pf-line"><b>${esc(v.name)}.</b> ${v.toNext} play${v.toNext === 1 ? "" : "s"} to the ${esc(v.next)}.</span></span>${icon("chev", "chev")}</button>`}
+    ${first ? "" : `<button class="pf-card rd-map" id="rd-map">${miniTurf(t.cells, t.rings)}<span class="rd-map-t"><h2>Tour Map</h2><span class="pf-line" id="rd-map-line"><b>${esc(v.name)}.</b> ${v.toNext} play${v.toNext === 1 ? "" : "s"} to the ${esc(v.next)}.</span></span>${icon("chev", "chev")}</button>`}
     <div class="dock-fade"></div>
     <div class="dock kb">
       <button class="cmd glass float rd-search" id="rd-search" aria-label="Search or paste a song">${icon("search")}<span>Search, or paste a song</span></button>
@@ -113,4 +113,18 @@ export function renderRoad() {
   $("rd-play")?.addEventListener("click", play);
   $("rd-search").onclick = () => openSearch();
   $("add").onclick = () => newSong();
+  if (!first) fillScene(st);
+}
+
+/* The scene loads a moment later: your place in it, and who is pushing on your edge. */
+async function fillScene(st) {
+  let sc;
+  try { const m = await import("./scene.js"); sc = await m.sceneFor((await import("./playmap.js")).getSpot()); } catch { return; }
+  if (route().name !== "road") return;
+  const line = document.getElementById("rd-map-line");
+  if (line) line.innerHTML = `<b>${esc(sc.venue.name)}.</b> #${sc.rank} of ${sc.players} in your scene · ${sc.venue.toNext} play${sc.venue.toNext === 1 ? "" : "s"} to the ${esc(sc.venue.next)}.`;
+  if (sc.below > 0 && !st.today) {
+    const say = document.querySelector(".rd-bubble");
+    if (say) say.textContent = `${sc.pusher ? sc.pusher.name : "The local scene"} is pushing on your edge (${sc.below} of 7 days). About ${Math.ceil(sc.pressure.bar)} minutes a day holds it.`;
+  }
 }

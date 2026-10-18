@@ -489,7 +489,9 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   await page.waitForSelector(".tm-map svg path", { state: "attached" });
   assert.equal(await page.evaluate(() => document.body.classList.contains("tm-open")), true, "the page is locked while the map is open");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".tm-page")).touchAction), "none");
-  assert.match(await page.innerText(".tm-dock .pf-plate"), /HEX(ES)? LIT/i);
+  await page.waitForFunction(() => /#\d/.test(document.getElementById("tm-rank")?.textContent || ""));
+  assert.match(await page.innerText(".tm-dock .pf-plate"), /HEXES HELD[\s\S]*IN YOUR SCENE[\s\S]*MIN A DAY/i);
+  assert.ok(await page.locator(".tm-rival").count() >= 4, "rival players have turf around you");
   assert.match(await page.innerText(".tm-venue"), /Now playing: Open mic/);
   assert.ok(await page.locator(".tm-map path").count() >= 3, "fog, glow and outline are drawn");
   assert.equal(tiles.length, 0, "no map pictures before a spot");

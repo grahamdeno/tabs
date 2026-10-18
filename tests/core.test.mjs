@@ -1437,3 +1437,61 @@ test("Venues name the rings, and the outline leaves out shared edges", () => {
   assert.equal(C.hexOutline(7).length, 18, "a ring of six around one: 18 outer edges");
   assert.equal(C.hexOutline(19).length, 30);
 });
+
+test("Your scene: density from places, guitarists, the local bar and your percentile", () => {
+  const places = [[40, -74, 1000000]];
+  const city = C.densityAt(40, -74, places), edge = C.densityAt(40.3, -74, places), far = C.densityAt(45, -74, places);
+  assert.ok(city > edge && edge > far, "denser near the centre");
+  assert.equal(Math.round(far), 15, "a thin floor far from anywhere");
+  assert.ok(C.localBar(500) > C.localBar(5), "busier places take more practice to hold");
+  assert.ok(C.localBar(0) > 5 && C.localBar(10000) < 40);
+  assert.ok(Math.abs(C.zOf(0.5)) < 1e-6 && Math.abs(C.zOf(0.975) - 1.96) < 0.01);
+  assert.ok(Math.abs(C.percentileOf(10) - 0.5) < 0.01, "the median player is in the middle");
+  assert.ok(C.percentileOf(30) > 0.85);
+});
+
+test("Rivals are the same for the same place and day, have habits, and grow turf like yours", () => {
+  const now = Date.parse("2026-10-18T20:00:00Z");
+  const a = C.simulateRivals({ seed: C.seedOf("40.71,-74.01"), guitarists: 300, now });
+  const b = C.simulateRivals({ seed: C.seedOf("40.71,-74.01"), guitarists: 300, now });
+  assert.deepEqual(a, b);
+  assert.ok(a.length >= 4 && a.length <= 12);
+  assert.equal(new Set(a.map(r => r.name)).size, a.length, "names are unique");
+  const lapsed = a.find(r => r.habit === "lapsed");
+  assert.ok(lapsed && lapsed.avg7 === 0, "a lapsed player has gone quiet this week");
+  assert.ok(a.some(r => r.habit === "daily" && r.avg7 > 10));
+  for (const r of a) assert.equal(r.cells, C.territory(r.plays).cells);
+  const later = C.simulateRivals({ seed: C.seedOf("40.71,-74.01"), guitarists: 300, now: now + 14 * 864e5 });
+  assert.ok(later.find(r => r.habit === "daily").plays > a.find(r => r.habit === "daily").plays, "they keep playing");
+});
+
+test("Who holds what, and losing an edge after 7 days below the pressure", () => {
+  const user = C.hexSpiral(7);
+  const rival = { id: "r0", home: [2, 0], cells: 7, avg7: 30 };
+  const { owner, turf } = C.sceneMap(user, [rival]);
+  assert.equal(owner.get("0,0"), "you");
+  assert.ok(turf.r0.every(([q, r]) => owner.get(q + "," + r) === "r0"));
+  assert.ok(turf.r0.length < 7, "the rival loses the cells you hold");
+  const p = C.edgePressure([1, 0], [rival], turf, () => 10);
+  assert.equal(p.by, "r0"); assert.equal(p.bar, 30);
+  const data = { songs: [], settings: {}, journal: { v: 1, daysFrom: "2026-09-01", days: {} } };
+  let t;
+  for (let d = 0; d < 7; d++) t = C.tourDay(data, 30, 7, Date.parse("2026-10-01T12:00:00Z") + d * 864e5);
+  assert.equal(t.lost, 1, "7 days below: the edge is lost");
+  assert.equal(t.below, 0);
+  for (let d = 7; d < 70; d++) t = C.tourDay(data, 30, 7, Date.parse("2026-10-01T12:00:00Z") + d * 864e5);
+  assert.equal(t.lost, 6, "never the home cell");
+  assert.deepEqual(C.cleanTour({ lost: "2", below: 99, checked: "x" }), { lost: 2, below: 7, checked: "" });
+});
+
+test("Practice time is kept per day for the daily average", () => {
+  const data = { songs: [], settings: {} }, now = Date.now();
+  C.journalTime(data, 1200, now);
+  assert.equal(C.userAvg7(data, now), 2.9, "20 minutes in a week is about 2.9 a day");
+});
+
+test("No edge is lost in the first week of daily minutes", () => {
+  const data = { songs: [], settings: {}, journal: { v: 1, daysFrom: "2026-10-01", days: {} } };
+  let t; for (let d = 0; d < 6; d++) t = C.tourDay(data, 30, 7, Date.parse("2026-10-01T12:00:00Z") + d * 864e5);
+  assert.equal(t.lost, 0); assert.equal(t.below, 0);
+});

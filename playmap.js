@@ -15,9 +15,10 @@
 // position once and keeps it no finer than about a kilometre, in its own key on
 // this phone (tabs.spot.v1), outside the library and every backup. Map pictures
 // come from OpenStreetMap, which sees the area shown, never your plays.
-import { HEX_M, coarseSpot, hexOutline, hexSpiral, lifetimePlays, playSongs, streakOf, territory, venueOf } from "./core.js";
+import { HEX_M, cellsOutline, coarseSpot, hexSpiral, territory } from "./core.js";
+import { RIVAL_COLORS, cellCentre, offset, pressureLine, sceneFor } from "./scene.js";
 import { app, esc, icon, layer, onLeave, toast } from "./ui.js";
-import { data, go } from "./app.js";
+import { go } from "./app.js";
 
 const SPOT = "tabs.spot.v1";
 export function getSpot() { try { return coarseSpot(...Object.values(JSON.parse(localStorage.getItem(SPOT) || "null") || {})); } catch { return null; } }
@@ -45,11 +46,8 @@ function loadLeaflet() {
   return leaflet;
 }
 
-/* Metres east and south of the spot, as lat/lon. */
-const offset = (spot, east, south) => [spot.lat - south / 111320, spot.lon + east / (111320 * Math.cos(spot.lat * Math.PI / 180))];
 /* a landmark for each venue: open mic, coffeehouse, club, theater, arena, stadium, festival */
 const VENUE_ICON = [null, "mic", "cup", "note", "stage", "amp", "flame", "sun"];
-const NOWHERE = { lat: 0, lon: 0 }; /* plain ground: the shape alone, nowhere in particular */
 
 let map = null;
 onLeave(r => { if (r.name !== "playmap") closeMap(); });
@@ -60,12 +58,11 @@ function closeMap() {
 
 export async function renderPlayMap() {
   closeMap();
-  const plays = lifetimePlays(data), t = territory(plays), v = venueOf(plays), spot = getSpot();
-  const streak = streakOf(playSongs(data)).days;
+  const spot = getSpot();
   document.body.classList.add("tm-open");
   app.innerHTML = `
     <div class="tm-page">
-      <div id="tm-map" class="tm-map" role="img" aria-label="Your Tour Map: ${t.cells} hexagon${t.cells === 1 ? "" : "s"} lit"></div>
+      <div id="tm-map" class="tm-map" role="img" aria-label="Your Tour Map"></div>
       <div class="tm-top"><button class="ib" id="back" aria-label="Back">${icon("back")}</button><h1 class="title script">Tour Map</h1></div>
       <div class="tm-ctl">
         <button class="ib glass" id="tm-in" aria-label="Zoom in">${icon("plus")}</button>
@@ -73,29 +70,35 @@ export async function renderPlayMap() {
         <button class="ib glass" id="tm-home" aria-label="Back to my spot">${icon("target")}</button>
       </div>
       <div class="tm-dock">
+        <p class="tm-push" id="tm-push" hidden></p>
         ${spot ? "" : `<button class="btn tm-flag" id="tm-flag">${icon("flag")}Plant your flag on a real map</button>`}
         <div class="pf-plate" role="group" aria-label="Tour numbers">
-          <div class="pf-read"><b>${t.cells}</b><span>${t.cells === 1 ? "hex" : "hexes"} lit</span></div>
-          <div class="pf-read"><b>${v.toNext}</b><span>to ${esc(v.next)}</span></div>
-          <div class="pf-read"><b>${streak}</b><span>day streak</span></div>
+          <div class="pf-read"><b id="tm-held">–</b><span>hexes held</span></div>
+          <div class="pf-read"><b id="tm-rank">–</b><span>in your scene</span></div>
+          <div class="pf-read"><b id="tm-avg">–</b><span>min a day</span></div>
         </div>
-        <p class="tm-venue">Now playing: <b>${esc(v.name)}</b>${spot ? ` · <button class="linkish" id="tm-forget">Forget my spot</button>` : ""}</p>
+        <p class="tm-venue" id="tm-venue">&nbsp;</p>
       </div>
     </div>`;
   document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/");
   document.getElementById("tm-flag")?.addEventListener("click", () => plantSheet());
-  document.getElementById("tm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
-  let L;
-  try { L = await loadLeaflet(); } catch { toast("The map couldn't load. Try again with a connection."); return; }
+  let L, sc;
+  try { [L, sc] = await Promise.all([loadLeaflet(), sceneFor(spot)]); } catch { toast("The map couldn't load. Try again with a connection."); return; }
   if (!document.getElementById("tm-map")) return; /* left while it loaded */
-  draw(L, spot, t.cells, plays);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set("tm-held", sc.held); set("tm-rank", `#${sc.rank}/${sc.players}`); set("tm-avg", sc.avg >= 10 ? Math.round(sc.avg) : sc.avg);
+  document.getElementById("tm-venue").innerHTML = `Now playing: <b>${esc(sc.venue.name)}</b> · ahead of ${Math.round(sc.pct * 100)}% of about ${sc.guitarists.toLocaleString()} guitarists near you${spot ? ` · <button class="linkish" id="tm-forget">Forget my spot</button>` : ""}`;
+  document.getElementById("tm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
+  const push = pressureLine(sc);
+  if (push) { const el = document.getElementById("tm-push"); el.textContent = push; el.hidden = false; document.querySelector(".tm-page")?.classList.add("has-push"); }
+  draw(L, sc);
 }
 
-function draw(L, spot, cells, plays) {
-  const at = spot || NOWHERE;
+function draw(L, sc) {
+  const { spot, at } = sc;
   const el = document.getElementById("tm-map");
   el.classList.toggle("plain", !spot);
-  map = L.map(el, { zoomControl: false, attributionControl: !!spot, zoomSnap: 0.25, minZoom: 11, maxZoom: 18, worldCopyJump: false });
+  map = L.map(el, { zoomControl: false, attributionControl: !!spot, zoomSnap: 0.25, minZoom: 10, maxZoom: 18 });
   if (spot) {
     let failed = 0;
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors", className: "tm-tiles" })
@@ -103,34 +106,44 @@ function draw(L, spot, cells, plays) {
       .addTo(map);
     map.attributionControl.setPrefix(false);
   }
-  /* geometry: cell centres and corners in metres from the spot */
-  const R3 = Math.sqrt(3), cellAt = ([q, r]) => [HEX_M * R3 * (q + r / 2), HEX_M * 1.5 * r];
-  const hex = ([q, r], scale = 1) => { const [x, y] = cellAt([q, r]); return [0, 1, 2, 3, 4, 5].map(k => { const a = Math.PI / 180 * (60 * k - 30); return offset(at, x + HEX_M * scale * Math.cos(a), y + HEX_M * scale * Math.sin(a)); }); };
-  const lit = cells ? hexSpiral(cells) : [], ring = territory(plays).rings, next = hexSpiral(1 + 3 * (ring + 1) * (ring + 2)).slice(cells);
+  const hex = (c, k = 1) => { const [la, lo] = cellCentre(at, c), [x0, y0] = [0, 0]; return [0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI / 180 * (60 * i - 30); return [la - (y0 + HEX_M * k * Math.sin(a)) / 111320, lo + (x0 + HEX_M * k * Math.cos(a)) / (111320 * Math.cos(at.lat * Math.PI / 180))]; }); };
+  const line = cells => cellsOutline(cells).map(([a, b]) => [offset(at, a[0] * HEX_M, a[1] * HEX_M), offset(at, b[0] * HEX_M, b[1] * HEX_M)]);
+  const yours = sc.yours, ring = territory(sc.plays).rings;
+  const next = hexSpiral(1 + 3 * (ring + 1) * (ring + 2)).slice(yours.length).filter(c => !sc.owner.has(c[0] + "," + c[1]));
   const world = [[85, -180], [85, 180], [-85, 180], [-85, -180]];
   /* fog everywhere but your turf */
-  L.polygon([world, ...lit.map(c => hex(c))], { stroke: false, fillColor: "#060608", fillOpacity: spot ? 0.58 : 0.92, interactive: false, className: "tm-fog" }).addTo(map);
-  /* the warm glow inside */
-  if (lit.length) L.polygon(lit.map(c => hex(c)), { stroke: false, fillColor: "#ffb24a", fillOpacity: 0.16, interactive: false, className: "tm-lit" }).addTo(map);
-  /* the next cells to claim */
+  L.polygon([world, ...yours.map(c => hex(c))], { stroke: false, fillColor: "#060608", fillOpacity: spot ? 0.55 : 0.9, interactive: false }).addTo(map);
+  /* rivals: their turf in their colour, a badge at home; tap for who they are */
+  sc.rivals.forEach((rv, i) => {
+    const cells = sc.turf[rv.id] || [], col = RIVAL_COLORS[i % RIVAL_COLORS.length];
+    if (!cells.length) return;
+    const quiet = rv.avg7 === 0;
+    L.polygon(cells.map(c => hex(c)), { stroke: false, fillColor: col, fillOpacity: quiet ? 0.1 : 0.22, interactive: false }).addTo(map);
+    L.polyline(line(cells), { color: col, weight: 2, opacity: quiet ? 0.45 : 0.9, dashArray: quiet ? "4 5" : null, interactive: false }).addTo(map);
+    const home = cells.find(c => c[0] === rv.home[0] && c[1] === rv.home[1]) || cells[0];
+    const initials = rv.name.split(" ").map(w => w[0]).join("").slice(0, 2);
+    const last = rv.lastPlayed === null ? "hasn't played yet" : rv.lastPlayed === 0 ? "played today" : rv.lastPlayed === 1 ? "played yesterday" : `last played ${rv.lastPlayed} days ago`;
+    L.marker(cellCentre(at, home), { icon: L.divIcon({ className: "tm-rival" + (quiet ? " quiet" : ""), html: `<b style="--c:${col}">${esc(initials)}</b>`, iconSize: [30, 30] }), keyboard: false, title: rv.name })
+      .bindPopup(`<div class="tm-pop"><b>${esc(rv.name)}</b><span>${esc(rv.label)} · ${last}</span><span>${rv.avg7} min a day this week · ${cells.length} hex${cells.length === 1 ? "" : "es"}</span><small>Simulated player</small></div>`, { closeButton: false, className: "tm-popwrap" })
+      .addTo(map);
+  });
+  /* your turf: the warm glow, the next cells, the piped outline */
+  if (yours.length) L.polygon(yours.map(c => hex(c)), { stroke: false, fillColor: "#ffb24a", fillOpacity: 0.16, interactive: false }).addTo(map);
   if (next.length) L.polygon(next.map(c => hex(c, 0.9)), { color: "#b8935a", weight: 1.4, opacity: 0.55, dashArray: "3 6", fill: false, interactive: false }).addTo(map);
-  /* the piped outline, with a soft halo */
-  const seg = hexOutline(cells).map(([a, b]) => [offset(at, a[0] * HEX_M, a[1] * HEX_M), offset(at, b[0] * HEX_M, b[1] * HEX_M)]);
+  const seg = line(yours);
   if (seg.length) {
     L.polyline(seg, { color: "#ffc27a", weight: 10, opacity: 0.3, interactive: false, className: "tm-halo" }).addTo(map);
     L.polyline(seg, { color: "#ffc27a", weight: 2.4, opacity: 1, interactive: false }).addTo(map);
   }
-  /* the newest cell's lamp, the flag at home, a venue mark on each ring reached and the next one dim */
-  const pin = (c, html, cls) => L.marker(offset(at, ...cellAt(c)), { icon: L.divIcon({ className: "tm-pin " + cls, html, iconSize: [30, 30] }), interactive: false, keyboard: false }).addTo(map);
-  if (lit.length > 1) pin(lit.at(-1), `<i class="tm-lamp"></i>`, "lamp");
-  if (lit.length) pin(lit[0], icon("flag"), "badge");
+  const pin = (c, html, cls) => L.marker(cellCentre(at, c), { icon: L.divIcon({ className: "tm-pin " + cls, html, iconSize: [30, 30] }), interactive: false, keyboard: false }).addTo(map);
+  if (yours.length > 1) pin(yours.at(-1), sc.below > 0 ? `<i class="tm-lamp warn"></i>` : `<i class="tm-lamp"></i>`, "lamp");
+  if (yours.length) pin(yours[0], icon("flag"), "badge");
   const mark = k => icon(VENUE_ICON[k] || "flame");
-  for (let k = 1; k <= ring; k++) pin(hexSpiral(1 + 3 * k * (k - 1) + 1).at(-1), mark(k), "badge");
-  if (next.length) pin(hexSpiral(1 + 3 * ring * (ring + 1) + 1).at(-1), mark(ring + 1), "badge dim");
-  /* fit the turf and the next ring, then hand the controls their jobs */
-  const reach = HEX_M * (1.5 * (ring + 2) + 1);
-  const bounds = L.latLngBounds([offset(at, -reach * 1.1, -reach), offset(at, reach * 1.1, reach)]);
-  const fit = () => map.fitBounds(bounds, { paddingTopLeft: [16, 90], paddingBottomRight: [16, 190] });
+  for (let k = 1; k <= ring; k++) { const c = hexSpiral(1 + 3 * k * (k - 1) + 1).at(-1); if (yours.some(y => y[0] === c[0] && y[1] === c[1])) pin(c, mark(k), "badge"); }
+  /* fit your turf and the ring beyond it; rivals are a drag away */
+  const reach = HEX_M * (1.5 * (ring + 2) + 1) * 2.2; /* wide enough to see the rivals next door */
+  const mine = L.latLngBounds([offset(at, -reach * 1.1, -reach), offset(at, reach * 1.1, reach)]);
+  const fit = () => map.fitBounds(mine, { paddingTopLeft: [16, 90], paddingBottomRight: [16, 210] });
   map.invalidateSize(); fit();
   requestAnimationFrame(() => { if (map) { map.invalidateSize(); fit(); } });
   document.getElementById("tm-in").onclick = () => map.zoomIn();

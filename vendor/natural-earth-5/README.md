@@ -1,0 +1,1 @@
+Populated places from Natural Earth (public domain), 1:10m populated_places_simple, reduced to [lat, lon, pop_max] for places with at least 1,000 people. Source: https://github.com/nvkelso/natural-earth-vector

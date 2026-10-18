@@ -1878,3 +1878,17 @@ body.tm-open .app { padding: 0; }
 @keyframes lv-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 .louie.happy .lv-eye { animation: lv-blink 5s infinite; transform-box: fill-box; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .louie .lv-body, .louie .lv-eye { animation: none !important; } }
+/* Tour Map: rival players and pressure */
+.tm-rival { display: grid; place-items: center; }
+.tm-rival b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #17181b; border: 2.5px solid var(--c); color: var(--c); font: 700 12px var(--sans); box-shadow: 0 3px 8px rgba(0,0,0,.6); }
+.tm-rival.quiet b { opacity: .6; }
+.tm-popwrap .leaflet-popup-content-wrapper { background: #17181b; color: #f1e3c4; border: 1px solid rgba(184,147,90,.42); border-radius: 14px; box-shadow: 0 10px 24px rgba(0,0,0,.6); }
+.tm-popwrap .leaflet-popup-tip { background: #17181b; }
+.tm-popwrap .leaflet-popup-content { margin: 10px 14px; }
+.tm-pop { display: flex; flex-direction: column; gap: 3px; font: 13px var(--sans); }
+.tm-pop b { font: 400 18px var(--serif); color: #f1e3c4; }
+.tm-pop span { color: #cbbfa6; }
+.tm-pop small { margin-top: 4px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #8a7f70; }
+.tm-push { margin: 0; padding: 10px 12px; border-radius: 14px; background: rgba(40,18,10,.9); border: 1px solid rgba(229,72,77,.55); color: #ffd2c2; font-size: 13px; line-height: 1.4; }
+.tm-lamp.warn { background: radial-gradient(circle at 35% 30%, #ffd2c2 0 12%, #ff6a4a 40%, #a8220c 85%); box-shadow: var(--lamp-ring), 0 0 14px 5px rgba(255,80,50,.6); }
+.tm-page.has-push .tm-ctl { bottom: calc(262px + var(--safe-b)); }
