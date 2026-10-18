@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.2.0";
+export const VERSION = "3.3.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2809,6 +2809,24 @@ export function tourDay(data, pressureBar, earnedCells, now = Date.now()) {
   } else t.below = 0;
   t.checked = today;
   return t;
+}
+
+/* The fewest credited plays that light n hexagons. */
+export function playsForCells(n) {
+  for (let p = n > 0 ? 1 : 0; p < 20000; p++) if (territory(p).cells >= n) return p;
+  return Infinity;
+}
+/* The nearest rival hexagon your territory will grow into: how many more plays
+   take it, whose it is, and where. null when no rival is within reach. */
+export function takeoverPlan({ plays, held, lost = 0, owner, rivals }) {
+  const reach = 1 + 3 * (territory(plays).rings + 5) * (territory(plays).rings + 6);
+  const cells = hexSpiral(reach);
+  for (let i = Math.max(0, held); i < cells.length; i++) {
+    const who = owner.get(cellKey(cells[i]));
+    const rival = who && who !== "you" && rivals.find(r => r.id === who);
+    if (rival) return { rival, cell: cells[i], index: i, plays: Math.max(1, playsForCells(i + 1 + lost) - plays) };
+  }
+  return null;
 }
 
 export function cleanTour(raw) {

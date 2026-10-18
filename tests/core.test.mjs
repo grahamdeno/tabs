@@ -1495,3 +1495,13 @@ test("No edge is lost in the first week of daily minutes", () => {
   let t; for (let d = 0; d < 6; d++) t = C.tourDay(data, 30, 7, Date.parse("2026-10-01T12:00:00Z") + d * 864e5);
   assert.equal(t.lost, 0); assert.equal(t.below, 0);
 });
+
+test("Takeover: plays to light a count of hexagons, and the nearest rival hexagon in reach", () => {
+  assert.equal(C.playsForCells(0), 0);
+  for (const n of [1, 2, 7, 8, 19, 25]) { const p = C.playsForCells(n); assert.ok(C.territory(p).cells >= n); assert.ok(p === 1 || C.territory(p - 1).cells < n); }
+  const owner = new Map([["0,0", "you"], ["1,0", "r1"]]);
+  const plan = C.takeoverPlan({ plays: 1, held: 1, lost: 0, owner, rivals: [{ id: "r1", name: "A B" }] });
+  assert.deepEqual(plan.cell, [1, 0]);
+  assert.equal(C.territory(1 + plan.plays).cells >= plan.index + 1, true);
+  assert.equal(C.takeoverPlan({ plays: 1, held: 1, owner: new Map(), rivals: [] }), null);
+});

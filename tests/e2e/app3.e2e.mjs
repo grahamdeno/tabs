@@ -564,3 +564,16 @@ test("Tonight on a new library: Louie waves and the first song is ready", { skip
   assert.match(await page.innerText(".rd-first"), /first song/i);
   assert.match(await page.innerText(".rd-next h2"), /Your first song/i);
 });
+
+test("Tour Map: a takeover card says how many songs and minutes it takes to claim a rival hexagon, suggests a song, and Play starts it", { skip: skip() }, async t => {
+  const page = await phone(t, LIB);
+  await page.evaluate(() => { location.hash = "#/playmap"; });
+  await page.waitForSelector("#tm-take:not([hidden])");
+  const text = await page.innerText("#tm-take");
+  assert.match(text, /take over from/i);
+  assert.match(text, /(One song|\d+ songs), about \d+ min/);
+  assert.match(text, /Start with/);
+  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/takeover.png" });
+  await page.click("#tm-take-go");
+  await page.waitForFunction(() => /#\/song\//.test(location.hash));
+});
