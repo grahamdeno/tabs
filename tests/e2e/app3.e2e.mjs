@@ -154,7 +154,7 @@ test("2.5 Back: in the island; pull down at the top; the library opens at its to
   const b = await page.evaluate(() => { const r = document.getElementById("rc-back").getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(document.getElementById("rc-back")).display }; });
   assert.ok(b.y > 760 && b.v !== "none", `Back sits in the island (${JSON.stringify(b)})`);
   await page.click("#rc-back"); await page.waitForTimeout(500);
-  assert.equal(await page.evaluate(() => location.hash), "#/");
+  assert.equal(await page.evaluate(() => location.hash), "#/library");
   assert.equal(await page.evaluate(() => scrollY), 0, "the library opens at its top");
   /* Pull down at the top of a song. */
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForTimeout(500);
@@ -169,7 +169,7 @@ test("2.5 Back: in the island; pull down at the top; the library opens at its to
   assert.match(await page.textContent(".rc-pull"), /Release for Library/);
   assert.equal(await page.evaluate(() => document.querySelector(".rc-pull").classList.contains("go")), true);
   await touch("touchEnd"); await page.waitForTimeout(500);
-  assert.equal(await page.evaluate(() => location.hash), "#/", "a full pull goes back");
+  assert.equal(await page.evaluate(() => location.hash), "#/library", "a full pull goes back");
 });
 
 test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me points at the ring", { skip: skip() }, async t => {
@@ -424,7 +424,7 @@ test("a bass riff: drawn in Edit, kept on the song, and played on each chord", {
   assert.equal(await page.innerText(".rf-c[data-k='8']"), "5", "the riff opens as it was saved");
   await page.click("#rf-scrim");
   await page.evaluate(() => { window.__osc.length = 0; });
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".list .row");
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector(".list .row");
   await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
   await page.click("#play"); await page.waitForTimeout(1300); await page.click("#play");
   const f = await page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
@@ -520,4 +520,32 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
   await page.click("#play"); await page.waitForTimeout(1500); await page.click("#play");
   await page.waitForFunction(() => document.getElementById("play")?.getAttribute("aria-label") === "Start auto-scroll");
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.every(s => !s.playLog?.total)), true);
+});
+
+test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map card, and the header reaches the Library and Settings", { skip: skip() }, async t => {
+  const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
+  const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
+  const page = await phone(t, { ...LIB, songs }, { home: true });
+  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/tonight.png" });
+  await page.waitForSelector(".rd-next");
+  assert.equal(await page.innerText("h1.title"), "Tonight");
+  assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie says something");
+  assert.match(await page.innerText(".rd-next h2"), /Up next/i);
+  assert.match(await page.innerText(".rd-map"), /Tour Map/i);
+  await page.click("#rd-go");
+  await page.waitForFunction(() => /#\/song\//.test(location.hash) && document.body.classList.contains("playing"), null, { timeout: 8000 });
+  await page.click("#play");
+  await page.evaluate(() => document.querySelector(".head .ib[data-go]").click());
+  await page.waitForSelector(".rd-next");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from Tonight goes back to Tonight");
+  await page.click("#libbtn"); await page.waitForSelector("#list .row");
+  await page.click("#libback"); await page.waitForSelector(".rd-next");
+  await page.click("#settings"); await page.waitForFunction(() => location.hash === "#/settings");
+});
+
+test("Tonight on a new library: Louie waves and the first song is ready", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
+  await page.waitForSelector(".rd-first");
+  assert.match(await page.innerText(".rd-first"), /first song/i);
+  assert.match(await page.innerText(".rd-next h2"), /Your first song/i);
 });

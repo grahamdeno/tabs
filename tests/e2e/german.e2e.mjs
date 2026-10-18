@@ -97,7 +97,7 @@ test("German practice in the background: batches land as they come; a dropped co
   await page.click("#dechip"); await page.waitForTimeout(200);
   assert.match(await page.innerText(".de-sheet"), /2 of 8 lines still need translating/);
   await page.click("#de-go");
-  await page.evaluate(() => { location.hash = "#/"; });
+  await page.evaluate(() => { location.hash = "#/library"; });
   await page.waitForFunction(() => /German ready: Long Song/.test(document.getElementById("toast")?.textContent || ""), null, { timeout: 8000 });
   await page.click("#toast button"); await page.waitForTimeout(400);
   assert.match(await page.evaluate(() => location.hash), /#\/song\/l/, "Open goes to the song");

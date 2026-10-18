@@ -168,7 +168,7 @@ function renderSettings() {
       </div>
       <div id="s-cities"></div>` : ""}
     </div>
-    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; Tabs asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
+    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; The Road asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
     keys: ["Keys", `
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>
@@ -183,7 +183,7 @@ function renderSettings() {
       </div>
     </div>
     <p class="foot" id="s-keymsg" aria-live="polite"></p>
-    <details class="foot s-why"><summary>What it's used for</summary>Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Tabs, with a low monthly spend limit.</details>
+    <details class="foot s-why"><summary>What it's used for</summary>Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for The Road, with a low monthly spend limit.</details>
     <div class="label">GetSongBPM · Tempo data</div>
     <div class="set-group glass">
       <label class="fld fld-k"><span class="tile ftile">${icon("metro")}</span>
@@ -203,7 +203,7 @@ function renderSettings() {
       <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Tabs isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Tabs to your Home Screen from the Share menu to use it offline.</p>`],
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if The Road isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add The Road to your Home Screen from the Share menu to use it offline.</p>`],
     help: ["Help", `
     <div class="set-group glass">
       <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
@@ -219,7 +219,7 @@ function renderSettings() {
     const theme = { dark: "Dark", light: "Light" }[s.theme] || "Auto";
     const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
-    app.innerHTML = head("Settings", "Back to library") + `
+    app.innerHTML = head("Settings", "Back") + `
     <div class="set-group glass">
       ${row("playing", "play", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "Count-in", s.stage && "Stage"].filter(Boolean).join(" · "))}
       ${row("diagrams", "fretboard", "Chord diagrams", `${diagOn} of 4 on`)}
@@ -234,7 +234,7 @@ function renderSettings() {
       ${row("library", "cloud", "Library and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
       ${row("help", "info", "Help", problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : "Tips, diagnostics", true)}
     </div>
-    <p class="foot s-ver" id="s-ver">Tabs ${VERSION}</p>
+    <p class="foot s-ver" id="s-ver">The Road ${VERSION}</p>
     <div class="s-dock"><button class="btn primary" id="s-backup">${icon("cloud")}Back up now</button><span>Last backup ${esc(ago(s.lastBackup) || "never")}</span></div>`;
   }
   document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/");

@@ -26,10 +26,10 @@ const lib = theme => ({
   settings: { v: 6, theme, controls: "bar", streakMoment: false, tipsSeen: TIPS, micExplained: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, lastTuned: 9e15 }
 });
 const SHOTS = [
-  ["library", "#/"], ["sketch", "#/sketch"], ["song", "#/song/a"], ["tab", "#/song/c"], ["set", "#/set/s"], ["settings", "#/settings"], ["gestures", "#/gestures"],
+  ["library", "#/library"], ["sketch", "#/sketch"], ["song", "#/song/a"], ["tab", "#/song/c"], ["set", "#/set/s"], ["settings", "#/settings"], ["gestures", "#/gestures"],
   ["menu", "#/song/a", p => p.click("button.more:visible")],
   ["edit", "#/song/a", async p => { await p.click("button.more:visible"); await p.click(".menu [data-m='edit']"); }],
-  ["search", "#/", async p => { await p.click("#q"); await p.keyboard.type("willow"); }],
+  ["search", "#/library", async p => { await p.click("#q"); await p.keyboard.type("willow"); }],
   ["ask", "#/song/a", async p => { await p.click("button.more:visible"); await p.click(".menu [data-m='edit']"); await p.waitForTimeout(300); await p.click("[data-sec]"); }]
 ];
 

@@ -290,7 +290,7 @@ export function wordsSheet(chart, { title = "", ok = "Done", text = "" } = {}, d
   layer.innerHTML = `<div class="scrim" id="ws-scrim"></div><div class="panel full cs" role="dialog" aria-label="Add the words"><div class="grab"></div>
     <div class="ph"><button class="tb" id="ws-x">${back ? "Back" : "Cancel"}</button><h2>Add the words</h2>${oneHandMQ.matches ? '<span style="width:56px"></span>' : `<button class="tb" id="ws-ok" disabled>${esc(ok)}</button>`}</div>
     <div class="pbody">
-      <p class="foot" style="margin:0 2px 10px">Paste the lyrics${title ? ` for <b>${esc(title)}</b>` : ""}. Blank lines between verses help; names like [Chorus] help more. Tabs puts the chart's chords over them, two to a line; fix any spot in Edit.</p>
+      <p class="foot" style="margin:0 2px 10px">Paste the lyrics${title ? ` for <b>${esc(title)}</b>` : ""}. Blank lines between verses help; names like [Chorus] help more. The Road puts the chart's chords over them, two to a line; fix any spot in Edit.</p>
       <button class="btn" id="ws-paste" style="width:100%;margin-bottom:10px">${icon("clip")}Paste</button>
       <textarea id="ws-text" class="ws-text" rows="9" placeholder="Paste or type the lyrics here" aria-label="Lyrics" autocapitalize="sentences"></textarea>
       <div class="label" style="margin:14px 2px 6px">With the chords</div>
@@ -420,7 +420,7 @@ export async function nextSongs() {
       if (!state.list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
     } catch (e) {
       if (lv !== level()) return;
-      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form Tabs couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
+      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form The Road couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
     }
     paint();
   };

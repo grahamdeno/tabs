@@ -1,6 +1,6 @@
 {
-  "name": "Tabs",
-  "short_name": "Tabs",
+  "name": "The Road",
+  "short_name": "The Road",
   "description": "Personal chord sheets and tabs. Offline, local only.",
   "start_url": "./",
   "scope": "./",

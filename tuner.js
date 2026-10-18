@@ -210,7 +210,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   t.say = say;
   const fail = e => {
     const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
-    say(denied ? "Tabs can't hear your guitar: the microphone is off for it. To turn it on, open your iPhone's Settings, then Apps > Safari > Microphone, and choose Ask. Then open the tuner again. Meanwhile, tap a key to hear its note."
+    say(denied ? "The Road can't hear your guitar: the microphone is off for it. To turn it on, open your iPhone's Settings, then Apps > Safari > Microphone, and choose Ask. Then open the tuner again. Meanwhile, tap a key to hear its note."
       : "The microphone isn't available here. Tap a key to hear its note.", "warn");
   };
   if (!navigator.mediaDevices?.getUserMedia) return fail();
@@ -239,7 +239,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     box.classList.add("asking");
     const card = document.createElement("div");
     card.className = "tn-mic";
-    card.innerHTML = `<span class="tn-mic-ic">${icon("fork")}</span><b>Tabs listens to tune your guitar</b>
+    card.innerHTML = `<span class="tn-mic-ic">${icon("fork")}</span><b>The Road listens to tune your guitar</b>
       <p>The microphone is on only while the tuner is open. Nothing is recorded or sent anywhere.</p>
       <button class="btn primary" id="tn-allow">Allow microphone</button><button class="tb" id="tn-skip">Not now</button>`;
     box.querySelector(".tn-read").after(card);

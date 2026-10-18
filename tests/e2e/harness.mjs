@@ -61,14 +61,14 @@ test.after(async () => { await browser?.close(); server?.close(); });
 
 // A fresh phone with the test library; fails the test on any page error.
 // opts are Playwright context options, plus fixedTime: a date the page's clock stays at.
-export async function phone(t, lib = LIB, { fixedTime, ...opts } = {}) {
+export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: "block", hasTouch: true, ...opts });
   if (fixedTime) await ctx.clock.setFixedTime(new Date(fixedTime));
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(String(e)));
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
-  await page.goto(base);
+  await page.goto(base + (home ? "" : "#/library")); /* most tests start in the Library; home: true starts on Tonight */
   await page.waitForTimeout(300);
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), lib);
   await page.reload();

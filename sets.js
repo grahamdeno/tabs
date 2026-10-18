@@ -87,7 +87,7 @@ function renderSet(id) {
     ${songs.length ? "" : `<p class="empty-hint" style="margin-top:14px">Add songs in the order you'll play them. You can reorder them anytime with Edit.</p>`}
     <button class="danger" id="delset" style="display:block;margin:22px auto 0">Delete set</button>`;
   const ids = () => setSongs(set).map(s => s.id);
-  $("back").onclick = () => { setEditing = false; setFilter("sets"); go("#/"); };
+  $("back").onclick = () => { setEditing = false; setFilter("sets"); go("#/library"); };
   $("rename").onclick = () => setSheet(set, () => renderSet(id));
   const toggleCovers = () => { const o = $("cvopts"); if (o.hidden) { paintCoverOpts(set, () => renderSet(id)); o.hidden = false; } else o.hidden = true; };
   $("s-cover").onclick = toggleCovers; $("s-edc").onclick = toggleCovers;
@@ -115,7 +115,7 @@ function renderSet(id) {
   $("addsongs").onclick = () => pickSongs(set, () => renderSet(id));
   $("delset").onclick = () => {
     const entry = Tabs.deleteSet(data, id);
-    setEditing = false; setFilter("sets"); go("#/");
+    setEditing = false; setFilter("sets"); go("#/library");
     toast(`Deleted "${set.name}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); render(); toast("Restored"); } });
   };
 }

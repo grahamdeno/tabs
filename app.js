@@ -58,9 +58,13 @@ function applyTheme() {
 
 
 const go = h => { location.hash = h; };
+/* From Tonight: open a song and start it playing; open the Library with search ready. */
+let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
+const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
+const openSearch = () => { searchNext = true; go("#/library"); };
 const route = () => {
   const [, name = "", id = ""] = location.hash.split("/");
-  return { name: name || "library", id: decodeURIComponent(id) };
+  return { name: name || "road", id: decodeURIComponent(id) };
 };
 const keyOf = s => s.format === "tab" ? "TAB" : (s.key || guessKey(s.body || ""));
 
@@ -149,7 +153,7 @@ function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <h1 class="title script">Library</h1>
+      <div class="head-l"><button class="ib glass" id="libback" aria-label="Back to Tonight">${icon("back")}</button><h1 class="title script">Library</h1></div>
       <div class="row-btns">
         <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
         ${tunerBtn("ib glass")}
@@ -182,6 +186,7 @@ function renderLibrary() {
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
+  $("libback").onclick = () => go("#/");
   $("settings").onclick = () => go("#/settings");
   $("youbtn").onclick = () => go("#/you");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
@@ -718,7 +723,7 @@ function renderViewer(id) {
   app.classList.add("viewer");
   /* Back goes where the song was opened from: its set, when played from one. */
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
-  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : { to: "#/", label: "Back to library" };
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to Tonight" } : { to: "#/library", label: "Back to library" };
   diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
   app.innerHTML = `
     <div class="head">
@@ -1590,7 +1595,7 @@ const prefetch = () => ["editor.js", "settings.js"].forEach(n => import(`./${n}?
 // If a module still can't load, a reload brings everything onto one release.
 const lazy = name => import(`./${name}?v=${VERSION}`).catch(err => {
   noteError(err, { quiet: true, where: name });
-  toast("Tabs was updated. Reload to use this.", null, { label: "Reload", fn: () => location.reload() });
+  toast("The Road was updated. Reload to use this.", null, { label: "Reload", fn: () => location.reload() });
   return new Promise(() => {}); /* the feature just doesn't open */
 });
 
@@ -1720,7 +1725,7 @@ const FIND_SITES = [
 function findCard(q, more = false) {
   return `<div class="findcard${more ? " more" : ""}">
     <div class="fc-t">${more ? `Find “${esc(q.trim())}” elsewhere` : `“${esc(q.trim())}” isn't in your library yet`}</div>
-    ${more ? "" : `<p class="fc-s">Find a chord sheet, copy it, and come back. Tabs will offer to add what you copied.</p>`}
+    ${more ? "" : `<p class="fc-s">Find a chord sheet, copy it, and come back. The Road will offer to add what you copied.</p>`}
     <div class="fc-b">${FIND_SITES.map(([k, l]) => `<button class="chip" data-find="${k}">${icon(k === "web" ? "search" : "link")}${l}</button>`).join("")}</div>
     ${aiKey() ? `<button class="fc-ai" id="fc-ai">${icon("wand")}<span><b>Get the song</b>Chords, words and tempo in one go</span>${icon("chev", "chev")}</button>` : ""}
   </div>`;
@@ -2438,6 +2443,7 @@ function render() {
 function renderRoute() {
   const r = route();
   leaveHooks.forEach(fn => fn(r));
+  if (r.name === "road" || r.name === "library") lastHome = r.name;
   app.classList.remove("viewer");
   layer.innerHTML = "";
   /* Old links: #/add and #/edit/<id> open the editor. */
@@ -2445,6 +2451,7 @@ function renderRoute() {
   if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return renderRoute(); }
   if (r.name === "song") {
     renderViewer(r.id);
+    if (playNext === r.id) { playNext = null; setTimeout(() => { if (viewing?.id === r.id && !scroll.on) $("play")?.click(); }, 450); }
     const want = openEdit;
     openEdit = null;
     const song = viewing?.id === r.id && want?.id === r.id ? viewing : null;
@@ -2457,7 +2464,8 @@ function renderRoute() {
   else if (r.name === "sketch") lazy("sketch.js").then(m => { if (route().name === "sketch") m.renderSketch(); });
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else if (r.name === "import") renderImport(r.id);
-  else { renderLibrary(); window.scrollTo(0, 0); } /* the library always opens at its top */
+  else if (r.name === "road") lazy("road.js").then(m => { if (route().name === "road") { m.renderRoad(); window.scrollTo(0, 0); } });
+  else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }
 
 // Screen changes animate with the browser's view transitions where supported:
@@ -2518,4 +2526,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { playSong, openSearch, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

@@ -221,7 +221,7 @@ function demoTap() {
 }
 // Search: invite a tap, then show what it can do.
 const SEARCH_LIST = () => `<b>Search does more than find</b><ul>
-  <li>Titles, artists, or a lyric you remember</li><li>Paste a chord sheet to add it</li><li>Paste a shared Tabs link to open it</li>
+  <li>Titles, artists, or a lyric you remember</li><li>Paste a chord sheet to add it</li><li>Paste a shared The Road link to open it</li>
   <li>Not in your library? ${aiKey() ? "Find it online, or make a chord chart with AI" : "Find it online"}</li></ul>`;
 function demoSearch(force) {
   const bar = document.querySelector(".cmd");
@@ -244,7 +244,7 @@ function demoSong() {
   return chords.find(s => s.sample) || [...chords].sort((a, b) => (b.opened || 0) - (a.opened || 0))[0];
 }
 function showMe(name) {
-  if (name === "search") { go("#/"); return setTimeout(() => demoSearch(true), 450); }
+  if (name === "search") { go("#/library"); return setTimeout(() => demoSearch(true), 450); }
   if (name === "meter") { go("#/"); return setTimeout(() => openTuner("standard", null, { demo: "meter" }), 350); }
   /* The set dial needs a song opened from a set. */
   if (name === "setdial") {

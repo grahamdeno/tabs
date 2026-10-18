@@ -159,7 +159,7 @@ function stopLine(how = "keep") {
     rec.recorder.stop();
   }
   if (how === "drop-quiet") return;
-  if (keep && ln.hearing && !rec.recorder) { ln.hearing = false; toast("This phone can't record the line, so Tabs can't hear the guitar. Sing it still works."); }
+  if (keep && ln.hearing && !rec.recorder) { ln.hearing = false; toast("This phone can't record the line, so The Road can't hear the guitar. Sing it still works."); }
   if (how === "keep" && !keep) {
     paint();
     const pitched = rec.frames.filter(f => f.hz > 0).length, secs = rec.frames.at(-1)?.t || 0;
@@ -343,7 +343,7 @@ function paintAll() {
     <div class="head"><button class="btn sm glass" id="sk-cancel">${n ? "Discard" : "Cancel"}</button>
       <button class="btn sm primary" id="sk-done" ${n && !rec ? "" : raw("disabled")}>Make chords</button></div>
     <div class="skh"><h1 class="title">New sketch</h1><div class="skdots" role="img" aria-label="${n} line${n === 1 ? "" : "s"}">${[...Array(n)].map(() => raw('<i class="on"></i>'))}${raw("<i></i>")}</div></div>
-    <div class="seg skmode" role="group" aria-label="How Tabs listens">${MODES.map(([k, n]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}" ${rec ? raw("disabled") : ""}>${n}</button>`)}</div>
+    <div class="seg skmode" role="group" aria-label="How The Road listens">${MODES.map(([k, n]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}" ${rec ? raw("disabled") : ""}>${n}</button>`)}</div>
     ${hears() && earState !== "ready" ? html`<div class="skear">${earState === "failed" ? html`Couldn't load the chord listener. Check the connection, then switch again.` : html`<i class="spin"></i>Getting the chord listener ready (about 2 MB, once)`}</div>` : ""}
     <div class="skmeter" id="sk-meter" aria-live="polite">${meterHTML(conf)}</div>
     ${big
@@ -354,7 +354,7 @@ function paintAll() {
           <div class="skwords">${sk.lines[rec.i]?.words || "Say the words after you let go"}</div><div class="skchips" id="sk-live"></div></div>`
       : n
         ? html`<div class="sknb">${sk.lines.map((l, i) => rowHTML(l, i, key))}<div class="sknb-next">${sk.again >= 0 ? `${mode() === "strum" ? "play" : "sing"} line ${sk.again + 1} again…` : `${mode() === "strum" ? "play" : "sing"} the next line…`}</div></div>`
-        : html`<p class="skintro">${mode() === "strum" ? "Hold the pad and strum a line; let go to keep it. Tabs names the chords you played (or the notes of a riff), then you add the words." : mode() === "both" ? "Hold the pad, then sing and strum a line together; let go to keep it. The chords you played lead, and the melody's choice is one tap away." : "Hold the pad and sing a line; let go to keep it. Then say or type its words. The wheel shows your key as it appears."}</p>`}
+        : html`<p class="skintro">${mode() === "strum" ? "Hold the pad and strum a line; let go to keep it. The Road names the chords you played (or the notes of a riff), then you add the words." : mode() === "both" ? "Hold the pad, then sing and strum a line together; let go to keep it. The chords you played lead, and the melody's choice is one tap away." : "Hold the pad and sing a line; let go to keep it. Then say or type its words. The wheel shows your key as it appears."}</p>`}
     <div class="skpad ${rec ? "on" : ""} ${big ? "" : "small"}" id="sk-pad" role="button" tabindex="0" aria-label="${rec ? `Stop line ${rec.i + 1} and keep it` : `Sing line ${next + 1}`}">
       <i class="skpad-ring"></i><i class="skpad-ring r2"></i><i class="skpad-dot"></i>
       <b id="sk-pad-t">${rec ? (rec.latched ? "Tap to keep the line" : "Release to keep the line") : `Hold to ${mode() === "strum" ? "play" : mode() === "both" ? "sing and play" : "sing"} line ${next + 1}${sk.again >= 0 ? " again" : ""}`}</b>

@@ -18,7 +18,7 @@ test("Swipe left: a short swipe shows Delete; a long one deletes, with Undo", { 
   const row = ".list .row[data-id='c']";
   await drag(page, row, -90);
   assert.ok(await page.evaluate(() => document.querySelector(".sw-del").offsetWidth > 60), "Delete shows");
-  assert.match(await page.evaluate(() => location.hash), /^#\/?$|^$/, "the song didn't open");
+  assert.match(await page.evaluate(() => location.hash), /^#\/?(library)?$|^$/, "the song didn't open");
   await page.click(".list .sw:has(.row[data-id='c']) .sw-del"); await page.waitForTimeout(300);
   assert.ok(!(await ids(page)).includes("c"), "deleted");
   assert.match(await page.innerText("#toast"), /Deleted "Clear Water"/);

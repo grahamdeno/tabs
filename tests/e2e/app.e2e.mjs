@@ -10,12 +10,14 @@ import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser } from 
 useBrowser();
 
 
-test("first launch adds the sample song and shows the library", { skip: skip() }, async t => {
+test("first launch adds the sample song and opens on Tonight with it ready", { skip: skip() }, async t => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(base); await page.waitForTimeout(500);
-  assert.match(await page.innerText("h1.title"), /Library/);
+  await page.goto(base); await page.waitForSelector(".rd-next");
+  assert.match(await page.innerText("h1.title"), /Tonight/);
+  assert.equal(await page.locator(".rd-song").count(), 1, "the sample song is up first");
+  await page.click("#libbtn"); await page.waitForSelector("#list .row");
   assert.equal(await page.locator("#list .row").count(), 1);
   assert.deepEqual(errors, []);
   await ctx.close();
@@ -70,7 +72,7 @@ test("a new set with a date shows as Up next and plays after its title card", { 
   await page.click("#ns-ok"); await page.waitForTimeout(800);
   await page.click("#pk-list .row:has-text('River Road')"); await page.click("#pk-list .row:has-text('Harbor Lights')");
   await page.click("#pk-add"); await page.waitForTimeout(400);
-  await page.goto(base); await page.waitForTimeout(400);
+  await page.goto(base + "#/library"); await page.reload(); await page.waitForTimeout(400);
   assert.match(await page.innerText("#upnext"), /Friday Gig/);
   await page.click("#un-play"); await page.waitForTimeout(500);
   assert.ok(await page.locator(".titlecard").count());
@@ -176,7 +178,7 @@ test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", {
   assert.equal(await page.locator("h1.song-title").textContent(), "New One");
   assert.deepEqual(await titles(), ["New One", "River Road", "Harbor Lights"]);
 
-  await page.goto(base + "#/");
+  await page.goto(base + "#/library");
   await page.waitForTimeout(300);
   await page.click("#add");
   await page.waitForTimeout(600);
@@ -214,7 +216,7 @@ test("questions are asked in the app: rename a section, any chord, delete for go
   assert.match(await body(), /Cadd9/);
   // Delete for good asks in a sheet; Keep it keeps it.
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")); delete d._savedAt; d.trash = [{ type: "song", item: { id: "z", title: "Old Song", body: "G" }, deletedAt: new Date().toISOString() }]; localStorage.setItem("tabs-v1", JSON.stringify(d)); });
-  await page.goto(base + "#/"); await page.reload(); await page.waitForTimeout(300);
+  await page.goto(base + "#/library"); await page.reload(); await page.waitForTimeout(300);
   await page.goto(base + "#/trash"); await page.waitForTimeout(300);
   await page.click("[data-forget]"); await page.waitForTimeout(200);
   assert.match(await page.innerText(".ask"), /Delete “Old Song” for good\?/);
@@ -264,7 +266,7 @@ test("first song: try a chord, then Play; tips never block and show once", { ski
   const s = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
   assert.ok(s.used.chord && s.tipsSeen.chord && s.tipsSeen.play);
   // Second visit: nothing.
-  await page.goto(base + "#/");
+  await page.goto(base + "#/library");
   await page.goto(base + "#/song/a");
   await page.waitForTimeout(900);
   assert.equal(await cap(), null);
@@ -388,7 +390,7 @@ test("a problem is kept, and Copy diagnostics reports it without song words or t
   assert.match(await page.innerText("#s-diag"), /1 problem/);
   await page.click("#s-diag"); await page.waitForTimeout(300);
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  assert.match(text, /Tabs \d+\.\d+\.\d+/);
+  assert.match(text, /The Road \d+\.\d+\.\d+/);
   assert.match(text, /2 songs/);
   assert.match(text, /Earlier problem/);
   assert.match(text, /AI key: set/);
@@ -412,7 +414,7 @@ test("the library lives in the phone's database; its copy brings it back if the 
     const r = indexedDB.open("tabs-library", 1);
     r.onsuccess = () => { const tx = r.result.transaction("copy", "readwrite"); tx.objectStore("copy").put({ json: "{broken", at: new Date(Date.now() + 1e6).toISOString() }, "lib"); tx.oncomplete = ok; };
   }));
-  await page.goto(base + "#/"); await page.reload(); await page.waitForTimeout(900);
+  await page.goto(base + "#/library"); await page.reload(); await page.waitForTimeout(900);
   assert.equal(await page.locator("#list .row").count(), 2);
   assert.match(await page.innerText("#toast"), /restored from its safety copy/);
   assert.equal(await inDB(), 2, "and the database is whole again");

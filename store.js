@@ -34,7 +34,7 @@ let saveWarned = 0;
 function saveFailed() {
   if (Date.now() - saveWarned < 60e3) return;
   saveWarned = Date.now();
-  toast("Couldn't save: the phone's storage for Tabs is full. Back up, then remove songs or cover photos you don't need.", null, { label: "Back up", fn: () => backupNow() });
+  toast("Couldn't save: the phone's storage for The Road is full. Back up, then remove songs or cover photos you don't need.", null, { label: "Back up", fn: () => backupNow() });
 }
 Tabs.onSaveError = saveFailed;
 function writeMain(json) {
@@ -95,7 +95,7 @@ async function diagnostics() {
   const mb = n => (n / 1048576).toFixed(1) + " MB";
   const s = data.settings, hidden = ["tipsSeen", "used"];
   return [
-    `Tabs ${VERSION}, ${new Date().toISOString()}`,
+    `The Road ${VERSION}, ${new Date().toISOString()}`,
     navigator.userAgent,
     `Home Screen app: ${matchMedia("(display-mode: standalone)").matches || navigator.standalone ? "yes" : "no"}; screen ${innerWidth}x${innerHeight}; offline copy: ${navigator.serviceWorker?.controller ? "yes" : "no"}`,
     `Library: ${data.songs.length} songs, ${data.sets.length} sets, ${data.trash.length} recently deleted`,
@@ -137,7 +137,7 @@ async function backupNow() {
   const file = new File([Object.keys(covers).length ? JSON.stringify({ ...withoutGerman(data), covers }, null, 2) : Tabs.export(data)], name, { type: "application/json" });
   let done = false;
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: "Tabs backup" }); done = true; }
+    try { await navigator.share({ files: [file], title: "The Road backup" }); done = true; }
     catch (e) { if (e.name === "AbortError") return false; }
   }
   if (!done) {

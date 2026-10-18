@@ -72,8 +72,8 @@ function listenSheet(song, force) {
   const results = () => {
     const best = state.tracks[0], sure = state.q === first && best && best.score >= 5 && !state.all;
     if (state.busy) return `<div class="easy-wait">${busy("Looking in Apple Music")}</div>`;
-    if (state.error && catalogBlocked()) return `<p class="easy-note">Tabs updated in the background. Restart it to finish, then search again.</p>
-      <div class="ls-other"><button class="btn primary" id="ls-restart">Restart Tabs</button></div>`;
+    if (state.error && catalogBlocked()) return `<p class="easy-note">The Road updated in the background. Restart it to finish, then search again.</p>
+      <div class="ls-other"><button class="btn primary" id="ls-restart">Restart The Road</button></div>`;
     if (state.error) return `<p class="easy-note">Couldn't reach Apple Music's catalog just now.</p>
       <div class="ls-other"><button class="linkbtn" id="ls-retry">Try again</button><button class="linkbtn" id="ls-apple">Search in Apple Music</button></div>`;
     if (!state.tracks.length) return `<p class="easy-note">No match. Try fewer words, or the artist's name.</p>`;

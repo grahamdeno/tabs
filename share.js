@@ -22,7 +22,7 @@ async function shareLink(payload, title, near) {
 // The ••• button you can see: in the song bar on a phone held upright (one
 // hand), at the top on larger screens.
 const moreBtn = () => [...document.querySelectorAll("button.more")].find(b => b.offsetParent) || $("more");
-const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Tabs)`, moreBtn());
+const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (The Road)`, moreBtn());
 // ---------- Play together ----------
 // No server: the link carries the song, a start time and the tempo. Both
 // phones count in at that moment by their own clocks and scroll to the
@@ -45,7 +45,7 @@ function duetSheet(song) {
     <p class="duet-t">Start both phones at the same moment</p>
     <div class="seg duet-seg" id="du-mins" role="group" aria-label="Start in">${DUET_MINS.map(m => `<button data-min="${m}" class="${m === duetMins ? "on" : ""}" aria-pressed="${m === duetMins}">In ${m} min</button>`).join("")}</div>
     <div class="duet-when"><big id="du-when">${clockTime(startAt(duetMins))}</big><span>${song.bpm || 90} BPM · one bar count-in · ${mmss(songLength(song))}</span></div>
-    <p class="foot pn">Your friend gets the song in the link. At the start time both phones count in and scroll together. Keep Tabs open on this song.</p>
+    <p class="foot pn">Your friend gets the song in the link. At the start time both phones count in and scroll together. Keep The Road open on this song.</p>
     <div class="actions"><button class="btn" id="du-no">Not now</button><button class="btn primary" id="du-go">${icon("share")} Share link</button></div></div>`;
   const tick = setInterval(draw, 1000);
   const close = () => { clearInterval(tick); layer.innerHTML = ""; };
@@ -60,7 +60,7 @@ function duetSheet(song) {
     const at = startAt(duetMins);
     clearInterval(tick);
     /* The length goes along even when the song uses your default, so both scroll alike. */
-    const sent = await shareLink({ song: { ...shareable(song), duration: songLength(song), bpm: song.bpm || 90 }, duet: { at, bpm: song.bpm || 90 } }, `Play ${song.title} with me at ${clockTime(at)} (Tabs)`, moreBtn());
+    const sent = await shareLink({ song: { ...shareable(song), duration: songLength(song), bpm: song.bpm || 90 }, duet: { at, bpm: song.bpm || 90 } }, `Play ${song.title} with me at ${clockTime(at)} (The Road)`, moreBtn());
     if (!sent) { layer.innerHTML = ""; return; }
     duetWait(song, at);
   };
@@ -123,7 +123,7 @@ function duetCancel() {
   if (document.querySelector(".duet-wait")) layer.innerHTML = "";
 }
 onLeave(() => duetCancel());
-const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (Tabs set)`, $("s-share"));
+const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (The Road set)`, $("s-share"));
 
 async function renderImport(code) {
   const got = await unpackShare(code);
@@ -145,7 +145,7 @@ async function renderImport(code) {
       <p class="imp-t">Add ${name} to your library?</p>
       ${got.set ? `<div class="list glass imp-list">${songs.map(x => `<div class="row"><div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist || "Unknown artist")}${findSame(data, x) ? " · already in your library" : ""}</div></div></div>`).join("")}</div>` : ""}
       ${got.song && have.length ? `<p class="foot pn">You already have a song with this name. Adding keeps both.</p>` : ""}
-      ${inBrowser ? `<p class="foot pn">Use Tabs from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
+      ${inBrowser ? `<p class="foot pn">Use The Road from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
       <div class="actions"><button class="btn" id="im-no">Not now</button><button class="btn primary" id="im-yes">${got.set ? "Add set" : "Add song"}</button></div>
     </div>`;
   const close = () => { layer.innerHTML = ""; };

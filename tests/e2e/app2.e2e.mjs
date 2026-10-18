@@ -50,7 +50,7 @@ test("song, artist and set names are shown as text, never run as markup", { skip
     trash: [{ type: "song", item: { id: "z", title: bad(6), artist: bad(7), body: "G" }, deletedAt: new Date().toISOString() }] };
   const page = await phone(t, lib, { viewport: { width: 1180, height: 820 } });
   for (const h of ["#/", "#/song/a", "#/set/s", "#/trash", "#/settings"]) { await page.goto(base + h); await page.waitForTimeout(400); }
-  await page.goto(base + "#/"); await page.waitForTimeout(300);
+  await page.goto(base + "#/library"); await page.waitForTimeout(300);
   await page.click("#q"); await page.keyboard.type("img"); await page.waitForTimeout(600);
   assert.equal(await page.evaluate(() => window.__x), undefined);
   assert.equal(await page.locator("img[src=x]").count(), 0);
@@ -169,11 +169,11 @@ test("Back from a song opened in a set returns to that set; from the library, to
   await page.click("#snext"); await page.waitForTimeout(400);               // on to the next song in the set
   await page.click(".oh-back"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/set/s");
-  await page.goto(base + "#/"); await page.waitForTimeout(300);
+  await page.goto(base + "#/library"); await page.waitForTimeout(300);
   await page.click('#list .row[data-id="a"]'); await page.waitForTimeout(400);
   assert.equal(await page.getAttribute(".oh-back", "aria-label"), "Back to library");
   await page.click(".oh-back"); await page.waitForTimeout(400);
-  assert.equal(await hash(), "#/");
+  assert.equal(await hash(), "#/library");
 });
 
 test("sketch: a quiet voice is still heard; silence says so and is logged; the pad stays under the finger", { skip: skip() }, async t => {
@@ -328,7 +328,7 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
   assert.ok(await pad.evaluate(() => document.querySelector(".head [data-go]").getBoundingClientRect().top < 100), "iPad: buttons stay at the top");
   assert.equal(await pad.evaluate(() => document.querySelector(".oh-back").offsetParent), null, "iPad: no bar copies");
-  await pad.goto(base + "#/"); await pad.waitForTimeout(400);
+  await pad.goto(base + "#/library"); await pad.waitForTimeout(400);
   assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: tuner at the top");
 });
 

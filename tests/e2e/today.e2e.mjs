@@ -48,7 +48,7 @@ test("Today: quiet once you've played today; the setting turns it back to the we
   assert.equal(await page.locator("#today .t-dots i.now").count(), 0);
   await page.evaluate(() => { location.hash = "#/settings/today"; }); await page.waitForTimeout(300);
   await page.click("#s-nudge"); await page.waitForTimeout(200);
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForTimeout(300);
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForTimeout(300);
   assert.match(await page.innerText("#today"), /This week: 3 plays across 1 song/);
   assert.equal(await page.locator(".t-dots").count(), 0);
 });

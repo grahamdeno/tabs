@@ -144,7 +144,7 @@ function plantSheet() {
     <div class="pc-head">${icon("flag")}<span>Tour Map</span></div>
     <p class="tm-sheet-t">Plant your flag where you play</p>
     <p class="pf-line">Every song you play through lights a hexagon around this spot, on a real map.</p>
-    <p class="tm-fine">Your phone shares its position once. Tabs keeps it to about a kilometre, on this phone only, never in a backup. Map pictures come from OpenStreetMap, which sees the area shown, not your plays.</p>
+    <p class="tm-fine">Your phone shares its position once. The Road keeps it to about a kilometre, on this phone only, never in a backup. Map pictures come from OpenStreetMap, which sees the area shown, not your plays.</p>
     <div class="tm-btns"><button class="btn" id="pf-no">Not now</button><button class="btn primary" id="pf-go">${icon("flag")}Plant my flag</button></div>
   </div>`;
   const close = () => { layer.innerHTML = ""; };
