@@ -17,7 +17,7 @@ test("first launch adds the sample song and opens on Tonight with it ready", { s
   await page.goto(base); await page.waitForSelector(".rd-next");
   assert.match(await page.innerText("h1.title"), /Tonight/);
   assert.equal(await page.locator(".rd-song").count(), 1, "the sample song is up first");
-  await page.click("#rd-lib", { position: { x: 80, y: 24 } }); await page.waitForSelector("#list .row");
+  await page.click("#rd-dh"); await page.waitForSelector("#rd-drawer[data-state=open]");
   assert.equal(await page.locator("#list .row").count(), 1);
   assert.deepEqual(errors, []);
   await ctx.close();

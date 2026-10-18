@@ -58,10 +58,6 @@ function applyTheme() {
 
 
 const go = h => { location.hash = h; };
-/* The Library slides up over Tonight and back down again. */
-const slide = dir => { if (document.startViewTransition && !calm()) document.documentElement.dataset.vt = dir; };
-const openLibrary = () => { slide("up"); go("#/library"); };
-const closeLibrary = () => { slide("down"); go("#/"); };
 /* From Tonight: open a song and start it playing; open the Library with search ready. */
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
@@ -148,16 +144,24 @@ function showChanges() {
   $("chg-go")?.addEventListener("click", () => { close(); go("#/song/" + encodeURIComponent(first.best.id)); });
 }
 
-function renderLibrary() {
-  const hasFav = data.songs.some(s => s.favorite);
-  const hasTab = data.songs.some(s => s.format === "tab");
-  const hasLearn = data.songs.some(s => s.status === "learning");
+/* The filter chips, on the Library page and in Tonight's drawer. */
+function chipsHTML() {
+  if (!data.songs.length) return "";
+  const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
+  const chip = (f, label) => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}">${label}</button>`;
+  return `<div class="chips" id="chips">${chip("all", "All")}${chip("sets", "Sets")}${hasFav ? chip("fav", "Favorites") : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasTab ? chip("tab", "Tabs") : ""}</div>`;
+}
+/* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
+const homeHooks = { refresh: null };
+const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?.() : renderLibrary();
+
+function renderLibrary() {
+  chipsHTML(); /* settles a filter that no longer has songs */
   const week = playSongs(data).map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <button class="lib-grab" id="libgrab" aria-label="Back to Tonight"><i></i></button>
       <div class="head-l"><button class="ib glass" id="libback" aria-label="Back to Tonight">${icon("back")}</button><h1 class="title script">Library</h1></div>
       <div class="row-btns">
         <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
@@ -166,13 +170,7 @@ function renderLibrary() {
       </div>
     </div>
     ${todayHTMLOrSpot(weekTotal, weekSongs)}
-    ${data.songs.length ? `<div class="chips" id="chips">
-      <button class="chip ${filter === "all" ? "on" : ""}" data-f="all">All</button>
-      <button class="chip ${filter === "sets" ? "on" : ""}" data-f="sets">Sets</button>
-      ${hasFav ? `<button class="chip ${filter === "fav" ? "on" : ""}" data-f="fav">Favorites</button>` : ""}
-      ${hasLearn ? `<button class="chip ${filter === "learn" ? "on" : ""}" data-f="learn">Learning</button>` : ""}
-      ${hasTab ? `<button class="chip ${filter === "tab" ? "on" : ""}" data-f="tab">Tabs</button>` : ""}
-    </div>` : ""}
+    ${chipsHTML()}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
@@ -191,8 +189,7 @@ function renderLibrary() {
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
-  $("libback").onclick = closeLibrary;
-  $("libgrab").onclick = closeLibrary;
+  $("libback").onclick = () => go("#/");
   $("settings").onclick = () => go("#/settings");
   $("youbtn").onclick = () => go("#/you");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
@@ -289,10 +286,10 @@ function bindShelf() {
   const up = nextSet(data.sets);
   /* Gig day: the countdown ticks every second while the library is open. */
   clearInterval(gigTimer);
-  if ($("un-cd")) gigTimer = setInterval(() => { const el = $("un-cd"), t = el && gigCountdown(up.when); if (!el) return clearInterval(gigTimer); if (t) el.textContent = t; else { clearInterval(gigTimer); renderLibrary(); } }, 1000);
+  if ($("un-cd")) gigTimer = setInterval(() => { const el = $("un-cd"), t = el && gigCountdown(up.when); if (!el) return clearInterval(gigTimer); if (t) el.textContent = t; else { clearInterval(gigTimer); refreshLibrary(); } }, 1000);
   $("upnext")?.addEventListener("click", e => { if (!e.target.closest("#un-play")) go("#/set/" + encodeURIComponent(up.id)); });
   $("un-play")?.addEventListener("click", () => playSet(up));
-  $("sh-all")?.addEventListener("click", () => { filter = "sets"; renderLibrary(); });
+  $("sh-all")?.addEventListener("click", () => { filter = "sets"; refreshLibrary(); });
   $("sh-new")?.addEventListener("click", () => newSet());
   app.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => go("#/set/" + encodeURIComponent(b.dataset.sh)));
 }
@@ -363,7 +360,7 @@ function bindIndex(list, sorted, sort) {
 }
 onLeave(() => { document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx"); });
 function renderList() {
-  const list = $("list");
+  const list = $("list"), drawer = route().name === "road";
   document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx");
   if (!data.songs.length) {
     list.innerHTML = `<div class="empty">No songs yet.<br>Paste a chord sheet into the bar below,<br>or tap + to write one.</div>`;
@@ -419,7 +416,7 @@ function renderList() {
   $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
   bindRows(list);
   bindFind(list);
-  bindIndex(list, sorted, q ? "" : sort);
+  if (!drawer) bindIndex(list, sorted, q ? "" : sort);
 }
 // swipe a song in the list. Left shows Delete (a long swipe deletes
 // at once; Undo brings it back, and it stays in Recently deleted for 30
@@ -431,8 +428,8 @@ function swipeDelete(id) {
   if (!song) return;
   swOpen = null;
   const entry = Tabs.deleteSong(data, id);
-  renderLibrary();
-  toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); renderLibrary(); toast("Restored"); } });
+  refreshLibrary();
+  toast(`Deleted "${song.title}"`, null, { label: "Undo", fn: () => { Tabs.restore(data, entry); refreshLibrary(); toast("Restored"); } });
 }
 function bindSwipe(list) {
   list.querySelectorAll(".list .row[data-id]").forEach(row => {
@@ -463,7 +460,7 @@ function bindSwipe(list) {
       if (dx > 72) {
         const song = data.songs.find(x => x.id === row.dataset.id);
         if (song) { song.favorite = !song.favorite; Tabs.save(data); tick(); toast(song.favorite ? "Added to Favorites" : "Removed from Favorites"); }
-        paint(0); setTimeout(renderLibrary, 220); return;
+        paint(0); setTimeout(refreshLibrary, 220); return;
       }
       if (-dx > 50) { paint(-84); swOpen = row; return; }
       paint(0); if (swOpen === row) swOpen = null; setTimeout(() => wrap.classList.remove("swiping"), 200);
@@ -2450,6 +2447,7 @@ function renderRoute() {
   const r = route();
   leaveHooks.forEach(fn => fn(r));
   if (r.name === "road" || r.name === "library") lastHome = r.name;
+  document.body.classList.toggle("is-home", r.name === "road");
   app.classList.remove("viewer");
   layer.innerHTML = "";
   /* Old links: #/add and #/edit/<id> open the editor. */
@@ -2497,14 +2495,6 @@ function ringHint() {
     g.addEventListener("animationend", () => { g.remove(); p.classList.remove("hint-under"); clearInterval(keep); say(); }, { once: true });
   }, 380); /* after the glide (0.3 s) */
 }
-/* Swipe down from the top of the Library to go back to Tonight (not from the
-   song list or shelf, which scroll and swipe on their own). */
-const pull = { y: null };
-window.addEventListener("touchstart", e => {
-  const t = e.target instanceof Element ? e.target : null;
-  pull.y = route().name === "library" && window.scrollY <= 0 && !searching && !layer.innerHTML && t && !t.closest(".dock, .list, .shelf, input, .panel") ? e.touches[0].clientY : null;
-}, { passive: true });
-window.addEventListener("touchmove", e => { if (pull.y != null && e.touches[0].clientY - pull.y > 90) { pull.y = null; closeLibrary(); } }, { passive: true });
 const calm = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 let lastOpened = null; // id of the song whose title should glide back to its row
 window.addEventListener("hashchange", () => {
@@ -2541,4 +2531,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { playSong, openSearch, openLibrary, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { playSong, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

@@ -540,21 +540,24 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   await page.evaluate(() => document.querySelector(".head .ib[data-go]").click());
   await page.waitForSelector(".rd-next");
   assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from Tonight goes back to Tonight");
-  assert.equal(await page.locator("#libbtn").count(), 0, "no Library button in the header");
-  /* the Library handle above the search bar: tap it, swipe down to come back, swipe it up */
-  assert.match(await page.innerText("#rd-lib"), /Library/);
-  await page.click("#rd-lib", { position: { x: 80, y: 24 } }); await page.waitForSelector("#list .row");
-  assert.equal(await page.evaluate(() => location.hash), "#/library");
-  const swipe = (sel, from, to) => page.evaluate(([sel, from, to]) => {
+  /* the Library drawer: Tonight never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1 && getComputedStyle(document.body).overflow), "hidden", "Tonight does not scroll");
+  assert.match(await page.innerText("#rd-dh"), /Library/);
+  const state = () => page.getAttribute("#rd-drawer", "data-state");
+  assert.equal(await state(), "closed");
+  const drag = (sel, from, to) => page.evaluate(([sel, from, to]) => {
     const el = document.querySelector(sel), t = y => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y });
-    el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [t(from)] }));
-    el.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, touches: [t(to)] }));
+    el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [t(from)] }));
+    for (let i = 1; i <= 6; i++) el.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, cancelable: true, touches: [t(from + (to - from) * i / 6)] }));
     el.dispatchEvent(new TouchEvent("touchend", { bubbles: true, touches: [] }));
   }, [sel, from, to]);
-  await swipe(".head", 120, 260); await page.waitForSelector(".rd-next");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "swiping down from the top of the Library goes back to Tonight");
-  await swipe("#rd-lib", 700, 600); await page.waitForSelector("#list .row");
-  await page.click("#libgrab"); await page.waitForSelector(".rd-next");
+  await drag("#rd-dh", 700, 300); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "open");
+  await page.waitForFunction(() => document.querySelector("#rd-drawer").getBoundingClientRect().top < 80, null, { timeout: 3000 });
+  assert.ok(await page.locator("#list .row").first().isVisible(), "the real Library list is inside");
+  await drag("#rd-dh", 100, 500); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
+  await page.click("#rd-dh"); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "open");
+  await page.mouse.click(195, 20); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "the drawer never leaves Tonight");
   await page.click("#settings"); await page.waitForFunction(() => location.hash === "#/settings");
 });
 

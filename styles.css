@@ -1904,23 +1904,32 @@ body.tm-open .app { padding: 0; }
 .tm-take-go { height: 50px; margin-top: 4px; }
 .tm-take-go svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
 .tm-take-go { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Library sheet on Tonight (3.2): runs along the bottom edge under the search bar;
-   tap it or swipe it up and the Library slides up over Tonight */
-.app:has(.rd-peek) { padding-bottom: calc(196px + var(--safe-b)); }
-.app:has(.rd-peek) .dock-fade { display: none; }
-.rd-peek { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(560px, 100%); height: calc(130px + var(--safe-b)); z-index: 19; box-sizing: border-box; padding: 8px 22px 0; border-radius: 26px 26px 0 0; border: 1px solid var(--bronze-line); border-bottom: 0; background-color: var(--bg); background-image: var(--tolex-card); background-size: 120px 120px, auto; box-shadow: 0 -14px 34px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06); color: var(--fg); cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; }
-.rd-grab, .lib-grab i { display: block; width: 40px; height: 5px; margin: 0 auto 6px; border-radius: 3px; background: color-mix(in srgb, var(--muted) 60%, transparent); }
-.rd-peek-t { display: flex; align-items: baseline; gap: 10px; }
-.rd-peek-t b { font-family: "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive; font-weight: 700; font-size: 28px; line-height: 1; color: var(--fg); }
-.rd-peek-t > span { font-size: 13px; color: var(--muted); }
-.lib-grab { display: block; width: 100%; height: 18px; margin: calc(-14px) 0 2px; padding: 6px 0 0; border: 0; background: none; }
-.head:has(.lib-grab) { flex-wrap: wrap; }
-.head:has(.lib-grab) .lib-grab { flex: 0 0 100%; }
-html[data-vt=up]::view-transition-old(root) { animation: vt-dim .34s ease-out both; }
-html[data-vt=up]::view-transition-new(root) { animation: vt-up .34s cubic-bezier(.2,.8,.2,1) both; }
-html[data-vt=down]::view-transition-new(root) { animation: none; }
-html[data-vt=down]::view-transition-old(root) { animation: vt-down .3s cubic-bezier(.4,0,.8,.4) both; z-index: 2; }
-html[data-vt]::view-transition-group(song-title) { animation: none; }
-@keyframes vt-up { from { transform: translateY(100%); border-radius: 26px 26px 0 0; } }
-@keyframes vt-down { to { transform: translateY(100%); } }
-@keyframes vt-dim { to { opacity: .45; transform: scale(.96); } }
+
+/* Tonight (3.3): one fixed screen. Cards use the Library list's glass; only the drawer is tolex. */
+body.is-home { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; --peek: calc(172px + var(--safe-b)); }
+body.is-home .app { height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; padding-bottom: calc(var(--peek) + 10px); }
+body.is-home .head .title.script { font-size: 40px; line-height: 1.25; padding: 0 0 4px; }
+body.is-home .dock-fade { display: none; }
+body.is-home .pf-card, body.is-home .rd-bubble { background: linear-gradient(180deg, var(--card-2), var(--card)); border: 1px solid var(--bronze-line); box-shadow: inset 0 1px 0 var(--rim-hi); border-radius: 16px; }
+body.is-home .rd-next { margin-top: 10px; padding: 14px; }
+body.is-home .rd-map { margin-top: 10px; padding: 12px 14px; }
+body.is-home .rd-say .louie { height: 84px; width: auto; }
+body.is-home .rd-song b { font-size: 26px; }
+body.is-home .rd-meta { margin-bottom: 10px; }
+body.is-home .rd-steps { margin-bottom: 10px; }
+body.is-home .rd-go { height: 50px; }
+body.is-home .rd-turf { width: 64px; height: 64px; }
+@media (max-height: 740px) {
+  body.is-home .rd-say, body.is-home .rd-first .louie { display: none; }
+  body.is-home .rd-meta { display: none; }
+}
+.rd-scrim { position: fixed; inset: 0; z-index: 18; background: #000; opacity: 0; pointer-events: none; }
+.rd-drawer { position: fixed; left: 50%; bottom: 0; width: min(560px, 100%); height: calc(100dvh - 44px - var(--safe-t)); z-index: 19; display: flex; flex-direction: column; box-sizing: border-box; border-radius: 26px 26px 0 0; border: 1px solid var(--bronze-line); border-bottom: 0; background-color: var(--bg); background-image: var(--tolex-card); background-size: 120px 120px, auto; box-shadow: 0 -14px 34px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06); color: var(--fg); will-change: transform; touch-action: pan-y; transform: translate3d(-50%, calc(100% - var(--peek)), 0); }
+.rd-sizer { position: absolute; left: 0; right: 0; top: 0; height: var(--peek); pointer-events: none; visibility: hidden; }
+.rd-dh { flex: none; display: block; width: 100%; padding: 10px 22px 8px; border: 0; background: none; color: inherit; text-align: left; font: inherit; -webkit-tap-highlight-color: transparent; }
+.rd-grab { display: block; width: 40px; height: 5px; margin: 0 auto 8px; border-radius: 3px; background: color-mix(in srgb, var(--muted) 60%, transparent); }
+.rd-dt { display: flex; align-items: baseline; gap: 10px; }
+.rd-dt b { font-family: "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive; font-weight: 700; font-size: 30px; line-height: 1.2; color: var(--fg); }
+.rd-dt > span { font-size: 13px; color: var(--muted); }
+.rd-dbody { flex: 1; min-height: 0; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-y; padding: 0 20px calc(110px + var(--safe-b)); -webkit-overflow-scrolling: touch; }
+.rd-dbody .chips { margin-top: 4px; }
