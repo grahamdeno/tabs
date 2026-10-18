@@ -952,7 +952,7 @@ function renderViewer(id) {
       { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
       { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
       isChords && { id: "nn", short: "Chords", label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
-      { id: "tuner", short: "Tuner", label: "Tuner", icon: icon("fork"), run: () => { if (scroll.on) stopScroll(); openTuner(songTuning(song)); } },
+      { id: "tuner", short: "Tuner", label: "Tuner", icon: icon("fork") + (tunedRecently() ? "" : '<i class="dotmark"></i>'), run: () => { if (scroll.on) stopScroll(); openTuner(songTuning(song)); } },
       { id: "fav", short: "Favorite", label: "Favorite", icon: icon("heart"), active: () => !!song.favorite, run: () => app.querySelector(".player .fav")?.click() },
       { id: "more", short: "More", label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
       inSet && { id: "set", short: "Set", label: "Set", icon: icon("listplus"), run: () => setDial(null) }

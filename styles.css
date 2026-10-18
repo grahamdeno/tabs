@@ -723,7 +723,6 @@ body.stage.playing { overscroll-behavior: none; }
 .ls-row { gap: 12px; }
 .ls-row img, .ls-art { width: 44px; height: 44px; border-radius: 8px; flex: none; object-fit: cover; background: var(--card); display: grid; place-items: center; color: var(--muted); }
 .ls-more { display: block; margin: 8px auto 4px; font-size: 14px; }
-.ib .dotmark { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .stat.listen svg, .stat.tunechip svg { width: 13px; height: 13px; color: var(--accent); }
 
 .tappause { position: fixed; left: 50%; top: 40%; z-index: 60; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--solid) 85%, transparent); border: 1px solid var(--rim); color: var(--fg); pointer-events: none; animation: tp .7s ease-out forwards; }
@@ -1266,33 +1265,28 @@ body.ring { overscroll-behavior: none; }
 /* while sweeping, the section you're in glows above Play */
 .rc-where { display: none; }
 body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34vw - 24px); bottom: calc(21vh + 40px); transform: translateX(calc(50% - 24px)); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; text-transform: none; }
-/* the tuner's not-tuned dot sits over the corner with a ring around it,
-   like a fork ringing */
-/* Over the top-right of the fork icon itself, inside the button. */
-.ib .dotmark, .add.tool .dotmark { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-.add.tool .dotmark { top: 14px; right: 17px; }  /* centered just outside the fork's right edge, at its top */
-.ib .dotmark { top: 7px; right: 9.5px; }
-/* Two rings around the dot, like sound from a ringing fork. Every 7 seconds
-   it rings three times, gently (about a second each), then the dot and rings
-   are hidden until the next 7. */
-.ib .dotmark, .add.tool .dotmark { animation: fork-flash 7s ease-in-out infinite; }
-.ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; }
-.ib .dotmark::before, .add.tool .dotmark::before { inset: -4px; animation: fork-ring 7s ease-out infinite; }
-.ib .dotmark::after, .add.tool .dotmark::after { inset: -8px; animation: fork-ring 7s ease-out .12s infinite; }
-@keyframes fork-flash {
-  0% { opacity: 0; } 5% { opacity: 1; } 11% { opacity: 1; } 16% { opacity: 0; }
-  21% { opacity: 1; } 27% { opacity: 1; } 32% { opacity: 0; }
-  37% { opacity: 1; } 43% { opacity: 1; } 48%, 100% { opacity: 0; }
-}
+/* Not tuned in the last few hours: a solid dot on the fork's corner, with an
+   outline so it stands off the button, and two rings that ripple out from it
+   three times every 7 seconds, like a ringing fork. The dot itself never
+   fades, so it's there whenever you look. */
+.ib .dotmark, .add.tool .dotmark, .ri .dotmark { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+.ib .dotmark { top: 2px; right: 2px; }
+.add.tool .dotmark { top: 12px; right: 14px; }
+.ri .dotmark { top: 5px; right: 5px; background: #eda27f; box-shadow: 0 0 0 2px #111113; }
+.ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after, .ri .dotmark::before, .ri .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; opacity: 0; }
+.ri .dotmark::before, .ri .dotmark::after { border-color: #eda27f; }
+.ib .dotmark::before, .add.tool .dotmark::before, .ri .dotmark::before { inset: -4px; animation: fork-ring 7s ease-out infinite; }
+.ib .dotmark::after, .add.tool .dotmark::after, .ri .dotmark::after { inset: -8px; animation: fork-ring 7s ease-out .12s infinite; }
 @keyframes fork-ring {
   0% { transform: scale(.7); opacity: .9; } 15.9% { transform: scale(1.3); opacity: 0; }
   16% { transform: scale(.7); opacity: .9; } 31.9% { transform: scale(1.3); opacity: 0; }
   32% { transform: scale(.7); opacity: .9; } 47.9%, 100% { transform: scale(1.3); opacity: 0; }
 }
-/* Reduce Motion: no flashing; the dot and rings stay, still. */
+/* Reduce Motion: the rings stay, still. */
 @media (prefers-reduced-motion: reduce) {
-  .ib .dotmark, .add.tool .dotmark, .ib .dotmark::before, .add.tool .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after { animation: none; }
-  .ib .dotmark::before, .add.tool .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { opacity: .4; }
+  .ib .dotmark::before, .add.tool .dotmark::before, .ri .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after, .ri .dotmark::after { animation: none; }
+  .ib .dotmark::before, .add.tool .dotmark::before, .ri .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after, .ri .dotmark::after { opacity: .4; }
+}
 }
 /* while sweeping the arc, the page keeps still: no chord diagrams,
    compact header or line resizing until you let go */
