@@ -1906,7 +1906,9 @@ body.tm-open .app { padding: 0; }
 .tm-take-go { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Tonight (3.3): one fixed screen. Cards use the Library list's glass; only the drawer is tolex. */
-body.is-home { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; --peek: calc(150px + var(--safe-b)); }
+/* locked on the root, not with a fixed body: WebKit clips fixed children of a fixed, overflow-hidden body short of the screen's bottom edge */
+html:has(> body.is-home) { height: 100%; overflow: hidden; overscroll-behavior: none; }
+body.is-home { height: 100%; min-height: 0; overscroll-behavior: none; --peek: calc(150px + var(--safe-b)); }
 body.is-home .app { height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; padding-bottom: calc(var(--peek) + 10px); }
 body.is-home .head .title.script { font-size: 40px; line-height: 1.25; padding: 0 0 4px; }
 body.is-home .dock-fade { display: none; }

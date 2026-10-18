@@ -541,7 +541,7 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   await page.waitForSelector(".rd-next");
   assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from Tonight goes back to Tonight");
   /* the Library drawer: Tonight never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
-  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1 && getComputedStyle(document.body).overflow), "hidden", "Tonight does not scroll");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1 && getComputedStyle(document.documentElement).overflow), "hidden", "Tonight does not scroll");
   assert.match(await page.innerText("#rd-dh"), /Library/);
   const state = () => page.getAttribute("#rd-drawer", "data-state");
   assert.equal(await state(), "closed");
