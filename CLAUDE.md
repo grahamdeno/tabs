@@ -1,6 +1,6 @@
 # Working on Tabs
 
-Tabs is Graham's personal guitar PWA: plain ES modules, no build step, live on
+The Road (called Tabs before version 3; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA: plain ES modules, no build step, live on
 GitHub Pages from `main`. The README's Development section is the architecture
 map; docs/DATA.md describes every stored field. Read those before guessing.
 
@@ -58,8 +58,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 - Visual references: CI compares against `tests/visual/ci`, so a release that
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
-  releases and ask him after 10. Last remade after 2.16.0; releases since:
-  2.16.1 to 2.16.6, 2.17.0, 2.17.1, 2.18.0, 2.19.0, 2.19.1, 2.20.0, 2.21.0, 2.22.0, 2.23.0, 2.24.0, 2.24.1, 2.25.0, 2.26.0, 2.26.1, 2.26.2, 2.27.0, 2.28.0, 2.28.1, 2.29.0, 2.29.1, 2.29.2, 2.30.0, 2.30.1, 2.31.0, 2.32.0, 2.32.1, 2.33.0, 2.33.1, 2.34.0, 2.34.1, 2.35.0, 2.35.1, 2.35.2, 2.36.0, 2.37.0, 2.38.0, 2.38.1, 2.38.2, 2.39.0, 2.40.0, 2.41.0, 2.42.0, 2.43.0, 2.44.0, 2.45.0, 2.46.0, 2.47.0, 2.48.0, 2.49.0, 2.49.1, 2.49.2, 2.50.0, 2.51.0, 2.52.0 (60: asked at 2.19.0, waiting). To remake when he says yes:
+  releases and ask him after 10. Last remade at 3.0.0; releases since: none. To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
 

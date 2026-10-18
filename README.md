@@ -1,6 +1,15 @@
 # The Road
 
-A personal chord sheet and guitar tab app for the phone. It works offline, keeps everything on the device, and needs no account.
+A guitar app for the phone about making it big: play songs through, light up your Tour Map, and work your way from the Garage to the Festival stage. Chord sheets and tabs, offline, everything on the device, no account.
+
+## Version 3: The Road
+
+Version 3 is The Road (before it, the app was Tabs, versions 1 and 2). It began with 2.50.0 and is numbered 3 from 3.0.0:
+
+- Tonight is home, with Louie the amp, one song up next and a big Play (2.51.0).
+- The Tour Map: a real map you can pinch and drag, venues for each ring (2.50.0).
+- Your scene: rival players and turf you have to hold (2.52.0).
+- A play counts only when a song is played through by auto-scroll, and plays of deleted songs stay in your week and streak (2.48.0).
 
 Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it to the home screen to use it as an app.
 
@@ -9,7 +18,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ### Library
 - The app is called The Road (it was Tabs): making it big, on tour. Your library, backups and links carry over unchanged.
 - Tonight (home): your streak, Louie (the little amp who cheers you on), one song up next with three lamps (Tune, Play, Stretch: a song with your next chord) and a big Play that opens it and starts it, and a small picture of your Tour Map with the venue you're at. The header has Library, Your playing, Tuner and Settings; search and add are at the bottom as in the Library. A new library gets Louie waving and the first song ready. A song opened from Tonight goes back to Tonight; from the Library, back to the Library.
-- The library is home. The bottom bar searches, or takes a pasted chord sheet and works out its format, key, sections, title and artist.
+- The Library is one tap from Tonight. The bottom bar searches, or takes a pasted chord sheet and works out its format, key, sections, title and artist.
 - Search moves the bar to the top so results sit above the keyboard. It matches titles and artists first, then lyrics (showing the matching line). When nothing matches, it offers the web, Ultimate Guitar or Chordify, then Get the song.
 - Filters for All, Sets, Favorites, Learning and Tabs, each with a lamp lit on your pick. Sort A to Z, by artist (a leading "The" is ignored), recently played or most played. Long lists get a letter index on the right edge.
 - Swipe a song left to delete it (a long swipe deletes at once, with Undo), right to toggle Favorite.
