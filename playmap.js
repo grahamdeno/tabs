@@ -50,7 +50,7 @@ function realMap(spot, cells, fresh) {
   for (let ty = Math.floor(top / 256); ty <= Math.floor((top + h) / 256); ty++) for (let tx = Math.floor(left / 256); tx <= Math.floor((left + w) / 256); tx++) {
     if (ty < 0 || ty >= n) continue;
     const x = ((tx % n) + n) % n;
-    tiles += `<img class="pm-tile" alt="" draggable="false" referrerpolicy="no-referrer" src="https://tile.openstreetmap.org/${z}/${x}/${ty}.png" style="left:${Math.round(tx * 256 - left)}px;top:${Math.round(ty * 256 - top)}px">`;
+    tiles += `<img class="pm-tile" alt="" draggable="false" src="https://tile.openstreetmap.org/${z}/${x}/${ty}.png" style="left:${Math.round(tx * 256 - left)}px;top:${Math.round(ty * 256 - top)}px">`;
   }
   const hexes = hexSpiral(cells).map(([q, r], i) => {
     const c = hexCentre(spot, [q, r]), pts = Array.from({ length: 6 }, (_, k) => {
