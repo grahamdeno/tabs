@@ -4,7 +4,7 @@ import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { askMotion } from "./ring.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
-import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
+import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
 // ---------- Settings ----------
 const kb = n => n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
@@ -19,6 +19,7 @@ function renderSettings() {
       <button class="ib glass" id="back" aria-label="${back}">${icon("back")}</button>
     </div>
     <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
+  const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
   const PAGES = {
     playing: ["Playing", `
     <div class="set-group glass">
@@ -34,11 +35,20 @@ function renderSettings() {
         <button class="toggle ${s.countIn !== false ? "on" : ""}" id="s-count" role="switch" aria-checked="${s.countIn !== false}" aria-label="Count-in"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("metro")}</span><span class="name">Metronome</span>
+        <input type="range" class="s-vol" id="s-metvol" min="0" max="100" step="5" value="${metVol}" style="--fill:${metVol}%" aria-label="Metronome volume">
+        <button class="toggle ${s.metronome ? "on" : ""}" id="s-metro" role="switch" aria-checked="${!!s.metronome}" aria-label="Metronome"></button>
+      </div>
+      <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Metronome sound</span>
+        <div class="seg mini" id="s-metsound" role="group" aria-label="Metronome sound">${[["click", "Click"], ["drums", "Drums"]].map(([k, n]) => `<button data-m="${k}" class="${metSound === k ? "on" : ""}" aria-pressed="${metSound === k}">${n}</button>`).join("")}</div>
+      </div>
+      <div class="set">
         <span class="tile">${icon("stage")}</span><span class="name">Stage mode</span>
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat (kick, snare and hi-hat); a song with no tempo gets one looked up. The slider sets its volume. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
     diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">
@@ -205,6 +215,11 @@ function renderSettings() {
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
+  $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
+  /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
+  $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); });
+  $("s-metvol")?.addEventListener("change", () => metroPreview());
+  app.querySelectorAll("#s-metsound [data-m]").forEach(b => b.onclick = () => { s.metroSound = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
   $("s-tolex").onclick = () => { s.tolex = !s.tolex; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });

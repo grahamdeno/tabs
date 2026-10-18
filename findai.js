@@ -399,3 +399,21 @@ export async function nextSongs() {
   };
   load();
 }
+
+// The tempo of a song in the library that has none, for the metronome: the
+// measured tempo from GetSongBPM when there's a key for it, otherwise Claude's
+// best knowledge of the recording. { bpm, beats } or null.
+export async function findTempo(song) {
+  if (!song?.title) return null;
+  const key = bpmKey();
+  if (key) {
+    const r = await bpmLookup({ title: song.title, artist: song.artist || "" }, key).catch(() => null);
+    if (r?.tempo > 0) return { bpm: r.tempo, beats: beatsOf(r.sig) };
+  }
+  if (!aiKey()) return null;
+  const text = await askClaude({ maxTokens: 200,
+    system: 'You know the tempos of recorded songs. Reply with JSON only: {"bpm": number or null, "beats": beats per bar}. Use the tempo of the best-known recording, counted the way a drummer would count it. Use null when you are not reasonably sure.',
+    content: `${song.title}${song.artist ? ` by ${song.artist}` : ""}` }).catch(() => "");
+  const j = parseJSON(text);
+  return +j?.bpm > 0 ? { bpm: +j.bpm, beats: beatsOf(j.beats) } : null;
+}

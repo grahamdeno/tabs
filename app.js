@@ -1594,7 +1594,7 @@ const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k =
 function toggleMetronome(song, near) {
   data.settings.metronome = !data.settings.metronome; Tabs.save(data);
   if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
-  toast(data.settings.metronome ? `Metronome on · ${song.bpm || 90} BPM${song.bpm ? "" : " (set the tempo in Edit)"}` : "Metronome off", near);
+  toast(data.settings.metronome ? `Metronome on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}` : "Metronome off", near);
 }
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
@@ -1780,26 +1780,68 @@ function getSong(...args) { findAI().then(m => m.getSong(...args)); }
 function nextSongs() { findAI().then(m => m.nextSongs()); }
 
 // ---------- Metronome ----------
-// A drum beat at the song's tempo while it scrolls (on from the ••• menu):
-// kick on 1 (and the middle of the bar), snare on the backbeats, and a closed
-// hi-hat on every eighth note. Hits are scheduled ahead on the audio clock,
-// so they stay even.
-const metro = { timer: 0, next: 0, beat: 0 };
-function startMetronome(song) {
+// While a song scrolls (on from the ring or the ••• menu), either a click or a
+// drum beat (Settings > Playing): kick on 1 (and the middle of the bar), snare
+// on the backbeats, a closed hi-hat on every eighth. It follows the song's
+// tempo, slowed with Build up, and a tempo changed in Edit takes over on the
+// next beat. A song with no tempo gets one looked up first. Hits are
+// scheduled ahead on the audio clock, so they stay even.
+const metro = { timer: 0, next: 0, beat: 0, run: 0 };
+const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= 1 ? v : 0.8; };
+const metroDrums = () => data.settings.metroSound !== "click";
+async function startMetronome(song) {
   stopMetronome();
   if (!data.settings.metronome) return;
+  const run = ++metro.run;
+  if (!song.bpm) {
+    await tempoFor(song);
+    if (run !== metro.run || !scroll.on) return;
+    toast(song.bpm ? `Tempo found: ${song.bpm} BPM. Change it in Edit` : "No tempo for this song yet: playing at 90 BPM. Tap the tempo in Edit");
+  }
   const audio = sound();
   if (!audio) return;
-  const spb = 60 / (song.bpm || 90), beats = song.beats || 4;
   metro.next = audio.currentTime + 0.05; metro.beat = 0;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
-      drumBeat(metro.next, metro.beat % beats, beats, spb);
+      const spb = 60 / ((song.bpm || 90) * loopFactor(song)), beats = song.beats || 4;
+      if (metroDrums()) drumBeat(metro.next, metro.beat % beats, beats, spb);
+      else clickAt(metro.next, metro.beat % beats === 0);
       metro.next += spb; metro.beat++;
     }
   }, 25);
 }
-function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; }
+/* Looks up a missing tempo once per song per visit, and keeps what it finds. */
+const tempoJobs = new Map();
+function tempoFor(song) {
+  if (song.bpm) return Promise.resolve();
+  if (!tempoJobs.has(song.id)) tempoJobs.set(song.id, findAI().then(m => m.findTempo(song)).catch(() => null).then(t => {
+    if (!(t?.bpm > 0) || song.bpm) return;
+    song.bpm = Math.round(Math.min(260, Math.max(30, t.bpm)));
+    if (!song.beats && t.beats !== 4) song.beats = t.beats;
+    Tabs.save(data);
+  }));
+  return tempoJobs.get(song.id);
+}
+function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; metro.run++; }
+/* Settings plays two beats in the chosen sound and volume. */
+function metroPreview() {
+  const audio = sound();
+  if (!audio) return;
+  const t = audio.currentTime + 0.05, spb = 0.55;
+  for (let b = 0; b < 2; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb) : clickAt(t + b * spb, b === 0);
+}
+/* The classic click: a short high beep, higher on 1. */
+function clickAt(t, accent) {
+  const audio = sound();
+  if (!audio) return;
+  const o = audio.createOscillator(), g = audio.createGain(), v = metroVol();
+  o.frequency.value = accent ? 1320 : 880;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, (accent ? 0.3 : 0.18) * v), t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+  o.connect(g).connect(audio.destination);
+  o.start(t); o.stop(t + 0.09);
+}
 /* One beat of the pattern. In 4/4: kick 1 and 3, snare 2 and 4. In 3/4
    (or any odd count): kick on 1, snare on the rest, a little softer. */
 function drumBeat(t, b, beats, spb) {
@@ -1828,6 +1870,7 @@ function drum(kind, t, vel = 1) {
   if (!audio) return;
   try {
     const out = audio.createGain();
+    out.gain.value = metroVol();
     out.connect(audio.destination);
     const env = (node, peak, len) => {
       const g = audio.createGain();
@@ -2042,12 +2085,14 @@ function pxPerSecond(song) {
 }
 
 // One bar of count-in before scrolling: a bar of beats (four unless the song says) at the song's tempo (90 if unset),
-// shown large and quiet over the reading point, with a hi-hat on each beat.
-/* The count-in is the drummer counting off: a hi-hat on each beat, a
-   little louder on the first. */
+// shown large and quiet over the reading point, in the metronome's sound.
+/* The count-in uses the metronome's sound: with drums, the drummer counting
+   off on the hi-hat; otherwise the click. */
 function click(accent) {
   const audio = sound();
-  if (audio) drum("hat", audio.currentTime + 0.01, accent ? 1.4 : 1);
+  if (!audio) return;
+  if (metroDrums()) drum("hat", audio.currentTime + 0.01, accent ? 1.4 : 1);
+  else clickAt(audio.currentTime + 0.01, accent);
 }
 function countIn(song) {
   return new Promise(resolve => {
@@ -2128,6 +2173,7 @@ async function startScroll(song, opts = {}) {
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
+  if (data.settings.metronome && !song.bpm) tempoFor(song); /* look it up during the count-in */
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
   startMetronome(song);
@@ -2309,4 +2355,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { aiLastStop, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { aiLastStop, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

@@ -321,3 +321,23 @@ test("the metronome plays a drum beat: kick, snare and hi-hat", { skip: skip() }
   assert.ok(h.noise >= 4, `snare and hi-hat noise (${h.noise})`);
   assert.deepEqual(errors, []);
 });
+
+test("Settings: the metronome's switch, volume and sound; a song with no tempo gets one", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false, controls: "bar" } });
+  await page.route("https://api.anthropic.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: '{"bpm": 120, "beats": 4}' }], stop_reason: "end_turn" }) }));
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-test"));
+  await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-metro");
+  await page.click("#s-metro");
+  await page.$eval("#s-metvol", el => { el.value = 40; el.dispatchEvent(new Event("input")); el.dispatchEvent(new Event("change")); });
+  await page.click("#s-metsound [data-m='click']");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroSound === "click");
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
+  assert.equal(s.metronome, true); assert.equal(s.metroVol, 0.4); assert.equal(s.metroSound, "click");
+  assert.equal(await page.getAttribute("#s-metsound [data-m='click']", "aria-pressed"), "true");
+  const id = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => !x.bpm)?.id);
+  assert.ok(id, "a test song without a tempo");
+  await page.evaluate(i => { location.hash = "#/song/" + encodeURIComponent(i); }, id); await page.waitForSelector("#play");
+  await page.click("#play");
+  await page.waitForFunction(i => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === i).bpm === 120, id, { timeout: 5000 });
+  assert.match(await page.innerText("#toast"), /Tempo found: 120 BPM/);
+});

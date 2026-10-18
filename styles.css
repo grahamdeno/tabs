@@ -1691,3 +1691,5 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 .tn-lamp { width: 10px; height: 10px; }
 .tn-sayrow:has(.warn) .tn-lamp, .tuner2.chrom .tn-lamp { display: none; }
 :root[data-theme="light"] .tn-pill { background: var(--card); border-color: var(--bronze-line); color: var(--fg-2); }
+/* Settings > Playing: the metronome's volume sits beside its switch. */
+.set .s-vol { flex: 0 0 110px; }
