@@ -4,7 +4,7 @@ import { Tabs, appleTrackId, fitLength, lengthChoice, linkService, rankTracks } 
 import { $, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { appleBlocksSearch, catalogBlocked, itunes } from "./sets.js";
 import { noteError } from "./store.js";
-import { busy, byLength, data, go, lazy, mmss, refreshSpeed, songLength, viewing } from "./app.js";
+import { busy, byLength, data, mmss, refreshSpeed, songLength, viewing } from "./app.js";
 
 // ---------- Listen ----------
 // A link to the recording, Apple Music first. Tabs looks the song up in Apple's
