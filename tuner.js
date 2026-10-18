@@ -64,10 +64,11 @@ function headSVG(kind, t, { mini = false } = {}) {
       s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="12"/>`;
       s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="${col}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${col}"/>`;
     } else if (done) s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r * 0.55}" fill="var(--good)"/>`;
-    const lx = g.side < 0 ? kx - 34 : kx + kw + 34;
+    /* The note is printed on its key, so changing the tuning relabels the
+       keys; a tuned string gets a check beside its key. */
     const name = stringName(notes, i);
-    const text = done && !on ? (g.side < 0 ? `✓ ${name}` : `${name} ✓`) : name;
-    s += `<text x="${lx}" y="${ky + kh / 2 + 30}" text-anchor="${g.side < 0 ? "end" : "start"}" font-size="92" font-weight="${on ? 700 : 600}" fill="${on ? col : done ? "var(--good)" : "var(--muted)"}">${text}</text>`;
+    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 700 : 600}" fill="${on ? "#14110d" : "var(--bg)"}">${name}</text>`;
+    if (done && !on) s += `<text x="${g.side < 0 ? kx - 30 : kx + kw + 30}" y="${ky + kh / 2 + 32}" text-anchor="${g.side < 0 ? "end" : "start"}" font-size="92" font-weight="600" fill="var(--good)">✓</text>`;
     // a generous tap target over the key and its name
     const hx = g.side < 0 ? kx - 230 : kx;
     s += `<rect class="tn-key" data-s="${i}" x="${hx}" y="${ky - 30}" width="${kw + 230}" height="${kh + 60}" fill="transparent" role="button" aria-label="${esc(name)} string${done ? ", in tune" : ""}. Tap to hear it"/>`;
@@ -274,7 +275,7 @@ function listen(t, an, buf) {
      playing distance; a fixed level only heard one right next to the phone. */
   t.floor = t.floor == null ? Math.min(lvl, 0.004) : lvl < t.floor ? t.floor * 0.7 + lvl * 0.3 : t.floor * 0.995 + Math.min(lvl, t.floor * 3) * 0.005;
   const sounding = now - (t.quietSince || 0) < 400 && t.hits.length > 0;
-  const minRms = Math.min(0.01, Math.max(0.001, t.floor * (sounding ? 1.3 : 2)));
+  const minRms = Math.min(0.01, Math.max(0.0007, t.floor * (sounding ? 1.3 : 2)));
   /* A pluck's first instant is noisy and sharp: skip readings for a moment
      after the level jumps, so the marker doesn't jolt. */
   if (lvl > Math.max(minRms * 4, 0.006) && lvl > (t.lvl || 0) * 2) { t.attackUntil = now + 35; t.hits = []; }
@@ -304,6 +305,10 @@ function listen(t, an, buf) {
   if (t.mode !== "chromatic") f = octaveFix(f, t.tuning, t.a4, t.guided ? t.cur : t.lock);
   /* Smooth over the last three readings: steady, but quick to follow the peg. */
   t.hits = [...t.hits.slice(-2), f];
+  /* A new note shows once two readings in a row agree, so a blip of room
+     noise never moves the marker. It costs one reading, about 45 ms. */
+  if (t.hits.length === 1) return;
+  if (t.hits.length === 2 && Math.abs(1200 * Math.log2(t.hits[0] / t.hits[1])) > 50) { t.hits = [f]; return; }
   const fs = [...t.hits].sort((a, b) => a - b)[t.hits.length >> 1];
   if (t.mode === "chromatic") return readChromatic(t, fs);
   if (t.finished) return;

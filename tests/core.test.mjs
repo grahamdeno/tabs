@@ -704,10 +704,14 @@ test("real guitar recordings: the right note, steady, no octave mistakes", async
     let at = 12; while (b.toString("ascii", at, at + 4) !== "data") at += 8 + b.readUInt32LE(at + 4);
     const n = b.readUInt32LE(at + 4) / 2 / ch, pcm = new Float32Array(n);
     for (let i = 0; i < n; i++) pcm[i] = b.readInt16LE(at + 8 + i * 2 * ch) / 32768;
-    const want = f.split(/[_.]/)[0];
+    const want = f.split(/[_.]/)[0], hz0 = C.noteFreq(want);
+    /* Find the pluck, then read the string as the tuner does once it knows
+       which string it's listening for, from half a second in for two seconds. */
+    const rms = s => { let e = 0; for (let i = s; i < s + 1024; i++) e += pcm[i] * pcm[i]; return Math.sqrt(e / 1024); };
+    let onset = 0; while (onset + 1024 < n && rms(onset) < 0.005) onset += 512;
     const reads = [];
-    for (let s = Math.round(rate * 0.25); s + 4096 < n && s < rate * 2.5; s += Math.round(rate * 0.25)) {
-      const hz = C.detectPitch(pcm.subarray(s, s + 4096), rate);
+    for (let s = onset + Math.round(rate * 0.5); s + 4096 < n && s < onset + rate * 2.5; s += Math.round(rate * 0.25)) {
+      const hz = C.detectPitch(pcm.subarray(s, s + 4096), rate, 0.0015, 0.6, [hz0 * 0.7, hz0 * 1.42]);
       if (hz > 0) reads.push(1200 * Math.log2(hz / C.noteFreq(want)));
     }
     assert.ok(reads.length >= 3, `${f}: heard the string`);
