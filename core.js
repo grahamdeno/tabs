@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.45.0";
+export const VERSION = "2.46.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -256,7 +256,7 @@ const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
   title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
-  favorite: "boolean", capoOff: "boolean", easier: "object", loop: "object", listen: "object", playLog: "object", tone: "object"
+  favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object"
 };
 const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export function cleanSong(raw) {
@@ -285,6 +285,7 @@ export function cleanSong(raw) {
   }
   if (s.art !== undefined && !/^https:\/\//.test(String(s.art))) delete s.art; /* album art for set covers: https only */
   if (s.loop && !(Number.isInteger(s.loop.a) && Number.isInteger(s.loop.b))) delete s.loop;
+  if (s.groove) s.groove = cleanGroove(s.groove);
   return s;
 }
 export function cleanSet(raw) {
@@ -2468,4 +2469,28 @@ export function bassWhere(idx, rows, L, onBar) {
   }
   if (idx == null || idx < (rows[at - 1] || row).lo || idx > (rows[at + 1] || row).hi) return row.lo;
   return onBar ? Math.min(idx + 1, rows[rows.length - 1].hi) : idx;
+}
+
+// ---------- A song's groove ----------
+// What the drums and bass do for one song, found by the AI (or set in Edit) and
+// kept on the song as song.groove = { beat, swing, bass, src }. Each part is
+// optional: a part a song doesn't have comes from Settings. src is "ai" for
+// what was found and "you" once you have changed it (a groove with only src
+// "you" means: keep the defaults, don't look it up again).
+export const GROOVE = { beat: ["rock", "half", "ballad", "four"], swing: ["straight", "light", "full"], bass: ["root", "fifth", "pulse", "walk"] };
+export function cleanGroove(raw, src = raw?.src) {
+  if (!isObj(raw)) return null;
+  const g = { src: src === "ai" ? "ai" : "you" };
+  for (const k of Object.keys(GROOVE)) if (GROOVE[k].includes(raw[k])) g[k] = raw[k];
+  return g;
+}
+/* The settings a song plays with: its own groove first, then Settings. */
+export function grooveOf(song, settings = {}) {
+  const g = song?.groove || {};
+  return { beat: g.beat || settings.metroBeat || "auto", swing: g.swing || settings.metroSwing || "straight", bass: g.bass || settings.bassStyle || "auto" };
+}
+const BASS_WORDS = { root: "root bass", fifth: "root and fifth bass", pulse: "pulse bass", walk: "walking bass" };
+/* "Half time, light swing, walking bass": what a groove says, for a toast. */
+export function grooveText(g) {
+  return [g?.beat && drumBeatName(g.beat), (g?.swing === "light" || g?.swing === "full") && `${g.swing} swing`, g?.bass && BASS_WORDS[g.bass]].filter(Boolean).join(", ") || "the defaults";
 }

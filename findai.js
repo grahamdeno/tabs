@@ -1,8 +1,8 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel } from "./core.js";
+import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove } from "./core.js";
 import { oneHandMQ } from "./ui.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
 async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
@@ -104,6 +104,7 @@ export function chartSheet(q, preset = {}) {
       leaveSearch();
       go("#/song/" + encodeURIComponent(s.id));
       toast(note);
+      grooveFor(s); /* how it feels, in the background */
     };
     $("cs-add").onclick = () => add(c.body, "Added. Tap Listen to hear it while you check the chords");
     $("cs-words").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library" }, merged => add(merged, "Added with your words. Check the chord spots by ear"), () => chartSheet("", { title: c.title, artist: c.artist, chart: c }));
@@ -205,6 +206,7 @@ export function getSong(q, preset = {}) {
       ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}) });
     close(); leaveSearch();
     go("#/song/" + encodeURIComponent(s.id));
+    grooveFor(s); /* how it feels, in the background */
     toast(body === c.body ? "Added. Tap Listen to hear it while you check the chords" : "Added with the words. Check the chord spots by ear");
   };
   const paint = () => {
@@ -441,4 +443,21 @@ export async function findTempo(song) {
     content: `${song.title}${song.artist ? ` by ${song.artist}` : ""}` }).catch(() => "");
   const j = parseJSON(text);
   return +j?.bpm > 0 ? { bpm: +j.bpm, beats: beatsOf(j.beats) } : null;
+}
+
+// How a song feels for the drums and the bass: { beat, swing, bass, src: "ai" }
+// or null. Musical facts only, never lyrics. Claude searches when it isn't
+// sure and leaves a part out when it still isn't.
+const GROOVE_SYSTEM = `You describe how one recorded song feels, so a practice drummer and bass player can play along. Search the web if you are not sure. Reply with JSON only, no other text:
+{"beat": "rock"|"half"|"ballad"|"four"|null, "swing": "straight"|"light"|"full"|null, "bass": "root"|"fifth"|"pulse"|"walk"|null}
+- "beat": rock is kick on 1 and 3 with snare on 2 and 4; half is a half-time feel (snare only on 3, a slow heavy pulse even at a fast tempo); ballad is quiet, a side-stick on 2 and 4; four is a kick on every beat (disco, dance, four on the floor).
+- "swing": straight, light (a loose, slightly swung feel) or full (a shuffle or triplet feel, as in blues and swing).
+- "bass": root is one long note per chord; fifth is root and fifth (country, folk, waltz); pulse is steady eighth notes (rock, pop); walk is a walking line (blues, jazz, shuffle).
+- Use null for any part you are not reasonably sure of. Never include lyrics or any words from the song.`;
+export async function findGroove(song) {
+  if (!song?.title || !aiKey()) return null;
+  const { text } = await askClaudeSearch({ system: GROOVE_SYSTEM, maxTokens: 500, searches: 2,
+    content: `${song.title}${song.artist ? ` by ${song.artist}` : ""}${song.bpm ? `. Tempo on file: ${song.bpm} BPM` : ""}` }).catch(() => ({ text: "" }));
+  const g = cleanGroove(parseJSON(text), "ai");
+  return g && (g.beat || g.swing || g.bass) ? g : null;
 }

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -1828,13 +1828,14 @@ async function startMetronome(song) {
       const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
       /* Drop-out practice: every other bar is silent, so you hold the time. */
       const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1, b = metro.beat % beats;
-      const style = drumStyle(data.settings.metroBeat, { bpm: song.bpm || 90, beats, body: song.body });
+      const groove = grooveOf(song, data.settings);
+      const style = drumStyle(groove.beat, { bpm: song.bpm || 90, beats, body: song.body });
       /* Bass only: the drums or click rest and the bass plays alone. */
       const rhythm = data.settings.metronome && !(data.settings.bass && data.settings.bassOnly);
       if (quiet || !rhythm) { /* silent bar, or no drums */ }
-      else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style);
+      else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style, groove.swing);
       else clickAt(metro.next, b === 0);
-      bassBeat(song, metro.next, b, beats, spb, quiet, style);
+      bassBeat(song, metro.next, b, beats, spb, quiet, style, groove);
       metro.next += spb; metro.beat++;
     }
   }, 25);
@@ -1860,6 +1861,21 @@ function tempoFor(song) {
   }));
   return tempoJobs.get(song.id);
 }
+/* A song's groove (drums, swing, bass) is looked up once, in the background,
+   the first time it plays with the metronome or bass on, and when it is added.
+   A lookup that finds nothing is not repeated this visit. force asks again
+   from Edit and replaces what is there. */
+const grooveJobs = new Map();
+function grooveFor(song, force = false) {
+  if (!aiKey() || (song.groove && !force)) return Promise.resolve(null);
+  if (force || !grooveJobs.has(song.id)) grooveJobs.set(song.id, findAI().then(m => m.findGroove(song)).catch(() => null).then(g => {
+    if (!g || (song.groove && !force)) return null;
+    song.groove = g; Tabs.save(data);
+    if (!force) toast(`Groove: ${grooveText(g)}. Change it in Edit`);
+    return g;
+  }));
+  return grooveJobs.get(song.id);
+}
 function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; metro.run++; }
 /* Settings plays one bar in the chosen sound, beat and volume. */
 function metroPreview() {
@@ -1873,7 +1889,7 @@ function metroPreview() {
    goes where the page is. The patterns are in core.js. */
 const bass = { idx: null, shift: null };
 const bassVol = () => { const v = data.settings.bassVol; return v >= 0 && v <= 1 ? v : 0.7; };
-function bassBeat(song, t, b, beats, spb, quiet, drum) {
+function bassBeat(song, t, b, beats, spb, quiet, drum, groove) {
   const seq = diag.seq, sheet = $("sheet");
   if (!data.settings.bass || !seq.length || !sheet) return;
   /* From the top of the song, the first row is the first thing played, not
@@ -1884,8 +1900,8 @@ function bassBeat(song, t, b, beats, spb, quiet, drum) {
   if (quiet || bass.idx == null) return;
   const off = soundOffset(song), now = seq[bass.idx].name;
   const next = seq.slice(bass.idx + 1).find(x => x.name !== now);
-  const swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
-  const style = bassStyle(data.settings.bassStyle, drum, beats, data.settings.metroSwing);
+  const swing = DRUM_SWING[groove.swing] || 0.5;
+  const style = bassStyle(groove.bass, drum, beats, groove.swing);
   for (const h of bassHits(style, chordBass(now, off), next ? chordBass(next.name, off) : null, b, beats, swing)) bassNote(h.m, t + h.at * spb, h.len * spb, h.v);
 }
 /* Settings plays a bar of G and a bar of C in the chosen style and volume. */
@@ -1933,8 +1949,8 @@ function clickAt(t, accent) {
 }
 /* One pulse of the pattern (the patterns live in core.js). Swing moves the
    off-beat eighth later; the chosen amount is in Settings > Playing. */
-function drumBeat(t, b, beats, spb, style) {
-  const swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
+function drumBeat(t, b, beats, spb, style, swingKey = data.settings.metroSwing) {
+  const swing = DRUM_SWING[swingKey] || 0.5;
   for (const h of drumHits(style, b, beats, swing)) drum(h.k, t + h.at * spb, h.v);
 }
 /* White noise, made once per audio engine, for the snare and the hi-hat. */
@@ -2280,7 +2296,10 @@ async function startScroll(song, opts = {}) {
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
-  if ((data.settings.metronome || data.settings.bass) && !song.bpm) tempoFor(song); /* look it up during the count-in */
+  if (data.settings.metronome || data.settings.bass) {
+    if (!song.bpm) tempoFor(song); /* look it up during the count-in */
+    grooveFor(song); /* and how it feels, which joins in when it arrives */
+  }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
   startMetronome(song);
@@ -2466,4 +2485,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { aiLastStop, bassPreview, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { aiLastStop, bassPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

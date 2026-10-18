@@ -1272,3 +1272,22 @@ test("bass line: it moves on by itself on chord-only rows and follows the page o
   assert.equal(W(0, [], 10, true), null);
   assert.equal(W(null, rows, -50, true), 0, "before the first row: the first chord");
 });
+
+test("song groove: cleaned, resolved against Settings, and said in words", () => {
+  assert.deepEqual(C.cleanGroove({ beat: "half", swing: "light", bass: "walk", src: "ai" }), { src: "ai", beat: "half", swing: "light", bass: "walk" });
+  assert.deepEqual(C.cleanGroove({ beat: "polka", swing: "full", bass: 3 }), { src: "you", swing: "full" }, "unknown parts are dropped, and src defaults to you");
+  assert.deepEqual(C.cleanGroove({ beat: "rock" }, "ai"), { src: "ai", beat: "rock" });
+  assert.equal(C.cleanGroove(null), null); assert.equal(C.cleanGroove([1]), null);
+  assert.deepEqual(C.cleanGroove({ src: "you" }), { src: "you" }, "a groove with no parts means: keep the defaults");
+  const s = { metroBeat: "four", metroSwing: "light", bassStyle: "root" };
+  assert.deepEqual(C.grooveOf({}, s), { beat: "four", swing: "light", bass: "root" }, "no groove: Settings");
+  assert.deepEqual(C.grooveOf({ groove: { beat: "half", bass: "walk", src: "ai" } }, s), { beat: "half", swing: "light", bass: "walk" }, "the song's parts win, the rest come from Settings");
+  assert.deepEqual(C.grooveOf({ groove: { swing: "straight", src: "you" } }, s).swing, "straight", "straight on a song beats a swung Setting");
+  assert.deepEqual(C.grooveOf({}, {}), { beat: "auto", swing: "straight", bass: "auto" });
+  assert.equal(C.grooveText({ beat: "half", swing: "light", bass: "walk" }), "Half time, light swing, walking bass");
+  assert.equal(C.grooveText({ beat: "four", swing: "straight" }), "Four on the floor");
+  assert.equal(C.grooveText({ src: "you" }), "the defaults");
+  const song = C.cleanSong({ id: "g", body: "G", groove: { beat: "ballad", junk: 1 } });
+  assert.deepEqual(song.groove, { src: "you", beat: "ballad" });
+  assert.equal(C.cleanSong({ id: "g", body: "G", groove: "shuffle" }).groove, undefined, "a groove of the wrong type is dropped");
+});

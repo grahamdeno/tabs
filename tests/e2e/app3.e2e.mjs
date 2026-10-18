@@ -368,6 +368,37 @@ test("the bass also plays under a lyric sheet, with the walking line and the met
   assert.deepEqual(errors, []);
 });
 
+test("a song's groove is found once, used for the song, and changed in Edit", { skip: skip() }, async t => {
+  const song = { id: "gv", title: "Slow Blues", artist: "Me", key: "G", format: "chords", bpm: 100, body: "[Verse]\nG   C   G   D" };
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: true, countIn: false, controls: "bar" } });
+  let asks = 0;
+  await page.route("https://api.anthropic.com/**", r => {
+    asks++;
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: '{"beat": "half", "swing": "light", "bass": "walk"}' }], stop_reason: "end_turn" }) });
+  });
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-test"));
+  const groove = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove);
+  await page.evaluate(() => { location.hash = "#/song/gv"; }); await page.waitForSelector("#play");
+  await page.click("#play");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove, null, { timeout: 5000 });
+  assert.deepEqual(await groove(), { src: "ai", beat: "half", swing: "light", bass: "walk" });
+  assert.match(await page.innerText("#toast"), /Groove: Half time, light swing, walking bass/);
+  await page.click("#play"); await page.click("#play"); await page.click("#play");
+  assert.equal(asks, 1, "asked once; a song with a groove is not looked up again");
+  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForSelector("#ed-g-beat");
+  assert.match(await page.innerText(".ed-chips"), /Drums\s*Half time\s*Found/);
+  const saved = src => page.waitForFunction(w => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove?.src === w, src);
+  await page.selectOption("#ed-g-beat", "rock"); await saved("you");
+  assert.deepEqual(await groove(), { src: "you", beat: "rock", swing: "light", bass: "walk" });
+  await page.selectOption("#ed-g-swing", ""); await page.waitForSelector("#ed-g-bass");
+  await page.selectOption("#ed-g-bass", ""); await page.waitForSelector("#ed-g-beat");
+  await page.selectOption("#ed-g-beat", "");
+  await page.waitForFunction(() => Object.keys(JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove).length === 1);
+  assert.deepEqual(await groove(), { src: "you" }, "all defaults: kept, and not looked up again");
+  assert.match(await page.innerText(".ed-chips"), /Drums\s*Default/);
+  assert.ok(await page.$("#ed-g-find"), "Find again is there with a key");
+});
+
 test("Settings: the metronome's switch, volume and sound; a song with no tempo gets one", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false, controls: "bar" } });
   await page.route("https://api.anthropic.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: '{"bpm": 120, "beats": 4}' }], stop_reason: "end_turn" }) }));

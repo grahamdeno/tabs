@@ -1,9 +1,9 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
+import { DRUM_BEATS, BASS_STYLES, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
-import { READ_AT, aiError, aiKey, busy, calm, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
+import { READ_AT, aiError, aiKey, busy, calm, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
 
 // ---------- Edit (in place) ----------
 // Edit turns the song page itself into the editor: title and artist are typed in
@@ -27,7 +27,7 @@ onLeave(() => {
 });
 const ROOTS = ["A", "B", "C", "D", "E", "F", "G"], QUALS = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "dim"];
 const KEY_LIST = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
-const EDIT_FIELDS = ["title", "artist", "key", "tuning", "bpm", "body"];
+const EDIT_FIELDS = ["title", "artist", "key", "tuning", "bpm", "body", "groove"];
 const snapshot = song => Object.fromEntries(EDIT_FIELDS.map(k => [k, song[k]]));
 function restoreSnap(song, snap) { for (const k of EDIT_FIELDS) { if (snap[k] === undefined) delete song[k]; else song[k] = snap[k]; } }
 // Apply one change with Undo. `label` is the toast; empty for quiet changes.
@@ -175,6 +175,7 @@ function paintDetails(song) {
         <select id="ed-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}" ${k === tun ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
       <label class="ed-chip"><span>Tempo</span><input id="ed-bpm" type="number" inputmode="numeric" min="30" max="260" value="${song.bpm || ""}" placeholder="90" aria-label="Tempo in beats per minute"><span>BPM</span></label>
       <button class="ed-chip ed-tap" id="ed-tap" aria-label="Tap tempo: tap along with the beat">${icon("pick")}<span>Tap</span></button>
+      ${grooveChips(song, isTab)}
     </div>`;
   h?.after(d);
   $("ed-sum")?.addEventListener("click", () => { detailsOpen = !detailsOpen; paintDetails(song); });
@@ -195,6 +196,18 @@ function paintDetails(song) {
   if ($("ed-txhint")) $("ed-txhint").textContent = textHint(song);
   $("ed-key")?.addEventListener("change", e => editChange(song, `Key: ${e.target.value || "Auto"}`, () => { song.key = e.target.value; }));
   $("ed-tuning").onchange = e => editChange(song, `Tuning: ${TUNINGS[e.target.value].name}`, () => { if (e.target.value === "standard") delete song.tuning; else song.tuning = e.target.value; });
+  for (const k of Object.keys(GROOVE)) $("ed-g-" + k)?.addEventListener("change", e => editChange(song, `${GROOVE_LABEL[k]}: ${e.target.selectedOptions[0].textContent}`, () => {
+    const g = { ...song.groove, src: "you" };
+    if (e.target.value) g[k] = e.target.value; else delete g[k];
+    song.groove = g;
+  }));
+  $("ed-g-find")?.addEventListener("click", async () => {
+    const b = $("ed-g-find"); b.disabled = true; b.querySelector("span").textContent = "Finding";
+    const was = song.groove, g = await grooveFor(song, true);
+    b.disabled = false;
+    if (g) { paintEdit(song); toast(`Groove: ${grooveText(g)}`, null, { label: "Undo", fn: () => { if (was) song.groove = was; else delete song.groove; Tabs.save(data); paintEdit(song); } }); }
+    else { b.querySelector("span").textContent = "Find"; toast("No groove found for this song. Pick one here"); }
+  });
   $("ed-bpm").onchange = e => editChange(song, "", () => { const n = Math.min(260, Math.max(30, parseInt(e.target.value, 10))); if (n) song.bpm = n; else delete song.bpm; });
   /* Tap tempo: tap along four or more times; it settles a moment after the last tap. */
   const tap = $("ed-tap");
@@ -218,6 +231,22 @@ function paintDetails(song) {
     }, 1600);
   };
   tap.onclick = e => e.preventDefault();
+}
+/* The groove chips: drums, swing and bass for this song. "Default" means
+   Settings (and Auto) decide. "Found" marks what the AI suggested. */
+const GROOVE_LABEL = { beat: "Drums", swing: "Swing", bass: "Bass" };
+function grooveChips(song, isTab) {
+  const g = song.groove || {}, found = g.src === "ai";
+  const opts = {
+    beat: DRUM_BEATS.filter(([k]) => k !== "auto"), bass: BASS_STYLES.filter(([k]) => k !== "auto"),
+    swing: [["straight", "Straight"], ["light", "Light"], ["full", "Full"]]
+  };
+  const chip = k => {
+    const cur = opts[k].find(([v]) => v === g[k]);
+    return `<label class="ed-chip"><span>${GROOVE_LABEL[k]}</span><b>${cur ? esc(cur[1]) : "Default"}</b>${cur && found ? '<i class="found">Found</i>' : ""}
+      <select id="ed-g-${k}" aria-label="${GROOVE_LABEL[k]} for this song"><option value="">Default</option>${opts[k].map(([v, n]) => `<option value="${v}" ${v === g[k] ? "selected" : ""}>${n}</option>`).join("")}</select></label>`;
+  };
+  return `${chip("beat")}${chip("swing")}${isTab ? "" : chip("bass")}${aiKey() ? `<button class="ed-chip" id="ed-g-find" aria-label="Find how this song feels">${icon("note")}<span>${song.groove ? "Find again" : "Find"}</span></button>` : ""}`;
 }
 function paintSheet(song, sheet) {
   /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */
