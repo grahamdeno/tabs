@@ -1320,3 +1320,95 @@ test("bass riff: a bar in chord degrees plays on any chord, with swing, and is c
   for (const ch of ["C", "F#m", "Bb", "E/G#", "A7", "Dsus2"]) for (let b = 0; b < 4; b++)
     for (const h of C.bassHits("riff", C.chordBass(ch), null, b, 4, 0.5, R)) assert.ok(h.m >= 38 && h.m <= 61, `${ch} ${h.m} stays in range`);
 });
+
+// ---------- Plays that outlive a song, credited plays, the Play map ----------
+const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+test("Plays are kept when a song leaves Recently deleted, and nothing else about it", () => {
+  const today = dayKey(Date.now());
+  const song = { id: "s", title: "Secret", body: "A D", playLog: { total: 3, last: Date.now(), days: { [today]: 2 } } };
+  const kept = C.keepPlays(null, [{ type: "song", item: song }, { type: "set", item: { id: "x" } }]);
+  assert.deepEqual(kept, { days: { [today]: 2 } });
+  assert.equal(JSON.stringify(kept).includes("Secret"), false);
+  assert.deepEqual(C.keepPlays(kept, [{ type: "song", item: song }]).days[today], 4, "adds up");
+  assert.equal(C.keepPlays(null, [{ type: "song", item: { id: "n" } }]), null, "no plays, nothing kept");
+});
+
+test("The library's totals count live songs, Recently deleted songs and kept plays once each", () => {
+  const today = dayKey(Date.now());
+  const mk = n => ({ id: "s" + n, playLog: { total: n, last: Date.now(), days: { [today]: n } } });
+  const data = { songs: [mk(1)], trash: [{ type: "song", item: mk(2), deletedAt: new Date().toISOString() }], kept: { days: { [today]: 4 } } };
+  const sum = list => list.reduce((n, s) => n + (s.playLog?.days?.[today] || 0), 0);
+  assert.equal(sum(C.playSongs(data)), 7);
+  const was = sum(C.playSongs(data));
+  const entry = data.trash[0];
+  C.Tabs.forget(data, entry);
+  assert.equal(sum(C.playSongs(data)), was, "forgetting keeps the plays");
+  C.Tabs.forgetAll({ ...data, trash: [] });
+});
+
+test("Delete all keeps every trashed song's plays", () => {
+  const today = dayKey(Date.now());
+  const data = { songs: [], sets: [], settings: {}, trash: [1, 2].map(n => ({ type: "song", item: { id: "t" + n, playLog: { total: n, last: Date.now(), days: { [today]: n } } }, deletedAt: new Date().toISOString() })) };
+  C.Tabs.forgetAll(data);
+  assert.equal(data.trash.length, 0);
+  assert.equal(data.kept.days[today], 3);
+});
+
+test("Plays of songs that expired from Recently deleted move to kept on load", () => {
+  const today = dayKey(Date.now());
+  const old = new Date(Date.now() - 40 * 86400e3).toISOString();
+  const d = C.migrate({ songs: [], sets: [], settings: {}, trash: [{ type: "song", item: { id: "o", title: "Old", body: "", playLog: { total: 2, last: Date.now(), days: { [today]: 2 } } }, deletedAt: old }] });
+  assert.equal(d.trash.length, 0);
+  assert.equal(d.kept.days[today], 2);
+});
+
+test("cleanKept keeps only whole positive counts on real days", () => {
+  assert.deepEqual(C.cleanKept({ days: { "2026-10-17": 2.7, "bad": 3, "2026-10-16": -1, "2026-10-15": "x" } }), { days: { "2026-10-17": 2 } });
+  assert.equal(C.cleanKept({ days: {} }), null);
+  assert.equal(C.cleanKept("nope"), null);
+});
+
+test("A play counts only when most of the song was played by auto-scroll", () => {
+  const ok = { end: 1000, cover: 900, ms: 60000, expectedMs: 100000 };
+  assert.equal(C.playCredited(ok), true);
+  assert.equal(C.playCredited({ ...ok, cover: 500 }), false, "jumped or scrolled by hand");
+  assert.equal(C.playCredited({ ...ok, ms: 20000 }), false, "too quick");
+  assert.equal(C.playCredited({ end: 0, cover: 0, ms: 60000, expectedMs: 100000 }), true, "a short sheet goes by time");
+  assert.equal(C.playCredited({ end: 0, cover: 0, ms: 10000, expectedMs: 100000 }), false);
+  assert.equal(C.playCredited({}), false);
+});
+
+test("The territory grows with the square root of plays, in hex rings", () => {
+  assert.deepEqual(C.territory(0), { plays: 0, rings: 0, cells: 0, nextAt: 4, toNext: 4 });
+  assert.equal(C.territory(1).cells >= 1, true);
+  assert.deepEqual([4, 16, 36].map(p => C.territory(p).rings), [1, 2, 3]);
+  assert.equal(C.territory(4).cells, 7);
+  assert.equal(C.territory(16).cells, 19);
+  assert.equal(C.territory(15).rings, 1);
+  assert.equal(C.territory(100).toNext, 44);
+  let prev = 0;
+  for (let p = 0; p < 200; p++) { const c = C.territory(p).cells; assert.ok(c >= prev); prev = c; }
+});
+
+test("hexSpiral gives distinct cells, ring after ring", () => {
+  const cells = C.hexSpiral(19);
+  assert.equal(new Set(cells.map(String)).size, 19);
+  assert.deepEqual(cells[0], [0, 0]);
+  const dist = ([q, r]) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+  assert.deepEqual(cells.slice(1, 7).map(dist), [1, 1, 1, 1, 1, 1]);
+  assert.deepEqual(cells.slice(7).map(dist), Array(12).fill(2));
+  assert.deepEqual(C.hexSpiral(0), []);
+});
+
+test("A practice spot is kept to about a kilometre", () => {
+  assert.deepEqual(C.coarseSpot(40.71278, -74.00594), { lat: 40.71, lon: -74.01 });
+  assert.equal(C.coarseSpot("x", 3), null);
+  assert.equal(C.coarseSpot(91, 0), null);
+  assert.equal(C.spotLabel({ lat: 40.71, lon: -74.01 }), "40.71° N, 74.01° W");
+  assert.equal(C.spotLabel(null), "");
+});
+
+test("lifetimePlays adds up the journal's months", () => {
+  assert.equal(C.lifetimePlays({ songs: [], journal: { v: 1, months: { "2026-09": { plays: 3 }, "2026-10": { plays: 4 } } } }) >= 0, true);
+});

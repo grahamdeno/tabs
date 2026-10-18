@@ -477,3 +477,34 @@ test("Remove the capo: a chart's capo comes off and the chords move to the key i
   await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForTimeout(300);
   assert.deepEqual(await chords(), before, "and back");
 });
+
+test("Play map: off until chosen, asks for the position only after Continue, keeps it coarse and outside the library", { skip: skip() }, async t => {
+  const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 5, last: Date.now(), days: { [new Date().toISOString().slice(0, 10)]: 5 } } }));
+  const page = await phone(t, { ...LIB, songs }, { geolocation: { latitude: 40.71278, longitude: -74.00594 }, permissions: [] });
+  await page.evaluate(() => { window.__asked = 0; const g = navigator.geolocation, f = g.getCurrentPosition.bind(g); g.getCurrentPosition = (...a) => { window.__asked++; return f(...a); }; });
+  await page.evaluate(() => { location.hash = "#/playmap"; });
+  await page.waitForSelector("#pm-go");
+  assert.equal(await page.evaluate(() => window.__asked), 0, "nothing asked before Continue");
+  assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
+  await page.click("#pm-none");
+  await page.waitForSelector(".pm-map");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.playMap === true);
+  assert.equal(await page.evaluate(() => window.__asked), 0, "Without a location never asks");
+  assert.ok(await page.locator(".pm-cell").count() >= 1);
+  await page.click("#pm-spot"); await page.waitForSelector("#pm-go");
+  await page.context().grantPermissions(["geolocation"], { origin: new URL(page.url()).origin });
+  await page.click("#pm-go");
+  await page.waitForSelector("#pm-forget");
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs.spot.v1"))), { lat: 40.71, lon: -74.01 });
+  assert.equal(await page.evaluate(() => localStorage.getItem("tabs-v1").includes("40.71")), false, "not in the library");
+  await page.click("#pm-forget"); await page.waitForSelector("#pm-spot");
+  assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
+});
+
+test("A run that stops early is not a play", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } });
+  await page.click(".list .row"); await page.waitForSelector("#play");
+  await page.click("#play"); await page.waitForTimeout(1500); await page.click("#play");
+  await page.waitForFunction(() => document.getElementById("play")?.getAttribute("aria-label") === "Start auto-scroll");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.every(s => !s.playLog?.total)), true);
+});

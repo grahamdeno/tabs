@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.47.0";
+export const VERSION = "2.48.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -66,8 +66,10 @@ export function migrate(data) {
   const sets = (Array.isArray(data.sets) ? data.sets : []).map(x => ({ ...x, songIds: (x.songIds || []).filter(id => ids.has(id) || true) }));
   // Recently deleted: keep 30 days.
   const cutoff = Date.now() - TRASH_DAYS * DAY;
-  const trash = (Array.isArray(data.trash) ? data.trash : []).filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}) };
+  const all = Array.isArray(data.trash) ? data.trash : [];
+  const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
+  const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -207,6 +209,12 @@ export const Tabs = {
 
   forget(data, entry) {
     data.trash = data.trash.filter(t => t !== entry);
+    data.kept = keepPlays(data.kept, [entry]) || data.kept;
+    this.save(data);
+  },
+  forgetAll(data) {
+    data.kept = keepPlays(data.kept, data.trash) || data.kept;
+    data.trash = [];
     this.save(data);
   },
 
@@ -324,7 +332,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -2516,3 +2524,78 @@ const BASS_WORDS = { root: "root bass", fifth: "root and fifth bass", pulse: "pu
 export function grooveText(g) {
   return [g?.beat && drumBeatName(g.beat), (g?.swing === "light" || g?.swing === "full") && `${g.swing} swing`, g?.bass && BASS_WORDS[g.bass]].filter(Boolean).join(", ") || "the defaults";
 }
+
+// ---------- Plays that outlive a song ----------
+// A song's plays are kept on the song. When a song leaves Recently deleted for
+// good (or expires from it), its plays move into data.kept as counts per day,
+// so the weekly total and the streak don't change when you tidy the library:
+//   data.kept = { days: { "2026-10-17": 2 } }   (the last 60 days, like a song's own log)
+// Only counts are kept: no title, artist or chords.
+export function keepPlays(kept, entries, now = Date.now()) {
+  const days = { ...(kept?.days || {}) };
+  let any = !!kept;
+  for (const t of entries || []) {
+    if (t?.type !== "song") continue;
+    for (const [k, n] of Object.entries(t.item?.playLog?.days || {})) if (n > 0) { days[k] = (days[k] || 0) + n; any = true; }
+  }
+  if (!any) return null;
+  pruneDays(days, now);
+  return { days };
+}
+export function cleanKept(raw) {
+  if (!isObj(raw) || !isObj(raw.days)) return null;
+  const days = {};
+  for (const [k, n] of Object.entries(raw.days)) if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Number.isFinite(n) && n > 0) days[k] = Math.floor(n);
+  return Object.keys(days).length ? { days } : null;
+}
+/* The songs whose plays count toward the library's totals: the live ones, the
+   ones in Recently deleted, and the plays kept from songs gone for good. */
+export function playSongs(data) {
+  const out = [...(data.songs || []), ...(data.trash || []).filter(t => t?.type === "song" && t.item).map(t => t.item)];
+  if (data.kept?.days) out.push({ playLog: { total: 0, last: 0, days: data.kept.days } });
+  return out;
+}
+
+// ---------- A play that counts ----------
+// A run counts as a play when auto-scroll carried the page most of the way to
+// the song's end and ran for a fair share of the time that takes. Scrolling by
+// hand, jumping with the song map, or pressing Play at the bottom doesn't.
+//   end         how far the page scrolls before the last line reaches the reading line (px)
+//   cover       how far auto-scroll itself moved the page during the run (px)
+//   ms          how long auto-scroll ran during the run
+//   expectedMs  how long the song takes at the current speed
+export const PLAY_COVER = 0.6, PLAY_TIME = 0.5;
+export function playCredited({ end = 0, cover = 0, ms = 0, expectedMs = 0 } = {}) {
+  if (!(expectedMs > 0) || ms < PLAY_TIME * expectedMs) return false;
+  return end < 40 ? true : cover >= PLAY_COVER * end; /* a sheet that fits one screen has only the time to go by */
+}
+
+// ---------- Play map ----------
+// Credited plays grow a territory of hexagons around your practice spot. The
+// rings grow with the square root of your plays (ring k arrives at 4 k squared
+// plays), and the next ring fills in a cell at a time, so every play shows.
+export function territory(plays) {
+  plays = Math.max(0, Math.floor(+plays || 0));
+  const k = Math.floor(Math.sqrt(plays) / 2), lo = 4 * k * k, hi = 4 * (k + 1) * (k + 1);
+  const extra = Math.floor((plays - lo) / (hi - lo) * 6 * (k + 1));
+  return { plays, rings: k, cells: plays ? 1 + 3 * k * (k + 1) + extra : 0, nextAt: hi, toNext: hi - plays };
+}
+/* The first n cells of the territory as axial hex coordinates: the centre, then
+   ring after ring, each starting on the same side. */
+export function hexSpiral(n) {
+  const dirs = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]], out = [[0, 0]];
+  for (let k = 1; out.length < n; k++) {
+    let q = -k, r = k;
+    for (let i = 0; i < 6; i++) for (let j = 0; j < k; j++) { out.push([q, r]); q += dirs[i][0]; r += dirs[i][1]; }
+  }
+  return out.slice(0, Math.max(0, n));
+}
+/* A practice spot, kept no finer than about a kilometre. */
+export function coarseSpot(lat, lon) {
+  lat = +lat; lon = +lon;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 };
+}
+export const spotLabel = spot => spot ? `${Math.abs(spot.lat).toFixed(2)}° ${spot.lat >= 0 ? "N" : "S"}, ${Math.abs(spot.lon).toFixed(2)}° ${spot.lon >= 0 ? "E" : "W"}` : "";
+/* Credited plays over all time: the journal counts one each time a song is played through. */
+export const lifetimePlays = data => Object.values(journalOf(data).months).reduce((n, m) => n + (m.plays || 0), 0);

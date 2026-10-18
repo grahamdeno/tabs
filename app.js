@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -100,11 +100,11 @@ async function fetchWeather(p) {
     if (el && route().name === "library" && !searching) { el.outerHTML = todayHTMLOrSpot(...weekStats()); bindToday(); }
   } catch { /* offline: no weather today */ }
 }
-const weekStats = () => { const w = data.songs.map(s => playsThisWeek(s)); return [w.reduce((a, b) => a + b, 0), w.filter(Boolean).length]; };
+const weekStats = () => { const w = playSongs(data).map(s => playsThisWeek(s)); return [w.reduce((a, b) => a + b, 0), w.filter(Boolean).length]; };
 function todayHTML(weekTotal, weekSongs) {
   const plays = weekTotal ? `${weekTotal} play${weekTotal === 1 ? "" : "s"} this week` : "";
   if (data.settings.nudge === false) return weekTotal ? `<div class="weekly" id="today">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : "";
-  const st = streakOf(data.songs);
+  const st = streakOf(playSongs(data));
   const n = pickNudge({ songs: data.songs, mood: wxMood(), gigToday: data.sets.some(x => gigCountdown(x.when)) });
   if (!plays && !n) return "";
   const dots = `<span class="t-dots" aria-hidden="true">${st.week.map((on, i) => `<i class="${on ? "on" : i === 6 ? "now" : ""}"></i>`).join("")}</span>`;
@@ -145,7 +145,7 @@ function renderLibrary() {
   const hasTab = data.songs.some(s => s.format === "tab");
   const hasLearn = data.songs.some(s => s.status === "learning");
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
-  const week = data.songs.map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
+  const week = playSongs(data).map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
@@ -2265,7 +2265,7 @@ function streakSoon(song) {
   st.streakShown = day; Tabs.save(data);
   setTimeout(() => {
     if (viewing !== song || route().name !== "song") return;
-    lazy("profile.js").then(m => m.showStreak(streakMoment(data.songs, Date.now(), data.journal?.best)));
+    lazy("profile.js").then(m => m.showStreak(streakMoment(playSongs(data), Date.now(), data.journal?.best)));
   }, 1400);
 }
 let playsHere = 0; /* plays since the app opened, for pacing tips */
@@ -2276,6 +2276,8 @@ async function startScroll(song, opts = {}) {
   const fr = first?.getBoundingClientRect();
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.duet = !!opts.duet;
+  /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
+  if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
   playsHere++;
   setTimeout(() => {
@@ -2314,15 +2316,26 @@ async function startScroll(song, opts = {}) {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
+      scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
       scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song) * loopFactor(song);
       const px = Math.floor(scroll.carry);
-      if (px) { window.scrollBy(0, px); scroll.carry -= px; nextLine(); }
-      // At the end: wait a few seconds (the reader may scroll back up), then stop.
-      if (!song.loop && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
-        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp(); }
-        scroll.bottomSince ||= t;
-        if (t - scroll.bottomSince > 4000) return stopScroll();
+      if (px) { window.scrollBy(0, px); scroll.carry -= px; scroll.cover = (scroll.cover || 0) + px; nextLine(); }
+      /* The end is the last line reaching the reading line. If the page runs out first, add room. */
+      const end = endScroll();
+      if (!song.loop && end >= 0 && scrollY < end - 2 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) endRoom(end - scrollY);
+      // At the end: a play counts if auto-scroll carried the page most of the way (see playCredited).
+      // Then wait a few seconds (the reader may scroll back up), then stop.
+      if (!song.loop && end >= 0 && scrollY >= end - 2) {
+        const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
+        if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
+          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
+        }
+        /* A sheet that fits the screen has only the clock to go by, so it plays on until it counts. */
+        if (scroll.logged || end >= 40) {
+          scroll.bottomSince ||= t;
+          if (t - scroll.bottomSince > 4000) return stopScroll();
+        }
       } else scroll.bottomSince = 0;
     }
     scroll.last = t;
@@ -2331,8 +2344,20 @@ async function startScroll(song, opts = {}) {
   scroll.raf = requestAnimationFrame(tick);
 }
 
+/* Where the page is scrolled when the song's last line reaches the reading line, or -1 with no lines. */
+function endScroll() {
+  const last = [...diag.blocks].reverse().find(b => b.el.isConnected && isLine(b.el));
+  return last ? Math.max(0, Math.round(last.el.getBoundingClientRect().top + scrollY - innerHeight * READ_AT)) : -1;
+}
+/* Space under the sheet so the last line can scroll up to the reading line. Removed when playing stops. */
+function endRoom(more) {
+  let room = $("endroom");
+  if (!room) { room = document.createElement("div"); room.id = "endroom"; room.setAttribute("aria-hidden", "true"); $("sheet")?.after(room); }
+  room.style.height = ((parseFloat(room.style.height) || 0) + Math.ceil(more) + 4) + "px";
+}
 onLeave(() => stopScroll());
 function stopScroll() {
+  $("endroom")?.remove();
   const was = scroll.on;
   scroll.on = false; scroll.duet = false;
   if (scroll.ms > 1000) { journalTime(data, scroll.ms / 1000); Tabs.save(data); }
@@ -2427,6 +2452,7 @@ function renderRoute() {
   }
   else if (r.name === "settings" || r.name === "trash") settingsMod().then(m => { if (route().name !== r.name) return; (r.name === "settings" ? m.renderSettings : m.renderTrash)(); window.scrollTo(0, 0); });
   else if (r.name === "you") lazy("profile.js").then(m => { if (route().name === "you") { m.renderProfile(); window.scrollTo(0, 0); } });
+  else if (r.name === "playmap") lazy("playmap.js").then(m => { if (route().name === "playmap") { m.renderPlayMap(); window.scrollTo(0, 0); } });
   else if (r.name === "gestures") { renderGestures(); window.scrollTo(0, 0); }
   else if (r.name === "sketch") lazy("sketch.js").then(m => { if (route().name === "sketch") m.renderSketch(); });
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }

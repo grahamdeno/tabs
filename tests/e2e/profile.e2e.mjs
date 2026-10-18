@@ -27,10 +27,12 @@ test("Your playing: an empty library says how it fills in, with no share button"
 });
 
 test("Streak moment: once a day after the first song played through; tap to close; a switch turns it off", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false, controls: "bar", streakMoment: true } });
+  /* short songs, so a real run is quick; a play only counts when most of it was played */
+  const songs = LIB.songs.map(s => ({ ...s, duration: 10 }));
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, countIn: false, controls: "bar", streakMoment: true } });
   await page.click(".list .row"); await page.waitForSelector("#play");
   await page.click("#play");
-  await page.waitForSelector(".sk", { timeout: 6000 });
+  await page.waitForSelector(".sk", { timeout: 15000 });
   assert.match(await page.innerText(".sk-say"), /Day one\.|days in a row/);
   assert.equal(await page.getAttribute(".sk", "role"), "dialog");
   await page.waitForTimeout(2600);

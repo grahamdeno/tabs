@@ -75,11 +75,15 @@ function renderSettings() {
         <button class="toggle ${s.streakMoment !== false ? "on" : ""}" id="s-streak" role="switch" aria-checked="${s.streakMoment !== false}" aria-label="Streak celebration"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("focus")}</span><span class="name">Play map</span>
+        <button class="toggle ${s.playMap ? "on" : ""}" id="s-playmap" role="switch" aria-checked="${!!s.playMap}" aria-label="Play map"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("stage")}</span><span class="name">Stage mode</span>
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Bass plays the root of each chord under the song at its sounding pitch (the capo is counted), and keeps time without the metronome; Auto picks its pattern from the drum beat, and Bass only mutes the drums. Each song can have its own drum beat, swing and bass, found by the AI the first time it plays with the metronome or bass on (and when you add it) and kept on the song; change it in Edit, where a song can also have a bass riff of its own. Streak celebration shows your streak once a day, after the first song you play to the end. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Bass plays the root of each chord under the song at its sounding pitch (the capo is counted), and keeps time without the metronome; Auto picks its pattern from the drum beat, and Bass only mutes the drums. Each song can have its own drum beat, swing and bass, found by the AI the first time it plays with the metronome or bass on (and when you add it) and kept on the song; change it in Edit, where a song can also have a bass riff of its own. Streak celebration shows your streak once a day, after the first song you play to the end. Play map (off until you turn it on) grows a territory of hexagons from your plays; a play counts when a song is played through, not when the page is scrolled by hand. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
     diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">
@@ -168,7 +172,7 @@ function renderSettings() {
       </div>
       <div id="s-cities"></div>` : ""}
     </div>
-    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; Tabs never asks for your location. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
+    <p class="foot">Under the library's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day. Only the city's position is sent, once a day; Tabs asks for your location only if you turn on the Play map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
     keys: ["Keys", `
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>
@@ -246,6 +250,7 @@ function renderSettings() {
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
+  $("s-playmap").onclick = () => { if (s.playMap) { s.playMap = false; delete s.playSeen; Tabs.save(data); try { localStorage.removeItem("tabs.spot.v1"); } catch {} renderSettings(); } else go("#/playmap"); }; /* turning it on goes through the explanation */
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
@@ -383,7 +388,7 @@ function renderTrash() {
   $("t-empty")?.addEventListener("click", () => {
     const n = data.trash.length;
     ask({ title: `Delete all ${n} for good?`, text: "Everything in Recently deleted goes. This can't be undone.", ok: `Delete ${n === 1 ? "it" : `all ${n}`}`, keep: "Keep them", danger: true },
-      () => { data.trash = []; Tabs.save(data); renderTrash(); });
+      () => { Tabs.forgetAll(data); renderTrash(); });
   });
 }
 

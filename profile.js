@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { Tabs, profileOf } from "./core.js";
+import { Tabs, profileOf, territory, lifetimePlays } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
 import { data, go } from "./app.js";
 
@@ -83,14 +83,17 @@ export function renderProfile() {
     `Tuned ${p.tune.sessions} time${p.tune.sessions === 1 ? "" : "s"}.${tw && tw.rate > 0 ? ` The <b>${esc(tw.string)}</b> string drifts most: off in ${Math.round(tw.rate * 100)}% of checks.` : ""}`,
     p.tune.drift.some(x => x.checked) ? `<div class="pf-bars">${p.tune.drift.map(x => `<div class="pf-bar"><span>${esc(x.string)}</span><i style="--w:${Math.max(2, Math.round(x.rate * 100))}%"></i><small>${x.checked ? Math.round(x.rate * 100) + "%" : "–"}</small></div>`).join("")}</div>` : "") : "";
 
+  const plays = lifetimePlays(data), terr = territory(plays);
+  const mapCard = `<button class="pf-card pf-mapcard" id="pf-map"><h2>Play map</h2><p class="pf-line">${data.settings.playMap ? `${terr.cells} hexagon${terr.cells === 1 ? "" : "s"} of territory, ${terr.toNext} play${terr.toNext === 1 ? "" : "s"} to the next ring.` : "Grow a territory from your plays. Off until you turn it on."}</p>${icon("chev", "chev")}</button>`;
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to the library">${icon("back")}</button></div>
     <h1 class="title" style="margin:14px 2px 2px">Your playing</h1>
     <p class="pf-since">${esc(since)}</p>
-    ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${hero}${firsts}${passport}${changes}${rhythm}${keys}${rep}${zone}${sets}${tune}
+    ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${hero}${mapCard}${firsts}${passport}${changes}${rhythm}${keys}${rep}${zone}${sets}${tune}
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share my playing</button></div>`}`;
   document.getElementById("back").onclick = () => go("#/");
+  document.getElementById("pf-map")?.addEventListener("click", () => go("#/playmap"));
   app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.song)));
   document.getElementById("pf-share")?.addEventListener("click", () => shareCard(p));
 }

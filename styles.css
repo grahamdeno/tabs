@@ -1809,3 +1809,16 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 .rf .rf-c { height: 46px; border-radius: 10px; border: 1px solid var(--rim); background: var(--card-2); color: var(--muted); font-size: 18px; font-weight: 600; }
 .rf .rf-c.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
 .rf .actions .btn { flex: 1; }
+
+/* Play map */
+.pf-mapcard { display: block; position: relative; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.pf-mapcard .chev { position: absolute; right: 14px; top: 50%; translate: 0 -50%; }
+.pf-mapcard .pf-line { margin-right: 24px; }
+.pm-wrap { margin: 14px 0; padding: 10px; border-radius: 18px; border: 1px solid var(--bronze-line); background: var(--tolex-card); box-shadow: var(--tolex-inset); }
+.pm-map { display: block; width: 100%; max-height: 52vh; }
+.pm-cell { fill: color-mix(in srgb, var(--bronze) 38%, transparent); stroke: var(--bronze); stroke-width: 1; }
+.pm-cell.home { fill: var(--bronze); }
+.pm-cell.new { animation: pm-in .6s ease-out both; animation-delay: var(--d, 0ms); transform-box: fill-box; transform-origin: center; }
+.pm-pin { fill: var(--bg); pointer-events: none; }
+@keyframes pm-in { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .pm-cell.new { animation: none; } }
