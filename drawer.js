@@ -32,6 +32,9 @@ export function makeDrawer({ root, head, body, sizer, scrim, onState = () => {} 
   const rubber = (v) => v < 0 ? v / 4 : v > closedY ? closedY + (v - closedY) / 4 : v;
   const start = (e, fromHead) => {
     const t = e.touches[0];
+    /* a swipe up from the very bottom edge is the phone's (home, app switcher): the drawer stays put */
+    const bottom = Math.max(innerHeight, document.body.getBoundingClientRect().height);
+    if (t.clientY > bottom - 36) { drag = { dead: true }; return; }
     drag = { y0: t.clientY, startY: y, last: t.clientY, t: performance.now(), v: 0, on: false, dead: false, fromHead, top: body.scrollTop <= 0 };
   };
   const move = e => {
@@ -60,7 +63,11 @@ export function makeDrawer({ root, head, body, sizer, scrim, onState = () => {} 
   root.addEventListener("touchstart", e => { if (e.target instanceof Element && e.target.closest(".dock")) return; start(e, !!e.target.closest?.("[data-grab]")); }, { passive: true });
   root.addEventListener("touchmove", move, { passive: false });
   root.addEventListener("touchend", end, { passive: true });
-  root.addEventListener("touchcancel", end, { passive: true });
+  /* the system took the touch (app switcher, call, notification): go back to where the drawer was */
+  const abort = () => { if (!drag) return; const was = drag.on; drag = null; if (was) settle(openState); };
+  root.addEventListener("touchcancel", abort, { passive: true });
+  document.addEventListener("visibilitychange", abort);
+  window.addEventListener("pagehide", abort);
   /* taps: the handle toggles; a tap on the closed peek opens it */
   root.addEventListener("click", e => {
     if (!(e.target instanceof Element)) return;
@@ -72,7 +79,7 @@ export function makeDrawer({ root, head, body, sizer, scrim, onState = () => {} 
   document.addEventListener("keydown", key);
   const resize = () => { measure(); paint(openState ? 0 : closedY); };
   window.addEventListener("resize", resize);
-  const off = new MutationObserver(() => { if (!document.contains(root)) { document.removeEventListener("keydown", key); window.removeEventListener("resize", resize); off.disconnect(); } });
+  const off = new MutationObserver(() => { if (!document.contains(root)) { document.removeEventListener("keydown", key); window.removeEventListener("resize", resize); document.removeEventListener("visibilitychange", abort); window.removeEventListener("pagehide", abort); off.disconnect(); } });
   off.observe(document.body, { childList: true, subtree: true });
   measure(); settle(false);
   return { open: () => settle(true), close: () => settle(false), isOpen: () => openState, remeasure: resize };

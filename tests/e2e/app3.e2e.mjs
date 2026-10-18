@@ -534,9 +534,10 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   await page.waitForSelector(".rd-next");
   assert.equal(await page.innerText("h1.title"), "Tonight");
   assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie says something");
-  assert.match(await page.innerText(".rd-next h2"), /Up next/i);
+  assert.match(await page.innerText(".rd-next h2"), /Tonight's run/i);
+  assert.match(await page.innerText("#rd-go"), /Start soundcheck/i);
   assert.match(await page.innerText(".rd-map"), /Tour Map/i);
-  await page.click("#rd-go");
+  await page.click("#rd-skip");
   await page.waitForFunction(() => /#\/song\//.test(location.hash) && document.body.classList.contains("playing"), null, { timeout: 8000 });
   await page.click("#play");
   await page.evaluate(() => document.querySelector(".head .ib[data-go]").click());

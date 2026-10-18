@@ -1960,3 +1960,38 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 .tm-bd.you i { background: var(--lamp-on); box-shadow: 0 0 8px rgba(255,150,50,.5); }
 .tm-bd.more i { display: none; }
 .tm-sbody .tm-fine { margin: 0; font-size: 12px; color: var(--muted); }
+
+/* ---- The neck (3.6.0): practice lessons ---- */
+.rd-skip { display: block; margin: 6px auto 0; padding: 6px 12px; border: 0; background: none; font: 600 14px var(--sans); color: var(--muted); }
+.rd-steps button#rd-sound { flex: none; }
+.pk-count { float: right; font: 600 12px var(--mono); letter-spacing: .04em; color: var(--muted); text-transform: none; }
+.pk-level.soon { opacity: .6; border-style: dashed; }
+.pk-board { display: flex; gap: 6px; overflow-x: auto; padding: 6px 2px 4px; margin: 8px -2px 0; border-radius: 12px; scrollbar-width: none; background: var(--recess); border: 1px solid var(--recess-edge); box-shadow: var(--recess-shadow); }
+.pk-board::-webkit-scrollbar { display: none; }
+.pk-fret { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 62px; height: 72px; padding: 0; border: 0; border-right: 3px solid var(--bronze-line); background: none; color: var(--recess-dim); font: inherit; }
+.pk-fret b { font: 700 17px var(--sans); }
+.pk-fret small { font: 600 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; min-height: 12px; }
+.pk-fret.done { color: var(--gold-text); }
+.pk-fret.now { color: var(--recess-on); background: radial-gradient(circle at 50% 100%, rgba(255,178,74,.28), transparent 70%); box-shadow: inset 0 0 0 1.5px rgba(255,194,122,.6); border-radius: 8px; }
+.pk-fret.locked { border-right-style: dashed; opacity: .55; }
+.pk-inlay { flex: none; align-self: center; width: 22px; height: 22px; margin: 0 8px; padding: 0; border-radius: 50%; border: 1.5px solid var(--bronze-line); background: none; }
+.pk-inlay.done { background: radial-gradient(circle at 35% 30%, #ffe7b8, #c9953f); border-color: var(--gold-text); }
+.pk-inlay.now { border-color: var(--copper); box-shadow: 0 0 12px rgba(255,178,74,.7); }
+.pk-lesson { margin-top: 12px; }
+.pk-chord { display: flex; justify-content: center; margin: 4px 0 10px; }
+.pk-chord svg { height: 190px; width: auto; }
+.pk-strings { display: flex; justify-content: space-between; gap: 4px; margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: var(--recess); border: 1px solid var(--recess-edge); box-shadow: var(--recess-shadow); }
+.pk-str { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pk-str small { font: 700 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--recess-dim); }
+.pk-str.skip { opacity: .4; }
+.pk-pair { display: flex; align-items: center; gap: 12px; }
+.pk-now { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; border-radius: 16px; background: var(--recess); border: 1px solid var(--recess-edge); box-shadow: var(--recess-shadow); }
+.pk-now b { font: 400 64px/1 var(--serif); color: var(--recess-on); }
+.pk-now small { margin-top: 6px; font: 600 13px var(--sans); color: var(--recess-dim); }
+.pk-diag { flex: none; width: 96px; opacity: .8; }
+.pk-diag svg { width: 100%; height: auto; }
+.pk-beats { display: flex; justify-content: center; gap: 18px; margin: 14px 0 6px; }
+.pk-beats i { width: 14px; height: 14px; border-radius: 50%; background: var(--lamp-off); border: 1px solid var(--recess-edge); transition: background .06s; }
+.pk-beats i.on { background: var(--lamp-on); box-shadow: 0 0 10px rgba(255,178,74,.8); }
+.pk-lesson .rd-say { margin-top: 10px; }
+.s-dock .btn:disabled { opacity: .6; }

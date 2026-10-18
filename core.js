@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.5.1";
+export const VERSION = "3.6.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -69,7 +69,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -332,7 +332,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -2842,4 +2842,94 @@ export function takeoverPlan({ plays, held, lost = 0, owner, rivals }) {
 export function cleanTour(raw) {
   if (!isObj(raw)) return null;
   return { lost: Math.max(0, Math.floor(+raw.lost || 0)), below: Math.max(0, Math.min(HOLD_DAYS, Math.floor(+raw.below || 0))), checked: /^\d{4}-\d{2}-\d{2}$/.test(raw.checked) ? raw.checked : "" };
+}
+
+// ---------- The neck: practice lessons (3.6.0) ----------
+// A ladder of lessons. Each fret is one lesson: a chord to ring clean string by
+// string, or a switch between two chords to land on the beat. The inlay after a
+// group is a level check: play a real song from your library through.
+// Strumming, picking and fingerstyle are on the ladder as "coming".
+const SW = (a, b, to = 80) => ({ id: `s:${a}-${b}`, kind: "switch", a, b, to });
+const CH = c => ({ id: `c:${c}`, kind: "chord", chord: c });
+export const SKILL_LEVELS = [
+  { id: "open", name: "Open chords", note: "Ring every string clean.", steps: ["G", "C", "D", "Em", "Am", "E", "A"].map(CH).concat([{ id: "k:open", kind: "check", chords: ["G", "C", "D", "Em", "Am", "E", "A"] }]) },
+  { id: "switch", name: "Chord switches", note: "Land the change on the beat.", steps: [SW("G", "C"), SW("C", "D"), SW("G", "D"), SW("Em", "Am"), SW("Am", "C"), SW("D", "A"), SW("A", "E"), SW("Em", "C", 70), { id: "k:switch", kind: "check", chords: ["G", "C", "D", "Em", "Am", "E", "A"] }] },
+  { id: "strum", name: "Strumming", note: "Down, up, and keeping time.", soon: true, steps: [] },
+  { id: "pick", name: "Picking", note: "One string at a time.", soon: true, steps: [] },
+  { id: "finger", name: "Fingerstyle and barre", note: "The big shapes.", soon: true, steps: [] }
+];
+export const cleanSkills = raw => {
+  if (!isObj(raw)) return null;
+  const done = {};
+  for (const [id, x] of Object.entries(isObj(raw.done) ? raw.done : {}).slice(0, 200)) {
+    if (!/^[a-z]:[A-Za-z0-9#-]{1,12}$/.test(id) || !isObj(x)) continue;
+    done[id] = { n: Math.max(1, Math.min(9999, Math.floor(+x.n || 1))), best: Math.max(0, Math.min(300, Math.floor(+x.best || 0))), at: Math.max(0, Math.floor(+x.at || 0)) };
+  }
+  const last = Math.max(0, Math.floor(+raw.last || 0));
+  return Object.keys(done).length || last ? { done, last } : null;
+};
+/* Where every lesson stands. A chord you have already played in songs five times counts as known. */
+export function skillState(data, now = Date.now()) {
+  const done = data.skills?.done || {}, chords = data.journal?.chords || {};
+  const known = st => st.kind === "chord" && (chords[st.chord]?.n || 0) >= 5;
+  const songFor = st => (data.songs || []).filter(sg => { const c = songChordNames(sg.body); return c.length >= 2 && c.every(n => st.chords.includes(n)); }).sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0] || null;
+  let cur = null, prevAt = 0;
+  const levels = SKILL_LEVELS.map(lv => ({ ...lv, steps: lv.steps.map(st => {
+    let state;
+    if (st.kind === "check") {
+      const sg = songFor(st), ok = done[st.id] || (sg && (sg.playLog?.last || 0) > prevAt && !cur);
+      state = ok ? "done" : cur ? "locked" : "now";
+      if (state === "now") cur = cur || { ...st, state, level: lv.id };
+      return { ...st, state, song: sg ? sg.id : "", name: "Level check" };
+    }
+    state = done[st.id] ? "done" : known(st) ? "done" : cur ? "locked" : "now";
+    if (state === "now") cur = { ...st, state, level: lv.id };
+    if (state === "done") prevAt = Math.max(prevAt, done[st.id]?.at || 1);
+    return { ...st, state, name: st.kind === "chord" ? st.chord : `${st.a} to ${st.b}`, n: done[st.id]?.n || 0, best: done[st.id]?.best || 0 };
+  }) }));
+  const last = data.skills?.last || 0, n = new Date(now), l = new Date(last);
+  const today = !!last && n.getFullYear() === l.getFullYear() && n.getMonth() === l.getMonth() && n.getDate() === l.getDate();
+  return { levels, next: cur, today };
+}
+const songChordNames = body => { const out = []; for (const m of String(body || "").matchAll(/\[([A-G][#b]?[^\]\s/]*)(?:\/[^\]\s]*)?\]/g)) if (!out.includes(m[1])) out.push(m[1]); return out; };
+/* A lesson finished (or a clean round): keep the count and the best tempo. */
+export function skillDone(data, id, best = 0, now = Date.now()) {
+  const sk = data.skills || (data.skills = { done: {}, last: 0 }), x = sk.done[id] || (sk.done[id] = { n: 0, best: 0, at: 0 });
+  x.n++; x.best = Math.max(x.best, Math.floor(best) || 0); x.at = now; sk.last = now;
+}
+/* What each string should sound like for a chord: a frequency, or null for a string left out. */
+export function chordTargets(name, tuning = "standard", a4 = 440) {
+  const sh = chordShape(name), notes = (TUNINGS[tuning] || TUNINGS.standard).notes;
+  if (!sh) return null;
+  return sh.frets.map((f, i) => {
+    if (f < 0) return { i, hz: 0 };
+    const hz = noteFreq(notes[i], a4) * 2 ** (f / 12);
+    return { i, hz, fret: f, note: nearestNote(hz, a4).name, openHz: noteFreq(notes[i], a4) };
+  });
+}
+/* Which string a heard pitch belongs to, with what happened: "ring" (right), "open" (the open string
+   rang: the finger is not pressing), "low" or "high" (a fret off), or "" (not one of this chord's). */
+export function judgeString(hz, targets) {
+  if (!(hz > 0)) return null;
+  const c = (a, b) => 1200 * Math.log2(a / b);
+  for (const t of targets) if (t.hz && Math.abs(c(hz, t.hz)) <= 35) return { i: t.i, say: "ring" };
+  for (const t of targets) {
+    if (!t.hz) continue;
+    if (t.fret > 0 && Math.abs(c(hz, t.openHz)) <= 35) return { i: t.i, say: "open" };
+    if (Math.abs(c(hz, t.hz * 2 ** (-1 / 12))) <= 35) return { i: t.i, say: "low" };
+    if (Math.abs(c(hz, t.hz * 2 ** (1 / 12))) <= 35) return { i: t.i, say: "high" };
+  }
+  return null;
+}
+/* Switch drill: when you played against when the chord was due. `due` and `onsets` are in seconds;
+   `spb` is seconds per beat. Early or late by more than a quarter beat is not on the beat. */
+export function gradeSwitches(due, onsets, spb) {
+  let on = 0, late = 0, early = 0, miss = 0;
+  for (const d of due) {
+    const hit = onsets.find(o => o >= d - 0.6 * spb && o <= d + 1.2 * spb);
+    if (hit === undefined) { miss++; continue; }
+    const dt = hit - d;
+    if (Math.abs(dt) <= 0.25 * spb) on++; else if (dt > 0) late++; else early++;
+  }
+  return { on, late, early, miss, clean: on >= Math.ceil(due.length * 0.75) };
 }

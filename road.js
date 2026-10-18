@@ -1,10 +1,11 @@
 // Tonight (#/): home. One clear next step, the streak, Louie, and the Tour Map.
 //
-//   header      Tonight, with Your playing, Tuner and Settings
+//   header      Tonight, with the neck, Your playing, Tuner and Settings
 //   streak      the week of lamps and the streak (tap: your changes this week)
 //   Louie       one line that fits the moment (played today, evening with the
 //               streak at risk, back after a few days, or just ready)
-//   Up next     one song, three lamps (Tune, Play, Stretch), one copper Play
+//   Tonight's run  one song, three lamps (Tune, Soundcheck, Play); Soundcheck is the next lesson on the neck
+//               (#/practice), and the button follows the day: Start soundcheck, then Play
 //   Tour Map    a small picture of your turf, the venue, plays to the next one
 //   Library     a sheet along the bottom edge, under the search bar: tap it or
 //               swipe it up and the Library slides up over Tonight (swipe down
@@ -12,7 +13,7 @@
 //   dock        the same search bar and add button as the Library
 // A library with no plays yet gets the first-run version: Louie waves and the
 // first song is ready to play.
-import { hexOutline, hexSpiral, lifetimePlays, pickNudge, playSongs, profileOf, streakOf, territory, venueOf } from "./core.js";
+import { hexOutline, hexSpiral, lifetimePlays, pickNudge, playSongs, skillState, streakOf, territory, venueOf } from "./core.js";
 import { app, esc, icon } from "./ui.js";
 import { bindShelf, chipsHTML, chordNames, data, filter, go, homeHooks, keyOf, mmss, openSearch, openTuner, playSong, renderList, route, setFilter, setsShelf, songLength, tunedRecently, newSong } from "./app.js";
 import { louie } from "./louie.js";
@@ -44,13 +45,13 @@ function upNext() {
   return (n && byId(n.songId)) || [...data.songs].sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0];
 }
 
-/* the next chord to stamp, and a song that has it */
-function stretch(song) {
-  let next = "";
-  try { next = profileOf(data).nextStamp || ""; } catch {}
-  if (!next) return null;
-  const with_ = data.songs.find(s => s !== song && chordNames(s.body || "").includes(next)) || (chordNames(song.body || "").includes(next) ? song : null);
-  return with_ ? { chord: next, song: with_ } : null;
+/* the lesson Tonight offers: the next one on the neck. Louie names the switch that trips you up in the song. */
+function lessonFor(song) {
+  const sk = skillState(data), next = sk.next;
+  if (!next || next.kind === "check") return { sk, next: next || null, trip: null };
+  const names = chordNames(song?.body || "");
+  const switches = sk.levels.flatMap(l => l.steps).filter(x => x.kind === "switch" && x.state !== "done" && names.includes(x.a) && names.includes(x.b));
+  return { sk, next, trip: switches[0] || null };
 }
 
 /* a small picture of the turf: the lit cells glow inside a piped outline */
@@ -84,26 +85,31 @@ export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
   const plays = lifetimePlays(data), st = streakOf(playSongs(data)), t = territory(plays), v = venueOf(plays);
   const song = upNext(), first = !plays;
+  const les = song && !first ? lessonFor(song) : null;
   const say = louieLine(st, plays);
+  if (les?.trip && !st.today && !les.sk.today && say.mood !== "sleepy") say.text = `${les.trip.a} to ${les.trip.b} is the switch to warm up for ${song.title}. Soundcheck first?`;
   const lamps = `<span class="t-dots" aria-hidden="true">${st.week.map((on, i) => `<i class="${on ? "on" : i === 6 ? "now" : ""}"></i>`).join("")}</span>`;
   const weekPlays = playSongs(data).reduce((n, s) => n + Object.entries(s.playLog?.days || {}).filter(([d]) => Date.parse(d) > Date.now() - 7 * DAY).reduce((a, [, c]) => a + c, 0), 0);
   const stat = st.days >= 2 ? `<b>${st.days}-day streak</b> · ${weekPlays} play${weekPlays === 1 ? "" : "s"} this week` : weekPlays ? `${weekPlays} play${weekPlays === 1 ? "" : "s"} this week` : "";
-  const str = song && !first ? stretch(song) : null;
-  const card = song ? `<section class="pf-card rd-next" aria-label="${first ? "Your first song" : "Up next"}">
-      <h2>${first ? "Your first song" : "Up next"}</h2>
+  const tunedNow = tunedRecently(), soundDone = les?.sk.today, checkNow = les?.next?.kind === "check";
+  const card = song ? `<section class="pf-card rd-next" aria-label="${first ? "Your first song" : "Tonight's run"}">
+      <h2>${first ? "Your first song" : `Tonight's run${les?.next && !soundDone ? " · about 6 min" : ""}`}</h2>
       <button class="rd-song" id="rd-song" data-id="${esc(song.id)}"><b>${esc(song.title)}</b><span class="k">${esc(keyOf(song) || "")}</span></button>
       <p class="rd-meta">${esc([song.artist, mmss(songLength(song)), chordNames(song.body || "").slice(0, 4).join(" ")].filter(Boolean).join(" · "))}</p>
-      ${first ? "" : `<div class="rd-steps" role="group" aria-label="Soundcheck">
-        <button id="rd-tune" class="${tunedRecently() ? "on" : ""}"><i class="gs-lamp ${tunedRecently() ? "on" : ""}"></i>Tune</button>
-        <button id="rd-play" class="${st.today ? "on" : "cur"}"><i class="gs-lamp ${st.today ? "on" : "warm"}"></i>Play</button>
-        ${str ? `<button id="rd-stretch" data-id="${esc(str.song.id)}"><i class="gs-lamp"></i>Stretch: ${esc(str.chord)}</button>` : ""}
+      ${first ? "" : `<div class="rd-steps" role="group" aria-label="Tonight's run">
+        <button id="rd-tune" class="${tunedNow ? "on" : ""}"><i class="gs-lamp ${tunedNow ? "on" : ""}"></i>Tune</button>
+        ${les?.next ? `<button id="rd-sound" class="${soundDone ? "on" : tunedNow ? "cur" : ""}"><i class="gs-lamp ${soundDone ? "on" : tunedNow ? "warm" : ""}"></i>Soundcheck</button>` : ""}
+        <button id="rd-play" class="${st.today ? "on" : soundDone || !les?.next ? "cur" : ""}"><i class="gs-lamp ${st.today ? "on" : soundDone || !les?.next ? "warm" : ""}"></i>Play</button>
       </div>`}
-      <button class="btn primary rd-go" id="rd-go">${icon("play")}Play</button>
+      ${!first && les?.next && !soundDone && !checkNow ? `<button class="btn primary rd-go" id="rd-go">${icon("fretboard")}Start soundcheck</button><button class="rd-skip" id="rd-skip">Skip to the song</button>`
+        : !first && checkNow && !st.today ? `<button class="btn primary rd-go" id="rd-go">${icon("play")}Level check: play ${esc(song.title)} through</button>`
+        : `<button class="btn primary rd-go" id="rd-go">${icon("play")}Play ${first ? "" : esc(song.title)}</button>${!first && les?.next && st.today ? '<button class="rd-skip" id="rd-more">Practice more</button>' : ""}`}
     </section>` : `<section class="pf-card rd-next"><h2>Your first song</h2><p class="pf-line">Add a song you know, or paste one, and it shows up here ready to play.</p></section>`;
   app.innerHTML = `
     <div class="head">
       <h1 class="title script">Tonight</h1>
       <div class="row-btns">
+        <button class="ib glass" id="neckbtn" aria-label="The neck: practice lessons">${icon("fretboard")}</button>
         <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
         <button class="ib glass" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${tunerIcon()}</button>
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
@@ -138,6 +144,7 @@ export function renderRoad() {
     homeHooks.refresh = fill; fill();
     makeDrawer({ root: $("rd-drawer"), head: $("rd-dh"), body, sizer: $("rd-drawer").querySelector(".rd-sizer"), scrim: $("rd-scrim") });
   }
+  $("neckbtn").onclick = () => go("#/practice");
   $("youbtn").onclick = () => go("#/you");
   $("settings").onclick = () => go("#/settings");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "road" && renderRoad());
@@ -145,9 +152,12 @@ export function renderRoad() {
   $("rd-stat")?.addEventListener("click", () => go("#/you"));
   $("rd-map")?.addEventListener("click", () => go("#/playmap"));
   $("rd-song")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.id)));
-  $("rd-stretch")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.id)));
   const play = () => song && playSong(song.id);
-  $("rd-go")?.addEventListener("click", play);
+  const lesson = () => les?.next && les.next.kind !== "check" ? go("#/practice/" + encodeURIComponent((les.trip || les.next).id)) : go("#/practice");
+  $("rd-go")?.addEventListener("click", !first && les?.next && !soundDone && !checkNow ? lesson : play);
+  $("rd-skip")?.addEventListener("click", play);
+  $("rd-more")?.addEventListener("click", () => go("#/practice"));
+  $("rd-sound")?.addEventListener("click", lesson);
   $("rd-play")?.addEventListener("click", play);
   $("rd-search").onclick = () => openSearch();
   $("add").onclick = () => newSong();

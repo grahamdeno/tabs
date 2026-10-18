@@ -1513,3 +1513,33 @@ test("Daily average: a day counts the larger of recorded time and the songs play
   C.journalTime(data, 1800, Date.now()); /* 30 min recorded: more than the plays suggest */
   assert.equal(C.userAvg7(data), 4.3);
 });
+
+test("The neck: lessons unlock in order, a lesson done is kept clean, and chords you already play count as known", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  let sk = C.skillState(data);
+  assert.equal(sk.next.id, "c:G"); assert.equal(sk.today, false);
+  assert.equal(sk.levels[0].steps[1].state, "locked");
+  assert.deepEqual(sk.levels.slice(2).map(l => l.soon), [true, true, true]);
+  C.skillDone(data, "c:G", 0, Date.now());
+  sk = C.skillState(data);
+  assert.equal(sk.next.id, "c:C"); assert.equal(sk.today, true);
+  data.journal = { chords: { C: { n: 9 }, D: { n: 5 } } };
+  assert.equal(C.skillState(data).next.id, "c:Em", "C and D are known from songs");
+  assert.equal(C.cleanSkills({ done: { "c:G": { n: 2, best: 70, at: 5 }, "bad id": {} }, last: 9 }).done["c:G"].best, 70);
+  assert.equal(Object.keys(C.cleanSkills({ done: { "bad id": {} }, last: 9 }).done).length, 0);
+  assert.equal(C.cleanSkills({ done: {}, last: 0 }), null);
+});
+
+test("The neck: the strings of a chord, what a heard pitch means, and grading a switch drill", () => {
+  const t = C.chordTargets("C");
+  assert.equal(t[0].hz, 0, "the low E is left out of C");
+  assert.equal(t[1].note, "C");
+  assert.deepEqual(C.judgeString(t[1].hz * 1.005, t), { i: 1, say: "ring" });
+  assert.deepEqual(C.judgeString(110, t), { i: 1, say: "open" }, "the A string ringing open is not pressed");
+  assert.equal(C.judgeString(t[1].hz * 2 ** (-1 / 12), t).say, "low");
+  assert.equal(C.judgeString(-1, t), null);
+  const spb = 1, due = [10, 14, 18, 22];
+  const g = C.gradeSwitches(due, [10.1, 14.6, 17.95], spb);
+  assert.deepEqual([g.on, g.late, g.miss, g.clean], [2, 1, 1, false]);
+  assert.equal(C.gradeSwitches(due, [10, 14, 18, 22.05], spb).clean, true);
+});

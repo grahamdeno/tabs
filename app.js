@@ -1892,6 +1892,19 @@ function metroPreview() {
   const t = audio.currentTime + 0.05, spb = 0.55, style = drumStyle(data.settings.metroBeat === "auto" || !data.settings.metroBeat ? "rock" : data.settings.metroBeat, { beats: 4 });
   for (let b = 0; b < 4; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb, style) : clickAt(t + b * spb, b === 0);
 }
+/* A steady beat for the practice drill (practice.js): the drums, or the click if that is what Settings
+   uses. onBeat(i, t) is called a little before beat i sounds at audio time t. */
+function beatTrack(bpm, onBeat) {
+  const audio = sound();
+  if (!audio) return null;
+  const spb = 60 / bpm, style = drumStyle("rock", { bpm, beats: 4 });
+  let i = 0, t = audio.currentTime + 0.2;
+  const t0 = t;
+  const tick = () => { while (t < audio.currentTime + 0.35) { metroDrums() ? drumBeat(t, i % 4, 4, spb, style) : clickAt(t, i % 4 === 0); onBeat?.(i, t); i++; t += spb; } };
+  tick();
+  const id = setInterval(tick, 40);
+  return { audio, t0, spb, lag: (audio.baseLatency || 0) + (audio.outputLatency || 0), stop: () => clearInterval(id) };
+}
 /* The bass. It rides the same clock as the drums (or a silent one when the
    metronome is off). On chord-only rows it moves a chord a bar; over lyrics it
    goes where the page is. The patterns are in core.js. */
@@ -2464,6 +2477,7 @@ function renderRoute() {
   }
   else if (r.name === "settings" || r.name === "trash") settingsMod().then(m => { if (route().name !== r.name) return; (r.name === "settings" ? m.renderSettings : m.renderTrash)(); window.scrollTo(0, 0); });
   else if (r.name === "you") lazy("profile.js").then(m => { if (route().name === "you") { m.renderProfile(); window.scrollTo(0, 0); } });
+  else if (r.name === "practice") lazy("practice.js").then(m => { if (route().name === "practice") { r.id ? m.renderSession(r.id) : m.renderNeck(); window.scrollTo(0, 0); } });
   else if (r.name === "playmap") lazy("playmap.js").then(m => { if (route().name === "playmap") { m.renderPlayMap(); window.scrollTo(0, 0); } });
   else if (r.name === "gestures") { renderGestures(); window.scrollTo(0, 0); }
   else if (r.name === "sketch") lazy("sketch.js").then(m => { if (route().name === "sketch") m.renderSketch(); });
@@ -2532,4 +2546,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { playSong, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { beatTrack, playSong, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
