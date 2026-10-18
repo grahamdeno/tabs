@@ -1822,11 +1822,13 @@ body.tm-open .app { padding: 0; }
 .tm-map .leaflet-control-attribution { background: rgba(12,13,15,.7); color: #a99b80; font-size: 10px; }
 .tm-map .leaflet-control-attribution a { color: #a99b80; }
 .tm-map .leaflet-bottom { bottom: calc(150px + var(--safe-b)); }
-.tm-top { position: absolute; left: 12px; right: 12px; top: calc(10px + var(--safe-t)); z-index: 500; display: flex; align-items: center; gap: 8px; padding: 4px 16px 4px 6px; border-radius: 26px; background: rgba(20,20,22,.78); border: 1px solid rgba(184,147,90,.42); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+/* the same header as every other page: the title and a glass back button, no bar around them; a soft shade keeps the title readable over the map */
+.tm-top { position: absolute; left: 0; right: 0; top: 0; z-index: 500; display: flex; align-items: center; gap: 8px; padding: calc(18px + var(--safe-t)) 20px 28px; background: linear-gradient(180deg, rgba(8,8,10,.85), rgba(8,8,10,.5) 60%, transparent); pointer-events: none; }
+.tm-top > * { pointer-events: auto; }
 .tm-top .ib, .tm-ctl .ib { color: #e9e1cf; }
-.tm-top .ib { background: rgba(255,255,255,.06); border: 1px solid #4a4a50; }
+.tm-top .ib { background: rgba(20,20,22,.85); border: 1px solid #4a4a50; }
 :root .tm-page .tm-top .title.script { color: #efe2c2; text-shadow: 0 1px 0 rgba(0,0,0,.55); }
-.tm-top .title { font-size: 36px; }
+.tm-top .title { font-size: 40px; line-height: 1.25; padding-bottom: 4px; }
 .tm-ctl { position: absolute; right: 16px; bottom: calc(196px + var(--safe-b)); z-index: 500; display: flex; flex-direction: column; gap: 10px; }
 .tm-ctl .ib { width: 44px; height: 44px; background: rgba(20,20,22,.85); border: 1px solid #4a4a50; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .tm-dock { position: absolute; left: 12px; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 500; display: flex; flex-direction: column; gap: 8px; }
