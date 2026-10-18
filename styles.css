@@ -1504,12 +1504,12 @@ body.knob-drag .rc #play { transition: none; }
 .ri, .ed-tl, .ed-tile { background: var(--chrome); border: 1px solid var(--chrome-edge); color: var(--chrome-fg); box-shadow: var(--chrome-shadow); }
 
 /* ---- Plates and recesses ---- */
-body.ring .rc-isl, .ce-plate, .nx #nx-level {
+body.ring .rc-isl, .ce-plate, .nx #nx-level, .gs #gs-level {
   background: var(--plate); border: 1px solid var(--plate-edge); box-shadow: var(--plate-shadow);
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-.ce-plate, .nx #nx-level { display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 6px; box-sizing: border-box; border-radius: 18px; }
-body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn, .ce-rec, .cebar .ce-plate .seg, .nx #nx-level button {
+.ce-plate, .nx #nx-level, .gs #gs-level { display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 6px; box-sizing: border-box; border-radius: 18px; }
+body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn, .ce-rec, .cebar .ce-plate .seg, .nx #nx-level button, .gs #gs-level button {
   background: var(--recess); border: 1px solid var(--recess-edge); color: var(--recess-fg); box-shadow: var(--recess-shadow);
 }
 
@@ -1526,7 +1526,7 @@ body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn, .ce-rec, .cebar .ce-plat
    One lamp in four sizes. .on is lit, .warm pulses while something is working. */
 .jewel, .gs-lamp, .nx-lamp, .nx-jewel, #chips .chip::before, .ri[aria-pressed]::after {
   border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
-body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, #chips .chip.on::before, .ri.act::after, .nx-jewel {
+body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, .gs #gs-level button.on .nx-lamp, #chips .chip.on::before, .ri.act::after, .nx-jewel {
   background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
 .gs-lamp.warm { background: var(--lamp-warm); animation: lampwarm 1.2s ease-in-out infinite alternate; }
 .nx-jewel { animation: lampwarm 1.6s ease-in-out infinite alternate; }
@@ -1665,8 +1665,10 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 .nx-why { color: var(--gold-text); }
 .nx .nx-ctl { flex-direction: column-reverse; align-items: stretch; gap: 10px; }
 .nx .nx-ctl > .btn { height: 46px; }
-.nx #nx-level button { flex: 1; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--recess-dim); font: 600 15px var(--sans); }
-.nx #nx-level button.on { color: var(--recess-on); }
+.nx #nx-level button, .gs #gs-level button { flex: 1; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--recess-dim); font: 600 15px var(--sans); }
+.nx #nx-level button.on, .gs #gs-level button.on { color: var(--recess-on); }
+.gs #gs-level { margin: 12px 0; gap: 6px; }
+.gs #gs-level button { font-size: 14px; gap: 7px; padding: 0 4px; }
 
 /* ---- Get the song: a lamp per step, like a channel strip ---- */
 .gs .gs-row { gap: 14px; }

@@ -73,3 +73,21 @@ test("Get the song: no GetSongBPM key and no words still adds the chords", { ski
   const s = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(x => x.title === "Harbor Lights");
   assert.equal(s.bpm, 90); assert.equal(s.words, undefined); assert.equal(s.beats, undefined);
 });
+
+test("Get the song: pick how hard (Easy, My level, As recorded); the pick is kept and sent with your chords", { skip: skip() }, async t => {
+  const { page } = await setup(t);
+  const asked = [];
+  page.on("request", r => { if (/api\.anthropic\.com/.test(r.url())) asked.push(JSON.parse(r.postData() || "{}")); });
+  await search(page, "harbor lights");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-add", { timeout: 8000 });
+  assert.equal(await page.getAttribute("#gs-level [data-lv='mine']", "aria-pressed"), "true", "My level by default");
+  assert.match(asked[0].system, /Level: the player's own/);
+  assert.match(asked[0].messages[0].content, /Chords I play: /, "your chords go with it");
+  await page.click("#gs-level [data-lv='rec']");
+  await page.waitForSelector("#gs-add", { timeout: 8000 });
+  assert.equal(await page.getAttribute("#gs-level [data-lv='rec']", "aria-pressed"), "true");
+  assert.match(asked.at(-1).system, /Level: as recorded/);
+  assert.doesNotMatch(asked.at(-1).messages[0].content, /Chords I play/);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.chartLevel, "rec", "kept for next time");
+});

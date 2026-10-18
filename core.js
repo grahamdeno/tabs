@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.40.0";
+export const VERSION = "2.41.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -254,8 +254,8 @@ export const Tabs = {
 const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
   title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", created: "string",
-  transpose: "number", size: "number", speed: "number", duration: "number", bpm: "number",
-  favorite: "boolean", easier: "object", loop: "object", listen: "object", playLog: "object", tone: "object"
+  transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
+  favorite: "boolean", capoOff: "boolean", easier: "object", loop: "object", listen: "object", playLog: "object", tone: "object"
 };
 const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export function cleanSong(raw) {
@@ -1592,8 +1592,12 @@ const SECTION_NAME = /^(intro|verse|pre-?chorus|chorus|bridge|outro|solo|interlu
 export function buildChart(ai) {
   const lines = [];
   const capo = Math.max(0, Math.min(9, parseInt(ai.capo, 10) || 0));
-  const strum = String(ai.strum || "").replace(/[^DUdu\-\s]/g, "").replace(/\s+/g, " ").trim().toUpperCase().slice(0, 24);
-  const head = [capo && `Capo ${capo}`, strum && `Strum: ${strum}`].filter(Boolean).join(" · ");
+  /* A strum in D (down), U (up), x (muted) and - (held), or a few words for a
+     fingerpicked song. */
+  const raw = String(ai.strum || "").trim();
+  const strum = /^finger/i.test(raw) ? raw.replace(/[^A-Za-z0-9 ,:'-]/g, "").replace(/\s+/g, " ").slice(0, 60)
+    : raw.replace(/[^DUdux\-\s]/g, "").replace(/\s+/g, " ").trim().replace(/[du]/g, c => c.toUpperCase()).slice(0, 32);
+  const head = [capo && `Capo ${capo}`, strum && (/^finger/i.test(strum) ? strum : `Strum: ${strum}`)].filter(Boolean).join(" · ");
   if (head) lines.push(head, "");
   for (const sec of Array.isArray(ai.sections) ? ai.sections : []) {
     const name = String(sec.name || "").trim();
@@ -1613,7 +1617,7 @@ export function buildChart(ai) {
 const changeCache = new Map();
 export function songChanges(song) {
   if (!song || song.format === "tab") return new Map();
-  const steps = song.transpose || 0, key = steps + "\n" + (song.body || "");
+  const steps = shapeSteps(song), key = steps + "\n" + (song.body || "");
   if (changeCache.has(key)) return changeCache.get(key);
   const seq = [];
   for (const l of chordModel(song.body || "")) {
@@ -1662,6 +1666,25 @@ export function changesOf(songs, now = Date.now()) {
 }
 
 // Known chords across a library, most used first.
+// The capo a chart asks for on its first lines ("Capo 2 · Strum: ..." or
+// "[Capo 2]"), or 0.
+export function bodyCapo(body) {
+  const m = /^\s*\[?capo\s*(\d{1,2})\b/im.exec(String(body || "").split("\n").slice(0, 3).join("\n"));
+  return m ? Math.min(11, +m[1]) : 0;
+}
+// How far a song's shapes move from what's written: Transpose, plus the
+// chart's capo when you've taken it off (the shapes go up to the sounding key).
+export const shapeSteps = song => (song?.transpose || 0) + (song?.capoOff ? bodyCapo(song.body) : 0);
+// What the AI is told about the player for "My level": chords from songs
+// you've got (or every song, if none is marked), chords from songs you're
+// learning, and the changes you're working on.
+export function playerLevel(songs, now = Date.now()) {
+  const got = songs.filter(s => s.status === "got");
+  const plays = chordCounts(got.length ? got : songs).slice(0, 24);
+  const learning = chordCounts(songs.filter(s => s.status === "learning")).filter(c => !plays.includes(c)).slice(0, 12);
+  const work = changesOf(songs, now).work.map(c => `${c.a} to ${c.b}`).slice(0, 8);
+  return { plays, learning, work };
+}
 export function chordCounts(songs) {
   const n = new Map();
   for (const s of songs) for (const c of chordsUsed(s.body || "")) n.set(c, (n.get(c) || 0) + 1);

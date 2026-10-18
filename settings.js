@@ -48,7 +48,7 @@ function renderSettings() {
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat (kick, snare and hi-hat); a song with no tempo gets one looked up. The slider sets its volume. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat (kick, snare and hi-hat), and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
     diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">

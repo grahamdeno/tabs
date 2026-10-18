@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf } from "./core.js";
+import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
@@ -40,14 +40,25 @@ const CHART_SYSTEM = `You find how to play one song on guitar, using web search 
 {"found": boolean, "title": string, "artist": string, "album": string, "duration": number, "key": string, "capo": number, "tuning": "standard"|"dropd"|"halfdown"|"wholedown"|"dadgad"|"openg"|"opend", "bpm": number, "strum": string, "sections": [{"name": string, "chords": string, "repeat": number}], "confidence": "high"|"medium"|"low"}
 - Never include lyrics or any words from the song, not even a short phrase. Only chord names and section names.
 - "sections": in the order played, each occurrence listed (Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro). "chords": the chord names for one pass, space separated, like "G D Em C". "repeat": how many times that pass is played in a row.
-- Use the chords most sources agree on, in the key most players use (note a capo if the common version uses one).
-- "strum": a simple pattern with D and U, like "D DU UDU", or "" if unsure. "bpm": the tempo, or 0 if unsure.
+- "key": the key the song sounds in. "capo": use one when the recording, or the common way to play it, does; 0 otherwise.
+- "strum": one bar of the rhythm in eighth notes, with D (down), U (up), x (a muted strum) and - (a held beat), like "D-DU-UDU" or "DxUxDxUx". If the song is fingerpicked, "Fingerpicked: " and the pattern in a few words. "" if unsure. "bpm": the tempo, or 0 if unsure.
 - "album": the studio album (or single) the song first came out on, or "". "duration": that recording's length in seconds, or 0 if unsure.
 - If you can't find the song, set "found" to false.`;
+// How hard a chart is, picked on Get the song: the easy version most sites
+// show, the player's own level with a small stretch, or the record as played.
+const CHART_LEVELS = [["easy", "Easy"], ["mine", "My level"], ["rec", "As recorded"]];
+const CHART_LEVEL = {
+  easy: `- Level: easy. The simplest common version: open chords, a capo where it keeps the shapes open, and easy stand-ins for hard chords (for example Fmaj7 or a small F for F). A plain strum.`,
+  mine: `- Level: the player's own, with a small stretch. Keep the song in chords they play wherever the recording allows. Where the recording uses a barre chord (F, Bm, B, F#m, C#m, Gm), use it instead of an easy stand-in. At most two chords they don't play yet. The strum as the recording has it, with its muted strums and pushes.`,
+  rec: `- Level: as recorded. The chords the recording actually uses, barre chords, sevenths, sus, add9 and slash chords included, in the key it sounds in. The rhythm as played.`
+};
+const chartLevel = () => CHART_LEVEL[data.settings.chartLevel] ? data.settings.chartLevel : "mine";
 // One AI chord chart: chords and section names only, plus the facts that help
 // find the right recording (album, length). Throws status -2 when not found.
-async function findChart(title, artist) {
-  const { text, sources } = await askClaudeSearch({ system: CHART_SYSTEM, content: `Song: ${title}${artist ? ` by ${artist}` : ""}` });
+async function findChart(title, artist, level = "easy") {
+  const p = playerLevel(data.songs);
+  const me = level === "mine" ? `\nChords I play: ${p.plays.join(" ") || "a few open chords"}${p.learning.length ? `\nChords I'm learning: ${p.learning.join(" ")}` : ""}${p.work.length ? `\nChanges I'm working on: ${p.work.join(", ")}` : ""}` : "";
+  const { text, sources } = await askClaudeSearch({ system: `${CHART_SYSTEM}\n${CHART_LEVEL[level] || CHART_LEVEL.easy}`, content: `Song: ${title}${artist ? ` by ${artist}` : ""}${me}` });
   const j = parseJSON(text);
   if (!j.found) throw Object.assign(new Error("not found"), { status: -2 });
   const body = buildChart(j);
@@ -160,6 +171,8 @@ async function bpmLookup(c, key) {
 export function getSong(q, preset = {}) {
   const title0 = (preset.title || q || "").trim(), artist0 = (preset.artist || "").trim();
   const key = bpmKey();
+  /* Play next's Add brings its own level and doesn't change the saved pick. */
+  const level = CHART_LEVEL[preset.level] ? preset.level : chartLevel();
   const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, tempo: null, beats: 4, err: "", note: { words: "Looking", tempo: "", chart: "Listening" } };
   let alive = true;
   const close = () => { alive = false; layer.innerHTML = ""; };
@@ -169,6 +182,14 @@ export function getSong(q, preset = {}) {
     $("gs-scrim").onclick = close; $("gs-x").onclick = close;
     paint();
   };
+  /* The level switch: a plate with a lamp on the pick. Picking another level
+     saves it and works the chords out again. */
+  const levelPlate = () => `<div class="seg" id="gs-level" role="group" aria-label="How hard">${CHART_LEVELS.map(([k, n]) => `<button data-lv="${k}" class="${level === k ? "on" : ""}" aria-pressed="${level === k}"><i class="nx-lamp" aria-hidden="true"></i>${n}</button>`).join("")}</div>`;
+  const bindLevel = () => document.querySelectorAll("#gs-level [data-lv]").forEach(b => b.onclick = () => {
+    if (b.dataset.lv === level) return;
+    data.settings.chartLevel = b.dataset.lv; Tabs.save(data);
+    close(); getSong(q, { ...preset, level: b.dataset.lv });
+  });
   const version = () => st.versions[st.vi] || null;
   const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
   /* a jewel lamp per step, like a channel strip: dark while waiting,
@@ -180,7 +201,7 @@ export function getSong(q, preset = {}) {
     const len = Math.round(v?.duration || c.duration || 0);
     const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body,
       ...(t?.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, t.bpm))) } : {}), ...(st.beats !== 4 ? { beats: st.beats } : {}),
-      ...(len >= 60 ? { duration: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
+      ...(len >= 60 ? { duration: len, recLength: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
       ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}) });
     close(); leaveSearch();
     go("#/song/" + encodeURIComponent(s.id));
@@ -200,8 +221,10 @@ export function getSong(q, preset = {}) {
       const r = st.rows;
       const row = (k, label) => r[k] ? `<div class="gs-row">${ROW[r[k]]}<span class="${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
       body.innerHTML = `<div class="cs-head"><b>${esc(c?.title || title0)}</b><span>${esc(c?.artist || artist0)}</span></div>
+        ${levelPlate()}
         <div class="gs-rows glass">${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("chart", "Working out the chords")}${row("merge", "Lining the chords up with the lyrics")}</div>
-        <p class="foot" style="margin-top:12px">Only the song's name is sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key.</p>`;
+        <p class="foot" style="margin-top:12px">Only the song's name${level === "mine" ? " and the chords you play are" : " is"} sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key.</p>`;
+      bindLevel();
       return;
     }
     if (st.view === "versions") {
@@ -216,6 +239,7 @@ export function getSong(q, preset = {}) {
     const tempoChip = t?.bpm > 0 ? `<span class="${t.agree ? "agree" : ""}">${t.bpm} BPM${t.agree ? ` ${icon("check")}` : ""}${!t.agree && t.measured && t.chart ? ` <small>· chart said ${Math.round(t.chart)}</small>` : ""}</span>` : "";
     body.innerHTML = `
       <div class="cs-head"><b>${esc(c.title)}</b><span>${esc(c.artist || "")}</span></div>
+      ${levelPlate()}
       ${v ? `<button class="gs-pick" id="gs-pick">${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}${st.versions.length > 1 ? ` ${icon("chev")}` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
       <pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>
@@ -226,12 +250,13 @@ export function getSong(q, preset = {}) {
     $("gs-pick")?.addEventListener("click", () => { if (st.versions.length > 1) { st.view = "versions"; paint(); } });
     $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
     $("gs-add").onclick = () => add(m || c.body);
+    bindLevel();
   };
   mount();
   const run = async () => {
     const early = getJSON(`${LRC}/search?q=${encodeURIComponent(`${title0} ${artist0}`.trim())}`);
     early.then(l => { if (st.rows.words === "busy" && !(l || []).length) st.note.words = "Still looking"; paint(); }, () => {});
-    try { st.chart = await findChart(title0, artist0); }
+    try { st.chart = await findChart(title0, artist0, level); }
     catch (e) {
       if (!alive) return;
       st.view = "error"; st.err = e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e);
@@ -364,7 +389,7 @@ export async function nextSongs() {
         <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary nx-add" data-nc="${i}" aria-label="Add ${esc(x.title)}: get its chord chart">Add</button></div>
       </div>`).join("")}</div>${tail}`;
       body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
-      body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist }) : null; });
+      body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist, level: level() === "step" ? "rec" : "mine" }) : null; });
     }
     bindControls();
   };

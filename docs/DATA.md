@@ -39,6 +39,8 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `transpose` | integer -5 to 6 | Semitones |
 | `size` | number 0.6 to 1.6 | Text size |
 | `duration` | seconds | Song length speed style. Set from the recording when linked to Apple Music, unless you chose your own |
+| `recLength` | seconds | The recording's length, kept when Get the song adds it, so the metronome can slow with the speed dial (2.41.0) |
+| `capoOff` | boolean | The chart's own capo is taken off: chords show in the key the song sounds in (2.41.0) |
 | `durationSet` | boolean | You moved the length slider; the recording's length is then offered, not applied |
 | `speed` | number | 1x speed style |
 | `bpm` | integer 30 to 260 | Tempo, for the count-in and metronome. Typed, or tapped in Edit |
@@ -67,7 +69,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 
 ### Settings
 
-Defaults are in `DEFAULT_SETTINGS` in `core.js`. The tuner keeps `tunerMode` (`"acoustic"`, `"electric"` or `"chromatic"`), `tunerGuided` (boolean), `a4` (pitch reference in Hz) and `lastTuned` (time). `tipsSeen` and `used` record which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `theme` is `"auto"` (follow the phone, the default), `"dark"` or `"light"`; `micExplained` notes the tuner has explained the microphone. `nextLevel` is What can I play next?'s level (`"same"` or `"step"`, 2.12). `tolex` (boolean) turns on Amp covering, the tolex grain (2.20.0). `metronome` (boolean) plays the metronome while a song scrolls; `metroSound` is `"drums"` (the default) or `"click"`, and `metroVol` its volume from 0 to 1 (0.8 when missing) (2.40.0). A song with no `bpm` gets one looked up when the metronome plays, and keeps it. `deVoiceTip` notes the German word card has said where to get a more natural voice (2.17.1). Kept outside the library in browser storage: `tabs.nextseen.v1`, the last 60 songs Play next suggested (2.13.1). `v` is the save format version (now 6); `migrate()` in `core.js` upgrades older saves, one step per version.
+Defaults are in `DEFAULT_SETTINGS` in `core.js`. The tuner keeps `tunerMode` (`"acoustic"`, `"electric"` or `"chromatic"`), `tunerGuided` (boolean), `a4` (pitch reference in Hz) and `lastTuned` (time). `tipsSeen` and `used` record which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `theme` is `"auto"` (follow the phone, the default), `"dark"` or `"light"`; `micExplained` notes the tuner has explained the microphone. `nextLevel` is What can I play next?'s level (`"same"` or `"step"`, 2.12). `tolex` (boolean) turns on Amp covering, the tolex grain (2.20.0). `metronome` (boolean) plays the metronome while a song scrolls; `metroSound` is `"drums"` (the default) or `"click"`, and `metroVol` its volume from 0 to 1 (0.8 when missing) (2.40.0). `chartLevel` is Get the song's last pick: `"easy"`, `"mine"` (My level, the default) or `"rec"` (As recorded) (2.41.0). A song with no `bpm` gets one looked up when the metronome plays, and keeps it. `deVoiceTip` notes the German word card has said where to get a more natural voice (2.17.1). Kept outside the library in browser storage: `tabs.nextseen.v1`, the last 60 songs Play next suggested (2.13.1). `v` is the save format version (now 6); `migrate()` in `core.js` upgrades older saves, one step per version.
 
 ## Backup file
 

@@ -341,3 +341,18 @@ test("Settings: the metronome's switch, volume and sound; a song with no tempo g
   await page.waitForFunction(i => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === i).bpm === 120, id, { timeout: 5000 });
   assert.match(await page.innerText("#toast"), /Tempo found: 120 BPM/);
 });
+
+test("Remove the capo: a chart's capo comes off and the chords move to the key it sounds in", { skip: skip() }, async t => {
+  const song = { id: "cp", title: "Capo Song", artist: "Me", key: "A", format: "chords", body: "Capo 2 · Strum: D-DU-UDU\n\n[Verse]\nG   D   Em   C" };
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, controls: "bar" } });
+  await page.evaluate(() => { location.hash = "#/song/cp"; }); await page.waitForSelector("#sheet");
+  const chords = () => page.$$eval("#sheet .c", els => els.map(e => e.textContent.trim()).filter(Boolean));
+  const before = await chords();
+  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForTimeout(300);
+  const after = await chords();
+  assert.match(await page.innerText("#sheet"), /No capo \(Capo 2 taken off\)/);
+  assert.ok(before.includes("G") && after.includes("A") && after.includes("F#m"), `G D Em C becomes A E F#m D (${before} → ${after})`);
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "cp").capoOff, true);
+  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForTimeout(300);
+  assert.deepEqual(await chords(), before, "and back");
+});

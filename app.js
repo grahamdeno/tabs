@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric } from "./core.js";
+import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -839,7 +839,10 @@ function renderViewer(id) {
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
     sheet.style.setProperty("--lyric-size", (17 * song.size * sysText * (data.settings.stage ? 1.2 : 1)).toFixed(1) + "px");
     // With a capo the shapes sit lower than the sound: shift the chords down by the capo.
-    let blocks = parseBlocks(song.body || "", isChords ? steps - capo : 0, isChords && prefersFlats(baseKey, steps - capo));
+    // A chart's own capo, taken off: the shapes go up to the key it sounds in.
+    const off = isChords && song.capoOff ? bodyCapo(song.body) : 0;
+    const body = off ? (song.body || "").replace(/\[?capo\s*(\d{1,2})\]?/i, "No capo (Capo $1 taken off)") : song.body || "";
+    let blocks = parseBlocks(body, isChords ? steps - capo + off : 0, isChords && prefersFlats(baseKey, steps - capo));
     /* German practice: only while the translation matches the words on screen. */
     const lvl = song.deLevel || 0, fresh = song.de && song.de.src === deSource(sungText(blocks));
     if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true });
@@ -1616,6 +1619,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "share", icon: "share", label: "Share song" },
     { id: "duet", icon: "pick", label: "Play together" },
     { id: "edit", icon: "edit", label: "Edit" },
+    song.format !== "tab" && bodyCapo(song.body) && { id: "capo", icon: "fretboard", label: song.capoOff ? "Put the capo back" : "Remove the capo", hint: song.capoOff ? `Off · was Capo ${bodyCapo(song.body)}` : `Capo ${bodyCapo(song.body)}` },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
     song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
@@ -1626,7 +1630,7 @@ function songMenu(song, anchor, redrawSong) {
      reach for mid-song (Text size, Metronome, Tuner) sits lowest. */
   const sheet = oneHandMQ.matches;
   if (sheet) {
-    const low = ["loop", "tuner", "metro", "size"];
+    const low = ["capo", "loop", "tuner", "metro", "size"];
     items.sort((a, b) => low.indexOf(a.id) - low.indexOf(b.id));
     m.className = "menu glass float msheet";
   } else {
@@ -1675,6 +1679,7 @@ function songMenu(song, anchor, redrawSong) {
     if (NEW_IN_MENU[b.dataset.m]) markUsed(NEW_IN_MENU[b.dataset.m]);
     close();
     ({ set: () => addToSet(song), edit: () => songEditor(song),
+       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
        tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
        listen: () => listenSheet(song, true),
@@ -1803,13 +1808,22 @@ async function startMetronome(song) {
   metro.next = audio.currentTime + 0.05; metro.beat = 0;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
-      const spb = 60 / ((song.bpm || 90) * loopFactor(song)), beats = song.beats || 4;
+      const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
       if (metroDrums()) drumBeat(metro.next, metro.beat % beats, beats, spb);
       else clickAt(metro.next, metro.beat % beats === 0);
       metro.next += spb; metro.beat++;
     }
   }, 25);
 }
+/* With the speed dial set longer or shorter than the recording, the page
+   moves slower or faster than the record, and the beat follows it: a 3:30
+   song set to 4:12 scrolls and plays 20% slower. Needs the recording's
+   length (from Get the song or a Listen link); 1x style plays the BPM. */
+const recLength = song => song.listen?.length || song.recLength || (song.durationSet ? 0 : song.duration) || 0;
+const metroPace = song => {
+  const rec = recLength(song);
+  return byLength() && rec > 0 ? Math.min(1.5, Math.max(0.5, rec / songLength(song))) : 1;
+};
 /* Looks up a missing tempo once per song per visit, and keeps what it finds. */
 const tempoJobs = new Map();
 function tempoFor(song) {
@@ -2096,7 +2110,7 @@ function click(accent) {
 }
 function countIn(song) {
   return new Promise(resolve => {
-    const beat = 60000 / (song.bpm || 90);
+    const beat = 60000 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)); /* the same pace as the metronome */
     const el = document.createElement("div");
     el.className = "countin";
     el.style.top = (innerHeight * READ_AT - 60) + "px";
