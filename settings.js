@@ -1,10 +1,10 @@
 // Tabs Settings and Recently deleted screens.
-import { DRUM_BEATS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
+import { BASS_STYLES, DRUM_BEATS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { askMotion } from "./ring.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
-import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
+import { AI, aiError, aiKey, applyTheme, askClaude, bassPreview, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
 // ---------- Settings ----------
 const kb = n => n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
@@ -20,6 +20,7 @@ function renderSettings() {
     </div>
     <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
   const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
+  const bassVol = Math.round((s.bassVol >= 0 && s.bassVol <= 1 ? s.bassVol : 0.7) * 100), bassPick = BASS_STYLES.find(([k]) => k === s.bassStyle) || BASS_STYLES[0];
   const beatPick = DRUM_BEATS.find(([k]) => k === s.metroBeat) || DRUM_BEATS[0], swing = ["light", "full"].includes(s.metroSwing) ? s.metroSwing : "straight";
   const PAGES = {
     playing: ["Playing", `
@@ -57,6 +58,19 @@ function renderSettings() {
         <button class="toggle ${s.metroDrop ? "on" : ""}" id="s-metdrop" role="switch" aria-checked="${!!s.metroDrop}" aria-label="Drop-out practice"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Bass</span>
+        <input type="range" class="s-vol" id="s-bassvol" min="0" max="100" step="5" value="${bassVol}" style="--fill:${bassVol}%" aria-label="Bass volume">
+        <button class="toggle ${s.bass ? "on" : ""}" id="s-bass" role="switch" aria-checked="${!!s.bass}" aria-label="Bass"></button>
+      </div>
+      ${s.bass ? `<div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Bass style</span><span class="val">${bassPick[1]}</span>${icon("chev", "chev")}
+        <select id="s-bassstyle" aria-label="Bass style">${BASS_STYLES.map(([k, n]) => `<option value="${k}" ${bassPick[0] === k ? "selected" : ""}>${n}</option>`).join("")}</select>
+      </div>
+      <div class="set">
+        <span class="tile">${icon("metro")}</span><span class="name">Bass only</span>
+        <button class="toggle ${s.bassOnly ? "on" : ""}" id="s-bassonly" role="switch" aria-checked="${!!s.bassOnly}" aria-label="Bass only"></button>
+      </div>` : ""}
+      <div class="set">
         <span class="tile">${icon("flame")}</span><span class="name">Streak celebration</span>
         <button class="toggle ${s.streakMoment !== false ? "on" : ""}" id="s-streak" role="switch" aria-checked="${s.streakMoment !== false}" aria-label="Streak celebration"></button>
       </div>
@@ -65,7 +79,7 @@ function renderSettings() {
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Bass plays the root of each chord under the song at its sounding pitch (the capo is counted), and keeps time without the metronome; Auto picks its pattern from the drum beat, and Bass only mutes the drums. Streak celebration shows your streak once a day, after the first song you play to the end. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
     diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">
@@ -240,6 +254,11 @@ function renderSettings() {
   $("s-metbeat")?.addEventListener("change", e => { s.metroBeat = e.target.value; Tabs.save(data); renderSettings(); metroPreview(); });
   app.querySelectorAll("#s-metswing [data-m]").forEach(b => b.onclick = () => { s.metroSwing = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
   $("s-metdrop")?.addEventListener("click", () => { s.metroDrop = !s.metroDrop; Tabs.save(data); renderSettings(); });
+  $("s-bass")?.addEventListener("click", () => { s.bass = !s.bass; Tabs.save(data); renderSettings(); if (s.bass) bassPreview(); });
+  $("s-bassvol")?.addEventListener("input", e => { s.bassVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); });
+  $("s-bassvol")?.addEventListener("change", () => bassPreview());
+  $("s-bassstyle")?.addEventListener("change", e => { s.bassStyle = e.target.value; Tabs.save(data); renderSettings(); bassPreview(); });
+  $("s-bassonly")?.addEventListener("click", () => { s.bassOnly = !s.bassOnly; Tabs.save(data); renderSettings(); });
   app.querySelectorAll("#s-metsound [data-m]").forEach(b => b.onclick = () => { s.metroSound = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
   $("s-tolex").onclick = () => { s.tolex = !s.tolex; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };

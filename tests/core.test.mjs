@@ -1208,3 +1208,67 @@ test("drum beats: Auto goes by the song, compound and odd time keep their own, s
   assert.equal(off(C.DRUM_SWING.straight), 0.5); assert.ok(off(C.DRUM_SWING.full) > off(C.DRUM_SWING.light) && off(C.DRUM_SWING.light) > 0.5);
   assert.equal(C.drumHits("ballad", 1, 4, 0.667).every(h => h.at === 0), true, "the ballad has no off-beats to swing");
 });
+
+test("bass line: notes follow the chord, the capo and slash chords; styles follow the drum beat", () => {
+  const cb = C.chordBass;
+  assert.deepEqual(cb("G"), { root: 7, bass: 7, third: 4, fifth: 7, sixth: 9 });
+  assert.deepEqual(cb("Am7"), { root: 9, bass: 9, third: 3, fifth: 7, sixth: 10 });
+  assert.equal(cb("G/B").bass, 11); assert.equal(cb("G/B").root, 7);
+  assert.equal(cb("Gsus4").third, null); assert.equal(cb("E5").third, null);
+  assert.equal(cb("Bdim").fifth, 6); assert.equal(cb("Caug").fifth, 8);
+  assert.equal(cb("D7").sixth, 10); assert.equal(cb("Dmaj7").sixth, 9);
+  assert.equal(cb("C", 2).root, 2, "a capo moves the shape up to the sound");
+  assert.equal(cb("C", -1).root, 11);
+  assert.equal(cb("not a chord"), null);
+  const capo = { body: "Capo 2\n\n[Verse]\nG D Em C" };
+  assert.equal(C.soundOffset(capo), 2);
+  assert.equal(C.soundOffset({ ...capo, capoOff: true }), 0, "capo taken off: the chords are already the sound");
+  assert.equal(C.soundOffset({ ...capo, easier: { on: true, capo: 3 } }), 5);
+  assert.equal(C.soundOffset({ body: "G D" }), 0);
+  assert.equal(C.bassStyle("auto", "ballad"), "root"); assert.equal(C.bassStyle("auto", "half"), "root");
+  assert.equal(C.bassStyle("auto", "rock"), "pulse"); assert.equal(C.bassStyle("auto", "four"), "pulse");
+  assert.equal(C.bassStyle("auto", "six8", 6), "fifth"); assert.equal(C.bassStyle("auto", "waltz", 3), "fifth");
+  assert.equal(C.bassStyle("auto", "rock", 4, "full"), "walk");
+  assert.equal(C.bassStyle("walk", "waltz", 3), "fifth", "walking needs four beats");
+  assert.equal(C.bassStyle("pulse", "ballad"), "pulse", "a pick wins");
+  const G = cb("G"), Cc = cb("C"), Am = cb("Am");
+  const m = (st, ch, nx, b, beats = 4) => C.bassHits(st, ch, nx, b, beats).map(h => h.m);
+  assert.deepEqual(m("root", G, Cc, 0), [43]); assert.deepEqual(m("root", G, Cc, 1), []);
+  assert.deepEqual(m("root", G, Cc, 2), [43], "a lighter root on three");
+  assert.deepEqual(m("pulse", G, Cc, 0), [43, 43]); assert.equal(C.bassHits("pulse", G, Cc, 1, 4, 0.58)[1].at, 0.58);
+  assert.deepEqual(m("fifth", G, Cc, 0), [43]); assert.deepEqual(m("fifth", G, Cc, 2), [50]); assert.deepEqual(m("fifth", G, Cc, 1), []);
+  assert.deepEqual([0, 1, 2].map(b => m("fifth", G, Cc, b, 3)[0]), [43, 50, 50], "waltz: root, fifth, fifth");
+  assert.deepEqual([0, 3].map(b => m("fifth", G, Cc, b, 6)[0]), [43, 50], "6/8: root, then fifth");
+  assert.deepEqual([0, 1, 2].map(b => m("walk", G, Cc, b)[0]), [43, 47, 50], "walking: root, third, fifth");
+  assert.equal(m("walk", Am, G, 1)[0], 48, "a minor chord walks up a minor third");
+  assert.equal(m("walk", G, Cc, 3)[0], 49, "approaches C by a half step, from the nearer side");
+  assert.equal(m("walk", G, G, 3)[0], 52, "same chord next: the sixth");
+  assert.equal(m("walk", G, null, 3)[0], 52, "no next chord: the sixth");
+  assert.equal(C.bassHits("root", null, null, 0).length, 0);
+  assert.equal(m("root", cb("G/B"), null, 0)[0], 47, "a slash chord plays its named bass note");
+  for (const st of ["root", "fifth", "pulse", "walk"]) for (const ch of ["C", "F#m", "Bb", "E/G#", "A7", "Dsus2"]) for (let b = 0; b < 4; b++)
+    for (const h of C.bassHits(st, cb(ch), cb("G"), b, 4)) assert.ok(h.m >= 38 && h.m <= 57, `${st} ${ch} ${h.m} stays in the bass range`);
+});
+
+test("bass line: it moves on by itself on chord-only rows and follows the page over lyrics", () => {
+  /* two chord rows of four chords, then two lyric rows of two chords */
+  const rows = [
+    { lo: 0, hi: 3, kind: "bar", r0: 0, r1: 30 }, { lo: 4, hi: 7, kind: "bar", r0: 40, r1: 70 },
+    { lo: 8, hi: 9, kind: "line", r0: 100, r1: 130 }, { lo: 10, hi: 11, kind: "line", r0: 140, r1: 170 }
+  ];
+  const W = C.bassWhere;
+  assert.equal(W(null, rows, 10, true), 0, "starts on the first chord of the row at the reading line");
+  assert.equal(W(0, rows, 10, true), 1, "a bar later, the next chord");
+  assert.equal(W(1, rows, 12, false), 1, "no change between bars");
+  assert.equal(W(3, rows, 10, true), 4, "it runs a little ahead of the page without being pulled back");
+  assert.equal(W(2, rows, 50, true), 3, "and a little behind");
+  assert.equal(W(9, rows, 5, true), 0, "more than a row ahead of the page: back to its row");
+  assert.equal(W(11, rows, 45, true), 4, "after a scroll back");
+  assert.equal(W(3, [rows[0]], 10, true), 3, "the last chord of the song holds");
+  assert.equal(W(5, rows, 100, false), 8, "over lyrics: the first chord while the row begins");
+  assert.equal(W(8, rows, 120, false), 9, "the second chord once the page is halfway through the row");
+  assert.equal(W(9, rows, 140, false), 10, "and the next row's first");
+  assert.equal(W(9, rows, 169, false), 11);
+  assert.equal(W(0, [], 10, true), null);
+  assert.equal(W(null, rows, -50, true), 0, "before the first row: the first chord");
+});

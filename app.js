@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { drumHits, drumStyle, DRUM_SWING, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -1096,6 +1096,13 @@ function layoutDiagrams(sheet, isChords) {
   diag.seq = isChords ? [...sheet.querySelectorAll(".c[data-ch]")].map(el => ({
     el, name: el.dataset.ch, y: el.getBoundingClientRect().top - top
   })) : [];
+  /* For the bass: the chord rows (a chord-only row has a bar per chord). */
+  diag.brows = [];
+  diag.seq.forEach((it, i) => {
+    const el = it.el.closest(".crow, .pr") || it.el, last = diag.brows[diag.brows.length - 1];
+    if (last?.el === el) last.hi = i;
+    else { const r = el.getBoundingClientRect(); diag.brows.push({ el, lo: i, hi: i, kind: el.classList.contains("crow") ? "bar" : "line", r0: r.top - top, r1: r.bottom - top }); }
+  });
   // Screen rows of chords, for the paused diagrams.
   const left0 = sheet.getBoundingClientRect().left;
   diag.rows = [];
@@ -1599,8 +1606,13 @@ const newDot = k => used(k) ? "" : `<i class="newdot" data-new="${k}" aria-label
 const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k => !used(k));
 function toggleMetronome(song, near) {
   data.settings.metronome = !data.settings.metronome; Tabs.save(data);
-  if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
+  if (scroll.on) data.settings.metronome || data.settings.bass ? startMetronome(song) : stopMetronome();
   toast(data.settings.metronome ? `Metronome on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}` : "Metronome off", near);
+}
+function toggleBass(song, near) {
+  const on = data.settings.bass = !data.settings.bass; Tabs.save(data);
+  if (scroll.on) on || data.settings.metronome ? startMetronome(song) : stopMetronome();
+  toast(!on ? "Bass off" : song.format === "tab" ? "Bass on. It plays under songs with chords" : `Bass on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}`, near);
 }
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
@@ -1616,6 +1628,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
     !ringOn && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
+    song.format !== "tab" && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     ringOn && deEligible(song) && songDeOpen && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
@@ -1633,7 +1646,7 @@ function songMenu(song, anchor, redrawSong) {
      reach for mid-song (Text size, Metronome, Tuner) sits lowest. */
   const sheet = oneHandMQ.matches;
   if (sheet) {
-    const low = ["capo", "loop", "tuner", "metro", "size"];
+    const low = ["capo", "loop", "tuner", "bass", "metro", "size"];
     items.sort((a, b) => low.indexOf(a.id) - low.indexOf(b.id));
     m.className = "menu glass float msheet";
   } else {
@@ -1688,6 +1701,7 @@ function songMenu(song, anchor, redrawSong) {
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
+       bass: () => toggleBass(song, moreBtn()),
        metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
   };
 }
@@ -1799,7 +1813,7 @@ const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <=
 const metroDrums = () => data.settings.metroSound !== "click";
 async function startMetronome(song) {
   stopMetronome();
-  if (!data.settings.metronome) return;
+  if (!data.settings.metronome && !data.settings.bass) return;
   const run = ++metro.run;
   if (!song.bpm) {
     await tempoFor(song);
@@ -1808,15 +1822,19 @@ async function startMetronome(song) {
   }
   const audio = sound();
   if (!audio) return;
-  metro.next = audio.currentTime + 0.05; metro.beat = 0;
+  metro.next = audio.currentTime + 0.05; metro.beat = 0; bass.idx = null; bass.shift = null;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
       const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
       /* Drop-out practice: every other bar is silent, so you hold the time. */
-      const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1;
-      if (quiet) { /* silent bar */ }
-      else if (metroDrums()) drumBeat(metro.next, metro.beat % beats, beats, spb, drumStyle(data.settings.metroBeat, { bpm: song.bpm || 90, beats, body: song.body }));
-      else clickAt(metro.next, metro.beat % beats === 0);
+      const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1, b = metro.beat % beats;
+      const style = drumStyle(data.settings.metroBeat, { bpm: song.bpm || 90, beats, body: song.body });
+      /* Bass only: the drums or click rest and the bass plays alone. */
+      const rhythm = data.settings.metronome && !(data.settings.bass && data.settings.bassOnly);
+      if (quiet || !rhythm) { /* silent bar, or no drums */ }
+      else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style);
+      else clickAt(metro.next, b === 0);
+      bassBeat(song, metro.next, b, beats, spb, quiet, style);
       metro.next += spb; metro.beat++;
     }
   }, 25);
@@ -1849,6 +1867,57 @@ function metroPreview() {
   if (!audio) return;
   const t = audio.currentTime + 0.05, spb = 0.55, style = drumStyle(data.settings.metroBeat === "auto" || !data.settings.metroBeat ? "rock" : data.settings.metroBeat, { beats: 4 });
   for (let b = 0; b < 4; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb, style) : clickAt(t + b * spb, b === 0);
+}
+/* The bass. It rides the same clock as the drums (or a silent one when the
+   metronome is off). On chord-only rows it moves a chord a bar; over lyrics it
+   goes where the page is. The patterns are in core.js. */
+const bass = { idx: null, shift: null };
+const bassVol = () => { const v = data.settings.bassVol; return v >= 0 && v <= 1 ? v : 0.7; };
+function bassBeat(song, t, b, beats, spb, quiet, drum) {
+  const seq = diag.seq, sheet = $("sheet");
+  if (!data.settings.bass || !seq.length || !sheet) return;
+  /* From the top of the song, the first row is the first thing played, not
+     whatever sits at the reading line: the bass counts the scroll from there. */
+  const reading = innerHeight * READ_AT - sheet.getBoundingClientRect().top;
+  if (bass.shift == null) bass.shift = scrollY < 40 && diag.brows.length ? diag.brows[0].r0 - reading : 0;
+  bass.idx = bassWhere(bass.idx, diag.brows, reading + bass.shift, b === 0);
+  if (quiet || bass.idx == null) return;
+  const off = soundOffset(song), now = seq[bass.idx].name;
+  const next = seq.slice(bass.idx + 1).find(x => x.name !== now);
+  const swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
+  const style = bassStyle(data.settings.bassStyle, drum, beats, data.settings.metroSwing);
+  for (const h of bassHits(style, chordBass(now, off), next ? chordBass(next.name, off) : null, b, beats, swing)) bassNote(h.m, t + h.at * spb, h.len * spb, h.v);
+}
+/* Settings plays a bar of G and a bar of C in the chosen style and volume. */
+function bassPreview() {
+  const audio = sound();
+  if (!audio) return;
+  const t = audio.currentTime + 0.05, spb = 0.5, style = bassStyle(data.settings.bassStyle, "rock", 4, data.settings.metroSwing);
+  const G = chordBass("G"), C = chordBass("C"), swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
+  for (let b = 0; b < 8; b++) for (const h of bassHits(style, b < 4 ? G : C, b < 4 ? C : G, b % 4, 4, swing)) bassNote(h.m, t + (b + h.at) * spb, h.len * spb, h.v);
+}
+/* A synthesized bass guitar: a triangle for the body, a filtered saw for the
+   finger, and a sine an octave up so a phone speaker (which can't play the low
+   notes) still sounds the pitch. The filter closes as the note rings. */
+function bassNote(m, t, dur, vel = 1) {
+  const audio = sound();
+  if (!audio) return;
+  try {
+    const f = 440 * 2 ** ((m - 69) / 12), v = bassVol() * vel, end = t + Math.min(Math.max(dur, 0.12), 2.4);
+    const out = audio.createGain(), lp = audio.createBiquadFilter();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.3 * v), t + 0.008);
+    out.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.14 * v), t + Math.min(0.35, (end - t) * 0.6));
+    out.gain.exponentialRampToValueAtTime(0.0001, end);
+    lp.type = "lowpass"; lp.Q.value = 1.2;
+    lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(260, t + 0.25);
+    lp.connect(out); out.connect(audio.destination);
+    for (const [type, mult, gain] of [["triangle", 1, 1], ["sawtooth", 1, 0.35], ["sine", 2, 0.4]]) {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = type; o.frequency.value = f * mult; g.gain.value = gain;
+      o.connect(g).connect(lp); o.start(t); o.stop(end + 0.02);
+    }
+  } catch {}
 }
 /* The classic click: a short high beep, higher on 1. */
 function clickAt(t, accent) {
@@ -2211,7 +2280,7 @@ async function startScroll(song, opts = {}) {
   btn.innerHTML = icon("pause");
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
-  if (data.settings.metronome && !song.bpm) tempoFor(song); /* look it up during the count-in */
+  if ((data.settings.metronome || data.settings.bass) && !song.bpm) tempoFor(song); /* look it up during the count-in */
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
   startMetronome(song);
@@ -2397,4 +2466,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { aiLastStop, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { aiLastStop, bassPreview, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

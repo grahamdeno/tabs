@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.44.0";
+export const VERSION = "2.45.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2380,4 +2380,92 @@ export function drumHits(style, b, beats = 4, swing = 0.5) {
     hit("hat", swing, 0.55);
   }
   return hits;
+}
+
+// ---------- Bass line ----------
+// A bass that plays the root of each chord under the song. Everything here is
+// pure: the app asks which chord the bass is on and what to play on each pulse.
+export const BASS_STYLES = [["auto", "Auto"], ["root", "Root"], ["fifth", "Root and fifth"], ["pulse", "Pulse"], ["walk", "Walking"]];
+/* How many semitones the sheet's chords sit below what you hear: the chart's
+   capo while it is on, plus the capo from Make it easier. */
+export const soundOffset = song => (song?.easier?.on ? song.easier.capo || 0 : 0) + (song?.capoOff ? 0 : bodyCapo(song?.body));
+const BASS_LO = 38; /* D2: the bass sits between D2 and C#3, with room above for fifths */
+const bassPitch = (pc, lo = BASS_LO) => lo + ((((pc - lo) % 12) + 12) % 12);
+/* A chord's bass facts as pitch classes (0 to 11): the root, the note the bass
+   plays (a slash chord names its own), and the third, fifth and sixth as
+   semitones above the root. offset moves the shape to the sound. */
+export function chordBass(name, offset = 0) {
+  const m = String(name || "").match(CHORD_RE);
+  if (!m) return null;
+  const [, root, q, slash] = m;
+  const r = ((NOTE_INDEX[root] + offset) % 12 + 12) % 12;
+  const b = slash ? ((NOTE_INDEX[slash] + offset) % 12 + 12) % 12 : r;
+  const minor = /^(m(?!aj)|min|-|dim|°|ø)/.test(q);
+  const third = /^sus/.test(q) || q === "5" ? null : minor ? 3 : 4;
+  const fifth = /^(dim|°|ø)|b5/.test(q) ? 6 : /^(aug|\+)|#5/.test(q) ? 8 : 7;
+  const sixth = minor || (/7/.test(q) && !/maj7|M7/.test(q)) ? 10 : 9;
+  return { root: r, bass: b, third, fifth, sixth };
+}
+/* Which pattern plays. A pick wins; Auto follows the drum beat, and a full
+   swing walks. Walking needs four beats. */
+export function bassStyle(pick, drum, beats = 4, swing = "straight") {
+  let s = BASS_STYLES.some(([k]) => k === pick && k !== "auto") ? pick : "auto";
+  if (s === "auto") s = swing === "full" && beats === 4 ? "walk" : drum === "ballad" || drum === "half" ? "root" : drum === "six8" || drum === "waltz" ? "fifth" : "pulse";
+  return s === "walk" && beats !== 4 ? "fifth" : s;
+}
+/* The notes on pulse b of a bar: { m: midi note, at: where in the pulse (0 to 1),
+   len: how long, in pulses, v: how hard }. cur and next come from chordBass;
+   next is the chord after this one (for the walk's approach note). */
+export function bassHits(style, cur, next, b, beats = 4, swing = 0.5) {
+  if (!cur) return [];
+  const hits = [], hit = (m, at, len, v) => hits.push({ m, at, len, v });
+  const low = bassPitch(cur.bass), rootP = bassPitch(cur.root), fifthP = rootP + cur.fifth > 52 ? rootP + cur.fifth - 12 : rootP + cur.fifth;
+  const compound = beats >= 6 && beats % 3 === 0, even = beats % 2 === 0 && !compound;
+  if (style === "walk") {
+    if (b === 0) hit(low, 0, 0.9, 1);
+    else if (b === 1) hit(rootP + (cur.third ?? cur.fifth), 0, 0.9, 0.75);
+    else if (b === 2) hit(rootP + cur.fifth, 0, 0.9, 0.8);
+    else if (b === 3) {
+      if (!next || next.bass === cur.bass) hit(rootP + cur.sixth, 0, 0.9, 0.75);
+      else {
+        const prev = rootP + cur.fifth;
+        let tgt = bassPitch(next.bass);
+        for (let p = tgt; p <= 57; p += 12) if (Math.abs(p - prev) < Math.abs(tgt - prev)) tgt = p;
+        const from = [tgt - 1, tgt + 1].sort((x, y) => Math.abs(x - prev) - Math.abs(y - prev) || x - y)[0];
+        hit(from, 0, 0.9, 0.75);
+      }
+    }
+  } else if (style === "pulse") {
+    if (even) {
+      hit(low, 0, 0.45, b === 0 ? 1 : 0.75);
+      hit(low, swing, 0.4, 0.55);
+    } else hit(low, 0, 0.5, b === 0 ? 1 : compound && b % 3 === 0 ? 0.8 : 0.6);
+  } else if (style === "fifth") {
+    if (compound) { if (b % 3 === 0) hit(b % 6 === 0 ? low : fifthP, 0, 2.7, b % 6 === 0 ? 1 : 0.8); }
+    else if (even) { if (b === 0) hit(low, 0, beats / 2 * 0.9, 1); else if (b === beats / 2) hit(fifthP, 0, beats / 2 * 0.9, 0.8); }
+    else hit(b === 0 ? low : fifthP, 0, 0.9, b === 0 ? 1 : 0.75);
+  } else { /* root */
+    if (b === 0) hit(low, 0, beats * 0.9, 1);
+    else if (even && beats >= 4 && b === beats / 2) hit(low, 0, beats / 2 * 0.9, 0.6);
+  }
+  return hits;
+}
+/* Which chord the bass is on. rows are the sheet's chord rows, top to bottom:
+   { lo, hi: their first and last chord, kind, r0, r1: where they sit on the
+   page }, and L is the reading line on the same scale. Over lyrics ("line")
+   the bass goes by how far the page has moved through the row, so a row's
+   chords take turns. On a chord-only row ("bar") each chord gets a bar and
+   the bass moves on by itself; the page only brings it back when it has drifted
+   more than a row away, as after a loop or a scroll back. */
+export function bassWhere(idx, rows, L, onBar) {
+  if (!rows.length) return null;
+  let at = 0;
+  for (let i = 0; i < rows.length; i++) if (rows[i].r0 <= L) at = i;
+  const row = rows[at];
+  if (row.kind === "line") {
+    const span = Math.max(1, (rows[at + 1] ? rows[at + 1].r0 : row.r1) - row.r0);
+    return row.lo + Math.floor(Math.max(0, Math.min(0.999, (L - row.r0) / span)) * (row.hi - row.lo + 1));
+  }
+  if (idx == null || idx < (rows[at - 1] || row).lo || idx > (rows[at + 1] || row).hi) return row.lo;
+  return onBar ? Math.min(idx + 1, rows[rows.length - 1].hi) : idx;
 }
