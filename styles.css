@@ -1673,3 +1673,12 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 .gs .gs-row { gap: 14px; }
 .gs .gs-src { color: var(--muted); }
 .gs .gs-row:has(.gs-lamp.on) .gs-src { color: var(--gold-text); }
+
+/* ---- The library's title: "Library" in a cream script (Great Vibes, bundled
+   in fonts/ under the OFL so it looks the same everywhere and works offline).
+   The file holds only the letters of "Library" to keep it small; using the
+   script for other words means making a new subset with pyftsubset.
+   Dark bronze in the light theme so it stays readable on cream. ---- */
+@font-face { font-family: "Great Vibes"; src: url("fonts/GreatVibes-Library.ttf") format("truetype"); font-display: swap; }
+.title.script { font-family: "Great Vibes", "Snell Roundhand", cursive; font-weight: 400; font-size: 50px; line-height: 1; letter-spacing: 0; color: #efe2c2; padding-top: 4px; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+:root[data-theme="light"] .title.script { color: #6e5128; text-shadow: none; }

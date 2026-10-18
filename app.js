@@ -149,7 +149,7 @@ function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <h1 class="title">Library</h1>
+      <h1 class="title script">Library</h1>
       <div class="row-btns">
         ${tunerBtn("ib glass")}
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
