@@ -478,36 +478,40 @@ test("Remove the capo: a chart's capo comes off and the chords move to the key i
   assert.deepEqual(await chords(), before, "and back");
 });
 
-test("Play map: off until chosen, asks for the position only after Continue, keeps it coarse and outside the library", { skip: skip() }, async t => {
-  const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 5, last: Date.now(), days: { [new Date().toISOString().slice(0, 10)]: 5 } } }));
+test("Tour Map: on by default on plain ground, no location or map pictures until you plant your flag; pinch and drag go to the map", { skip: skip() }, async t => {
+  const day = new Date().toISOString().slice(0, 10);
+  const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 5, last: Date.now(), days: { [day]: 5 } } }));
   const page = await phone(t, { ...LIB, songs }, { geolocation: { latitude: 40.71278, longitude: -74.00594 }, permissions: [] });
   const tiles = []; const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg==", "base64");
   await page.route(/tile\.openstreetmap\.org/, r => { tiles.push(r.request().url()); r.fulfill({ contentType: "image/png", body: png }); });
   await page.evaluate(() => { window.__asked = 0; const g = navigator.geolocation, f = g.getCurrentPosition.bind(g); g.getCurrentPosition = (...a) => { window.__asked++; return f(...a); }; });
   await page.evaluate(() => { location.hash = "#/playmap"; });
-  await page.waitForSelector("#pm-go");
-  assert.equal(await page.evaluate(() => window.__asked), 0, "nothing asked before Continue");
-  assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
-  await page.click("#pm-none");
-  await page.waitForSelector(".pm-map");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.playMap === true);
-  assert.equal(await page.evaluate(() => window.__asked), 0, "Without a location never asks");
-  assert.ok(await page.locator(".pm-cell").count() >= 1);
-  assert.equal(await page.locator(".pm-tile").count(), 0, "no spot, no map pictures");
-  assert.equal(tiles.length, 0, "and none requested");
-  await page.click("#pm-spot"); await page.waitForSelector("#pm-go");
+  await page.waitForSelector(".tm-map svg path", { state: "attached" });
+  assert.equal(await page.evaluate(() => document.body.classList.contains("tm-open")), true, "the page is locked while the map is open");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".tm-page")).touchAction), "none");
+  assert.match(await page.innerText(".tm-dock .pf-plate"), /HEX(ES)? LIT/i);
+  assert.match(await page.innerText(".tm-venue"), /Now playing: Open mic/);
+  assert.ok(await page.locator(".tm-map path").count() >= 3, "fog, glow and outline are drawn");
+  assert.equal(tiles.length, 0, "no map pictures before a spot");
+  assert.equal(await page.evaluate(() => window.__asked), 0, "no location asked");
+  const z0 = await page.evaluate(() => document.querySelector(".tm-map .leaflet-proxy")?.style.transform);
+  await page.click("#tm-in"); await page.waitForTimeout(400);
+  assert.notEqual(await page.evaluate(() => document.querySelector(".tm-map .leaflet-proxy")?.style.transform), z0, "zoom buttons move the map");
+  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/tm-plain.png" });
+  await page.click("#tm-flag"); await page.waitForSelector("#pf-go");
+  assert.equal(await page.evaluate(() => window.__asked), 0, "the explanation comes first");
   await page.context().grantPermissions(["geolocation"], { origin: new URL(page.url()).origin });
-  await page.click("#pm-go");
-  await page.waitForSelector("#pm-forget");
-  await page.waitForFunction(() => document.querySelectorAll(".pm-tile").length > 0);
-  assert.ok(tiles.length > 0 && tiles.every(u => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(u)));
-  assert.ok(await page.locator(".pm-real .pm-cell").count() >= 1, "the territory is laid over the map");
-  const z0 = tiles[0].match(/\/(\d+)\/\d+\/\d+\.png$/)[1];
-  await page.click("#pm-in"); await page.waitForFunction(z => [...document.querySelectorAll(".pm-tile")].some(i => i.src.includes(`/${+z + 1}/`)), z0);
+  await page.click("#pf-go");
+  await page.waitForSelector("#tm-forget");
+  await page.waitForFunction(n => window.__asked > 0, 0);
   assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs.spot.v1"))), { lat: 40.71, lon: -74.01 });
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs-v1").includes("40.71")), false, "not in the library");
-  await page.click("#pm-forget"); await page.waitForSelector("#pm-spot");
+  await page.waitForFunction(() => document.querySelectorAll(".tm-map img.leaflet-tile").length > 0);
+  assert.ok(tiles.every(u => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(u)));
+  if (process.env.SHOT) { await page.waitForTimeout(500); await page.screenshot({ path: process.env.SHOT + "/tm-spot.png" }); }
+  await page.click("#tm-forget"); await page.waitForSelector("#tm-flag");
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
+  await page.click("#back"); await page.waitForFunction(() => !document.body.classList.contains("tm-open"));
 });
 
 test("A run that stops early is not a play", { skip: skip() }, async t => {

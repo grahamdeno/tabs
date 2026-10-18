@@ -1,17 +1,22 @@
-// Play map (#/playmap): the territory your plays have won, drawn as hexagons.
-// Each credited play adds ground. The rings grow with the square root of your
-// plays (territory in core.js), so the first plays show at once and a big
-// library still has somewhere to go. With a practice spot the hexagons sit on a
-// real map (OpenStreetMap tiles, loaded as pictures, no key needed). Without one,
-// or with no connection, the shape alone is drawn on a plain ground.
+// Tour Map (#/playmap): the ground your plays have lit, on a real map.
 //
-// It is opt-in (Settings > Playing > Play map, off by default). Continuing
-// asks the phone for its position once and keeps it no finer than about a
-// kilometre, in its own key on this phone, outside the library and any backup.
-// Tiles are fetched from OpenStreetMap, which sees the area shown (not your plays).
-// "Without a location" gives the drawn map and makes no map requests.
-import { Tabs, territory, hexSpiral, hexCentre, mercator, fitZoom, lifetimePlays, coarseSpot, spotLabel } from "./core.js";
-import { app, esc, icon, toast } from "./ui.js";
+// Every credited play lights one more hexagon (250 m across) around your
+// practice spot. Rings grow with the square root of your plays (territory in
+// core.js) and each ring is a venue (venueOf). Lit cells glow warm on a dark
+// map, the outline of your turf is piped in amber, the newest cell carries a
+// lamp, and the next cells to claim are dashed.
+//
+// The map is Leaflet (vendor/leaflet-1.9.4, cached for offline use after the
+// first visit), so pinch and drag work. The page itself is locked while the map
+// is open: nothing else scrolls or zooms underneath your fingers.
+//
+// Location is opt-in. Until you plant your flag the turf is drawn on plain
+// ground and no map pictures are loaded. Planting asks the phone for its
+// position once and keeps it no finer than about a kilometre, in its own key on
+// this phone (tabs.spot.v1), outside the library and every backup. Map pictures
+// come from OpenStreetMap, which sees the area shown, never your plays.
+import { HEX_M, coarseSpot, hexOutline, hexSpiral, lifetimePlays, playSongs, streakOf, territory, venueOf } from "./core.js";
+import { app, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { data, go } from "./app.js";
 
 const SPOT = "tabs.spot.v1";
@@ -26,104 +31,132 @@ function whereAmI() {
   });
 }
 
-/* The territory as an SVG: pointy-topped hexagons from the centre outward. */
-function drawMap(cells, fresh) {
-  const S = 20, W3 = Math.sqrt(3);
-  const pts = hexSpiral(cells).map(([q, r]) => [S * W3 * (q + r / 2), S * 1.5 * r]);
-  if (!pts.length) return "";
-  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-  const pad = S * 1.4, x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad;
-  const w = Math.max(...xs) - Math.min(...xs) + pad * 2, h = Math.max(...ys) - Math.min(...ys) + pad * 2;
-  const hex = (cx, cy) => Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 180 * (60 * i - 30); return `${(cx + (S - 1.5) * Math.cos(a)).toFixed(1)},${(cy + (S - 1.5) * Math.sin(a)).toFixed(1)}`; }).join(" ");
-  const shapes = pts.map(([x, y], i) => `<polygon class="pm-cell${i >= fresh ? " new" : ""}${i === 0 ? " home" : ""}" style="--d:${Math.max(0, i - fresh) * 90}ms" points="${hex(x, y)}"/>`).join("");
-  return `<svg class="pm-map" viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" role="img" aria-label="Your territory: ${cells} hexagon${cells === 1 ? "" : "s"}">${shapes}<circle class="pm-pin" cx="0" cy="0" r="4"/></svg>`;
-}
-
-/* Tiles under the hexagons. zoom is the fitted zoom plus the reader's own steps. */
-let zoomStep = 0;
-function realMap(spot, cells, fresh) {
-  const wrap = app.clientWidth ? Math.min(app.clientWidth - 62, 520) : 340, w = Math.round(wrap), h = Math.round(Math.min(w, innerHeight * 0.5));
-  const z = Math.max(3, Math.min(17, fitZoom(spot.lat, cells, w, h) + zoomStep));
-  const [cx, cy] = mercator(spot.lat, spot.lon, z), left = cx - w / 2, top = cy - h / 2;
-  const n = 2 ** z;
-  let tiles = "";
-  for (let ty = Math.floor(top / 256); ty <= Math.floor((top + h) / 256); ty++) for (let tx = Math.floor(left / 256); tx <= Math.floor((left + w) / 256); tx++) {
-    if (ty < 0 || ty >= n) continue;
-    const x = ((tx % n) + n) % n;
-    tiles += `<img class="pm-tile" alt="" draggable="false" src="https://tile.openstreetmap.org/${z}/${x}/${ty}.png" style="left:${Math.round(tx * 256 - left)}px;top:${Math.round(ty * 256 - top)}px">`;
+/* Leaflet, loaded the first time the map opens. */
+let leaflet;
+function loadLeaflet() {
+  if (leaflet) return leaflet;
+  const base = new URL("./vendor/leaflet-1.9.4/", import.meta.url).href;
+  if (!document.getElementById("leaflet-css")) {
+    const link = document.createElement("link");
+    link.id = "leaflet-css"; link.rel = "stylesheet"; link.href = base + "leaflet.css";
+    document.head.appendChild(link);
   }
-  const hexes = hexSpiral(cells).map(([q, r], i) => {
-    const c = hexCentre(spot, [q, r]), pts = Array.from({ length: 6 }, (_, k) => {
-      const a = Math.PI / 180 * (60 * k - 30), v = hexCornerOf(c, a);
-      const [px, py] = mercator(v.lat, v.lon, z); return `${(px - left).toFixed(1)},${(py - top).toFixed(1)}`;
-    }).join(" ");
-    return `<polygon class="pm-cell${i >= fresh ? " new" : ""}${i === 0 ? " home" : ""}" style="--d:${Math.max(0, i - fresh) * 90}ms" points="${pts}"/>`;
-  }).join("");
-  return `<div class="pm-real" style="width:${w}px;height:${h}px" role="img" aria-label="Your territory on a map: ${cells} hexagon${cells === 1 ? "" : "s"}">${tiles}
-    <svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${hexes}<circle class="pm-pin" cx="${(cx - left).toFixed(1)}" cy="${(cy - top).toFixed(1)}" r="4"/></svg>
-    <div class="pm-zoom"><button class="ib glass" id="pm-in" aria-label="Zoom in">${icon("plus")}</button><button class="ib glass" id="pm-out" aria-label="Zoom out">${icon("minus")}</button></div>
-    <small class="pm-credit">© OpenStreetMap contributors</small></div>`;
-}
-/* A corner of a hexagon 250 m across, as lat/lon. */
-function hexCornerOf(c, a) {
-  const R = 248; /* a hair under the spacing, so the hexagons keep a thin gap */
-  return { lat: c.lat + R * Math.sin(-a) / 111320, lon: c.lon + R * Math.cos(a) / (111320 * Math.cos(c.lat * Math.PI / 180)) };
+  leaflet = import(base + "leaflet.js").then(() => window.L).catch(e => { leaflet = null; throw e; });
+  return leaflet;
 }
 
-export function renderPlayMap() {
-  const s = data.settings;
-  if (!s.playMap) return renderInvite();
-  const plays = lifetimePlays(data), t = territory(plays), spot = getSpot();
-  const fresh = Math.min(t.cells, Math.max(0, s.playSeen || 0));
-  app.innerHTML = `
-    <div class="head"><button class="ib glass" id="back" aria-label="Back">${icon("back")}</button></div>
-    <h1 class="title" style="margin:14px 2px 2px">Play map</h1>
-    <p class="pf-since">${spot ? esc(spotLabel(spot)) : "No practice spot"}</p>
-    ${t.cells ? `<div class="pm-wrap">${spot ? realMap(spot, t.cells, fresh) : drawMap(t.cells, fresh)}</div>` : `<p class="pf-empty">Play a song through to the end and your territory starts here.</p>`}
-    <div class="pf-plate" role="group" aria-label="Territory numbers">
-      <div class="pf-read"><b>${plays.toLocaleString()}</b><span>play${plays === 1 ? "" : "s"}</span></div>
-      <div class="pf-read"><b>${t.rings}</b><span>ring${t.rings === 1 ? "" : "s"}</span></div>
-      <div class="pf-read"><b>${t.toNext.toLocaleString()}</b><span>to next ring</span></div>
-    </div>
-    <p class="foot">A play counts when a song is played through. Rings grow with the square root of your plays, so ring ${t.rings + 1} arrives at ${t.nextAt.toLocaleString()}. ${spot ? "Your spot is kept to about a kilometre, on this phone only, and is never in a backup. The map pictures come from OpenStreetMap, which sees the area shown and your address, not your plays." : "No location is kept and no map is loaded."}</p>
-    <div class="s-dock pf-dock">
-      ${spot ? `<button class="btn" id="pm-forget">Forget my spot</button>` : `<button class="btn" id="pm-spot">Add my practice spot</button>`}
-    </div>`;
-  if (t.cells !== s.playSeen) { s.playSeen = t.cells; Tabs.save(data); }
-  document.getElementById("back").onclick = () => go("#/you");
-  const zoomBy = d => { zoomStep = Math.max(-3, Math.min(3, zoomStep + d)); s.playSeen = t.cells; renderPlayMap(); };
-  document.getElementById("pm-in")?.addEventListener("click", () => zoomBy(1));
-  document.getElementById("pm-out")?.addEventListener("click", () => zoomBy(-1));
-  document.getElementById("pm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten"); renderPlayMap(); });
-  document.getElementById("pm-spot")?.addEventListener("click", () => renderInvite(true));
+/* Metres east and south of the spot, as lat/lon. */
+const offset = (spot, east, south) => [spot.lat - south / 111320, spot.lon + east / (111320 * Math.cos(spot.lat * Math.PI / 180))];
+/* a landmark for each venue: open mic, coffeehouse, club, theater, arena, stadium, festival */
+const VENUE_ICON = [null, "mic", "cup", "note", "stage", "amp", "flame", "sun"];
+const NOWHERE = { lat: 0, lon: 0 }; /* plain ground: the shape alone, nowhere in particular */
+
+let map = null;
+onLeave(r => { if (r.name !== "playmap") closeMap(); });
+function closeMap() {
+  map?.remove(); map = null;
+  document.body.classList.remove("tm-open");
 }
 
-/* The explanation comes first. The phone is asked for its position only after Continue. */
-function renderInvite(spotOnly = false) {
+export async function renderPlayMap() {
+  closeMap();
+  const plays = lifetimePlays(data), t = territory(plays), v = venueOf(plays), spot = getSpot();
+  const streak = streakOf(playSongs(data)).days;
+  document.body.classList.add("tm-open");
   app.innerHTML = `
-    <div class="head"><button class="ib glass" id="back" aria-label="Back">${icon("back")}</button></div>
-    <h1 class="title" style="margin:14px 2px 2px">Play map</h1>
-    <p class="pf-line" style="margin:10px 2px">Every song you play through adds ground to a territory of hexagons around your practice spot, shown on a real map.</p>
-    <section class="pf-card"><h2>What is kept</h2>
-      <p class="pf-line">${spotOnly ? "" : "Nothing, until you continue. "}If you continue, Tabs asks the phone for its position once and keeps it to about a kilometre, in its own place on this phone. It is not in your library, so it is not in a backup or a shared link. To show the map, the phone loads map pictures from OpenStreetMap, so its servers see the area you are looking at and your network address. It never sees your plays. You can forget the spot at any time. Without a location, the territory is drawn on a plain ground and no map is loaded.</p></section>
-    <div class="s-dock pf-dock">
-      <button class="btn primary" id="pm-go">${icon("focus")}Continue and share my location</button>
-      ${spotOnly ? "" : `<button class="btn" id="pm-none">Without a location</button>`}
-      <button class="btn" id="pm-no">Not now</button>
+    <div class="tm-page">
+      <div id="tm-map" class="tm-map" role="img" aria-label="Your Tour Map: ${t.cells} hexagon${t.cells === 1 ? "" : "s"} lit"></div>
+      <div class="tm-top"><button class="ib" id="back" aria-label="Back">${icon("back")}</button><h1 class="title script">Tour Map</h1></div>
+      <div class="tm-ctl">
+        <button class="ib glass" id="tm-in" aria-label="Zoom in">${icon("plus")}</button>
+        <button class="ib glass" id="tm-out" aria-label="Zoom out">${icon("minus")}</button>
+        <button class="ib glass" id="tm-home" aria-label="Back to my spot">${icon("target")}</button>
+      </div>
+      <div class="tm-dock">
+        ${spot ? "" : `<button class="btn tm-flag" id="tm-flag">${icon("flag")}Plant your flag on a real map</button>`}
+        <div class="pf-plate" role="group" aria-label="Tour numbers">
+          <div class="pf-read"><b>${t.cells}</b><span>${t.cells === 1 ? "hex" : "hexes"} lit</span></div>
+          <div class="pf-read"><b>${v.toNext}</b><span>to ${esc(v.next)}</span></div>
+          <div class="pf-read"><b>${streak}</b><span>day streak</span></div>
+        </div>
+        <p class="tm-venue">Now playing: <b>${esc(v.name)}</b>${spot ? ` · <button class="linkish" id="tm-forget">Forget my spot</button>` : ""}</p>
+      </div>
     </div>`;
-  const back = () => go(spotOnly ? "#/playmap" : "#/you");
-  document.getElementById("back").onclick = back;
-  document.getElementById("pm-no").onclick = back;
-  document.getElementById("pm-none")?.addEventListener("click", () => { data.settings.playMap = true; Tabs.save(data); renderPlayMap(); });
-  document.getElementById("pm-go").onclick = async () => {
+  document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/");
+  document.getElementById("tm-flag")?.addEventListener("click", () => plantSheet());
+  document.getElementById("tm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
+  let L;
+  try { L = await loadLeaflet(); } catch { toast("The map couldn't load. Try again with a connection."); return; }
+  if (!document.getElementById("tm-map")) return; /* left while it loaded */
+  draw(L, spot, t.cells, plays);
+}
+
+function draw(L, spot, cells, plays) {
+  const at = spot || NOWHERE;
+  const el = document.getElementById("tm-map");
+  el.classList.toggle("plain", !spot);
+  map = L.map(el, { zoomControl: false, attributionControl: !!spot, zoomSnap: 0.25, minZoom: 11, maxZoom: 18, worldCopyJump: false });
+  if (spot) {
+    let failed = 0;
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors", className: "tm-tiles" })
+      .on("tileerror", () => { if (++failed === 3) toast("Map pictures aren't loading. Your turf is still here."); })
+      .addTo(map);
+    map.attributionControl.setPrefix(false);
+  }
+  /* geometry: cell centres and corners in metres from the spot */
+  const R3 = Math.sqrt(3), cellAt = ([q, r]) => [HEX_M * R3 * (q + r / 2), HEX_M * 1.5 * r];
+  const hex = ([q, r], scale = 1) => { const [x, y] = cellAt([q, r]); return [0, 1, 2, 3, 4, 5].map(k => { const a = Math.PI / 180 * (60 * k - 30); return offset(at, x + HEX_M * scale * Math.cos(a), y + HEX_M * scale * Math.sin(a)); }); };
+  const lit = cells ? hexSpiral(cells) : [], ring = territory(plays).rings, next = hexSpiral(1 + 3 * (ring + 1) * (ring + 2)).slice(cells);
+  const world = [[85, -180], [85, 180], [-85, 180], [-85, -180]];
+  /* fog everywhere but your turf */
+  L.polygon([world, ...lit.map(c => hex(c))], { stroke: false, fillColor: "#060608", fillOpacity: spot ? 0.58 : 0.92, interactive: false, className: "tm-fog" }).addTo(map);
+  /* the warm glow inside */
+  if (lit.length) L.polygon(lit.map(c => hex(c)), { stroke: false, fillColor: "#ffb24a", fillOpacity: 0.16, interactive: false, className: "tm-lit" }).addTo(map);
+  /* the next cells to claim */
+  if (next.length) L.polygon(next.map(c => hex(c, 0.9)), { color: "#b8935a", weight: 1.4, opacity: 0.55, dashArray: "3 6", fill: false, interactive: false }).addTo(map);
+  /* the piped outline, with a soft halo */
+  const seg = hexOutline(cells).map(([a, b]) => [offset(at, a[0] * HEX_M, a[1] * HEX_M), offset(at, b[0] * HEX_M, b[1] * HEX_M)]);
+  if (seg.length) {
+    L.polyline(seg, { color: "#ffc27a", weight: 10, opacity: 0.3, interactive: false, className: "tm-halo" }).addTo(map);
+    L.polyline(seg, { color: "#ffc27a", weight: 2.4, opacity: 1, interactive: false }).addTo(map);
+  }
+  /* the newest cell's lamp, the flag at home, a venue mark on each ring reached and the next one dim */
+  const pin = (c, html, cls) => L.marker(offset(at, ...cellAt(c)), { icon: L.divIcon({ className: "tm-pin " + cls, html, iconSize: [30, 30] }), interactive: false, keyboard: false }).addTo(map);
+  if (lit.length > 1) pin(lit.at(-1), `<i class="tm-lamp"></i>`, "lamp");
+  if (lit.length) pin(lit[0], icon("flag"), "badge");
+  const mark = k => icon(VENUE_ICON[k] || "flame");
+  for (let k = 1; k <= ring; k++) pin(hexSpiral(1 + 3 * k * (k - 1) + 1).at(-1), mark(k), "badge");
+  if (next.length) pin(hexSpiral(1 + 3 * ring * (ring + 1) + 1).at(-1), mark(ring + 1), "badge dim");
+  /* fit the turf and the next ring, then hand the controls their jobs */
+  const reach = HEX_M * (1.5 * (ring + 2) + 1);
+  const bounds = L.latLngBounds([offset(at, -reach * 1.1, -reach), offset(at, reach * 1.1, reach)]);
+  const fit = () => map.fitBounds(bounds, { paddingTopLeft: [16, 90], paddingBottomRight: [16, 190] });
+  map.invalidateSize(); fit();
+  requestAnimationFrame(() => { if (map) { map.invalidateSize(); fit(); } });
+  document.getElementById("tm-in").onclick = () => map.zoomIn();
+  document.getElementById("tm-out").onclick = () => map.zoomOut();
+  document.getElementById("tm-home").onclick = fit;
+}
+
+/* Plant your flag: the explanation first; the phone is asked only on the button. */
+function plantSheet() {
+  layer.innerHTML = `<div class="scrim" id="pf-scrim"></div><div class="panel card" role="dialog" aria-label="Plant your flag">
+    <div class="pc-head">${icon("flag")}<span>Tour Map</span></div>
+    <p class="tm-sheet-t">Plant your flag where you play</p>
+    <p class="pf-line">Every song you play through lights a hexagon around this spot, on a real map.</p>
+    <p class="tm-fine">Your phone shares its position once. Tabs keeps it to about a kilometre, on this phone only, never in a backup. Map pictures come from OpenStreetMap, which sees the area shown, not your plays.</p>
+    <div class="tm-btns"><button class="btn" id="pf-no">Not now</button><button class="btn primary" id="pf-go">${icon("flag")}Plant my flag</button></div>
+  </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("pf-scrim").onclick = close;
+  document.getElementById("pf-no").onclick = close;
+  document.getElementById("pf-go").onclick = async () => {
     try {
       const spot = await whereAmI();
       if (!spot) throw new Error("bad");
-      setSpot(spot);
-      data.settings.playMap = true; Tabs.save(data);
-      renderPlayMap();
+      setSpot(spot); close(); renderPlayMap();
     } catch {
-      toast("Couldn't get a location. The map works without one.");
+      toast("Couldn't get a location. Your turf stays on plain ground.");
     }
   };
 }

@@ -1426,3 +1426,14 @@ test("The territory sits on a real map: hexagon spacing in metres, mercator pixe
   assert.ok(C.fitZoom(40.71, 1, 340, 340) > C.fitZoom(40.71, 91, 340, 340), "a bigger territory zooms out");
   for (const n of [0, 1, 7, 91, 500]) { const z = C.fitZoom(40.71, n, 340, 340); assert.ok(z >= 9 && z <= 16); }
 });
+
+test("Venues name the rings, and the outline leaves out shared edges", () => {
+  assert.equal(C.venueOf(0).name, "Garage");
+  assert.deepEqual([4, 16, 36].map(p => C.venueOf(p).name), ["Open mic", "Coffeehouse", "Club"]);
+  assert.equal(C.venueOf(15).next, "Coffeehouse");
+  assert.equal(C.venueOf(15).toNext, 1);
+  assert.match(C.venueName(9), /World tour/);
+  assert.equal(C.hexOutline(1).length, 6);
+  assert.equal(C.hexOutline(7).length, 18, "a ring of six around one: 18 outer edges");
+  assert.equal(C.hexOutline(19).length, 30);
+});

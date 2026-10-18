@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.49.2";
+export const VERSION = "2.50.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2616,3 +2616,29 @@ export function fitZoom(lat, cells, w, h, S = HEX_M) {
 export const spotLabel = spot => spot ? `${Math.abs(spot.lat).toFixed(2)}° ${spot.lat >= 0 ? "N" : "S"}, ${Math.abs(spot.lon).toFixed(2)}° ${spot.lon >= 0 ? "E" : "W"}` : "";
 /* Credited plays over all time: the journal counts one each time a song is played through. */
 export const lifetimePlays = data => Object.values(journalOf(data).months).reduce((n, m) => n + (m.plays || 0), 0);
+
+// ---------- Venues ----------
+// Each ring of the Tour Map is a bigger room. Ring k arrives at 4 k squared
+// plays (territory above), so the venue is just the ring's name.
+export const VENUES = ["Garage", "Open mic", "Coffeehouse", "Club", "Theater", "Arena", "Stadium", "Festival headliner"];
+export const venueName = ring => VENUES[ring] || `World tour, leg ${ring - VENUES.length + 2}`;
+export function venueOf(plays) {
+  const t = territory(plays);
+  return { ring: t.rings, name: venueName(t.rings), next: venueName(t.rings + 1), nextAt: t.nextAt, toNext: t.toNext };
+}
+/* The outline of the first n cells of the territory, as segments in units of
+   one cell's corner radius (pointy-topped, centre of cell 0 at 0,0, y down).
+   Edges two lit cells share are left out, so the territory reads as one shape. */
+export function hexOutline(n) {
+  const R3 = Math.sqrt(3), seen = new Map();
+  for (const [q, r] of hexSpiral(n)) {
+    const cx = R3 * (q + r / 2), cy = 1.5 * r;
+    const pts = [0, 1, 2, 3, 4, 5].map(k => { const a = Math.PI / 180 * (60 * k - 30); return [cx + Math.cos(a), cy + Math.sin(a)]; });
+    for (let k = 0; k < 6; k++) {
+      const a = pts[k], b = pts[(k + 1) % 6];
+      const key = [a, b].map(p => p.map(v => Math.round(v * 1000)).join(",")).sort().join("|");
+      seen.set(key, seen.has(key) ? null : [a, b]);
+    }
+  }
+  return [...seen.values()].filter(Boolean);
+}
