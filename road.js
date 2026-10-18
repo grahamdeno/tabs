@@ -20,6 +20,13 @@ import { makeDrawer } from "./drawer.js";
 
 const DAY = 86400000;
 
+/* Tonight never scrolls: a drag outside the Library drawer moves nothing. */
+document.addEventListener("touchmove", e => {
+  if (!document.body.classList.contains("is-home") || document.querySelector("#layer > *")) return;
+  if (e.target instanceof Element && e.target.closest("#rd-drawer")) return;
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
+
 /* the song for Up next: today's pick, else the last one played, else the first */
 function upNext() {
   const n = pickNudge({ songs: data.songs, mood: "", gigToday: false });
