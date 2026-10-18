@@ -1892,3 +1892,22 @@ body.tm-open .app { padding: 0; }
 .tm-push { margin: 0; padding: 10px 12px; border-radius: 14px; background: rgba(40,18,10,.9); border: 1px solid rgba(229,72,77,.55); color: #ffd2c2; font-size: 13px; line-height: 1.4; }
 .tm-lamp.warn { background: radial-gradient(circle at 35% 30%, #ffd2c2 0 12%, #ff6a4a 40%, #a8220c 85%); box-shadow: var(--lamp-ring), 0 0 14px 5px rgba(255,80,50,.6); }
 .tm-page.has-push .tm-ctl { bottom: calc(262px + var(--safe-b)); }
+/* Library handle on Tonight (3.1): tap or swipe up and the Library slides up over Tonight */
+.app:has(.rd-peek) { padding-bottom: calc(176px + var(--safe-b)); }
+.rd-peek { position: fixed; left: 50%; bottom: calc(76px + var(--safe-b)); transform: translateX(-50%); width: min(504px, calc(100% - 16px)); z-index: 19; display: block; padding: 7px 16px 11px; border-radius: 22px 22px 16px 16px; border: 1px solid var(--bronze-line); color: var(--fg); text-align: left; font: inherit; touch-action: none; }
+.rd-grab, .lib-grab i { display: block; width: 40px; height: 5px; margin: 0 auto 4px; border-radius: 3px; background: color-mix(in srgb, var(--muted) 60%, transparent); }
+.rd-peek-t { display: flex; align-items: center; gap: 10px; }
+.rd-peek-t b { font-family: "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive; font-weight: 700; font-size: 26px; line-height: 1; color: var(--fg); }
+.rd-peek-t > span { flex: 1; font-size: 13px; color: var(--muted); }
+.rd-peek-t .chev { width: 20px; height: 20px; color: var(--accent); }
+.lib-grab { display: block; width: 100%; height: 18px; margin: calc(-14px) 0 2px; padding: 6px 0 0; border: 0; background: none; }
+.head:has(.lib-grab) { flex-wrap: wrap; }
+.head:has(.lib-grab) .lib-grab { flex: 0 0 100%; }
+html[data-vt=up]::view-transition-old(root) { animation: vt-dim .34s ease-out both; }
+html[data-vt=up]::view-transition-new(root) { animation: vt-up .34s cubic-bezier(.2,.8,.2,1) both; }
+html[data-vt=down]::view-transition-new(root) { animation: none; }
+html[data-vt=down]::view-transition-old(root) { animation: vt-down .3s cubic-bezier(.4,0,.8,.4) both; z-index: 2; }
+html[data-vt]::view-transition-group(song-title) { animation: none; }
+@keyframes vt-up { from { transform: translateY(100%); border-radius: 26px 26px 0 0; } }
+@keyframes vt-down { to { transform: translateY(100%); } }
+@keyframes vt-dim { to { opacity: .45; transform: scale(.96); } }

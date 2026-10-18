@@ -542,6 +542,20 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from Tonight goes back to Tonight");
   await page.click("#libbtn"); await page.waitForSelector("#list .row");
   await page.click("#libback"); await page.waitForSelector(".rd-next");
+  /* the Library handle above the search bar: tap it, swipe down to come back, swipe it up */
+  assert.match(await page.innerText("#rd-lib"), /Library/);
+  await page.click("#rd-lib"); await page.waitForSelector("#list .row");
+  assert.equal(await page.evaluate(() => location.hash), "#/library");
+  const swipe = (sel, from, to) => page.evaluate(([sel, from, to]) => {
+    const el = document.querySelector(sel), t = y => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y });
+    el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [t(from)] }));
+    el.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, touches: [t(to)] }));
+    el.dispatchEvent(new TouchEvent("touchend", { bubbles: true, touches: [] }));
+  }, [sel, from, to]);
+  await swipe(".head", 120, 260); await page.waitForSelector(".rd-next");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "swiping down from the top of the Library goes back to Tonight");
+  await swipe("#rd-lib", 700, 600); await page.waitForSelector("#list .row");
+  await page.click("#libgrab"); await page.waitForSelector(".rd-next");
   await page.click("#settings"); await page.waitForFunction(() => location.hash === "#/settings");
 });
 

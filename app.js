@@ -58,6 +58,10 @@ function applyTheme() {
 
 
 const go = h => { location.hash = h; };
+/* The Library slides up over Tonight and back down again. */
+const slide = dir => { if (document.startViewTransition && !calm()) document.documentElement.dataset.vt = dir; };
+const openLibrary = () => { slide("up"); go("#/library"); };
+const closeLibrary = () => { slide("down"); go("#/"); };
 /* From Tonight: open a song and start it playing; open the Library with search ready. */
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
@@ -153,6 +157,7 @@ function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
+      <button class="lib-grab" id="libgrab" aria-label="Back to Tonight"><i></i></button>
       <div class="head-l"><button class="ib glass" id="libback" aria-label="Back to Tonight">${icon("back")}</button><h1 class="title script">Library</h1></div>
       <div class="row-btns">
         <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
@@ -186,7 +191,8 @@ function renderLibrary() {
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
-  $("libback").onclick = () => go("#/");
+  $("libback").onclick = closeLibrary;
+  $("libgrab").onclick = closeLibrary;
   $("settings").onclick = () => go("#/settings");
   $("youbtn").onclick = () => go("#/you");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
@@ -2491,13 +2497,22 @@ function ringHint() {
     g.addEventListener("animationend", () => { g.remove(); p.classList.remove("hint-under"); clearInterval(keep); say(); }, { once: true });
   }, 380); /* after the glide (0.3 s) */
 }
+/* Swipe down from the top of the Library to go back to Tonight (not from the
+   song list or shelf, which scroll and swipe on their own). */
+const pull = { y: null };
+window.addEventListener("touchstart", e => {
+  const t = e.target instanceof Element ? e.target : null;
+  pull.y = route().name === "library" && window.scrollY <= 0 && !searching && !layer.innerHTML && t && !t.closest(".dock, .list, .shelf, input, .panel") ? e.touches[0].clientY : null;
+}, { passive: true });
+window.addEventListener("touchmove", e => { if (pull.y != null && e.touches[0].clientY - pull.y > 90) { pull.y = null; closeLibrary(); } }, { passive: true });
 const calm = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 let lastOpened = null; // id of the song whose title should glide back to its row
 window.addEventListener("hashchange", () => {
   if (!document.startViewTransition || calm()) return render();
   const leaving = route().name !== "song" && viewing ? viewing.id : null;
   if (leaving) lastOpened = leaving;
-  document.startViewTransition(() => render());
+  const t = document.startViewTransition(() => render());
+  t.finished.finally(() => { delete document.documentElement.dataset.vt; });
 });
 applyTheme();
 firstLaunch();
@@ -2526,4 +2541,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { playSong, openSearch, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { playSong, openSearch, openLibrary, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

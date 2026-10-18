@@ -6,12 +6,14 @@
 //               streak at risk, back after a few days, or just ready)
 //   Up next     one song, three lamps (Tune, Play, Stretch), one copper Play
 //   Tour Map    a small picture of your turf, the venue, plays to the next one
+//   Library     a handle above the search bar: tap it or swipe it up and the
+//               Library slides up over Tonight (swipe down there to come back)
 //   dock        the same search bar and add button as the Library
 // A library with no plays yet gets the first-run version: Louie waves and the
 // first song is ready to play.
 import { hexOutline, hexSpiral, lifetimePlays, pickNudge, playSongs, profileOf, streakOf, territory, venueOf } from "./core.js";
 import { app, esc, icon } from "./ui.js";
-import { chordNames, data, go, keyOf, mmss, openTuner, playSong, route, songLength, tunedRecently, openSearch, newSong } from "./app.js";
+import { chordNames, data, go, keyOf, mmss, openLibrary, openTuner, playSong, route, songLength, tunedRecently, openSearch, newSong } from "./app.js";
 import { louie } from "./louie.js";
 
 const DAY = 86400000;
@@ -93,13 +95,23 @@ export function renderRoad() {
     <div class="rd-say">${louie(say.mood, { pose: say.pose, size: 96 })}<p class="rd-bubble">${esc(say.text)}</p></div>`}
     ${card}
     ${first ? "" : `<button class="pf-card rd-map" id="rd-map">${miniTurf(t.cells, t.rings)}<span class="rd-map-t"><h2>Tour Map</h2><span class="pf-line" id="rd-map-line"><b>${esc(v.name)}.</b> ${v.toNext} play${v.toNext === 1 ? "" : "s"} to the ${esc(v.next)}.</span></span>${icon("chev", "chev")}</button>`}
+    ${data.songs.length ? `<button class="rd-peek glass" id="rd-lib" aria-label="Library, ${data.songs.length} song${data.songs.length === 1 ? "" : "s"}"><i class="rd-grab" aria-hidden="true"></i><span class="rd-peek-t"><b class="script">Library</b><span>${data.songs.length} song${data.songs.length === 1 ? "" : "s"} · tap or swipe up</span>${icon("up", "chev")}</span></button>` : ""}
     <div class="dock-fade"></div>
     <div class="dock kb">
       <button class="cmd glass float rd-search" id="rd-search" aria-label="Search or paste a song">${icon("search")}<span>Search, or paste a song</span></button>
       <button class="add" id="add" aria-label="Add song"><svg class="add-note" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="add-silver" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#f4f4f6"/><stop offset=".5" stop-color="#c9cacf"/><stop offset="1" stop-color="#9a9ba1"/></linearGradient></defs><g fill="url(#add-silver)" stroke="#6d6e74" stroke-width=".35"><path d="M8.2 6.4 19 4v12.3h-1.8V6.3L10 7.9v10.3H8.2z"/><ellipse cx="6.4" cy="18.1" rx="2.6" ry="2.1" transform="rotate(-20 6.4 18.1)"/><ellipse cx="15.6" cy="16.2" rx="2.6" ry="2.1" transform="rotate(-20 15.6 16.2)"/></g></svg><i class="add-bdg" aria-hidden="true">+</i></button>
     </div>`;
   const $ = id => document.getElementById(id);
-  $("libbtn").onclick = () => go("#/library");
+  $("libbtn").onclick = () => openLibrary();
+  const peek = $("rd-lib");
+  if (peek) {
+    peek.onclick = () => openLibrary();
+    /* a swipe up on the handle opens it too */
+    let y0 = null;
+    peek.addEventListener("touchstart", e => { y0 = e.touches[0].clientY; }, { passive: true });
+    peek.addEventListener("touchmove", e => { if (y0 != null && y0 - e.touches[0].clientY > 24) { y0 = null; openLibrary(); } }, { passive: true });
+    peek.addEventListener("touchend", () => { y0 = null; }, { passive: true });
+  }
   $("youbtn").onclick = () => go("#/you");
   $("settings").onclick = () => go("#/settings");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "road" && renderRoad());
