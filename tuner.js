@@ -1,11 +1,12 @@
 // Tuner: listens through the microphone; loaded the first time the tuner opens.
 // Three ways to tune: Acoustic and Electric show the guitar's headstock and light
 // the key to turn (Guided walks the strings low to high), Chromatic reads any note.
-// Within a few cents a strobe takes over, and it stands still when the note is right.
-import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, strobeSpeed, detectPitch } from "./core.js";
+// A meter shows how far off the string is; its middle is stretched, so the last
+// few cents are easy to see.
+import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch } from "./core.js";
 import { HEADS } from "./heads.js";
 import { sound } from "./ui.js";
-import { $, data, icon, layer, esc, coach, coachTip, markUsed, toast } from "./app.js";
+import { $, data, icon, layer, esc, coach, markUsed, toast } from "./app.js";
 
 const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
 /* String names on the headstock: the top string is "e" when it doubles the low E. */
@@ -19,7 +20,6 @@ export function closeTuner() {
   if (!t) return;
   tunerState = null;
   clearInterval(t.timer);
-  cancelAnimationFrame(t.raf);
   t.stream?.getTracks().forEach(tr => tr.stop());
   t.src?.disconnect?.(); /* the shared audio engine stays */
   if (t.ok.filter(Boolean).length >= 3) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
@@ -75,8 +75,10 @@ function headSVG(kind, t, { mini = false } = {}) {
   return s + "</svg>";
 }
 
-// The meter's scale: a tick every 5 cents from -50 to +50, longer at 25 and 50.
-const ticks = () => Array.from({ length: 21 }, (_, k) => k === 10 ? "" : `<i class="tn-tick${k % 5 ? "" : " big"}" style="left:${5 + k * 4.5}%"></i>`).join("");
+// The meter's scale, in cents each side of the note; longer ticks at 10 and 50.
+// The in-tune zone spans the 3 cents each side.
+const ticks = () => [5, 10, 15, 20, 30, 40, 50].flatMap(c => [-c, c]).map(c => `<i class="tn-tick${Math.abs(c) % 40 === 10 ? " big" : ""}" style="left:${meterPos(c).toFixed(2)}%"></i>`).join("")
+  + `<i class="tn-zone" style="left:${meterPos(-TUNE.good).toFixed(2)}%;width:${(meterPos(TUNE.good) - meterPos(-TUNE.good)).toFixed(2)}%"></i>`;
 
 // ---- Chromatic dial: cents from -50 to +50 across a 140 degree arc ----
 function dialSVG() {
@@ -93,20 +95,15 @@ function dialSVG() {
   return s + `<g id="tn-needle" class="idle"><line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - R + 2}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="7"/></g></svg>`;
 }
 
-const strobeTip = () => coach($("tn-strobe"), "", { ms: 3800, place: "below", fixed: true, html: `<b>Stripes stand still when it's right</b><span>They drift left when flat, right when sharp.</span>` });
-// Show me: the strobe drifts, slows, and stands still in green.
-function demoStrobe(t) {
+const meterTip = () => coach($("tn-win"), "", { ms: 3800, place: "below", fixed: true, html: `<b>Green and centered: in tune</b><span>The marker moves left when flat, right when sharp, and slows down near the note.</span>` });
+// Show me: the marker glides in from flat and settles in green.
+function demoMeter(t) {
   t.demoUntil = Date.now() + 4200;
-  $("tn-meter").hidden = true; $("tn-strobe").hidden = false;
-  const steps = [[-14, 0], [-6, 1100], [-2, 2100], [0, 2900]];
-  steps.forEach(([c, at]) => setTimeout(() => {
+  [[-30, 0], [-12, 900], [-5, 1800], [-1, 2700], [0, 3300]].forEach(([c, at]) => setTimeout(() => {
     if (tunerState !== t || t.hits.length) return;
-    const good = Math.abs(c) <= 3;
-    $("tn-strobe").classList.toggle("good", good); $("tn-slab").textContent = good ? "STILL" : "FINE TUNE";
-    t.strobe.v = c ? c * 6 : 0;
+    showGauge(t, c, Math.abs(c) <= TUNE.good);
   }, at));
-  if (!t.raf) { const spin = now => { animateStrobe(t, now); t.raf = requestAnimationFrame(spin); }; t.raf = requestAnimationFrame(spin); }
-  setTimeout(strobeTip, 200);
+  setTimeout(meterTip, 200);
 }
 export function openTuner(tuning = "standard", onClose, opts = {}) {
   closeTuner();
@@ -117,7 +114,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     guided: st.tunerGuided !== false,
     a4: Math.min(450, Math.max(430, Number(st.a4) || 440)),
     ok: [], cur: 0, good: false, lock: -1, finished: false,
-    inTuneSince: 0, quietSince: Date.now(), hits: [], strobe: { x: 0, v: 0, last: 0 }, onClose
+    inTuneSince: 0, quietSince: Date.now(), hits: [], onClose
   };
   document.body.classList.add("tuning");
   /* iPhone: start the audio inside the tap that opened the tuner, so
@@ -137,9 +134,8 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
         <div class="tn-c" id="tn-c"></div>
       </div>
       <div class="tn-gauge" id="tn-gauge">
-        <div class="tn-win">
-          <div class="tn-meter" id="tn-meter">${ticks()}<i class="tn-zone"></i><i class="tn-mid"></i><i class="tn-dot idle" id="tn-dot"><span id="tn-tag"></span></i></div>
-          <div class="tn-strobe" id="tn-strobe" hidden><div class="tn-sw"><i></i><i></i><i></i></div><span id="tn-slab">FINE TUNE</span></div>
+        <div class="tn-win" id="tn-win">
+          <div class="tn-meter" id="tn-meter">${ticks()}<i class="tn-mid"></i><i class="tn-dot idle" id="tn-dot"><span id="tn-tag"></span></i></div>
         </div>
         <div class="tn-pill" id="tn-pill"></div>
       </div>
@@ -184,7 +180,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       stage.innerHTML = dialSVG();
       foot.innerHTML = `<label class="tn-chip">A4 = <b>${t.a4} Hz</b>${icon("chev", "chev")}<select id="tn-a4" aria-label="Pitch reference">${Array.from({ length: 21 }, (_, k) => 430 + k).map(v => `<option ${v === t.a4 ? "selected" : ""}>${v}</option>`).join("")}</select></label><span class="tn-any">Any instrument or voice</span>`;
       $("tn-a4").onchange = e => { t.a4 = +e.target.value; st.a4 = t.a4; Tabs.save(data); paint(); };
-      $("tn-meter").hidden = true; $("tn-strobe").hidden = true;
+      $("tn-meter").hidden = true;
     } else if (t.finished) {
       $("tn-n").textContent = "All in tune"; $("tn-o").textContent = "";
       $("tn-say").textContent = ""; $("tn-c").textContent = `${TUNINGS[t.tuning].name} · 6 of 6`;
@@ -204,7 +200,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   };
   t.paint = paint;
   paint();
-  if (opts.demo === "strobe") setTimeout(() => demoStrobe(t), 300);
+  if (opts.demo === "meter") setTimeout(() => demoMeter(t), 300);
 
   const say = (text, cls = "") => { const m = $("tn-say"); if (m) { m.textContent = text; m.className = "tn-say " + cls; } };
   t.say = say;
@@ -228,8 +224,6 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
     const buf = new Float32Array(an.fftSize);
     idle(t);
     t.timer = setInterval(() => listen(t, an, buf), 45);
-    const spin = now => { animateStrobe(t, now); t.raf = requestAnimationFrame(spin); };
-    t.raf = requestAnimationFrame(spin);
   }).catch(fail);
   /* The first time, say why before the phone asks; after that, just listen. */
   const permission = navigator.permissions?.query ? navigator.permissions.query({ name: "microphone" }).then(p => p.state, () => "prompt") : Promise.resolve("prompt");
@@ -256,9 +250,8 @@ function idle(t) {
   if (t.demoUntil > Date.now()) return; /* let a Show me demo finish */
   const dot = $("tn-dot"), needle = document.getElementById("tn-needle");
   dot?.classList.add("idle"); needle?.classList.add("idle");
-  if ($("tn-strobe")) $("tn-strobe").hidden = true;
   if (t.mode !== "chromatic" && $("tn-meter")) $("tn-meter").hidden = t.finished;
-  t.strobe.v = 0; t.hits = []; t.inTuneSince = 0; t.shown = null; t.pend = null;
+  t.disp = null; t.hits = []; t.inTuneSince = 0; t.shown = null; t.pend = null;
   $("tn-lamp")?.classList.remove("on");
   if ($("tn-pill")) $("tn-pill").textContent = "";
   if (t.finished && t.mode !== "chromatic") return;
@@ -289,9 +282,21 @@ function listen(t, an, buf) {
   if (now < (t.attackUntil || 0)) return;
   /* While a note is ringing, accept a less crisp reading so it holds as it fades. */
   let f = detectPitch(buf, t.ctx.sampleRate, minRms, sounding ? 0.5 : 0.4);
+  /* When we know which string is being tuned, also look only near it. That
+     reading is preferred: a quiet high e or a low E whose overtone is louder
+     than its note is still read right. The open search wins only when it
+     clearly heard a different string, so "That's the A string" still works. */
+  const notes0 = TUNINGS[t.tuning].notes;
+  const target = t.mode === "chromatic" ? -1 : t.guided ? t.cur : t.lock >= 0 ? t.lock : sounding ? t.cur : -1;
+  if (target >= 0) {
+    const hz = noteFreq(notes0[target], t.a4);
+    const near = detectPitch(buf, t.ctx.sampleRate, minRms, 0.6, [hz * 0.7, hz * 1.42]);
+    const other = f > 0 && notes0.some((n, i) => i !== target && Math.abs(centsOff(f, n, t.a4)) < 50) && Math.abs(centsOff(f, notes0[target], t.a4)) > 600;
+    if (near > 0 && !other) f = near;
+  }
+  /* A dropped reading or two while the string rings doesn't reset anything. */
   if (f < 0) {
     if (now - t.quietSince > 2000 && t.hits.length) idle(t);
-    t.inTuneSince = 0;
     return;
   }
   t.quietSince = now;
@@ -310,7 +315,13 @@ function listen(t, an, buf) {
     t.pend = t.pend?.k === idx ? { k: idx, n: t.pend.n + 1 } : { k: idx, n: 1 };
     if (t.pend.n < 3) idx = t.cur;
   } else t.pend = null;
-  const cents = Math.round(centsOff(fs, notes[idx], t.a4));
+  /* The marker eases toward each reading, so it glides instead of twitching;
+     a big jump (a new pluck, a turn of the peg) moves it at once. */
+  const raw = centsOff(fs, notes[idx], t.a4);
+  if (idx !== t.dispIdx) t.disp = null;
+  t.dispIdx = idx;
+  t.disp = t.disp == null || Math.abs(raw - t.disp) > 20 ? raw : t.disp * 0.55 + raw * 0.45;
+  const cents = Math.round(t.disp);
   const adv = tuneAdvice(cents);
   const good = adv.tone === "good";
   if (!t.guided && t.lock < 0 && idx !== t.cur) { t.cur = idx; t.good = good; t.paintHead(); }
@@ -328,7 +339,8 @@ function listen(t, an, buf) {
   }
   t.say(text, adv.tone);
   showGauge(t, cents, good);
-  if (!good) { t.inTuneSince = 0; return; }
+  if (Math.abs(cents) > TUNE.slack) t.inTuneSince = 0;
+  if (!good) return;
   t.inTuneSince ||= now;
   if (!heldInTune(t.inTuneSince, now) || t.ok[idx]) return;
   t.ok[idx] = true; t.inTuneSince = 0; t.good = false;
@@ -370,31 +382,13 @@ function readChromatic(t, fs) {
 }
 
 /* The marker is green in tune, amber when close, red when well off, and
-   says which way it's off. Very close, the strobe takes over the window. */
+   says which way it's off. */
 function showGauge(t, cents, good) {
-  const fine = Math.abs(cents) <= TUNE.strobe;
-  $("tn-meter").hidden = fine; $("tn-strobe").hidden = !fine;
   $("tn-lamp").classList.add("on");
-  $("tn-pill").textContent = `${cents > 0 ? "+" : ""}${cents} cents`;
+  $("tn-pill").textContent = Math.abs(cents) > TUNE.far ? "" : `${cents > 0 ? "+" : ""}${cents} cents`; /* past 50 it's another note: the words say which */
   const dot = $("tn-dot");
   dot.classList.remove("idle"); dot.classList.toggle("good", good); dot.classList.toggle("far", !good && Math.abs(cents) > 25);
   dot.classList.toggle("flat", cents < 0);
   $("tn-tag").textContent = good ? "" : cents < 0 ? "Too low" : "Too high";
-  dot.style.left = (50 + Math.max(-50, Math.min(50, cents)) * 0.9) + "%";
-  const strobe = $("tn-strobe");
-  strobe.classList.toggle("good", good);
-  $("tn-slab").textContent = good ? "STILL" : "FINE TUNE";
-  t.strobe.v = fine ? strobeSpeed(cents) : 0;
-  /* The first time the strobe appears, say what it means. */
-  if (fine && !good && coachTip("strobe")) strobeTip();
-}
-
-// Stripes drift left when flat, right when sharp, and stop when it's right.
-function animateStrobe(t, now) {
-  const s = t.strobe, dt = s.last ? Math.min(0.05, (now - s.last) / 1000) : 0;
-  s.last = now;
-  if (!s.v) return;
-  s.x += s.v * dt;
-  const rows = document.querySelectorAll("#tn-strobe .tn-sw i");
-  rows.forEach((r, k) => { r.style.backgroundPositionX = (s.x * (k + 1)).toFixed(1) + "px"; });
+  dot.style.left = meterPos(cents).toFixed(2) + "%";
 }

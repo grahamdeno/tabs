@@ -7,7 +7,7 @@ useBrowser();
 
 const EXPECT = {
   ring: /Hold Play/, arc: /Sweep the arc/, pull: /Pull down/, speed: /Hold the time/, setdial: /4 of 9/, rise: /rises to your thumb/,
-  chord: /chord/i, line: /Tap a line/, map: /section/, nn: /Now and Next/, pause: /pause/i, search: /Search/, tap: /Tap along/, strobe: /Stripes/
+  chord: /chord/i, line: /Tap a line/, map: /section/, nn: /Now and Next/, pause: /pause/i, search: /Search/, tap: /Tap along/, meter: /Green and centered/
 };
 const ONE_HAND = ["ring", "arc", "pull", "speed", "setdial", "rise"];
 

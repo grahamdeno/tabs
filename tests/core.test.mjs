@@ -610,7 +610,7 @@ test("tap tempo: median of the latest run of taps", () => {
   assert.equal(C.tapTempo([0, 100]), 260);
 });
 
-test("tuner: advice, guided order, hold and strobe", () => {
+test("tuner: advice, guided order, hold and the meter", () => {
   assert.equal(C.tuneAdvice(-2).tone, "good");
   assert.equal(C.tuneAdvice(3).say, "In tune");
   assert.equal(C.tuneAdvice(-8).say, "Almost · tighten slowly");
@@ -623,11 +623,12 @@ test("tuner: advice, guided order, hold and strobe", () => {
   assert.equal(C.guidedTarget([true, false, true]), 1);
   assert.equal(C.guidedTarget([true, true, true, true, true, true]), -1);
   assert.equal(C.heldInTune(0, 5000), false);
-  assert.equal(C.heldInTune(1000, 1900), false);
-  assert.equal(C.heldInTune(1000, 2000), true);
-  assert.equal(C.strobeSpeed(2), 0);
-  assert.ok(C.strobeSpeed(-5) < 0 && C.strobeSpeed(5) > 0);
-  assert.equal(C.strobeSpeed(500), 60);
+  assert.equal(C.heldInTune(1000, 1700), false);
+  assert.equal(C.heldInTune(1000, 1800), true);
+  assert.equal(C.meterPos(0), 50);
+  assert.equal(C.meterPos(50), 95); assert.equal(C.meterPos(-500), 5);
+  assert.ok(C.meterPos(2) - 50 > 5, "two cents still moves the marker visibly");
+  assert.ok(C.meterPos(-10) < 50 && C.meterPos(-10) > C.meterPos(-20));
 });
 
 test("tuner: pitch reference moves every note", () => {

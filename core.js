@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.36.0";
+export const VERSION = "2.37.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1271,9 +1271,10 @@ export function bestGermanVoice(voices = []) {
   return de.length ? de.reduce((a, b) => (score(b) > score(a) ? b : a)) : null;
 }
 // ---------- Tuner guidance ----------
-// In tune within 3 cents; the strobe takes over within 5; past 50 you're on the
-// wrong note (or far off), so the words say so.
-export const TUNE = { good: 3, strobe: 5, far: 50, hold: 1000 };
+// In tune within 3 cents; a reading has to drift past 5 before a string that
+// was in tune stops counting, so one shaky reading doesn't start the hold over.
+// Past 50 you're on the wrong note (or far off), so the words say so.
+export const TUNE = { good: 3, slack: 5, far: 50, hold: 800 };
 export const centsOff = (freq, note, a4 = 440) => 1200 * Math.log2(freq / noteFreq(note, a4));
 // What to tell the player for a string that's `cents` away (negative = flat).
 export function tuneAdvice(cents) {
@@ -1287,8 +1288,10 @@ export function tuneAdvice(cents) {
 export const guidedTarget = ok => { for (let i = 0; i < 6; i++) if (!ok[i]) return i; return -1; };
 // A string counts once it has stayed in tune long enough.
 export const heldInTune = (since, now) => !!since && now - since >= TUNE.hold;
-// Strobe drift in pixels per second: still when in tune, faster the further off.
-export const strobeSpeed = cents => Math.abs(cents) <= TUNE.good ? 0 : Math.max(-60, Math.min(60, cents * 6));
+// Where the tuner's marker sits, as a percent across the meter. The middle is
+// stretched, so a cent or two still moves it visibly near the note, while
+// 50 cents off reaches the end.
+export const meterPos = cents => 50 + Math.sign(cents) * (Math.min(Math.abs(cents), 50) / 50) ** 0.6 * 45;
 
 // A song's tuning from a line like "Tuning: Drop D" or "Tuning: D A D G B E".
 export function detectTuning(body) {
@@ -1312,12 +1315,15 @@ export function detectTuning(body) {
 // clarity: how deep the clearest dip must be when there's no obvious one
 // (lower is stricter). The tuner loosens it while a note it already caught
 // is fading, so a decaying string keeps reading.
-export function detectPitch(buf, sampleRate, minRms = 0.01, clarity = 0.35) {
+// range: [low, high] Hz to search instead, when the string is known. Only
+// periods near that string are considered, so a weak fundamental can't be
+// mistaken for its louder overtone, and a clearer dip isn't needed.
+export function detectPitch(buf, sampleRate, minRms = 0.01, clarity = 0.35, range = null) {
   const n = buf.length;
   let rms = 0;
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
   if (Math.sqrt(rms / n) < minRms) return -1;
-  const minLag = Math.max(2, Math.floor(sampleRate / 1000)), maxLag = Math.min(Math.floor(sampleRate / 60), (n >> 1) - 2);
+  const minLag = Math.max(2, Math.floor(sampleRate / (range ? range[1] : 1000))), maxLag = Math.min(Math.ceil(sampleRate / (range ? range[0] : 60)), (n >> 1) - 2);
   const W = n - maxLag - 2;
   const d = new Float32Array(maxLag + 2);
   for (let lag = 1; lag <= maxLag + 1; lag++) {

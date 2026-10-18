@@ -274,7 +274,7 @@ test("first song: try a chord, then Play; tips never block and show once", { ski
 });
 
 
-test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chromatic reads any note", { skip: skip() }, async t => {
+test("tuner: guided acoustic walks the strings, the meter shows how far off, chromatic reads any note", { skip: skip() }, async t => {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
   const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
@@ -289,14 +289,14 @@ test("tuner: guided acoustic walks the strings, the strobe shows near pitch, chr
   await page.waitForTimeout(300);
   await page.click("#tunerbtn");
   await page.waitForTimeout(600);
-  const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent, strobe: !document.getElementById("tn-strobe").hidden }));
+  const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent, tag: document.getElementById("tn-tag").textContent }));
   assert.equal((await read()).say, "Play the E string");
   assert.equal(await page.locator(".tn-tile.on").textContent(), "Acoustic");
   const at = (hz, cents) => page.evaluate(f => { window.__hz = f; }, hz * 2 ** (cents / 1200));
   await at(82.41, -25); await page.waitForTimeout(700);
-  assert.deepEqual(await read(), { note: "E", say: "Tighten the E string", strobe: false });
+  assert.deepEqual(await read(), { note: "E", say: "Tighten the E string", tag: "Too low" });
   await at(82.41, -4); await page.waitForTimeout(700);
-  assert.equal((await read()).strobe, true, "strobe within 5 cents");
+  assert.ok(await page.evaluate(() => parseFloat(document.getElementById("tn-dot").style.left) < 42), "4 cents flat sits well left of center");
   const glows = () => page.evaluate(() => document.querySelector(".tn-note").classList.contains("glow"));
   await at(82.41, -1); await page.waitForTimeout(500);
   assert.equal(await glows(), true, "in tune: the letter glows");

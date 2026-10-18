@@ -245,7 +245,7 @@ function demoSong() {
 }
 function showMe(name) {
   if (name === "search") { go("#/"); return setTimeout(() => demoSearch(true), 450); }
-  if (name === "strobe") { go("#/"); return setTimeout(() => openTuner("standard", null, { demo: "strobe" }), 350); }
+  if (name === "meter") { go("#/"); return setTimeout(() => openTuner("standard", null, { demo: "meter" }), 350); }
   /* The set dial needs a song opened from a set. */
   if (name === "setdial") {
     const set = data.sets.find(x => x.songIds.some(id => data.songs.some(s => s.id === id)));
@@ -320,7 +320,7 @@ const GESTURES = [
   ["Sets", [
     ["", "Next up", "Stop stays on this song; it waits if the next needs another tuning", "fork"]]],
   ["Tuner", [
-    ["strobe", "Stripes near the note", "They stand still when it's right. Tap a key to hear that string", "fork"],
+    ["meter", "The meter", "Green and centered is in tune; the marker slows down near the note. Tap a key to hear that string", "fork"],
     ["", "Guided", "Goes E, A, D, G, B, e by itself and tells you when all six are in tune", "check"]]],
   ["Deleting", [
     ["", "Undo, or Recently deleted", "Undo right after; Recently deleted keeps songs and sets for 30 days", "trash"]]]

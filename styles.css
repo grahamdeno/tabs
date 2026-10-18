@@ -816,13 +816,13 @@ body.tuning { overflow: hidden; }
 .tn-win { position: relative; height: 66px; border-radius: 14px; border: 1px solid var(--bronze-line);
   background: radial-gradient(60% 90% at 50% 50%, rgba(255,194,122,.1), transparent 70%), var(--recess);
   box-shadow: var(--recess-shadow), 0 0 0 3px rgba(0,0,0,.35); overflow: hidden; }
-.tn-meter, .tn-strobe { position: absolute; inset: 0; }
-.tn-meter[hidden], .tn-strobe[hidden] { display: none; }
+.tn-meter { position: absolute; inset: 0; }
+.tn-meter[hidden] { display: none; }
 .tn-tick { position: absolute; top: 24px; width: 1.5px; height: 22px; margin-left: -.75px; border-radius: 1px; background: rgba(241,227,196,.38); }
 .tn-tick.big { top: 18px; height: 34px; background: rgba(241,227,196,.6); }
-.tn-zone { position: absolute; left: 47.3%; width: 5.4%; top: 12px; bottom: 8px; border-radius: 5px; background: rgba(255,255,255,.07); }
+.tn-zone { position: absolute; top: 12px; bottom: 8px; border-radius: 5px; background: color-mix(in srgb, var(--good) 16%, transparent); }
 .tn-mid { position: absolute; left: 50%; top: 8px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--recess-fg); }
-.tn-dot { position: absolute; top: 18px; width: 6px; height: 34px; margin-left: -3px; border-radius: 3px; --c: #e0a43a; background: var(--c); box-shadow: 0 0 10px var(--c); transition: left .1s linear, opacity .3s; }
+.tn-dot { position: absolute; top: 18px; width: 6px; height: 34px; margin-left: -3px; border-radius: 3px; --c: #e0a43a; background: var(--c); box-shadow: 0 0 10px var(--c); transition: left .12s ease-out, background .2s, opacity .3s; }
 .tn-dot.far { --c: #d9534f; }
 .tn-dot.good { --c: var(--good); }
 .tn-dot.idle { opacity: 0; left: 50%; }
@@ -831,14 +831,6 @@ body.tuning { overflow: hidden; }
 .tn-dot.flat span { right: auto; left: 10px; }
 .tn-pill { display: inline-block; min-height: 26px; margin-top: 10px; padding: 0 12px; border-radius: 13px; font: 500 12.5px/26px var(--sans); font-variant-numeric: tabular-nums; color: var(--recess-dim); background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.07); }
 .tn-pill:empty { visibility: hidden; }
-.tn-sw { position: absolute; left: 10px; right: 10px; top: 8px; height: 38px; border-radius: 8px; overflow: hidden; }
-.tn-sw i { position: absolute; left: 0; right: 0; background-image: repeating-linear-gradient(105deg, #ffc27a 0 var(--w), transparent var(--w) calc(var(--w) * 2)); opacity: .9; }
-.tn-sw i:nth-child(1) { top: 2px; height: 13px; --w: 16px; }
-.tn-sw i:nth-child(2) { top: 19px; height: 8px; --w: 9px; }
-.tn-sw i:nth-child(3) { top: 30px; height: 5px; --w: 5px; }
-.tn-strobe.good .tn-sw i { background-image: repeating-linear-gradient(90deg, var(--good) 0 var(--w), transparent var(--w) calc(var(--w) * 2)); }
-.tn-strobe span { position: absolute; left: 0; right: 0; top: 49px; text-align: center; font: 600 10px var(--sans); letter-spacing: .14em; color: var(--recess-dim); }
-.tn-strobe.good span { color: var(--good); }
 .tn-stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; padding: 8px 0; }
 .tn-stage > svg { height: 100%; max-height: 380px; width: auto; max-width: 100%; }
 .tn-stage .tn-key { cursor: pointer; }
