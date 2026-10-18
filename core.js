@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.4.5";
+export const VERSION = "3.5.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2668,7 +2668,8 @@ export function cellsOutline(cells) {
 // daily average keeps up with the strongest pressure on it (the local bar or a
 // stronger rival next door); 7 days in a row below it and the edge is lost.
 export const HEX_KM2 = 3 * Math.sqrt(3) / 2 * (HEX_M / 1000) ** 2;
-export const GUITAR_SHARE = 0.06, PRACTICE_MEDIAN = 10, PRACTICE_SPREAD = 0.9, HOLD_DAYS = 7;
+export const PRACTICE_MEDIAN = 10;
+export const GUITAR_SHARE = 0.06, PRACTICE_SPREAD = 0.9, HOLD_DAYS = 7;
 const RURAL = 15; /* people per km² away from any listed place */
 const DEFAULT_DENSITY = 300; /* plain ground, no spot: a typical suburb */
 export function densityAt(lat, lon, places) {

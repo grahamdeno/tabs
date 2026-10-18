@@ -15,10 +15,11 @@
 // position once and keeps it no finer than about a kilometre, in its own key on
 // this phone (tabs.spot.v1), outside the library and every backup. Map pictures
 // come from OpenStreetMap, which sees the area shown, never your plays.
-import { HEX_M, cellsOutline, coarseSpot, hexSpiral, pickNudge, playSongs, streakOf, takeoverPlan, territory } from "./core.js";
+import { HEX_M, PRACTICE_MEDIAN, cellsOutline, coarseSpot, hexSpiral, pickNudge, takeoverPlan, territory } from "./core.js";
 import { RIVAL_COLORS, cellCentre, offset, pressureLine, sceneFor } from "./scene.js";
 import { app, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { data, go, mmss, playSong, songLength } from "./app.js";
+import { makeDrawer } from "./drawer.js";
 
 const SPOT = "tabs.spot.v1";
 export function getSpot() { try { return coarseSpot(...Object.values(JSON.parse(localStorage.getItem(SPOT) || "null") || {})); } catch { return null; } }
@@ -69,60 +70,84 @@ export async function renderPlayMap() {
         <button class="ib glass" id="tm-out" aria-label="Zoom out">${icon("minus")}</button>
         <button class="ib glass" id="tm-home" aria-label="Back to my spot">${icon("target")}</button>
       </div>
-      <div class="tm-dock">
-        <p class="tm-push" id="tm-push" hidden></p>
-        <section class="tm-take" id="tm-take" hidden aria-label="Take over a rival hexagon"></section>
+      <div class="tm-scrim" id="tm-scrim"></div>
+      <div class="tm-above" id="tm-above">
         ${spot ? "" : `<button class="btn tm-flag" id="tm-flag">${icon("flag")}Plant your flag on a real map</button>`}
-        <div class="pf-plate" role="group" aria-label="Tour numbers">
-          <div class="pf-read"><b id="tm-held">–</b><span>hexes held</span></div>
-          <div class="pf-read"><b id="tm-rank">–</b><span>in your scene</span></div>
-          <div class="pf-read"><b id="tm-avg">–</b><span>min a day</span></div>
-        </div>
-        <p class="tm-venue" id="tm-venue">&nbsp;</p>
+        <p class="tm-venue glass" id="tm-venue" hidden></p>
       </div>
+      <section class="tm-sheet" id="tm-sheet" aria-label="Your scene">
+        <div class="tm-sizer"></div>
+        <div class="tm-sh" id="tm-sh"><i class="rd-grab" data-grab aria-hidden="true"></i><div class="tm-sh-row" id="tm-take"><span class="tm-sh-t"><b>Your scene</b><span>Loading…</span></span></div></div>
+        <div class="tm-sbody" id="tm-sbody"></div>
+      </section>
     </div>`;
   document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/");
   document.getElementById("tm-flag")?.addEventListener("click", () => plantSheet());
   let L, sc;
   try { [L, sc] = await Promise.all([loadLeaflet(), sceneFor(spot)]); } catch { toast("The map couldn't load. Try again with a connection."); return; }
   if (!document.getElementById("tm-map")) return; /* left while it loaded */
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set("tm-held", sc.held); set("tm-rank", `#${sc.rank}/${sc.players}`); set("tm-avg", sc.avg >= 10 ? Math.round(sc.avg) : sc.avg);
-  document.getElementById("tm-venue").innerHTML = `Now playing: <b>${esc(sc.venue.name)}</b> · ahead of ${Math.round(sc.pct * 100)}% of about ${sc.guitarists.toLocaleString()} guitarists near you${spot ? ` · <button class="linkish" id="tm-forget">Forget my spot</button>` : ""}`;
-  document.getElementById("tm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
-  const push = pressureLine(sc);
-  if (push) { const el = document.getElementById("tm-push"); el.textContent = push; el.hidden = false; }
   sc.plan = takeoverPlan({ plays: sc.plays, held: sc.held, lost: sc.lost, owner: sc.owner, rivals: sc.rivals });
-  takeCard(sc);
+  sceneSheet(sc);
   draw(L, sc);
 }
 
 
-/* The takeover prompt: the nearest rival hexagon, how many songs and minutes it
-   takes, and which song to start with. Plays are credited when a song is played through. */
-function takeCard(sc) {
-  const el = document.getElementById("tm-take"), plan = sc.plan;
-  if (!el || !plan || !data.songs.length) return;
+/* The bottom of the Tour Map: the venue line, and a sheet with the next takeover
+   (how many songs and minutes win the nearest rival hexagon, and a Play button).
+   Pull it up for the details and your scene this week, ranked by minutes a day. */
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+function takeover(sc) {
+  const plan = sc.plan;
+  if (!plan || !data.songs.length) return null;
   const n = plan.plays, byLen = [...data.songs].sort((a, b) => songLength(a) - songLength(b));
   const nudge = pickNudge({ songs: data.songs, mood: "", gigToday: false }), first = (nudge && data.songs.find(x => x.id === nudge.songId)) || byLen[0];
   const queue = [first, ...byLen.filter(x => x !== first)], run = Array.from({ length: Math.min(n, 12) }, (_, i) => queue[i % queue.length]);
-  const secs = run.reduce((a, x) => a + songLength(x), 0) + (n > run.length ? (n - run.length) * songLength(byLen[0]) : 0), mins = Math.max(1, Math.round(secs / 60));
-  const rv = plan.rival, today = streakOf(playSongs(data)).today, gap = rv.avg7 > sc.avg ? Math.ceil(rv.avg7) : 0;
-  const count = n === 1 ? "One song" : `${n} songs`;
-  const lamps = Array.from({ length: Math.min(n, 8) }, () => "<i></i>").join("");
-  el.hidden = false;
-  el.innerHTML = `<button class="tm-take-who" id="tm-find">Take over from ${esc(rv.name)}</button>
-    <p class="tm-take-h">${count}, about ${mins} min</p>
-    <span class="tm-take-dots" aria-hidden="true">${lamps}</span>
-    <p class="tm-take-s">Start with <b>${esc(first.title)}</b> (${mmss(songLength(first))}). ${today ? "" : "It keeps your streak too."}${gap ? ` To hold it, aim for ${gap} min a day; ${esc(rv.name.split(" ")[0])} plays ${Math.round(rv.avg7)}.` : ""}</p>
-    <button class="btn primary tm-take-go" id="tm-take-go">${icon("play")}Play ${esc(first.title)}</button>`;
-  document.getElementById("tm-take-go").onclick = () => playSong(first.id);
-  document.getElementById("tm-find").onclick = () => map?.flyTo(cellCentre(sc.at, plan.cell), Math.max(map.getZoom(), 15), { duration: 0.8 });
-  requestAnimationFrame(() => {
-    const dock = document.querySelector(".tm-dock"), page = document.querySelector(".tm-page");
-    if (dock && page) page.style.setProperty("--dock-h", dock.offsetHeight + "px");
-  });
+  const secs = run.reduce((a, x) => a + songLength(x), 0) + (n > run.length ? (n - run.length) * songLength(byLen[0]) : 0);
+  return { n, first, mins: Math.max(1, Math.round(secs / 60)), rival: plan.rival, color: RIVAL_COLORS[sc.rivals.indexOf(plan.rival) % RIVAL_COLORS.length] };
 }
+function sceneSheet(sc) {
+  const $ = id => document.getElementById(id);
+  const t = takeover(sc), v = sc.venue, short = name => name.split(" ")[0];
+  const venue = $("tm-venue");
+  venue.innerHTML = `<b>${esc(v.name)}</b> · ${plural(v.toNext, "play")} to the ${esc(v.next)}`; venue.hidden = false;
+  const initials = name => name.split(" ").map(w => w[0]).join("").slice(0, 2);
+  $("tm-take").innerHTML = t
+    ? `<button class="tm-badge" id="tm-find" style="--c:${t.color}" aria-label="Show ${esc(t.rival.name)}'s hexagon on the map">${esc(initials(t.rival.name))}</button>
+       <span class="tm-sh-t" data-grab><b>Take ${esc(short(t.rival.name))}'s corner</b><span>${t.n === 1 ? "One song" : `${t.n} songs`} · about ${t.mins} min</span></span>
+       <button class="btn primary tm-go" id="tm-take-go" aria-label="Play ${esc(t.first.title)}">${icon("play")}Play</button>`
+    : `<span class="tm-sh-t" data-grab><b>Your scene</b><span>${ordinal(sc.rank)} of ${sc.players} players nearby</span></span>`;
+  /* the scene this week: everyone ranked by minutes a day, you always shown */
+  const board = [...sc.rivals.map((r, i) => ({ name: r.name, avg: r.avg7, c: RIVAL_COLORS[i % RIVAL_COLORS.length] })), { name: "You", avg: sc.avg, you: true }].sort((a, b) => b.avg - a.avg);
+  const top = Math.max(1, board[0].avg), me = board.findIndex(b => b.you);
+  const row = (b, i) => `<div class="tm-bd${b.you ? " you" : ""}"><span>${i + 1}</span><span>${esc(b.name)}</span><i style="--c:${b.c || "#ffb24a"};width:${Math.max(b.avg ? 3 : 0, Math.round(b.avg / top * 100))}%"></i><b>${Math.round(b.avg)}</b></div>`;
+  const shown = board.slice(0, 3).map(row);
+  if (me > 3) shown.push(`<div class="tm-bd more"><span></span><span>${plural(me - 3, "more player")}</span><i></i><b></b></div>`);
+  if (me >= 3) shown.push(row(board[me], me));
+  const push = pressureLine(sc);
+  $("tm-sbody").innerHTML = `
+    ${t ? `<p class="tm-line">Start with <b>${esc(t.first.title)}</b> (${mmss(songLength(t.first))}). Each song you play through lights one more hexagon.${t.rival.avg7 > sc.avg ? ` To hold it, keep up with ${esc(t.rival.name)}: <b>${Math.ceil(t.rival.avg7)} min a day</b>.` : ""}</p>` : ""}
+    ${push ? `<p class="tm-push">${esc(push)}</p>` : ""}
+    <h2 class="tm-lab">Your scene this week · minutes a day</h2>
+    <div class="tm-board">${shown.join("")}</div>
+    <p class="tm-line">You hold <b>${plural(sc.held, "hexagon")}</b>. About ${sc.guitarists.toLocaleString()} guitarists live around your turf; the typical one plays ${PRACTICE_MEDIAN} min a day.</p>
+    ${sc.spot ? `<p class="tm-line"><button class="linkish" id="tm-forget">Forget my spot</button></p>` : ""}
+    <p class="tm-fine">The other players are simulated from your area's population.</p>`;
+  $("tm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
+  const sheet = $("tm-sheet"), head = $("tm-sh"), page = document.querySelector(".tm-page");
+  const size = () => {
+    const peek = head.offsetHeight + parseFloat(getComputedStyle(sheet).paddingBottom || "0");
+    sheet.querySelector(".tm-sizer").style.height = peek + "px";
+    page.style.setProperty("--tm-peek", peek + "px");
+    page.style.setProperty("--dock-h", peek + 8 + $("tm-above").offsetHeight + "px");
+  };
+  size();
+  const drawer = makeDrawer({ root: sheet, head, body: $("tm-sbody"), sizer: sheet.querySelector(".tm-sizer"), scrim: $("tm-scrim") });
+  if (t) {
+    $("tm-take-go").onclick = () => playSong(t.first.id);
+    $("tm-find").onclick = () => { drawer.close(); map?.flyTo(cellCentre(sc.at, sc.plan.cell), Math.max(map.getZoom(), 15), { duration: 0.8 }); };
+  }
+}
+const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
 
 function draw(L, sc) {
   const { spot, at } = sc;
@@ -174,7 +199,7 @@ function draw(L, sc) {
   /* fit your turf and the ring beyond it; rivals are a drag away */
   const reach = HEX_M * (1.5 * (ring + 2) + 1) * 2.2; /* wide enough to see the rivals next door */
   const mine = L.latLngBounds([offset(at, -reach * 1.1, -reach), offset(at, reach * 1.1, reach)]);
-  const fit = () => map.fitBounds(mine, { paddingTopLeft: [16, 90], paddingBottomRight: [16, (document.querySelector(".tm-dock")?.offsetHeight || 190) + 24] });
+  const fit = () => map.fitBounds(mine, { paddingTopLeft: [16, 90], paddingBottomRight: [16, (parseFloat(getComputedStyle(document.querySelector(".tm-page")).getPropertyValue("--dock-h")) || 190) + 16] });
   map.invalidateSize(); fit();
   requestAnimationFrame(() => { if (map) { map.invalidateSize(); fit(); } });
   document.getElementById("tm-in").onclick = () => map.zoomIn();
