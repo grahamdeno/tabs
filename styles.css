@@ -1822,3 +1822,10 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 .pm-pin { fill: var(--bg); pointer-events: none; }
 @keyframes pm-in { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .pm-cell.new { animation: none; } }
+.pm-real { position: relative; margin: 0 auto; overflow: hidden; border-radius: 12px; background: var(--bg); }
+.pm-real .pm-tile { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; }
+.pm-real svg { position: absolute; inset: 0; }
+.pm-real .pm-cell { fill: color-mix(in srgb, var(--bronze) 42%, transparent); stroke: var(--bronze); stroke-width: 1.5; }
+.pm-real .pm-cell.home { fill: color-mix(in srgb, var(--bronze) 75%, transparent); }
+.pm-zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.pm-credit { position: absolute; left: 6px; bottom: 4px; padding: 1px 5px; border-radius: 6px; font-size: 10px; background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--muted); }

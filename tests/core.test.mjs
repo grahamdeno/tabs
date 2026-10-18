@@ -1412,3 +1412,17 @@ test("A practice spot is kept to about a kilometre", () => {
 test("lifetimePlays adds up the journal's months", () => {
   assert.equal(C.lifetimePlays({ songs: [], journal: { v: 1, months: { "2026-09": { plays: 3 }, "2026-10": { plays: 4 } } } }) >= 0, true);
 });
+
+test("The territory sits on a real map: hexagon spacing in metres, mercator pixels, a zoom that fits", () => {
+  const spot = { lat: 40.71, lon: -74.01 };
+  assert.deepEqual(C.hexCentre(spot, [0, 0]), spot);
+  const e = C.hexCentre(spot, [1, 0]);
+  assert.equal(Math.abs(e.lat - spot.lat) < 1e-9, true, "a neighbour to the east is level");
+  const m = (e.lon - spot.lon) * 111320 * Math.cos(spot.lat * Math.PI / 180);
+  assert.ok(Math.abs(m - 250 * Math.sqrt(3)) < 0.5);
+  assert.ok(C.hexCentre(spot, [0, 1]).lat < spot.lat, "rows go south");
+  const [x, y] = C.mercator(0, 0, 1);
+  assert.deepEqual([x, y], [256, 256]);
+  assert.ok(C.fitZoom(40.71, 1, 340, 340) > C.fitZoom(40.71, 91, 340, 340), "a bigger territory zooms out");
+  for (const n of [0, 1, 7, 91, 500]) { const z = C.fitZoom(40.71, n, 340, 340); assert.ok(z >= 9 && z <= 16); }
+});

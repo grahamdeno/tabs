@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.48.0";
+export const VERSION = "2.49.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2595,6 +2595,23 @@ export function coarseSpot(lat, lon) {
   lat = +lat; lon = +lon;
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
   return { lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 };
+}
+/* The territory on a real map. Each hexagon is HEX_M metres from centre to corner,
+   laid out from the practice spot; web-mercator pixels place it on map tiles. */
+export const HEX_M = 250;
+export function hexCentre(spot, [q, r], S = HEX_M) {
+  const east = S * Math.sqrt(3) * (q + r / 2), south = S * 1.5 * r;
+  return { lat: spot.lat - south / 111320, lon: spot.lon + east / (111320 * Math.cos(spot.lat * Math.PI / 180)) };
+}
+export function mercator(lat, lon, z) {
+  const n = 256 * 2 ** z, s = Math.sin(Math.max(-85.05, Math.min(85.05, lat)) * Math.PI / 180);
+  return [(lon + 180) / 360 * n, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n];
+}
+/* The closest zoom (9 to 16) at which every hexagon fits a w by h picture. */
+export function fitZoom(lat, cells, w, h, S = HEX_M) {
+  const ext = hexSpiral(cells).reduce((m, [q, r]) => Math.max(m, Math.abs(S * Math.sqrt(3) * (q + r / 2)) + S, Math.abs(S * 1.5 * r) + S), S);
+  const mpp = 2 * ext * 1.08 / Math.max(1, Math.min(w, h));
+  return Math.max(9, Math.min(16, Math.floor(Math.log2(156543.03 * Math.cos(lat * Math.PI / 180) / mpp))));
 }
 export const spotLabel = spot => spot ? `${Math.abs(spot.lat).toFixed(2)}° ${spot.lat >= 0 ? "N" : "S"}, ${Math.abs(spot.lon).toFixed(2)}° ${spot.lon >= 0 ? "E" : "W"}` : "";
 /* Credited plays over all time: the journal counts one each time a song is played through. */
