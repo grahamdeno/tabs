@@ -20,6 +20,16 @@ import { makeDrawer } from "./drawer.js";
 
 const DAY = 86400000;
 
+/* The full screen height. A Home Screen app on iPhone reports a viewport that stops short of the
+   bottom edge (it leaves room for Safari's toolbar), so there the screen itself is measured. */
+const standalone = () => navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)").matches;
+function screenHeight() {
+  const portrait = innerHeight >= innerWidth, s = portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width);
+  const h = standalone() ? Math.max(innerHeight, s) : innerHeight;
+  document.body.style.setProperty("--screen-h", h + "px");
+}
+window.addEventListener("resize", () => { if (document.body.classList.contains("is-home")) screenHeight(); });
+
 /* Tonight never scrolls: a drag outside the Library drawer moves nothing. */
 document.addEventListener("touchmove", e => {
   if (!document.body.classList.contains("is-home") || document.querySelector("#layer > *")) return;
@@ -71,6 +81,7 @@ function louieLine(st, plays) {
 const tunerIcon = () => `${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}`;
 
 export function renderRoad() {
+  screenHeight(); window.scrollTo(0, 0);
   const plays = lifetimePlays(data), st = streakOf(playSongs(data)), t = territory(plays), v = venueOf(plays);
   const song = upNext(), first = !plays;
   const say = louieLine(st, plays);
