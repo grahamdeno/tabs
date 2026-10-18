@@ -545,6 +545,7 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   assert.match(await page.innerText("#rd-dh"), /Library/);
   const state = () => page.getAttribute("#rd-drawer", "data-state");
   assert.equal(await state(), "closed");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("rd-dbody")).opacity), "0", "shut, none of the Library shows");
   const drag = (sel, from, to) => page.evaluate(([sel, from, to]) => {
     const el = document.querySelector(sel), t = y => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y });
     el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [t(from)] }));

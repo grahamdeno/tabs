@@ -13,7 +13,13 @@ export function makeDrawer({ root, head, body, sizer, scrim, onState = () => {} 
     y = v;
     root.style.transition = ease && !calm() ? "transform .32s cubic-bezier(.2,.8,.2,1)" : "none";
     root.style.transform = `translate3d(-50%, ${v}px, 0)`;
-    const f = closedY ? 1 - v / closedY : 0;
+    const f = closedY ? 1 - v / closedY : 0, p = Math.max(0, Math.min(1, f));
+    /* the contents stay hidden while shut and rise into view as the drawer opens */
+    body.style.transition = ease && !calm() ? "opacity .32s ease, transform .32s cubic-bezier(.2,.8,.2,1)" : "none";
+    body.style.opacity = String(Math.max(0, Math.min(1, (p - 0.12) / 0.55)));
+    body.style.transform = `translate3d(0, ${Math.round((1 - p) * 28)}px, 0)`;
+    body.style.pointerEvents = p > 0.5 ? "" : "none";
+    body.inert = p < 0.02;
     if (scrim) { scrim.style.transition = root.style.transition.replace("transform", "opacity"); scrim.style.opacity = String(Math.max(0, Math.min(1, f)) * 0.55); scrim.style.pointerEvents = f > 0.02 ? "auto" : "none"; }
   };
   const settle = open => {
