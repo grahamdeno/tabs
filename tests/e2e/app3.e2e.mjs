@@ -540,11 +540,10 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   await page.evaluate(() => document.querySelector(".head .ib[data-go]").click());
   await page.waitForSelector(".rd-next");
   assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from Tonight goes back to Tonight");
-  await page.click("#libbtn"); await page.waitForSelector("#list .row");
-  await page.click("#libback"); await page.waitForSelector(".rd-next");
+  assert.equal(await page.locator("#libbtn").count(), 0, "no Library button in the header");
   /* the Library handle above the search bar: tap it, swipe down to come back, swipe it up */
   assert.match(await page.innerText("#rd-lib"), /Library/);
-  await page.click("#rd-lib"); await page.waitForSelector("#list .row");
+  await page.click("#rd-lib", { position: { x: 80, y: 24 } }); await page.waitForSelector("#list .row");
   assert.equal(await page.evaluate(() => location.hash), "#/library");
   const swipe = (sel, from, to) => page.evaluate(([sel, from, to]) => {
     const el = document.querySelector(sel), t = y => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y });
