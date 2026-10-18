@@ -1829,3 +1829,5 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 .pm-real .pm-cell.home { fill: color-mix(in srgb, var(--bronze) 75%, transparent); }
 .pm-zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .pm-credit { position: absolute; left: 6px; bottom: 4px; padding: 1px 5px; border-radius: 6px; font-size: 10px; background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--muted); }
+
+:root[data-theme="dark"] .pm-real .pm-tile { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.7); }

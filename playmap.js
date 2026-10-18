@@ -2,13 +2,13 @@
 // Each credited play adds ground. The rings grow with the square root of your
 // plays (territory in core.js), so the first plays show at once and a big
 // library still has somewhere to go. With a practice spot the hexagons sit on a
-// real map (CARTO tiles of OpenStreetMap data, loaded as pictures). Without one,
+// real map (OpenStreetMap tiles, loaded as pictures, no key needed). Without one,
 // or with no connection, the shape alone is drawn on a plain ground.
 //
 // It is opt-in (Settings > Playing > Play map, off by default). Continuing
 // asks the phone for its position once and keeps it no finer than about a
 // kilometre, in its own key on this phone, outside the library and any backup.
-// Tiles are fetched from CARTO, which sees the area shown (not your plays).
+// Tiles are fetched from OpenStreetMap, which sees the area shown (not your plays).
 // "Without a location" gives the drawn map and makes no map requests.
 import { Tabs, territory, hexSpiral, hexCentre, mercator, fitZoom, lifetimePlays, coarseSpot, spotLabel } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
@@ -42,15 +42,15 @@ function drawMap(cells, fresh) {
 /* Tiles under the hexagons. zoom is the fitted zoom plus the reader's own steps. */
 let zoomStep = 0;
 function realMap(spot, cells, fresh) {
-  const wrap = app.clientWidth ? Math.min(app.clientWidth - 36, 520) : 340, w = Math.round(wrap), h = Math.round(Math.min(w, innerHeight * 0.5));
+  const wrap = app.clientWidth ? Math.min(app.clientWidth - 62, 520) : 340, w = Math.round(wrap), h = Math.round(Math.min(w, innerHeight * 0.5));
   const z = Math.max(3, Math.min(17, fitZoom(spot.lat, cells, w, h) + zoomStep));
   const [cx, cy] = mercator(spot.lat, spot.lon, z), left = cx - w / 2, top = cy - h / 2;
-  const theme = document.documentElement.dataset.theme === "light" ? "light_all" : "dark_all", n = 2 ** z;
+  const n = 2 ** z;
   let tiles = "";
   for (let ty = Math.floor(top / 256); ty <= Math.floor((top + h) / 256); ty++) for (let tx = Math.floor(left / 256); tx <= Math.floor((left + w) / 256); tx++) {
     if (ty < 0 || ty >= n) continue;
     const x = ((tx % n) + n) % n;
-    tiles += `<img class="pm-tile" alt="" draggable="false" referrerpolicy="no-referrer" src="https://${"abcd"[(x + ty) % 4]}.basemaps.cartocdn.com/${theme}/${z}/${x}/${ty}.png" style="left:${Math.round(tx * 256 - left)}px;top:${Math.round(ty * 256 - top)}px">`;
+    tiles += `<img class="pm-tile" alt="" draggable="false" referrerpolicy="no-referrer" src="https://tile.openstreetmap.org/${z}/${x}/${ty}.png" style="left:${Math.round(tx * 256 - left)}px;top:${Math.round(ty * 256 - top)}px">`;
   }
   const hexes = hexSpiral(cells).map(([q, r], i) => {
     const c = hexCentre(spot, [q, r]), pts = Array.from({ length: 6 }, (_, k) => {
@@ -62,7 +62,7 @@ function realMap(spot, cells, fresh) {
   return `<div class="pm-real" style="width:${w}px;height:${h}px" role="img" aria-label="Your territory on a map: ${cells} hexagon${cells === 1 ? "" : "s"}">${tiles}
     <svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${hexes}<circle class="pm-pin" cx="${(cx - left).toFixed(1)}" cy="${(cy - top).toFixed(1)}" r="4"/></svg>
     <div class="pm-zoom"><button class="ib glass" id="pm-in" aria-label="Zoom in">${icon("plus")}</button><button class="ib glass" id="pm-out" aria-label="Zoom out">${icon("minus")}</button></div>
-    <small class="pm-credit">© OpenStreetMap contributors © CARTO</small></div>`;
+    <small class="pm-credit">© OpenStreetMap contributors</small></div>`;
 }
 /* A corner of a hexagon 250 m across, as lat/lon. */
 function hexCornerOf(c, a) {
@@ -85,7 +85,7 @@ export function renderPlayMap() {
       <div class="pf-read"><b>${t.rings}</b><span>ring${t.rings === 1 ? "" : "s"}</span></div>
       <div class="pf-read"><b>${t.toNext.toLocaleString()}</b><span>to next ring</span></div>
     </div>
-    <p class="foot">A play counts when a song is played through. Rings grow with the square root of your plays, so ring ${t.rings + 1} arrives at ${t.nextAt.toLocaleString()}. ${spot ? "Your spot is kept to about a kilometre, on this phone only, and is never in a backup. The map pictures come from CARTO, which sees the area shown and your address, not your plays." : "No location is kept and no map is loaded."}</p>
+    <p class="foot">A play counts when a song is played through. Rings grow with the square root of your plays, so ring ${t.rings + 1} arrives at ${t.nextAt.toLocaleString()}. ${spot ? "Your spot is kept to about a kilometre, on this phone only, and is never in a backup. The map pictures come from OpenStreetMap, which sees the area shown and your address, not your plays." : "No location is kept and no map is loaded."}</p>
     <div class="s-dock pf-dock">
       ${spot ? `<button class="btn" id="pm-forget">Forget my spot</button>` : `<button class="btn" id="pm-spot">Add my practice spot</button>`}
     </div>`;
@@ -105,7 +105,7 @@ function renderInvite(spotOnly = false) {
     <h1 class="title" style="margin:14px 2px 2px">Play map</h1>
     <p class="pf-line" style="margin:10px 2px">Every song you play through adds ground to a territory of hexagons around your practice spot, shown on a real map.</p>
     <section class="pf-card"><h2>What is kept</h2>
-      <p class="pf-line">${spotOnly ? "" : "Nothing, until you continue. "}If you continue, Tabs asks the phone for its position once and keeps it to about a kilometre, in its own place on this phone. It is not in your library, so it is not in a backup or a shared link. To show the map, the phone loads map pictures from CARTO (OpenStreetMap data), so CARTO sees the area you are looking at and your network address. It never sees your plays. You can forget the spot at any time. Without a location, the territory is drawn on a plain ground and no map is loaded.</p></section>
+      <p class="pf-line">${spotOnly ? "" : "Nothing, until you continue. "}If you continue, Tabs asks the phone for its position once and keeps it to about a kilometre, in its own place on this phone. It is not in your library, so it is not in a backup or a shared link. To show the map, the phone loads map pictures from OpenStreetMap, so its servers see the area you are looking at and your network address. It never sees your plays. You can forget the spot at any time. Without a location, the territory is drawn on a plain ground and no map is loaded.</p></section>
     <div class="s-dock pf-dock">
       <button class="btn primary" id="pm-go">${icon("focus")}Continue and share my location</button>
       ${spotOnly ? "" : `<button class="btn" id="pm-none">Without a location</button>`}

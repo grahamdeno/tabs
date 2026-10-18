@@ -482,7 +482,7 @@ test("Play map: off until chosen, asks for the position only after Continue, kee
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 5, last: Date.now(), days: { [new Date().toISOString().slice(0, 10)]: 5 } } }));
   const page = await phone(t, { ...LIB, songs }, { geolocation: { latitude: 40.71278, longitude: -74.00594 }, permissions: [] });
   const tiles = []; const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg==", "base64");
-  await page.route(/basemaps\.cartocdn\.com/, r => { tiles.push(r.request().url()); r.fulfill({ contentType: "image/png", body: png }); });
+  await page.route(/tile\.openstreetmap\.org/, r => { tiles.push(r.request().url()); r.fulfill({ contentType: "image/png", body: png }); });
   await page.evaluate(() => { window.__asked = 0; const g = navigator.geolocation, f = g.getCurrentPosition.bind(g); g.getCurrentPosition = (...a) => { window.__asked++; return f(...a); }; });
   await page.evaluate(() => { location.hash = "#/playmap"; });
   await page.waitForSelector("#pm-go");
@@ -500,7 +500,7 @@ test("Play map: off until chosen, asks for the position only after Continue, kee
   await page.click("#pm-go");
   await page.waitForSelector("#pm-forget");
   await page.waitForFunction(() => document.querySelectorAll(".pm-tile").length > 0);
-  assert.ok(tiles.length > 0 && tiles.every(u => /\/(dark_all|light_all)\/\d+\/\d+\/\d+\.png$/.test(u)));
+  assert.ok(tiles.length > 0 && tiles.every(u => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(u)));
   assert.ok(await page.locator(".pm-real .pm-cell").count() >= 1, "the territory is laid over the map");
   const z0 = tiles[0].match(/\/(\d+)\/\d+\/\d+\.png$/)[1];
   await page.click("#pm-in"); await page.waitForFunction(z => [...document.querySelectorAll(".pm-tile")].some(i => i.src.includes(`/${+z + 1}/`)), z0);
