@@ -53,7 +53,27 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
 | `tone` | object | Spark tone result |
 | `sketch` | object | Made with Sing it: `{ v: 1, key, style: "simple" \| "rich", lines: [{ n: [[midi, start, length], ...] }] }`, the sung melody per line (seconds, to 0.01), for restyling and chord suggestions. Older sketches may hold `true` |
+| `status` | `"learning"` or `"got"` | Learning status |
+| `gotAt` | ISO date | When the song was marked Got it, for Repertoire on Your playing (2.42.0) |
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
+
+### Journal
+
+`journal` sits beside `songs` and `sets`: the lifetime counts behind Your playing, since the play log keeps only 60 days. It holds counts, never a list of plays, so it stays small. It's worked out once from the songs already played (play totals, the days still in the log, when each song was added) and then updated as you play; `seeded` is that day, and numbers from before it are estimates. A backup carries it; a missing or broken field is put back to empty.
+
+| Field | Type | Notes |
+|---|---|---|
+| `v` | 1 | Format version |
+| `since`, `seeded` | `YYYY-MM-DD` | The first day it covers; the day it was worked out from the library |
+| `secs` | number | Seconds of playing: time a song scrolled, finished or not |
+| `chords` | `{ [chord]: { n, first } }` | Plays that used the chord (in the shapes played), and the day of the first |
+| `changes` | `{ "a\|b": n }` | Switches between two chords |
+| `keys` | `{ [key]: n }` | Plays by the key the song sounds in |
+| `months` | `{ "YYYY-MM": { plays, secs, bpm, bpmN } }` | Per month; `bpm / bpmN` is the average tempo |
+| `week` | 168 numbers | Plays per hour of the week, Sunday midnight first |
+| `best` | integer | Longest streak in days |
+| `firsts` | `[{ kind: "chord" \| "got", name, at }]` | Newest milestones first, 40 kept |
+| `tune` | `{ n, checked: [6], drift: [6] }` | Tuner sessions; per string (low E first) how often it was checked and how often it had drifted past 5 cents |
 
 ### Set
 

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo } from "./core.js";
+import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -151,6 +151,7 @@ function renderLibrary() {
     <div class="head">
       <h1 class="title script">Library</h1>
       <div class="row-btns">
+        <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
         ${tunerBtn("ib glass")}
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
       </div>
@@ -182,6 +183,7 @@ function renderLibrary() {
     </div>`;
   bindToday();
   $("settings").onclick = () => go("#/settings");
+  $("youbtn").onclick = () => go("#/you");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
@@ -806,6 +808,7 @@ function renderViewer(id) {
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
+    if (song.status === "got") journalGot(data, song);
     Tabs.save(data); paintStat();
     toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
   };
@@ -2194,6 +2197,7 @@ async function startScroll(song, opts = {}) {
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
+      scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
       scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song) * loopFactor(song);
       const px = Math.floor(scroll.carry);
@@ -2215,6 +2219,8 @@ onLeave(() => stopScroll());
 function stopScroll() {
   const was = scroll.on;
   scroll.on = false; scroll.duet = false;
+  if (scroll.ms > 1000) { journalTime(data, scroll.ms / 1000); Tabs.save(data); }
+  scroll.ms = 0;
   stopMetronome();
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
@@ -2304,6 +2310,7 @@ function renderRoute() {
     if (song) songEditor(song, want.view);
   }
   else if (r.name === "settings" || r.name === "trash") settingsMod().then(m => { if (route().name !== r.name) return; (r.name === "settings" ? m.renderSettings : m.renderTrash)(); window.scrollTo(0, 0); });
+  else if (r.name === "you") lazy("profile.js").then(m => { if (route().name === "you") { m.renderProfile(); window.scrollTo(0, 0); } });
   else if (r.name === "gestures") { renderGestures(); window.scrollTo(0, 0); }
   else if (r.name === "sketch") lazy("sketch.js").then(m => { if (route().name === "sketch") m.renderSketch(); });
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }

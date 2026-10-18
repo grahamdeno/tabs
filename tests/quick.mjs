@@ -14,7 +14,7 @@ const changed = new Set([
 // Which browser test files cover which app files.
 const COVERS = {
   "app.js": ["app", "regress", "duet", "changes", "today", "swipe"],
-  "core.js": ["app", "changes", "today"],
+  "core.js": ["app", "changes", "today", "profile"],
   "ui.js": ["app", "regress"],
   "settings.js": ["settings", "today"],
   "findai.js": ["playnext", "getsong"],
@@ -30,7 +30,8 @@ const COVERS = {
   "store.js": ["app"],
   "styles.css": ["regress", "a11y"],
   "index.html": ["app", "a11y"],
-  "sw.js": ["app"]
+  "sw.js": ["app"],
+  "profile.js": ["profile"]
 };
 const files = new Set();
 for (const f of changed) {

@@ -40,6 +40,12 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Hears a string at playing distance: it learns how loud the room is and listens just above that, and keeps the reading while the string fades. Once it knows which string you are tuning, it listens closely around that note, which keeps a quiet high e or a boomy low E from being misread. A shaky reading or a short dropout no longer starts the in-tune count over.
 - Standard, Drop D, half and whole step down, DADGAD, Open G and Open D. It shows up where tuning happens: the library, songs in another tuning, sets and Next up.
 
+### Your playing
+- The pick button on the library opens Your playing: hours played, songs played and your streak in a gold plate, then your newest milestones (a first chord, a song you've got).
+- Chord passport: every chord you've played, how often, and the day of the first, with barre chords marked and the next common chord to earn.
+- Your changes (the switches you make most), when you play (day and time of day, longest streak, best month), keys and tempo (where you live and whether your tempo is rising), repertoire over the last year, go-to songs next to ones worth another try (each opens the song), sets, and which string drifts most when you tune.
+- Share my playing makes a picture of the headline and your passport for the share sheet. Everything is worked out on the phone; nothing is sent unless you share it.
+
 ### Listening and sharing
 - Listen searches Apple Music's public catalog inside the app, plays 30-second previews, and saves the right recording with its album art and length. Spotify or YouTube links can be pasted too.
 - Share a song or a set as a link. The song travels inside the link; no server. Opening one offers to add it.
@@ -120,6 +126,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `store.js` | Safety copy, backups, storage, problems log |
 | `share.js` | Share links, opening a shared link, Play together |
 | `listen.js` | Listen: recordings, previews, length from the recording |
+| `profile.js` | Your playing: the profile page and its share card (numbers from `profileOf` in `core.js`) |
 | `ring.js` | One-handed controls: the island, the arc, the hold-Play ring, Play following the hand |
 | `dial.js` | The corner dial (speed meter, key, set picker) |
 | `findai.js` | Play next, chord charts, Get the song |

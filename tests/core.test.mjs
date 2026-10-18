@@ -1124,3 +1124,45 @@ test("tuner sensitivity: a quiet string at playing distance reads with the room'
   const f = C.detectPitch(out, sr, 0.0015);
   assert.ok(Math.abs(1200 * Math.log2(f / f0)) < 3, `heard at a lower level: ${f.toFixed(2)} Hz`);
 });
+
+// ---------- Your playing ----------
+test("profile: the journal is worked out once from songs already played, then counts each play", () => {
+  const now = Date.parse("2026-10-17T19:30:00");
+  const data = { songs: [
+    { id: "a", title: "One", body: "[Verse]\nG C D G", created: "2026-03-01T10:00:00Z", status: "got", gotAt: "2026-05-02T10:00:00Z", bpm: 100, key: "G", duration: 180, playLog: { total: 10, last: now - 86400e3, days: { "2026-10-16": 2 } } },
+    { id: "b", title: "Two", body: "[Verse]\nAm F C G", created: "2026-09-01T10:00:00Z", playLog: { total: 1, last: now - 40 * 86400e3, days: {} } }
+  ], sets: [], settings: {} };
+  const p = C.profileOf(data, now);
+  assert.equal(p.since, "2026-03-01");
+  assert.equal(p.songsPlayed, 2); assert.equal(p.plays, 11);
+  assert.ok(Math.abs(p.hours - (10 * 180 + 1 * 210) / 3600) < 1e-9, "hours from each song's length");
+  assert.deepEqual(p.chords.map(c => c.name).slice(0, 3), ["G", "C", "D"], "oldest stamps first");
+  assert.equal(p.chords.find(c => c.name === "G").n, 11);
+  assert.ok(p.chords.find(c => c.name === "F").barre, "F is a barre stamp");
+  assert.equal(p.nextStamp, "Em", "the next common chord you haven't played");
+  assert.equal(p.changes[0].n >= 10, true);
+  assert.equal(p.keys[0].key, "G");
+  assert.deepEqual(p.dropped.map(s => s.id), ["b"], "tried once, not for three weeks");
+  assert.equal(p.got, 1); assert.equal(p.repertoire.at(-1).n, 1); assert.equal(p.yearAgo, 0);
+  // A new play: a first chord is a milestone, and the hour of the week is counted.
+  data.songs.push({ id: "c", title: "Three", body: "[Verse]\nBm G", playLog: { total: 0, last: 0, days: {} } });
+  C.Tabs.logPlay(data, data.songs[2], now);
+  const q = C.profileOf(data, now);
+  assert.equal(q.firsts[0].name, "Bm"); assert.equal(q.firsts[0].kind, "chord");
+  assert.equal(data.journal.week[6 * 24 + 19], 1, "Saturday, 7 pm");
+  assert.equal(q.rhythm.top, "Saturday evenings");
+  C.journalTime(data, 125, now);
+  assert.ok(Math.abs(C.profileOf(data, now).hours * 3600 - (10 * 180 + 210 + 125)) < 1e-6, "time played is added");
+});
+
+test("profile: tuner sessions show which string drifts; a journal from a backup is repaired", () => {
+  const data = { songs: [], sets: [], settings: {} };
+  for (let i = 0; i < 4; i++) C.journalTune(data, [1, -2, 0, 3, i < 3 ? -12 : 2, 0]);
+  const p = C.profileOf(data);
+  assert.equal(p.tune.sessions, 4); assert.equal(p.tune.worst.string, "B"); assert.equal(p.tune.worst.rate, 0.75);
+  const bad = { songs: [], sets: [], settings: {}, journal: { v: 1, week: "x", tune: null, chords: [] } };
+  assert.doesNotThrow(() => C.profileOf(bad));
+  assert.equal(bad.journal.week.length, 168);
+  const r = C.Tabs.import(JSON.stringify({ songs: [{ id: "a", body: "G" }], journal: { v: 1, secs: 3600 } }));
+  assert.equal(r.data.journal.secs, 3600, "a backup keeps the journal");
+});

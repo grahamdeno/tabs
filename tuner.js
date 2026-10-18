@@ -3,7 +3,7 @@
 // the key to turn (Guided walks the strings low to high), Chromatic reads any note.
 // A meter shows how far off the string is; its middle is stretched, so the last
 // few cents are easy to see.
-import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch } from "./core.js";
+import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch, journalTune } from "./core.js";
 import { HEADS } from "./heads.js";
 import { sound } from "./ui.js";
 import { $, data, icon, layer, esc, coach, markUsed, toast } from "./app.js";
@@ -22,7 +22,10 @@ export function closeTuner() {
   clearInterval(t.timer);
   t.stream?.getTracks().forEach(tr => tr.stop());
   t.src?.disconnect?.(); /* the shared audio engine stays */
-  if (t.ok.filter(Boolean).length >= 3) { data.settings.lastTuned = Date.now(); Tabs.save(data); }
+  if (t.ok.filter(Boolean).length >= 3) data.settings.lastTuned = Date.now();
+  /* For Your playing: how far each string had drifted when first heard. */
+  if (t.first?.length) journalTune(data, t.first);
+  Tabs.save(data);
   layer.innerHTML = "";
   document.body.classList.remove("tuning");
   t.onClose?.();
@@ -327,6 +330,8 @@ function listen(t, an, buf) {
   t.dispIdx = idx;
   t.disp = t.disp == null || Math.abs(raw - t.disp) > 20 ? raw : t.disp * 0.55 + raw * 0.45;
   const cents = Math.round(t.disp);
+  /* The string's first steady reading this session: how far it had drifted. */
+  if (t.hits.length >= 3 && (t.first ||= [])[idx] == null) t.first[idx] = cents;
   const adv = tuneAdvice(cents);
   const good = adv.tone === "good";
   if (!t.guided && t.lock < 0 && idx !== t.cur) { t.cur = idx; t.good = good; t.paintHead(); }
