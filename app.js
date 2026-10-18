@@ -2325,6 +2325,7 @@ async function startScroll(song, opts = {}) {
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
       scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
+      if (scroll.ms - (scroll.saved || 0) > 20000) { journalTime(data, (scroll.ms - (scroll.saved || 0)) / 1000); scroll.saved = scroll.ms; Tabs.save(data); } /* every 20 s, so closing the app mid-song loses nothing */
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
       scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song) * loopFactor(song);
       const px = Math.floor(scroll.carry);
@@ -2368,8 +2369,8 @@ function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;
   scroll.on = false; scroll.duet = false;
-  if (scroll.ms > 1000) { journalTime(data, scroll.ms / 1000); Tabs.save(data); }
-  scroll.ms = 0;
+  if (scroll.ms - (scroll.saved || 0) > 1000) { journalTime(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
+  scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());

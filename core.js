@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.5.0";
+export const VERSION = "3.5.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2789,10 +2789,19 @@ export function edgePressure(edge, rivals, sceneTurf, guitaristsAt) {
   }
   return { bar, by };
 }
-/* Your daily average over the last 7 days, from the journal's per-day seconds. */
+/* Your daily average over the last 7 days. Each day counts the time recorded while a song
+   scrolled, or, if more, the length of the songs played through that day (so plays from
+   before time was recorded, and a song closed early, still count). */
 export function userAvg7(data, now = Date.now()) {
   const days = journalOf(data, now).days || {};
-  let s = 0; for (let i = 0; i < 7; i++) s += days[dayKey(now - i * DAY)] || 0;
+  let s = 0;
+  for (let i = 0; i < 7; i++) {
+    const k = dayKey(now - i * DAY);
+    let est = 0;
+    for (const song of data.songs || []) est += (song.playLog?.days?.[k] || 0) * playedSecs(song);
+    est += (data.kept?.days?.[k] || 0) * 210;
+    s += Math.max(days[k] || 0, est);
+  }
   return Math.round(s / 60 / 7 * 10) / 10;
 }
 /* Once a day: count the days your average sat below the pressure on your edge,

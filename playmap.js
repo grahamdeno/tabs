@@ -119,7 +119,7 @@ function sceneSheet(sc) {
   /* the scene this week: everyone ranked by minutes a day, you always shown */
   const board = [...sc.rivals.map((r, i) => ({ name: r.name, avg: r.avg7, c: RIVAL_COLORS[i % RIVAL_COLORS.length] })), { name: "You", avg: sc.avg, you: true }].sort((a, b) => b.avg - a.avg);
   const top = Math.max(1, board[0].avg), me = board.findIndex(b => b.you);
-  const row = (b, i) => `<div class="tm-bd${b.you ? " you" : ""}"><span>${i + 1}</span><span>${esc(b.name)}</span><i style="--c:${b.c || "#ffb24a"};width:${Math.max(b.avg ? 3 : 0, Math.round(b.avg / top * 100))}%"></i><b>${Math.round(b.avg)}</b></div>`;
+  const row = (b, i) => `<div class="tm-bd${b.you ? " you" : ""}"><span>${i + 1}</span><span>${esc(b.name)}</span><i style="--c:${b.c || "#ffb24a"};width:${Math.max(b.avg ? 3 : 0, Math.round(b.avg / top * 100))}%"></i><b>${b.avg >= 10 ? Math.round(b.avg) : Math.round(b.avg * 10) / 10}</b></div>`;
   const shown = board.slice(0, 3).map(row);
   if (me > 3) shown.push(`<div class="tm-bd more"><span></span><span>${plural(me - 3, "more player")}</span><i></i><b></b></div>`);
   if (me >= 3) shown.push(row(board[me], me));
