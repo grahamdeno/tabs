@@ -1815,7 +1815,7 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 body.tm-open { overflow: hidden; overscroll-behavior: none; }
 body.tm-open .app { padding: 0; }
 .tm-page { position: fixed; inset: 0; z-index: 3; touch-action: none; background: #0c0d0f; }
-.tm-map, .tm-map.leaflet-container { position: absolute; inset: 0; background: #0c0d0f; }
+.tm-map, .tm-map.leaflet-container { position: absolute; inset: 0; z-index: 0; /* its own layer, so Leaflet's controls (z-index 800) stay under the sheet */ background: #0c0d0f; }
 .tm-map.plain { background-color: #141316; background-image: var(--tolex); background-size: 220px 220px; }
 .tm-map .tm-tiles { filter: invert(1) hue-rotate(180deg) brightness(.78) contrast(.92) saturate(.55); }
 .tm-map .tm-halo { filter: blur(3px); }
