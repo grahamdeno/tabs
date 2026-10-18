@@ -1780,34 +1780,85 @@ function getSong(...args) { findAI().then(m => m.getSong(...args)); }
 function nextSongs() { findAI().then(m => m.nextSongs()); }
 
 // ---------- Metronome ----------
-// A steady click at the song's tempo while it scrolls (on from the ••• menu).
-// Beats are scheduled ahead on the audio clock, so they stay even.
+// A drum beat at the song's tempo while it scrolls (on from the ••• menu):
+// kick on 1 (and the middle of the bar), snare on the backbeats, and a closed
+// hi-hat on every eighth note. Hits are scheduled ahead on the audio clock,
+// so they stay even.
 const metro = { timer: 0, next: 0, beat: 0 };
 function startMetronome(song) {
   stopMetronome();
   if (!data.settings.metronome) return;
   const audio = sound();
   if (!audio) return;
-  const spb = 60 / (song.bpm || 90);
+  const spb = 60 / (song.bpm || 90), beats = song.beats || 4;
   metro.next = audio.currentTime + 0.05; metro.beat = 0;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
-      clickAt(metro.next, metro.beat % (song.beats || 4) === 0);
+      drumBeat(metro.next, metro.beat % beats, beats, spb);
       metro.next += spb; metro.beat++;
     }
   }, 25);
 }
 function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; }
-function clickAt(t, accent) {
+/* One beat of the pattern. In 4/4: kick 1 and 3, snare 2 and 4. In 3/4
+   (or any odd count): kick on 1, snare on the rest, a little softer. */
+function drumBeat(t, b, beats, spb) {
+  const even = beats % 2 === 0;
+  if (b === 0 || (even && b === beats / 2)) drum("kick", t, b === 0 ? 1 : 0.85);
+  else drum("snare", t, even ? 1 : 0.7);
+  drum("hat", t, b === 0 ? 1 : 0.8);
+  drum("hat", t + spb / 2, 0.55);
+}
+/* White noise, made once per audio engine, for the snare and the hi-hat. */
+let noiseBuf = null;
+const noise = audio => {
+  if (noiseBuf?.sampleRate === audio.sampleRate) return noiseBuf;
+  noiseBuf = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+};
+/* Synthesized drums: nothing to download.
+   kick   a sine that drops from 150 to 50 Hz, with a short knock so a phone
+          speaker that can't play the low end still sounds it
+   snare  a short tone for the drum body under a burst of filtered noise
+   hat    a very short burst of high noise: a closed hi-hat */
+function drum(kind, t, vel = 1) {
   const audio = sound();
   if (!audio) return;
-  const o = audio.createOscillator(), g = audio.createGain();
-  o.frequency.value = accent ? 1320 : 880;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(accent ? 0.22 : 0.12, t + 0.005);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
-  o.connect(g).connect(audio.destination);
-  o.start(t); o.stop(t + 0.09);
+  try {
+    const out = audio.createGain();
+    out.connect(audio.destination);
+    const env = (node, peak, len) => {
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak * vel, t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      node.connect(g).connect(out);
+    };
+    const burst = (type, freq, q, peak, len) => {
+      const src = audio.createBufferSource(), f = audio.createBiquadFilter();
+      src.buffer = noise(audio); f.type = type; f.frequency.value = freq; f.Q.value = q;
+      src.connect(f); env(f, peak, len);
+      src.start(t, Math.random() * 0.5); src.stop(t + len + 0.02);
+    };
+    if (kind === "kick") {
+      const o = audio.createOscillator();
+      o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(50, t + 0.12);
+      env(o, 0.75, 0.32);
+      o.start(t); o.stop(t + 0.34);
+      burst("bandpass", 1800, 1.2, 0.12, 0.02);
+    } else if (kind === "snare") {
+      const o = audio.createOscillator();
+      o.type = "triangle"; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(170, t + 0.05);
+      env(o, 0.25, 0.09);
+      o.start(t); o.stop(t + 0.1);
+      burst("highpass", 1400, 0.7, 0.35, 0.17);
+    } else {
+      burst("highpass", 7500, 0.8, 0.14, 0.045);
+    }
+  } catch {}
 }
 
 // ---------- Tuner ----------
@@ -1991,19 +2042,12 @@ function pxPerSecond(song) {
 }
 
 // One bar of count-in before scrolling: a bar of beats (four unless the song says) at the song's tempo (90 if unset),
-// shown large and quiet over the reading point, with a soft click.
+// shown large and quiet over the reading point, with a hi-hat on each beat.
+/* The count-in is the drummer counting off: a hi-hat on each beat, a
+   little louder on the first. */
 function click(accent) {
-  try {
-    const audio = sound();
-    if (!audio) return;
-    const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
-    o.frequency.value = accent ? 1320 : 880;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(accent ? 0.25 : 0.15, t + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-    o.connect(g).connect(audio.destination);
-    o.start(t); o.stop(t + 0.1);
-  } catch {}
+  const audio = sound();
+  if (audio) drum("hat", audio.currentTime + 0.01, accent ? 1.4 : 1);
 }
 function countIn(song) {
   return new Promise(resolve => {

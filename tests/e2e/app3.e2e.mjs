@@ -303,3 +303,21 @@ test("2.33.0: writing mode keeps the song in view: a strip with title, artist an
   assert.equal(await page.evaluate(() => document.activeElement.id), "ed-body", "Return again: back to the pad");
   assert.match(await page.innerText("#ed-strip"), /Porch Light\s*·\s*Me\s*·\s*Key G/);
 });
+
+test("the metronome plays a drum beat: kick, snare and hi-hat", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, metronome: true, countIn: false, controls: "bar" } });
+  await page.evaluate(() => {
+    window.__hits = { osc: 0, noise: 0 };
+    const C = window.AudioContext || window.webkitAudioContext;
+    const o = C.prototype.createOscillator, n = C.prototype.createBufferSource;
+    C.prototype.createOscillator = function () { window.__hits.osc++; return o.call(this); };
+    C.prototype.createBufferSource = function () { window.__hits.noise++; return n.call(this); };
+  });
+  const errors = []; page.on("pageerror", e => errors.push(String(e)));
+  await page.click(".list .row"); await page.waitForSelector("#play");
+  await page.click("#play"); await page.waitForTimeout(1500);
+  const h = await page.evaluate(() => window.__hits);
+  assert.ok(h.osc >= 2, `kick and snare drums (${h.osc})`);
+  assert.ok(h.noise >= 4, `snare and hi-hat noise (${h.noise})`);
+  assert.deepEqual(errors, []);
+});
