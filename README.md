@@ -106,7 +106,6 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | File | What's in it |
 |---|---|
 | `index.html` | Page shell and content security policy |
-| `fonts/` | The Library title's script font, trimmed to the letters it uses |
 | `styles.css` | All styles; the amp theme materials are at the end |
 | `core.js` | Data, parsing, chords, transposing, Changes, tuner math. No screen code; unit tested |
 | `app.js` | Library, song page (auto-scroll, Now and Next, song map, iPad layouts, pedals), Find songs, router |
@@ -157,7 +156,6 @@ Problems: the last 20 errors are kept on the phone, and the first in a session s
 - Lyrics: [LRCLIB](https://lrclib.net). Fetched only for Get the song, stored on the phone, never shared by Tabs.
 - Tempo data by [GetSongBPM.com](https://getsongbpm.com). Optional free key from [getsongbpm.com/api](https://getsongbpm.com/api), kept on the phone and out of backups.
 - Weather data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0). Only the chosen city's position is sent, once a day.
-- The Library title is set in [Great Vibes](https://github.com/google/fonts/tree/main/ofl/greatvibes) by TypeSETit (SIL Open Font License, `fonts/GreatVibes-OFL.txt`), trimmed to the letters of "Library".
 - Strum it uses [Basic Pitch](https://github.com/spotify/basic-pitch-ts) by Spotify and TensorFlow.js (both Apache-2.0), bundled into `vendor/basic-pitch/` by `.github/workflows/vendor-bp.yml`.
 
 ## License
