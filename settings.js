@@ -1,5 +1,5 @@
 // Tabs Settings and Recently deleted screens.
-import { SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
+import { DRUM_BEATS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { askMotion } from "./ring.js";
@@ -20,6 +20,7 @@ function renderSettings() {
     </div>
     <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
   const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
+  const beatPick = DRUM_BEATS.find(([k]) => k === s.metroBeat) || DRUM_BEATS[0], swing = ["light", "full"].includes(s.metroSwing) ? s.metroSwing : "straight";
   const PAGES = {
     playing: ["Playing", `
     <div class="set-group glass">
@@ -43,6 +44,18 @@ function renderSettings() {
         <span class="tile">${icon("note")}</span><span class="name">Metronome sound</span>
         <div class="seg mini" id="s-metsound" role="group" aria-label="Metronome sound">${[["click", "Click"], ["drums", "Drums"]].map(([k, n]) => `<button data-m="${k}" class="${metSound === k ? "on" : ""}" aria-pressed="${metSound === k}">${n}</button>`).join("")}</div>
       </div>
+      ${metSound === "drums" ? `<div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Drum beat</span><span class="val">${beatPick[1]}</span>${icon("chev", "chev")}
+        <select id="s-metbeat" aria-label="Drum beat">${DRUM_BEATS.map(([k, n]) => `<option value="${k}" ${beatPick[0] === k ? "selected" : ""}>${n}</option>`).join("")}</select>
+      </div>
+      <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Swing</span>
+        <div class="seg mini" id="s-metswing" role="group" aria-label="Swing">${[["straight", "Straight"], ["light", "Light"], ["full", "Full"]].map(([k, n]) => `<button data-m="${k}" class="${swing === k ? "on" : ""}" aria-pressed="${swing === k}">${n}</button>`).join("")}</div>
+      </div>` : ""}
+      <div class="set">
+        <span class="tile">${icon("metro")}</span><span class="name">Drop-out practice</span>
+        <button class="toggle ${s.metroDrop ? "on" : ""}" id="s-metdrop" role="switch" aria-checked="${!!s.metroDrop}" aria-label="Drop-out practice"></button>
+      </div>
       <div class="set">
         <span class="tile">${icon("flame")}</span><span class="name">Streak celebration</span>
         <button class="toggle ${s.streakMoment !== false ? "on" : ""}" id="s-streak" role="switch" aria-checked="${s.streakMoment !== false}" aria-label="Streak celebration"></button>
@@ -52,7 +65,7 @@ function renderSettings() {
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat (kick, snare and hi-hat), and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Streak celebration shows your streak once a day, after the first song you play to the end. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
     diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">
@@ -224,6 +237,9 @@ function renderSettings() {
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); });
   $("s-metvol")?.addEventListener("change", () => metroPreview());
+  $("s-metbeat")?.addEventListener("change", e => { s.metroBeat = e.target.value; Tabs.save(data); renderSettings(); metroPreview(); });
+  app.querySelectorAll("#s-metswing [data-m]").forEach(b => b.onclick = () => { s.metroSwing = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
+  $("s-metdrop")?.addEventListener("click", () => { s.metroDrop = !s.metroDrop; Tabs.save(data); renderSettings(); });
   app.querySelectorAll("#s-metsound [data-m]").forEach(b => b.onclick = () => { s.metroSound = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
   $("s-tolex").onclick = () => { s.tolex = !s.tolex; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };

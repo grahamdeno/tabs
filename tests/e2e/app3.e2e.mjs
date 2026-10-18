@@ -334,6 +334,13 @@ test("Settings: the metronome's switch, volume and sound; a song with no tempo g
   const s = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
   assert.equal(s.metronome, true); assert.equal(s.metroVol, 0.4); assert.equal(s.metroSound, "click");
   assert.equal(await page.getAttribute("#s-metsound [data-m='click']", "aria-pressed"), "true");
+  assert.equal(await page.$("#s-metbeat"), null, "the drum beat and swing only show with Drums");
+  await page.click("#s-metsound [data-m='drums']"); await page.waitForSelector("#s-metbeat");
+  await page.selectOption("#s-metbeat", "half"); await page.click("#s-metswing [data-m='light']"); await page.click("#s-metdrop");
+  await page.click("#s-metsound [data-m='click']");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroDrop === true);
+  const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
+  assert.equal(s2.metroBeat, "half"); assert.equal(s2.metroSwing, "light"); assert.equal(s2.metroSound, "click");
   const id = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => !x.bpm)?.id);
   assert.ok(id, "a test song without a tempo");
   await page.evaluate(i => { location.hash = "#/song/" + encodeURIComponent(i); }, id); await page.waitForSelector("#play");

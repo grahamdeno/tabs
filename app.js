@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { drumHits, drumStyle, DRUM_SWING, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -1812,7 +1812,10 @@ async function startMetronome(song) {
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
       const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
-      if (metroDrums()) drumBeat(metro.next, metro.beat % beats, beats, spb);
+      /* Drop-out practice: every other bar is silent, so you hold the time. */
+      const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1;
+      if (quiet) { /* silent bar */ }
+      else if (metroDrums()) drumBeat(metro.next, metro.beat % beats, beats, spb, drumStyle(data.settings.metroBeat, { bpm: song.bpm || 90, beats, body: song.body }));
       else clickAt(metro.next, metro.beat % beats === 0);
       metro.next += spb; metro.beat++;
     }
@@ -1840,12 +1843,12 @@ function tempoFor(song) {
   return tempoJobs.get(song.id);
 }
 function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; metro.run++; }
-/* Settings plays two beats in the chosen sound and volume. */
+/* Settings plays one bar in the chosen sound, beat and volume. */
 function metroPreview() {
   const audio = sound();
   if (!audio) return;
-  const t = audio.currentTime + 0.05, spb = 0.55;
-  for (let b = 0; b < 2; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb) : clickAt(t + b * spb, b === 0);
+  const t = audio.currentTime + 0.05, spb = 0.55, style = drumStyle(data.settings.metroBeat === "auto" || !data.settings.metroBeat ? "rock" : data.settings.metroBeat, { beats: 4 });
+  for (let b = 0; b < 4; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb, style) : clickAt(t + b * spb, b === 0);
 }
 /* The classic click: a short high beep, higher on 1. */
 function clickAt(t, accent) {
@@ -1859,14 +1862,11 @@ function clickAt(t, accent) {
   o.connect(g).connect(audio.destination);
   o.start(t); o.stop(t + 0.09);
 }
-/* One beat of the pattern. In 4/4: kick 1 and 3, snare 2 and 4. In 3/4
-   (or any odd count): kick on 1, snare on the rest, a little softer. */
-function drumBeat(t, b, beats, spb) {
-  const even = beats % 2 === 0;
-  if (b === 0 || (even && b === beats / 2)) drum("kick", t, b === 0 ? 1 : 0.85);
-  else drum("snare", t, even ? 1 : 0.7);
-  drum("hat", t, b === 0 ? 1 : 0.8);
-  drum("hat", t + spb / 2, 0.55);
+/* One pulse of the pattern (the patterns live in core.js). Swing moves the
+   off-beat eighth later; the chosen amount is in Settings > Playing. */
+function drumBeat(t, b, beats, spb, style) {
+  const swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
+  for (const h of drumHits(style, b, beats, swing)) drum(h.k, t + h.at * spb, h.v);
 }
 /* White noise, made once per audio engine, for the snare and the hi-hat. */
 let noiseBuf = null;
@@ -1881,7 +1881,9 @@ const noise = audio => {
    kick   a sine that drops from 150 to 50 Hz, with a short knock so a phone
           speaker that can't play the low end still sounds it
    snare  a short tone for the drum body under a burst of filtered noise
-   hat    a very short burst of high noise: a closed hi-hat */
+   hat    a very short burst of high noise: a closed hi-hat
+   open   the same noise, longer: an open hi-hat
+   stick  a short high knock with a click of noise: a side-stick on the rim */
 function drum(kind, t, vel = 1) {
   const audio = sound();
   if (!audio) return;
@@ -1915,6 +1917,14 @@ function drum(kind, t, vel = 1) {
       env(o, 0.25, 0.09);
       o.start(t); o.stop(t + 0.1);
       burst("highpass", 1400, 0.7, 0.35, 0.17);
+    } else if (kind === "open") {
+      burst("highpass", 7000, 0.8, 0.12, 0.22);
+    } else if (kind === "stick") {
+      const o = audio.createOscillator();
+      o.type = "triangle"; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(400, t + 0.03);
+      env(o, 0.3, 0.05);
+      o.start(t); o.stop(t + 0.06);
+      burst("bandpass", 2600, 3, 0.28, 0.035);
     } else {
       burst("highpass", 7500, 0.8, 0.14, 0.045);
     }

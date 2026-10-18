@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.43.0";
+export const VERSION = "2.44.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2334,4 +2334,50 @@ export function streakMoment(songs, now = Date.now(), best = 0) {
   const goalName = goal === 7 ? "a full week" : `${goal} days`;
   const next = n === 1 ? "Play tomorrow to start a streak." : hit ? `Next up: ${goalName}.` : `${plural(goal - n, "more day")} to ${goalName}.`;
   return { n, goal, hit, slots, tier, lead, next, best: Math.max(best || 0, n) };
+}
+
+// ---------- Drum beats ----------
+// The metronome's drum patterns. A pattern is a rule for what hits on each
+// pulse (a beat; an eighth note in 6/8), so the audio code only plays hits.
+export const DRUM_BEATS = [["auto", "Auto"], ["rock", "Rock"], ["half", "Half time"], ["ballad", "Ballad"], ["four", "Four on the floor"]];
+export const DRUM_SWING = { straight: 0.5, light: 0.58, full: 0.667 };
+export const drumBeatName = style => ({ six8: "6/8", waltz: "Waltz" }[style] || DRUM_BEATS.find(([k]) => k === style)?.[1] || "Rock");
+/* Which pattern plays. 6 and 12 beats are compound time and 3, 5, 7 and 9 are
+   odd, and those keep their own patterns whatever is picked. Auto goes by the
+   song: fingerpicked and slow gets the ballad, slow gets half time, fast gets
+   four on the floor. Half time and the ballad need four beats. */
+export function drumStyle(pick, { bpm = 90, beats = 4, body = "" } = {}) {
+  if (beats === 6 || beats === 12) return "six8";
+  if (beats % 2) return "waltz";
+  let s = DRUM_BEATS.some(([k]) => k === pick && k !== "auto") ? pick : "auto";
+  if (s === "auto") {
+    const finger = /finger/i.test(String(body).slice(0, 200));
+    s = finger && bpm < 110 ? "ballad" : bpm < 80 ? "half" : bpm >= 125 ? "four" : "rock";
+  }
+  return (s === "half" || s === "ballad") && beats !== 4 ? "rock" : s;
+}
+/* The hits on pulse b of a bar: { k: kind, at: where in the pulse (0 to 1),
+   v: how hard }. swing is where the off-beat eighth lands (0.5 is straight). */
+export function drumHits(style, b, beats = 4, swing = 0.5) {
+  const hits = [], hit = (k, at, v) => hits.push({ k, at, v });
+  if (style === "six8") {
+    if (b % 3 === 0) hit((b / 3) % 2 === 0 ? "kick" : "snare", 0, (b / 3) % 2 === 0 ? 1 : 0.9);
+    hit("hat", 0, b % 3 === 0 ? 0.9 : 0.5);
+  } else if (style === "ballad") {
+    if (b === 0) hit("kick", 0, 0.8);
+    else if (b % 2 === 1) hit("stick", 0, 0.8);
+    hit("hat", 0, 0.45);
+  } else if (style === "four") {
+    hit("kick", 0, b === 0 ? 1 : 0.85);
+    if (beats === 4 && b % 2 === 1) hit("snare", 0, 0.55);
+    hit("open", swing, 0.7);
+  } else {
+    const even = beats % 2 === 0;
+    if (style === "half") { if (b === 0) hit("kick", 0, 1); else if (b === 2) hit("snare", 0, 1); }
+    else if (b === 0 || (even && b === beats / 2)) hit("kick", 0, b === 0 ? 1 : 0.85);
+    else hit("snare", 0, even ? 1 : 0.7);
+    hit("hat", 0, b === 0 ? 1 : 0.8);
+    hit("hat", swing, 0.55);
+  }
+  return hits;
 }

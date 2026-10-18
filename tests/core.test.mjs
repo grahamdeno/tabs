@@ -1182,3 +1182,29 @@ test("streak moment: the count, the week row and the next milestone", () => {
   assert.equal(C.streakMoment(songs(1), now).lead, "Day one.");
   assert.equal(C.streakMoment(songs(31), now).tier, 3);
 });
+
+test("drum beats: Auto goes by the song, compound and odd time keep their own, swing moves the off-beat", () => {
+  const style = (pick, o) => C.drumStyle(pick, o);
+  assert.equal(style("auto", { bpm: 70, beats: 4 }), "half");
+  assert.equal(style("auto", { bpm: 100, beats: 4 }), "rock");
+  assert.equal(style("auto", { bpm: 130, beats: 4 }), "four");
+  assert.equal(style("auto", { bpm: 90, beats: 4, body: "Capo 2 · Fingerpicked: thumb and three fingers\n" }), "ballad");
+  assert.equal(style("auto", { bpm: 140, beats: 4, body: "Fingerpicked\n" }), "four", "fast fingerpicking is not a ballad");
+  assert.equal(style("half", { bpm: 140, beats: 4 }), "half", "a pick wins over Auto");
+  assert.equal(style("ballad", { beats: 2 }), "rock", "half time and the ballad need four beats");
+  assert.equal(style("four", { beats: 6 }), "six8", "6 and 12 beats are compound");
+  assert.equal(style("four", { beats: 12 }), "six8");
+  assert.equal(style("rock", { beats: 3 }), "waltz");
+  const kinds = (st, b, beats = 4) => C.drumHits(st, b, beats).map(h => h.k).sort().join();
+  assert.equal(kinds("rock", 0), "hat,hat,kick"); assert.equal(kinds("rock", 1), "hat,hat,snare");
+  assert.equal(kinds("half", 0), "hat,hat,kick"); assert.equal(kinds("half", 1), "hat,hat"); assert.equal(kinds("half", 2), "hat,hat,snare");
+  assert.equal(kinds("ballad", 0), "hat,kick"); assert.equal(kinds("ballad", 1), "hat,stick"); assert.equal(kinds("ballad", 2), "hat");
+  assert.equal(kinds("four", 0), "kick,open"); assert.equal(kinds("four", 1), "kick,open,snare");
+  assert.equal(kinds("six8", 0, 6), "hat,kick"); assert.equal(kinds("six8", 3, 6), "hat,snare"); assert.equal(kinds("six8", 1, 6), "hat");
+  assert.equal(kinds("six8", 6, 12), "hat,kick", "12/8: kick on 1 and 7, snare on 4 and 10");
+  assert.equal(kinds("six8", 9, 12), "hat,snare");
+  assert.equal(kinds("waltz", 0, 3), "hat,hat,kick"); assert.equal(kinds("waltz", 2, 3), "hat,hat,snare");
+  const off = (swing) => C.drumHits("rock", 0, 4, swing).filter(h => h.k === "hat").map(h => h.at).sort()[1];
+  assert.equal(off(C.DRUM_SWING.straight), 0.5); assert.ok(off(C.DRUM_SWING.full) > off(C.DRUM_SWING.light) && off(C.DRUM_SWING.light) > 0.5);
+  assert.equal(C.drumHits("ballad", 1, 4, 0.667).every(h => h.at === 0), true, "the ballad has no off-beats to swing");
+});
