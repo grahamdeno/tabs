@@ -1166,3 +1166,19 @@ test("profile: tuner sessions show which string drifts; a journal from a backup 
   const r = C.Tabs.import(JSON.stringify({ songs: [{ id: "a", body: "G" }], journal: { v: 1, secs: 3600 } }));
   assert.equal(r.data.journal.secs, 3600, "a backup keeps the journal");
 });
+
+test("streak moment: the count, the week row and the next milestone", () => {
+  const now = new Date(2026, 9, 17, 20).getTime();
+  const key = i => { const d = new Date(now - i * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const songs = k => [{ playLog: { total: k, last: now, days: Object.fromEntries(Array.from({ length: k }, (_, i) => [key(i), 1])) } }];
+  const four = C.streakMoment(songs(4), now, 12);
+  assert.equal(four.n, 4); assert.equal(four.goal, 7); assert.equal(four.lead, "4 days in a row."); assert.equal(four.next, "3 more days to a full week.");
+  assert.deepEqual(four.slots.map(s => s.label), ["We", "Th", "Fr", "Sa", "Su", "Mo", "Tu"]);
+  assert.deepEqual(four.slots.map(s => s.on), [true, true, true, true, false, false, false]);
+  assert.equal(four.slots[3].today, true); assert.equal(four.slots[6].goal, 7); assert.equal(four.best, 12);
+  const week = C.streakMoment(songs(7), now);
+  assert.equal(week.hit, true); assert.equal(week.lead, "A full week in a row."); assert.equal(week.next, "Next up: 30 days."); assert.equal(week.tier, 2);
+  assert.equal(week.slots.find(s => s.today).goal, 7, "today's lamp is the milestone");
+  assert.equal(C.streakMoment(songs(1), now).lead, "Day one.");
+  assert.equal(C.streakMoment(songs(31), now).tier, 3);
+});

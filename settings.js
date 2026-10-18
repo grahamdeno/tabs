@@ -44,11 +44,15 @@ function renderSettings() {
         <div class="seg mini" id="s-metsound" role="group" aria-label="Metronome sound">${[["click", "Click"], ["drums", "Drums"]].map(([k, n]) => `<button data-m="${k}" class="${metSound === k ? "on" : ""}" aria-pressed="${metSound === k}">${n}</button>`).join("")}</div>
       </div>
       <div class="set">
+        <span class="tile">${icon("flame")}</span><span class="name">Streak celebration</span>
+        <button class="toggle ${s.streakMoment !== false ? "on" : ""}" id="s-streak" role="switch" aria-checked="${s.streakMoment !== false}" aria-label="Streak celebration"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("stage")}</span><span class="name">Stage mode</span>
         <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat (kick, snare and hi-hat), and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat (kick, snare and hi-hat), and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Streak celebration shows your streak once a day, after the first song you play to the end. Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
     diagrams: ["Chord diagrams", `
     <div class="set-group glass">
       <div class="set">
@@ -215,6 +219,7 @@ function renderSettings() {
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
+  $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); });

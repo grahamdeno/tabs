@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot } from "./core.js";
+import { gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -2155,6 +2155,17 @@ function endMoment(song) {
   $("sheet")?.after(el);
 }
 
+/* The streak moment: once a day, after the first song played to its end.
+   Not on stage, in Play together, or in the middle of a set. */
+function streakSoon(song) {
+  const st = data.settings, day = todayKey();
+  if (st.streakMoment === false || st.stage || scroll.duet || setCtx || st.streakShown === day) return;
+  st.streakShown = day; Tabs.save(data);
+  setTimeout(() => {
+    if (viewing !== song || route().name !== "song") return;
+    lazy("profile.js").then(m => m.showStreak(streakMoment(data.songs, Date.now(), data.journal?.best)));
+  }, 1400);
+}
 let playsHere = 0; /* plays since the app opened, for pacing tips */
 async function startScroll(song, opts = {}) {
   document.querySelector(".endnote")?.remove();
@@ -2204,7 +2215,7 @@ async function startScroll(song, opts = {}) {
       if (px) { window.scrollBy(0, px); scroll.carry -= px; nextLine(); }
       // At the end: wait a few seconds (the reader may scroll back up), then stop.
       if (!song.loop && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
-        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp(); }
+        if (!scroll.bottomSince && !scroll.logged) { scroll.logged = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp(); }
         scroll.bottomSince ||= t;
         if (t - scroll.bottomSince > 4000) return stopScroll();
       } else scroll.bottomSince = 0;

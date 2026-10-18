@@ -44,6 +44,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - The pick button on the library opens Your playing: hours played, songs played and your streak in a gold plate, then your newest milestones (a first chord, a song you've got).
 - Chord passport: every chord you've played, how often, and the day of the first, with barre chords marked and the next common chord to earn.
 - Your changes (the switches you make most), when you play (day and time of day, longest streak, best month), keys and tempo (where you live and whether your tempo is rising), repertoire over the last year, go-to songs next to ones worth another try (each opens the song), sets, and which string drifts most when you tune.
+- Once a day, after the first song you play to the end, a streak celebration: a flame runs up the G string to the 12th fret, bursts into fireworks and settles as a burning pick that grows with the streak (a white-hot core from 30 days). The count, a week of lamps, the next milestone (7, 30, 100, 365 days) and a share picture. Not on stage, in Play together or mid-set; Settings > Playing turns it off.
 - Share my playing makes a picture of the headline and your passport for the share sheet. Everything is worked out on the phone; nothing is sent unless you share it.
 
 ### Listening and sharing

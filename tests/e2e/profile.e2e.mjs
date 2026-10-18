@@ -25,3 +25,21 @@ test("Your playing: an empty library says how it fills in, with no share button"
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-empty");
   assert.equal(await page.locator("#pf-share").count(), 0);
 });
+
+test("Streak moment: once a day after the first song played through; tap to close; a switch turns it off", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false, controls: "bar", streakMoment: true } });
+  await page.click(".list .row"); await page.waitForSelector("#play");
+  await page.click("#play");
+  await page.waitForSelector(".sk", { timeout: 6000 });
+  assert.match(await page.innerText(".sk-say"), /Day one\.|days in a row/);
+  assert.equal(await page.getAttribute(".sk", "role"), "dialog");
+  await page.waitForTimeout(2600);
+  assert.match(await page.innerText(".sk-num"), /^\d+$/);
+  await page.click(".sk-art"); await page.waitForSelector(".sk", { state: "detached" });
+  await page.click("#play"); await page.waitForTimeout(400); await page.click("#play"); await page.waitForTimeout(2200);
+  assert.equal(await page.locator(".sk").count(), 0, "not again today");
+  await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-streak");
+  assert.equal(await page.getAttribute("#s-streak", "aria-checked"), "true");
+  await page.click("#s-streak");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.streakMoment === false);
+});

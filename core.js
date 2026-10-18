@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "2.42.0";
+export const VERSION = "2.43.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2310,4 +2310,28 @@ export function profileOf(data, now = Date.now()) {
     comfort, dropped, sets: sets.filter(x => x.runs).slice(0, 1)[0] || null, together,
     tune: { sessions: j.tune.n, worst, drift }
   };
+}
+
+// ---------- The streak moment ----------
+// Once a day, after the first song you finish, a full-screen celebration of the
+// streak. This works out what it says: the count, the next milestone, a row of
+// seven days (up to three before today, today, and the days ahead, with the
+// milestone's day marked when it falls in the row), and how big the flame is.
+export const STREAK_GOALS = [7, 30, 100, 365];
+const DAY_ABBR = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+export function streakMoment(songs, now = Date.now(), best = 0) {
+  const days = playDays(songs), n = streakOf(songs, now).days;
+  const goal = STREAK_GOALS.find(g => g > n) || Math.ceil((n + 1) / 365) * 365;
+  const hit = STREAK_GOALS.includes(n) || (n > 365 && n % 365 === 0);
+  const before = Math.min(Math.max(n - 1, 0), 3);
+  const slots = Array.from({ length: 7 }, (_, i) => {
+    const t = now + (i - before) * DAY, d = new Date(t);
+    return { label: DAY_ABBR[d.getDay()], on: i <= before && days.has(dayKey(t)), today: i === before, goal: i - before === goal - n ? goal : hit && i === before ? n : 0 };
+  });
+  const tier = n >= 30 ? 3 : n >= 7 ? 2 : n >= 3 ? 1 : 0;
+  const plural = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
+  const lead = n === 1 ? "Day one." : n === 7 ? "A full week in a row." : `${n} days in a row.`;
+  const goalName = goal === 7 ? "a full week" : `${goal} days`;
+  const next = n === 1 ? "Play tomorrow to start a streak." : hit ? `Next up: ${goalName}.` : `${plural(goal - n, "more day")} to ${goalName}.`;
+  return { n, goal, hit, slots, tier, lead, next, best: Math.max(best || 0, n) };
 }

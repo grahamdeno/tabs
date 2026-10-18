@@ -16,7 +16,7 @@ catch { try { axePath = require.resolve(path.join(process.cwd(), "node_modules",
 const TIPS = Object.fromEntries("library song edit add map pause pauseStage chord play line tap paste menu strobe searchInvite search nn tuner".split(" ").map(k => [k, true]));
 const lib = theme => ({ ...LIB, sets: [{ id: "s", name: "Friday", songIds: ["a", "b"] }],
   trash: [{ type: "song", item: { id: "z", title: "Old Song", body: "G" }, deletedAt: new Date().toISOString() }],
-  settings: { v: 6, theme, controls: "bar", tipsSeen: TIPS, micExplained: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false } });
+  settings: { v: 6, theme, controls: "bar", streakMoment: false, tipsSeen: TIPS, micExplained: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false } });
 const SCREENS = [
   ["library", "#/"], ["song", "#/song/a"], ["set", "#/set/s"], ["settings", "#/settings"], ["trash", "#/trash"], ["gestures", "#/gestures"],
   ["menu", "#/song/a", p => p.click("#more")],
