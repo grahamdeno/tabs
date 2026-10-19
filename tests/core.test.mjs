@@ -1544,13 +1544,22 @@ test("The neck: the strings of a chord, what a heard pitch means, and grading a 
   assert.equal(C.gradeSwitches(due, [10, 14, 18, 22.05], spb).clean, true);
 });
 
-test("What I hear: a strum is a jump in level above the floor and above the drums, not a sound that just stays loud", () => {
+test("What I hear: lines follow the room's noise, so a quiet phone microphone still hears a guitar", () => {
+  /* Graham's iPhone (3.8.0 readings): floor 0.0001, loudest strum 0.041, drums 0.0105 */
   const s = C.strumDetector();
-  assert.equal(s(0.005, 0), false);
-  assert.equal(s(0.2, 0.01), true, "a jump");
-  assert.equal(s(0.25, 0.02), false, "still ringing, too soon");
-  assert.equal(s(0.01, 0.5), false);
-  assert.equal(s(0.06, 0.6, 0.04), false, "under the drums' bleed times overBleed");
-  assert.equal(s(0.01, 0.9), false);
-  assert.equal(s(0.12, 1.0, 0.04), true);
+  let t = 0, hits = 0;
+  for (let i = 0; i < 100; i++) s(0.0001, t += 0.01); /* a quiet second */
+  assert.ok(s.floor() < 0.0005);
+  for (let k = 0; k < 3; k++) {
+    for (let i = 0; i < 30; i++) if (s(i < 3 ? 0.03 : 0.012, t += 0.01)) hits++; /* a strum that rings */
+    for (let i = 0; i < 40; i++) s(0.0002, t += 0.01);
+  }
+  assert.equal(hits, 3, "one strum each, the ring is not a strum");
+  const d = C.strumDetector();
+  t = 0; let drum = 0;
+  for (let i = 0; i < 300; i++) if (d(i % 50 < 3 ? 0.0105 : 0.0001, t += 0.01, 0.0105)) drum++;
+  assert.equal(drum, 0, "the drums alone are under the line");
+  assert.ok(d(0.04, t += 0.01, 0.0105), "a firm strum over the drums is caught");
+  assert.equal(C.pitchRms(0.0001), 0.0007);
+  assert.equal(C.pitchRms(0.1), 0.01);
 });

@@ -11,7 +11,7 @@
 // the drums are, and a strum has to be louder than that. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, chordTargets, detectPitch, nearestNote, strumDetector, gradeSwitches, journalTime, judgeString, skillDone, skillState, TUNINGS } from "./core.js";
+import { HEAR, Tabs, VERSION, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalTime, judgeString, skillDone, skillState, TUNINGS } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, playSong } from "./app.js";
 import { louie } from "./louie.js";
@@ -112,11 +112,12 @@ function chordLesson(st) {
       const an = ctx.createAnalyser(); an.fftSize = 4096;
       const src = ctx.createMediaStreamSource(stream); src.connect(an);
       const buf = new Float32Array(an.fftSize);
-      let streak = { i: -1, say: "", n: 0 }, loud = 0, told = 0;
+      let streak = { i: -1, say: "", n: 0 }, loud = 0, told = 0, floor = null;
       live = { stream, src, timer: setInterval(() => {
         an.getFloatTimeDomainData(buf);
         let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
-        const hz = detectPitch(buf, ctx.sampleRate, HEAR.pitchRms, HEAR.clarity, [70, 700]);
+        floor = trackFloor(floor, rms);
+        const hz = detectPitch(buf, ctx.sampleRate, pitchRms(floor), HEAR.clarity, [70, 700]);
         let j = null;
         if (hz > 0) for (const m of [1, 2, 0.5]) { j = judgeString(hz * m, targets); if (j) break; }
         if (j) {
@@ -134,7 +135,7 @@ function chordLesson(st) {
           }
         } else {
           streak.n = 0;
-          if (rms > HEAR.buzzRms) { loud++; if (loud === 14 && Date.now() - told > 1500) { told = Date.now(); say("That one sounds buzzy or muted. Press closer to the fret and keep other fingers off the string."); } } else loud = 0;
+          if (rms > buzzRms(floor)) { loud++; if (loud === 14 && Date.now() - told > 1500) { told = Date.now(); say("That one sounds buzzy or muted. Press closer to the fret and keep other fingers off the string."); } } else loud = 0;
         }
       }, 45) };
       $("pk-start").hidden = true;
@@ -267,7 +268,7 @@ function done(st, { secs, line, bpm = 0 }) {
    paste into a message; nothing is recorded, kept or sent by the app. */
 const HEAR_CHORDS = ["", "G", "C", "D", "Em", "Am", "E", "A"];
 function whatIHear() {
-  let chord = "", running = false, bleed = 0, measuring = false, ctxRef = null;
+  let chord = "", running = false, bleed = 0, measuring = false, ctxRef = null, floorRef = null;
   const lane = [], strums = [], beats = []; /* last few seconds: [time, level] */
   const st = { t0: 0, frames: 0, quiet: [], peak: 0, pitched: 0, buzzy: 0, strums: 0, notes: {}, lit: {}, bleedPeak: 0 };
   app.innerHTML = `${head("What I hear", "Play anything for half a minute. Nothing is recorded or sent.")}
@@ -308,7 +309,7 @@ function whatIHear() {
     const now = live?.ctx?.currentTime || 0, span = 4, x = t => w - (now - t) / span * w;
     g.fillStyle = "rgba(255,255,255,.18)";
     for (const t of beats) if (now - t < span) g.fillRect(x(t) - 1, 0, 2, h);
-    const thr = Math.max(HEAR.strumRms, bleed * HEAR.overBleed);
+    const thr = strumLine(live?.floor?.() ?? null, bleed);
     g.strokeStyle = "rgba(255,120,90,.8)"; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, y(thr, h)); g.lineTo(w, y(thr, h)); g.stroke(); g.setLineDash([]);
     g.strokeStyle = "#ffc27a"; g.lineWidth = 1.5; g.beginPath();
     lane.forEach(([t, v], i) => { const px = x(t), py = y(v, h); i ? g.lineTo(px, py) : g.moveTo(px, py); });
@@ -327,8 +328,8 @@ function whatIHear() {
       const src = ctx.createMediaStreamSource(stream); src.connect(fast); src.connect(slow);
       const fb = new Float32Array(fast.fftSize), sb = new Float32Array(slow.fftSize), strum = strumDetector();
       let n = 0, streak = { i: -1, n: 0 }, shown = 0;
-      st.t0 = ctx.currentTime; ctxRef = ctx;
-      live = { stream, src, ctx, timeouts: [], timer: setInterval(() => {
+      st.t0 = ctx.currentTime; ctxRef = ctx; floorRef = strum.floor;
+      live = { stream, src, ctx, timeouts: [], floor: strum.floor, timer: setInterval(() => {
         const now = ctx.currentTime;
         fast.getFloatTimeDomainData(fb);
         let rms = 0; for (const v of fb) rms += v * v; rms = Math.sqrt(rms / fb.length);
@@ -340,7 +341,7 @@ function whatIHear() {
         if (++n % 5) return; /* the pitch every 50 ms */
         slow.getFloatTimeDomainData(sb);
         st.quiet.push(rms); if (st.quiet.length > 600) st.quiet.shift();
-        const hz = detectPitch(sb, ctx.sampleRate, HEAR.pitchRms, HEAR.clarity, [70, 1000]);
+        const hz = detectPitch(sb, ctx.sampleRate, pitchRms(strum.floor()), HEAR.clarity, [70, 1000]);
         if (Date.now() - shown > 120) { shown = Date.now(); $("ph-lvl").textContent = rms < 0.001 ? "0" : (rms * 100).toFixed(rms < 0.1 ? 1 : 0); }
         if (hz > 0) {
           st.pitched++;
@@ -358,7 +359,7 @@ function whatIHear() {
               else say(j.say === "open" ? `${nm} string: ringing open.` : `${nm} string: a fret ${j.say}.`);
             }
           }
-        } else if (rms > HEAR.buzzRms) { st.buzzy++; $("ph-note").textContent = "?"; $("ph-hz").textContent = "no clear pitch"; }
+        } else if (rms > buzzRms(strum.floor())) { st.buzzy++; $("ph-note").textContent = "?"; $("ph-hz").textContent = "no clear pitch"; }
       }, 10) };
       running = true;
       $("ph-go").disabled = false; $("ph-go").innerHTML = `${icon("pause")}Stop`;
@@ -388,7 +389,7 @@ function whatIHear() {
       if (live) live.track = null;
       if (!document.contains(canvas)) return;
       $("ph-drums").disabled = false;
-      say(`The drums reach ${(bleed * 100).toFixed(1)} in the mic, so a strum has to pass ${(Math.max(HEAR.strumRms, bleed * HEAR.overBleed) * 100).toFixed(1)}. Strum along to see if yours clear the line.`);
+      say(`The drums reach ${(bleed * 100).toFixed(1)} in the mic, so a strum has to pass ${(strumLine(live?.floor?.() ?? null, bleed) * 100).toFixed(1)}. Strum along to see if yours clear the line.`);
     }, Math.max(0, (tr.t0 + 4 * tr.spb + 0.3 - audio.currentTime) * 1000)));
   };
   $("ph-copy").onclick = () => {
@@ -399,7 +400,7 @@ function whatIHear() {
     const text = [
       `The Road ${VERSION}, What I hear`,
       `Listened ${Math.round((ctxRef?.currentTime || 0) - st.t0)} s · sample rate ${ctxRef?.sampleRate || "?"} · output delay ${Math.round(((ctxRef?.baseLatency || 0) + (ctxRef?.outputLatency || 0)) * 1000)} ms`,
-      `Quiet floor ${(floor * 100).toFixed(2)} · loudest ${(st.peak * 100).toFixed(1)} · drums in the mic ${bleed ? (bleed * 100).toFixed(2) : "not measured"}`,
+      `Quiet floor ${(floor * 100).toFixed(3)} (tracked ${((floorRef?.() || 0) * 100).toFixed(3)}) · strum line ${(strumLine(floorRef?.() ?? null, bleed) * 100).toFixed(2)} · loudest ${(st.peak * 100).toFixed(1)} · drums in the mic ${bleed ? (bleed * 100).toFixed(2) : "not measured"}`,
       `Strums caught ${st.strums} · pitch clear ${pct(st.pitched, reads)} of reads · buzzy ${pct(st.buzzy, reads)}`,
       `Notes heard: ${top || "none"}`,
       chord ? `${chord}: strings lit ${Object.keys(st.lit).filter(k => k.startsWith(chord)).length} of ${chordTargets(chord).filter(t => t.hz).length}` : "",

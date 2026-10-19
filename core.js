@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.8.0";
+export const VERSION = "3.8.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2922,24 +2922,38 @@ export function judgeString(hz, targets) {
   return null;
 }
 /* How the neck listens. One set of numbers for the lessons and for What I hear, so a
-   reading taken on What I hear says exactly what a lesson would do with it.
-   pitchRms   quietest sound the pitch reading tries (RMS, 0 to 1)
-   clarity    how clear a pitch must be (lower is stricter)
-   buzzRms    a sound this loud with no clear pitch counts as buzzy or muted
-   strumRms   quietest strum counted
-   overBleed  a strum must be this many times louder than the drums in the mic
-   rise       and this many times louder than a moment before
+   reading taken on What I hear says exactly what a lesson would do with it. Like the
+   tuner, every line sits a little above the room's own noise (the floor), so a guitar
+   at playing distance is heard on a phone whose microphone picks up very little
+   (3.8.1: fixed lines missed nearly everything on Graham's iPhone).
+   clarity    how clear a pitch must be (lower is stricter; the tuner's 0.4)
+   pitchX     a pitch is tried on sounds this many times the floor (kept 0.0007 to 0.01)
+   buzzX      a sound this many times the floor with no clear pitch is buzzy or muted
+   strumX     a strum is this many times the floor at the least (and 0.004 at the least)
+   overBleed  and this many times louder than the drums in the mic
+   rise       and this many times louder than the quietest moment in the last 80 ms
    gap        seconds between two strums at the least */
-export const HEAR = { pitchRms: 0.015, clarity: 0.3, buzzRms: 0.04, strumRms: 0.03, overBleed: 2.2, rise: 1.4, gap: 0.18 };
-/* A strum: the level jumps above the floor (and above the drums' bleed). Feed it levels in order. */
+export const HEAR = { clarity: 0.4, pitchX: 2, buzzX: 10, strumX: 6, overBleed: 1.5, rise: 2, gap: 0.18 };
+/* The room's noise: drifts down quickly and up slowly, so a ringing string never counts as background (the tuner's rule). */
+export const trackFloor = (floor, lvl) => floor == null ? Math.min(lvl, 0.004) : lvl < floor ? floor * 0.7 + lvl * 0.3 : floor * 0.995 + Math.min(lvl, floor * 3) * 0.005;
+export const pitchRms = (floor, h = HEAR) => Math.min(0.01, Math.max(0.0007, (floor || 0) * h.pitchX));
+export const buzzRms = (floor, h = HEAR) => Math.max(0.006, (floor || 0) * h.buzzX);
+export const strumLine = (floor, bleed = 0, h = HEAR) => Math.max(0.004, (floor || 0) * h.strumX, bleed * h.overBleed);
+/* A strum: the level jumps above the strum line. Feed it levels in order, every 10 ms or so. */
 export function strumDetector(h = HEAR) {
-  let prev = 0, last = -Infinity;
-  return (rms, now, bleed = 0) => {
-    const hit = rms > Math.max(h.strumRms, bleed * h.overBleed) && rms > prev * h.rise && now - last > h.gap;
-    prev = rms;
+  const recent = [];
+  let last = -Infinity, floor = null;
+  const hear = (rms, now, bleed = 0) => {
+    floor = trackFloor(floor, rms);
+    while (recent.length && now - recent[0][0] > 0.08) recent.shift();
+    const low = recent.length ? Math.min(...recent.map(r => r[1])) : rms;
+    recent.push([now, rms]);
+    const hit = rms > strumLine(floor, bleed, h) && rms > low * h.rise && now - last > h.gap;
     if (hit) last = now;
     return hit;
   };
+  hear.floor = () => floor;
+  return hear;
 }
 /* Switch drill: when you played against when the chord was due. `due` and `onsets` are in seconds;
    `spb` is seconds per beat. Early or late by more than a quarter beat is not on the beat. */
