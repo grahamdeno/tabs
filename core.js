@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.8.2";
+export const VERSION = "3.8.3";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2933,9 +2933,26 @@ export function judgeString(hz, targets) {
    overBleed  and this many times louder than the drums in the mic
    rise       and this many times louder than the quietest moment in the last 80 ms
    gap        seconds between two strums at the least */
-export const HEAR = { clarity: 0.4, pitchX: 2, buzzX: 10, strumX: 6, overBleed: 1.5, rise: 2, gap: 0.18 };
-/* The room's noise: drifts down quickly and up slowly, so a ringing string never counts as background (the tuner's rule). */
-export const trackFloor = (floor, lvl) => floor == null ? Math.min(lvl, 0.004) : lvl < floor ? floor * 0.7 + lvl * 0.3 : floor * 0.995 + Math.min(lvl, floor * 3) * 0.005;
+export const HEAR = { clarity: 0.4, pitchX: 2, buzzX: 10, strumX: 6, overBleed: 1.5, rise: 1.6, gap: 0.18 };
+/* The room's noise: drifts down quickly and up slowly, so a ringing string never counts as background (the tuner's rule).
+   Moments of digital silence (an iPhone sends some) are skipped, or the floor sinks to nothing (3.8.3). */
+export const trackFloor = (floor, lvl) => lvl < 0.00002 ? floor : floor == null ? Math.min(lvl, 0.004) : lvl < floor ? floor * 0.7 + lvl * 0.3 : floor * 0.995 + Math.min(lvl, floor * 3) * 0.005;
+/* How the beat leaks into the microphone, moment by moment after each hit (10 ms steps, half a second),
+   kept apart for the 1 and the other beats. Measured during a quiet bar; the strum line rises only
+   where the beat is, so between hits a strum counts as it would with no beat at all (3.8.3). */
+export function bleedProfile() {
+  const bins = { one: new Float32Array(50), rest: new Float32Array(50) };
+  const at = (since, one) => {
+    if (!(since >= 0) || since >= 0.5) return 0;
+    const b = bins[one ? "one" : "rest"], i = Math.floor(since / 0.01);
+    return Math.max(b[i], b[i - 1] || 0, b[i + 1] || 0); /* a little slack for timing jitter */
+  };
+  return {
+    add(since, one, rms) { if (since >= 0 && since < 0.5) { const b = bins[one ? "one" : "rest"], i = Math.floor(since / 0.01); b[i] = Math.max(b[i], rms); } },
+    at,
+    peak: () => Math.max(...bins.one, ...bins.rest)
+  };
+}
 export const pitchRms = (floor, h = HEAR) => Math.min(0.01, Math.max(0.0007, (floor || 0) * h.pitchX));
 export const buzzRms = (floor, h = HEAR) => Math.max(0.006, (floor || 0) * h.buzzX);
 export const strumLine = (floor, bleed = 0, h = HEAR) => Math.max(0.004, (floor || 0) * h.strumX, bleed * h.overBleed);

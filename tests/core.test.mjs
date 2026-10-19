@@ -1563,3 +1563,18 @@ test("What I hear: lines follow the room's noise, so a quiet phone microphone st
   assert.equal(C.pitchRms(0.0001), 0.0007);
   assert.equal(C.pitchRms(0.1), 0.01);
 });
+
+test("The beat's leak into the mic raises the strum line only just after each tick, and digital silence doesn't sink the floor", () => {
+  const p = C.bleedProfile();
+  for (let i = 0; i < 6; i++) p.add(i * 0.01, true, 0.0174); /* 3.8.2 readings: the beat at 1.74 */
+  assert.ok(p.at(0.02, true) >= 0.0174);
+  assert.equal(p.at(0.3, true), 0, "a quarter second later the line is back down");
+  assert.equal(p.at(0.02, false), 0, "the other beats are kept apart");
+  assert.equal(p.at(0.7, true), 0);
+  const s = C.strumDetector();
+  let t = 0;
+  for (let i = 0; i < 50; i++) s(0.00015, t += 0.01);
+  for (let i = 0; i < 50; i++) s(0, t += 0.01);
+  assert.ok(s.floor() > 0.0001, "pure zeros are skipped");
+  assert.equal(s(0.03, t += 0.01, p.at(0.25, true)), true, "a strum between ticks counts at the room's line");
+});
