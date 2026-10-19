@@ -41,3 +41,53 @@ test("Settings > Look: Amp covering turns the tolex grain on and off (2.20.0)", 
   await page.reload(); await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "on", "kept");
 });
+
+test("Settings > Keys: Apple Music is off by default; on, Listen plays the linked song with MusicKit", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: [{ ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } }, LIB.songs[1]] };
+  const page = await phone(t, lib);
+  const errs = []; page.on("pageerror", e => errs.push(e.message));
+  const calls = [];
+  await page.route("https://*.workers.dev/**", r => { calls.push("token"); r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "test.token.sig", expires: 0 }) }); });
+  /* A stand-in for Apple's MusicKit JS, recording what The Road asks of it. */
+  await page.route("https://js-cdn.music.apple.com/**", r => { calls.push("musickit"); r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.MusicKit = { configure: async o => { window.mkLog.push("configure:" + o.developerToken); }, getInstance: () => window.mkMusic };
+    window.mkLog = []; window.mkMusic = { isAuthorized: false, isPlaying: false,
+      authorize: async () => { window.mkMusic.isAuthorized = true; window.mkLog.push("authorize"); },
+      setQueue: async o => { window.mkLog.push("queue:" + o.song + ":" + o.startPlaying); window.mkMusic.isPlaying = true; },
+      play: async () => {}, pause: () => { window.mkMusic.isPlaying = false; window.mkLog.push("pause"); }, stop: () => { window.mkLog.push("stop"); } };
+    document.dispatchEvent(new Event("musickitloaded"));` }); });
+  let opened = "";
+  await page.context().route("https://music.apple.com/**", r => { opened = r.request().url(); r.fulfill({ status: 200, body: "" }); });
+
+  /* Off (the default): Listen opens the link, as before, and nothing is loaded or sent. */
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen");
+  await page.click("#listen"); await page.waitForTimeout(600);
+  assert.match(opened, /i=111/, "off: the link opens in Apple Music");
+  assert.deepEqual(calls, [], "off: no MusicKit and no token request");
+
+  await page.evaluate(() => { location.hash = "#/settings/keys"; }); await page.waitForSelector("#s-apple");
+  assert.equal(await page.getAttribute("#s-apple", "aria-checked"), "false");
+  assert.equal(await page.locator("#s-appletoken").count(), 0, "the token address shows only when it's on");
+  await page.click("#s-apple"); await page.waitForSelector("#s-appletoken");
+  await page.fill("#s-appletoken", "http://insecure.example/token"); await page.click("#s-applesave");
+  assert.match(await page.innerText("#toast"), /https/);
+  await page.fill("#s-appletoken", "https://tabs-musickit.example.workers.dev/token"); await page.click("#s-applesave"); await page.waitForTimeout(150);
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
+  assert.equal(s.appleMusic, true);
+  assert.equal(s.appleMusicToken, "https://tabs-musickit.example.workers.dev/token");
+
+  /* On: the first tap loads MusicKit with the Worker's token and asks to sign in; then it plays. */
+  opened = "";
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen");
+  await page.click("#listen"); await page.waitForSelector("#toast .tact");
+  assert.match(await page.innerText("#toast"), /Sign in to Apple Music/);
+  await page.click("#toast .tact"); await page.waitForFunction(() => window.mkLog?.some(x => x.startsWith("queue")));
+  assert.deepEqual(await page.evaluate(() => window.mkLog), ["configure:test.token.sig", "authorize", "queue:111:true"]);
+  await page.click("#listen"); await page.waitForTimeout(200);
+  assert.equal(await page.evaluate(() => window.mkLog.at(-1)), "pause", "a second tap pauses");
+  assert.deepEqual(calls, ["token", "musickit"], "one token request, one MusicKit load");
+  assert.equal(opened, "", "on: Apple Music isn't opened");
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.mkLog.at(-1)), "stop", "leaving the song stops it");
+  assert.deepEqual(errs, []);
+});
