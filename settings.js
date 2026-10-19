@@ -195,7 +195,21 @@ function renderSettings() {
       </div>
     </div>
     <details class="foot s-why"><summary>What it's used for</summary>Get the song checks the chart's tempo and time signature against GetSongBPM's measured data. The free key is at <a href="https://getsongbpm.com/api" target="_blank" rel="noopener">getsongbpm.com/api</a>; it stays on this phone and is sent only to GetSongBPM, with the song's title and artist. Words come from <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, which needs no key.</details>
-    <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>`],
+    <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>
+    <div class="label">Apple Music · Whole songs</div>
+    <div class="set-group glass">
+      <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Apple Music</span>
+        <button class="toggle ${s.appleMusic ? "on" : ""}" id="s-apple" role="switch" aria-checked="${!!s.appleMusic}" aria-label="Apple Music: play whole songs in The Road"></button>
+      </div>
+      ${s.appleMusic ? `<label class="fld fld-k"><span class="tile ftile">${icon("cloud")}</span>
+        <input id="s-appletoken" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Token address (https://…/token)" value="${esc(s.appleMusicToken || "")}" aria-label="Apple Music token address"></label>
+      <div class="key-row">
+        <span class="ai-status"><i class="dot ${s.appleMusicToken ? "on" : ""}"></i>${s.appleMusicToken ? "Ready" : "No token address"}</span>
+        <button class="btn sm primary" id="s-applesave">Save</button>
+      </div>` : ""}
+    </div>
+    <details class="foot s-why"><summary>What it's used for</summary>With an Apple Music subscription, tapping a song's Apple Music link plays the whole recording here instead of opening Apple Music. Off, nothing is loaded and nothing is sent. On, The Road loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
     library: ["Library and backups", `
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
@@ -265,6 +279,13 @@ function renderSettings() {
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
   $("s-map").onclick = () => { s.songMap = s.songMap === false; Tabs.save(data); renderSettings(); };
+  $("s-apple").onclick = () => { s.appleMusic = !s.appleMusic; Tabs.save(data); renderSettings(); };
+  $("s-applesave")?.addEventListener("click", () => {
+    const u = $("s-appletoken").value.trim();
+    if (u && !/^https:\/\/\S+$/.test(u)) { toast("The address must start with https://"); return; }
+    if (u) s.appleMusicToken = u; else delete s.appleMusicToken;
+    Tabs.save(data); renderSettings(); toast(u ? "Token address saved" : "Token address removed");
+  });
   $("s-nudge").onclick = () => { s.nudge = s.nudge === false; Tabs.save(data); renderSettings(); };
   const findCity = async () => {
     const name = $("s-city").value.trim(), out = $("s-cities");

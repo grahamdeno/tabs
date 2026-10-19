@@ -1,6 +1,6 @@
 // Tabs Listen : find a recording, keep its link,
 // play a preview, and take the song's length from the recording.
-import { Tabs, appleTrackId, fitLength, lengthChoice, linkService, rankTracks } from "./core.js";
+import { Tabs, VERSION, appleTrackId, fitLength, lengthChoice, linkService, rankTracks } from "./core.js";
 import { $, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { appleBlocksSearch, catalogBlocked, itunes } from "./sets.js";
 import { noteError } from "./store.js";
@@ -59,8 +59,51 @@ async function recordingLength(song, url, opts) {
 let preview = null;
 function stopPreview() { if (preview) { preview.audio.pause(); preview = null; document.querySelectorAll(".ls-pv.on").forEach(b => { b.classList.remove("on"); b.innerHTML = icon("play"); }); } }
 onLeave(() => stopPreview());
+// Apple Music (optional, off unless turned on in Settings > Keys): a subscriber
+// hears the whole linked recording here. Nothing below runs while it's off.
+// MusicKit loads on first use; its developer token comes from the token
+// address (the Worker in worker/, which holds the MusicKit key).
+const MUSICKIT = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
+let musicKit = null, playingId = "";
+function loadMusicKit() {
+  if (musicKit) return musicKit;
+  musicKit = (async () => {
+    const url = data.settings.appleMusicToken || "";
+    if (!/^https:\/\//.test(url)) throw new Error("No Apple Music token address");
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Apple Music token: ${r.status}`);
+    const { token } = await r.json();
+    if (!window.MusicKit) await new Promise((ok, no) => {
+      document.addEventListener("musickitloaded", ok, { once: true });
+      const s = document.createElement("script");
+      s.src = MUSICKIT; s.async = true;
+      s.onload = () => { if (window.MusicKit) ok(); };
+      s.onerror = () => no(new Error("MusicKit didn't load"));
+      document.head.appendChild(s);
+    });
+    await window.MusicKit.configure({ developerToken: token, app: { name: "The Road", build: VERSION } });
+    return window.MusicKit.getInstance();
+  })();
+  musicKit.catch(() => { musicKit = null; });
+  return musicKit;
+}
+async function playApple(song) {
+  const id = appleTrackId(song.listen.url);
+  try {
+    const music = await loadMusicKit();
+    if (!music.isAuthorized) return toast("Sign in to Apple Music to hear the whole song", null, { label: "Sign in", fn: () => music.authorize().then(() => playApple(song), () => toast("Apple Music sign-in didn't finish")) });
+    if (playingId === id && music.isPlaying) { music.pause(); return; }
+    if (playingId === id) { await music.play(); return; }
+    await music.setQueue({ song: id, startPlaying: true });
+    playingId = id;
+  } catch (e) {
+    noteError(e, { quiet: true, where: "apple music" });
+    toast("Apple Music couldn't play it here", null, { label: "Open", fn: () => openLink(song.listen.url) });
+  }
+}
+onLeave(() => { if (playingId) { musicKit?.then(m => m.stop(), () => {}); playingId = ""; } });
 function listenSheet(song, force) {
-  if (song.listen && !force) return openLink(song.listen.url);
+  if (song.listen && !force) return data.settings.appleMusic && appleTrackId(song.listen.url) ? playApple(song) : openLink(song.listen.url);
   if (appleBlocksSearch()) return listenApple(song);
   const first = `${song.title} ${song.artist || ""}`.trim();
   let state = { busy: true, tracks: [], error: false, q: first, all: false };

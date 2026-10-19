@@ -66,6 +66,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog inside the app, plays 30-second previews, and saves the right recording with its album art and length. Spotify or YouTube links can be pasted too.
+- Apple Music (optional, off by default; Settings > Keys): with a subscription, tapping a song's Apple Music link plays the whole recording in the app, and tapping again pauses. It needs a small token Worker (`worker/README.md`). Off, nothing is loaded or sent.
 - Share a song or a set as a link. The song travels inside the link; no server. Opening one offers to add it.
 - Play together: pick a start a few minutes ahead and share the link. Both phones count in and scroll together, each by its own clock.
 
@@ -154,6 +155,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `german.js` | German practice |
 | `crop.js` | Cover photo framing |
 | `sw.js` | Offline copy; lists every app file (a test checks the list) |
+| `worker/` | The MusicKit token Worker for Apple Music (deployed by hand; see `worker/README.md`) |
 
 `editor.js` and `settings.js` load on first use and are fetched quietly a few seconds after start; the tuner, AI tools, Sing it, Strum it, German practice and cover framing load on first use.
 

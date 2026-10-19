@@ -1,0 +1,12 @@
+# Template for the Tabs MusicKit token Worker. Nothing is deployed from this repo
+# automatically. See worker/README.md.
+name = "tabs-musickit"
+main = "musickit-token.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+TEAM_ID = "7MHDTK68M2"
+KEY_ID = "KABHU54QBS"
+
+# The MusicKit private key (the .p8 file) is a secret. Never put it here or in git:
+#   npx wrangler secret put MUSICKIT_KEY < /path/outside/git/AuthKey_KABHU54QBS.p8

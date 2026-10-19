@@ -111,14 +111,14 @@ test("theme: Automatic follows the phone; Dark and Light override it", { skip: s
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "auto");
 });
 
-test("security policy allows Apple art, the Anthropic API, song search, LRCLIB, GetSongBPM and Open-Meteo, and nothing else", { skip: skip() }, async t => {
+test("security policy allows Apple art, the Anthropic API, song search, LRCLIB, GetSongBPM, Open-Meteo and the Apple Music token Worker, and nothing else", { skip: skip() }, async t => {
   const page = await phone(t);
   const blocked = [];
   page.removeAllListeners("console");
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) blocked.push(m.text()); });
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
   await page.route(/mzstatic\.com|example\.com\/.*\.png/, r => r.fulfill({ status: 200, contentType: "image/png", body: png }));
-  await page.route(/api\.anthropic\.com|itunes\.apple\.com|lrclib\.net|api\.getsong\.co|open-meteo\.com|example\.com\/api/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" }));
+  await page.route(/api\.anthropic\.com|itunes\.apple\.com|lrclib\.net|api\.getsong\.co|open-meteo\.com|workers\.dev|example\.com\/api/, r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" }));
   const res = await page.evaluate(async () => {
     const img = src => new Promise(ok => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = src; });
     const get = url => fetch(url).then(() => true, () => false);
@@ -131,10 +131,11 @@ test("security policy allows Apple art, the Anthropic API, song search, LRCLIB, 
       getsong: await get("https://api.getsong.co/search/?type=song&lookup=x"),
       weather: await get("https://api.open-meteo.com/v1/forecast?latitude=1&longitude=1"),
       places: await get("https://geocoding-api.open-meteo.com/v1/search?name=x"),
+      musicToken: await get("https://tabs-musickit.example.workers.dev/token"),
       other: await get("https://example.com/api")
     };
   });
-  assert.deepEqual(res, { art: true, otherImg: false, anthropic: true, itunes: true, lrclib: true, getsong: true, weather: true, places: true, other: false });
+  assert.deepEqual(res, { art: true, otherImg: false, anthropic: true, itunes: true, lrclib: true, getsong: true, weather: true, places: true, musicToken: true, other: false });
   assert.ok(blocked.length >= 2, "blocked requests are reported");
 });
 
