@@ -77,6 +77,14 @@ export function renderSession(id) {
 const head = (title, sub) => `<div class="head"><button class="ib glass" id="back" aria-label="Back to the neck">${icon("back")}</button></div>
     <h1 class="title script" style="margin:14px 2px 2px">${esc(title)}</h1><p class="pf-since">${esc(sub)}</p>`;
 
+/* The guitar's strum, without the beat: two low-pass filters keep what is under 1.5 kHz (the body of a
+   strum) and drop the hi-hat, which sits near 7 kHz. */
+function guitarBand(ctx, src) {
+  const a = ctx.createBiquadFilter(), b = ctx.createBiquadFilter();
+  for (const f of [a, b]) { f.type = "lowpass"; f.frequency.value = 1500; f.Q.value = 0.7; }
+  src.connect(a); a.connect(b);
+  return b;
+}
 function mic() {
   if (!navigator.mediaDevices?.getUserMedia) return Promise.reject(new Error("none"));
   return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
@@ -156,7 +164,7 @@ function switchLesson(st) {
       <section class="pf-card pk-lesson">
         <div class="pk-pair"><div class="pk-now" id="pk-now"><b id="pk-name">${esc(st.a)}</b><small id="pk-then">then ${esc(st.b)}</small></div><div class="pk-diag" id="pk-diag">${chordSVG(st.b, 1.4)}</div></div>
         <div class="pk-beats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the drums.</p></div>
+        <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the beat.</p></div>
       </section>
       <div class="s-dock"><button class="btn primary" id="pk-start">${icon("play")}Start round</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
     $("back").onclick = () => go("#/practice");
@@ -188,19 +196,19 @@ function switchLesson(st) {
         if (i === 0) say("Count in. Stay quiet for one bar.");
         if (i === 4) say(`Go: ${st.a} on the 1.`);
       }, Math.max(0, (t - audio.currentTime) * 1000)));
-    });
+    }, { hats: true });
     if (!track) { stopLive(); say("The phone won't play sound here."); $("pk-start").disabled = false; return; }
     live.track = track;
     const onsets = [], strum = strumDetector(); let bleed = 0;
     if (stream) {
       const an = audio.createAnalyser(); an.fftSize = 1024;
-      live.src = audio.createMediaStreamSource(stream); live.src.connect(an);
+      live.src = audio.createMediaStreamSource(stream); guitarBand(audio, live.src).connect(an);
       const buf = new Float32Array(an.fftSize);
       live.timer = setInterval(() => {
         an.getFloatTimeDomainData(buf);
         let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
         const now = audio.currentTime;
-        if (now < track.t0 + 4 * track.spb) bleed = Math.max(bleed, rms); /* the count-in: only drums */
+        if (now < track.t0 + 4 * track.spb) bleed = Math.max(bleed, rms); /* the count-in: only the beat */
         else if (strum(rms, now, bleed)) onsets.push(now);
       }, 10);
     }
@@ -262,8 +270,9 @@ function done(st, { secs, line, bpm = 0 }) {
 
 /* ---------- What I hear ----------
    The microphone, live: the level (with the line a strum has to cross), the pitch and
-   which string of a chord it would light, and each strum caught. "Measure the drums"
-   plays one quiet bar to see how loud the drums are in the mic, the same count-in a
+   which string of a chord it would light, and each strum caught. The level is the
+   strum band (under 1.5 kHz), as a switch lesson hears it. "Measure the beat" plays
+   one bar of the hi-hat beat to see how much reaches the mic, the same count-in a
    switch lesson uses. "Copy readings" puts a short plain summary on the clipboard to
    paste into a message; nothing is recorded, kept or sent by the app. */
 const HEAR_CHORDS = ["", "G", "C", "D", "Em", "Am", "E", "A"];
@@ -279,13 +288,13 @@ function whatIHear() {
         <div class="pf-read"><b id="ph-strums">0</b><span>strums</span></div>
       </div>
       <canvas class="ph-lane" id="ph-lane" aria-hidden="true"></canvas>
-      <p class="ph-key"><i class="ph-k lvl"></i>level <i class="ph-k thr"></i>strum line <i class="ph-k on"></i>strum <i class="ph-k beat"></i>drum beat</p>
+      <p class="ph-key"><i class="ph-k lvl"></i>level <i class="ph-k thr"></i>strum line <i class="ph-k on"></i>strum <i class="ph-k beat"></i>beat</p>
       <h2 class="ph-h">Check against a chord</h2>
       <div class="ph-chords" role="group" aria-label="Chord">${HEAR_CHORDS.map(c => `<button data-c="${c}" class="${c ? "" : "on"}">${c || "Off"}</button>`).join("")}</div>
       <div class="pk-strings" id="ph-strings" hidden></div>
       <p class="rd-bubble ph-say" id="pk-say" aria-live="polite">Tap Start, then pluck single strings, strum a chord, and stay quiet for a moment.</p>
     </section>
-    <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Measure the drums</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
+    <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Measure the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
   $("back").onclick = () => go("#/practice");
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const strings = () => {
@@ -325,7 +334,7 @@ function whatIHear() {
       if (!ctx) throw new Error("none");
       const fast = ctx.createAnalyser(), slow = ctx.createAnalyser();
       fast.fftSize = 1024; slow.fftSize = 4096;
-      const src = ctx.createMediaStreamSource(stream); src.connect(fast); src.connect(slow);
+      const src = ctx.createMediaStreamSource(stream); guitarBand(ctx, src).connect(fast); src.connect(slow);
       const fb = new Float32Array(fast.fftSize), sb = new Float32Array(slow.fftSize), strum = strumDetector();
       let n = 0, streak = { i: -1, n: 0 }, shown = 0;
       st.t0 = ctx.currentTime; ctxRef = ctx; floorRef = strum.floor;
@@ -377,9 +386,9 @@ function whatIHear() {
   $("ph-go").onclick = () => running ? stop() : start();
   $("ph-drums").onclick = () => {
     if (!live?.ctx) return;
-    say("Stay quiet: one bar of drums.");
+    say("Stay quiet: one bar of the beat.");
     $("ph-drums").disabled = true;
-    const tr = beatTrack(70, (i, t) => { if (i < 4) beats.push(t); });
+    const tr = beatTrack(70, (i, t) => { if (i < 4) beats.push(t); }, { hats: true });
     if (!tr) return;
     const audio = live.ctx;
     live.track = tr;
@@ -389,7 +398,7 @@ function whatIHear() {
       if (live) live.track = null;
       if (!document.contains(canvas)) return;
       $("ph-drums").disabled = false;
-      say(`The drums reach ${(bleed * 100).toFixed(1)} in the mic, so a strum has to pass ${(strumLine(live?.floor?.() ?? null, bleed) * 100).toFixed(1)}. Strum along to see if yours clear the line.`);
+      say(`The beat reaches ${(bleed * 100).toFixed(1)} in the mic, so a strum has to pass ${(strumLine(live?.floor?.() ?? null, bleed) * 100).toFixed(1)}. Strum along to see if yours clear the line.`);
     }, Math.max(0, (tr.t0 + 4 * tr.spb + 0.3 - audio.currentTime) * 1000)));
   };
   $("ph-copy").onclick = () => {
@@ -400,7 +409,7 @@ function whatIHear() {
     const text = [
       `The Road ${VERSION}, What I hear`,
       `Listened ${Math.round((ctxRef?.currentTime || 0) - st.t0)} s · sample rate ${ctxRef?.sampleRate || "?"} · output delay ${Math.round(((ctxRef?.baseLatency || 0) + (ctxRef?.outputLatency || 0)) * 1000)} ms`,
-      `Quiet floor ${(floor * 100).toFixed(3)} (tracked ${((floorRef?.() || 0) * 100).toFixed(3)}) · strum line ${(strumLine(floorRef?.() ?? null, bleed) * 100).toFixed(2)} · loudest ${(st.peak * 100).toFixed(1)} · drums in the mic ${bleed ? (bleed * 100).toFixed(2) : "not measured"}`,
+      `Quiet floor ${(floor * 100).toFixed(3)} (tracked ${((floorRef?.() || 0) * 100).toFixed(3)}) · strum line ${(strumLine(floorRef?.() ?? null, bleed) * 100).toFixed(2)} · loudest ${(st.peak * 100).toFixed(1)} · beat in the mic ${bleed ? (bleed * 100).toFixed(2) : "not measured"}`,
       `Strums caught ${st.strums} · pitch clear ${pct(st.pitched, reads)} of reads · buzzy ${pct(st.buzzy, reads)}`,
       `Notes heard: ${top || "none"}`,
       chord ? `${chord}: strings lit ${Object.keys(st.lit).filter(k => k.startsWith(chord)).length} of ${chordTargets(chord).filter(t => t.hz).length}` : "",

@@ -1893,14 +1893,16 @@ function metroPreview() {
   for (let b = 0; b < 4; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb, style) : clickAt(t + b * spb, b === 0);
 }
 /* A steady beat for the practice drill (practice.js): the drums, or the click if that is what Settings
-   uses. onBeat(i, t) is called a little before beat i sounds at audio time t. */
-function beatTrack(bpm, onBeat) {
+   uses, or with hats only the hi-hat. onBeat(i, t) is called a little before beat i sounds at audio time t. */
+function beatTrack(bpm, onBeat, { hats = false } = {}) {
   const audio = sound();
   if (!audio) return null;
   const spb = 60 / bpm, style = drumStyle("rock", { bpm, beats: 4 });
   let i = 0, t = audio.currentTime + 0.2;
   const t0 = t;
-  const tick = () => { while (t < audio.currentTime + 0.35) { metroDrums() ? drumBeat(t, i % 4, 4, spb, style) : clickAt(t, i % 4 === 0); onBeat?.(i, t); i++; t += spb; } };
+  /* hats: only the hi-hat (open on 1), high above the guitar, so the microphone can filter it out (3.8.2) */
+  const hit = (t, b) => hats ? drum(b === 0 ? "open" : "hat", t, b === 0 ? 1 : 0.75) : metroDrums() ? drumBeat(t, b, 4, spb, style) : clickAt(t, b === 0);
+  const tick = () => { while (t < audio.currentTime + 0.35) { hit(t, i % 4); onBeat?.(i, t); i++; t += spb; } };
   tick();
   const id = setInterval(tick, 40);
   return { audio, t0, spb, lag: (audio.baseLatency || 0) + (audio.outputLatency || 0), stop: () => clearInterval(id) };
