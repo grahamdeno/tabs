@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, listenSheet, openLink, pauseMusic, prepareMusic, recordingLength, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -2194,7 +2194,16 @@ window.addEventListener("resize", () => {
 const hold = { active: false, touching: false, timer: 0 };
 function releaseSoon(ms) {
   clearTimeout(hold.timer);
-  hold.timer = setTimeout(() => { if (!hold.touching) hold.active = false; }, ms);
+  hold.timer = setTimeout(() => {
+    if (hold.touching) return;
+    /* A hand moved the page while the recording played: the recording goes to that place in the song. */
+    if (hold.active && scroll.on && viewing && usesMusic(viewing) && musicClock(viewing) !== null) {
+      const sec = scrollY / musicPps(viewing);
+      musicSync.target = sec; musicSync.until = performance.now() + 3000; musicSync.clock = -1;
+      seekMusic(viewing, sec);
+    }
+    hold.active = false;
+  }, ms);
 }
 window.addEventListener("touchstart", e => {
   if (e.target instanceof Element && e.target.closest(".dock")) return;
@@ -2243,6 +2252,11 @@ const songLength = song => song.duration || data.settings.startLength || 210;
 const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 // Song length style: the whole song, first line to last, crosses the reading point
 // in the song's length. 1x style: a fixed rate per song.
+const sheetRange = () => { const lines = diag.blocks.filter(b => b.el.isConnected); return lines.length > 1 ? lines[lines.length - 1].y - lines[0].y : document.documentElement.scrollHeight - innerHeight; };
+/* With the recording playing, the page is tied to its clock: the whole sheet crosses the reading line in the
+   recording's length, so scroll position and time convert both ways. */
+const musicPps = song => Math.max(4, sheetRange() / (recLength(song) || songLength(song)));
+const musicSync = { at: 0, clock: -1, target: -1, until: 0 };
 function pxPerSecond(song) {
   if (!byLength() && !scroll.duet) return song.speed * 0.6; /* together: both fit the song's length */
   const lines = diag.blocks.filter(b => b.el.isConnected);
@@ -2358,7 +2372,7 @@ async function startScroll(song, opts = {}) {
   }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
-  if (usesMusic(song)) startMusic(song); else startMetronome(song);
+  if (usesMusic(song)) startMusic(song, scrollY / musicPps(song)); else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
@@ -2366,9 +2380,22 @@ async function startScroll(song, opts = {}) {
       scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
       if (scroll.ms - (scroll.saved || 0) > 20000) { journalTime(data, (scroll.ms - (scroll.saved || 0)) / 1000); scroll.saved = scroll.ms; Tabs.save(data); } /* every 20 s, so closing the app mid-song loses nothing */
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
-      scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song) * loopFactor(song);
-      const px = Math.floor(scroll.carry);
-      if (px) { window.scrollBy(0, px); scroll.carry -= px; scroll.cover = (scroll.cover || 0) + px; nextLine(); }
+      /* The recording is the clock while it plays: the page goes where its time says, so a pause, a stall
+         or a seek in Apple Music moves the scroll with it. Otherwise the timer carries the page. */
+      let clock = usesMusic(song) && !song.loop ? musicClock(song) : null;
+      /* just seeked: wait for the recording to arrive before following it again */
+      if (clock !== null && musicSync.target >= 0) { if (Math.abs(clock - musicSync.target) < 2 || t > musicSync.until) musicSync.target = -1; else clock = -1; }
+      let px;
+      if (clock === -1) { px = 0; clock = 0; } else if (clock !== null) {
+        if (clock !== musicSync.clock) { musicSync.clock = clock; musicSync.at = t; } /* the clock moves in steps: fill in between */
+        const want = (clock + (t - musicSync.at) / 1000) * musicPps(song), diff = want - scrollY;
+        px = Math.abs(diff) > innerHeight ? Math.round(diff) : Math.round(diff * 0.25);
+        scroll.carry = 0;
+      } else {
+        scroll.carry += (t - scroll.last) / 1000 * pxPerSecond(song) * loopFactor(song);
+        px = Math.floor(scroll.carry);
+      }
+      if (px) { window.scrollBy(0, px); if (clock === null) scroll.carry -= px; scroll.cover = (scroll.cover || 0) + px; nextLine(); }
       /* The end is the last line reaching the reading line. If the page runs out first, add room. */
       const end = endScroll();
       if (!song.loop && end >= 0 && scrollY < end - 2 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) endRoom(end - scrollY);

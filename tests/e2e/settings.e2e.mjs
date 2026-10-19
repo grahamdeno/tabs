@@ -131,6 +131,31 @@ test("Apple Music: a song set to Band starts no recording, and the More menu swi
   await page.click("#play");
 });
 
+test("Apple Music: the page follows the recording's clock, and moving the page by hand seeks the recording", { skip: skip() }, async t => {
+  const body = Array.from({ length: 90 }, (_, n) => `[V${n}]\nG  D  Em  C`).join("\n");
+  const song = { ...LIB.songs[0], body, duration: 200, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, speedMode: "length" } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkLog = []; window.mkMusic = { isAuthorized: true, isPlaying: false, currentPlaybackTime: 0,
+      setQueue: async () => {}, seekToTime: async n => { window.mkLog.push("seek:" + Math.round(n)); window.mkMusic.currentPlaybackTime = n; },
+      play: async () => { window.mkMusic.isPlaying = true; }, pause: () => { window.mkMusic.isPlaying = false; }, stop: () => {} };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  await page.waitForTimeout(400);
+  await page.click("#play");
+  await page.waitForFunction(() => window.mkMusic.isPlaying, null, { timeout: 5000 });
+  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 150; });
+  await page.waitForFunction(() => scrollY > 300, null, { timeout: 5000 });
+  const high = await page.evaluate(() => scrollY);
+  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 30; });
+  await page.waitForFunction(h => scrollY < h / 2, high, { timeout: 5000 });
+  await page.evaluate(() => { window.dispatchEvent(new Event("wheel")); window.scrollTo(0, 600); });
+  await page.waitForFunction(() => window.mkLog.some(x => x.startsWith("seek:") && +x.slice(5) > 0), null, { timeout: 5000 });
+});
+
 test("Apple Music: a failure names the step it stopped at, and Apple's own alert becomes a banner", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token" } };

@@ -64,7 +64,7 @@ onLeave(() => stopPreview());
 // MusicKit loads on first use; its developer token comes from the token
 // address (the Worker in worker/, which holds the MusicKit key).
 const MUSICKIT = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
-let musicKit = null, playingId = "", mkStep = "";
+let musicKit = null, inst = null, playingId = "", mkStep = "";
 /* Apple's player may raise its own alert ("The operation was aborted."). Catch it, keep the stack that
    shows who raised it, and show it as a banner with the step it came from (3.10.1). */
 function catchAlerts() {
@@ -98,7 +98,7 @@ function loadMusicKit() {
     await step("setup", window.MusicKit.configure({ developerToken: token, app: { name: "The Road", build: VERSION } }));
     return window.MusicKit.getInstance();
   })();
-  musicKit.catch(() => { musicKit = null; });
+  musicKit.then(m => { inst = m; }, () => { musicKit = null; });
   return musicKit;
 }
 async function playApple(song) {
@@ -131,17 +131,31 @@ export function prepareMusic(song) {
     readyId = id;
   }).catch(e => noteError(e, { quiet: true, where: "apple music ready" }));
 }
-export async function startMusic(song) {
+/* `at` is where in the recording to start, in seconds: the scroll's place, so Play from the middle of
+   the sheet starts the music there. A resume from a pause that is already about right is left alone. */
+export async function startMusic(song, at = 0) {
   if (!wanted(song)) return;
   const id = appleTrackId(song.listen.url);
   try {
     const music = await loadMusicKit();
     if (!music.isAuthorized) return;
     if (readyId !== id && playingId !== id) { await music.setQueue({ song: id, startPlaying: false }); readyId = id; }
-    if (playingId !== id) { try { await music.seekToTime(0); } catch { /* a fresh queue is already at the start */ } }
+    const cur = playingId === id ? music.currentPlaybackTime || 0 : 0;
+    if (Math.abs(cur - at) > 1.5) { try { await music.seekToTime(Math.max(0, at)); } catch { /* a fresh queue is already at the start */ } }
     await step("play", music.play());
     playingId = id;
   } catch (e) { noteError(e, { quiet: true, where: `apple music start (${mkStep})` }); }
+}
+/* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
+export function musicClock(song) {
+  if (!inst || !playingId || !song?.listen || playingId !== appleTrackId(song.listen.url) || !inst.isPlaying) return null;
+  const t = inst.currentPlaybackTime;
+  return Number.isFinite(t) ? t : null;
+}
+/* Jump the recording to a place in it, after a hand moved the page. */
+export function seekMusic(song, sec) {
+  if (!inst || !playingId || !song?.listen || playingId !== appleTrackId(song.listen.url)) return;
+  Promise.resolve(inst.seekToTime(Math.max(0, sec))).catch(e => noteError(e, { quiet: true, where: "apple music seek" }));
 }
 export function pauseMusic() { if (playingId) musicKit?.then(m => m.pause(), () => {}); }
 function listenSheet(song, force) {
