@@ -39,7 +39,7 @@ test("a chord lesson lights a lamp for each string it hears ring clean, and the 
   await page.waitForSelector(".pk-strings");
   assert.equal(await page.locator(".pk-str").count(), 6);
   await page.click("#pk-start");
-  await page.waitForFunction(() => /Listening/.test(document.getElementById("pk-say").textContent));
+  await page.waitForFunction(() => /Pluck the low E string, fret 3/.test(document.getElementById("pk-say").textContent));
   await page.evaluate(() => { window.__hz = 98; }); /* the low string fretted at the 3rd: G */
   await page.waitForFunction(() => document.querySelectorAll(".pk-str .gs-lamp.on").length === 1, null, { timeout: 6000 });
   await page.evaluate(() => { window.__hz = 0; });
@@ -70,8 +70,10 @@ test("What I hear: the level, the pitch and the string it lights, and readings t
   await page.evaluate(() => { window.__hz = 110; }); /* the open A, which Am uses */
   await page.waitForFunction(() => document.getElementById("ph-note").textContent === "A2", null, { timeout: 6000 });
   await page.waitForFunction(() => document.querySelectorAll("#ph-strings .gs-lamp.on").length === 1, null, { timeout: 6000 });
+  await page.waitForTimeout(800); /* a moment waiting on the next string */
   await page.click("#ph-copy");
   await page.waitForFunction(async () => /Notes heard: A2/.test(await navigator.clipboard.readText()), null, { timeout: 4000 });
+  assert.match(await page.evaluate(() => navigator.clipboard.readText()), /E3 on the D string: \d+ s, sounding/, "the string still awaited says what was heard instead");
   await page.click("#ph-go");
   assert.deepEqual(errors, []);
 });

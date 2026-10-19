@@ -95,23 +95,45 @@ function mic() {
    to pick another). Its lamp glows warm while it waits. Three readings in a row decide. */
 function stringGuide(targets, box) {
   const order = targets.filter(t => t.hz), lit = new Set();
-  let k = 0, streak = { say: "", n: 0 };
+  let k = 0, streak = { say: "", n: 0 }, dull = 0, toldAt = 0;
+  /* for the readings: what was heard while each string was awaited */
+  const log = new Map(order.map(t => [t.i, { reads: 0, loud: 0, near: 0, dull: 0, other: {} }]));
   const lamp = i => box.querySelector(`.pk-str[data-i="${i}"]`);
   const paint = () => order.forEach((t, j) => { const e = lamp(t.i); e?.classList.toggle("cur", j === k && !lit.has(t.i)); e?.querySelector(".gs-lamp")?.classList.toggle("warm", j === k && !lit.has(t.i)); });
-  const next = () => { for (let n = 1; n <= order.length; n++) { const j = (k + n) % order.length; if (!lit.has(order[j].i)) { k = j; break; } } streak = { say: "", n: 0 }; paint(); };
-  order.forEach((t, j) => { const e = lamp(t.i); if (e) e.onclick = () => { if (!lit.has(t.i)) { k = j; streak = { say: "", n: 0 }; paint(); } }; });
+  const reset = () => { streak = { say: "", n: 0 }; dull = 0; };
+  const next = () => { for (let n = 1; n <= order.length; n++) { const j = (k + n) % order.length; if (!lit.has(order[j].i)) { k = j; break; } } reset(); paint(); };
+  order.forEach((t, j) => { const e = lamp(t.i); if (e) e.onclick = () => { if (!lit.has(t.i)) { k = j; reset(); paint(); } }; });
   paint();
   return {
     cur: () => lit.size < order.length ? order[k] : null,
     done: () => lit.size >= order.length,
     count: () => lit.size,
-    /* a buffer in: what happened, if anything ({ t, say }) */
-    hear(buf, rate, floor) {
+    /* one line per string not lit: how long it was awaited and what came instead */
+    report: () => order.filter(t => !lit.has(t.i) && log.get(t.i).reads).map(t => {
+      const g = log.get(t.i), pc = n => Math.round(n / g.reads * 100) + "%";
+      const other = Object.entries(g.other).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, c]) => `${n} ×${c}`).join(", ");
+      return `${t.note}${nearestNote(t.hz).octave} on the ${strName(t.i, "standard")} string: ${(g.reads * 0.05).toFixed(0)} s, sounding ${pc(g.loud)}, near its note ${pc(g.near)}, no clear pitch ${pc(g.dull)}${other ? `, other notes ${other}` : ""}`;
+    }),
+    /* a buffer in: what happened, if anything ({ t, say }). say: ring, open, low, high, muted, or wrong (with note) */
+    hear(buf, rate, floor, rms) {
       const t = order[k];
       if (!t || lit.has(t.i)) return null;
+      const g = log.get(t.i); g.reads++;
+      const sounding = rms > pitchRms(floor) * 2;
+      if (sounding) g.loud++;
       const hz = detectPitch(buf, rate, pitchRms(floor), 0.6, stringRange(t));
       const say = judgeTarget(hz, t);
-      if (!say) { streak = { say: "", n: 0 }; return hz > 0 ? null : { t, say: "" }; }
+      if (say) g.near++;
+      else if (hz > 0) { const nn = nearestNote(hz); g.other[nn.name + nn.octave] = (g.other[nn.name + nn.octave] || 0) + 1; }
+      else if (sounding) g.dull++;
+      /* a string that sounds but has no clear pitch for half a second: muted or buzzing (3.9.1) */
+      dull = !say && hz <= 0 && rms > buzzRms(floor) * 0.5 ? dull + 1 : 0;
+      if (dull === 9 && Date.now() - toldAt > 2000) { toldAt = Date.now(); return { t, say: "muted" }; }
+      if (!say) {
+        if (hz > 0) { const nn = nearestNote(hz); streak = streak.say === "wrong" && streak.note === nn.name + nn.octave ? { ...streak, n: streak.n + 1 } : { say: "wrong", note: nn.name + nn.octave, n: 1 }; if (streak.n === 4 && Date.now() - toldAt > 2000) { toldAt = Date.now(); return { t, say: "wrong", note: streak.note }; } }
+        else streak = { say: "", n: 0 };
+        return null;
+      }
       streak = streak.say === say ? { say, n: streak.n + 1 } : { say, n: 1 };
       if (streak.n !== 3) return null;
       if (say === "ring") { lit.add(t.i); lamp(t.i)?.querySelector(".gs-lamp")?.classList.add("on"); next(); }
@@ -119,6 +141,14 @@ function stringGuide(targets, box) {
     }
   };
 }
+/* what to tell the player about one string */
+const stringAdvice = (ev, nm) => ({
+  open: `The ${nm} string is ringing open. Press it just behind fret ${ev.t.fret}.`,
+  low: `The ${nm} string sounds a fret low. Check which fret that finger is on.`,
+  high: `The ${nm} string sounds a fret high. Check which fret that finger is on.`,
+  muted: `The ${nm} string sounds muted. A finger may be resting on it: arch your fingers and press with the tips.`,
+  wrong: `That sounds like ${ev.note}, not the ${nm} string's ${ev.t.note}. Pluck only the ${nm} string.`
+})[ev.say] || "";
 const fretText = t => t.fret > 0 ? `, fret ${t.fret}` : ", open";
 
 /* chord lesson: one lamp per string */
@@ -149,24 +179,16 @@ function chordLesson(st) {
       const an = ctx.createAnalyser(); an.fftSize = 4096;
       const src = ctx.createMediaStreamSource(stream); src.connect(an);
       const buf = new Float32Array(an.fftSize);
-      let loud = 0, told = 0, floor = null;
+      let told = 0, floor = null;
       const guide = stringGuide(targets, app.querySelector(".pk-strings"));
       const ask = () => { const t = guide.cur(); if (t) say(`Pluck the ${strName(t.i, tuning)} string${fretText(t)}.`); };
       live = { stream, src, timer: setInterval(() => {
         an.getFloatTimeDomainData(buf);
         let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
         floor = trackFloor(floor, rms);
-        const ev = guide.hear(buf, ctx.sampleRate, floor);
-        if (ev?.say) {
-          loud = 0;
-          const nm = strName(ev.t.i, tuning);
-          if (ev.say === "ring") { if (guide.done()) return finish(); say(`${nm}: clean.`); setTimeout(ask, 700); }
-          else if (Date.now() - told > 1500) {
-            told = Date.now();
-            say(ev.say === "open" ? `The ${nm} string is ringing open. Press it just behind fret ${ev.t.fret}.` : `The ${nm} string sounds a fret ${ev.say}. Check which fret that finger is on.`);
-          }
-        } else if (ev && rms > buzzRms(floor)) { loud++; if (loud === 14 && Date.now() - told > 1500) { told = Date.now(); say(`The ${strName(ev.t.i, tuning)} string sounds buzzy or muted. Press closer to the fret and keep other fingers off it.`); } }
-        else loud = 0;
+        const ev = guide.hear(buf, ctx.sampleRate, floor, rms);
+        if (ev?.say === "ring") { if (guide.done()) return finish(); say(`${strName(ev.t.i, tuning)}: clean.`); setTimeout(ask, 700); }
+        else if (ev?.say && Date.now() - told > 1500) { told = Date.now(); say(stringAdvice(ev, strName(ev.t.i, tuning))); }
       }, 45) };
       ask();
       $("pk-start").hidden = true;
@@ -307,7 +329,7 @@ function whatIHear() {
   let chord = "", guide = null, running = false, measuring = false, ctxRef = null, floorRef = null, prof = null, along = null;
   const lane = [], strums = [], beats = []; /* last few seconds: [time, level] */
   const st = { t0: 0, frames: 0, quiet: [], peak: 0, pitched: 0, buzzy: 0, strums: 0, notes: {}, lit: {}, grade: null };
-  const beatAt = []; /* every beat played, audio time */
+  const beatAt = [], alongLane = []; /* every beat played, audio time; the level while strumming with the beat */
   const lastBeat = now => { for (let k = beatAt.length - 1; k >= 0; k--) if (beatAt[k] <= now) return { since: now - beatAt[k], one: k % 4 === 0 }; return null; };
   const bleedNow = now => { const lb = prof && lastBeat(now); return lb ? prof.at(lb.since, lb.one) : 0; };
   app.innerHTML = `${head("What I hear", "Play anything for half a minute. Nothing is recorded or sent.")}
@@ -379,6 +401,7 @@ function whatIHear() {
         lane.push([now, rms]); while (lane.length && now - lane[0][0] > 4.2) lane.shift();
         st.frames++; st.peak = Math.max(st.peak, rms);
         if (measuring) { const lb = lastBeat(now); if (lb) prof.add(lb.since, lb.one, rms); strum(rms, now, 1); return; }
+        if (along) alongLane.push([now, rms, strumLine(strum.floor(), bleedNow(now))]);
         if (strum(rms, now, bleedNow(now))) { strums.push(now); along?.push(now); st.strums++; $("ph-strums").textContent = st.strums; }
         while (strums.length && now - strums[0] > 4.2) strums.shift();
         if (++n % 5) return; /* the pitch every 50 ms */
@@ -393,11 +416,11 @@ function whatIHear() {
           $("ph-note").textContent = nn.name + nn.octave;
           $("ph-hz").textContent = `${hz.toFixed(1)} Hz · ${nn.cents > 0 ? "+" : ""}${nn.cents}¢`;
         } else if (rms > buzzRms(strum.floor())) { st.buzzy++; $("ph-note").textContent = "?"; $("ph-hz").textContent = "no clear pitch"; }
-        const ev = guide?.hear(sb, ctx.sampleRate, strum.floor());
+        const ev = guide?.hear(sb, ctx.sampleRate, strum.floor(), rms);
         if (ev?.say) {
           const nm = strName(ev.t.i, "standard");
           if (ev.say === "ring") { st.lit[chord] = guide.count(); const nx = guide.cur(); say(nx ? `${nm} string: clean. Next, the ${strName(nx.i, "standard")} string${fretText(nx)}.` : `${nm} string: clean. Every string of ${chord} rang.`); }
-          else say(ev.say === "open" ? `${nm} string: ringing open.` : `${nm} string: a fret ${ev.say}.`);
+          else say(stringAdvice(ev, nm));
         }
       }, 10) };
       running = true;
@@ -419,7 +442,7 @@ function whatIHear() {
     if (!live?.ctx) return;
     say("First bar: stay quiet. Then strum on each 1 for four bars.");
     $("ph-drums").disabled = true;
-    beatAt.length = 0; prof = bleedProfile(); along = null;
+    beatAt.length = 0; alongLane.length = 0; prof = bleedProfile(); along = null;
     st.grade = { started: true };
     const tr = beatTrack(70, (i, t) => {
       beatAt.push(t); beats.push(t);
@@ -436,6 +459,13 @@ function whatIHear() {
       if (live) live.track = null;
       const dues = [4, 8, 12, 16].map(k => tr.t0 + k * spb + tr.lag);
       st.grade = gradeSwitches(dues, along || [], spb);
+      /* each 1: was a strum there, and how loud against the line (so a miss says whether it was the playing or the listening) */
+      st.bars = dues.map((d, k) => {
+        const win = alongLane.filter(([t]) => t >= d - 0.6 * spb && t <= d + 1.2 * spb);
+        const top = win.reduce((a, x) => x[1] > a[1] ? x : a, [d, 0, 0]);
+        const caught = (along || []).filter(o => o >= d - 0.6 * spb && o <= d + 1.2 * spb).sort((a, b) => Math.abs(a - d) - Math.abs(b - d))[0];
+        return `${k + 1}: ${caught !== undefined ? `strum at ${caught - d >= 0 ? "+" : ""}${((caught - d) * 1000).toFixed(0)} ms` : "none caught"}, loudest ${(top[1] * 100).toFixed(1)} at ${top[0] - d >= 0 ? "+" : ""}${((top[0] - d) * 1000).toFixed(0)} ms, line ${(top[2] * 100).toFixed(1)}`;
+      });
       along = null; beats.length = 0;
       document.querySelectorAll("#ph-beats i").forEach(e => e.classList.remove("on"));
       if (!document.contains(canvas)) return;
@@ -452,6 +482,8 @@ function whatIHear() {
       `The Road ${VERSION}, What I hear`,
       `Listened ${Math.round((ctxRef?.currentTime || 0) - st.t0)} s · sample rate ${ctxRef?.sampleRate || "?"} · output delay ${Math.round(((ctxRef?.baseLatency || 0) + (ctxRef?.outputLatency || 0)) * 1000)} ms`,
       `Quiet floor ${(floor * 100).toFixed(3)} (tracked ${((floorRef?.() || 0) * 100).toFixed(3)}) · strum line ${(strumLine(floorRef?.() ?? null) * 100).toFixed(2)} · loudest ${(st.peak * 100).toFixed(1)} · beat in the mic ${prof ? (prof.peak() * 100).toFixed(2) : "not measured"}`,
+      ...(st.bars ? ["Each 1: " + st.bars.join(" · ")] : []),
+      ...(guide ? guide.report() : []),
       st.grade?.started ? "With the beat: not finished (it takes about 17 seconds)" : st.grade ? `With the beat: ${st.grade.on} of 4 on the 1, ${st.grade.late} late, ${st.grade.early} early, ${st.grade.miss} not heard` : "",
       `Strums caught ${st.strums} · pitch clear ${pct(st.pitched, reads)} of reads · buzzy ${pct(st.buzzy, reads)}`,
       `Notes heard: ${top || "none"}`,
