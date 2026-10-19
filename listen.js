@@ -64,24 +64,38 @@ onLeave(() => stopPreview());
 // MusicKit loads on first use; its developer token comes from the token
 // address (the Worker in worker/, which holds the MusicKit key).
 const MUSICKIT = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
-let musicKit = null, playingId = "";
+let musicKit = null, playingId = "", mkStep = "";
+/* Apple's player may raise its own alert ("The operation was aborted."). Catch it, keep the stack that
+   shows who raised it, and show it as a banner with the step it came from (3.10.1). */
+function catchAlerts() {
+  if (window.alert.caught) return;
+  const real = window.alert.bind(window);
+  window.alert = msg => {
+    noteError(new Error(`alert at ${mkStep || "?"}: ${msg}`), { quiet: true, where: "apple music alert" });
+    toast(`Apple Music (${mkStep || "?"}): ${String(msg).slice(0, 80)}`);
+    void real;
+  };
+  window.alert.caught = true;
+}
+const step = (name, p) => { mkStep = name; return p; };
 function loadMusicKit() {
   if (musicKit) return musicKit;
+  catchAlerts();
   musicKit = (async () => {
     const url = data.settings.appleMusicToken || "";
     if (!/^https:\/\//.test(url)) throw new Error("No Apple Music token address");
-    const r = await fetch(url);
+    const r = await step("token", fetch(url));
     if (!r.ok) throw new Error(`Apple Music token: ${r.status}`);
     const { token } = await r.json();
-    if (!window.MusicKit) await new Promise((ok, no) => {
+    if (!window.MusicKit) await step("script", new Promise((ok, no) => {
       document.addEventListener("musickitloaded", ok, { once: true });
       const s = document.createElement("script");
       s.src = MUSICKIT; s.async = true;
       s.onload = () => { if (window.MusicKit) ok(); };
       s.onerror = () => no(new Error("MusicKit didn't load"));
       document.head.appendChild(s);
-    });
-    await window.MusicKit.configure({ developerToken: token, app: { name: "The Road", build: VERSION } });
+    }));
+    await step("setup", window.MusicKit.configure({ developerToken: token, app: { name: "The Road", build: VERSION } }));
     return window.MusicKit.getInstance();
   })();
   musicKit.catch(() => { musicKit = null; });
@@ -91,14 +105,14 @@ async function playApple(song) {
   const id = appleTrackId(song.listen.url);
   try {
     const music = await loadMusicKit();
-    if (!music.isAuthorized) return toast("Sign in to Apple Music to hear the whole song", null, { label: "Sign in", fn: () => music.authorize().then(() => playApple(song), () => toast("Apple Music sign-in didn't finish")) });
+    if (!music.isAuthorized) return toast("Sign in to Apple Music to hear the whole song", null, { label: "Sign in", fn: () => step("sign-in", music.authorize()).then(() => playApple(song), e => { noteError(e, { quiet: true, where: "apple music sign-in" }); toast(`Apple Music sign-in stopped: ${String(e?.message || e).slice(0, 80)}`); }) });
     if (playingId === id && music.isPlaying) { music.pause(); return; }
-    if (playingId === id) { await music.play(); return; }
-    await music.setQueue({ song: id, startPlaying: true });
+    if (playingId === id) { await step("play", music.play()); return; }
+    await step("queue", music.setQueue({ song: id, startPlaying: true }));
     playingId = id;
   } catch (e) {
-    noteError(e, { quiet: true, where: "apple music" });
-    toast("Apple Music couldn't play it here", null, { label: "Open", fn: () => openLink(song.listen.url) });
+    noteError(e, { quiet: true, where: `apple music ${mkStep}` });
+    toast(`Apple Music stopped at ${mkStep || "start"}: ${String(e?.message || e).slice(0, 70)}`, null, { label: "Open", fn: () => openLink(song.listen.url) });
   }
 }
 onLeave(() => { if (playingId) { musicKit?.then(m => m.stop(), () => {}); playingId = ""; } });
@@ -112,7 +126,7 @@ export function prepareMusic(song) {
   const id = appleTrackId(song.listen.url);
   loadMusicKit().then(async music => {
     if (!music.isAuthorized || playingId === id || readyId === id) return;
-    await music.setQueue({ song: id, startPlaying: false });
+    await step("queue", music.setQueue({ song: id, startPlaying: false }));
     readyId = id;
   }).catch(e => noteError(e, { quiet: true, where: "apple music ready" }));
 }
@@ -124,9 +138,9 @@ export async function startMusic(song) {
     if (!music.isAuthorized) return;
     if (readyId !== id && playingId !== id) { await music.setQueue({ song: id, startPlaying: false }); readyId = id; }
     if (playingId !== id) { try { await music.seekToTime(0); } catch { /* a fresh queue is already at the start */ } }
-    await music.play();
+    await step("play", music.play());
     playingId = id;
-  } catch (e) { noteError(e, { quiet: true, where: "apple music start" }); }
+  } catch (e) { noteError(e, { quiet: true, where: `apple music start (${mkStep})` }); }
 }
 export function pauseMusic() { if (playingId) musicKit?.then(m => m.pause(), () => {}); }
 function listenSheet(song, force) {
