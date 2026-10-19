@@ -102,6 +102,33 @@ async function playApple(song) {
   }
 }
 onLeave(() => { if (playingId) { musicKit?.then(m => m.stop(), () => {}); playingId = ""; } });
+/* Play starts the recording with the scroll (3.10.0). Opening a song gets MusicKit and the queue ready
+   (paused), so Play only has to say play; if Apple Music isn't ready, signed in or linked, nothing
+   happens and the song scrolls as before. Pausing the scroll pauses the recording. */
+let readyId = "";
+const wanted = song => !!(data.settings.appleMusic && song?.listen && appleTrackId(song.listen.url));
+export function prepareMusic(song) {
+  if (!wanted(song)) return;
+  const id = appleTrackId(song.listen.url);
+  loadMusicKit().then(async music => {
+    if (!music.isAuthorized || playingId === id || readyId === id) return;
+    await music.setQueue({ song: id, startPlaying: false });
+    readyId = id;
+  }).catch(e => noteError(e, { quiet: true, where: "apple music ready" }));
+}
+export async function startMusic(song) {
+  if (!wanted(song)) return;
+  const id = appleTrackId(song.listen.url);
+  try {
+    const music = await loadMusicKit();
+    if (!music.isAuthorized) return;
+    if (readyId !== id && playingId !== id) { await music.setQueue({ song: id, startPlaying: false }); readyId = id; }
+    if (playingId !== id) { try { await music.seekToTime(0); } catch { /* a fresh queue is already at the start */ } }
+    await music.play();
+    playingId = id;
+  } catch (e) { noteError(e, { quiet: true, where: "apple music start" }); }
+}
+export function pauseMusic() { if (playingId) musicKit?.then(m => m.pause(), () => {}); }
 function listenSheet(song, force) {
   if (song.listen && !force) return data.settings.appleMusic && appleTrackId(song.listen.url) ? playApple(song) : openLink(song.listen.url);
   if (appleBlocksSearch()) return listenApple(song);

@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, listenSheet, openLink, recordingLength } from "./listen.js";
+import { appleSearchURL, listenSheet, openLink, pauseMusic, prepareMusic, recordingLength, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -717,6 +717,7 @@ function renderViewer(id) {
   const song = data.songs.find(s => s.id === id);
   if (!song) return go("#/");
   const isChords = song.format !== "tab";
+  prepareMusic(song);
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
   if (song.speed === undefined) song.speed = data.settings.startSpeed || SPEEDS.medium; // then each song keeps its own
   if (song.size === undefined) song.size = 1;
@@ -2342,6 +2343,7 @@ async function startScroll(song, opts = {}) {
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
   startMetronome(song);
+  startMusic(song);
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
@@ -2394,6 +2396,7 @@ function stopScroll() {
   if (scroll.ms - (scroll.saved || 0) > 1000) { journalTime(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
+  if (was) pauseMusic();
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");

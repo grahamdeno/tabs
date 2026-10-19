@@ -91,3 +91,25 @@ test("Settings > Keys: Apple Music is off by default; on, Listen plays the linke
   assert.equal(await page.evaluate(() => window.mkLog.at(-1)), "stop", "leaving the song stops it");
   assert.deepEqual(errs, []);
 });
+
+test("Apple Music: opening a song readies the recording paused, Play starts it with the scroll, and pausing the scroll pauses it", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
+  const page = await phone(t, lib);
+  const errs = []; page.on("pageerror", e => errs.push(e.message));
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkLog = []; window.mkMusic = { isAuthorized: true, isPlaying: false,
+      setQueue: async o => { window.mkLog.push("queue:" + o.song + ":" + o.startPlaying); }, seekToTime: async () => {},
+      play: async () => { window.mkMusic.isPlaying = true; window.mkLog.push("play"); }, pause: () => { window.mkMusic.isPlaying = false; window.mkLog.push("pause"); }, stop: () => { window.mkLog.push("stop"); } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  await page.waitForFunction(() => window.mkLog?.includes("queue:111:false"), null, { timeout: 5000 });
+  assert.deepEqual(await page.evaluate(() => window.mkLog), ["queue:111:false"], "ready, not playing");
+  await page.click("#play");
+  await page.waitForFunction(() => window.mkLog.includes("play"), null, { timeout: 5000 });
+  await page.click("#play");
+  await page.waitForFunction(() => window.mkLog.at(-1) === "pause", null, { timeout: 5000 });
+  assert.deepEqual(errs, []);
+});
