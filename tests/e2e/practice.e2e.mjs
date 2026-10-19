@@ -48,3 +48,30 @@ test("a chord lesson lights a lamp for each string it hears ring clean, and the 
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["c:G"]?.n === 1);
   assert.deepEqual(errors, []);
 });
+
+test("What I hear: the level, the pitch and the string it lights, and readings to copy", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block", permissions: ["clipboard-read", "clipboard-write"] });
+  await ctx.addInitScript(FAKE_MIC);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(base);
+  await page.waitForTimeout(400);
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
+  await page.goto(base + "#/practice");
+  await page.click("#pk-hear");
+  await page.waitForSelector("#ph-lane");
+  await page.click(".ph-chords [data-c='Am']");
+  assert.equal(await page.locator("#ph-strings .pk-str").count(), 6);
+  await page.click("#ph-go");
+  await page.waitForFunction(() => /Stop/.test(document.getElementById("ph-go").textContent));
+  await page.evaluate(() => { window.__hz = 110; }); /* the open A, which Am uses */
+  await page.waitForFunction(() => document.getElementById("ph-note").textContent === "A2", null, { timeout: 6000 });
+  await page.waitForFunction(() => document.querySelectorAll("#ph-strings .gs-lamp.on").length === 1, null, { timeout: 6000 });
+  await page.click("#ph-copy");
+  await page.waitForFunction(async () => /Notes heard: A2/.test(await navigator.clipboard.readText()), null, { timeout: 4000 });
+  await page.click("#ph-go");
+  assert.deepEqual(errors, []);
+});

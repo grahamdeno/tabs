@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.7.1";
+export const VERSION = "3.8.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2920,6 +2920,26 @@ export function judgeString(hz, targets) {
     if (Math.abs(c(hz, t.hz * 2 ** (1 / 12))) <= 35) return { i: t.i, say: "high" };
   }
   return null;
+}
+/* How the neck listens. One set of numbers for the lessons and for What I hear, so a
+   reading taken on What I hear says exactly what a lesson would do with it.
+   pitchRms   quietest sound the pitch reading tries (RMS, 0 to 1)
+   clarity    how clear a pitch must be (lower is stricter)
+   buzzRms    a sound this loud with no clear pitch counts as buzzy or muted
+   strumRms   quietest strum counted
+   overBleed  a strum must be this many times louder than the drums in the mic
+   rise       and this many times louder than a moment before
+   gap        seconds between two strums at the least */
+export const HEAR = { pitchRms: 0.015, clarity: 0.3, buzzRms: 0.04, strumRms: 0.03, overBleed: 2.2, rise: 1.4, gap: 0.18 };
+/* A strum: the level jumps above the floor (and above the drums' bleed). Feed it levels in order. */
+export function strumDetector(h = HEAR) {
+  let prev = 0, last = -Infinity;
+  return (rms, now, bleed = 0) => {
+    const hit = rms > Math.max(h.strumRms, bleed * h.overBleed) && rms > prev * h.rise && now - last > h.gap;
+    prev = rms;
+    if (hit) last = now;
+    return hit;
+  };
 }
 /* Switch drill: when you played against when the chord was due. `due` and `onsets` are in seconds;
    `spb` is seconds per beat. Early or late by more than a quarter beat is not on the beat. */

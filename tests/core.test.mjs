@@ -1543,3 +1543,14 @@ test("The neck: the strings of a chord, what a heard pitch means, and grading a 
   assert.deepEqual([g.on, g.late, g.miss, g.clean], [2, 1, 1, false]);
   assert.equal(C.gradeSwitches(due, [10, 14, 18, 22.05], spb).clean, true);
 });
+
+test("What I hear: a strum is a jump in level above the floor and above the drums, not a sound that just stays loud", () => {
+  const s = C.strumDetector();
+  assert.equal(s(0.005, 0), false);
+  assert.equal(s(0.2, 0.01), true, "a jump");
+  assert.equal(s(0.25, 0.02), false, "still ringing, too soon");
+  assert.equal(s(0.01, 0.5), false);
+  assert.equal(s(0.06, 0.6, 0.04), false, "under the drums' bleed times overBleed");
+  assert.equal(s(0.01, 0.9), false);
+  assert.equal(s(0.12, 1.0, 0.04), true);
+});
