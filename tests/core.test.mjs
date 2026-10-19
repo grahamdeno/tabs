@@ -1593,3 +1593,12 @@ test("A strum pattern around the 1 is graded by the strum nearest the beat; one 
   assert.equal(C.judgeTarget(300, g3), null);
   assert.deepEqual(C.stringRange(g3).map(Math.round), [154, 312]);
 });
+
+test("The security policy lets MusicKit fetch Apple's certificate bundle and stream from Apple's CDNs", async () => {
+  const { readFileSync } = await import("node:fs");
+  const csp = readFileSync(new URL("../index.html", import.meta.url), "utf8").match(/Content-Security-Policy" content="([^"]*)"/)[1];
+  const part = name => csp.split(";").map(x => x.trim()).find(x => x.startsWith(name + " "));
+  for (const h of ["https://*.mzstatic.com", "https://*.cdn-apple.com", "https://*.aaplimg.com"]) assert.ok(part("connect-src").includes(h), "connect-src " + h);
+  assert.ok(part("media-src").includes("https://*.mzstatic.com"));
+  assert.ok(!/unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
+});
