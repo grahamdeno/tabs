@@ -121,6 +121,7 @@ onLeave(() => { if (playingId) { musicKit?.then(m => m.stop(), () => {}); playin
    happens and the song scrolls as before. Pausing the scroll pauses the recording. */
 let readyId = "";
 const wanted = song => !!(data.settings.appleMusic && song?.listen && appleTrackId(song.listen.url));
+export const hasMusic = wanted;
 export function prepareMusic(song) {
   if (!wanted(song)) return;
   const id = appleTrackId(song.listen.url);

@@ -114,6 +114,23 @@ test("Apple Music: opening a song readies the recording paused, Play starts it w
   assert.deepEqual(errs, []);
 });
 
+test("Apple Music: a song set to Band starts no recording, and the More menu switches it to the recording", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], backing: "band", listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, metronome: true } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkLog = []; window.mkMusic = { isAuthorized: true, isPlaying: false,
+      setQueue: async o => { window.mkLog.push("queue"); }, seekToTime: async () => {},
+      play: async () => { window.mkLog.push("play"); }, pause: () => { window.mkLog.push("pause"); }, stop: () => {} };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  await page.click("#play"); await page.waitForTimeout(600);
+  assert.ok(!(await page.evaluate(() => window.mkLog || [])).includes("play"), "band: the recording stays silent");
+  await page.click("#play");
+});
+
 test("Apple Music: a failure names the step it stopped at, and Apple's own alert becomes a banner", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token" } };

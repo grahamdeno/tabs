@@ -848,6 +848,8 @@ test("sketch: a nudge where another chord clearly holds the melody better", () =
 test("backups keep a song's album art only as an https link", () => {
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "https://is1-ssl.mzstatic.com/x/600x600bb.jpg" }).art, "https://is1-ssl.mzstatic.com/x/600x600bb.jpg");
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "javascript:alert(1)" }).art, undefined);
+  assert.equal(C.cleanSong({ id: "a", body: "G", backing: "band" }).backing, "band");
+  assert.equal(C.cleanSong({ id: "a", body: "G", backing: "music" }).backing, undefined);
 });
 
 // ---------- Add the words ----------

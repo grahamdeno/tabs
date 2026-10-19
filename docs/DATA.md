@@ -49,6 +49,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `favorite` | boolean | |
 | `created` | ISO date | |
 | `art` | string | Album art for set covers, found on Apple Music when the title and artist clearly match (https only). A Listen link's own art comes first |
+| `backing` | `"band"` | Only set when Play should start the drums and bass instead of the linked Apple Music recording; absent means the recording (when one is linked and Apple Music is on) |
 | `listen` | `{ url, service, title?, artist?, art?, length? }` | `url` and `art` are https only; `length` is the recording's, in seconds |
 | `loop` | `{ a, b, build }` | Practice a section, line numbers |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |

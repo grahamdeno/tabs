@@ -60,7 +60,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 - Visual references: CI compares against `tests/visual/ci`, so a release that
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
-  releases and ask him after 10. Last remade at 3.0.0; releases since: 10 (3.1.0, 3.2.0, 3.3.0, 3.4.0, 3.5.0, 3.6.0, 3.7.0, 3.8.0, 3.9.0, 3.10.0). To remake when he says yes:
+  releases and ask him after 10. Last remade at 3.0.0; releases since: 11 (3.1.0, 3.2.0, 3.3.0, 3.4.0, 3.5.0, 3.6.0, 3.7.0, 3.8.0, 3.9.0, 3.10.0, 3.11.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
 

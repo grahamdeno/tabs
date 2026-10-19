@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, listenSheet, openLink, pauseMusic, prepareMusic, recordingLength, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, listenSheet, openLink, pauseMusic, prepareMusic, recordingLength, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -964,7 +964,8 @@ function renderViewer(id) {
          what you touch while playing sits lowest, nearest the thumb's
          natural sweep; Tuner joins; German moves to More. Each place is the
          next one along the arc. */
-      { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
+      hasMusic(song) && { id: "backing", short: "Sound", label: () => usesMusic(song) ? "Playing the recording. Tap for the band" : "Playing the band. Tap for the recording", icon: icon("note"), active: () => usesMusic(song), run: anchor => setBacking(song, usesMusic(song) ? "band" : "music", anchor) },
+      !hasMusic(song) && { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
       { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
       isChords && { id: "nn", short: "Chords", label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
       { id: "tuner", short: "Tuner", label: "Tuner", icon: icon("fork") + (tunedRecently() ? "" : '<i class="dotmark"></i>'), run: () => { if (scroll.on) stopScroll(); openTuner(songTuning(song)); } },
@@ -1613,12 +1614,24 @@ function toneSheet(song) { aiTools().then(m => m.toneSheet(song)); }
 const NEW_IN_MENU = { loop: "practice", metro: "metronome", tuner: "tuner", share: "share", easy: "easier", tone: "tone" };
 const newDot = k => used(k) ? "" : `<i class="newdot" data-new="${k}" aria-label="New"></i>`;
 const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k => !used(k));
+/* What Play starts: the Apple Music recording alone, or the band (drums, click, bass) alone.
+   A song with a linked recording defaults to the recording; "band" is remembered per song. */
+const usesMusic = song => hasMusic(song) && song.backing !== "band";
+function setBacking(song, mode, near) {
+  if (mode === "band") song.backing = "band"; else delete song.backing;
+  Tabs.save(data);
+  if (scroll.on) { if (usesMusic(song)) { stopMetronome(); startMusic(song); } else { pauseMusic(); startMetronome(song); } }
+  const band = data.settings.metronome || data.settings.bass;
+  toast(mode === "band" ? (band ? "Band: drums and bass, no recording" : "Band: turn on the metronome or bass in More") : "Recording: no drums or bass", near);
+}
 function toggleMetronome(song, near) {
+  if (usesMusic(song) && !data.settings.metronome) { data.settings.metronome = true; return setBacking(song, "band", near); }
   data.settings.metronome = !data.settings.metronome; Tabs.save(data);
   if (scroll.on) data.settings.metronome || data.settings.bass ? startMetronome(song) : stopMetronome();
   toast(data.settings.metronome ? `Metronome on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}` : "Metronome off", near);
 }
 function toggleBass(song, near) {
+  if (usesMusic(song) && !data.settings.bass) { data.settings.bass = true; return setBacking(song, "band", near); }
   const on = data.settings.bass = !data.settings.bass; Tabs.save(data);
   if (scroll.on) on || data.settings.metronome ? startMetronome(song) : stopMetronome();
   toast(!on ? "Bass off" : song.format === "tab" ? "Bass on. It plays under songs with chords" : `Bass on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}`, near);
@@ -1636,8 +1649,9 @@ function songMenu(song, anchor, redrawSong) {
     { id: "size" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
-    !ringOn && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
+    (!ringOn || hasMusic(song)) && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
     song.format !== "tab" && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
+    hasMusic(song) && { id: "backing", icon: "note", label: "Play: recording or band", hint: usesMusic(song) ? "Recording" : "Band" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     ringOn && deEligible(song) && songDeOpen && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
@@ -1710,6 +1724,7 @@ function songMenu(song, anchor, redrawSong) {
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
+       backing: () => setBacking(song, usesMusic(song) ? "band" : "music", moreBtn()),
        bass: () => toggleBass(song, moreBtn()),
        metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
   };
@@ -1823,6 +1838,7 @@ const metroDrums = () => data.settings.metroSound !== "click";
 async function startMetronome(song) {
   stopMetronome();
   if (!data.settings.metronome && !data.settings.bass) return;
+  if (usesMusic(song)) return; /* the recording is playing: no drums or bass on top */
   const run = ++metro.run;
   if (!song.bpm) {
     await tempoFor(song);
@@ -2342,8 +2358,7 @@ async function startScroll(song, opts = {}) {
   }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
-  startMetronome(song);
-  startMusic(song);
+  if (usesMusic(song)) startMusic(song); else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
