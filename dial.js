@@ -120,7 +120,7 @@ export function openDial(o) {
        value: put back what it was when the touch began. */
     if (moved && Date.now() - t0 < 250 && far < 16) {
       moved = false;
-      if (value !== start) { value = start; changed = wasChanged; paint(); o.input?.(value); }
+      if (value !== start) { value = start; changed = wasChanged; paint(); o.input?.(o.value); }
     }
     if (moved || !o.event) finish();   /* swept: done. A tap that opened it: stay open */
     o.event = null;

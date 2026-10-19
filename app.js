@@ -777,7 +777,7 @@ function renderViewer(id) {
           return x && list[setCtx.idx]?.id === song.id ? `<button class="oh dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed">
           ${byLength()
-            ? `<input type="range" id="speed" min="60" max="480" step="5" value="${540 - songLength(song)}" aria-label="Song length">`
+            ? `<input type="range" id="speed" min="60" max="480" step="1" value="${540 - songLength(song)}" aria-label="Song length">`
             : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
@@ -900,8 +900,10 @@ function renderViewer(id) {
   /* One hand: the speed is a dial in the corner (dial.js). Hold the time in
      the bar and sweep; a tap opens it to sweep anywhere. Arrow keys step it. */
   /* A change can be undone right away (in case a thumb moved it by mistake). */
+  /* The length is kept to the second (a recording's own length, 3.13.1); a thumb moves it 5 s at a time. */
+  const dialStep = () => byLength() ? 5 : +speed.step;
   const speedDial = e => { const was = { v: speed.value, d: song.duration, set: song.durationSet, sp: song.speed };
-    openDial({ min: +speed.min, max: +speed.max, step: +speed.step, value: +speed.value, label: "Song speed", event: e,
+    openDial({ min: +speed.min, max: +speed.max, step: dialStep(), value: +speed.value, label: "Song speed", event: e,
       marks: byLength() ? [2, 3, 4, 5, 6, 7].map(m => 540 - m * 60) : null,
       read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
       input: v => { speed.value = v; speed.oninput(); },
@@ -917,7 +919,7 @@ function renderViewer(id) {
       const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
       if (!d) return;
       e.preventDefault();
-      speed.value = Math.min(+speed.max, Math.max(+speed.min, +speed.value + d * +speed.step)); speed.oninput();
+      speed.value = Math.min(+speed.max, Math.max(+speed.min, +speed.value + d * dialStep())); speed.oninput();
     });
   }
   /* In a set: hold "4 of 9" and sweep through the set's songs; let go to open one. */

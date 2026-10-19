@@ -163,6 +163,13 @@ test("Apple Music: the page follows the recording's clock, and moving the page b
   await page.waitForFunction(() => window.mkLog.some(x => x.startsWith("seek:") && +x.slice(5) > 100), null, { timeout: 5000 });
 });
 
+test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: [{ ...LIB.songs[0], duration: 227, durationSet: true }, LIB.songs[1]], settings: { ...LIB.settings, speedMode: "length" } };
+  const page = await phone(t, lib);
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#speed", { state: "attached" });
+  assert.equal(await page.evaluate(() => document.getElementById("speed").value), "313", "3:47 stays 3:47, not 3:45");
+});
+
 test("Apple Music: a failure names the step it stopped at, and Apple's own alert becomes a banner", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token" } };
