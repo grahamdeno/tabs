@@ -1578,3 +1578,18 @@ test("The beat's leak into the mic raises the strum line only just after each ti
   assert.ok(s.floor() > 0.0001, "pure zeros are skipped");
   assert.equal(s(0.03, t += 0.01, p.at(0.25, true)), true, "a strum between ticks counts at the room's line");
 });
+
+test("A strum pattern around the 1 is graded by the strum nearest the beat; one string is judged on its own", () => {
+  const spb = 60 / 70, due = [10, 10 + 4 * spb];
+  /* down-down-up-down-up: an up strum just before each 1, the down right on it */
+  const pattern = due.flatMap(d => [d - 0.5 * spb, d + 0.02, d + 0.5 * spb, d + spb]);
+  const g = C.gradeSwitches(due, pattern, spb);
+  assert.deepEqual([g.on, g.early, g.late, g.miss], [2, 0, 0, 0]);
+  const A = C.chordTargets("A"), g3 = A[3]; /* the G string, fret 2: A3 */
+  assert.equal(C.judgeTarget(220, g3), "ring");
+  assert.equal(C.judgeTarget(110, g3), "ring", "an octave low still counts for the string listened for");
+  assert.equal(C.judgeTarget(196, g3), "open");
+  assert.equal(C.judgeTarget(220 * 2 ** (1 / 12), g3), "high");
+  assert.equal(C.judgeTarget(300, g3), null);
+  assert.deepEqual(C.stringRange(g3).map(Math.round), [154, 312]);
+});

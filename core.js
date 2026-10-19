@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.8.3";
+export const VERSION = "3.8.4";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2972,12 +2972,30 @@ export function strumDetector(h = HEAR) {
   hear.floor = () => floor;
   return hear;
 }
+/* One string at a time, the way the tuner works: the pitch is read only near the string expected
+   (range), so a note heard an octave low can't be credited to another string (3.8.4). What a
+   heard pitch means for that string: "ring", "open" (the finger isn't pressing), "low", "high", or null. */
+export const stringRange = t => [t.hz * 0.7, t.hz * 1.42];
+export function judgeTarget(hz, t) {
+  if (!(hz > 0) || !t?.hz) return null;
+  const c = f => 1200 * Math.log2(hz / f);
+  for (const m of [1, 2, 0.5]) {
+    const x = c(t.hz) + 1200 * Math.log2(m);
+    if (Math.abs(x) <= 35) return "ring";
+    if (t.fret > 0 && Math.abs(c(t.openHz) + 1200 * Math.log2(m)) <= 35) return "open";
+    if (Math.abs(x + 100) <= 35) return "low";
+    if (Math.abs(x - 100) <= 35) return "high";
+  }
+  return null;
+}
 /* Switch drill: when you played against when the chord was due. `due` and `onsets` are in seconds;
    `spb` is seconds per beat. Early or late by more than a quarter beat is not on the beat. */
 export function gradeSwitches(due, onsets, spb) {
   let on = 0, late = 0, early = 0, miss = 0;
   for (const d of due) {
-    const hit = onsets.find(o => o >= d - 0.6 * spb && o <= d + 1.2 * spb);
+    /* the strum nearest the beat counts, so the strums of a pattern around it don't (3.8.4) */
+    const near = onsets.filter(o => o >= d - 0.6 * spb && o <= d + 1.2 * spb);
+    const hit = near.length ? near.reduce((a, o) => Math.abs(o - d) < Math.abs(a - d) ? o : a) : undefined;
     if (hit === undefined) { miss++; continue; }
     const dt = hit - d;
     if (Math.abs(dt) <= 0.25 * spb) on++; else if (dt > 0) late++; else early++;

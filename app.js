@@ -1900,7 +1900,7 @@ function beatTrack(bpm, onBeat, { hats = false } = {}) {
   const spb = 60 / bpm, style = drumStyle("rock", { bpm, beats: 4 });
   let i = 0, t = audio.currentTime + 0.2;
   const t0 = t;
-  /* hats: only a thin, short hi-hat tick (louder on 1), high above the guitar, so the microphone can filter it out (3.8.2, 3.8.3) */
+  /* hats: only a short high click (brighter on 1), far above the guitar, so the microphone can filter it out (3.8.2 to 3.8.4) */
   const hit = (t, b) => hats ? drum("tick", t, b === 0 ? 1 : 0.6) : metroDrums() ? drumBeat(t, b, 4, spb, style) : clickAt(t, b === 0);
   const tick = () => { while (t < audio.currentTime + 0.35) { hit(t, i % 4); onBeat?.(i, t); i++; t += spb; } };
   tick();
@@ -2033,12 +2033,12 @@ function drum(kind, t, vel = 1) {
       o.start(t); o.stop(t + 0.1);
       burst("highpass", 1400, 0.7, 0.35, 0.17);
     } else if (kind === "tick") {
-      /* the practice beat: noise through two high-pass filters, so almost nothing reaches the guitar's range */
-      const src = audio.createBufferSource(), a = audio.createBiquadFilter(), b = audio.createBiquadFilter();
-      src.buffer = noise(audio);
-      for (const f of [a, b]) { f.type = "highpass"; f.frequency.value = 8000; f.Q.value = 0.7; }
-      src.connect(a); a.connect(b); env(b, 0.22, 0.04);
-      src.start(t, Math.random() * 0.5); src.stop(t + 0.06);
+      /* the practice beat: a short, bright click (4.2 kHz on the 1, 3.5 kHz after), loud enough to hear
+         over a guitar, and far above the range the microphone listens to for strums (3.8.4) */
+      const o = audio.createOscillator();
+      o.frequency.value = vel >= 1 ? 4200 : 3500;
+      env(o, 0.5, 0.035);
+      o.start(t); o.stop(t + 0.05);
     } else if (kind === "open") {
       burst("highpass", 7000, 0.8, 0.12, 0.22);
     } else if (kind === "stick") {
