@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.12.0";
+export const VERSION = "3.13.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -255,6 +255,42 @@ export const Tabs = {
   }
 };
 
+// ---------- Recording sync (3.13.0) ----------
+// A song's marks tie places on the sheet to times in its recording: [[where, seconds]], where
+// "where" is how far down the sheet (0 to 1). With no marks the whole sheet crosses in the
+// recording's length; each mark bends that line, and the ends stay fixed. Both directions
+// interpolate between neighbours, so marks must rise together.
+const num01 = v => Number.isFinite(v);
+export function cleanSyncs(list) {
+  const out = [];
+  for (const m of (Array.isArray(list) ? list : []).slice(0, 40)) {
+    if (!Array.isArray(m) || !num01(m[0]) || !num01(m[1]) || m[0] <= 0 || m[0] >= 1 || m[1] <= 0) continue;
+    out.push([Math.round(m[0] * 1e4) / 1e4, Math.round(m[1] * 10) / 10]);
+  }
+  out.sort((a, b) => a[0] - b[0]);
+  return out.filter((m, i) => i === 0 || m[1] > out[i - 1][1]).slice(0, 12);
+}
+const syncLine = (marks, len) => [[0, 0], ...cleanSyncs(marks).filter(m => m[1] < len), [1, len]];
+function along(pts, v, from, to) {
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    if (v <= b[from] || i === pts.length - 1) {
+      const span = b[from] - a[from];
+      return span > 0 ? a[to] + (Math.min(Math.max(v, a[from]), b[from]) - a[from]) / span * (b[to] - a[to]) : a[to];
+    }
+  }
+  return 0;
+}
+/* seconds into the recording for a place on the sheet, and back */
+export const syncSeconds = (marks, where, len) => along(syncLine(marks, len), Math.min(1, Math.max(0, where)), 0, 1);
+export const syncWhere = (marks, sec, len) => along(syncLine(marks, len), Math.min(len, Math.max(0, sec)), 1, 0);
+/* a new mark replaces any close to it, and drops the ones that would cross it */
+export function addSync(marks, where, sec, len) {
+  if (!(len > 0) || where <= 0.01 || where >= 0.99 || sec <= 1 || sec >= len - 1) return cleanSyncs(marks);
+  const keep = cleanSyncs(marks).filter(m => Math.abs(m[0] - where) > 0.02 && Math.abs(m[1] - sec) > 3 && (m[0] < where) === (m[1] < sec));
+  return cleanSyncs([...keep, [where, sec]]);
+}
+
 // ---------- Checking a backup before it replaces the library ----------
 // Files can be hand-edited or come from somewhere else, so every field the app
 // relies on is checked: wrong types are dropped (the app falls back to its
@@ -264,7 +300,7 @@ const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
   title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
-  favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object"
+  favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array"
 };
 const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export function cleanSong(raw) {
@@ -275,7 +311,7 @@ export function cleanSong(raw) {
   if (s.body === undefined && typeof s.tab === "string") { s.body = s.tab; delete s.tab; }
   for (const [k, type] of Object.entries(SONG_TYPES)) {
     if (s[k] === undefined) continue;
-    const ok = type === "object" ? isObj(s[k]) : typeof s[k] === type && (type !== "number" || Number.isFinite(s[k]));
+    const ok = type === "array" ? Array.isArray(s[k]) : type === "object" ? isObj(s[k]) : typeof s[k] === type && (type !== "number" || Number.isFinite(s[k]));
     if (!ok) delete s[k];
   }
   if (typeof s.body !== "string") return null;
@@ -283,6 +319,7 @@ export function cleanSong(raw) {
   if (s.format !== "chords" && s.format !== "tab") delete s.format;
   if (s.tuning && !TUNINGS[s.tuning]) delete s.tuning;
   if (s.backing !== undefined && s.backing !== "band") delete s.backing;
+  if (s.syncs) { s.syncs = cleanSyncs(s.syncs); if (!s.syncs.length) delete s.syncs; }
   if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
   if (s.size !== undefined) s.size = fit(s.size, 0.6, 1.6);
   if (s.duration !== undefined) s.duration = fit(s.duration, 10, 3600);

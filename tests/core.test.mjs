@@ -850,6 +850,7 @@ test("backups keep a song's album art only as an https link", () => {
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "javascript:alert(1)" }).art, undefined);
   assert.equal(C.cleanSong({ id: "a", body: "G", backing: "band" }).backing, "band");
   assert.equal(C.cleanSong({ id: "a", body: "G", backing: "music" }).backing, undefined);
+  assert.deepEqual(C.cleanSong({ id: "a", body: "G", syncs: [[0.5, 100], [0.2, 90], [0.3, 40], "x", [2, 5]] }).syncs, [[0.2, 90], [0.5, 100]]);
 });
 
 // ---------- Add the words ----------
@@ -1603,4 +1604,17 @@ test("The security policy lets MusicKit fetch Apple's certificate bundle and str
   for (const h of ["https://*.mzstatic.com", "https://*.cdn-apple.com", "https://*.aaplimg.com"]) assert.ok(part("connect-src").includes(h), "connect-src " + h);
   assert.ok(part("media-src").includes("https://*.mzstatic.com"));
   assert.ok(!/unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
+});
+
+test("recording sync: marks bend the line between sheet and recording, both ways", () => {
+  assert.equal(C.syncSeconds([], 0.5, 200), 100);
+  assert.equal(C.syncSeconds([[0.5, 140]], 0.5, 200), 140);
+  assert.equal(C.syncSeconds([[0.5, 140]], 0.25, 200), 70);
+  assert.equal(C.syncWhere([[0.5, 140]], 140, 200), 0.5);
+  assert.equal(C.syncWhere([[0.5, 140]], 170, 200), 0.75);
+  assert.equal(C.syncWhere([], 300, 200), 1);
+  /* a new mark replaces a close one and drops those it would cross */
+  assert.deepEqual(C.addSync([[0.5, 100]], 0.51, 104, 200), [[0.51, 104]]);
+  assert.deepEqual(C.addSync([[0.5, 100], [0.7, 150]], 0.6, 160, 200), [[0.5, 100], [0.6, 160]]);
+  assert.deepEqual(C.addSync([], 0.001, 100, 200), []);
 });

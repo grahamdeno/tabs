@@ -152,8 +152,15 @@ test("Apple Music: the page follows the recording's clock, and moving the page b
   const high = await page.evaluate(() => scrollY);
   await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 30; });
   await page.waitForFunction(h => scrollY < h / 2, high, { timeout: 5000 });
-  await page.evaluate(() => { window.dispatchEvent(new Event("wheel")); window.scrollTo(0, 600); });
-  await page.waitForFunction(() => window.mkLog.some(x => x.startsWith("seek:") && +x.slice(5) > 0), null, { timeout: 5000 });
+  /* a small move is a correction: it is saved as a mark for the song and the recording is left alone */
+  await page.waitForTimeout(500);
+  const y = await page.evaluate(() => scrollY);
+  await page.evaluate(n => { window.dispatchEvent(new Event("wheel")); window.scrollTo(0, n); }, y + 120);
+  await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").syncs || []).length === 1, null, { timeout: 5000 });
+  assert.ok(!(await page.evaluate(() => window.mkLog)).some(x => x.startsWith("seek:") && +x.slice(5) > 0 && +x.slice(5) !== 0), "a nudge doesn't seek");
+  /* a big move is a jump: the recording goes there */
+  await page.evaluate(() => { window.dispatchEvent(new Event("wheel")); window.scrollTo(0, document.documentElement.scrollHeight * 0.8); });
+  await page.waitForFunction(() => window.mkLog.some(x => x.startsWith("seek:") && +x.slice(5) > 100), null, { timeout: 5000 });
 });
 
 test("Apple Music: a failure names the step it stopped at, and Apple's own alert becomes a banner", { skip: skip() }, async t => {

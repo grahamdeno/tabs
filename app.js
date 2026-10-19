@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { addSync, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -964,7 +964,8 @@ function renderViewer(id) {
          what you touch while playing sits lowest, nearest the thumb's
          natural sweep; Tuner joins; German moves to More. Each place is the
          next one along the arc. */
-      hasMusic(song) && { id: "backing", short: "Sound", label: () => usesMusic(song) ? "Playing the recording. Tap for the band" : "Playing the band. Tap for the recording", icon: icon("note"), active: () => usesMusic(song), run: anchor => setBacking(song, usesMusic(song) ? "band" : "music", anchor) },
+      song.syncs?.length && { id: "unsync", icon: "note", label: "Reset recording sync" },
+    hasMusic(song) && { id: "backing", short: "Sound", label: () => usesMusic(song) ? "Playing the recording. Tap for the band" : "Playing the band. Tap for the recording", icon: icon("note"), active: () => usesMusic(song), run: anchor => setBacking(song, usesMusic(song) ? "band" : "music", anchor) },
       !hasMusic(song) && { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
       { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
       isChords && { id: "nn", short: "Chords", label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
@@ -1724,6 +1725,7 @@ function songMenu(song, anchor, redrawSong) {
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
+       unsync: () => { delete song.syncs; Tabs.save(data); toast("Recording sync reset"); },
        backing: () => setBacking(song, usesMusic(song) ? "band" : "music", moreBtn()),
        bass: () => toggleBass(song, moreBtn()),
        metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
@@ -2196,11 +2198,22 @@ function releaseSoon(ms) {
   clearTimeout(hold.timer);
   hold.timer = setTimeout(() => {
     if (hold.touching) return;
-    /* A hand moved the page while the recording played: the recording goes to that place in the song. */
+    /* A hand moved the page while the recording played. A small move is a correction ("this line is
+       what I hear"): the place and the recording's time are saved as a mark for the song. A big move is a
+       jump: the recording goes to that place. */
     if (hold.active && scroll.on && viewing && usesMusic(viewing) && musicClock(viewing) !== null) {
-      const sec = scrollY / musicPps(viewing);
-      musicSync.target = sec; musicSync.until = performance.now() + 3000; musicSync.clock = -1;
-      seekMusic(viewing, sec);
+      const song = viewing, clock = musicClock(song), len = recSecs(song), range = Math.max(1, sheetRange());
+      if (Math.abs(scrollY - musicY(song, clock)) < innerHeight * 0.6) {
+        const before = (song.syncs || []).length;
+        song.syncs = addSync(song.syncs, scrollY / range, clock, len);
+        if (!song.syncs.length) delete song.syncs;
+        Tabs.save(data);
+        toast(before ? "Synced here" : "Synced here. The page will follow this next time. Reset in More");
+      } else {
+        const sec = musicSec(song, scrollY);
+        musicSync.target = sec; musicSync.until = performance.now() + 3000; musicSync.clock = -1;
+        seekMusic(song, sec);
+      }
     }
     hold.active = false;
   }, ms);
@@ -2255,7 +2268,9 @@ const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padS
 const sheetRange = () => { const lines = diag.blocks.filter(b => b.el.isConnected); return lines.length > 1 ? lines[lines.length - 1].y - lines[0].y : document.documentElement.scrollHeight - innerHeight; };
 /* With the recording playing, the page is tied to its clock: the whole sheet crosses the reading line in the
    recording's length, so scroll position and time convert both ways. */
-const musicPps = song => Math.max(4, sheetRange() / (recLength(song) || songLength(song)));
+const recSecs = song => recLength(song) || songLength(song);
+const musicY = (song, sec) => syncWhere(song.syncs, sec, recSecs(song)) * sheetRange();
+const musicSec = (song, y) => syncSeconds(song.syncs, y / Math.max(1, sheetRange()), recSecs(song));
 const musicSync = { at: 0, clock: -1, target: -1, until: 0 };
 function pxPerSecond(song) {
   if (!byLength() && !scroll.duet) return song.speed * 0.6; /* together: both fit the song's length */
@@ -2372,7 +2387,7 @@ async function startScroll(song, opts = {}) {
   }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
-  if (usesMusic(song)) startMusic(song, scrollY / musicPps(song)); else startMetronome(song);
+  if (usesMusic(song)) startMusic(song, musicSec(song, scrollY)); else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
@@ -2388,7 +2403,7 @@ async function startScroll(song, opts = {}) {
       let px;
       if (clock === -1) { px = 0; clock = 0; } else if (clock !== null) {
         if (clock !== musicSync.clock) { musicSync.clock = clock; musicSync.at = t; } /* the clock moves in steps: fill in between */
-        const want = (clock + (t - musicSync.at) / 1000) * musicPps(song), diff = want - scrollY;
+        const want = musicY(song, clock + (t - musicSync.at) / 1000), diff = want - scrollY;
         px = Math.abs(diff) > innerHeight ? Math.round(diff) : Math.round(diff * 0.25);
         scroll.carry = 0;
       } else {
