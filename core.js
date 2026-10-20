@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.23.0";
+export const VERSION = "3.24.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -1658,6 +1658,23 @@ export function rankTracks(results, title, artist) {
     return s;
   };
   return results.filter(r => r.trackViewUrl).map(r => ({ r, s: score(r) })).sort((x, y) => y.s - x.s).map(x => ({ ...x.r, score: x.s }));
+}
+// Just heard it (3.24.0): the newest song in Apple Music's recently played, offered on Tonight for 3 hours
+// from when the app first sees it, until you act on it or close it. seen is { k, at, done? } from last time.
+// Returns { seen, offer } where offer is { track, song } (song: the library song it matches, or null).
+export const HEARD_FOR = 3 * 3600000;
+export function heardMatch(songs, track) {
+  const t = norm(track?.title), a = norm(track?.artist);
+  if (!t) return null;
+  const same = s => norm(s.title) === t && (!a || !s.artist || norm(s.artist) === a || norm(s.artist).includes(a) || a.includes(norm(s.artist)));
+  return (songs || []).find(same) || null;
+}
+export function heardOffer(songs, latest, seen, now = Date.now()) {
+  if (!latest?.title) return { seen, offer: null };
+  const k = `${norm(latest.title)}|${norm(latest.artist)}`;
+  if (seen?.k !== k) seen = { k, at: now };
+  if (seen.done || now - seen.at > HEARD_FOR) return { seen, offer: null };
+  return { seen, offer: { track: latest, song: heardMatch(songs, latest) } };
 }
 // A link someone pasted: which service is it?
 // ---------- Song length from the recording ----------

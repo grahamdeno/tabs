@@ -253,15 +253,24 @@ export async function listenToPreview(song) {
 let feelArrived = null;
 export const onFeel = f => { feelArrived = f; };
 /* What you played lately in Apple Music: [{ title, artist }], newest first. */
+let recentCache = null; /* { at, rows }: Tonight asks each time it opens; Apple is asked at most every 2 minutes */
 export async function recentApple() {
   if (!data.settings.appleMusic || !data.settings.appleMusicToken) return [];
+  if (recentCache && Date.now() - recentCache.at < 120000) return recentCache.rows;
+  const rows = await recentFetch();
+  recentCache = { at: Date.now(), rows };
+  return rows;
+}
+async function recentFetch() {
   try {
     const rows = await apiGet("/v1/me/recent/played/tracks", { limit: 10, types: "songs" });
     const seen = new Set(), out = [];
     for (const r of rows || []) {
       const a = r.attributes, key = `${a?.name}|${a?.artistName}`.toLowerCase();
       if (!a?.name || seen.has(key)) continue;
-      seen.add(key); out.push({ title: String(a.name).slice(0, 100), artist: String(a.artistName || "").slice(0, 100) });
+      const art = String(a.artwork?.url || "").replace("{w}x{h}", "600x600").replace("{f}", "jpg");
+      seen.add(key); out.push({ title: String(a.name).slice(0, 100), artist: String(a.artistName || "").slice(0, 100),
+        ...(/^https:\/\/music\.apple\.com\//.test(a.url || "") ? { url: a.url } : {}), ...(/^https:\/\//.test(art) ? { art } : {}) });
     }
     return out.slice(0, 8);
   } catch (e) { noteError(e, { quiet: true, where: "apple music recent" }); return []; }

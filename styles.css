@@ -2055,3 +2055,13 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 /* The cover header on the Listen sheet and Get the song (3.23.0): edge to edge at the top. */
 .panel.card > .cover-head { margin: -16px -16px 12px; border-radius: 22px 22px 0 0; }
 .pbody > .cover-head { margin: 0 -16px 12px; }
+
+/* Just heard it on Tonight (3.24.0) */
+.rd-heard { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; padding: 8px 8px 8px 8px; border-radius: 16px; border: 1px solid var(--bronze-line); background: linear-gradient(180deg, var(--card-2), var(--card)); box-shadow: inset 0 1px 0 var(--rim-hi); }
+.rd-h-art { width: 40px; height: 40px; flex: none; border-radius: 8px; overflow: hidden; display: grid; place-items: center; background: var(--card-2); color: var(--accent); }
+.rd-h-art img { width: 100%; height: 100%; object-fit: cover; }
+.rd-h-art svg { width: 18px; height: 18px; }
+.rd-h-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rd-h-t small { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rd-h-t b { font-size: 15px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-heard .btn { flex: none; }

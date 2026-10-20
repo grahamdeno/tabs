@@ -13,9 +13,9 @@
 //   dock        the same search bar and add button as the Library
 // A library with no plays yet gets the first-run version: Louie waves and the
 // first song is ready to play.
-import { hexOutline, hexSpiral, lifetimePlays, pickNudge, playSongs, skillState, streakOf, territory, venueOf } from "./core.js";
-import { app, esc, icon } from "./ui.js";
-import { bindShelf, chipsHTML, chordNames, data, filter, go, homeHooks, keyOf, mmss, openSearch, openTuner, playSong, renderList, route, setFilter, setsShelf, songLength, tunedRecently, newSong } from "./app.js";
+import { Tabs, heardOffer, hexOutline, hexSpiral, lifetimePlays, pickNudge, playSongs, skillState, streakOf, territory, venueOf } from "./core.js";
+import { app, esc, icon, toast } from "./ui.js";
+import { bindShelf, chipsHTML, chordNames, data, filter, go, homeHooks, keyOf, mmss, openSearch, openTuner, playSong, renderList, route, setFilter, setsShelf, songLength, tunedRecently, newSong, aiKey } from "./app.js";
 import { louie } from "./louie.js";
 import { makeDrawer } from "./drawer.js";
 
@@ -118,6 +118,7 @@ export function renderRoad() {
     ${first ? `<div class="rd-first">${louie("happy", { pose: "wave", size: 200 })}<p class="rd-first-t">Let's play your first song</p><p class="pf-line">The words scroll on their own. Play it through and your tour starts in the Garage.</p></div>`
       : `${stat ? `<div class="today"><button class="weekly t-stat" id="rd-stat">${st.days >= 2 ? lamps : ""}<span>${stat}</span>${icon("chev", "chev")}</button></div>` : ""}
     <div class="rd-say">${louie(say.mood, { pose: say.pose, size: 96 })}<p class="rd-bubble">${esc(say.text)}</p></div>`}
+    ${first ? "" : '<div id="rd-heard"></div>'}
     ${card}
     ${first ? "" : `<button class="pf-card rd-map" id="rd-map">${miniTurf(t.cells, t.rings)}<span class="rd-map-t"><h2>Tour Map</h2><span class="pf-line" id="rd-map-line"><b>${esc(v.name)}.</b> ${v.toNext} play${v.toNext === 1 ? "" : "s"} to the ${esc(v.next)}.</span></span>${icon("chev", "chev")}</button>`}
     ${data.songs.length ? `<div class="rd-scrim" id="rd-scrim"></div>
@@ -161,7 +162,38 @@ export function renderRoad() {
   $("rd-play")?.addEventListener("click", play);
   $("rd-search").onclick = () => openSearch();
   $("add").onclick = () => newSong();
-  if (!first) fillScene(st);
+  if (!first) { fillScene(st); fillHeard(); }
+}
+
+/* Just heard it (3.24.0, Apple Music on only): the song you just played in Apple Music, offered above
+   Tonight's run. In the library, Play along opens it with the recording; otherwise Get the song. */
+const HEARD_KEY = "tabs.heard.v1"; /* { k, at, done? }: on this phone only, not in backups */
+const heardSeen = () => { try { return JSON.parse(localStorage.getItem(HEARD_KEY)) || null; } catch { return null; } };
+const heardSave = v => { try { localStorage.setItem(HEARD_KEY, JSON.stringify(v)); } catch {} };
+async function fillHeard() {
+  if (!data.settings.appleMusic) return;
+  let rows;
+  try { rows = await (await import("./listen.js")).recentApple(); } catch { return; }
+  const box = document.getElementById("rd-heard");
+  if (!box?.isConnected || !rows?.length) return;
+  const { seen, offer } = heardOffer(data.songs, rows[0], heardSeen());
+  heardSave(seen);
+  const t = offer?.track, song = offer?.song;
+  if (!t || (!song && !aiKey())) return;
+  const done = () => { heardSave({ ...seen, done: true }); box.innerHTML = ""; };
+  box.innerHTML = `<section class="rd-heard" aria-label="Just heard">
+    <span class="rd-h-art">${/^https:\/\//.test(t.art || "") ? `<img src="${esc(t.art)}" alt="">` : icon("note")}</span>
+    <span class="rd-h-t"><small>Just heard</small><b>${esc(t.title)}</b></span>
+    <button class="btn sm primary" id="rd-h-go">${song ? "Play along" : "Get the song"}</button>
+    <button class="sb" id="rd-h-x" aria-label="Not now">${icon("x")}</button></section>`;
+  document.getElementById("rd-h-x").onclick = done;
+  document.getElementById("rd-h-go").onclick = () => {
+    done();
+    if (!song) { import("./findai.js").then(m => m.getSong(`${t.title} ${t.artist}`.trim(), { title: t.title, artist: t.artist })); return; }
+    /* a song with no recording linked gets the one you just heard */
+    if (!song.listen && t.url) { song.listen = { url: t.url, service: "Apple Music", title: t.title, ...(t.art ? { art: t.art } : {}) }; Tabs.save(data); toast("Linked to the recording you just heard"); }
+    playSong(song.id);
+  };
 }
 
 /* The scene loads a moment later: your place in it, and who is pushing on your edge. */

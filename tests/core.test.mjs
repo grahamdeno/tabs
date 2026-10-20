@@ -1727,3 +1727,18 @@ test("drums that fit the song: parts by section, a clean bar, simpler and busier
   assert.equal(C.barHits(bar, 3).find(x => x.k === "open").at, 0.75);
   assert.equal(C.barHits(bar, 0, 0.667).find(x => x.k === "hat" && x.at > 0).at, 0.667, "swung off-beat");
 });
+
+test("just heard it: the newest Apple Music song is offered for 3 hours, matched to the library, until it is done", () => {
+  const songs = [{ id: "a", title: "Wonderwall", artist: "Oasis" }, { id: "b", title: "Hallelujah", artist: "" }];
+  const t0 = 1e12;
+  let r = C.heardOffer(songs, { title: "Wonderwall (Remastered)", artist: "Oasis" }, null, t0);
+  assert.equal(r.offer.song.id, "a"); assert.equal(r.seen.at, t0);
+  r = C.heardOffer(songs, { title: "Wonderwall", artist: "Oasis" }, r.seen, t0 + 3600000);
+  assert.ok(r.offer, "still offered an hour later"); assert.equal(r.seen.at, t0, "first seen time kept");
+  assert.equal(C.heardOffer(songs, { title: "Wonderwall", artist: "Oasis" }, r.seen, t0 + C.HEARD_FOR + 1).offer, null, "gone after 3 hours");
+  assert.equal(C.heardOffer(songs, { title: "Wonderwall", artist: "Oasis" }, { ...r.seen, done: true }, t0 + 1).offer, null, "closed or acted on");
+  const n = C.heardOffer(songs, { title: "Hallelujah", artist: "Jeff Buckley" }, { ...r.seen, done: true }, t0 + 5);
+  assert.equal(n.offer.song.id, "b", "a new song is offered again; a sheet with no artist still matches");
+  assert.equal(C.heardOffer(songs, { title: "Yellow", artist: "Coldplay" }, null, t0).offer.song, null, "not in the library");
+  assert.equal(C.heardMatch(songs, { title: "Wonderwall", artist: "Blur" }), null, "another artist's song");
+});

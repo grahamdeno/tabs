@@ -56,7 +56,7 @@ release so Graham can try it.
 3. Done in 3.23.0. Drums that fit the song: the AI returns a 16-step kick, snare and
    hat grid per section (fills, sparse verse, full chorus) from the measured
    tempo and feel, genre and year; Busier / Simpler kept per song.
-4. 3.20.0 Just heard it: Apple's recently played offers "Play along?" on
+4. Done in 3.24.0. Just heard it: Apple's recently played offers "Play along?" on
    Tonight.
 5. 3.21.0 Playlists both ways: import an Apple Music playlist into the
    library; save a set as an Apple Music playlist.
@@ -113,7 +113,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade (expected; not a real failure). Graham (2026-10-19): don't remake
   them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 4 (3.20.0, 3.21.0, 3.22.0, 3.23.0). To remake when he says yes:
+  3.19.0: 5 (3.20.0 to 3.24.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.

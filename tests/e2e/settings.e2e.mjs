@@ -116,6 +116,33 @@ test("Apple Music: opening a song readies the recording paused, Play starts it w
   assert.deepEqual(errs, []);
 });
 
+test("Just heard it: Tonight offers the song you just played in Apple Music, links it and plays along; closed, it stays closed", { skip: skip() }, async t => {
+  const other = { ...LIB.songs[1] }; delete other.listen;
+  const lib = { ...LIB, songs: [{ ...LIB.songs[0], playLog: { total: 3, last: Date.now() - 86400000, days: { [new Date(Date.now() - 86400000).toISOString().slice(0, 10)]: 3 } } }, other], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
+  const page = await phone(t, lib);
+  const errs = []; page.on("pageerror", e => errs.push(e.message));
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkLog = []; window.mkMusic = { isAuthorized: true, isPlaying: false, setQueue: async o => { window.mkLog.push("queue:" + o.song); }, seekToTime: async () => {},
+      play: async () => { window.mkMusic.isPlaying = true; }, pause: () => { window.mkMusic.isPlaying = false; }, stop: () => {},
+      api: { music: async path => { window.mkLog.push(path); return { data: { data: [{ attributes: { name: ${JSON.stringify(other.title)} + " (Remastered)", artistName: ${JSON.stringify(other.artist || "")}, url: "https://music.apple.com/us/album/x/1?i=777", artwork: { url: "https://is1-ssl.mzstatic.com/a/{w}x{h}bb.jpg" } } }] } }; } } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a", "hex") }));
+  await page.evaluate(() => { location.hash = "#/"; }); await page.reload();
+  await page.waitForSelector(".rd-heard", { timeout: 5000 });
+  assert.match(await page.innerText(".rd-heard"), new RegExp(`Just heard[\\s\\S]*${other.title}[\\s\\S]*Play along`, "i"));
+  await page.click("#rd-h-go");
+  await page.waitForSelector("#play");
+  const saved = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(x => x.id === other.id);
+  assert.match(saved.listen.url, /i=777/, "linked to the recording just heard");
+  assert.equal(saved.listen.art, "https://is1-ssl.mzstatic.com/a/600x600bb.jpg");
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-heard", { state: "attached" });
+  await page.waitForTimeout(800);
+  assert.equal(await page.locator(".rd-heard").count(), 0, "acted on: not offered again");
+  assert.deepEqual(errs, []);
+});
+
 test("Apple Music: a song set to Band starts no recording, and the More menu switches it to the recording", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], backing: "band", listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, metronome: true } };
