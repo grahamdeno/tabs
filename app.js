@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, rateWorks, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, paintAlbum, recentApple, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, rateWorks, seekMusic, setMusicRate, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -389,8 +389,16 @@ function renderList() {
     const shown = recentSongs.length ? recentSongs : sortSongs(data.songs, "title");
     list.innerHTML = `<p class="empty-hint" style="margin:4px 0 12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>
       ${aiKey() && data.songs.length ? `<button class="nextidea glass" id="nextidea">${icon("wand")}<span><b>What can I play next?</b>Songs that use the chords you already know</span>${icon("chev", "chev")}</button>` : ""}
-      <div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>`;
+      <div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>
+      <div id="amrecent"></div>`;
     bindRows(list);
+    /* Apple Music (only when it is turned on): what you played there lately. A tap fills the search with it. */
+    if (data.settings.appleMusic) recentApple().then(rows => {
+      const box = $("amrecent");
+      if (!box?.isConnected || !rows.length || !searching || query) return;
+      box.innerHTML = `<div class="label">Recently on Apple Music</div><div class="list glass">${rows.map((r, n) => `<button class="row" data-amr="${n}"><div class="txt"><div class="t">${esc(r.title)}</div><div class="a">${esc(r.artist)}</div></div>${icon("chev", "chev")}</button>`).join("")}</div>`;
+      box.querySelectorAll("[data-amr]").forEach(b => b.onclick = () => { const r = rows[+b.dataset.amr]; query = `${r.title} ${r.artist}`.trim(); const qi = $("q"); if (qi) qi.value = query; $("clear").hidden = false; renderList(); });
+    });
     $("nextidea")?.addEventListener("click", () => nextSongs());
     return;
   }
@@ -744,6 +752,7 @@ function renderViewer(id) {
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
     <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button><button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="albuminfo" id="albuminfo" hidden></div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <div id="strip"></div>
@@ -845,6 +854,7 @@ function renderViewer(id) {
     ].filter(Boolean).join('<span class="dot"></span>');
     $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, capoTxt, !isChords && "Tab"]
       .filter(Boolean).join(" · ");
+    paintAlbum(song);
     SUBS = easy ? easy.subs || {} : {};
     const sheet = $("sheet");
     const val = $("val");

@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.14.0";
+export const VERSION = "3.15.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -329,6 +329,13 @@ export function cleanSong(raw) {
   if (s.listen) {
     if (!/^https:\/\//.test(s.listen.url || "")) delete s.listen;
     else if (s.listen.art !== undefined && !/^https:\/\//.test(String(s.listen.art))) { s.listen = { ...s.listen }; delete s.listen.art; }
+    if (s.listen) {
+      const l = s.listen = { ...s.listen };
+      if (typeof l.genre !== "string") delete l.genre; else l.genre = l.genre.slice(0, 40);
+      if (typeof l.composer !== "string") delete l.composer; else l.composer = l.composer.slice(0, 80);
+      if (!Number.isInteger(l.year) || l.year < 1900 || l.year > 2100) delete l.year;
+      if (!/^[0-9a-f]{6}$/i.test(String(l.tint || ""))) delete l.tint;
+    }
   }
   if (s.art !== undefined && !/^https:\/\//.test(String(s.art))) delete s.art; /* album art for set covers: https only */
   if (s.loop && !(Number.isInteger(s.loop.a) && Number.isInteger(s.loop.b))) delete s.loop;

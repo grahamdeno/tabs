@@ -124,6 +124,7 @@ const wanted = song => !!(data.settings.appleMusic && song?.listen && appleTrack
 export const hasMusic = wanted;
 export function prepareMusic(song) {
   if (!wanted(song)) return;
+  fetchDetails(song);
   const id = appleTrackId(song.listen.url);
   loadMusicKit().then(async music => {
     if (!music.isAuthorized || playingId === id || readyId === id) return;
@@ -158,6 +159,61 @@ export function applyVolume() {
   if (!inst || !("volume" in inst)) return;
   const v = data.settings.recVol;
   try { inst.volume = v >= 0 && v <= 1 ? v : 1; } catch { /* the player keeps its own volume */ }
+}
+/* Song details and recent plays from Apple Music's catalog (3.15.0): genre, year, composer and the album's
+   own color, kept on the song's listen link; and what you played lately, for Find songs. Both go through
+   the MusicKit session, so they need Apple Music turned on and you signed in. */
+const cleanHex = v => /^[0-9a-f]{6}$/i.test(String(v || "")) ? String(v).toLowerCase() : "";
+async function apiGet(path, params) {
+  const music = await loadMusicKit();
+  if (!music.isAuthorized) return null;
+  const r = await music.api.music(path, params);
+  return r?.data?.data || null;
+}
+const detailJobs = new Set();
+export async function fetchDetails(song) {
+  if (!wanted(song) || song.listen.det || detailJobs.has(song.id)) return;
+  detailJobs.add(song.id);
+  try {
+    const music = await loadMusicKit();
+    const rows = await apiGet(`/v1/catalog/${music.storefrontId || "us"}/songs/${appleTrackId(song.listen.url)}`);
+    const a = rows?.[0]?.attributes;
+    if (!a) return;
+    const l = { ...song.listen, det: 1 };
+    const genre = (a.genreNames || []).find(g => g && g !== "Music");
+    if (genre) l.genre = String(genre).slice(0, 40);
+    const year = +String(a.releaseDate || "").slice(0, 4);
+    if (year >= 1900 && year <= 2100) l.year = year;
+    if (a.composerName) l.composer = String(a.composerName).slice(0, 80);
+    const tint = cleanHex(a.artwork?.bgColor);
+    if (tint) l.tint = tint;
+    song.listen = l; Tabs.save(data);
+    if (viewing === song) paintAlbum(song);
+  } catch (e) { noteError(e, { quiet: true, where: "apple music details" }); }
+  finally { detailJobs.delete(song.id); }
+}
+/* The strip under the title: genre, year, composer, in the album's color. Nothing shows without Apple Music. */
+export function paintAlbum(song) {
+  const el = document.getElementById("albuminfo");
+  if (!el) return;
+  const l = song?.listen, bits = data.settings.appleMusic && l ? [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean) : [];
+  el.hidden = !bits.length;
+  el.textContent = bits.join(" · ");
+  if (l?.tint) el.style.setProperty("--album", "#" + cleanHex(l.tint)); else el.style.removeProperty("--album");
+}
+/* What you played lately in Apple Music: [{ title, artist }], newest first. */
+export async function recentApple() {
+  if (!data.settings.appleMusic || !data.settings.appleMusicToken) return [];
+  try {
+    const rows = await apiGet("/v1/me/recent/played/tracks", { limit: 10, types: "songs" });
+    const seen = new Set(), out = [];
+    for (const r of rows || []) {
+      const a = r.attributes, key = `${a?.name}|${a?.artistName}`.toLowerCase();
+      if (!a?.name || seen.has(key)) continue;
+      seen.add(key); out.push({ title: String(a.name).slice(0, 100), artist: String(a.artistName || "").slice(0, 100) });
+    }
+    return out.slice(0, 8);
+  } catch (e) { noteError(e, { quiet: true, where: "apple music recent" }); return []; }
 }
 /* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
 export function musicClock(song) {

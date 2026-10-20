@@ -184,6 +184,34 @@ test("Apple Music: Practice a section loops the recording too, slows it on Build
   assert.ok((await page.evaluate(() => window.mkLog)).some(x => x.startsWith("seek:") && +x.slice(5) > 0), "Play starts the recording at the section");
 });
 
+test("Apple Music: the song page shows genre, year and composer in the album's color, and search lists what you played lately", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkMusic = { isAuthorized: true, isPlaying: false, currentPlaybackTime: 0, storefrontId: "us",
+      setQueue: async () => {}, seekToTime: async () => {}, play: async () => {}, pause: () => {}, stop: () => {},
+      api: { music: async path => path.includes("recent")
+        ? { data: { data: [{ attributes: { name: "Wonderwall", artistName: "Oasis" } }, { attributes: { name: "Wonderwall", artistName: "Oasis" } }, { attributes: { name: "Creep", artistName: "Radiohead" } }] } }
+        : { data: { data: [{ attributes: { genreNames: ["Rock", "Music"], releaseDate: "1995-10-30", composerName: "Noel Gallagher", artwork: { bgColor: "c04a2b" } } }] } } } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; });
+  await page.waitForFunction(() => document.getElementById("albuminfo") && !document.getElementById("albuminfo").hidden, null, { timeout: 5000 });
+  assert.equal(await page.innerText("#albuminfo"), "Rock · 1995 · Written by Noel Gallagher");
+  assert.equal(await page.evaluate(() => document.getElementById("albuminfo").style.getPropertyValue("--album")), "#c04a2b");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").listen.genre, null, { timeout: 5000 });
+  const l = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").listen);
+  assert.equal(l.genre, "Rock"); assert.equal(l.year, 1995); assert.equal(l.tint, "c04a2b");
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#q");
+  await page.tap("#q");
+  await page.waitForSelector("[data-amr]", { timeout: 5000 });
+  assert.equal(await page.locator("[data-amr]").count(), 2, "the repeat is listed once");
+  await page.click("[data-amr='1']");
+  assert.equal(await page.inputValue("#q"), "Creep Radiohead");
+});
+
 test("Apple Music off: no recording speed or volume anywhere", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const page = await phone(t, { ...LIB, songs: [song, LIB.songs[1]] });
@@ -191,6 +219,7 @@ test("Apple Music off: no recording speed or volume anywhere", { skip: skip() },
   assert.equal(await page.locator("#s-recvol").count(), 0);
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
   assert.equal(await page.locator('[data-m="recspeed"]').count(), 0);
+  assert.equal(await page.locator("#albuminfo:not([hidden])").count(), 0, "no Apple Music details while it is off");
 });
 
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {

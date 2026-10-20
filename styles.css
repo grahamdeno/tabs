@@ -2021,3 +2021,8 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 .pk-str.cur small { color: var(--recess-on); }
 .pk-str.cur { box-shadow: inset 0 0 0 1px rgba(255,194,122,.45); }
 #ph-beats { margin: 10px 0 2px; }
+
+/* Apple Music details under the title (3.15.0): genre, year, composer, in the album's own color. */
+.albuminfo { --album: var(--muted, #8a8a8a); margin: -8px 0 16px; padding: 6px 10px; font-size: 13px; border-left: 3px solid var(--album);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--album) 24%, transparent), transparent 85%); border-radius: 2px 8px 8px 2px; }
+.albuminfo[hidden] { display: none; }
