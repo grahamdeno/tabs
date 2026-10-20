@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, rateWorks, seekMusic, setMusicRate, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -967,6 +967,7 @@ function renderViewer(id) {
          natural sweep; Tuner joins; German moves to More. Each place is the
          next one along the arc. */
       song.syncs?.length && { id: "unsync", icon: "note", label: "Reset recording sync" },
+    hasMusic(song) && { id: "recspeed", icon: "note", label: "Recording speed", hint: `${Math.round((song.recRate || 1) * 100)}%` },
     hasMusic(song) && { id: "backing", short: "Sound", label: () => usesMusic(song) ? "Playing the recording. Tap for the band" : "Playing the band. Tap for the recording", icon: icon("note"), active: () => usesMusic(song), run: anchor => setBacking(song, usesMusic(song) ? "band" : "music", anchor) },
       !hasMusic(song) && { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
       { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
@@ -1375,6 +1376,16 @@ function paintLoop(song) {
   $("lp-x").onclick = () => { delete song.loop; Tabs.save(data); loopRun = { pass: 0 }; paintLoop(song); };
 }
 // Speed factor for the current pass.
+/* How fast the recording plays: the song's own setting, slowed further on a Build up pass. */
+const recRate = song => Math.max(0.5, (song.recRate || 1) * loopFactor(song));
+/* Where in the recording Play begins: the loop's first line when the page is away from the section, else the page's place. */
+function playFromSec(song) {
+  if (song.loop) {
+    const lines = sheetLines(), first = lines[song.loop.a], last = lines[song.loop.b], line = innerHeight * READ_AT;
+    if (first && last && (first.getBoundingClientRect().top > line + 4 || last.getBoundingClientRect().bottom < line)) return musicSec(song, Math.max(0, scrollY + first.getBoundingClientRect().top - line));
+  }
+  return musicSec(song, scrollY);
+}
 const loopFactor = song => song.loop?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1;
 // Called each frame while playing: when the section's last line passes the reading
 // point, glide back to its first line and count a pass.
@@ -1391,7 +1402,14 @@ function loopCheck(song) {
   loopRun.endSince = 0;
   loopRun.pass++;
   hold.active = true; releaseSoon(900);
-  window.scrollTo({ top: Math.max(0, scrollY + first.getBoundingClientRect().top - line), behavior: calm() ? "auto" : "smooth" });
+  const back = Math.max(0, scrollY + first.getBoundingClientRect().top - line);
+  /* The recording goes back with the page, at this pass's speed. */
+  if (usesMusic(song) && musicClock(song) !== null) {
+    const sec = musicSec(song, back);
+    musicSync.target = sec; musicSync.until = performance.now() + 3000; musicSync.clock = -1;
+    seekMusic(song, sec); setMusicRate(recRate(song));
+  }
+  window.scrollTo({ top: back, behavior: calm() ? "auto" : "smooth" });
   paintLoop(song);
   return true;
 }
@@ -1728,6 +1746,14 @@ function songMenu(song, anchor, redrawSong) {
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
        unsync: () => { delete song.syncs; Tabs.save(data); toast("Recording sync reset"); },
+       recspeed: () => {
+         const steps = [1, 0.9, 0.8, 0.7, 0.6, 0.5], i = steps.findIndex(v => Math.abs(v - (song.recRate || 1)) < 0.01);
+         const next = steps[(i + 1) % steps.length];
+         if (next === 1) delete song.recRate; else song.recRate = next;
+         Tabs.save(data);
+         if (scroll.on && usesMusic(song)) setMusicRate(recRate(song));
+         toast(!rateWorks() && next < 1 ? "Apple Music can't change the speed here. The recording stays at full speed." : `Recording at ${Math.round(next * 100)}%`, moreBtn());
+       },
        backing: () => setBacking(song, usesMusic(song) ? "band" : "music", moreBtn()),
        bass: () => toggleBass(song, moreBtn()),
        metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
@@ -2389,7 +2415,7 @@ async function startScroll(song, opts = {}) {
   }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
-  if (usesMusic(song)) startMusic(song, musicSec(song, scrollY)); else startMetronome(song);
+  if (usesMusic(song)) startMusic(song, playFromSec(song), recRate(song)); else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
     if (scroll.last && !hold.active) {
@@ -2399,7 +2425,7 @@ async function startScroll(song, opts = {}) {
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
       /* The recording is the clock while it plays: the page goes where its time says, so a pause, a stall
          or a seek in Apple Music moves the scroll with it. Otherwise the timer carries the page. */
-      let clock = usesMusic(song) && !song.loop ? musicClock(song) : null;
+      let clock = usesMusic(song) ? musicClock(song) : null;
       /* just seeked: wait for the recording to arrive before following it again */
       if (clock !== null && musicSync.target >= 0) { if (Math.abs(clock - musicSync.target) < 2 || t > musicSync.until) musicSync.target = -1; else clock = -1; }
       let px;

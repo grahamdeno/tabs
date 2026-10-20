@@ -163,6 +163,36 @@ test("Apple Music: the page follows the recording's clock, and moving the page b
   await page.waitForFunction(() => window.mkLog.some(x => x.startsWith("seek:") && +x.slice(5) > 100), null, { timeout: 5000 });
 });
 
+test("Apple Music: Practice a section loops the recording too, slows it on Build up, and the speed and volume follow the settings", { skip: skip() }, async t => {
+  const body = Array.from({ length: 60 }, (_, n) => `[V${n}]\nG  D  Em  C`).join("\n");
+  const song = { ...LIB.songs[0], body, duration: 200, recRate: 0.8, loop: { a: 10, b: 14, build: true }, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, speedMode: "length", recVol: 0.4 } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkLog = []; window.mkMusic = { isAuthorized: true, isPlaying: false, currentPlaybackTime: 0, playbackRate: 1, volume: 1,
+      setQueue: async () => {}, seekToTime: async n => { window.mkLog.push("seek:" + Math.round(n)); window.mkMusic.currentPlaybackTime = n; },
+      play: async () => { window.mkMusic.isPlaying = true; }, pause: () => { window.mkMusic.isPlaying = false; }, stop: () => {} };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  await page.waitForTimeout(400);
+  await page.click("#play");
+  await page.waitForFunction(() => window.mkMusic.isPlaying, null, { timeout: 5000 });
+  assert.equal(await page.evaluate(() => window.mkMusic.volume), 0.4, "the volume setting is applied");
+  assert.ok(Math.abs((await page.evaluate(() => window.mkMusic.playbackRate)) - 0.8 * 0.8) < 0.01, "song speed times the first Build up pass");
+  assert.ok((await page.evaluate(() => window.mkLog)).some(x => x.startsWith("seek:") && +x.slice(5) > 0), "Play starts the recording at the section");
+});
+
+test("Apple Music off: no recording speed or volume anywhere", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const page = await phone(t, { ...LIB, songs: [song, LIB.songs[1]] });
+  await page.evaluate(() => { location.hash = "#/settings/keys"; }); await page.waitForSelector("#s-apple");
+  assert.equal(await page.locator("#s-recvol").count(), 0);
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  assert.equal(await page.locator('[data-m="recspeed"]').count(), 0);
+});
+
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {
   const lib = { ...LIB, songs: [{ ...LIB.songs[0], duration: 227, durationSet: true }, LIB.songs[1]], settings: { ...LIB.settings, speedMode: "length" } };
   const page = await phone(t, lib);

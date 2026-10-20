@@ -133,7 +133,7 @@ export function prepareMusic(song) {
 }
 /* `at` is where in the recording to start, in seconds: the scroll's place, so Play from the middle of
    the sheet starts the music there. A resume from a pause that is already about right is left alone. */
-export async function startMusic(song, at = 0) {
+export async function startMusic(song, at = 0, rate = 1) {
   if (!wanted(song)) return;
   const id = appleTrackId(song.listen.url);
   try {
@@ -144,7 +144,20 @@ export async function startMusic(song, at = 0) {
     if (Math.abs(cur - at) > 1.5) { try { await music.seekToTime(Math.max(0, at)); } catch { /* a fresh queue is already at the start */ } }
     await step("play", music.play());
     playingId = id;
+    setMusicRate(rate); applyVolume();
   } catch (e) { noteError(e, { quiet: true, where: `apple music start (${mkStep})` }); }
+}
+/* Slowing the recording (3.14.0) and its volume, for practice. Both are Apple Music's own player settings;
+   a build that doesn't offer the speed stays at full speed, and rateWorks() says so. */
+export const rateWorks = () => !inst || "playbackRate" in inst;
+export function setMusicRate(rate) {
+  if (!inst || !("playbackRate" in inst)) return false;
+  try { inst.playbackRate = Math.min(1, Math.max(0.5, rate || 1)); return true; } catch (e) { noteError(e, { quiet: true, where: "apple music speed" }); return false; }
+}
+export function applyVolume() {
+  if (!inst || !("volume" in inst)) return;
+  const v = data.settings.recVol;
+  try { inst.volume = v >= 0 && v <= 1 ? v : 1; } catch { /* the player keeps its own volume */ }
 }
 /* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
 export function musicClock(song) {

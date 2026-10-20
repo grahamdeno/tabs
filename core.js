@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.13.1";
+export const VERSION = "3.14.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -298,7 +298,7 @@ export function addSync(marks, where, sec, len) {
 // image data survive. Unknown fields are kept for newer versions of the app.
 const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
-  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", created: "string", gotAt: "string",
+  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
   favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array"
 };
@@ -319,6 +319,7 @@ export function cleanSong(raw) {
   if (s.format !== "chords" && s.format !== "tab") delete s.format;
   if (s.tuning && !TUNINGS[s.tuning]) delete s.tuning;
   if (s.backing !== undefined && s.backing !== "band") delete s.backing;
+  if (s.recRate !== undefined) s.recRate = fit(s.recRate, 0.5, 1);
   if (s.syncs) { s.syncs = cleanSyncs(s.syncs); if (!s.syncs.length) delete s.syncs; }
   if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
   if (s.size !== undefined) s.size = fit(s.size, 0.6, 1.6);
