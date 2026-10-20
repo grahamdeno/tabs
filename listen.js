@@ -291,11 +291,9 @@ export function recordingSheet(song, o) {
       return `<div class="rs-row rs-feel"><div class="rs-l">The recording<b>${esc(bits)}</b></div>${keyNote}${bpmNote}</div>`;
     };
     const details = [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
-    const tint = /^[0-9a-f]{6}$/i.test(l.tint || "") ? ` style="--album:#${l.tint}"` : "";
     layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
-      <div class="rs-head"${tint}><div class="rs-art">${/^https:\/\//.test(l.art || "") ? `<img src="${esc(l.art)}" alt="">` : icon("note")}</div>
-        <div class="rs-txt"><div class="rs-t">${esc(l.title || song.title)}</div><div class="rs-a">${esc(l.artist || song.artist || "")}</div>${details ? `<div class="rs-d">${esc(details)}</div>` : ""}</div>
-        <button class="rs-listen" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button></div>
+      ${coverHead({ art: l.art, title: l.title || song.title, artist: l.artist || song.artist, details, tint: l.tint,
+        side: `<button class="rs-listen" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button>` })}
       ${feelRow()}
       <div class="rs-row"><div class="rs-l">When you press Play</div>
         <div class="seg" role="group" aria-label="When you press Play">${[["music", "The recording"], ["band", "The band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
@@ -386,7 +384,7 @@ function listenSheet(song, force) {
       .catch(() => { if (n === seq) { state = { ...state, busy: false, tracks: [], error: true }; paintResults(); } });
   };
   layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen">
-    <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
+    ${listenHead(song)}
     <form class="ls-q" id="ls-form" role="search"><span class="ls-qi">${icon("search")}</span>
       <input id="ls-q" type="search" value="${esc(first)}" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search Apple Music"></form>
     <div id="ls-res"></div>
@@ -452,7 +450,7 @@ onLeave(() => document.querySelector(".bp-listen")?.remove());
 function listenApple(song) {
   const close = () => { layer.innerHTML = ""; };
   layer.innerHTML = `<div class="scrim" id="ls-scrim"></div><div class="panel card" id="ls-panel" role="dialog" aria-label="Listen">
-    <div class="pc-head">${icon("note")}<span>Listen · ${esc(song.title)}</span></div>
+    ${listenHead(song)}
     <p class="easy-note">Find the recording in Apple Music, tap ••• or Share, then Copy Link. Come back and tap Paste.</p>
     ${song.listen ? `<p class="foot" style="margin:0 2px 10px">Saved: ${esc(song.listen.service)}${song.listen.title ? ` · ${esc(song.listen.title)}` : ""}</p>` : ""}
     <div class="ls-other" style="margin:0 0 12px"><button class="linkbtn" id="ls-paste">Paste a link</button>
@@ -477,3 +475,13 @@ document.addEventListener("visibilitychange", () => {
 });
 
 export { appleSearchURL, listenSheet, openLink, recordingLength };
+
+/* The cover header (3.16.0, shared in 3.23.0): album art, title, artist and a line of details over a wash
+   of the album's colour. Used by the Recording, Listen and Get the song sheets. side is a button on the right. */
+export function coverHead({ art, title, artist, details, tint, side = "" }) {
+  const wash = /^[0-9a-f]{6}$/i.test(tint || "") ? ` style="--album:#${tint}"` : "";
+  return `<div class="rs-head cover-head"${wash}><div class="rs-art">${/^https:\/\//.test(art || "") ? `<img src="${esc(art)}" alt="">` : icon("note")}</div>
+    <div class="rs-txt"><div class="rs-t">${esc(title || "")}</div>${artist ? `<div class="rs-a">${esc(artist)}</div>` : ""}${details ? `<div class="rs-d">${esc(details)}</div>` : ""}</div>${side}</div>`;
+}
+const listenHead = song => coverHead({ art: song.listen?.art || song.art, title: song.title, artist: song.artist, tint: song.listen?.tint,
+  details: song.listen ? `Listening on ${song.listen.service}` : "Pick the recording you play along with" });

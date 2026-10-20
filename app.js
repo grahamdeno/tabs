@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -1365,6 +1365,7 @@ function setPracticing(song, on) {
   paintLoop(song);
 }
 const PRACTICE_SPEEDS = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
+const DRUM_LEVELS = { "-1": "simpler", 0: "as written", 1: "busier" };
 function paintLoop(song) {
   const lines = sheetLines(), on = practicing(song), lp = activeLoop(song);
   lines.forEach(el => el.classList.remove("inloop", "loopa", "loopfirst", "looplast"));
@@ -1391,6 +1392,7 @@ function paintLoop(song) {
     <button class="chip lp-sec${has ? " on" : ""}" id="lp-sec">${icon("loop")}${has ? `${esc(loopName(song))}${loopRun.pass ? ` · ${loopRun.pass + 1}` : ""}` : "Pick a section"}${has ? withRec : ""}</button>
     <button class="chip${rate < 1 ? " on" : ""}" id="lp-speed" aria-label="Practice speed ${Math.round(rate * 100)}%">${Math.round(rate * 100)}%</button>
     ${has ? `<button class="chip ${lp.build ? "on" : ""}" id="lp-build" aria-pressed="${!!lp.build}">Build up</button>` : ""}
+    ${song.drums && data.settings.metronome && metroDrums() && !usesMusic(song) ? `<button class="chip${song.drums.level ? " on" : ""}" id="lp-drums" aria-label="Drums: ${DRUM_LEVELS[song.drums.level || 0]}">Drums: ${DRUM_LEVELS[song.drums.level || 0]}</button>` : ""}
     <button class="sb" id="lp-x" aria-label="Practice mode off">${icon("x")}</button>`;
   $("lp-sec").onclick = () => startLoopPick(song);
   $("lp-speed").onclick = () => {
@@ -1403,6 +1405,12 @@ function paintLoop(song) {
     toast(usesMusic(song) && next < 1 && !rateWorks() ? "Apple Music can't change the speed here. The recording stays at full speed." : `Practice at ${Math.round(next * 100)}%`, $("lp-speed"));
   };
   $("lp-build")?.addEventListener("click", () => { lp.build = !lp.build; Tabs.save(data); paintLoop(song); });
+  $("lp-drums")?.addEventListener("click", () => {
+    const lv = ((song.drums.level || 0) + 2) % 3 - 1; /* as written, busier, simpler */
+    if (lv) song.drums.level = lv; else delete song.drums.level;
+    metro.bar = null; Tabs.save(data); paintLoop(song);
+    toast(`Drums: ${DRUM_LEVELS[lv]}`, $("lp-drums"));
+  });
   $("lp-x").onclick = () => { setPracticing(song, false); toast("Practice mode off. The section is kept for next time", $("pchip")); };
 }
 // Speed factor for the current pass.
@@ -1921,7 +1929,7 @@ function nextSongs() { findAI().then(m => m.nextSongs()); }
 // tempo, slowed with Build up, and a tempo changed in Edit takes over on the
 // next beat. A song with no tempo gets one looked up first. Hits are
 // scheduled ahead on the audio clock, so they stay even.
-const metro = { timer: 0, next: 0, beat: 0, run: 0 };
+const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null };
 const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= 1 ? v : 0.8; };
 const metroDrums = () => data.settings.metroSound !== "click";
 async function startMetronome(song) {
@@ -1936,7 +1944,7 @@ async function startMetronome(song) {
   }
   const audio = sound();
   if (!audio) return;
-  metro.next = audio.currentTime + 0.05; metro.beat = 0; bass.idx = null; bass.shift = null;
+  metro.next = audio.currentTime + 0.05; metro.beat = 0; metro.bar = null; bass.idx = null; bass.shift = null;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
       const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
@@ -1947,6 +1955,7 @@ async function startMetronome(song) {
       /* Bass only: the drums or click rest and the bass plays alone. */
       const rhythm = data.settings.metronome && !(data.settings.bass && data.settings.bassOnly);
       if (quiet || !rhythm) { /* silent bar, or no drums */ }
+      else if (metroDrums() && songBar(song, b, beats, spb)) for (const h of barHits(metro.bar, b, DRUM_SWING[groove.swing] || 0.5)) drum(h.k, metro.next + h.at * spb, h.v);
       else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style, groove.swing);
       else clickAt(metro.next, b === 0);
       bassBeat(song, metro.next, b, beats, spb, quiet, style, groove);
@@ -1989,6 +1998,34 @@ function grooveFor(song, force = false) {
     return g;
   }));
   return grooveJobs.get(song.id);
+}
+/* Drums that fit the song (3.23.0): the AI writes a bar for each kind of section and a fill, once, in
+   the background, the first time the band plays the song with drums. Until then the general beat plays. */
+const drumJobs = new Map();
+function drumsFor(song) {
+  if (!aiKey() || song.drums || (song.beats || 4) !== 4 || drumJobs.has(song.id)) return;
+  const parts = [...new Set([...($("sheet")?.querySelectorAll(":scope > .sec") || [])].map(el => partOf(el.textContent)))];
+  drumJobs.set(song.id, findAI().then(m => m.findDrums(song, parts)).catch(() => null).then(d => {
+    if (!d || song.drums) return;
+    song.drums = d; Tabs.save(data);
+    if (viewing === song) { toast("Drums written for this song. Busier or simpler in Practice"); paintLoop(song); }
+  }));
+}
+/* The song's own bar for this pulse: picked on beat 1 from the section at the reading line, or the fill
+   when the next section starts within the bar. Returns false to fall back to the general beat. */
+function songBar(song, b, beats, spb) {
+  const d = song.drums;
+  if (!d || beats !== 4) return false;
+  if (b === 0 || !metro.bar) {
+    const line = innerHeight * READ_AT, secs = [...($("sheet")?.querySelectorAll(":scope > .sec") || [])];
+    let cur = null, next = null;
+    for (const el of secs) { const top = el.getBoundingClientRect().top; if (top <= line + 4) cur = el; else { next = next || el; } }
+    const ahead = pxPerSecond(song) * loopFactor(song) * spb * beats;
+    const part = partOf(cur?.textContent || "verse");
+    const fill = d.fill && scroll.on && next && next.getBoundingClientRect().top - line <= ahead && next.getBoundingClientRect().top - line > 0;
+    metro.bar = drumLevelBar(fill ? d.fill : d[part] || d[part === "prechorus" ? "verse" : part === "solo" ? "chorus" : "verse"] || d.verse || d.chorus, fill ? 0 : d.level || 0);
+  }
+  return !!metro.bar;
 }
 function stopMetronome() { clearInterval(metro.timer); metro.timer = 0; metro.run++; }
 /* Settings plays one bar in the chosen sound, beat and volume. */
@@ -2495,6 +2532,7 @@ async function startScroll(song, opts = {}) {
   if (data.settings.metronome || data.settings.bass) {
     if (!song.bpm) tempoFor(song); /* look it up during the count-in */
     grooveFor(song); /* and how it feels, which joins in when it arrives */
+    if (data.settings.metronome && metroDrums()) drumsFor(song); /* and drums written for it */
   }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;

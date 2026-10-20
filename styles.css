@@ -2051,3 +2051,7 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 .pk-notes i { width: 8px; height: 8px; border-radius: 4px; background: var(--card-2); }
 .pk-notes i.cur { background: var(--accent-soft); box-shadow: 0 0 0 1.5px var(--accent); }
 .pk-notes i.on { background: var(--accent); }
+
+/* The cover header on the Listen sheet and Get the song (3.23.0): edge to edge at the top. */
+.panel.card > .cover-head { margin: -16px -16px 12px; border-radius: 22px 22px 0 0; }
+.pbody > .cover-head { margin: 0 -16px 12px; }

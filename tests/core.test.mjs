@@ -1706,3 +1706,24 @@ test("chord timing: words share a line's time by syllables, land on the beat, an
   assert.deepEqual(lrc[1], [13, "Plain line"]);
   assert.deepEqual(C.cleanTimed({ h: "k", at: [[1, 10]], w: { 1: [10, 10.8, 11.5], x: [1, 2], 2: [3, 1] } }).w, { 1: [10, 10.8, 11.5] });
 });
+
+test("drums that fit the song: parts by section, a clean bar, simpler and busier, and the hits on each beat", () => {
+  assert.equal(C.partOf("Pre-Chorus"), "prechorus"); assert.equal(C.partOf("Chorus 2"), "chorus"); assert.equal(C.partOf("Verse"), "verse");
+  assert.equal(C.partOf("Guitar solo"), "solo"); assert.equal(C.partOf("Something"), "verse");
+  const bar = { kick: "X.......x.x.....", snare: "....X..o....X...", hat: "x.x.x.x.x.x.x.xO" };
+  const d = C.cleanDrums({ verse: bar, chorus: { kick: "bad", snare: "....X.......X...", hat: "xxxxxxxxxxxxxxxx" }, level: 1 });
+  assert.deepEqual(d.verse, bar); assert.equal(d.chorus.kick, ".".repeat(16), "a bad row becomes rests"); assert.equal(d.level, 1);
+  assert.equal(C.cleanDrums({ intro: bar }), null, "needs a verse or a chorus");
+  const simple = C.drumLevelBar(bar, -1);
+  assert.equal(simple.hat, "x...x...x...x...", "quarter-note hat");
+  assert.equal(simple.snare, "....X.......X...", "no ghost notes");
+  assert.equal(simple.kick, "x.......x.......");
+  const busy = C.drumLevelBar(bar, 1);
+  assert.equal(busy.hat, "xoxoxoxoxoxoxoxO");
+  assert.equal(busy.snare, "...oX..o...oX...");
+  const h = C.barHits(bar, 0, 0.5);
+  assert.deepEqual(h.filter(x => x.k === "kick").map(x => x.at), [0]);
+  assert.deepEqual(h.filter(x => x.k === "hat").map(x => x.at), [0, 0.5]);
+  assert.equal(C.barHits(bar, 3).find(x => x.k === "open").at, 0.75);
+  assert.equal(C.barHits(bar, 0, 0.667).find(x => x.k === "hat" && x.at > 0).at, 0.667, "swung off-beat");
+});

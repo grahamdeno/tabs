@@ -238,6 +238,7 @@ test("Listen searches Apple Music in the app: change the words, hear a preview, 
   await page.goto(base + "#/song/b"); await page.waitForTimeout(400);
   await page.click("#listen"); await page.waitForTimeout(500);
   assert.equal(await page.inputValue("#ls-q"), "Harbor Lights Me");
+  assert.match(await page.innerText("#ls-panel .cover-head"), /Harbor Lights/, "the cover header tops the sheet");
   assert.equal(await page.locator(".ls-row").count(), 2);
   assert.equal(await page.locator(".ls-pv").count(), 2, "each result can be previewed");
   await page.fill("#ls-q", "Harbor Lights live"); await page.press("#ls-q", "Enter"); await page.waitForTimeout(500);

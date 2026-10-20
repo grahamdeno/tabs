@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.22.0";
+export const VERSION = "3.23.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -522,7 +522,7 @@ export function cleanFeel(f) {
 // image data survive. Unknown fields are kept for newer versions of the app.
 const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
-  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", practice: "object", created: "string", gotAt: "string",
+  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", practice: "object", drums: "object", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
   favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array", timed: "object"
 };
@@ -553,6 +553,7 @@ export function cleanSong(raw) {
   }
   if (s.syncs) { s.syncs = cleanSyncs(s.syncs); if (!s.syncs.length) delete s.syncs; }
   if (s.timed) { s.timed = cleanTimed(s.timed); if (!s.timed) delete s.timed; }
+  if (s.drums) { s.drums = cleanDrums(s.drums); if (!s.drums) delete s.drums; }
   if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
   if (s.size !== undefined) s.size = fit(s.size, 0.6, 1.6);
   if (s.duration !== undefined) s.duration = fit(s.duration, 10, 3600);
@@ -2682,6 +2683,70 @@ export function drumHits(style, b, beats = 4, swing = 0.5) {
     else hit("snare", 0, even ? 1 : 0.7);
     hit("hat", 0, b === 0 ? 1 : 0.8);
     hit("hat", swing, 0.55);
+  }
+  return hits;
+}
+
+// ---------- Drums that fit the song (3.23.0) ----------
+// The AI writes one bar of 4/4 per kind of section (intro, verse, pre-chorus, chorus, bridge, solo,
+// outro) and a fill, each part 16 sixteenth notes: "." rest, "x" hit, "X" accent, "o" soft (a ghost
+// note), and on the hi-hat "O" for an open hat. The section on screen picks the bar; the bar before a
+// new section plays the fill. Busier and Simpler change the bar, kept per song.
+export const DRUM_PARTS = ["intro", "verse", "prechorus", "chorus", "bridge", "solo", "outro"];
+export function partOf(name) {
+  const n = String(name || "").toLowerCase();
+  if (/pre.?chorus|build/.test(n)) return "prechorus";
+  if (/chorus|refrain|hook/.test(n)) return "chorus";
+  if (/bridge|middle/.test(n)) return "bridge";
+  if (/solo|instrumental|interlude|break/.test(n)) return "solo";
+  if (/intro/.test(n)) return "intro";
+  if (/outro|ending|coda|tag/.test(n)) return "outro";
+  return "verse";
+}
+const DRUM_ROW = { kick: /^[.xXo]{16}$/, snare: /^[.xXo]{16}$/, hat: /^[.xXoO]{16}$/ };
+export function cleanDrums(raw) {
+  if (!isObj(raw)) return null;
+  const out = {};
+  for (const part of [...DRUM_PARTS, "fill"]) {
+    const p = raw[part];
+    if (!isObj(p)) continue;
+    const bar = {};
+    for (const [k, re] of Object.entries(DRUM_ROW)) bar[k] = re.test(String(p[k] || "")) ? String(p[k]) : ".".repeat(16);
+    if (Object.values(bar).some(r => /[^.]/.test(r))) out[part] = bar;
+  }
+  if (!out.verse && !out.chorus) return null;
+  if (raw.level === -1 || raw.level === 1) out.level = raw.level;
+  out.src = "ai";
+  return out;
+}
+/* Simpler (-1): quarter-note hat, no ghost notes, the kick only where it is strong. Busier (+1): the
+   hat fills to sixteenths (softly) and a ghost snare leads into beats 2 and 4. */
+export function drumLevelBar(bar, level = 0) {
+  if (!bar || !level) return bar;
+  const map = (row, f) => [...row].map(f).join("");
+  if (level < 0) return {
+    kick: map(bar.kick, (c, i) => c === "X" || (c !== "." && i % 8 === 0) ? "x" : "."),
+    snare: map(bar.snare, c => c === "o" ? "." : c),
+    hat: map(bar.hat, (c, i) => i % 4 === 0 ? (c === "." ? "x" : c === "O" ? "x" : c) : ".")
+  };
+  return {
+    kick: bar.kick,
+    snare: map(bar.snare, (c, i) => c === "." && (i === 3 || i === 11) ? "o" : c),
+    hat: map(bar.hat, c => c === "." ? "o" : c)
+  };
+}
+/* The hits on pulse b (a quarter note) of a bar: { k, at (0 to 1 of the pulse), v }. The off-beat
+   eighth moves with swing; the sixteenths around it follow. */
+export function barHits(bar, b, swing = 0.5) {
+  const hits = [], at = [0, swing / 2, swing, swing + (1 - swing) / 2];
+  const vel = { x: 0.8, X: 1, o: 0.35, O: 0.7 };
+  for (let j = 0; j < 4; j++) {
+    const i = b * 4 + j;
+    for (const k of ["kick", "snare", "hat"]) {
+      const c = bar?.[k]?.[i];
+      if (!c || c === ".") continue;
+      hits.push({ k: k === "hat" && c === "O" ? "open" : k, at: at[j], v: k === "hat" ? vel[c] * 0.75 : vel[c] });
+    }
   }
   return hits;
 }

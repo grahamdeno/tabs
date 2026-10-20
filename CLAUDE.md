@@ -39,8 +39,7 @@ release so Graham can try it.
    (lessons and listening, like the chord lessons). Practice mode on the song:
    a Practicing chip and one Practice row (section, speed, Build up, drums,
    Check me) that replaces the loop banner; Learning songs open in it.
-   Still to do: the Recording sheet's cover header on Listen and Get the song
-   (agreed, missed in 3.21.0).
+   The cover header on Listen and Get the song followed in 3.23.0.
    German practice stays on its chip under the title (Graham), not in the
    Practice row.
 0b. Done in 3.22.0. Chord timing without a paid service. Spread
@@ -54,7 +53,7 @@ release so Graham can try it.
    Keys into its own Settings row.
 2. Done in 3.18.0 (needs the Worker redeployed once for /preview). Preview analysis: Apple's 30-second preview (not copy protected)
    gives the true tempo, swing and key; flag a sheet in the wrong key or capo.
-3. 3.19.0 Drums that fit the song: the AI returns a 16-step kick, snare and
+3. Done in 3.23.0. Drums that fit the song: the AI returns a 16-step kick, snare and
    hat grid per section (fills, sparse verse, full chorus) from the measured
    tempo and feel, genre and year; Busier / Simpler kept per song.
 4. 3.20.0 Just heard it: Apple's recently played offers "Play along?" on
@@ -114,7 +113,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade (expected; not a real failure). Graham (2026-10-19): don't remake
   them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 3 (3.20.0, 3.21.0, 3.22.0). To remake when he says yes:
+  3.19.0: 4 (3.20.0, 3.21.0, 3.22.0, 3.23.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.

@@ -269,7 +269,7 @@ test("a song's groove is found once, used for the song, and changed in Edit", { 
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: true, countIn: false, controls: "bar" } });
   let asks = 0;
   await page.route("https://api.anthropic.com/**", r => {
-    asks++;
+    if (!/session drummer/.test(r.request().postData() || "")) asks++;
     r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: '{"beat": "half", "swing": "light", "bass": "walk"}' }], stop_reason: "end_turn" }) });
   });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-test"));
@@ -293,6 +293,40 @@ test("a song's groove is found once, used for the song, and changed in Edit", { 
   assert.deepEqual(await groove(), { src: "you" }, "all defaults: kept, and not looked up again");
   assert.match(await page.innerText(".ed-chips"), /Drums\s*Default/);
   assert.ok(await page.$("#ed-g-find"), "Find again is there with a key");
+});
+
+test("drums that fit the song: written once by the AI, played per section, busier or simpler in Practice", { skip: skip() }, async t => {
+  const song = { id: "dr1", title: "Drum Song", artist: "Me", key: "G", format: "chords", bpm: 120, status: "learning", body: "[Verse]\nG   C   G   D\n\n[Chorus]\nC   G   D   G" };
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: true, countIn: false, controls: "bar" } });
+  const bars = { verse: { kick: "x.......x.......", snare: "....x.......x...", hat: "x.x.x.x.x.x.x.x." }, chorus: { kick: "X.x.....X.x.....", snare: "....X.......X...", hat: "xxxxxxxxxxxxxxxx" }, fill: { kick: "x...............", snare: "....x.x.xxxxXXXX", hat: "x..............." } };
+  let drumAsks = 0, sent = "";
+  await page.route("https://api.anthropic.com/**", r => {
+    const body = r.request().postData() || "";
+    if (/session drummer/.test(body)) { drumAsks++; sent = body; }
+    const text = /session drummer/.test(body) ? JSON.stringify(bars) : "{}";
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text }], stop_reason: "end_turn" }) });
+  });
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-test"));
+  const errors = []; page.on("pageerror", e => errors.push(String(e)));
+  await page.evaluate(() => { location.hash = "#/song/dr1"; }); await page.waitForSelector("#play");
+  assert.equal(await page.$("#lp-drums"), null, "no Drums chip before they are written");
+  await page.click("#play");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums, null, { timeout: 5000 });
+  assert.match(sent, /Parts: verse, chorus/, "the sheet's sections are sent");
+  assert.doesNotMatch(sent, /G   C   G   D/, "the sheet itself is not sent");
+  const d = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums);
+  assert.deepEqual((await d()).chorus, bars.chorus);
+  await page.waitForTimeout(600);
+  await page.click("#play"); await page.waitForTimeout(200);
+  await page.waitForSelector("#lp-drums");
+  assert.match(await page.innerText("#lp-drums"), /Drums: as written/);
+  await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === 1);
+  assert.match(await page.innerText("#lp-drums"), /busier/);
+  await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === -1);
+  await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === undefined);
+  await page.click("#play"); await page.waitForTimeout(400); await page.click("#play");
+  assert.equal(drumAsks, 1, "written once");
+  assert.deepEqual(errors, []);
 });
 
 test("a bass riff: drawn in Edit, kept on the song, and played on each chord", { skip: skip() }, async t => {

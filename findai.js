@@ -1,7 +1,9 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove } from "./core.js";
+import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
+import { coverHead } from "./listen.js";
+import { itunes, appleBlocksSearch } from "./sets.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
@@ -191,6 +193,17 @@ export function getSong(q, preset = {}) {
     data.settings.chartLevel = b.dataset.lv; Tabs.save(data);
     close(); getSong(q, { ...preset, level: b.dataset.lv });
   });
+  /* The cover: Apple's public catalog, once the song's name and artist are known (3.23.0). */
+  const head = (title, artist) => {
+    if (title && artist && st.artQ !== `${title}|${artist}` && !appleBlocksSearch()) {
+      st.artQ = `${title}|${artist}`;
+      itunes("search", { term: `${title} ${artist}`, media: "music", entity: "song", limit: 8 }).then(j => {
+        const top = rankTracks(j?.results || [], title, artist)[0];
+        if (top?.artworkUrl100 && top.score >= 4.5 && alive) { st.art = String(top.artworkUrl100).replace(/\d+x\d+bb/, "600x600bb"); paint(); }
+      }).catch(() => {});
+    }
+    return coverHead({ art: st.art, title, artist });
+  };
   const version = () => st.versions[st.vi] || null;
   const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
   /* a jewel lamp per step, like a channel strip: dark while waiting,
@@ -203,7 +216,7 @@ export function getSong(q, preset = {}) {
     const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body,
       ...(t?.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, t.bpm))) } : {}), ...(st.beats !== 4 ? { beats: st.beats } : {}),
       ...(len >= 60 ? { duration: len, recLength: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
-      ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}) });
+      ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}), ...(st.art ? { art: st.art } : {}) });
     close(); leaveSearch();
     go("#/song/" + encodeURIComponent(s.id));
     grooveFor(s); /* how it feels, in the background */
@@ -214,7 +227,7 @@ export function getSong(q, preset = {}) {
     if (!body || !alive) return;
     const c = st.chart;
     if (st.view === "error") {
-      body.innerHTML = `<div class="cs-head"><b>${esc(title0)}</b><span>${esc(artist0)}</span></div><p class="err" style="margin:10px 2px">${esc(st.err)}</p>
+      body.innerHTML = `${head(title0, artist0)}<p class="err" style="margin:10px 2px">${esc(st.err)}</p>
         <div class="actions"><button class="btn" id="gs-own">Find it yourself</button><button class="btn primary" id="gs-again">Try again</button></div>`;
       $("gs-own").onclick = close; $("gs-again").onclick = () => { close(); getSong(q, preset); };
       return;
@@ -222,7 +235,7 @@ export function getSong(q, preset = {}) {
     if (st.view === "work") {
       const r = st.rows;
       const row = (k, label) => r[k] ? `<div class="gs-row">${ROW[r[k]]}<span class="${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
-      body.innerHTML = `<div class="cs-head"><b>${esc(c?.title || title0)}</b><span>${esc(c?.artist || artist0)}</span></div>
+      body.innerHTML = `${head(c?.title || title0, c?.artist || artist0)}
         ${levelPlate()}
         <div class="gs-rows glass">${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("chart", "Working out the chords")}${row("merge", "Lining the chords up with the lyrics")}</div>
         <p class="foot" style="margin-top:12px">Only the song's name${level === "mine" ? " and the chords you play are" : " is"} sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key.</p>`;
@@ -240,7 +253,7 @@ export function getSong(q, preset = {}) {
     const v = version(), m = merged(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
     const tempoChip = t?.bpm > 0 ? `<span class="${t.agree ? "agree" : ""}">${t.bpm} BPM${t.agree ? ` ${icon("check")}` : ""}${!t.agree && t.measured && t.chart ? ` <small>· chart said ${Math.round(t.chart)}</small>` : ""}</span>` : "";
     body.innerHTML = `
-      <div class="cs-head"><b>${esc(c.title)}</b><span>${esc(c.artist || "")}</span></div>
+      ${head(c.title, c.artist)}
       ${levelPlate()}
       ${v ? `<button class="gs-pick" id="gs-pick">${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}${st.versions.length > 1 ? ` ${icon("chev")}` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
@@ -461,4 +474,28 @@ export async function findGroove(song) {
     content: `${song.title}${song.artist ? ` by ${song.artist}` : ""}${song.bpm ? `. Tempo on file: ${song.bpm} BPM` : ""}` }).catch(() => ({ text: "" }));
   const g = cleanGroove(parseJSON(text), "ai");
   return g && (g.beat || g.swing || g.bass) ? g : null;
+}
+
+// Drums that fit the song (3.23.0): one bar of 4/4 per kind of section and a fill, written for this
+// song's tempo, feel, genre and era. Rhythm only, never lyrics.
+const DRUMS_SYSTEM = `You are a session drummer writing a simple practice part for one recorded song, so a guitarist can play along. Reply with JSON only, no other text:
+{"intro": bar, "verse": bar, "prechorus": bar, "chorus": bar, "bridge": bar, "solo": bar, "outro": bar, "fill": bar}
+where each bar is {"kick": 16 chars, "snare": 16 chars, "hat": 16 chars}: one bar of 4/4 in sixteenth notes, four characters per beat (the beat, the "e", the "and", the "a").
+Characters: "." rest, "x" a normal hit, "X" an accent, "o" a soft ghost note; on "hat" also "O" for an open hi-hat.
+- Fit the song's real groove, genre and era: where the kick sits, whether the snare is on 2 and 4 or half time, eighth or sixteenth hats, a ride-like feel for a big chorus.
+- Verses sparser, choruses fuller, the intro and outro lighter. The fill is the bar before a new section: it builds on the snare toward the next downbeat.
+- Swing is played for you from the measured feel; write the straight grid.
+- Only include the parts asked for, plus "fill". Write the character of the part in general terms; do not copy a transcription note for note. Never include lyrics or any words from the song.`;
+export async function findDrums(song, parts = []) {
+  if (!song?.title || !aiKey()) return null;
+  const want = [...new Set([...parts.filter(p => DRUM_PARTS.includes(p)), "verse", "chorus"])];
+  const l = song.listen || {}, feel = l.feel || {};
+  const facts = [`${song.title}${song.artist ? ` by ${song.artist}` : ""}`,
+    l.genre && `Genre: ${l.genre}`, l.year && `Year: ${l.year}`,
+    (feel.bpm || song.bpm) && `Tempo: ${feel.bpm || song.bpm} BPM`,
+    feel.swing && `Feel: ${feel.swing}`, song.groove?.beat && `Beat: ${song.groove.beat}`,
+    `Parts: ${want.join(", ")}`].filter(Boolean).join("\n");
+  const text = await askClaude({ model: AI.fast, system: DRUMS_SYSTEM, content: facts, maxTokens: 900 }).catch(() => "");
+  const d = cleanDrums({ ...parseJSON(text), src: "ai" });
+  return d || null;
 }

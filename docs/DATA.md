@@ -55,6 +55,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `syncs` | `[[where, seconds], ...]` | Marks tying a place on the sheet (0 to 1 down it) to a time in the linked recording, saved when you nudge the page while it plays; up to 12, rising together |
 | `listen` | `{ url, service, title?, artist?, art?, length?, genre?, year?, composer?, tint?, det? }` | `url` and `art` are https only; `length` is the recording's, in seconds; `genre`, `year`, `composer` and `tint` (the album's color, six hex digits) come from Apple Music when it is on, and `det` marks that they were asked for; `feel` = `{ bpm?, swing?, key?, sure?, keySure? }` is measured from the recording's preview (3.18.0) |
 | `loop` | `{ a, b, build, name? }` | Practice a section, line numbers; `name` is the section's name for the neck's Learning list (3.21.0) |
+| `drums` | `{ intro?, verse?, prechorus?, chorus?, bridge?, solo?, outro?, fill?, level?, src }` | Drums that fit the song (3.23.0): written once by the AI. Each part is one bar of 4/4, `{ kick, snare, hat }`, 16 characters each (`.` rest, `x` hit, `X` accent, `o` ghost note, `O` open hi-hat). `level` is -1 simpler or 1 busier, missing for as written. `src` is `"ai"` |
 | `practice` | `{ on?, rate? }` | Practice mode (3.21.0): `on` only when it differs from the default (on for a Learning song), `rate` the practice speed 0.5 to 1. An older `recRate` becomes `rate` |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
 | `tone` | object | Spark tone result |

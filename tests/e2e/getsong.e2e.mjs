@@ -19,6 +19,8 @@ async function setup(t, { bpm = true } = {}) {
   await page.route(/api\.anthropic\.com/, async r => { calls.ai++; if (process.env.SHOT) await new Promise(ok => setTimeout(ok, 2500)); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(CHART) }], stop_reason: "end_turn" }) }); });
   await page.route(/lrclib\.net\/api\/search/, r => { calls.lrc++; calls.lrc === 1 ? r.fulfill({ status: 429, headers: { ...cors, "retry-after": "0.2" }, body: "{}" }) : r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(VERSIONS) }); });
   await page.route(/api\.getsong\.co/, r => { calls.bpm.push(r.request().url()); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ search: [{ id: "x", title: "Harbor Lights", tempo: "92", time_sig: "3/4", artist: { name: "The Cape Fear" } }] }) }); });
+  await page.route(/itunes\.apple\.com\/search/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "The Cape Fear", collectionName: "Northern Coast", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", artworkUrl100: "https://is1-ssl.mzstatic.com/hl/100x100bb.jpg" }] }) }));
+  await page.route(/mzstatic\.com/, r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a", "hex") }));
   await page.reload(); await page.waitForTimeout(300);
   return { page, calls };
 }
@@ -43,6 +45,8 @@ test("Get the song: one tap gathers chords, words and tempo, and saves a playabl
   const sheet = await page.innerText(".gs-chart");
   assert.match(sheet, /grey boats lean on the harbor wall/); assert.match(sheet, /G\s+D/);
   assert.match(await page.innerText(".cs-src"), /GetSongBPM\.com/, "credit shown");
+  await page.waitForSelector(".cover-head img");
+  assert.match(await page.innerText(".cover-head"), /Harbor Lights\s*The Cape Fear/, "the cover header, with Apple's art");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/gs-review.png" });
   // Another recording: the words re-fit under the same chords
   await page.click("#gs-pick");
@@ -53,6 +57,7 @@ test("Get the song: one tap gathers chords, words and tempo, and saves a playabl
   await page.click("#gs-add");
   await page.waitForTimeout(500);
   const s = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(x => x.title === "Harbor Lights");
+  assert.equal(s.art, "https://is1-ssl.mzstatic.com/hl/600x600bb.jpg", "the cover is kept");
   assert.equal(s.bpm, 92); assert.equal(s.beats, 3); assert.equal(s.duration, 260); assert.deepEqual(s.words, { src: "lrclib", id: 2 }); assert.equal(s.key, "G");
   assert.match(s.body, /\[Verse\]\nG\s+D\s*\npier words one/);
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
