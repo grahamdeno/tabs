@@ -12,7 +12,7 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, TUNINGS } from "./core.js";
+import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, TUNINGS, SCALES, scaleTargets, playCount, practiceRate } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, playSong } from "./app.js";
 import { louie } from "./louie.js";
@@ -20,7 +20,7 @@ import { louie } from "./louie.js";
 const $ = id => document.getElementById(id);
 const strName = (i, tuning) => { const n = (TUNINGS[tuning] || TUNINGS.standard).notes[i].replace(/\d/, ""); return i === 0 ? `low ${n}` : i === 5 ? `high ${n}` : n; };
 const find = id => { for (const lv of skillState(data).levels) for (const st of lv.steps) if (st.id === id) return { st, lv }; return null; };
-const lessonName = st => st.kind === "chord" ? `${st.chord} chord` : st.kind === "switch" ? `${st.a} to ${st.b}` : "Level check";
+const lessonName = st => st.kind === "chord" ? `${st.chord} chord` : st.kind === "switch" ? `${st.a} to ${st.b}` : st.kind === "scale" ? SCALES[st.scale]?.name || "Scale" : "Level check";
 
 let live = null; /* the lesson running now: stopped when you leave */
 function stopLive() {
@@ -45,7 +45,10 @@ export function renderNeck() {
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to Tonight">${icon("back")}</button></div>
     <h1 class="title script" style="margin:14px 2px 2px">The neck</h1>
-    <p class="pf-since">Frets are lessons. The inlays are level checks: play a real song through.</p>
+    <p class="pf-since">Your songs and your skills. Practice here counts on the Tour Map.</p>
+    ${learningCard()}
+    <h2 class="pk-skills">Skills</h2>
+    <p class="pf-since pk-skills-note">Frets are lessons. The inlays are level checks: play a real song through.</p>
     ${levels.map(lv => `<section class="pf-card pk-level${lv.soon ? " soon" : ""}" aria-label="${esc(lv.name)}">
       <h2>${esc(lv.name)}${lv.soon ? "" : `<span class="pk-count">${done(lv)} of ${lv.steps.length}</span>`}</h2>
       <p class="pf-line">${lv.soon ? "Coming. " : ""}${esc(lv.note)}</p>
@@ -66,6 +69,26 @@ export function renderNeck() {
   app.querySelectorAll("[data-id]").forEach(b => b.onclick = () => open(all.find(s => s.id === b.dataset.id)));
   $("pk-go")?.addEventListener("click", () => open(next));
   $("pk-hear").onclick = () => go("#/practice/hear");
+  app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.song)));
+}
+/* Learning (3.21.0): the songs you're learning, each with the one thing to do next and how far along
+   it is (plays toward five). A tap opens the song, already in Practice mode. */
+const GOAL_PLAYS = 5;
+function learningCard() {
+  const songs = data.songs.filter(s => s.status === "learning").sort((a, b) => (b.opened || 0) - (a.opened || 0)).slice(0, 8);
+  if (!songs.length) return `<section class="pf-card pk-learn"><h2>Learning</h2><p class="pf-line">Mark a song as Learning (the chip under its title) and it shows up here, with what to work on next.</p></section>`;
+  const nextFor = s => {
+    const rate = practiceRate({ ...s, practice: { on: true, ...(s.practice || {}) } });
+    if (s.loop?.name) return `<b>${esc(s.loop.name)}${rate < 1 ? ` at ${Math.round(rate * 100)}%` : ""}</b>`;
+    if (rate < 1) return `<b>Bring it up from ${Math.round(rate * 100)}%</b>`;
+    return playCount(s) ? "<b>Play it through again</b>" : "<b>Play it through once</b>";
+  };
+  const cover = s => /^https:\/\//.test(s.listen?.art || s.art || "") ? `<img src="${esc(s.listen?.art || s.art)}" alt="">` : `<span>${esc((s.title || "?").slice(0, 1))}</span>`;
+  return `<section class="pf-card pk-learn"><h2>Learning<span class="pk-count">${songs.length} song${songs.length === 1 ? "" : "s"}</span></h2>
+    ${songs.map(s => { const n = Math.min(GOAL_PLAYS, playCount(s)); return `<button class="pk-song" data-song="${esc(s.id)}">
+      <i class="pk-cover">${cover(s)}</i><span class="pk-tx"><span class="pk-t">${esc(s.title)}</span><span class="pk-s">Next: ${nextFor(s)} · ${n} of ${GOAL_PLAYS} plays</span>
+      <span class="pk-meter"><i style="width:${Math.round(n / GOAL_PLAYS * 100)}%"></i></span></span>${icon("chev", "chev")}</button>`; }).join("")}
+  </section>`;
 }
 
 /* ---------- one lesson ---------- */
@@ -74,7 +97,7 @@ export function renderSession(id) {
   if (id === "hear") return whatIHear();
   const hit = find(id);
   if (!hit || hit.st.state === "locked" || hit.st.kind === "check") return go("#/practice");
-  hit.st.kind === "chord" ? chordLesson(hit.st) : switchLesson(hit.st);
+  hit.st.kind === "chord" ? chordLesson(hit.st) : hit.st.kind === "scale" ? scaleLesson(hit.st) : switchLesson(hit.st);
 }
 
 const head = (title, sub) => `<div class="head"><button class="ib glass" id="back" aria-label="Back to the neck">${icon("back")}</button></div>
@@ -199,6 +222,102 @@ function chordLesson(st) {
   };
 }
 
+/* ---------- Scale lesson (3.21.0) ----------
+   The scale on a neck diagram, then up and back down one note at a time: the next note glows, and it
+   lights when it is heard (three readings in a row, any octave). Hear it plays the scale first. */
+function scaleSVG(targets, k, lit) {
+  const up = targets.slice(0, Math.ceil(targets.length / 2) + 1), frets = up.map(t => t.fret);
+  const lo = Math.max(0, Math.min(...frets) - (Math.min(...frets) > 0 ? 1 : 0)), hi = Math.max(...frets, lo + 4);
+  const W = 320, H = 150, x0 = 26, x1 = W - 10, y0 = 18, y1 = H - 18, n = hi - lo + 1, fw = (x1 - x0) / n, sy = (y1 - y0) / 5;
+  const yOf = i => y1 - i * sy, xOf = f => f === 0 ? x0 - 12 : x0 + (f - lo - 0.5) * fw;
+  let g = "";
+  for (let f = 0; f <= n; f++) g += `<line class="${f === 0 && lo === 0 ? "nut" : "fr"}" x1="${x0 + f * fw}" y1="${y0}" x2="${x0 + f * fw}" y2="${y1}"/>`;
+  for (let i = 0; i < 6; i++) g += `<line class="st" x1="${x0}" y1="${yOf(i)}" x2="${x1}" y2="${yOf(i)}"/>`;
+  for (let f = lo + 1; f <= hi; f++) if ([3, 5, 7, 9, 12].includes(f)) g += `<text class="fn" x="${xOf(f)}" y="${H - 2}">${f}</text>`;
+  const cur = targets[k], seen = new Set();
+  up.forEach((t, j) => {
+    const key = t.i + ":" + t.fret;
+    if (seen.has(key)) return; seen.add(key);
+    const on = cur && cur.i === t.i && cur.fret === t.fret, done = targets.some((x, m) => lit.has(m) && x.i === t.i && x.fret === t.fret);
+    g += `<g class="sn${on ? " cur" : ""}${done ? " lit" : ""}" data-j="${j}"><circle cx="${xOf(t.fret)}" cy="${yOf(t.i)}" r="10"/><text x="${xOf(t.fret)}" y="${yOf(t.i) + 4}">${esc(t.note)}</text></g>`;
+  });
+  return `<svg class="pk-scale" viewBox="0 0 ${W} ${H}" role="img" aria-label="Scale on the neck">${g}</svg>`;
+}
+function scaleLesson(st) {
+  const sc = SCALES[st.scale], targets = scaleTargets(st.scale), t0 = Date.now();
+  let k = 0;
+  const lit = new Set();
+  app.innerHTML = `${head(sc.name, sc.where)}
+    <section class="pf-card pk-lesson">
+      <div class="pk-scalebox" id="pk-board">${scaleSVG(targets, k, lit)}</div>
+      <div class="pk-notes" id="pk-notes" aria-hidden="true">${targets.map((_, j) => `<i data-j="${j}"></i>`).join("")}</div>
+      <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">${esc(sc.tip)} Tap Hear it, then play it up and back down, one note at a time.</p></div>
+    </section>
+    <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-play">${icon("play")}Hear it</button><button class="tb" id="pk-self">I got it</button></div>`;
+  $("back").onclick = () => go("#/practice");
+  const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
+  const paint = () => {
+    const b = $("pk-board"); if (b) b.innerHTML = scaleSVG(targets, k, lit);
+    app.querySelectorAll("#pk-notes i").forEach(e => { const j = +e.dataset.j; e.className = lit.has(j) ? "on" : j === k ? "cur" : ""; });
+  };
+  paint();
+  const ask = () => { const t = targets[k]; if (t) say(`${t.note} on the ${strName(t.i, "standard")} string, ${t.fret ? `fret ${t.fret}` : "open"}${k >= targets.length / 2 ? ". On the way down" : ""}.`); };
+  const finish = (heard = true) => {
+    stopLive();
+    skillDone(data, st.id, 0); Tabs.save(data);
+    done(st, { secs: (Date.now() - t0) / 1000, line: heard ? `${sc.name}, up and back down.` : "Marked as got." });
+  };
+  $("pk-self").onclick = () => finish(false);
+  /* Hear it: each note plucked in turn (a soft triangle tone), up and back down */
+  $("pk-play").onclick = () => {
+    if (live) { stopLive(); $("pk-start").hidden = false; $("pk-start").disabled = false; }
+    const ctx = sound(); if (!ctx) return toast("The phone won't play sound here.");
+    const at = ctx.currentTime + 0.05, gap = 0.34;
+    targets.forEach((t, j) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), when = at + j * gap;
+      o.type = "triangle"; o.frequency.value = t.hz;
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.35, when + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, when + gap * 1.6);
+      o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + gap * 1.7);
+    });
+    say("Listen to it go up and back down. Then press Start listening and play along.");
+  };
+  $("pk-start").onclick = () => {
+    $("pk-start").disabled = true; say("Starting the microphone…");
+    mic().then(stream => {
+      const ctx = sound();
+      if (!ctx) throw new Error("none");
+      const an = ctx.createAnalyser(); an.fftSize = 4096;
+      const src = ctx.createMediaStreamSource(stream); src.connect(an);
+      const buf = new Float32Array(an.fftSize);
+      let floor = null, streak = 0, wrong = { note: "", n: 0 }, told = 0;
+      live = { at: Date.now(), stream, src, timer: setInterval(() => {
+        an.getFloatTimeDomainData(buf);
+        let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
+        floor = trackFloor(floor, rms);
+        const t = targets[k]; if (!t) return;
+        const hz = detectPitch(buf, ctx.sampleRate, pitchRms(floor), 0.6, [t.hz * 0.45, t.hz * 2.2]);
+        if (judgeTarget(hz, t) === "ring") {
+          wrong = { note: "", n: 0 };
+          if (++streak < 3) return;
+          streak = 0; lit.add(k); k++;
+          paint();
+          if (k >= targets.length) return finish();
+          ask();
+        } else {
+          streak = 0;
+          if (hz > 0) {
+            const nn = nearestNote(hz).name;
+            wrong = wrong.note === nn ? { note: nn, n: wrong.n + 1 } : { note: nn, n: 1 };
+            if (wrong.n === 6 && Date.now() - told > 2000) { told = Date.now(); say(`That's ${nn}. Next is ${t.note} on the ${strName(t.i, "standard")} string, ${t.fret ? `fret ${t.fret}` : "open"}.`); }
+          }
+        }
+      }, 45) };
+      ask();
+      $("pk-start").hidden = true;
+    }).catch(() => { $("pk-start").hidden = true; say("I can't use the microphone here. Play it through, then tap \"I got it\"."); });
+  };
+}
+
 /* switch lesson: two chords take turns on the beat */
 function switchLesson(st) {
   const best = data.skills?.done?.[st.id]?.best || 0;
@@ -303,7 +422,7 @@ function done(st, { secs, line, bpm = 0 }) {
   const { levels } = skillState(data), lv = levels.find(l => l.steps.some(s => s.id === st.id));
   const have = lv.steps.filter(s => s.state === "done").length, total = lv.steps.length;
   const chords = st.kind === "chord" ? [st.chord] : [st.a, st.b];
-  const sg = data.songs.find(s => chords.every(c => new RegExp("\\[" + c.replace("#", "\\#") + "(?![#b\\w])").test(s.body || ""))) || data.songs.find(s => new RegExp("\\[" + chords[0] + "(?![#b\\w])").test(s.body || ""));
+  const sg = st.kind === "scale" ? null : data.songs.find(s => chords.every(c => new RegExp("\\[" + c.replace("#", "\\#") + "(?![#b\\w])").test(s.body || ""))) || data.songs.find(s => new RegExp("\\[" + chords[0] + "(?![#b\\w])").test(s.body || ""));
   const nxt = skillState(data).next;
   const m = Math.floor(secs / 60), s = Math.round(secs % 60);
   app.innerHTML = `${head(lessonName(st), "Done")}

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { MAX_LENGTH, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, onFeel, recentApple, recordingSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, onFeel, recentApple, recordingSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -754,7 +754,7 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <div class="titlerow"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><button class="sb tfav fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button></div>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat pchip" id="pchip"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <div id="strip"></div>
@@ -822,7 +822,7 @@ function renderViewer(id) {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
     if (song.status === "got") journalGot(data, song);
-    Tabs.save(data); paintStat();
+    Tabs.save(data); paintStat(); paintLoop(song);
     toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
   };
   curPaintStat = paintStat;
@@ -1301,8 +1301,10 @@ function finishLoop(song, a, b) {
   loopPick = null;
   document.querySelector(".loopbanner")?.remove();
   song.loop = { a, b, build: song.loop?.build ?? false };
+  song.loop.name = loopName(song); /* for the neck's Learning list (3.21.0) */
   Tabs.save(data);
   loopRun = { pass: 0 };
+  if (!practicing(song)) setPracticing(song, true);
   paintLoop(song);
   toast("Section set. Press play to practice it", $("play"));
 }
@@ -1311,39 +1313,79 @@ function loopName(song) {
   for (let k = song.loop.a; k >= 0; k--) if (lines[k]?.classList.contains("sec")) return lines[k].textContent.trim();
   return `Lines ${song.loop.a + 1}–${song.loop.b + 1}`;
 }
+/* Practice mode (3.21.0): the Practice chip under the title turns it on (a song you're learning starts
+   with it on). It brings one Practice row to the bar: the section to loop, the speed, Build up, and
+   off. Practice time counts on the Tour Map; off, the song plays straight through. */
+const activeLoop = song => practicing(song) && song.loop ? song.loop : null;
+function setPracticing(song, on) {
+  const def = song.status === "learning";
+  song.practice = { ...(song.practice || {}) };
+  if (on === def) delete song.practice.on; else song.practice.on = on;
+  if (!Object.keys(song.practice).length) delete song.practice;
+  Tabs.save(data);
+  loopRun = { pass: 0 };
+  paintLoop(song);
+}
+const PRACTICE_SPEEDS = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
 function paintLoop(song) {
-  const lines = sheetLines();
+  const lines = sheetLines(), on = practicing(song), lp = activeLoop(song);
   lines.forEach(el => el.classList.remove("inloop", "loopa", "loopfirst", "looplast"));
+  const chip = $("pchip");
+  if (chip) {
+    chip.className = "stat pchip" + (on ? " on" : "");
+    chip.innerHTML = on ? '<i class="pc-lit"></i>Practicing' : `${icon("loop")}Practice`;
+    chip.setAttribute("aria-pressed", on);
+    chip.setAttribute("aria-label", on ? "Practice mode is on. Tap to play straight through" : "Practice mode");
+    chip.onclick = () => { setPracticing(song, !on); toast(!on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", chip); };
+  }
   const row = $("looprow");
-  if (!song.loop || !lines[song.loop.b]) { if (row) row.innerHTML = ""; row?.classList.remove("on"); return; }
-  for (let k = song.loop.a; k <= song.loop.b; k++) lines[k].classList.add("inloop");
-  lines[song.loop.a].classList.add("loopfirst"); lines[song.loop.b].classList.add("looplast");
+  document.body.classList.toggle("loop-on", on);
+  if (!on) { if (row) row.innerHTML = ""; row?.classList.remove("on"); return; }
+  if (lp && lines[lp.b]) {
+    for (let k = lp.a; k <= lp.b; k++) lines[k].classList.add("inloop");
+    lines[lp.a].classList.add("loopfirst"); lines[lp.b].classList.add("looplast");
+  }
   if (!row) return;
   row.classList.add("on");
+  const rate = practiceRate(song), has = lp && lines[lp.b];
   const withRec = usesMusic(song) ? `<span class="lp-rec" aria-label="with the recording">${/^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : icon("note")}</span>` : "";
-  row.innerHTML = `${icon("loop")}<span class="lt">Practicing <b>${esc(loopName(song))}</b>${withRec}${loopRun.pass ? ` · pass ${loopRun.pass + 1}` : ""}</span>
-    <button class="chip ${song.loop.build ? "on" : ""}" id="lp-build" aria-pressed="${!!song.loop.build}">Build up</button>
-    <button class="sb" id="lp-x" aria-label="Stop practicing this section">${icon("x")}</button>`;
-  $("lp-build").onclick = () => { song.loop.build = !song.loop.build; Tabs.save(data); paintLoop(song); };
-  $("lp-x").onclick = () => { delete song.loop; Tabs.save(data); loopRun = { pass: 0 }; paintLoop(song); };
+  row.innerHTML = `<span class="lp-lbl">PRACTICE</span>
+    <button class="chip lp-sec${has ? " on" : ""}" id="lp-sec">${icon("loop")}${has ? `${esc(loopName(song))}${loopRun.pass ? ` · ${loopRun.pass + 1}` : ""}` : "Pick a section"}${has ? withRec : ""}</button>
+    <button class="chip${rate < 1 ? " on" : ""}" id="lp-speed" aria-label="Practice speed ${Math.round(rate * 100)}%">${Math.round(rate * 100)}%</button>
+    ${has ? `<button class="chip ${lp.build ? "on" : ""}" id="lp-build" aria-pressed="${!!lp.build}">Build up</button>` : ""}
+    <button class="sb" id="lp-x" aria-label="Practice mode off">${icon("x")}</button>`;
+  $("lp-sec").onclick = () => startLoopPick(song);
+  $("lp-speed").onclick = () => {
+    const i = PRACTICE_SPEEDS.findIndex(v => Math.abs(v - rate) < 0.01), next = PRACTICE_SPEEDS[(i + 1) % PRACTICE_SPEEDS.length];
+    song.practice = { ...(song.practice || {}) };
+    if (next >= 1) delete song.practice.rate; else song.practice.rate = next;
+    Tabs.save(data);
+    if (scroll.on && usesMusic(song)) setMusicRate(recRate(song));
+    paintLoop(song);
+    toast(usesMusic(song) && next < 1 && !rateWorks() ? "Apple Music can't change the speed here. The recording stays at full speed." : `Practice at ${Math.round(next * 100)}%`, $("lp-speed"));
+  };
+  $("lp-build")?.addEventListener("click", () => { lp.build = !lp.build; Tabs.save(data); paintLoop(song); });
+  $("lp-x").onclick = () => { setPracticing(song, false); toast("Practice mode off. The section is kept for next time", $("pchip")); };
 }
 // Speed factor for the current pass.
 /* How fast the recording plays: the song's own setting, slowed further on a Build up pass. */
-const recRate = song => Math.max(0.5, (song.recRate || 1) * loopFactor(song));
+const recRate = song => Math.max(0.5, loopFactor(song));
 /* Where in the recording Play begins: the loop's first line when the page is away from the section, else the page's place. */
 function playFromSec(song) {
-  if (song.loop) {
-    const lines = sheetLines(), first = lines[song.loop.a], last = lines[song.loop.b], line = innerHeight * READ_AT;
+  const lp = activeLoop(song);
+  if (lp) {
+    const lines = sheetLines(), first = lines[lp.a], last = lines[lp.b], line = innerHeight * READ_AT;
     if (first && last && (first.getBoundingClientRect().top > line + 4 || last.getBoundingClientRect().bottom < line)) return musicSec(song, Math.max(0, scrollY + first.getBoundingClientRect().top - line));
   }
   return musicSec(song, scrollY);
 }
-const loopFactor = song => song.loop?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1;
+const loopFactor = song => practiceRate(song) * (activeLoop(song)?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1);
 // Called each frame while playing: when the section's last line passes the reading
 // point, glide back to its first line and count a pass.
 function loopCheck(song) {
-  if (!song.loop) return false;
-  const lines = sheetLines(), first = lines[song.loop.a], last = lines[song.loop.b];
+  const lp = activeLoop(song);
+  if (!lp) return false;
+  const lines = sheetLines(), first = lines[lp.a], last = lines[lp.b];
   if (!first || !last) return false;
   const line = innerHeight * READ_AT;
   /* A section at the end of the song can't reach the reading line; give it a few seconds at the bottom instead. */
@@ -1629,7 +1671,6 @@ function openRecording(song) {
   recordingSheet(song, {
     mode: () => usesMusic(song) ? "music" : "band",
     setMode: m => setBacking(song, m, null, true),
-    setRate: r => { if (r >= 1) delete song.recRate; else song.recRate = r; Tabs.save(data); if (scroll.on && usesMusic(song)) setMusicRate(recRate(song)); },
     reset: () => { delete song.syncs; Tabs.save(data); toast(song.timed?.at ? "Your fixes are cleared. The line timing stays" : "The page will start learning this song again"); },
     changed: () => { paintListenChip(song); paintLoop(song); },
     notes: () => recordingNotes(song),
@@ -1731,7 +1772,7 @@ function songMenu(song, anchor, redrawSong) {
     ({ set: () => addToSet(song), edit: () => songEditor(song),
        capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
-       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), loop: () => startLoopPick(song), tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
+       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), loop: () => { setPracticing(song, true); startLoopPick(song); }, tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
@@ -2396,7 +2437,7 @@ async function startScroll(song, opts = {}) {
   showChordPop(null);
   $("sheet")?.querySelectorAll(".prow").forEach(el => el.remove());
   diag.rowKey = null;
-  if (song.loop) {
+  if (activeLoop(song)) {
     const lines = sheetLines(), first = lines[song.loop.a], last = lines[song.loop.b], line = innerHeight * READ_AT;
     if (first && last && (first.getBoundingClientRect().top > line + 4 || last.getBoundingClientRect().bottom < line)) diag.pinned = first;
     loopRun = { pass: 0 }; paintLoop(song);
@@ -2425,7 +2466,7 @@ async function startScroll(song, opts = {}) {
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
       scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
-      if (scroll.ms - (scroll.saved || 0) > 20000) { (song.loop ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); scroll.saved = scroll.ms; Tabs.save(data); } /* every 20 s, so closing the app mid-song loses nothing */
+      if (scroll.ms - (scroll.saved || 0) > 20000) { (practicing(song) ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); scroll.saved = scroll.ms; Tabs.save(data); } /* every 20 s, so closing the app mid-song loses nothing */
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
       /* The recording is the clock while it plays: the page goes where its time says, so a pause, a stall
          or a seek in Apple Music moves the scroll with it. Otherwise the timer carries the page. */
@@ -2445,10 +2486,10 @@ async function startScroll(song, opts = {}) {
       if (px) { window.scrollBy(0, px); if (clock === null) scroll.carry -= px; scroll.cover = (scroll.cover || 0) + px; nextLine(); }
       /* The end is the last line reaching the reading line. If the page runs out first, add room. */
       const end = endScroll();
-      if (!song.loop && end >= 0 && scrollY < end - 2 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) endRoom(end - scrollY);
+      if (!activeLoop(song) && end >= 0 && scrollY < end - 2 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) endRoom(end - scrollY);
       // At the end: a play counts if auto-scroll carried the page most of the way (see playCredited).
       // Then wait a few seconds (the reader may scroll back up), then stop.
-      if (!song.loop && end >= 0 && scrollY >= end - 2) {
+      if (!activeLoop(song) && end >= 0 && scrollY >= end - 2) {
         const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
         if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
           scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
@@ -2482,7 +2523,7 @@ function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;
   scroll.on = false; scroll.duet = false;
-  if (scroll.ms - (scroll.saved || 0) > 1000) { (viewing?.loop ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
+  if (scroll.ms - (scroll.saved || 0) > 1000) { (practicing(viewing) ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
   if (was) pauseMusic();

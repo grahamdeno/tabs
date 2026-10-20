@@ -54,7 +54,8 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `timed` | `{ h, id?, at?: [[line, seconds], ...], none? }` | Line times from LRCLIB's synced lyrics for the linked recording: `line` is the sheet line's index, `h` a fingerprint of the words (looked up again after an edit), `none` when no timing was found. No lyric text is kept |
 | `syncs` | `[[where, seconds], ...]` | Marks tying a place on the sheet (0 to 1 down it) to a time in the linked recording, saved when you nudge the page while it plays; up to 12, rising together |
 | `listen` | `{ url, service, title?, artist?, art?, length?, genre?, year?, composer?, tint?, det? }` | `url` and `art` are https only; `length` is the recording's, in seconds; `genre`, `year`, `composer` and `tint` (the album's color, six hex digits) come from Apple Music when it is on, and `det` marks that they were asked for; `feel` = `{ bpm?, swing?, key?, sure?, keySure? }` is measured from the recording's preview (3.18.0) |
-| `loop` | `{ a, b, build }` | Practice a section, line numbers |
+| `loop` | `{ a, b, build, name? }` | Practice a section, line numbers; `name` is the section's name for the neck's Learning list (3.21.0) |
+| `practice` | `{ on?, rate? }` | Practice mode (3.21.0): `on` only when it differs from the default (on for a Learning song), `rate` the practice speed 0.5 to 1. An older `recRate` becomes `rate` |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
 | `tone` | object | Spark tone result |
 | `sketch` | object | Made with Sing it: `{ v: 1, key, style: "simple" \| "rich", lines: [{ n: [[midi, start, length], ...] }] }`, the sung melody per line (seconds, to 0.01), for restyling and chord suggestions. Older sketches may hold `true` |

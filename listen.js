@@ -270,14 +270,13 @@ export const musicPlaying = song => !!(inst && playingId && song?.listen && play
 // Tap the Recording chip under the title: the cover and the song's details, Listen (the recording
 // without the page moving), what Play starts (the recording or the band), the recording's speed and
 // what the page has learned of the song. The app passes in how to read and change those.
-//  o.mode() "music" | "band", o.setMode(m), o.setRate(r), o.reset(), o.changed(),
+//  o.mode() "music" | "band", o.setMode(m), o.reset(), o.changed(),
 //  o.spots() { auto, mine }: where the timed lines and your nudges sit down the sheet (0 to 1),
 //  o.notes() { key, bpm }: how the sheet differs from the measured recording; o.matchKey(), o.matchBpm()
-const SPEEDS_REC = [0.5, 0.6, 0.7, 0.8, 0.9, 1];
 export function recordingSheet(song, o) {
   const close = () => { detailsArrived = null; layer.innerHTML = ""; o.changed?.(); };
   const paint = () => {
-    const l = song.listen || {}, band = o.mode() === "band", rate = song.recRate || 1, marks = song.syncs || [], on = musicPlaying(song);
+    const l = song.listen || {}, band = o.mode() === "band", marks = song.syncs || [], on = musicPlaying(song);
     const timed = song.timed?.at?.length || 0, spots = o.spots?.() || { auto: [], mine: marks.map(m => m[0]) };
     /* The recording, measured: tempo, feel and key, and a word when the sheet doesn't match it. */
     const feelRow = () => {
@@ -299,10 +298,7 @@ export function recordingSheet(song, o) {
       <div class="rs-row"><div class="rs-l">When you press Play</div>
         <div class="seg" role="group" aria-label="When you press Play">${[["music", "The recording"], ["band", "The band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
         <p class="rs-note">${band ? "Your metronome, drums and bass play. No recording." : "The recording plays alone. The page follows it."}</p></div>
-      ${band ? "" : `<div class="rs-row${rateWorks() ? "" : " off"}"><div class="rs-l">Speed<b>${Math.round(rate * 100)}%</b></div>
-        <div class="seg" role="group" aria-label="Recording speed">${SPEEDS_REC.map(v => `<button data-rate="${v}" class="${Math.abs(v - rate) < 0.01 ? "on" : ""}" aria-pressed="${Math.abs(v - rate) < 0.01}" ${rateWorks() ? "" : "disabled"}>${Math.round(v * 100)}</button>`).join("")}</div>
-        ${rateWorks() ? "" : `<p class="rs-note">Apple Music plays at full speed here.</p>`}</div>
-      <div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Reset</button>` : ""}</b></div>
+      ${band ? "" : `<div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Reset</button>` : ""}</b></div>
         <div class="rs-track" aria-hidden="true">${spots.auto.map(w => `<b style="left:${(w * 100).toFixed(1)}%"></b>`).join("")}${spots.mine.map(w => `<i style="left:${(w * 100).toFixed(1)}%"></i>`).join("")}</div>
         ${timed ? `<p class="rs-note">Each line is timed to the recording. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p>`}</div>`}
       <button class="btn primary rs-done" id="rs-done">Done</button></div>`;
@@ -310,7 +306,6 @@ export function recordingSheet(song, o) {
     $("rs-done").onclick = close;
     $("rs-listen").onclick = () => playApple(song).then(() => setTimeout(paint, 150));
     layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { o.setMode(b.dataset.mode); paint(); });
-    layer.querySelectorAll("[data-rate]").forEach(b => b.onclick = () => { o.setRate(+b.dataset.rate); paint(); });
     $("rs-reset")?.addEventListener("click", () => { o.reset(); paint(); });
     $("rs-key")?.addEventListener("click", () => { o.matchKey?.(); paint(); });
     $("rs-bpm")?.addEventListener("click", () => { o.matchBpm?.(); paint(); });

@@ -1523,7 +1523,11 @@ test("The neck: lessons unlock in order, a lesson done is kept clean, and chords
   let sk = C.skillState(data);
   assert.equal(sk.next.id, "c:G"); assert.equal(sk.today, false);
   assert.equal(sk.levels[0].steps[1].state, "locked");
-  assert.deepEqual(sk.levels.slice(2).map(l => l.soon), [true, true, true]);
+  assert.deepEqual(sk.levels.slice(3).map(l => l.soon), [true, true, true]);
+  /* 3.21.0: Scales are their own track, open from the start and taken in order */
+  const scales = sk.levels.find(l => l.id === "scales");
+  assert.deepEqual(scales.steps.map(st => st.state), ["now", "locked", "locked", "locked", "locked"]);
+  assert.equal(scales.steps[0].name, "Am pent");
   C.skillDone(data, "c:G", 0, Date.now());
   sk = C.skillState(data);
   assert.equal(sk.next.id, "c:C"); assert.equal(sk.today, true);
@@ -1665,4 +1669,25 @@ test("practice counts on the Tour Map: every 4 minutes is a play", () => {
   assert.equal(C.lifetimePlays(d), before + 1);
   C.journalPractice(d, 480, now);
   assert.equal(C.lifetimePlays(d), before + 3);
+});
+
+test("scales: notes up and back down, on the right strings and frets", () => {
+  const t = C.scaleTargets("Ampent");
+  assert.equal(t.length, 23, "12 up, 11 back down");
+  assert.deepEqual(t.slice(0, 3).map(x => x.note + x.octave), ["A2", "C3", "D3"]);
+  assert.equal(t[11].note + t[11].octave, "C5");
+  assert.equal(t[22].note + t[22].octave, "A2", "ends where it started");
+  assert.deepEqual(C.scaleTargets("Cmajor").slice(0, 8).map(x => x.note), ["C", "D", "E", "F", "G", "A", "B", "C"]);
+  assert.equal(C.scaleTargets("nope").length, 0);
+  assert.equal(C.cleanSkills({ done: { "x:Ampent": { n: 1, at: 5 } } }).done["x:Ampent"].n, 1, "a scale lesson's id is kept");
+});
+test("practice mode: on for a learning song unless turned off; the old recording speed becomes the practice speed", () => {
+  assert.equal(C.practicing({ status: "learning" }), true);
+  assert.equal(C.practicing({ status: "learning", practice: { on: false } }), false);
+  assert.equal(C.practicing({ practice: { on: true } }), true);
+  assert.equal(C.practiceRate({ practice: { on: true, rate: 0.7 } }), 0.7);
+  assert.equal(C.practiceRate({ practice: { on: false, rate: 0.7 } }), 1, "the speed applies only while practicing");
+  const s = C.cleanSong({ id: "a", body: "G", recRate: 0.8 });
+  assert.deepEqual(s.practice, { rate: 0.8 }); assert.equal(s.recRate, undefined);
+  assert.equal(C.cleanSong({ id: "a", body: "G", practice: { on: "x", rate: 2 } }).practice, undefined);
 });

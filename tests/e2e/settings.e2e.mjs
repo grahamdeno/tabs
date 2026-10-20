@@ -167,7 +167,7 @@ test("Apple Music: the page follows the recording's clock, and moving the page b
 
 test("Apple Music: Practice a section loops the recording too, slows it on Build up, and the song's speed is applied", { skip: skip() }, async t => {
   const body = Array.from({ length: 60 }, (_, n) => `[V${n}]\nG  D  Em  C`).join("\n");
-  const song = { ...LIB.songs[0], body, duration: 200, recRate: 0.8, loop: { a: 10, b: 14, build: true }, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const song = { ...LIB.songs[0], body, duration: 200, practice: { on: true, rate: 0.8 }, loop: { a: 10, b: 14, build: true }, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, speedMode: "length" } };
   const page = await phone(t, lib);
   await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
@@ -225,7 +225,7 @@ test("Apple Music off: no recording speed or volume anywhere", { skip: skip() },
   assert.equal(await page.locator("#listen.rec").count(), 0, "no Recording chip while Apple Music is off");
 });
 
-test("Apple Music: the Recording sheet switches recording and band, sets the speed and resets what the page learned", { skip: skip() }, async t => {
+test("Apple Music: the Recording sheet switches recording and band, and resets what the page learned (speed moved to Practice)", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], syncs: [[0.3, 50], [0.6, 120]], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token" } };
   const page = await phone(t, lib);
@@ -239,20 +239,17 @@ test("Apple Music: the Recording sheet switches recording and band, sets the spe
   assert.match(await page.innerText("#listen"), /Recording/);
   await page.click("#listen"); await page.waitForSelector("#rs");
   assert.match(await page.innerText("#rs"), /2 spots learned/);
-  await page.click("[data-rate='0.7']");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").recRate === 0.7, null, { timeout: 5000 });
-  assert.equal(await page.getAttribute("[data-rate='0.7']", "aria-pressed"), "true");
+  assert.equal(await page.locator("[data-rate]").count(), 0, "3.21.0: speed lives in Practice mode now");
   await page.click("#rs-reset");
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").syncs, null, { timeout: 5000 });
   assert.match(await page.innerText("#rs"), /Nothing learned yet/);
   await page.click("[data-mode='band']");
-  assert.equal(await page.locator("[data-rate]").count(), 0, "the band has no recording speed");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").backing === "band", null, { timeout: 5000 });
   await page.click("#rs-done");
   assert.equal(await page.locator("#rs").count(), 0);
   assert.match(await page.innerText("#listen"), /Band/);
   assert.equal(await page.locator("#listen.on").count(), 0, "the chip is lit only for the recording");
-  assert.equal((await saved()).recRate, 0.7);
+  assert.equal((await saved()).backing, "band");
 });
 
 test("Apple Music: each line is timed from LRCLIB's synced lyrics, only the times are kept, and the page follows them", { skip: skip() }, async t => {
@@ -340,6 +337,52 @@ test("Apple Music: the preview is measured (tempo, swing, key), a song with no t
   await page.click("#rs-key");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").transpose === -5, null, { timeout: 5000 });
   assert.equal(await page.locator(".rs-look").count(), 0, "matched: nothing more to say");
+});
+
+test("3.21.0 Practice mode: a learning song opens in it; the row picks a section, sets the speed and turns it off", { skip: skip() }, async t => {
+  const body = LIB.songs[0].body + "\n" + Array.from({ length: 6 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nwords words words`).join("\n");
+  const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], body, status: "learning" }, LIB.songs[1]] });
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a"));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#pchip");
+  assert.match(await page.innerText("#pchip"), /Practicing/, "a learning song opens in Practice mode");
+  assert.ok(await page.locator("#looprow.on").isVisible(), "the Practice row is up");
+  assert.match(await page.innerText("#looprow"), /Pick a section/);
+  await page.click("#lp-speed"); await page.click("#lp-speed");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").practice?.rate === 0.8, null, { timeout: 5000 });
+  assert.match(await page.innerText("#lp-speed"), /80%/);
+  await page.click("#lp-sec"); await page.waitForSelector(".loopbanner");
+  await page.click("#sheet .sec >> nth=1"); await page.waitForTimeout(300);
+  assert.match(await page.innerText("#lp-sec"), /Chorus/, "the section by its name");
+  assert.equal((await saved()).loop.name, "Chorus");
+  assert.ok(await page.locator("#lp-build").isVisible(), "Build up once there's a section");
+  await page.click("#lp-x"); await page.waitForTimeout(200);
+  assert.match(await page.innerText("#pchip"), /^Practice$/, "off: the chip says Practice");
+  assert.equal(await page.locator("#looprow.on").count(), 0);
+  assert.equal((await saved()).practice.on, false, "remembered as off for this learning song");
+  await page.click("#pchip"); await page.waitForTimeout(200);
+  assert.match(await page.innerText("#lp-sec"), /Chorus/, "on again: the section was kept");
+});
+
+test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a scale lesson to hear and mark", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], status: "learning", loop: { a: 5, b: 8, name: "Chorus" }, practice: { rate: 0.8 } }, LIB.songs[1]], settings: { ...LIB.settings, micExplained: true } });
+  await page.evaluate(() => { location.hash = "#/practice"; }); await page.waitForSelector(".pk-learn");
+  assert.match(await page.innerText(".pk-learn"), /River Road/);
+  assert.match(await page.innerText(".pk-learn"), /Next: Chorus at 80%/);
+  assert.match(await page.innerText(".pk-learn"), /0 of 5 plays/);
+  const scales = page.locator(".pk-level", { hasText: "Scales" });
+  assert.match(await scales.innerText(), /Am pent/);
+  await scales.locator("[data-id='x:Ampent']").click(); await page.waitForSelector(".pk-scale");
+  assert.match(await page.innerText("h1"), /A minor pentatonic/);
+  assert.equal(await page.locator(".pk-scale .sn").count(), 12, "every note of the box on the neck");
+  assert.equal(await page.locator("#pk-notes i").count(), 23, "up and back down");
+  await page.click("#pk-play"); await page.waitForTimeout(200);
+  await page.click("#pk-self"); await page.waitForTimeout(300);
+  assert.match(await page.innerText("#app"), /Marked as got/);
+  const sk = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).skills.done);
+  assert.equal(sk["x:Ampent"].n, 1);
+  await page.evaluate(() => { location.hash = "#/practice"; }); await page.waitForSelector(".pk-learn");
+  await page.click(".pk-song"); await page.waitForSelector("#pchip");
+  assert.match(await page.innerText("#pchip"), /Practicing/, "a tap opens the song in Practice mode");
 });
 
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {

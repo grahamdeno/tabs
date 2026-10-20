@@ -2010,3 +2010,44 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 .lp-rec { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-left: 6px; vertical-align: -3px; border-radius: 8px; overflow: hidden; background: var(--card-2); box-shadow: 0 0 0 1px var(--accent-line); }
 .lp-rec img { width: 100%; height: 100%; object-fit: cover; }
 .lp-rec svg { width: 10px; height: 10px; color: var(--accent); }
+
+/* ---------- Practice mode and the neck's Learning list and Scales (3.21.0) ---------- */
+.stat.pchip { gap: 6px; }
+.stat.pchip svg { width: 13px; height: 13px; color: var(--accent); }
+.stat.pchip.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); font-weight: 600; }
+.pc-lit { width: 6px; height: 6px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.looprow .lp-lbl { flex: none; font: 700 10px var(--sans); letter-spacing: .14em; color: var(--accent); }
+.looprow .lp-sec { flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.looprow .lp-sec svg { width: 13px; height: 13px; flex: none; }
+.looprow .chip.on { color: var(--accent); }
+.looprow .sb { margin-left: auto; }
+.pk-learn h2 { display: flex; justify-content: space-between; }
+.pk-song { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 0; border: 0; border-top: 1px solid var(--hair); background: none; color: inherit; text-align: left; }
+.pk-song:first-of-type { border-top: 0; }
+.pk-song .chev { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.pk-cover { width: 44px; height: 44px; flex: none; border-radius: 9px; overflow: hidden; display: grid; place-items: center; background: var(--card-2); color: var(--accent); font: 700 18px var(--serif); box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+.pk-cover img { width: 100%; height: 100%; object-fit: cover; }
+.pk-tx { flex: 1; min-width: 0; display: block; }
+.pk-t { display: block; font: 600 16px var(--sans); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-s { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.pk-s b { color: var(--accent); font-weight: 600; }
+.pk-meter { display: block; height: 4px; border-radius: 2px; background: var(--card-2); margin-top: 7px; overflow: hidden; }
+.pk-meter i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.pk-skills { margin: 24px 2px 0; font: 700 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
+.pk-skills-note { margin-top: 4px; }
+.pk-scalebox { margin: 4px 0 10px; }
+.pk-scale { width: 100%; height: auto; }
+.pk-scale .fr { stroke: var(--hair); stroke-width: 1.5; }
+.pk-scale .nut { stroke: var(--fg-2); stroke-width: 4; }
+.pk-scale .st { stroke: var(--muted); stroke-width: 1.2; }
+.pk-scale .fn { fill: var(--muted); font: 600 9px var(--sans); text-anchor: middle; }
+.pk-scale .sn circle { fill: var(--card-2); stroke: var(--accent-line); stroke-width: 1.5; }
+.pk-scale .sn text { fill: var(--fg-2); font: 700 10px var(--sans); text-anchor: middle; }
+.pk-scale .sn.lit circle { fill: var(--accent); stroke: var(--accent); }
+.pk-scale .sn.lit text { fill: #fff; }
+.pk-scale .sn.cur circle { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; filter: drop-shadow(0 0 6px var(--accent)); }
+.pk-scale .sn.cur text { fill: var(--accent); }
+.pk-notes { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 10px; }
+.pk-notes i { width: 8px; height: 8px; border-radius: 4px; background: var(--card-2); }
+.pk-notes i.cur { background: var(--accent-soft); box-shadow: 0 0 0 1.5px var(--accent); }
+.pk-notes i.on { background: var(--accent); }

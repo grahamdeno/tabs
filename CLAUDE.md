@@ -33,7 +33,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 Apple Music features only work with Apple Music turned on. Stop after each
 release so Graham can try it.
 
-0. Agreed 2026-10-19, next after 3.19.0: the Neck shows Learning songs on top
+0. Done in 3.21.0. The Neck shows Learning songs on top
    (cover, progress, the one thing to do next; a tap opens the song in
    Practice mode on that section) with Skills below, plus a new Scales section
    (lessons and listening, like the chord lessons). Practice mode on the song:
@@ -113,7 +113,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade (expected; not a real failure). Graham (2026-10-19): don't remake
   them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 1 (3.20.0). To remake when he says yes:
+  3.19.0: 2 (3.20.0, 3.21.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.

@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.20.0";
+export const VERSION = "3.21.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -490,7 +490,7 @@ export function cleanFeel(f) {
 // image data survive. Unknown fields are kept for newer versions of the app.
 const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
-  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", created: "string", gotAt: "string",
+  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", practice: "object", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
   favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array", timed: "object"
 };
@@ -511,7 +511,14 @@ export function cleanSong(raw) {
   if (s.format !== "chords" && s.format !== "tab") delete s.format;
   if (s.tuning && !TUNINGS[s.tuning]) delete s.tuning;
   if (s.backing !== undefined && s.backing !== "band") delete s.backing;
-  if (s.recRate !== undefined) s.recRate = fit(s.recRate, 0.5, 1);
+  /* Practice mode (3.21.0): { on?, rate? }. The recording's own speed (3.14.0) became the practice speed. */
+  if (s.recRate !== undefined) { if (!(s.practice?.rate > 0)) s.practice = { ...(s.practice || {}), rate: s.recRate }; delete s.recRate; }
+  if (s.practice) {
+    const pr = {};
+    if (typeof s.practice.on === "boolean") pr.on = s.practice.on;
+    if (Number.isFinite(s.practice.rate) && s.practice.rate < 1) pr.rate = Math.round(fit(s.practice.rate, 0.5, 1) * 100) / 100;
+    if (Object.keys(pr).length) s.practice = pr; else delete s.practice;
+  }
   if (s.syncs) { s.syncs = cleanSyncs(s.syncs); if (!s.syncs.length) delete s.syncs; }
   if (s.timed) { s.timed = cleanTimed(s.timed); if (!s.timed) delete s.timed; }
   if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
@@ -3102,13 +3109,43 @@ export function cleanTour(raw) {
 // Strumming, picking and fingerstyle are on the ladder as "coming".
 const SW = (a, b, to = 80) => ({ id: `s:${a}-${b}`, kind: "switch", a, b, to });
 const CH = c => ({ id: `c:${c}`, kind: "chord", chord: c });
+const SC = id => ({ id: `x:${id}`, kind: "scale", scale: id });
 export const SKILL_LEVELS = [
   { id: "open", name: "Open chords", note: "Ring every string clean.", steps: ["G", "C", "D", "Em", "Am", "E", "A"].map(CH).concat([{ id: "k:open", kind: "check", chords: ["G", "C", "D", "Em", "Am", "E", "A"] }]) },
   { id: "switch", name: "Chord switches", note: "Land the change on the beat.", steps: [SW("G", "C"), SW("C", "D"), SW("G", "D"), SW("Em", "Am"), SW("Am", "C"), SW("D", "A"), SW("A", "E"), SW("Em", "C", 70), { id: "k:switch", kind: "check", chords: ["G", "C", "D", "Em", "Am", "E", "A"] }] },
+  { id: "scales", name: "Scales", note: "Up and back down, one note at a time.", own: true, steps: ["Ampent", "Gpent", "Cmajor", "Aminor", "Ablues"].map(SC) },
   { id: "strum", name: "Strumming", note: "Down, up, and keeping time.", soon: true, steps: [] },
   { id: "pick", name: "Picking", note: "One string at a time.", soon: true, steps: [] },
   { id: "finger", name: "Fingerstyle and barre", note: "The big shapes.", soon: true, steps: [] }
 ];
+/* Practice mode (3.21.0): on for a song you're learning unless you turned it off, or when you turned it on. */
+export const practicing = song => song?.practice?.on ?? song?.status === "learning";
+export const practiceRate = song => practicing(song) ? Math.min(1, Math.max(0.5, song.practice?.rate || 1)) : 1;
+
+// ---------- Scales (3.21.0) ----------
+// Five scales a guitarist uses most, in the order they pay off: the minor pentatonic box for lead
+// and blues, the open major pentatonic, the open C major scale, the A natural minor, and the blues
+// scale (the pentatonic plus the flat five). Each is [string, fret] pairs going up (string 0 is the
+// low E). A lesson plays them up and back down; each note is heard before the next is asked for.
+export const SCALES = {
+  Ampent: { short: "Am pent", name: "A minor pentatonic", where: "Box one at the 5th fret", tip: "Index finger on fret 5, ring or pinky on 7 and 8.", notes: [[0, 5], [0, 8], [1, 5], [1, 7], [2, 5], [2, 7], [3, 5], [3, 7], [4, 5], [4, 8], [5, 5], [5, 8]] },
+  Gpent: { short: "G pent", name: "G major pentatonic", where: "Open position", tip: "Open strings and frets 2 and 3: the sound of country and folk.", notes: [[0, 0], [0, 3], [1, 0], [1, 2], [2, 0], [2, 2], [3, 0], [3, 2], [4, 0], [4, 3], [5, 0], [5, 3]] },
+  Cmajor: { short: "C major", name: "C major scale", where: "Open position, one octave", tip: "Do re mi: the scale every melody is measured against.", notes: [[1, 3], [2, 0], [2, 2], [2, 3], [3, 0], [3, 2], [4, 0], [4, 1]] },
+  Aminor: { short: "A minor", name: "A natural minor", where: "5th position, one octave", tip: "The sad sister of C major: same notes, starting on A.", notes: [[0, 5], [0, 7], [0, 8], [1, 5], [1, 7], [1, 8], [2, 5], [2, 7]] },
+  Ablues: { short: "A blues", name: "A blues scale", where: "Box one at the 5th fret", tip: "The minor pentatonic plus the flat five, the blue note.", notes: [[0, 5], [0, 8], [1, 5], [1, 6], [1, 7], [2, 5], [2, 7], [3, 5], [3, 7], [3, 8], [4, 5], [4, 8], [5, 5], [5, 8]] }
+};
+/* A scale lesson's notes in playing order (up, then back down): { i, fret, hz, note, openHz }. */
+export function scaleTargets(id, a4 = 440) {
+  const sc = SCALES[id];
+  if (!sc) return [];
+  const open = TUNINGS.standard.notes;
+  const up = sc.notes.map(([i, fret]) => {
+    const openHz = noteFreq(open[i], a4), hz = openHz * 2 ** (fret / 12), nn = nearestNote(hz, a4);
+    return { i, fret, hz, openHz, note: nn.name, octave: nn.octave };
+  });
+  return up.concat(up.slice(0, -1).reverse());
+}
+
 export const cleanSkills = raw => {
   if (!isObj(raw)) return null;
   const done = {};
@@ -3125,7 +3162,17 @@ export function skillState(data, now = Date.now()) {
   const known = st => st.kind === "chord" && (chords[st.chord]?.n || 0) >= 5;
   const songFor = st => (data.songs || []).filter(sg => { const c = songChordNames(sg.body); return c.length >= 2 && c.every(n => st.chords.includes(n)); }).sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0] || null;
   let cur = null, prevAt = 0;
-  const levels = SKILL_LEVELS.map(lv => ({ ...lv, steps: lv.steps.map(st => {
+  const levels = SKILL_LEVELS.map(lv => {
+    /* Scales are their own track (3.21.0): open from the start, one after another. */
+    if (lv.own) {
+      let mine = null;
+      return { ...lv, steps: lv.steps.map(st => {
+        const state = done[st.id] ? "done" : mine ? "locked" : "now";
+        if (state === "now") mine = st;
+        return { ...st, state, name: SCALES[st.scale]?.short || st.scale, n: done[st.id]?.n || 0, best: 0 };
+      }) };
+    }
+    return { ...lv, steps: lv.steps.map(st => {
     let state;
     if (st.kind === "check") {
       const sg = songFor(st), ok = done[st.id] || (sg && (sg.playLog?.last || 0) > prevAt && !cur);
@@ -3137,7 +3184,8 @@ export function skillState(data, now = Date.now()) {
     if (state === "now") cur = { ...st, state, level: lv.id };
     if (state === "done") prevAt = Math.max(prevAt, done[st.id]?.at || 1);
     return { ...st, state, name: st.kind === "chord" ? st.chord : `${st.a} to ${st.b}`, n: done[st.id]?.n || 0, best: done[st.id]?.best || 0 };
-  }) }));
+  }) };
+  });
   const last = data.skills?.last || 0, n = new Date(now), l = new Date(last);
   const today = !!last && n.getFullYear() === l.getFullYear() && n.getMonth() === l.getMonth() && n.getDate() === l.getDate();
   return { levels, next: cur, today };
