@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.16.0";
+export const VERSION = "3.17.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -261,16 +261,16 @@ export const Tabs = {
 // recording's length; each mark bends that line, and the ends stay fixed. Both directions
 // interpolate between neighbours, so marks must rise together.
 const num01 = v => Number.isFinite(v);
-export function cleanSyncs(list) {
+export function cleanSyncs(list, cap = 12) {
   const out = [];
-  for (const m of (Array.isArray(list) ? list : []).slice(0, 40)) {
+  for (const m of (Array.isArray(list) ? list : []).slice(0, Math.max(40, cap))) {
     if (!Array.isArray(m) || !num01(m[0]) || !num01(m[1]) || m[0] <= 0 || m[0] >= 1 || m[1] <= 0) continue;
     out.push([Math.round(m[0] * 1e4) / 1e4, Math.round(m[1] * 10) / 10]);
   }
   out.sort((a, b) => a[0] - b[0]);
-  return out.filter((m, i) => i === 0 || m[1] > out[i - 1][1]).slice(0, 12);
+  return out.filter((m, i) => i === 0 || m[1] > out[i - 1][1]).slice(0, cap);
 }
-const syncLine = (marks, len) => [[0, 0], ...cleanSyncs(marks).filter(m => m[1] < len), [1, len]];
+const syncLine = (marks, len) => [[0, 0], ...cleanSyncs(marks, 400).filter(m => m[1] < len), [1, len]];
 function along(pts, v, from, to) {
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1], b = pts[i];
@@ -290,6 +290,78 @@ export function addSync(marks, where, sec, len) {
   const keep = cleanSyncs(marks).filter(m => Math.abs(m[0] - where) > 0.02 && Math.abs(m[1] - sec) > 3 && (m[0] < where) === (m[1] < sec));
   return cleanSyncs([...keep, [where, sec]]);
 }
+/* The lines' own times (from the lyrics, 3.17.0) with your nudges on top: a nudge wins over the line
+   times near it and any it would cross. */
+export function mergeSyncs(auto, mine) {
+  const you = cleanSyncs(mine);
+  const keep = cleanSyncs(auto, 400).filter(a => you.every(m => Math.abs(m[0] - a[0]) > 0.015 && Math.abs(m[1] - a[1]) > 2 && (a[0] < m[0]) === (a[1] < m[1])));
+  return cleanSyncs([...keep, ...you], 400);
+}
+
+// ---------- Line timing from synced lyrics (3.17.0) ----------
+// LRCLIB's synced lyrics give each line's time in a recording. Only the times are kept: each sheet
+// line that matches a timed line in order gets [line index, seconds]; the words themselves are
+// compared here and dropped.
+export function parseLrc(text) {
+  const out = [];
+  for (const row of String(text || "").split(/\r?\n/)) {
+    const tags = [...row.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
+    const words = row.replace(/\[[^\]]*\]/g, "").trim();
+    if (!words) continue;
+    for (const t of tags) out.push([+t[1] * 60 + +t[2], words]);
+  }
+  return out.sort((a, b) => a[0] - b[0]);
+}
+const lrcWords = t => String(t || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+function lineLike(a, b) {
+  if (!a.length || !b.length) return 0;
+  const B = new Set(b);
+  let hit = 0;
+  for (const w of new Set(a)) if (B.has(w)) hit++;
+  return 2 * hit / (new Set(a).size + B.size);
+}
+/* sheet: [{ i, text }] in order; timed: [[seconds, text]]. The best in-order pairing (repeated
+   choruses land on their own repeats), keeping pairs that share most of their words. */
+export function matchLines(sheet, timed, min = 0.5) {
+  const A = sheet.map(x => lrcWords(x.text)), B = timed.map(x => lrcWords(x[1]));
+  const n = A.length, m = B.length;
+  if (!n || !m) return [];
+  const S = A.map(a => B.map(b => lineLike(a, b)));
+  const D = Array.from({ length: n + 1 }, () => new Float64Array(m + 1));
+  for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) {
+    const s = S[i - 1][j - 1];
+    D[i][j] = Math.max(D[i - 1][j], D[i][j - 1], s >= min ? D[i - 1][j - 1] + s : -1);
+  }
+  const out = [];
+  for (let i = n, j = m; i > 0 && j > 0;) {
+    const s = S[i - 1][j - 1];
+    if (s >= min && D[i][j] === D[i - 1][j - 1] + s) { out.push([sheet[i - 1].i, Math.round(timed[j - 1][0] * 10) / 10]); i--; j--; }
+    else if (D[i][j] === D[i - 1][j]) i--;
+    else j--;
+  }
+  return out.reverse();
+}
+/* A short fingerprint of a sheet's words, so line times are looked up again after an edit. */
+export function bodyKey(body) {
+  let h = 5381;
+  for (const ch of String(body || "")) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
+  return h.toString(36);
+}
+export function cleanTimed(t) {
+  if (!isObj(t) || typeof t.h !== "string") return null;
+  const out = { h: t.h.slice(0, 16) };
+  if (t.none) { out.none = 1; return out; }
+  if (Number.isInteger(t.id)) out.id = t.id;
+  const at = [];
+  for (const x of (Array.isArray(t.at) ? t.at : []).slice(0, 400)) {
+    if (!Array.isArray(x) || !Number.isInteger(x[0]) || x[0] < 0 || !Number.isFinite(x[1]) || x[1] <= 0) continue;
+    if (at.length && (x[0] <= at[at.length - 1][0] || x[1] <= at[at.length - 1][1])) continue;
+    at.push([x[0], Math.round(x[1] * 10) / 10]);
+  }
+  if (!at.length) return null;
+  out.at = at;
+  return out;
+}
 
 // ---------- Checking a backup before it replaces the library ----------
 // Files can be hand-edited or come from somewhere else, so every field the app
@@ -300,7 +372,7 @@ const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
   title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
-  favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array"
+  favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array", timed: "object"
 };
 const fit = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export function cleanSong(raw) {
@@ -321,6 +393,7 @@ export function cleanSong(raw) {
   if (s.backing !== undefined && s.backing !== "band") delete s.backing;
   if (s.recRate !== undefined) s.recRate = fit(s.recRate, 0.5, 1);
   if (s.syncs) { s.syncs = cleanSyncs(s.syncs); if (!s.syncs.length) delete s.syncs; }
+  if (s.timed) { s.timed = cleanTimed(s.timed); if (!s.timed) delete s.timed; }
   if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
   if (s.size !== undefined) s.size = fit(s.size, 0.6, 1.6);
   if (s.duration !== undefined) s.duration = fit(s.duration, 10, 3600);

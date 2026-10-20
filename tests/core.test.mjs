@@ -1618,3 +1618,13 @@ test("recording sync: marks bend the line between sheet and recording, both ways
   assert.deepEqual(C.addSync([[0.5, 100], [0.7, 150]], 0.6, 160, 200), [[0.5, 100], [0.6, 160]]);
   assert.deepEqual(C.addSync([], 0.001, 100, 200), []);
 });
+
+test("line timing: LRC is read, sheet lines pair with timed lines in order, nudges win, and only times are kept", () => {
+  const lrc = C.parseLrc("[00:12.50] Hello there my friend\n[00:16.00] How are you\n[00:20.00]\n[00:24.10] Hello there my friend\n[00:28.00] Goodbye now");
+  assert.deepEqual(lrc.map(x => x[0]), [12.5, 16, 24.1, 28]);
+  assert.deepEqual(C.matchLines([{ i: 1, text: "Hello there, my friend" }, { i: 3, text: "how are you?" }, { i: 5, text: "la la" }, { i: 7, text: "Hello there my friend" }, { i: 9, text: "Goodbye now" }], lrc), [[1, 12.5], [3, 16], [7, 24.1], [9, 28]]);
+  assert.deepEqual(C.mergeSyncs([[0.1, 10], [0.3, 30], [0.5, 50], [0.7, 70]], [[0.31, 40]]), [[0.1, 10], [0.31, 40], [0.5, 50], [0.7, 70]]);
+  assert.deepEqual(C.cleanTimed({ h: "k", id: 3, at: [[1, 10], [0, 12], [4, 9], [6, 20]] }), { h: "k", id: 3, at: [[1, 10], [6, 20]] });
+  assert.equal(C.cleanSong({ id: "a", body: "G", timed: { h: "k", at: "x" } }).timed, undefined);
+  assert.notEqual(C.bodyKey("a b"), C.bodyKey("a c"));
+});

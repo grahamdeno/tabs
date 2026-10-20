@@ -428,7 +428,7 @@ test("2.2 ring: paused the bar is out; playing, Play rests in the corner, rises 
   /* Playing: hold Play for the ring. */
   await page.click("#play"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("play")).webkitUserSelect || getComputedStyle(document.getElementById("play")).userSelect), "none");
-  await holdPlay(800);
+  await holdPlay(800); await page.waitForSelector(".ringx .ri", { timeout: 3000 });
   assert.deepEqual(await page.$$eval(".ringx .ri", els => els.map(e => e.dataset.r)), ["metro", "key", "nn", "tuner", "fav", "more"], "2.26.0: Tempo, Key, Chords lowest, then Tuner, Favorite, More (no Back: it's in the island)");
   assert.deepEqual(await page.$$eval(".ringx .ri-l", els => els.map(e => e.textContent)), ["TEMPO", "KEY", "CHORDS", "TUNER", "FAVORITE", "MORE"], "each named on the panel");
   assert.equal(await page.locator(".ringx .ri[data-r='back']").count(), 0);
@@ -440,7 +440,7 @@ test("2.2 ring: paused the bar is out; playing, Play rests in the corner, rises 
   await page.evaluate(() => document.querySelector(".rc .sr-only [data-ri='metro']").click()); await page.waitForTimeout(200);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.metronome, true, "metronome on from the ring");
   await page.waitForTimeout(1200);
-  await holdPlay(800);
+  await holdPlay(800); await page.waitForSelector(".ringx .ri", { timeout: 3000 });
   assert.equal(await page.getAttribute(".ri[data-r='metro']", "aria-pressed"), "true");
   await lift(); await page.waitForTimeout(300); await page.evaluate(() => document.querySelector(".ringx")?.remove());
   /* Key opens the key dial. */
@@ -450,7 +450,7 @@ test("2.2 ring: paused the bar is out; playing, Play rests in the corner, rises 
   await page.mouse.click(60, 120); await page.waitForTimeout(300);
   assert.equal(await page.locator(".dial").count(), 0);
   /* Hold Play, slide to More, let go: the song pauses and the menu stays. */
-  await holdPlay(800);
+  await holdPlay(800); await page.waitForSelector(".ringx .ri", { timeout: 3000 });
   const m2 = await page.evaluate(() => { const r = document.querySelector(".ri[data-r='more']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: m2.x, y: m2.y }] }); await page.waitForTimeout(100);
   assert.match(await page.textContent(".ring-name"), /More/);

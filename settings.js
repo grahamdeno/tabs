@@ -196,7 +196,9 @@ function renderSettings() {
     </div>
     <details class="foot s-why"><summary>What it's used for</summary>Get the song checks the chart's tempo and time signature against GetSongBPM's measured data. The free key is at <a href="https://getsongbpm.com/api" target="_blank" rel="noopener">getsongbpm.com/api</a>; it stays on this phone and is sent only to GetSongBPM, with the song's title and artist. Words come from <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, which needs no key.</details>
     <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>
-    <div class="label">Apple Music · Whole songs</div>
+`],
+    apple: ["Apple Music", `
+    <p class="foot" style="margin:0 4px 14px">With an Apple Music subscription, songs play their real recording here: Play starts it with the scroll, and the Recording chip under a song's title sets what Play starts.</p>
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("note")}</span><span class="name">Apple Music</span>
@@ -209,7 +211,7 @@ function renderSettings() {
         <button class="btn sm primary" id="s-applesave">Save</button>
       </div>` : ""}
     </div>
-    <details class="foot s-why"><summary>What it's used for</summary>With an Apple Music subscription, tapping a song's Apple Music link plays the whole recording here instead of opening Apple Music. Off, nothing is loaded and nothing is sent. On, The Road loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
+    <details class="foot s-why"><summary>What it's used for</summary>The recording plays here instead of opening Apple Music, and the page follows it. Songs also get their genre, year and composer, the search screen shows what you played lately, and each line is timed from LRCLIB's synced lyrics (only the times are kept). Off, nothing is loaded and nothing is sent. On, The Road loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
     library: ["Library and backups", `
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
@@ -242,6 +244,7 @@ function renderSettings() {
     </div>
     <div class="set-group glass s-gap">
       ${row("today", "flame", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
+      ${row("apple", "note", "Apple Music", s.appleMusic ? (s.appleMusicToken ? "On" : "On · no token") : "Off")}
       ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
     </div>
     <div class="set-group glass s-gap">

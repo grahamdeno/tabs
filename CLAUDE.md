@@ -30,7 +30,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 Apple Music features only work with Apple Music turned on. Stop after each
 release so Graham can try it.
 
-1. 3.17.0 Automatic line timing: LRCLIB's synced lyrics give each line's time
+1. Done in 3.17.0. Automatic line timing: LRCLIB's synced lyrics give each line's time
    in the recording; match them to the sheet's lines and save them as sync
    marks (only the times are kept). Also move Apple Music out of Settings >
    Keys into its own Settings row.
@@ -98,7 +98,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 - Visual references: CI compares against `tests/visual/ci`, so a release that
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
-  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 6 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0, 3.16.0). To remake when he says yes:
+  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 7 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0, 3.16.0, 3.17.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
 

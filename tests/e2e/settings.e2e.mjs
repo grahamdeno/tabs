@@ -1,14 +1,14 @@
 // Settings menu: a short menu that opens one page per area.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { skip, LIB, SONG, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
 test("Settings: menu rows show their state, open their page, and Back returns to the menu", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, nudge: true, place: { name: "Wilmington, North Carolina, US", lat: 34.23, lon: -77.94 } } });
   const errs = []; page.on("pageerror", e => errs.push(e.message));
   await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForTimeout(300);
-  assert.equal(await page.locator("[data-page]").count(), 8);
+  assert.equal(await page.locator("[data-page]").count(), 9);
   assert.match(await page.innerText("[data-page='today']"), /Wilmington/);
   assert.match(await page.innerText("[data-page='diagrams']"), /of 4 on/);
   assert.equal(await page.locator(".s-dock #s-backup").count(), 1, "Back up now is docked at the bottom");
@@ -42,7 +42,7 @@ test("Settings > Look: Amp covering turns the tolex grain on and off (2.20.0)", 
   assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "on", "kept");
 });
 
-test("Settings > Keys: Apple Music is off by default; on, Listen plays the linked song with MusicKit", { skip: skip() }, async t => {
+test("Settings > Apple Music: off by default; on, Listen plays the linked song with MusicKit", { skip: skip() }, async t => {
   const lib = { ...LIB, songs: [{ ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } }, LIB.songs[1]] };
   const page = await phone(t, lib);
   const errs = []; page.on("pageerror", e => errs.push(e.message));
@@ -65,7 +65,7 @@ test("Settings > Keys: Apple Music is off by default; on, Listen plays the linke
   assert.match(opened, /i=111/, "off: the link opens in Apple Music");
   assert.deepEqual(calls, [], "off: no MusicKit and no token request");
 
-  await page.evaluate(() => { location.hash = "#/settings/keys"; }); await page.waitForSelector("#s-apple");
+  await page.evaluate(() => { location.hash = "#/settings/apple"; }); await page.waitForSelector("#s-apple");
   assert.equal(await page.getAttribute("#s-apple", "aria-checked"), "false");
   assert.equal(await page.locator("#s-appletoken").count(), 0, "the token address shows only when it's on");
   await page.click("#s-apple"); await page.waitForSelector("#s-appletoken");
@@ -218,7 +218,7 @@ test("Apple Music: the Recording sheet shows genre, year and composer in the alb
 test("Apple Music off: no recording speed or volume anywhere", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const page = await phone(t, { ...LIB, songs: [song, LIB.songs[1]] });
-  await page.evaluate(() => { location.hash = "#/settings/keys"; }); await page.waitForSelector("#s-apple");
+  await page.evaluate(() => { location.hash = "#/settings/apple"; }); await page.waitForSelector("#s-apple");
   assert.equal(await page.locator("#s-recvol").count(), 0);
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
   assert.equal(await page.locator('[data-m="recspeed"]').count(), 0);
@@ -276,6 +276,49 @@ test("one hand: paused, the whole bar shows; Play folds it into the corner and t
   await page.evaluate(() => document.getElementById("play").click());
   await page.waitForFunction(() => !document.body.classList.contains("ring"), null, { timeout: 3000 });
   assert.equal((await st()).bar, true, "paused again: the bar unfolds");
+});
+
+test("Apple Music: each line is timed from LRCLIB's synced lyrics, only the times are kept, and the page follows them", { skip: skip() }, async t => {
+  const body = SONG + "\n" + Array.from({ length: 10 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nline number ${n + 2} goes right here`).join("\n");
+  const song = { ...LIB.songs[0], body, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200, title: "River Road", artist: "The Wanderers" } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
+  const page = await phone(t, lib);
+  const synced = ["[00:10.00] Walking down the river road tonight", "[00:14.00] Lantern in my hand and nothing in mind", "[00:20.00] Carry me home, carry me home", "[00:24.00] Lay me down where the willows grow",
+    ...Array.from({ length: 10 }, (_, n) => `[${String(Math.floor((40 + n * 15) / 60)).padStart(2, "0")}:${String((40 + n * 15) % 60).padStart(2, "0")}.00] Line number ${n + 2} goes right here`)].join("\n");
+  const asked = [];
+  await page.route("https://lrclib.net/**", r => { asked.push(r.request().url()); r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ id: 77, duration: 201, syncedLyrics: synced, plainLyrics: "x" }) }); });
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkMusic = { isAuthorized: true, isPlaying: false, currentPlaybackTime: 0, playbackRate: 1, setQueue: async () => {}, seekToTime: async n => { window.mkMusic.currentPlaybackTime = n; }, play: async () => { window.mkMusic.isPlaying = true; }, pause: () => { window.mkMusic.isPlaying = false; }, stop: () => {}, api: { music: async () => ({ data: { data: [] } }) } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen.rec");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").timed?.at?.length >= 10, null, { timeout: 8000 });
+  const timed = (await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").timed));
+  assert.equal(timed.id, 77);
+  assert.ok(!JSON.stringify(timed).includes("willows"), "no lyric text is kept, only times");
+  assert.match(asked[0], /duration=200/, "asks for this recording's length");
+  await page.click("#listen"); await page.waitForSelector("#rs");
+  assert.match(await page.innerText("#rs"), /14 lines timed/);
+  assert.match(await page.innerText("#rs"), /Timing from LRCLIB/);
+  await page.click("#rs-done");
+  /* Playing: at a line's time, that line sits on the reading line. */
+  await page.click("#play");
+  await page.waitForFunction(() => window.mkMusic.isPlaying, null, { timeout: 5000 });
+  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 85; window.mkMusic.isPlaying = true; });
+  await page.waitForTimeout(1200);
+  const gap = await page.evaluate(() => {
+    const words = e => { const c = e.cloneNode(true); c.querySelectorAll(".c").forEach(x => x.remove()); return c.textContent.replace(/\s+/g, " "); };
+    const el = [...document.querySelectorAll("#sheet .pr, #sheet .ly")].find(e => /line number 5 goes/i.test(words(e)));
+    return Math.abs(el.getBoundingClientRect().top - innerHeight * 0.4);
+  });
+  assert.ok(gap < 100, `line 5 (85 s) is at the reading line (${Math.round(gap)} px off)`);
+  /* Opening it again doesn't ask again; an edit to the words does. */
+  await page.click("#play");
+  const n = asked.length;
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForTimeout(200);
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForTimeout(1200);
+  assert.equal(asked.length, n, "kept, not looked up again");
 });
 
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {

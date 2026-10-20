@@ -1,6 +1,6 @@
 // Tabs Listen : find a recording, keep its link,
 // play a preview, and take the song's length from the recording.
-import { Tabs, VERSION, appleTrackId, fitLength, lengthChoice, linkService, rankTracks } from "./core.js";
+import { Tabs, VERSION, appleTrackId, bodyKey, cleanTimed, fitLength, lengthChoice, linkService, matchLines, parseLrc, rankTracks } from "./core.js";
 import { $, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { appleBlocksSearch, catalogBlocked, itunes } from "./sets.js";
 import { noteError } from "./store.js";
@@ -188,6 +188,31 @@ export async function fetchDetails(song) {
   } catch (e) { noteError(e, { quiet: true, where: "apple music details" }); }
   finally { detailJobs.delete(song.id); }
 }
+/* Line timing (3.17.0). A song with a linked recording asks LRCLIB once for that recording's synced
+   lyrics (same title and artist, length within 3 seconds), matches its lines to the sheet's, and keeps
+   only the times: song.timed = { h, id, at: [[line, seconds]] }, or { h, none } when there are none.
+   It asks again after the sheet's words change. readLines() gives the sheet's lines as [{ i, text }]. */
+const timeJobs = new Set();
+export async function timeLines(song, readLines) {
+  if (!wanted(song) || !song.body) return;
+  const h = bodyKey(song.body), len = song.listen.length || 0;
+  if (song.timed?.h === h || timeJobs.has(song.id) || !(len > 0)) return;
+  timeJobs.add(song.id);
+  try {
+    const title = song.listen.title || song.title, artist = song.listen.artist || song.artist || "";
+    const q = `track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+    const fits = x => x?.syncedLyrics && Math.abs((x.duration || 0) - len) <= 3;
+    const get = async url => { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.json() : null; };
+    let hit = await get(`https://lrclib.net/api/get?${q}&duration=${Math.round(len)}`).catch(() => null);
+    if (!fits(hit)) hit = ((await get(`https://lrclib.net/api/search?${q}`).catch(() => null)) || []).find(fits) || null;
+    const at = hit ? matchLines(readLines(), parseLrc(hit.syncedLyrics)) : [];
+    /* fewer than four lines matched: probably a different sheet or version, so don't trust it */
+    song.timed = cleanTimed(at.length >= 4 ? { h, id: hit.id, at } : { h, none: 1 });
+    Tabs.save(data);
+    if (viewing === song) detailsArrived?.(song);
+  } catch (e) { noteError(e, { quiet: true, where: "line timing" }); }
+  finally { timeJobs.delete(song.id); }
+}
 /* What you played lately in Apple Music: [{ title, artist }], newest first. */
 export async function recentApple() {
   if (!data.settings.appleMusic || !data.settings.appleMusicToken) return [];
@@ -208,12 +233,14 @@ export const musicPlaying = song => !!(inst && playingId && song?.listen && play
 // Tap the Recording chip under the title: the cover and the song's details, Listen (the recording
 // without the page moving), what Play starts (the recording or the band), the recording's speed and
 // what the page has learned of the song. The app passes in how to read and change those.
-//  o.mode() "music" | "band", o.setMode(m), o.setRate(r), o.reset(), o.changed()
+//  o.mode() "music" | "band", o.setMode(m), o.setRate(r), o.reset(), o.changed(),
+//  o.spots() { auto, mine }: where the timed lines and your nudges sit down the sheet (0 to 1)
 const SPEEDS_REC = [0.5, 0.6, 0.7, 0.8, 0.9, 1];
 export function recordingSheet(song, o) {
   const close = () => { detailsArrived = null; layer.innerHTML = ""; o.changed?.(); };
   const paint = () => {
     const l = song.listen || {}, band = o.mode() === "band", rate = song.recRate || 1, marks = song.syncs || [], on = musicPlaying(song);
+    const timed = song.timed?.at?.length || 0, spots = o.spots?.() || { auto: [], mine: marks.map(m => m[0]) };
     const details = [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
     const tint = /^[0-9a-f]{6}$/i.test(l.tint || "") ? ` style="--album:#${l.tint}"` : "";
     layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
@@ -226,9 +253,9 @@ export function recordingSheet(song, o) {
       ${band ? "" : `<div class="rs-row${rateWorks() ? "" : " off"}"><div class="rs-l">Speed<b>${Math.round(rate * 100)}%</b></div>
         <div class="seg" role="group" aria-label="Recording speed">${SPEEDS_REC.map(v => `<button data-rate="${v}" class="${Math.abs(v - rate) < 0.01 ? "on" : ""}" aria-pressed="${Math.abs(v - rate) < 0.01}" ${rateWorks() ? "" : "disabled"}>${Math.round(v * 100)}</button>`).join("")}</div>
         ${rateWorks() ? "" : `<p class="rs-note">Apple Music plays at full speed here.</p>`}</div>
-      <div class="rs-row"><div class="rs-l">Sync<b>${marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned<button class="rs-reset" id="rs-reset">Reset</button>` : "Nothing learned yet"}</b></div>
-        <div class="rs-track" aria-hidden="true">${marks.map(m => `<i style="left:${(m[0] * 100).toFixed(1)}%"></i>`).join("")}</div>
-        <p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p></div>`}
+      <div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Reset</button>` : ""}</b></div>
+        <div class="rs-track" aria-hidden="true">${spots.auto.map(w => `<b style="left:${(w * 100).toFixed(1)}%"></b>`).join("")}${spots.mine.map(w => `<i style="left:${(w * 100).toFixed(1)}%"></i>`).join("")}</div>
+        ${timed ? `<p class="rs-note">Each line is timed to the recording. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p>`}</div>`}
       <button class="btn primary rs-done" id="rs-done">Done</button></div>`;
     $("rs-scrim").onclick = close;
     $("rs-done").onclick = close;

@@ -51,6 +51,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `art` | string | Album art for set covers, found on Apple Music when the title and artist clearly match (https only). A Listen link's own art comes first |
 | `backing` | `"band"` | Only set when Play should start the drums and bass instead of the linked Apple Music recording; absent means the recording (when one is linked and Apple Music is on) |
 | `recRate` | number | The linked recording's speed for this song, 0.5 to 1; absent means full speed |
+| `timed` | `{ h, id?, at?: [[line, seconds], ...], none? }` | Line times from LRCLIB's synced lyrics for the linked recording: `line` is the sheet line's index, `h` a fingerprint of the words (looked up again after an edit), `none` when no timing was found. No lyric text is kept |
 | `syncs` | `[[where, seconds], ...]` | Marks tying a place on the sheet (0 to 1 down it) to a time in the linked recording, saved when you nudge the page while it plays; up to 12, rising together |
 | `listen` | `{ url, service, title?, artist?, art?, length?, genre?, year?, composer?, tint?, det? }` | `url` and `art` are https only; `length` is the recording's, in seconds; `genre`, `year`, `composer` and `tint` (the album's color, six hex digits) come from Apple Music when it is on, and `det` marks that they were asked for |
 | `loop` | `{ a, b, build }` | Practice a section, line numbers |

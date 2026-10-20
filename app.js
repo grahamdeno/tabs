@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { addSync, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, recentApple, recordingSheet, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, recentApple, recordingSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -726,6 +726,8 @@ function renderViewer(id) {
   if (!song) return go("#/");
   const isChords = song.format !== "tab";
   prepareMusic(song);
+  /* once the sheet is drawn: time its lines from the lyrics (3.17.0) */
+  setTimeout(() => { if (viewing === song) timeLines(song, lyricLines); }, 700);
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
   if (song.speed === undefined) song.speed = data.settings.startSpeed || SPEEDS.medium; // then each song keeps its own
   if (song.size === undefined) song.size = 1;
@@ -1672,8 +1674,9 @@ function openRecording(song) {
     mode: () => usesMusic(song) ? "music" : "band",
     setMode: m => setBacking(song, m, null, true),
     setRate: r => { if (r >= 1) delete song.recRate; else song.recRate = r; Tabs.save(data); if (scroll.on && usesMusic(song)) setMusicRate(recRate(song)); },
-    reset: () => { delete song.syncs; Tabs.save(data); toast("The page will start learning this song again"); },
-    changed: () => { paintListenChip(song); paintLoop(song); }
+    reset: () => { delete song.syncs; Tabs.save(data); toast(song.timed?.at ? "Your fixes are cleared. The line timing stays" : "The page will start learning this song again"); },
+    changed: () => { paintListenChip(song); paintLoop(song); },
+    spots: () => { songMarks(song); return { auto: marksCache.auto.map(m => m[0]), mine: (song.syncs || []).map(m => m[0]) }; }
   });
 }
 function toggleMetronome(song, near) {
@@ -2317,8 +2320,31 @@ const sheetRange = () => { const lines = diag.blocks.filter(b => b.el.isConnecte
 /* With the recording playing, the page is tied to its clock: the whole sheet crosses the reading line in the
    recording's length, so scroll position and time convert both ways. */
 const recSecs = song => recLength(song) || songLength(song);
-const musicY = (song, sec) => syncWhere(song.syncs, sec, recSecs(song)) * sheetRange();
-const musicSec = (song, y) => syncSeconds(song.syncs, y / Math.max(1, sheetRange()), recSecs(song));
+/* The sheet's lines as text, for matching to timed lyrics (chord names and translations left out). */
+function lyricLines() {
+  return sheetLines().map((el, i) => {
+    if (!el.classList.contains("ly") && !el.classList.contains("pr")) return null;
+    const c = el.cloneNode(true);
+    c.querySelectorAll(".c, .de-en").forEach(x => x.remove());
+    const text = c.textContent.replace(/\s+/g, " ").trim();
+    return text ? { i, text } : null;
+  }).filter(Boolean);
+}
+/* Where each timed line sits down the sheet (0 to 1): the place that puts it on the reading line. */
+const lineWhere = (el, range) => Math.max(0, scrollY + el.getBoundingClientRect().top - innerHeight * READ_AT) / range;
+const marksCache = { key: "", marks: [], auto: [] };
+function songMarks(song) {
+  const range = Math.max(1, sheetRange()), at = song.timed?.at || [];
+  const key = `${song.id}|${Math.round(range)}|${at.length}|${JSON.stringify(song.syncs || [])}`;
+  if (key !== marksCache.key) {
+    const lines = sheetLines();
+    const auto = at.map(([i, sec]) => lines[i] ? [lineWhere(lines[i], range), sec] : null).filter(Boolean);
+    marksCache.key = key; marksCache.auto = auto; marksCache.marks = mergeSyncs(auto, song.syncs);
+  }
+  return marksCache.marks;
+}
+const musicY = (song, sec) => syncWhere(songMarks(song), sec, recSecs(song)) * sheetRange();
+const musicSec = (song, y) => syncSeconds(songMarks(song), y / Math.max(1, sheetRange()), recSecs(song));
 const musicSync = { at: 0, clock: -1, target: -1, until: 0 };
 function pxPerSecond(song) {
   if (!byLength() && !scroll.duet) return song.speed * 0.6; /* together: both fit the song's length */
