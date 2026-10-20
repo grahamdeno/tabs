@@ -113,7 +113,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade (expected; not a real failure). Graham (2026-10-19): don't remake
   them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 0. To remake when he says yes:
+  3.19.0: 1 (3.20.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.

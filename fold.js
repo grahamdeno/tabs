@@ -13,7 +13,8 @@ export const foldActive = () => oneHandMQ.matches;
 
 /**
  * setupFold(o) on the song page.
- *  o.playing(): bool, o.back: { label, run }
+ *  o.playing(): bool, o.back: { label, run },
+ *  o.nav(): { html, label, run }: the one button beside Play while folded (3.20.0)
  */
 export function setupFold(o) {
   teardownFold();
@@ -21,7 +22,8 @@ export function setupFold(o) {
   const el = document.createElement("div");
   el.className = "fp";
   el.id = "fp";
-  el.innerHTML = `<div class="fp-pull" aria-hidden="true">↓ <span></span></div>`;
+  el.innerHTML = `<div class="fp-pull" aria-hidden="true">↓ <span></span></div><button class="fp-nav" id="fp-nav"></button>`;
+  el.querySelector(".fp-nav").onclick = () => o.nav?.().run();
   app.appendChild(el);
   st = { o, el, home: null, cleanup: [] };
   const place = () => apply(true);
@@ -55,6 +57,8 @@ function apply(force) {
   const p = document.getElementById("play");
   if (on && p && p.parentElement !== st.el) { st.home = { parent: p.parentElement, next: p.nextSibling }; st.el.appendChild(p); }
   else if (!on) restore();
+  const nav = st.el.querySelector(".fp-nav"), n = on && st.o.nav?.();
+  if (nav) { nav.hidden = !n; if (n) { nav.innerHTML = n.html; nav.setAttribute("aria-label", n.label); } }
   if (before) foldEnd(on, before);
 }
 function restore() {

@@ -42,7 +42,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await page.waitForTimeout(3200);
     const y1 = await page.evaluate(() => scrollY); await page.waitForTimeout(1200);
     assert.ok(await page.evaluate(() => scrollY) > y1, "scrolls after the count-in");
-    await is(() => +getComputedStyle(document.querySelector(".song-title")).opacity < 0.5, "header dims while playing");
+    await is(() => +getComputedStyle(document.querySelector(".titlerow")).opacity < 0.5, "header dims while playing");
     await is(() => !document.querySelector(".prow"), "no diagrams over the words while playing");
     /* 3.19.0: on a phone the bar is folded away while playing, so Now and Next is turned on while paused */
     await page.click("#play"); await page.waitForTimeout(300);
@@ -52,9 +52,8 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await page.click("#nnbtn"); await page.waitForTimeout(500);
     await is(() => !!document.querySelector(".prow"), "diagrams when paused");
     await is(() => [...document.querySelectorAll(".prow .pcard")].every(c => c.getBoundingClientRect().top >= Math.max(document.getElementById("sheet").getBoundingClientRect().top, (r => r && r.right > document.getElementById("sheet").getBoundingClientRect().left && r.left < document.getElementById("sheet").getBoundingClientRect().right ? r.bottom : -1e9)(document.querySelector("#strip .strip")?.getBoundingClientRect())) - 1), "2.26.2: the cards never cover Chords in this song");
-    await page.click("#up"); await page.waitForTimeout(200);
-    assert.match(await page.innerText("#meta"), /Key Bb/, "transpose up");
-    await page.click("#down");
+    await page.click("#keybtn"); await page.waitForSelector(".dial.key");
+    await page.mouse.click(60, 120); await page.waitForTimeout(250);
 
     await page.goto(base + "#/song/t"); await page.waitForTimeout(300);
     await fits("tab");

@@ -23,12 +23,15 @@ test("first launch adds the sample song and opens on Tonight with it ready", { s
   await ctx.close();
 });
 
-test("a song opens, transposes and plays; a tap pauses it", { skip: skip() }, async t => {
+test("a song opens, its Key opens the key dial, and it plays; a tap pauses it", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
   assert.match(await page.innerText("#meta"), /Key A/);
-  await page.click("#up"); await page.waitForTimeout(100);
-  assert.match(await page.innerText("#meta"), /Key Bb/);
+  /* 3.20.0: Key is a button under the title that opens the key dial */
+  await page.click("#keybtn"); await page.waitForSelector(".dial.key");
+  assert.match(await page.textContent(".dial-small"), /KEY A/);
+  await page.mouse.click(60, 120); await page.waitForTimeout(250);
+  assert.equal(await page.locator(".dial").count(), 0);
   await page.click("#play"); await page.waitForTimeout(800);
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
   await page.touchscreen.tap(200, 500); await page.waitForTimeout(200);

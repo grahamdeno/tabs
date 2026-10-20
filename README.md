@@ -37,7 +37,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Chord help: Chords in this song (a strip of fingerings under the title), Now and Next diagrams while playing, a diagram over each chord on the line you pause on, and tap any chord for its fingering.
 - Focus current line: the current line is heavier and the rest dim, without ever changing how lines wrap.
 - Stage mode: larger, brighter text and nothing extra; stray touches don't scroll and one tap doesn't stop a song.
-- One-handed controls on a phone held upright (3.19.0): while the song is paused the whole bar shows, so every control is in sight. Press Play and the bar folds into the lower right corner, leaving Play alone there to pause; pausing brings the bar back. At the top of a paused song, pull down to go back. (The hold-Play ring, the arc, the island and Play following your hand are gone.)
+- One-handed controls on a phone held upright: the song bar is one row (3.20.0): Back, Now and Next chords, the song length (and "1 of 9" in a set), More and Play. Favorite is the heart beside the title, and the key is the "Key A" button under it (tap for the key dial; text size for a tab is in More). Press Play and the bar folds into the lower right corner (3.19.0), leaving Play and one button beside it: the next song in a set, otherwise the Library. Pausing brings the bar back. At the top of a paused song, pull down to go back. (The hold-Play ring, the arc, the island and Play following your hand are gone.)
 - Bluetooth page-turner pedals work: left or Space plays and pauses, right goes to the next section, holding right goes back one.
 
 ### Sets

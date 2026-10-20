@@ -317,7 +317,9 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   if (dot) assert.equal(dot, "absolute", "the not-tuned dot sits in the corner");
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
   assert.equal(await box(".head"), null, "song page top has no buttons");
-  for (const sel of [".oh-back", ".player .fav", "#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
+  for (const sel of [".oh-back", "#nnbtn", "#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
+  assert.ok((await box(".titlerow .tfav")).top < H * 0.2, "3.20.0: the heart is beside the title");
+  assert.equal(await page.locator(".player .fav, .player #up, .player #down").count(), 0, "3.20.0: one row, no favorite or key buttons");
   assert.ok((await box("#play")).right > 330, "Play at the bottom right");
   await page.click("#more"); await page.waitForTimeout(300);
   const m = await box(".menu");
@@ -403,7 +405,8 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
   assert.deepEqual(await state(), { one: true, fold: true, inBar: false, bar: false }, "playing: the bar folds away");
   const c = await center();
-  assert.ok(c.x > 320 && c.y > 760, `Play waits alone in the corner (${c.x}, ${c.y})`);
+  assert.ok(c.x > 320 && c.y > 760, `Play waits in the corner (${c.x}, ${c.y})`);
+  assert.match(await page.innerText("#fp-nav"), /Library/, "beside it, the way back to the Library");
   /* a long hold is still a tap: nothing opens, and it pauses */
   await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up(); await page.waitForTimeout(450);
   assert.equal(await page.locator(".ringx, .rc-track, .rc-isl").count(), 0, "no ring, arc or island");

@@ -753,7 +753,7 @@ function renderViewer(id) {
       return `<div class="setbar"><button class="sb" id="sprev" aria-label="Previous song" ${setCtx.idx === 0 ? "disabled" : ""}>${icon("back")}</button>
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
-    <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
+    <div class="titlerow"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><button class="sb tfav fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button></div>
     <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
@@ -781,7 +781,6 @@ function renderViewer(id) {
         <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
         <span class="jewel" id="jewel" aria-hidden="true"></span>
         <button class="sb oh oh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
-        <button class="sb oh fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
         <button class="sb oh more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         <button class="oh dialbtn" id="dialbtn" aria-label="Song speed. Hold and sweep to change">${icon("gauge")}<span></span></button>
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
@@ -793,12 +792,6 @@ function renderViewer(id) {
           <span id="sv"></span>
         </div>
         ${isChords ? `<button class="sb nnbtn ${data.settings.diagrams === true ? "on" : ""}" id="nnbtn" aria-label="Now and Next chords" aria-pressed="${data.settings.diagrams === true}">${icon("fretboard")}</button>` : ""}
-        <div class="vsep"></div>
-        <div class="step" aria-label="${isChords ? "Transpose" : "Text size"}">
-          <button class="sb" id="down" aria-label="${isChords ? "Transpose down" : "Smaller text"}">${icon("minus")}</button>
-          <span class="v" id="val"></span>
-          <button class="sb" id="up" aria-label="${isChords ? "Transpose up" : "Larger text"}">${icon("plus")}</button>
-        </div>
       </div>
       </div>
     </div>`;
@@ -850,7 +843,7 @@ function renderViewer(id) {
     const capoTxt = capo ? `Capo <b>${capo}</b>` : "";
     $("meta").innerHTML = [
       song.artist && `<span>${esc(song.artist)}</span>`,
-      key && `<span>Key <b>${esc(key)}</b></span>`,
+      key && `<button class="keybtn" id="keybtn" aria-label="Key ${esc(key)}. Change the key"><span>Key <b>${esc(key)}</b></span>${icon("chev", "kchev")}</button>`,
       capoTxt && `<span>${capoTxt}</span>`,
       !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>');
@@ -858,7 +851,6 @@ function renderViewer(id) {
       .filter(Boolean).join(" · ");
     SUBS = easy ? easy.subs || {} : {};
     const sheet = $("sheet");
-    const val = $("val");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
     sheet.style.setProperty("--lyric-size", (17 * song.size * sysText * (data.settings.stage ? 1.2 : 1)).toFixed(1) + "px");
     // With a capo the shapes sit lower than the sound: shift the chords down by the capo.
@@ -873,13 +865,6 @@ function renderViewer(id) {
     renderBlocks(sheet, blocks);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
-    if (isChords) {
-      val.textContent = steps ? (steps > 0 ? "+" : "") + steps : "0";
-      val.classList.toggle("zero", !steps);
-    } else {
-      val.textContent = Math.round(song.size * 100) + "%";
-      val.classList.toggle("zero", song.size === 1);
-    }
   };
   draw();
   redraw = () => { draw(); paintLoop(song); buildMap(); };
@@ -956,21 +941,27 @@ function renderViewer(id) {
       done: (i, changed) => { if (changed) toast(i ? `German: ${DE_LEVELS[i]}` : "German off", null, { label: "Undo", fn: () => { song.deLevel = was; Tabs.save(data); draw(); } }); } });
   };
   /* One hand (3.19.0): the bar is out while paused and folds into Play's corner while playing (fold.js). */
-  foldApi = setupFold({ back: { label: back.label, run: () => go(back.to) }, playing: () => scroll.on });
+  /* Folded, Play keeps one partner: in a set the next song, otherwise the Library. */
+  const foldNav = () => {
+    const x = fromSet, list = x ? setSongs(x) : [], nx = x && list[setCtx?.idx + 1];
+    if (nx) return { html: `<span class="fn-t">${esc(nx.title)}</span><small>${setCtx.idx + 2} of ${list.length}</small>${icon("chev")}`, label: `Next song: ${nx.title}`, run: () => { stopScroll(); $("snext")?.click(); } };
+    return { html: `${icon("back")}<span class="fn-t">Library</span>`, label: "Back to library", run: () => { stopScroll(); go("#/library"); } };
+  };
+  foldApi = setupFold({ back: { label: back.label, run: () => go(back.to) }, playing: () => scroll.on, nav: foldNav });
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
   /* A linked Apple Music song without its recording length yet: look it up once. */
   if (song.listen && song.listen.length === undefined && appleTrackId(song.listen.url)) recordingLength(song, song.listen.url, { quiet: true });
 
-  const step = dir => {
-    if (isChords) song.transpose = ((((song.transpose || 0) + dir) + 17) % 12) - 5; // -5..+6
-    else song.size = Math.min(1.6, Math.max(0.6, +(song.size + dir * 0.1).toFixed(2)));
-    Tabs.save(data);
-    /* Quick repeated taps draw once, on the next frame. */
-    if (!drawFrame) drawFrame = requestAnimationFrame(() => { drawFrame = 0; if (viewing === song) draw(); });
+  /* Key (3.20.0): tap "Key A" under the title for a dial of the keys around the song's own. */
+  const keyDial = () => {
+    const base = song.key || guessKey(song.body || ""), steps = Array.from({ length: 12 }, (_, i) => i - 5), was = song.transpose || 0;
+    openDial({ labels: steps.map(n => base ? transposeKey(base, n) : `${n > 0 ? "+" : ""}${n}`), value: (song.transpose || 0) + 5, label: "Key", cls: "key",
+      tick: i => base ? transposeKey(base, steps[i]) : String(steps[i]),
+      read: i => ({ big: steps[i] ? `${steps[i] > 0 ? "+" : ""}${steps[i]}` : "0", small: base ? `KEY ${transposeKey(base, steps[i])}` : "TRANSPOSE" }),
+      input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
+      done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
-  let drawFrame = 0;
-  $("down").onclick = () => step(-1);
-  $("up").onclick = () => step(1);
+  $("meta").addEventListener("click", e => { if (e.target.closest("#keybtn")) keyDial(); });
   $("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
   $("nnbtn")?.addEventListener("click", () => {
     const on = data.settings.diagrams !== true;

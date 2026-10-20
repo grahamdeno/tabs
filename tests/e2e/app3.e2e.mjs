@@ -19,7 +19,9 @@ test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest
   assert.ok(await page.locator("#setdial").isVisible());
   await page.click("#play"); await page.waitForTimeout(500);
   assert.equal(await page.locator("#setdial").isVisible(), false, "folded away while playing");
-  await page.click("#play"); await page.waitForTimeout(500);
+  assert.match(await page.innerText("#fp-nav"), /One\s*2 of 2/, "3.20.0: beside Play, the next song in the set");
+  await page.click("#fp-nav"); await page.waitForTimeout(700);
+  assert.match(await page.innerText(".song-title"), /One/, "a tap moves on to it");
 
   const pad = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } }, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
