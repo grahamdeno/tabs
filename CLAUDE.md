@@ -40,6 +40,8 @@ release so Graham can try it.
    a Practicing chip and one Practice row (section, speed, Build up, drums,
    Check me) that replaces the loop banner; Learning songs open in it. The
    Recording sheet's cover header also goes on Listen and Get the song.
+   German practice stays on its chip under the title (Graham), not in the
+   Practice row.
 0b. Right after the Neck release: chord timing without a paid service. Spread
    each LRCLIB line's words over its time by syllables and snap chord changes
    to the measured beat grid (3.18.0); use LRCLIB's word-level times when a
