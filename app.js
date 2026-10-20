@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -1090,6 +1090,41 @@ function card(name, scale, opacity = 1) {
   return `<div class="card" style="width:${(CARD_W * scale).toFixed(1)}px;height:${(CARD_H * scale).toFixed(1)}px;opacity:${opacity}">${chordSVG(name, scale)}</div>`;
 }
 
+/* Chord timing (3.22.0): each chord on a timed line gets the time of the word it sits on (the line's
+   time shared out by syllables, or the lyrics' own word times) on the beat of the measured tempo.
+   Chords between timed lines are placed in between. null when nothing is timed. */
+const chordTimeCache = { key: "", times: null };
+function chordTimes(song) {
+  const at = song.timed?.at;
+  if (!at?.length || !diag.seq.length) return null;
+  const bpm = song.listen?.feel?.bpm || 0;
+  const key = `${song.id}|${at.length}|${diag.seq.length}|${bpm}|${Math.round(diag.seq[diag.seq.length - 1].y)}`;
+  if (key === chordTimeCache.key) return chordTimeCache.times;
+  const lines = sheetLines(), when = new Map(at), order = at.map(x => x[0]), per = new Map();
+  const times = diag.seq.map(it => {
+    const row = it.el.closest(".pr"), li = row ? lines.indexOf(row) : -1;
+    if (!when.has(li)) return null;
+    let pl = per.get(li);
+    if (!pl) {
+      const ws = [...row.querySelectorAll(".w")], start = when.get(li), nx = order.find(i => i > li);
+      const end = Math.min(nx !== undefined ? when.get(nx) : start + 8, start + 12);
+      const words = ws.map(w => { const c = w.cloneNode(true); c.querySelectorAll(".c").forEach(x => x.remove()); return c.textContent.trim(); });
+      pl = { ws, t: wordTimes(words, start, end, { bpm, given: song.timed.w?.[li] }) };
+      per.set(li, pl);
+    }
+    const k = pl.ws.indexOf(it.el.closest(".w"));
+    return k >= 0 ? pl.t[k] : null;
+  });
+  /* chords on untimed rows (an intro of chords, a line the lyrics didn't match): in between */
+  const known = times.map((t, i) => t != null ? i : -1).filter(i => i >= 0);
+  if (!known.length) { chordTimeCache.key = key; chordTimeCache.times = null; return null; }
+  for (let n = 0; n + 1 < known.length; n++) {
+    const p = known[n], q = known[n + 1];
+    for (let i = p + 1; i < q; i++) times[i] = times[p] + (times[q] - times[p]) * (i - p) / (q - p);
+  }
+  chordTimeCache.key = key; chordTimeCache.times = times;
+  return times;
+}
 function updateDiagrams() {
   const sheet = $("sheet");
   const playing = scroll.on && !!sheet;
@@ -1114,9 +1149,12 @@ function updateDiagrams() {
   setCurrent(diag.blocks[b]?.el);
 
   if (!diag.nn) return;
-  // Current chord: the last chord that has reached the reading line.
+  // Current chord: the last chord that has reached the reading line. With the recording playing and
+  // its lines timed (3.22.0), the last chord whose time has come instead, so Now changes on the beat.
   let idx = 0;
-  for (let i = 0; i < diag.seq.length; i++) if (sheetTop + diag.seq[i].y <= line) idx = i;
+  const clock = viewing && usesMusic(viewing) ? musicClock(viewing) : null, ct = clock !== null ? chordTimes(viewing) : null;
+  if (ct) { for (let i = 0; i < ct.length; i++) if (ct[i] != null && ct[i] <= clock) idx = i; }
+  else for (let i = 0; i < diag.seq.length; i++) if (sheetTop + diag.seq[i].y <= line) idx = i;
   if (idx === diag.idx) return;
   diag.seq[diag.idx]?.el.classList.remove("now");
   diag.idx = idx;

@@ -1627,7 +1627,7 @@ test("recording sync: marks bend the line between sheet and recording, both ways
 test("line timing: LRC is read, sheet lines pair with timed lines in order, nudges win, and only times are kept", () => {
   const lrc = C.parseLrc("[00:12.50] Hello there my friend\n[00:16.00] How are you\n[00:20.00]\n[00:24.10] Hello there my friend\n[00:28.00] Goodbye now");
   assert.deepEqual(lrc.map(x => x[0]), [12.5, 16, 24.1, 28]);
-  assert.deepEqual(C.matchLines([{ i: 1, text: "Hello there, my friend" }, { i: 3, text: "how are you?" }, { i: 5, text: "la la" }, { i: 7, text: "Hello there my friend" }, { i: 9, text: "Goodbye now" }], lrc), [[1, 12.5], [3, 16], [7, 24.1], [9, 28]]);
+  assert.deepEqual(C.matchLines([{ i: 1, text: "Hello there, my friend" }, { i: 3, text: "how are you?" }, { i: 5, text: "la la" }, { i: 7, text: "Hello there my friend" }, { i: 9, text: "Goodbye now" }], lrc).map(x => x.slice(0, 2)), [[1, 12.5], [3, 16], [7, 24.1], [9, 28]]);
   assert.deepEqual(C.mergeSyncs([[0.1, 10], [0.3, 30], [0.5, 50], [0.7, 70]], [[0.31, 40]]), [[0.1, 10], [0.31, 40], [0.5, 50], [0.7, 70]]);
   assert.deepEqual(C.cleanTimed({ h: "k", id: 3, at: [[1, 10], [0, 12], [4, 9], [6, 20]] }), { h: "k", id: 3, at: [[1, 10], [6, 20]] });
   assert.equal(C.cleanSong({ id: "a", body: "G", timed: { h: "k", at: "x" } }).timed, undefined);
@@ -1690,4 +1690,19 @@ test("practice mode: on for a learning song unless turned off; the old recording
   const s = C.cleanSong({ id: "a", body: "G", recRate: 0.8 });
   assert.deepEqual(s.practice, { rate: 0.8 }); assert.equal(s.recRate, undefined);
   assert.equal(C.cleanSong({ id: "a", body: "G", practice: { on: "x", rate: 2 } }).practice, undefined);
+});
+
+test("chord timing: words share a line's time by syllables, land on the beat, and use the lyrics' own word times when given", () => {
+  const w = ["Walking", "down", "the", "river", "road"];
+  const t = C.wordTimes(w, 10, 14);
+  assert.equal(t[0], 10);
+  assert.ok(t[1] > t[0] && t[4] < 14 && t[4] > t[3], "in order, inside the line");
+  assert.ok(Math.abs((t[1] - t[0]) - 2 * (t[2] - t[1])) < 0.01, "a two-syllable word takes twice the time");
+  const b = C.wordTimes(w, 10, 14, { bpm: 120 });
+  assert.ok(b.every(x => Math.abs(((x - 10) / 0.5) - Math.round((x - 10) / 0.5)) < 0.01), "on the beat (every half second at 120)");
+  assert.deepEqual(C.wordTimes(["a", "b", "c"], 10, 14, { given: [10.2, 11.7, 13.1] }), [10.2, 11.7, 13.1]);
+  const lrc = C.parseLrc("[00:10.00] <00:10.00>Hello <00:10.80>there <00:11.50>friend\n[00:13.00] Plain line");
+  assert.deepEqual(lrc[0], [10, "Hello there friend", [10, 10.8, 11.5]]);
+  assert.deepEqual(lrc[1], [13, "Plain line"]);
+  assert.deepEqual(C.cleanTimed({ h: "k", at: [[1, 10]], w: { 1: [10, 10.8, 11.5], x: [1, 2], 2: [3, 1] } }).w, { 1: [10, 10.8, 11.5] });
 });

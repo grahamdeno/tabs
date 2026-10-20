@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.21.0";
+export const VERSION = "3.22.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -304,11 +304,33 @@ export function parseLrc(text) {
   const out = [];
   for (const row of String(text || "").split(/\r?\n/)) {
     const tags = [...row.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
-    const words = row.replace(/\[[^\]]*\]/g, "").trim();
+    /* enhanced LRC (3.22.0): <mm:ss.xx> before a word gives that word's own time */
+    const wt = [...row.matchAll(/<(\d+):(\d+(?:\.\d+)?)>/g)].map(m => +m[1] * 60 + +m[2]);
+    const words = row.replace(/\[[^\]]*\]/g, "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
     if (!words) continue;
-    for (const t of tags) out.push([+t[1] * 60 + +t[2], words]);
+    for (const t of tags) out.push(wt.length >= 2 ? [+t[1] * 60 + +t[2], words, wt] : [+t[1] * 60 + +t[2], words]);
   }
   return out.sort((a, b) => a[0] - b[0]);
+}
+/* When each word of a line starts (3.22.0): the line's own word times when the lyrics have them,
+   otherwise the line's time shared out by syllables (the singing fills about 85% of the gap to the
+   next line). With a tempo, each time lands on the nearest beat counted from the line's start, since
+   chords change on the beat. */
+export function wordTimes(words, start, end, { bpm = 0, given = null } = {}) {
+  const n = words.length;
+  if (!n) return [];
+  let t;
+  if (given?.length >= 2) t = words.map((_, k) => given[Math.min(given.length - 1, Math.round(k * (given.length - 1) / Math.max(1, n - 1)))]);
+  else {
+    const syl = words.map(w => Math.max(1, syllables(w))), all = syl.reduce((a, b) => a + b, 0), span = Math.max(0.5, (end - start) * 0.85);
+    let acc = 0;
+    t = syl.map(x => { const at = start + acc / all * span; acc += x; return at; });
+  }
+  if (bpm > 0) {
+    const spb = 60 / bpm;
+    t = t.map(x => Math.round((start + Math.round((x - start) / spb) * spb) * 100) / 100);
+  }
+  return t;
 }
 const lrcWords = t => String(t || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
 function lineLike(a, b) {
@@ -333,7 +355,7 @@ export function matchLines(sheet, timed, min = 0.5) {
   const out = [];
   for (let i = n, j = m; i > 0 && j > 0;) {
     const s = S[i - 1][j - 1];
-    if (s >= min && D[i][j] === D[i - 1][j - 1] + s) { out.push([sheet[i - 1].i, Math.round(timed[j - 1][0] * 10) / 10]); i--; j--; }
+    if (s >= min && D[i][j] === D[i - 1][j - 1] + s) { out.push([sheet[i - 1].i, Math.round(timed[j - 1][0] * 10) / 10, j - 1]); i--; j--; }
     else if (D[i][j] === D[i - 1][j]) i--;
     else j--;
   }
@@ -358,6 +380,16 @@ export function cleanTimed(t) {
   }
   if (!at.length) return null;
   out.at = at;
+  /* word times for lines whose lyrics carry them: { "line": [seconds, ...] } */
+  if (isObj(t.w)) {
+    const w = {};
+    for (const [k, v] of Object.entries(t.w).slice(0, 400)) {
+      if (!/^\d{1,4}$/.test(k) || !Array.isArray(v)) continue;
+      const ok = v.slice(0, 40).filter(Number.isFinite).map(x => Math.round(x * 100) / 100);
+      if (ok.length >= 2 && ok.every((x, i) => !i || x >= ok[i - 1])) w[k] = ok;
+    }
+    if (Object.keys(w).length) out.w = w;
+  }
   return out;
 }
 

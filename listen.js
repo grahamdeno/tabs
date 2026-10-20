@@ -206,9 +206,11 @@ export async function timeLines(song, readLines) {
     const get = async url => { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.json() : null; };
     let hit = await get(`https://lrclib.net/api/get?${q}&duration=${Math.round(len)}`).catch(() => null);
     if (!fits(hit)) hit = ((await get(`https://lrclib.net/api/search?${q}`).catch(() => null)) || []).find(fits) || null;
-    const at = hit ? matchLines(readLines(), parseLrc(hit.syncedLyrics)) : [];
+    const rows = hit ? parseLrc(hit.syncedLyrics) : [], pairs = hit ? matchLines(readLines(), rows) : [];
+    const at = pairs.map(([i, sec]) => [i, sec]), w = {};
+    for (const [i, , j] of pairs) if (rows[j]?.[2]) w[i] = rows[j][2]; /* word times, when the lyrics have them */
     /* fewer than four lines matched: probably a different sheet or version, so don't trust it */
-    song.timed = cleanTimed(at.length >= 4 ? { h, id: hit.id, at } : { h, none: 1 });
+    song.timed = cleanTimed(at.length >= 4 ? { h, id: hit.id, at, w } : { h, none: 1 });
     Tabs.save(data);
     if (viewing === song) detailsArrived?.(song);
   } catch (e) { noteError(e, { quiet: true, where: "line timing" }); }
@@ -300,7 +302,7 @@ export function recordingSheet(song, o) {
         <p class="rs-note">${band ? "Your metronome, drums and bass play. No recording." : "The recording plays alone. The page follows it."}</p></div>
       ${band ? "" : `<div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Reset</button>` : ""}</b></div>
         <div class="rs-track" aria-hidden="true">${spots.auto.map(w => `<b style="left:${(w * 100).toFixed(1)}%"></b>`).join("")}${spots.mine.map(w => `<i style="left:${(w * 100).toFixed(1)}%"></i>`).join("")}</div>
-        ${timed ? `<p class="rs-note">Each line is timed to the recording. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p>`}</div>`}
+        ${timed ? `<p class="rs-note">Each line is timed to the recording${l.feel?.bpm ? ", and its chords land on the beat" : ""}. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p>`}</div>`}
       <button class="btn primary rs-done" id="rs-done">Done</button></div>`;
     $("rs-scrim").onclick = close;
     $("rs-done").onclick = close;

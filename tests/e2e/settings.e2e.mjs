@@ -385,6 +385,33 @@ test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a s
   assert.match(await page.innerText("#pchip"), /Practicing/, "a tap opens the song in Practice mode");
 });
 
+test("3.22.0 chord timing: with the recording playing, Now changes on the chord's own beat inside a line", { skip: skip() }, async t => {
+  const body = SONG + "\n" + Array.from({ length: 10 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nline number ${n + 2} goes right here`).join("\n");
+  const song = { ...LIB.songs[0], body, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200, title: "River Road", artist: "The Wanderers" } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, diagrams: true } };
+  const page = await phone(t, lib);
+  const synced = ["[00:10.00] Walking down the river road tonight", "[00:14.00] Lantern in my hand and nothing in mind", "[00:20.00] Carry me home, carry me home", "[00:24.00] Lay me down where the willows grow",
+    ...Array.from({ length: 10 }, (_, n) => `[${String(Math.floor((40 + n * 15) / 60)).padStart(2, "0")}:${String((40 + n * 15) % 60).padStart(2, "0")}.00] Line number ${n + 2} goes right here`)].join("\n");
+  await page.route("https://lrclib.net/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ id: 77, duration: 201, syncedLyrics: synced, plainLyrics: "x" }) }));
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkMusic = { isAuthorized: true, isPlaying: false, currentPlaybackTime: 0, playbackRate: 1, setQueue: async () => {}, seekToTime: async n => { window.mkMusic.currentPlaybackTime = n; }, play: async () => { window.mkMusic.isPlaying = true; }, pause: () => { window.mkMusic.isPlaying = false; }, stop: () => {}, api: { music: async () => ({ data: { data: [] } }) } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen.rec");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").timed?.at?.length >= 10, null, { timeout: 8000 });
+  await page.click("#play");
+  await page.waitForFunction(() => window.mkMusic.isPlaying, null, { timeout: 5000 });
+  const now = () => page.evaluate(() => document.querySelector("#nn .nowcol")?.textContent || "");
+  /* "Walking down the river road tonight": A on Walking (10 s), D on river (about 11.5 s) */
+  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 10.4; });
+  await page.waitForFunction(() => /A/.test(document.querySelector("#nn .nowcol")?.textContent || ""), null, { timeout: 4000 });
+  assert.match(await now(), /A/, "early in the line: still A");
+  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 12.4; });
+  await page.waitForFunction(() => /D/.test(document.querySelector("#nn .nowcol")?.textContent || ""), null, { timeout: 4000 });
+  await page.click("#play");
+});
+
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {
   const lib = { ...LIB, songs: [{ ...LIB.songs[0], duration: 227, durationSet: true }, LIB.songs[1]], settings: { ...LIB.settings, speedMode: "length" } };
   const page = await phone(t, lib);

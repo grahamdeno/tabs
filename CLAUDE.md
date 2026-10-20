@@ -38,11 +38,12 @@ release so Graham can try it.
    Practice mode on that section) with Skills below, plus a new Scales section
    (lessons and listening, like the chord lessons). Practice mode on the song:
    a Practicing chip and one Practice row (section, speed, Build up, drums,
-   Check me) that replaces the loop banner; Learning songs open in it. The
-   Recording sheet's cover header also goes on Listen and Get the song.
+   Check me) that replaces the loop banner; Learning songs open in it.
+   Still to do: the Recording sheet's cover header on Listen and Get the song
+   (agreed, missed in 3.21.0).
    German practice stays on its chip under the title (Graham), not in the
    Practice row.
-0b. Right after the Neck release: chord timing without a paid service. Spread
+0b. Done in 3.22.0. Chord timing without a paid service. Spread
    each LRCLIB line's words over its time by syllables and snap chord changes
    to the measured beat grid (3.18.0); use LRCLIB's word-level times when a
    song has them. "Learn from your playing" (mic hears your chord changes)
@@ -113,7 +114,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade (expected; not a real failure). Graham (2026-10-19): don't remake
   them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 2 (3.20.0, 3.21.0). To remake when he says yes:
+  3.19.0: 3 (3.20.0, 3.21.0, 3.22.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.
