@@ -1,6 +1,6 @@
 // Tabs Listen : find a recording, keep its link,
 // play a preview, and take the song's length from the recording.
-import { Tabs, VERSION, appleTrackId, bodyKey, cleanTimed, fitLength, lengthChoice, linkService, matchLines, parseLrc, rankTracks } from "./core.js";
+import { Tabs, VERSION, appleTrackId, bodyKey, cleanFeel, cleanTimed, feelOf, fitLength, lengthChoice, linkService, matchLines, parseLrc, rankTracks } from "./core.js";
 import { $, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { appleBlocksSearch, catalogBlocked, itunes } from "./sets.js";
 import { noteError } from "./store.js";
@@ -125,6 +125,7 @@ export const hasMusic = wanted;
 export function prepareMusic(song) {
   if (!wanted(song)) return;
   fetchDetails(song);
+  listenToPreview(song);
   const id = appleTrackId(song.listen.url);
   loadMusicKit().then(async music => {
     if (!music.isAuthorized || playingId === id || readyId === id) return;
@@ -213,6 +214,42 @@ export async function timeLines(song, readLines) {
   } catch (e) { noteError(e, { quiet: true, where: "line timing" }); }
   finally { timeJobs.delete(song.id); }
 }
+/* Listening to the preview (3.18.0). Apple's 30-second preview of the linked track is read once and
+   measured: tempo, swing and key, kept as song.listen.feel. Preview files may not allow a web page to
+   read them, so it tries directly and then through the token Worker's /preview route (worker/README.md);
+   if neither works it tries again next time the app opens. A song with no tempo takes the measured one. */
+const feelJobs = new Set(), feelFailed = new Set();
+async function previewBytes(url) {
+  try { const r = await fetch(url, { mode: "cors" }); if (r.ok) return await r.arrayBuffer(); } catch { /* not readable directly */ }
+  const base = String(data.settings.appleMusicToken || "").replace(/\/token\/?$/, "");
+  if (!/^https:\/\//.test(base)) return null;
+  const r = await fetch(`${base}/preview?u=${encodeURIComponent(url)}`);
+  return r.ok ? r.arrayBuffer() : null;
+}
+export async function listenToPreview(song) {
+  const id = appleTrackId(song?.listen?.url || "");
+  if (!wanted(song) || song.listen.feel || feelJobs.has(id) || feelFailed.has(id)) return;
+  feelJobs.add(id);
+  try {
+    const hit = ((await itunes("lookup", { id, entity: "song" }))?.results || []).find(x => x.previewUrl);
+    if (!hit) throw new Error("no preview");
+    const bytes = await previewBytes(hit.previewUrl);
+    if (!bytes) throw new Error("preview not readable (the Worker needs the /preview route)");
+    const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const buf = await new Off(1, 44100, 44100).decodeAudioData(bytes);
+    const mono = new Float32Array(buf.length);
+    for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) mono[i] += d[i] / buf.numberOfChannels; }
+    const feel = cleanFeel(feelOf(mono, buf.sampleRate) || { none: 1 });
+    if (!feel || !song.listen || appleTrackId(song.listen.url) !== id) return;
+    song.listen = { ...song.listen, feel };
+    if (!song.bpm && feel.bpm && (feel.sure || 0) >= 0.1) song.bpm = feel.bpm;
+    Tabs.save(data);
+    if (viewing === song) { detailsArrived?.(song); feelArrived?.(song); }
+  } catch (e) { feelFailed.add(id); noteError(e, { quiet: true, where: "preview listening" }); }
+  finally { feelJobs.delete(id); }
+}
+let feelArrived = null;
+export const onFeel = f => { feelArrived = f; };
 /* What you played lately in Apple Music: [{ title, artist }], newest first. */
 export async function recentApple() {
   if (!data.settings.appleMusic || !data.settings.appleMusicToken) return [];
@@ -234,19 +271,31 @@ export const musicPlaying = song => !!(inst && playingId && song?.listen && play
 // without the page moving), what Play starts (the recording or the band), the recording's speed and
 // what the page has learned of the song. The app passes in how to read and change those.
 //  o.mode() "music" | "band", o.setMode(m), o.setRate(r), o.reset(), o.changed(),
-//  o.spots() { auto, mine }: where the timed lines and your nudges sit down the sheet (0 to 1)
+//  o.spots() { auto, mine }: where the timed lines and your nudges sit down the sheet (0 to 1),
+//  o.notes() { key, bpm }: how the sheet differs from the measured recording; o.matchKey(), o.matchBpm()
 const SPEEDS_REC = [0.5, 0.6, 0.7, 0.8, 0.9, 1];
 export function recordingSheet(song, o) {
   const close = () => { detailsArrived = null; layer.innerHTML = ""; o.changed?.(); };
   const paint = () => {
     const l = song.listen || {}, band = o.mode() === "band", rate = song.recRate || 1, marks = song.syncs || [], on = musicPlaying(song);
     const timed = song.timed?.at?.length || 0, spots = o.spots?.() || { auto: [], mine: marks.map(m => m[0]) };
+    /* The recording, measured: tempo, feel and key, and a word when the sheet doesn't match it. */
+    const feelRow = () => {
+      const f = l.feel;
+      if (!f || f.none) return "";
+      const look = o.notes?.() || {};
+      const bits = [f.bpm && `${f.bpm} BPM`, f.swing && ({ straight: "straight feel", light: "light swing", full: "swung" })[f.swing], f.key && `key of ${f.key}`].filter(Boolean).join(" · ");
+      const keyNote = look.key ? `<div class="rs-look"><span>The recording sounds ${Math.abs(look.key)} half step${Math.abs(look.key) === 1 ? "" : "s"} ${look.key > 0 ? "higher" : "lower"} than your sheet.</span><button class="btn sm" id="rs-key">Match it</button></div>` : "";
+      const bpmNote = look.bpm ? `<div class="rs-look"><span>Your tempo is ${song.bpm}. The recording is ${f.bpm}.</span><button class="btn sm" id="rs-bpm">Use ${f.bpm}</button></div>` : "";
+      return `<div class="rs-row rs-feel"><div class="rs-l">The recording<b>${esc(bits)}</b></div>${keyNote}${bpmNote}</div>`;
+    };
     const details = [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
     const tint = /^[0-9a-f]{6}$/i.test(l.tint || "") ? ` style="--album:#${l.tint}"` : "";
     layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
       <div class="rs-head"${tint}><div class="rs-art">${/^https:\/\//.test(l.art || "") ? `<img src="${esc(l.art)}" alt="">` : icon("note")}</div>
         <div class="rs-txt"><div class="rs-t">${esc(l.title || song.title)}</div><div class="rs-a">${esc(l.artist || song.artist || "")}</div>${details ? `<div class="rs-d">${esc(details)}</div>` : ""}</div>
         <button class="rs-listen" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button></div>
+      ${feelRow()}
       <div class="rs-row"><div class="rs-l">When you press Play</div>
         <div class="seg" role="group" aria-label="When you press Play">${[["music", "The recording"], ["band", "The band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
         <p class="rs-note">${band ? "Your metronome, drums and bass play. No recording." : "The recording plays alone. The page follows it."}</p></div>
@@ -263,9 +312,12 @@ export function recordingSheet(song, o) {
     layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { o.setMode(b.dataset.mode); paint(); });
     layer.querySelectorAll("[data-rate]").forEach(b => b.onclick = () => { o.setRate(+b.dataset.rate); paint(); });
     $("rs-reset")?.addEventListener("click", () => { o.reset(); paint(); });
+    $("rs-key")?.addEventListener("click", () => { o.matchKey?.(); paint(); });
+    $("rs-bpm")?.addEventListener("click", () => { o.matchBpm?.(); paint(); });
   };
   detailsArrived = s2 => { if (s2 === song && $("rs")) paint(); };
   fetchDetails(song);
+  listenToPreview(song);
   paint();
 }
 export function musicClock(song) {

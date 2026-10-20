@@ -321,6 +321,50 @@ test("Apple Music: each line is timed from LRCLIB's synced lyrics, only the time
   assert.equal(asked.length, n, "kept, not looked up again");
 });
 
+test("Apple Music: the preview is measured (tempo, swing, key), a song with no tempo takes it, and a sheet in another key can match it", { skip: skip() }, async t => {
+  /* a 100 BPM click track over an E major chord, as a WAV file */
+  const rate = 22050, secs = 12, x = new Float32Array(rate * secs);
+  for (let i = 0; i < x.length; i++) for (const [m, a] of [[64, 1], [68, 0.8], [71, 0.9], [66, 0.35], [69, 0.35], [73, 0.3], [75, 0.3], [52, 0.9]]) x[i] += a * 0.03 * Math.sin(2 * Math.PI * 440 * 2 ** ((m - 69) / 12) * i / rate);
+  for (let tt = 0; tt < secs - 1; tt += 0.6) for (const [off, amp] of [[0, 0.6], [0.3, 0.35]]) { const i0 = Math.round((tt + off) * rate); for (let i = 0; i < 400; i++) x[i0 + i] += amp * Math.exp(-i / 60) * Math.sin(i * 0.9); }
+  const wav = Buffer.alloc(44 + x.length * 2);
+  wav.write("RIFF", 0); wav.writeUInt32LE(36 + x.length * 2, 4); wav.write("WAVEfmt ", 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write("data", 36); wav.writeUInt32LE(x.length * 2, 40);
+  x.forEach((v, i) => wav.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(v * 20000))), 44 + i * 2));
+  const song = { ...LIB.songs[0], bpm: undefined, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  delete song.bpm;
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token" } };
+  const page = await phone(t, lib);
+  await page.route("https://itunes.apple.com/lookup**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ results: [{ trackId: 111, trackTimeMillis: 200000, previewUrl: "https://audio-ssl.itunes.apple.com/p/111.m4a" }] }) }));
+  /* the preview itself isn't readable from the page; the Worker's /preview route passes it along */
+  await page.route("https://audio-ssl.itunes.apple.com/**", r => r.abort("accessdenied"));
+  const viaWorker = [];
+  await page.route("https://*.workers.dev/**", r => {
+    const u = r.request().url();
+    if (u.includes("/preview")) { viaWorker.push(u); return r.fulfill({ status: 200, contentType: "audio/wav", headers: { "access-control-allow-origin": "*" }, body: wav }); }
+    r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) });
+  });
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkMusic = { isAuthorized: true, isPlaying: false, playbackRate: 1, setQueue: async () => {}, seekToTime: async () => {}, play: async () => {}, pause: () => {}, stop: () => {}, api: { music: async () => ({ data: { data: [] } }) } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen.rec");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").listen.feel, null, { timeout: 10000 });
+  const s1 = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a"));
+  assert.ok(Math.abs(s1.listen.feel.bpm - 100) <= 2, `tempo heard as ${s1.listen.feel.bpm}`);
+  assert.equal(s1.listen.feel.key, "E");
+  assert.equal(s1.bpm, s1.listen.feel.bpm, "a song with no tempo takes the recording's");
+  assert.equal(viaWorker.length, 1, "Apple's file couldn't be read directly, so the Worker passed it along");
+  assert.match(viaWorker[0], /preview\?u=https%3A%2F%2Faudio-ssl\.itunes\.apple\.com/);
+  /* the sheet is in A, the recording in E: the chip shows a dot, and the sheet offers to match */
+  await page.waitForSelector("#listen .rc-look");
+  await page.click("#listen"); await page.waitForSelector(".rs-feel");
+  assert.match(await page.innerText(".rs-feel"), /100 BPM|99 BPM|101 BPM/);
+  assert.match(await page.innerText(".rs-feel"), /5 half steps lower/);
+  await page.click("#rs-key");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").transpose === -5, null, { timeout: 5000 });
+  assert.equal(await page.locator(".rs-look").count(), 0, "matched: nothing more to say");
+});
+
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {
   const lib = { ...LIB, songs: [{ ...LIB.songs[0], duration: 227, durationSet: true }, LIB.songs[1]], settings: { ...LIB.settings, speedMode: "length" } };
   const page = await phone(t, lib);

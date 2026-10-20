@@ -19,14 +19,14 @@ npx wrangler deploy
 
 Wrangler prints the Worker's address, for example `https://tabs-musickit.yourname.workers.dev`. The token address is that plus `/token`.
 
-Then in The Road, open Settings, Keys, turn on **Apple Music**, paste `https://tabs-musickit.yourname.workers.dev/token` into **Token address**, and select **Save**.
+Then in The Road, open Settings, **Apple Music**, turn it on, paste `https://tabs-musickit.yourname.workers.dev/token` into **Token address**, and select **Save**.
 
 ## Deploy from the dashboard (no tools)
 
 1. dash.cloudflare.com, **Workers & Pages**, **Create**, **Create Worker**, name it `tabs-musickit`, **Deploy**.
 2. **Edit code**, replace everything with `musickit-token.js`, **Deploy**.
 3. The Worker's **Settings**, **Variables and Secrets**: add a secret `MUSICKIT_KEY` and paste the whole `.p8` file (including the BEGIN and END lines). Add plain variables `TEAM_ID` = `7MHDTK68M2` and `KEY_ID` = `KABHU54QBS` (these are also the defaults in the code).
-4. Paste the Worker's address plus `/token` into The Road, Settings, Keys, Token address.
+4. Paste the Worker's address plus `/token` into The Road, Settings, Apple Music, Token address.
 
 ## Notes
 
@@ -34,5 +34,6 @@ Then in The Road, open Settings, Keys, turn on **Apple Music**, paste `https://t
 - **What the token is:** an ES256 JWT with `iss` = Team ID, `kid` = Key ID, valid for 30 days (`DAYS`), and an `origin` claim of `https://grahamdeno.github.io`, so Apple accepts it only from the app's address. The Worker signs a new one when less than a day is left.
 - **Allowed app address:** `ALLOWED_ORIGINS` in `musickit-token.js` (and `http://localhost` for testing). If The Road moves (a custom domain), change it, and add the Worker's address to `connect-src` in `index.html` if it isn't on `workers.dev`.
 - **Updating:** after this file changes, run `npx wrangler deploy` again (or paste it into Edit code). The address stays the same.
+- **Previews (3.18.0):** `GET /preview?u=<url>` passes one of Apple's 30-second preview files to the app, so it can measure the recording's tempo, swing and key. Only `itunes.apple.com` and `mzstatic.com` addresses over https are fetched. The app tries the preview directly first; the Worker is only used if Apple's file can't be read from a web page. **Redeploy once** (`npx wrangler deploy`, or paste the file into Edit code) to add this route.
 - **Data kept:** none.
 - **Tests:** `node --test tests/worker.test.mjs` signs with a throwaway key made by the test.

@@ -2048,6 +2048,12 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 .rs-row:first-of-type, .rs-head + .rs-row { border-top: 0; }
 .rs-l { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .rs-l b { display: inline-flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg); }
+.rs-feel .rs-l { flex-direction: column; align-items: flex-start; gap: 4px; }
+.rs-look { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent-line); font-size: 13px; line-height: 1.35; color: var(--fg); }
+.rs-look span { flex: 1; }
+.rs-look .btn { flex: none; }
+.stat.listen.rec { position: relative; }
+.rc-look { position: absolute; left: 18px; top: 0; width: 8px; height: 8px; border-radius: 4px; background: #e0a43a; box-shadow: 0 0 0 2px var(--solid); }
 .rs-reset { border: 0; background: none; padding: 0; font: 600 13px var(--sans); color: var(--accent); }
 .rs-note { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
 .rs-row.off .seg { opacity: .45; }

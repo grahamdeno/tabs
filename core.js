@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.17.0";
+export const VERSION = "3.18.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -363,6 +363,128 @@ export function cleanTimed(t) {
   return out;
 }
 
+// ---------- Listening to the recording's preview (3.18.0) ----------
+// Apple's 30-second preview isn't copy protected, so it can be measured: the tempo (how often the
+// music's attacks repeat), the swing (where the off-beat eighth lands) and the key (which notes ring
+// most). feelOf(samples, rate) -> { bpm, swing, key, sure } or null.
+function fftInPlace(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const p = i + k, q = p + len / 2;
+        const tr = re[q] * cr - im[q] * ci, ti = re[q] * ci + im[q] * cr;
+        re[q] = re[p] - tr; im[q] = im[p] - ti; re[p] += tr; im[p] += ti;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+}
+/* MAJOR_PROFILE and MINOR_PROFILE (Krumhansl) are defined with the key finder further down */
+const PC_NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+function pearson(a, b) {
+  const ma = a.reduce((x, y) => x + y, 0) / a.length, mb = b.reduce((x, y) => x + y, 0) / b.length;
+  let n = 0, da = 0, db = 0;
+  for (let i = 0; i < a.length; i++) { n += (a[i] - ma) * (b[i] - mb); da += (a[i] - ma) ** 2; db += (b[i] - mb) ** 2; }
+  return da && db ? n / Math.sqrt(da * db) : 0;
+}
+/* the key that best fits twelve note strengths: { key: "E" | "F#m", fit } */
+export function keyOfChroma(ch) {
+  let best = { key: "", fit: -2 };
+  for (let k = 0; k < 12; k++) {
+    const rot = Array.from({ length: 12 }, (_, i) => ch[(i + k) % 12]);
+    const ma = pearson(rot, MAJOR_PROFILE), mi = pearson(rot, MINOR_PROFILE);
+    if (ma > best.fit) best = { key: PC_NAMES[k], fit: ma };
+    if (mi > best.fit) best = { key: PC_NAMES[k] + "m", fit: mi };
+  }
+  return best;
+}
+export function feelOf(samples, rate) {
+  const step = Math.max(1, Math.round(rate / 11025)), sr = rate / step;
+  const n = Math.floor(samples.length / step);
+  if (n < sr * 6) return null;
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let v = 0; for (let k = 0; k < step; k++) v += samples[i * step + k] || 0; x[i] = v / step; }
+  const N = 2048, hop = 256, bins = N / 2, win = Float32Array.from({ length: N }, (_, i) => 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N));
+  const pcOf = new Int8Array(bins).fill(-1);
+  for (let b = 1; b < bins; b++) { const f = b * sr / N; if (f >= 60 && f <= 2000) pcOf[b] = ((Math.round(12 * Math.log2(f / 261.6256)) % 12) + 12) % 12; }
+  const chroma = new Array(12).fill(0), flux = [];
+  let prev = null;
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (let at = 0; at + N <= n; at += hop) {
+    for (let i = 0; i < N; i++) { re[i] = x[at + i] * win[i]; im[i] = 0; }
+    fftInPlace(re, im);
+    const mag = new Float32Array(bins);
+    let f = 0;
+    for (let b = 1; b < bins; b++) {
+      mag[b] = Math.log1p(1000 * Math.hypot(re[b], im[b]));
+      if (prev) f += Math.max(0, mag[b] - prev[b]);
+      if (pcOf[b] >= 0) chroma[pcOf[b]] += Math.hypot(re[b], im[b]);
+    }
+    if (prev) flux.push(f);
+    prev = mag;
+  }
+  /* tempo: the onset curve's strongest repeat between 60 and 180 BPM, leaning toward 110 */
+  const fr = sr / hop, mean = flux.reduce((a, b) => a + b, 0) / flux.length;
+  const on = flux.map(v => Math.max(0, v - mean));
+  const ac = lag => { let s = 0; for (let i = lag; i < on.length; i++) s += on[i] * on[i - lag]; return s / (on.length - lag); };
+  const zero = ac(0) || 1;
+  let best = { lag: 0, score: 0, raw: 0 };
+  for (let lag = Math.floor(fr * 60 / 180); lag <= Math.ceil(fr * 60 / 60); lag++) {
+    const raw = ac(lag), bpm = 60 * fr / lag, prior = Math.exp(-0.5 * (Math.log2(bpm / 110) / 0.9) ** 2);
+    if (raw * prior > best.score) best = { lag, score: raw * prior, raw };
+  }
+  if (!best.lag) return null;
+  const a = ac(best.lag - 1), b = ac(best.lag), c = ac(best.lag + 1), d = a - 2 * b + c;
+  const lag = best.lag + (d < 0 ? 0.5 * (a - c) / d : 0);
+  const bpm = Math.round(60 * fr / lag);
+  /* swing: fold the onsets onto one beat; the downbeat is the strongest spot, and the off-beat
+     eighth is the strongest spot in the middle stretch of the beat */
+  const B = 24, fold = new Array(B).fill(0);
+  on.forEach((v, i) => { fold[Math.floor(((i % lag) / lag) * B) % B] += v; });
+  const down = fold.indexOf(Math.max(...fold));
+  let off = 0, offV = -1;
+  for (let k = Math.round(B * 0.4); k <= Math.round(B * 0.75); k++) { const v = fold[(down + k) % B]; if (v > offV) { offV = v; off = k; } }
+  const r = off / B, swing = r < 0.56 ? "straight" : r < 0.635 ? "light" : "full";
+  const k = keyOfChroma(chroma);
+  return { bpm, swing, key: k.key, sure: Math.round(Math.max(0, Math.min(1, best.raw / zero)) * 100) / 100, keySure: Math.round(k.fit * 100) / 100 };
+}
+/* "F#m" -> { pc: 6, minor: true } */
+export function keyParts(key) {
+  const m = String(key || "").match(/^([A-G])([#b]?)(m?)$/);
+  if (!m) return null;
+  const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]];
+  return { pc: (base + (m[2] === "#" ? 1 : m[2] === "b" ? -1 : 0) + 12) % 12, minor: !!m[3] };
+}
+/* How many semitones the sheet's sounding key is from the recording's: 0 when they match (a key and its
+   relative major or minor count as a match), else the shortest move, -5 to +6. null when unknown. */
+export function keyGap(sheetKey, recKey) {
+  const s = keyParts(sheetKey), r = keyParts(recKey);
+  if (!s || !r) return null;
+  const tonic = k => k.minor ? (k.pc + 3) % 12 : k.pc; /* compare as the major of the same notes */
+  let d = ((tonic(r) - tonic(s)) % 12 + 12) % 12;
+  if (d > 6) d -= 12;
+  return d;
+}
+export function cleanFeel(f) {
+  if (!isObj(f)) return null;
+  const out = {};
+  if (Number.isFinite(f.bpm) && f.bpm >= 40 && f.bpm <= 240) out.bpm = Math.round(f.bpm);
+  if (["straight", "light", "full"].includes(f.swing)) out.swing = f.swing;
+  if (keyParts(f.key)) out.key = f.key;
+  for (const k of ["sure", "keySure"]) if (Number.isFinite(f[k])) out[k] = Math.round(Math.max(-1, Math.min(1, f[k])) * 100) / 100;
+  if (f.none) out.none = 1;
+  return Object.keys(out).length ? out : null;
+}
+
 // ---------- Checking a backup before it replaces the library ----------
 // Files can be hand-edited or come from somewhere else, so every field the app
 // relies on is checked: wrong types are dropped (the app falls back to its
@@ -408,6 +530,7 @@ export function cleanSong(raw) {
       if (typeof l.composer !== "string") delete l.composer; else l.composer = l.composer.slice(0, 80);
       if (!Number.isInteger(l.year) || l.year < 1900 || l.year > 2100) delete l.year;
       if (!/^[0-9a-f]{6}$/i.test(String(l.tint || ""))) delete l.tint;
+      if (l.feel !== undefined) { const f = cleanFeel(l.feel); if (f) l.feel = f; else delete l.feel; }
     }
   }
   if (s.art !== undefined && !/^https:\/\//.test(String(s.art))) delete s.art; /* album art for set covers: https only */
@@ -2641,7 +2764,7 @@ export function cleanGroove(raw, src = raw?.src) {
 /* The settings a song plays with: its own groove first, then Settings. */
 export function grooveOf(song, settings = {}) {
   const g = song?.groove || {};
-  return { beat: g.beat || settings.metroBeat || "auto", swing: g.swing || settings.metroSwing || "straight", bass: g.bass || settings.bassStyle || "auto", riff: g.riff || "" };
+  return { beat: g.beat || settings.metroBeat || "auto", swing: g.swing || song?.listen?.feel?.swing || settings.metroSwing || "straight", bass: g.bass || settings.bassStyle || "auto", riff: g.riff || "" };
 }
 const BASS_WORDS = { root: "root bass", fifth: "root and fifth bass", pulse: "pulse bass", walk: "walking bass", riff: "a bass riff" };
 /* "Half time, light swing, walking bass": what a groove says, for a toast. */

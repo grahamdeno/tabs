@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { keyGap, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
 import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, recentApple, recordingSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, onFeel, recentApple, recordingSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -726,6 +726,7 @@ function renderViewer(id) {
   if (!song) return go("#/");
   const isChords = song.format !== "tab";
   prepareMusic(song);
+  onFeel(s2 => { if (s2 === song) paintListenChip(song); });
   /* once the sheet is drawn: time its lines from the lyrics (3.17.0) */
   setTimeout(() => { if (viewing === song) timeLines(song, lyricLines); }, 700);
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
@@ -1660,8 +1661,20 @@ function setBacking(song, mode, near, quiet) {
 function listenChip(song) {
   if (!hasMusic(song)) return `<button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button>`;
   const rec = usesMusic(song), art = /^https:\/\//.test(song.listen.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : icon("note");
-  return `<button class="stat listen rec${rec ? " on" : ""}" id="listen" aria-label="${rec ? "Play starts the recording" : "Play starts the band"}. Open the recording">
-    <span class="rc-art">${art}</span>${rec ? "Recording" : "Band"}${rec ? '<i class="rc-lit"></i>' : ""}</button>`;
+  const n = recordingNotes(song), look = !!(n.key || n.bpm);
+  return `<button class="stat listen rec${rec ? " on" : ""}" id="listen" aria-label="${rec ? "Play starts the recording" : "Play starts the band"}.${look ? " The recording doesn't match the sheet." : ""} Open the recording">
+    <span class="rc-art">${art}</span>${look ? '<i class="rc-look"></i>' : ""}${rec ? "Recording" : "Band"}${rec ? '<i class="rc-lit"></i>' : ""}</button>`;
+}
+/* How the sheet differs from the measured recording (3.18.0): key, in half steps (the shortest move),
+   and tempo when it's more than 6% off and not just half or double time. */
+function recordingNotes(song) {
+  const f = song.listen?.feel;
+  if (!f || f.none || !hasMusic(song)) return {};
+  const base = song.format === "tab" ? "" : (song.key || guessKey(song.body || ""));
+  const gap = f.key && (f.keySure || 0) >= 0.5 && base ? keyGap(transposeKey(base, (song.transpose || 0) + soundOffset(song)), f.key) : 0;
+  const r = song.bpm && f.bpm ? song.bpm / f.bpm : 1;
+  const off = Math.min(Math.abs(r - 1), Math.abs(r - 2), Math.abs(r - 0.5)) > 0.06 && (f.sure || 0) >= 0.1;
+  return { key: gap || 0, bpm: off };
 }
 function paintListenChip(song) {
   const el = $("listen");
@@ -1676,6 +1689,9 @@ function openRecording(song) {
     setRate: r => { if (r >= 1) delete song.recRate; else song.recRate = r; Tabs.save(data); if (scroll.on && usesMusic(song)) setMusicRate(recRate(song)); },
     reset: () => { delete song.syncs; Tabs.save(data); toast(song.timed?.at ? "Your fixes are cleared. The line timing stays" : "The page will start learning this song again"); },
     changed: () => { paintListenChip(song); paintLoop(song); },
+    notes: () => recordingNotes(song),
+    matchKey: () => { const g = recordingNotes(song).key; if (!g) return; song.transpose = Math.max(-5, Math.min(6, (song.transpose || 0) + g)); Tabs.save(data); if (viewing === song) render(); toast(`Moved ${g > 0 ? "up" : "down"} ${Math.abs(g)} half step${Math.abs(g) === 1 ? "" : "s"} to match the recording`); },
+    matchBpm: () => { const b = song.listen?.feel?.bpm; if (!b) return; song.bpm = b; Tabs.save(data); toast(`Tempo ${b}, from the recording`); },
     spots: () => { songMarks(song); return { auto: marksCache.auto.map(m => m[0]), mine: (song.syncs || []).map(m => m[0]) }; }
   });
 }

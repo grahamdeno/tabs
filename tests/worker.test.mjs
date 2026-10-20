@@ -59,3 +59,13 @@ test("no key set: a plain error, nothing leaked", async () => {
   assert.equal(r.status, 500);
   assert.deepEqual(await r.json(), { error: { message: "The token couldn't be made" } });
 });
+
+test("the preview route passes along Apple's previews only", async () => {
+  const W = await import("../worker/musickit-token.js");
+  assert.equal(W.previewAllowed("https://audio-ssl.itunes.apple.com/itunes-assets/x.m4a"), true);
+  assert.equal(W.previewAllowed("https://is1-ssl.mzstatic.com/a.m4a"), true);
+  assert.equal(W.previewAllowed("https://evil.example/itunes.apple.com"), false);
+  assert.equal(W.previewAllowed("http://audio-ssl.itunes.apple.com/x.m4a"), false);
+  const r = await W.handle(new Request("https://w.example/preview?u=" + encodeURIComponent("https://evil.example/x"), { headers: { origin: "https://grahamdeno.github.io" } }), {});
+  assert.equal(r.status, 400);
+});

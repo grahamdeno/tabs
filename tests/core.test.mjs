@@ -1628,3 +1628,28 @@ test("line timing: LRC is read, sheet lines pair with timed lines in order, nudg
   assert.equal(C.cleanSong({ id: "a", body: "G", timed: { h: "k", at: "x" } }).timed, undefined);
   assert.notEqual(C.bodyKey("a b"), C.bodyKey("a c"));
 });
+
+/* Synthetic audio for the preview listener: clicks on the beat and the off-beat, and a scale's notes. */
+function synthBeat(bpm, swing, secs = 20, rate = 22050) {
+  const x = new Float32Array(secs * rate), spb = 60 / bpm;
+  const click = (t, amp) => { const i0 = Math.round(t * rate); for (let i = 0; i < 400 && i0 + i < x.length; i++) x[i0 + i] += amp * Math.exp(-i / 60) * Math.sin(i * 0.9); };
+  for (let t = 0; t < secs - 1; t += spb) { click(t, 1); click(t + spb * swing, 0.6); }
+  return x;
+}
+test("preview listening: tempo, swing and key from audio", () => {
+  for (const bpm of [84, 100, 128]) {
+    const f = C.feelOf(synthBeat(bpm, 0.5), 22050);
+    assert.ok(Math.abs(f.bpm - bpm) <= 2, `${bpm} heard as ${f.bpm}`);
+    assert.equal(f.swing, "straight");
+  }
+  assert.equal(C.feelOf(synthBeat(96, 0.67), 22050).swing, "full");
+  /* E major: E G# B ring most, with the other scale notes */
+  const rate = 22050, x = new Float32Array(rate * 10), notes = [[64, 1], [68, 0.8], [71, 0.9], [66, 0.35], [69, 0.35], [73, 0.3], [75, 0.3], [52, 0.9]];
+  for (let i = 0; i < x.length; i++) for (const [m, a] of notes) x[i] += a * 0.1 * Math.sin(2 * Math.PI * 440 * 2 ** ((m - 69) / 12) * i / rate);
+  assert.equal(C.feelOf(x, rate).key, "E");
+  assert.equal(C.keyGap("D", "E"), 2);
+  assert.equal(C.keyGap("Am", "C"), 0, "relative minor counts as the same key");
+  assert.equal(C.keyGap("A", "F"), -4);
+  assert.equal(C.keyGap("?", "E"), null);
+  assert.deepEqual(C.cleanFeel({ bpm: 96.4, swing: "x", key: "F#m", sure: 2 }), { bpm: 96, key: "F#m", sure: 1 });
+});
