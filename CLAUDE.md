@@ -13,14 +13,46 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
   app (Graham, 2.19.0: bronze piping and frosted glass like the other bars).
 - When Graham asks for mockups or an explanation first, give those and wait
   for a go before building.
-- The AI never supplies lyrics. The one exception is German practice, which
-  translates lyrics of songs already in his library.
+- The AI never writes lyrics itself (Claude won't reproduce them, and lyrics
+  from memory come out wrong). Lyrics come from LRCLIB (Get the song) or
+  Graham's own sheet; fetching them from a lyrics source is fine. The one
+  place the AI handles lyrics is German practice, which translates songs
+  already in his library.
 - API keys stay on the phone only. Never put a key in the code or in a backup,
   and don't change how keys are stored.
 - He uses the phone one-handed, mostly right hand: put actions people reach
   for mid-song in thumb reach (bottom of sheets, `pfoot` / the ring).
 - Writing he sees (UI text, README, commit messages, replies): plain and
   direct, no em dashes.
+
+## Next up (Graham's order, agreed 2026-10-19)
+
+Apple Music features only work with Apple Music turned on. Stop after each
+release so Graham can try it.
+
+1. 3.17.0 Automatic line timing: LRCLIB's synced lyrics give each line's time
+   in the recording; match them to the sheet's lines and save them as sync
+   marks (only the times are kept). Also move Apple Music out of Settings >
+   Keys into its own Settings row.
+2. 3.18.0 Preview analysis: Apple's 30-second preview (not copy protected)
+   gives the true tempo, swing and key; flag a sheet in the wrong key or capo.
+3. 3.19.0 Drums that fit the song: the AI returns a 16-step kick, snare and
+   hat grid per section (fills, sparse verse, full chorus) from the measured
+   tempo and feel, genre and year; Busier / Simpler kept per song.
+4. 3.20.0 Just heard it: Apple's recently played offers "Play along?" on
+   Tonight.
+5. 3.21.0 Playlists both ways: import an Apple Music playlist into the
+   library; save a set as an Apple Music playlist.
+6. 3.22.0 You listen to it, now play it: heavy rotation (and Replay, if the
+   API allows) against the chords he knows.
+7. 3.23.0 In the Recording sheet: other versions (acoustic, live) and Watch
+   it live (music videos).
+8. 3.24.0 Play together on the recording.
+9. 3.25.0 Mic chord check during a play-along ("Chorus, 3rd chord sounds
+   like Em").
+10. Small touches, batched: About this song notes, more from this artist,
+    similar artists, genre charts, new in library, Your playing by decade and
+    genre, listened vs played.
 
 ## Where things are
 
