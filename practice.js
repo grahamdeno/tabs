@@ -273,6 +273,9 @@ function scaleLesson(st) {
     if (live) { stopLive(); $("pk-start").hidden = false; $("pk-start").disabled = false; }
     const ctx = sound(); if (!ctx) return toast("The phone won't play sound here.");
     const at = ctx.currentTime + 0.05, gap = 0.34;
+    /* the board follows the notes as they sound (3.24.1) */
+    targets.forEach((_, j) => setTimeout(() => { if ($("pk-board")) { k = j; paint(); } }, 50 + j * gap * 1000));
+    setTimeout(() => { if ($("pk-board") && !live) { k = 0; paint(); } }, 50 + targets.length * gap * 1000);
     targets.forEach((t, j) => {
       const o = ctx.createOscillator(), g = ctx.createGain(), when = at + j * gap;
       o.type = "triangle"; o.frequency.value = t.hz;

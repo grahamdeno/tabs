@@ -119,7 +119,13 @@ onLeave(() => { if (playingId) { musicKit?.then(m => m.stop(), () => {}); playin
 /* Play starts the recording with the scroll (3.10.0). Opening a song gets MusicKit and the queue ready
    (paused), so Play only has to say play; if Apple Music isn't ready, signed in or linked, nothing
    happens and the song scrolls as before. Pausing the scroll pauses the recording. */
-let readyId = "";
+let readyId = "", askedSignIn = 0;
+/* Not signed in to Apple Music inside the app: every recording feature would do nothing, so say so (3.24.1). */
+function signInPrompt(music, song) {
+  if (Date.now() - askedSignIn < 30000) return;
+  askedSignIn = Date.now();
+  toast("Sign in to Apple Music to play the recording with the page", null, { label: "Sign in", fn: () => step("sign-in", music.authorize()).then(() => { readyId = ""; prepareMusic(song); }, e => noteError(e, { quiet: true, where: "apple music sign-in" })) });
+}
 const wanted = song => !!(data.settings.appleMusic && song?.listen && appleTrackId(song.listen.url));
 export const hasMusic = wanted;
 export function prepareMusic(song) {
@@ -128,7 +134,8 @@ export function prepareMusic(song) {
   listenToPreview(song);
   const id = appleTrackId(song.listen.url);
   loadMusicKit().then(async music => {
-    if (!music.isAuthorized || playingId === id || readyId === id) return;
+    if (!music.isAuthorized) return signInPrompt(music, song);
+    if (playingId === id || readyId === id) return;
     await step("queue", music.setQueue({ song: id, startPlaying: false }));
     readyId = id;
   }).catch(e => noteError(e, { quiet: true, where: "apple music ready" }));
@@ -140,7 +147,7 @@ export async function startMusic(song, at = 0, rate = 1) {
   const id = appleTrackId(song.listen.url);
   try {
     const music = await loadMusicKit();
-    if (!music.isAuthorized) return;
+    if (!music.isAuthorized) return signInPrompt(music, song);
     if (readyId !== id && playingId !== id) { await music.setQueue({ song: id, startPlaying: false }); readyId = id; }
     const cur = playingId === id ? music.currentPlaybackTime || 0 : 0;
     if (Math.abs(cur - at) > 1.5) { try { await music.seekToTime(Math.max(0, at)); } catch { /* a fresh queue is already at the start */ } }

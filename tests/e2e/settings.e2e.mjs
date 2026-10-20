@@ -143,6 +143,23 @@ test("Just heard it: Tonight offers the song you just played in Apple Music, lin
   assert.deepEqual(errs, []);
 });
 
+test("Apple Music: not signed in inside the app, opening a linked song offers Sign in instead of doing nothing", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkLog = []; window.mkMusic = { isAuthorized: false, isPlaying: false, authorize: async () => { window.mkMusic.isAuthorized = true; window.mkLog.push("authorize"); },
+      setQueue: async o => { window.mkLog.push("queue:" + o.song + ":" + o.startPlaying); }, seekToTime: async () => {}, play: async () => {}, pause: () => {}, stop: () => {} };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  await page.waitForFunction(() => /Sign in to Apple Music/.test(document.getElementById("toast")?.innerText || ""), null, { timeout: 5000 });
+  await page.click("#toast button");
+  await page.waitForFunction(() => window.mkLog.includes("queue:111:false"), null, { timeout: 5000 });
+  assert.deepEqual(await page.evaluate(() => window.mkLog), ["authorize", "queue:111:false"], "signed in, then the recording is readied");
+});
+
 test("Apple Music: a song set to Band starts no recording, and the More menu switches it to the recording", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], backing: "band", listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, metronome: true } };
