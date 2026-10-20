@@ -98,8 +98,9 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   the browser tests that cover the files changed since `origin/main`.
 - Graham (2.26.0): don't run the full suite here, it costs too many tokens.
   Before a push run only `node tests/quick.mjs`; the full suite runs in CI
-  on every push (`.github/workflows/test.yml`). Check the CI result instead
-  with `gh run list -L 1` if needed. Most long sleeps in the tests are real
+  on every push (`.github/workflows/test.yml`). Graham (2026-10-19): don't
+  check CI after every push or report it; look (`gh run list -L 1`) only
+  when he asks or something points to a failure there. Most long sleeps in the tests are real
   timers being checked (Play settling after 5 s), so leave those.
 - Browser tests use `phone()` from `tests/e2e/harness.mjs`; mock network calls
   with `page.route`. Prefer `waitForSelector` / `waitForFunction` over fixed
@@ -110,9 +111,12 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   saves to `$SHOT`, run it, then delete it.
 - Visual references: CI compares against `tests/visual/ci`, so a release that
   changes how a screen looks shows as a visual difference in CI until they're
-  remade. Graham's rule: don't remake them after each UI change. Count
-  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 9 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0, 3.16.0, 3.17.0, 3.18.0, 3.19.0). To remake when he says yes:
+  remade (expected; not a real failure). Graham (2026-10-19): don't remake
+  them and don't ask for 15 more releases counted from 3.19.0. Releases since
+  3.19.0: 0. To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
+- Mockup screenshots cost tokens: make them only when Graham asks for a
+  mockup or a change can't be judged without one.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
 
 ## Releasing
