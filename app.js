@@ -1,7 +1,7 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { keyGap, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { MAX_LENGTH, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
 import { openDial } from "./dial.js";
-import { askMotion, ringActive, setupRing, teardownRing } from "./ring.js";
+import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSet, nextLine, nextUp, playSet, renderSet, setCover, setCtx, setKeys, setLength, setRun, setSongs, whenText, setSetCtx } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
@@ -788,7 +788,7 @@ function renderViewer(id) {
           return x && list[setCtx.idx]?.id === song.id ? `<button class="oh dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed">
           ${byLength()
-            ? `<input type="range" id="speed" min="60" max="480" step="1" value="${540 - songLength(song)}" aria-label="Song length">`
+            ? `<input type="range" id="speed" min="${540 - MAX_LENGTH}" max="480" step="1" value="${540 - songLength(song)}" aria-label="Song length">`
             : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
@@ -901,7 +901,6 @@ function renderViewer(id) {
     }
     const db = $("dialbtn")?.querySelector("span");
     if (db) db.textContent = $("sv").textContent;
-    ringApi?.refresh();
   };
   showSpeed();
   speed.oninput = () => {
@@ -915,7 +914,7 @@ function renderViewer(id) {
   const dialStep = () => byLength() ? 5 : +speed.step;
   const speedDial = e => { const was = { v: speed.value, d: song.duration, set: song.durationSet, sp: song.speed };
     openDial({ min: +speed.min, max: +speed.max, step: dialStep(), value: +speed.value, label: "Song speed", event: e,
-      marks: byLength() ? [2, 3, 4, 5, 6, 7].map(m => 540 - m * 60) : null,
+      marks: byLength() ? [2, 3, 4, 5, 6, 8, 10, 15].map(m => 540 - m * 60) : null,
       read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
       input: v => { speed.value = v; speed.oninput(); },
       done: (v, changed) => { if (changed) toast(byLength() ? `Length ${mmss(songLength(song))}` : `Speed ${$("sv").textContent}`, null, { label: "Undo", fn: () => {
@@ -945,18 +944,6 @@ function renderViewer(id) {
   };
   $("setdial")?.addEventListener("pointerdown", e => { e.preventDefault(); setDial(e); });
   $("setdial")?.addEventListener("click", e => { if (e.detail === 0) setDial(null); });
-  /* Key (or text size for a tab): a dial of the keys around the song's own. */
-  const keyDial = () => {
-    if (!isChords) return openDial({ min: 0.6, max: 1.6, step: 0.1, value: song.size, label: "Text size", cls: "key",
-      read: v => ({ big: `${Math.round(v * 100)}%`, small: "TEXT SIZE" }),
-      input: v => { song.size = +v.toFixed(2); Tabs.save(data); draw(); } });
-    const base = song.key || guessKey(song.body || ""), steps = Array.from({ length: 12 }, (_, i) => i - 5), was = song.transpose || 0;
-    openDial({ labels: steps.map(n => base ? transposeKey(base, n) : `${n > 0 ? "+" : ""}${n}`), value: (song.transpose || 0) + 5, label: "Key", cls: "key",
-      tick: i => base ? transposeKey(base, steps[i]) : String(steps[i]),
-      read: i => ({ big: steps[i] ? `${steps[i] > 0 ? "+" : ""}${steps[i]}` : "0", small: base ? `KEY ${transposeKey(base, steps[i])}` : "TRANSPOSE" }),
-      input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
-      done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
-  };
   /* German practice: the level dial once the song is translated, else the sheet to translate it. */
   songDeOpen = () => { const fresh = song.de && song.de.src === deSource(sungText(parseBlocks(song.body || ""))); if (fresh && !deJobs.has(song.id)) deDial(); else germanSheet(song, () => draw()); };
   /* German practice level on the corner dial: Off, Basic … Fluent. */
@@ -968,33 +955,8 @@ function renderViewer(id) {
       input: i => { song.deLevel = i; if (i) data.settings.deLevel = i; Tabs.save(data); draw(); },
       done: (i, changed) => { if (changed) toast(i ? `German: ${DE_LEVELS[i]}` : "German off", null, { label: "Undo", fn: () => { song.deLevel = was; Tabs.save(data); draw(); } }); } });
   };
-  /* One hand: the island, hold Play for the ring, Play follows your hand (ring.js). */
-  const inSet = !!$("setdial");
-  ringApi = setupRing({
-    settings: data.settings,
-    items: [
-      /* Back lives in the island; the ring holds what you reach for mid-song.
-         what you touch while playing sits lowest, nearest the thumb's
-         natural sweep; Tuner joins; German moves to More. Each place is the
-         next one along the arc. */
-      { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
-      { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
-      isChords && { id: "nn", short: "Chords", label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
-      { id: "tuner", short: "Tuner", label: "Tuner", icon: icon("fork") + (tunedRecently() ? "" : '<i class="dotmark"></i>'), run: () => { if (scroll.on) stopScroll(); openTuner(songTuning(song)); } },
-      { id: "fav", short: "Favorite", label: "Favorite", icon: icon("heart"), active: () => !!song.favorite, run: () => app.querySelector(".player .fav")?.click() },
-      { id: "more", short: "More", label: "More", icon: icon("dots"), run: anchor => songMenu(song, anchor, draw) },
-      inSet && { id: "set", short: "Set", label: "Set", icon: icon("listplus"), run: () => setDial(null) }
-    ].filter(Boolean).map((it, i) => ({ ...it, slot: i })),
-    grab: () => { hold.touching = true; hold.active = true; clearTimeout(hold.timer); },
-    letGo: () => { hold.touching = false; releaseSoon(250); },
-    where: () => { const line = innerHeight * READ_AT; let name = ""; for (const el of document.querySelectorAll("#sheet > .sec")) { if (el.getBoundingClientRect().top <= line) name = el.textContent.trim(); else break; } return name; },
-    back: { label: back.label, run: () => go(back.to) },
-    playing: () => scroll.on,
-    followMode: () => data.settings.follow || "hand",
-    rose: () => ringHint(),
-    opened: () => markUsed("ringHint")
-  });
-  offerMotion();
+  /* One hand (3.19.0): the bar is out while paused and folds into Play's corner while playing (fold.js). */
+  foldApi = setupFold({ back: { label: back.label, run: () => go(back.to) }, playing: () => scroll.on });
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
   /* A linked Apple Music song without its recording length yet: look it up once. */
   if (song.listen && song.listen.length === undefined && appleTrackId(song.listen.url)) recordingLength(song, song.listen.url, { quiet: true });
@@ -1029,18 +991,8 @@ function renderViewer(id) {
 // on their word; tab systems are re-wrapped by measure to the screen width.
 let redraw = null;
 let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
-let ringApi = null;
-onLeave(() => { teardownRing(); ringApi = null; });
-// Once, on a phone: offer to let Play rise when you pick the phone up. iPhone
-// asks for the motion sensors only from a tap, so it's a button on a note.
-function offerMotion() {
-  const s = data.settings;
-  if (!ringActive(s) || (s.follow || "hand") !== "hand" || s.motionAsked || typeof window.DeviceMotionEvent?.requestPermission !== "function") return;
-  s.motionAsked = true; Tabs.save(data);
-  setTimeout(() => toast("Let Play rise to your thumb when you pick up the phone?", null, { label: "Allow", fn: async () => {
-    if (!(await askMotion())) { s.follow = "touch"; Tabs.save(data); toast("Play will rise when you touch the screen instead"); }
-  } }), 1500);
-}
+let foldApi = null;
+onLeave(() => { teardownFold(); foldApi = null; });
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
 function chordLabel(text) {
@@ -1715,16 +1667,14 @@ function songMenu(song, anchor, redrawSong) {
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier;
-  const ringOn = document.body.classList.contains("ring"); /* Metronome and Now and Next live in the ring then */
   const items = [
     { id: "size" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
-    !ringOn && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
+    { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
     song.format !== "tab" && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
-    ringOn && deEligible(song) && songDeOpen && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
     { id: "share", icon: "share", label: "Share song" },
     { id: "duet", icon: "pick", label: "Play together" },
     { id: "edit", icon: "edit", label: "Edit" },
@@ -2445,7 +2395,7 @@ async function startScroll(song, opts = {}) {
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
-  ringApi?.mode?.(); /* the bar folds into Play's corner */
+  foldApi?.mode?.(); /* the bar folds into Play's corner */
   playsHere++;
   setTimeout(() => {
     const k = data.settings.stage ? "pauseStage" : "pause";
@@ -2484,7 +2434,7 @@ async function startScroll(song, opts = {}) {
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
       scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
-      if (scroll.ms - (scroll.saved || 0) > 20000) { journalTime(data, (scroll.ms - (scroll.saved || 0)) / 1000); scroll.saved = scroll.ms; Tabs.save(data); } /* every 20 s, so closing the app mid-song loses nothing */
+      if (scroll.ms - (scroll.saved || 0) > 20000) { (song.loop ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); scroll.saved = scroll.ms; Tabs.save(data); } /* every 20 s, so closing the app mid-song loses nothing */
       if (loopCheck(song)) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; }
       /* The recording is the clock while it plays: the page goes where its time says, so a pause, a stall
          or a seek in Apple Music moves the scroll with it. Otherwise the timer carries the page. */
@@ -2541,14 +2491,14 @@ function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;
   scroll.on = false; scroll.duet = false;
-  if (scroll.ms - (scroll.saved || 0) > 1000) { journalTime(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
+  if (scroll.ms - (scroll.saved || 0) > 1000) { (viewing?.loop ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
   if (was) pauseMusic();
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");
-  ringApi?.mode?.(); /* and unfolds when the song stops */
+  foldApi?.mode?.(); /* and unfolds when the song stops */
   wakeControls();
   cancelAnimationFrame(scroll.raf);
   scroll.lock?.release?.().catch(() => {});
@@ -2651,27 +2601,6 @@ function renderRoute() {
 // Screen changes animate with the browser's view transitions where supported:
 // a short cross-fade, and the song title glides between the library row and the
 // song header. Instant when Reduce Motion is on or the browser lacks support.
-// The first time Play glides up to the arc: a glass circle grows,
-// shrinks and settles where the ring will open, then a note says to hold
-// Play. Once only, and never once you've opened the ring yourself.
-function ringHint() {
-  /* 3.16.0: paused, the whole bar is out; the ring is how you reach things while the song plays, so the hint comes then. */
-  if (!scroll.on || !document.body.classList.contains("ring") || !tipDue("ringHint") || document.querySelector(".coach, .ringx")) return;
-  setTimeout(() => {
-    const p = $("play");
-    if (!p || !scroll.on || !document.body.classList.contains("ring-up") || !coachTip("ringHint")) return;
-    ringApi?.lift?.(); /* keep Play up while it plays out */
-    const say = () => { if ($("play")?.isConnected && scroll.on) coach($("play"), "", { ms: 5200, place: "above", fixed: true, html: "<b>Press and hold Play for more</b><span>A ring opens with Favorite, Metronome, Key and More. Slide to one and let go.</span>" }); };
-    if (calm()) return say();
-    const r = p.getBoundingClientRect(), g = document.createElement("div");
-    g.className = "ring-hint glass"; g.setAttribute("aria-hidden", "true");
-    g.style.left = (r.left + r.width / 2) + "px"; g.style.top = (r.top + r.height / 2) + "px";
-    p.before(g); /* beside Play, so Play stays on top of the glass */
-    p.classList.add("hint-under");
-    const keep = setInterval(() => ringApi?.lift?.(), 400);
-    g.addEventListener("animationend", () => { g.remove(); p.classList.remove("hint-under"); clearInterval(keep); say(); }, { once: true });
-  }, 380); /* after the glide (0.3 s) */
-}
 const calm = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 let lastOpened = null; // id of the song whose title should glide back to its row
 window.addEventListener("hashchange", () => {

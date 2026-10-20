@@ -21,7 +21,10 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - API keys stay on the phone only. Never put a key in the code or in a backup,
   and don't change how keys are stored.
 - He uses the phone one-handed, mostly right hand: put actions people reach
-  for mid-song in thumb reach (bottom of sheets, `pfoot` / the ring).
+  for mid-song in thumb reach (bottom of sheets, `pfoot`, the bar).
+- No ring controls (Graham, 3.19.0): on a phone the rectangular bar is out
+  while paused and folds into Play's corner while playing. Don't bring back
+  the hold-Play ring, the arc, the island or Play following the hand.
 - Writing he sees (UI text, README, commit messages, replies): plain and
   direct, no em dashes.
 
@@ -30,6 +33,18 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 Apple Music features only work with Apple Music turned on. Stop after each
 release so Graham can try it.
 
+0. Agreed 2026-10-19, next after 3.19.0: the Neck shows Learning songs on top
+   (cover, progress, the one thing to do next; a tap opens the song in
+   Practice mode on that section) with Skills below, plus a new Scales section
+   (lessons and listening, like the chord lessons). Practice mode on the song:
+   a Practicing chip and one Practice row (section, speed, Build up, drums,
+   Check me) that replaces the loop banner; Learning songs open in it. The
+   Recording sheet's cover header also goes on Listen and Get the song.
+0b. Right after the Neck release: chord timing without a paid service. Spread
+   each LRCLIB line's words over its time by syllables and snap chord changes
+   to the measured beat grid (3.18.0); use LRCLIB's word-level times when a
+   song has them. "Learn from your playing" (mic hears your chord changes)
+   goes with the mic chord check (#9). No Musixmatch.
 1. Done in 3.17.0. Automatic line timing: LRCLIB's synced lyrics give each line's time
    in the recording; match them to the sheet's lines and save them as sync
    marks (only the times are kept). Also move Apple Music out of Settings >
@@ -62,7 +77,7 @@ release so Graham can try it.
 | Library, song page, playback, Find songs, router | `app.js` |
 | Share links, opening a shared link, Play together | `share.js` |
 | Listen: recordings, previews, length from the recording | `listen.js` |
-| Ring controls, Play following the hand | `ring.js` |
+| The bar folding into Play's corner while playing, pull down to go back | `fold.js` |
 | Settings menu and pages, Recently deleted | `settings.js` |
 | Tips, Show me demos, Tips & gestures | `coach.js` |
 | Play next, chord charts, Get the song | `findai.js` |
@@ -87,18 +102,14 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 - Browser tests use `phone()` from `tests/e2e/harness.mjs`; mock network calls
   with `page.route`. Prefer `waitForSelector` / `waitForFunction` over fixed
   `waitForTimeout` sleeps in new tests.
-- On a phone the ring layout (island, arc, hold Play) is out only while a
-  song plays; paused, the whole bar shows (3.16.0). A test of the ring's own
-  gestures while paused calls `forceRing(page)` from the harness, again after
-  every `page.goto` (a reload clears it).
 - Edit with exact, unique matches and check what changed: a find-and-replace
-  that hit the ring instead of More shipped broken buttons in 3.13.0/3.14.0.
+  that hit the old ring instead of More shipped broken buttons in 3.13.0/3.14.0.
 - Screenshots for Graham: write a throwaway `tests/e2e/zz_*.e2e.mjs` that
   saves to `$SHOT`, run it, then delete it.
 - Visual references: CI compares against `tests/visual/ci`, so a release that
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
-  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 8 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0, 3.16.0, 3.17.0, 3.18.0). To remake when he says yes:
+  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 9 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0, 3.16.0, 3.17.0, 3.18.0, 3.19.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
 

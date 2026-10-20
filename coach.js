@@ -3,7 +3,6 @@
 import { Tabs, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
 import { setSetCtx } from "./sets.js";
-import { showRing } from "./ring.js";
 import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
 
 // ---------- Coach: one-time help, in place and never in the way ----------
@@ -190,8 +189,7 @@ function demoNN() {
   nn.innerHTML = `<div class="nowcol"><div class="lab">NOW</div><div>${card(diag.seq[idx].name, 1.26)}</div></div><div class="vs"></div>
     <div style="min-width:0"><div class="lab">NEXT</div><div class="cards">${next.map((n, i) => card(n, 1, fade[i])).join("")}</div></div>`;
   document.body.classList.add("nn-demo");
-  const ring = document.body.classList.contains("ring");
-  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on ${ring ? "by holding Play, then Now and Next" : `with ${icon("fretboard")} below`}.</span>` });
+  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on with ${icon("fretboard")} below.</span>` });
   setTimeout(() => { document.body.classList.remove("nn-demo"); if (!scroll.on) nn.innerHTML = ""; }, 3800);
   return true;
 }
@@ -264,19 +262,13 @@ function showMe(name) {
 }
 /* One hand: point at the control where it is. Only on a phone held upright. */
 const ONE_HAND = {
-  ring: () => [document.getElementById("play"), "<b>Hold Play</b><span>Slide to Favorite, Metronome, Key, Now and Next or More, and let go.</span>"],
-  arc: () => { wakeRing(); return [document.getElementById("play"), "<b>Sweep the arc Play sits on</b><span>Up moves forward, down moves back. One full sweep goes end to end.</span>"]; },
   pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Library\u201d and let go.</span>", "below"],
   speed: () => [document.getElementById("dialbtn"), "<b>Hold the time</b><span>Then sweep around the corner to set the song's length.</span>"],
-  setdial: () => [document.getElementById("setdial"), "<b>Hold \u201c4 of 9\u201d</b><span>Sweep through the set; let go to open a song.</span>"],
-  rise: () => { wakeRing(); return [document.getElementById("play"), "<b>Play rises to your thumb</b><span>While the phone is in your hand; it settles after 5 seconds still.</span>"]; }
+  setdial: () => [document.getElementById("setdial"), "<b>Hold \u201c4 of 9\u201d</b><span>Sweep through the set; let go to open a song.</span>"]
 };
-/* Lift Play as a touch would. */
-const wakeRing = () => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); };
 function runDemo(name, song) {
   if (ONE_HAND[name]) {
-    if (!document.body.classList.contains("one")) return toast("This one is for a phone held upright, with Song controls set to Hold Play");
-    showRing(9000); /* paused, the bar is out: fold it to the corner for the demo */
+    if (!document.body.classList.contains("one")) return toast("This one is for a phone held upright");
     if (name === "setdial" && !document.getElementById("setdial")) return toast("Open a song from a set, then hold \u201c4 of 9\u201d");
     return setTimeout(() => { const [el, html, place = "above"] = ONE_HAND[name](); if (el) setTimeout(() => coach(el, "", { ms: 6000, place, fixed: true, html }), 400); }, 300);
   }
@@ -293,19 +285,17 @@ function runDemo(name, song) {
 // Grouped by where you are; only things without a visible button.
 const GESTURES = [
   ["One hand (phone held upright)", [
-    ["ring", "Hold Play", "A ring opens: Favorite, Metronome, Key, Now and Next, More, and Set in a set. Slide to one and let go, or let go and tap", "play"],
-    ["arc", "Sweep the arc", "Moves through the song: slowly for a line or two, one full sweep end to end. The section glows as you go", "loop"],
+    ["", "Press Play", "The bar folds into Play's corner while the song plays; pause and it comes back", "play"],
     ["pull", "Pull down at the top of a song", "Let go at \u201cRelease for Library\u201d to go back (when paused)", "back"],
     ["speed", "Hold the time", "The speed dial: sweep the corner to set the song's length", "gauge"],
-    ["setdial", "Hold \u201c4 of 9\u201d in a set", "The set dial: sweep through the set, let go to open a song", "listplus"],
-    ["rise", "Pick up the phone", "Play rises to your thumb; it settles back after 5 seconds still", "up"]]],
+    ["setdial", "Hold \u201c4 of 9\u201d in a set", "The set dial: sweep through the set, let go to open a song", "listplus"]]],
   ["On a song", [
     ["chord", "Tap a chord", "See how to play it; tap a chord card above the song to mark everywhere it's played", "fretboard"],
     ["line", "Tap a line", "Play starts from there", "play"],
     ["map", "Drag the song map", "Jump through the song's sections (Settings > Chord diagrams > Song map)", "sections"],
     ["nn", "Now and Next", "The chord you're on, and what's coming", "fretboard"],
     ["", "Tap the title bar", "Back to the top", "up"],
-    ["", "Key", "Hold Play, then Key; or \u2212 and + in the bar on iPad (resizes tab)", "plus"],
+    ["", "Key", "\u2212 and + in the bar (on a tab they change the text size)", "plus"],
     ["", "Count-in", "Plays only when you start from the top", "metro"]]],
   ["While playing", [
     ["pause", "Tap anywhere", "Pause (tap twice on stage). Scroll by hand and it carries on from there", "pause"]]],

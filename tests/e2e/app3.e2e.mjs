@@ -5,141 +5,28 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { forceRing, chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser } from "./harness.mjs";
 
 useBrowser();
 
 
-test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps the bar", { skip: skip() }, async t => {
-  const songs = [...LIB.songs, { id: "x0", title: "One", artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }];
-  const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, controls: "ring", follow: "hand", motionAsked: true } });
-  await forceRing(page);
+test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest; iPad keeps the bar", { skip: skip() }, async t => {
+  const songs = [...LIB.songs.map(x => x.id === "a" ? { ...x, duration: 900 } : x), { id: "x0", title: "One", artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }];
+  const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, countIn: false } });
   await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
-  await forceRing(page);
-  await page.click("[data-open='0']"); await page.waitForTimeout(5800);
-  assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), false, "settled");
-  await page.evaluate(() => { for (let i = 0; i < 6; i++) window.dispatchEvent(new DeviceMotionEvent("devicemotion", { accelerationIncludingGravity: { x: 0, y: -9.8, z: 0 }, rotationRate: { alpha: 20, beta: 10, gamma: 5 } })); });
-  await page.waitForTimeout(700);
-  assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), true, "picking the phone up lifts Play");
-  const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(600);
-  assert.equal(await page.locator(".ringx .ri[data-r='set']").count(), 1, "Set in a set");
-  await page.mouse.up(); await page.mouse.click(60, 120); await page.waitForTimeout(200);
-  assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the island");
+  await page.click("[data-open='0']"); await page.waitForTimeout(600);
+  assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the bar");
+  assert.ok(await page.locator("#setdial").isVisible());
+  await page.click("#play"); await page.waitForTimeout(500);
+  assert.equal(await page.locator("#setdial").isVisible(), false, "folded away while playing");
+  await page.click("#play"); await page.waitForTimeout(500);
 
-  const pad = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring" } }, { viewport: { width: 1180, height: 820 } });
+  const pad = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } }, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
-  assert.equal(await pad.evaluate(() => document.body.classList.contains("ring")), false, "iPad: no ring");
+  await pad.click("#play"); await pad.waitForTimeout(400);
+  assert.equal(await pad.evaluate(() => document.body.classList.contains("fold")), false, "iPad: the bar stays");
   assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
 });
-
-test("2.3 sweep the track: up the arc moves forward in the song, down moves back", { skip: skip() }, async t => {
-  const long = { ...LIB.songs[0], body: Array.from({ length: 6 }, () => LIB.songs[0].body).join("\n\n") };
-  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
-  await forceRing(page);
-  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  await forceRing(page);
-  await page.mouse.click(120, 300); await page.waitForTimeout(900);
-  const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21);
-  const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
-  const lit = () => page.evaluate(() => document.querySelector(".rc-t1").getAttribute("d"));
-  const before = await lit();
-  const startY = await page.evaluate(() => +document.querySelector(".rc-hit").getAttribute("d").split(" ")[2]);
-  assert.ok(startY < 844 - 29, `the arc stays clear of the home bar (${startY})`);
-  let p = at(190);
-  await page.mouse.move(p.x, p.y); await page.mouse.down();
-  for (let a = 192; a <= 220; a += 4) { p = at(a); await page.mouse.move(p.x, p.y); }
-  const y1 = await page.evaluate(() => scrollY);
-  assert.ok(y1 > 200, `sweeping up the arc moves forward (${y1})`);
-  for (let a = 216; a >= 204; a -= 4) { p = at(a); await page.mouse.move(p.x, p.y); }
-  const y2 = await page.evaluate(() => scrollY);
-  assert.ok(y2 < y1 - 60, `sweeping down moves back (${y2} < ${y1})`);
-  await page.mouse.up(); await page.waitForTimeout(200);
-  assert.notEqual(await lit(), before, "the lit part shows the new place");
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "sweeping doesn't press Play");
-  /* While playing: auto-scroll carries on from the new place. */
-  await page.click("#play"); await page.waitForTimeout(400);
-  /* (a tap on the words would pause, so lift Play with a touch elsewhere) */
-  await page.evaluate(() => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); });
-  await page.waitForTimeout(800);
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
-  p = at(190); await page.mouse.move(p.x, p.y); await page.mouse.down();
-  for (let a = 192; a <= 214; a += 4) { p = at(a); await page.mouse.move(p.x, p.y); }
-  const held = await page.evaluate(() => scrollY); await page.waitForTimeout(500);
-  assert.ok(Math.abs(await page.evaluate(() => scrollY) - held) < 3, "holds still under the thumb");
-  await page.mouse.up(); await page.waitForTimeout(1500);
-  const after = await page.evaluate(() => [scrollY, document.documentElement.scrollHeight - innerHeight, document.getElementById("play").getAttribute("aria-label"), document.body.className]);
-  assert.ok(after[0] > held || after[0] >= after[1] - 2, `then carries on (${held} -> ${after})`);
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "still playing");
-});
-
-test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the section glows", { skip: skip() }, async t => {
-  const long = { ...LIB.songs[0], body: Array.from({ length: 12 }, (_, i) => LIB.songs[0].body.replace("[Chorus]", `[Chorus ${i + 1}]`)).join("\n\n") };
-  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
-  await forceRing(page);
-  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  await forceRing(page);
-  const lift = async () => { await page.mouse.click(120, 300); await page.waitForTimeout(800); };
-  await lift();
-  const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21), a0 = 180 + Math.asin(30 / r) * 180 / Math.PI;
-  const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
-  const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
-  assert.ok(max > 3000, "a long song");
-  /* Slow: a fifth of the arc, gently, moves less than a screen. */
-  let p = at(a0 + 3); await page.mouse.move(p.x, p.y); await page.mouse.down();
-  for (let a = a0 + 3; a <= a0 + 18; a += 1) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(40); }
-  const slow = await page.evaluate(() => scrollY);
-  assert.ok(slow > 20 && slow < 844, `slow sweep moves finely (${slow})`);
-  assert.match(await page.textContent(".rc-where"), /VERSE|Verse|CHORUS|Chorus/i, "the section glows while sweeping");
-  await page.mouse.up(); await page.waitForTimeout(300);
-  /* End to end in one sweep: the end of the song. */
-  await lift();
-  p = at(a0 + 2); await page.mouse.move(p.x, p.y); await page.mouse.down();
-  for (let a = a0 + 2; a <= 263; a += 6) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(15); }
-  p = at(263); await page.mouse.move(p.x, p.y); await page.waitForTimeout(50);
-  await page.mouse.up(); await page.waitForTimeout(300);
-  assert.ok(await page.evaluate(() => scrollY) >= max - 2, "a full sweep up reaches the end");
-  await lift();
-  p = at(262); await page.mouse.move(p.x, p.y); await page.mouse.down();
-  for (let a = 262; a >= a0 + 1; a -= 6) { p = at(a); await page.mouse.move(p.x, p.y); await page.waitForTimeout(15); }
-  p = at(a0 + 1); await page.mouse.move(p.x, p.y);
-  await page.mouse.up(); await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => scrollY), 0, "a full sweep down reaches the start");
-});
-
-test("2.4.6 arc: real touch sweeps move steadily, never jump, never reverse", { skip: skip() }, async t => {
-  const long = { ...LIB.songs[0], body: Array.from({ length: 14 }, (_, i) => LIB.songs[0].body.replace("[Chorus]", `[Chorus ${i + 1}]`)).join("\n\n") };
-  const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
-  await forceRing(page);
-  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  await forceRing(page);
-  const cdp = await page.context().newCDPSession(page);
-  const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21), a0 = 180 + Math.asin(30 / r) * 180 / Math.PI;
-  const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
-  const touch = (type, p) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: p ? [{ x: p.x, y: p.y }] : [] });
-  const max = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
-  const sweep = async (from, to, degPerSec) => {
-    await touch("touchStart", { x: 100, y: 300 }); await touch("touchEnd"); await page.waitForTimeout(900); /* lift Play */
-    await page.evaluate(() => { window.__ys = []; const f = () => { window.__ys.push(scrollY); window.__raf = requestAnimationFrame(f); }; f(); });
-    const steps = Math.ceil(Math.abs(to - from) / degPerSec * 60); let p = at(from);
-    await touch("touchStart", p);
-    for (let i = 1; i <= steps; i++) { p = at(from + (to - from) * i / steps); await touch("touchMove", p); await page.waitForTimeout(16); }
-    await touch("touchEnd"); await page.waitForTimeout(300);
-    const ys = await page.evaluate(() => { cancelAnimationFrame(window.__raf); return window.__ys; });
-    const d = ys.slice(1).map((y, i) => y - ys[i]).filter(Boolean);
-    return { moved: ys.at(-1) - ys[0], biggest: Math.max(0, ...d.map(Math.abs)), reversals: d.filter((x, i) => i && Math.sign(x) !== Math.sign(d[i - 1])).length, end: ys.at(-1) };
-  };
-  const slow = await sweep(a0 + 4, a0 + 20, 25);
-  assert.ok(slow.moved > 60 && slow.moved < 400, `slow: fine (${slow.moved})`);
-  assert.ok(slow.biggest <= 14 && slow.reversals === 0, `slow: steady (${JSON.stringify(slow)})`);
-  await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(300);
-  const full = await sweep(a0 + 3, 262.5, 250);
-  assert.ok(full.end >= max - 2, `a quick full sweep reaches the end (${full.end} of ${max})`);
-  assert.ok(full.biggest < max * 0.12 && full.reversals === 0, `no jump: biggest frame ${full.biggest} of ${max}`);
-  const back = await sweep(255, 230, 40);
-  assert.ok(back.moved < 0 && back.reversals === 0, `back up the song, steadily (${JSON.stringify(back)})`);
-});
-
 test("2.5 Settings > Song map turns the section rail off and on", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
@@ -154,15 +41,14 @@ test("2.5 Settings > Song map turns the section rail off and on", { skip: skip()
   assert.equal(await page.locator(".smap").count(), 1, "back on");
 });
 
-test("2.5 Back: in the island; pull down at the top; the library opens at its top", { skip: skip() }, async t => {
+test("2.5 Back: in the bar; pull down at the top; the library opens at its top", { skip: skip() }, async t => {
   const songs = Array.from({ length: 30 }, (_, i) => ({ id: "s" + i, title: "Song " + String(i).padStart(2, "0"), artist: "A", format: "chords", body: "[Verse]\nG C\nla" }));
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...songs], settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
-  await forceRing(page);
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...songs] }, { isMobile: true });
   await page.evaluate(() => scrollTo(0, 1500)); await page.waitForTimeout(200);
   await page.evaluate(() => { location.hash = "#/song/s25"; }); await page.waitForTimeout(500);
-  const b = await page.evaluate(() => { const r = document.getElementById("rc-back").getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(document.getElementById("rc-back")).display }; });
-  assert.ok(b.y > 760 && b.v !== "none", `Back sits in the island (${JSON.stringify(b)})`);
-  await page.click("#rc-back"); await page.waitForTimeout(500);
+  const b = await page.evaluate(() => { const el = document.querySelector(".player .oh-back"), r = el.getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(el).display }; });
+  assert.ok(b.y > 700 && b.v !== "none", `Back sits in the bar (${JSON.stringify(b)})`);
+  await page.click(".player .oh-back"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => location.hash), "#/library");
   assert.equal(await page.evaluate(() => scrollY), 0, "the library opens at its top");
   /* Pull down at the top of a song. */
@@ -175,26 +61,25 @@ test("2.5 Back: in the island; pull down at the top; the library opens at its to
   assert.equal(await page.evaluate(() => location.hash), "#/song/a", "a short pull springs back");
   await touch("touchStart", 300);
   for (let y = 300; y <= 420; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); }
-  assert.match(await page.textContent(".rc-pull"), /Release for Library/);
-  assert.equal(await page.evaluate(() => document.querySelector(".rc-pull").classList.contains("go")), true);
+  assert.match(await page.textContent(".fp-pull"), /Release for Library/);
+  assert.equal(await page.evaluate(() => document.querySelector(".fp-pull").classList.contains("go")), true);
   await touch("touchEnd"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => location.hash), "#/library", "a full pull goes back");
 });
 
-test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me points at the ring", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
+test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me points at the control", { skip: skip() }, async t => {
+  const page = await phone(t, LIB);
   await page.goto(base + "#/gestures"); await page.waitForTimeout(300);
   const labels = await page.evaluate(() => [...document.querySelectorAll(".label")].map(x => x.textContent));
   assert.match(labels[0], /One hand/i, "one-hand group first");
   const text = await page.innerText("#app");
-  for (const t of ["Hold Play", "Sweep the arc", "Pull down at the top", "Hold the time"]) assert.ok(text.includes(t), t);
-  for (const t of ["Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
+  for (const t of ["Press Play", "Pull down at the top", "Hold the time"]) assert.ok(text.includes(t), t);
+  for (const t of ["Hold Play", "Sweep the arc", "Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
   assert.ok(await page.locator(".gs-row").count() <= 24, "trimmed");
-  await page.click(".gs-show[data-demo='ring']"); await page.waitForTimeout(1800);
+  await page.click(".gs-show[data-demo='speed']"); await page.waitForTimeout(1800);
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
-  assert.ok(await page.locator(".coach").count() >= 1, "the tip points at Play");
+  assert.ok(await page.locator(".coach").count() >= 1, "the tip points at the time");
 });
-
 test("2.6.5 speed dial: a wobble doesn't change it; Undo restores; nothing selectable", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
@@ -282,16 +167,16 @@ test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is 
 test("2.19.1 Library: the Recent cards show (the ring's styles had been hiding them)", { skip: skip() }, async t => {
   const now = Date.now();
   const songs = ["One", "Two", "Three", "Four"].map((title, i) => ({ id: "r" + i, title, artist: "A", format: "chords", body: "[Verse]\nG C\nla", opened: now - i * 60000 }));
-  const page = await phone(t, { ...LIB, songs, sets: [], settings: { ...LIB.settings, controls: "ring" } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, songs, sets: [], settings: { ...LIB.settings } }, { isMobile: true });
   const shown = await page.evaluate(() => [...document.querySelectorAll(".recent .rc")].map(el => el.offsetParent !== null && el.getBoundingClientRect().height > 20));
   assert.deepEqual(shown, [true, true], "two Recent cards, visible");
 });
 
-test("2.30.1: editing or adding a song hides Play and the arc", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
+test("2.30.1: editing or adding a song hides Play", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { isMobile: true });
   await page.click("#add"); await page.waitForTimeout(700);
   await page.mouse.click(200, 300); await page.waitForTimeout(700);
-  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("rc")).display), "none", "no Play or arc on the new song page");
+  assert.equal(await page.evaluate(() => { const f = document.getElementById("fp"); return !f || getComputedStyle(f).display === "none"; }), true, "no Play on the new song page");
   assert.equal(await page.locator("#play").isVisible(), false);
 });
 

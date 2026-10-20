@@ -596,7 +596,8 @@ test("song length: set when never chosen, offer when chosen and different", () =
   assert.equal(C.lengthChoice({ duration: 230, durationSet: true }, 232, st), "none"); // close enough
   assert.equal(C.lengthChoice({}, 0, st), "none");
   assert.equal(C.fitLength(20), 60);
-  assert.equal(C.fitLength(900), 480);
+  assert.equal(C.fitLength(900), 900, "15:00 fits (3.19.0)");
+  assert.equal(C.fitLength(1200), 900);
 });
 
 test("tap tempo: median of the latest run of taps", () => {
@@ -1652,4 +1653,16 @@ test("preview listening: tempo, swing and key from audio", () => {
   assert.equal(C.keyGap("A", "F"), -4);
   assert.equal(C.keyGap("?", "E"), null);
   assert.deepEqual(C.cleanFeel({ bpm: 96.4, swing: "x", key: "F#m", sure: 2 }), { bpm: 96, key: "F#m", sure: 1 });
+});
+
+test("practice counts on the Tour Map: every 4 minutes is a play", () => {
+  const d = { songs: [], settings: {} };
+  const now = Date.parse("2026-10-19T12:00:00Z");
+  const before = C.lifetimePlays(d);
+  C.journalPractice(d, 239, now);
+  assert.equal(C.lifetimePlays(d), before, "under four minutes: not yet");
+  C.journalPractice(d, 2, now);
+  assert.equal(C.lifetimePlays(d), before + 1);
+  C.journalPractice(d, 480, now);
+  assert.equal(C.lifetimePlays(d), before + 3);
 });

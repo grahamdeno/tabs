@@ -361,7 +361,6 @@ test("2.1 set dial: in a set, sweep to a song and let go to open it", { skip: sk
   const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0", "x1", "x2"] }] });
   await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
   await page.click("[data-open='0']"); await page.waitForTimeout(500);
-  await page.click("#play"); await page.waitForTimeout(600); /* works while playing too */
   assert.match(await page.innerText("#setdial"), /1 of 4/);
   const b = await page.locator("#setdial").boundingBox();
   const x = b.x + 20, y = b.y + 16;
@@ -393,73 +392,26 @@ test("2.1 glow: count-in and the chord you're on glow; gig day counts down on Up
   assert.doesNotMatch(await page.evaluate(() => getComputedStyle(document.querySelector("#nn .cards .dn")).filter), /glow-f/, "Next stays plain");
 });
 
-test("2.2 ring: paused the bar is out; playing, Play rests in the corner, rises with a touch, settles when still; hold it for the ring", { skip: skip() }, async t => {
-  /* The first-rise hint keeps Play up while it plays; it's covered in ringhint.e2e. */
-  const ring = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900 } : s), settings: { ...LIB.settings, controls: "ring", follow: "touch", countIn: false, tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } };
-  const page = await phone(t, ring);
+test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner while playing, and there is no ring", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900 } : s), settings: { ...LIB.settings, countIn: false } };
+  const page = await phone(t, lib);
   const center = () => page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  const cdp = await page.context().newCDPSession(page);
-  const touch = () => page.evaluate(() => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); });
-  /* the ring is for while the song plays (3.16.0): make sure it is playing before a hold */
-  const holdPlay = async ms => { if (await page.getAttribute("#play", "aria-label") !== "Pause auto-scroll") { await page.click("#play"); await page.waitForTimeout(500); } const c = await center(); await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c.x, y: c.y }] }); await page.waitForTimeout(ms); };
-  const lift = () => cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const state = () => page.evaluate(() => ({ one: document.body.classList.contains("one"), fold: document.body.classList.contains("fold"), inBar: !!document.getElementById("play").closest(".player"), bar: getComputedStyle(document.querySelector(".app.viewer .dock")).display !== "none" }));
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  /* 3.16.0: paused, the whole bar is out with Play in it. */
-  assert.notEqual(await page.evaluate(() => document.getElementById("play").parentElement.id), "rc", "paused: Play sits in the bar");
-  assert.equal(await page.evaluate(() => document.body.classList.contains("ring")), false);
-  /* A tap on Play plays, and the bar folds into the corner. */
+  assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "paused: the bar is out with Play in it");
   await page.click("#play"); await page.waitForTimeout(500);
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
-  assert.equal(await page.evaluate(() => document.getElementById("play").parentElement.id), "rc", "playing: Play sits in the ring controls");
-  let c = await center();
-  assert.ok(c.x > 330 && c.y > 780, `Play rests in the corner (${c.x}, ${c.y})`);
-  await touch(); await page.waitForTimeout(900);
-  c = await center();
-  assert.ok(Math.abs(c.x - 390 * 0.66) < 6 && Math.abs(c.y - 844 * 0.79) < 6, `a touch lifts Play to the thumb (${c.x}, ${c.y})`);
-  assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), true);
-  await page.waitForTimeout(5800);
-  c = await center();
-  assert.ok(c.x > 330 && c.y > 780, "still for 5 seconds: back in the corner");
-  /* A firm tap (400 ms) is still a tap: no ring; it pauses, and the bar comes back. */
-  c = await center(); await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(400); await page.mouse.up(); await page.waitForTimeout(450);
-  assert.equal(await page.locator(".ringx").count(), 0, "a firm tap doesn't open the ring");
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "it paused");
-  assert.equal(await page.evaluate(() => document.body.classList.contains("ring")), false, "paused: the bar is back");
-  /* Playing: hold Play for the ring. */
-  await page.click("#play"); await page.waitForTimeout(500);
-  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("play")).webkitUserSelect || getComputedStyle(document.getElementById("play")).userSelect), "none");
-  await holdPlay(800); await page.waitForSelector(".ringx .ri", { timeout: 3000 });
-  assert.deepEqual(await page.$$eval(".ringx .ri", els => els.map(e => e.dataset.r)), ["metro", "key", "nn", "tuner", "fav", "more"], "2.26.0: Tempo, Key, Chords lowest, then Tuner, Favorite, More (no Back: it's in the island)");
-  assert.deepEqual(await page.$$eval(".ringx .ri-l", els => els.map(e => e.textContent)), ["TEMPO", "KEY", "CHORDS", "TUNER", "FAVORITE", "MORE"], "each named on the panel");
-  assert.equal(await page.locator(".ringx .ri[data-r='back']").count(), 0);
-  /* Let go: the song plays on. */
-  await lift(); await page.waitForTimeout(300);
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "letting go doesn't pause");
-  await page.evaluate(() => document.querySelector(".ringx")?.remove());
-  /* Tempo turns the metronome on, and the ring shows it (the screen reader's copy of the ring runs the same items). */
-  await page.evaluate(() => document.querySelector(".rc .sr-only [data-ri='metro']").click()); await page.waitForTimeout(200);
-  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.metronome, true, "metronome on from the ring");
-  await page.waitForTimeout(1200);
-  await holdPlay(800); await page.waitForSelector(".ringx .ri", { timeout: 3000 });
-  assert.equal(await page.getAttribute(".ri[data-r='metro']", "aria-pressed"), "true");
-  await lift(); await page.waitForTimeout(300); await page.evaluate(() => document.querySelector(".ringx")?.remove());
-  /* Key opens the key dial. */
-  await page.evaluate(() => document.querySelector(".rc .sr-only [data-ri='key']").click()); await page.waitForTimeout(300);
-  assert.equal(await page.locator(".dial.key").count(), 1, "the key dial");
-  assert.match(await page.textContent(".dial-small"), /KEY A/);
-  await page.mouse.click(60, 120); await page.waitForTimeout(300);
-  assert.equal(await page.locator(".dial").count(), 0);
-  /* Hold Play, slide to More, let go: the song pauses and the menu stays. */
-  await holdPlay(800); await page.waitForSelector(".ringx .ri", { timeout: 3000 });
-  const m2 = await page.evaluate(() => { const r = document.querySelector(".ri[data-r='more']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: m2.x, y: m2.y }] }); await page.waitForTimeout(100);
-  assert.match(await page.textContent(".ring-name"), /More/);
-  await lift(); await page.waitForTimeout(1200);
-  assert.equal(await page.locator(".menu").count(), 1, "the menu stays open");
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "the song paused");
-  await page.mouse.click(60, 120); await page.waitForTimeout(300);
-  /* Screen readers get the same controls as buttons. */
-  assert.equal(await page.locator(".rc .sr-only [data-ri]").count(), 6);
+  assert.deepEqual(await state(), { one: true, fold: true, inBar: false, bar: false }, "playing: the bar folds away");
+  const c = await center();
+  assert.ok(c.x > 320 && c.y > 760, `Play waits alone in the corner (${c.x}, ${c.y})`);
+  /* a long hold is still a tap: nothing opens, and it pauses */
+  await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up(); await page.waitForTimeout(450);
+  assert.equal(await page.locator(".ringx, .rc-track, .rc-isl").count(), 0, "no ring, arc or island");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
+  assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "paused again: the bar unfolds");
+  /* More has Metronome now that the ring is gone */
+  await page.click("#more"); await page.waitForSelector(".menu");
+  assert.equal(await page.locator(".menu [data-m='metro']").count(), 1);
 });
 
 test("2.16.5 speed dial: a tap that slips a little near the corner closes it without changing the time", { skip: skip() }, async t => {
@@ -483,7 +435,7 @@ test("2.25.0 speed dial is a meter: the needle swings with the length, and whole
   await page.click("#dialbtn"); await page.waitForSelector(".dial-needle");
   const tip = () => page.evaluate(() => { const n = document.querySelector(".dial-needle"); return [+n.getAttribute("x2"), +n.getAttribute("y2")]; });
   const before = await tip();
-  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll(".dial-labels .sc")].map(e => e.textContent)), ["2:00", "3:00", "4:00", "5:00", "6:00", "7:00"]);
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll(".dial-labels .sc")].map(e => e.textContent)), ["2:00", "3:00", "4:00", "5:00", "6:00", "8:00", "10:00", "15:00"], "3.19.0: up to 15 minutes");
   assert.match(await page.textContent(".dial-small"), /SONG LENGTH/);
   await page.keyboard.press("Escape").catch(() => {});
   await page.evaluate(() => { const s = document.getElementById("speed"); s.value = 480; s.oninput(); });

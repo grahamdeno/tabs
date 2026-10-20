@@ -2,7 +2,6 @@
 import { BASS_STYLES, DRUM_BEATS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
-import { askMotion } from "./ring.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, bassPreview, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
@@ -112,26 +111,8 @@ function renderSettings() {
         <span class="tile">${icon("amp")}</span><span class="name">Amp covering</span>
         <button class="toggle ${s.tolex ? "on" : ""}" id="s-tolex" role="switch" aria-checked="${!!s.tolex}" aria-label="Amp covering: a fine tolex grain behind the app"></button>
       </div>
-      <div class="set">
-        <span class="tile">${icon("play")}</span><span class="name">Song controls</span><span class="val">${s.controls === "bar" ? "Bar" : "Hold Play"}</span>${icon("chev", "chev")}
-        <select id="s-controls" aria-label="Song controls">
-          ${[["ring", "Hold Play (ring)"], ["bar", "Bar"]].map(([v, t]) => `<option value="${v}" ${v === (s.controls || "ring") ? "selected" : ""}>${t}</option>`).join("")}
-        </select>
-      </div>
-      ${s.controls === "bar" ? "" : `<div class="set">
-        <span class="tile">${icon("gauge")}</span><span class="name">Play button</span><span class="val">${{ hand: "Follows your hand", touch: "Follows your touch", corner: "Stays in the corner" }[s.follow || "hand"]}</span>${icon("chev", "chev")}
-        <select id="s-follow" aria-label="Play button">
-          ${[["hand", "Follows your hand"], ["touch", "Follows your touch"], ["corner", "Stays in the corner"]].map(([v, t]) => `<option value="${v}" ${v === (s.follow || "hand") ? "selected" : ""}>${t}</option>`).join("")}
-        </select>
-      </div>
-      <div class="set">
-        <span class="tile">${icon("loop")}</span><span class="name">Arc sweep</span><span class="val">${s.arcSweep === "screen" ? "One screen" : "Whole song"}</span>${icon("chev", "chev")}
-        <select id="s-arc" aria-label="Arc sweep">
-          ${[["song", "Whole song"], ["screen", "One screen"]].map(([v, t]) => `<option value="${v}" ${v === (s.arcSweep || "song") ? "selected" : ""}>${t}</option>`).join("")}
-        </select>
-      </div>`}
     </div>
-    <p class="foot">On a phone held upright, hold Play for Back, Favorite, Key, More and Set; Play rises to your thumb while the phone is in your hand and settles in the corner when it's still. Sweep the arc to move through the song: slowly for a line or two, quickly to cover ground; one full sweep goes end to end.</p>`],
+    <p class="foot">On a phone held upright, the whole bar shows while a song is paused. Press Play and it folds into Play's corner; pause and it comes back. At the top of a paused song, pull down to go back.</p>`],
     newsongs: ["New songs", `
     <div class="set-group glass">
       ${s.speedMode === "multiplier" ? `<div class="set">
@@ -239,7 +220,7 @@ function renderSettings() {
     <div class="set-group glass">
       ${row("playing", "play", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "Count-in", s.stage && "Stage"].filter(Boolean).join(" · "))}
       ${row("diagrams", "fretboard", "Chord diagrams", `${diagOn} of 4 on`)}
-      ${row("look", "moon", "Look", `${theme} · ${s.controls === "bar" ? "Bar" : "Hold Play"}`)}
+      ${row("look", "moon", "Look", theme)}
       ${row("newsongs", "sliders", "New songs", `${s.speedMode === "multiplier" ? ((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1) + "x" : mmss(s.startLength || 210)} · ${t ? semis(t) : "No transpose"}`)}
     </div>
     <div class="set-group glass s-gap">
@@ -314,13 +295,6 @@ function renderSettings() {
   $("s-cityremove")?.addEventListener("click", () => { delete s.place; Tabs.save(data); renderSettings(); toast("Weather off"); });
   $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
-  $("s-arc")?.addEventListener("change", e => { s.arcSweep = e.target.value; Tabs.save(data); renderSettings(); });
-  $("s-controls").onchange = e => { s.controls = e.target.value; Tabs.save(data); renderSettings(); };
-  $("s-follow")?.addEventListener("change", async e => {
-    s.follow = e.target.value;
-    if (s.follow === "hand" && !(await askMotion())) { s.follow = "touch"; toast("Motion wasn't allowed, so Play follows your touch"); }
-    Tabs.save(data); renderSettings();
-  });
   app.querySelectorAll("#s-theme [data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {
     const k = $("s-key").value.trim();

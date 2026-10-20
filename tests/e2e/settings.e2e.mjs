@@ -255,29 +255,6 @@ test("Apple Music: the Recording sheet switches recording and band, sets the spe
   assert.equal((await saved()).recRate, 0.7);
 });
 
-test("one hand: paused, the whole bar shows; Play folds it into the corner and the ring holds no Apple Music items", { skip: skip() }, async t => {
-  const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
-  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", countIn: false, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } };
-  const page = await phone(t, lib);
-  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 500, body: "" }));
-  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
-  await page.waitForTimeout(300);
-  const st = () => page.evaluate(() => ({ one: document.body.classList.contains("one"), ring: document.body.classList.contains("ring"), bar: !!document.querySelector(".app.viewer .player #play") && getComputedStyle(document.querySelector(".app.viewer .dock")).display !== "none" }));
-  assert.deepEqual(await st(), { one: true, ring: false, bar: true }, "paused: the bar is out, with Play in it");
-  await page.click("#play");
-  await page.waitForFunction(() => document.body.classList.contains("ring"), null, { timeout: 3000 });
-  assert.deepEqual(await st(), { one: true, ring: true, bar: false }, "playing: folded into the corner");
-  const c = await page.locator("#play").boundingBox();
-  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2); await page.mouse.down(); await page.waitForTimeout(900);
-  await page.waitForSelector(".ringx .ri");
-  assert.deepEqual(await page.$$eval(".ringx .ri", els => els.map(e => e.dataset.r)), ["metro", "key", "nn", "tuner", "fav", "more"], "Tempo is back and nothing else crowds More off the ring");
-  await page.mouse.up(); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
-  await page.evaluate(() => document.querySelector(".ringx")?.click()); await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById("play").click());
-  await page.waitForFunction(() => !document.body.classList.contains("ring"), null, { timeout: 3000 });
-  assert.equal((await st()).bar, true, "paused again: the bar unfolds");
-});
-
 test("Apple Music: each line is timed from LRCLIB's synced lyrics, only the times are kept, and the page follows them", { skip: skip() }, async t => {
   const body = SONG + "\n" + Array.from({ length: 10 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nline number ${n + 2} goes right here`).join("\n");
   const song = { ...LIB.songs[0], body, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200, title: "River Road", artist: "The Wanderers" } };

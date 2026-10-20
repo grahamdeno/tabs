@@ -74,7 +74,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `chords` | `{ [chord]: { n, first } }` | Plays that used the chord (in the shapes played), and the day of the first |
 | `changes` | `{ "a\|b": n }` | Switches between two chords |
 | `keys` | `{ [key]: n }` | Plays by the key the song sounds in |
-| `months` | `{ "YYYY-MM": { plays, secs, bpm, bpmN } }` | Per month; `bpm / bpmN` is the average tempo |
+| `months` | `{ "YYYY-MM": { plays, secs, bpm, bpmN, psecs? } }` | Per month; `bpm / bpmN` is the average tempo; `psecs` is practice time (3.19.0), every 240 s of it counts as a play on the Tour Map |
 | `week` | 168 numbers | Plays per hour of the week, Sunday midnight first |
 | `best` | integer | Longest streak in days |
 | `firsts` | `[{ kind: "chord" \| "got", name, at }]` | Newest milestones first, 40 kept |

@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.18.0";
+export const VERSION = "3.19.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -20,8 +20,6 @@ const DEFAULT_SETTINGS = {
   tunerGuided: true,     // guitar tuner walks the strings low to high
   a4: 440,               // pitch reference for the tuner, Hz
   micExplained: false,   // the tuner has said why it needs the microphone
-  controls: "ring",      // phone upright: "ring" (hold Play) or "bar"
-  follow: "hand",        // ring: Play rises with "hand" (motion), "touch", or stays in the "corner"
   songMap: true,          // the section rail on the right edge of a song
   nudge: true,            // the library's Today line: practice streak and a song for today
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
@@ -1638,7 +1636,9 @@ export function appleTrackId(url) {
 // chosen (so the recording is the best guess), "offer" when you set your own and
 // it differs, "none" when they already match. Lengths are kept to 1:00 to 8:00,
 // the slider's range.
-export const fitLength = sec => Math.min(480, Math.max(60, Math.round(sec)));
+/* A song's length runs from 1:00 to 15:00 (3.19.0; it was 8:00, which cut long live takes short). */
+export const MAX_LENGTH = 900;
+export const fitLength = sec => Math.min(MAX_LENGTH, Math.max(60, Math.round(sec)));
 export function lengthChoice(song, seconds, settings = {}) {
   if (!(seconds > 0)) return "none";
   const rec = fitLength(seconds);
@@ -2497,6 +2497,15 @@ export function journalTime(data, secs, now = Date.now()) {
   days[dayKey(now)] = (days[dayKey(now)] || 0) + s;
   pruneDays(days, now);
 }
+/* Practice (3.19.0): lessons, drills and What I hear in the Neck, and looping a section on a song.
+   It counts as time on guitar, and every PRACTICE_PLAY seconds of it counts as a play on the Tour Map. */
+export const PRACTICE_PLAY = 240;
+export function journalPractice(data, secs, now = Date.now()) {
+  if (!(secs > 1)) return;
+  journalTime(data, secs, now);
+  const m = journalOf(data, now).months[monthKey(now)];
+  m.psecs = (m.psecs || 0) + Math.min(secs, 3600);
+}
 // A tuner session: for each string checked, how far off it was when first heard.
 export function journalTune(data, firstCents, now = Date.now()) {
   const j = journalOf(data, now);
@@ -2862,7 +2871,7 @@ export function fitZoom(lat, cells, w, h, S = HEX_M) {
 }
 export const spotLabel = spot => spot ? `${Math.abs(spot.lat).toFixed(2)}° ${spot.lat >= 0 ? "N" : "S"}, ${Math.abs(spot.lon).toFixed(2)}° ${spot.lon >= 0 ? "E" : "W"}` : "";
 /* Credited plays over all time: the journal counts one each time a song is played through. */
-export const lifetimePlays = data => Object.values(journalOf(data).months).reduce((n, m) => n + (m.plays || 0), 0);
+export const lifetimePlays = data => Object.values(journalOf(data).months).reduce((n, m) => n + (m.plays || 0) + Math.floor((m.psecs || 0) / PRACTICE_PLAY), 0);
 
 // ---------- Venues ----------
 // Each ring of the Tour Map is a bigger room. Ring k arrives at 4 k squared

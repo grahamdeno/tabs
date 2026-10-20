@@ -2,7 +2,7 @@
 // The song and its translation are invented.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { forceRing, skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { skip, LIB, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
 const BODY = "[Verse]\nG               D\nGrey boats lean on the harbor wall\nC        G\nBring the lights home";
@@ -105,38 +105,11 @@ test("German practice in the background: batches land as they come; a dropped co
   await page.waitForFunction(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "l").de; return d && !d.partial && d.lines.every(Boolean); }, null, { timeout: 5000 });
 });
 
-test("German in More, seven fit in the ring in a set, and sheets close with a swipe down", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }], settings: { ...LIB.settings, controls: "ring", follow: "corner" } }, { isMobile: true });
-  await forceRing(page);
+test("German opens from its chip, and its sheet closes with a swipe down", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }] }, { isMobile: true });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
-  const ring = async () => {
-    const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-    await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(650);
-    const items = await page.$$eval(".ringx .ri", els => els.map(e => { const r = e.getBoundingClientRect(); return { id: e.dataset.r, x: r.left + r.width / 2, y: r.top + r.height / 2, on: r.top >= 0 && r.left >= 0 }; }));
-    await page.mouse.up(); await page.mouse.click(60, 120); await page.waitForTimeout(250);
-    return items;
-  };
-  await page.goto(page.url().replace(/#.*$/, "") + "#/song/a"); await page.waitForTimeout(600);
-  await forceRing(page);
-  let items = await ring();
-  assert.deepEqual(items.map(i => i.id), ["metro", "key", "nn", "tuner", "fav", "more"], "2.26.0: German moved to More");
-  {
-    const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-    await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up(); await page.waitForTimeout(150);
-    await page.click(".ri[data-r='more']"); await page.waitForSelector(".menu");
-    assert.equal(await page.locator(".menu [data-m='de']").count(), 1, "German practice in More");
-    await page.click(".menu [data-m='de']"); await page.waitForSelector(".de-sheet");
-    await page.mouse.click(60, 120); await page.waitForTimeout(300);
-    if (await page.locator(".de-sheet").count()) await page.keyboard.press("Escape");
-  }
   await page.goto(page.url().replace(/#.*$/, "") + "#/set/s"); await page.waitForTimeout(400);
-  await forceRing(page);
   await page.click("[data-open='0']"); await page.waitForTimeout(700);
-  items = await ring();
-  assert.deepEqual(items.map(i => i.id), ["metro", "key", "nn", "tuner", "fav", "more", "set"], "in a set: Set last, seven fit");
-  const gaps = items.slice(1).map((p, i) => Math.hypot(p.x - items[i].x, p.y - items[i].y));
-  assert.ok(Math.min(...gaps) >= 44, `a thumb's width apart (${Math.min(...gaps).toFixed(1)} px)`);
-  assert.ok(items.every(i => i.on), "all on screen");
   // Swipe the German sheet down from its handle: it closes.
   await page.click("#dechip"); await page.waitForSelector(".de-sheet");
   const g = await page.evaluate(() => { const r = document.querySelector(".de-sheet .grab").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });

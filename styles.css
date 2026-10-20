@@ -1216,71 +1216,44 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 .tn-note.glow b { color: var(--glow-c); text-shadow: var(--glow); transition: color .2s, text-shadow .2s; }
 .un-cd { font: 600 26px var(--sans); font-variant-numeric: tabular-nums; letter-spacing: .01em; margin: 4px 0 2px; }
 
-/* ---------- one-hand ring controls (phone upright; ring.js) ----------
-   The bar becomes an island in the lower right; Play sits in its corner, or
-   rises to the thumb's resting spot on the speed track while the phone is in
-   your hand. Hold Play for the ring. */
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-#rc { display: none; } /* the ring controls; .rc alone is also the Recent cards */
-/* Paused on a phone (3.16.0) the bar is out and only Pull down to go back uses the ring layer. */
-body.one #rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
-body.one:not(.ring) #rc > :not(.rc-pull):not(.sr-only) { display: none; }
+/* ---------- One hand (phone upright; fold.js, 3.19.0) ----------
+   Paused, the whole bar is out. Playing, it folds into Play's corner and Play
+   stays there alone, to pause. Paused at the top, pull down to go back. */
+#fp { display: none; }
+body.one #fp { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
+body.one #fp > * { pointer-events: auto; }
+body.one:not(.fold) #fp > :not(.fp-pull) { display: none; }
 body.one { overscroll-behavior: none; }
-body.ring #rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
-body.ring .rc > * { pointer-events: auto; }
-body.ring .rc .rc-track { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
-body.ring.ring-up .rc .rc-track { opacity: 1; }
-body.ring.playing.ring-up .rc .rc-track { opacity: .55; }
-.rc-t0 { fill: none; stroke: var(--rim); stroke-width: 10; stroke-linecap: round; }
-.rc-t1 { fill: none; stroke: var(--accent); stroke-opacity: .6; stroke-width: 3; stroke-linecap: round; }
-body.ring .rc-isl { position: fixed; right: 12px; bottom: calc(12px + var(--safe-b)); height: 60px; display: flex; align-items: center; gap: 8px; padding: 0 64px 0 12px; border-radius: var(--r-bar); background: var(--bar); border: 1px solid var(--rim); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: padding .28s cubic-bezier(.2,1,.3,1); }
-body.ring.ring-up .rc-isl { padding-right: 12px; }
-body.ring .rc-isl .dialbtn { display: inline-flex; height: 36px; border-radius: 10px; }
-body.ring .rc #play { position: fixed; z-index: 22; width: 48px; height: 48px; border-radius: var(--r); right: 18px; bottom: calc(18px + var(--safe-b)); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent); transition: right .3s cubic-bezier(.2,1,.3,1), bottom .3s cubic-bezier(.2,1,.3,1); touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-body.ring.ring-up .rc #play { right: calc(34vw - 24px); bottom: calc(21vh - 24px); }
-body.ring .rc #play svg { width: 18px; height: 18px; }
-body.ring .app.viewer .player { display: none; }
-body.ring:not(.nn-on):not(.loop-on) .app.viewer .dock { display: none; }
-body.ring .app.viewer .dock { bottom: calc(84px + var(--safe-b)); }
-body.ring .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
-body.ring.nn-on .app.viewer { padding-bottom: calc(300px + var(--safe-b)); }
-body.ring .app.viewer .dock-fade { height: calc(100px + var(--safe-b)); }
+body.fold .fp #play { position: fixed; z-index: 22; width: 52px; height: 52px; border-radius: var(--r); right: 18px; bottom: calc(18px + var(--safe-b)); display: grid; place-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+body.fold .fp #play svg { width: 18px; height: 18px; }
+body.fold .app.viewer .player { display: none; }
+body.fold:not(.nn-on):not(.loop-on) .app.viewer .dock { display: none; }
+body.fold .app.viewer .dock { bottom: calc(84px + var(--safe-b)); }
+body.fold .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
+body.fold.nn-on .app.viewer { padding-bottom: calc(300px + var(--safe-b)); }
+body.fold .app.viewer .dock-fade { height: calc(100px + var(--safe-b)); }
+body.cedit #fp { display: none; }
+body.fold.nn-demo .app.viewer .dock { display: flex !important; }
+body.one .app.viewer[style*="--pull"] > :not(.fp):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }
+.fp-pull { position: fixed; left: 50%; top: calc(14px + var(--safe-t)); transform: translateX(-50%); padding: 8px 14px; border-radius: 18px; background: var(--solid); border: 1px solid var(--rim); color: var(--fg-2); font: 500 13px var(--sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: color .12s, border-color .12s, box-shadow .12s; }
+.fp-pull.go { color: var(--glow-c); border-color: var(--accent); box-shadow: 0 0 14px rgba(255,150,70,.4); text-shadow: var(--glow); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Paused on a phone (3.16.0) the bar is out and only Pull down to go back uses the ring layer. */
 /* The ring around Play */
-.ringx { position: fixed; inset: 0; z-index: 66; opacity: 0; transition: opacity .14s; }
-.ringx.on { opacity: 1; }
-.ring-bg { position: fixed; width: 384px; height: 384px; margin: -192px 0 0 -192px; border-radius: 50%; background: color-mix(in srgb, var(--solid) 94%, transparent); border: 1px solid var(--rim); box-shadow: 0 12px 40px rgba(0,0,0,.45); transform: scale(.7); transition: transform .18s cubic-bezier(.2,1,.3,1); }
-.ringx.on .ring-bg { transform: none; }
-.ri { position: fixed; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 14px; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; transition: transform .1s, border-color .1s; }
-.ri svg { width: 20px; height: 20px; }
-.ri .ri-t { font: 700 13px var(--sans); color: var(--accent); }
-.ri.on { transform: scale(1.1); border-color: var(--accent); color: var(--glow-c); box-shadow: 0 0 14px rgba(255,150,70,.45); }
-.ring-name { position: fixed; transform: translateX(-50%); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { body.ring .rc #play, body.ring .rc-isl, .ring-bg, .ringx, body.ring .rc .rc-track { transition: none; } }
-body.cedit.ring .rc { display: none; }
 /* no iPhone selection or tap highlight on the ring controls */
-body.ring .rc, body.ring .rc *, .ringx, .ringx * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 /* sweep the track to move through the song */
-.rc-hit { fill: none; stroke: transparent; stroke-width: 44; stroke-linecap: round; pointer-events: none; }
-body.ring.ring-up .rc .rc-hit { pointer-events: stroke; cursor: grab; }
-body.ring.ring-sweep .rc .rc-track { opacity: 1; }
-body.ring.ring-sweep .rc-t1 { stroke-opacity: 1; stroke-width: 4; filter: url(#glow-f); }
 /* no rubber-band bounce of the whole page on the song screen */
-body.ring { overscroll-behavior: none; }
 /* while sweeping, the section you're in glows above Play */
-.rc-where { display: none; }
-body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34vw - 24px); bottom: calc(21vh + 40px); transform: translateX(calc(50% - 24px)); font: 600 15px var(--sans); white-space: nowrap; pointer-events: none; text-transform: none; }
 /* Not tuned in the last few hours: a solid dot on the fork's corner, with an
    outline so it stands off the button, and two rings that ripple out from it
    three times every 7 seconds, like a ringing fork. The dot itself never
    fades, so it's there whenever you look. */
-.ib .dotmark, .add.tool .dotmark, .ri .dotmark { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+.ib .dotmark, .add.tool .dotmark { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
 .ib .dotmark { top: 2px; right: 2px; }
 .add.tool .dotmark { top: 12px; right: 14px; }
-.ri .dotmark { top: 5px; right: 5px; background: #eda27f; box-shadow: 0 0 0 2px #111113; }
-.ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after, .ri .dotmark::before, .ri .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; opacity: 0; }
-.ri .dotmark::before, .ri .dotmark::after { border-color: #eda27f; }
-.ib .dotmark::before, .add.tool .dotmark::before, .ri .dotmark::before { inset: -4px; animation: fork-ring 7s ease-out infinite; }
-.ib .dotmark::after, .add.tool .dotmark::after, .ri .dotmark::after { inset: -8px; animation: fork-ring 7s ease-out .12s infinite; }
+.ib .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::before, .add.tool .dotmark::after { content: ""; position: absolute; border-radius: 50%; border: 1.5px solid var(--accent); pointer-events: none; opacity: 0; }
+.ib .dotmark::before, .add.tool .dotmark::before { inset: -4px; animation: fork-ring 7s ease-out infinite; }
+.ib .dotmark::after, .add.tool .dotmark::after { inset: -8px; animation: fork-ring 7s ease-out .12s infinite; }
 @keyframes fork-ring {
   0% { transform: scale(.7); opacity: .9; } 15.9% { transform: scale(1.3); opacity: 0; }
   16% { transform: scale(.7); opacity: .9; } 31.9% { transform: scale(1.3); opacity: 0; }
@@ -1288,30 +1261,19 @@ body.ring.ring-sweep .rc-where { display: block; position: fixed; right: calc(34
 }
 /* Reduce Motion: the rings stay, still. */
 @media (prefers-reduced-motion: reduce) {
-  .ib .dotmark::before, .add.tool .dotmark::before, .ri .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after, .ri .dotmark::after { animation: none; }
-  .ib .dotmark::before, .add.tool .dotmark::before, .ri .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after, .ri .dotmark::after { opacity: .4; }
+  .ib .dotmark::before, .add.tool .dotmark::before, .ib .dotmark::after, .add.tool .dotmark::after { animation: none; }
+  .ib .dotmark::before, .add.tool .dotmark::before { opacity: .7; } .ib .dotmark::after, .add.tool .dotmark::after { opacity: .4; }
 }
 }
 /* while sweeping the arc, the page keeps still: no chord diagrams,
    compact header or line resizing until you let go */
-body.ring-sweep .sheet .prow, body.ring-sweep .sheet .dpop { display: none; }
-body.ring-sweep .chead { opacity: 0 !important; pointer-events: none !important; }
-body.ring-sweep .sheet > * { transition: none !important; }
 /* Back in the island; pull down at the top to go back */
-body.ring .rc-isl .rc-back { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--rim); background: var(--card-2); color: var(--fg); display: grid; place-items: center; padding: 0; flex: none; }
-body.ring .rc-isl .rc-back svg { width: 18px; height: 18px; }
-.rc-pull { position: fixed; left: 50%; top: calc(14px + var(--safe-t)); transform: translateX(-50%); padding: 8px 14px; border-radius: 18px; background: var(--solid); border: 1px solid var(--rim); color: var(--fg-2); font: 500 13px var(--sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: color .12s, border-color .12s, box-shadow .12s; }
-.rc-pull.go { color: var(--glow-c); border-color: var(--accent); box-shadow: 0 0 14px rgba(255,150,70,.4); text-shadow: var(--glow); }
-body.one .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }
 /* ring items that are on (Favorite, Metronome, Now and Next) */
-.ri.act { border-color: var(--accent-line); color: var(--accent); }
-.ri.act svg { fill: currentColor; fill-opacity: .2; }
 /* the tuner's success: "All in tune" glows green */
 .tn-note.done.glow b { color: var(--good); text-shadow: 0 0 6px color-mix(in srgb, var(--good) 80%, transparent), 0 0 18px color-mix(in srgb, var(--good) 50%, transparent); }
 /* no iPhone text selection or callout on the dials */
 .dial, .dial *, .dialbtn, .dialbtn * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 /* the Now and Next tip shows its panel in ring mode too */
-body.ring.nn-demo .app.viewer .dock { display: flex !important; }
 
 /* German practice: German words in the sheet, gender by a dotted line
    (der blue, die rose, das green; other words copper), the level sheet and the word card. */
@@ -1387,19 +1349,6 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
 
 /* First-time hint: where the ring opens, a glass circle grows, shrinks,
    bounces and goes, and Play comes back on top of it. */
-.ring-hint { position: fixed; z-index: 21; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; pointer-events: none; transform: scale(.16); opacity: 0; animation: ringHint 1.7s cubic-bezier(.3,.7,.3,1) forwards; }
-@keyframes ringHint {
-  0% { transform: scale(.16); opacity: 0; }
-  12% { opacity: 1; }
-  32% { transform: scale(1); }
-  50% { transform: scale(.5); }
-  64% { transform: scale(.82); }
-  76% { transform: scale(.66); }
-  86% { transform: scale(.74); opacity: 1; }
-  100% { transform: scale(.16); opacity: 0; }
-}
-body.ring .rc #play.hint-under { z-index: 23; }
-@media (prefers-reduced-motion: reduce) { .ring-hint { display: none; } }
 
 /* Small shared pieces that used to be inline styles. */
 .fld.fld-k { min-height: 52px; }
@@ -1472,7 +1421,7 @@ body.ring .rc #play.hint-under { z-index: 23; }
 }
 
 /* ---- Piping and labels ---- */
-.cmd, .float, body.ring .rc-isl, .list.glass, .set-group, .panel, .ring-bg, .ed-strip, .gs .gs-rows.glass, .nx .nx-row { border-color: var(--bronze-line); }
+.cmd, .float, .list.glass, .set-group, .panel, .ed-strip, .gs .gs-rows.glass, .nx .nx-row { border-color: var(--bronze-line); }
 .label, .sheet .sec, .strip-h, .ed-new { color: var(--bronze); }
 /* Sheet titles that name a tool (Play next, Get the song) read like panel lettering. */
 .nx .ph h2, .gs .ph h2 { font: 700 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
@@ -1501,19 +1450,17 @@ body.ring .rc #play.hint-under { z-index: 23; }
 /* ---- Buttons ----
    Two families. Everyday buttons (.btn) are quiet cards with a copper .primary
    for the main action. Amp controls (.chrome) are black with a chrome rim. */
-.btn.primary, .ce-save, body.ring .rc #play, .nx .nx-ch span.new { background: var(--copper); color: var(--copper-fg); border: 0; box-shadow: var(--copper-hi); }
-body.ring .rc #play { box-shadow: var(--copper-hi), var(--copper-glow); }
-body.ring-open .rc #play { box-shadow: var(--copper-hi); }
-body.knob-drag .rc #play { transition: none; }
-.ri, .ed-tl, .ed-tile { background: var(--chrome); border: 1px solid var(--chrome-edge); color: var(--chrome-fg); box-shadow: var(--chrome-shadow); }
+.btn.primary, .ce-save, body.fold .fp #play, .nx .nx-ch span.new { background: var(--copper); color: var(--copper-fg); border: 0; box-shadow: var(--copper-hi); }
+body.fold .fp #play { box-shadow: var(--copper-hi), var(--copper-glow); }
+.ed-tl, .ed-tile { background: var(--chrome); border: 1px solid var(--chrome-edge); color: var(--chrome-fg); box-shadow: var(--chrome-shadow); }
 
 /* ---- Plates and recesses ---- */
-body.ring .rc-isl, .ce-plate, .nx #nx-level, .gs #gs-level {
+.ce-plate, .nx #nx-level, .gs #gs-level {
   background: var(--plate); border: 1px solid var(--plate-edge); box-shadow: var(--plate-shadow);
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 .ce-plate, .nx #nx-level, .gs #gs-level { display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 6px; box-sizing: border-box; border-radius: 18px; }
-body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn, .ce-rec, .cebar .ce-plate .seg, .nx #nx-level button, .gs #gs-level button {
+.ce-rec, .cebar .ce-plate .seg, .nx #nx-level button, .gs #gs-level button {
   background: var(--recess); border: 1px solid var(--recess-edge); color: var(--recess-fg); box-shadow: var(--recess-shadow);
 }
 
@@ -1528,9 +1475,9 @@ body.ring .rc-isl .rc-back, body.ring .rc-isl .dialbtn, .ce-rec, .cebar .ce-plat
 
 /* ---- Lamps ----
    One lamp in four sizes. .on is lit, .warm pulses while something is working. */
-.jewel, .gs-lamp, .nx-lamp, .nx-jewel, #chips .chip::before, .ri[aria-pressed]::after {
+.jewel, .gs-lamp, .nx-lamp, .nx-jewel, #chips .chip::before {
   border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
-body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, .gs #gs-level button.on .nx-lamp, #chips .chip.on::before, .ri.act::after, .nx-jewel {
+body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, .gs #gs-level button.on .nx-lamp, #chips .chip.on::before, .nx-jewel {
   background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
 .gs-lamp.warm { background: var(--lamp-warm); animation: lampwarm 1.2s ease-in-out infinite alternate; }
 .nx-jewel { animation: lampwarm 1.6s ease-in-out infinite alternate; }
@@ -1584,20 +1531,7 @@ body.stage .jewel { display: none; }
 
 /* ---- The hold-Play menu: a tolex panel with a gold edge ----
    Each button is named in gold on the panel; a lamp in its corner shows what's on. */
-.ring-bg { background: var(--tolex), radial-gradient(circle, #1d1d20, #0e0e10); background-size: 120px 120px, auto; border: 2px solid var(--bronze);
-  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 4px #0b0b0c, inset 0 0 0 5px var(--bronze-line), 0 12px 40px rgba(0,0,0,.6); }
 /* The ring is always dark tolex, so its buttons keep the dark chrome in either theme. */
-.ringx { --chrome: radial-gradient(circle at 50% 25%, #2b2b2f, #111113); --chrome-edge: #8e8e94; --chrome-fg: #e9e9ec; --chrome-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 3px 8px rgba(0,0,0,.5); }
-.ri .ri-t { color: #e8cf9c; }
-.ri.act { border-color: var(--chrome-edge); color: var(--recess-on); }
-.ri.on { border-color: var(--gold-text); color: #fff3e0; box-shadow: var(--chrome-shadow), 0 0 14px rgba(255,190,110,.45); }
-.ri::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; display: none; }
-.ri[aria-pressed]::after { display: block; }
-.ri-l { position: fixed; transform: translate(-50%, -50%); font: 800 8.5px var(--sans); letter-spacing: .12em; color: var(--gold-text); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; }
-:root[data-theme="light"] .ri-l { color: #d9bd85; }
-.ringx.on .ri-l { opacity: 1; }
-.ring-name { color: var(--recess-fg); }
-@media (prefers-reduced-motion: reduce) { .ri-l { transition: none; } }
 
 /* ---- Editor ----
    The bottom bar is a gold plate: Cancel and Edit / Preview in recesses, Save
@@ -1646,7 +1580,6 @@ body.stage .jewel { display: none; }
 .sheet:has(.ed-tx) { padding-bottom: 150px; }
 .ed-tx:has(~ .ed-start:not([hidden])) .ed-hl { min-height: 200px; }
 /* Editing hides Play and the arc (the ring controls are id #rc). */
-body.cedit.ring #rc, body.cedit.one #rc { display: none; }
 /* Writing mode: a slim strip above the pad keeps the title, artist and key in view. */
 .ed-strip { display: none; }
 body.writing .ed-strip { display: flex; position: fixed; z-index: 26; left: 8px; right: 8px; top: calc(var(--vv-top, 0px) + var(--safe-t) + 8px); height: 40px; box-sizing: border-box;

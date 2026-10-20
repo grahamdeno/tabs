@@ -12,7 +12,7 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalTime, judgeTarget, stringRange, skillDone, skillState, TUNINGS } from "./core.js";
+import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, TUNINGS } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, playSong } from "./app.js";
 import { louie } from "./louie.js";
@@ -25,6 +25,8 @@ const lessonName = st => st.kind === "chord" ? `${st.chord} chord` : st.kind ===
 let live = null; /* the lesson running now: stopped when you leave */
 function stopLive() {
   if (!live) return;
+  /* time with the mic or the beat running is practice: it counts on the Tour Map (3.19.0) */
+  if (live.at) { journalPractice(data, (Date.now() - live.at) / 1000); Tabs.save(data); }
   clearInterval(live.timer); live.track?.stop(); live.timeouts?.forEach(clearTimeout);
   live.stream?.getTracks().forEach(t => t.stop()); live.src?.disconnect?.();
   live = null;
@@ -167,7 +169,7 @@ function chordLesson(st) {
   const finish = (heard = true) => {
     stopLive();
     skillDone(data, st.id, 0);
-    const secs = (Date.now() - t0) / 1000; journalTime(data, secs); Tabs.save(data);
+    const secs = (Date.now() - t0) / 1000; Tabs.save(data);
     done(st, { secs, line: heard ? `Every string rang clean.` : "Marked as got." });
   };
   $("pk-self").onclick = () => finish(false);
@@ -182,7 +184,7 @@ function chordLesson(st) {
       let told = 0, floor = null;
       const guide = stringGuide(targets, app.querySelector(".pk-strings"));
       const ask = () => { const t = guide.cur(); if (t) say(`Pluck the ${strName(t.i, tuning)} string${fretText(t)}.`); };
-      live = { stream, src, timer: setInterval(() => {
+      live = { at: Date.now(), stream, src, timer: setInterval(() => {
         an.getFloatTimeDomainData(buf);
         let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
         floor = trackFloor(floor, rms);
@@ -219,7 +221,7 @@ function switchLesson(st) {
   const finish = (at, line) => {
     stopLive();
     skillDone(data, st.id, at);
-    const secs = (Date.now() - t0) / 1000; journalTime(data, secs); Tabs.save(data);
+    const secs = (Date.now() - t0) / 1000; Tabs.save(data);
     done(st, { secs, line, bpm: at });
   };
   const show = k => { /* chord for bar k (k < 0: the count-in shows the first) */
@@ -231,7 +233,7 @@ function switchLesson(st) {
     let stream = null;
     try { stream = await mic(); } catch { say("I can't use the microphone, so I'll play the beat and you tell me how it went."); }
     const audio = sound();
-    live = { stream, timeouts: [] };
+    live = { at: Date.now(), stream, timeouts: [] };
     const beatAt = [];
     const track = beatTrack(bpm, (i, t) => {
       beatAt.push(t);
@@ -394,7 +396,7 @@ function whatIHear() {
       const fb = new Float32Array(fast.fftSize), sb = new Float32Array(slow.fftSize), strum = strumDetector();
       let n = 0, shown = 0;
       st.t0 = ctx.currentTime; ctxRef = ctx; floorRef = strum.floor;
-      live = { stream, src, ctx, timeouts: [], floor: strum.floor, timer: setInterval(() => {
+      live = { at: Date.now(), stream, src, ctx, timeouts: [], floor: strum.floor, timer: setInterval(() => {
         const now = ctx.currentTime;
         fast.getFloatTimeDomainData(fb);
         let rms = 0; for (const v of fb) rms += v * v; rms = Math.sqrt(rms / fb.length);
