@@ -1,7 +1,7 @@
 // Tabs ring controls: the song page's controls for one hand.
 //
-// On a phone held upright, the song bar becomes a small island in the lower
-// right: the speed (hold it for the speed dial), "4 of 9" in a set (hold it
+// On a phone held upright, the full song bar shows while the song is paused; Play
+// folds it into a small island in the lower right while the song plays (3.16.0): the speed (hold it for the speed dial), "4 of 9" in a set (hold it
 // for the set dial) and Play. Hold Play for a ring of controls around it:
 // Back, Favorite, Key (the transpose dial), More and, in a set, Set. Slide to
 // one and let go; or let go first and tap one. A tap on Play plays and pauses.
@@ -73,7 +73,7 @@ export function setupRing(o) {
   bindTrack();
   bindPull();
   bindFollow();
-  return { refresh: () => paintTrack(), lift: () => wake() };
+  return { refresh: () => paintTrack(), lift: () => wake(), mode: () => apply() };
 }
 
 export function teardownRing() {
@@ -83,14 +83,29 @@ export function teardownRing() {
   closeRing();
   restore();
   st.rc.remove();
-  document.body.classList.remove("ring", "ring-up");
+  document.body.classList.remove("ring", "ring-up", "one");
   st = null;
 }
 
 // Move Play and the island's buttons in (ring) or back to the bar.
+// 3.16.0: on a phone held upright the whole bar shows while the song is paused, so everything is in
+// sight; Play folds it into Play's corner (the island and the ring take over), and pausing unfolds it.
+let forceUntil = 0;
+/* Tips that show the ring (Show me demos) hold it out for a while, even paused. */
+export function showRing(ms) {
+  forceUntil = Date.now() + ms;
+  apply();
+  setTimeout(() => apply(), ms + 50);
+}
 function apply(force) {
   if (!st) return;
-  const on = ringActive(st.o.settings);
+  const one = ringActive(st.o.settings);
+  document.body.classList.toggle("one", one);
+  const on = one && (st.o.playing() || Date.now() < forceUntil);
+  const was = document.body.classList.contains("ring");
+  const motion = !force && on !== was && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const before = motion ? foldStart(on) : null;
+  if (was && !on) closeRing();
   document.body.classList.toggle("ring", on);
   const isl = st.rc.querySelector(".rc-isl");
   const parts = ["dialbtn", "setdial", "jewel", "play"].map(id => document.getElementById(id)).filter(Boolean);
@@ -101,6 +116,49 @@ function apply(force) {
     }
     position(force);
   } else restore();
+  if (before) foldEnd(on, before);
+}
+/* The fold: going to the corner, a copy of the bar shrinks into Play; coming back, the bar grows out of
+   Play. Play itself glides between its two places. */
+const barPart = () => {
+  const dock = document.querySelector(".app.viewer .dock");
+  if (!dock) return null;
+  const rows = document.body.classList.contains("nn-on") || document.body.classList.contains("loop-on");
+  return rows ? dock.querySelector(".player") : dock.querySelector(".pw");
+};
+function foldStart(toCorner) {
+  const p = document.getElementById("play");
+  const out = { play: p?.getBoundingClientRect() };
+  const part = barPart();
+  if (toCorner && part && p) {
+    const r = part.getBoundingClientRect();
+    if (r.width) {
+      const ghost = part.cloneNode(true);
+      ghost.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
+      ghost.removeAttribute("id");
+      ghost.classList.add("fold-ghost");
+      ghost.setAttribute("aria-hidden", "true");
+      Object.assign(ghost.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", margin: 0, zIndex: 19, pointerEvents: "none",
+        transformOrigin: `${out.play.left + out.play.width / 2 - r.left}px ${out.play.top + out.play.height / 2 - r.top}px` });
+      document.body.appendChild(ghost);
+      const a = ghost.animate([{ scale: "1", opacity: 1 }, { scale: ".12", opacity: 0 }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)" });
+      a.onfinish = a.oncancel = () => ghost.remove();
+    }
+  }
+  return out;
+}
+function foldEnd(toCorner, before) {
+  const p = document.getElementById("play");
+  if (p && before.play?.width) {
+    const now = p.getBoundingClientRect(), dx = before.play.left - now.left, dy = before.play.top - now.top;
+    if (Math.abs(dx) + Math.abs(dy) > 1) p.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)" });
+  }
+  if (toCorner) return;
+  const part = barPart(), pr = p?.getBoundingClientRect();
+  if (!part || !pr) return;
+  const r = part.getBoundingClientRect();
+  part.style.transformOrigin = `${pr.left + pr.width / 2 - r.left}px ${pr.top + pr.height / 2 - r.top}px`;
+  part.animate([{ scale: ".12", opacity: 0 }, { scale: "1", opacity: 1 }], { duration: 320, easing: "cubic-bezier(.2,0,0,1)" });
 }
 function restore() {
   for (const [el, h] of st.home) if (h.parent.isConnected) h.parent.insertBefore(el, h.next && h.next.parentElement === h.parent ? h.next : null);
@@ -208,7 +266,7 @@ function bindPull() {
   let y0 = null, dy = 0;
   const reset = () => { y0 = null; dy = 0; tip.style.opacity = ""; tip.classList.remove("go"); document.getElementById("app").style.removeProperty("--pull"); };
   const start = e => {
-    if (!document.body.classList.contains("ring") || st.o.playing() || scrollY > 0 || e.touches.length !== 1) return;
+    if (!document.body.classList.contains("one") || st.o.playing() || scrollY > 0 || e.touches.length !== 1) return;
     if (e.target.closest?.(".rc, .ringx, .dial, .smap, .menu, #layer *")) return;
     y0 = e.touches[0].clientY; dy = 0;
   };

@@ -2,7 +2,7 @@
 // The song and its translation are invented.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { forceRing, skip, LIB, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
 const BODY = "[Verse]\nG               D\nGrey boats lean on the harbor wall\nC        G\nBring the lights home";
@@ -107,6 +107,7 @@ test("German practice in the background: batches land as they come; a dropped co
 
 test("German in More, seven fit in the ring in a set, and sheets close with a swipe down", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }], settings: { ...LIB.settings, controls: "ring", follow: "corner" } }, { isMobile: true });
+  await forceRing(page);
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
   const ring = async () => {
     const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
@@ -116,6 +117,7 @@ test("German in More, seven fit in the ring in a set, and sheets close with a sw
     return items;
   };
   await page.goto(page.url().replace(/#.*$/, "") + "#/song/a"); await page.waitForTimeout(600);
+  await forceRing(page);
   let items = await ring();
   assert.deepEqual(items.map(i => i.id), ["metro", "key", "nn", "tuner", "fav", "more"], "2.26.0: German moved to More");
   {
@@ -128,6 +130,7 @@ test("German in More, seven fit in the ring in a set, and sheets close with a sw
     if (await page.locator(".de-sheet").count()) await page.keyboard.press("Escape");
   }
   await page.goto(page.url().replace(/#.*$/, "") + "#/set/s"); await page.waitForTimeout(400);
+  await forceRing(page);
   await page.click("[data-open='0']"); await page.waitForTimeout(700);
   items = await ring();
   assert.deepEqual(items.map(i => i.id), ["metro", "key", "nn", "tuner", "fav", "more", "set"], "in a set: Set last, seven fit");

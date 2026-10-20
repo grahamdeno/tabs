@@ -79,11 +79,13 @@ test("Settings > Keys: Apple Music is off by default; on, Listen plays the linke
   /* On: the first tap loads MusicKit with the Worker's token and asks to sign in; then it plays. */
   opened = "";
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen");
-  await page.click("#listen"); await page.waitForSelector("#toast .tact");
+  /* the chip is the Recording chip now: it opens the sheet, and Listen in the sheet plays */
+  await page.click("#listen"); await page.waitForSelector("#rs-listen");
+  await page.click("#rs-listen"); await page.waitForSelector("#toast .tact");
   assert.match(await page.innerText("#toast"), /Sign in to Apple Music/);
   await page.click("#toast .tact"); await page.waitForFunction(() => window.mkLog?.some(x => x.startsWith("queue")));
   assert.deepEqual(await page.evaluate(() => window.mkLog), ["configure:test.token.sig", "authorize", "queue:111:true"]);
-  await page.click("#listen"); await page.waitForTimeout(200);
+  await page.waitForTimeout(300); await page.click("#rs-listen"); await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.mkLog.at(-1)), "pause", "a second tap pauses");
   assert.deepEqual(calls, ["token", "musickit"], "one token request, one MusicKit load");
   assert.equal(opened, "", "on: Apple Music isn't opened");
@@ -163,10 +165,10 @@ test("Apple Music: the page follows the recording's clock, and moving the page b
   await page.waitForFunction(() => window.mkLog.some(x => x.startsWith("seek:") && +x.slice(5) > 100), null, { timeout: 5000 });
 });
 
-test("Apple Music: Practice a section loops the recording too, slows it on Build up, and the speed and volume follow the settings", { skip: skip() }, async t => {
+test("Apple Music: Practice a section loops the recording too, slows it on Build up, and the song's speed is applied", { skip: skip() }, async t => {
   const body = Array.from({ length: 60 }, (_, n) => `[V${n}]\nG  D  Em  C`).join("\n");
   const song = { ...LIB.songs[0], body, duration: 200, recRate: 0.8, loop: { a: 10, b: 14, build: true }, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
-  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, speedMode: "length", recVol: 0.4 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, speedMode: "length" } };
   const page = await phone(t, lib);
   await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
   await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
@@ -179,12 +181,11 @@ test("Apple Music: Practice a section loops the recording too, slows it on Build
   await page.waitForTimeout(400);
   await page.click("#play");
   await page.waitForFunction(() => window.mkMusic.isPlaying, null, { timeout: 5000 });
-  assert.equal(await page.evaluate(() => window.mkMusic.volume), 0.4, "the volume setting is applied");
   assert.ok(Math.abs((await page.evaluate(() => window.mkMusic.playbackRate)) - 0.8 * 0.8) < 0.01, "song speed times the first Build up pass");
   assert.ok((await page.evaluate(() => window.mkLog)).some(x => x.startsWith("seek:") && +x.slice(5) > 0), "Play starts the recording at the section");
 });
 
-test("Apple Music: the song page shows genre, year and composer in the album's color, and search lists what you played lately", { skip: skip() }, async t => {
+test("Apple Music: the Recording sheet shows genre, year and composer in the album's color, and search lists what you played lately", { skip: skip() }, async t => {
   const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
   const page = await phone(t, lib);
@@ -198,9 +199,11 @@ test("Apple Music: the song page shows genre, year and composer in the album's c
     window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
     document.dispatchEvent(new Event("musickitloaded"));` }));
   await page.evaluate(() => { location.hash = "#/song/a"; });
-  await page.waitForFunction(() => document.getElementById("albuminfo") && !document.getElementById("albuminfo").hidden, null, { timeout: 5000 });
-  assert.equal(await page.innerText("#albuminfo"), "Rock · 1995 · Written by Noel Gallagher");
-  assert.equal(await page.evaluate(() => document.getElementById("albuminfo").style.getPropertyValue("--album")), "#c04a2b");
+  await page.waitForSelector("#listen.rec");
+  await page.click("#listen");
+  await page.waitForFunction(() => document.querySelector(".rs-d")?.textContent === "Rock · 1995 · Written by Noel Gallagher", null, { timeout: 5000 });
+  assert.equal(await page.evaluate(() => document.querySelector(".rs-head").style.getPropertyValue("--album")), "#c04a2b", "the album's color tints the sheet's header");
+  await page.click("#rs-done");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").listen.genre, null, { timeout: 5000 });
   const l = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").listen);
   assert.equal(l.genre, "Rock"); assert.equal(l.year, 1995); assert.equal(l.tint, "c04a2b");
@@ -219,7 +222,60 @@ test("Apple Music off: no recording speed or volume anywhere", { skip: skip() },
   assert.equal(await page.locator("#s-recvol").count(), 0);
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
   assert.equal(await page.locator('[data-m="recspeed"]').count(), 0);
-  assert.equal(await page.locator("#albuminfo:not([hidden])").count(), 0, "no Apple Music details while it is off");
+  assert.equal(await page.locator("#listen.rec").count(), 0, "no Recording chip while Apple Music is off");
+});
+
+test("Apple Music: the Recording sheet switches recording and band, sets the speed and resets what the page learned", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], syncs: [[0.3, 50], [0.6, 120]], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token" } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkMusic = { isAuthorized: true, isPlaying: false, playbackRate: 1, setQueue: async () => {}, seekToTime: async () => {}, play: async () => {}, pause: () => {}, stop: () => {}, api: { music: async () => ({ data: { data: [] } }) } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a"));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen.rec.on");
+  assert.match(await page.innerText("#listen"), /Recording/);
+  await page.click("#listen"); await page.waitForSelector("#rs");
+  assert.match(await page.innerText("#rs"), /2 spots learned/);
+  await page.click("[data-rate='0.7']");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").recRate === 0.7, null, { timeout: 5000 });
+  assert.equal(await page.getAttribute("[data-rate='0.7']", "aria-pressed"), "true");
+  await page.click("#rs-reset");
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").syncs, null, { timeout: 5000 });
+  assert.match(await page.innerText("#rs"), /Nothing learned yet/);
+  await page.click("[data-mode='band']");
+  assert.equal(await page.locator("[data-rate]").count(), 0, "the band has no recording speed");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").backing === "band", null, { timeout: 5000 });
+  await page.click("#rs-done");
+  assert.equal(await page.locator("#rs").count(), 0);
+  assert.match(await page.innerText("#listen"), /Band/);
+  assert.equal(await page.locator("#listen.on").count(), 0, "the chip is lit only for the recording");
+  assert.equal((await saved()).recRate, 0.7);
+});
+
+test("one hand: paused, the whole bar shows; Play folds it into the corner and the ring holds no Apple Music items", { skip: skip() }, async t => {
+  const song = { ...LIB.songs[0], listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200 } };
+  const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", countIn: false, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } };
+  const page = await phone(t, lib);
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 500, body: "" }));
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#play");
+  await page.waitForTimeout(300);
+  const st = () => page.evaluate(() => ({ one: document.body.classList.contains("one"), ring: document.body.classList.contains("ring"), bar: !!document.querySelector(".app.viewer .player #play") && getComputedStyle(document.querySelector(".app.viewer .dock")).display !== "none" }));
+  assert.deepEqual(await st(), { one: true, ring: false, bar: true }, "paused: the bar is out, with Play in it");
+  await page.click("#play");
+  await page.waitForFunction(() => document.body.classList.contains("ring"), null, { timeout: 3000 });
+  assert.deepEqual(await st(), { one: true, ring: true, bar: false }, "playing: folded into the corner");
+  const c = await page.locator("#play").boundingBox();
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2); await page.mouse.down(); await page.waitForTimeout(900);
+  await page.waitForSelector(".ringx .ri");
+  assert.deepEqual(await page.$$eval(".ringx .ri", els => els.map(e => e.dataset.r)), ["metro", "key", "nn", "tuner", "fav", "more"], "Tempo is back and nothing else crowds More off the ring");
+  await page.mouse.up(); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelector(".ringx")?.click()); await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById("play").click());
+  await page.waitForFunction(() => !document.body.classList.contains("ring"), null, { timeout: 3000 });
+  assert.equal((await st()).bar, true, "paused again: the bar unfolds");
 });
 
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {
@@ -239,7 +295,8 @@ test("Apple Music: a failure names the step it stopped at, and Apple's own alert
     window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
     document.dispatchEvent(new Event("musickitloaded"));` }));
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#listen");
-  await page.click("#listen");
+  await page.click("#listen"); await page.waitForSelector("#rs-listen");
+  await page.click("#rs-listen");
   await page.waitForFunction(() => /Apple Music stopped at queue: The operation was aborted/.test(document.getElementById("toast")?.innerText || ""), null, { timeout: 5000 });
   assert.equal(await page.evaluate(() => typeof window.alert.caught), "boolean");
 });

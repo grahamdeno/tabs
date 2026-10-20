@@ -1222,6 +1222,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
    your hand. Hold Play for the ring. */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 #rc { display: none; } /* the ring controls; .rc alone is also the Recent cards */
+/* Paused on a phone (3.16.0) the bar is out and only Pull down to go back uses the ring layer. */
+body.one #rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
+body.one:not(.ring) #rc > :not(.rc-pull):not(.sr-only) { display: none; }
+body.one { overscroll-behavior: none; }
 body.ring #rc { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
 body.ring .rc > * { pointer-events: auto; }
 body.ring .rc .rc-track { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
@@ -1298,7 +1302,7 @@ body.ring .rc-isl .rc-back { width: 36px; height: 36px; border-radius: 10px; bor
 body.ring .rc-isl .rc-back svg { width: 18px; height: 18px; }
 .rc-pull { position: fixed; left: 50%; top: calc(14px + var(--safe-t)); transform: translateX(-50%); padding: 8px 14px; border-radius: 18px; background: var(--solid); border: 1px solid var(--rim); color: var(--fg-2); font: 500 13px var(--sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: color .12s, border-color .12s, box-shadow .12s; }
 .rc-pull.go { color: var(--glow-c); border-color: var(--accent); box-shadow: 0 0 14px rgba(255,150,70,.4); text-shadow: var(--glow); }
-body.ring .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }
+body.one .app.viewer[style*="--pull"] > :not(.rc):not(.dock):not(.dock-fade):not(.chead):not(.smap) { transform: translateY(var(--pull)); }
 /* ring items that are on (Favorite, Metronome, Now and Next) */
 .ri.act { border-color: var(--accent-line); color: var(--accent); }
 .ri.act svg { fill: currentColor; fill-opacity: .2; }
@@ -1642,7 +1646,7 @@ body.stage .jewel { display: none; }
 .sheet:has(.ed-tx) { padding-bottom: 150px; }
 .ed-tx:has(~ .ed-start:not([hidden])) .ed-hl { min-height: 200px; }
 /* Editing hides Play and the arc (the ring controls are id #rc). */
-body.cedit.ring #rc { display: none; }
+body.cedit.ring #rc, body.cedit.one #rc { display: none; }
 /* Writing mode: a slim strip above the pad keeps the title, artist and key in view. */
 .ed-strip { display: none; }
 body.writing .ed-strip { display: flex; position: fixed; z-index: 26; left: 8px; right: 8px; top: calc(var(--vv-top, 0px) + var(--safe-t) + 8px); height: 40px; box-sizing: border-box;
@@ -2022,7 +2026,34 @@ body.is-home .rd-turf { width: 64px; height: 64px; }
 .pk-str.cur { box-shadow: inset 0 0 0 1px rgba(255,194,122,.45); }
 #ph-beats { margin: 10px 0 2px; }
 
-/* Apple Music details under the title (3.15.0): genre, year, composer, in the album's own color. */
-.albuminfo { --album: var(--muted, #8a8a8a); margin: -8px 0 16px; padding: 6px 10px; font-size: 13px; border-left: 3px solid var(--album);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--album) 24%, transparent), transparent 85%); border-radius: 2px 8px 8px 2px; }
-.albuminfo[hidden] { display: none; }
+/* The Recording chip and sheet (3.16.0). The cover leads; the album's own color tints only the sheet's header. */
+.stat.listen.rec { gap: 7px; padding: 0 11px 0 2px; height: 28px; border-radius: 14px; font-weight: 600; }
+.stat.listen.rec.on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.rc-art { width: 22px; height: 22px; border-radius: 11px; overflow: hidden; flex: none; display: grid; place-items: center; background: var(--card-2); box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.rc-art img { width: 100%; height: 100%; object-fit: cover; }
+.rc-art svg { width: 12px; height: 12px; }
+.rc-lit { width: 6px; height: 6px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.panel.rs { padding: 0; overflow: hidden; }
+.rs-head { --album: var(--accent); display: flex; align-items: center; gap: 14px; padding: 18px 16px 16px; background: linear-gradient(160deg, color-mix(in srgb, var(--album) 34%, transparent), transparent 80%); }
+.rs-art { width: 72px; height: 72px; flex: none; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: var(--card-2); color: var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.rs-art img { width: 100%; height: 100%; object-fit: cover; }
+.rs-art svg { width: 28px; height: 28px; }
+.rs-txt { flex: 1; min-width: 0; }
+.rs-t { font-size: 18px; font-weight: 600; line-height: 1.2; color: var(--fg); }
+.rs-a { font-size: 14px; color: var(--fg-2); margin-top: 2px; }
+.rs-d { font-size: 12px; line-height: 1.35; color: var(--muted); margin-top: 6px; }
+.rs-listen { flex: none; width: 46px; height: 46px; border-radius: 23px; border: 1px solid var(--rim); background: var(--card); color: var(--fg); display: grid; place-items: center; }
+.rs-listen svg { width: 18px; height: 18px; }
+.rs-row { margin: 0 16px; padding: 12px 0; border-top: 1px solid var(--rim); }
+.rs-row:first-of-type, .rs-head + .rs-row { border-top: 0; }
+.rs-l { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rs-l b { display: inline-flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg); }
+.rs-reset { border: 0; background: none; padding: 0; font: 600 13px var(--sans); color: var(--accent); }
+.rs-note { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.rs-row.off .seg { opacity: .45; }
+.rs-track { position: relative; height: 6px; margin: 4px 6px; border-radius: 3px; background: var(--card-2); }
+.rs-track i { position: absolute; top: -3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 6px; background: var(--accent); box-shadow: 0 0 0 3px var(--solid); }
+.rs-done { display: block; width: calc(100% - 32px); height: 48px; margin: 6px 16px 16px; font-size: 16px; border-radius: 14px; }
+.lp-rec { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-left: 6px; vertical-align: -3px; border-radius: 8px; overflow: hidden; background: var(--card-2); box-shadow: 0 0 0 1px var(--accent-line); }
+.lp-rec img { width: 100%; height: 100%; object-fit: cover; }
+.lp-rec svg { width: 10px; height: 10px; color: var(--accent); }

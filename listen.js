@@ -101,7 +101,7 @@ function loadMusicKit() {
   musicKit.then(m => { inst = m; }, () => { musicKit = null; });
   return musicKit;
 }
-async function playApple(song) {
+export async function playApple(song) {
   const id = appleTrackId(song.listen.url);
   try {
     const music = await loadMusicKit();
@@ -145,20 +145,15 @@ export async function startMusic(song, at = 0, rate = 1) {
     if (Math.abs(cur - at) > 1.5) { try { await music.seekToTime(Math.max(0, at)); } catch { /* a fresh queue is already at the start */ } }
     await step("play", music.play());
     playingId = id;
-    setMusicRate(rate); applyVolume();
+    setMusicRate(rate);
   } catch (e) { noteError(e, { quiet: true, where: `apple music start (${mkStep})` }); }
 }
-/* Slowing the recording (3.14.0) and its volume, for practice. Both are Apple Music's own player settings;
-   a build that doesn't offer the speed stays at full speed, and rateWorks() says so. */
+/* Slowing the recording (3.14.0), for practice: Apple Music's own player setting. A build that doesn't
+   offer the speed stays at full speed, and rateWorks() says so. */
 export const rateWorks = () => !inst || "playbackRate" in inst;
 export function setMusicRate(rate) {
   if (!inst || !("playbackRate" in inst)) return false;
   try { inst.playbackRate = Math.min(1, Math.max(0.5, rate || 1)); return true; } catch (e) { noteError(e, { quiet: true, where: "apple music speed" }); return false; }
-}
-export function applyVolume() {
-  if (!inst || !("volume" in inst)) return;
-  const v = data.settings.recVol;
-  try { inst.volume = v >= 0 && v <= 1 ? v : 1; } catch { /* the player keeps its own volume */ }
 }
 /* Song details and recent plays from Apple Music's catalog (3.15.0): genre, year, composer and the album's
    own color, kept on the song's listen link; and what you played lately, for Find songs. Both go through
@@ -171,6 +166,7 @@ async function apiGet(path, params) {
   return r?.data?.data || null;
 }
 const detailJobs = new Set();
+let detailsArrived = null; /* the open Recording sheet repaints when the details come in */
 export async function fetchDetails(song) {
   if (!wanted(song) || song.listen.det || detailJobs.has(song.id)) return;
   detailJobs.add(song.id);
@@ -188,18 +184,9 @@ export async function fetchDetails(song) {
     const tint = cleanHex(a.artwork?.bgColor);
     if (tint) l.tint = tint;
     song.listen = l; Tabs.save(data);
-    if (viewing === song) paintAlbum(song);
+    if (viewing === song) detailsArrived?.(song);
   } catch (e) { noteError(e, { quiet: true, where: "apple music details" }); }
   finally { detailJobs.delete(song.id); }
-}
-/* The strip under the title: genre, year, composer, in the album's color. Nothing shows without Apple Music. */
-export function paintAlbum(song) {
-  const el = document.getElementById("albuminfo");
-  if (!el) return;
-  const l = song?.listen, bits = data.settings.appleMusic && l ? [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean) : [];
-  el.hidden = !bits.length;
-  el.textContent = bits.join(" · ");
-  if (l?.tint) el.style.setProperty("--album", "#" + cleanHex(l.tint)); else el.style.removeProperty("--album");
 }
 /* What you played lately in Apple Music: [{ title, artist }], newest first. */
 export async function recentApple() {
@@ -216,6 +203,44 @@ export async function recentApple() {
   } catch (e) { noteError(e, { quiet: true, where: "apple music recent" }); return []; }
 }
 /* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
+export const musicPlaying = song => !!(inst && playingId && song?.listen && playingId === appleTrackId(song.listen.url) && inst.isPlaying);
+// ---- The Recording sheet (3.16.0) ----
+// Tap the Recording chip under the title: the cover and the song's details, Listen (the recording
+// without the page moving), what Play starts (the recording or the band), the recording's speed and
+// what the page has learned of the song. The app passes in how to read and change those.
+//  o.mode() "music" | "band", o.setMode(m), o.setRate(r), o.reset(), o.changed()
+const SPEEDS_REC = [0.5, 0.6, 0.7, 0.8, 0.9, 1];
+export function recordingSheet(song, o) {
+  const close = () => { detailsArrived = null; layer.innerHTML = ""; o.changed?.(); };
+  const paint = () => {
+    const l = song.listen || {}, band = o.mode() === "band", rate = song.recRate || 1, marks = song.syncs || [], on = musicPlaying(song);
+    const details = [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
+    const tint = /^[0-9a-f]{6}$/i.test(l.tint || "") ? ` style="--album:#${l.tint}"` : "";
+    layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
+      <div class="rs-head"${tint}><div class="rs-art">${/^https:\/\//.test(l.art || "") ? `<img src="${esc(l.art)}" alt="">` : icon("note")}</div>
+        <div class="rs-txt"><div class="rs-t">${esc(l.title || song.title)}</div><div class="rs-a">${esc(l.artist || song.artist || "")}</div>${details ? `<div class="rs-d">${esc(details)}</div>` : ""}</div>
+        <button class="rs-listen" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button></div>
+      <div class="rs-row"><div class="rs-l">When you press Play</div>
+        <div class="seg" role="group" aria-label="When you press Play">${[["music", "The recording"], ["band", "The band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
+        <p class="rs-note">${band ? "Your metronome, drums and bass play. No recording." : "The recording plays alone. The page follows it."}</p></div>
+      ${band ? "" : `<div class="rs-row${rateWorks() ? "" : " off"}"><div class="rs-l">Speed<b>${Math.round(rate * 100)}%</b></div>
+        <div class="seg" role="group" aria-label="Recording speed">${SPEEDS_REC.map(v => `<button data-rate="${v}" class="${Math.abs(v - rate) < 0.01 ? "on" : ""}" aria-pressed="${Math.abs(v - rate) < 0.01}" ${rateWorks() ? "" : "disabled"}>${Math.round(v * 100)}</button>`).join("")}</div>
+        ${rateWorks() ? "" : `<p class="rs-note">Apple Music plays at full speed here.</p>`}</div>
+      <div class="rs-row"><div class="rs-l">Sync<b>${marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned<button class="rs-reset" id="rs-reset">Reset</button>` : "Nothing learned yet"}</b></div>
+        <div class="rs-track" aria-hidden="true">${marks.map(m => `<i style="left:${(m[0] * 100).toFixed(1)}%"></i>`).join("")}</div>
+        <p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p></div>`}
+      <button class="btn primary rs-done" id="rs-done">Done</button></div>`;
+    $("rs-scrim").onclick = close;
+    $("rs-done").onclick = close;
+    $("rs-listen").onclick = () => playApple(song).then(() => setTimeout(paint, 150));
+    layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { o.setMode(b.dataset.mode); paint(); });
+    layer.querySelectorAll("[data-rate]").forEach(b => b.onclick = () => { o.setRate(+b.dataset.rate); paint(); });
+    $("rs-reset")?.addEventListener("click", () => { o.reset(); paint(); });
+  };
+  detailsArrived = s2 => { if (s2 === song && $("rs")) paint(); };
+  fetchDetails(song);
+  paint();
+}
 export function musicClock(song) {
   if (!inst || !playingId || !song?.listen || playingId !== appleTrackId(song.listen.url) || !inst.isPlaying) return null;
   const t = inst.currentPlaybackTime;

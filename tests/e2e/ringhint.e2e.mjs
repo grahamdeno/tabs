@@ -6,9 +6,11 @@ import { base, skip, LIB, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
 test("Play's first glide up shows the hold hint once", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch", micExplained: true } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, controls: "ring", follow: "touch", micExplained: true, countIn: false } }, { isMobile: true });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  await page.mouse.click(120, 420); await page.waitForTimeout(250); /* a touch: Play rises */
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("ring"), null, { timeout: 3000 }); /* 3.16.0: the ring is for while the song plays */
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); }); /* a touch: Play rises */
   await page.waitForFunction(() => document.body.classList.contains("ring-up"), null, { timeout: 3000 });
   await page.waitForSelector(".ring-hint", { timeout: 2000 });
   await page.waitForTimeout(450);
@@ -35,9 +37,11 @@ test("no hold hint once you've opened the ring yourself", { skip: skip() }, asyn
 
 test("2.29.0: lifted, slide Play along the arc: the song moves, and Play springs back to its spot", { skip: skip() }, async t => {
   const body = Array.from({ length: 40 }, (_, i) => `[Verse ${i + 1}]\nG   C\nline ${i + 1} goes here`).join("\n\n");
-  const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], body }], settings: { ...LIB.settings, controls: "ring", follow: "touch", micExplained: true, tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], body }], settings: { ...LIB.settings, controls: "ring", follow: "touch", micExplained: true, countIn: false, tipsSeen: { ...LIB.settings.tipsSeen, ringHint: true } } }, { isMobile: true });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  await page.mouse.click(120, 420); await page.waitForTimeout(250);
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("ring"), null, { timeout: 3000 }); /* 3.16.0: the ring is for while the song plays */
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); }); /* a touch: Play rises */
   await page.waitForFunction(() => document.body.classList.contains("ring-up"), null, { timeout: 3000 });
   await page.waitForTimeout(400);
   const c = () => page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
@@ -52,7 +56,7 @@ test("2.29.0: lifted, slide Play along the arc: the song moves, and Play springs
   assert.equal(await page.locator(".ringx").count(), 0, "sliding never opens the menu");
   await page.mouse.up(); await page.waitForTimeout(500);
   assert.ok(await page.evaluate(() => scrollY) > 20, "the song moved forward");
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "a slide isn't a tap");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "a slide isn't a tap");
   const back = await c();
   assert.ok(Math.abs(back.x - home.x) < 3 && Math.abs(back.y - home.y) < 3, "Play is back at its spot");
 });

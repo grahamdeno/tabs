@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, fullWhen, keyColor, newSe
 import { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, paintAlbum, recentApple, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, rateWorks, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, recentApple, recordingSheet, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 
 
 // ---------- State ----------
@@ -751,8 +751,7 @@ function renderViewer(id) {
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
     <h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button><button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
-    <div class="albuminfo" id="albuminfo" hidden></div>
+    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <div id="strip"></div>
@@ -821,7 +820,7 @@ function renderViewer(id) {
   };
   paintStat();
   $("tunechip")?.addEventListener("click", () => openTuner(songTuning(song)));
-  $("listen").onclick = () => listenSheet(song);
+  $("listen").onclick = () => hasMusic(song) ? openRecording(song) : listenSheet(song);
   $("dechip").onclick = () => germanSheet(song, () => draw());
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
@@ -854,7 +853,6 @@ function renderViewer(id) {
     ].filter(Boolean).join('<span class="dot"></span>');
     $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, capoTxt, !isChords && "Tab"]
       .filter(Boolean).join(" · ");
-    paintAlbum(song);
     SUBS = easy ? easy.subs || {} : {};
     const sheet = $("sheet");
     const val = $("val");
@@ -976,10 +974,7 @@ function renderViewer(id) {
          what you touch while playing sits lowest, nearest the thumb's
          natural sweep; Tuner joins; German moves to More. Each place is the
          next one along the arc. */
-      song.syncs?.length && { id: "unsync", icon: "note", label: "Reset recording sync" },
-    hasMusic(song) && { id: "recspeed", icon: "note", label: "Recording speed", hint: `${Math.round((song.recRate || 1) * 100)}%` },
-    hasMusic(song) && { id: "backing", short: "Sound", label: () => usesMusic(song) ? "Playing the recording. Tap for the band" : "Playing the band. Tap for the recording", icon: icon("note"), active: () => usesMusic(song), run: anchor => setBacking(song, usesMusic(song) ? "band" : "music", anchor) },
-      !hasMusic(song) && { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
+      { id: "metro", short: "Tempo", label: () => `Metronome ${data.settings.metronome ? "on" : "off"}`, icon: icon("metro"), active: () => !!data.settings.metronome, run: anchor => toggleMetronome(song, anchor) },
       { id: "key", short: isChords ? "Key" : "Size", label: isChords ? "Key" : "Text size", icon: isChords ? `<b class="ri-t">${song.transpose ? `${song.transpose > 0 ? "+" : ""}${song.transpose}` : "Key"}</b>` : icon("text"), run: () => keyDial() },
       isChords && { id: "nn", short: "Chords", label: () => `Now and Next ${data.settings.diagrams === true ? "on" : "off"}`, icon: icon("fretboard"), active: () => data.settings.diagrams === true, run: () => $("nnbtn")?.click() },
       { id: "tuner", short: "Tuner", label: "Tuner", icon: icon("fork") + (tunedRecently() ? "" : '<i class="dotmark"></i>'), run: () => { if (scroll.on) stopScroll(); openTuner(songTuning(song)); } },
@@ -1379,7 +1374,8 @@ function paintLoop(song) {
   lines[song.loop.a].classList.add("loopfirst"); lines[song.loop.b].classList.add("looplast");
   if (!row) return;
   row.classList.add("on");
-  row.innerHTML = `${icon("loop")}<span class="lt">Practicing <b>${esc(loopName(song))}</b>${loopRun.pass ? ` · pass ${loopRun.pass + 1}` : ""}</span>
+  const withRec = usesMusic(song) ? `<span class="lp-rec" aria-label="with the recording">${/^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : icon("note")}</span>` : "";
+  row.innerHTML = `${icon("loop")}<span class="lt">Practicing <b>${esc(loopName(song))}</b>${withRec}${loopRun.pass ? ` · pass ${loopRun.pass + 1}` : ""}</span>
     <button class="chip ${song.loop.build ? "on" : ""}" id="lp-build" aria-pressed="${!!song.loop.build}">Build up</button>
     <button class="sb" id="lp-x" aria-label="Stop practicing this section">${icon("x")}</button>`;
   $("lp-build").onclick = () => { song.loop.build = !song.loop.build; Tabs.save(data); paintLoop(song); };
@@ -1648,12 +1644,37 @@ const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k =
 /* What Play starts: the Apple Music recording alone, or the band (drums, click, bass) alone.
    A song with a linked recording defaults to the recording; "band" is remembered per song. */
 const usesMusic = song => hasMusic(song) && song.backing !== "band";
-function setBacking(song, mode, near) {
+function setBacking(song, mode, near, quiet) {
   if (mode === "band") song.backing = "band"; else delete song.backing;
   Tabs.save(data);
   if (scroll.on) { if (usesMusic(song)) { stopMetronome(); startMusic(song); } else { pauseMusic(); startMetronome(song); } }
+  paintListenChip(song);
+  if (quiet) return;
   const band = data.settings.metronome || data.settings.bass;
   toast(mode === "band" ? (band ? "Band: drums and bass, no recording" : "Band: turn on the metronome or bass in More") : "Recording: no drums or bass", near);
+}
+/* The chip under the title. With Apple Music on and a linked track it is the Recording chip: the cover,
+   what Play starts (Recording or Band, lit when it is the recording), and a tap opens the Recording sheet. */
+function listenChip(song) {
+  if (!hasMusic(song)) return `<button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button>`;
+  const rec = usesMusic(song), art = /^https:\/\//.test(song.listen.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : icon("note");
+  return `<button class="stat listen rec${rec ? " on" : ""}" id="listen" aria-label="${rec ? "Play starts the recording" : "Play starts the band"}. Open the recording">
+    <span class="rc-art">${art}</span>${rec ? "Recording" : "Band"}${rec ? '<i class="rc-lit"></i>' : ""}</button>`;
+}
+function paintListenChip(song) {
+  const el = $("listen");
+  if (!el || viewing !== song) return;
+  el.outerHTML = listenChip(song);
+  $("listen").onclick = () => hasMusic(song) ? openRecording(song) : listenSheet(song);
+}
+function openRecording(song) {
+  recordingSheet(song, {
+    mode: () => usesMusic(song) ? "music" : "band",
+    setMode: m => setBacking(song, m, null, true),
+    setRate: r => { if (r >= 1) delete song.recRate; else song.recRate = r; Tabs.save(data); if (scroll.on && usesMusic(song)) setMusicRate(recRate(song)); },
+    reset: () => { delete song.syncs; Tabs.save(data); toast("The page will start learning this song again"); },
+    changed: () => { paintListenChip(song); paintLoop(song); }
+  });
 }
 function toggleMetronome(song, near) {
   if (usesMusic(song) && !data.settings.metronome) { data.settings.metronome = true; return setBacking(song, "band", near); }
@@ -1680,9 +1701,8 @@ function songMenu(song, anchor, redrawSong) {
     { id: "size" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "loop", icon: "loop", label: "Practice a section" },
-    (!ringOn || hasMusic(song)) && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
+    !ringOn && { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
     song.format !== "tab" && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
-    hasMusic(song) && { id: "backing", icon: "note", label: "Play: recording or band", hint: usesMusic(song) ? "Recording" : "Band" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     ringOn && deEligible(song) && songDeOpen && { id: "de", icon: "chat", label: "German practice", hint: song.de ? DE_LEVELS[song.deLevel || 0] : "" },
@@ -1755,16 +1775,6 @@ function songMenu(song, anchor, redrawSong) {
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
-       unsync: () => { delete song.syncs; Tabs.save(data); toast("Recording sync reset"); },
-       recspeed: () => {
-         const steps = [1, 0.9, 0.8, 0.7, 0.6, 0.5], i = steps.findIndex(v => Math.abs(v - (song.recRate || 1)) < 0.01);
-         const next = steps[(i + 1) % steps.length];
-         if (next === 1) delete song.recRate; else song.recRate = next;
-         Tabs.save(data);
-         if (scroll.on && usesMusic(song)) setMusicRate(recRate(song));
-         toast(!rateWorks() && next < 1 ? "Apple Music can't change the speed here. The recording stays at full speed." : `Recording at ${Math.round(next * 100)}%`, moreBtn());
-       },
-       backing: () => setBacking(song, usesMusic(song) ? "band" : "music", moreBtn()),
        bass: () => toggleBass(song, moreBtn()),
        metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
   };
@@ -2393,6 +2403,7 @@ async function startScroll(song, opts = {}) {
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
+  ringApi?.mode?.(); /* the bar folds into Play's corner */
   playsHere++;
   setTimeout(() => {
     const k = data.settings.stage ? "pauseStage" : "pause";
@@ -2495,6 +2506,7 @@ function stopScroll() {
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");
+  ringApi?.mode?.(); /* and unfolds when the song stops */
   wakeControls();
   cancelAnimationFrame(scroll.raf);
   scroll.lock?.release?.().catch(() => {});
@@ -2601,12 +2613,13 @@ function renderRoute() {
 // shrinks and settles where the ring will open, then a note says to hold
 // Play. Once only, and never once you've opened the ring yourself.
 function ringHint() {
-  if (scroll.on || !document.body.classList.contains("ring") || !tipDue("ringHint") || document.querySelector(".coach, .ringx")) return;
+  /* 3.16.0: paused, the whole bar is out; the ring is how you reach things while the song plays, so the hint comes then. */
+  if (!scroll.on || !document.body.classList.contains("ring") || !tipDue("ringHint") || document.querySelector(".coach, .ringx")) return;
   setTimeout(() => {
     const p = $("play");
-    if (!p || scroll.on || !document.body.classList.contains("ring-up") || !coachTip("ringHint")) return;
+    if (!p || !scroll.on || !document.body.classList.contains("ring-up") || !coachTip("ringHint")) return;
     ringApi?.lift?.(); /* keep Play up while it plays out */
-    const say = () => { if ($("play")?.isConnected && !scroll.on) coach($("play"), "", { ms: 5200, place: "above", html: "<b>Press and hold Play for more</b><span>A ring opens with Favorite, Metronome, Key and More. Slide to one and let go.</span>" }); };
+    const say = () => { if ($("play")?.isConnected && scroll.on) coach($("play"), "", { ms: 5200, place: "above", fixed: true, html: "<b>Press and hold Play for more</b><span>A ring opens with Favorite, Metronome, Key and More. Slide to one and let go.</span>" }); };
     if (calm()) return say();
     const r = p.getBoundingClientRect(), g = document.createElement("div");
     g.className = "ring-hint glass"; g.setAttribute("aria-hidden", "true");

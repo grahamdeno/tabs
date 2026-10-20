@@ -3,7 +3,6 @@ import { BASS_STYLES, DRUM_BEATS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw }
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { askMotion } from "./ring.js";
-import { applyVolume } from "./listen.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, bassPreview, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
@@ -20,7 +19,7 @@ function renderSettings() {
       <button class="ib glass" id="back" aria-label="${back}">${icon("back")}</button>
     </div>
     <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
-  const recVol = Math.round((s.recVol >= 0 && s.recVol <= 1 ? s.recVol : 1) * 100), metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
+  const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
   const bassVol = Math.round((s.bassVol >= 0 && s.bassVol <= 1 ? s.bassVol : 0.7) * 100), bassPick = BASS_STYLES.find(([k]) => k === s.bassStyle) || BASS_STYLES[0];
   const beatPick = DRUM_BEATS.find(([k]) => k === s.metroBeat) || DRUM_BEATS[0], swing = ["light", "full"].includes(s.metroSwing) ? s.metroSwing : "straight";
   const PAGES = {
@@ -203,11 +202,7 @@ function renderSettings() {
         <span class="tile">${icon("note")}</span><span class="name">Apple Music</span>
         <button class="toggle ${s.appleMusic ? "on" : ""}" id="s-apple" role="switch" aria-checked="${!!s.appleMusic}" aria-label="Apple Music: play whole songs in The Road"></button>
       </div>
-      ${s.appleMusic ? `<div class="set">
-        <span class="tile">${icon("note")}</span><span class="name">Recording volume</span>
-        <input type="range" class="s-vol" id="s-recvol" min="0" max="100" step="5" value="${recVol}" style="--fill:${recVol}%" aria-label="Recording volume">
-      </div>
-      <label class="fld fld-k"><span class="tile ftile">${icon("cloud")}</span>
+      ${s.appleMusic ? `<label class="fld fld-k"><span class="tile ftile">${icon("cloud")}</span>
         <input id="s-appletoken" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Token address (https://…/token)" value="${esc(s.appleMusicToken || "")}" aria-label="Apple Music token address"></label>
       <div class="key-row">
         <span class="ai-status"><i class="dot ${s.appleMusicToken ? "on" : ""}"></i>${s.appleMusicToken ? "Ready" : "No token address"}</span>
@@ -269,7 +264,6 @@ function renderSettings() {
   $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); });
-  $("s-recvol")?.addEventListener("input", e => { s.recVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); applyVolume(); });
   $("s-metvol")?.addEventListener("change", () => metroPreview());
   $("s-metbeat")?.addEventListener("change", e => { s.metroBeat = e.target.value; Tabs.save(data); renderSettings(); metroPreview(); });
   app.querySelectorAll("#s-metswing [data-m]").forEach(b => b.onclick = () => { s.metroSwing = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });

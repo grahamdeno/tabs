@@ -87,3 +87,7 @@ navigator.mediaDevices.getUserMedia = async () => {
   setInterval(() => { if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = window.__gain ?? 0.4; } else g.gain.value = 0; }, 20);
   return dest.stream;
 };`;
+
+/* 3.16.0: on a phone the ring and its arc are out while a song plays; paused, the bar is. Tests of the
+   ring's own gestures hold it out while paused, the way Show me demos do. */
+export const forceRing = (page, ms = 600000) => page.evaluate(n => import("./ring.js").then(m => m.showRing(n)), ms);

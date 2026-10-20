@@ -3,6 +3,7 @@
 import { Tabs, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
 import { setSetCtx } from "./sets.js";
+import { showRing } from "./ring.js";
 import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
 
 // ---------- Coach: one-time help, in place and never in the way ----------
@@ -274,7 +275,8 @@ const ONE_HAND = {
 const wakeRing = () => { document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); };
 function runDemo(name, song) {
   if (ONE_HAND[name]) {
-    if (!document.body.classList.contains("ring")) return toast("This one is for a phone held upright, with Song controls set to Hold Play");
+    if (!document.body.classList.contains("one")) return toast("This one is for a phone held upright, with Song controls set to Hold Play");
+    showRing(9000); /* paused, the bar is out: fold it to the corner for the demo */
     if (name === "setdial" && !document.getElementById("setdial")) return toast("Open a song from a set, then hold \u201c4 of 9\u201d");
     return setTimeout(() => { const [el, html, place = "above"] = ONE_HAND[name](); if (el) setTimeout(() => coach(el, "", { ms: 6000, place, fixed: true, html }), 400); }, 300);
   }

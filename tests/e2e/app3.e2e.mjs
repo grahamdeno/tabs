@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser } from "./harness.mjs";
+import { forceRing, chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser } from "./harness.mjs";
 
 useBrowser();
 
@@ -13,7 +13,9 @@ useBrowser();
 test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps the bar", { skip: skip() }, async t => {
   const songs = [...LIB.songs, { id: "x0", title: "One", artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }];
   const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, controls: "ring", follow: "hand", motionAsked: true } });
+  await forceRing(page);
   await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
+  await forceRing(page);
   await page.click("[data-open='0']"); await page.waitForTimeout(5800);
   assert.equal(await page.evaluate(() => document.body.classList.contains("ring-up")), false, "settled");
   await page.evaluate(() => { for (let i = 0; i < 6; i++) window.dispatchEvent(new DeviceMotionEvent("devicemotion", { accelerationIncludingGravity: { x: 0, y: -9.8, z: 0 }, rotationRate: { alpha: 20, beta: 10, gamma: 5 } })); });
@@ -34,7 +36,9 @@ test("2.2 ring: motion lifts Play (hand), a set adds Set to the ring; iPad keeps
 test("2.3 sweep the track: up the arc moves forward in the song, down moves back", { skip: skip() }, async t => {
   const long = { ...LIB.songs[0], body: Array.from({ length: 6 }, () => LIB.songs[0].body).join("\n\n") };
   const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
+  await forceRing(page);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await forceRing(page);
   await page.mouse.click(120, 300); await page.waitForTimeout(900);
   const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21);
   const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
@@ -72,7 +76,9 @@ test("2.3 sweep the track: up the arc moves forward in the song, down moves back
 test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the section glows", { skip: skip() }, async t => {
   const long = { ...LIB.songs[0], body: Array.from({ length: 12 }, (_, i) => LIB.songs[0].body.replace("[Chorus]", `[Chorus ${i + 1}]`)).join("\n\n") };
   const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } });
+  await forceRing(page);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await forceRing(page);
   const lift = async () => { await page.mouse.click(120, 300); await page.waitForTimeout(800); };
   await lift();
   const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21), a0 = 180 + Math.asin(30 / r) * 180 / Math.PI;
@@ -104,7 +110,9 @@ test("2.4 arc: a full sweep goes end to end; a slow sweep moves finely; the sect
 test("2.4.6 arc: real touch sweeps move steadily, never jump, never reverse", { skip: skip() }, async t => {
   const long = { ...LIB.songs[0], body: Array.from({ length: 14 }, (_, i) => LIB.songs[0].body.replace("[Chorus]", `[Chorus ${i + 1}]`)).join("\n\n") };
   const page = await phone(t, { ...LIB, songs: [long, LIB.songs[1]], settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
+  await forceRing(page);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  await forceRing(page);
   const cdp = await page.context().newCDPSession(page);
   const W = 390, H = 844, r = Math.hypot(W * 0.34, H * 0.21), a0 = 180 + Math.asin(30 / r) * 180 / Math.PI;
   const at = a => ({ x: W + r * Math.cos(a * Math.PI / 180), y: H + r * Math.sin(a * Math.PI / 180) });
@@ -149,6 +157,7 @@ test("2.5 Settings > Song map turns the section rail off and on", { skip: skip()
 test("2.5 Back: in the island; pull down at the top; the library opens at its top", { skip: skip() }, async t => {
   const songs = Array.from({ length: 30 }, (_, i) => ({ id: "s" + i, title: "Song " + String(i).padStart(2, "0"), artist: "A", format: "chords", body: "[Verse]\nG C\nla" }));
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...songs], settings: { ...LIB.settings, controls: "ring", follow: "touch" } }, { isMobile: true });
+  await forceRing(page);
   await page.evaluate(() => scrollTo(0, 1500)); await page.waitForTimeout(200);
   await page.evaluate(() => { location.hash = "#/song/s25"; }); await page.waitForTimeout(500);
   const b = await page.evaluate(() => { const r = document.getElementById("rc-back").getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(document.getElementById("rc-back")).display }; });

@@ -55,12 +55,18 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
 - Browser tests use `phone()` from `tests/e2e/harness.mjs`; mock network calls
   with `page.route`. Prefer `waitForSelector` / `waitForFunction` over fixed
   `waitForTimeout` sleeps in new tests.
+- On a phone the ring layout (island, arc, hold Play) is out only while a
+  song plays; paused, the whole bar shows (3.16.0). A test of the ring's own
+  gestures while paused calls `forceRing(page)` from the harness, again after
+  every `page.goto` (a reload clears it).
+- Edit with exact, unique matches and check what changed: a find-and-replace
+  that hit the ring instead of More shipped broken buttons in 3.13.0/3.14.0.
 - Screenshots for Graham: write a throwaway `tests/e2e/zz_*.e2e.mjs` that
   saves to `$SHOT`, run it, then delete it.
 - Visual references: CI compares against `tests/visual/ci`, so a release that
   changes how a screen looks shows as a visual difference in CI until they're
   remade. Graham's rule: don't remake them after each UI change. Count
-  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 5 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0). To remake when he says yes:
+  releases and ask him after 10. Last remade at 3.11.0 (dispatched 2026-10-19); releases since: 6 (3.12.0, 3.13.0, 3.13.1, 3.14.0, 3.15.0, 3.16.0). To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
 
