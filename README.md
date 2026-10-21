@@ -7,12 +7,12 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ## What it does
 
 ### The Road (home)
-- A stat bar on every main page: your venue (tap for the Tour Map), your gig streak (tap for Your profile) and fans to spend (tap for the Merch table).
+- A stat bar on every main page: your venue (tap for the Tour Map), your gig streak, fans to spend (tap for the Merch table) and Louie (tap for Your profile). The streak is a guitar that rocks once you've played tonight and sits grey and upright until you do; tapping it rocks it, taps the phone and opens your profile.
 - The leg you're on and a path of stops built from the neck: lessons, a merch box after every third, and a headline show at the end of each leg (play a real song through). The current stop is ringed with its card open.
 - Louie the amp beside the path with one line for the moment and tonight's song to play.
 - The Songbook bar above the tab bar: your songs, how many you can play, and search.
 - Fans: 10 for every play, 5 for every lesson round, 25 for every merch box.
-- The tab bar: Road, Tour, Charts, Band, Rehearse and More (Songbook, Tour Map, Your profile, Tuner, Merch table, Settings).
+- The tab bar: Road, Tour, Charts, Band, Rehearse and More (Settings, Merch table, Tour Map, Your profile, Tuner and Songbook, the most used nearest the thumb).
 
 ### The Gig: playing a song
 - Play on any song opens the Gig, a scored show over the song as it plays (auto-scroll, the recording or the band).
@@ -32,7 +32,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - **Song duels:** after a scored gig, send a link with the song and your score; your friend plays it and sends theirs back. No server.
 - **Band:** Louie's 18 friends join one at a time as you play songs through (Lola after your first, Looper at 140).
 - **Rehearse:** Soundcheck (the two changes you dropped most in gigs this week, drilled), Missed changes, the neck (chord lessons that listen to each string, chord switches against a click, scales), Sit in with the band, the tuner and What I hear (the microphone, live).
-- **Merch table:** spend fans on gear (Rain check keeps a streak through a missed night, Double set doubles XP for 3 gigs, Second take replays a lost battle), Louie's finishes and gig backdrops. Spending never touches XP.
+- **Merch table:** spend fans on gear (Rain check keeps a streak through a missed night, Double set doubles XP for 3 gigs, Second take replays a lost battle), Louie's finishes (Stock blue, plus Pink and Teal free) and gig backdrops. Spending never touches XP. Settings > Help can add test fans to try it.
 
 ### Songbook, sets and editing
 - Search titles, artists and lyrics; paste a chord sheet into the bar and it works out the format, key, sections, title and artist. Nothing found offers the web, then Get the song.
@@ -41,8 +41,8 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Add opens a writing pad: Paste, Type, Sing or strum (key and chords found on the phone), and with an AI key, Scan a page or Find the chords. Edit works in place: tap a word to set its chord, every change saves with Undo. Deleted songs and sets stay 30 days in Recently deleted.
 
 ### Your profile, the Tour Map and the streak
-- Your profile (called Your playing before 4.15.4; also from the Songbook header): hours, songs, streak, milestones, a chord passport, your changes, when you play, keys and tempo, and a share picture with Louie.
-- The streak celebration, once a day after your first song played through: the screen floods with the streak colour, Louie drops in and throws the horns in front of a flame that grows with the streak, confetti falls, the count rolls up and the week fills in. Share makes a picture of it.
+- Your profile (called Your playing before 4.15.4): opened from Louie in the stat bar or the streak; the streak readout has an amp knob that fills toward the next goal: hours, songs, streak, milestones, a chord passport, your changes, when you play, keys and tempo, and a share picture with Louie.
+- The streak celebration, once a day after your first song played through: the screen floods with the streak colour, Louie drops in and throws the horns under a stage light that flickers on (on a milestone night, 7, 30, 100 or 365, the horns pop up too, and the phone taps along where it can), confetti falls, the count rolls up and the week fills in. Share makes a picture of it.
 - The Tour Map: every song played through lights a hexagon on a map; rings grow into venues from Garage to Festival headliner, with simulated rival players around you. Your position stays on the phone, never in a backup.
 
 ### Tuner
@@ -165,7 +165,7 @@ Problems: the last 20 errors are kept on the phone, and the first in a session s
 
 ## Version history
 
-- **4.x, the game (2026):** 4.0.0 the new look, Louie, the stat bar, tab bar and the Road path; 4.1.0 the Gig and Louie as the app icon; 4.2.0 one song screen built from the Gig; 4.4.0 Full; 4.5.0 Tour quests; 4.6.0 Charts; 4.7.0 Your band; 4.8.0 Rehearse; 4.9.0 the Songbook; 4.10.0 cover requests; 4.11.0 livelier charts and moving down; 4.12.0 song duels; 4.13.0 Friends and the Friend quest; 4.14.0 the Merch table; 4.15.0 the streak celebration around Louie, fewer settings.
+- **4.x, the game (2026):** 4.0.0 the new look, Louie, the stat bar, tab bar and the Road path; 4.1.0 the Gig and Louie as the app icon; 4.2.0 one song screen built from the Gig; 4.4.0 Full; 4.5.0 Tour quests; 4.6.0 Charts; 4.7.0 Your band; 4.8.0 Rehearse; 4.9.0 the Songbook; 4.10.0 cover requests; 4.11.0 livelier charts and moving down; 4.12.0 song duels; 4.13.0 Friends and the Friend quest; 4.14.0 the Merch table; 4.15.0 the streak celebration around Louie, fewer settings; 4.16.0 the rocking guitar streak, stage light, horns and knob, Louie in the stat bar, free Pink and Teal finishes, test fans.
 - **3.x, The Road:** Tonight as home with Louie, the Tour Map with rival players, one-handed playing (the bar folds into Play's corner), Apple Music play-along timed line by line and chord by chord, the neck (lessons that listen), Practice mode, drums that fit the song.
 - **1.x and 2.x, Tabs:** chord sheets and tabs with auto-scroll, sets, the tuner, the editor, Sing it and Strum it, AI help, German practice, Your playing.
 

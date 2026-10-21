@@ -483,3 +483,18 @@ test("Apple Music: a failure names the step it stopped at, and Apple's own alert
   await page.waitForFunction(() => /Apple Music stopped at queue: The operation was aborted/.test(document.getElementById("toast")?.innerText || ""), null, { timeout: 5000 });
   assert.equal(await page.evaluate(() => typeof window.alert.caught), "boolean");
 });
+
+test("4.16.0: test fans from Help can be spent at the Merch table, and removed", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => { location.hash = "#/settings/help"; }); await page.waitForSelector("#s-testfans");
+  await page.click("#s-testfans");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch?.test === 1000);
+  await page.waitForSelector("#s-testfans-x");
+  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-head");
+  assert.ok(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, "") >= 1000, "spendable");
+  assert.match(await page.innerText(".mc-fin[data-id=pink]"), /Pink[\s\S]*FREE/, "Pink is free");
+  assert.match(await page.innerText(".mc-fin[data-id=black]"), /Studio black/);
+  await page.evaluate(() => { location.hash = "#/settings/help"; }); await page.waitForSelector("#s-testfans-x");
+  await page.click("#s-testfans-x");
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).merch?.test);
+});

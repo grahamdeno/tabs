@@ -34,6 +34,7 @@ const lou = (id, size, mood = "happy", pose) => `<span class="fin fin-${id}">${l
 const price = (it, st) => `<span class="mc-price${st.fans < it.price ? " short" : ""}">${TK}${n(it.price)}</span>`;
 const tag = (it, st) => it.kind === "gear" ? price(it, st)
   : (it.kind === "louie" ? st.louie : st.backdrop) === it.id ? `<span class="mc-on">ON</span>`
+  : !it.price && it.id !== "stock" && it.id !== "basement" ? `<span class="mc-on own">FREE</span>`
   : st.has.has(it.id) ? `<span class="mc-on own">YOURS</span>` : price(it, st);
 
 export function renderMerch() {

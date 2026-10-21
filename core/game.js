@@ -585,7 +585,9 @@ export const MERCH = [
   { id: "take", kind: "gear", name: "Second take", line: "Another go at today's rival", price: 100, max: 3 },
   { id: "stock", kind: "louie", name: "Stock", price: 0, line: "Louie as he comes, in the colours of your look." },
   { id: "tweed", kind: "louie", name: "Tweed", price: 600, line: "A fifties cabinet with a cream grille." },
-  { id: "black", kind: "louie", name: "Blackface", price: 800, line: "Black tolex and a silver face, the studio classic." },
+  { id: "pink", kind: "louie", name: "Pink", price: 0, line: "Hot pink, free to wear." },
+  { id: "teal", kind: "louie", name: "Teal", price: 0, line: "Deep teal, free to wear." },
+  { id: "black", kind: "louie", name: "Studio black", price: 800, line: "Black tolex and a silver face, the studio classic." },
   { id: "mint", kind: "louie", name: "Mint", price: 1000, line: "Surf green with a cream face." },
   { id: "gold", kind: "louie", name: "Gold top", price: 1500, line: "Gold all over, for the headliner." },
   { id: "basement", kind: "backdrop", name: "Basement", price: 0, line: "The plain stage you started on." },
@@ -594,15 +596,16 @@ export const MERCH = [
   { id: "sunset", kind: "backdrop", name: "Sunset fest", price: 500, line: "A festival field at golden hour." }
 ];
 const merchItem = id => MERCH.find(x => x.id === id);
-export const fansToSpend = (data, now = Date.now()) => Math.max(0, fansOf(data, now) - (data.merch?.spent || 0));
+/* data.merch.test: fans added from Settings > Help to try the Merch table (4.16.0); they never count toward XP or the chart */
+export const fansToSpend = (data, now = Date.now()) => Math.max(0, fansOf(data, now) + (data.merch?.test || 0) - (data.merch?.spent || 0));
 export function merchState(data, now = Date.now()) {
-  const m = data.merch || {}, has = new Set(["stock", "basement", ...(m.has || [])]);
+  const m = data.merch || {}, has = new Set([...MERCH.filter(x => !x.price && x.kind !== "gear").map(x => x.id), ...(m.has || [])]);
   return { fans: fansToSpend(data, now), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement" };
 }
 /* what's on, without working out fans (cheap enough for every screen) */
 export function merchWorn(data, kind = "louie") {
   const m = data.merch || {};
-  return (m.has || []).includes(m[kind]) ? m[kind] : kind === "louie" ? "stock" : "basement";
+  return (m.has || []).includes(m[kind]) || MERCH.some(x => x.id === m[kind] && x.kind === kind && !x.price) ? m[kind] : kind === "louie" ? "stock" : "basement";
 }
 /* buy one: { ok } or { why: "fans" | "max" | "have" } */
 export function merchBuy(data, id, now = Date.now()) {
@@ -658,13 +661,15 @@ export function cleanMerch(raw) {
   if (!isObj(raw)) return null;
   const out = {}, day = /^\d{4}-\d\d-\d\d$/, ids = new Set(MERCH.map(x => x.id));
   const spent = Math.max(0, Math.min(1e7, Math.floor(+raw.spent || 0))); if (spent) out.spent = spent;
+  const test = Math.max(0, Math.min(1e6, Math.floor(+raw.test || 0))); if (test) out.test = test;
   const own = {};
   for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }
   if (Object.keys(own).length) out.own = own;
   const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => ids.has(id) && merchItem(id).kind !== "gear"))];
   if (has.length) out.has = has;
-  if (has.includes(raw.louie)) out.louie = raw.louie;
-  if (has.includes(raw.backdrop)) out.backdrop = raw.backdrop;
+  const free = id => MERCH.some(x => x.id === id && !x.price && x.kind !== "gear");
+  if (has.includes(raw.louie) || free(raw.louie)) out.louie = raw.louie;
+  if (has.includes(raw.backdrop) || free(raw.backdrop)) out.backdrop = raw.backdrop;
   const rain = (Array.isArray(raw.rainDays) ? raw.rainDays : []).filter(d => day.test(d)).slice(-60);
   if (rain.length) out.rainDays = rain;
   const told = [...new Set((Array.isArray(raw.told) ? raw.told : []).filter(id => ids.has(id)))];

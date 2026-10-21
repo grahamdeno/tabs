@@ -7,10 +7,11 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { Tabs, profileOf, territory, lifetimePlays, venueOf } from "./core.js";
+import { STREAK_GOALS, Tabs, profileOf, territory, lifetimePlays, venueOf } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
 import { data, go } from "./app.js";
 import { louie } from "./louie.js";
+import { stageLight, hornsIcon, knobIcon, buzz } from "./rock.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -21,9 +22,8 @@ const hoursUnit = h => h >= 1 ? "hours" : "minutes";
 const card = (title, line, body) => `<section class="pf-card"><h2>${title}</h2><p class="pf-line">${line}</p>${body}</section>`;
 
 export function renderProfile() {
-  const fresh = !data.journal;
   const p = profileOf(data);
-  if (fresh) Tabs.save(data); /* the journal was just worked out from your songs: keep it */
+  Tabs.save(data); /* the journal may have just been worked out from your songs (here or by the stat bar): keep it */
   const nothing = !p.plays && !p.tune.sessions;
   const since = p.since ? `Since ${shortDay(p.since)}` : "";
 
@@ -31,7 +31,7 @@ export function renderProfile() {
   const hero = `<div class="pf-plate" role="group" aria-label="Headline numbers">
     <div class="pf-read"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)} played</span></div>
     <div class="pf-read"><b>${p.songsPlayed}</b><span>song${p.songsPlayed === 1 ? "" : "s"} played</span></div>
-    <div class="pf-read"><b>${p.streak}</b><span>day streak${p.best > p.streak ? ` · best ${p.best}` : ""}</span></div>
+    <div class="pf-read pf-streak">${knobIcon(p.streak, STREAK_GOALS.find(g => g > p.streak) || p.streak, 40)}<b>${p.streak}</b><span>day streak${p.best > p.streak ? ` · best ${p.best}` : ""}</span></div>
   </div>${p.practiceSecs >= 60 ? `<p class="pf-line pf-prac" id="pf-prac">Practice is part of that: ${Math.round(p.practiceSecs / 60)} min, worth ${Math.floor(p.practiceSecs / 240)} play${Math.floor(p.practiceSecs / 240) === 1 ? "" : "s"} on the Tour Map.</p>` : ""}`;
 
   const firsts = p.firsts.length ? `<div class="pf-firsts" aria-label="Latest milestones">${p.firsts.map(f => `<span class="pf-first${f.kind === "chord" && /^(F|Bm|F#m|Bb|B|C#m|Gm|Cm)$/.test(f.name) ? " big" : ""}"><i class="nx-lamp"></i>${f.kind === "chord" ? `First <b>${esc(f.name)}</b>` : `Got it: <b>${esc(f.name)}</b>`}<small>${esc(shortDay(f.at))}</small></span>`).join("")}</div>` : "";
@@ -176,11 +176,11 @@ async function shareCard(p) {
 // ---------- The streak moment ----------
 // Once a day, after the first song you finish (4.15.0): the screen floods with
 // the streak colour, Louie drops in and lands with a squash, throws the horns
-// in front of a flame that grows with the streak, confetti falls, the count
+// under a stage light that flickers on (4.16.0; the horns pop up too on a milestone
+// night, and the phone taps along), confetti falls, the count
 // rolls up and the week's circles fill one by one. SVG and CSS only. With
 // Reduce Motion it opens on the final picture. Tap anywhere (or Keep playing)
 // to close.
-const SK_FLAME = `<svg class="sk-flame" viewBox="0 0 30 34" aria-hidden="true"><path class="sk-f1" d="M15 1c2 6 13 10 13 20a13 13 0 0 1-26 0c0-6 3-9 6-12 0 4 2 6 3 6 0-6-1-10 4-14z"/><path class="sk-f2" d="M15 7c2 5 9 8 9 15a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 4 2 4 0-4 0-7 3-11z"/><path class="sk-f3" d="M15 18c2 3 4 4 4 7a4 4 0 0 1-8 0c0-3 2-4 4-7z"/></svg>`;
 /* confetti: fixed spots so every run looks the same; colours come from the palette */
 const SK_BITS = Array.from({ length: 22 }, (_, i) => `<i style="--x:${(i * 37 + 11) % 100}%;--d:${((i * 7) % 10) / 10 + 0.5}s;--r:${(i * 53) % 360}deg;--s:${(i % 3) + 1}"></i>`).join("");
 
@@ -191,12 +191,14 @@ export function showStreak(m, { share } = {}) {
   el.className = "sk" + (still ? " still" : "");
   el.dataset.tier = m.tier;
   el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `${m.n} day streak`);
-  el.innerHTML = `<div class="sk-art" aria-hidden="true"><div class="sk-rays"></div><div class="sk-bits">${SK_BITS}</div>${SK_FLAME}<div class="sk-lou">${louie("cheer", { pose: "hornsUp", size: 170 })}</div><span class="sk-ping"></span></div>
+  el.innerHTML = `<div class="sk-art" aria-hidden="true"><div class="sk-rays"></div><div class="sk-bits">${SK_BITS}</div>${stageLight(230)}${m.hit ? hornsIcon(92) : ""}<div class="sk-lou">${louie("cheer", { pose: "hornsUp", size: 170 })}</div><span class="sk-ping"></span></div>
     <div class="sk-num" aria-live="polite">${still ? m.n : 0}</div><div class="sk-unit">day streak</div>
     <div class="sk-week">${m.slots.map(s => `<small class="${s.today ? "now" : ""}">${s.label}</small>`).join("")}${m.slots.map((s, i) => `<i class="${s.on ? "on" : ""}${s.goal ? " goal" : ""}${s.today ? " today" : ""}" style="--i:${i}">${s.goal && !s.on ? s.goal : ""}</i>`).join("")}</div>
     <p class="sk-say"><b>${esc(m.lead)}</b> ${esc(m.next)}</p>${m.best > m.n ? `<div class="sk-best">Your best: ${m.best} days</div>` : ""}
     <div class="sk-foot"><button class="sb2" id="sk-share" aria-label="Share your streak">${icon("share")}</button><button class="btn" id="sk-ok">Keep playing</button></div>`;
   document.body.appendChild(el);
+  /* 4.16.0: the light comes on (a drum fill on a milestone night) with taps to match */
+  if (!still) setTimeout(() => buzz(m.hit ? "horns" : "light"), 450);
   const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 250); removeEventListener("keydown", key); };
   const key = e => { if (e.key === "Escape") close(); };
   addEventListener("keydown", key);
@@ -221,9 +223,11 @@ async function shareStreak(m) {
   g.save(); g.translate(W / 2, 470); g.fillStyle = "rgba(255,255,255,.14)";
   for (let k = 0; k < 16; k++) { g.rotate(Math.PI / 8); g.beginPath(); g.moveTo(0, 0); g.lineTo(-90, -900); g.lineTo(90, -900); g.closePath(); g.fill(); }
   g.restore();
-  /* the flame, then Louie */
-  g.save(); g.translate(W / 2 - 300, 120); g.scale(20, 20);
-  [["M15 1c2 6 13 10 13 20a13 13 0 0 1-26 0c0-6 3-9 6-12 0 4 2 6 3 6 0-6-1-10 4-14z", "#FFD23F"], ["M15 7c2 5 9 8 9 15a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 4 2 4 0-4 0-7 3-11z", "#FFFFFF"], ["M15 18c2 3 4 4 4 7a4 4 0 0 1-8 0c0-3 2-4 4-7z", "#FF3D7F"]].forEach(([d, f]) => { g.fillStyle = f; g.fill(new Path2D(d)); });
+  /* the stage light, then Louie (4.16.0) */
+  g.save(); g.translate(W / 2 - 320, 40); g.scale(20, 20);
+  g.fillStyle = "rgba(255,216,77,.55)"; g.beginPath(); g.moveTo(14, 14); g.lineTo(2, 32); g.lineTo(30, 32); g.lineTo(20, 14); g.closePath(); g.fill();
+  const rr = (x, y, w, h, r, col) => { g.fillStyle = col; g.beginPath(); g.roundRect(x, y, w, h, r); g.fill(); };
+  rr(11.5, 3.5, 10, 12, 3, "#5A4FB0"); rr(11, 3, 10, 11, 3, "#8A7CFF"); rr(12.5, 12, 7, 3.5, 1.5, "#FFD84D"); rr(15, 0, 2, 4, 1, "#8A7CFF");
   g.restore();
   try { const im = await louieCardImage(); const w = 440, h = Math.round(w * im.naturalHeight / im.naturalWidth); g.drawImage(im, W / 2 - w / 2, 720 - h, w, h); } catch {}
   try { await document.fonts.load('700 200px "Fredoka"'); } catch {}

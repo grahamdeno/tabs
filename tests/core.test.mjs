@@ -1939,6 +1939,23 @@ test("Friends (4.13.0): the friends list and the Friend quest from XP that rides
   assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests);
 });
 
+test("Merch table (4.16.0): Pink and Teal are free to wear, and test fans only add to what you can spend", () => {
+  const now = new Date(2026, 9, 21, 20).getTime();
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.equal(C.merchWear(data, "pink"), true, "free: no need to buy it");
+  assert.equal(C.merchWorn(data), "pink");
+  assert.equal(C.merchState(data, now).louie, "pink");
+  assert.equal(C.cleanMerch({ louie: "teal" }).louie, "teal", "a free finish survives a backup");
+  assert.equal(C.cleanMerch({ louie: "gold" }), null, "a bought one needs owning");
+  assert.equal(C.MERCH.find(x => x.id === "black").name, "Studio black");
+  const f0 = C.fansToSpend(data, now), xp = C.fansOf(data, now);
+  data.merch.test = 1000;
+  assert.equal(C.fansToSpend(data, now), f0 + 1000);
+  assert.equal(C.fansOf(data, now), xp, "test fans aren't earned fans");
+  assert.deepEqual(C.merchBuy(data, "tweed", now), { ok: true });
+  assert.equal(C.cleanMerch({ test: 1000, spent: 600 }).test, 1000, "kept in saves");
+});
+
 test("Merch table (4.14.0): spending fans, gear, finishes and the Rain check", () => {
   const now = new Date(2026, 9, 21, 20).getTime();
   const data = { songs: [{ id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 120, last: 0, days: { "2026-10-17": 60, "2026-10-18": 60 } } }], sets: [], trash: [], settings: {} };

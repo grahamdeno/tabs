@@ -115,9 +115,7 @@ export function renderLibrary() {
     <div class="head">
       <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Songbook</h1></div>
       <div class="row-btns">
-        <button class="ib glass" id="youbtn" aria-label="Your profile">${icon("pick")}</button>
-        ${tunerBtn("ib glass")}
-        <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
+        ${tunerBtn("ib chunky-tune")}
       </div>
     </div>
     ${todayHTMLOrSpot(weekTotal, weekSongs)}
@@ -144,8 +142,6 @@ export function renderLibrary() {
   $("libback").onclick = () => go("#/");
   app.querySelectorAll(".upn-c[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
   app.querySelectorAll(".upn-c[data-gig]").forEach(b => b.onclick = () => playGig(b.dataset.gig));
-  $("settings").onclick = () => go("#/settings");
-  $("youbtn").onclick = () => go("#/you");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });

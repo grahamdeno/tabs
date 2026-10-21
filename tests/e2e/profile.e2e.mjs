@@ -1,14 +1,17 @@
-// Your playing: the profile page, opened from the library header.
+// Your profile (4.16.0; Your playing before): the profile page, opened from Louie in the stat bar.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { skip, LIB, phone, useBrowser, settled } from "./harness.mjs";
 useBrowser();
 
-test("Your playing: worked out from the songs you've played, with a passport, changes and a way back to a song", { skip: skip() }, async t => {
+test("Your profile: worked out from the songs you've played, with a passport, changes and a way back to a song", { skip: skip() }, async t => {
   const songs = LIB.songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } }));
-  const page = await phone(t, { ...LIB, songs });
-  await page.click("#youbtn");
+  const page = await phone(t, { ...LIB, songs }, { home: true });
+  await page.waitForSelector("#h-you"); await settled(page);
+  await page.click("#h-you");
   await page.waitForSelector(".pf-plate");
+  assert.match(await page.innerText("h1"), /Your profile/);
+  assert.equal(await page.locator(".pf-streak .ri-knob").count(), 1, "the streak's knob");
   assert.match(await page.innerText(".pf-plate"), /SONGS PLAYED/i);
   assert.match(await page.innerText(".pf-card:has(h2:text('Chord passport'))"), /chords? stamped/);
   assert.match(await page.innerText(".pf-card:has(h2:text('Your changes'))"), /is the switch you make most/);
@@ -20,7 +23,7 @@ test("Your playing: worked out from the songs you've played, with a passport, ch
   await page.click("#back"); await page.waitForSelector(".rd-path"); /* 4.0.0: back to the Road */
 });
 
-test("Your playing: an empty library says how it fills in, with no share button", { skip: skip() }, async t => {
+test("Your profile: an empty library says how it fills in, with no share button", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) });
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-empty");
   assert.equal(await page.locator("#pf-share").count(), 0);
@@ -35,6 +38,7 @@ test("Streak moment: once a day after the first song played through; tap to clos
   await page.waitForSelector(".sk", { timeout: 15000 });
   assert.match(await page.innerText(".sk-say"), /Day one\.|days in a row/);
   assert.equal(await page.getAttribute(".sk", "role"), "dialog");
+  assert.equal(await page.locator(".sk .ri-light").count(), 1, "4.16.0: the stage light, not a flame");
   await page.waitForTimeout(2600);
   assert.match(await page.innerText(".sk-num"), /^\d+$/);
   await page.click(".sk-art"); await page.waitForSelector(".sk", { state: "detached" });

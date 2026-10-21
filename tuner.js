@@ -63,8 +63,10 @@ function headSVG(kind, t, { mini = false } = {}) {
   H.strings.forEach((g, i) => {
     const [kx, ky, kw, kh] = g.key, on = i === cur, done = !!t.ok[i];
     if (on) {
-      s += `<line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="12" stroke-linecap="round"/>`;
-      s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="12"/>`;
+      /* 4.16.0: a dark edge under the lit string, so it stands out on a light headstock */
+      s += `<g stroke="var(--bg)" opacity=".85"><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke-width="26" stroke-linecap="round"/><line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke-width="26"/></g><circle cx="${g.px}" cy="${g.py}" r="${g.r + 7}" fill="var(--bg)" opacity=".85"/>`;
+      s += `<line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="14" stroke-linecap="round"/>`;
+      s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="14"/>`;
       s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="${col}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${col}"/>`;
     } else if (done) s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r * 0.55}" fill="var(--good)"/>`;
     /* The note is printed on its key, so changing the tuning relabels the

@@ -186,7 +186,13 @@ function renderSettings() {
     <div class="set-group glass">
       <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
-    </div>`]
+    </div>
+    <div class="label">Testing</div>
+    <div class="set-group glass">
+      <button class="set" id="s-testfans"><span class="tile">${icon("shirt")}</span><span class="name">Add 1,000 test fans</span><span class="val muted">${data.merch?.test ? `${data.merch.test.toLocaleString("en-US")} added` : "To try the Merch table"}</span></button>
+      ${data.merch?.test ? `<button class="set" id="s-testfans-x"><span class="tile">${icon("x")}</span><span class="name">Remove test fans</span></button>` : ""}
+    </div>
+    <p class="foot">Test fans are only for spending at the Merch table. They don't count toward XP, the chart or your venue. Removing them takes back what's left to spend; what you bought stays.</p>`]
   };
   if (PAGES[page]) {
     app.innerHTML = head(PAGES[page][0], "Back to settings") + PAGES[page][1];
@@ -307,6 +313,9 @@ function renderSettings() {
   $("s-trash").onclick = () => go("#/trash");
   $("s-tips").onclick = () => go("#/gestures");
   $("s-diag").onclick = copyDiagnostics;
+  /* 4.16.0: test fans, to try the Merch table */
+  $("s-testfans")?.addEventListener("click", () => { const m = data.merch || (data.merch = {}); m.test = Math.min(1e6, (m.test || 0) + 1000); Tabs.save(data); renderSettings(); toast("1,000 test fans added"); });
+  $("s-testfans-x")?.addEventListener("click", () => { delete data.merch.test; Tabs.save(data); renderSettings(); toast("Test fans removed"); });
   $("s-import").onclick = () => $("file").click();
   $("file").onchange = e => {
     const f = e.target.files[0];
