@@ -4,11 +4,11 @@
 //                      With Apple Music on, it's the song you just played there (4.10.0)
 //   cover quest        a song you listen to that isn't in your Songbook: get it, learn its chords, play it
 //                      as a gig for 3x bonus fans (4.10.0)
-//   duet quest         earn XP with a friend: waits until a friend's XP can reach your phone (Your band)
+//   friend quest       a weekly XP goal with one friend you duel (4.13.0); their XP arrives with their links
 //   tonight's setlist  three small goals a day, 10 fans each and 25 more for all three
 // The numbers are worked out in core.js (questState, questsSettle); fans are credited when you open the tab
 // or finish a play.
-import { QUEST, COVER_MULT, Tabs, questState, questsSettle, noteHeard, coverState, skillState } from "./core.js";
+import { QUEST, COVER_MULT, FRIEND_QUEST, Tabs, questState, questsSettle, noteHeard, coverState, skillState, friendQuest, friendQuestPick, friendQuestSettle } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
 import { aiKey, data, go, openSearch, playGig } from "./app.js";
 import { louie } from "./louie.js";
@@ -36,6 +36,9 @@ export function renderTour() {
   const earned = questsSettle(data);
   if (earned.length) { Tabs.save(data); setTimeout(() => toast(earned.map(x => `${x.label}: +${x.fans} fans`).join(" · ")), 300); }
   const st = questState(data), hrs = Math.max(1, Math.ceil((new Date().setHours(24, 0, 0, 0) - Date.now()) / 3600e3));
+  const fqFans = friendQuestSettle(data);
+  if (fqFans) { Tabs.save(data); setTimeout(() => toast(`Friend quest done: +${fqFans} fans`), 600); }
+  const fq = friendQuest(data);
   const t = st.tour, r = st.request, heard = r && data.quests?.heard?.day === st.today && data.quests.heard.id === r.song.id, cv = coverState(data);
   app.innerHTML = `
     <div class="tq">
@@ -65,13 +68,22 @@ export function renderTour() {
         ${st.goals.map(g => `<div class="tq-row${g.done ? " done" : ""}"><div class="tq-rg"><b>${esc(g.label)}</b>${bar(g.have, g.need, g.done ? "full" : "")}<small>${g.have} / ${g.need}${g.done ? "" : ` · ${QUEST.goalFans} fans`}</small></div>${g.done ? CHECK : BOX(`${QUEST.goalFans} fans`)}</div>`).join("")}
         <p class="tq-foot">${st.setDone ? `All three done: +${QUEST.setFans} fans. New goals tomorrow.` : `All three: ${QUEST.setFans} more fans.`}</p>
       </section>
-      <h2 class="tq-h"><span>DUET QUEST</span><span>LATER</span></h2>
-      <section class="tq-card tq-lock" aria-label="Duet quest">
-        <div class="tq-row"><div class="tq-rg"><b>Earn XP together</b><small>Play together with a friend toward one XP goal. It needs your friend's XP on your phone, which comes with Your band.</small></div>${BOX("A merch box")}</div>
-      </section>
+      <h2 class="tq-h"><span>FRIEND QUEST</span><span>${fq ? "THIS WEEK" : ""}</span></h2>
+      ${fq ? `<section class="tq-card" aria-label="Friend quest">
+        <div class="tq-row"><div class="tq-rg"><b>Earn ${fq.goal} XP with ${esc(fq.with)}</b>
+          <div class="tq-bar fq"><i style="width:${Math.min(100, Math.round(100 * fq.mine / fq.goal))}%"></i><i class="th" style="width:${Math.max(0, Math.min(100 - Math.round(100 * fq.mine / fq.goal), Math.round(100 * fq.theirs / fq.goal)))}%"></i></div>
+          <small>You ${fq.mine} · ${esc(fq.with)} ${fq.theirs} · ${Math.min(fq.goal, fq.mine + fq.theirs)} / ${fq.goal}${fq.claimed ? ` · done, +${FRIEND_QUEST.fans} fans` : ` · ${FRIEND_QUEST.fans} fans when you get there`}</small></div>${fq.done ? CHECK : BOX(`${FRIEND_QUEST.fans} fans`)}</div>
+        <p class="tq-foot">${esc(fq.with)}'s XP updates when they send you a duel or a score.${fq.friends.length > 1 ? ` <button class="linkbtn" id="tq-fq">Pick a different friend</button>` : ""}</p>
+      </section>` : `<section class="tq-card tq-lock" aria-label="Friend quest">
+        <div class="tq-row"><div class="tq-rg"><b>Earn XP with a friend</b><small>Challenge a friend to a song duel after a gig. Then the two of you share a weekly XP goal here.</small></div>${BOX(`${FRIEND_QUEST.fans} fans`)}</div>
+      </section>`}
     </div>`;
   bindStatBar();
   document.getElementById("tq-play")?.addEventListener("click", () => playGig(r.song.id, { from: "tour" }));
+  document.getElementById("tq-fq")?.addEventListener("click", () => {
+    const names = fq.friends, next = names[(names.indexOf(fq.with) + 1) % names.length];
+    friendQuestPick(data, next); Tabs.save(data); renderTour();
+  });
   document.getElementById("tq-cover")?.addEventListener("click", () => {
     if (cv.step === 3) return playGig(cv.song.id, { from: "tour" });
     if (cv.step === 2) {

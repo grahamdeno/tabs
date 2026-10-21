@@ -65,7 +65,8 @@ Competition plan (Graham, 2026-10-21), like Duolingo: the weekly chart is the le
 (computer players now, real players at your tier from a server at App Store
 launch, computer players filling empty spots); friends are a separate layer.
 Order: 1 livelier players + move down (4.11.0), 2 song duels by link (4.12.0, `duel.js`), 3 Friends
-view on Charts + Friend quest (replaces the locked Duet quest), 4 real-player league.
+view on Charts + Friend quest (4.13.0; friends' XP rides on duel links; Play together
+from a friend's head-to-head), 4 real-player league.
 
 ## Next up (Graham's order, agreed 2026-10-19)
 

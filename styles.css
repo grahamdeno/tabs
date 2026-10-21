@@ -2981,3 +2981,16 @@ body.gigging .ask { z-index: 66; }
 .du-rt b { font: 700 15px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .du-rt small { font: 700 12.5px var(--sans); color: var(--muted); }
 .du-row .chev { width: 16px; height: 16px; color: var(--muted); }
+/* Friends (4.13.0): League | Friends on Charts, and the Friend quest */
+.ch-pane { margin: 10px 0 0; width: 100%; }
+.ch-pane button { flex: 1; }
+.fr-list { margin-top: 12px; }
+.fr-row { width: 100%; border: 0; background: none; text-align: left; font: inherit; color: inherit; }
+.fr-row.you { border: 2px solid var(--strings); background: var(--card); }
+.fr-empty { display: flex; align-items: center; gap: 12px; margin: 16px 0 0; padding: 14px; border-radius: 18px; background: var(--card); border: 2px solid var(--rim); }
+.fr-empty p { margin: 0; font: 700 14.5px/1.4 var(--sans); color: var(--fg); }
+.fr-empty .louie { width: 84px; height: auto; flex: none; }
+.tq-bar.fq { display: flex; }
+.tq-bar.fq i { border-radius: 0; }
+.tq-bar.fq i:first-child { border-radius: 5px 0 0 5px; background: var(--strings); }
+.tq-bar.fq i.th { background: var(--streak); }

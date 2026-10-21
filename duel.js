@@ -4,10 +4,10 @@
 //   sendReply(duel)            after answering it: send your score back
 //   renderDuel(id)             the head-to-head: both scores, your record against that friend, a rematch
 // No server: the link carries the song and the score, and each phone keeps its own duels (data.duels).
-import { Tabs, duelRecord, duelWon, findSame, shareable, startDuel, takeDuel } from "./core.js";
+import { Tabs, duelRecord, duelWon, findSame, friendsOf, shareable, startDuel, takeDuel, weekOf, weekXP } from "./core.js";
 import { app, ask, esc, icon, layer } from "./ui.js";
 import { data, go, playGig } from "./app.js";
-import { shareLink } from "./share.js";
+import { duetSheet, shareLink } from "./share.js";
 import { louie } from "./louie.js";
 
 /* your name on your challenges, asked once */
@@ -21,11 +21,13 @@ function withName(then) {
   });
 }
 const linkSong = song => shareable(song);
+/* your XP this week rides along, for the Friends view and the Friend quest (4.13.0) */
+const myWeek = () => ({ xp: weekXP(data), wk: weekOf() });
 
 export function sendChallenge(song, mine, near) {
   withName(async name => {
     const d = startDuel(data, song, mine); Tabs.save(data);
-    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...mine } }, `I hit ${mine.pct}% on ${song.title}. Beat it. (The Road)`, near);
+    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...mine, ...myWeek() } }, `I hit ${mine.pct}% on ${song.title}. Beat it. (The Road)`, near);
   });
 }
 export function sendReply(d, near) {
@@ -33,7 +35,7 @@ export function sendReply(d, near) {
   if (!song || !d.mine) return;
   withName(async name => {
     const won = duelWon(d);
-    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...d.mine, reply: true } }, `${won ? "Beat you" : won === false ? "You win this one" : "Tied"}: ${d.mine.pct}% on ${song.title}. (The Road)`, near);
+    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...d.mine, ...myWeek(), reply: true } }, `${won ? "Beat you" : won === false ? "You win this one" : "Tied"}: ${d.mine.pct}% on ${song.title}. (The Road)`, near);
   });
 }
 /* a duel link opened (from renderImport) */
@@ -86,6 +88,7 @@ export function renderDuel(id) {
       ${song && won === false ? `<button class="btn primary" id="du-again">TAKE IT BACK · PLAY ${esc(song.title.toUpperCase())}</button>` : ""}
       ${song && d.started === "them" && d.mine ? `<button class="btn ${won === false ? "" : "primary"}" id="du-reply">SEND YOUR SCORE BACK</button>` : ""}
       ${song && d.started === "them" && !d.mine ? `<button class="btn primary" id="du-play">TAKE THE STAGE · BEAT ${d.theirs?.pct}%</button>` : ""}
+      ${song && d.opp ? `<button class="btn" id="du-together">${icon("pick")}PLAY ${esc(song.title.toUpperCase())} TOGETHER</button>` : ""}
       <button class="btn" id="du-charts">BACK TO CHARTS</button>
     </div>
   </div>`;
@@ -94,6 +97,7 @@ export function renderDuel(id) {
   document.getElementById("du-again")?.addEventListener("click", () => playGig(song.id));
   document.getElementById("du-play")?.addEventListener("click", () => playGig(song.id));
   document.getElementById("du-reply")?.addEventListener("click", e => sendReply(d, e.currentTarget));
+  document.getElementById("du-together")?.addEventListener("click", () => duetSheet(song)); /* Play together, with this friend, on this song */
 }
 
 /* Charts: the duels list */
@@ -106,3 +110,17 @@ export function duelsHTML() {
     return `<button class="du-row" data-duel="${esc(d.id)}"><span class="du-av sm">${esc((d.opp || "?")[0].toUpperCase())}</span><span class="du-rt"><b>${esc(d.opp || "Sent")} · ${esc(d.title)}</b><small class="${won === true ? "w" : won === false ? "l" : ""}">${st}${d.mine ? ` · you ${d.mine.pct}%` : ""}${d.theirs ? ` · ${esc(d.opp)} ${d.theirs.pct}%` : ""}</small></span>${icon("chev", "chev")}</button>`;
   }).join("")}</div>`;
 }
+
+/* Charts, Friends: everyone you've dueled, by XP this week (as of their last link), with you among them */
+export function friendsHTML() {
+  const fr = friendsOf(data), mine = weekXP(data);
+  if (!fr.length) return `<section class="fr-empty">${louie("happy", { pose: "point", size: 84 })}<p><b>No friends here yet.</b> Challenge someone after a gig: everyone you duel shows up here, with your record against them and their XP this week.</p></section>`;
+  const rows = [...fr.map(f => ({ ...f })), { name: "You", xp: mine, you: true }].sort((a, b) => b.xp - a.xp || (a.you ? -1 : 1));
+  const ago = t => { const d = Math.floor((Date.now() - t) / 86400000); return d <= 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`; };
+  return `<ol class="ch-list fr-list">${rows.map((f, i) => `<li><button class="ch-row fr-row${f.you ? " you" : ""}" ${f.you ? "disabled" : `data-friend="${esc(f.name)}"`}>
+      <span class="ch-rk">${i + 1}</span><span class="ch-av" style="background:${f.you ? "var(--fg)" : "var(--streak)"}">${f.you ? louie("happy", { size: 34 }) : esc(f.name[0].toUpperCase())}</span>
+      <span class="ch-nm">${esc(f.name)}<small class="ch-note">${f.you ? "this week" : `${f.w}–${f.l} in duels · heard from ${ago(f.seen)}`}</small></span>
+      <span class="ch-xp">${f.xp} XP</span></button></li>`).join("")}</ol>
+    <p class="ch-how">A friend's XP updates whenever they send you a duel or a score. Tap a friend for your duels and Play together.</p>`;
+}
+export function friendLatest(name) { return (data.duels?.list || []).find(d => d.opp === name); }

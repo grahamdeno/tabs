@@ -689,4 +689,11 @@ test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply show
   assert.ok(await page.locator("#du-again").isVisible(), "take it back");
   await page.click("#du-charts"); await page.waitForSelector(".du-row");
   assert.equal(await page.locator(".du-row").count(), 2, "both duels on Charts");
+  /* 4.13.0: Friends on Charts, and Play together from a friend */
+  await page.click('[data-pane="friends"]'); await page.waitForSelector(".fr-row");
+  assert.equal(await page.locator(".fr-row").count(), 3, "Mike, Sarah and you");
+  await page.click('[data-friend="Sarah"]'); await page.waitForSelector("#du-together");
+  await page.click("#du-together"); await page.waitForSelector("#du-go");
+  await page.goto(base + "#/tour"); await page.waitForSelector(".tq-head");
+  assert.match(await page.innerText(".tq-card[aria-label='Friend quest']"), /Earn 300 XP with/);
 });

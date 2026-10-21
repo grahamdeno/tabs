@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.12.0";
+export const VERSION = "4.13.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -3563,9 +3563,10 @@ export function cleanQuests(raw) {
   if (isObj(raw.crowd) && day.test(raw.crowd.day)) out.crowd = { day: raw.crowd.day, n: Math.max(0, Math.min(12, Math.round(+raw.crowd.n || 0))) };
   if (isObj(raw.req) && day.test(raw.req.day) && typeof raw.req.id === "string") out.req = { day: raw.req.day, id: raw.req.id.slice(0, 40), done: raw.req.done === true };
   if (isObj(raw.heard) && day.test(raw.heard.day) && typeof raw.heard.id === "string") out.heard = { day: raw.heard.day, id: raw.heard.id.slice(0, 40) };
+  if (isObj(raw.fq) && day.test(raw.fq.wk) && typeof raw.fq.with === "string") out.fq = { wk: raw.fq.wk, with: raw.fq.with.slice(0, 30), ...(raw.fq.claimed === true ? { claimed: true } : {}) };
   const c = raw.cover;
   if (isObj(c) && typeof c.title === "string" && c.title.trim() && c.at > 0) out.cover = { title: c.title.slice(0, 100), artist: String(c.artist || "").slice(0, 100), ...(/^https:\/\/music\.apple\.com\//.test(c.url || "") ? { url: c.url } : {}), ...(/^https:\/\//.test(c.art || "") ? { art: c.art } : {}), at: Math.floor(c.at), ...(typeof c.id === "string" ? { id: c.id.slice(0, 40) } : {}), ...(c.done === true ? { done: true } : {}) };
-  return out.fans || out.day || out.month || out.crowd || out.req || out.heard || out.cover ? out : null;
+  return out.fans || out.day || out.month || out.crowd || out.req || out.heard || out.cover || out.fq ? out : null;
 }
 
 // ---------- Charts (4.6.0): XP, the weekly chart, records and rival battles ----------
@@ -3807,7 +3808,8 @@ export function cleanDuelLink(d) {
   if (!isObj(d) || typeof d.id !== "string" || !/^[a-z0-9]{6,24}$/.test(d.id) || typeof d.from !== "string") return null;
   const sc = score(d);
   if (!sc) return null;
-  return { id: d.id, from: d.from.trim().slice(0, 30) || "A friend", ...sc, ...(d.reply === true ? { reply: true } : {}) };
+  const wk = typeof d.wk === "string" && /^\d{4}-\d\d-\d\d$/.test(d.wk) && d.xp >= 0 ? { xp: Math.min(1e5, Math.round(d.xp)), wk: d.wk } : {};
+  return { id: d.id, from: d.from.trim().slice(0, 30) || "A friend", ...sc, ...wk, ...(d.reply === true ? { reply: true } : {}) };
 }
 const duelsOf = data => data.duels || (data.duels = { list: [] });
 /* you challenge a friend: the duel starts with your score */
@@ -3817,9 +3819,10 @@ export function startDuel(data, song, mine, now = Date.now()) {
   const ds = duelsOf(data); ds.list.unshift(d); ds.list = ds.list.slice(0, 100);
   return d;
 }
-/* a link comes in: a challenge to answer, or the answer to yours */
+/* a link comes in: a challenge to answer, or the answer to yours. It also brings that friend's XP this week. */
 export function takeDuel(data, link, song, now = Date.now()) {
   const ds = duelsOf(data), sc = score(link);
+  if (link.wk) { const f = ds.friends || (ds.friends = {}); f[link.from] = { xp: link.xp, wk: link.wk, at: now }; }
   let d = ds.list.find(x => x.id === link.id);
   if (link.reply) {
     if (!d) return null;
@@ -3840,6 +3843,36 @@ function duelsShow(data, songId, sc) {
   return { ...d };
 }
 export const duelWon = d => d?.mine && d?.theirs ? (d.mine.pct > d.theirs.pct ? true : d.mine.pct < d.theirs.pct ? false : null) : undefined;
+/* Friends (4.13.0): everyone you've dueled, with your record and their XP this week (as of their last link) */
+export function friendsOf(data, now = Date.now()) {
+  const wk = weekOf(now), names = [...new Set((data.duels?.list || []).map(d => d.opp).filter(Boolean))];
+  return names.map(name => {
+    const f = data.duels?.friends?.[name], rec = duelRecord(data, name), last = data.duels.list.find(d => d.opp === name);
+    return { name, ...rec, xp: f?.wk === wk ? f.xp : 0, seen: f?.at || last?.at || 0, last };
+  }).sort((a, b) => b.xp - a.xp || b.seen - a.seen);
+}
+/* Friend quest (4.13.0): this week, you and one friend earn XP toward one goal (their XP arrives with their links) */
+export const FRIEND_QUEST = { goal: 300, fans: 50 };
+export function friendQuest(data, now = Date.now()) {
+  const fr = friendsOf(data, now);
+  if (!fr.length) return null;
+  const wk = weekOf(now), q = data.quests?.fq?.wk === wk ? data.quests.fq : null;
+  const pal = fr.find(f => f.name === q?.with) || fr.slice().sort((a, b) => b.seen - a.seen)[0];
+  const mine = weekXP(data, wk, now), theirs = pal.xp;
+  return { with: pal.name, goal: FRIEND_QUEST.goal, mine, theirs, seen: pal.seen, done: mine + theirs >= FRIEND_QUEST.goal, claimed: !!q?.claimed, friends: fr.map(f => f.name) };
+}
+export function friendQuestPick(data, name, now = Date.now()) {
+  const q = data.quests || (data.quests = { fans: 0 }), wk = weekOf(now);
+  q.fq = { wk, with: name, ...(q.fq?.wk === wk && q.fq.claimed ? { claimed: true } : {}) };
+}
+export function friendQuestSettle(data, now = Date.now()) {
+  const fq = friendQuest(data, now);
+  if (!fq?.done || fq.claimed) return 0;
+  const q = data.quests || (data.quests = { fans: 0 });
+  q.fq = { wk: weekOf(now), with: fq.with, claimed: true };
+  q.fans = (q.fans || 0) + FRIEND_QUEST.fans;
+  return FRIEND_QUEST.fans;
+}
 /* your record against one friend: wins, losses, and the last few results (newest first) */
 export function duelRecord(data, opp) {
   const done = (data.duels?.list || []).filter(d => d.opp === opp && duelWon(d) !== undefined);
@@ -3852,7 +3885,10 @@ export function cleanDuels(raw) {
   const list = (Array.isArray(raw.list) ? raw.list : []).filter(d => isObj(d) && typeof d.id === "string" && /^[a-z0-9]{6,24}$/.test(d.id) && typeof d.title === "string").slice(0, 100)
     .map(d => ({ id: d.id, title: d.title.slice(0, 100), artist: String(d.artist || "").slice(0, 100), songId: String(d.songId || "").slice(0, 40), opp: String(d.opp || "").slice(0, 30), mine: score(d.mine), theirs: score(d.theirs), started: d.started === "them" ? "them" : "me", at: Math.max(0, Math.floor(+d.at || 0)) }));
   if (list.length) out.list = list;
-  return out.name || out.list ? out : null;
+  const fr = {};
+  for (const [k, v] of Object.entries(isObj(raw.friends) ? raw.friends : {}).slice(0, 100)) if (k && k.length <= 30 && isObj(v) && /^\d{4}-\d\d-\d\d$/.test(v.wk)) fr[k] = { xp: Math.max(0, Math.min(1e5, Math.round(+v.xp || 0))), wk: v.wk, at: Math.max(0, Math.floor(+v.at || 0)) };
+  if (Object.keys(fr).length) out.friends = fr;
+  return out.name || out.list || out.friends ? out : null;
 }
 
 /* The chords you can play: every chord lesson done, and any chord played in songs five times. */

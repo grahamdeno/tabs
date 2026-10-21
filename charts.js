@@ -17,6 +17,7 @@ const AV = ["var(--accent)", "var(--strings)", "var(--fans)", "var(--streak)", "
 const ord = n => n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th");
 const RECORD = (tier, rank) => `<svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="21" r="18" class="ch-vd"/><circle cx="20" cy="19" r="18" class="ch-v"/><circle cx="20" cy="19" r="12" fill="none" stroke="#2A3A63" stroke-width="1.4"/><circle cx="20" cy="19" r="6.5" class="${rank === 1 ? "ch-gold" : "ch-lab"}"/><circle cx="20" cy="19" r="1.6" class="ch-v"/><path d="M8 13a14 14 0 0 1 6-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".4"/><title>${esc(VENUES[tier] || "")} record, ${ord(rank)}</title></svg>`;
 
+let pane = "league"; /* League | Friends (4.13.0) */
 export function renderCharts(view = "chart") {
   const moved = chartsSettle(data);
   if (moved) Tabs.save(data);
@@ -38,6 +39,8 @@ export function renderCharts(view = "chart") {
   app.innerHTML = `<div class="ch">
     <div class="tq-top">${statBar()}</div>
     ${st.last ? `<section class="ch-last"><p>${st.last.xp ? `Last week: <b>${ord(st.last.rank)}</b> on the ${esc(VENUES[st.last.tier])} chart${st.last.up ? `. Up to the <b>${esc(VENUES[st.last.tier + 1])}</b>!` : st.last.down ? `. Back down to the <b>${esc(VENUES[st.last.tier - 1])}</b>. Win it back this week.` : st.last.rank <= CHART_PROMOTE ? ". A record for the shelf." : ". Top 5 moves you up."}` : st.last.down ? `Last week went by without a play, so you're back at the <b>${esc(VENUES[st.last.tier - 1])}</b>.` : `Last week went by without a play. This week is a fresh chart.`}</p><button class="sb" id="ch-lastx" aria-label="Got it">OK</button></section>` : ""}
+    <div class="seg ch-pane" role="group" aria-label="Charts">${[["league", "League"], ["friends", "Friends"]].map(([k, n]) => `<button data-pane="${k}" class="${pane === k ? "on" : ""}" aria-pressed="${pane === k}">${n}</button>`).join("")}</div>
+    ${pane === "friends" ? `<div id="ch-friends"></div>` : `
     <section class="ch-head" aria-label="${esc(st.name)} chart">
       <div><h1>${esc(st.name)} Chart</h1><small>${st.daysLeft} DAY${st.daysLeft === 1 ? "" : "S"} LEFT</small></div>
       <div class="ch-recs" aria-label="${st.records.length} record${st.records.length === 1 ? "" : "s"}">${st.records.slice(-4).map(r => RECORD(r.tier, r.rank)).join("") || RECORD(st.tier, 9)}</div>
@@ -46,12 +49,19 @@ export function renderCharts(view = "chart") {
     <ol class="ch-list">${rows.join("")}</ol>
     ${battleCard}
     <div id="ch-duels"></div>
+    `}
     <p class="ch-how">XP: ${XP.play} for a song played through, ${XP.landed} for each chord change landed in a gig, ${XP.crowd} for a crowd of 10, ${XP.goal} for a setlist goal, ${XP.battle} for a battle won.</p>
   </div>`;
   bindStatBar();
   document.getElementById("ch-go")?.addEventListener("click", () => renderCharts("battle"));
-  /* Song duels (4.12.0) */
-  import("./duel.js").then(m => { const box = document.getElementById("ch-duels"); if (!box) return; box.innerHTML = m.duelsHTML(); box.querySelectorAll("[data-duel]").forEach(b => b.onclick = () => go("#/duel/" + b.dataset.duel)); });
+  app.querySelectorAll("[data-pane]").forEach(b => b.onclick = () => { pane = b.dataset.pane; renderCharts(); });
+  /* Song duels (4.12.0) and Friends (4.13.0) */
+  import("./duel.js").then(m => {
+    const box = document.getElementById("ch-duels");
+    if (box) { box.innerHTML = m.duelsHTML(); box.querySelectorAll("[data-duel]").forEach(b => b.onclick = () => go("#/duel/" + b.dataset.duel)); }
+    const fb = document.getElementById("ch-friends");
+    if (fb) { fb.innerHTML = m.friendsHTML(); fb.querySelectorAll("[data-friend]").forEach(b => b.onclick = () => { const d = m.friendLatest(b.dataset.friend); if (d) go("#/duel/" + d.id); }); }
+  });
   document.getElementById("ch-lastx")?.addEventListener("click", () => { data.charts.last.seen = true; Tabs.save(data); renderCharts(); });
   document.querySelector(".ch-row.you")?.scrollIntoView({ block: "nearest" });
 }

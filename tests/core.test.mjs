@@ -1959,6 +1959,24 @@ test("Song duels (4.12.0): a challenge by link, answered by a gig, and the recor
   assert.equal(C.cleanDuelLink({ id: "x", from: "a", pct: 50 }), null, "a bad id");
 });
 
+test("Friends (4.13.0): the friends list and the Friend quest from XP that rides on duel links", () => {
+  const now = new Date(2026, 9, 21, 20).getTime(), wk = C.weekOf(now);
+  const data = { songs: [{ id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 0, last: 0, days: { "2026-10-20": 10 } } }], sets: [], trash: [], settings: {} };
+  assert.equal(C.friendQuest(data, now), null, "no friends yet");
+  const d = C.startDuel(data, data.songs[0], { pct: 80, combo: 1, crowd: 1 }, now);
+  C.takeDuel(data, { id: d.id, from: "Mike", pct: 90, combo: 1, crowd: 1, reply: true, xp: 150, wk }, null, now);
+  const fr = C.friendsOf(data, now);
+  assert.deepEqual(fr.map(f => [f.name, f.xp, f.w, f.l]), [["Mike", 150, 0, 1]]);
+  const fq = C.friendQuest(data, now);
+  assert.deepEqual([fq.with, fq.mine, fq.theirs, fq.done], ["Mike", 100, 150, false]);
+  data.songs[0].playLog.days["2026-10-21"] = 6;
+  assert.equal(C.friendQuest(data, now).done, true, "100 + 60 + 150 passes 300");
+  assert.equal(C.friendQuestSettle(data, now), 50); assert.equal(C.friendQuestSettle(data, now), 0, "once a week");
+  assert.equal(C.friendsOf(data, now + 7 * 86400e3)[0].xp, 0, "last week's XP doesn't count");
+  assert.deepEqual(C.cleanDuels(JSON.parse(JSON.stringify(data.duels))), data.duels);
+  assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests);
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");
