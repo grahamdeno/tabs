@@ -96,7 +96,7 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
   if (process.env.DBG) { page.on("console", m => console.log("# con", m.text())); page.on("pageerror", e => console.log("# perr", String(e))); }
-  await page.goto(base); await page.waitForTimeout(400);
+  await page.goto(base + "#/library"); await page.waitForTimeout(400); /* 4.9.0: Add is in the Songbook */
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
   await page.reload(); await page.waitForTimeout(300);
   await page.click("#add"); await page.waitForTimeout(600);

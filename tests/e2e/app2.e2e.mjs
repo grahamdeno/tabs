@@ -73,7 +73,7 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
-  await page.goto(base); await page.waitForTimeout(400);
+  await page.goto(base + "#/library"); await page.waitForTimeout(400); /* 4.9.0: Add is in the Songbook */
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
   await page.reload(); await page.waitForTimeout(300);
   // From Add: an empty new song offers Sing it.
@@ -173,7 +173,7 @@ test("Back from a song opened in a set returns to that set; from the library, to
   assert.equal(await hash(), "#/set/s");
   await page.goto(base + "#/library"); await page.waitForTimeout(300);
   await page.click('#list .row[data-id="a"]'); await page.waitForTimeout(400);
-  assert.equal(await page.getAttribute(".shead .sh-back", "aria-label"), "Back to library");
+  assert.equal(await page.getAttribute(".shead .sh-back", "aria-label"), "Back to the Songbook");
   await page.click(".shead .sh-back"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/library");
 });
@@ -409,14 +409,13 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   assert.deepEqual(await state(), { one: true, fold: true, inBar: false, bar: false }, "playing: the bar folds away");
   const c = await center();
   assert.ok(c.x > 320 && c.y > 760, `Play waits in the corner (${c.x}, ${c.y})`);
-  assert.match(await page.innerText("#fp-nav"), /Library/, "beside it, the way back to the Library");
+  assert.match(await page.innerText("#fp-nav"), /Songbook/, "beside it, the way back to the Songbook");
   await page.click("#fp-nav"); await page.waitForTimeout(500);
-  assert.equal(await page.evaluate(() => location.hash), "#/library", "opened directly: the Library page");
+  assert.equal(await page.evaluate(() => location.hash), "#/library", "the Songbook page");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-tonight");
   await page.evaluate(() => import("/app.js").then(m => m.playSong("a"))); await page.waitForSelector("#fp-nav", { state: "visible" }); /* a song opened from the Road and played */
   await page.click("#fp-nav");
-  await page.waitForSelector("#rd-drawer[data-state=open]", { timeout: 4000 });
-  assert.equal(await page.evaluate(() => location.hash), "#/", "from the Road, the Library is the drawer on the Road, open");
+  await page.waitForFunction(() => location.hash === "#/library", null, { timeout: 4000 }); /* 4.9.0: the Songbook is a page from the Road too */
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
   await page.click("#play"); await page.waitForTimeout(500);
   /* a long hold is still a tap: nothing opens, and it pauses */

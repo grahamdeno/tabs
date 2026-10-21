@@ -7,14 +7,13 @@
 //               (a level check: play a real song through). Done stops are lit, the current stop
 //               is ringed with its card open (Start), later ones are locked. Tap any stop for its card.
 //   Louie       beside the path, with one line that fits the moment and tonight's song to play
-//   Library     the drawer along the bottom, with the search bar and add button as before
+//   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
 import { Tabs, heardOffer, lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
-import { bindShelf, chipsHTML, chordNames, data, filter, go, homeHooks, openSearch, playGig, renderList, route, setFilter, setsShelf, newSong, aiKey } from "./app.js";
+import { chordNames, data, go, homeHooks, openSearch, playGig, route, aiKey } from "./app.js";
 import { louie } from "./louie.js";
-import { makeDrawer } from "./drawer.js";
 import { statBar, bindStatBar } from "./hud.js";
 
 const DAY = 86400000;
@@ -121,36 +120,21 @@ export function renderRoad() {
       <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(say.text)}</p>${song ? `<button class="rd-tonight" id="rd-tonight">${icon("play")}<span>Gig: ${esc(song.title)}</span></button>` : ""}</div>${louie(say.mood, { pose: say.pose, size: 112 })}</div>
       ${legsHTML}${coming}
     </div>
-    ${data.songs.length ? `<div class="rd-scrim" id="rd-scrim"></div>
-    <section class="rd-drawer" id="rd-drawer" aria-label="Library">
-      <div class="rd-sizer"></div>
-      <button class="rd-dh" id="rd-dh" data-grab aria-label="Library, ${data.songs.length} song${data.songs.length === 1 ? "" : "s"}. Open or close"><i class="rd-grab" aria-hidden="true"></i><span class="rd-dt"><b>Library</b><span id="rd-count"></span></span></button>
-      <div class="rd-dbody" id="rd-dbody"></div>
-    </section>` : ""}
-    <div class="dock-fade"></div>
-    <div class="dock kb">
-      <button class="cmd glass float rd-search" id="rd-search" aria-label="Search or paste a song">${icon("search")}<span>Search, or paste a song</span></button>
-      <button class="add" id="add" aria-label="Add song"><svg class="add-note" viewBox="0 0 24 24" aria-hidden="true"><g><path d="M8.2 6.4 19 4v12.3h-1.8V6.3L10 7.9v10.3H8.2z"/><ellipse cx="6.4" cy="18.1" rx="2.6" ry="2.1" transform="rotate(-20 6.4 18.1)"/><ellipse cx="15.6" cy="16.2" rx="2.6" ry="2.1" transform="rotate(-20 15.6 16.2)"/></g></svg><i class="add-bdg" aria-hidden="true">+</i></button>
+    <div class="rd-sbk">
+      <button class="rd-sbk-go" id="rd-songbook" aria-label="Open the Songbook">
+        <span class="rd-sbk-ic" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M7 3v10a3.5 3.5 0 1 1-2-3.2V1l10 2v4L7 5z"/></svg></span>
+        <span class="rd-sbk-t"><b>Songbook</b><small>${data.songs.length ? `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}${ps.of ? ` · ${ps.now} you can play` : ""}` : "Add your first song"}</small></span>
+      </button>
+      <button class="rd-sbk-q" id="rd-search" aria-label="Search, or paste a song">${icon("search")}</button>
     </div>`;
   const $ = id => document.getElementById(id);
   bindStatBar();
-  if ($("rd-drawer")) {
-    const body = $("rd-dbody");
-    const fill = () => {
-      body.innerHTML = `${chipsHTML()}${filter === "all" ? setsShelf() : ""}<div id="list"></div>`;
-      body.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { setFilter(b.dataset.f); fill(); });
-      bindShelf();
-      renderList();
-      $("rd-count").textContent = `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}`;
-    };
-    homeHooks.refresh = fill; fill();
-    const drawer = makeDrawer({ root: $("rd-drawer"), head: $("rd-dh"), body, sizer: $("rd-drawer").querySelector(".rd-sizer"), scrim: $("rd-scrim") });
-    if (wantDrawer) drawer.open();
-  }
+  homeHooks.refresh = null;
+  if (wantDrawer) return go("#/library"); /* asked for the songs (4.9.0: the Songbook page, not a drawer) */
+  $("rd-songbook").onclick = () => go("#/library");
   $("rd-book")?.addEventListener("click", () => go("#/practice/neck"));
   $("rd-tonight")?.addEventListener("click", () => playGig(song.id, { from: "road" })); /* 4.1.0: tonight's song is a gig */
   $("rd-search").onclick = () => openSearch();
-  $("add").onclick = () => newSong();
 
   /* a stop: tap it for its card (the current stop's is open already); Start opens the lesson or the song */
   const path = $("rd-path"), all = road.legs.flatMap(l => l.stops);

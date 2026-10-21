@@ -262,7 +262,7 @@ function showMe(name) {
 }
 /* One hand: point at the control where it is. Only on a phone held upright. */
 const ONE_HAND = {
-  pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Library\u201d and let go.</span>", "below"],
+  pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Songbook\u201d and let go.</span>", "below"],
   speed: () => [document.getElementById("more"), "<b>Tap Tools, then Speed</b><span>Sweep around the corner to set the song's length.</span>"],
   setdial: () => [document.getElementById("setdial"), "<b>Hold \u201c4 of 9\u201d</b><span>Sweep through the set; let go to open a song.</span>"]
 };
@@ -286,7 +286,7 @@ function runDemo(name, song) {
 const GESTURES = [
   ["One hand (phone held upright)", [
     ["", "Press Play", "Play opens the Gig. Practicing a section, the bar folds into Play's corner instead", "play"],
-    ["pull", "Pull down at the top of a song", "Let go at \u201cRelease for Library\u201d to go back (when paused)", "back"],
+    ["pull", "Pull down at the top of a song", "Let go at \u201cRelease for Songbook\u201d to go back (when paused)", "back"],
     ["speed", "Tools, then Speed", "The speed dial: sweep the corner to set the song's length", "gauge"],
     ["setdial", "Hold \u201c4 of 9\u201d in a set", "The set dial: sweep through the set, let go to open a song", "listplus"]]],
   ["On a song", [

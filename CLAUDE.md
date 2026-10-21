@@ -120,13 +120,13 @@ release so Graham can try it.
 | Your playing (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
 | German practice | `german.js` |
 | Rehearse (hub), the neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
-| The Road (home, 4.0.0): path, Louie, Library drawer | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
+| The Road (home, 4.0.0): path, Louie, the Songbook bar (4.9.0; the Songbook page is `renderLibrary` in `app.js`) | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
 | Stat bar, tab bar, More sheet | `hud.js` |
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
 | Your band: the Band tab; Louie's friends drawn | `band.js`, `friends.js` (numbers: `bandState`, `bandParts` in `core.js`) |
 | Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
-| Pull-up drawers: the Road's Library, the Tour Map's scene sheet | `drawer.js` (used by `road.js`, `playmap.js`) |
+| Pull-up drawers: the Tour Map's scene sheet | `drawer.js` (used by `playmap.js`) |
 | Offline copy; lists every app file | `sw.js` |
 
 A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).

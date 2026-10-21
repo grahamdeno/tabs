@@ -115,7 +115,7 @@ function foldEnd(toCorner, before) {
 const PULL = 90;
 function bindPull() {
   const tip = st.el.querySelector(".fp-pull"), label = tip.querySelector("span");
-  label.textContent = `Release for ${(st.o.back?.label || "Back").replace(/^Back to /, "").replace(/^library$/i, "Library")}`;
+  label.textContent = `Release for ${(st.o.back?.label || "Back").replace(/^Back to /, "").replace(/^the /, "")}`;
   let y0 = null, dy = 0;
   const reset = () => { y0 = null; dy = 0; tip.style.opacity = ""; tip.classList.remove("go"); document.getElementById("app").style.removeProperty("--pull"); };
   const start = e => {

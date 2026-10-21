@@ -63,7 +63,7 @@ test("2.5 Back: beside the title (4.2.0); pull down at the top; the library open
   assert.equal(await page.evaluate(() => location.hash), "#/song/a", "a short pull springs back");
   await touch("touchStart", 300);
   for (let y = 300; y <= 420; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); }
-  assert.match(await page.textContent(".fp-pull"), /Release for Library/);
+  assert.match(await page.textContent(".fp-pull"), /Release for Songbook/);
   assert.equal(await page.evaluate(() => document.querySelector(".fp-pull").classList.contains("go")), true);
   await touch("touchEnd"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => location.hash), "#/library", "a full pull goes back");
@@ -464,7 +464,7 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.every(s => !s.playLog?.total)), true);
 });
 
-test("The Road is home (4.0.0): stat bar, leg banner, the path with its current stop open, Louie, the Library drawer and the tab bar", { skip: skip() }, async t => {
+test("The Road is home (4.0.0): stat bar, leg banner, the path with its current stop open, Louie, the Songbook bar and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs }, { home: true });
@@ -491,25 +491,18 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click(".shead .sh-back");
   await page.waitForSelector(".rd-path");
   assert.equal(await page.evaluate(() => location.hash), "#/", "and Back goes to the Road");
-  /* the Library drawer: the Road never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
+  /* 4.9.0: the Road never scrolls; the Songbook is a bar along the bottom that opens its page */
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "the Road does not scroll");
-  assert.match(await page.innerText("#rd-dh"), /Library/);
-  const state = () => page.getAttribute("#rd-drawer", "data-state");
-  assert.equal(await state(), "closed");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("rd-dbody")).opacity), "0", "shut, none of the Library shows");
-  const drag = (sel, from, to) => page.evaluate(([sel, from, to]) => {
-    const el = document.querySelector(sel), t = y => new Touch({ identifier: 1, target: el, clientX: 200, clientY: y });
-    el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [t(from)] }));
-    for (let i = 1; i <= 6; i++) el.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, cancelable: true, touches: [t(from + (to - from) * i / 6)] }));
-    el.dispatchEvent(new TouchEvent("touchend", { bubbles: true, touches: [] }));
-  }, [sel, from, to]);
-  await drag("#rd-dh", 700, 300); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "open");
-  await page.waitForFunction(() => document.querySelector("#rd-drawer").getBoundingClientRect().top < 80, null, { timeout: 3000 });
-  assert.ok(await page.locator("#list .row").first().isVisible(), "the real Library list is inside");
-  await drag("#rd-dh", 100, 500); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
-  await page.click("#rd-dh"); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "open");
-  await page.mouse.click(195, 20); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "the drawer never leaves the Road");
+  assert.equal(await page.locator("#rd-drawer").count(), 0, "no drawer");
+  assert.match(await page.innerText("#rd-songbook"), /Songbook[\s\S]*2 songs/);
+  const bar = await page.locator(".rd-sbk").boundingBox(), tabsTop = (await page.locator("#tabs").boundingBox()).y;
+  assert.ok(bar.y + bar.height <= tabsTop, "above the tab bar");
+  await page.click("#rd-songbook"); await page.waitForFunction(() => location.hash === "#/library");
+  assert.match(await page.innerText("h1.title"), /Songbook/);
+  assert.ok(await page.locator("#list .row").first().isVisible(), "the songs");
+  await page.click("#libback"); await page.waitForSelector(".rd-path");
+  await page.click("#rd-search"); await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
   /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0); Your band (4.7.0); More reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
   await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, requestSong, sheetChords } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -188,9 +188,10 @@ function showChanges() {
 function chipsHTML() {
   if (!data.songs.length) return "";
   const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
-  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn)) filter = "all";
+  const can = canPlayCount();
+  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can)) filter = "all";
   const chip = (f, label) => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}">${label}</button>`;
-  return `<div class="chips" id="chips">${chip("all", "All")}${chip("sets", "Sets")}${hasFav ? chip("fav", "Favorites") : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasTab ? chip("tab", "Tabs") : ""}</div>`;
+  return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play · ${can}`) : ""}${chip("sets", "Sets")}${hasFav ? chip("fav", "Favorites") : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasTab ? chip("tab", "Tabs") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
 const homeHooks = { refresh: null, openDrawer: false }; /* openDrawer: Tonight opens with the Library up (3.24.2) */
@@ -202,7 +203,7 @@ function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <div class="head-l"><button class="ib glass" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Library</h1></div>
+      <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Songbook</h1></div>
       <div class="row-btns">
         <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
         ${tunerBtn("ib glass")}
@@ -211,6 +212,7 @@ function renderLibrary() {
     </div>
     ${todayHTMLOrSpot(weekTotal, weekSongs)}
     ${chipsHTML()}
+    ${filter === "all" ? upNextHTML() : ""}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
@@ -230,6 +232,8 @@ function renderLibrary() {
     </div>`;
   bindToday();
   $("libback").onclick = () => go("#/");
+  app.querySelectorAll(".upn-c[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
+  app.querySelectorAll(".upn-c[data-gig]").forEach(b => b.onclick = () => playGig(b.dataset.gig));
   $("settings").onclick = () => go("#/settings");
   $("youbtn").onclick = () => go("#/you");
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
@@ -350,12 +354,38 @@ function songRow(s, hit) {
   const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
   const sub = hit ? `<span class="hit">${hit}</span>`
-    : [esc(s.artist || "Unknown artist"), STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
+    : [esc(s.artist || "Unknown artist"), s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
   return `<button class="row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
     <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${sub}</div></div>
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
+    ${(() => { const f = fitOf(s); return s.status === "learning" ? `<span class="fit learn">LEARNING</span>` : f.can ? `<span class="fit can">CAN PLAY</span>` : f.missing.length === 1 ? `<span class="fit one">+ ${esc(f.missing[0])}</span>` : ""; })()}
     <span class="k">${esc(keyOf(s))}</span>
   </button>`;
+}
+/* The Songbook (4.9.0): which songs use only chords you know, and which need just one more. */
+let fitCache = { at: 0, known: null, map: new Map() };
+function fitOf(s) {
+  if (Date.now() - fitCache.at > 3000) fitCache = { at: Date.now(), known: knownChords(data), map: new Map() };
+  if (s.format === "tab") return { can: false, missing: [] };
+  const hit = fitCache.map.get(s);
+  if (hit && hit.body === s.body) return hit;
+  const ch = sheetChords(s.body), known = fitCache.known;
+  const missing = known.size ? ch.filter(c => !known.has(c)) : ch;
+  const out = { body: s.body, can: known.size > 0 && ch.length > 0 && !missing.length, missing: known.size ? missing : [] };
+  fitCache.map.set(s, out);
+  return out;
+}
+const canPlayCount = () => data.songs.filter(s => fitOf(s).can).length;
+/* Up next for you: the song one new chord opens, and tonight's request */
+function upNextHTML() {
+  if (data.songs.length < 3 || searching) return "";
+  const one = data.songs.filter(s => fitOf(s).missing.length === 1).sort((a, b) => (b.status === "learning") - (a.status === "learning") || (b.opened || 0) - (a.opened || 0))[0];
+  const req = requestSong(data);
+  if (!one && !req) return "";
+  return `<div class="label">Up next for you</div><div class="upn">
+    ${one ? `<button class="upn-c one" data-id="${esc(one.id)}"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><span>Learn ${esc(fitOf(one).missing[0])} and it's yours</span></button>` : ""}
+    ${req ? `<button class="upn-c req" data-gig="${esc(req.id)}"><small>REQUESTED</small><b>${esc(req.title)}</b><span>2x bonus fans tonight</span></button>` : ""}
+  </div>`;
 }
 
 const sortBy = sort => `<label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label>`;
@@ -443,7 +473,7 @@ function renderList() {
     return;
   }
   const pool = searching ? data.songs : data.songs.filter(s =>
-    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning"));
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning") && (filter !== "can" || fitOf(s).can));
   /* Searching: title and artist matches first, then songs whose lyrics have the words. */
   const found = q ? searchSongs(pool, q) : null;
   const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
@@ -778,7 +808,7 @@ function renderViewer(id) {
   app.classList.add("viewer");
   /* Back goes where the song was opened from: its set, when played from one. */
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
-  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to library" };
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to the Songbook" };
   diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
   /* One song screen (4.2.0): the song at the top (back, title, favorite), its chips, the song map,
      the chords, the sheet, and at the bottom Tools and Play. Play opens the Gig. */
@@ -985,7 +1015,7 @@ function renderViewer(id) {
   const foldNav = () => {
     const x = fromSet, list = x ? setSongs(x) : [], nx = x && list[setCtx?.idx + 1];
     if (nx) return { html: `<span class="fn-t">${esc(nx.title)}</span><small>${setCtx.idx + 2} of ${list.length}</small>${icon("chev")}`, label: `Next song: ${nx.title}`, run: () => { stopScroll(); $("snext")?.click(); } };
-    return { html: `${icon("back")}<span class="fn-t">Library</span>`, label: "Back to library", run: () => { stopScroll(); if (lastHome === "road") homeHooks.openDrawer = true; go(lastHome === "road" ? "#/" : "#/library"); } };
+    return { html: `${icon("back")}<span class="fn-t">Songbook</span>`, label: "Back to the Songbook", run: () => { stopScroll(); go("#/library"); } };
   };
   foldApi = setupFold({ back: { label: back.label, run: () => go(back.to) }, playing: () => scroll.on, nav: foldNav });
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
@@ -2772,7 +2802,7 @@ function render() {
     noteError(e, { quiet: true });
     layer.innerHTML = "";
     app.innerHTML = `<div class="oops"><b>This screen didn't open</b><p>Your songs are safe. Going back usually fixes it. If it keeps happening, copy the details and send them along.</p>
-      <div class="actions"><button class="btn" id="oops-copy">Copy details</button><button class="btn primary" id="oops-home">Library</button></div></div>`;
+      <div class="actions"><button class="btn" id="oops-copy">Copy details</button><button class="btn primary" id="oops-home">Songbook</button></div></div>`;
     $("oops-copy").onclick = copyDiagnostics;
     $("oops-home").onclick = () => { if (route().name === "library") location.reload(); else go("#/"); };
   }
