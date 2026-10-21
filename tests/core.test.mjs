@@ -1937,6 +1937,28 @@ test("Cover requests (4.10.0): your listening becomes the request or a cover que
   assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests, "kept through a save");
 });
 
+test("Song duels (4.12.0): a challenge by link, answered by a gig, and the record between you", async () => {
+  const now = Date.now(), me = { songs: [{ id: "a", title: "River Road", artist: "W", format: "chords", body: "[Verse]\nG C\nla" }], sets: [], trash: [], settings: {} };
+  const d = C.startDuel(me, me.songs[0], { pct: 88, combo: 14, crowd: 11 }, now);
+  const code = await C.packShare({ song: C.shareable(me.songs[0]), duel: { id: d.id, from: "Graham", pct: 88, combo: 14, crowd: 11 } });
+  const got = await C.unpackShare(code);
+  assert.deepEqual(got.duel, { id: d.id, from: "Graham", pct: 88, combo: 14, crowd: 11 });
+  /* the friend takes it and plays it */
+  const friend = { songs: [{ id: "x", title: "River Road", artist: "W", format: "chords", body: "[Verse]\nG C\nla" }], sets: [], trash: [], settings: {} };
+  C.takeDuel(friend, got.duel, friend.songs[0], now);
+  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.gigChange(g, i, [i]);
+  const r = C.gigDone(friend, "x", g, false, now);
+  assert.equal(r.duel.opp, "Graham"); assert.equal(r.duel.mine.pct, 100); assert.equal(C.duelWon(r.duel), true);
+  assert.equal(C.gigDone(friend, "x", g, false, now).duel, undefined, "answered once");
+  /* their score comes back */
+  const back = await C.unpackShare(await C.packShare({ song: C.shareable(friend.songs[0]), duel: { id: d.id, from: "Mike", pct: 100, combo: 10, crowd: 12, reply: true } }));
+  const mine = C.takeDuel(me, back.duel, null, now);
+  assert.deepEqual([mine.opp, mine.theirs.pct, C.duelWon(mine)], ["Mike", 100, false]);
+  assert.deepEqual(C.duelRecord(me, "Mike"), { w: 0, l: 1, last: [false] });
+  assert.deepEqual(C.cleanDuels(JSON.parse(JSON.stringify(me.duels))), me.duels, "kept through a save");
+  assert.equal(C.cleanDuelLink({ id: "x", from: "a", pct: 50 }), null, "a bad id");
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");

@@ -64,7 +64,7 @@ The Tour duet quest stays locked until a friend's XP can reach the phone.
 Competition plan (Graham, 2026-10-21), like Duolingo: the weekly chart is the league
 (computer players now, real players at your tier from a server at App Store
 launch, computer players filling empty spots); friends are a separate layer.
-Order: 1 livelier players + move down (4.11.0), 2 song duels by link, 3 Friends
+Order: 1 livelier players + move down (4.11.0), 2 song duels by link (4.12.0, `duel.js`), 3 Friends
 view on Charts + Friend quest (replaces the locked Duet quest), 4 real-player league.
 
 ## Next up (Graham's order, agreed 2026-10-19)
@@ -130,6 +130,7 @@ release so Graham can try it.
 | Stat bar, tab bar, More sheet | `hud.js` |
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
 | Your band: the Band tab; Louie's friends drawn | `band.js`, `friends.js` (numbers: `bandState`, `bandParts` in `core.js`) |
+| Song duels: challenge links, the head-to-head | `duel.js` (numbers: `startDuel`, `takeDuel`, `duelRecord` in `core.js`) |
 | Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
 | Pull-up drawers: the Tour Map's scene sheet | `drawer.js` (used by `playmap.js`) |

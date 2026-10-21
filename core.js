@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.11.0";
+export const VERSION = "4.12.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -69,7 +69,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}), ...(cleanRehearse(data.rehearse) ? { rehearse: cleanRehearse(data.rehearse) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}), ...(cleanRehearse(data.rehearse) ? { rehearse: cleanRehearse(data.rehearse) } : {}), ...(cleanDuels(data.duels) ? { duels: cleanDuels(data.duels) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -615,7 +615,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -1450,7 +1450,8 @@ export async function unpackShare(code) {
     // Play together: a start time and tempo ride along with the song.
     const duet = p.duet && Number.isFinite(p.duet.at) && p.duet.at > 1.6e12 && p.duet.at < 4e12
       ? { at: Math.round(p.duet.at), bpm: Math.min(300, Math.max(30, +p.duet.bpm || 90)) } : null;
-    if (p.song && ok(p.song)) return duet ? { song: shareable(p.song), duet } : { song: shareable(p.song) };
+    const duel = cleanDuelLink(p.duel);
+    if (p.song && ok(p.song)) return duet ? { song: shareable(p.song), duet } : duel ? { song: shareable(p.song), duel } : { song: shareable(p.song) };
     if (p.set && Array.isArray(p.set.songs) && p.set.songs.every(ok))
       return { set: { name: String(p.set.name || "Shared set"), songs: p.set.songs.map(shareable) } };
   } catch {}
@@ -3797,6 +3798,63 @@ export function cleanRehearse(raw) {
   return out.misses || out.sc ? out : null;
 }
 
+// ---------- Song duels (4.12.0): beat a friend's score on a song, by link ----------
+// After a scored gig you send "I hit 88% on River Road. Beat it." The link carries the song and your score.
+// Your friend plays it as a gig and sends their score back the same way. No server: each phone keeps its own
+// list of duels in data.duels, { name, list: [{ id, title, artist, songId, opp, mine, theirs, started, at }] }.
+const score = x => isObj(x) && x.pct >= 0 && x.pct <= 100 ? { pct: Math.round(x.pct), combo: Math.max(0, Math.min(9999, Math.round(+x.combo || 0))), crowd: Math.max(0, Math.min(12, Math.round(+x.crowd || 0))) } : null;
+export function cleanDuelLink(d) {
+  if (!isObj(d) || typeof d.id !== "string" || !/^[a-z0-9]{6,24}$/.test(d.id) || typeof d.from !== "string") return null;
+  const sc = score(d);
+  if (!sc) return null;
+  return { id: d.id, from: d.from.trim().slice(0, 30) || "A friend", ...sc, ...(d.reply === true ? { reply: true } : {}) };
+}
+const duelsOf = data => data.duels || (data.duels = { list: [] });
+/* you challenge a friend: the duel starts with your score */
+export function startDuel(data, song, mine, now = Date.now()) {
+  const id = (now.toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 14);
+  const d = { id, title: song.title, artist: song.artist || "", songId: song.id, opp: "", mine: score(mine), theirs: null, started: "me", at: now };
+  const ds = duelsOf(data); ds.list.unshift(d); ds.list = ds.list.slice(0, 100);
+  return d;
+}
+/* a link comes in: a challenge to answer, or the answer to yours */
+export function takeDuel(data, link, song, now = Date.now()) {
+  const ds = duelsOf(data), sc = score(link);
+  let d = ds.list.find(x => x.id === link.id);
+  if (link.reply) {
+    if (!d) return null;
+    d.theirs = sc; d.opp = link.from; d.at = now;
+    return d;
+  }
+  if (d) return d; /* the same challenge opened twice */
+  d = { id: link.id, title: song.title, artist: song.artist || "", songId: song.id, opp: link.from, mine: null, theirs: sc, started: "them", at: now };
+  ds.list.unshift(d); ds.list = ds.list.slice(0, 100);
+  return d;
+}
+/* a scored gig answers the oldest open challenge on that song */
+function duelsShow(data, songId, sc) {
+  if (!sc || !data.duels?.list) return null;
+  const d = data.duels.list.filter(x => x.songId === songId && x.started === "them" && !x.mine && x.theirs).pop();
+  if (!d) return null;
+  d.mine = sc;
+  return { ...d };
+}
+export const duelWon = d => d?.mine && d?.theirs ? (d.mine.pct > d.theirs.pct ? true : d.mine.pct < d.theirs.pct ? false : null) : undefined;
+/* your record against one friend: wins, losses, and the last few results (newest first) */
+export function duelRecord(data, opp) {
+  const done = (data.duels?.list || []).filter(d => d.opp === opp && duelWon(d) !== undefined);
+  return { w: done.filter(d => duelWon(d) === true).length, l: done.filter(d => duelWon(d) === false).length, last: done.slice(0, 5).map(d => duelWon(d)) };
+}
+export function cleanDuels(raw) {
+  if (!isObj(raw)) return null;
+  const out = {};
+  if (typeof raw.name === "string" && raw.name.trim()) out.name = raw.name.trim().slice(0, 30);
+  const list = (Array.isArray(raw.list) ? raw.list : []).filter(d => isObj(d) && typeof d.id === "string" && /^[a-z0-9]{6,24}$/.test(d.id) && typeof d.title === "string").slice(0, 100)
+    .map(d => ({ id: d.id, title: d.title.slice(0, 100), artist: String(d.artist || "").slice(0, 100), songId: String(d.songId || "").slice(0, 40), opp: String(d.opp || "").slice(0, 30), mine: score(d.mine), theirs: score(d.theirs), started: d.started === "them" ? "them" : "me", at: Math.max(0, Math.floor(+d.at || 0)) }));
+  if (list.length) out.list = list;
+  return out.name || out.list ? out : null;
+}
+
 /* The chords you can play: every chord lesson done, and any chord played in songs five times. */
 export function knownChords(data, now = Date.now()) {
   const sk = skillState(data, now), out = new Set();
@@ -3880,7 +3938,9 @@ export function gigDone(data, songId, g, encore = false, now = Date.now()) {
   const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
   /* Charts (4.6.0): XP for the show, and today's rival battle */
   const battle = chartsShow(data, songId, g, pct, now);
-  return { fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}) };
+  /* Song duels (4.12.0): a scored show answers a friend's challenge on this song */
+  const duel = pct === null ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
+  return { ...(duel ? { duel } : {}), fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}) };
 }
 export function cleanGig(raw) {
   if (!isObj(raw)) return null;

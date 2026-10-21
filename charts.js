@@ -9,7 +9,7 @@
 // The numbers are worked out in core.js (chartState, chartsSettle, battleFor, XP).
 import { CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, startBattle } from "./core.js";
 import { app, esc, toast } from "./ui.js";
-import { data, playGig } from "./app.js";
+import { data, go, playGig } from "./app.js";
 import { louie } from "./louie.js";
 import { statBar, bindStatBar } from "./hud.js";
 
@@ -45,10 +45,13 @@ export function renderCharts(view = "chart") {
     <p class="ch-sub">${st.next ? `Top ${CHART_PROMOTE} move up to the ${esc(st.next)}` : "The top of the charts. Stay in the top 5 for records"}${st.tier > 0 ? ` · bottom ${CHART_DEMOTE} move down` : ""}</p>
     <ol class="ch-list">${rows.join("")}</ol>
     ${battleCard}
+    <div id="ch-duels"></div>
     <p class="ch-how">XP: ${XP.play} for a song played through, ${XP.landed} for each chord change landed in a gig, ${XP.crowd} for a crowd of 10, ${XP.goal} for a setlist goal, ${XP.battle} for a battle won.</p>
   </div>`;
   bindStatBar();
   document.getElementById("ch-go")?.addEventListener("click", () => renderCharts("battle"));
+  /* Song duels (4.12.0) */
+  import("./duel.js").then(m => { const box = document.getElementById("ch-duels"); if (!box) return; box.innerHTML = m.duelsHTML(); box.querySelectorAll("[data-duel]").forEach(b => b.onclick = () => go("#/duel/" + b.dataset.duel)); });
   document.getElementById("ch-lastx")?.addEventListener("click", () => { data.charts.last.seen = true; Tabs.save(data); renderCharts(); });
   document.querySelector(".ch-row.you")?.scrollIntoView({ block: "nearest" });
 }

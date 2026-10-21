@@ -397,7 +397,7 @@ function showComplete() {
   clearInterval(g.timer);
   g.stream?.getTracks().forEach(t => t.stop());
   const graded = g.score.hits + g.score.misses > 0;
-  const { fans, pct, request, battle, cover } = gigDone(data, g.song.id, g.score, g.encore);
+  const { fans, pct, request, battle, cover, duel } = gigDone(data, g.song.id, g.score, g.encore);
   rehearseMisses(data, g.missed); /* the changes you dropped: tomorrow's soundcheck */
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
@@ -418,17 +418,22 @@ function showComplete() {
       ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
       ${battle ? `<p>${battle.result === "won" ? `Rival battle: you beat <b>${esc(battle.rival)}</b>, ${battle.pct}% to ${battle.target}%. <b>+30 XP, +40 fans</b>` : `Rival battle: ${esc(battle.rival)} held on, ${battle.target}% to your ${battle.pct}%`}</p>` : ""}
       ${joined.map(f => { const n = FRIENDS.find(x => x.id === f.id)?.name || f.id; return `<p><b>${esc(n)} joined your band!</b>${f.plays ? ` You'll hear ${f.plays === "drums" ? "drums" : "bass"} in your gigs.` : ""}</p>`; }).join("")}
+      ${duel ? `<p>Song duel: ${duel.mine.pct > duel.theirs.pct ? `<b>you beat ${esc(duel.opp)}</b>` : duel.mine.pct < duel.theirs.pct ? `${esc(duel.opp)} wins this one` : "a tie"}, ${duel.mine.pct}% to ${duel.theirs.pct}%</p>` : ""}
       ${cover ? `<p>Cover quest done: you learned a song you love. <b>3x bonus fans</b></p>` : ""}
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
+    ${duel ? `<section class="gc-duel"><small>SONG DUEL</small><b>Send ${esc(duel.opp)} your score</b><button class="btn primary" id="gc-reply">SEND YOUR SCORE BACK</button></section>`
+      : pct !== null ? `<section class="gc-duel"><small>CHALLENGE A FRIEND</small><b>"I hit ${pct}% on ${esc(g.song.title)}. Beat it."</b><button class="btn primary" id="gc-duel">SEND THE CHALLENGE</button></section>` : ""}
     <div class="gc-acts">
       ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
       <button class="btn" id="gc-go">CONTINUE</button>
     </div></div>`;
   $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else if (from === "tour" || from === "charts") go("#/" + from); else redraw?.(); };
+  $("gc-duel")?.addEventListener("click", e => import("./duel.js").then(m => m.sendChallenge(g.song, { pct, combo: g.score.best, crowd: graded ? gigCrowd(g.score) : 0 }, e.currentTarget)));
+  $("gc-reply")?.addEventListener("click", e => import("./duel.js").then(m => m.sendReply(duel, e.currentTarget)));
   $("gc-encore")?.addEventListener("click", () => {
     const song = g.song, from = g.from;
     closeGig(true);

@@ -2939,3 +2939,45 @@ body.is-home { --peek: calc(84px + var(--tabs)); }
 .ch-note.hot { color: var(--good); }
 .ch-zone.down { color: var(--accent-deep); }
 :root[data-look="neon"] .ch-zone.down { color: var(--accent); }
+/* ==========================================================================
+   Song duels (4.12.0)
+   ========================================================================== */
+.gig.done .gc { overflow-y: auto; }
+body.gigging .ask { z-index: 66; }
+.gc-duel { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: #14213D; color: #fff; text-align: left; display: flex; flex-direction: column; gap: 6px; }
+.gc-duel small { font: 800 11.5px var(--sans); letter-spacing: .08em; color: var(--fans); }
+.gc-duel b { font: 700 16px var(--display); }
+.gc-duel .btn { width: 100%; height: 48px; flex: none; margin-top: 4px; }
+.dl-t { font: 700 18px/1.35 var(--sans); color: var(--fg); margin: 6px 0; }
+.du { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 12px 0 calc(var(--safe-b) + 24px); min-height: calc(100dvh - 40px); box-sizing: border-box; }
+.du-x { position: absolute; left: 0; top: 8px; }
+.du-h { margin-top: 10px; font: 800 12px var(--sans); letter-spacing: .08em; color: var(--accent); }
+.du h1 { margin: 0; font: 700 26px/1.15 var(--display); color: var(--fg); max-width: 330px; }
+.du-vs { display: flex; align-items: center; justify-content: space-around; width: 100%; margin-top: 8px; }
+.du-p { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 42%; }
+.du-av { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; background: var(--streak); color: #14213D; font: 700 40px var(--display); flex: none; overflow: hidden; }
+.du-av.me { background: var(--fans); }
+.du-av.sm { width: 40px; height: 40px; font-size: 18px; }
+.du-p b { font: 700 17px var(--display); color: var(--fg); margin-top: 4px; }
+.du-p big { font: 700 34px var(--display); color: var(--fg); }
+.du-p big.win { color: var(--good); }
+.du-p small { font: 700 12.5px var(--sans); color: var(--muted); }
+.du-v { font: 700 24px var(--display); color: var(--accent); }
+.du-rec { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 2px solid var(--rim); text-align: left; }
+.du-rec small { font: 800 11.5px var(--sans); letter-spacing: .08em; color: var(--muted); }
+.du-bar { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.du-bar b { font: 700 26px var(--display); color: var(--fg); }
+.du-bar span { flex: 1; height: 14px; border-radius: 7px; background: var(--streak); overflow: hidden; }
+.du-bar i { display: block; height: 100%; background: var(--good); }
+.du-lab { display: flex; justify-content: space-between; font: 700 12.5px var(--sans); color: var(--muted); }
+.du-rec p { margin: 8px 0 0; font: 700 14px var(--sans); color: var(--fg); }
+.du-rec b.w, .du-row small.w { color: var(--good); } .du-rec b.l, .du-row small.l { color: var(--streak-deep, var(--streak)); }
+:root[data-look="neon"] .du-rec b.l, :root[data-look="neon"] .du-row small.l { color: var(--streak); }
+.du-acts { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.du-acts .btn { width: 100%; height: 54px; flex: none; }
+.du-list { display: flex; flex-direction: column; gap: 8px; }
+.du-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 16px; border: 2px solid var(--rim); background: var(--card); text-align: left; color: var(--fg); }
+.du-rt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.du-rt b { font: 700 15px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.du-rt small { font: 700 12.5px var(--sans); color: var(--muted); }
+.du-row .chev { width: 16px; height: 16px; color: var(--muted); }

@@ -664,3 +664,29 @@ test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls und
   await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
   assert.equal(await page.evaluate(() => document.body.classList.contains("gig-full")), false);
 });
+
+test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply shows the head-to-head", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, plainPlay: false, gigScore: false } });
+  const code = await page.evaluate(async () => { const C = await import("/core.js"); return C.packShare({ song: { title: "Wagon Wheel", artist: "Old Crow", format: "chords", body: "[Verse]\nG D Em C\nla" }, duel: { id: "abc123def", from: "Mike", pct: 91, combo: 22, crowd: 12 } }); });
+  await page.evaluate(c => { location.hash = "#/import/" + c; }, code);
+  await page.waitForSelector(".dl-card");
+  assert.match(await page.innerText(".dl-card"), /Mike[\s\S]*91%[\s\S]*Wagon Wheel[\s\S]*Beat it/);
+  await page.click("#dl-yes"); await page.waitForSelector("#gig");
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
+  assert.ok(saved.songs.some(s => s.title === "Wagon Wheel"), "the song came with it");
+  assert.equal(saved.duels.list[0].opp, "Mike");
+  await page.click("#gg-x"); await page.waitForFunction(() => !document.getElementById("gig"));
+  /* a duel you sent comes back answered */
+  const reply = await page.evaluate(async () => {
+    const C = await import("/core.js"), app = await import("/app.js"), d = C.startDuel(app.data, app.data.songs[0], { pct: 70, combo: 5, crowd: 8 }); C.Tabs.save(app.data);
+    return { id: d.id, code: await C.packShare({ song: C.shareable(app.data.songs[0]), duel: { id: d.id, from: "Sarah", pct: 82, combo: 9, crowd: 10, reply: true } }) };
+  });
+  await page.evaluate(c => { location.hash = "#/import/" + c; }, reply.code);
+  await page.waitForFunction(id => location.hash === "#/duel/" + id, reply.id);
+  await page.waitForSelector(".du h1");
+  assert.match(await page.innerText(".du h1"), /Sarah beat your/);
+  assert.match(await page.innerText(".du-rec"), /YOU AND SARAH[\s\S]*0[\s\S]*1/);
+  assert.ok(await page.locator("#du-again").isVisible(), "take it back");
+  await page.click("#du-charts"); await page.waitForSelector(".du-row");
+  assert.equal(await page.locator(".du-row").count(), 2, "both duels on Charts");
+});
