@@ -63,6 +63,11 @@ const go = h => { location.hash = h; };
 /* From Tonight: open a song and start it playing; open the Library with search ready. */
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
+/* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
+const gigHooks = { on: false, credited: null, stopped: null };
+let gigNext = null;
+const playGig = (id, opts = {}) => { gigNext = { id, ...opts }; if (route().name === "song" && route().id === id) return openGigNow(); go("#/song/" + encodeURIComponent(id)); };
+function openGigNow() { const g = gigNext; gigNext = null; if (g && viewing?.id === g.id) lazy("gig.js").then(m => m.openGig(viewing, g)); }
 const openSearch = () => { searchNext = true; go("#/library"); };
 /* The Neck's Learning list opens a song on the section you last practiced (3.24.2). */
 let sectionNext = null;
@@ -1765,6 +1770,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
     { id: "share", icon: "share", label: "Share song" },
     { id: "duet", icon: "pick", label: "Play together" },
+    song.format !== "tab" && { id: "gig", icon: "play", label: "Play as a gig", hint: data.gig?.best?.[song.id] != null ? `Best ${data.gig.best[song.id]}%` : "" },
     { id: "edit", icon: "edit", label: "Edit" },
     song.format !== "tab" && bodyCapo(song.body) && { id: "capo", icon: "fretboard", label: song.capoOff ? "Put the capo back" : "Remove the capo", hint: song.capoOff ? `Off · was Capo ${bodyCapo(song.body)}` : `Capo ${bodyCapo(song.body)}` },
     (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
@@ -1828,7 +1834,7 @@ function songMenu(song, anchor, redrawSong) {
     ({ set: () => addToSet(song), edit: () => songEditor(song),
        capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
-       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), loop: () => { setPracticing(song, true); startLoopPick(song); }, tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
+       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), gig: () => { window.scrollTo(0, 0); playGig(song.id); }, loop: () => { setPracticing(song, true); startLoopPick(song); }, tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => germanSheet(song, redrawSong),
@@ -2500,7 +2506,7 @@ function endMoment(song) {
    Not on stage, in Play together, or in the middle of a set. */
 function streakSoon(song) {
   const st = data.settings, day = todayKey();
-  if (st.streakMoment === false || st.stage || scroll.duet || setCtx || st.streakShown === day) return;
+  if (st.streakMoment === false || st.stage || scroll.duet || setCtx || gigHooks.on || st.streakShown === day) return;
   st.streakShown = day; Tabs.save(data);
   setTimeout(() => {
     if (viewing !== song || route().name !== "song") return;
@@ -2584,7 +2590,7 @@ async function startScroll(song, opts = {}) {
       if (!activeLoop(song) && end >= 0 && scrollY >= end - 2) {
         const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
         if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
-          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
+          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
         }
         /* A sheet that fits the screen has only the clock to go by, so it plays on until it counts. */
         if (scroll.logged || end >= 40) {
@@ -2622,6 +2628,7 @@ function stopScroll() {
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");
+  if (was) gigHooks.stopped?.();
   foldApi?.mode?.(); /* and unfolds when the song stops */
   wakeControls();
   cancelAnimationFrame(scroll.raf);
@@ -2710,6 +2717,7 @@ function renderRoute() {
     renderViewer(r.id);
     if (sectionNext === r.id) { sectionNext = null; setTimeout(() => { const s = viewing, first = s?.id === r.id && s.loop && sheetLines()[s.loop.a]; if (first && !scroll.on) window.scrollTo({ top: Math.max(0, scrollY + first.getBoundingClientRect().top - innerHeight * READ_AT), behavior: "auto" }); }, 200); }
     if (playNext === r.id) { playNext = null; setTimeout(() => { if (viewing?.id === r.id && !scroll.on) $("play")?.click(); }, 450); }
+    if (gigNext?.id === r.id) setTimeout(openGigNow, 350);
     const want = openEdit;
     openEdit = null;
     const song = viewing?.id === r.id && want?.id === r.id ? viewing : null;
@@ -2767,4 +2775,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { gigHooks, playGig, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

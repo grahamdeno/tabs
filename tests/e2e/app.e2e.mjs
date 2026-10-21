@@ -16,7 +16,7 @@ test("first launch adds the sample song and opens on the Road with it ready (4.0
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.goto(base); await page.waitForSelector(".rd-path");
   assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
-  assert.match(await page.innerText("#rd-tonight"), /Play /, "the sample song is ready to play");
+  assert.match(await page.innerText("#rd-tonight"), /Gig: /, "the sample song is ready to play as a gig");
   await page.click("#rd-dh"); await page.waitForSelector("#rd-drawer[data-state=open]");
   assert.equal(await page.locator("#list .row").count(), 1);
   assert.deepEqual(errors, []);

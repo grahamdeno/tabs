@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.0.1";
+export const VERSION = "4.1.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   songMap: true,          // the section rail on the right edge of a song
   nudge: true,            // the library's Today line: practice streak and a song for today
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
+  gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6)
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
 };
@@ -67,7 +68,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -612,7 +613,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -3452,7 +3453,7 @@ export const FANS = { play: 10, lesson: 5, box: 25 };
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
   const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
-  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box;
+  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0);
 }
 
 /* The chords you can play: every chord lesson done, and any chord played in songs five times. */
@@ -3478,4 +3479,67 @@ export function sheetChords(body) {
     for (const r of raw) { const n = String(r).split(/\s+/)[0].replace(/^\(|\)$/g, ""); if (chordShape(n) && !out.includes(n)) out.push(n); }
   }
   return out;
+}
+
+// ---------- The Gig (4.1.0): a song played as a scored show ----------
+// The song plays as it always does (auto-scroll, the recording or the band); the Gig listens for
+// your strums and grades each chord change: a strum within GIG_WINDOW seconds of the change lands it.
+// A landed change adds to the combo; a missed one ends the combo and snaps a string (eight in a row
+// restring one). The crowd is how many of your last 12 changes landed (out of 12). Nothing fails:
+// with no strings left the show goes on. Without the microphone nothing is graded.
+export const GIG_WINDOW = 0.35;
+export const GIG_STRINGS = 6;
+export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, strings: GIG_STRINGS, run: 0, last: [], offsets: [] }; }
+/* grade one change, due at `due` seconds, against the strums heard (seconds, same clock) */
+export function gigChange(g, due, strums, win = GIG_WINDOW) {
+  let near = null;
+  for (const t of strums) if (Math.abs(t - due) <= win && (near === null || Math.abs(t - due) < Math.abs(near - due))) near = t;
+  const hit = near !== null;
+  if (hit) {
+    g.hits++; g.combo++; g.best = Math.max(g.best, g.combo); g.run++;
+    if (g.run >= 8) { g.run = 0; g.strings = Math.min(GIG_STRINGS, g.strings + 1); }
+    g.offsets.push(Math.round((near - due) * 1000) / 1000);
+    if (g.offsets.length > 40) g.offsets.shift();
+  } else { g.misses++; g.combo = 0; g.run = 0; g.strings = Math.max(0, g.strings - 1); }
+  g.last.push(hit); if (g.last.length > 12) g.last.shift();
+  return { hit, offset: hit ? near - due : null };
+}
+/* how many of the 12 in the crowd are cheering: your last 12 changes (half the crowd before any) */
+export const gigCrowd = g => g.last.length ? Math.round(12 * g.last.filter(Boolean).length / g.last.length) : 6;
+/* the share of changes landed, 0 to 100 (null with nothing graded) */
+export const gigPct = g => g.hits + g.misses ? Math.round(100 * g.hits / (g.hits + g.misses)) : null;
+/* the show's bonus fans, on top of the play's own: 1 for every change landed, 5 for every 10 in the
+   best combo, and 10 for a crowd of 10 or more at the end. An encore doubles it. */
+export function gigFans(g, encore = false) {
+  const n = g.hits + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
+  return encore ? n * 2 : n;
+}
+/* the timing meter: how far off your landed changes are lately, in seconds (positive is late) */
+export function gigTiming(g) {
+  const o = g.offsets.slice(-6);
+  if (!o.length) return 0;
+  return o.reduce((a, b) => a + b, 0) / o.length;
+}
+/* Stage Gels: the colour family of a section, from its name */
+export function gelOf(name) {
+  const n = String(name || "").toLowerCase();
+  if (/chorus|refrain|hook/.test(n) && !/pre/.test(n)) return "chorus";
+  if (/bridge|pre|middle/.test(n)) return "bridge";
+  if (/solo|instrumental|interlude|riff|break/.test(n)) return "solo";
+  return "verse";
+}
+/* a show finished: keep the count, the bonus fans and each song's best */
+export function gigDone(data, songId, g, encore = false) {
+  const fans = gigFans(g, encore), pct = gigPct(g);
+  const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {} });
+  gs.shows++; gs.fans += fans;
+  if (pct !== null) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
+  return { fans, pct };
+}
+export function cleanGig(raw) {
+  if (!isObj(raw)) return null;
+  const best = {};
+  for (const [id, v] of Object.entries(isObj(raw.best) ? raw.best : {}).slice(0, 2000)) if (typeof id === "string" && id.length <= 40 && v >= 0 && v <= 100) best[id] = Math.round(v);
+  const shows = Math.max(0, Math.min(1e6, Math.floor(+raw.shows || 0))), fans = Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0)));
+  return shows || fans || Object.keys(best).length ? { shows, fans, best } : null;
 }

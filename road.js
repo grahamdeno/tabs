@@ -12,7 +12,7 @@
 // The screen itself never scrolls; the path scrolls inside it.
 import { Tabs, heardOffer, lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
-import { bindShelf, chipsHTML, chordNames, data, filter, go, homeHooks, openSearch, playSong, renderList, route, setFilter, setsShelf, newSong, aiKey } from "./app.js";
+import { bindShelf, chipsHTML, chordNames, data, filter, go, homeHooks, openSearch, playGig, renderList, route, setFilter, setsShelf, newSong, aiKey } from "./app.js";
 import { louie } from "./louie.js";
 import { makeDrawer } from "./drawer.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -118,7 +118,7 @@ export function renderRoad() {
     ${chip ? `<div class="rd-chip">${chip}</div>` : ""}
     <div id="rd-heard"></div>
     <div class="rd-path" id="rd-path">
-      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(say.text)}</p>${song ? `<button class="rd-tonight" id="rd-tonight">${icon("play")}<span>Play ${esc(song.title)}</span></button>` : ""}</div>${louie(say.mood, { pose: say.pose, size: 112 })}</div>
+      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(say.text)}</p>${song ? `<button class="rd-tonight" id="rd-tonight">${icon("play")}<span>Gig: ${esc(song.title)}</span></button>` : ""}</div>${louie(say.mood, { pose: say.pose, size: 112 })}</div>
       ${legsHTML}${coming}
     </div>
     ${data.songs.length ? `<div class="rd-scrim" id="rd-scrim"></div>
@@ -148,7 +148,7 @@ export function renderRoad() {
     if (wantDrawer) drawer.open();
   }
   $("rd-book")?.addEventListener("click", () => go("#/practice"));
-  $("rd-tonight")?.addEventListener("click", () => playSong(song.id));
+  $("rd-tonight")?.addEventListener("click", () => playGig(song.id, { from: "road" })); /* 4.1.0: tonight's song is a gig */
   $("rd-search").onclick = () => openSearch();
   $("add").onclick = () => newSong();
 
@@ -157,7 +157,7 @@ export function renderRoad() {
   const start = id => {
     const s = all.find(x => x.id === id);
     if (!s) return;
-    if (s.kind === "headline") return s.song ? playSong(s.song) : (toast("Add a song that uses only these chords, then play it through"), go("#/practice"));
+    if (s.kind === "headline") return s.song ? playGig(s.song, { from: "road" }) : (toast("Add a song that uses only these chords, then play it through"), go("#/practice"));
     go("#/practice/" + encodeURIComponent(s.id));
   };
   path.addEventListener("click", e => {
@@ -203,7 +203,7 @@ async function fillHeard() {
     if (!song) { import("./findai.js").then(m => m.getSong(`${t.title} ${t.artist}`.trim(), { title: t.title, artist: t.artist })); return; }
     /* a song with no recording linked gets the one you just heard */
     if (!song.listen && t.url) { song.listen = { url: t.url, service: "Apple Music", title: t.title, ...(t.art ? { art: t.art } : {}) }; Tabs.save(data); toast("Linked to the recording you just heard"); }
-    playSong(song.id);
+    playGig(song.id, { from: "road" });
   };
 }
 

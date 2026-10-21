@@ -480,13 +480,13 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   /* another stop's card opens on a tap, and the current one closes */
   await page.click(".rd-node.locked >> nth=0");
   assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
-  /* tonight's song plays from the Road, and its Back comes back here */
+  /* tonight's song plays as a gig (4.1.0); leaving the gig comes back to the Road */
   await page.click("#rd-tonight");
-  await page.waitForFunction(() => /#\/song\//.test(location.hash) && document.body.classList.contains("playing"), null, { timeout: 8000 });
-  await page.click("#play");
-  await page.evaluate(() => document.querySelector(".head .ib[data-go]").click());
+  await page.waitForSelector("#gig");
+  assert.ok(await page.evaluate(() => /#\/song\//.test(location.hash)));
+  await page.click("#gg-x");
   await page.waitForSelector(".rd-path");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from the Road goes back to the Road");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "a gig started on the Road goes back to the Road");
   /* the Library drawer: the Road never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "the Road does not scroll");
   assert.match(await page.innerText("#rd-dh"), /Library/);
@@ -521,7 +521,7 @@ test("The Road on a new library: Louie waves and the first song is ready to play
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
   await page.waitForSelector(".rd-path");
   assert.match(await page.innerText("#rd-bubble"), /first song/i);
-  assert.match(await page.innerText("#rd-tonight"), /Play /);
+  assert.match(await page.innerText("#rd-tonight"), /Gig: /);
 });
 
 test("Tour Map: the scene sheet says how many songs and minutes take a rival corner, pulls up for the details and the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -552,4 +552,36 @@ test("4.0.1: one design system: buttons, chips, sheets and the editor's title fi
   assert.equal((await look(".menu")).r, "2px", "menus have the 2px rim");
   await page.evaluate(() => { location.hash = "#/edit/a"; }); await page.waitForSelector("#ed-title");
   assert.ok(await page.evaluate(() => document.getElementById("ed-title").getBoundingClientRect().width > 200), "the title field has room (the artist line sits below it)");
+});
+
+test("The Gig (4.1.0): a song played as a show, graded by strums, then Show complete with Encore", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  await ctx.addInitScript(FAKE_MIC);
+  const page = await ctx.newPage();
+  const errors = []; page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(base + "#/library"); await page.waitForTimeout(300);
+  const body = "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand\n\n[Chorus]\nD        A\nCarry me home\nE        A\nLay me down";
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, songs: [{ id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16, body }], settings: { ...LIB.settings, gigLines: 4 } });
+  await page.goto(base + "#/song/g"); await page.reload(); await page.waitForTimeout(600);
+  await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
+  await page.evaluate(() => document.querySelector("#more").click()); await page.waitForSelector(".menu [data-m='gig']");
+  await page.click(".menu [data-m='gig']");
+  await page.waitForSelector("#gig");
+  assert.equal(await page.locator("#gg-lines > *").count(), 4, "four lines of the song");
+  assert.equal(await page.locator(".gg-map i").count(), 2, "the song map: a gel for each section");
+  await page.click("#gg-lc");
+  assert.equal(await page.innerText("#gg-lc"), "5 lines", "the Lines chip steps through 4, 5 and 6");
+  await page.waitForFunction(() => document.getElementById("gg-sec").textContent === "CHORUS", null, { timeout: 15000 });
+  assert.equal(await page.getAttribute("#gig", "data-gel"), "chorus", "the stage washes into the chorus gel");
+  await page.waitForSelector(".gc", { timeout: 40000 });
+  assert.match(await page.innerText(".gc-t"), /Show complete/);
+  assert.match(await page.innerText(".gc-list"), /changes landed/, "the show was graded");
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
+  assert.equal(saved.gig.shows, 1); assert.ok(saved.gig.best.g >= 0);
+  assert.equal(saved.songs[0].playLog.total, 1, "the show counts as a play");
+  await page.click("#gc-encore"); await page.waitForSelector("#gig:not(.done)");
+  await page.click("#gg-x"); await page.waitForFunction(() => !document.getElementById("gig"));
+  assert.deepEqual(errors, []);
 });

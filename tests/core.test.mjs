@@ -1772,3 +1772,34 @@ test("Playable songs (4.0.0): songs that use only chords you know, and how many 
   data.journal = { chords: { D: { n: 5 }, Em: { n: 6 } } };
   assert.equal(C.playableSongs(data).now, 2, "chords played in songs five times count as known");
 });
+
+test("The Gig (4.1.0): changes landed by a strum near them, the combo, strings, crowd and bonus fans", () => {
+  const g = C.gigStart();
+  assert.equal(C.gigCrowd(g), 6, "half the crowd before any change");
+  assert.equal(C.gigPct(g), null);
+  assert.equal(C.gigChange(g, 10, [10.2]).hit, true, "a strum within the window lands the change");
+  assert.equal(C.gigChange(g, 12, [11.5]).hit, false, "half a second early is a miss");
+  assert.equal(g.strings, C.GIG_STRINGS - 1, "a miss snaps a string");
+  for (let i = 0; i < 8; i++) C.gigChange(g, 20 + i, [20 + i]);
+  assert.equal(g.strings, C.GIG_STRINGS, "eight in a row restring it");
+  assert.equal(g.best, 8); assert.equal(g.combo, 8);
+  assert.equal(C.gigCrowd(g), 11, "9 of the last 10 changes");
+  assert.equal(C.gigPct(g), 90);
+  assert.equal(C.gigFans(g), 9 + 10, "a fan a change, and 10 for a crowd of 10 or more");
+  assert.equal(C.gigFans(g, true), 38, "an encore doubles it");
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, pct: 90 });
+  assert.deepEqual(data.gig, { shows: 1, fans: 19, best: { a: 90 } });
+  assert.deepEqual(C.cleanGig({ shows: "2", fans: 5, best: { a: 120, b: 50 } }), { shows: 2, fans: 5, best: { b: 50 } });
+  assert.equal(C.cleanGig({}), null);
+  assert.equal(C.fansOf(data), 19, "bonus fans count toward your fans");
+});
+
+test("Stage Gels (4.1.0): each section's light from its name", () => {
+  assert.equal(C.gelOf("Verse 2"), "verse");
+  assert.equal(C.gelOf("Chorus"), "chorus");
+  assert.equal(C.gelOf("Pre-Chorus"), "bridge");
+  assert.equal(C.gelOf("Bridge"), "bridge");
+  assert.equal(C.gelOf("Guitar solo"), "solo");
+  assert.equal(C.gelOf("Intro"), "verse");
+});

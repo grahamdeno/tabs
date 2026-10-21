@@ -411,7 +411,7 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   await page.click("#fp-nav"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => location.hash), "#/library", "opened directly: the Library page");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-tonight");
-  await page.click("#rd-tonight"); await page.waitForSelector("#fp-nav", { state: "visible" }); /* 4.0.0: Play on the Road starts the song */
+  await page.evaluate(() => import("/app.js").then(m => m.playSong("a"))); await page.waitForSelector("#fp-nav", { state: "visible" }); /* a song opened from the Road and played */
   await page.click("#fp-nav");
   await page.waitForSelector("#rd-drawer[data-state=open]", { timeout: 4000 });
   assert.equal(await page.evaluate(() => location.hash), "#/", "from the Road, the Library is the drawer on the Road, open");

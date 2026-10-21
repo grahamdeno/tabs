@@ -1,0 +1,346 @@
+// The Gig (4.1.0): a song played as a scored show. It sits over the song page while the song plays
+// as it always does underneath (auto-scroll, the recording or the band, a play counted at the end),
+// and reads where the song is from the page.
+//
+//   top       Close, the song map lit by section (Stage Gels, also the progress bar), your strings
+//   status    the section you're in, in its colour, and the combo
+//   crowd     12 fans: how many of your last 12 chord changes landed
+//   chords    Now (with its shape) and Next, with the beats until the change; Louie reacts
+//   timing    a bass string: still when your changes land on time, a wobble when early or late
+//   lines     4, 5 or 6 lines of the song (the Lines chip), the current one biggest
+//   bottom    the microphone and Pause, in thumb reach
+// The microphone hears your strums; each chord change is landed by a strum near it (gigChange in
+// core.js). Without the microphone the show still plays and counts; nothing is graded.
+// At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
+// (play it again for double bonus fans).
+import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
+import { esc, icon, sound, onLeave } from "./ui.js";
+import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, route, homeHooks } from "./app.js";
+import { louie } from "./louie.js";
+
+let gig = null; /* the show on stage, or null */
+export const gigNow = () => gig;
+const $ = id => document.getElementById(id);
+const LINES = [4, 5, 6];
+const linesWanted = () => LINES.includes(data.settings.gigLines) ? data.settings.gigLines : 5;
+
+/* the guitar's strum without the beat: keep what is under 1.5 kHz (as the neck's lessons do) */
+function guitarBand(ctx, src) {
+  const a = ctx.createBiquadFilter(), b = ctx.createBiquadFilter();
+  for (const f of [a, b]) { f.type = "lowpass"; f.frequency.value = 1500; f.Q.value = 0.7; }
+  src.connect(a); a.connect(b);
+  return b;
+}
+async function listen(g) {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error("none");
+    g.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch { g.stream = null; paintMic(); return; }
+  if (gig !== g) { g.stream.getTracks().forEach(t => t.stop()); return; }
+  const ctx = g.audio;
+  if (!ctx) return;
+  const an = ctx.createAnalyser(); an.fftSize = 1024;
+  g.src = ctx.createMediaStreamSource(g.stream); guitarBand(ctx, g.src).connect(an);
+  const buf = new Float32Array(an.fftSize), hear = strumDetector();
+  g.timer = setInterval(() => {
+    an.getFloatTimeDomainData(buf);
+    let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
+    g.level = rms;
+    const now = g.clock();
+    if (hear(rms, now, 0)) { g.strums.push(now); while (g.strums.length && now - g.strums[0] > 6) g.strums.shift(); }
+  }, 10);
+  paintMic();
+}
+
+/* the sections of the song, top to bottom, with where each starts on the page */
+function sections() {
+  const out = [];
+  for (const b of diag.blocks || []) {
+    if (b.el.classList.contains("sec")) out.push({ name: b.el.textContent.trim(), gel: gelOf(b.el.textContent), y: b.y });
+    else if (!out.length && isLine(b.el)) out.push({ name: "", gel: "verse", y: b.y });
+  }
+  const end = Math.max(1, ...(diag.blocks || []).map(b => b.y));
+  return out.map((s, i) => ({ ...s, to: out[i + 1]?.y ?? end })).map(s => ({ ...s, share: Math.max(0.02, (s.to - s.y) / end) }));
+}
+
+/* When each chord comes, as a place on the page. Chords on one line share its height, so each is moved
+   down by how far along the line it sits: the line's chords are spread over the time the line takes. */
+let along = { seq: null, y: [] };
+function chordYs() {
+  const seq = diag.seq || [], sheet = $("sheet");
+  if (along.seq === seq || !sheet) return along.y;
+  const box = sheet.getBoundingClientRect(), w = Math.max(1, box.width);
+  const ys = [...new Set(seq.map(c => c.y))].sort((a, b) => a - b);
+  const lastY = Math.max(0, ...(diag.blocks || []).map(b => b.y));
+  along = { seq, y: seq.map(c => {
+    const nx = ys.find(y => y > c.y + 2) ?? Math.max(c.y + 40, lastY);
+    const x = Math.max(0, Math.min(0.95, (c.el.getBoundingClientRect().left - box.left) / w));
+    return c.y + x * (nx - c.y);
+  }) };
+  return along.y;
+}
+
+/* where the song is: the current line, the current chord, the section, and how far along */
+function where(song) {
+  const sheet = $("sheet");
+  if (!sheet || !diag.blocks?.length) return null;
+  const top = sheet.getBoundingClientRect().top, line = innerHeight * READ_AT;
+  let b = 0;
+  for (let i = 0; i < diag.blocks.length; i++) if (top + diag.blocks[i].y <= line) b = i;
+  while (b < diag.blocks.length - 1 && !isLine(diag.blocks[b].el)) b++;
+  let sec = null;
+  for (let i = b; i >= 0; i--) if (diag.blocks[i].el.classList.contains("sec")) { sec = diag.blocks[i].el.textContent.trim(); break; }
+  let idx = -1, next = -1, until = null;
+  const seq = diag.seq || [];
+  if (seq.length) {
+    const clock = usesMusic(song) ? musicClock(song) : null, ct = clock !== null ? chordTimes(song) : null;
+    idx = 0;
+    if (ct) { for (let i = 0; i < ct.length; i++) if (ct[i] != null && ct[i] <= clock) idx = i; }
+    else { const ys = chordYs(); for (let i = 0; i < seq.length; i++) if (top + ys[i] <= line) idx = i; }
+    for (let i = idx + 1; i < seq.length; i++) if (seq[i].name !== seq[idx].name) { next = i; break; }
+    if (next >= 0) until = ct && ct[next] != null ? ct[next] - clock : (top + chordYs()[next] - line) / Math.max(1, pxPerSecond(song));
+  }
+  const end = Math.max(1, diag.blocks[diag.blocks.length - 1].y);
+  return { b, sec, idx, next, until, progress: Math.max(0, Math.min(1, (line - top) / end)) };
+}
+
+/* ---- the screen ---- */
+const FAN = (on, i) => {
+  const col = ["var(--g-chorus)", "var(--g-verse)", "var(--fans)", "var(--g-solo)"][i % 4];
+  return `<svg class="gg-fan${on ? " on" : ""}" viewBox="0 0 26 40" aria-hidden="true"><circle cx="13" cy="${on ? 13 : 16}" r="8" fill="${on ? col : "var(--locked)"}"/><rect x="3" y="${on ? 23 : 26}" width="20" height="15" rx="8" fill="${on ? col : "var(--locked)"}"/>${on ? `<path d="M4 25 L-1 10 M22 25 L27 10" stroke="${col}" stroke-width="4" stroke-linecap="round"/>` : ""}</svg>`;
+};
+const PLUG = `<svg width="22" height="24" viewBox="0 0 30 32" aria-hidden="true"><rect x="6" y="6" width="18" height="22" rx="6" fill="var(--strings-deep)"/><rect x="5" y="4" width="18" height="22" rx="6" fill="var(--strings)"/><rect x="10" y="0" width="3" height="6" rx="1.5" fill="var(--muted)"/><rect x="15" y="0" width="3" height="6" rx="1.5" fill="var(--muted)"/></svg>`;
+
+function shell(song) {
+  const el = document.createElement("div");
+  el.id = "gig"; el.className = "gig"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `Gig: ${song.title}`);
+  el.innerHTML = `<div class="gg-light" aria-hidden="true"></div>
+    <div class="gg-top">
+      <button class="gg-x" id="gg-x" aria-label="Leave the gig">${icon("x")}</button>
+      <div class="gg-map" id="gg-map" aria-hidden="true"></div>
+      <span class="gg-str" id="gg-str" aria-label="Strings">${PLUG}<b>${GIG_STRINGS}</b></span>
+    </div>
+    <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-combo" id="gg-combo"></span></div>
+    <section class="gg-crowd" aria-label="Crowd"><div class="gg-crowd-h"><span>CROWD</span><b id="gg-mood"></b></div><div class="gg-fans" id="gg-fans"></div></section>
+    <div class="gg-chords">
+      <div class="gg-now" id="gg-now"><small>NOW</small><b id="gg-nowname"></b><div id="gg-nowdg"></div></div>
+      <div class="gg-side">
+        <div class="gg-next"><small>NEXT</small><b id="gg-nextname"></b><span class="gg-beats" id="gg-beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
+        <div class="gg-louie" id="gg-louie"></div>
+      </div>
+    </div>
+    <div class="gg-timing" aria-label="Timing"><div class="gg-th"><span>TIMING</span><b id="gg-tw"></b></div>
+      <svg viewBox="0 0 354 34" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="4" width="9" height="26" rx="4" class="gg-nut"/><rect x="345" y="4" width="9" height="26" rx="4" class="gg-nut"/><path id="gg-string" class="gg-string" d="M9 17 L345 17"/></svg></div>
+    <div class="gg-lines sheet" id="gg-lines"></div>
+    <div class="gg-bottom">
+      <button class="gg-mic" id="gg-mic" aria-label="Microphone"></button>
+      <button class="gg-lc" id="gg-lc" aria-label="Lines shown: ${linesWanted()}. Change">${linesWanted()} lines</button>
+      <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
+    </div>`;
+  document.body.appendChild(el);
+  return el;
+}
+
+function paintMic() {
+  const b = $("gg-mic");
+  if (!b || !gig) return;
+  const on = !!gig.stream;
+  b.classList.toggle("off", !on);
+  b.innerHTML = `${icon("mic")}<span class="gg-lv" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>${on ? "Hearing you" : "Not listening"}</span>`;
+  b.setAttribute("aria-label", on ? "Hearing you" : "Not listening: the show plays without a score");
+}
+
+function paintMap() {
+  const box = $("gg-map");
+  if (!box) return;
+  const secs = sections();
+  box.innerHTML = (secs.length ? secs : [{ gel: "verse", share: 1 }]).map(s => `<i class="gl-${s.gel}" style="flex:${s.share.toFixed(3)}"></i>`).join("") + '<em id="gg-mark"></em>';
+}
+
+function paintLines(w) {
+  const box = $("gg-lines");
+  if (!box) return;
+  const n = linesWanted(), out = [];
+  for (let i = w.b; i < diag.blocks.length && out.length < n; i++) {
+    const el = diag.blocks[i].el;
+    if (!isLine(el)) continue;
+    const c = el.cloneNode(true);
+    c.classList.remove("cur", "cur2", "focus");
+    c.querySelectorAll(".now, .sel").forEach(x => x.classList.remove("now", "sel"));
+    c.removeAttribute("id");
+    c.classList.add(out.length === 0 ? "gl-now" : out.length < 3 ? "gl-soon" : "gl-later");
+    out.push(c);
+  }
+  box.replaceChildren(...out);
+  if (!out.length) box.innerHTML = '<p class="gg-end">That\'s the end of the song.</p>';
+}
+
+function paintScore() {
+  const g = gig;
+  if (!g) return;
+  const crowd = g.stream ? gigCrowd(g.score) : 0;
+  $("gg-fans").innerHTML = Array.from({ length: 12 }, (_, i) => FAN(g.stream ? i < crowd : false, i)).join("");
+  $("gg-mood").textContent = !g.stream ? "LISTENING IS OFF" : crowd >= 10 ? "ON THEIR FEET" : crowd >= 7 ? "THEY'RE INTO IT" : crowd >= 4 ? "WARMING UP" : "WIN THEM BACK";
+  $("gg-combo").textContent = g.score.combo >= 2 ? `COMBO x${g.score.combo}` : "";
+  $("gg-str").querySelector("b").textContent = g.score.strings;
+  $("gg-str").setAttribute("aria-label", `Strings ${g.score.strings} of ${GIG_STRINGS}`);
+  const mood = !g.stream ? "happy" : crowd >= 9 ? "cheer" : crowd <= 3 ? "worried" : "happy";
+  if (mood !== g.mood) { g.mood = mood; $("gg-louie").innerHTML = louie(mood, { size: 74 }); }
+  /* the bass string: still on time, a wobble when early or late (wider the further off) */
+  const off = gigTiming(g.score), amt = Math.min(1, Math.abs(off) / GIG_WINDOW), s = $("gg-string");
+  const amp = (amt * 11).toFixed(1);
+  s.setAttribute("d", amt < 0.2 ? "M9 17 L345 17" : `M9 17 Q 51 ${17 - amp} 93 17 T 177 17 T 261 17 T 345 17`);
+  s.classList.toggle("wob", amt >= 0.2);
+  $("gg-tw").textContent = !g.stream ? "" : !g.score.offsets.length ? "" : amt < 0.2 ? "ON IT" : off < 0 ? "A LITTLE EARLY" : "A LITTLE LATE";
+}
+
+function frame() {
+  const g = gig;
+  if (!g) return;
+  g.raf = requestAnimationFrame(frame);
+  const song = g.song;
+  const w = where(song);
+  if (!w) return;
+  /* the song map's marker */
+  const mark = $("gg-mark");
+  if (mark) mark.style.left = (w.progress * 100).toFixed(2) + "%";
+  /* section and Stage Gel */
+  const counting = !!document.querySelector(".countin");
+  const gel = gelOf(w.sec || "verse");
+  if (gel !== g.gel) { g.gel = gel; g.el.dataset.gel = gel; }
+  $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
+  /* lines */
+  if (w.b !== g.b) { g.b = w.b; paintLines(w); }
+  /* chords */
+  const seq = diag.seq || [];
+  if (w.idx >= 0 && w.idx !== g.idx) {
+    const name = seq[w.idx].name, prev = g.idx >= 0 ? seq[g.idx]?.name : null;
+    g.idx = w.idx;
+    $("gg-nowname").textContent = name;
+    $("gg-nowdg").innerHTML = chordSVG(name, 1.35);
+    /* a change on stage: graded once its window has passed */
+    if (scroll.on && !counting && prev && prev !== name && g.stream) g.due.push(g.clock());
+  }
+  $("gg-nextname").textContent = w.next >= 0 ? seq[w.next].name : seq.length ? "End" : "";
+  const bpm = song.bpm || 90, beats = w.until == null ? 0 : Math.max(0, Math.min(4, Math.ceil(w.until * bpm / 60)));
+  if (beats !== g.beats) { g.beats = beats; $("gg-beats").querySelectorAll("i").forEach((e, i) => e.classList.toggle("on", i < beats)); }
+  /* grade the changes whose window has passed */
+  const now = g.clock();
+  let graded = false;
+  while (g.due.length && now - g.due[0] > GIG_WINDOW) {
+    const r = gigChange(g.score, g.due.shift(), g.strums);
+    graded = true;
+    flash(r.hit);
+  }
+  if (graded) paintScore();
+  /* the mic's level */
+  if (g.stream && g.level != null) {
+    const bars = $("gg-mic")?.querySelectorAll(".gg-lv i") || [];
+    const lv = Math.min(1, g.level * 40);
+    bars.forEach((b, i) => b.style.height = `${Math.round(5 + lv * 16 * (0.6 + 0.4 * Math.sin(i * 1.7 + now * 9)))}px`);
+  }
+}
+
+function flash(hit) {
+  const el = $("gg-now");
+  if (!el) return;
+  el.classList.remove("hit", "miss"); void el.offsetWidth; el.classList.add(hit ? "hit" : "miss");
+}
+
+/* ---- open, pause, close ---- */
+export function openGig(song, opts = {}) {
+  closeGig(true);
+  const audio = sound();
+  const g = gig = {
+    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "",
+    audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
+  };
+  g.el = shell(song);
+  document.body.classList.add("gigging");
+  gigHooks.on = true;
+  gigHooks.credited = () => { if (gig === g) g.credited = true; };
+  gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
+  $("gg-x").onclick = () => leave();
+  $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
+  $("gg-lc").onclick = () => {
+    const n = LINES[(LINES.indexOf(linesWanted()) + 1) % LINES.length];
+    data.settings.gigLines = n; Tabs.save(data);
+    $("gg-lc").textContent = `${n} lines`; $("gg-lc").setAttribute("aria-label", `Lines shown: ${n}. Change`);
+    g.el.dataset.lines = n; g.b = -1;
+  };
+  g.el.dataset.lines = linesWanted();
+  paintMap(); paintMic(); paintScore();
+  listen(g);
+  g.raf = requestAnimationFrame(frame);
+  if (!scroll.on) startScroll(song);
+}
+function paused(on) {
+  const g = gig;
+  if (!g) return;
+  g.paused = on;
+  g.el.classList.toggle("paused", on);
+  $("gg-pause").innerHTML = icon(on ? "play" : "pause");
+  $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
+}
+function resume() { const g = gig; if (!g) return; paused(false); startScroll(g.song); }
+function leave() {
+  const g = gig;
+  if (!g) return;
+  g.leaving = true;
+  if (scroll.on) stopScroll();
+  closeGig();
+}
+export function closeGig(quiet = false) {
+  const g = gig;
+  if (!g) return;
+  gig = null;
+  cancelAnimationFrame(g.raf);
+  clearInterval(g.timer);
+  try { g.src?.disconnect(); } catch {}
+  g.stream?.getTracks().forEach(t => t.stop());
+  g.el?.remove();
+  document.body.classList.remove("gigging");
+  gigHooks.on = false; gigHooks.credited = null; gigHooks.stopped = null;
+  if (!quiet && g.from === "road" && route().name === "song") go("#/");
+}
+onLeave(() => closeGig(true));
+
+/* ---- Show complete ---- */
+function showComplete() {
+  const g = gig;
+  if (!g || g.ended) return;
+  g.ended = true;
+  cancelAnimationFrame(g.raf);
+  clearInterval(g.timer);
+  g.stream?.getTracks().forEach(t => t.stop());
+  const graded = g.score.hits + g.score.misses > 0;
+  const { fans, pct } = gigDone(data, g.song.id, g.score, g.encore);
+  Tabs.save(data);
+  const st = streakOf(playSongs(data)), ps = playableSongs(data);
+  const crowd = graded ? gigCrowd(g.score) : null;
+  const tile = (lab, val, cls) => `<div class="gc-tile ${cls}"><small>${lab}</small><b>${val}</b></div>`;
+  g.el.classList.remove("paused");
+  g.el.classList.add("done");
+  g.el.innerHTML = `<div class="gc">
+    <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    ${louie("cheer", { pose: "hornsUp", size: 170 })}
+    <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
+    <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
+    <div class="gc-tiles">${tile("FANS", `+${fans + 10}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("ON THE BEAT", pct === null ? "–" : `${pct}%`, "beat")}</div>
+    <div class="gc-list">
+      ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
+      ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
+      ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
+    </div>
+    <div class="gc-acts">
+      ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
+      <button class="btn" id="gc-go">CONTINUE</button>
+    </div></div>`;
+  $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } };
+  $("gc-encore")?.addEventListener("click", () => {
+    const song = g.song, from = g.from;
+    closeGig(true);
+    window.scrollTo(0, 0);
+    setTimeout(() => { if (viewing?.id === song.id) openGig(song, { encore: true, from }); }, 120);
+  });
+}

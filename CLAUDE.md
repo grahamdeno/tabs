@@ -34,11 +34,13 @@ The guitar is how you play the game. Design system: three palettes (Light =
 Festival Poster, Dark = Neon Midnight, Green = Green Room), flat colour with no
 outlines, chunky buttons on a darker lip, Fredoka and Nunito, Louie the amp as
 the mascot (no guitar-pick mascot). The mockup canvas has nine screens. 4.0.0
-shipped the look, Louie, the stat bar, the tab bar and the Road path. Still to
-build, one release each, stopping after each for Graham to try:
-Gig (playing a song as a scored show: crowd meter, combo, Now/Next chord,
-bass-string timing meter, Stage Gels section colours, strings as lives in Gig
-only), Show complete (with Encore for 2x), Tour quests, Charts (record tiers,
+shipped the look, Louie, the stat bar, the tab bar and the Road path; 4.0.1 put
+every screen on the design system; 4.1.0 shipped the Gig (`gig.js`, scoring in
+`core.js`: gigChange and friends) with Show complete and Encore, and the Louie
+icon (Take 3A up close on pink; Take 2's whole body for launch screens). Graham
+wants the Gig to show more than 2 lines (4 to 6, the Lines chip; settle the
+default after he tries it). Still to build, one release each, stopping after
+each for Graham to try: Tour quests, Charts (record tiers,
 promotion, rival battles), Your band (players join by venue, heard in the
 backing), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
 backdrops). XP arrives with Charts; until then the Road shows fans.
