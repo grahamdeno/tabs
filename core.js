@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.3.0";
+export const VERSION = "4.4.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -23,8 +23,7 @@ const DEFAULT_SETTINGS = {
   songMap: true,          // the section rail on the right edge of a song
   nudge: true,            // the library's Today line: practice streak and a song for today
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
-  gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6)
-  gigPlay: true,         // songs start on Gig (4.2.0); off, on Sheet. Each song keeps its own pick (playAs, 4.3.0)
+  gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6), or "full" (4.4.0)
   gigScore: true,        // a gig starts listening for your chord changes (4.2.0)
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
@@ -525,7 +524,7 @@ export function cleanFeel(f) {
 // image data survive. Unknown fields are kept for newer versions of the app.
 const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
 const SONG_TYPES = {
-  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", playAs: "string", recRate: "number", practice: "object", drums: "object", created: "string", gotAt: "string",
+  title: "string", artist: "string", key: "string", body: "string", format: "string", tuning: "string", backing: "string", recRate: "number", practice: "object", drums: "object", created: "string", gotAt: "string",
   transpose: "number", size: "number", speed: "number", duration: "number", recLength: "number", bpm: "number",
   favorite: "boolean", capoOff: "boolean", easier: "object", groove: "object", loop: "object", listen: "object", playLog: "object", tone: "object", syncs: "array", timed: "object"
 };
@@ -546,7 +545,7 @@ export function cleanSong(raw) {
   if (s.format !== "chords" && s.format !== "tab") delete s.format;
   if (s.tuning && !TUNINGS[s.tuning]) delete s.tuning;
   if (s.backing !== undefined && s.backing !== "band") delete s.backing;
-  if (s.playAs !== undefined && s.playAs !== "gig" && s.playAs !== "sheet") delete s.playAs; /* Play: Gig or Sheet (4.3.0) */
+  delete s.playAs; /* Gig or Sheet per song (4.3.0) gave way to Full in the Gig (4.4.0) */
   /* Practice mode (3.21.0): { on?, rate? }. The recording's own speed (3.14.0) became the practice speed. */
   if (s.recRate !== undefined) { if (!(s.practice?.rate > 0)) s.practice = { ...(s.practice || {}), rate: s.recRate }; delete s.recRate; }
   if (s.practice) {

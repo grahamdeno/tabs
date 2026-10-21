@@ -2716,11 +2716,24 @@ body.gigging .menu.tools { z-index: 60; }
 .menu.tools { max-height: calc(100dvh - 24px - var(--safe-t)); overflow-y: auto; overscroll-behavior: contain; }
 /* the Gig's lines move the song under a finger (4.2.2) */
 .gg-lines, .gg-here { touch-action: none; }
-/* Gig or Sheet, beside Play (4.3.0) */
-.pmode[hidden] { display: none !important; }
-.app.viewer .player .pmode { flex: none; height: 58px; box-sizing: border-box; padding: 4px; gap: 4px; border-radius: 18px; border: 2px solid var(--rim); background: var(--card); box-shadow: 0 4px 0 var(--rim); display: flex; }
-.app.viewer .player .pmode button { height: 100%; min-width: 0; padding: 0 10px; border-radius: 13px; font: 700 14px var(--display); }
-.app.viewer .player .play { font-size: 17px; }
-.play i.pf-w { font-style: normal; }
-@media (max-width: 370px) { .play i.pf-w { display: none; } .app.viewer .player .pmode button { padding: 0 7px; font-size: 13px; } }
-.menu.tools .tl-lines .pmode button { min-width: 64px; }
+/* ==========================================================================
+   Full (4.4.0): Lines in a gig, Full. The song page shows whole and scrolls
+   under your finger; the show is a strip at the top (the map, the section,
+   Now and Next, the combo) and Hearing you and Pause at the bottom.
+   ========================================================================== */
+.gg-mini { display: none; }
+body.gigging.gig-full { overflow: visible; }
+body.gig-full .app.viewer .dock, body.gig-full .app.viewer .dock-fade, body.gig-full .chead { visibility: hidden; }
+.gig[data-lines="full"]:not(.done) { background: none; padding: 0; pointer-events: none; gap: 0; }
+.gig[data-lines="full"]:not(.done) > * { pointer-events: auto; }
+.gig[data-lines="full"]:not(.done) > .gg-light, .gig[data-lines="full"]:not(.done) > .gg-crowd, .gig[data-lines="full"]:not(.done) > .gg-chords,
+.gig[data-lines="full"]:not(.done) > .gg-timing, .gig[data-lines="full"]:not(.done) > .gg-lines { display: none; }
+.gig[data-lines="full"]:not(.done) > .gg-top { background: var(--bg); padding: calc(8px + var(--safe-t)) 16px 2px; }
+.gig[data-lines="full"]:not(.done) > .gg-status { background: var(--bg); padding: 2px 16px 10px; border-bottom: 2px solid var(--rim); box-shadow: 0 6px 14px color-mix(in srgb, var(--bg) 80%, transparent); }
+.gig[data-lines="full"]:not(.done) .gg-mini { display: inline-flex; align-items: center; padding: 2px 12px; border-radius: 999px; background: var(--card); border: 2px solid var(--gel); font: 700 18px var(--display); color: var(--fg); white-space: nowrap; }
+.gig[data-lines="full"]:not(.done) > .gg-bottom { margin-top: auto; background: var(--bg); padding: 10px 16px calc(12px + var(--safe-b)); border-top: 2px solid var(--rim); }
+.gig.paused[data-lines="full"] > :not(.gg-light):not(.gg-hold) { opacity: 1; }
+.gig.paused[data-lines="full"] > .gg-status { pointer-events: none; }
+.gig[data-lines="full"] .gg-hold { top: auto; background: var(--bg); border-top: 2px solid var(--rim); padding-top: 12px; }
+.gig[data-lines="full"] .gg-here { display: none; }
+body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }

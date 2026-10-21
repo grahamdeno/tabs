@@ -324,7 +324,6 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   for (const sel of ["#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
   assert.equal(await page.locator(".player .fav, .player #nnbtn, .player .oh-back").count(), 0, "just Tools and Play");
   assert.ok((await box("#play")).right > 330, "Play at the right, in thumb reach");
-  assert.ok((await box("#pmode")).top > H * 0.85, "4.3.0: Gig or Sheet beside it");
   assert.equal(await page.locator(".secbar .sbar").count(), 2, "the song map: one button per section");
   await page.click("#more"); await page.waitForTimeout(300);
   const m = await box(".menu");

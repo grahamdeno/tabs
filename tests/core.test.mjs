@@ -850,8 +850,7 @@ test("backups keep a song's album art only as an https link", () => {
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "https://is1-ssl.mzstatic.com/x/600x600bb.jpg" }).art, "https://is1-ssl.mzstatic.com/x/600x600bb.jpg");
   assert.equal(C.cleanSong({ id: "a", body: "G", art: "javascript:alert(1)" }).art, undefined);
   assert.equal(C.cleanSong({ id: "a", body: "G", backing: "band" }).backing, "band");
-  assert.equal(C.cleanSong({ id: "a", body: "G", playAs: "sheet" }).playAs, "sheet", "4.3.0: Gig or Sheet per song");
-  assert.equal(C.cleanSong({ id: "a", body: "G", playAs: "loud" }).playAs, undefined);
+  assert.equal(C.cleanSong({ id: "a", body: "G", playAs: "sheet" }).playAs, undefined, "4.4.0: Gig or Sheet per song is gone");
   assert.equal(C.cleanSong({ id: "a", body: "G", backing: "music" }).backing, undefined);
   assert.deepEqual(C.cleanSong({ id: "a", body: "G", syncs: [[0.5, 100], [0.2, 90], [0.3, 40], "x", [2, 5]] }).syncs, [[0.2, 90], [0.5, 100]]);
 });

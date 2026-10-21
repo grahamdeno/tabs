@@ -567,7 +567,7 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.goto(base + "#/library"); await page.waitForTimeout(300);
   const body = "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand\n\n[Chorus]\nD        A\nCarry me home\nE        A\nLay me down";
-  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, songs: [{ id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16, body }], settings: { ...LIB.settings, gigLines: 4, gigPlay: true } });
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, songs: [{ id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16, body }], settings: { ...LIB.settings, gigLines: 4, plainPlay: false } });
   await page.goto(base + "#/song/g"); await page.reload(); await page.waitForTimeout(600);
   await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
   assert.equal(await page.getAttribute("#play", "aria-label"), "Play as a gig");
@@ -617,7 +617,7 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
 
 test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped on", { skip: skip() }, async t => {
   const long = { id: "l", title: "Long", artist: "A", key: "G", format: "chords", duration: 300, body: "[Verse]\n" + Array.from({ length: 30 }, (_, i) => `G   C\nLine ${i} of the song`).join("\n") + "\n\n[Chorus]\nD   G\nThe end" };
-  const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, gigPlay: true, gigScore: false } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
@@ -632,25 +632,28 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
 });
 
-test("4.3.0 Gig or Sheet beside Play: each song keeps its pick; in a set it is in Tools", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Friday", songIds: ["a", "b"] }], settings: { ...LIB.settings, gigPlay: true, gigScore: false } });
-  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#pmode");
-  assert.equal(await page.innerText("#pmode .on"), "Gig", "the default from Settings");
-  assert.match(await page.innerText("#play"), /PLAY GIG/);
-  await page.click('#pmode [data-pm="sheet"]');
-  assert.match(await page.innerText("#play"), /PLAY SHEET/);
-  assert.equal(await page.innerText("#pmode .on"), "Sheet");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "a").playAs === "sheet"); /* kept on the song */
-  await page.click("#play"); await page.waitForTimeout(500);
-  assert.equal(await page.locator("#gig").count(), 0, "Sheet: no show");
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
-  await page.click("#play"); await page.waitForTimeout(300);
-  await page.evaluate(() => { location.hash = "#/song/b"; }); await page.waitForFunction(() => /Harbor/.test(document.querySelector(".song-title")?.textContent));
-  assert.equal(await page.innerText("#pmode .on"), "Gig", "another song keeps the default");
-  await page.goto(base + "#/set/s"); await page.waitForTimeout(300);
-  await page.click("[data-open='1']"); await page.waitForSelector("#setdial");
-  assert.equal(await page.locator("#pmode").count(), 0, "in a set the bar has 4 of 9");
-  await page.click("#more"); await page.waitForSelector(".menu .pmode");
-  await page.click('.menu .pmode [data-pm="sheet"]');
-  assert.match(await page.innerText("#play"), /PLAY SHEET/, "picked in Tools");
+test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls under a finger", { skip: skip() }, async t => {
+  const long = { id: "l", title: "Long", artist: "A", key: "G", format: "chords", duration: 300, body: "[Verse]\n" + Array.from({ length: 30 }, (_, i) => `G   C\nLine ${i} of the song`).join("\n") + "\n\n[Chorus]\nD   G\nThe end" };
+  const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
+  await page.click("#more"); await page.click('.menu [data-lines="full"]');
+  assert.equal(await page.innerText(".menu [data-lines].on"), "Full");
+  await page.mouse.click(200, 100); await page.waitForTimeout(200);
+  await page.click("#play"); await page.waitForSelector("#gig");
+  assert.equal(await page.getAttribute("#gig", "data-lines"), "full");
+  assert.ok(await page.evaluate(() => document.body.classList.contains("gig-full")), "the page shows");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer .dock")).visibility), "hidden", "the show's bar replaces the song's");
+  await page.waitForFunction(() => /→/.test(document.getElementById("gg-mini").textContent), null, { timeout: 5000 });
+  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  const before = await page.evaluate(() => scrollY);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 500 }] });
+  for (let y = 490; y >= 250; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.waitForFunction(b => scrollY > b + 100, before);
+  await page.click("#gg-tools"); await page.click('.menu [data-lines="5"]');
+  await page.waitForFunction(() => !document.body.classList.contains("gig-full"), null, { timeout: 3000 });
+  await page.mouse.click(200, 100); await page.waitForTimeout(200);
+  await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
+  assert.equal(await page.evaluate(() => document.body.classList.contains("gig-full")), false);
 });

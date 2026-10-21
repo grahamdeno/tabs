@@ -7,7 +7,8 @@
 //   crowd     12 fans: how many of your last 12 chord changes landed
 //   chords    Now (with its shape) and Next, with the beats until the change; Louie reacts
 //   timing    a bass string: still when your changes land on time, a wobble when early or late
-//   lines     4, 5 or 6 lines of the song (Lines in a gig, in Tools), the current one biggest
+//   lines     4, 5 or 6 lines of the song (Lines in a gig, in Tools), the current one biggest; or Full
+//             (4.4.0): the whole song page under a thin strip (the map, the section, Now and Next, the combo)
 //   bottom    Hearing you (tap to stop or start listening for this show) and Pause, in thumb reach
 // Paused, the show dims in place: the line you stopped on, Louie, and in thumb reach Back a line,
 // Tools, Sheet (leave the show for the song page) and a big Resume (4.2.0).
@@ -23,7 +24,7 @@ import { louie } from "./louie.js";
 let gig = null; /* the show on stage, or null */
 export const gigNow = () => gig;
 const $ = id => document.getElementById(id);
-const LINES = [4, 5, 6];
+const LINES = [4, 5, 6, "full"];
 const linesWanted = () => LINES.includes(data.settings.gigLines) ? data.settings.gigLines : 5;
 
 /* the guitar's strum without the beat: keep what is under 1.5 kHz (as the neck's lessons do) */
@@ -134,7 +135,7 @@ function shell(song) {
       <div class="gg-map" id="gg-map" aria-hidden="true"></div>
       <span class="gg-str" id="gg-str" aria-label="Strings">${PLUG}<b>${GIG_STRINGS}</b></span>
     </div>
-    <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-combo" id="gg-combo"></span></div>
+    <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-mini" id="gg-mini" aria-live="off"></span><span class="gg-combo" id="gg-combo"></span></div>
     <section class="gg-crowd" aria-label="Crowd"><div class="gg-crowd-h"><span>CROWD</span><b id="gg-mood"></b></div><div class="gg-fans" id="gg-fans"></div></section>
     <div class="gg-chords">
       <div class="gg-now" id="gg-now"><small>NOW</small><b id="gg-nowname"></b><div id="gg-nowdg"></div></div>
@@ -239,7 +240,7 @@ function frame() {
   if (gel !== g.gel) { g.gel = gel; g.el.dataset.gel = gel; }
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
   /* lines (Lines in a gig can change in Tools) */
-  if (+g.el.dataset.lines !== linesWanted()) { g.el.dataset.lines = linesWanted(); g.b = -1; }
+  if (g.el.dataset.lines !== String(linesWanted())) { g.el.dataset.lines = linesWanted(); setFull(g); g.b = -1; }
   if (w.b !== g.b) { g.b = w.b; paintLines(w); if (g.paused) paintHold(); }
   /* chords */
   const seq = diag.seq || [];
@@ -252,6 +253,8 @@ function frame() {
     if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push(g.clock());
   }
   $("gg-nextname").textContent = w.next >= 0 ? seq[w.next].name : seq.length ? "End" : "";
+  const mini = seq.length && w.idx >= 0 ? `${seq[w.idx].name} → ${w.next >= 0 ? seq[w.next].name : "End"}` : "";
+  if (mini !== g.mini) { g.mini = mini; $("gg-mini").textContent = mini; }
   const bpm = song.bpm || 90, beats = w.until == null ? 0 : Math.max(0, Math.min(4, Math.ceil(w.until * bpm / 60)));
   if (beats !== g.beats) { g.beats = beats; $("gg-beats").querySelectorAll("i").forEach((e, i) => e.classList.toggle("on", i < beats)); }
   /* grade the changes whose window has passed */
@@ -274,6 +277,10 @@ function frame() {
 /* A finger moves the song (4.2.2): drag the lines, or the line you stopped on, and the page underneath
    moves with it; the show follows. Changes passed while dragging aren't graded. */
 function bindDrag(g) {
+  /* Full: the page scrolls under your finger as it always does */
+  const pageMove = () => { if (g.el.dataset.lines === "full") g.dragUntil = performance.now() + 700; };
+  addEventListener("touchmove", pageMove, { passive: true }); addEventListener("wheel", pageMove, { passive: true });
+  g.unbind = () => { removeEventListener("touchmove", pageMove); removeEventListener("wheel", pageMove); };
   let last = null;
   const move = y => { if (last == null) return; window.scrollBy(0, (last - y) * 1.4); last = y; g.dragUntil = performance.now() + 700; };
   for (const el of [$("gg-lines"), $("gg-hold")]) {
@@ -315,6 +322,7 @@ export function openGig(song, opts = {}) {
   $("gg-back").onclick = () => backALine();
   bindDrag(g);
   g.el.dataset.lines = linesWanted();
+  setFull(g);
   paintMap(); paintMic(); paintScore();
   /* Score my plays (Settings > Playing) decides whether a show starts listening. */
   if (data.settings.gigScore !== false) listen(g); else { g.off = true; paintMic(); }
@@ -330,6 +338,8 @@ function paused(on) {
   $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
   if (on) { paintHold(); $("gg-resume").focus({ preventScroll: true }); }
 }
+/* Full (4.4.0): the song page shows; the show is a strip at the top and Hearing you and Pause at the bottom */
+function setFull(g) { document.body.classList.toggle("gig-full", g.el.dataset.lines === "full" && !g.ended); }
 /* Paused: the line you stopped on, and Louie keeping the crowd */
 function paintHold() {
   const g = gig, box = $("gg-hline");
@@ -367,7 +377,8 @@ export function closeGig(quiet = false) {
   try { g.src?.disconnect(); } catch {}
   g.stream?.getTracks().forEach(t => t.stop());
   g.el?.remove();
-  document.body.classList.remove("gigging");
+  g.unbind?.();
+  document.body.classList.remove("gigging", "gig-full");
   gigHooks.on = false; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
   document.querySelector(".menu.tools")?.remove();
   if (!quiet && g.from === "road") go("#/");
@@ -390,6 +401,7 @@ function showComplete() {
   const tile = (lab, val, cls) => `<div class="gc-tile ${cls}"><small>${lab}</small><b>${val}</b></div>`;
   g.el.classList.remove("paused");
   g.el.classList.add("done");
+  setFull(g);
   g.el.innerHTML = `<div class="gc">
     <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     ${louie("cheer", { pose: "hornsUp", size: 170 })}
