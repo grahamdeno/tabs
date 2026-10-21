@@ -47,6 +47,12 @@ export const LIB = {
   settings: { v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, plainPlay: true }
 };
 
+/* Wait for a condition that is checked on the test's side (a captured request, a flag), polling every 25 ms. */
+export async function until(cond, ms = 8000) {
+  const t0 = Date.now();
+  while (!(await cond())) { if (Date.now() - t0 > ms) throw new Error("timed out waiting for " + cond); await new Promise(r => setTimeout(r, 25)); }
+}
+
 export let server, browser, base;
 // Each test file calls useBrowser() once: a static server for the repo and one Chromium.
 export function useBrowser() {

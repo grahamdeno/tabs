@@ -1,7 +1,7 @@
 // What can I play next?: My level or A step up. The songs are invented.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { skip, LIB, phone, until, useBrowser } from "./harness.mjs";
 useBrowser();
 
 const cors = { "access-control-allow-origin": "*" };
@@ -17,22 +17,23 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
     systems.push(sys);
     r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(/real step up/.test(sys) ? STEP : SAME) }], stop_reason: "end_turn" }) });
   });
-  await page.reload(); await page.waitForTimeout(400);
-  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
-  await page.click("#nextidea"); await page.waitForTimeout(500);
+  await page.reload(); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
+  await page.click("#nextidea"); await page.waitForFunction(() => /Low Tide/.test(document.querySelector("#nx-body")?.innerText));
   assert.match(await page.innerText("#nx-body"), /Low Tide/);
   assert.match(systems[0], /Their level/);
   assert.equal(await page.getAttribute("#nx-level [data-lv='same']", "aria-pressed"), "true");
 
-  await page.click("#nx-level [data-lv='step']"); await page.waitForTimeout(500);
+  await page.click("#nx-level [data-lv='step']"); await until(() => systems.length > 1);
+  await page.waitForFunction(() => /Breakwater/.test(document.querySelector("#nx-body")?.innerText));
   assert.match(systems[1], /real step up/);
   const body = await page.innerText("#nx-body");
   assert.match(body, /Breakwater/); assert.match(body, /First barre chords/); assert.match(body, /A step up from your songs/);
   assert.equal(await page.locator(".nx-ch span.new").count(), 2, "both new chords are marked");
 
-  await page.click("#nx-x"); await page.waitForTimeout(200);
+  await page.click("#nx-x"); await page.waitForFunction(() => !document.querySelector("#nx-body") && JSON.parse(localStorage.getItem("tabs-v1")).settings.nextLevel === "step");
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.nextLevel, "step");
-  await page.click("#nextidea"); await page.waitForTimeout(500);
+  await page.click("#nextidea"); await until(() => systems.length > 2);
   assert.match(systems[2], /real step up/, "the choice is remembered");
 });
 
@@ -45,9 +46,9 @@ async function openWith(t, replies, extra = {}) {
     const text = replies[Math.min(calls.n++, replies.length - 1)];
     r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text }], stop_reason: "end_turn" }) });
   });
-  await page.reload(); await page.waitForTimeout(400);
-  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
-  await page.click("#nextidea"); await page.waitForTimeout(700);
+  await page.reload(); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
+  await page.click("#nextidea"); await page.waitForFunction(() => document.querySelector("#nx-body")?.innerText.trim() && !document.querySelector("#nx-body .easy-wait"));
   return { page, calls };
 }
 
@@ -73,7 +74,7 @@ test("Play next: two unreadable replies show a clear message, Try again in the f
   const h = await page.evaluate(() => [document.querySelector("#nx-again").offsetHeight, document.querySelector("#nx-level button").offsetHeight]);
   assert.ok(h[0] >= 44 && h[1] >= 34, `buttons keep their height: ${h}`);
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/nx-err.png" });
-  await page.click("#nx-again"); await page.waitForTimeout(700);
+  await page.click("#nx-again"); await page.waitForFunction(() => /Breakwater/.test(document.querySelector("#nx-body")?.innerText));
   assert.match(await page.innerText("#nx-body"), /Breakwater/);
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/nx-ok.png" });
 });
@@ -86,12 +87,12 @@ test("Play next: songs already shown are sent along so the list moves on (2.13.1
     asks.push(JSON.parse(r.request().postData()).messages[0].content);
     r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(SAME) }], stop_reason: "end_turn" }) });
   });
-  await page.reload(); await page.waitForTimeout(400);
-  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
-  await page.click("#nextidea"); await page.waitForTimeout(500);
+  await page.reload(); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
+  await page.click("#nextidea"); await until(() => asks.length > 0);
   assert.doesNotMatch(asks[0], /Already suggested/);
-  await page.click("#nx-x"); await page.waitForTimeout(200);
-  await page.click("#nextidea"); await page.waitForTimeout(500);
+  await page.click("#nx-x"); await page.waitForFunction(() => !document.querySelector("#nx-body"));
+  await page.click("#nextidea"); await until(() => asks.length > 1);
   assert.match(asks[1], /Already suggested: Low Tide/);
   assert.match(asks[1], /Variety number: \d+/);
 });
@@ -106,9 +107,10 @@ test("Play next: the reply is streamed, so a long wait keeps the connection aliv
     const ev = d => `event: content_block_delta\ndata: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: d } })}\n\n`;
     r.fulfill({ status: 200, contentType: "text/event-stream", headers: cors, body: ev(text.slice(0, half)) + ev(text.slice(half)) + "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n" });
   });
-  await page.reload(); await page.waitForTimeout(400);
-  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
-  await page.click("#nextidea"); await page.waitForTimeout(600);
+  await page.reload(); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
+  await page.click("#nextidea"); await until(() => streamed);
+  await page.waitForFunction(() => /Low Tide/.test(document.querySelector("#nx-body")?.innerText));
   assert.equal(streamed, true);
   assert.match(await page.innerText("#nx-body"), /Low Tide/);
 });
@@ -124,8 +126,8 @@ test("Play next: an empty reply says why it ended, and the AI gets room to think
       ev("content_block_delta", { type: "content_block_delta", delta: { type: "thinking_delta", thinking: "Let me think about harder songs..." } }) +
       ev("message_delta", { type: "message_delta", delta: { stop_reason: "max_tokens" } }) + ev("message_stop", { type: "message_stop" }) });
   });
-  await page.reload(); await page.waitForTimeout(400);
-  await page.click("#q").catch(() => {}); await page.waitForTimeout(300);
+  await page.reload(); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
   await page.click("#nextidea"); await page.waitForSelector(".nx-err");
   assert.ok(max.every(m => m >= 8000), `room to think: ${max}`);
   assert.match(await page.textContent(".nx-err details pre"), /stopped with: max_tokens/);
