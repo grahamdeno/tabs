@@ -1,7 +1,9 @@
-// The neck (#/practice): the permanent place to practice.
+// Rehearse (#/practice, 4.8.0) and the neck: the permanent place to practice.
 //
-//   #/practice          the neck: levels of frets (lessons) and inlays (level checks)
-//   #/practice/<step>   one lesson
+//   #/practice          Rehearse: today's soundcheck (built from the changes you dropped in gigs),
+//                       the missed changes, the neck, sitting in with the band, the tuner, What I hear
+//   #/practice/neck     the neck: levels of frets (lessons) and inlays (level checks)
+//   #/practice/<step>   one lesson (any switch, s:A-B, even one that isn't on the neck)
 //
 // A chord lesson listens to one string at a time with the same pitch reading the
 // tuner uses, and lights a lamp when that string rings clean. A switch lesson
@@ -12,9 +14,10 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, TUNINGS, SCALES, scaleTargets, playCount, practiceRate } from "./core.js";
+import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
-import { beatTrack, chordSVG, data, go, openAtSection, playSong } from "./app.js";
+import { beatTrack, chordSVG, data, go, openAtSection, openTuner, playSong } from "./app.js";
+import { statBar, bindStatBar } from "./hud.js";
 import { louie } from "./louie.js";
 
 const $ = id => document.getElementById(id);
@@ -23,6 +26,7 @@ const find = id => { for (const lv of skillState(data).levels) for (const st of 
 const lessonName = st => st.kind === "chord" ? `${st.chord} chord` : st.kind === "switch" ? `${st.a} to ${st.b}` : st.kind === "scale" ? SCALES[st.scale]?.name || "Scale" : "Level check";
 
 let live = null; /* the lesson running now: stopped when you leave */
+let backTo = "#/practice/neck"; /* where a lesson's Back goes: the neck, or Rehearse when it was opened there */
 function stopLive() {
   if (!live) return;
   /* time with the mic or the beat running is practice: it counts on the Tour Map (3.19.0) */
@@ -36,6 +40,7 @@ onLeave(stopLive);
 /* ---------- the neck ---------- */
 export function renderNeck() {
   stopLive();
+  backTo = "#/practice/neck";
   const { levels, next } = skillState(data);
   const fret = (st, i) => {
     const cls = st.kind === "check" ? "inlay" : "fret";
@@ -43,7 +48,7 @@ export function renderNeck() {
   };
   const done = lv => lv.steps.filter(s => s.state === "done").length;
   app.innerHTML = `
-    <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button></div>
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to Rehearse">${icon("back")}</button></div>
     <h1 class="title script" style="margin:14px 2px 2px">The neck</h1>
     <p class="pf-since">Your songs and your skills. Practice here counts on the Tour Map.</p>
     ${learningCard()}
@@ -56,7 +61,7 @@ export function renderNeck() {
     </section>`).join("")}
     <button class="pf-card pk-hearcard" id="pk-hear">${icon("fork")}<span><b>What I hear</b><span class="pf-line">Check the microphone with your guitar: level, pitch and strums, live.</span></span>${icon("chev", "chev")}</button>
     ${next ? `<div class="s-dock"><button class="btn primary" id="pk-go">${icon("play")}${next.kind === "check" ? "Level check" : "Next: " + esc(lessonName(next))}</button></div>` : ""}`;
-  $("back").onclick = () => go("#/");
+  $("back").onclick = () => go("#/practice");
   const open = st => {
     if (st.state === "locked") return toast("Finish the lesson before it first.");
     if (st.kind === "check") {
@@ -71,6 +76,44 @@ export function renderNeck() {
   $("pk-hear").onclick = () => go("#/practice/hear");
   app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => openAtSection(b.dataset.song));
 }
+/* Rehearse (4.8.0): the hub. Today's soundcheck first (two changes you dropped in gigs, 20 XP for both),
+   then skill work: the missed changes, the neck, sitting in with the band, the tuner, What I hear. */
+export function renderRehearse() {
+  stopLive();
+  backTo = "#/practice";
+  const sc = soundcheck(data), missed = missedChanges(data), dropped = missed.reduce((n, x) => n + x.n, 0);
+  const learn = data.songs.filter(x => x.status === "learning" && x.format !== "tab").sort((a, b) => (b.opened || 0) - (a.opened || 0))[0]
+    || data.songs.filter(x => x.format !== "tab").sort((a, b) => (b.opened || 0) - (a.opened || 0))[0];
+  const nextPair = sc.pairs.find(p => !p.done);
+  const item = (id, ic, t, sub, extra = "") => `<button class="rh-item" id="${id}"><span class="rh-ic">${ic}</span><span class="rh-t"><b>${t}</b><small>${sub}</small></span>${extra}${icon("chev", "chev")}</button>`;
+  app.innerHTML = `<div class="rh">
+    <div class="tq-top">${statBar()}</div>
+    <h1 class="rh-h1">Rehearse</h1>
+    ${sc.pairs.length ? `<section class="rh-sc${sc.done ? " done" : ""}" aria-label="Soundcheck">
+      <div class="rh-sct"><b>Soundcheck</b><p>${sc.done ? "Done for today. A new one tomorrow." : sc.fromMisses ? `Built from the changes you dropped: ${sc.pairs.map(p => `<b class="${p.done ? "ok" : ""}">${esc(p.a)} to ${esc(p.b)}</b>`).join(" and ")}` : `Warm up on <b>${esc(sc.pairs[0].a)} to ${esc(sc.pairs[0].b)}</b>. Play a gig and it'll be built from the changes you drop.`}</p></div>
+      ${louie(sc.done ? "cheer" : "happy", { pose: sc.done ? "thumb" : "point", size: 82 })}
+      ${sc.done ? "" : `<button class="btn primary rh-go" id="rh-sc">START · +${SOUNDCHECK_XP} XP</button>`}
+    </section>` : ""}
+    <h2 class="tq-h"><span>SKILL WORK</span></h2>
+    <div class="rh-list">
+      ${item("rh-missed", icon("loop"), "Missed changes", missed.length ? "Drill the changes you dropped in gigs" : "Changes you drop in gigs land here", dropped ? `<span class="rh-n">${dropped}</span>` : "")}
+      <div class="rh-pairs" id="rh-pairs" hidden>${missed.slice(0, 8).map(p => `<button class="rh-pair" data-id="${esc(p.id)}"><b>${esc(p.a)} to ${esc(p.b)}</b><small>missed ${p.n}×</small></button>`).join("")}</div>
+      ${item("rh-neck", icon("fretboard"), "The neck", "Chords, switches and scales")}
+      ${learn ? item("rh-band", icon("metro"), "Sit in with the band", `${esc(learn.title)} with drums that fit, at your speed`) : ""}
+      ${item("rh-tuner", icon("fork"), "Tuner", "Tune before you tune up the crowd")}
+      ${item("rh-hear", icon("mic"), "What I hear", "Check the microphone: level, pitch and strums")}
+    </div>
+  </div>`;
+  bindStatBar();
+  $("rh-sc")?.addEventListener("click", () => nextPair && go("#/practice/" + encodeURIComponent(nextPair.id)));
+  $("rh-missed").onclick = () => { if (!missed.length) return toast("Play a gig with the microphone on. The changes you drop show up here."); $("rh-pairs").hidden = !$("rh-pairs").hidden; };
+  app.querySelectorAll(".rh-pair").forEach(b => b.onclick = () => go("#/practice/" + encodeURIComponent(b.dataset.id)));
+  $("rh-neck").onclick = () => go("#/practice/neck");
+  $("rh-band")?.addEventListener("click", () => openAtSection(learn.id));
+  $("rh-tuner").onclick = () => openTuner();
+  $("rh-hear").onclick = () => go("#/practice/hear");
+}
+
 /* Learning (3.21.0): the songs you're learning, each with the one thing to do next and how far along
    it is (plays toward five). A tap opens the song, already in Practice mode. */
 const GOAL_PLAYS = 5;
@@ -96,7 +139,11 @@ export function renderSession(id) {
   stopLive();
   if (id === "hear") return whatIHear();
   const hit = find(id);
-  if (!hit || hit.st.state === "locked" || hit.st.kind === "check") return go("#/practice");
+  if (id === "neck") return renderNeck();
+  /* a switch that isn't on the neck (a change you dropped in a gig) */
+  const m = !hit && /^s:([^-]+)-(.+)$/.exec(id);
+  if (m && chordSVG(m[1]) && chordSVG(m[2])) return switchLesson({ id, kind: "switch", a: m[1], b: m[2], to: 80, state: "now" });
+  if (!hit || hit.st.state === "locked" || hit.st.kind === "check") return go("#/practice/neck");
   hit.st.kind === "chord" ? chordLesson(hit.st) : hit.st.kind === "scale" ? scaleLesson(hit.st) : switchLesson(hit.st);
 }
 
@@ -187,7 +234,7 @@ function chordLesson(st) {
       <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Finger the chord. I'll ask for one string at a time; pluck it and let it ring.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
-  $("back").onclick = () => go("#/practice");
+  $("back").onclick = () => go(backTo);
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const finish = (heard = true) => {
     stopLive();
@@ -254,7 +301,7 @@ function scaleLesson(st) {
       <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">${esc(sc.tip)} Tap Hear it, then play it up and back down, one note at a time.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-play">${icon("play")}Hear it</button><button class="tb" id="pk-self">I got it</button></div>`;
-  $("back").onclick = () => go("#/practice");
+  $("back").onclick = () => go(backTo);
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const paint = () => {
     const b = $("pk-board"); if (b) b.innerHTML = scaleSVG(targets, k, lit);
@@ -335,7 +382,7 @@ function switchLesson(st) {
         <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the beat.</p></div>
       </section>
       <div class="s-dock"><button class="btn primary" id="pk-start">${icon("play")}Start round</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
-    $("back").onclick = () => go("#/practice");
+    $("back").onclick = () => go(backTo);
     $("pk-self").onclick = () => finish(bpm, "Marked as got.");
     $("pk-start").onclick = start;
   };
@@ -343,8 +390,9 @@ function switchLesson(st) {
   const finish = (at, line) => {
     stopLive();
     skillDone(data, st.id, at);
+    const sc = soundcheckDone(data, st.id); /* Rehearse (4.8.0): part of today's soundcheck? */
     const secs = (Date.now() - t0) / 1000; Tabs.save(data);
-    done(st, { secs, line, bpm: at });
+    done(st, { secs, line: sc?.done ? `${line} Soundcheck done: +${sc.xp} XP.` : sc ? `${line} One more change for today's soundcheck.` : line, bpm: at, sc });
   };
   const show = k => { /* chord for bar k (k < 0: the count-in shows the first) */
     const cur = k % 2 === 1 ? st.b : st.a, nxt = cur === st.a ? st.b : st.a;
@@ -421,8 +469,8 @@ function switchLesson(st) {
 }
 
 /* lesson done */
-function done(st, { secs, line, bpm = 0 }) {
-  const { levels } = skillState(data), lv = levels.find(l => l.steps.some(s => s.id === st.id));
+function done(st, { secs, line, bpm = 0, sc = null }) {
+  const { levels } = skillState(data), lv = levels.find(l => l.steps.some(s => s.id === st.id)) || { name: "Soundcheck", steps: [] };
   const have = lv.steps.filter(s => s.state === "done").length, total = lv.steps.length;
   const chords = st.kind === "chord" ? [st.chord] : [st.a, st.b];
   const sg = st.kind === "scale" ? null : data.songs.find(s => chords.every(c => new RegExp("\\[" + c.replace("#", "\\#") + "(?![#b\\w])").test(s.body || ""))) || data.songs.find(s => new RegExp("\\[" + chords[0] + "(?![#b\\w])").test(s.body || ""));
@@ -433,12 +481,12 @@ function done(st, { secs, line, bpm = 0 }) {
     <div class="pf-plate" role="group" aria-label="Lesson numbers">
       <div class="pf-read"><b>${m}:${String(s).padStart(2, "0")}</b><span>this lesson</span></div>
       <div class="pf-read"><b>${bpm || (data.skills?.done?.[st.id]?.n || 1) + "×"}</b><span>${bpm ? "BPM" : "practiced"}</span></div>
-      <div class="pf-read"><b>${have}/${total}</b><span>${esc(lv.name.toLowerCase())}</span></div>
+      ${total ? `<div class="pf-read"><b>${have}/${total}</b><span>${esc(lv.name.toLowerCase())}</span></div>` : ""}
     </div>
-    <div class="s-dock">${sg ? `<button class="btn primary" id="pk-song">${icon("play")}Play ${esc(sg.title)}</button>` : ""}<button class="${sg ? "tb" : "btn primary"}" id="pk-next">${nxt && nxt.kind !== "check" ? "Next: " + esc(lessonName(nxt)) : "Back to the neck"}</button></div>`;
-  $("back").onclick = () => go("#/practice");
+    <div class="s-dock">${sg ? `<button class="btn primary" id="pk-song">${icon("play")}Play ${esc(sg.title)}</button>` : ""}<button class="${sg ? "tb" : "btn primary"}" id="pk-next">${nxt && nxt.kind !== "check" && !sc ? "Next: " + esc(lessonName(nxt)) : backTo === "#/practice" ? "Back to Rehearse" : "Back to the neck"}</button></div>`;
+  $("back").onclick = () => go(backTo);
   $("pk-song")?.addEventListener("click", () => playSong(sg.id));
-  $("pk-next").onclick = () => nxt && nxt.kind !== "check" ? go("#/practice/" + encodeURIComponent(nxt.id)) : go("#/practice");
+  $("pk-next").onclick = () => nxt && nxt.kind !== "check" && !sc ? go("#/practice/" + encodeURIComponent(nxt.id)) : go(backTo);
 }
 
 /* ---------- What I hear ----------
@@ -472,7 +520,7 @@ function whatIHear() {
       <p class="rd-bubble ph-say" id="pk-say" aria-live="polite">Tap Start, then pluck single strings, strum a chord, and stay quiet for a moment.</p>
     </section>
     <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
-  $("back").onclick = () => go("#/practice");
+  $("back").onclick = () => go(backTo);
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const strings = () => {
     const box = $("ph-strings");

@@ -1886,6 +1886,27 @@ test("Your band (4.7.0): friends join as you play; Beat and Bex play in gigs", (
   assert.deepEqual(C.cleanBand({ seen: ["lola", "nobody"] }), { seen: ["lola"] });
 });
 
+test("Rehearse (4.8.0): the changes you dropped and today's soundcheck", () => {
+  const now = new Date(2026, 9, 21, 20).getTime(), data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.equal(C.soundcheck(data, now).fromMisses, false, "nothing dropped yet: a switch from the neck");
+  C.rehearseMisses(data, { "C>F": 3, "G>Em": 2, "A>D": 1 }, now);
+  C.rehearseMisses(data, { "C>F": 1 }, now - 20 * 86400e3);
+  assert.deepEqual(C.missedChanges(data, now).map(x => [x.id, x.n]), [["s:C-F", 3], ["s:G-Em", 2], ["s:A-D", 1]]);
+  const sc = C.soundcheck(data, now);
+  assert.deepEqual(sc.pairs.map(p => p.id), ["s:C-F", "s:G-Em"], "the two you dropped most");
+  assert.equal(C.soundcheckDone(data, "s:A-D", now), null, "not in today's soundcheck");
+  assert.deepEqual(C.soundcheckDone(data, "s:C-F", now), { done: false, left: 1 });
+  C.rehearseMisses(data, { "A>D": 9 }, now);
+  assert.deepEqual(C.soundcheck(data, now).pairs.map(p => p.id), ["s:C-F", "s:G-Em"], "fixed for the day once started");
+  const xp0 = C.weekXP(data, C.weekOf(now));
+  assert.deepEqual(C.soundcheckDone(data, "s:G-Em", now), { done: true, xp: 20 });
+  assert.equal(C.weekXP(data, C.weekOf(now)) - xp0, 20);
+  assert.equal(C.soundcheckDone(data, "s:G-Em", now).done, false, "20 XP once a day");
+  assert.equal(C.soundcheck(data, now + 86400e3).done, false, "a new one tomorrow");
+  const kept = C.cleanRehearse(JSON.parse(JSON.stringify(data.rehearse)));
+  assert.deepEqual(kept, data.rehearse);
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");

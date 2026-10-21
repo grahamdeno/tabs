@@ -31,7 +31,9 @@ const COVERS = {
   "styles.css": ["regress", "a11y"],
   "index.html": ["app", "a11y"],
   "sw.js": ["app"],
-  "profile.js": ["profile"]
+  "profile.js": ["profile"],
+  "practice.js": ["practice"],
+  "gig.js": ["app"], "tour.js": ["app"], "charts.js": ["app"], "band.js": ["app"], "friends.js": ["app"]
 };
 const files = new Set();
 for (const f of changed) {

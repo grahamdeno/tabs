@@ -16,7 +16,7 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
+import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
@@ -251,7 +251,7 @@ function frame() {
     $("gg-nowname").textContent = name;
     $("gg-nowdg").innerHTML = chordSVG(name, 1.35);
     /* a change on stage: graded once its window has passed */
-    if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push(g.clock());
+    if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push({ t: g.clock(), pair: `${prev}>${name}` });
   }
   $("gg-nextname").textContent = w.next >= 0 ? seq[w.next].name : seq.length ? "End" : "";
   const mini = seq.length && w.idx >= 0 ? `${seq[w.idx].name} → ${w.next >= 0 ? seq[w.next].name : "End"}` : "";
@@ -261,8 +261,9 @@ function frame() {
   /* grade the changes whose window has passed */
   const now = g.clock();
   let graded = false;
-  while (g.due.length && now - g.due[0] > GIG_WINDOW) {
-    const r = gigChange(g.score, g.due.shift(), g.strums);
+  while (g.due.length && now - g.due[0].t > GIG_WINDOW) {
+    const d = g.due.shift(), r = gigChange(g.score, d.t, g.strums);
+    if (!r.hit) g.missed[d.pair] = (g.missed[d.pair] || 0) + 1; /* for Rehearse's soundcheck (4.8.0) */
     graded = true;
     flash(r.hit);
   }
@@ -304,7 +305,7 @@ export function openGig(song, opts = {}) {
   closeGig(true);
   const audio = sound();
   const g = gig = {
-    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "", dragUntil: 0,
+    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "", dragUntil: 0, missed: {},
     audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
   g.el = shell(song);
@@ -397,6 +398,7 @@ function showComplete() {
   g.stream?.getTracks().forEach(t => t.stop());
   const graded = g.score.hits + g.score.misses > 0;
   const { fans, pct, request, battle } = gigDone(data, g.song.id, g.score, g.encore);
+  rehearseMisses(data, g.missed); /* the changes you dropped: tomorrow's soundcheck */
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
   Tabs.save(data);

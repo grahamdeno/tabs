@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.7.0";
+export const VERSION = "4.8.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -69,7 +69,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}), ...(cleanRehearse(data.rehearse) ? { rehearse: cleanRehearse(data.rehearse) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -615,7 +615,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -3673,6 +3673,65 @@ export function cleanBand(raw) {
   if (!isObj(raw)) return null;
   const seen = (Array.isArray(raw.seen) ? raw.seen : []).filter(id => BAND.some(b => b.id === id));
   return seen.length ? { seen } : null;
+}
+
+// ---------- Rehearse (4.8.0): the soundcheck and the changes you dropped ----------
+// A gig keeps the chord changes you missed (from > to, the last 14 days). Today's soundcheck is built from
+// the two you missed most in the last week: drill both (switch lessons) and it's done, worth 20 XP once a day.
+// With nothing missed yet, it's the next switch on the neck.
+export const SOUNDCHECK_XP = 20;
+export function rehearseMisses(data, missed = {}, now = Date.now()) {
+  const pairs = Object.entries(missed).filter(([k, n]) => n > 0 && /^[^>]+>[^>]+$/.test(k));
+  if (!pairs.length) return;
+  const r = data.rehearse || (data.rehearse = {}), m = r.misses || (r.misses = {}), today = dayKey(now);
+  for (const [k, n] of pairs) { const x = m[k] || (m[k] = { n: 0, days: {} }); x.days[today] = (x.days[today] || 0) + n; }
+  const keep = dayKey(now - 14 * DAY);
+  for (const [k, x] of Object.entries(m)) { for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d]; x.n = Object.values(x.days).reduce((a, b) => a + b, 0); if (!x.n) delete m[k]; }
+}
+/* the changes you dropped, most first: [{ a, b, n }] over the last `days` days */
+export function missedChanges(data, now = Date.now(), days = 14) {
+  const from = dayKey(now - (days - 1) * DAY);
+  return Object.entries(data.rehearse?.misses || {}).map(([k, x]) => {
+    const [a, b] = k.split(">"), n = Object.entries(x.days || {}).reduce((t, [d, c]) => d >= from ? t + c : t, 0);
+    return { a, b, id: `s:${a}-${b}`, n };
+  }).filter(x => x.n > 0).sort((p, q) => q.n - p.n || p.id.localeCompare(q.id));
+}
+export function soundcheck(data, now = Date.now()) {
+  const today = dayKey(now), sc = data.rehearse?.sc?.day === today ? data.rehearse.sc : { day: today, got: [] };
+  let pairs = missedChanges(data, now, 7).slice(0, 2);
+  const fromMisses = pairs.length > 0;
+  if (!pairs.length) {
+    const sw = skillState(data, now).levels.flatMap(l => l.steps).find(s => s.kind === "switch" && s.state === "now")
+      || skillState(data, now).levels.flatMap(l => l.steps).filter(s => s.kind === "switch" && s.state === "done").sort((a, b) => (a.best || 0) - (b.best || 0))[0];
+    if (sw) pairs = [{ a: sw.a, b: sw.b, id: sw.id, n: 0 }];
+  }
+  if (sc.pairs) pairs = sc.pairs.map(id => { const [a, b] = id.slice(2).split(/-(.+)/); return { a, b, id, n: pairs.find(p => p.id === id)?.n || 0 }; });
+  return { day: today, pairs: pairs.map(p => ({ ...p, done: (sc.got || []).includes(p.id) })), fromMisses, done: !!sc.done };
+}
+/* a switch lesson finished: if it's in today's soundcheck, tick it; the last one done earns the XP */
+export function soundcheckDone(data, id, now = Date.now()) {
+  const st = soundcheck(data, now);
+  if (!st.pairs.some(p => p.id === id)) return null;
+  const r = data.rehearse || (data.rehearse = {});
+  const sc = r.sc?.day === st.day ? r.sc : (r.sc = { day: st.day, got: [], pairs: st.pairs.map(p => p.id) });
+  if (!sc.pairs) sc.pairs = st.pairs.map(p => p.id);
+  if (!sc.got.includes(id)) sc.got.push(id);
+  if (sc.done || !sc.pairs.every(p => sc.got.includes(p))) return { done: false, left: sc.pairs.length - sc.got.length };
+  sc.done = true; addXP(data, SOUNDCHECK_XP, now);
+  return { done: true, xp: SOUNDCHECK_XP };
+}
+export function cleanRehearse(raw) {
+  if (!isObj(raw)) return null;
+  const day = /^\d{4}-\d\d-\d\d$/, out = {}, misses = {};
+  for (const [k, x] of Object.entries(isObj(raw.misses) ? raw.misses : {}).slice(0, 200)) {
+    if (!/^[^>]{1,12}>[^>]{1,12}$/.test(k) || !isObj(x?.days)) continue;
+    const days = {}; for (const [d, n] of Object.entries(x.days)) if (day.test(d) && n > 0) days[d] = Math.min(9999, Math.round(n));
+    const n = Object.values(days).reduce((a, b) => a + b, 0); if (n) misses[k] = { n, days };
+  }
+  if (Object.keys(misses).length) out.misses = misses;
+  const sc = raw.sc;
+  if (isObj(sc) && day.test(sc.day)) out.sc = { day: sc.day, got: (Array.isArray(sc.got) ? sc.got : []).filter(x => typeof x === "string").slice(0, 4), ...(Array.isArray(sc.pairs) ? { pairs: sc.pairs.filter(x => typeof x === "string").slice(0, 4) } : {}), ...(sc.done === true ? { done: true } : {}) };
+  return out.misses || out.sc ? out : null;
 }
 
 /* The chords you can play: every chord lesson done, and any chord played in songs five times. */

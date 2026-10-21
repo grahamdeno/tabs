@@ -414,7 +414,7 @@ test("3.21.0 Practice mode: a learning song opens in it; the row picks a section
 test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a scale lesson to hear and mark", { skip: skip() }, async t => {
   const long = LIB.songs[0].body + "\n" + Array.from({ length: 8 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nwords words words`).join("\n");
   const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], body: long, status: "learning", loop: { a: 5, b: 8, name: "Chorus" }, practice: { rate: 0.8 } }, LIB.songs[1]], settings: { ...LIB.settings, micExplained: true } });
-  await page.evaluate(() => { location.hash = "#/practice"; }); await page.waitForSelector(".pk-learn");
+  await page.evaluate(() => { location.hash = "#/practice/neck"; }); await page.waitForSelector(".pk-learn");
   assert.match(await page.innerText(".pk-learn"), /River Road/);
   assert.match(await page.innerText(".pk-learn"), /Next: Chorus at 80%/);
   assert.match(await page.innerText(".pk-learn"), /0 of 5 plays/);
@@ -429,7 +429,7 @@ test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a s
   assert.match(await page.innerText("#app"), /Marked as got/);
   const sk = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).skills.done);
   assert.equal(sk["x:Ampent"].n, 1);
-  await page.evaluate(() => { location.hash = "#/practice"; }); await page.waitForSelector(".pk-learn");
+  await page.evaluate(() => { location.hash = "#/practice/neck"; }); await page.waitForSelector(".pk-learn");
   await page.click(".pk-song"); await page.waitForSelector("#pchip");
   assert.match(await page.innerText("#pchip"), /Practicing/, "a tap opens the song in Practice mode");
   await page.waitForFunction(() => scrollY > 40, null, { timeout: 3000 });

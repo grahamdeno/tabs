@@ -1,23 +1,22 @@
-// The neck: the permanent practice place, Tonight's run card, and a chord lesson that listens.
+// Rehearse and the neck: the permanent practice place, the soundcheck, and a chord lesson that listens.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { chromium, base, skip, LIB, FAKE_MIC, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
-test("Tonight's run leads to the neck, and the neck lists levels with the next lesson lit", { skip: skip() }, async t => {
+test("Rehearse leads to the neck, and the neck lists levels with the next lesson lit", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs }, { home: true });
-  await page.waitForSelector(".rd-next");
-  assert.equal(await page.locator("#rd-sound").count(), 1, "Soundcheck lamp");
-  await page.click("#neckbtn");
+  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-list");
+  await page.click("#rh-neck");
   await page.waitForSelector(".pk-board");
   assert.equal(await page.innerText("h1.title"), "The neck");
-  assert.equal(await page.locator(".pk-level").count(), 5);
+  assert.equal(await page.locator(".pk-level").count(), 6, "with Scales (3.21.0)");
   assert.equal(await page.locator(".pk-level.soon").count(), 3, "strumming, picking and fingerstyle are coming");
-  assert.equal(await page.locator(".pk-fret.now").innerText().then(x => x.split("\n")[0]), "G");
-  await page.click(".pk-fret.locked");
-  await page.click(".pk-fret.now");
+  assert.equal(await page.locator(".pk-fret.now").first().innerText().then(x => x.split("\n")[0]), "G");
+  await page.click(".pk-fret.locked >> nth=0");
+  await page.click(".pk-fret.now >> nth=0");
   await page.waitForSelector(".pk-strings");
   assert.match(await page.innerText("h1.title"), /G chord/);
   await page.click("#back");
@@ -60,7 +59,7 @@ test("What I hear: the level, the pitch and the string it lights, and readings t
   await page.goto(base);
   await page.waitForTimeout(400);
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
-  await page.goto(base + "#/practice");
+  await page.goto(base + "#/practice/neck");
   await page.click("#pk-hear");
   await page.waitForSelector("#ph-lane");
   await page.click(".ph-chords [data-c='Am']");
@@ -76,4 +75,27 @@ test("What I hear: the level, the pitch and the string it lights, and readings t
   assert.match(await page.evaluate(() => navigator.clipboard.readText()), /E3 on the D string: \d+ s, sounding/, "the string still awaited says what was heard instead");
   await page.click("#ph-go");
   assert.deepEqual(errors, []);
+});
+
+test("Rehearse (4.8.0): the soundcheck is built from the changes you dropped, and a dropped change drills from here", { skip: skip() }, async t => {
+  const d = new Date(), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const page = await phone(t, { ...LIB, rehearse: { misses: { "C>F": { n: 4, days: { [k]: 4 } }, "G>Em": { n: 2, days: { [k]: 2 } } } } }, { home: true });
+  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-sc");
+  assert.match(await page.innerText(".rh-sc"), /Soundcheck[\s\S]*C to F[\s\S]*G to Em[\s\S]*START · \+20 XP/);
+  assert.equal(await page.innerText(".rh-n"), "6");
+  await page.click("#rh-missed"); await page.waitForSelector(".rh-pair");
+  assert.equal(await page.locator(".rh-pair").count(), 2);
+  await page.click("#rh-sc"); await page.waitForSelector(".pk-pair");
+  assert.match(await page.innerText("h1.title"), /C to F/, "C to F isn't on the neck, but it drills");
+  await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  assert.match(await page.innerText(".rd-first-t"), /One more change for today's soundcheck/);
+  assert.equal(await page.innerText("#pk-next"), "Back to Rehearse");
+  await page.click("#pk-next"); await page.waitForSelector(".rh-sc");
+  await page.click("#rh-sc"); await page.waitForSelector(".pk-pair");
+  assert.match(await page.innerText("h1.title"), /G to Em/, "on to the second");
+  await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  assert.match(await page.innerText(".rd-first-t"), /Soundcheck done: \+20 XP/);
+  await page.click("#pk-next"); await page.waitForSelector(".rh-sc.done");
+  await page.click("#rh-neck"); await page.waitForSelector(".pk-board");
+  await page.click("#back"); await page.waitForSelector(".rh-list");
 });

@@ -147,7 +147,7 @@ export function renderRoad() {
     const drawer = makeDrawer({ root: $("rd-drawer"), head: $("rd-dh"), body, sizer: $("rd-drawer").querySelector(".rd-sizer"), scrim: $("rd-scrim") });
     if (wantDrawer) drawer.open();
   }
-  $("rd-book")?.addEventListener("click", () => go("#/practice"));
+  $("rd-book")?.addEventListener("click", () => go("#/practice/neck"));
   $("rd-tonight")?.addEventListener("click", () => playGig(song.id, { from: "road" })); /* 4.1.0: tonight's song is a gig */
   $("rd-search").onclick = () => openSearch();
   $("add").onclick = () => newSong();
@@ -157,7 +157,7 @@ export function renderRoad() {
   const start = id => {
     const s = all.find(x => x.id === id);
     if (!s) return;
-    if (s.kind === "headline") return s.song ? playGig(s.song, { from: "road" }) : (toast("Add a song that uses only these chords, then play it through"), go("#/practice"));
+    if (s.kind === "headline") return s.song ? playGig(s.song, { from: "road" }) : (toast("Add a song that uses only these chords, then play it through"), go("#/practice/neck"));
     go("#/practice/" + encodeURIComponent(s.id));
   };
   path.addEventListener("click", e => {

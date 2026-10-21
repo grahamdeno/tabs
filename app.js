@@ -2803,7 +2803,7 @@ function renderRoute() {
   }
   else if (r.name === "settings" || r.name === "trash") settingsMod().then(m => { if (route().name !== r.name) return; (r.name === "settings" ? m.renderSettings : m.renderTrash)(); window.scrollTo(0, 0); });
   else if (r.name === "you") lazy("profile.js").then(m => { if (route().name === "you") { m.renderProfile(); window.scrollTo(0, 0); } });
-  else if (r.name === "practice") lazy("practice.js").then(m => { if (route().name === "practice") { r.id ? m.renderSession(r.id) : m.renderNeck(); window.scrollTo(0, 0); } });
+  else if (r.name === "practice") lazy("practice.js").then(m => { if (route().name === "practice") { r.id ? m.renderSession(r.id) : m.renderRehearse(); window.scrollTo(0, 0); } });
   else if (r.name === "playmap") lazy("playmap.js").then(m => { if (route().name === "playmap") { m.renderPlayMap(); window.scrollTo(0, 0); } });
   else if (r.name === "gestures") { renderGestures(); window.scrollTo(0, 0); }
   else if (r.name === "sketch") lazy("sketch.js").then(m => { if (route().name === "sketch") m.renderSketch(); });

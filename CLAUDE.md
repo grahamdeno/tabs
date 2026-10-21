@@ -55,7 +55,9 @@ are in `friends.js` and on the canvas Friends board.
 Still to build, one release each, stopping after
 each for Graham to try: Tour quests (done in 4.5.0, `tour.js`; duet quest waits for XP), Charts (done in 4.6.0, `charts.js`: XP, weekly chart
 per tier, top 5 move up, records, daily rival battle; nobody moves down), Your band (done in 4.7.0, `band.js` + `friends.js`: friends join by
-lifetime plays, `BAND` in `core.js`; Beat and Bex play drums and bass in gigs), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
+lifetime plays, `BAND` in `core.js`; Beat and Bex play drums and bass in gigs), Rehearse hub (done in 4.8.0: `renderRehearse` in `practice.js` at
+#/practice, the neck moved to #/practice/neck; soundcheck from missed gig changes,
+`soundcheck` in `core.js`), Merch table (spend fans on gear, Louie finishes,
 backdrops). The stat bar still shows fans (Merch spends them); XP lives on Charts.
 The Tour duet quest stays locked until a friend's XP can reach the phone.
 
@@ -117,7 +119,7 @@ release so Graham can try it.
 | Tuner | `tuner.js` (+ `heads.js`) |
 | Your playing (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
 | German practice | `german.js` |
-| The neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
+| Rehearse (hub), the neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
 | The Road (home, 4.0.0): path, Louie, Library drawer | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
 | Stat bar, tab bar, More sheet | `hud.js` |
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
