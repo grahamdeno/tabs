@@ -1888,7 +1888,7 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .hud .h-fans { color: var(--fans-text); }
 .h-vb { fill: var(--accent); } .h-vbd { fill: var(--accent-deep); }
 .h-fl1 { fill: var(--fans); } .h-fl2 { fill: var(--streak); } .h-streak.off .h-fl1, .h-streak.off .h-fl2 { fill: var(--locked-ic); }
-.h-tk { fill: var(--fans); }
+.h-tk { fill: var(--fans); } .h-tkd { fill: var(--fans-deep); }
 
 /* ---- The tab bar (4.0.0): Road, Tour, Charts, Band, Rehearse, More ---- */
 #tabs { display: none; }
@@ -2700,12 +2700,12 @@ body.gigging .ask { z-index: 66; }
 .fin-mint .louie, body[data-wear="mint"] .louie:not(.fin .louie) { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; --lv-face: #FFF4E2; --lv-face-sh: #F0DDBD; --lv-grille: #1E3A34; --lv-slat: #33584F; --lv-pupil: #1E3A34; --lv-cheek: #FF7A9C; --lv-lamp: #FF3D7F; --lv-tongue: #FF7A9C; --lv-shadow: #1E3A34; }
 .fin-gold .louie, body[data-wear="gold"] .louie:not(.fin .louie) { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; --lv-face: #FFF3C4; --lv-face-sh: #F2DD8C; --lv-grille: #3A2A10; --lv-slat: #5C4420; --lv-pupil: #3A2A10; --lv-cheek: #FF3D7F; --lv-lamp: #FF3D7F; --lv-tongue: #FF3D7F; --lv-shadow: #3A2A10; }
 .fin { display: inline-block; line-height: 0; }
-.mc-tk { fill: var(--fans); }
+.mc-tk { fill: var(--fans); } .mc-tkd { fill: var(--fans-deep); }
 .mc { padding-bottom: calc(var(--tabs) + 24px); }
 .mc-head { display: flex; align-items: center; gap: 10px; padding-top: 8px; }
 .mc-head h1 { flex: 1; margin: 0; font: 700 26px var(--display); color: var(--fg); }
 .mc-back, .mt-x { width: 40px; height: 40px; border-radius: 14px; border: 0; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 700 24px var(--display); display: grid; place-items: center; padding: 0; }
-.mc-fans { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 14px; background: var(--card); box-shadow: none; /* 4.17.0: no lip (Graham) */ font: 700 18px var(--display); color: var(--fans-text); }
+.mc-fans { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 14px; background: var(--card); box-shadow: 0 3px 0 var(--rim); font: 700 18px var(--display); color: var(--fans-text); }
 .mc-table { position: relative; height: 128px; margin: 6px -20px 0; color: var(--fg); overflow: hidden; }
 .mc-line { position: absolute; left: 0; top: 0; width: 100%; height: 56px; }
 .mc-lou { position: absolute; left: 50%; top: 22px; margin-left: -20px; }
@@ -2729,7 +2729,7 @@ body.gigging .ask { z-index: 66; }
 .mc-fin.on, .mc-drop.on { border: 3px solid var(--strings); }
 .mc-have { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 9px; background: var(--fg); color: var(--bg); font: 700 12px var(--display); }
 .mc-price { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 11px; background: var(--fans); box-shadow: 0 3px 0 var(--fans-deep); color: #14213D; font: 700 14px var(--display); }
-.mc-price .mc-tk { fill: #14213D; opacity: .35; }
+.mc-price .mc-tk { fill: #14213D; opacity: .35; } .mc-price .mc-tkd { fill: #14213D; opacity: .2; }
 .mc-price.short { background: var(--locked); box-shadow: none; color: var(--locked-ic); }
 .mc-on { display: inline-block; padding: 5px 9px; border-radius: 11px; background: var(--tabs-on); color: var(--strings); font: 800 12px var(--sans); letter-spacing: .06em; }
 .mc-on.own { background: var(--card-2); color: var(--muted); }

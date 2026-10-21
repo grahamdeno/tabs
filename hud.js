@@ -12,7 +12,7 @@ const n = x => x.toLocaleString("en-US");
 
 /* ---- the stat bar ---- */
 const BADGE = `<svg width="28" height="30" viewBox="0 0 30 32" aria-hidden="true"><path class="h-vbd" d="M15 2l12 6v10c0 7-6 11-12 13C9 29 3 25 3 18V8z"/><path class="h-vb" d="M15 1l11 5v10c0 7-5 11-11 13C9 27 4 23 4 16V6z"/><circle cx="15" cy="15" r="5" fill="#fff"/><path d="M8 8l5-2" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/></svg>`;
-const TICKET = `<svg width="32" height="26" viewBox="0 0 34 28" aria-hidden="true"><path class="h-tk" d="M3 4h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/><path d="M8 8h6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg>`;
+const TICKET = `<svg width="32" height="26" viewBox="0 0 34 28" aria-hidden="true"><path class="h-tkd" d="M3 6h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/><path class="h-tk" d="M3 4h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/><path class="h-tkd" d="M20 6h2v2h-2zM20 11h2v2h-2zM20 16h2v2h-2z"/><path d="M8 8h6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg>`;
 let rained = [];
 export function statBar() {
   /* 4.14.0: a Rain check covers the nights missed since your last play, before the streak is counted */
@@ -41,7 +41,7 @@ const TABS = [
   ["charts", "#/charts", "Charts", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-kk" cx="16" cy="18" r="13"/><circle class="tb-k" cx="16" cy="16" r="13"/><circle cx="16" cy="16" r="9" fill="none" stroke="#2A3A63" stroke-width="1.5"/><circle class="tb-a" cx="16" cy="16" r="5"/><circle class="tb-k" cx="16" cy="16" r="1.2"/><path d="M7 11a10 10 0 0 1 5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".4"/></svg>`],
   ["band", "#/band", "Your band", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tb-bd" x="4" y="11" width="24" height="16" rx="4"/><rect class="tb-b" x="4" y="10" width="20" height="16" rx="4"/><ellipse class="tb-w" cx="16" cy="10" rx="12" ry="5"/><path d="M20 2l-6 8" stroke="#F2B705" stroke-width="3" stroke-linecap="round"/></svg>`],
   ["rehearse", "#/practice", "Rehearse", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path class="tb-fd" d="M13 4h8l6 26H7z"/><path class="tb-f" d="M12 3h8l6 26H6z"/><path d="M16 24l7-15" stroke="#14213D" stroke-width="2.6" stroke-linecap="round"/><circle class="tb-k" cx="21" cy="13" r="2.6"/><path d="M12 6h3" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".8"/></svg>`],
-  ["more", "", "More: Settings, Tour Map, Your profile, Tuner, Songbook", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-bd" cx="16" cy="17" r="13"/><circle class="tb-b" cx="16" cy="16" r="13"/><circle class="tb-w" cx="10" cy="16" r="2.4"/><circle class="tb-w" cx="16" cy="16" r="2.4"/><circle class="tb-w" cx="22" cy="16" r="2.4"/></svg>`]
+  ["more", "", "More: Settings, Your profile, Tuner, Songbook", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-bd" cx="16" cy="17" r="13"/><circle class="tb-b" cx="16" cy="16" r="13"/><circle class="tb-w" cx="10" cy="16" r="2.4"/><circle class="tb-w" cx="16" cy="16" r="2.4"/><circle class="tb-w" cx="22" cy="16" r="2.4"/></svg>`]
 ];
 function tabsEl() {
   let el = document.getElementById("tabs");
@@ -62,7 +62,6 @@ export function openMore() {
   layer.innerHTML = `<div class="scrim" id="more-scrim"></div><div class="panel card" role="dialog" aria-label="More">
     <div class="more-list">
       ${item("m-set", "gear", "Settings", "Look, playing and keys")}
-      ${item("m-map", "pin", "Tour Map", "Your turf and your scene")}
       ${item("m-you", "amphead", "Your profile", "Hours, chords and your streak")}
       ${item("m-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours")}
       ${item("m-lib", "list", "Songbook", `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, sets and search`)}
@@ -72,7 +71,6 @@ export function openMore() {
   const $ = id => document.getElementById(id);
   $("more-scrim").onclick = close; $("more-x").onclick = close;
   $("m-lib").onclick = () => { close(); go("#/library"); };
-  $("m-map").onclick = () => { close(); go("#/playmap"); };
   $("m-you").onclick = () => { close(); go("#/you"); };
   $("m-set").onclick = () => { close(); go("#/settings"); };
   $("m-tune").onclick = () => { close(); openTuner("standard", () => { const r = route().name; if (TABBED.has(r)) paintTabs(tabFor(r)); }); };
