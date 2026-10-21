@@ -45,15 +45,14 @@ Gig | Sheet switch is gone. Plain sheet while practicing
 a section or slower, for tabs; tests set plainPlay), Tools is one bottom
 sheet, Pause holds the show in place (Back a line, Tools, Sheet, Resume), and
 Hearing you turns scoring off per show (Score my plays sets the default).
-Louie's friends (Lola guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp,
-Pip pick; Graham's art, 2026-10-21) get redrawn in Louie's style for Your band,
-mockup first. Pip stays but must not be rainbow. Eleven more (2026-10-21): Beat
-bass drum, Slide brass slide, Strap guitar strap (multicolor is fine), Key keyboard key, Reed
-clarinet reed, Cable audio cable, Boomer boom mic, Metro metronome, Pickup
-single-coil, Whammy whammy bar, plus Shaker maraca, Reverb tank, Triangle, Looper
-pedal and Humb humbucker: 21 friends and Louie, collected as rewards. Drawings
-so far live in the session scratchpad (friends.js) and on the canvas Friends
-board; Graham reworked Boomer, Pip (rounder, not pointy, yellow) and Cable. Still to build, one release each, stopping after
+Louie's friends (Graham's art, 2026-10-21), redrawn in Louie's style for Your
+band, 18 and Louie: Lola guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp,
+Pip pick (rounder, yellow, never rainbow), Beat bass drum, Slide brass slide,
+Strap guitar strap (multicolor is fine), Key keyboard key, Metro metronome,
+Pickup single-coil, Whammy whammy bar, Shaker maraca, Reverb tank, Triangle,
+Looper pedal, Humb humbucker. Graham dropped Boomer, Cable and Reed. Drawings
+are on the canvas Friends board (source: friends.js in the session scratchpad).
+Still to build, one release each, stopping after
 each for Graham to try: Tour quests (done in 4.5.0, `tour.js`; duet quest waits for XP), Charts (done in 4.6.0, `charts.js`: XP, weekly chart
 per tier, top 5 move up, records, daily rival battle; nobody moves down), Your band (players join by venue, heard in the
 backing), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
