@@ -40,7 +40,7 @@ every screen on the design system; 4.1.0 shipped the Gig (`gig.js`, scoring in
 icon (Take 3A up close on pink; Take 2's whole body for launch screens). Graham
 wants the Gig to show more than 2 lines (4 to 6, Lines in a gig in Tools; 5 is the default, Graham
 leaning to keep it after 4.2.3, confirm). 4.2.0 replaced the song page with one song
-screen built from Gig parts: Play opens the Gig (plain scroll while practicing
+screen built from Gig parts: Play opens the Gig (Gig | Sheet switch beside Play, kept per song as playAs, 4.3.0; sheet while practicing
 a section or slower, for tabs, or with Play as a gig off), Tools is one bottom
 sheet, Pause holds the show in place (Back a line, Tools, Sheet, Resume), and
 Hearing you turns scoring off per show (Score my plays sets the default).

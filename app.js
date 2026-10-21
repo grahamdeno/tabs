@@ -65,11 +65,29 @@ let playNext = null, searchNext = false, lastHome = "library"; /* where a song's
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
 const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null };
-/* Play opens the Gig (4.2.0), except while practicing a section or slower, for a tab, in Play together,
-   or with Play as a gig off (Settings > Playing). */
-const gigsOn = song => data.settings.gigPlay !== false && song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet;
-const playFace = on => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : "PLAY"}</span>`;
+/* Play opens the Gig (4.2.0) or the full sheet. Each song keeps its pick, Gig or Sheet (4.3.0); a song
+   without one follows Settings > Playing. Practicing a section or slower, a tab and Play together are the sheet. */
+const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet;
+const wantsGig = song => song.playAs ? song.playAs === "gig" : data.settings.gigPlay !== false;
+const gigsOn = song => canGig(song) && wantsGig(song);
+const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : song && canGig(song) ? `<i class="pf-w">PLAY </i>${wantsGig(song) ? "GIG" : "SHEET"}` : "PLAY"}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
+/* Gig or Sheet: the switch beside Play (in a set, at the top of Tools) */
+const modeSeg = (song, id) => `<div class="seg mini pmode" ${id ? `id="${id}" ` : ""}role="group" aria-label="Play as">${[["gig", "Gig"], ["sheet", "Sheet"]].map(([k, n]) => `<button data-pm="${k}" class="${(wantsGig(song) ? "gig" : "sheet") === k ? "on" : ""}" aria-pressed="${(wantsGig(song) ? "gig" : "sheet") === k}">${n}</button>`).join("")}</div>`;
+const modeBar = song => modeSeg(song, "pmode").replace("<div", `<div${canGig(song) ? "" : " hidden"}`);
+function setPlayAs(song, mode) {
+  song.playAs = mode; Tabs.save(data);
+  refreshPlay(song);
+  toast(mode === "gig" ? "Play opens the Gig for this song" : "Play shows the full sheet for this song", $("play"));
+}
+/* Play's words and the switch, after the pick or Practice changes */
+function refreshPlay(song) {
+  const pb = $("play");
+  if (!pb || viewing !== song || scroll.on) return;
+  pb.innerHTML = playFace(false, song); pb.setAttribute("aria-label", playLabel(song, false));
+  const seg = $("pmode");
+  if (seg) seg.outerHTML = modeBar(song);
+}
 let songSpeed = null; /* the song page's speed dial, for the Tools sheet */
 let gigNext = null;
 const playGig = (id, opts = {}) => { gigNext = { id, ...opts }; if (route().name === "song" && route().id === id) return openGigNow(); go("#/song/" + encodeURIComponent(id)); };
@@ -804,7 +822,8 @@ function renderViewer(id) {
             : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
-        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false)}</button>
+        ${isChords && !fromSet ? modeBar(song) : ""}
+        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false, song)}</button>
       </div>
       </div>
     </div>`;
@@ -986,6 +1005,7 @@ function renderViewer(id) {
     startScroll(song);
   };
   songSpeed = () => speedDial(null);
+  app.querySelector(".player").addEventListener("click", e => { const b = e.target.closest("#pmode [data-pm]"); if (b) setPlayAs(song, b.dataset.pm); });
   window.scrollTo(0, 0);
   fab.lastY = 0; fab.reveal = 1;
 }
@@ -1379,8 +1399,7 @@ function setPracticing(song, on) {
 const PRACTICE_SPEEDS = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
 const DRUM_LEVELS = { "-1": "simpler", 0: "as written", 1: "busier" };
 function paintLoop(song) {
-  const pb = $("play");
-  if (pb && !scroll.on && viewing === song) pb.setAttribute("aria-label", playLabel(song, false));
+  refreshPlay(song);
   const lines = sheetLines(), on = practicing(song), lp = activeLoop(song);
   lines.forEach(el => el.classList.remove("inloop", "loopa", "loopfirst", "looplast"));
   const chip = $("pchip");
@@ -1777,9 +1796,9 @@ function songMenu(song, anchor, redrawSong) {
     chords && bodyCapo(song.body) && { id: "capo", icon: "fretboard", label: song.capoOff ? "Capo back" : "Capo off", hint: song.capoOff ? `Was ${bodyCapo(song.body)}` : `Capo ${bodyCapo(song.body)}` },
     chords && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
     { id: "loop", icon: "loop", label: "Practice a section" },
-    chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", hint: data.settings.diagrams === true ? "On" : "Off" },
-    chords && !inGig && !gigsOn(song) && { id: "gig", icon: "play", label: "Play as a gig", hint: data.gig?.best?.[song.id] != null ? `Best ${data.gig.best[song.id]}%` : "" }
+    chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", hint: data.settings.diagrams === true ? "On" : "Off" }
   ].filter(Boolean);
+  const modeRow = chords && !inGig && !$("pmode") && canGig(song); /* in a set the bar has 4 of 9, so Gig or Sheet sits here */
   const theSong = [
     { id: "edit", icon: "edit", label: "Edit" },
     { id: "set", icon: "listplus", label: "Add to set" },
@@ -1805,6 +1824,7 @@ function songMenu(song, anchor, redrawSong) {
       <div class="tl-head"><b>Tools</b>
         <div class="mrow size" role="group" aria-label="Text size"><span class="ml">Text size</span>
           <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div></div>
+      ${modeRow ? `<div class="tl-lines"><span class="ml">Play as</span>${modeSeg(song)}</div>` : ""}
       ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6].map(n => `<button role="menuitem" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-pressed="${n === lines()}">${n}</button>`).join("")}</div></div>` : ""}
       <div class="tl-h">PLAY ALONG</div><div class="tl-grid">${along.map(tile).join("")}</div>
       ${inGig ? "" : `<div class="tl-h">THE SONG</div><div class="tl-grid">${theSong.map(tile).join("")}</div>`}`;
@@ -1838,6 +1858,8 @@ function songMenu(song, anchor, redrawSong) {
       Tabs.save(data); paint(); redrawSong();
       return;
     }
+    const pm = ev.target.closest("[data-pm]");
+    if (pm) { setPlayAs(song, pm.dataset.pm); paint(); return; }
     const ln = ev.target.closest("[data-lines]");
     if (ln) { data.settings.gigLines = +ln.dataset.lines; Tabs.save(data); paint(); m.querySelector(`[data-lines="${ln.dataset.lines}"]`)?.focus({ preventScroll: true }); return; }
     const b = ev.target.closest("[data-m]");
@@ -2601,7 +2623,7 @@ async function startScroll(song, opts = {}) {
   diag.pinned = null; diag.scrolling = false;
   updateDiagrams();
   const btn = $("play");
-  btn.innerHTML = playFace(true);
+  btn.innerHTML = playFace(true, song);
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   if (data.settings.metronome || data.settings.bass) {
@@ -2688,7 +2710,7 @@ function stopScroll() {
   scroll.lock?.release?.().catch(() => {});
   scroll.lock = null;
   const btn = $("play");
-  if (btn) { btn.innerHTML = playFace(false); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
+  if (btn) { btn.innerHTML = playFace(false, viewing); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
   updateDiagrams();
   if (btn) { diag.armed = true; showPausedRow(); }
   /* After playing: the first pause shows starting from a line; a later one, Now and Next. */

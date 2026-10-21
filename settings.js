@@ -36,8 +36,8 @@ function renderSettings() {
         <button class="toggle ${s.countIn !== false ? "on" : ""}" id="s-count" role="switch" aria-checked="${s.countIn !== false}" aria-label="Count-in"></button>
       </div>
       <div class="set">
-        <span class="tile">${icon("play")}</span><span class="name">Play as a gig<small class="sub">Play opens the Gig: the crowd, the chords, your combo</small></span>
-        <button class="toggle ${s.gigPlay !== false ? "on" : ""}" id="s-gig" role="switch" aria-checked="${s.gigPlay !== false}" aria-label="Play as a gig"></button>
+        <span class="tile">${icon("play")}</span><span class="name">Songs start as a gig<small class="sub">New songs start on Gig. Each song keeps its own pick, Gig or Sheet, beside Play</small></span>
+        <button class="toggle ${s.gigPlay !== false ? "on" : ""}" id="s-gig" role="switch" aria-checked="${s.gigPlay !== false}" aria-label="Songs start as a gig"></button>
       </div>
       <div class="set">
         <span class="tile">${icon("mic")}</span><span class="name">Score my plays<small class="sub">The Gig listens for your chord changes. Off, shows play unscored</small></span>

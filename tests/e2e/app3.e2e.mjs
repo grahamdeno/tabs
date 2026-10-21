@@ -631,3 +631,26 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   await page.waitForFunction(l => document.getElementById("gg-hline").innerText !== l, line);
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
 });
+
+test("4.3.0 Gig or Sheet beside Play: each song keeps its pick; in a set it is in Tools", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Friday", songIds: ["a", "b"] }], settings: { ...LIB.settings, gigPlay: true, gigScore: false } });
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#pmode");
+  assert.equal(await page.innerText("#pmode .on"), "Gig", "the default from Settings");
+  assert.match(await page.innerText("#play"), /PLAY GIG/);
+  await page.click('#pmode [data-pm="sheet"]');
+  assert.match(await page.innerText("#play"), /PLAY SHEET/);
+  assert.equal(await page.innerText("#pmode .on"), "Sheet");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "a").playAs === "sheet"); /* kept on the song */
+  await page.click("#play"); await page.waitForTimeout(500);
+  assert.equal(await page.locator("#gig").count(), 0, "Sheet: no show");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
+  await page.click("#play"); await page.waitForTimeout(300);
+  await page.evaluate(() => { location.hash = "#/song/b"; }); await page.waitForFunction(() => /Harbor/.test(document.querySelector(".song-title")?.textContent));
+  assert.equal(await page.innerText("#pmode .on"), "Gig", "another song keeps the default");
+  await page.goto(base + "#/set/s"); await page.waitForTimeout(300);
+  await page.click("[data-open='1']"); await page.waitForSelector("#setdial");
+  assert.equal(await page.locator("#pmode").count(), 0, "in a set the bar has 4 of 9");
+  await page.click("#more"); await page.waitForSelector(".menu .pmode");
+  await page.click('.menu .pmode [data-pm="sheet"]');
+  assert.match(await page.innerText("#play"), /PLAY SHEET/, "picked in Tools");
+});
