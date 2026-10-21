@@ -495,7 +495,7 @@ export async function findDrums(song, parts = []) {
     (feel.bpm || song.bpm) && `Tempo: ${feel.bpm || song.bpm} BPM`,
     feel.swing && `Feel: ${feel.swing}`, song.groove?.beat && `Beat: ${song.groove.beat}`,
     `Parts: ${want.join(", ")}`].filter(Boolean).join("\n");
-  const text = await askClaude({ model: AI.fast, system: DRUMS_SYSTEM, content: facts, maxTokens: 900 }).catch(() => "");
+  const text = await askClaude({ model: AI.fast, system: DRUMS_SYSTEM, content: facts, maxTokens: 3000 }).catch(() => "");
   const d = cleanDrums({ ...parseJSON(text), src: "ai" });
   return d || null;
 }

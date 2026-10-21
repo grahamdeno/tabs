@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.24.1";
+export const VERSION = "3.24.2";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -2621,7 +2621,7 @@ export function profileOf(data, now = Date.now()) {
   const worst = drift.filter(x => x.checked >= 3).sort((a, b) => b.rate - a.rate)[0] || null;
   return {
     since: j.since, seeded: j.seeded,
-    hours: j.secs / 3600, plays: played.reduce((a, s) => a + playCount(s), 0), songsPlayed: played.length,
+    hours: j.secs / 3600, practiceSecs: Object.values(j.months || {}).reduce((a, m) => a + (m.psecs || 0), 0), plays: played.reduce((a, s) => a + playCount(s), 0), songsPlayed: played.length,
     got: songs.filter(s => s.status === "got").length,
     streak: streakOf(songs, now).days, best: Math.max(j.best || 0, streakOf(songs, now).days),
     chords, nextStamp, barres: chords.filter(c => c.barre).length, firsts: j.firsts.slice(0, 6),

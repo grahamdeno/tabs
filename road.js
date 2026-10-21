@@ -83,6 +83,7 @@ const tunerIcon = () => `${icon("fork")}${tunedRecently() ? "" : '<i class="dotm
 
 export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
+  const wantDrawer = homeHooks.openDrawer; homeHooks.openDrawer = false;
   const plays = lifetimePlays(data), st = streakOf(playSongs(data)), t = territory(plays), v = venueOf(plays);
   const song = upNext(), first = !plays;
   const les = song && !first ? lessonFor(song) : null;
@@ -143,7 +144,8 @@ export function renderRoad() {
       $("rd-count").textContent = `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}`;
     };
     homeHooks.refresh = fill; fill();
-    makeDrawer({ root: $("rd-drawer"), head: $("rd-dh"), body, sizer: $("rd-drawer").querySelector(".rd-sizer"), scrim: $("rd-scrim") });
+    const drawer = makeDrawer({ root: $("rd-drawer"), head: $("rd-dh"), body, sizer: $("rd-drawer").querySelector(".rd-sizer"), scrim: $("rd-scrim") });
+    if (wantDrawer) drawer.open();
   }
   $("neckbtn").onclick = () => go("#/practice");
   $("youbtn").onclick = () => go("#/you");

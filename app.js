@@ -62,6 +62,9 @@ const go = h => { location.hash = h; };
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 const openSearch = () => { searchNext = true; go("#/library"); };
+/* The Neck's Learning list opens a song on the section you last practiced (3.24.2). */
+let sectionNext = null;
+const openAtSection = id => { sectionNext = id; go("#/song/" + encodeURIComponent(id)); };
 const route = () => {
   const [, name = "", id = ""] = location.hash.split("/");
   return { name: name || "road", id: decodeURIComponent(id) };
@@ -153,7 +156,7 @@ function chipsHTML() {
   return `<div class="chips" id="chips">${chip("all", "All")}${chip("sets", "Sets")}${hasFav ? chip("fav", "Favorites") : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasTab ? chip("tab", "Tabs") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
-const homeHooks = { refresh: null };
+const homeHooks = { refresh: null, openDrawer: false }; /* openDrawer: Tonight opens with the Library up (3.24.2) */
 const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?.() : renderLibrary();
 
 function renderLibrary() {
@@ -945,7 +948,7 @@ function renderViewer(id) {
   const foldNav = () => {
     const x = fromSet, list = x ? setSongs(x) : [], nx = x && list[setCtx?.idx + 1];
     if (nx) return { html: `<span class="fn-t">${esc(nx.title)}</span><small>${setCtx.idx + 2} of ${list.length}</small>${icon("chev")}`, label: `Next song: ${nx.title}`, run: () => { stopScroll(); $("snext")?.click(); } };
-    return { html: `${icon("back")}<span class="fn-t">Library</span>`, label: "Back to library", run: () => { stopScroll(); go("#/library"); } };
+    return { html: `${icon("back")}<span class="fn-t">Library</span>`, label: "Back to library", run: () => { stopScroll(); if (lastHome === "road") homeHooks.openDrawer = true; go(lastHome === "road" ? "#/" : "#/library"); } };
   };
   foldApi = setupFold({ back: { label: back.label, run: () => go(back.to) }, playing: () => scroll.on, nav: foldNav });
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };
@@ -1392,7 +1395,11 @@ function paintLoop(song) {
     <button class="chip lp-sec${has ? " on" : ""}" id="lp-sec">${icon("loop")}${has ? `${esc(loopName(song))}${loopRun.pass ? ` · ${loopRun.pass + 1}` : ""}` : "Pick a section"}${has ? withRec : ""}</button>
     <button class="chip${rate < 1 ? " on" : ""}" id="lp-speed" aria-label="Practice speed ${Math.round(rate * 100)}%">${Math.round(rate * 100)}%</button>
     ${has ? `<button class="chip ${lp.build ? "on" : ""}" id="lp-build" aria-pressed="${!!lp.build}">Build up</button>` : ""}
-    ${song.drums && data.settings.metronome && metroDrums() && !usesMusic(song) ? `<button class="chip${song.drums.level ? " on" : ""}" id="lp-drums" aria-label="Drums: ${DRUM_LEVELS[song.drums.level || 0]}">Drums: ${DRUM_LEVELS[song.drums.level || 0]}</button>` : ""}
+    ${(() => {
+      if (!data.settings.metronome || !metroDrums() || usesMusic(song) || (song.beats || 4) !== 4) return "";
+      if (song.drums) return `<button class="chip${song.drums.level ? " on" : ""}" id="lp-drums" aria-label="Drums: ${DRUM_LEVELS[song.drums.level || 0]}">Drums: ${DRUM_LEVELS[song.drums.level || 0]}</button>`;
+      return aiKey() ? `<button class="chip" id="lp-drums-new" aria-label="Write drums for this song">${drumJobs.has(song.id) ? "Writing drums…" : "Write drums"}</button>` : "";
+    })()}
     <button class="sb" id="lp-x" aria-label="Practice mode off">${icon("x")}</button>`;
   $("lp-sec").onclick = () => startLoopPick(song);
   $("lp-speed").onclick = () => {
@@ -1405,6 +1412,7 @@ function paintLoop(song) {
     toast(usesMusic(song) && next < 1 && !rateWorks() ? "Apple Music can't change the speed here. The recording stays at full speed." : `Practice at ${Math.round(next * 100)}%`, $("lp-speed"));
   };
   $("lp-build")?.addEventListener("click", () => { lp.build = !lp.build; Tabs.save(data); paintLoop(song); });
+  $("lp-drums-new")?.addEventListener("click", () => { const j = drumsFor(song, true); toast("Writing drums for this song…", $("lp-drums-new")); if (j) paintLoop(song); });
   $("lp-drums")?.addEventListener("click", () => {
     const lv = ((song.drums.level || 0) + 2) % 3 - 1; /* as written, busier, simpler */
     if (lv) song.drums.level = lv; else delete song.drums.level;
@@ -1720,8 +1728,8 @@ function openRecording(song) {
     reset: () => { delete song.syncs; Tabs.save(data); toast(song.timed?.at ? "Your fixes are cleared. The line timing stays" : "The page will start learning this song again"); },
     changed: () => { paintListenChip(song); paintLoop(song); },
     notes: () => recordingNotes(song),
-    matchKey: () => { const g = recordingNotes(song).key; if (!g) return; song.transpose = Math.max(-5, Math.min(6, (song.transpose || 0) + g)); Tabs.save(data); if (viewing === song) render(); toast(`Moved ${g > 0 ? "up" : "down"} ${Math.abs(g)} half step${Math.abs(g) === 1 ? "" : "s"} to match the recording`); },
-    matchBpm: () => { const b = song.listen?.feel?.bpm; if (!b) return; song.bpm = b; Tabs.save(data); toast(`Tempo ${b}, from the recording`); },
+    matchKey: () => { const g = recordingNotes(song).key; if (!g) return; song.transpose = Math.max(-5, Math.min(6, (song.transpose || 0) + g)); Tabs.save(data); if (viewing === song) { render(); paintListenChip(song); } toast(`Moved ${g > 0 ? "up" : "down"} ${Math.abs(g)} half step${Math.abs(g) === 1 ? "" : "s"} to match the recording`); },
+    matchBpm: () => { const b = song.listen?.feel?.bpm; if (!b) return; song.bpm = b; Tabs.save(data); paintListenChip(song); toast(`Tempo ${b}, from the recording`); },
     spots: () => { songMarks(song); return { auto: marksCache.auto.map(m => m[0]), mine: (song.syncs || []).map(m => m[0]) }; }
   });
 }
@@ -2002,14 +2010,20 @@ function grooveFor(song, force = false) {
 /* Drums that fit the song (3.23.0): the AI writes a bar for each kind of section and a fill, once, in
    the background, the first time the band plays the song with drums. Until then the general beat plays. */
 const drumJobs = new Map();
-function drumsFor(song) {
-  if (!aiKey() || song.drums || (song.beats || 4) !== 4 || drumJobs.has(song.id)) return;
+function drumsFor(song, manual = false) {
+  if (!aiKey() || song.drums || (song.beats || 4) !== 4) return null;
+  if (drumJobs.has(song.id)) return drumJobs.get(song.id);
   const parts = [...new Set([...($("sheet")?.querySelectorAll(":scope > .sec") || [])].map(el => partOf(el.textContent)))];
-  drumJobs.set(song.id, findAI().then(m => m.findDrums(song, parts)).catch(() => null).then(d => {
-    if (!d || song.drums) return;
+  const job = findAI().then(m => m.findDrums(song, parts)).catch(() => null).then(d => {
+    drumJobs.delete(song.id); /* a miss can be tried again on the next Play or from the Practice row */
+    if (!d) { if (manual && viewing === song) { toast("Couldn't write drums just now. Try again"); paintLoop(song); } return null; }
+    if (song.drums) return null;
     song.drums = d; Tabs.save(data);
     if (viewing === song) { toast("Drums written for this song. Busier or simpler in Practice"); paintLoop(song); }
-  }));
+    return d;
+  });
+  drumJobs.set(song.id, job);
+  return job;
 }
 /* The song's own bar for this pulse: picked on beat 1 from the section at the reading line, or the fill
    when the next section starts within the bar. Returns false to fall back to the general beat. */
@@ -2688,6 +2702,7 @@ function renderRoute() {
   if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return renderRoute(); }
   if (r.name === "song") {
     renderViewer(r.id);
+    if (sectionNext === r.id) { sectionNext = null; setTimeout(() => { const s = viewing, first = s?.id === r.id && s.loop && sheetLines()[s.loop.a]; if (first && !scroll.on) window.scrollTo({ top: Math.max(0, scrollY + first.getBoundingClientRect().top - innerHeight * READ_AT), behavior: "auto" }); }, 200); }
     if (playNext === r.id) { playNext = null; setTimeout(() => { if (viewing?.id === r.id && !scroll.on) $("play")?.click(); }, 450); }
     const want = openEdit;
     openEdit = null;
@@ -2745,4 +2760,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { beatTrack, playSong, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

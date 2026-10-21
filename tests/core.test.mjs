@@ -1157,6 +1157,8 @@ test("profile: the journal is worked out once from songs already played, then co
   assert.equal(q.rhythm.top, "Saturday evenings");
   C.journalTime(data, 125, now);
   assert.ok(Math.abs(C.profileOf(data, now).hours * 3600 - (10 * 180 + 210 + 125)) < 1e-6, "time played is added");
+  C.journalPractice(data, 600, now);
+  assert.equal(C.profileOf(data, now).practiceSecs, 600, "practice time is told apart (3.24.2)");
 });
 
 test("profile: tuner sessions show which string drifts; a journal from a backup is repaired", () => {

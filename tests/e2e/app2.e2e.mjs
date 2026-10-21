@@ -408,6 +408,15 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   const c = await center();
   assert.ok(c.x > 320 && c.y > 760, `Play waits in the corner (${c.x}, ${c.y})`);
   assert.match(await page.innerText("#fp-nav"), /Library/, "beside it, the way back to the Library");
+  await page.click("#fp-nav"); await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => location.hash), "#/library", "opened directly: the Library page");
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-song");
+  await page.click("#rd-song"); await page.waitForSelector("#play"); await page.click("#play"); await page.waitForSelector("#fp-nav", { state: "visible" });
+  await page.click("#fp-nav");
+  await page.waitForSelector("#rd-drawer[data-state=open]", { timeout: 4000 });
+  assert.equal(await page.evaluate(() => location.hash), "#/", "from Tonight, the Library is the drawer on Tonight, open");
+  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
+  await page.click("#play"); await page.waitForTimeout(500);
   /* a long hold is still a tap: nothing opens, and it pauses */
   await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up(); await page.waitForTimeout(450);
   assert.equal(await page.locator(".ringx, .rc-track, .rc-isl").count(), 0, "no ring, arc or island");

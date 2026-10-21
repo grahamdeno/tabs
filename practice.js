@@ -14,7 +14,7 @@
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
 import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, TUNINGS, SCALES, scaleTargets, playCount, practiceRate } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
-import { beatTrack, chordSVG, data, go, playSong } from "./app.js";
+import { beatTrack, chordSVG, data, go, openAtSection, playSong } from "./app.js";
 import { louie } from "./louie.js";
 
 const $ = id => document.getElementById(id);
@@ -69,7 +69,7 @@ export function renderNeck() {
   app.querySelectorAll("[data-id]").forEach(b => b.onclick = () => open(all.find(s => s.id === b.dataset.id)));
   $("pk-go")?.addEventListener("click", () => open(next));
   $("pk-hear").onclick = () => go("#/practice/hear");
-  app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.song)));
+  app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => openAtSection(b.dataset.song));
 }
 /* Learning (3.21.0): the songs you're learning, each with the one thing to do next and how far along
    it is (plays toward five). A tap opens the song, already in Practice mode. */

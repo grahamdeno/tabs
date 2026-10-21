@@ -303,7 +303,7 @@ test("drums that fit the song: written once by the AI, played per section, busie
   await page.route("https://api.anthropic.com/**", r => {
     const body = r.request().postData() || "";
     if (/session drummer/.test(body)) { drumAsks++; sent = body; }
-    const text = /session drummer/.test(body) ? JSON.stringify(bars) : "{}";
+    const text = /session drummer/.test(body) ? (drumAsks === 1 ? "sorry, no" : JSON.stringify(bars)) : "{}";
     r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text }], stop_reason: "end_turn" }) });
   });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-test"));
@@ -311,6 +311,12 @@ test("drums that fit the song: written once by the AI, played per section, busie
   await page.evaluate(() => { location.hash = "#/song/dr1"; }); await page.waitForSelector("#play");
   assert.equal(await page.$("#lp-drums"), null, "no Drums chip before they are written");
   await page.click("#play");
+  await page.waitForTimeout(1200);
+  await page.click("#play"); await page.waitForTimeout(300);
+  assert.ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums)), "the first answer was unusable");
+  await page.waitForSelector("#lp-drums-new");
+  assert.match(await page.innerText("#lp-drums-new"), /Write drums/, "the Practice row offers to write them");
+  await page.click("#lp-drums-new");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums, null, { timeout: 5000 });
   assert.match(sent, /Parts: verse, chorus/, "the sheet's sections are sent");
   assert.doesNotMatch(sent, /G   C   G   D/, "the sheet itself is not sent");
@@ -325,7 +331,7 @@ test("drums that fit the song: written once by the AI, played per section, busie
   await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === -1);
   await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === undefined);
   await page.click("#play"); await page.waitForTimeout(400); await page.click("#play");
-  assert.equal(drumAsks, 1, "written once");
+  assert.equal(drumAsks, 2, "one miss, then written once");
   assert.deepEqual(errors, []);
 });
 

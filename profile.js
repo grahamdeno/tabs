@@ -31,7 +31,7 @@ export function renderProfile() {
     <div class="pf-read"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)} played</span></div>
     <div class="pf-read"><b>${p.songsPlayed}</b><span>song${p.songsPlayed === 1 ? "" : "s"} played</span></div>
     <div class="pf-read"><b>${p.streak}</b><span>day streak${p.best > p.streak ? ` · best ${p.best}` : ""}</span></div>
-  </div>`;
+  </div>${p.practiceSecs >= 60 ? `<p class="pf-line pf-prac" id="pf-prac">Practice is part of that: ${Math.round(p.practiceSecs / 60)} min, worth ${Math.floor(p.practiceSecs / 240)} play${Math.floor(p.practiceSecs / 240) === 1 ? "" : "s"} on the Tour Map.</p>` : ""}`;
 
   const firsts = p.firsts.length ? `<div class="pf-firsts" aria-label="Latest milestones">${p.firsts.map(f => `<span class="pf-first${f.kind === "chord" && /^(F|Bm|F#m|Bb|B|C#m|Gm|Cm)$/.test(f.name) ? " big" : ""}"><i class="nx-lamp"></i>${f.kind === "chord" ? `First <b>${esc(f.name)}</b>` : `Got it: <b>${esc(f.name)}</b>`}<small>${esc(shortDay(f.at))}</small></span>`).join("")}</div>` : "";
 

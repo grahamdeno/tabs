@@ -408,7 +408,8 @@ test("3.21.0 Practice mode: a learning song opens in it; the row picks a section
 });
 
 test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a scale lesson to hear and mark", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], status: "learning", loop: { a: 5, b: 8, name: "Chorus" }, practice: { rate: 0.8 } }, LIB.songs[1]], settings: { ...LIB.settings, micExplained: true } });
+  const long = LIB.songs[0].body + "\n" + Array.from({ length: 8 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nwords words words`).join("\n");
+  const page = await phone(t, { ...LIB, songs: [{ ...LIB.songs[0], body: long, status: "learning", loop: { a: 5, b: 8, name: "Chorus" }, practice: { rate: 0.8 } }, LIB.songs[1]], settings: { ...LIB.settings, micExplained: true } });
   await page.evaluate(() => { location.hash = "#/practice"; }); await page.waitForSelector(".pk-learn");
   assert.match(await page.innerText(".pk-learn"), /River Road/);
   assert.match(await page.innerText(".pk-learn"), /Next: Chorus at 80%/);
@@ -427,6 +428,7 @@ test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a s
   await page.evaluate(() => { location.hash = "#/practice"; }); await page.waitForSelector(".pk-learn");
   await page.click(".pk-song"); await page.waitForSelector("#pchip");
   assert.match(await page.innerText("#pchip"), /Practicing/, "a tap opens the song in Practice mode");
+  await page.waitForFunction(() => scrollY > 40, null, { timeout: 3000 });
 });
 
 test("3.22.0 chord timing: with the recording playing, Now changes on the chord's own beat inside a line", { skip: skip() }, async t => {
