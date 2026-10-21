@@ -1977,6 +1977,41 @@ test("Friends (4.13.0): the friends list and the Friend quest from XP that rides
   assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests);
 });
 
+test("Merch table (4.14.0): spending fans, gear, finishes and the Rain check", () => {
+  const now = new Date(2026, 9, 21, 20).getTime();
+  const data = { songs: [{ id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 120, last: 0, days: { "2026-10-17": 60, "2026-10-18": 60 } } }], sets: [], trash: [], settings: {} };
+  const f0 = C.fansToSpend(data, now);
+  assert.ok(f0 >= 1200 && f0 < 1500, "120 plays");
+  assert.deepEqual(C.merchBuy(data, "gold", now), f0 >= 1500 ? { ok: true } : { why: "fans" });
+  if (f0 >= 1500) { data.merch.spent = 0; data.merch.has = []; delete data.merch.louie; }
+  assert.deepEqual(C.merchBuy(data, "tweed", now), { ok: true });
+  assert.equal(C.fansToSpend(data, now), f0 - 600, "spent");
+  assert.equal(C.fansOf(data, now), f0, "earned fans stay");
+  assert.equal(C.merchState(data, now).louie, "tweed", "worn once bought");
+  assert.deepEqual(C.merchBuy(data, "tweed", now), { why: "have" });
+  assert.equal(C.merchWear(data, "stock"), true); assert.equal(C.merchWear(data, "black"), false, "not bought");
+  /* Rain checks: the 19th and 20th were missed; two checks cover both and the streak holds */
+  assert.equal(C.streakOf(C.playSongs(data), now).days, 0);
+  data.merch.own = { rain: 1 };
+  assert.deepEqual(C.rainSettle(data, now), [], "one check can't cover two nights");
+  data.merch.own.rain = 2;
+  assert.deepEqual(C.rainSettle(data, now), ["2026-10-19", "2026-10-20"]);
+  assert.equal(C.streakOf(C.playSongs(data), now).days, 4);
+  assert.equal(C.weekXP(data, C.weekOf(now), now), 0, "covered nights (this week) add no XP");
+  assert.deepEqual(C.merchBuy(data, "rain", now), { ok: true }); assert.deepEqual(C.merchBuy(data, "rain", now), { ok: true });
+  assert.deepEqual(C.merchBuy(data, "rain", now), { why: "max" }, "two at most");
+  /* Second take: a lost battle today plays again */
+  data.charts = { tier: 0, battle: { day: "2026-10-21", rival: "Jen", songId: "a", target: 70, result: "lost", pct: 50 } };
+  assert.equal(C.secondTake(data, now), false, "none held");
+  data.merch.own.take = 1;
+  assert.equal(C.secondTake(data, now), true); assert.equal(data.charts.battle.result, undefined); assert.equal(data.merch.own.take, 0);
+  /* the Show complete tip names the cheapest thing you can now afford, once */
+  const tip = C.merchTip(data, now);
+  assert.equal(tip?.id, C.fansToSpend(data, now) >= 300 ? "brick" : undefined);
+  assert.deepEqual(C.merchState({ ...data, merch: C.cleanMerch(JSON.parse(JSON.stringify(data.merch))) }, now), C.merchState(data, now), "kept through a save");
+  assert.equal(C.cleanMerch({ own: { rain: 9 }, has: ["zz", "rain"], louie: "gold" }).own.rain, 2);
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");

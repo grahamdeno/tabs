@@ -697,3 +697,34 @@ test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply show
   await page.goto(base + "#/tour"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-card[aria-label='Friend quest']"), /Earn 300 XP with/);
 });
+
+test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check holds the streak, a Second take on Charts", { skip: skip() }, async t => {
+  const dk = d => { const x = new Date(Date.now() - d * 864e5); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+  const songs = LIB.songs.map(s => s.id === "a" ? { ...s, playLog: { total: 120, last: Date.now() - 2 * 864e5, days: { [dk(3)]: 60, [dk(2)]: 60 } } } : s);
+  const lib = { ...LIB, songs, merch: { own: { rain: 1, take: 1 } }, charts: { tier: 0, battle: { day: dk(0), rival: "Neon Jen", songId: "a", target: 70, result: "lost", pct: 50 } } };
+  const page = await phone(t, lib, { home: true });
+  await page.waitForSelector("#h-fans");
+  assert.match(await page.innerText("#h-streak"), /^\s*3\s*$/, "the Rain check covered yesterday");
+  const fans = +(await page.innerText("#h-fans")).replace(/\D/g, "");
+  assert.ok(fans >= 1200, "fans to spend");
+  await page.click("#h-fans"); await page.waitForSelector(".mc-head");
+  assert.equal(await page.locator(".mc-gear").count(), 3);
+  assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
+  await page.click(".mc-fin[data-id=tweed]"); await page.waitForSelector(".mt-sheet");
+  assert.match(await page.innerText(".mt-sheet"), /Tweed Louie[\s\S]*COSTS[\s\S]*600/);
+  await page.click("#mt-buy"); await page.waitForSelector(".mc-fin.on[data-id=tweed]");
+  assert.equal(await page.evaluate(() => document.body.dataset.wear), "tweed", "Louie wears it everywhere");
+  assert.equal(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, ""), fans - 600);
+  await page.click(".mc-fin[data-id=gold]"); await page.waitForSelector(".mt-sheet");
+  assert.match(await page.innerText(".mt-acts"), /MORE FANS TO GO/i, "can't afford Gold top yet");
+  await page.click("#mt-not");
+  await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-merch");
+  assert.match(await page.innerText("#m-merch"), /Merch table[\s\S]*fans to spend/);
+  await page.click("#more-x");
+  await page.click("#tabs [data-tab=charts]"); await page.waitForSelector("#ch-take");
+  await page.click("#ch-take"); await page.waitForSelector(".bt");
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).charts.battle.result, null, { timeout: 3000 });
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
+  assert.equal(saved.charts.battle.result, undefined, "the battle is on again");
+  assert.deepEqual([saved.merch.own.take || 0, saved.merch.own.rain || 0, saved.merch.louie], [0, 0, "tweed"], "both used");
+});

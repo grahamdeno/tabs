@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, requestSong, sheetChords } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, requestSong, sheetChords, merchWorn } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -55,6 +55,9 @@ function applyTheme() {
   /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
   document.documentElement.dataset.look = green ? "green" : light ? "festival" : "neon";
   document.documentElement.dataset.tolex = "off";
+  /* 4.14.0: the finish Louie wears, bought at the Merch table */
+  const wear = merchWorn(data);
+  if (wear === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = wear;
   document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : light ? "#eaf3ff" : "#1d1640";
 }
 
@@ -2813,7 +2816,7 @@ function renderRoute() {
   if (r.name === "road" || r.name === "library") lastHome = r.name;
   document.body.classList.toggle("is-home", r.name === "road");
   /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings) */
-  const tabbed = ["road", "tour", "charts", "band", "practice", "you"].includes(r.name) && !(r.name === "practice" && r.id);
+  const tabbed = ["road", "tour", "charts", "band", "practice", "you", "merch"].includes(r.name) && !(r.name === "practice" && r.id);
   if (!tabbed) document.body.classList.remove("tabbed");
   else lazy("hud.js").then(m => { if (route().name === r.name) m.paintTabs(m.tabFor(r.name)); });
   app.classList.remove("viewer");
@@ -2843,6 +2846,7 @@ function renderRoute() {
   else if (r.name === "tour") lazy("tour.js").then(m => { if (route().name === "tour") { m.renderTour(); window.scrollTo(0, 0); } });
   else if (r.name === "duel") lazy("duel.js").then(m => { if (route().name === "duel") { m.renderDuel(r.id); window.scrollTo(0, 0); } });
   else if (r.name === "charts") lazy("charts.js").then(m => { if (route().name === "charts") { m.renderCharts(); window.scrollTo(0, 0); } });
+  else if (r.name === "merch") lazy("merch.js").then(m => { if (route().name === "merch") { m.renderMerch(); window.scrollTo(0, 0); } });
   else if (r.name === "band") lazy("band.js").then(m => { if (route().name === "band") { m.renderBand(); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }

@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.13.0";
+export const VERSION = "4.14.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -69,7 +69,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}), ...(cleanRehearse(data.rehearse) ? { rehearse: cleanRehearse(data.rehearse) } : {}), ...(cleanDuels(data.duels) ? { duels: cleanDuels(data.duels) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}), ...(cleanRehearse(data.rehearse) ? { rehearse: cleanRehearse(data.rehearse) } : {}), ...(cleanDuels(data.duels) ? { duels: cleanDuels(data.duels) } : {}), ...(cleanMerch(data.merch) ? { merch: cleanMerch(data.merch) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -615,7 +615,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}), ...(cleanMerch(parsed.merch) ? { merch: cleanMerch(parsed.merch) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -884,6 +884,7 @@ const playDays = songs => {
   for (const s of songs || []) {
     if (Array.isArray(s.plays)) s.plays.forEach(t => typeof t === "number" && set.add(dayKey(t)));
     Object.entries(s.playLog?.days || {}).forEach(([k, n]) => n > 0 && set.add(k));
+    if (Array.isArray(s.rainDays)) s.rainDays.forEach(k => set.add(k)); /* nights a rain check covered (4.14.0) */
   }
   return set;
 };
@@ -2934,6 +2935,7 @@ export function cleanKept(raw) {
 export function playSongs(data) {
   const out = [...(data.songs || []), ...(data.trash || []).filter(t => t?.type === "song" && t.item).map(t => t.item)];
   if (data.kept?.days) out.push({ playLog: { total: 0, last: 0, days: data.kept.days } });
+  if (data.merch?.rainDays?.length) out.push({ rainDays: data.merch.rainDays }); /* counts for the streak only, never as plays */
   return out;
 }
 
@@ -3682,12 +3684,12 @@ export function chartsSettle(data, now = Date.now()) {
   return c.last;
 }
 /* a gig finished: XP for it, and the battle if it was today's battle song */
-function chartsShow(data, songId, g, pct, now) {
-  addXP(data, g.hits * XP.landed + (g.last.length >= 6 && gigCrowd(g) >= 10 ? XP.crowd : 0), now);
+function chartsShow(data, songId, g, pct, now, mult = 1) {
+  addXP(data, mult * (g.hits * XP.landed + (g.last.length >= 6 && gigCrowd(g) >= 10 ? XP.crowd : 0)), now);
   const b = data.charts?.battle;
   if (!b || b.day !== dayKey(now) || b.songId !== songId || b.result || pct === null) return null;
   b.result = pct >= b.target ? "won" : "lost"; b.pct = pct;
-  if (b.result === "won") { addXP(data, XP.battle, now); data.charts.fans = (data.charts.fans || 0) + XP.battleFans; }
+  if (b.result === "won") { addXP(data, mult * XP.battle, now); data.charts.fans = (data.charts.fans || 0) + XP.battleFans; }
   return { ...b };
 }
 export function cleanCharts(raw) {
@@ -3972,11 +3974,13 @@ export function gigDone(data, songId, g, encore = false, now = Date.now()) {
   /* Tour quests (4.5.0): the crowd it reached, and the request line doubles its bonus fans */
   const cover = coverState(data, now)?.song?.id === songId;
   const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
-  /* Charts (4.6.0): XP for the show, and today's rival battle */
-  const battle = chartsShow(data, songId, g, pct, now);
+  /* Charts (4.6.0): XP for the show, and today's rival battle; a Double set doubles a scored show's XP (4.14.0) */
+  const own = data.merch?.own, doubled = pct !== null && own?.double > 0;
+  if (doubled) own.double--;
+  const battle = chartsShow(data, songId, g, pct, now, doubled ? 2 : 1);
   /* Song duels (4.12.0): a scored show answers a friend's challenge on this song */
   const duel = pct === null ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
-  return { ...(duel ? { duel } : {}), fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}) };
+  return { ...(duel ? { duel } : {}), fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
 }
 export function cleanGig(raw) {
   if (!isObj(raw)) return null;
@@ -3984,4 +3988,103 @@ export function cleanGig(raw) {
   for (const [id, v] of Object.entries(isObj(raw.best) ? raw.best : {}).slice(0, 2000)) if (typeof id === "string" && id.length <= 40 && v >= 0 && v <= 100) best[id] = Math.round(v);
   const shows = Math.max(0, Math.min(1e6, Math.floor(+raw.shows || 0))), fans = Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0)));
   return shows || fans || Object.keys(best).length ? { shows, fans, best } : null;
+}
+
+// ---------- The Merch table (4.14.0) ----------
+// Fans are what you spend. The fans you've earned stay worked out from what you've played (fansOf);
+// data.merch.spent is taken off to give what you have to spend, so buying never touches XP or the chart.
+// Gear is used up: a Rain check covers a night you didn't play (used on its own, up to 2 held), a Double
+// set doubles the XP of your next 3 scored gigs, a Second take gives today's lost rival battle another go.
+// Louie's finishes and stage backdrops are kept once bought, and you pick which one is on.
+export const MERCH = [
+  { id: "rain", kind: "gear", name: "Rain check", line: "Covers a night you miss", price: 200, max: 2 },
+  { id: "double", kind: "gear", name: "Double set", line: "2x XP on your next 3 gigs", price: 150, max: 9, adds: 3 },
+  { id: "take", kind: "gear", name: "Second take", line: "Another go at today's rival", price: 100, max: 3 },
+  { id: "stock", kind: "louie", name: "Stock", price: 0, line: "Louie as he comes, in the colours of your look." },
+  { id: "tweed", kind: "louie", name: "Tweed", price: 600, line: "A fifties cabinet with a cream grille." },
+  { id: "black", kind: "louie", name: "Blackface", price: 800, line: "Black tolex and a silver face, the studio classic." },
+  { id: "mint", kind: "louie", name: "Mint", price: 1000, line: "Surf green with a cream face." },
+  { id: "gold", kind: "louie", name: "Gold top", price: 1500, line: "Gold all over, for the headliner." },
+  { id: "basement", kind: "backdrop", name: "Basement", price: 0, line: "The plain stage you started on." },
+  { id: "brick", kind: "backdrop", name: "Brick wall", price: 300, line: "A club wall under one warm light." },
+  { id: "stars", kind: "backdrop", name: "Starlight", price: 400, line: "An open-air night sky." },
+  { id: "sunset", kind: "backdrop", name: "Sunset fest", price: 500, line: "A festival field at golden hour." }
+];
+const merchItem = id => MERCH.find(x => x.id === id);
+export const fansToSpend = (data, now = Date.now()) => Math.max(0, fansOf(data, now) - (data.merch?.spent || 0));
+export function merchState(data, now = Date.now()) {
+  const m = data.merch || {}, has = new Set(["stock", "basement", ...(m.has || [])]);
+  return { fans: fansToSpend(data, now), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement" };
+}
+/* what's on, without working out fans (cheap enough for every screen) */
+export function merchWorn(data, kind = "louie") {
+  const m = data.merch || {};
+  return (m.has || []).includes(m[kind]) ? m[kind] : kind === "louie" ? "stock" : "basement";
+}
+/* buy one: { ok } or { why: "fans" | "max" | "have" } */
+export function merchBuy(data, id, now = Date.now()) {
+  const it = merchItem(id);
+  if (!it) return { why: "none" };
+  const st = merchState(data, now), m = data.merch || (data.merch = {});
+  if (it.kind === "gear" ? st.own[id] + (it.adds || 1) > it.max : st.has.has(id)) return { why: it.kind === "gear" ? "max" : "have" };
+  if (st.fans < it.price) return { why: "fans" };
+  m.spent = (m.spent || 0) + it.price;
+  if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
+  else { (m.has || (m.has = [])).push(id); m[it.kind] = id; }
+  return { ok: true };
+}
+export function merchWear(data, id) {
+  const it = merchItem(id), st = merchState(data);
+  if (!it || it.kind === "gear" || !st.has.has(id)) return false;
+  (data.merch || (data.merch = {}))[it.kind] = id;
+  return true;
+}
+/* Rain checks: the nights missed since your last play, covered when you hold enough checks for all of them */
+export function rainSettle(data, now = Date.now()) {
+  const m = data.merch;
+  if (!(m?.own?.rain > 0)) return [];
+  const days = playDays(playSongs(data));
+  if (!days.size) return [];
+  let k = 0;
+  while (k < 30 && !days.has(dayKey(now - (k + 1) * DAY))) k++;
+  if (!k || k >= 30 || k > m.own.rain) return [];
+  const used = Array.from({ length: k }, (_, i) => dayKey(now - (k - i) * DAY));
+  m.own.rain -= k;
+  m.rainDays = [...(m.rainDays || []), ...used].slice(-60);
+  return used;
+}
+/* Second take: today's lost battle can be played again */
+export function secondTake(data, now = Date.now()) {
+  const b = data.charts?.battle, own = data.merch?.own;
+  if (!b || b.day !== dayKey(now) || b.result !== "lost" || !(own?.take > 0)) return false;
+  own.take--;
+  delete b.result; delete b.pct;
+  return true;
+}
+/* Show complete: the cheapest finish or backdrop you can now afford, said once */
+export function merchTip(data, now = Date.now()) {
+  const st = merchState(data, now), m = data.merch || {};
+  const told = new Set(m.told || []);
+  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !st.has.has(x.id) && x.price <= st.fans && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
+  if (!it) return null;
+  const mm = data.merch || (data.merch = {});
+  (mm.told || (mm.told = [])).push(it.id);
+  return it;
+}
+export function cleanMerch(raw) {
+  if (!isObj(raw)) return null;
+  const out = {}, day = /^\d{4}-\d\d-\d\d$/, ids = new Set(MERCH.map(x => x.id));
+  const spent = Math.max(0, Math.min(1e7, Math.floor(+raw.spent || 0))); if (spent) out.spent = spent;
+  const own = {};
+  for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }
+  if (Object.keys(own).length) out.own = own;
+  const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => ids.has(id) && merchItem(id).kind !== "gear"))];
+  if (has.length) out.has = has;
+  if (has.includes(raw.louie)) out.louie = raw.louie;
+  if (has.includes(raw.backdrop)) out.backdrop = raw.backdrop;
+  const rain = (Array.isArray(raw.rainDays) ? raw.rainDays : []).filter(d => day.test(d)).slice(-60);
+  if (rain.length) out.rainDays = rain;
+  const told = [...new Set((Array.isArray(raw.told) ? raw.told : []).filter(id => ids.has(id)))];
+  if (told.length) out.told = told;
+  return Object.keys(out).length ? out : null;
 }

@@ -33,7 +33,7 @@ const COVERS = {
   "sw.js": ["app"],
   "profile.js": ["profile"],
   "practice.js": ["practice"],
-  "gig.js": ["app"], "tour.js": ["app"], "charts.js": ["app"], "band.js": ["app"], "friends.js": ["app"]
+  "gig.js": ["app"], "tour.js": ["app"], "charts.js": ["app"], "band.js": ["app"], "friends.js": ["app"], "merch.js": ["app"], "hud.js": ["app"]
 };
 const files = new Set();
 for (const f of changed) {

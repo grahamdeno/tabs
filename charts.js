@@ -7,7 +7,7 @@
 //                    scored gig; win and you take 30 XP and 40 fans.
 //   records          one for each week you finished in the top 5
 // The numbers are worked out in core.js (chartState, chartsSettle, battleFor, XP).
-import { CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, startBattle } from "./core.js";
+import { CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
 import { app, esc, toast } from "./ui.js";
 import { data, go, playGig } from "./app.js";
 import { louie } from "./louie.js";
@@ -33,8 +33,9 @@ export function renderCharts(view = "chart") {
   const rows = st.rows.map(row);
   if (st.tier > 0) rows.splice(rows.length - CHART_DEMOTE, 0, `<li class="ch-zone down" aria-hidden="true"><span>MOVE DOWN ZONE</span></li>`);
   rows.splice(CHART_PROMOTE, 0, `<li class="ch-zone" aria-hidden="true"><span>${st.next ? "PROMOTION ZONE" : "TOP 5"}</span></li>`);
+  const takes = merchState(data).own.take; /* Second take (4.14.0): another go at a lost battle */
   const battleCard = !b ? "" : b.result
-    ? `<section class="ch-go done"><p>${b.result === "won" ? `You beat ${esc(b.rival)} on ${esc(song?.title || "the song")}: ${b.pct}% to ${b.target}%. +${XP.battle} XP, +${XP.battleFans} fans.` : `${esc(b.rival)} held on: ${b.target}% to your ${b.pct}%. A new battle tomorrow.`}</p></section>`
+    ? `<section class="ch-go done"><p>${b.result === "won" ? `You beat ${esc(b.rival)} on ${esc(song?.title || "the song")}: ${b.pct}% to ${b.target}%. +${XP.battle} XP, +${XP.battleFans} fans.` : `${esc(b.rival)} held on: ${b.target}% to your ${b.pct}%. ${takes ? "" : "A new battle tomorrow."}`}</p>${b.result === "lost" ? takes ? `<button class="ch-gobtn" id="ch-take">SECOND TAKE · ${takes} LEFT</button>` : `<button class="ch-takeget" id="ch-takeget">Get a Second take at the merch table</button>` : ""}</section>`
     : `<section class="ch-go"><p>${st.you.rank === 1 ? `<b>${esc(b.rival)}</b> wants your spot. Win on ${esc(song?.title || "a song")} and take ${XP.battle} XP` : `Win the battle with <b>${esc(b.rival)}</b> on ${esc(song?.title || "a song")} and take ${XP.battle} XP`}</p><button class="ch-gobtn" id="ch-go">GO</button></section>`;
   app.innerHTML = `<div class="ch">
     <div class="tq-top">${statBar()}</div>
@@ -54,6 +55,8 @@ export function renderCharts(view = "chart") {
   </div>`;
   bindStatBar();
   document.getElementById("ch-go")?.addEventListener("click", () => renderCharts("battle"));
+  document.getElementById("ch-take")?.addEventListener("click", () => { if (secondTake(data)) { Tabs.save(data); renderCharts("battle"); } });
+  document.getElementById("ch-takeget")?.addEventListener("click", () => go("#/merch"));
   app.querySelectorAll("[data-pane]").forEach(b => b.onclick = () => { pane = b.dataset.pane; renderCharts(); });
   /* Song duels (4.12.0) and Friends (4.13.0) */
   import("./duel.js").then(m => {

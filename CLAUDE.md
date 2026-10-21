@@ -58,8 +58,11 @@ per tier, top 5 move up, records, daily rival battle; 4.11.0: bottom 3 move down
 players with kinds like weekend, streaker, fader, skipper and a shadow), Your band (done in 4.7.0, `band.js` + `friends.js`: friends join by
 lifetime plays, `BAND` in `core.js`; Beat and Bex play drums and bass in gigs), Rehearse hub (done in 4.8.0: `renderRehearse` in `practice.js` at
 #/practice, the neck moved to #/practice/neck; soundcheck from missed gig changes,
-`soundcheck` in `core.js`), Merch table (spend fans on gear, Louie finishes,
-backdrops). The stat bar still shows fans (Merch spends them); XP lives on Charts.
+`soundcheck` in `core.js`), Merch table (done in 4.14.0, `merch.js`, `MERCH` in
+`core.js`: Graham kept it simple, fans are money and the stat bar shows fans to
+spend; no 7th tab, it opens from the fans count, More and one Show complete line;
+gear Rain check, Double set, Second take; Louie finishes via body[data-wear];
+backdrops behind the top of the Gig). XP lives on Charts.
 The Tour duet quest stays locked until a friend's XP can reach the phone.
 Competition plan (Graham, 2026-10-21), like Duolingo: the weekly chart is the league
 (computer players now, real players at your tier from a server at App Store
@@ -132,6 +135,7 @@ release so Graham can try it.
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
 | Your band: the Band tab; Louie's friends drawn | `band.js`, `friends.js` (numbers: `bandState`, `bandParts` in `core.js`) |
 | Song duels: challenge links, the head-to-head | `duel.js` (numbers: `startDuel`, `takeDuel`, `duelRecord` in `core.js`) |
+| Merch table: gear, Louie's finishes, gig backdrops, Try it on | `merch.js` (numbers: `MERCH`, `merchBuy`, `rainSettle`, `secondTake` in `core.js`) |
 | Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
 | Pull-up drawers: the Tour Map's scene sheet | `drawer.js` (used by `playmap.js`) |

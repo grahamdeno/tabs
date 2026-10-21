@@ -16,7 +16,8 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
+import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, Tabs } from "./core.js";
+import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
@@ -130,7 +131,7 @@ const PLUG = `<svg width="22" height="24" viewBox="0 0 30 32" aria-hidden="true"
 function shell(song) {
   const el = document.createElement("div");
   el.id = "gig"; el.className = "gig"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `Gig: ${song.title}`);
-  el.innerHTML = `<div class="gg-light" aria-hidden="true"></div>
+  el.innerHTML = `${backdropArt(merchWorn(data, "backdrop"))}<div class="gg-light" aria-hidden="true"></div>
     <div class="gg-top">
       <button class="gg-x" id="gg-x" aria-label="Leave the gig">${icon("x")}</button>
       <div class="gg-map" id="gg-map" aria-hidden="true"></div>
@@ -397,10 +398,11 @@ function showComplete() {
   clearInterval(g.timer);
   g.stream?.getTracks().forEach(t => t.stop());
   const graded = g.score.hits + g.score.misses > 0;
-  const { fans, pct, request, battle, cover, duel } = gigDone(data, g.song.id, g.score, g.encore);
+  const { fans, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore);
   rehearseMisses(data, g.missed); /* the changes you dropped: tomorrow's soundcheck */
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
+  const tip = merchTip(data); /* the Merch table (4.14.0): something you can now afford, said once */
   Tabs.save(data);
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
   const crowd = graded ? gigCrowd(g.score) : null;
@@ -419,12 +421,14 @@ function showComplete() {
       ${battle ? `<p>${battle.result === "won" ? `Rival battle: you beat <b>${esc(battle.rival)}</b>, ${battle.pct}% to ${battle.target}%. <b>+30 XP, +40 fans</b>` : `Rival battle: ${esc(battle.rival)} held on, ${battle.target}% to your ${battle.pct}%`}</p>` : ""}
       ${joined.map(f => { const n = FRIENDS.find(x => x.id === f.id)?.name || f.id; return `<p><b>${esc(n)} joined your band!</b>${f.plays ? ` You'll hear ${f.plays === "drums" ? "drums" : "bass"} in your gigs.` : ""}</p>`; }).join("")}
       ${duel ? `<p>Song duel: ${duel.mine.pct > duel.theirs.pct ? `<b>you beat ${esc(duel.opp)}</b>` : duel.mine.pct < duel.theirs.pct ? `${esc(duel.opp)} wins this one` : "a tie"}, ${duel.mine.pct}% to ${duel.theirs.pct}%</p>` : ""}
+      ${doubled !== undefined ? `<p>Double set: <b>2x XP</b> on this show. ${doubled ? `${doubled} more to go.` : "That was the last one."}</p>` : ""}
       ${cover ? `<p>Cover quest done: you learned a song you love. <b>3x bonus fans</b></p>` : ""}
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
+    ${tip ? `<button class="gc-merch" id="gc-merch">${tip.kind === "louie" ? `<span class="fin fin-${tip.id}">${louie("happy", { size: 46 })}</span>` : `<span class="gc-merch-ic" aria-hidden="true">${icon("shirt")}</span>`}<span><b>You can get ${esc(tip.kind === "louie" ? `${tip.name} Louie` : `the ${tip.name} backdrop`)}</b><small>${tip.price.toLocaleString("en-US")} fans at the merch table</small></span>${icon("chev", "chev")}</button>` : ""}
     ${duel ? `<section class="gc-duel"><small>SONG DUEL</small><b>Send ${esc(duel.opp)} your score</b><button class="btn primary" id="gc-reply">SEND YOUR SCORE BACK</button></section>`
       : pct !== null ? `<section class="gc-duel"><small>CHALLENGE A FRIEND</small><b>"I hit ${pct}% on ${esc(g.song.title)}. Beat it."</b><button class="btn primary" id="gc-duel">SEND THE CHALLENGE</button></section>` : ""}
     <div class="gc-acts">
@@ -432,6 +436,7 @@ function showComplete() {
       <button class="btn" id="gc-go">CONTINUE</button>
     </div></div>`;
   $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else if (from === "tour" || from === "charts") go("#/" + from); else redraw?.(); };
+  $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
   $("gc-duel")?.addEventListener("click", e => import("./duel.js").then(m => m.sendChallenge(g.song, { pct, combo: g.score.best, crowd: graded ? gigCrowd(g.score) : 0 }, e.currentTarget)));
   $("gc-reply")?.addEventListener("click", e => import("./duel.js").then(m => m.sendReply(duel, e.currentTarget)));
   $("gc-encore")?.addEventListener("click", () => {
