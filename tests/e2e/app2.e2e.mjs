@@ -330,6 +330,7 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   await page.click("#more"); await page.waitForSelector('.menu');
   const m = await box(".menu");
   assert.ok(m.bottom > H - 40 && m.top > H * 0.2, "Tools rises from the bottom");
+  assert.ok(Math.abs(m.left - (390 - m.right)) < 2, `4.19.1: Tools sits centred (${m.left}, ${m.right})`);
   assert.match(await page.innerText(".menu .tl-head"), /Tools\s*Text size/, "Text size beside the title");
   assert.match(await page.innerText(".menu"), /Lines in a gig/);
 

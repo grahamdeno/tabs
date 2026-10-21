@@ -2361,7 +2361,7 @@ body.fold .fp #play span { display: none; }
 }
 /* Tools: one sheet from the bottom */
 .menu.tools { width: min(380px, calc(100vw - 24px)); box-sizing: border-box; }
-.menu.tools.msheet { padding: 2px 14px calc(14px + var(--safe-b)); bottom: 0; left: 0; right: 0; border-radius: 26px 26px 0 0; }
+.menu.tools.msheet { padding: 2px 14px calc(14px + var(--safe-b)); bottom: 0; left: 0; right: 0; width: auto; border-radius: 26px 26px 0 0; } /* 4.19.1: full width (it kept the 380px cap and sat to the left) */
 body.gigging .menu.tools { z-index: 60; }
 .tl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 2px 0; }
 .tl-head > b { font: 700 21px var(--display); color: var(--fg); }
