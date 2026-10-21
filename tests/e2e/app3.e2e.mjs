@@ -609,6 +609,8 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
   await page.waitForSelector(".gc", { timeout: 40000 });
   assert.match(await page.innerText(".gc-t"), /Show complete/);
   assert.match(await page.innerText(".gc-list"), /changes landed/, "the show was graded");
+  /* the save lands a moment after Show complete appears */
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.shows === 1);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.equal(saved.gig.shows, 1); assert.ok(saved.gig.best.g >= 0);
   assert.equal(saved.settings.gigLines, 5);
