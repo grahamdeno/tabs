@@ -316,7 +316,7 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.equal(await glows(), false, "out of tune: no glow");
   const order = [];
   for (const hz of [82.41, 110, 146.83, 196, 246.94, 329.63]) {
-    order.push(await page.evaluate(() => document.querySelector(".tn-key") && [...document.querySelectorAll("#tn-stage text")].find(x => x.getAttribute("font-weight") === "700")?.textContent));
+    order.push(await page.evaluate(() => document.querySelector(".tn-key") && document.querySelector("#tn-stage text.on")?.textContent));
     await at(hz, 0); await page.waitForTimeout(1700); /* real timer */
   }
   assert.deepEqual(order.map(x => (x || "").replace(/[^A-Ga-g]/g, "")), ["E", "A", "D", "G", "B", "e"], "guided: E, A, D, G, B, e in order");

@@ -70,7 +70,7 @@ function headSVG(kind, t, { mini = false } = {}) {
     /* The note is printed on its key, so changing the tuning relabels the
        keys; a tuned string gets a check beside its key. */
     const name = stringName(notes, i);
-    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 700 : 600}" fill="${on ? "#14110d" : "var(--bg)"}">${name}</text>`;
+    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 800 : 700}" style="font-family: var(--display)"${on ? ' class="on"' : ""} fill="${on ? "#14110d" : "var(--bg)"}">${name}</text>`;
     if (done && !on) s += `<text x="${g.side < 0 ? kx - 30 : kx + kw + 30}" y="${ky + kh / 2 + 32}" text-anchor="${g.side < 0 ? "end" : "start"}" font-size="92" font-weight="600" fill="var(--good)">✓</text>`;
     // a generous tap target over the key and its name
     const hx = g.side < 0 ? kx - 230 : kx;

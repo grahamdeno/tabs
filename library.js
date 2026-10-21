@@ -115,7 +115,7 @@ export function renderLibrary() {
     <div class="head">
       <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Songbook</h1></div>
       <div class="row-btns">
-        <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
+        <button class="ib glass" id="youbtn" aria-label="Your profile">${icon("pick")}</button>
         ${tunerBtn("ib glass")}
         <button class="ib glass" id="settings" aria-label="Settings">${icon("gear")}</button>
       </div>

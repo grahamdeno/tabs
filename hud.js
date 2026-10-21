@@ -40,7 +40,7 @@ const TABS = [
   ["charts", "#/charts", "Charts", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-kk" cx="16" cy="18" r="13"/><circle class="tb-k" cx="16" cy="16" r="13"/><circle cx="16" cy="16" r="9" fill="none" stroke="#2A3A63" stroke-width="1.5"/><circle class="tb-a" cx="16" cy="16" r="5"/><circle class="tb-k" cx="16" cy="16" r="1.2"/><path d="M7 11a10 10 0 0 1 5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".4"/></svg>`],
   ["band", "#/band", "Your band", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tb-bd" x="4" y="11" width="24" height="16" rx="4"/><rect class="tb-b" x="4" y="10" width="20" height="16" rx="4"/><ellipse class="tb-w" cx="16" cy="10" rx="12" ry="5"/><path d="M20 2l-6 8" stroke="#F2B705" stroke-width="3" stroke-linecap="round"/></svg>`],
   ["rehearse", "#/practice", "Rehearse", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path class="tb-fd" d="M13 4h8l6 26H7z"/><path class="tb-f" d="M12 3h8l6 26H6z"/><path d="M16 24l7-15" stroke="#14213D" stroke-width="2.6" stroke-linecap="round"/><circle class="tb-k" cx="21" cy="13" r="2.6"/><path d="M12 6h3" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".8"/></svg>`],
-  ["more", "", "More: Songbook, Merch table, Tour Map, Your playing, Tuner, Settings", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-bd" cx="16" cy="17" r="13"/><circle class="tb-b" cx="16" cy="16" r="13"/><circle class="tb-w" cx="10" cy="16" r="2.4"/><circle class="tb-w" cx="16" cy="16" r="2.4"/><circle class="tb-w" cx="22" cy="16" r="2.4"/></svg>`]
+  ["more", "", "More: Songbook, Merch table, Tour Map, Your profile, Tuner, Settings", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-bd" cx="16" cy="17" r="13"/><circle class="tb-b" cx="16" cy="16" r="13"/><circle class="tb-w" cx="10" cy="16" r="2.4"/><circle class="tb-w" cx="16" cy="16" r="2.4"/><circle class="tb-w" cx="22" cy="16" r="2.4"/></svg>`]
 ];
 function tabsEl() {
   let el = document.getElementById("tabs");
@@ -63,7 +63,7 @@ export function openMore() {
       ${item("m-lib", "list", "Songbook", `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, sets and search`)}
       ${item("m-merch", "shirt", "Merch table", `${n(fansToSpend(data))} fans to spend`)}
       ${item("m-map", "pick", "Tour Map", "Your turf and your scene")}
-      ${item("m-you", "flame", "Your playing", "Hours, chords and your streak")}
+      ${item("m-you", "flame", "Your profile", "Hours, chords and your streak")}
       ${item("m-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours")}
       ${item("m-set", "gear", "Settings", "Look, playing and keys")}
     </div>

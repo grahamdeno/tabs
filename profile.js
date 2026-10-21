@@ -89,7 +89,7 @@ export function renderProfile() {
   const mapCard = `<button class="pf-card pf-mapcard" id="pf-map"><h2>Tour Map</h2><p class="pf-line"><b>${esc(ven.name)}.</b> ${terr.cells} hexagon${terr.cells === 1 ? "" : "s"} lit, ${ven.toNext} play${ven.toNext === 1 ? "" : "s"} to the ${esc(ven.next)}.</p>${icon("chev", "chev")}</button>`;
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button></div>
-    <h1 class="title" style="margin:14px 2px 2px">Your playing</h1>
+    <h1 class="title" style="margin:14px 2px 2px">Your profile</h1>
     <p class="pf-since">${esc(since)}</p>
     ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${hero}${mapCard}${firsts}${passport}${changes}${rhythm}${keys}${rep}${zone}${sets}${tune}
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}

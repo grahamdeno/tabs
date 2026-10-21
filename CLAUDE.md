@@ -80,7 +80,7 @@ The README describes each as it works today.
 | Tips, Show me demos, Tips & gestures | `coach.js` |
 | Play next, chord charts, Get the song | `findai.js` |
 | Tuner | `tuner.js` (+ `heads.js`) |
-| Your playing (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
+| Your profile (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
 | German practice | `german.js` |
 | Rehearse (hub), the neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
 | The Road (home, 4.0.0): path, Louie, the Songbook bar (4.9.0; the Songbook page is `renderLibrary` in `app.js`) | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |

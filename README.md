@@ -7,12 +7,12 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ## What it does
 
 ### The Road (home)
-- A stat bar on every main page: your venue (tap for the Tour Map), your gig streak (tap for Your playing) and fans to spend (tap for the Merch table).
+- A stat bar on every main page: your venue (tap for the Tour Map), your gig streak (tap for Your profile) and fans to spend (tap for the Merch table).
 - The leg you're on and a path of stops built from the neck: lessons, a merch box after every third, and a headline show at the end of each leg (play a real song through). The current stop is ringed with its card open.
 - Louie the amp beside the path with one line for the moment and tonight's song to play.
 - The Songbook bar above the tab bar: your songs, how many you can play, and search.
 - Fans: 10 for every play, 5 for every lesson round, 25 for every merch box.
-- The tab bar: Road, Tour, Charts, Band, Rehearse and More (Songbook, Tour Map, Your playing, Tuner, Merch table, Settings).
+- The tab bar: Road, Tour, Charts, Band, Rehearse and More (Songbook, Tour Map, Your profile, Tuner, Merch table, Settings).
 
 ### The Gig: playing a song
 - Play on any song opens the Gig, a scored show over the song as it plays (auto-scroll, the recording or the band).
@@ -40,8 +40,8 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Sets with a date, place and drawn cover; Play set runs them with a Next up card and remembers each run.
 - Add opens a writing pad: Paste, Type, Sing or strum (key and chords found on the phone), and with an AI key, Scan a page or Find the chords. Edit works in place: tap a word to set its chord, every change saves with Undo. Deleted songs and sets stay 30 days in Recently deleted.
 
-### Your playing, the Tour Map and the streak
-- Your playing: hours, songs, streak, milestones, a chord passport, your changes, when you play, keys and tempo, and a share picture with Louie.
+### Your profile, the Tour Map and the streak
+- Your profile (called Your playing before 4.15.4; also from the Songbook header): hours, songs, streak, milestones, a chord passport, your changes, when you play, keys and tempo, and a share picture with Louie.
 - The streak celebration, once a day after your first song played through: the screen floods with the streak colour, Louie drops in and throws the horns in front of a flame that grows with the streak, confetti falls, the count rolls up and the week fills in. Share makes a picture of it.
 - The Tour Map: every song played through lights a hexagon on a map; rings grow into venues from Garage to Festival headliner, with simulated rival players around you. Your position stays on the phone, never in a backup.
 
@@ -120,7 +120,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `store.js` | Safety copy, backups, storage, problems log |
 | `share.js` | Share links, opening a shared link, Play together |
 | `listen.js` | Listen: recordings, previews, length from the recording |
-| `profile.js` | Your playing: the profile page and its share card (numbers from `profileOf` in `core.js`) |
+| `profile.js` | Your profile: the profile page and its share card (numbers from `profileOf` in `core.js`) |
 | `fold.js` | One-handed: the bar folds into Play's corner while playing; pull down at the top to go back |
 | `dial.js` | The corner dial (speed meter, key, set picker) |
 | `findai.js` | Play next, chord charts, Get the song |

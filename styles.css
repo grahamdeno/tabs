@@ -710,7 +710,7 @@ body.playing .smap:not(.active) { opacity: .45; }
 .toggle.on::after { transform: translateX(20px); }
 .foot { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 14px 6px 0; }
 
-.toast { position: fixed; left: 50%; top: calc(12px + var(--safe-t)); transform: translate(-50%, -150%); padding: 10px 16px; z-index: 60; transition: transform .25s; font-size: 14px; border: 1px solid var(--rim); display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px); }
+.toast { position: fixed; left: 50%; top: calc(12px + var(--safe-t)); transform: translate(-50%, calc(-100% - 24px - var(--safe-t))); padding: 10px 16px; z-index: 60; transition: transform .25s; font-size: 14px; border: 1px solid var(--rim); display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px); }
 .toast.show { transform: translate(-50%, 0); }
 .tact { border: 0; background: none; color: var(--accent-ink); font-weight: 600; font-size: 14px; padding: 4px 2px; flex: none; }
 .toast.near { transform: translate(-50%, 6px); opacity: 0; transition: transform .18s ease-out, opacity .18s ease-out; padding: 8px 14px; font-size: 13px; white-space: nowrap; }
@@ -1807,7 +1807,7 @@ body.is-home .rd-song b { font-size: 26px; }
   --streak: #FF4FA3; --streak-deep: #C42C7A; --fans: #FFD84D; --fans-deep: #C9A600; --fans-text: #FFD84D; --strings: #3DE0FF; --strings-deep: #1FA8C4;
   --banner: #3DE0FF; --banner-deep: #1FA8C4; --on-banner: #1D1640; --banner-sub: #0E4F5E;
   --locked: #3A2F70; --locked-deep: #2A2156; --locked-ic: #6E64A6; --tabs-on: rgba(61,224,255,.14); --tabs-ring: #3DE0FF;
-  --lv-body: #FF4FA3; --lv-shade: #D93A8A; --lv-hi: #FF84C0; --lv-face: #B8F34A; --lv-face-sh: #8FCF2A; --lv-grille: #1D1640; --lv-slat: #3A2F70; --lv-pupil: #1D1640; --lv-cheek: #FFD84D; --lv-lamp: #3DE0FF; --lv-tongue: #3DE0FF; --lv-shadow: #000;
+  --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-hi: #6BA4FF; --lv-face: #B8F34A; --lv-face-sh: #8FCF2A; --lv-grille: #1D1640; --lv-slat: #3A2F70; --lv-pupil: #1D1640; --lv-cheek: #FF4FA3; --lv-lamp: #FF4FA3; --lv-tongue: #FF4FA3; --lv-shadow: #000;
 }
 :root[data-theme="light"], :root[data-look="festival"] {
   color-scheme: light;
@@ -1833,7 +1833,7 @@ body.is-home .rd-song b { font-size: 26px; }
   --streak: #F2B705; --streak-deep: #B98C00; --fans: #0F8B8D; --fans-deep: #0B6F71; --fans-text: #0F7A7C; --strings: #7A2E8E; --strings-deep: #5C1F6C;
   --banner: #0F8B8D; --banner-deep: #0B6F71; --on-banner: #FFFFFF; --banner-sub: #CDEBEB;
   --locked: #CFDDD1; --locked-deep: #B3C6B6; --locked-ic: #8AA190; --tabs-on: #D3E6D6; --tabs-ring: #0F8B8D;
-  --lv-body: #0F8B8D; --lv-shade: #0B6F71; --lv-hi: #3BA7A9; --lv-face: #F2B705; --lv-face-sh: #D29C00; --lv-grille: #1B2B27; --lv-slat: #2E4640; --lv-pupil: #1B2B27; --lv-cheek: #FF5A4E; --lv-lamp: #FF5A4E; --lv-tongue: #FF5A4E; --lv-shadow: #1B2B27;
+  --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-hi: #6BA4FF; --lv-face: #F2B705; --lv-face-sh: #D29C00; --lv-grille: #1B2B27; --lv-slat: #2E4640; --lv-pupil: #1B2B27; --lv-cheek: #FF5A4E; --lv-lamp: #FF5A4E; --lv-tongue: #FF5A4E; --lv-shadow: #1B2B27;
 }
 /* the amp materials, redrawn from the palette */
 :root, :root[data-theme="light"], :root[data-look] {
@@ -2439,7 +2439,7 @@ body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
    setlist and the duet quest (locked until Charts)
    ========================================================================== */
 .tq { padding-bottom: calc(var(--tabs) + 24px); }
-.tq-top { margin: 0 -4px; }
+.tq-top { margin: -14px -4px 0; } /* 4.15.4: the stat bar sits where it does on the Road */
 .tq-head { position: relative; margin: 10px -20px 0; padding: 16px 20px 18px; background: var(--streak); overflow: hidden; }
 .tq-ht h1 { margin: 0; font: 700 28px var(--display); color: #14213D; }
 .tq-ht small { display: block; margin-top: 2px; font: 800 13px var(--sans); letter-spacing: .06em; color: color-mix(in srgb, #14213D 75%, var(--streak)); }
