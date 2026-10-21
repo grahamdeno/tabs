@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.10.0";
+export const VERSION = "4.11.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -3571,9 +3571,14 @@ export function cleanQuests(raw) {
 // XP is earned this week: 10 for every song played through (from the play log), and what's kept in
 // data.xp.days: 1 for each chord change landed in a gig, 10 for a crowd of 10 or more, 5 for each setlist
 // goal, 30 for a battle won. Each week you're on a chart with nine simulated players at your tier (the
-// venues, Garage up); the top 5 move up a tier and earn its record. Nobody moves down.
+// venues, Garage up); the top 5 move up a tier and earn its record, and the bottom 3 move down (4.11.0;
+// never below the Garage). The players behave like people: steady ones, weekend players who surge on
+// Saturday and Sunday, streakers who play every day, faders who start hot and stop, skippers who miss
+// days, and one shadow who stays just ahead of you as long as they can keep up.
 export const XP = { play: 10, landed: 1, crowd: 10, goal: 5, battle: 30, battleFans: 40 };
 export const CHART_PROMOTE = 5;
+export const CHART_DEMOTE = 3;
+const RIVAL_KINDS = ["steady", "weekend", "streaker", "fader", "skipper", "skipper", "steady", "weekend", "streaker"];
 const RIVAL_NAMES = ["Neon Jen", "Basement Ray", "Capo Kid", "Sixstring Sal", "Open-tuning Ollie", "Fret Fiona", "Barre Chord Bo", "Strummin' Stu", "Pickslide Pia", "Drop-D Dee", "Hammer-on Hal", "Feedback Flo", "Tremolo Tess", "Slide Sam", "Busker Bea", "Riff Rico", "Power Chord Pat", "Fingerpick Finn", "Chorus Cora", "Amp Stack Max"];
 /* Monday of the week a time falls in, as YYYY-MM-DD */
 export function weekOf(now = Date.now()) {
@@ -3589,8 +3594,9 @@ export function addXP(data, n, now = Date.now()) {
   for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d];
 }
 /* XP in the week that starts on wk */
-export function weekXP(data, wk = weekOf()) {
-  const t0 = weekStart(wk), days = new Set(Array.from({ length: 7 }, (_, i) => dayKey(t0 + i * DAY + 12 * 3600e3)));
+export function weekXP(data, wk = weekOf(), upTo = null) {
+  const t0 = weekStart(wk), last = upTo == null ? null : dayKey(upTo);
+  const days = new Set(Array.from({ length: 7 }, (_, i) => dayKey(t0 + i * DAY + 12 * 3600e3)).filter(k => !last || k <= last));
   let n = 0;
   for (const s of playSongs(data)) for (const [k, c] of Object.entries(s.playLog?.days || {})) if (days.has(k)) n += (c || 0) * XP.play;
   for (const [k, c] of Object.entries(data.xp?.days || {})) if (days.has(k)) n += c || 0;
@@ -3598,20 +3604,38 @@ export function weekXP(data, wk = weekOf()) {
 }
 /* the nine players on your chart this week: the same all week, their XP growing as it goes */
 function rand(seed) { let h = seed >>> 0; return () => { h = (h + 0x6D2B79F5) >>> 0; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-export function chartRivals(wk, tier, at = 1) {
+export function chartRivals(wk, tier, at = 1, you = 0) {
   const r = rand(hashDay(`${wk}:${tier}`)), names = RIVAL_NAMES.slice();
   for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
-  const base = 90 + tier * 55, f = Math.max(0, Math.min(1, at));
+  const base = 90 + tier * 55, f = Math.max(0, Math.min(1, at)), kinds = RIVAL_KINDS.slice();
+  for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
+  const shadow = Math.floor(r() * 9); /* one of them keeps just ahead of you */
+  const t = f * 7, day = Math.min(6, Math.floor(t)), part = t - day; /* Monday is day 0 */
   return names.slice(0, 9).map((name, i) => {
-    const target = Math.round(base * (0.25 + 1.5 * r())), pace = 0.7 + 0.6 * r();
-    return { id: "r" + i, name, xp: Math.round(target * Math.min(1, Math.pow(f, pace))), target };
+    const kind = i === shadow ? "shadow" : kinds[i], target = Math.round(base * (0.35 + 1.3 * r()));
+    /* a share of the week's XP for each day, by the kind of player */
+    const w = Array.from({ length: 7 }, (_, d) => {
+      const coin = r();
+      if (kind === "weekend") return d >= 5 ? 3 + coin : coin < 0.3 ? 0.4 : 0;
+      if (kind === "streaker") return 0.8 + 0.4 * coin;
+      if (kind === "fader") return d < 3 ? 2 + coin : coin < 0.15 ? 0.3 : 0;
+      if (kind === "skipper") return coin < 0.45 ? 0 : 0.6 + coin;
+      return 0.6 + 0.8 * coin;
+    });
+    const sum = w.reduce((a, b) => a + b, 0) || 1, per = w.map(x => target * x / sum);
+    const by = d => per.slice(0, d).reduce((a, b) => a + b, 0);
+    let xp = Math.round(by(day) + per[day] * part), yday = Math.round(by(Math.max(0, day)));
+    const lead = 6 + Math.floor(r() * 18), cap = Math.round(base * 1.7 * Math.min(1, 0.25 + f));
+    if (kind === "shadow") { xp = Math.min(cap, Math.max(xp, you + lead)); yday = Math.min(xp, yday); }
+    const quiet = per.slice(Math.max(0, day - 1), day + 1).every(x => x < 1) && day > 0;
+    return { id: "r" + i, name, xp, target, kind, today: xp - yday, quiet };
   });
 }
 /* the chart now: you and the rivals in order, the days left, the battle on offer */
 export function chartState(data, now = Date.now()) {
   const c = data.charts || {}, wk = weekOf(now), tier = Math.max(0, Math.min(VENUES.length - 1, c.tier || 0));
   const at = (now - weekStart(wk)) / (7 * DAY), you = weekXP(data, wk);
-  const rows = [...chartRivals(wk, tier, at), { id: "you", name: "You", xp: you, you: true }]
+  const rows = [...chartRivals(wk, tier, at, you), { id: "you", name: "You", xp: you, you: true, today: weekXP(data, wk) - weekXP(data, wk, now - DAY) }]
     .sort((a, b) => b.xp - a.xp || (a.you ? -1 : b.you ? 1 : 0)).map((x, i) => ({ ...x, rank: i + 1 }));
   const me = rows.find(x => x.you), above = me.rank > 1 ? rows[me.rank - 2] : rows[1]; /* at the top, the one chasing you */
   const today = dayKey(now), b = c.battle?.day === today ? c.battle : null;
@@ -3645,11 +3669,13 @@ export function chartsSettle(data, now = Date.now()) {
   if (!c.week) { c.week = wk; return null; }
   if (c.week === wk) return null;
   const prev = c.week, tier = c.tier || 0, you = weekXP(data, prev);
-  const rows = [...chartRivals(prev, tier, 1), { you: true, xp: you }].sort((a, b) => b.xp - a.xp || (a.you ? -1 : b.you ? 1 : 0));
+  const rows = [...chartRivals(prev, tier, 1, you), { you: true, xp: you }].sort((a, b) => b.xp - a.xp || (a.you ? -1 : b.you ? 1 : 0));
   const rank = rows.findIndex(x => x.you) + 1, up = you > 0 && rank <= CHART_PROMOTE && tier < VENUES.length - 1;
+  const down = !up && rank > rows.length - CHART_DEMOTE && tier > 0;
   if (you > 0 && rank <= CHART_PROMOTE) (c.records || (c.records = [])).push({ tier, week: prev, rank });
-  c.last = { week: prev, tier, rank, xp: you, up };
+  c.last = { week: prev, tier, rank, xp: you, up, ...(down ? { down: true } : {}) };
   if (up) c.tier = tier + 1;
+  if (down) c.tier = tier - 1;
   c.week = wk;
   return c.last;
 }
@@ -3669,7 +3695,7 @@ export function cleanCharts(raw) {
   const fans = Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0))); if (fans) out.fans = fans;
   const recs = (Array.isArray(raw.records) ? raw.records : []).filter(r => isObj(r) && day.test(r.week) && r.rank >= 1 && r.rank <= 10).slice(-100).map(r => ({ tier: Math.max(0, Math.min(VENUES.length - 1, Math.floor(+r.tier || 0))), week: r.week, rank: Math.floor(r.rank) }));
   if (recs.length) out.records = recs;
-  if (isObj(raw.last) && day.test(raw.last.week)) out.last = { week: raw.last.week, tier: Math.floor(+raw.last.tier || 0), rank: Math.floor(+raw.last.rank || 0), xp: Math.max(0, Math.floor(+raw.last.xp || 0)), up: raw.last.up === true, ...(raw.last.seen === true ? { seen: true } : {}) };
+  if (isObj(raw.last) && day.test(raw.last.week)) out.last = { week: raw.last.week, tier: Math.floor(+raw.last.tier || 0), rank: Math.floor(+raw.last.rank || 0), xp: Math.max(0, Math.floor(+raw.last.xp || 0)), up: raw.last.up === true, ...(raw.last.down === true ? { down: true } : {}), ...(raw.last.seen === true ? { seen: true } : {}) };
   const b = raw.battle;
   if (isObj(b) && day.test(b.day) && typeof b.songId === "string" && typeof b.rival === "string") out.battle = { day: b.day, rival: b.rival.slice(0, 40), songId: b.songId.slice(0, 40), target: Math.max(0, Math.min(100, Math.round(+b.target || 0))), ...(b.result === "won" || b.result === "lost" ? { result: b.result, pct: Math.max(0, Math.min(100, Math.round(+b.pct || 0))) } : {}) };
   return out.tier || out.week || out.records || out.fans || out.battle ? out : null;

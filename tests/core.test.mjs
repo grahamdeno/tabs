@@ -1850,9 +1850,18 @@ test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles
   assert.deepEqual([last.rank, last.up, data.charts.tier], [1, true, 1], "first place: up to the Open mic");
   assert.deepEqual(data.charts.records, [{ tier: 0, week: "2026-10-19", rank: 1 }]);
   assert.equal(C.chartsSettle(data, wed + 7 * 86400e3), null, "once a week");
-  /* a quiet week: no move, no record, nobody moves down */
+  /* 4.11.0: a quiet week puts you in the bottom 3: back down a tier, the record stays */
   C.chartsSettle(data, wed + 14 * 86400e3);
-  assert.deepEqual([data.charts.last.xp, data.charts.last.up, data.charts.tier, data.charts.records.length], [0, false, 1, 1]);
+  assert.deepEqual([data.charts.last.xp, data.charts.last.up, data.charts.last.down, data.charts.tier, data.charts.records.length], [0, false, true, 0, 1]);
+  C.chartsSettle(data, wed + 21 * 86400e3);
+  assert.equal(data.charts.tier, 0, "never below the Garage");
+  /* the players behave like people: the shadow stays just ahead of you, weekend players surge late */
+  const fri = C.chartRivals("2026-10-19", 2, 4.5 / 7, 300), sun = C.chartRivals("2026-10-19", 2, 6.9 / 7, 300);
+  const shadow = fri.find(x => x.kind === "shadow");
+  assert.ok(shadow.xp > 300 || shadow.xp === Math.round((90 + 2 * 55) * 1.7 * Math.min(1, 0.25 + 4.5 / 7)), "just ahead of you, unless they can't keep up");
+  const wk = fri.filter(x => x.kind === "weekend");
+  if (wk.length) assert.ok(wk.every(x => sun.find(y => y.id === x.id).xp > x.xp), "weekend players gain over the weekend");
+  assert.deepEqual(new Set([...fri.map(x => x.kind)]).size >= 4, true, "different kinds of players");
   /* the battle: the player above you, a song of yours, a score to beat */
   const now = wed + 14 * 86400e3, b = C.startBattle(data, now);
   assert.equal(b.songId, "a"); assert.ok(b.target >= 55 && b.target <= 95);

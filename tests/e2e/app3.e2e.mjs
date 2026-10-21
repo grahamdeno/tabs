@@ -512,7 +512,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#tabs [data-tab=charts]"); await page.waitForSelector(".ch-head");
   assert.match(await page.innerText(".ch-head"), /Garage Chart/, "4.6.0: Charts start at the Garage");
   assert.equal(await page.locator(".ch-row").count(), 10);
-  assert.match(await page.innerText(".ch-row.you"), /You\s*\d+ XP/, "your XP this week");
+  assert.match(await page.innerText(".ch-row.you"), /You[\s\S]*\d+ XP/, "your XP this week (4.11.0: with what you did today)");
   await page.click("#ch-go"); await page.waitForSelector(".bt");
   assert.match(await page.innerText(".bt"), /wants your spot[\s\S]*TAKE THE STAGE/);
   await page.click("#bt-no"); await page.waitForSelector(".ch-head");

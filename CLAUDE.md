@@ -54,12 +54,18 @@ Looper pedal, Humb humbucker. Graham dropped Boomer, Cable and Reed. Drawings
 are in `friends.js` and on the canvas Friends board.
 Still to build, one release each, stopping after
 each for Graham to try: Tour quests (done in 4.5.0, `tour.js`; duet quest waits for XP), Charts (done in 4.6.0, `charts.js`: XP, weekly chart
-per tier, top 5 move up, records, daily rival battle; nobody moves down), Your band (done in 4.7.0, `band.js` + `friends.js`: friends join by
+per tier, top 5 move up, records, daily rival battle; 4.11.0: bottom 3 move down,
+players with kinds like weekend, streaker, fader, skipper and a shadow), Your band (done in 4.7.0, `band.js` + `friends.js`: friends join by
 lifetime plays, `BAND` in `core.js`; Beat and Bex play drums and bass in gigs), Rehearse hub (done in 4.8.0: `renderRehearse` in `practice.js` at
 #/practice, the neck moved to #/practice/neck; soundcheck from missed gig changes,
 `soundcheck` in `core.js`), Merch table (spend fans on gear, Louie finishes,
 backdrops). The stat bar still shows fans (Merch spends them); XP lives on Charts.
 The Tour duet quest stays locked until a friend's XP can reach the phone.
+Competition plan (Graham, 2026-10-21), like Duolingo: the weekly chart is the league
+(computer players now, real players at your tier from a server at App Store
+launch, computer players filling empty spots); friends are a separate layer.
+Order: 1 livelier players + move down (4.11.0), 2 song duels by link, 3 Friends
+view on Charts + Friend quest (replaces the locked Duet quest), 4 real-player league.
 
 ## Next up (Graham's order, agreed 2026-10-19)
 

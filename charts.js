@@ -1,11 +1,13 @@
 // Charts (4.6.0): the Charts tab.
 //   the chart        this week's chart at your tier (the venues, Garage up): you and nine players, by XP.
-//                    The top 5 move up a tier on Monday and keep that tier's record. Nobody moves down.
+//                    The top 5 move up a tier on Monday and keep that tier's record; the bottom 3 move
+//                    down (not below the Garage). The players play like people (chartRivals in core.js):
+//                    each row says what they've done today, or that they've gone quiet.
 //   rival battle     once a day, the player just above you: the same song, best score wins. Played as a
 //                    scored gig; win and you take 30 XP and 40 fans.
 //   records          one for each week you finished in the top 5
 // The numbers are worked out in core.js (chartState, chartsSettle, battleFor, XP).
-import { CHART_PROMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, startBattle } from "./core.js";
+import { CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, startBattle } from "./core.js";
 import { app, esc, toast } from "./ui.js";
 import { data, playGig } from "./app.js";
 import { louie } from "./louie.js";
@@ -24,22 +26,23 @@ export function renderCharts(view = "chart") {
   const row = x => `<li class="ch-row${x.you ? " you" : ""}${x.rank <= CHART_PROMOTE ? " up" : ""}">
       <span class="ch-rk">${x.rank}</span>
       <span class="ch-av" style="background:${x.you ? "var(--fg)" : AV[x.name.length % AV.length]}">${x.you ? louie("happy", { size: 34 }) : esc(x.name[0])}</span>
-      <span class="ch-nm">${esc(x.name)}</span>
+      <span class="ch-nm">${esc(x.name)}<small class="ch-note${x.today > 0 ? " hot" : ""}">${x.today > 0 ? `+${x.today} today${x.kind === "weekend" && new Date().getDay() % 6 === 0 ? ", on a weekend run" : x.kind === "shadow" && !x.you ? ", right ahead of you" : ""}` : x.you ? "nothing yet today" : x.quiet ? "quiet for a couple of days" : "not yet today"}</small></span>
       ${st.rival && x.id === st.rival.id && !b?.result ? `<span class="ch-btl">BATTLE</span>` : ""}
       <span class="ch-xp">${x.xp} XP</span></li>`;
   const rows = st.rows.map(row);
+  if (st.tier > 0) rows.splice(rows.length - CHART_DEMOTE, 0, `<li class="ch-zone down" aria-hidden="true"><span>MOVE DOWN ZONE</span></li>`);
   rows.splice(CHART_PROMOTE, 0, `<li class="ch-zone" aria-hidden="true"><span>${st.next ? "PROMOTION ZONE" : "TOP 5"}</span></li>`);
   const battleCard = !b ? "" : b.result
     ? `<section class="ch-go done"><p>${b.result === "won" ? `You beat ${esc(b.rival)} on ${esc(song?.title || "the song")}: ${b.pct}% to ${b.target}%. +${XP.battle} XP, +${XP.battleFans} fans.` : `${esc(b.rival)} held on: ${b.target}% to your ${b.pct}%. A new battle tomorrow.`}</p></section>`
     : `<section class="ch-go"><p>${st.you.rank === 1 ? `<b>${esc(b.rival)}</b> wants your spot. Win on ${esc(song?.title || "a song")} and take ${XP.battle} XP` : `Win the battle with <b>${esc(b.rival)}</b> on ${esc(song?.title || "a song")} and take ${XP.battle} XP`}</p><button class="ch-gobtn" id="ch-go">GO</button></section>`;
   app.innerHTML = `<div class="ch">
     <div class="tq-top">${statBar()}</div>
-    ${st.last ? `<section class="ch-last"><p>${st.last.xp ? `Last week: <b>${ord(st.last.rank)}</b> on the ${esc(VENUES[st.last.tier])} chart${st.last.up ? `. Up to the <b>${esc(VENUES[st.last.tier + 1])}</b>!` : st.last.rank <= CHART_PROMOTE ? ". A record for the shelf." : ". Top 5 moves you up."}` : `Last week went by without a play. This week is a fresh chart.`}</p><button class="sb" id="ch-lastx" aria-label="Got it">OK</button></section>` : ""}
+    ${st.last ? `<section class="ch-last"><p>${st.last.xp ? `Last week: <b>${ord(st.last.rank)}</b> on the ${esc(VENUES[st.last.tier])} chart${st.last.up ? `. Up to the <b>${esc(VENUES[st.last.tier + 1])}</b>!` : st.last.down ? `. Back down to the <b>${esc(VENUES[st.last.tier - 1])}</b>. Win it back this week.` : st.last.rank <= CHART_PROMOTE ? ". A record for the shelf." : ". Top 5 moves you up."}` : st.last.down ? `Last week went by without a play, so you're back at the <b>${esc(VENUES[st.last.tier - 1])}</b>.` : `Last week went by without a play. This week is a fresh chart.`}</p><button class="sb" id="ch-lastx" aria-label="Got it">OK</button></section>` : ""}
     <section class="ch-head" aria-label="${esc(st.name)} chart">
       <div><h1>${esc(st.name)} Chart</h1><small>${st.daysLeft} DAY${st.daysLeft === 1 ? "" : "S"} LEFT</small></div>
       <div class="ch-recs" aria-label="${st.records.length} record${st.records.length === 1 ? "" : "s"}">${st.records.slice(-4).map(r => RECORD(r.tier, r.rank)).join("") || RECORD(st.tier, 9)}</div>
     </section>
-    <p class="ch-sub">${st.next ? `Top ${CHART_PROMOTE} move up to the ${esc(st.next)}` : "The top of the charts. Stay in the top 5 for records"}</p>
+    <p class="ch-sub">${st.next ? `Top ${CHART_PROMOTE} move up to the ${esc(st.next)}` : "The top of the charts. Stay in the top 5 for records"}${st.tier > 0 ? ` · bottom ${CHART_DEMOTE} move down` : ""}</p>
     <ol class="ch-list">${rows.join("")}</ol>
     ${battleCard}
     <p class="ch-how">XP: ${XP.play} for a song played through, ${XP.landed} for each chord change landed in a gig, ${XP.crowd} for a crowd of 10, ${XP.goal} for a setlist goal, ${XP.battle} for a battle won.</p>
