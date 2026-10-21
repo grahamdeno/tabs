@@ -118,8 +118,8 @@ function renderSettings() {
     today: ["Today", `
     <div class="set-group glass">
       <div class="set">
-        <span class="tile">${icon("flame")}</span><span class="name">Streak and daily nudge</span>
-        <button class="toggle ${s.nudge !== false ? "on" : ""}" id="s-nudge" role="switch" aria-checked="${s.nudge !== false}" aria-label="Streak and daily nudge in the Songbook"></button>
+        <span class="tile">${icon("flame")}</span><span class="name">Up next card in the Songbook</span>
+        <button class="toggle ${s.nudge !== false ? "on" : ""}" id="s-nudge" role="switch" aria-checked="${s.nudge !== false}" aria-label="Up next card in the Songbook"></button>
       </div>
       ${s.nudge !== false ? `<label class="fld fld-k"><span class="tile ftile">${icon("sun")}</span>
         <input id="s-city" type="text" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="City for weather (optional)" value="${esc(s.place?.name || "")}" aria-label="City for weather"></label>

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -65,13 +65,16 @@ const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave
    plainPlay (tests only, never set by the app) keeps Play plain. */
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
 const gigsOn = song => canGig(song);
-const playFace = on => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : "PLAY"}</span>`;
+/* 4.20.0: the face says what plays with you: the recording or the band (nothing when neither will) */
+const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : (data.settings.metronome || data.settings.bass || bandParts(data).drums || bandParts(data).bass) ? "WITH THE BAND" : "";
+const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : "PLAY"}${!on && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
 function refreshPlay(song) {
   const pb = $("play");
   if (!pb || viewing !== song || scroll.on) return;
   pb.setAttribute("aria-label", playLabel(song, false));
+  pb.innerHTML = playFace(false, song);
 }
 /* Your band (4.7.0): a play that brings in a new friend says so */
 function bandToast() {
@@ -140,7 +143,7 @@ function renderViewer(id) {
       return `<div class="setbar"><button class="sb" id="sprev" aria-label="Previous song" ${setCtx.idx === 0 ? "disabled" : ""}>${icon("back")}</button>
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
-    <div class="metarow"><span class="keyslot" id="keyslot"></span><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat pchip" id="pchip"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="metarow"><span class="keyslot" id="keyslot"></span><button class="stat" id="stat" aria-label="Learning status"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <nav class="secbar" id="secbar" aria-label="Song sections"></nav>
@@ -166,6 +169,7 @@ function renderViewer(id) {
       <div class="looprow" id="looprow"></div>
       <div class="player">
         <button class="tl more" id="more" aria-label="Tools" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        ${listenChip(song)}
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed" hidden>
@@ -174,7 +178,7 @@ function renderViewer(id) {
             : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
-        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false)}</button>
+        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false, song)}</button>
       </div>
       </div>
     </div>`;
@@ -200,7 +204,6 @@ function renderViewer(id) {
   paintStat();
   $("tunechip")?.addEventListener("click", () => openTuner(songTuning(song)));
   $("listen").onclick = () => hasMusic(song) ? openRecording(song) : listenSheet(song);
-  $("dechip").onclick = () => germanSheet(song, () => draw());
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
@@ -315,17 +318,8 @@ function renderViewer(id) {
   };
   $("setdial")?.addEventListener("pointerdown", e => { e.preventDefault(); setDial(e); });
   $("setdial")?.addEventListener("click", e => { if (e.detail === 0) setDial(null); });
-  /* German practice: the level dial once the song is translated, else the sheet to translate it. */
-  songDeOpen = () => { const fresh = song.de && song.de.src === deSource(sungText(parseBlocks(song.body || ""))); if (fresh && !deJobs.has(song.id)) deDial(); else germanSheet(song, () => draw()); };
-  /* German practice level on the corner dial: Off, Basic … Fluent. */
-  const deDial = () => {
-    const was = song.deLevel || 0;
-    openDial({ labels: DE_LEVELS, value: was, label: "German level", cls: "key",
-      tick: i => DE_LEVELS[i].slice(0, i === 3 ? 5 : 6),
-      read: i => ({ big: DE_LEVELS[i], small: i ? "GERMAN" : "GERMAN OFF" }),
-      input: i => { song.deLevel = i; if (i) data.settings.deLevel = i; Tabs.save(data); draw(); },
-      done: (i, changed) => { if (changed) toast(i ? `German: ${DE_LEVELS[i]}` : "German off", null, { label: "Undo", fn: () => { song.deLevel = was; Tabs.save(data); draw(); } }); } });
-  };
+  /* German practice (4.20.0: from Tools only): the sheet, with the levels once the song is translated, else a way to translate it. */
+  songDeOpen = () => germanSheet(song, () => draw());
   /* One hand (3.19.0): the bar is out while paused and folds into Play's corner while playing (fold.js). */
   /* Folded, Play keeps one partner: in a set the next song, otherwise the Library. */
   const foldNav = () => {
@@ -752,14 +746,6 @@ export function paintLoop(song) {
   refreshPlay(song);
   const lines = sheetLines(), on = practicing(song), lp = activeLoop(song);
   lines.forEach(el => el.classList.remove("inloop", "loopa", "loopfirst", "looplast"));
-  const chip = $("pchip");
-  if (chip) {
-    chip.className = "stat pchip" + (on ? " on" : "");
-    chip.innerHTML = on ? '<i class="pc-lit"></i>Practicing' : `${icon("loop")}Practice`;
-    chip.setAttribute("aria-pressed", on);
-    chip.setAttribute("aria-label", on ? "Practice mode is on. Tap to play straight through" : "Practice mode");
-    chip.onclick = () => { setPracticing(song, !on); toast(!on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", chip); };
-  }
   const row = $("looprow");
   document.body.classList.toggle("loop-on", on);
   if (!on) { if (row) row.innerHTML = ""; row?.classList.remove("on"); return; }
@@ -799,7 +785,7 @@ export function paintLoop(song) {
     metro.bar = null; Tabs.save(data); paintLoop(song);
     toast(`Drums: ${DRUM_LEVELS[lv]}`, $("lp-drums"));
   });
-  $("lp-x").onclick = () => { setPracticing(song, false); toast("Practice mode off. The section is kept for next time", $("pchip")); };
+  $("lp-x").onclick = () => { setPracticing(song, false); toast("Practice mode off. The section is kept for next time"); };
 }
 // Speed factor for the current pass.
 /* How fast the recording plays: the song's own setting, slowed further on a Build up pass. */
@@ -1074,14 +1060,15 @@ function setBacking(song, mode, near, quiet) {
   const band = data.settings.metronome || data.settings.bass;
   toast(mode === "band" ? (band ? "Band: drums and bass, no recording" : "Band: turn on the metronome or bass in More") : "Recording: no drums or bass", near);
 }
-/* The chip under the title. With Apple Music on and a linked track it is the Recording chip: the cover,
-   what Play starts (Recording or Band, lit when it is the recording), and a tap opens the Recording sheet. */
+/* 4.20.0: the recording button beside Play (it was a chip under the title). With Apple Music on and a linked
+   track it shows the cover, lit when Play starts the recording, and opens the Recording sheet; otherwise a note
+   that finds a recording. The words stay for screen readers. */
 function listenChip(song) {
-  if (!hasMusic(song)) return `<button class="stat listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}${song.listen ? esc(song.listen.service) : "Listen"}</button>`;
+  if (!hasMusic(song)) return `<button class="tl listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}<span class="vh">${song.listen ? esc(song.listen.service) : "Listen"}</span></button>`;
   const rec = usesMusic(song), art = /^https:\/\//.test(song.listen.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : icon("note");
   const n = recordingNotes(song), look = !!(n.key || n.bpm);
-  return `<button class="stat listen rec${rec ? " on" : ""}" id="listen" aria-label="${rec ? "Play starts the recording" : "Play starts the band"}.${look ? " The recording doesn't match the sheet." : ""} Open the recording">
-    <span class="rc-art">${art}</span>${look ? '<i class="rc-look"></i>' : ""}${rec ? "Recording" : "Band"}${rec ? '<i class="rc-lit"></i>' : ""}</button>`;
+  return `<button class="tl listen rec${rec ? " on" : ""}" id="listen" aria-label="${rec ? "Play starts the recording" : "Play starts the band"}.${look ? " The recording doesn't match the sheet." : ""} Open the recording">
+    <span class="rc-art">${art}</span>${look ? '<i class="rc-look"></i>' : ""}<span class="vh">${rec ? "Recording" : "Band"}</span></button>`;
 }
 /* How the sheet differs from the measured recording (3.18.0): key, in half steps (the shortest move),
    and tempo when it's more than 6% off and not just half or double time. */
@@ -1151,7 +1138,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "edit", icon: "edit", label: "Edit" },
     { id: "set", icon: "listplus", label: "Add to set" },
     { id: "share", icon: "share", label: "Share" },
-    chords && (aiKey() || song.de) && { id: "de", icon: "chat", label: "German" },
+    chords && (aiKey() || song.de) && { id: "de", icon: "chat", label: "German", hint: deHint.get(song.id) || "" },
     { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
     song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
@@ -1173,6 +1160,7 @@ function songMenu(song, anchor, redrawSong) {
         <div class="mrow size" role="group" aria-label="Text size"><span class="ml">Text size</span>
           <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div></div>
       ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6, "full"].map(n => `<button role="menuitemradio" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-checked="${n === lines()}">${n === "full" ? "Full" : n}</button>`).join("")}</div></div>` : ""}
+      ${inGig ? "" : `<div class="tl-prac"><span class="ml">Practice mode<small>${practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through"}</small></span><button class="toggle ${practicing(song) ? "on" : ""}" role="switch" data-prac aria-checked="${practicing(song)}" aria-label="Practice mode"></button></div>`}
       <div class="tl-h">PLAY ALONG</div><div class="tl-grid">${along.map(tile).join("")}</div>
       ${inGig ? "" : `<div class="tl-h">THE SONG</div><div class="tl-grid">${theSong.map(tile).join("")}</div>`}`;
   };
@@ -1205,6 +1193,7 @@ function songMenu(song, anchor, redrawSong) {
       Tabs.save(data); paint(); redrawSong();
       return;
     }
+    if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", moreBtn()); return; }
     const ln = ev.target.closest("[data-lines]");
     if (ln) { data.settings.gigLines = ln.dataset.lines === "full" ? "full" : +ln.dataset.lines; Tabs.save(data); paint(); m.querySelector(`[data-lines="${ln.dataset.lines}"]`)?.focus({ preventScroll: true }); return; }
     const b = ev.target.closest("[data-m]");
@@ -1297,13 +1286,15 @@ function wordsFor(song) {
 // German practice: songs with words, when there's a key or a translation.
 // The chip under the title is its home in every layout; it shows progress
 // while a translation runs in the background (german.js keeps deJobs).
-const deJobs = new Map();
+const deJobs = new Map(), deHint = new Map();
 let songDeOpen = null; /* the open song's German: the dial, or the sheet when it needs work (in More) */
 const deEligible = song => !!firstLyric(song.body) && (!!aiKey() || !!song.de);
 function paintDeChip(song, fresh, lvl) {
+  const job = deJobs.get(song.id);
+  /* 4.20.0: German lives in Tools; its tile shows where it stands */
+  deHint.set(song.id, !deEligible(song) ? "" : job ? `${job.done} of ${job.total}` : !song.de ? "" : !fresh ? "Update" : song.de.lines?.some(l => !l) ? "Finish" : DE_LEVELS[lvl]);
   const dc = $("dechip");
   if (!dc) return;
-  const job = deJobs.get(song.id);
   dc.hidden = !deEligible(song);
   dc.classList.toggle("on", !!(lvl && fresh) || !!job);
   dc.classList.toggle("busy", !!job);
@@ -1756,7 +1747,7 @@ function stopScroll() {
   scroll.lock?.release?.().catch(() => {});
   scroll.lock = null;
   const btn = $("play");
-  if (btn) { btn.innerHTML = playFace(false); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
+  if (btn) { btn.innerHTML = playFace(false, viewing); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
   updateDiagrams();
   if (btn) { diag.armed = true; showPausedRow(); }
   /* After playing: the first pause shows starting from a line; a later one, Now and Next. */

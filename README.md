@@ -15,6 +15,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - The tab bar: Road, Tour, Charts, Band, Rehearse and More (Settings, Your profile, Tuner and Songbook, the most used nearest the thumb; the Merch table opens from your fans and the Tour Map from your venue, in the stat bar or on Your profile).
 
 ### The Gig: playing a song
+- The song page: the key and Learning chips under the title; beside Play, the Recording button (the cover when Apple Music is linked) chooses what Play plays along with, and Play says it: Along with the recording or With the band. The Recording sheet: the cover, what was measured (tempo, swing, key), Recording or Band, Listen first, and Change recording.
 - Play on any song opens the Gig, a scored show over the song as it plays (auto-scroll, the recording or the band).
 - On screen: the song map in Stage Gels (a light for each section; the screen washes into the one you're in), your strings, the section and combo, a crowd of 12 fans, Now and Next with the beats to the change, Louie, a timing meter, and 4, 5 or 6 lines of the song, or Full (the whole song page under a thin strip). Lines in a gig is in Tools.
 - The microphone hears your strums: a strum within 0.35 s of a chord change lands it. Landed changes build the combo; a miss ends it and snaps a string. Nothing fails. Hearing you turns scoring off for one show; Settings > Playing > Score my plays sets the default.
@@ -23,7 +24,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Practicing a section or slower, a tab, or Play together plays the plain sheet: chords over the words, the current line stands out and the others dim while it plays, the section rail on the right edge, tap a chord for its fingering, a diagram over each chord on the line you pause on.
 - Tools is one sheet from the bottom: text size, Lines in a gig, Play along (speed or song length, metronome, bass line, Play together, tuner, capo, Make it easier, Practice a section, Now and Next) and The song (Edit, Add to set, Share, German, recording link, Spark tone).
 - The band: a metronome (click or a drum beat that fits the song, written per section by the AI when there's a key), and a synthesized bass playing each chord's root. Beat and Bex from Your band play drums and bass in gigs once they've joined.
-- Practice mode (the Practice chip): loop a section, slow it to 50%, Build up, drums busier or simpler. Practice time counts as plays on the Tour Map.
+- Practice mode (the switch in Tools; a learning song opens in it): loop a section, slow it to 50%, Build up, drums busier or simpler. Practice time counts as plays on the Tour Map.
 - Bluetooth page-turner pedals work: left or Space plays and pauses, right goes to the next section.
 
 ### Tour, Charts, Band and Rehearse
@@ -36,7 +37,8 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Songbook, sets and editing
 - Search titles, artists and lyrics; paste a chord sheet into the bar and it works out the format, key, sections, title and artist. Nothing found offers the web, then Get the song.
-- Filters (All, Can play, Sets, Favorites, Learning, Tabs), sorts, a letter index, Up next for you (the song one new chord opens, tonight's request, or a song worth another try: one you played once or twice and left three weeks ago). Swipe left to delete (with Undo), right to favorite.
+- One nudge card at the top (the song that keeps your streak, or one for today's weather or a change to work on); the streak itself is in the stat bar, and your week's changes are in Your profile.
+- Filters (All, Can play, Sets, Favorites, Learning, Tabs) as flat pills, the chosen one filled; sorts, a letter index, Up next for you (the song one new chord opens, tonight's request, or a song worth another try: one you played once or twice and left three weeks ago). Swipe left to delete (with Undo), right to favorite.
 - Sets with a date, place and drawn cover; Play set runs them with a Next up card and remembers each run.
 - Add opens a writing pad: Paste, Type, Sing or strum (key and chords found on the phone), and with an AI key, Scan a page or Find the chords. Edit works in place: tap a word to set its chord, every change saves with Undo. Deleted songs and sets stay 30 days in Recently deleted.
 

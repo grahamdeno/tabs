@@ -400,6 +400,8 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs-v1").includes("40.71")), false, "not in the library");
   await page.waitForFunction(() => document.querySelectorAll(".tm-map img.leaflet-tile").length > 0);
   assert.ok(tiles.every(u => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(u)));
+  /* 4.20.0: the sheet's number tiles once shared the map layer's class and hid the map */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".tm-map .leaflet-layer")).display), "block", "the map pictures show");
   if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/tm-spot.png" }); }
   await page.waitForSelector("#tm-take-go"); await page.waitForFunction(() => !document.querySelector("[role=dialog][aria-label='About the map']"));
   await page.click("#tm-info"); await page.waitForSelector("#tm-forget");

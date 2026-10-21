@@ -328,8 +328,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   assert.ok((await box("#play")).right > 330, "Play at the right, in thumb reach");
   assert.equal(await page.locator(".secbar .sbar").count(), 2, "the song map: one button per section");
   await page.click("#more"); await page.waitForSelector('.menu');
-  const m = await box(".menu");
-  assert.ok(m.bottom > H - 40 && m.top > H * 0.2, "Tools rises from the bottom");
+  await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length); const m = await box(".menu");
+  assert.ok(m.bottom > H - 40 && m.top > H * 0.1 /* 4.20.0: taller with the Practice switch */, `Tools rises from the bottom (${m.top}, ${m.bottom})`);
   assert.ok(Math.abs(m.left - (390 - m.right)) < 2, `4.19.1: Tools sits centred (${m.left}, ${m.right})`);
   assert.match(await page.innerText(".menu .tl-head"), /Tools\s*Text size/, "Text size beside the title");
   assert.match(await page.innerText(".menu"), /Lines in a gig/);
@@ -475,12 +475,14 @@ test("2.25.0 speed dial is a meter: the needle swings with the length, and whole
   assert.ok(after[1] < before[1], `faster points higher: ${before} then ${after}`);
 });
 
-test("2.25.0 filter chips: the selected one's lamp is lit (4.0.0: in the palette's go colour)", { skip: skip() }, async t => {
+test("2.25.0 filter chips: the selected one is filled in the accent colour (4.20.0: flat pills, no lamps)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map((s, i) => ({ ...s, favorite: i === 0 })) });
-  const lamp = sel => page.evaluate(s => getComputedStyle(document.querySelector(s), "::before").backgroundColor, sel);
+  const fill = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
+  const lamp = sel => page.evaluate(s => getComputedStyle(document.querySelector(s), "::before").display, sel);
   const go = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--accent)"; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
-  assert.equal(await lamp("#chips [data-f='all']"), go);
-  assert.notEqual(await lamp("#chips [data-f='fav']"), go);
-  await page.click("#chips [data-f='fav']"); await until(async () => (await lamp("#chips [data-f='fav']")) === go);
-  assert.equal(await lamp("#chips [data-f='fav']"), go);
+  assert.equal(await fill("#chips [data-f='all']"), go);
+  assert.notEqual(await fill("#chips [data-f='fav']"), go);
+  assert.equal(await lamp("#chips [data-f='all']"), "none", "no lamp dot");
+  await page.click("#chips [data-f='fav']"); await until(async () => (await fill("#chips [data-f='fav']")) === go);
+  assert.notEqual(await fill("#chips [data-f='all']"), go);
 });

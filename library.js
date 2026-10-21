@@ -1,7 +1,8 @@
 // The Road: the Songbook (search, filters, the song list, swipes) and the paste card. Split from app.js (4.15.1); app.js re-exports what other files use.
 import { coachTip, demoSearch, dismissCoach, markUsed, searchOpened, tick, tipDue, tipsSeen, used } from "./coach.js";
-import { Tabs, artistSortName, changesOf, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playSongs, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, streakOf, untilLabel, weatherMood } from "./core.js";
+import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
 import { recentApple } from "./listen.js";
+import { guitarIcon } from "./rock.js";
 import { fullWhen, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
 import { renderImport } from "./share.js";
 import { ago, backupNow, needsBackup } from "./store.js";
@@ -27,7 +28,7 @@ onLeave(r => { if (r.name !== "library" && searching) { searching = false; docum
 // floor) and goes once you've played today. Weather comes from Open-Meteo for
 // a city chosen in Settings, fetched once a day; no location access.
 const WX = "tabs.wx.v1";
-const NUDGE_ICON = { change: "fretboard", streak: "flame", rain: "rain", cold: "snow", clear: "sun", hot: "sun", learn: "note", idle: "heart" };
+const NUDGE_ICON = { change: "fretboard", streak: "note", rain: "rain", cold: "snow", clear: "sun", hot: "sun", learn: "note", idle: "heart" };
 export const todayKey = () => new Date().toDateString();
 function wxMood() {
   const p = data.settings.place;
@@ -51,22 +52,15 @@ async function fetchWeather(p) {
     if (code == null) return;
     try { localStorage.setItem(WX, JSON.stringify({ day: todayKey(), lat: p.lat, lon: p.lon, code, tmax })); } catch {}
     const el = $("today");
-    if (el && route().name === "library" && !searching) { el.outerHTML = todayHTMLOrSpot(...weekStats()); bindToday(); }
+    if (el && route().name === "library" && !searching) { el.outerHTML = todayHTMLOrSpot(); bindToday(); }
   } catch { /* offline: no weather today */ }
 }
-const weekStats = () => { const w = playSongs(data).map(s => playsThisWeek(s)); return [w.reduce((a, b) => a + b, 0), w.filter(Boolean).length]; };
-function todayHTML(weekTotal, weekSongs) {
-  const plays = weekTotal ? `${weekTotal} play${weekTotal === 1 ? "" : "s"} this week` : "";
-  if (data.settings.nudge === false) return weekTotal ? `<div class="weekly" id="today">This week: ${weekTotal} play${weekTotal === 1 ? "" : "s"} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}</div>` : "";
-  const st = streakOf(playSongs(data));
+/* 4.20.0: no streak line here (the stat bar and Your profile have it): just the one nudge, as a card */
+function todayHTML() {
+  if (data.settings.nudge === false) return "";
   const n = pickNudge({ songs: data.songs, mood: wxMood(), gigToday: data.sets.some(x => gigCountdown(x.when)) });
-  if (!plays && !n) return "";
-  const dots = `<span class="t-dots" aria-hidden="true">${st.week.map((on, i) => `<i class="${on ? "on" : i === 6 ? "now" : ""}"></i>`).join("")}</span>`;
-  const stat = st.days >= 2 ? `<b>${st.days}-day streak</b>${plays ? ` · ${plays}` : ""}` : plays ? `This week: ${plays.replace(" this week", "")} across ${weekSongs} song${weekSongs === 1 ? "" : "s"}` : "";
-  return `<div class="today" id="today">
-    ${stat ? `<button class="weekly t-stat" id="t-stat" aria-label="${st.days >= 2 ? `${st.days}-day practice streak${st.today ? "" : ", not played yet today"}. ` : ""}Your changes this week">${st.days >= 2 ? dots : ""}<span>${stat}</span>${icon("chev", "chev")}</button>` : ""}
-    ${n ? `<button class="nudge" id="nudge" data-song="${esc(n.songId)}">${icon(NUDGE_ICON[n.kind] || "note")}<span><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span>${icon("chev", "chev")}</button>` : ""}
-  </div>`;
+  if (!n) return "";
+  return `<div class="today" id="today"><button class="nudge k-${esc(n.kind || "learn")}" id="nudge" data-song="${esc(n.songId)}"><span class="ng-ic">${n.kind === "streak" ? guitarIcon(true, 30) : icon(NUDGE_ICON[n.kind] || "note")}</span><span><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span>${icon("chev", "chev")}</button></div>`;
 }
 // An empty, hidden #today keeps a place for the line when there's nothing to
 // show yet, so a forecast that arrives after the library is drawn can still
@@ -74,26 +68,7 @@ function todayHTML(weekTotal, weekSongs) {
 const todayHTMLOrSpot = (...a) => todayHTML(...a) || `<div id="today" hidden></div>`;
 function bindToday() {
   $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
-  $("t-stat")?.addEventListener("click", showChanges);
 }
-// Changes: the chord changes you played this week, from songs played to
-// their end, and the ones your songs have that you play least.
-function showChanges() {
-  const { most, work } = changesOf(data.songs);
-  const max = Math.max(1, ...most.map(c => c.week));
-  const row = (c, w) => `<div class="chg${w ? " work" : ""}"><b>${esc(c.a)}<em>→</em>${esc(c.b)}</b><div class="bar"><i style="width:${Math.max(4, Math.round(c.week / max * 100))}%"></i></div><small>${c.week}</small></div>`;
-  const first = work[0];
-  layer.innerHTML = `<div class="scrim" id="chg-scrim"></div><div class="panel card" role="dialog" aria-label="Your changes this week">
-    <div class="pc-head">${icon("fretboard")}<span>Your changes this week</span></div>
-    ${most.length ? `<div class="chg-lab">Most played</div><div class="chg-list">${most.map(c => row(c)).join("")}</div>` : `<p class="foot" style="margin:6px 2px 10px">Play a song to its end and its changes show up here.</p>`}
-    ${work.length ? `<div class="chg-lab">To work on</div><div class="chg-list">${work.map(c => row(c, true)).join("")}</div>` : ""}
-    <p class="foot pn">Counted when a song plays to its end, in the shapes you play. To work on: changes your songs have that you play least.</p>
-    <div class="actions"><button class="btn" id="chg-x">Close</button>${first ? `<button class="btn primary" id="chg-go">Play ${esc(first.a)} to ${esc(first.b)}</button>` : ""}</div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  $("chg-scrim").onclick = close; $("chg-x").onclick = close;
-  $("chg-go")?.addEventListener("click", () => { close(); go("#/song/" + encodeURIComponent(first.best.id)); });
-}
-
 /* The filter chips, on the Library page and in Tonight's drawer. */
 export function chipsHTML() {
   if (!data.songs.length) return "";
@@ -109,7 +84,6 @@ export const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?
 
 export function renderLibrary() {
   chipsHTML(); /* settles a filter that no longer has songs */
-  const week = playSongs(data).map(s => playsThisWeek(s)), weekTotal = week.reduce((a, b) => a + b, 0), weekSongs = week.filter(Boolean).length;
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
@@ -118,7 +92,7 @@ export function renderLibrary() {
         ${tunerBtn("ib chunky-tune")}
       </div>
     </div>
-    ${todayHTMLOrSpot(weekTotal, weekSongs)}
+    ${todayHTMLOrSpot()}
     ${chipsHTML()}
     ${filter === "all" ? upNextHTML() : ""}
     ${filter === "all" && data.songs.length ? setsShelf() : ""}

@@ -1814,7 +1814,7 @@ body.is-home .rd-song b { font-size: 26px; }
   --card: #FFFFFF; --card-2: #F4F8FE; --rim: #C9DCF5; --hair: #D9E6F7; --rim-hi: rgba(255,255,255,.9);
   --bar: #FFFFFF; --solid: #FFFFFF; --scrim: rgba(20,33,61,.35); --head: #14213D;
   --good: #12936F; --tune: #12936F; --tn-lit: #FFD23F; --good-soft: rgba(18,147,111,.12); --shadow: 0 8px 24px rgba(20,33,61,.12);
-  --streak: #FF8A00; --streak-deep: #C96A00; --fans: #FFD23F; --fans-deep: #F2B705; --fans-text: #8A6A00; --strings: #3A86FF; --strings-deep: #2C6FE0;
+  --streak: #E8336E; --streak-deep: #B01E50; --fans: #FFD23F; --fans-deep: #F2B705; --fans-text: #8A6A00; --strings: #3A86FF; --strings-deep: #2C6FE0;
   --banner: #2C6FE0; --banner-deep: #1F56B8; --on-banner: #FFFFFF; --banner-sub: #FFFFFF;
   --locked: #D9E6F7; --locked-deep: #B9CCE6; --locked-ic: #8FA4C4; --tabs-on: #D6E7FF; --tabs-ring: #3A86FF;
   --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-hi: #6BA4FF; --lv-face: #FFD23F; --lv-face-sh: #F2B705; --lv-grille: #14213D; --lv-slat: #2A3A63; --lv-pupil: #14213D; --lv-cheek: #FF3D7F; --lv-lamp: #FF3D7F; --lv-tongue: #FF3D7F; --lv-shadow: #14213D;
@@ -1909,7 +1909,7 @@ body.tabbed .s-dock { bottom: var(--tabs); }
 /* ---- Coming soon (Tour, Charts, Band) ---- */
 
 /* ---- The Road (4.0.0): home ---- */
-body.is-home .app { padding-top: calc(4px + var(--safe-t)); padding-bottom: calc(var(--peek) - var(--tabs) + 6px); gap: 8px; }
+body.is-home .app { padding-top: calc(16px + var(--safe-t)); /* 4.20.0: clear of the phone's frosted edge under the clock */ padding-bottom: calc(var(--peek) - var(--tabs) + 6px); gap: 8px; }
 body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 
 .rd-top { flex: none; margin: 0 -4px; }
@@ -2435,7 +2435,7 @@ body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
    setlist and the duet quest (locked until Charts)
    ========================================================================== */
 .tq { padding-bottom: calc(var(--tabs) + 24px); }
-.tq-top { margin: -14px -4px 0; } /* 4.15.4: the stat bar sits where it does on the Road */
+.tq-top { margin: -2px -4px 0; } /* 4.15.4: the stat bar sits where it does on the Road; 4.20.0: both 12px lower, clear of the frosted edge */
 .tq-head { position: relative; margin: 10px -20px 0; padding: 16px 20px 18px; background: var(--streak); overflow: hidden; }
 .tq-ht h1 { margin: 0; font: 700 28px var(--display); color: #14213D; }
 .tq-ht small { display: block; margin-top: 2px; font: 800 13px var(--sans); letter-spacing: .06em; color: color-mix(in srgb, #14213D 75%, var(--streak)); }
@@ -2824,7 +2824,7 @@ body.gigging .ask { z-index: 66; }
 
 /* ---------- Rock icons (4.16.0): the streak's guitar, stage light, horns and knob (rock.js) ---------- */
 .ri { overflow: visible; display: block; }
-.ri-guitar .ri-bd, .ri-guitar .ri-hd { fill: #FF4FA3; } .ri-guitar .ri-neck, .ri-guitar .ri-lip { fill: #C2338A; }
+.ri-guitar .ri-bd, .ri-guitar .ri-hd { fill: var(--streak, #FF4FA3); } .ri-guitar .ri-neck, .ri-guitar .ri-lip { fill: var(--streak-deep, #C2338A); }
 .ri-guitar .ri-ink { fill: #1B1838; } .ri-guitar .ri-dot { fill: #FFD84D; }
 .ri-guitar .ri-waves path { fill: none; stroke: #3DE0FF; stroke-width: 2.4; stroke-linecap: round; }
 .ri-guitar .ri-waves path + path { opacity: .6; }
@@ -2963,9 +2963,9 @@ body.gigging .ask { z-index: 66; }
 .tm-bd.you > span:nth-child(3), .tm-bd.you b { color: var(--accent-ink); }
 .tm-bd.next { background: var(--accent-soft); border-radius: 12px; margin: 0 -8px; padding: 0 8px; }
 .tm-bd b { font: 700 18px var(--display); }
-.tm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.tm-tiles > div { background: var(--card); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; }
-.tm-tiles b { font: 700 26px var(--display); } .tm-tiles small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; color: var(--muted); }
+.tm-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tm-stats > div { background: var(--card); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; }
+.tm-stats b { font: 700 26px var(--display); } .tm-stats small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; color: var(--muted); }
 .tm-bd > span.tm-av { color: var(--fg); }
 .tm-bd.you > span.tm-av { color: var(--on-accent); }
 #tm-sheet[data-state="open"] .tm-pull { visibility: hidden; }
@@ -2999,3 +2999,60 @@ body.gigging .ask { z-index: 66; }
 .pf-drill { border: 0; border-radius: 12px; padding: 8px 12px; min-height: 36px; background: var(--accent); color: var(--on-accent); font: 700 14px var(--display); box-shadow: 0 3px 0 var(--accent-deep); }
 @media (prefers-reduced-motion: reduce) { .pf-pstamp.next { animation: none; } }
 .upn-c.again { background: #8A7CFF; box-shadow: 0 4px 0 #5A4FB0; color: #1B1838; } /* 4.19.0 */
+
+/* ---------- The song page, 4.20.0: one meta line, the recording beside Play, Play says what plays ---------- */
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.app.viewer > .metarow { flex-wrap: wrap; overflow: visible; margin-top: 8px; gap: 6px; }
+.app.viewer > .metarow .stat { min-height: 32px; padding: 4px 12px; font-size: 13px; box-shadow: none; }
+.app.viewer .player .tl.listen { padding: 0; overflow: hidden; position: relative; }
+.app.viewer .player .tl.listen .rc-art { position: absolute; inset: 0; display: grid; place-items: center; }
+.app.viewer .player .tl.listen .rc-art img { width: 100%; height: 100%; object-fit: cover; }
+.app.viewer .player .tl.listen.rec:not(.on) .rc-art img { opacity: .55; filter: grayscale(.6); }
+.app.viewer .player .tl.listen.rec.on { border: 3px solid var(--accent); }
+.app.viewer .player .tl.listen .rc-look { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--fans); box-shadow: 0 0 0 2px var(--card); }
+.play .pw-with { display: block; font: 800 10px var(--body, Nunito, sans-serif); letter-spacing: .08em; opacity: .8; margin-top: 1px; }
+.tl-prac { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 2px 0; padding: 10px 12px; border-radius: 16px; background: var(--card); }
+.tl-prac .ml { display: flex; flex-direction: column; font: 700 15px var(--display); color: var(--fg); }
+.tl-prac .ml small { font: 700 12px var(--body, Nunito, sans-serif); color: var(--muted); }
+
+/* ---------- The Recording sheet (4.20.0) ---------- */
+.panel.rs > .cover-head { margin: 0; border-radius: 0; padding-top: 6px; } /* the cover sat 16px outside the sheet */
+.panel.rs > .grab { margin: 8px auto 2px; }
+.rs-head .rs-art { width: 84px; height: 84px; border-radius: 16px; }
+.rs-head .rs-t { font: 700 20px/1.15 var(--display); } .rs-head .rs-a { font-weight: 700; }
+.rs-x { flex: none; align-self: flex-start; width: 40px; height: 40px; border-radius: 12px; border: 0; background: var(--card-2, var(--card)); color: var(--fg); display: grid; place-items: center; }
+.rs-x svg { width: 18px; height: 18px; }
+.rs-body { padding: 0 16px calc(16px + var(--safe-b)); display: flex; flex-direction: column; gap: 12px; }
+.rs-facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.rs-facts span { padding: 6px 12px; border-radius: 999px; background: var(--card-2, var(--card)); font: 800 13px var(--body, Nunito, sans-serif); color: var(--fg); }
+.rs-body .rs-look { margin-top: 0; }
+.rs-h { font: 800 12px var(--body, Nunito, sans-serif); letter-spacing: .08em; color: var(--muted); margin-top: 4px; }
+.rs-choice { display: flex; flex-direction: column; gap: 10px; }
+.rs-opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px; border-radius: 18px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); text-align: left; box-shadow: 0 4px 0 var(--rim); }
+.rs-opt.on { border-color: var(--accent); box-shadow: 0 4px 0 var(--accent-deep); background: var(--accent-soft); }
+.rs-oi { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--card-2, var(--bg)); color: var(--accent-ink); }
+.rs-oi svg { width: 20px; height: 20px; }
+.rs-ot { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .rs-ot b { font: 700 16px var(--display); } .rs-ot small { font-weight: 700; color: var(--muted); font-size: 13px; }
+.rs-ok { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); visibility: hidden; }
+.rs-opt.on .rs-ok { visibility: visible; } .rs-ok svg { width: 16px; height: 16px; }
+.rs-opt:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+.rs-hear { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+.rs-hear svg { width: 16px; height: 16px; }
+.rs-body .rs-row { margin: 0; padding: 0; border: 0; }
+.rs-change { align-self: center; border: 0; background: none; min-height: 44px; font: 700 15px var(--display); color: var(--accent-ink); }
+
+/* ---------- Songbook top (4.20.0): the nudge as a card, flat filters with no lamps ---------- */
+.today { margin: 6px 0 12px; }
+.today .nudge { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 0; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
+.today .nudge.k-streak { background: var(--streak); box-shadow: 0 4px 0 var(--streak-deep); color: #1B1838; }
+.today .nudge.k-streak .ri-guitar .ri-bd, .today .nudge.k-streak .ri-guitar .ri-hd { fill: #fff; }
+.today .nudge.k-streak .ri-guitar .ri-neck, .today .nudge.k-streak .ri-guitar .ri-lip { fill: rgba(255,255,255,.7); }
+.today .nudge .ng-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,.18); color: var(--accent-ink); }
+.today .nudge.k-streak .ng-ic { color: inherit; }
+.today .nudge > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.today .nudge small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
+.today .nudge b { font: 700 18px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.today .nudge:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+:root[data-look] #chips .chip::before { display: none; }
+#chips .chip { padding-left: 14px; }
+:root[data-look] #chips .chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }

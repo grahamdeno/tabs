@@ -2,7 +2,10 @@
 // The song and its translation are invented.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { skip, LIB, phone, useBrowser, settled } from "./harness.mjs";
+/* 4.20.0: German lives in Tools (the chip under the title is gone); its tile shows where it stands */
+const deTile = async page => { await page.click("#more"); await page.waitForSelector(".menu [data-m='de']"); const t = await page.innerText(".menu [data-m='de']"); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" }); return t; };
+const deOpen = async page => { await page.click("#more"); await page.waitForSelector(".menu [data-m='de']"); await page.click(".menu [data-m='de']"); };
 useBrowser();
 
 const BODY = "[Verse]\nG               D\nGrey boats lean on the harbor wall\nC        G\nBring the lights home";
@@ -34,21 +37,20 @@ test("German practice: translate once, pick a level, tap a word; nothing leaves 
     r.fulfill({ status: 200, contentType: "text/event-stream", headers: cors, body });
   });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
-  await page.goto(page.url().replace(/#.*$/, "") + "#/song/h"); await page.waitForSelector("#dechip");
-  assert.match(await page.innerText("#dechip"), /DE\s*German/, "the chip is the way in");
-  await page.click("#more"); assert.equal(await page.locator(".menu [data-m='de']").count(), 1, "also in Tools (4.2.0)"); await page.keyboard.press("Escape");
-  await page.click("#dechip"); await page.waitForSelector("#de-go");
+  await page.goto(page.url().replace(/#.*$/, "") + "#/song/h"); await page.waitForSelector("#more"); await settled(page);
+  assert.match(await deTile(page), /German/, "Tools is the way in");
+  await deOpen(page); await page.waitForSelector("#de-go");
   await page.click("#de-go");
   assert.equal(await page.locator(".de-sheet").count(), 0, "the sheet gets out of the way");
-  await page.waitForFunction(() => /Basic/.test(document.getElementById("dechip")?.textContent || ""), null, { timeout: 8000 });
+  await page.waitForFunction(() => document.querySelectorAll(".sheet .de").length > 0, null, { timeout: 8000 });
   assert.equal(asked, 1);
   assert.match(sent, /Grey boats lean on the harbor wall/, "only this song's lines are sent");
   assert.doesNotMatch(sent, /River Road|Walking down/, "no other song is sent");
   // New songs start at Basic.
   assert.match(await words(page), /Grey Boote lean on the harbor wall \| Bring the Lichter home/);
   assert.equal(await page.locator(".sheet .de.g-das").count(), 2, "Boote and Lichter, neuter");
-  assert.match(await page.innerText("#dechip"), /DE\s*Basic/);
-  await page.click("#dechip"); await page.waitForSelector(".de-lv");
+  assert.match(await deTile(page), /German\s*BASIC/i);
+  await deOpen(page); await page.waitForSelector(".de-lv");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/de-sheet.png" });
   // Common, then Intermediate, then Fluent with English underneath.
   await page.click(".de-lv[data-lv='2']");
@@ -87,14 +89,14 @@ test("German practice in the background: batches land as they come; a dropped co
     r.fulfill({ status: 200, contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" }, body: sse(reply(r.request())) });
   });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
-  await page.goto(page.url().replace(/#.*$/, "") + "#/song/l"); await page.waitForSelector("#dechip");
-  await page.click("#dechip"); await page.click("#de-go");
+  await page.goto(page.url().replace(/#.*$/, "") + "#/song/l"); await page.waitForSelector("#more"); await settled(page);
+  await deOpen(page); await page.click("#de-go");
   await page.waitForFunction(() => /German stopped at 6 of 8/.test(document.getElementById("toast")?.textContent || ""), null, { timeout: 8000 });
   assert.equal((await page.innerText(".sheet")).match(/Hafen/g)?.length, 6, "the first six lines are German already");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "l").de?.lines?.filter(Boolean).length === 6, null, { timeout: 5000 });  /* and kept */
   // Resume from the sheet, then leave the song while it finishes.
   fail = false;
-  await page.click("#dechip"); await page.waitForSelector(".de-sheet");
+  await deOpen(page); await page.waitForSelector(".de-sheet");
   assert.match(await page.innerText(".de-sheet"), /2 of 8 lines still need translating/);
   await page.click("#de-go");
   await page.evaluate(() => { location.hash = "#/library"; });
@@ -105,13 +107,13 @@ test("German practice in the background: batches land as they come; a dropped co
   await page.waitForFunction(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "l").de; return d && !d.partial && d.lines.every(Boolean); }, null, { timeout: 5000 });
 });
 
-test("German opens from its chip, and its sheet closes with a swipe down", { skip: skip() }, async t => {
+test("German opens from Tools, and its sheet closes with a swipe down", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }] }, { isMobile: true });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
   await page.goto(page.url().replace(/#.*$/, "") + "#/set/s"); await page.waitForSelector("[data-open='0']");
-  await page.click("[data-open='0']"); await page.waitForSelector("#dechip");
+  await page.click("[data-open='0']"); await page.waitForSelector("#more"); await settled(page);
   // Swipe the German sheet down from its handle: it closes.
-  await page.click("#dechip"); await page.waitForSelector(".de-sheet");
+  await deOpen(page); await page.waitForSelector(".de-sheet");
   const g = await page.evaluate(() => { const r = document.querySelector(".de-sheet .grab").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   const cdp = await page.context().newCDPSession(page);
   const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: y == null ? [] : [{ x: g.x, y }] });
@@ -119,7 +121,7 @@ test("German opens from its chip, and its sheet closes with a swipe down", { ski
   await page.waitForSelector(".de-sheet", { state: "detached" });
   assert.equal(await page.locator(".de-sheet").count(), 0, "swiped away");
   // A short pull springs back.
-  await page.click("#dechip"); await page.waitForSelector(".de-sheet");
+  await deOpen(page); await page.waitForSelector(".de-sheet");
   await touch("touchStart", g.y + 40); await touch("touchMove", g.y + 70); await touch("touchEnd"); await page.waitForTimeout(400) /* real timer: the spring back settles */;
   assert.equal(await page.locator(".de-sheet").count(), 1, "a short pull keeps it");
 });

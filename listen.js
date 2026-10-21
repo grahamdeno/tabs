@@ -284,10 +284,11 @@ async function recentFetch() {
 }
 /* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
 export const musicPlaying = song => !!(inst && playingId && song?.listen && playingId === appleTrackId(song.listen.url) && inst.isPlaying);
-// ---- The Recording sheet (3.16.0) ----
-// Tap the Recording chip under the title: the cover and the song's details, Listen (the recording
-// without the page moving), what Play starts (the recording or the band), the recording's speed and
-// what the page has learned of the song. The app passes in how to read and change those.
+// ---- The Recording sheet (3.16.0; 4.20.0 redone) ----
+// Tap the recording button beside Play: the cover and the song's details, the recording's facts as chips,
+// what Play starts as two big choices (a tap saves and closes), Listen first (the recording without the
+// page moving), what the page has learned of the song, and Change recording. The app passes in how to
+// read and change those.
 //  o.mode() "music" | "band", o.setMode(m), o.reset(), o.changed(),
 //  o.spots() { auto, mine }: where the timed lines and your nudges sit down the sheet (0 to 1),
 //  o.notes() { key, bpm }: how the sheet differs from the measured recording; o.matchKey(), o.matchBpm()
@@ -296,35 +297,40 @@ export function recordingSheet(song, o) {
   const paint = () => {
     const l = song.listen || {}, band = o.mode() === "band", marks = song.syncs || [], on = musicPlaying(song);
     const timed = song.timed?.at?.length || 0, spots = o.spots?.() || { auto: [], mine: marks.map(m => m[0]) };
-    /* The recording, measured: tempo, feel and key, and a word when the sheet doesn't match it. */
-    const feelRow = () => {
-      const f = l.feel;
-      if (!f || f.none) return "";
-      const look = o.notes?.() || {};
-      const bits = [f.bpm && `${f.bpm} BPM`, f.swing && ({ straight: "straight feel", light: "light swing", full: "swung" })[f.swing], f.key && `key of ${f.key}`].filter(Boolean).join(" · ");
-      const keyNote = look.key ? `<div class="rs-look"><span>The recording sounds ${Math.abs(look.key)} half step${Math.abs(look.key) === 1 ? "" : "s"} ${look.key > 0 ? "higher" : "lower"} than your sheet.</span><button class="btn sm" id="rs-key">Match it</button></div>` : "";
-      const bpmNote = look.bpm ? `<div class="rs-look"><span>Your tempo is ${song.bpm}. The recording is ${f.bpm}.</span><button class="btn sm" id="rs-bpm">Use ${f.bpm}</button></div>` : "";
-      return `<div class="rs-row rs-feel"><div class="rs-l">The recording<b>${esc(bits)}</b></div>${keyNote}${bpmNote}</div>`;
-    };
+    /* 4.20.0: the recording's facts as chips, and a word when the sheet doesn't match it */
+    const f = l.feel && !l.feel.none ? l.feel : null, look = f ? o.notes?.() || {} : {};
+    const facts = f ? [f.bpm && `${f.bpm} BPM`, f.swing && ({ straight: "Straight", light: "Light swing", full: "Swung" })[f.swing], f.key && `Key of ${f.key}`].filter(Boolean) : [];
+    const keyNote = look.key ? `<div class="rs-look"><span>The recording sounds ${Math.abs(look.key)} half step${Math.abs(look.key) === 1 ? "" : "s"} ${look.key > 0 ? "higher" : "lower"} than your sheet.</span><button class="btn sm" id="rs-key">Match it</button></div>` : "";
+    const bpmNote = look.bpm ? `<div class="rs-look"><span>Your tempo is ${song.bpm}. The recording is ${f.bpm}.</span><button class="btn sm" id="rs-bpm">Use ${f.bpm}</button></div>` : "";
     const details = [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
-    layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
-      ${coverHead({ art: l.art, title: l.title || song.title, artist: l.artist || song.artist, details, tint: l.tint,
-        side: `<button class="rs-listen" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button>` })}
-      ${feelRow()}
-      <div class="rs-row"><div class="rs-l">When you press Play</div>
-        <div class="seg" role="group" aria-label="When you press Play">${[["music", "The recording"], ["band", "The band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
-        <p class="rs-note">${band ? "Your metronome, drums and bass play. No recording." : "The recording plays alone. The page follows it."}</p></div>
-      ${band ? "" : `<div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Reset</button>` : ""}</b></div>
+    const opt = (m, ic, t, sub) => `<button data-mode="${m}" class="rs-opt${(m === "band") === band ? " on" : ""}" aria-pressed="${(m === "band") === band}"><span class="rs-oi">${icon(ic)}</span><span class="rs-ot"><b>${t}</b><small>${sub}</small></span><span class="rs-ok" aria-hidden="true">${icon("check")}</span></button>`;
+    const sync = band ? "" : `<div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Start over</button>` : ""}</b></div>
         <div class="rs-track" aria-hidden="true">${spots.auto.map(w => `<b style="left:${(w * 100).toFixed(1)}%"></b>`).join("")}${spots.mine.map(w => `<i style="left:${(w * 100).toFixed(1)}%"></i>`).join("")}</div>
-        ${timed ? `<p class="rs-note">Each line is timed to the recording${l.feel?.bpm ? ", and its chords land on the beat" : ""}. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while the song plays and it remembers that spot.</p>`}</div>`}
-      <button class="btn primary rs-done" id="rs-done">Done</button></div>`;
+        ${timed ? `<p class="rs-note">Each line is timed to the recording${f?.bpm ? ", and its chords land on the beat" : ""}. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while it plays and it learns where the lines fall.</p>`}</div>`;
+    layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
+      <div class="grab" aria-hidden="true"></div>
+      ${coverHead({ art: l.art, title: l.title || song.title, artist: l.artist || song.artist, details, tint: l.tint,
+        side: `<button class="rs-x" id="rs-done" aria-label="Close">${icon("x")}</button>` })}
+      <div class="rs-body">
+        ${facts.length ? `<div class="rs-facts">${facts.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}${keyNote}${bpmNote}
+        <div class="rs-h">WHEN YOU PRESS PLAY</div>
+        <div class="rs-choice" role="group" aria-label="When you press Play">
+          ${opt("music", "note", "Play along with the recording", "It plays and the page follows it")}
+          ${opt("band", "metro", "Play with your band", "Your metronome, drums and bass. No recording")}
+        </div>
+        <button class="btn rs-hear" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}${on ? "Pause" : "Listen first"}</button>
+        ${sync}
+        <button class="rs-change" id="rs-change">Change recording</button>
+      </div></div>`;
     $("rs-scrim").onclick = close;
     $("rs-done").onclick = close;
     $("rs-listen").onclick = () => playApple(song).then(() => setTimeout(paint, 150));
-    layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { o.setMode(b.dataset.mode); paint(); });
+    /* a choice saves and closes */
+    layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { o.setMode(b.dataset.mode); close(); });
     $("rs-reset")?.addEventListener("click", () => { o.reset(); paint(); });
     $("rs-key")?.addEventListener("click", () => { o.matchKey?.(); paint(); });
     $("rs-bpm")?.addEventListener("click", () => { o.matchBpm?.(); paint(); });
+    $("rs-change").onclick = () => { close(); listenSheet(song, true); };
   };
   detailsArrived = s2 => { if (s2 === song && $("rs")) paint(); };
   fetchDetails(song);

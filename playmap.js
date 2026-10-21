@@ -134,7 +134,7 @@ function sceneSheet(sc) {
     ${push ? `<p class="tm-push">${esc(push)}</p>` : ""}
     <h2 class="tm-lab"><span>Your scene this week</span><span>min a day</span></h2>
     <div class="tm-board">${shown.join("")}</div>
-    <div class="tm-tiles"><div><b>${sc.held}</b><small>HEXAGON${sc.held === 1 ? "" : "S"} YOU HOLD</small></div><div><b>${sc.taken}</b><small>CORNER${sc.taken === 1 ? "" : "S"} TAKEN</small></div></div>`;
+    <div class="tm-stats"><div><b>${sc.held}</b><small>HEXAGON${sc.held === 1 ? "" : "S"} YOU HOLD</small></div><div><b>${sc.taken}</b><small>CORNER${sc.taken === 1 ? "" : "S"} TAKEN</small></div></div>`;
   $("tm-info").onclick = () => mapInfo(sc, v);
   const sheet = $("tm-sheet"), head = $("tm-sh"), page = document.querySelector(".tm-page");
   const size = () => {

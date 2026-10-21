@@ -14,20 +14,16 @@ const songs = (today = false) => [
 ];
 const lib = (extra = {}, today = false) => ({ ...LIB, songs: songs(today), settings: { ...LIB.settings, nudge: true, place: { name: "Wilmington, North Carolina, US", lat: 34.23, lon: -77.94 }, ...extra } });
 
-test("Today: streak dots, and on a rainy day a slow song that opens with a tap", { skip: skip() }, async t => {
+test("Today: on a rainy day a slow song that opens with a tap", { skip: skip() }, async t => {
   const page = await phone(t, lib());
   let asked = 0;
   await page.route(/api\.open-meteo\.com/, r => { asked++; r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
   await page.evaluate(() => localStorage.removeItem("tabs.wx.v1"));
-  await page.reload(); await page.waitForSelector("#today .t-dots");
-  if (new Date().getHours() < 18) await page.waitForSelector("#nudge");
-  const text = await page.innerText("#today");
-  assert.match(text, /2-day streak · 2 plays this week/);
-  assert.equal(await page.locator("#today .t-dots i.on").count(), 2);
-  assert.equal(await page.locator("#today .t-dots i.now").count(), 1, "today dashed until you play");
+  await page.reload(); await page.waitForSelector("#nudge");
+  assert.equal(await page.locator("#today .t-dots, #t-stat").count(), 0, "4.20.0: the streak lives in the stat bar, not here");
   const h = new Date().getHours();
-  if (h < 18) assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song\s+Harbor Lights/);
-  await page.reload(); await page.waitForSelector("#today .t-dots"); await page.waitForTimeout(500) /* real timer: checking no second fetch happens */;
+  if (h < 18) assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song\s+Harbor Lights/i);
+  await page.reload(); await page.waitForSelector("#nudge"); await page.waitForTimeout(500) /* real timer: checking no second fetch happens */;
   assert.equal(asked, 1, "weather is fetched once a day");
   await page.click("#nudge"); await page.waitForFunction(() => /#\/song\//.test(location.hash));
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
@@ -39,19 +35,17 @@ test("Today: a forecast that arrives late still shows when the week has no plays
   await page.route(/api\.open-meteo\.com/, async r => { await new Promise(res => setTimeout(res, 300)); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
   await page.evaluate(() => localStorage.removeItem("tabs.wx.v1"));
   await page.reload(); await page.waitForSelector("#nudge");
-  assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song/);
+  assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song/i);
 });
 
-test("Today: quiet once you've played today; the setting turns it back to the weekly line", { skip: skip() }, async t => {
+test("Today: quiet once you've played today; the setting turns the card off", { skip: skip() }, async t => {
   const page = await phone(t, lib({ place: undefined }, true));
-  assert.match(await page.innerText("#today"), /3-day streak/);
+  await page.waitForSelector("#chips");
   assert.equal(await page.locator("#nudge").count(), 0, "played today: no nudge");
-  assert.equal(await page.locator("#today .t-dots i.now").count(), 0);
   await page.evaluate(() => { location.hash = "#/settings/today"; }); await page.waitForSelector("#s-nudge");
   await page.click("#s-nudge"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.nudge === false);
-  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#today");
-  assert.match(await page.innerText("#today"), /This week: 3 plays across 1 song/);
-  assert.equal(await page.locator(".t-dots").count(), 0);
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#chips");
+  assert.equal(await page.locator("#nudge, .t-dots").count(), 0);
 });
 
 test("Settings: find a city for the weather, and remove it", { skip: skip() }, async t => {
