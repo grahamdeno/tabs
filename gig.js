@@ -16,7 +16,7 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
+import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
@@ -394,7 +394,8 @@ function showComplete() {
   clearInterval(g.timer);
   g.stream?.getTracks().forEach(t => t.stop());
   const graded = g.score.hits + g.score.misses > 0;
-  const { fans, pct } = gigDone(data, g.song.id, g.score, g.encore);
+  const { fans, pct, request } = gigDone(data, g.song.id, g.score, g.encore);
+  const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   Tabs.save(data);
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
   const crowd = graded ? gigCrowd(g.score) : null;
@@ -407,9 +408,11 @@ function showComplete() {
     ${louie("cheer", { pose: "hornsUp", size: 170 })}
     <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
     <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
-    <div class="gc-tiles">${tile("FANS", `+${fans + 10}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("ON THE BEAT", pct === null ? "–" : `${pct}%`, "beat")}</div>
+    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("ON THE BEAT", pct === null ? "–" : `${pct}%`, "beat")}</div>
     <div class="gc-list">
       ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
+      ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
+      ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
@@ -417,7 +420,7 @@ function showComplete() {
       ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
       <button class="btn" id="gc-go">CONTINUE</button>
     </div></div>`;
-  $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else redraw?.(); };
+  $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else if (from === "tour") go("#/tour"); else redraw?.(); };
   $("gc-encore")?.addEventListener("click", () => {
     const song = g.song, from = g.from;
     closeGig(true);

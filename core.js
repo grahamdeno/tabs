@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.4.0";
+export const VERSION = "4.5.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -69,7 +69,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -615,7 +615,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -3455,7 +3455,78 @@ export const FANS = { play: 10, lesson: 5, box: 25 };
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
   const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
-  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0);
+  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0) + (data.quests?.fans || 0);
+}
+
+// ---------- Tour quests (4.5.0) ----------
+// The month's tour (20 shows), tonight's setlist (three small goals a day) and the request line (a fan asks
+// for one of your songs each day; played as a gig, its bonus fans double). Fans from quests are kept in
+// data.quests.fans; what's earned is settled once (questsSettle), so nothing is counted twice.
+export const QUEST = { tourShows: 20, tourFans: 100, goalFans: 10, setFans: 25 };
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function hashDay(key) { let h = 7; for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+/* the song a fan asks for today: a chord song not played in the last week (any, if all were), the ones
+   you can already play first; the same one all day */
+export function requestSong(data, now = Date.now()) {
+  const songs = (data.songs || []).filter(s => s.format !== "tab" && /\S/.test(s.body || "") && !s.isNew);
+  if (!songs.length) return null;
+  const week = new Set(Array.from({ length: 7 }, (_, i) => dayKey(now - i * DAY)));
+  const fresh = songs.filter(s => !Object.entries(s.playLog?.days || {}).some(([k, n]) => n > 0 && week.has(k)));
+  const known = knownChords(data, now), can = s => sheetChords(s.body).every(c => known.has(c));
+  const pool = (fresh.length ? fresh : songs).slice().sort((a, b) => (can(b) - can(a)) || String(a.id).localeCompare(String(b.id)));
+  const ok = pool.filter(can), from = ok.length ? ok : pool;
+  return from[hashDay(dayKey(now)) % from.length];
+}
+export function questState(data, now = Date.now()) {
+  const d = new Date(now), today = dayKey(now), month = today.slice(0, 7), q = data.quests || {};
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  let shows = 0, todayPlays = 0;
+  for (const s of playSongs(data)) for (const [k, n] of Object.entries(s.playLog?.days || {})) { if (k.startsWith(month)) shows += n || 0; if (k === today) todayPlays += n || 0; }
+  const mins = Math.floor((data.journal?.days?.[today] || 0) / 60), crowd = q.crowd?.day === today ? q.crowd.n : 0;
+  const got = q.day === today ? q.got || [] : [];
+  const goals = [
+    { id: "two", label: "Play 2 songs through", have: Math.min(2, todayPlays), need: 2 },
+    { id: "crowd", label: "Get the crowd to 10 of 12 in a gig", have: Math.min(10, crowd), need: 10 },
+    { id: "mins", label: "Play for 5 minutes", have: Math.min(5, mins), need: 5 }
+  ].map(g => ({ ...g, done: g.have >= g.need, claimed: got.includes(g.id) }));
+  const req = requestSong(data, now);
+  return {
+    today, month, monthName: MONTHS[d.getMonth()], daysLeft: last - d.getDate(),
+    tour: { shows: Math.min(QUEST.tourShows, shows), need: QUEST.tourShows, done: shows >= QUEST.tourShows, claimed: q.month === month && !!q.tour },
+    goals, setDone: goals.every(g => g.done), setClaimed: got.includes("set"),
+    request: req && { song: req, done: q.req?.day === today && q.req.id === req.id && !!q.req.done }
+  };
+}
+/* Credit what's newly done: fans for each goal, the full setlist and the month's tour. Returns what was earned. */
+export function questsSettle(data, now = Date.now()) {
+  const st = questState(data, now), q = data.quests || (data.quests = { fans: 0 });
+  if (q.day !== st.today) { q.day = st.today; q.got = []; }
+  const out = [];
+  for (const g of st.goals) if (g.done && !q.got.includes(g.id)) { q.got.push(g.id); out.push({ label: g.label, fans: QUEST.goalFans }); }
+  if (st.setDone && !q.got.includes("set")) { q.got.push("set"); out.push({ label: "Tonight's setlist", fans: QUEST.setFans }); }
+  if (q.month !== st.month) { q.month = st.month; q.tour = false; }
+  if (st.tour.done && !q.tour) { q.tour = true; out.push({ label: `${st.monthName} Tour`, fans: QUEST.tourFans }); }
+  q.fans = (q.fans || 0) + out.reduce((n, x) => n + x.fans, 0);
+  return out;
+}
+/* a gig finished: the crowd it reached today, and the request line (its bonus fans double, once a day) */
+function questsShow(data, songId, crowd, fans, now) {
+  const q = data.quests || (data.quests = { fans: 0 }), today = dayKey(now);
+  if (crowd != null) q.crowd = { day: today, n: Math.max(q.crowd?.day === today ? q.crowd.n : 0, crowd) };
+  const req = requestSong(data, now);
+  if (!req || req.id !== songId || (q.req?.day === today && q.req.done)) return 0;
+  q.req = { day: today, id: songId, done: true };
+  q.fans = (q.fans || 0) + fans;
+  return fans;
+}
+export function cleanQuests(raw) {
+  if (!isObj(raw)) return null;
+  const day = /^\d{4}-\d\d-\d\d$/, out = { fans: Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0))) };
+  if (day.test(raw.day)) { out.day = raw.day; out.got = (Array.isArray(raw.got) ? raw.got : []).filter(x => ["two", "crowd", "mins", "set"].includes(x)); }
+  if (/^\d{4}-\d\d$/.test(raw.month)) { out.month = raw.month; out.tour = raw.tour === true; }
+  if (isObj(raw.crowd) && day.test(raw.crowd.day)) out.crowd = { day: raw.crowd.day, n: Math.max(0, Math.min(12, Math.round(+raw.crowd.n || 0))) };
+  if (isObj(raw.req) && day.test(raw.req.day) && typeof raw.req.id === "string") out.req = { day: raw.req.day, id: raw.req.id.slice(0, 40), done: raw.req.done === true };
+  return out.fans || out.day || out.month || out.crowd || out.req ? out : null;
 }
 
 /* The chords you can play: every chord lesson done, and any chord played in songs five times. */
@@ -3531,12 +3602,14 @@ export function gelOf(name) {
   return "verse";
 }
 /* a show finished: keep the count, the bonus fans and each song's best */
-export function gigDone(data, songId, g, encore = false) {
+export function gigDone(data, songId, g, encore = false, now = Date.now()) {
   const fans = gigFans(g, encore), pct = gigPct(g);
   const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {} });
   gs.shows++; gs.fans += fans;
   if (pct !== null) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
-  return { fans, pct };
+  /* Tour quests (4.5.0): the crowd it reached, and the request line doubles its bonus fans */
+  const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
+  return { fans: fans + request, pct, request: request > 0 || null };
 }
 export function cleanGig(raw) {
   if (!isObj(raw)) return null;

@@ -3,7 +3,7 @@
 //   statBar()        the venue, the gig streak and your fans, as buttons (bindStatBar wires them)
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   openMore()       a sheet of the places that aren't tabs: Library, Tour Map, Your playing, Tuner, Settings
-//   renderSoon(name) Tour, Charts and Band, until they're built: what each will be
+//   renderSoon(name) Charts and Band, until they're built: what each will be (Tour arrived in 4.5.0, tour.js)
 import { fansOf, lifetimePlays, playSongs, streakOf, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
@@ -27,7 +27,7 @@ export function bindStatBar() {
   const $ = id => document.getElementById(id);
   $("h-venue")?.addEventListener("click", () => go("#/playmap"));
   $("h-streak")?.addEventListener("click", () => go("#/you"));
-  $("h-fans")?.addEventListener("click", () => toast("Fans: 10 for every play, 5 for every lesson, 25 for every merch box"));
+  $("h-fans")?.addEventListener("click", () => toast("Fans: 10 for every play, 5 for every lesson, 25 for every merch box, more from gigs and Tour quests"));
 }
 
 /* ---- the tab bar ---- */
@@ -80,7 +80,6 @@ export const tabFor = name => ({ practice: "rehearse", you: "more" })[name] || n
 
 /* ---- the pages still to come ---- */
 const SOON = {
-  tour: { title: "Tour", line: "Your quests: a monthly tour to finish, a duet quest with a friend, tonight's setlist, and song requests from your fans.", items: ["October Tour: play 20 shows", "Tonight's setlist: three small goals a day", "Request line: a fan asks for a song", "Duet quest: earn XP together"] },
   charts: { title: "Charts", line: "A weekly chart for every venue. Play to climb it, finish in the top five to move up a venue, and battle the rivals in your scene for their corners of the Tour Map.", items: ["Weekly charts, Garage to Festival", "Promotion and records for each tier", "Rival battles: same song, best score wins"] },
   band: { title: "Your band", line: "Each new venue adds a player behind you: drums at the Open mic, bass at the Club, keys at the Arena. You hear them in every song.", items: ["Drums join at the Open mic", "Bass joins at the Club", "Keys join at the Arena", "Jam with a friend on two phones"] }
 };

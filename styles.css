@@ -2737,3 +2737,45 @@ body.gig-full .app.viewer .dock, body.gig-full .app.viewer .dock-fade, body.gig-
 .gig[data-lines="full"] .gg-hold { top: auto; background: var(--bg); border-top: 2px solid var(--rim); padding-top: 12px; }
 .gig[data-lines="full"] .gg-here { display: none; }
 body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
+/* ==========================================================================
+   Tour quests (4.5.0): the month's tour, the request line, tonight's
+   setlist and the duet quest (locked until Charts)
+   ========================================================================== */
+.tq { padding-bottom: calc(var(--tabs) + 24px); }
+.tq-top { margin: 0 -4px; }
+.tq-head { position: relative; margin: 10px -20px 0; padding: 16px 20px 18px; background: var(--streak); overflow: hidden; }
+.tq-ht h1 { margin: 0; font: 700 28px var(--display); color: #14213D; }
+.tq-ht small { display: block; margin-top: 2px; font: 800 13px var(--sans); letter-spacing: .06em; color: color-mix(in srgb, #14213D 75%, var(--streak)); }
+.tq-louie { position: absolute; right: 10px; top: 4px; }
+.tq-louie .louie { width: 104px; height: auto; }
+.tq-goal { position: relative; z-index: 1; margin-top: 26px; background: #14213D; border-radius: 18px; padding: 14px; color: #fff; }
+.tq-goal > b { font: 700 18px var(--display); }
+.tq-goal > small { display: block; margin-top: 8px; font: 700 13px var(--sans); opacity: .75; }
+.tq-big { position: relative; margin-top: 10px; }
+.tq-big .tq-bar { height: 22px; border-radius: 11px; background: #2E3B5E; }
+.tq-big .tq-bar i { background: var(--fans); }
+.tq-big span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 13px var(--display); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.tq-bar { height: 10px; border-radius: 5px; background: var(--locked); overflow: hidden; margin-top: 6px; }
+.tq-bar i { display: block; height: 100%; border-radius: inherit; background: var(--streak); min-width: 0; position: relative; }
+.tq-bar.full i { background: var(--fans); }
+.tq-req { display: flex; align-items: center; gap: 12px; margin: 16px 0 0; padding: 12px 14px; border-radius: 18px; background: var(--accent); box-shadow: 0 5px 0 var(--accent-deep); color: #14213D; }
+.tq-req.done, .tq-req.empty { background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); color: var(--fg); }
+.tq-req svg { flex: none; }
+.tq-phd { fill: var(--accent-deep); } .tq-ph { fill: var(--accent); }
+.tq-rt { flex: 1; min-width: 0; }
+.tq-rt small { font: 800 12px var(--sans); letter-spacing: .08em; }
+.tq-rt p { margin: 2px 0 0; font: 700 16px/1.3 var(--sans); }
+.tq-play { flex: none; border: 0; border-radius: 12px; padding: 12px 14px; background: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 35%, #fff); font: 700 15px var(--display); color: var(--accent-deep); }
+.tq-play:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 35%, #fff); }
+.tq-h { display: flex; justify-content: space-between; margin: 20px 2px 8px; font: 800 13px var(--sans); letter-spacing: .08em; color: var(--muted); }
+.tq-hrs { color: var(--streak-deep, var(--streak)); }
+.tq-card { background: var(--card); border: 2px solid var(--rim); border-radius: 18px; padding: 2px 14px; }
+.tq-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.tq-row + .tq-row { border-top: 2px solid var(--hair); }
+.tq-rg { flex: 1; min-width: 0; }
+.tq-rg b { font: 700 15px var(--sans); color: var(--fg); }
+.tq-rg small { display: block; margin-top: 4px; font: 700 12.5px var(--sans); color: var(--muted); }
+.tq-foot { margin: 0; padding: 10px 0 12px; border-top: 2px solid var(--hair); font: 700 13.5px var(--sans); color: var(--fg-2); }
+.tq-ckd { fill: var(--fans-deep); } .tq-ck { fill: var(--fans); }
+.tq-bxd { fill: var(--streak-deep, var(--streak)); } .tq-bx { fill: var(--streak); } .tq-lid { fill: var(--fans); } .tq-rib { fill: var(--strings); }
+.tq-lock { opacity: .65; border-style: dashed; }

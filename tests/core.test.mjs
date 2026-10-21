@@ -1789,11 +1789,45 @@ test("The Gig (4.1.0): changes landed by a strum near them, the combo, strings, 
   assert.equal(C.gigFans(g), 9 + 10, "a fan a change, and 10 for a crowd of 10 or more");
   assert.equal(C.gigFans(g, true), 38, "an encore doubles it");
   const data = { songs: [], sets: [], trash: [], settings: {} };
-  assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, pct: 90 });
+  assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, pct: 90, request: null });
   assert.deepEqual(data.gig, { shows: 1, fans: 19, best: { a: 90 } });
   assert.deepEqual(C.cleanGig({ shows: "2", fans: 5, best: { a: 120, b: 50 } }), { shows: 2, fans: 5, best: { b: 50 } });
   assert.equal(C.cleanGig({}), null);
   assert.equal(C.fansOf(data), 19, "bonus fans count toward your fans");
+});
+
+test("Tour quests (4.5.0): the month's tour, tonight's setlist and the request line", () => {
+  const now = new Date(2026, 9, 21, 20, 0).getTime(), day = "2026-10-21";
+  const song = (id, days, body = "[Verse]\nG C\nla") => ({ id, title: id, format: "chords", body, playLog: { total: 0, last: 0, days } });
+  const data = { songs: [song("a", { [day]: 2, "2026-10-02": 9 }), song("b", {}), song("c", {}), song("t", {})], sets: [], trash: [], settings: {}, journal: { days: { [day]: 360 } } };
+  data.songs[3].format = "tab";
+  const st = C.questState(data, now);
+  assert.equal(st.monthName, "October"); assert.equal(st.daysLeft, 10);
+  assert.deepEqual(st.tour, { shows: 11, need: 20, done: false, claimed: false }, "every play this month counts");
+  assert.deepEqual(st.goals.map(g => [g.id, g.have, g.done]), [["two", 2, true], ["crowd", 0, false], ["mins", 5, true]]);
+  const req = st.request.song;
+  assert.ok(["b", "c"].includes(req.id), "a chord song you haven't played this week, never a tab");
+  assert.equal(C.questState(data, now + 3600e3).request.song.id, req.id, "the same one all day");
+  const got = C.questsSettle(data, now);
+  assert.deepEqual(got.map(x => x.fans), [10, 10], "two goals done");
+  assert.deepEqual(C.questsSettle(data, now), [], "credited once");
+  /* a gig of the requested song with a crowd of 12: bonus fans double, the crowd goal and the full setlist */
+  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.gigChange(g, i, [i]);
+  const fans = C.gigFans(g), r = C.gigDone(data, req.id, g, false, now);
+  assert.equal(r.fans, fans * 2); assert.equal(r.request, true);
+  assert.equal(C.gigDone(data, req.id, g, false, now).request, null, "once a day");
+  assert.deepEqual(C.questsSettle(data, now).map(x => x.fans), [10, 25], "the crowd goal, then the whole setlist");
+  assert.equal(C.questState(data, now).request.done, true);
+  assert.equal(data.quests.fans, 55 + fans, "20 + 10 + 25 from the setlist, and the doubled bonus");
+  assert.ok(C.fansOf(data, now) >= 55 + fans * 3, "quest fans count toward your fans");
+  /* a new day starts a new setlist */
+  assert.deepEqual(C.questState(data, now + 86400e3).goals.map(x => x.claimed), [false, false, false]);
+  /* 20 shows finish the tour */
+  data.songs[1].playLog.days["2026-10-05"] = 9;
+  assert.equal(C.questsSettle(data, now).find(x => /October Tour/.test(x.label)).fans, 100);
+  const kept = C.cleanQuests(JSON.parse(JSON.stringify(data.quests)));
+  assert.deepEqual(kept, data.quests, "kept through a save");
+  assert.equal(C.cleanQuests({ fans: -4, got: ["x"] }), null);
 });
 
 test("Stage Gels (4.1.0): each section's light from its name", () => {

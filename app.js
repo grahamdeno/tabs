@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -77,6 +77,13 @@ function refreshPlay(song) {
   const pb = $("play");
   if (!pb || viewing !== song || scroll.on) return;
   pb.setAttribute("aria-label", playLabel(song, false));
+}
+/* Tour quests (4.5.0): a play that finishes a goal says so */
+function questToast() {
+  const got = questsSettle(data);
+  if (!got.length) return;
+  Tabs.save(data);
+  toast(got.map(x => `${x.label}: +${x.fans} fans`).join(" · "));
 }
 let songSpeed = null; /* the song page's speed dial, for the Tools sheet */
 let gigNext = null;
@@ -2649,7 +2656,7 @@ async function startScroll(song, opts = {}) {
       if (!activeLoop(song) && end >= 0 && scrollY >= end - 2) {
         const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
         if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
-          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
+          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); if (!gigHooks.on) questToast(); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
         }
         /* A sheet that fits the screen has only the clock to go by, so it plays on until it counts. */
         if (scroll.logged || end >= 40) {
@@ -2791,7 +2798,8 @@ function renderRoute() {
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else if (r.name === "import") renderImport(r.id);
   else if (r.name === "road") lazy("road.js").then(m => { if (route().name === "road") { m.renderRoad(); window.scrollTo(0, 0); } });
-  else if (r.name === "tour" || r.name === "charts" || r.name === "band") lazy("hud.js").then(m => { if (route().name === r.name) { m.renderSoon(r.name); window.scrollTo(0, 0); } });
+  else if (r.name === "tour") lazy("tour.js").then(m => { if (route().name === "tour") { m.renderTour(); window.scrollTo(0, 0); } });
+  else if (r.name === "charts" || r.name === "band") lazy("hud.js").then(m => { if (route().name === r.name) { m.renderSoon(r.name); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }
 
