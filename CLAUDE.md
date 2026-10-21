@@ -46,7 +46,10 @@ sheet, Pause holds the show in place (Back a line, Tools, Sheet, Resume), and
 Hearing you turns scoring off per show (Score my plays sets the default).
 Louie's friends (Lola guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp,
 Pip pick; Graham's art, 2026-10-21) get redrawn in Louie's style for Your band,
-mockup first. Pip stays but must not be rainbow. Still to build, one release each, stopping after
+mockup first. Pip stays but must not be rainbow. Eleven more (2026-10-21): Beat
+bass drum, Slide brass slide, Strap guitar strap, Key keyboard key, Reed
+clarinet reed, Cable audio cable, Boomer boom mic, Metro metronome, Pickup
+single-coil, Whammy whammy bar; 17 in all, collected as rewards. Still to build, one release each, stopping after
 each for Graham to try: Tour quests, Charts (record tiers,
 promotion, rival battles), Your band (players join by venue, heard in the
 backing), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
