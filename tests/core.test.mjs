@@ -1907,6 +1907,27 @@ test("Rehearse (4.8.0): the changes you dropped and today's soundcheck", () => {
   assert.deepEqual(kept, data.rehearse);
 });
 
+test("Cover requests (4.10.0): your listening becomes the request or a cover quest", () => {
+  const now = new Date(2026, 9, 21, 20).getTime();
+  const data = { songs: [{ id: "a", title: "River Road", artist: "The Wanderers", format: "chords", body: "[Verse]\nG C\nla" }, { id: "b", title: "Other", format: "chords", body: "[Verse]\nG D\nla" }], sets: [], trash: [], settings: {} };
+  assert.equal(C.noteHeard(data, { title: "River Road (Remastered)", artist: "The Wanderers" }, now), true);
+  assert.equal(C.requestSong(data, now).id, "a", "the song you just played is today's request");
+  assert.equal(C.noteHeard(data, { title: "River Road", artist: "The Wanderers" }, now), false, "once");
+  assert.equal(C.noteHeard(data, { title: "Wagon Wheel", artist: "Old Crow" }, now), true);
+  let cv = C.coverState(data, now);
+  assert.deepEqual([cv.title, cv.step], ["Wagon Wheel", 1], "not in the Songbook: get the song");
+  data.songs.push({ id: "w", title: "Wagon Wheel", artist: "Old Crow", format: "chords", body: "[Verse]\nG D Em C\nla" });
+  cv = C.coverState(data, now);
+  assert.deepEqual([cv.song.id, cv.step], ["w", 2], "added: learn its chords");
+  data.journal = { chords: { G: { n: 9 }, D: { n: 9 }, Em: { n: 9 }, C: { n: 9 } } };
+  assert.equal(C.coverState(data, now).step, 3, "then play the gig");
+  const g = C.gigStart(); for (let i = 0; i < 6; i++) C.gigChange(g, i, [i]);
+  const base = C.gigFans(g), r = C.gigDone(data, "w", g, false, now);
+  assert.equal(r.cover, true); assert.equal(r.fans, base * 3, "3x bonus fans");
+  assert.equal(C.coverState(data, now), null, "done");
+  assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests, "kept through a save");
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");

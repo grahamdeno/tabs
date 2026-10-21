@@ -89,7 +89,7 @@ release so Graham can try it.
 3. Done in 3.23.0. Drums that fit the song: the AI returns a 16-step kick, snare and
    hat grid per section (fills, sparse verse, full chorus) from the measured
    tempo and feel, genre and year; Busier / Simpler kept per song.
-4. Done in 3.24.0. Just heard it: Apple's recently played offers "Play along?" on
+4. Done in 3.24.0 (4.10.0: became cover requests on the Tour tab). Just heard it: Apple's recently played offers "Play along?" on
    Tonight.
 5. 3.21.0 Playlists both ways: import an Apple Music playlist into the
    library; save a set as an Apple Music playlist.

@@ -10,9 +10,9 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { Tabs, heardOffer, lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
+import { lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
-import { chordNames, data, go, homeHooks, openSearch, playGig, route, aiKey } from "./app.js";
+import { chordNames, data, go, homeHooks, openSearch, playGig, route } from "./app.js";
 import { louie } from "./louie.js";
 import { statBar, bindStatBar } from "./hud.js";
 
@@ -115,7 +115,6 @@ export function renderRoad() {
       <button class="rd-book" id="rd-book" aria-label="Open the neck: every lesson">${icon("fretboard")}</button>
     </section>` : ""}
     ${chip ? `<div class="rd-chip">${chip}</div>` : ""}
-    <div id="rd-heard"></div>
     <div class="rd-path" id="rd-path">
       <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(say.text)}</p>${song ? `<button class="rd-tonight" id="rd-tonight">${icon("play")}<span>Gig: ${esc(song.title)}</span></button>` : ""}</div>${louie(say.mood, { pose: say.pose, size: 112 })}</div>
       ${legsHTML}${coming}
@@ -157,39 +156,9 @@ export function renderRoad() {
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
   if (curNode) path.scrollTop = Math.max(0, curNode.parentElement.offsetTop - path.clientHeight / 3);
-  if (plays) { fillScene(st); fillHeard(); }
+  if (plays) fillScene(st);
 }
 
-/* Just heard it (3.24.0, Apple Music on only): the song you just played in Apple Music, offered
-   under the banner. In the library, Play along opens it with the recording; otherwise Get the song. */
-const HEARD_KEY = "tabs.heard.v1"; /* { k, at, done? }: on this phone only, not in backups */
-const heardSeen = () => { try { return JSON.parse(localStorage.getItem(HEARD_KEY)) || null; } catch { return null; } };
-const heardSave = v => { try { localStorage.setItem(HEARD_KEY, JSON.stringify(v)); } catch {} };
-async function fillHeard() {
-  if (!data.settings.appleMusic) return;
-  let rows;
-  try { rows = await (await import("./listen.js")).recentApple(); } catch { return; }
-  const box = document.getElementById("rd-heard");
-  if (!box?.isConnected || !rows?.length) return;
-  const { seen, offer } = heardOffer(data.songs, rows[0], heardSeen());
-  heardSave(seen);
-  const t = offer?.track, song = offer?.song;
-  if (!t || (!song && !aiKey())) return;
-  const done = () => { heardSave({ ...seen, done: true }); box.innerHTML = ""; };
-  box.innerHTML = `<section class="rd-heard" aria-label="Just heard">
-    <span class="rd-h-art">${/^https:\/\//.test(t.art || "") ? `<img src="${esc(t.art)}" alt="">` : icon("note")}</span>
-    <span class="rd-h-t"><small>Just heard</small><b>${esc(t.title)}</b></span>
-    <button class="btn sm primary" id="rd-h-go">${song ? "Play along" : "Get the song"}</button>
-    <button class="sb" id="rd-h-x" aria-label="Not now">${icon("x")}</button></section>`;
-  document.getElementById("rd-h-x").onclick = done;
-  document.getElementById("rd-h-go").onclick = () => {
-    done();
-    if (!song) { import("./findai.js").then(m => m.getSong(`${t.title} ${t.artist}`.trim(), { title: t.title, artist: t.artist })); return; }
-    /* a song with no recording linked gets the one you just heard */
-    if (!song.listen && t.url) { song.listen = { url: t.url, service: "Apple Music", title: t.title, ...(t.art ? { art: t.art } : {}) }; Tabs.save(data); toast("Linked to the recording you just heard"); }
-    playGig(song.id, { from: "road" });
-  };
-}
 
 /* The scene loads a moment later: when someone is pushing on your edge, Louie says so. */
 async function fillScene(st) {

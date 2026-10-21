@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.9.0";
+export const VERSION = "4.10.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -3470,6 +3470,9 @@ function hashDay(key) { let h = 7; for (const c of key) h = (h * 31 + c.charCode
 export function requestSong(data, now = Date.now()) {
   const songs = (data.songs || []).filter(s => s.format !== "tab" && /\S/.test(s.body || "") && !s.isNew);
   if (!songs.length) return null;
+  /* 4.10.0: the song you just played in Apple Music is today's request */
+  const heard = data.quests?.heard;
+  if (heard?.day === dayKey(now)) { const h = songs.find(s => s.id === heard.id); if (h) return h; }
   const week = new Set(Array.from({ length: 7 }, (_, i) => dayKey(now - i * DAY)));
   const fresh = songs.filter(s => !Object.entries(s.playLog?.days || {}).some(([k, n]) => n > 0 && week.has(k)));
   const known = knownChords(data, now), can = s => sheetChords(s.body).every(c => known.has(c));
@@ -3510,10 +3513,41 @@ export function questsSettle(data, now = Date.now()) {
   addXP(data, out.length * XP.goal, now); /* Charts (4.6.0) */
   return out;
 }
+/* Cover requests (4.10.0): what you listen to in Apple Music. A song in your Songbook becomes today's
+   request; one you don't have becomes a cover quest (get the song, learn its chords, play it as a gig for
+   3x bonus fans). noteHeard takes the latest track; returns true when something changed. */
+export const COVER_MULT = 3;
+export function noteHeard(data, track, now = Date.now()) {
+  if (!track?.title) return false;
+  const q = data.quests || (data.quests = { fans: 0 }), today = dayKey(now), song = heardMatch(data.songs || [], track);
+  if (song && song.format !== "tab") {
+    if (q.heard?.day === today && q.heard.id === song.id) return false;
+    if (q.req?.day === today && q.req.done) return false; /* today's request is already played */
+    q.heard = { day: today, id: song.id };
+    return true;
+  }
+  if (song) return false;
+  const c = q.cover, same = c && norm(c.title) === norm(track.title) && norm(c.artist || "") === norm(track.artist || "");
+  if (same || (c && !c.done && now - c.at < 7 * DAY)) return false;
+  q.cover = { title: track.title, artist: track.artist || "", ...(track.url ? { url: track.url } : {}), ...(track.art ? { art: track.art } : {}), at: now };
+  return true;
+}
+/* the cover quest now: the song once it's in your Songbook, and the chords it still needs */
+export function coverState(data, now = Date.now()) {
+  const c = data.quests?.cover;
+  if (!c || c.done || now - c.at > 14 * DAY) return null;
+  const song = (c.id && data.songs.find(s => s.id === c.id)) || heardMatch(data.songs || [], c) || null;
+  if (song && c.id !== song.id) c.id = song.id;
+  const known = knownChords(data, now), missing = song ? sheetChords(song.body).filter(x => !known.has(x)) : [];
+  return { ...c, song, missing, step: !song ? 1 : missing.length ? 2 : 3 };
+}
 /* a gig finished: the crowd it reached today, and the request line (its bonus fans double, once a day) */
 function questsShow(data, songId, crowd, fans, now) {
   const q = data.quests || (data.quests = { fans: 0 }), today = dayKey(now);
   if (crowd != null) q.crowd = { day: today, n: Math.max(q.crowd?.day === today ? q.crowd.n : 0, crowd) };
+  /* the cover quest: your first gig of the song you went and learned pays 3x */
+  const cv = coverState(data, now);
+  if (cv?.song?.id === songId) { q.cover.done = true; q.cover.id = songId; const extra = fans * (COVER_MULT - 1); q.fans = (q.fans || 0) + extra; return extra; }
   const req = requestSong(data, now);
   if (!req || req.id !== songId || (q.req?.day === today && q.req.done)) return 0;
   q.req = { day: today, id: songId, done: true };
@@ -3527,7 +3561,10 @@ export function cleanQuests(raw) {
   if (/^\d{4}-\d\d$/.test(raw.month)) { out.month = raw.month; out.tour = raw.tour === true; }
   if (isObj(raw.crowd) && day.test(raw.crowd.day)) out.crowd = { day: raw.crowd.day, n: Math.max(0, Math.min(12, Math.round(+raw.crowd.n || 0))) };
   if (isObj(raw.req) && day.test(raw.req.day) && typeof raw.req.id === "string") out.req = { day: raw.req.day, id: raw.req.id.slice(0, 40), done: raw.req.done === true };
-  return out.fans || out.day || out.month || out.crowd || out.req ? out : null;
+  if (isObj(raw.heard) && day.test(raw.heard.day) && typeof raw.heard.id === "string") out.heard = { day: raw.heard.day, id: raw.heard.id.slice(0, 40) };
+  const c = raw.cover;
+  if (isObj(c) && typeof c.title === "string" && c.title.trim() && c.at > 0) out.cover = { title: c.title.slice(0, 100), artist: String(c.artist || "").slice(0, 100), ...(/^https:\/\/music\.apple\.com\//.test(c.url || "") ? { url: c.url } : {}), ...(/^https:\/\//.test(c.art || "") ? { art: c.art } : {}), at: Math.floor(c.at), ...(typeof c.id === "string" ? { id: c.id.slice(0, 40) } : {}), ...(c.done === true ? { done: true } : {}) };
+  return out.fans || out.day || out.month || out.crowd || out.req || out.heard || out.cover ? out : null;
 }
 
 // ---------- Charts (4.6.0): XP, the weekly chart, records and rival battles ----------
@@ -3813,10 +3850,11 @@ export function gigDone(data, songId, g, encore = false, now = Date.now()) {
   gs.shows++; gs.fans += fans;
   if (pct !== null) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
   /* Tour quests (4.5.0): the crowd it reached, and the request line doubles its bonus fans */
+  const cover = coverState(data, now)?.song?.id === songId;
   const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
   /* Charts (4.6.0): XP for the show, and today's rival battle */
   const battle = chartsShow(data, songId, g, pct, now);
-  return { fans: fans + request, pct, request: request > 0 || null, ...(battle ? { battle } : {}) };
+  return { fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}) };
 }
 export function cleanGig(raw) {
   if (!isObj(raw)) return null;

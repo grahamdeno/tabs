@@ -120,30 +120,29 @@ test("Apple Music: opening a song readies the recording paused, Play starts it w
   assert.deepEqual(errs, []);
 });
 
-test("Just heard it: Tonight offers the song you just played in Apple Music, links it and plays along; closed, it stays closed", { skip: skip() }, async t => {
+test("Cover requests (4.10.0): what you played in Apple Music becomes the request, or a cover quest when it isn't in the Songbook", { skip: skip() }, async t => {
   const other = { ...LIB.songs[1] }; delete other.listen;
   const lib = { ...LIB, songs: [{ ...LIB.songs[0], playLog: { total: 3, last: Date.now() - 86400000, days: { [new Date(Date.now() - 86400000).toISOString().slice(0, 10)]: 3 } } }, other], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
   const page = await phone(t, lib);
   const errs = []; page.on("pageerror", e => errs.push(e.message));
   await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
   await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
-    window.mkLog = []; window.mkMusic = { isAuthorized: true, isPlaying: false, setQueue: async o => { window.mkLog.push("queue:" + o.song); }, seekToTime: async () => {},
-      play: async () => { window.mkMusic.isPlaying = true; }, pause: () => { window.mkMusic.isPlaying = false; }, stop: () => {},
-      api: { music: async path => { window.mkLog.push(path); return { data: { data: [{ attributes: { name: ${JSON.stringify(other.title)} + " (Remastered)", artistName: ${JSON.stringify(other.artist || "")}, url: "https://music.apple.com/us/album/x/1?i=777", artwork: { url: "https://is1-ssl.mzstatic.com/a/{w}x{h}bb.jpg" } } }] } }; } } };
+    window.mkTrack = window.mkTrack || { name: ${JSON.stringify(other.title)} + " (Remastered)", artistName: ${JSON.stringify(other.artist || "")} };
+    window.mkMusic = { isAuthorized: true, isPlaying: false, setQueue: async () => {}, seekToTime: async () => {}, play: async () => {}, pause: () => {}, stop: () => {},
+      api: { music: async () => ({ data: { data: [{ attributes: { ...window.mkTrack, url: "https://music.apple.com/us/album/x/1?i=777", artwork: { url: "https://is1-ssl.mzstatic.com/a/{w}x{h}bb.jpg" } } }] } }) } };
     window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
     document.dispatchEvent(new Event("musickitloaded"));` }));
   await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a", "hex") }));
-  await page.evaluate(() => { location.hash = "#/"; }); await page.reload();
-  await page.waitForSelector(".rd-heard", { timeout: 5000 });
-  assert.match(await page.innerText(".rd-heard"), new RegExp(`Just heard[\\s\\S]*${other.title}[\\s\\S]*Play along`, "i"));
-  await page.click("#rd-h-go");
-  await page.waitForSelector("#play");
-  const saved = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(x => x.id === other.id);
-  assert.match(saved.listen.url, /i=777/, "linked to the recording just heard");
-  assert.equal(saved.listen.art, "https://is1-ssl.mzstatic.com/a/600x600bb.jpg");
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-heard", { state: "attached" });
-  await page.waitForTimeout(800);
-  assert.equal(await page.locator(".rd-heard").count(), 0, "acted on: not offered again");
+  await page.evaluate(() => { location.hash = "#/tour"; }); await page.reload();
+  await page.waitForFunction(() => /FROM YOUR LISTENING/.test(document.querySelector(".tq-req")?.innerText || ""), null, { timeout: 8000 });
+  assert.match(await page.innerText(".tq-req"), new RegExp(`${other.title}[\\s\\S]*just played it in Apple Music`));
+  assert.equal(await page.locator(".rd-heard").count(), 0);
+  /* a song you don't have: a cover quest */
+  await page.addInitScript(() => { window.mkTrack = { name: "Wagon Wheel", artistName: "Old Crow" }; });
+  await page.reload();
+  await page.waitForSelector(".tq-cover", { timeout: 8000 });
+  assert.match(await page.innerText(".tq-cover"), /COVER QUEST[\s\S]*Wagon Wheel[\s\S]*3x fans[\s\S]*1 · Get the song/);
+  assert.match(await page.innerText("#tq-cover"), /GET THE SONG/);
   assert.deepEqual(errs, []);
 });
 

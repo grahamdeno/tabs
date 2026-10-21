@@ -384,7 +384,7 @@ function upNextHTML() {
   if (!one && !req) return "";
   return `<div class="label">Up next for you</div><div class="upn">
     ${one ? `<button class="upn-c one" data-id="${esc(one.id)}"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><span>Learn ${esc(fitOf(one).missing[0])} and it's yours</span></button>` : ""}
-    ${req ? `<button class="upn-c req" data-gig="${esc(req.id)}"><small>REQUESTED</small><b>${esc(req.title)}</b><span>2x bonus fans tonight</span></button>` : ""}
+    ${req ? `<button class="upn-c req" data-gig="${esc(req.id)}"><small>${data.quests?.heard?.id === req.id ? "FROM YOUR LISTENING" : "REQUESTED"}</small><b>${esc(req.title)}</b><span>2x bonus fans tonight</span></button>` : ""}
   </div>`;
 }
 

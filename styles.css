@@ -2920,3 +2920,16 @@ body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
 .row .fit.learn { background: var(--accent-soft); color: var(--accent-deep); }
 :root[data-look="neon"] .row .fit.learn { color: var(--accent); }
 body.is-home { --peek: calc(84px + var(--tabs)); }
+/* Cover requests (4.10.0): what you listen to becomes the request, or a cover quest */
+.tq-cover { margin: 16px 0 0; padding: 14px; border-radius: 20px; background: #14213D; color: #fff; box-shadow: 0 5px 0 #0B1226; }
+.tq-cover > small { font: 800 12px var(--sans); letter-spacing: .08em; color: var(--fans); }
+.tq-cvt { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.tq-cvt p { margin: 0; font: 700 14px/1.35 var(--sans); }
+.tq-cvt p b { font: 700 18px var(--display); }
+.tq-art { width: 56px; height: 56px; flex: none; border-radius: 12px; overflow: hidden; background: #2A3A63; display: grid; place-items: center; color: var(--fans); }
+.tq-art img { width: 100%; height: 100%; object-fit: cover; }
+.tq-steps { display: flex; gap: 6px; margin-top: 12px; }
+.tq-steps span { flex: 1; padding: 7px 4px; border-radius: 10px; background: #2A3A63; font: 700 12.5px var(--sans); text-align: center; }
+.tq-steps span.now { background: var(--fans); color: #14213D; }
+.tq-steps span.done { background: var(--good); color: #fff; text-decoration: line-through; }
+.tq-cover .btn { width: 100%; height: 52px; margin-top: 12px; }
