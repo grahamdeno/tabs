@@ -12,7 +12,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Louie the amp beside the path with one line for the moment and tonight's song to play.
 - The Songbook bar above the tab bar: your songs, how many you can play, and search.
 - Fans: 10 for every play, 5 for every lesson round, 25 for every merch box.
-- The tab bar: Road, Tour, Charts, Band, Rehearse and More (Settings, Merch table, Tour Map, Your profile, Tuner and Songbook, the most used nearest the thumb).
+- The tab bar: Road, Tour, Charts, Band, Rehearse and More (Settings, Tour Map, Your profile, Tuner and Songbook, the most used nearest the thumb; the Merch table opens from your fans in the stat bar).
 
 ### The Gig: playing a song
 - Play on any song opens the Gig, a scored show over the song as it plays (auto-scroll, the recording or the band).

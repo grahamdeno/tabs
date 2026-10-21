@@ -566,8 +566,8 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   await page.click(".mc-fin[data-id=gold]"); await page.waitForSelector(".mt-sheet");
   assert.match(await page.innerText(".mt-acts"), /MORE FANS TO GO/i, "can't afford Gold top yet");
   await page.click("#mt-not");
-  await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-merch");
-  assert.match(await page.innerText("#m-merch"), /Merch table[\s\S]*fans to spend/);
+  await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-lib");
+  assert.equal(await page.locator("#m-merch").count(), 0, "4.16.2: the Merch table opens from the fans in the stat bar, not More");
   await page.click("#more-x");
   await page.click("#tabs [data-tab=charts]"); await page.waitForSelector("#ch-take");
   await page.click("#ch-take"); await page.waitForSelector(".bt");
