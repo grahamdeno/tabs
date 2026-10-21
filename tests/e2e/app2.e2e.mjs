@@ -117,10 +117,12 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   await page.fill("#ed-title", "Porch Light"); await page.dispatchEvent("#ed-title", "change");
   await page.click("#ce-done"); await page.waitForSelector('h1.song-title');
   await page.waitForSelector("#sk-hear:not([hidden])", { timeout: 4000 });
-  await page.click("[data-st='rich']"); await page.waitForFunction(() => /\nD7\s+G\nHome to you/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
+  /* keep hold of the Undo button the moment it appears: on a busy machine a later toast can replace it before the save lands */
+  await page.click("[data-st='rich']"); await page.waitForFunction(() => (window.__undo = document.querySelector("#toast .tact")) && /Rich|7ths/.test(document.getElementById("toast").textContent));
+  await page.waitForFunction(() => /\nD7\s+G\nHome to you/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
   const body = async () => JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch).body;
   assert.match(await body(), /\nD7\s+G\nHome to you/, "Rich: the V chord becomes D7");
-  await page.waitForSelector("#toast .tact", { state: "attached" }); await page.evaluate(() => document.querySelector("#toast .tact").click()); /* in one step, and even if a busy machine let the toast time out */ await page.waitForFunction(() => !/D7/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
+  await page.evaluate(() => window.__undo.click()); await page.waitForFunction(() => !/D7/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
   assert.match(await body(), /\nD\s+G\nHome to you/, "Undo");
   // Hear it back: the first line is lit while it plays, then Stop.
   await page.click("#sk-hear"); await page.waitForSelector('#sheet > .pr.skcur');
@@ -418,7 +420,8 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
   assert.deepEqual(await state(), { one: true, fold: true, inBar: false, bar: false }, "playing: the bar folds away");
-  await page.waitForFunction(() => { const r = document.getElementById('play').getBoundingClientRect(); return r.left + r.width / 2 > 320 && r.top + r.height / 2 > 760; });
+  /* wait for the fold to finish moving (it springs past the corner and back) */
+  await page.waitForFunction(() => { const p = document.getElementById('play'), r = p.getBoundingClientRect(); return !document.getAnimations().some(a => a.playState === 'running' && (a.effect?.target === p || a.effect?.target?.contains?.(p))) && r.left + r.width / 2 > 320 && r.top + r.height / 2 > 760; });
   const c = await center();
   assert.ok(c.x > 320 && c.y > 760, `Play waits in the corner (${c.x}, ${c.y})`);
   assert.match(await page.innerText("#fp-nav"), /Songbook/, "beside it, the way back to the Songbook");
