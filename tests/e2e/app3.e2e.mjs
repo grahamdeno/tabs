@@ -13,19 +13,19 @@ useBrowser();
 test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest; iPad keeps the bar", { skip: skip() }, async t => {
   const songs = [...LIB.songs.map(x => x.id === "a" ? { ...x, duration: 900 } : x), { id: "x0", title: "One", artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }];
   const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, countIn: false } });
-  await page.goto(base + "#/set/s"); await page.waitForTimeout(400);
-  await page.click("[data-open='0']"); await page.waitForTimeout(600);
+  await page.goto(base + "#/set/s"); await page.waitForSelector("[data-open='0']");
+  await page.click("[data-open='0']"); await page.waitForSelector('#setdial'); await settled(page);
   assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the bar");
   assert.ok(await page.locator("#setdial").isVisible());
-  await page.click("#play"); await page.waitForTimeout(500);
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
   assert.equal(await page.locator("#setdial").isVisible(), false, "folded away while playing");
   assert.match(await page.innerText("#fp-nav"), /One\s*2 of 2/, "3.20.0: beside Play, the next song in the set");
-  await page.click("#fp-nav"); await page.waitForTimeout(700);
+  await page.click("#fp-nav"); await page.waitForFunction(() => /One/.test(document.querySelector('.song-title')?.innerText || ''));
   assert.match(await page.innerText(".song-title"), /One/, "a tap moves on to it");
 
   const pad = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } }, { viewport: { width: 1180, height: 820 } });
-  await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
-  await pad.click("#play"); await pad.waitForTimeout(400);
+  await pad.goto(base + "#/song/a"); await pad.waitForSelector("#play"); await settled(pad);
+  await pad.click("#play"); await pad.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
   assert.equal(await pad.evaluate(() => document.body.classList.contains("fold")), false, "iPad: the bar stays");
   assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
 });
@@ -42,86 +42,87 @@ test("4.15.0: the section rail is always there; Stage mode and the old toggles a
 test("2.5 Back: beside the title (4.2.0); pull down at the top; the library opens at its top", { skip: skip() }, async t => {
   const songs = Array.from({ length: 30 }, (_, i) => ({ id: "s" + i, title: "Song " + String(i).padStart(2, "0"), artist: "A", format: "chords", body: "[Verse]\nG C\nla" }));
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...songs] }, { isMobile: true });
-  await page.evaluate(() => scrollTo(0, 1500)); await page.waitForTimeout(200);
-  await page.evaluate(() => { location.hash = "#/song/s25"; }); await page.waitForTimeout(500);
+  await page.evaluate(() => scrollTo(0, 1500)); await page.waitForFunction(() => scrollY >= 1000);
+  await page.evaluate(() => { location.hash = "#/song/s25"; }); await page.waitForSelector('.shead .sh-back');
   const b = await page.evaluate(() => { const el = document.querySelector(".shead .sh-back"), r = el.getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(el).display }; });
   assert.ok(b.y < 100 && b.v !== "none", `4.2.0: Back sits beside the title (${JSON.stringify(b)})`);
-  await page.click(".shead .sh-back"); await page.waitForTimeout(500);
+  await page.click(".shead .sh-back"); await page.waitForFunction(() => location.hash === '#/library' && scrollY === 0);
   assert.equal(await page.evaluate(() => location.hash), "#/library");
   assert.equal(await page.evaluate(() => scrollY), 0, "the library opens at its top");
   /* Pull down at the top of a song. */
-  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForTimeout(500);
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector('.metarow'); await settled(page);
   const cdp = await page.context().newCDPSession(page);
   const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: y == null ? [] : [{ x: 150, y }] });
   await touch("touchStart", 300);
-  for (let y = 300; y <= 360; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); }
-  await touch("touchEnd"); await page.waitForTimeout(400);
+  for (let y = 300; y <= 360; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); /* real timer */ }
+  await touch("touchEnd"); await page.waitForTimeout(400); /* real timer */
   assert.equal(await page.evaluate(() => location.hash), "#/song/a", "a short pull springs back");
   await touch("touchStart", 300);
-  for (let y = 300; y <= 420; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); }
+  for (let y = 300; y <= 420; y += 10) { await touch("touchMove", y); await page.waitForTimeout(16); /* real timer */ }
   assert.match(await page.textContent(".fp-pull"), /Release for Songbook/);
   assert.equal(await page.evaluate(() => document.querySelector(".fp-pull").classList.contains("go")), true);
-  await touch("touchEnd"); await page.waitForTimeout(500);
+  await touch("touchEnd"); await page.waitForFunction(() => location.hash === '#/library');
   assert.equal(await page.evaluate(() => location.hash), "#/library", "a full pull goes back");
 });
 
 test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me points at the control", { skip: skip() }, async t => {
   const page = await phone(t, LIB);
-  await page.goto(base + "#/gestures"); await page.waitForTimeout(300);
+  await page.goto(base + "#/gestures"); await page.waitForFunction(() => /One hand/i.test(document.querySelector(".label")?.textContent || "")); await settled(page);
   const labels = await page.evaluate(() => [...document.querySelectorAll(".label")].map(x => x.textContent));
   assert.match(labels[0], /One hand/i, "one-hand group first");
   const text = await page.innerText("#app");
   for (const t of ["Press Play", "Pull down at the top", "Tools, then Speed"]) assert.ok(text.includes(t), t);
   for (const t of ["Hold Play", "Sweep the arc", "Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
   assert.ok(await page.locator(".gs-row").count() <= 24, "trimmed");
-  await page.click(".gs-show[data-demo='speed']"); await page.waitForTimeout(1800);
+  await page.click(".gs-show[data-demo='speed']"); await page.waitForFunction(() => /#\/song\//.test(location.hash) && !!document.querySelector('.coach'));
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
   assert.ok(await page.locator(".coach").count() >= 1, "the tip points at the time");
 });
 test("2.6.5 speed dial: a wobble doesn't change it; Undo restores; nothing selectable", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
-  await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
+  await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
   const before = await speedText(page);
   await openSpeed(page);
   const x = 250, y = 700;
   await page.mouse.move(x, y); await page.mouse.down();
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".dial-big")).webkitUserSelect || getComputedStyle(document.querySelector(".dial-big")).userSelect), "none");
-  await page.mouse.move(x + 6, y - 8, { steps: 3 }); await page.mouse.up(); await page.waitForTimeout(300);
-  if (await page.locator(".dial").count()) { await page.mouse.click(60, 120); await page.waitForTimeout(300); }
+  await page.mouse.move(x + 6, y - 8, { steps: 3 }); await page.mouse.up(); await page.waitForTimeout(300); /* real timer */
+  if (await page.locator(".dial").count()) { await page.mouse.click(60, 120); await page.waitForSelector('.dial', { state: 'detached' }); }
   assert.equal(await speedText(page), before, "a small wobble changes nothing");
   await openSpeed(page);
-  await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 60, y - 140, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(300);
+  await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 60, y - 140, { steps: 8 }); await page.mouse.up(); await page.waitForFunction(() => /Length .*Undo/s.test(document.getElementById('toast')?.innerText || ''));
   assert.notEqual(await speedText(page), before, "a real sweep changes it");
   assert.match(await page.innerText("#toast"), /Length .*Undo/s);
-  await page.click("#toast .tact"); await page.waitForTimeout(300);
+  await page.click("#toast .tact"); await until(async () => (await speedText(page)) === before);
   assert.equal(await speedText(page), before, "Undo puts it back");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.id === 'a').duration === 200);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").duration, 200);
 });
 
 test("Add the words: paste lyrics on a chord chart and the chords go over them", { skip: skip() }, async t => {
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });
-  await page.goto(base + "#/song/c"); await page.waitForTimeout(400);
-  await page.click("#more"); await page.click(".menu [data-m='words']"); await page.waitForTimeout(400);
+  await page.goto(base + "#/song/c"); await page.waitForSelector('.metarow');
+  await page.click("#more"); await page.click(".menu [data-m='words']"); await page.waitForSelector('#ws-text');
   assert.equal(await page.isDisabled("#ws-ok"), true, "nothing to save before words");
   await page.fill("#ws-text", "first line of the verse here\nsecond line goes on\n\n[Chorus]\nthis is the chorus line");
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => /first line of the verse here/.test(document.getElementById('ws-prev')?.textContent || ''));
   assert.match(await page.textContent("#ws-prev"), /\[Verse\]\nG\s+D\nfirst line of the verse here/);
-  await page.click("#ws-ok"); await page.waitForTimeout(500);
+  await page.click("#ws-ok"); await page.waitForFunction(() => /this is the chorus line/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.id === 'c').body));
   const body = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "c").body;
   assert.match(body, /\[Chorus\]\nC\s+G\nthis is the chorus line/);
   assert.match(await page.textContent("#sheet"), /first line of.*chorus line/, "the song page shows the words");
-  await page.click("#toast .tact"); await page.waitForTimeout(300);
+  await page.click("#toast .tact"); await page.waitForFunction(c => JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.id === 'c').body === c, chart);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "c").body, chart, "Undo");
 });
 
 test("typing in Text on a phone opens writing mode; the editor fills the top and the bar rides above", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { isMobile: true });
   await page.click("#add");
-  await page.waitForTimeout(600);
+  await page.waitForSelector('#ed-body'); await settled(page);
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.focus("#ed-body");
-  await page.waitForTimeout(450);
+  await page.waitForFunction(() => document.body.classList.contains('writing'));
   assert.ok(await page.evaluate(() => document.body.classList.contains("writing")), "writing mode on");
   const box = await page.locator(".ed-tx").boundingBox(), bar = await page.locator(".cebar").boundingBox();
   assert.ok(box.y >= 0 && box.y < 70, `editor at the top, under the title strip (y=${box.y})`);
@@ -131,7 +132,7 @@ test("typing in Text on a phone opens writing mode; the editor fills the top and
   const st = await page.evaluate(() => document.querySelector(".ed-tx").scrollTop);
   assert.ok(st > 0, "the editor follows the caret down");
   await page.evaluate(() => document.activeElement.blur());
-  await page.waitForTimeout(100);
+  await page.waitForFunction(() => !document.body.classList.contains('writing'));
   assert.ok(!(await page.evaluate(() => document.body.classList.contains("writing"))), "writing mode off when the keyboard closes");
 });
 
@@ -151,13 +152,13 @@ test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is 
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(base); await page.waitForTimeout(400);
+  await page.goto(base); await page.waitForFunction(() => !!localStorage.getItem('tabs-v1'));
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true }, micExplained: true } });
-  await page.reload(); await page.waitForTimeout(300);
+  await page.reload(); await page.waitForLoadState('domcontentloaded');
   await page.goto(base + "#/library"); await page.waitForSelector("#tunerbtn"); /* 4.0.0: the Road has no header */
-  await page.click("#tunerbtn"); await page.waitForTimeout(600);
+  await page.click("#tunerbtn"); await page.waitForSelector('#tn-say');
   const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent }));
-  await page.evaluate(() => { window.__hz = 82.41 * 2 * 2 ** (-20 / 1200); }); await page.waitForTimeout(800);
+  await page.evaluate(() => { window.__hz = 82.41 * 2 * 2 ** (-20 / 1200); }); await page.waitForFunction(() => document.getElementById('tn-n').textContent === 'E' && document.getElementById('tn-say').textContent === 'Tighten the E string');
   const r = await read();
   assert.equal(r.note, "E"); assert.equal(r.say, "Tighten the E string", "read as the low E, 20 cents flat, not a far-off note");
   await page.click("#tn-done");
@@ -174,27 +175,29 @@ test("2.19.1 Library: the Recent cards show (the ring's styles had been hiding t
 
 test("2.30.1: editing or adding a song hides Play", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { isMobile: true });
-  await page.click("#add"); await page.waitForTimeout(700);
-  await page.mouse.click(200, 300); await page.waitForTimeout(700);
+  await page.click("#add"); await page.waitForSelector('#ed-body'); await settled(page);
+  await page.mouse.click(200, 300); await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok))));
   assert.equal(await page.evaluate(() => { const f = document.getElementById("fp"); return !f || getComputedStyle(f).display === "none"; }), true, "no Play on the new song page");
   assert.equal(await page.locator("#play").isVisible(), false);
 });
 
 test("2.33.0: writing mode keeps the song in view: a strip with title, artist and key; Return comes back to the pad", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { isMobile: true });
-  await page.click("#add"); await page.waitForTimeout(600);
-  await page.focus("#ed-body"); await page.waitForTimeout(400);
+  await page.click("#add"); await page.waitForSelector('#ed-body'); await settled(page);
+  await page.focus("#ed-body"); await page.waitForSelector('#ed-strip'); await page.waitForFunction(() => document.body.classList.contains('writing'));
   assert.ok(await page.locator("#ed-strip").isVisible(), "the strip shows while writing");
   assert.match(await page.innerText("#ed-strip"), /Add a title/);
   const s = await page.locator("#ed-strip").boundingBox(), p = await page.locator(".ed-tx").boundingBox();
   assert.ok(p.y >= s.y + s.height, "the pad sits below the strip");
   await page.keyboard.type("[Verse]\nG       C\nHello there");
-  await page.click("#ed-strip"); await page.waitForTimeout(300);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('tabs-v1')).songs.some(s => /Hello there/.test(s.body || '')));
+  await page.click("#ed-strip"); await page.waitForFunction(() => document.activeElement.id === 'ed-title');
   assert.equal(await page.evaluate(() => document.activeElement.id), "ed-title", "tap the strip: the title");
   await page.keyboard.type("Porch Light"); await page.keyboard.press("Enter");
   assert.equal(await page.evaluate(() => document.activeElement.id), "ed-artist", "Return: the artist");
-  await page.keyboard.type("Me"); await page.keyboard.press("Enter"); await page.waitForTimeout(400);
+  await page.keyboard.type("Me"); await page.keyboard.press("Enter"); await page.waitForFunction(() => document.activeElement.id === 'ed-body');
   assert.equal(await page.evaluate(() => document.activeElement.id), "ed-body", "Return again: back to the pad");
+  await page.waitForFunction(() => /Porch Light\s*·\s*Me\s*·\s*Key G/.test(document.getElementById('ed-strip').innerText));
   assert.match(await page.innerText("#ed-strip"), /Porch Light\s*·\s*Me\s*·\s*Key G/);
 });
 
@@ -209,7 +212,7 @@ test("the metronome plays a drum beat: kick, snare and hi-hat", { skip: skip() }
   });
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.click(".list .row"); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForTimeout(1500);
+  await page.click("#play"); await page.waitForFunction(() => window.__hits.osc >= 2 && window.__hits.noise >= 4, null, { timeout: 8000 });
   const h = await page.evaluate(() => window.__hits);
   assert.ok(h.osc >= 2, `kick and snare drums (${h.osc})`);
   assert.ok(h.noise >= 4, `snare and hi-hat noise (${h.noise})`);
@@ -229,7 +232,7 @@ test("the bass plays the root of each chord, at the sounding pitch, with the met
   const freqs = async id => {
     await page.evaluate(() => { window.__osc.length = 0; });
     await page.evaluate(i => { location.hash = "#/song/" + i; }, id); await page.waitForSelector("#play");
-    await page.click("#play"); await page.waitForTimeout(2700); await page.click("#play");
+    await page.click("#play"); await page.waitForTimeout(2700); /* real timer */ await page.click("#play");
     return page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
   };
   const low = await freqs("bs1");
@@ -255,7 +258,7 @@ test("the bass also plays under a lyric sheet, with the walking line and the met
   });
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.evaluate(() => { location.hash = "#/song/bs3"; }); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForTimeout(1800); await page.click("#play");
+  await page.click("#play"); await page.waitForTimeout(1800); /* real timer */ await page.click("#play");
   const f = await page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
   assert.ok(f.includes(98), `the first chord's root is played (${f})`);
   assert.ok(f.some(x => x > 98 && x < 200), "and the walk moves to other notes");
@@ -309,8 +312,8 @@ test("drums that fit the song: written once by the AI, played per section, busie
   await page.evaluate(() => { location.hash = "#/song/dr1"; }); await page.waitForSelector("#play");
   assert.equal(await page.$("#lp-drums"), null, "no Drums chip before they are written");
   await page.click("#play");
-  await page.waitForTimeout(1200);
-  await page.click("#play"); await page.waitForTimeout(300);
+  await until(() => drumAsks >= 1);
+  await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains('playing'));
   assert.ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums)), "the first answer was unusable");
   await page.waitForSelector("#lp-drums-new");
   assert.match(await page.innerText("#lp-drums-new"), /Write drums/, "the Practice row offers to write them");
@@ -320,15 +323,15 @@ test("drums that fit the song: written once by the AI, played per section, busie
   assert.doesNotMatch(sent, /G   C   G   D/, "the sheet itself is not sent");
   const d = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums);
   assert.deepEqual((await d()).chorus, bars.chorus);
-  await page.waitForTimeout(600);
-  await page.click("#play"); await page.waitForTimeout(200);
+  await page.waitForFunction(() => !document.body.classList.contains('playing'));
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('playing'));
   await page.waitForSelector("#lp-drums");
   assert.match(await page.innerText("#lp-drums"), /Drums: as written/);
   await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === 1);
   assert.match(await page.innerText("#lp-drums"), /busier/);
   await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === -1);
   await page.click("#lp-drums"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dr1").drums.level === undefined);
-  await page.click("#play"); await page.waitForTimeout(400); await page.click("#play");
+  await page.click("#play"); await page.waitForTimeout(400); /* real timer */ await page.click("#play");
   assert.equal(drumAsks, 2, "one miss, then written once");
   assert.deepEqual(errors, []);
 });
@@ -360,7 +363,7 @@ test("a bass riff: drawn in Edit, kept on the song, and played on each chord", {
   await page.evaluate(() => { window.__osc.length = 0; });
   await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector(".list .row");
   await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForTimeout(1300); await page.click("#play");
+  await page.click("#play"); await page.waitForTimeout(1300); /* real timer */ await page.click("#play");
   const f = await page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
   assert.ok(f.includes(98) && f.includes(146.8), `the riff plays the root (98 Hz) and the fifth (146.8 Hz) of G (${f})`);
   assert.deepEqual(errors, []);
@@ -403,12 +406,13 @@ test("Remove the capo: a chart's capo comes off and the chords move to the key i
   await page.evaluate(() => { location.hash = "#/song/cp"; }); await page.waitForSelector("#sheet");
   const chords = () => page.$$eval("#sheet .c", els => els.map(e => e.textContent.trim()).filter(Boolean));
   const before = await chords();
-  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForTimeout(300);
+  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForFunction(() => /No capo \(Capo 2 taken off\)/.test(document.getElementById('sheet').innerText));
   const after = await chords();
   assert.match(await page.innerText("#sheet"), /No capo \(Capo 2 taken off\)/);
   assert.ok(before.includes("G") && after.includes("A") && after.includes("F#m"), `G D Em C becomes A E F#m D (${before} → ${after})`);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.id === 'cp').capoOff === true);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "cp").capoOff, true);
-  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForTimeout(300);
+  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForFunction(() => !/No capo/.test(document.getElementById('sheet').innerText));
   assert.deepEqual(await chords(), before, "and back");
 });
 
@@ -432,7 +436,7 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   assert.equal(tiles.length, 0, "no map pictures before a spot");
   assert.equal(await page.evaluate(() => window.__asked), 0, "no location asked");
   const z0 = await page.evaluate(() => document.querySelector(".tm-map .leaflet-proxy")?.style.transform);
-  await page.click("#tm-in"); await page.waitForTimeout(400);
+  await page.click("#tm-in"); await page.waitForFunction(z => document.querySelector('.tm-map .leaflet-proxy')?.style.transform !== z, z0);
   assert.notEqual(await page.evaluate(() => document.querySelector(".tm-map .leaflet-proxy")?.style.transform), z0, "zoom buttons move the map");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/tm-plain.png" });
   await page.click("#tm-flag"); await page.waitForSelector("#pf-go");
@@ -445,7 +449,7 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs-v1").includes("40.71")), false, "not in the library");
   await page.waitForFunction(() => document.querySelectorAll(".tm-map img.leaflet-tile").length > 0);
   assert.ok(tiles.every(u => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(u)));
-  if (process.env.SHOT) { await page.waitForTimeout(500); await page.screenshot({ path: process.env.SHOT + "/tm-spot.png" }); }
+  if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/tm-spot.png" }); }
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "open");
   await page.click("#tm-forget"); await page.waitForSelector("#tm-flag");
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
@@ -455,7 +459,7 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
 test("A run that stops early is not a play", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } });
   await page.click(".list .row"); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForTimeout(1500); await page.click("#play");
+  await page.click("#play"); await page.waitForTimeout(1500); /* real timer */ await page.click("#play");
   await page.waitForFunction(() => document.getElementById("play")?.getAttribute("aria-label") === "Start auto-scroll");
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.every(s => !s.playLog?.total)), true);
 });
@@ -540,9 +544,9 @@ test("Tour Map: the scene sheet says how many songs and minutes take a rival cor
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("tm-sbody")).opacity), "0", "the details stay hidden until the sheet is pulled up");
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "open");
   assert.match(await page.innerText("#tm-sbody"), /Start with[\s\S]*minutes a day[\s\S]*You hold/i);
-  if (process.env.SHOT) { await page.waitForTimeout(500); await page.screenshot({ path: process.env.SHOT + "/scene-open.png" }); }
+  if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/scene-open.png" }); }
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "closed");
-  if (process.env.SHOT) { await page.waitForTimeout(500); await page.screenshot({ path: process.env.SHOT + "/scene-closed.png" }); }
+  if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/scene-closed.png" }); }
   await page.click("#tm-take-go");
   await page.waitForFunction(() => /#\/song\//.test(location.hash));
 });
@@ -568,10 +572,10 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
   await ctx.addInitScript(FAKE_MIC);
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(base + "#/library"); await page.waitForTimeout(300);
+  await page.goto(base + "#/library"); await page.waitForFunction(() => !!localStorage.getItem('tabs-v1'));
   const body = "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand\n\n[Chorus]\nD        A\nCarry me home\nE        A\nLay me down";
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, songs: [{ id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16, body }], settings: { ...LIB.settings, gigLines: 4, plainPlay: false } });
-  await page.goto(base + "#/song/g"); await page.reload(); await page.waitForTimeout(600);
+  await page.goto(base + "#/song/g"); await page.reload(); await page.waitForSelector('#play'); await settled(page);
   await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
   assert.equal(await page.getAttribute("#play", "aria-label"), "Play as a gig");
   await page.click("#play");
@@ -595,7 +599,7 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
   await page.click('.menu [data-lines="5"]');
   await page.waitForSelector('#gig[data-lines="5"]', { timeout: 3000 });
   assert.equal(await page.innerText(".menu [data-lines].on"), "5", "4.2.3: the picked count lights up");
-  await page.mouse.click(200, 120); await page.waitForTimeout(200);
+  await page.mouse.click(200, 120); await page.waitForSelector('.menu', { state: 'detached' });
   assert.equal(await page.locator(".menu").count(), 0, "a tap above Tools closes it");
   assert.equal(await page.locator("#gig.paused").count(), 1, "and the show stays paused");
   await page.click("#gg-resume");
@@ -630,7 +634,7 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   const before = await page.evaluate(() => scrollY), line = await page.innerText("#gg-hline");
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 420 }] });
-  for (let y = 410; y >= 200; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); }
+  for (let y = 410; y >= 200; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); /* real timer */ }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await page.waitForFunction(b => scrollY > b + 150, before);
   await page.waitForFunction(l => document.getElementById("gg-hline").innerText !== l, line);
@@ -643,7 +647,7 @@ test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls und
   await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
   await page.click("#more"); await page.click('.menu [data-lines="full"]');
   assert.equal(await page.innerText(".menu [data-lines].on"), "Full");
-  await page.mouse.click(200, 100); await page.waitForTimeout(200);
+  await page.mouse.click(200, 100); await page.waitForSelector('.menu', { state: 'detached' });
   await page.click("#play"); await page.waitForSelector("#gig");
   assert.equal(await page.getAttribute("#gig", "data-lines"), "full");
   assert.ok(await page.evaluate(() => document.body.classList.contains("gig-full")), "the page shows");
@@ -653,12 +657,12 @@ test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls und
   const before = await page.evaluate(() => scrollY);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 500 }] });
-  for (let y = 490; y >= 250; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); }
+  for (let y = 490; y >= 250; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); /* real timer */ }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await page.waitForFunction(b => scrollY > b + 100, before);
   await page.click("#gg-tools"); await page.click('.menu [data-lines="5"]');
   await page.waitForFunction(() => !document.body.classList.contains("gig-full"), null, { timeout: 3000 });
-  await page.mouse.click(200, 100); await page.waitForTimeout(200);
+  await page.mouse.click(200, 100); await page.waitForSelector('.menu', { state: 'detached' });
   await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
   assert.equal(await page.evaluate(() => document.body.classList.contains("gig-full")), false);
 });
