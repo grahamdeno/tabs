@@ -16,10 +16,11 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
+import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
+import { friend, FRIENDS } from "./friends.js";
 
 let gig = null; /* the show on stage, or null */
 export const gigNow = () => gig;
@@ -309,6 +310,7 @@ export function openGig(song, opts = {}) {
   g.el = shell(song);
   document.body.classList.add("gigging");
   gigHooks.on = true;
+  gigHooks.band = bandParts(data); /* Your band (4.7.0): drums and bass from the friends who've joined */
   gigHooks.credited = () => { if (gig === g) g.credited = true; };
   gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
   gigHooks.resume = () => { if (gig === g) resume(); };
@@ -379,7 +381,7 @@ export function closeGig(quiet = false) {
   g.el?.remove();
   g.unbind?.();
   document.body.classList.remove("gigging", "gig-full");
-  gigHooks.on = false; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
+  gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
   document.querySelector(".menu.tools")?.remove();
   if (!quiet && g.from === "road") go("#/");
 }
@@ -396,6 +398,7 @@ function showComplete() {
   const graded = g.score.hits + g.score.misses > 0;
   const { fans, pct, request, battle } = gigDone(data, g.song.id, g.score, g.encore);
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
+  const joined = bandMeet(data); /* Your band: who joined with this show */
   Tabs.save(data);
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
   const crowd = graded ? gigCrowd(g.score) : null;
@@ -405,13 +408,14 @@ function showComplete() {
   setFull(g);
   g.el.innerHTML = `<div class="gc">
     <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    ${louie("cheer", { pose: "hornsUp", size: 170 })}
+    ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
     <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
     <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
     <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("ON THE BEAT", pct === null ? "–" : `${pct}%`, "beat")}</div>
     <div class="gc-list">
       ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
       ${battle ? `<p>${battle.result === "won" ? `Rival battle: you beat <b>${esc(battle.rival)}</b>, ${battle.pct}% to ${battle.target}%. <b>+30 XP, +40 fans</b>` : `Rival battle: ${esc(battle.rival)} held on, ${battle.target}% to your ${battle.pct}%`}</p>` : ""}
+      ${joined.map(f => { const n = FRIENDS.find(x => x.id === f.id)?.name || f.id; return `<p><b>${esc(n)} joined your band!</b>${f.plays ? ` You'll hear ${f.plays === "drums" ? "drums" : "bass"} in your gigs.` : ""}</p>`; }).join("")}
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}

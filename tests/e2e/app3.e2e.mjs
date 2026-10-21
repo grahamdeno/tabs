@@ -510,7 +510,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#rd-dh"); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "open");
   await page.mouse.click(195, 20); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
   assert.equal(await page.evaluate(() => location.hash), "#/", "the drawer never leaves the Road");
-  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0); Your band is coming; More reaches Settings; the current stop's Start opens its lesson */
+  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0); Your band (4.7.0); More reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
   await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
@@ -523,8 +523,11 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#ch-go"); await page.waitForSelector(".bt");
   assert.match(await page.innerText(".bt"), /wants your spot[\s\S]*TAKE THE STAGE/);
   await page.click("#bt-no"); await page.waitForSelector(".ch-head");
-  await page.click("#tabs [data-tab=band]"); await page.waitForSelector(".soon");
-  assert.match(await page.innerText(".soon"), /Coming soon/);
+  await page.click("#tabs [data-tab=band]"); await page.waitForSelector(".bd-head");
+  const joined = +(await page.innerText(".bd-head")).match(/(\d+) OF 18 JOINED/)[1];
+  assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
+  assert.equal(await page.locator(".bd-card.locked").count(), 18 - joined);
+  assert.match(await page.innerText(".bd-next"), /NEXT TO JOIN[\s\S]*more song/);
   await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-pop.now");
   await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");

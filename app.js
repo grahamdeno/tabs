@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -64,7 +64,7 @@ const go = h => { location.hash = h; };
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
-const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null };
+const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null };
 /* Play opens the Gig (4.2.0). How much game you see is Lines in a gig: 4, 5, 6 or Full (4.4.0: the whole
    sheet under a thin strip). Practicing a section or slower, a tab and Play together play the plain sheet.
    plainPlay (tests only, never set by the app) keeps Play plain. */
@@ -78,6 +78,15 @@ function refreshPlay(song) {
   if (!pb || viewing !== song || scroll.on) return;
   pb.setAttribute("aria-label", playLabel(song, false));
 }
+/* Your band (4.7.0): a play that brings in a new friend says so */
+function bandToast() {
+  const fresh = bandMeet(data);
+  if (!fresh.length) return;
+  Tabs.save(data);
+  const names = fresh.map(f => FRIEND_NAMES[f.id] || f.id);
+  setTimeout(() => toast(`${names.join(" and ")} joined your band!`, null, { label: "Meet", fn: () => go("#/band") }), 2500);
+}
+const FRIEND_NAMES = { lola: "Lola", tilly: "Tilly", beat: "Beat", metro: "Metro", bex: "Bex", jax: "Jax", milo: "Milo", pip: "Pip", key: "Key", strap: "Strap", slide: "Slide", shaker: "Shaker", pickup: "Pickup", humb: "Humb", reverb: "Reverb", triangle: "Triangle", whammy: "Whammy", looper: "Looper" };
 /* Tour quests (4.5.0): a play that finishes a goal says so */
 function questToast() {
   const got = questsSettle(data);
@@ -1989,10 +1998,13 @@ function nextSongs() { findAI().then(m => m.nextSongs()); }
 // scheduled ahead on the audio clock, so they stay even.
 const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null };
 const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= 1 ? v : 0.8; };
-const metroDrums = () => data.settings.metroSound !== "click";
+/* Your band (4.7.0): in a gig, Beat plays the drums and Bex the bass once they've joined (gigHooks.band) */
+const metroOn = () => data.settings.metronome || !!gigHooks.band?.drums;
+const bassOn = () => data.settings.bass || !!gigHooks.band?.bass;
+const metroDrums = () => data.settings.metroSound !== "click" || (!data.settings.metronome && !!gigHooks.band?.drums);
 async function startMetronome(song) {
   stopMetronome();
-  if (!data.settings.metronome && !data.settings.bass) return;
+  if (!metroOn() && !bassOn()) return;
   if (usesMusic(song)) return; /* the recording is playing: no drums or bass on top */
   const run = ++metro.run;
   if (!song.bpm) {
@@ -2011,7 +2023,7 @@ async function startMetronome(song) {
       const groove = grooveOf(song, data.settings);
       const style = drumStyle(groove.beat, { bpm: song.bpm || 90, beats, body: song.body });
       /* Bass only: the drums or click rest and the bass plays alone. */
-      const rhythm = data.settings.metronome && !(data.settings.bass && data.settings.bassOnly);
+      const rhythm = metroOn() && !(bassOn() && data.settings.bassOnly);
       if (quiet || !rhythm) { /* silent bar, or no drums */ }
       else if (metroDrums() && songBar(song, b, beats, spb)) for (const h of barHits(metro.bar, b, DRUM_SWING[groove.swing] || 0.5)) drum(h.k, metro.next + h.at * spb, h.v);
       else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style, groove.swing);
@@ -2121,7 +2133,7 @@ const bass = { idx: null, shift: null };
 const bassVol = () => { const v = data.settings.bassVol; return v >= 0 && v <= 1 ? v : 0.7; };
 function bassBeat(song, t, b, beats, spb, quiet, drum, groove) {
   const seq = diag.seq, sheet = $("sheet");
-  if (!data.settings.bass || !seq.length || !sheet) return;
+  if (!bassOn() || !seq.length || !sheet) return;
   /* From the top of the song, the first row is the first thing played, not
      whatever sits at the reading line: the bass counts the scroll from there. */
   const reading = innerHeight * READ_AT - sheet.getBoundingClientRect().top;
@@ -2617,10 +2629,10 @@ async function startScroll(song, opts = {}) {
   btn.innerHTML = playFace(true);
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
-  if (data.settings.metronome || data.settings.bass) {
+  if (metroOn() || bassOn()) {
     if (!song.bpm) tempoFor(song); /* look it up during the count-in */
     grooveFor(song); /* and how it feels, which joins in when it arrives */
-    if (data.settings.metronome && metroDrums()) drumsFor(song); /* and drums written for it */
+    if (metroOn() && metroDrums()) drumsFor(song); /* and drums written for it */
   }
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
@@ -2656,7 +2668,7 @@ async function startScroll(song, opts = {}) {
       if (!activeLoop(song) && end >= 0 && scrollY >= end - 2) {
         const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
         if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
-          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); if (!gigHooks.on) questToast(); if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
+          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); if (!gigHooks.on) { questToast(); bandToast(); } if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
         }
         /* A sheet that fits the screen has only the clock to go by, so it plays on until it counts. */
         if (scroll.logged || end >= 40) {
@@ -2800,7 +2812,7 @@ function renderRoute() {
   else if (r.name === "road") lazy("road.js").then(m => { if (route().name === "road") { m.renderRoad(); window.scrollTo(0, 0); } });
   else if (r.name === "tour") lazy("tour.js").then(m => { if (route().name === "tour") { m.renderTour(); window.scrollTo(0, 0); } });
   else if (r.name === "charts") lazy("charts.js").then(m => { if (route().name === "charts") { m.renderCharts(); window.scrollTo(0, 0); } });
-  else if (r.name === "band") lazy("hud.js").then(m => { if (route().name === "band") { m.renderSoon("band"); window.scrollTo(0, 0); } });
+  else if (r.name === "band") lazy("band.js").then(m => { if (route().name === "band") { m.renderBand(); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }
 

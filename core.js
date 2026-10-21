@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.6.0";
+export const VERSION = "4.7.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -69,7 +69,7 @@ export function migrate(data) {
   const all = Array.isArray(data.trash) ? data.trash : [];
   const trash = all.filter(t => t && t.item && Date.parse(t.deletedAt) > cutoff);
   const kept = keepPlays(data.kept, all.filter(t => t && t.item && !(Date.parse(t.deletedAt) > cutoff))); /* a song that expires from Recently deleted leaves its plays behind */
-  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}) };
+  return { songs, sets, trash, settings, ...(data.journal && typeof data.journal === "object" ? { journal: data.journal } : {}), ...(kept ? { kept } : {}), ...(cleanTour(data.tour) ? { tour: cleanTour(data.tour) } : {}), ...(cleanSkills(data.skills) ? { skills: cleanSkills(data.skills) } : {}), ...(cleanGig(data.gig) ? { gig: cleanGig(data.gig) } : {}), ...(cleanQuests(data.quests) ? { quests: cleanQuests(data.quests) } : {}), ...(cleanCharts(data.charts) ? { charts: cleanCharts(data.charts) } : {}), ...(cleanXP(data.xp) ? { xp: cleanXP(data.xp) } : {}), ...(cleanBand(data.band) ? { band: cleanBand(data.band) } : {}) };
 }
 
 const SAVE_DELAY = 150;
@@ -615,7 +615,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
-  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}) });
+  const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
@@ -3642,6 +3642,37 @@ export function cleanXP(raw) {
   const days = {};
   for (const [k, v] of Object.entries(raw.days).slice(-90)) if (/^\d{4}-\d\d-\d\d$/.test(k) && v > 0) days[k] = Math.min(1e5, Math.round(v));
   return Object.keys(days).length ? { days } : null;
+}
+
+// ---------- Your band (4.7.0): Louie's friends join as you play ----------
+// Each friend joins after a number of songs played through (lifetime plays). Beat (drums) and Bex (bass)
+// play behind you in gigs once they've joined, unless Settings or the Band tab turn that off.
+export const BAND = [
+  ["lola", 1], ["tilly", 3], ["beat", 6, "drums"], ["metro", 10], ["bex", 15, "bass"], ["jax", 20], ["milo", 26], ["pip", 32], ["key", 40],
+  ["strap", 48], ["slide", 56], ["shaker", 65], ["pickup", 75], ["humb", 85], ["reverb", 95], ["triangle", 110], ["whammy", 125], ["looper", 140]
+].map(([id, at, plays]) => ({ id, at, ...(plays ? { plays } : {}) }));
+export function bandState(data) {
+  const plays = lifetimePlays(data), seen = new Set(data.band?.seen || []);
+  const members = BAND.map(b => ({ ...b, joined: plays >= b.at, fresh: plays >= b.at && !seen.has(b.id) }));
+  const next = members.find(b => !b.joined) || null;
+  return { plays, members, joined: members.filter(b => b.joined), next: next && { ...next, more: next.at - plays } };
+}
+/* who has joined since you last looked; marks them met */
+export function bandMeet(data) {
+  const st = bandState(data), fresh = st.members.filter(b => b.fresh);
+  if (fresh.length) { const b = data.band || (data.band = { seen: [] }); b.seen = [...new Set([...(b.seen || []), ...fresh.map(x => x.id)])]; }
+  return fresh;
+}
+/* the parts your band plays in a gig: drums once Beat has joined, bass once Bex has */
+export function bandParts(data) {
+  if (data.settings?.bandPlays === false) return {};
+  const st = bandState(data), has = id => st.joined.some(b => b.id === id);
+  return { drums: has("beat"), bass: has("bex") };
+}
+export function cleanBand(raw) {
+  if (!isObj(raw)) return null;
+  const seen = (Array.isArray(raw.seen) ? raw.seen : []).filter(id => BAND.some(b => b.id === id));
+  return seen.length ? { seen } : null;
 }
 
 /* The chords you can play: every chord lesson done, and any chord played in songs five times. */

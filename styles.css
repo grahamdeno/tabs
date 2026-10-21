@@ -2835,3 +2835,31 @@ body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
 .bt-note { margin: 0; font: 700 13px var(--sans); color: var(--muted); }
 .bt-acts { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 4px; }
 .bt-acts .btn { width: 100%; height: 56px; flex: none; }
+/* ==========================================================================
+   Your band (4.7.0): Louie's friends, joining as you play
+   ========================================================================== */
+.bd { padding-bottom: calc(var(--tabs) + 24px); }
+.bd-head { display: flex; align-items: center; gap: 10px; margin: 10px -20px 0; padding: 14px 20px; background: var(--g-solo); color: #14213D; }
+.bd-head > div { flex: 1; }
+.bd-head h1 { margin: 0; font: 700 28px var(--display); }
+.bd-head small { font: 800 13px var(--sans); letter-spacing: .06em; opacity: .75; }
+.bd-head .louie { width: 92px; height: auto; }
+.bd-next { display: flex; align-items: center; gap: 12px; margin: 16px 0 0; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); }
+.bd-nt { flex: 1; min-width: 0; }
+.bd-nt small { font: 800 12px var(--sans); letter-spacing: .08em; color: var(--muted); }
+.bd-nt p { margin: 2px 0 0; font: 700 15px/1.35 var(--sans); color: var(--fg); }
+.bd-sil { filter: brightness(0) opacity(.22); }
+:root[data-look="neon"] .bd-sil { filter: brightness(0) invert(1) opacity(.18); }
+.bd-set { margin: 14px 0 0; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 2px solid var(--rim); display: flex; align-items: center; gap: 10px; }
+.bd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.bd-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 10px; border-radius: 18px; background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); color: var(--fg); }
+.bd-card b { font: 700 15px var(--display); }
+.bd-card small { font: 800 10.5px var(--sans); letter-spacing: .06em; color: var(--muted); }
+.bd-card .bd-part { color: var(--accent-deep); }
+:root[data-look="neon"] .bd-card .bd-part { color: var(--accent); }
+.bd-card.locked { border-style: dashed; box-shadow: none; background: transparent; }
+.bd-card.fresh { border-color: var(--fans); box-shadow: 0 4px 0 var(--fans-deep); animation: bd-pop .5s cubic-bezier(.3,1.5,.5,1); }
+@keyframes bd-pop { from { transform: scale(.8); } }
+@media (prefers-reduced-motion: reduce) { .bd-card.fresh { animation: none; } }
+.gc-join { display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.gc-join .louie { width: 120px; }

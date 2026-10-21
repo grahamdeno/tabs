@@ -1869,6 +1869,23 @@ test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles
   assert.deepEqual(C.cleanXP(JSON.parse(JSON.stringify(data.xp))), data.xp);
 });
 
+test("Your band (4.7.0): friends join as you play; Beat and Bex play in gigs", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {}, journal: { v: 1, months: { "2026-10": { plays: 7 } } } };
+  assert.equal(C.BAND.length, 18);
+  const st = C.bandState(data);
+  assert.deepEqual(st.joined.map(b => b.id), ["lola", "tilly", "beat"]);
+  assert.deepEqual([st.next.id, st.next.more], ["metro", 3]);
+  assert.deepEqual(C.bandParts(data), { drums: true, bass: false }, "Beat plays the drums");
+  assert.deepEqual(C.bandMeet(data).map(b => b.id), ["lola", "tilly", "beat"], "new friends, met once");
+  assert.deepEqual(C.bandMeet(data), []);
+  data.journal.months["2026-10"].plays = 15;
+  assert.deepEqual(C.bandMeet(data).map(b => b.id), ["metro", "bex"]);
+  assert.deepEqual(C.bandParts(data), { drums: true, bass: true });
+  data.settings.bandPlays = false;
+  assert.deepEqual(C.bandParts(data), {}, "turned off on the Band tab");
+  assert.deepEqual(C.cleanBand({ seen: ["lola", "nobody"] }), { seen: ["lola"] });
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");

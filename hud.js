@@ -3,7 +3,7 @@
 //   statBar()        the venue, the gig streak and your fans, as buttons (bindStatBar wires them)
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   openMore()       a sheet of the places that aren't tabs: Library, Tour Map, Your playing, Tuner, Settings
-//   renderSoon(name) Band, until it's built: what it will be (Tour arrived in 4.5.0, tour.js; Charts in 4.6.0, charts.js)
+//   renderSoon(name) a page still to come (none now: Tour 4.5.0, Charts 4.6.0, Your band 4.7.0)
 import { fansOf, lifetimePlays, playSongs, streakOf, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
@@ -80,7 +80,6 @@ export const tabFor = name => ({ practice: "rehearse", you: "more" })[name] || n
 
 /* ---- the pages still to come ---- */
 const SOON = {
-  band: { title: "Your band", line: "Each new venue adds a player behind you: drums at the Open mic, bass at the Club, keys at the Arena. You hear them in every song.", items: ["Drums join at the Open mic", "Bass joins at the Club", "Keys join at the Arena", "Jam with a friend on two phones"] }
 };
 export function renderSoon(name) {
   const p = SOON[name];
