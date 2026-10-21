@@ -7,7 +7,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ## What it does
 
 ### The Road (home)
-- A stat bar on every main page: your venue (tap for the Tour Map), your gig streak, fans to spend (tap for the Merch table) and Louie (tap for Your profile). The streak is a guitar that rocks once you've played tonight and sits grey and upright until you do; tapping it rocks it, taps the phone and opens your profile.
+- A stat bar on every main page: your venue (tap for the Tour Map), your gig streak, fans to spend (tap for the Merch table). The streak (tap for Your profile) is a guitar that rocks once you've played tonight and sits grey and upright until you do; tapping it rocks it, taps the phone and opens your profile.
 - The leg you're on and a path of stops built from the neck: lessons, a merch box after every third, and a headline show at the end of each leg (play a real song through). The current stop is ringed with its card open.
 - Louie the amp beside the path with one line for the moment and tonight's song to play.
 - The Songbook bar above the tab bar: your songs, how many you can play, and search.
@@ -41,7 +41,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Add opens a writing pad: Paste, Type, Sing or strum (key and chords found on the phone), and with an AI key, Scan a page or Find the chords. Edit works in place: tap a word to set its chord, every change saves with Undo. Deleted songs and sets stay 30 days in Recently deleted.
 
 ### Your profile, the Tour Map and the streak
-- Your profile (called Your playing before 4.15.4): opened from Louie in the stat bar or the streak; the streak readout has an amp knob that fills toward the next goal: hours, songs, streak, milestones, a chord passport, your changes, when you play, keys and tempo, and a share picture with Louie.
+- Your profile (called Your playing before 4.15.4): opened from the streak in the stat bar or from More; the streak readout has an amp knob that fills toward the next goal: hours, songs, streak, milestones, a chord passport, your changes, when you play, keys and tempo, and a share picture with Louie.
 - The streak celebration, once a day after your first song played through: the screen floods with the streak colour, Louie drops in and throws the horns under a stage light that flickers on (on a milestone night, 7, 30, 100 or 365, the horns pop up too, and the phone taps along where it can), confetti falls, the count rolls up and the week fills in. Share makes a picture of it.
 - The Tour Map: every song played through lights a hexagon on a map; rings grow into venues from Garage to Festival headliner, with simulated rival players around you. Your position stays on the phone, never in a backup.
 

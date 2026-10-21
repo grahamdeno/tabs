@@ -7,7 +7,6 @@ import { Tabs, fansToSpend, lifetimePlays, playSongs, rainSettle, streakOf, venu
 import { esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
 import { guitarIcon, buzz } from "./rock.js";
-import { louie } from "./louie.js";
 
 const n = x => x.toLocaleString("en-US");
 
@@ -24,7 +23,6 @@ export function statBar() {
     <button id="h-venue" aria-label="${esc(v.name)}, venue ${v.ring + 1}. Open the Tour Map">${BADGE}<span>${v.ring + 1}</span></button>
     <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${guitarIcon(st.today)}<span>${st.days}</span></button>
     <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans to spend. Open the Merch table">${TICKET}<span>${n(fans)}</span></button>
-    <button id="h-you" class="h-you" aria-label="Your profile">${louie("happy", { size: 40 })}</button>
   </div>`;
 }
 export function bindStatBar() {
@@ -32,7 +30,6 @@ export function bindStatBar() {
   $("h-venue")?.addEventListener("click", () => go("#/playmap"));
   /* 4.16.0: the guitar rocks and the phone taps before your profile opens */
   $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
-  $("h-you")?.addEventListener("click", () => go("#/you"));
   $("h-fans")?.addEventListener("click", () => go("#/merch"));
   if (rained.length) { const k = rained.length; rained = []; setTimeout(() => toast(`${k === 1 ? "A Rain check covered last night" : `${k} Rain checks covered the nights you missed`}. Your streak is safe.`), 600); }
 }

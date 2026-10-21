@@ -2832,7 +2832,7 @@ body.gigging .ask { z-index: 66; }
 .ri-guitar .ri-ink { fill: #1B1838; } .ri-guitar .ri-knob { fill: #FFD84D; }
 .ri-guitar .ri-waves path { fill: none; stroke: #3DE0FF; stroke-width: 2.4; stroke-linecap: round; }
 .ri-guitar .ri-waves path + path { opacity: .6; }
-.ri-tilt { transform-origin: 13px 24px; transform: rotate(-35deg); }
+.ri-tilt { transform-origin: 16px 24px; transform: rotate(-35deg); }
 /* not played tonight: grey and upright, breathing to say "play" */
 .ri-guitar:not(.on) .ri-tilt { transform: rotate(-8deg); }
 .ri-guitar:not(.on) .ri-bd, .ri-guitar:not(.on) .ri-hd, .ri-guitar:not(.on) .ri-neck, .ri-guitar:not(.on) .ri-lip, .ri-guitar:not(.on) .ri-knob { fill: var(--locked-ic, #6E6898); }
@@ -2881,11 +2881,8 @@ body.gigging .ask { z-index: 66; }
   .ri, .ri * { animation: none !important; }
 }
 
-/* the stat bar's guitar and the profile button (4.16.0) */
+/* the stat bar's guitar (4.16.0) */
 .hud .h-streak .ri-guitar { width: 36px; height: 36px; margin: -3px -2px; }
-.hud .h-you { padding: 0; width: 46px; height: 46px; border-radius: 14px; background: var(--card-2, #2E2A5C); box-shadow: 0 4px 0 var(--card-lip, #141130); display: grid; place-items: center; overflow: hidden; }
-.hud .h-you .louie { width: 40px; height: auto; margin-top: 6px; }
-.hud .h-you:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-lip, #141130); }
 
 /* the streak moment: the stage light (and on milestone nights the horns) instead of the flame */
 .sk-art .ri-light { position: absolute; left: 50%; top: 8px; width: 190px; height: 190px; margin-left: -95px; }
