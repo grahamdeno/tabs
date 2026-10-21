@@ -96,21 +96,21 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
   if (process.env.DBG) { page.on("console", m => console.log("# con", m.text())); page.on("pageerror", e => console.log("# perr", String(e))); }
-  await page.goto(base + "#/library"); await page.waitForTimeout(400); /* 4.9.0: Add is in the Songbook */
+  await page.goto(base + "#/library"); await page.waitForSelector("#add"); /* 4.9.0: Add is in the Songbook */
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
-  await page.reload(); await page.waitForTimeout(300);
-  await page.click("#add"); await page.waitForTimeout(600);
-  await page.click("#ed-sing"); await page.waitForTimeout(500);
+  await page.reload(); await page.waitForSelector("#add");
+  await page.click("#add"); await page.waitForSelector("#ed-sing");
+  await page.click("#ed-sing"); await page.waitForSelector("[data-mode='sing']");
   assert.equal(await page.getAttribute("[data-mode='sing']", "aria-pressed"), "true", "Sing it stays the default");
   await page.click("[data-mode='strum']");
   assert.match(await page.innerText("#sk-pad-t"), /Hold to play line 1/);
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/strum-1.png" });
   await page.waitForFunction(() => !document.querySelector(".skear"), null, { timeout: 60000 });
   const pad = await page.locator("#sk-pad").boundingBox(), px = pad.x + pad.width / 2, py = pad.y + pad.height - 60;
-  await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(500);
+  await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(500) /* real timer: the hold */;
   await page.evaluate(() => { window.__strum = ["G", "C"]; });
-  await page.waitForTimeout(6200);
-  await page.mouse.up(); await page.waitForTimeout(300);
+  await page.waitForTimeout(6200) /* real timer: a line takes this long to play */;
+  await page.mouse.up(); await page.waitForFunction(() => /INPUT|TEXTAREA/.test(document.activeElement?.tagName || ""));
   /* The line shows "Hearing your chords…" until they arrive (quickly here). */
   await page.keyboard.type("Lantern hung by the kitchen door");
   await page.evaluate(() => document.activeElement.blur());
@@ -118,7 +118,7 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
   const row = await page.innerText(".sknb-row");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/strum-2.png" });
   assert.match(row, /G[\s\S]*C/, "the played chords sit over the words");
-  await page.click("#sk-done"); await page.waitForTimeout(1500);
+  await page.click("#sk-done"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.sketch));
   const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch);
   assert.ok(song, "a new song was made");
   assert.match(song.body, /^G\s+C\s*\nLantern hung by the kitchen door$/);
