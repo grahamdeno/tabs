@@ -74,10 +74,10 @@ export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } =
   const errors = [];
   page.on("pageerror", e => errors.push(String(e)));
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
+  /* The library is in place before the app starts, once per tab (a reload keeps what the test changed).
+     Replacing it after a first load let the app's own first save land on top of it on a busy machine. */
+  await page.addInitScript(json => { try { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); } } catch { /* blocked */ } }, JSON.stringify(lib));
   await page.goto(base + (home ? "" : "#/library")); /* most tests start in the Library; home: true starts on Tonight */
-  await page.waitForTimeout(300); /* real timer: waitForLoadState alone made app.e2e flaky (Step 6.2) */
-  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), lib);
-  await page.reload();
   await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0); /* drawn, rather than a fixed wait */
   t.after(async () => { assert.deepEqual(errors, [], "page errors"); await ctx.close(); });
   return page;
