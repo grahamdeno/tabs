@@ -2268,3 +2268,220 @@ body.is-home .rd-heard { flex: none; }
 .song-title { font-family: var(--display); font-weight: 700; }
 .rd-bx { fill: #fff; } .rd-bxk { fill: var(--fans-deep); } .rd-bxs { stroke: var(--fans-deep); }
 .rd-node.box.locked .rd-bx { fill: var(--locked-ic); } .rd-node.box.locked .rd-bxk { fill: var(--locked); } .rd-node.box.locked .rd-bxs { stroke: var(--locked); }
+
+/* ==========================================================================
+   Version 4 components (4.0.1)
+   One definition for each component, used everywhere. Every rule starts with
+   :root[data-look] so it outranks the older per-screen styles above.
+     primary button   go colour on a darker lip, gloss stripe, Fredoka
+     button           card on a rim-coloured lip
+     chip             small pill: card, 2px rim, small lip; .on/.learning in go colour
+     icon button      round (.ib) or rounded square (.sb): card, 2px rim, small lip
+     segmented        a card track; the chosen part in go colour
+     toggle           rim when off, go colour when on, white knob
+     sheet            card, 2px rim, rounded top, a grab handle, Fredoka title
+     readout          a card-2 well with a Fredoka number in go colour (dials, stats)
+   ========================================================================== */
+/* ---- buttons ---- */
+:root[data-look] .btn { border: 2px solid var(--rim); background: var(--card); color: var(--fg); box-shadow: 0 4px 0 var(--rim); font-family: var(--display); font-weight: 600; border-radius: 16px; }
+:root[data-look] .btn.primary, :root[data-look] .ce-save, :root[data-look] body.fold .fp #play, :root[data-look] .nx .nx-ch span.new { background: var(--accent); color: var(--on-accent); border: 0; box-shadow: 0 5px 0 var(--accent-deep); font-family: var(--display); font-weight: 700; }
+:root[data-look] .btn.bad, :root[data-look] .btn.danger, :root[data-look] button.danger { color: var(--bad); border-color: var(--bad-line); box-shadow: 0 4px 0 var(--bad-line); }
+:root[data-look] .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+:root[data-look] .btn.primary:active:not(:disabled) { box-shadow: 0 2px 0 var(--accent-deep); }
+:root[data-look] .gs-show, :root[data-look] .ce-add, :root[data-look] .btn.sm { height: 34px; padding: 0 12px; border-radius: 12px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); box-shadow: 0 3px 0 var(--rim); font: 600 13.5px var(--display); }
+:root[data-look] .btn.sm.primary { border: 0; background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+:root[data-look] .linkish { color: var(--accent-deep); font-weight: 700; }
+:root[data-look="neon"] .linkish { color: var(--accent); }
+/* the round Play in the song bar and the add button: go colour on its lip */
+:root[data-look] #play, :root[data-look] .add, :root[data-look] .add.tool { background: var(--accent); color: var(--on-accent); border: 0; box-shadow: 0 4px 0 var(--accent-deep); }
+:root[data-look] #play svg { fill: var(--on-accent); color: var(--on-accent); }
+
+/* ---- chips ---- */
+:root[data-look] .chip, :root[data-look] .stat, :root[data-look] .keybtn, :root[data-look] .ed-chip, :root[data-look] .pf-first, :root[data-look] .looprow .chip {
+  border: 2px solid var(--rim); background: var(--card); color: var(--fg-2); box-shadow: 0 2px 0 var(--rim); font-family: var(--display); font-weight: 600; border-radius: 999px; }
+:root[data-look] .stat, :root[data-look] .keybtn { height: 30px; padding: 0 12px; font-size: 13.5px; }
+:root[data-look] .ed-chip { height: 36px; }
+:root[data-look] .chip.on, :root[data-look] #chips .chip.on, :root[data-look] .stat.learning, :root[data-look] .stat.on, :root[data-look] .stat.rec.on, :root[data-look] .pchip.on, :root[data-look] .keybtn, :root[data-look] .pf-first.big {
+  border-color: var(--accent); background: var(--accent-soft); color: var(--fg); box-shadow: 0 2px 0 var(--accent-line); }
+:root[data-look] .keybtn b, :root[data-look] .ed-chip b, :root[data-look] .stat b { color: var(--fg); }
+:root[data-look] .stat.got { border-color: var(--good); background: var(--good-soft); color: var(--fg); box-shadow: 0 2px 0 var(--good-soft); }
+:root[data-look] .stat svg, :root[data-look] .keybtn .kchev { color: var(--accent-deep); }
+:root[data-look="neon"] .stat svg, :root[data-look="neon"] .keybtn .kchev { color: var(--accent); }
+:root[data-look] #chips .chip::before, :root[data-look] .chip::before { background: var(--rim); box-shadow: none; }
+:root[data-look] #chips .chip.on::before { background: var(--accent); box-shadow: none; }
+
+/* ---- icon buttons ---- */
+:root[data-look] .ib.glass, :root[data-look] .sb, :root[data-look] .tm-top .ib, :root[data-look] .tm-ctl .ib {
+  background: var(--card); border: 2px solid var(--rim); box-shadow: 0 3px 0 var(--rim); color: var(--fg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-look] .ib.glass { width: 40px; height: 40px; }
+:root[data-look] .sb { width: 36px; height: 36px; border-radius: 12px; }
+:root[data-look] .sb.on, :root[data-look] .ib.on { color: var(--fg); border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 3px 0 var(--accent-line); }
+:root[data-look] .sb.fav.on svg, :root[data-look] .ib.on svg { fill: var(--accent); color: var(--accent); }
+:root[data-look] .ib .dotmark { background: var(--streak); box-shadow: 0 0 0 2px var(--card); }
+:root[data-look] .ib .dotmark::before, :root[data-look] .ib .dotmark::after { border-color: var(--streak); }
+
+/* ---- segmented controls ---- */
+:root[data-look] .seg, :root[data-look] .seg.skmode, :root[data-look] .cebar .ce-plate .seg { background: var(--card-2); border: 2px solid var(--rim); border-radius: 14px; padding: 3px; box-shadow: none; }
+:root[data-look] .seg button, :root[data-look] .seg.skmode button, :root[data-look] .cebar .ce-plate .seg button { color: var(--fg-2); font-family: var(--display); font-weight: 600; border-radius: 10px; }
+:root[data-look] .seg button.on, :root[data-look] .seg.skmode button.on { background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 0 var(--accent-deep); }
+:root[data-look] .seg.slide button.on, :root[data-look] .cebar .ce-plate .seg button.on { background: none; color: var(--on-accent); box-shadow: none; }
+:root[data-look] .seg.slide::before, :root[data-look] .cebar .ce-plate .seg.slide::before { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); background: var(--accent); border-radius: 10px; box-shadow: 0 2px 0 var(--accent-deep); }
+:root[data-look] .seg.mini { border-width: 2px; }
+:root[data-look] .ce-plate, :root[data-look] .nx #nx-level, :root[data-look] .gs #gs-level { background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); }
+:root[data-look] .ce-rec, :root[data-look] .nx #nx-level button, :root[data-look] .gs #gs-level button { background: var(--card-2); border: 2px solid var(--rim); color: var(--fg); box-shadow: none; font-family: var(--display); font-weight: 600; }
+:root[data-look] .nx #nx-level button.on, :root[data-look] .gs #gs-level button.on { background: var(--accent-soft); border-color: var(--accent); }
+
+/* ---- toggles ---- */
+:root[data-look] .toggle { background: var(--rim); box-shadow: none; }
+:root[data-look] .toggle::after { background: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+:root[data-look] .toggle.on { background: var(--accent); }
+:root[data-look] input[type="range"] { accent-color: var(--accent); }
+
+/* ---- sheets, menus, dialogs, tips ---- */
+:root[data-look] .scrim, :root[data-look] .rd-scrim, :root[data-look] .tm-scrim { background: var(--scrim); }
+:root[data-look] .panel, :root[data-look] .panel.card, :root[data-look] .menu, :root[data-look] .decard, :root[data-look] .tm-sheet {
+  background: var(--solid); background-image: none; border: 2px solid var(--rim); color: var(--fg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-look] .panel.card { border-radius: 24px; box-shadow: 0 6px 0 var(--rim), 0 18px 40px rgba(0,0,0,.18); }
+:root[data-look] .panel.full, :root[data-look] .tm-sheet { border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 34px rgba(0,0,0,.14); }
+:root[data-look] .menu { border-radius: 20px; padding: 8px; box-shadow: 0 5px 0 var(--rim), 0 14px 34px rgba(0,0,0,.18); }
+:root[data-look] .menu button, :root[data-look] .menu .mi { border-radius: 12px; font-family: var(--sans); font-weight: 700; color: var(--fg); }
+:root[data-look] .menu button:active { background: var(--card-2); }
+:root[data-look] .grab, :root[data-look] .rd-grab { width: 40px; height: 6px; border-radius: 3px; background: var(--rim); }
+:root[data-look] .ph h2, :root[data-look] .nx .ph h2, :root[data-look] .gs .ph h2, :root[data-look] .pc-head span, :root[data-look] .tm-sheet-t, :root[data-look] .tm-sh-t b {
+  font: 700 19px var(--display); letter-spacing: 0; text-transform: none; color: var(--fg); }
+:root[data-look] .tm-sheet-t { font-size: 24px; }
+:root[data-look] .pfoot { border-top: 2px solid var(--hair); }
+:root[data-look] .coach { background: var(--fg); color: var(--bg); border: 0; border-radius: 16px; font-weight: 700; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+:root[data-look] .toast { border-radius: 16px; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+/* the result cards in Play next and Get the song */
+:root[data-look] .nx .nx-row, :root[data-look] .gs .gs-rows.glass, :root[data-look] .gs-rows { background: var(--card); background-image: none; border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); border-radius: 18px; }
+:root[data-look] .gs-row { border-bottom: 2px solid var(--hair); }
+:root[data-look] .gs-ic { background: var(--accent-soft); color: var(--accent-deep); border-radius: 12px; }
+/* section labels inside cards and sheets */
+:root[data-look] .label, :root[data-look] .sheet .sec, :root[data-look] .strip-h, :root[data-look] .pf-card h2, :root[data-look] .tm-lab, :root[data-look] .chg-lab { font: 800 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---- text fields ---- */
+:root[data-look] .cmd, :root[data-look] .ed-title, :root[data-look] .ask input, :root[data-look] .ask textarea, :root[data-look] .panel input[type="text"], :root[data-look] .panel input[type="search"], :root[data-look] .panel textarea {
+  background: var(--card); border: 2px solid var(--rim); border-radius: 16px; color: var(--fg); }
+:root[data-look] input:focus-visible, :root[data-look] textarea:focus-visible { outline: 3px solid var(--accent-line); outline-offset: 0; }
+
+/* ---- cards and readouts ---- */
+:root[data-look] .pf-card, :root[data-look] .list.glass, :root[data-look] .set-group, :root[data-look] .rd-heard, :root[data-look] .upnext, :root[data-look] .nextup, :root[data-look] .backpaste, :root[data-look] .loopbanner {
+  background: var(--card); background-image: none; border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-look] .pf-plate { background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); }
+:root[data-look] .pf-read, :root[data-look] .pk-strings, :root[data-look] .pk-now, :root[data-look] .tm-board, :root[data-look] .pk-board { background: var(--card-2); border: 2px solid var(--rim); box-shadow: none; }
+:root[data-look] .pf-read b { font-family: var(--display); color: var(--accent-deep); text-shadow: none; }
+:root[data-look="neon"] .pf-read b { color: var(--accent); }
+:root[data-look] .pf-read span, :root[data-look] .tm-bd { color: var(--muted); }
+:root[data-look] .pf-first .nx-lamp, :root[data-look] .gs-lamp.on, :root[data-look] .nx-jewel { background: var(--accent); box-shadow: none; }
+
+/* ---- the neck's fretboard ---- */
+:root[data-look] .pk-fret { border-right: 3px solid var(--rim); color: var(--muted); font-family: var(--display); }
+:root[data-look] .pk-fret b { font-family: var(--display); }
+:root[data-look] .pk-fret.done { color: var(--accent-deep); }
+:root[data-look="neon"] .pk-fret.done { color: var(--accent); }
+:root[data-look] .pk-fret.now { color: var(--on-accent); background: var(--streak); box-shadow: 0 3px 0 var(--streak-deep); border-radius: 12px; border-right-color: transparent; }
+:root[data-look] .pk-inlay { border: 2px solid var(--rim); }
+:root[data-look] .pk-inlay.done, :root[data-look] .pk-inlay.on { background: var(--fans); border-color: var(--fans-deep); }
+
+/* ---- dials (speed, key, sets): a card face, ink ticks, a go-colour needle and a Fredoka readout ---- */
+:root[data-look] .dial-rim { fill: var(--card-2); stroke: var(--rim); stroke-opacity: 1; stroke-width: 2; }
+:root[data-look] .dial-bg { fill: var(--card); fill-opacity: 1; stroke: var(--rim); stroke-width: 2; }
+:root[data-look] .dial-ticks line, :root[data-look] .dial-ticks line.lit, :root[data-look] .dial-ticks line.cur { stroke: var(--fg); stroke-opacity: .55; }
+:root[data-look] .dial-ticks line.mj { stroke-opacity: .9; }
+:root[data-look] .dial-ticks line.hot { stroke: var(--bad); }
+:root[data-look] .dial-needle { stroke: var(--accent); stroke-width: 4; }
+:root[data-look] .dial-pivot { fill: var(--accent-deep); stroke: none; }
+:root[data-look] .dial-win { fill: var(--card); stroke: var(--rim); stroke-width: 2; stroke-opacity: 1; }
+:root[data-look] .dial-big { fill: var(--fg); font-family: var(--display); font-weight: 700; }
+:root[data-look] .dial-small { fill: var(--muted); font-family: var(--sans); font-weight: 800; }
+:root[data-look] .dial-end, :root[data-look] .dial-labels text, :root[data-look] .dial-labels text.sc { fill: var(--muted); font-family: var(--sans); }
+:root[data-look] .dial-labels text.cur { fill: var(--fg); }
+
+/* ---- the editor's pad: the palette's card, faint rules and a go-colour margin ---- */
+:root[data-look] .ed-tx { background: var(--card); border: 2px solid var(--rim); border-radius: 18px; }
+:root[data-look] .ed-hl { color: var(--fg); background-image: linear-gradient(90deg, transparent 27px, var(--accent-line) 27px 29px, transparent 29px),
+  repeating-linear-gradient(180deg, transparent 0 calc(1.55em - 1px), var(--hair) calc(1.55em - 1px) 1.55em); }
+:root[data-look] .ed-hl .hc, :root[data-look] .ed-hl div.hc { color: var(--accent-deep); }
+:root[data-look="neon"] .ed-hl .hc, :root[data-look="neon"] .ed-hl div.hc { color: var(--accent); }
+:root[data-look] .ed-tx textarea { caret-color: var(--accent-deep); }
+:root[data-look] .ed-tx textarea::placeholder { color: var(--muted); -webkit-text-fill-color: var(--muted); }
+:root[data-look] .ed-tile, :root[data-look] .ed-tl { background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); color: var(--fg); border-radius: 18px; }
+:root[data-look] .ed-strip { background: var(--card); border: 2px solid var(--rim); }
+
+/* ---- tuner ---- */
+:root[data-look] .tuner2 { background: var(--bg); background-image: none; }
+
+/* ---- the Tour Map: the palette's ground, cards and go colour (the map draws its turf from these too) ---- */
+:root[data-look] .tm-page, :root[data-look] .tm-map, :root[data-look] .tm-map.leaflet-container, :root[data-look] .tm-map.plain { background: var(--bg); background-image: none; }
+:root[data-theme="light"] .tm-map .tm-tiles { filter: saturate(.7) brightness(1.02); }
+:root[data-look] .tm-top { background: linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 70%, transparent) 60%, transparent); }
+:root[data-look] .tm-page .tm-top .title.script { color: var(--fg); text-shadow: none; }
+:root[data-look] .tm-top .ib, :root[data-look] .tm-ctl .ib { color: var(--fg); }
+:root[data-look] .tm-flag { background: var(--card); border: 2px solid var(--rim); color: var(--fg); box-shadow: 0 4px 0 var(--rim); }
+:root[data-look] .tm-venue { background: var(--card); border: 2px solid var(--rim); color: var(--muted); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-look] .tm-badge { background: var(--card); box-shadow: 0 3px 0 var(--rim); }
+:root[data-look] .tm-pin.badge { background: var(--card); border: 2px solid var(--rim); color: var(--fg); box-shadow: 0 3px 0 var(--rim); font-family: var(--display); }
+:root[data-look] .tm-pin.badge svg { stroke: var(--fg); }
+:root[data-look] .tm-lamp { background: var(--streak); box-shadow: 0 0 0 5px color-mix(in srgb, var(--streak) 30%, transparent); }
+:root[data-look] .tm-push { background: color-mix(in srgb, var(--bad) 12%, var(--card)); border: 2px solid var(--bad-line); color: var(--fg); }
+:root[data-look] .tm-map .leaflet-control-attribution { background: var(--card); color: var(--muted); }
+:root[data-look] .tm-map .leaflet-control-attribution a { color: var(--muted); }
+/* editing: the title and the heart on one line, the artist and details on their own line below (fixes a squeezed title) */
+.titlerow:has(> .ed-details) { flex-wrap: wrap; }
+.titlerow > .ed-details { order: 3; flex: 1 0 100%; margin-top: 2px; }
+:root[data-look] .ed-artist, :root[data-look] .ed-sum { background: var(--card); border: 2px solid var(--rim); border-radius: 16px; color: var(--fg); }
+:root[data-look] .dial-big { filter: none; }
+:root[data-look] text.dk { fill: var(--on-accent); font-family: var(--display); font-weight: 700; }
+
+/* ---- 4.0.1: rows, lists, shelves and the Learning list, sized and set like the mockup ---- */
+/* song rows: Fredoka titles, a bold small line, the key in a small pill, 2px dividers */
+:root[data-look] .row { min-height: 66px; height: auto; padding: 10px 16px; border-bottom: 2px solid var(--hair); gap: 12px; }
+:root[data-look] .row .t { font: 600 17px/1.25 var(--display); color: var(--fg); }
+:root[data-look] .row .a { font: 700 13.5px var(--sans); color: var(--muted); margin-top: 3px; }
+:root[data-look] .row .a .st.learning { color: var(--accent-deep); }
+:root[data-look="neon"] .row .a .st.learning { color: var(--accent); }
+:root[data-look] .row .k { min-width: 0; padding: 3px 9px; border-radius: 10px; background: var(--card-2); border: 2px solid var(--rim); font: 700 13px var(--display); color: var(--fg-2); text-align: center; }
+:root[data-look] .row .k:empty { display: none; }
+:root[data-look] .row:active { background: var(--card-2); }
+:root[data-look] .row-cv { width: 46px; height: 46px; border-radius: 12px; }
+/* section heads: the same small label everywhere, links in Fredoka */
+:root[data-look] .shelf-h, :root[data-look] .pk-skills, :root[data-look] .list-h, :root[data-look] .lab-row { font: 800 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+:root[data-look] .shelf-h .sh-all, :root[data-look] .sortby { font: 700 15px var(--display); letter-spacing: 0; text-transform: none; color: var(--accent-deep); }
+:root[data-look] .sortby { color: var(--fg); }
+:root[data-look="neon"] .shelf-h .sh-all { color: var(--accent); }
+/* set shelf: tiles with a lip instead of a shadow */
+:root[data-look] .sh-it { width: 132px; }
+:root[data-look] .sh-cv { width: 132px; height: 132px; border-radius: 20px; box-shadow: 0 5px 0 color-mix(in srgb, var(--fg) 18%, transparent); }
+:root[data-look] .sh-new .sh-cv { border: 2px dashed var(--rim); background: var(--card); box-shadow: none; color: var(--accent-deep); }
+:root[data-look] .sh-t { font: 600 15px var(--display); margin: 9px 2px 0; }
+:root[data-look] .sh-s { font: 700 12.5px var(--sans); color: var(--muted); }
+:root[data-look] .cover { background: var(--card-2); }
+:root[data-look] .cv-t { font-family: var(--display); font-weight: 700; text-shadow: 0 2px 0 rgba(0,0,0,.18); }
+:root[data-look] .cv-k { font-family: var(--sans); font-weight: 800; letter-spacing: .08em; color: rgba(255,255,255,.85); }
+:root[data-look] .sh-big .sh-cover, :root[data-look] .sh-cover { box-shadow: 0 6px 0 color-mix(in srgb, var(--fg) 18%, transparent); border-radius: 24px; }
+:root[data-look] .upnext { background: var(--card); border-radius: 20px; }
+:root[data-look] .un-cv, :root[data-look] .pk-cv { box-shadow: none; border-radius: 16px; }
+:root[data-look] .un-t .lab { font: 800 12px var(--sans); letter-spacing: .08em; color: var(--muted); }
+:root[data-look] .un-t b { font: 700 21px var(--display); }
+:root[data-look] .un-t span { font-weight: 700; }
+:root[data-look] .un-play { box-shadow: 0 4px 0 var(--accent-deep); }
+/* the neck's Learning list */
+:root[data-look] .pk-learn h2, :root[data-look] .pk-count { font: 800 12px var(--sans); letter-spacing: .08em; color: var(--muted); }
+:root[data-look] .pk-count { text-transform: uppercase; }
+:root[data-look] .pk-song { padding: 12px 0; border-top: 2px solid var(--hair); gap: 14px; }
+:root[data-look] .pk-cover { width: 52px; height: 52px; border-radius: 14px; box-shadow: none; border: 2px solid var(--rim); background: var(--accent-soft); color: var(--accent-deep); font: 700 22px var(--display); }
+:root[data-look] .pk-t { font: 600 17px var(--display); }
+:root[data-look] .pk-s { font: 700 13.5px var(--sans); color: var(--muted); margin-top: 3px; }
+:root[data-look] .pk-s b { color: var(--accent-deep); font-weight: 800; }
+:root[data-look="neon"] .pk-s b { color: var(--accent); }
+:root[data-look] .pk-meter { position: relative; height: 12px; border-radius: 6px; background: var(--card-2); margin-top: 8px; }
+:root[data-look] .pk-meter i { position: relative; border-radius: 6px; background: var(--fans); box-shadow: inset 0 -3px 0 var(--fans-deep); }
+:root[data-look] .pk-meter i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 2px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.55); }
+/* every page's small print and line text in Nunito bold, like the mockup */
+:root[data-look] .pf-line, :root[data-look] .pf-since, :root[data-look] .foot, :root[data-look] .gs-intro, :root[data-look] .tm-line, :root[data-look] .tm-fine { font-weight: 600; }
+:root[data-look] .pf-card { padding: 16px; border-radius: 20px; }
+:root[data-look] .set .name, :root[data-look] .set-group .set { font-family: var(--sans); font-weight: 700; }
+:root[data-look] .set .val { font-family: var(--display); font-weight: 600; }
+:root[data-look] .set .tile, :root[data-look] .gs-ic, :root[data-look] .more-ic { border-radius: 12px; background: var(--accent-soft); color: var(--accent-deep); border: 0; }
+:root[data-look="neon"] .set .tile, :root[data-look="neon"] .gs-ic, :root[data-look="neon"] .more-ic { color: var(--accent); }

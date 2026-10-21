@@ -539,3 +539,17 @@ test("Tour Map: the scene sheet says how many songs and minutes take a rival cor
   await page.click("#tm-take-go");
   await page.waitForFunction(() => /#\/song\//.test(location.hash));
 });
+
+test("4.0.1: one design system: buttons, chips, sheets and the editor's title field share the version 4 look", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const look = sel => page.evaluate(s => { const c = getComputedStyle(document.querySelector(s)); return { r: c.borderTopWidth, f: c.fontFamily }; }, sel);
+  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector(".btn.primary");
+  assert.match((await look(".btn.primary")).f, /Fredoka/, "the main button is set in Fredoka");
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#stat");
+  assert.equal((await look("#stat")).r, "2px", "chips have the 2px rim");
+  assert.match((await look("#stat")).f, /Fredoka/);
+  await page.evaluate(() => document.querySelector("#more").click()); await page.waitForSelector(".menu");
+  assert.equal((await look(".menu")).r, "2px", "menus have the 2px rim");
+  await page.evaluate(() => { location.hash = "#/edit/a"; }); await page.waitForSelector("#ed-title");
+  assert.ok(await page.evaluate(() => document.getElementById("ed-title").getBoundingClientRect().width > 200), "the title field has room (the artist line sits below it)");
+});

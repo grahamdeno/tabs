@@ -255,18 +255,24 @@ function keyColor(k, fallback = "", a = 1) {
   const [h, sat, l] = PAL[i >= 0 ? (i + 9) % 12 : hashOf(fallback) % 12];
   return `hsl(${h} ${sat}% ${l}% / ${a})`;
 }
-let coverSeq = 0;
+/* 4.0.1: covers are flat tiles in the game's colours, one per key, with white rings */
+const TILES = ["#FF3D7F", "#3A86FF", "#FF8A00", "#12936F", "#7B5CFF", "#0F8B8D", "#FF5A4E", "#2C6FE0", "#C91F5C", "#D96F00", "#5C3FD6", "#1FA8C4"];
+function tileColor(k, fallback = "") {
+  const root = (/^[A-G][#b]?/.exec(k || "") || [])[0];
+  const i = root ? FIFTHS.indexOf(ENHARM[root] || root) : -1;
+  return TILES[i >= 0 ? i : hashOf(fallback) % 12];
+}
 // keys: the songs' keys in order. opts: { name, kicker, fs (title size in px), small }
 function coverSVG(keys, opts = {}) {
-  const id = "cg" + (++coverSeq), name = opts.name || "";
-  const base = keyColor(keys[0], name);
+  const name = opts.name || "";
+  const base = tileColor(keys[0], name);
   const cx = 148, cy = 58;
   const rings = keys.slice(0, 9).map((k, i) => {
     const r = 22 + i * 17, len = 2 * Math.PI * r, gap = len * (0.18 + ((hashOf(name + i) % 30) / 100));
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${keyColor(k, name + i)}" stroke-opacity="${(0.88 - i * 0.06).toFixed(2)}" stroke-width="${opts.small ? 2.4 : 3.2}" stroke-linecap="round" stroke-dasharray="${(len - gap).toFixed(1)} ${gap.toFixed(1)}" transform="rotate(${(i * 47 + hashOf(name) % 90) - 90} ${cx} ${cy})"/>`;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-opacity="${(0.62 - i * 0.05).toFixed(2)}" stroke-width="${opts.small ? 3.2 : 4.4}" stroke-linecap="round" stroke-dasharray="${(len - gap).toFixed(1)} ${gap.toFixed(1)}" transform="rotate(${(i * 47 + hashOf(name) % 90) - 90} ${cx} ${cy})"/>`;
   }).join("");
-  return `<div class="cover" aria-hidden="true"><svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="${id}" cx="74%" cy="29%" r="70%"><stop offset="0" stop-color="${base}" stop-opacity=".5"/><stop offset=".6" stop-color="${base}" stop-opacity=".08"/><stop offset="1" stop-color="#0d0d0f" stop-opacity="0"/></radialGradient></defs>
-    <rect width="200" height="200" fill="#121214"/><rect width="200" height="200" fill="url(#${id})"/>${rings}<circle cx="${cx}" cy="${cy}" r="4" fill="${base}"/></svg>
+  return `<div class="cover" aria-hidden="true"><svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
+    <rect width="200" height="200" fill="${base}"/><path d="M0 200 L200 140 L200 200Z" fill="#000" opacity=".12"/><path d="M-20 70 L70 -20 L96 -20 L-20 96Z" fill="#fff" opacity=".14"/>${rings}<circle cx="${cx}" cy="${cy}" r="7" fill="#fff"/></svg>
     ${opts.kicker ? `<div class="cv-k">${esc(opts.kicker)}</div>` : ""}${name && !opts.notext ? `<div class="cv-t" style="font-size:${opts.fs || 22}px">${esc(name)}</div>` : ""}</div>`;
 }
 const setKeys = set => setSongs(set).map(s => s.format === "tab" ? "" : keyOf(s));

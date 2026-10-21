@@ -166,8 +166,11 @@ function draw(L, sc) {
   const yours = sc.yours, ring = territory(sc.plays).rings;
   const next = hexSpiral(1 + 3 * (ring + 1) * (ring + 2)).slice(yours.length).filter(c => !sc.owner.has(c[0] + "," + c[1]));
   const world = [[85, -180], [85, 180], [-85, 180], [-85, -180]];
+  /* 4.0.1: the turf takes the palette's colours: the ground for the fog, go colour for your turf, the streak colour for the next takeover */
+  const css = (n, d) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d;
+  const FOG = css("--bg", "#060608"), MINE = css("--accent", "#ffb24a"), EDGE = css("--accent-deep", "#ffc27a"), NEXT = css("--muted", "#b8935a"), AIM = css("--streak", "#ffc27a");
   /* fog everywhere but your turf */
-  L.polygon([world, ...yours.map(c => hex(c))], { stroke: false, fillColor: "#060608", fillOpacity: spot ? 0.55 : 0.9, interactive: false }).addTo(map);
+  L.polygon([world, ...yours.map(c => hex(c))], { stroke: false, fillColor: FOG, fillOpacity: spot ? 0.55 : 0.9, interactive: false }).addTo(map);
   /* rivals: their turf in their colour, a badge at home; tap for who they are */
   sc.rivals.forEach((rv, i) => {
     const cells = sc.turf[rv.id] || [], col = RIVAL_COLORS[i % RIVAL_COLORS.length];
@@ -183,13 +186,13 @@ function draw(L, sc) {
       .addTo(map);
   });
   /* your turf: the warm glow, the next cells, the piped outline */
-  if (yours.length) L.polygon(yours.map(c => hex(c)), { stroke: false, fillColor: "#ffb24a", fillOpacity: 0.16, interactive: false }).addTo(map);
-  if (next.length) L.polygon(next.map(c => hex(c, 0.9)), { color: "#b8935a", weight: 1.4, opacity: 0.55, dashArray: "3 6", fill: false, interactive: false }).addTo(map);
-  if (sc.plan) L.polygon(hex(sc.plan.cell, 0.92), { color: "#ffc27a", weight: 2, dashArray: "2 5", fillColor: "#ffb24a", fillOpacity: 0.14, interactive: false, className: "tm-target" }).addTo(map);
+  if (yours.length) L.polygon(yours.map(c => hex(c)), { stroke: false, fillColor: MINE, fillOpacity: 0.22, interactive: false }).addTo(map);
+  if (next.length) L.polygon(next.map(c => hex(c, 0.9)), { color: NEXT, weight: 1.6, opacity: 0.6, dashArray: "3 6", fill: false, interactive: false }).addTo(map);
+  if (sc.plan) L.polygon(hex(sc.plan.cell, 0.92), { color: AIM, weight: 2.4, dashArray: "2 5", fillColor: AIM, fillOpacity: 0.16, interactive: false, className: "tm-target" }).addTo(map);
   const seg = line(yours);
   if (seg.length) {
-    L.polyline(seg, { color: "#ffc27a", weight: 10, opacity: 0.3, interactive: false, className: "tm-halo" }).addTo(map);
-    L.polyline(seg, { color: "#ffc27a", weight: 2.4, opacity: 1, interactive: false }).addTo(map);
+    L.polyline(seg, { color: MINE, weight: 10, opacity: 0.3, interactive: false, className: "tm-halo" }).addTo(map);
+    L.polyline(seg, { color: EDGE, weight: 3, opacity: 1, interactive: false }).addTo(map);
   }
   const pin = (c, html, cls) => L.marker(cellCentre(at, c), { icon: L.divIcon({ className: "tm-pin " + cls, html, iconSize: [30, 30] }), interactive: false, keyboard: false }).addTo(map);
   if (yours.length > 1) pin(yours.at(-1), sc.below > 0 ? `<i class="tm-lamp warn"></i>` : `<i class="tm-lamp"></i>`, "lamp");

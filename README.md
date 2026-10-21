@@ -10,6 +10,7 @@ Version 4 (4.0.0) turns The Road into a game you play with your guitar, in the s
 - Louie redrawn in the new style, in each palette's colours.
 - The Road is home (it was Tonight): a stat bar (your venue, gig streak and fans), the leg you're on, how many of your songs you can play, and a path of stops built from the neck: lessons, a merch box after every third one, and a headline show at the end of each leg (play a real song through). The current stop is ringed with its card open; tap any stop for its card. Louie stands beside the path with tonight's song to play.
 - Fans: 10 for every play, 5 for every lesson round, 25 for every merch box. Worked out from what's already kept, so there's nothing new to back up.
+- 4.0.1: every screen follows the same design system: one style each for buttons, chips, icon buttons, segmented controls, toggles, sheets, menus, dialogs, text fields, song rows, set covers (flat tiles in the game's colours), the Learning list, the dials, the editor's pad, the tuner and the Tour Map. The editor's title field no longer gets squeezed by the artist line.
 - A tab bar along the bottom of the main pages: Road, Tour, Charts, Band, Rehearse (the neck) and More (Library, Tour Map, Your playing, Tuner, Settings). Tour, Charts and Band say what's coming; they arrive in 4.x releases.
 
 ## Version 3: The Road
