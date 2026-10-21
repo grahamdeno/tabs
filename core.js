@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "3.24.2";
+export const VERSION = "4.0.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -11,7 +11,7 @@ export const TRASH_DAYS = 30;
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
 const DEFAULT_SETTINGS = {
-  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" */ diagrams: false, focus: "always", pauseDiagrams: true,
+  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" / "green" (Green Room, 4.0.0) */ diagrams: false, focus: "always", pauseDiagrams: true,
   speedMode: "length",   // "length" (song length, mm:ss) or "multiplier" (1x style)
   startSpeed: 45,        // 1x-style starting speed for new songs
   startLength: 210,      // song-length starting value, seconds (3:30)
@@ -611,7 +611,7 @@ export function cleanImport(parsed) {
     const d = DEFAULT_SETTINGS[k];
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
-  if (!["auto", "dark", "light"].includes(settings.theme)) delete settings.theme;
+  if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
   const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
@@ -3414,4 +3414,68 @@ export function gradeSwitches(due, onsets, spb) {
     if (Math.abs(dt) <= 0.25 * spb) on++; else if (dt > 0) late++; else early++;
   }
   return { on, late, early, miss, clean: on >= Math.ceil(due.length * 0.75) };
+}
+
+// ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
+// Each leg is one track of the neck (Open chords, Chord switches, Scales). Its stops are the
+// lessons in order, a merch box after every third lesson, and the level check at the end as the
+// leg's headline show. Nothing new is stored: every stop's state comes from skillState, and a box
+// is open once every stop before it is done. Only the first open stop on the whole road is the
+// current one; later open stops (Scales are open from the start) can be played but aren't ringed.
+export const BOX_EVERY = 3;
+export function roadPath(data, now = Date.now()) {
+  const sk = skillState(data, now);
+  let current = null;
+  const legs = sk.levels.filter(lv => !lv.soon && lv.steps.length).map((lv, li) => {
+    const stops = [];
+    let since = 0, allDone = true;
+    for (const st of lv.steps) {
+      if (st.kind !== "check" && since === BOX_EVERY) { stops.push({ id: `b:${lv.id}-${stops.length}`, kind: "box", name: "Merch box", state: allDone ? "done" : "locked" }); since = 0; }
+      const state = st.state === "now" ? (current ? "open" : "now") : st.state;
+      const stop = { ...st, kind: st.kind === "check" ? "headline" : st.kind, state, leg: lv.id };
+      if (state === "now") current = stop;
+      stops.push(stop);
+      if (st.state !== "done") allDone = false;
+      if (st.kind !== "check") since++;
+    }
+    return { id: lv.id, n: li + 1, name: lv.name, note: lv.note, stops, done: lv.steps.every(s => s.state === "done") };
+  });
+  const coming = sk.levels.filter(lv => lv.soon).map(lv => lv.name);
+  const leg = legs.find(l => l.stops.includes(current)) || legs.find(l => !l.done) || legs.at(-1) || null;
+  return { legs, current, leg, coming };
+}
+
+/* Fans (4.0.0): the score you earn by playing. 10 for every play (a song played through, or four
+   minutes of practice), 5 for every lesson round finished, and 25 for every merch box opened on
+   the Road. Worked out from what is already kept, so it needs no storage and survives a backup. */
+export const FANS = { play: 10, lesson: 5, box: 25 };
+export function fansOf(data, now = Date.now()) {
+  const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
+  const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
+  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box;
+}
+
+/* The chords you can play: every chord lesson done, and any chord played in songs five times. */
+export function knownChords(data, now = Date.now()) {
+  const sk = skillState(data, now), out = new Set();
+  for (const lv of sk.levels) for (const st of lv.steps) if (st.kind === "chord" && st.state === "done") out.add(st.chord);
+  for (const [c, x] of Object.entries(data.journal?.chords || {})) if ((x?.n || 0) >= 5) out.add(c);
+  return out;
+}
+/* How many songs in the library use only chords you know, and how many more one new chord opens. */
+export function playableSongs(data, extra = "", now = Date.now()) {
+  const known = knownChords(data, now), songs = (data.songs || []).filter(s => s.format !== "tab");
+  const ok = (s, set) => { const c = sheetChords(s.body); return c.length > 0 && c.every(n => set.has(n)); };
+  const now1 = songs.filter(s => ok(s, known)).length;
+  const more = extra && !known.has(extra) ? songs.filter(s => ok(s, new Set([...known, extra]))).length - now1 : 0;
+  return { now: now1, of: songs.length, more };
+}
+/* The chords a sheet uses, in order, whatever its format (chords over words, inline, or chord lines). */
+export function sheetChords(body) {
+  const out = [];
+  for (const b of parseBlocks(body || "")) {
+    const raw = b.kind === "pair" ? b.words.flatMap(w => w.parts || []).map(p => p.chord).filter(Boolean) : b.kind === "chords" ? b.items : [];
+    for (const r of raw) { const n = String(r).split(/\s+/)[0].replace(/^\(|\)$/g, ""); if (chordShape(n) && !out.includes(n)) out.push(n); }
+  }
+  return out;
 }

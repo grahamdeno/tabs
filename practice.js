@@ -43,7 +43,7 @@ export function renderNeck() {
   };
   const done = lv => lv.steps.filter(s => s.state === "done").length;
   app.innerHTML = `
-    <div class="head"><button class="ib glass" id="back" aria-label="Back to Tonight">${icon("back")}</button></div>
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button></div>
     <h1 class="title script" style="margin:14px 2px 2px">The neck</h1>
     <p class="pf-since">Your songs and your skills. Practice here counts on the Tour Map.</p>
     ${learningCard()}

@@ -28,6 +28,21 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - Writing he sees (UI text, README, commit messages, replies): plain and
   direct, no em dashes.
 
+## Version 4: the gamified Road (agreed 2026-10-20)
+
+The guitar is how you play the game. Design system: three palettes (Light =
+Festival Poster, Dark = Neon Midnight, Green = Green Room), flat colour with no
+outlines, chunky buttons on a darker lip, Fredoka and Nunito, Louie the amp as
+the mascot (no guitar-pick mascot). The mockup canvas has nine screens. 4.0.0
+shipped the look, Louie, the stat bar, the tab bar and the Road path. Still to
+build, one release each, stopping after each for Graham to try:
+Gig (playing a song as a scored show: crowd meter, combo, Now/Next chord,
+bass-string timing meter, Stage Gels section colours, strings as lives in Gig
+only), Show complete (with Encore for 2x), Tour quests, Charts (record tiers,
+promotion, rival battles), Your band (players join by venue, heard in the
+backing), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
+backdrops). XP arrives with Charts; until then the Road shows fans.
+
 ## Next up (Graham's order, agreed 2026-10-19)
 
 Apple Music features only work with Apple Music turned on. Stop after each
@@ -87,7 +102,10 @@ release so Graham can try it.
 | Your playing (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
 | German practice | `german.js` |
 | The neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
-| Pull-up drawers: Tonight's Library, the Tour Map's scene sheet | `drawer.js` (used by `road.js`, `playmap.js`) |
+| The Road (home, 4.0.0): path, Louie, Library drawer | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
+| Stat bar, tab bar, More sheet, Coming soon (Tour, Charts, Band) | `hud.js` |
+| Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
+| Pull-up drawers: the Road's Library, the Tour Map's scene sheet | `drawer.js` (used by `road.js`, `playmap.js`) |
 | Offline copy; lists every app file | `sw.js` |
 
 A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
@@ -113,7 +131,7 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   changes how a screen looks shows as a visual difference in CI until they're
   remade (expected; not a real failure). Graham (2026-10-19): don't remake
   them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 5 (3.20.0 to 3.24.0). To remake when he says yes:
+  3.19.0: 6 (3.20.0 to 3.24.0, 4.0.0). 4.0.0 changed every screen's look. To remake when he says yes:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.

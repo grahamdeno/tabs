@@ -10,13 +10,13 @@ import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser } from 
 useBrowser();
 
 
-test("first launch adds the sample song and opens on Tonight with it ready", { skip: skip() }, async t => {
+test("first launch adds the sample song and opens on the Road with it ready (4.0.0)", { skip: skip() }, async t => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(base); await page.waitForSelector(".rd-next");
-  assert.match(await page.innerText("h1.title"), /Tonight/);
-  assert.equal(await page.locator(".rd-song").count(), 1, "the sample song is up first");
+  await page.goto(base); await page.waitForSelector(".rd-path");
+  assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
+  assert.match(await page.innerText("#rd-tonight"), /Play /, "the sample song is ready to play");
   await page.click("#rd-dh"); await page.waitForSelector("#rd-drawer[data-state=open]");
   assert.equal(await page.locator("#list .row").count(), 1);
   assert.deepEqual(errors, []);
@@ -293,6 +293,7 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true }, micExplained: true } });
   await page.reload();
   await page.waitForTimeout(300);
+  await page.goto(base + "#/library"); await page.waitForSelector("#tunerbtn"); /* 4.0.0: the Road has no header; the Library does */
   await page.click("#tunerbtn");
   await page.waitForTimeout(600);
   const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent, tag: document.getElementById("tn-tag").textContent }));
@@ -353,6 +354,7 @@ test("Tips & gestures lists every gesture and Show me replays a tip where it hap
 test("tuner: says why it needs the microphone before the phone asks", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.evaluate(() => { navigator.mediaDevices.getUserMedia = () => new Promise(() => {}); });
+  await page.goto(base + "#/library"); await page.waitForSelector("#tunerbtn"); /* 4.0.0: the Road has no header; the Library does */
   await page.click("#tunerbtn");
   await page.waitForTimeout(500);
   assert.match(await page.locator(".tn-mic").innerText(), /Nothing is recorded or sent/);

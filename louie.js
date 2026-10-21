@@ -1,20 +1,20 @@
-// Louie, the Tabs mascot: a little combo amp. Flat, chunky shapes in the app's
-// colours: a tolex body with a bronze rim, a gold control panel for a face,
-// amber lamp eyes, the speaker grille for a mouth, and mitten hands that can
-// throw the horns. louie(mood, { pose, size }) returns an <svg> string.
+// Louie, The Road's mascot: a little combo amp. Version 4 draws him flat, with no outlines: a
+// darker right side for depth, a soft highlight stripe, a two-tone panel for a face, round eyes,
+// the grille for a mouth and mitten hands that can throw the horns. His colours come from the
+// palette (the --lv-* variables in styles.css), so he matches Light, Dark and Green Room.
+// louie(mood, { pose, size }) returns an <svg> string.
 //   moods: happy, cheer, sleepy, worried, proud
 //   poses: rest, hornsUp, thumb, point, wave, peace (no arms when absent)
-const C = { body: "#2f2d34", edge: "#4a4751", rim: "#c9a15f", gold: "#f0c97c", goldDk: "#d9ac5e", grille: "#463b31", stripe: "#544739", mouth: "#1d1410", tongue: "#ff7f5e", cheek: "#ff8a5c", iris: "#ffad33", pupil: "#241306" };
 
-const cap = (x, y, w, h, fill = C.gold) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2}" fill="${fill}"/>`;
+const cap = (x, y, w, h, cls = "lv-f") => `<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2}"/>`;
 /* hands are drawn with the wrist at 0,0 and the fingers pointing up (negative y) */
 const HANDS = {
-  fist: () => `<circle cx="0" cy="-9" r="12" fill="${C.gold}"/>${cap(-13, -13, 9, 12, C.goldDk)}`,
-  horns: () => cap(-12, -40, 10, 30) + cap(3, -36, 9, 26) + `<circle cx="0" cy="-10" r="13" fill="${C.gold}"/>` + cap(-15, -15, 18, 9, C.goldDk),
-  thumb: () => cap(-6, -42, 11, 28) + `<rect x="-14" y="-24" width="28" height="22" rx="11" fill="${C.gold}"/>` + cap(-10, -17, 20, 4, C.goldDk),
-  point: () => cap(-5, -44, 10, 30) + `<rect x="-13" y="-22" width="26" height="22" rx="11" fill="${C.gold}"/>` + cap(-16, -16, 12, 9, C.goldDk),
-  wave: () => [[-12, -12], [-5, -4], [3, 4], [10, 14]].map(([x, r]) => `<g transform="rotate(${r} ${x + 4} -12)">${cap(x, -36, 8, 26)}</g>`).join("") + `<circle cx="0" cy="-10" r="13" fill="${C.gold}"/>` + `<g transform="rotate(-55 -12 -6)">${cap(-16, -20, 9, 18, C.goldDk)}</g>`,
-  peace: () => `<g transform="rotate(-12 -5 -12)">${cap(-10, -42, 10, 32)}</g><g transform="rotate(12 5 -12)">${cap(0, -42, 10, 32)}</g><circle cx="0" cy="-10" r="13" fill="${C.gold}"/>` + cap(-15, -15, 18, 9, C.goldDk)
+  fist: () => `<circle class="lv-f" cx="0" cy="-9" r="12"/>${cap(-13, -13, 9, 12, "lv-fs")}`,
+  horns: () => cap(-12, -40, 10, 30) + cap(3, -36, 9, 26) + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs"),
+  thumb: () => cap(-6, -42, 11, 28) + `<rect class="lv-f" x="-14" y="-24" width="28" height="22" rx="11"/>` + cap(-10, -17, 20, 4, "lv-fs"),
+  point: () => cap(-5, -44, 10, 30) + `<rect class="lv-f" x="-13" y="-22" width="26" height="22" rx="11"/>` + cap(-16, -16, 12, 9, "lv-fs"),
+  wave: () => [[-12, -12], [-5, -4], [3, 4], [10, 14]].map(([x, r]) => `<g transform="rotate(${r} ${x + 4} -12)">${cap(x, -36, 8, 26)}</g>`).join("") + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + `<g transform="rotate(-55 -12 -6)">${cap(-16, -20, 9, 18, "lv-fs")}</g>`,
+  peace: () => `<g transform="rotate(-12 -5 -12)">${cap(-10, -42, 10, 32)}</g><g transform="rotate(12 5 -12)">${cap(0, -42, 10, 32)}</g><circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs")
 };
 /* shoulder x,y → wrist x,y, the hand's turn, and the sign */
 const POSES = {
@@ -28,49 +28,47 @@ const POSES = {
 
 export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}) {
   const arms = pose && POSES[pose];
-  const eyesOff = mood === "sleepy", proud = mood === "proud";
-  const eye = (x) => proud ? "" : `<g class="lv-eye">
-      <circle cx="${x}" cy="72" r="21" fill="#fff"/>
-      <circle cx="${x + 1}" cy="${mood === "worried" ? 75 : 73}" r="${mood === "cheer" ? 12 : 13.5}" fill="${eyesOff ? "#c98a3a" : C.iris}"/>
-      <circle cx="${x + 2}" cy="${mood === "worried" ? 76 : 74}" r="${mood === "cheer" ? 6 : 7.5}" fill="${C.pupil}"/>
-      <circle cx="${x - 4}" cy="67" r="4.4" fill="#fff"/>
-      ${eyesOff ? `<path d="M${x - 22} 72 A22 22 0 0 1 ${x + 22} 72 Z" fill="${C.goldDk}"/><path d="M${x - 16} 73 Q${x} 80 ${x + 16} 73" fill="none" stroke="${C.pupil}" stroke-width="3" stroke-linecap="round"/>` : ""}
-    </g>`;
-  const brows = mood === "worried" ? `<path d="M58 46 L90 40 M110 40 L142 46" stroke="${C.pupil}" stroke-width="5" stroke-linecap="round"/>`
-    : mood === "cheer" ? `<path d="M60 44 Q77 34 94 44 M106 44 Q123 34 140 44" fill="none" stroke="${C.pupil}" stroke-width="5" stroke-linecap="round"/>` : "";
-  const shades = proud ? `<path d="M56 60 h40 v8 q0 18 -20 18 q-20 0 -20 -18z" fill="#141216"/><path d="M104 60 h40 v8 q0 18 -20 18 q-20 0 -20 -18z" fill="#141216"/><rect x="94" y="62" width="12" height="5" rx="2.5" fill="#141216"/><path d="M64 66 l10 -3 M112 66 l10 -3" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".7"/>` : "";
+  const sleepy = mood === "sleepy", proud = mood === "proud", worried = mood === "worried", cheer = mood === "cheer";
+  const dx = worried ? -2 : 3, py = worried ? 78 : 76;
+  const eye = x => cheer ? `<path class="lv-p" d="M${x - 15} 80 Q${x} 60 ${x + 15} 80 Q${x} 70 ${x - 15} 80Z"/>`
+    : sleepy ? `<ellipse cx="${x}" cy="74" rx="17" ry="19" fill="#fff"/><circle class="lv-p" cx="${x + 2}" cy="80" r="8"/><path class="lv-fs" d="M${x - 18} 74 A18 19 0 0 1 ${x + 18} 74 Z"/><path class="lv-ps" d="M${x - 14} 75 Q${x} 81 ${x + 14} 75" fill="none" stroke-width="3.4" stroke-linecap="round"/>`
+    : `<g class="lv-eye"><ellipse cx="${x}" cy="74" rx="17" ry="19" fill="#fff"/><circle class="lv-p" cx="${x + dx}" cy="${py}" r="9.5"/><circle cx="${x + dx + 3}" cy="${py - 4}" r="3.4" fill="#fff"/></g>`;
+  const brows = worried ? `<path class="lv-p" d="M64 50 L88 56 L86 60 L62 54Z"/><path class="lv-p" d="M136 50 L112 56 L114 60 L138 54Z"/>`
+    : cheer || sleepy || proud ? "" : `<rect class="lv-p" x="64" y="46" width="24" height="6" rx="3" transform="rotate(-6 76 49)"/><rect class="lv-p" x="112" y="46" width="24" height="6" rx="3" transform="rotate(6 124 49)"/>`;
+  const shades = proud ? `<path class="lv-p" d="M56 62 h40 v8 q0 18 -20 18 q-20 0 -20 -18z"/><path class="lv-p" d="M104 62 h40 v8 q0 18 -20 18 q-20 0 -20 -18z"/><rect class="lv-p" x="94" y="64" width="12" height="5" rx="2.5"/><path d="M64 68 l10 -3 M112 68 l10 -3" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".7"/>` : "";
   const mouth = {
-    happy: `<path d="M74 122 Q100 150 126 122 Z" fill="${C.mouth}"/><path d="M88 136 Q100 144 112 136 Q100 131 88 136Z" fill="${C.tongue}"/>`,
-    cheer: `<path d="M70 118 Q100 164 130 118 Z" fill="${C.mouth}"/><ellipse cx="100" cy="143" rx="15" ry="7" fill="${C.tongue}"/>`,
-    sleepy: `<path d="M88 134 Q100 139 112 134" fill="none" stroke="${C.mouth}" stroke-width="5" stroke-linecap="round"/>`,
-    worried: `<path d="M82 136 q9 -8 18 0 q9 8 18 0" fill="none" stroke="${C.mouth}" stroke-width="5" stroke-linecap="round"/>`,
-    proud: `<path d="M76 126 Q104 148 128 122" fill="none" stroke="${C.mouth}" stroke-width="6" stroke-linecap="round"/>`
+    happy: `<path class="lv-m" d="M80 124 Q100 146 120 124Z"/><path class="lv-t" d="M90 135 Q100 141 110 135 Q100 131 90 135Z"/>`,
+    cheer: `<path class="lv-m" d="M74 120 Q100 160 126 120Z"/><ellipse class="lv-t" cx="100" cy="141" rx="12" ry="6"/>`,
+    sleepy: `<path class="lv-ms" d="M88 134 Q100 139 112 134" fill="none" stroke-width="5" stroke-linecap="round"/>`,
+    worried: `<path class="lv-m" d="M84 138 Q100 124 116 138 Q100 132 84 138Z"/>`,
+    proud: `<path class="lv-ms" d="M80 128 Q104 146 124 124" fill="none" stroke-width="6" stroke-linecap="round"/>`
   }[mood] || "";
-  const tilt = mood === "cheer" ? "rotate(-6 100 110)" : proud ? "rotate(4 100 110)" : "";
-  const limbs = (layer) => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
+  const tilt = cheer ? "rotate(-5 100 110)" : proud ? "rotate(4 100 110)" : "";
+  const limbs = layer => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
     const mx = (sx + wx) / 2 + (wx < sx ? -10 : 10), my = Math.min(sy, wy) + (wy < sy ? 8 : 14);
-    return layer === "arm" ? `<path d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke="#45424c" stroke-width="16" stroke-linecap="round"/>`
-      : `<g transform="translate(${wx} ${wy}) rotate(${rot}) scale(1.3)">${HANDS[sign]()}</g>`;
+    return layer === "arm" ? `<path class="lv-l" d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-width="15" stroke-linecap="round"/>`
+      : `<g transform="translate(${wx} ${wy}) rotate(${rot}) scale(1.25)">${HANDS[sign]()}</g>`;
   }).join("");
   const vb = arms ? "-34 -30 268 236" : "18 0 164 200";
   const [, , vw, vh] = vb.split(" ").map(Number);
   return `<svg class="louie ${mood}${pose ? " " + pose : ""}" width="${size}" height="${Math.round(size * vh / vw)}" viewBox="${vb}" role="img" aria-label="${label}">
-  ${mood === "sleepy" ? `<text x="160" y="24" font-family="-apple-system,system-ui,sans-serif" font-size="22" font-weight="800" fill="#a99b80">z</text><text x="176" y="8" font-family="-apple-system,system-ui,sans-serif" font-size="15" font-weight="800" fill="#a99b80" opacity=".7">z</text>` : ""}
-  <ellipse class="lv-shadow" cx="100" cy="188" rx="54" ry="6" fill="#000" opacity=".28"/>
+  ${sleepy ? `<text class="lv-z" x="160" y="24" font-family="Fredoka,system-ui,sans-serif" font-size="22" font-weight="700">z</text><text class="lv-z" x="176" y="8" font-family="Fredoka,system-ui,sans-serif" font-size="15" font-weight="700" opacity=".7">z</text>` : ""}
+  <ellipse class="lv-shadow" cx="100" cy="190" rx="54" ry="6"/>
   <g class="lv-body" transform="${tilt}">
     ${limbs("arm")}
-    <rect x="62" y="166" width="28" height="16" rx="8" fill="${C.body}"/><rect x="110" y="166" width="28" height="16" rx="8" fill="${C.body}"/>
-    <path d="M74 34 Q74 14 100 14 Q126 14 126 34" fill="none" stroke="${C.body}" stroke-width="11" stroke-linecap="round"/>
-    <rect x="32" y="28" width="136" height="146" rx="36" fill="${C.body}" stroke="${C.edge}" stroke-width="3"/>
-    <rect x="40" y="36" width="120" height="130" rx="29" fill="none" stroke="${C.rim}" stroke-width="5"/>
-    <rect x="48" y="44" width="104" height="60" rx="18" fill="${C.goldDk}"/>
-    <rect x="48" y="44" width="104" height="48" rx="18" fill="${C.gold}"/>
-    <ellipse cx="62" cy="94" rx="8" ry="4.5" fill="${C.cheek}" opacity=".55"/><ellipse cx="138" cy="94" rx="8" ry="4.5" fill="${C.cheek}" opacity=".55"/>
-    ${eye(77)}${eye(123)}${brows}${shades}
-    <rect x="50" y="110" width="100" height="48" rx="15" fill="${C.grille}"/>
-    <rect x="58" y="120" width="84" height="4" rx="2" fill="${C.stripe}"/><rect x="58" y="132" width="84" height="4" rx="2" fill="${C.stripe}"/><rect x="58" y="144" width="84" height="4" rx="2" fill="${C.stripe}"/>
+    <rect class="lv-s" x="62" y="166" width="30" height="20" rx="10"/><rect class="lv-s" x="108" y="166" width="30" height="20" rx="10"/>
+    <path class="lv-ss" d="M76 34 Q76 12 100 12 Q124 12 124 34" fill="none" stroke-width="12" stroke-linecap="round"/>
+    <rect class="lv-s" x="30" y="28" width="140" height="148" rx="38"/>
+    <rect class="lv-b" x="30" y="28" width="128" height="148" rx="38"/>
+    <rect class="lv-hi" x="44" y="36" width="54" height="9" rx="4.5"/>
+    <rect class="lv-fs" x="46" y="48" width="108" height="58" rx="20"/>
+    <rect class="lv-f" x="46" y="48" width="108" height="50" rx="20"/>
+    <ellipse class="lv-c" cx="60" cy="96" rx="8" ry="5"/><ellipse class="lv-c" cx="140" cy="96" rx="8" ry="5"/>
+    ${proud ? "" : eye(77) + eye(123)}${brows}${shades}
+    <rect class="lv-g" x="48" y="112" width="104" height="50" rx="17"/>
+    <rect class="lv-gs" x="58" y="122" width="84" height="4" rx="2"/><rect class="lv-gs" x="58" y="134" width="84" height="4" rx="2"/><rect class="lv-gs" x="58" y="146" width="84" height="4" rx="2"/>
     ${mouth}
-    <circle cx="140" cy="150" r="3.5" fill="${C.iris}"/>
+    <circle class="lv-lamp" cx="142" cy="153" r="4"/>
     ${limbs("hand")}
   </g>
 </svg>`;

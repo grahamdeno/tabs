@@ -105,13 +105,10 @@ function renderSettings() {
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("moon")}</span><span class="name">Theme</span>
-        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]].map(([k, n]) => `<button data-t="${k}" class="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(s.theme === "dark" || s.theme === "light" ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
-      </div>
-      <div class="set">
-        <span class="tile">${icon("amp")}</span><span class="name">Amp covering</span>
-        <button class="toggle ${s.tolex ? "on" : ""}" id="s-tolex" role="switch" aria-checked="${!!s.tolex}" aria-label="Amp covering: a fine tolex grain behind the app"></button>
+        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"], ["green", "Green"]].map(([k, n]) => `<button data-t="${k}" class="${(["dark", "light", "green"].includes(s.theme) ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(["dark", "light", "green"].includes(s.theme) ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
     </div>
+    <p class="foot">Light is Festival Poster, Dark is Neon Midnight, and Green is Green Room. Auto follows your phone between Light and Dark.</p>
     <p class="foot">On a phone held upright, the whole bar shows while a song is paused. Press Play and it folds into Play's corner; pause and it comes back. At the top of a paused song, pull down to go back.</p>`],
     newsongs: ["New songs", `
     <div class="set-group glass">
@@ -213,7 +210,7 @@ function renderSettings() {
     // The main menu: one row per page, each showing where it stands.
     const city = s.place?.name?.split(",")[0];
     const diagOn = [s.diagrams === true, s.pauseDiagrams !== false, s.songMap !== false, (s.focus || "always") !== "off"].filter(Boolean).length;
-    const theme = { dark: "Dark", light: "Light" }[s.theme] || "Auto";
+    const theme = { dark: "Dark", light: "Light", green: "Green Room" }[s.theme] || "Auto";
     const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
     app.innerHTML = head("Settings", "Back") + `
@@ -258,7 +255,6 @@ function renderSettings() {
   $("s-bassstyle")?.addEventListener("change", e => { s.bassStyle = e.target.value; Tabs.save(data); renderSettings(); bassPreview(); });
   $("s-bassonly")?.addEventListener("click", () => { s.bassOnly = !s.bassOnly; Tabs.save(data); renderSettings(); });
   app.querySelectorAll("#s-metsound [data-m]").forEach(b => b.onclick = () => { s.metroSound = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
-  $("s-tolex").onclick = () => { s.tolex = !s.tolex; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };

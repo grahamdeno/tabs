@@ -1744,3 +1744,31 @@ test("just heard it: the newest Apple Music song is offered for 3 hours, matched
   assert.equal(C.heardOffer(songs, { title: "Yellow", artist: "Coldplay" }, null, t0).offer.song, null, "not in the library");
   assert.equal(C.heardMatch(songs, { title: "Wonderwall", artist: "Blur" }), null, "another artist's song");
 });
+
+test("The Road (4.0.0): the neck's ladder as legs of stops, merch boxes every third lesson, a headline show at the end, one current stop", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  let r = C.roadPath(data);
+  assert.deepEqual(r.legs.map(l => l.name), ["Open chords", "Chord switches", "Scales"]);
+  const open = r.legs[0].stops;
+  assert.deepEqual(open.map(s => s.kind), ["chord", "chord", "chord", "box", "chord", "chord", "chord", "box", "chord", "headline"]);
+  assert.equal(r.current.id, "c:G");
+  assert.equal(r.legs.flatMap(l => l.stops).filter(s => s.state === "now").length, 1, "only one current stop");
+  assert.equal(r.legs[2].stops[0].state, "open", "Scales are open from the start but not the current stop");
+  assert.deepEqual(r.coming, ["Strumming", "Picking", "Fingerstyle and barre"]);
+  for (const c of ["G", "C", "D"]) C.skillDone(data, "c:" + c);
+  r = C.roadPath(data);
+  assert.equal(r.legs[0].stops[3].state, "done", "the box opens once the three lessons before it are done");
+  assert.equal(r.current.id, "c:Em");
+  assert.equal(C.fansOf(data), 3 * C.FANS.lesson + C.FANS.box, "fans: lessons and the opened box");
+});
+
+test("Playable songs (4.0.0): songs that use only chords you know, and how many more the next chord opens", () => {
+  const data = { songs: [{ id: "a", title: "A", body: "G   C\nwords\nG   D\nmore" }, { id: "b", title: "B", body: "[G]one [Em]two" }, { id: "t", title: "T", format: "tab", body: "e|--0--|" }], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.sheetChords(data.songs[0].body), ["G", "C", "D"]);
+  assert.deepEqual(C.sheetChords(data.songs[1].body), ["G", "Em"]);
+  assert.deepEqual(C.playableSongs(data, "G"), { now: 0, of: 2, more: 0 }, "tabs don't count; G alone opens nothing");
+  for (const c of ["G", "C"]) C.skillDone(data, "c:" + c);
+  assert.deepEqual(C.playableSongs(data, "D"), { now: 0, of: 2, more: 1 }, "D opens the first song");
+  data.journal = { chords: { D: { n: 5 }, Em: { n: 6 } } };
+  assert.equal(C.playableSongs(data).now, 2, "chords played in songs five times count as known");
+});

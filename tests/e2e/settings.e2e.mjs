@@ -31,15 +31,19 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   assert.deepEqual(errs, []);
 });
 
-test("Settings > Look: Amp covering turns the tolex grain on and off (2.20.0)", { skip: skip() }, async t => {
+test("Settings > Look: Light, Dark and Green Room, kept after a reload (4.0.0)", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "off", "off by default");
-  await page.click("#s-tolex"); await page.waitForTimeout(150);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "on");
-  assert.match(await page.evaluate(() => getComputedStyle(document.body).backgroundImage), /svg/, "the grain is drawn");
+  const look = () => page.evaluate(() => [document.documentElement.dataset.theme, document.documentElement.dataset.look, getComputedStyle(document.body).backgroundColor]);
+  await page.click("#s-theme [data-t='dark']"); await page.waitForTimeout(150);
+  assert.deepEqual(await look(), ["dark", "neon", "rgb(29, 22, 64)"], "Dark is Neon Midnight");
+  await page.click("#s-theme [data-t='light']"); await page.waitForTimeout(150);
+  assert.deepEqual(await look(), ["light", "festival", "rgb(234, 243, 255)"], "Light is Festival Poster");
+  await page.click("#s-theme [data-t='green']"); await page.waitForTimeout(150);
+  assert.deepEqual(await look(), ["light", "green", "rgb(230, 239, 231)"], "Green Room is a light look");
+  assert.equal(await page.locator("#s-tolex").count(), 0, "the amp covering is gone with the amp look");
   await page.reload(); await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.tolex), "on", "kept");
+  assert.equal((await look())[1], "green", "kept");
 });
 
 test("Settings > Apple Music: off by default; on, Listen plays the linked song with MusicKit", { skip: skip() }, async t => {

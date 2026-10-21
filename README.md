@@ -2,6 +2,16 @@
 
 A guitar app for the phone about making it big: play songs through, light up your Tour Map, and work your way from the Garage to the Festival stage. Chord sheets and tabs, offline, everything on the device, no account.
 
+## Version 4: the guitar is how you play the game
+
+Version 4 (4.0.0) turns The Road into a game you play with your guitar, in the style of a learning app: a path to travel, a streak, fans to earn, and a band and charts on the way.
+
+- A new look in three palettes: Light (Festival Poster), Dark (Neon Midnight) and Green (Green Room), in Settings > Look. Flat colour, chunky buttons on a darker lip, Fredoka and Nunito type (bundled, so they work offline).
+- Louie redrawn in the new style, in each palette's colours.
+- The Road is home (it was Tonight): a stat bar (your venue, gig streak and fans), the leg you're on, how many of your songs you can play, and a path of stops built from the neck: lessons, a merch box after every third one, and a headline show at the end of each leg (play a real song through). The current stop is ringed with its card open; tap any stop for its card. Louie stands beside the path with tonight's song to play.
+- Fans: 10 for every play, 5 for every lesson round, 25 for every merch box. Worked out from what's already kept, so there's nothing new to back up.
+- A tab bar along the bottom of the main pages: Road, Tour, Charts, Band, Rehearse (the neck) and More (Library, Tour Map, Your playing, Tuner, Settings). Tour, Charts and Band say what's coming; they arrive in 4.x releases.
+
 ## Version 3: The Road
 
 Version 3 is The Road (before it, the app was Tabs, versions 1 and 2). It began with 2.50.0 and is numbered 3 from 3.0.0:
@@ -17,7 +27,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Library
 - The app is called The Road (it was Tabs): making it big, on tour. Your library, backups and links carry over unchanged.
-- Tonight (home): one fixed screen that never scrolls. Your streak, Louie (the little amp who cheers you on), Tonight's run: one song with three lamps (Tune, Soundcheck, Play). The button follows your day: Start soundcheck (with a small Skip to the song), then Play, and once you've played, a Practice more link. Louie names the chord switch to warm up for the song. Swiping up from the very bottom edge to change apps no longer moves the Library drawer, and a small picture of your Tour Map with the venue you're at. The header has the neck, Your playing, Tuner and Settings; search and add are at the bottom as in the Library. The Library is a tall drawer along the bottom edge. Shut, it shows only its handle and title; its contents fade and rise into view as it opens. Drag it up (it follows your finger, and a flick finishes the move), or tap the handle; inside is the real Library with its chips, sets and song list. Scroll the list; pull down from its top, drag the handle, tap the dimmed Tonight or press Escape to close. A new library gets Louie waving and the first song ready. A song opened from Tonight goes back to Tonight; from the Library page, back to the Library.
+- The Road (home, 4.0.0; it was Tonight): one fixed screen; only the path scrolls. The stat bar (venue, gig streak, fans; tap the venue for the Tour Map, the streak for Your playing), the leg banner (its book opens the neck), how many of your songs you can play and how many the next chord opens, and the path: done stops lit, the current one ringed with its card open (Start opens the lesson, or plays the song for a headline show), later ones locked. Louie beside the path says one line that fits the moment (the streak, a switch to warm up for tonight's song, a rival pushing on your edge) with tonight's song to play. Just heard (Apple Music) shows under the banner. Search and add are at the bottom as in the Library, above the tab bar. The Library is a tall drawer along the bottom edge. Shut, it shows only its handle and title; its contents fade and rise into view as it opens. Drag it up (it follows your finger, and a flick finishes the move), or tap the handle; inside is the real Library with its chips, sets and song list. Scroll the list; pull down from its top, drag the handle, tap the dimmed Road or press Escape to close. A song opened from the Road goes back to the Road; from the Library page, back to the Library.
 - Practice mode (3.21.0): the Practice chip under a song's title turns it on (a song marked Learning starts with it on). One Practice row sits above the bar, and stays while the song plays: the section to loop (tap to pick one, by line or by a section name), the speed (100% down to 50%, for the recording or the band and the page alike), Build up, and off. Off, the song plays straight through and the section is kept for next time. Practice time counts on the Tour Map. The speed that used to be in the Recording sheet moved here.
 - The neck's Learning list (3.21.0): every song marked Learning, with its cover, the one thing to do next (the section and speed you left it at) and plays toward five. A tap opens the song in Practice mode.
 - Scales on the neck (3.21.0), their own track, open from the start: A minor pentatonic, G major pentatonic, C major, A natural minor and the A blues scale. Each lesson shows the notes on the neck, plays the scale (Hear it), then listens as you play it up and back down, one note at a time.
@@ -157,6 +167,9 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `sketch.js`, `strum.js` | Sing it, Strum it (`strum.js` loads `vendor/basic-pitch/`) |
 | `german.js` | German practice |
 | `crop.js` | Cover photo framing |
+| `road.js`, `hud.js` | The Road (home): the path, Louie and the Library drawer; the stat bar, tab bar, More sheet and Coming soon pages (4.0.0) |
+| `louie.js` | Louie, drawn in the palette's colours |
+| `vendor/fonts/` | Fredoka and Nunito (SIL Open Font License) |
 | `sw.js` | Offline copy; lists every app file (a test checks the list) |
 | `worker/` | The MusicKit token Worker for Apple Music (deployed by hand; see `worker/README.md`) |
 

@@ -17,7 +17,7 @@ test("Your playing: worked out from the songs you've played, with a passport, ch
   await page.waitForSelector("#sheet");
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-plate");
-  await page.click("#back"); await page.waitForSelector("#youbtn");
+  await page.click("#back"); await page.waitForSelector(".rd-path"); /* 4.0.0: back to the Road */
 });
 
 test("Your playing: an empty library says how it fills in, with no share button", { skip: skip() }, async t => {

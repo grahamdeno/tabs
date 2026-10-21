@@ -410,11 +410,11 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   assert.match(await page.innerText("#fp-nav"), /Library/, "beside it, the way back to the Library");
   await page.click("#fp-nav"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => location.hash), "#/library", "opened directly: the Library page");
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-song");
-  await page.click("#rd-song"); await page.waitForSelector("#play"); await page.click("#play"); await page.waitForSelector("#fp-nav", { state: "visible" });
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-tonight");
+  await page.click("#rd-tonight"); await page.waitForSelector("#fp-nav", { state: "visible" }); /* 4.0.0: Play on the Road starts the song */
   await page.click("#fp-nav");
   await page.waitForSelector("#rd-drawer[data-state=open]", { timeout: 4000 });
-  assert.equal(await page.evaluate(() => location.hash), "#/", "from Tonight, the Library is the drawer on Tonight, open");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "from the Road, the Library is the drawer on the Road, open");
   await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
   await page.click("#play"); await page.waitForTimeout(500);
   /* a long hold is still a tap: nothing opens, and it pauses */
@@ -458,11 +458,12 @@ test("2.25.0 speed dial is a meter: the needle swings with the length, and whole
   assert.ok(after[1] < before[1], `faster points higher: ${before} then ${after}`);
 });
 
-test("2.25.0 filter chips: the selected one's lamp is lit", { skip: skip() }, async t => {
+test("2.25.0 filter chips: the selected one's lamp is lit (4.0.0: in the palette's go colour)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map((s, i) => ({ ...s, favorite: i === 0 })) });
-  const glow = sel => page.evaluate(s => getComputedStyle(document.querySelector(s), "::before").boxShadow, sel);
-  assert.match(await glow("#chips [data-f='all']"), /255, 140, 40/);
-  assert.doesNotMatch(await glow("#chips [data-f='fav']"), /255, 140, 40/);
+  const lamp = sel => page.evaluate(s => getComputedStyle(document.querySelector(s), "::before").backgroundColor, sel);
+  const go = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--accent)"; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+  assert.equal(await lamp("#chips [data-f='all']"), go);
+  assert.notEqual(await lamp("#chips [data-f='fav']"), go);
   await page.click("#chips [data-f='fav']"); await page.waitForTimeout(200);
-  assert.match(await glow("#chips [data-f='fav']"), /255, 140, 40/);
+  assert.equal(await lamp("#chips [data-f='fav']"), go);
 });

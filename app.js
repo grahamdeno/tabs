@@ -49,11 +49,13 @@ window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change"
 function applyTheme() {
   sysText = readSysText();
   const t = data.settings.theme;
-  const light = t === "light" || (t !== "dark" && phoneLight());
+  const green = t === "green", light = green || t === "light" || (t !== "dark" && phoneLight());
   document.body.classList.toggle("stage", !!data.settings.stage);
   document.documentElement.dataset.theme = light ? "light" : "dark";
-  document.documentElement.dataset.tolex = data.settings.tolex ? "on" : "off";
-  document.querySelector('meta[name="theme-color"]').content = light ? "#f3f0eb" : "#0c0d0f";
+  /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
+  document.documentElement.dataset.look = green ? "green" : light ? "festival" : "neon";
+  document.documentElement.dataset.tolex = "off";
+  document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : light ? "#eaf3ff" : "#1d1640";
 }
 
 
@@ -165,7 +167,7 @@ function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <div class="head-l"><button class="ib glass" id="libback" aria-label="Back to Tonight">${icon("back")}</button><h1 class="title script">Library</h1></div>
+      <div class="head-l"><button class="ib glass" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Library</h1></div>
       <div class="row-btns">
         <button class="ib glass" id="youbtn" aria-label="Your playing">${icon("pick")}</button>
         ${tunerBtn("ib glass")}
@@ -741,7 +743,7 @@ function renderViewer(id) {
   app.classList.add("viewer");
   /* Back goes where the song was opened from: its set, when played from one. */
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
-  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to Tonight" } : { to: "#/library", label: "Back to library" };
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to library" };
   diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
   app.innerHTML = `
     <div class="head">
@@ -2695,6 +2697,10 @@ function renderRoute() {
   leaveHooks.forEach(fn => fn(r));
   if (r.name === "road" || r.name === "library") lastHome = r.name;
   document.body.classList.toggle("is-home", r.name === "road");
+  /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings) */
+  const tabbed = ["road", "tour", "charts", "band", "practice", "you"].includes(r.name) && !(r.name === "practice" && r.id);
+  if (!tabbed) document.body.classList.remove("tabbed");
+  else lazy("hud.js").then(m => { if (route().name === r.name) m.paintTabs(m.tabFor(r.name)); });
   app.classList.remove("viewer");
   layer.innerHTML = "";
   /* Old links: #/add and #/edit/<id> open the editor. */
@@ -2718,6 +2724,7 @@ function renderRoute() {
   else if (r.name === "set") { renderSet(r.id); window.scrollTo(0, 0); }
   else if (r.name === "import") renderImport(r.id);
   else if (r.name === "road") lazy("road.js").then(m => { if (route().name === "road") { m.renderRoad(); window.scrollTo(0, 0); } });
+  else if (r.name === "tour" || r.name === "charts" || r.name === "band") lazy("hud.js").then(m => { if (route().name === r.name) { m.renderSoon(r.name); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }
 

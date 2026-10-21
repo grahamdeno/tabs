@@ -157,6 +157,7 @@ test("tuner 2.16.1: an octave slip on the low E still reads E, and the audio is 
   await page.goto(base); await page.waitForTimeout(400);
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true }, micExplained: true } });
   await page.reload(); await page.waitForTimeout(300);
+  await page.goto(base + "#/library"); await page.waitForSelector("#tunerbtn"); /* 4.0.0: the Road has no header */
   await page.click("#tunerbtn"); await page.waitForTimeout(600);
   const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent }));
   await page.evaluate(() => { window.__hz = 82.41 * 2 * 2 ** (-20 / 1200); }); await page.waitForTimeout(800);
@@ -462,25 +463,32 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.every(s => !s.playLog?.total)), true);
 });
 
-test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map card, and the header reaches the Library and Settings", { skip: skip() }, async t => {
+test("The Road is home (4.0.0): stat bar, leg banner, the path with its current stop open, Louie, the Library drawer and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs }, { home: true });
-  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/tonight.png" });
-  await page.waitForSelector(".rd-next");
-  assert.equal(await page.innerText("h1.title"), "Tonight");
-  assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie says something");
-  assert.match(await page.innerText(".rd-next h2"), /Tonight's run/i);
-  assert.match(await page.innerText("#rd-go"), /Start soundcheck/i);
-  assert.match(await page.innerText(".rd-map"), /Tour Map/i);
-  await page.click("#rd-skip");
+  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/road.png" });
+  await page.waitForSelector(".rd-path");
+  assert.equal(await page.locator(".hud #h-streak").count(), 1, "the stat bar has the streak");
+  assert.match(await page.innerText("#h-fans"), /\d/, "and your fans");
+  assert.match(await page.innerText(".rd-banner"), /LEG 1[\s\S]*Open chords/);
+  assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
+  assert.match(await page.innerText(".rd-pop.now"), /The G chord[\s\S]*START/, "its card is open");
+  assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie beside the path");
+  assert.equal(await page.locator(".rd-node.headline").count() >= 1, true, "each leg ends in a headline show");
+  assert.equal(await page.locator(".rd-node.box").count() >= 1, true, "with merch boxes along the way");
+  /* another stop's card opens on a tap, and the current one closes */
+  await page.click(".rd-node.locked >> nth=0");
+  assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
+  /* tonight's song plays from the Road, and its Back comes back here */
+  await page.click("#rd-tonight");
   await page.waitForFunction(() => /#\/song\//.test(location.hash) && document.body.classList.contains("playing"), null, { timeout: 8000 });
   await page.click("#play");
   await page.evaluate(() => document.querySelector(".head .ib[data-go]").click());
-  await page.waitForSelector(".rd-next");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from Tonight goes back to Tonight");
-  /* the Library drawer: Tonight never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
-  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "Tonight does not scroll");
+  await page.waitForSelector(".rd-path");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "a song opened from the Road goes back to the Road");
+  /* the Library drawer: the Road never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "the Road does not scroll");
   assert.match(await page.innerText("#rd-dh"), /Library/);
   const state = () => page.getAttribute("#rd-drawer", "data-state");
   assert.equal(await state(), "closed");
@@ -497,15 +505,23 @@ test("Tonight is home: Louie, one song up next, Play starts it, the Tour Map car
   await drag("#rd-dh", 100, 500); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
   await page.click("#rd-dh"); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "open");
   await page.mouse.click(195, 20); await page.waitForFunction(() => document.querySelector("#rd-drawer").dataset.state === "closed");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "the drawer never leaves Tonight");
-  await page.click("#settings"); await page.waitForFunction(() => location.hash === "#/settings");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "the drawer never leaves the Road");
+  /* the tab bar: Road is current; Tour is coming; More reaches Settings; the current stop's Start opens its lesson */
+  assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
+  await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".soon");
+  assert.match(await page.innerText(".soon"), /Coming soon/);
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-pop.now");
+  await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
+  await page.click("#tabs [data-tab=more]"); await page.click("#m-set"); await page.waitForFunction(() => location.hash === "#/settings");
+  await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
 });
 
-test("Tonight on a new library: Louie waves and the first song is ready", { skip: skip() }, async t => {
+test("The Road on a new library: Louie waves and the first song is ready to play", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
-  await page.waitForSelector(".rd-first");
-  assert.match(await page.innerText(".rd-first"), /first song/i);
-  assert.match(await page.innerText(".rd-next h2"), /Your first song/i);
+  await page.waitForSelector(".rd-path");
+  assert.match(await page.innerText("#rd-bubble"), /first song/i);
+  assert.match(await page.innerText("#rd-tonight"), /Play /);
 });
 
 test("Tour Map: the scene sheet says how many songs and minutes take a rival corner, pulls up for the details and the scene, and Play starts the song", { skip: skip() }, async t => {
