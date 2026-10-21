@@ -50,7 +50,6 @@ function applyTheme() {
   sysText = readSysText();
   const t = data.settings.theme;
   const green = t === "green", light = green || t === "light" || (t !== "dark" && phoneLight());
-  document.body.classList.toggle("stage", !!data.settings.stage);
   document.documentElement.dataset.theme = light ? "light" : "dark";
   /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
   document.documentElement.dataset.look = green ? "green" : light ? "festival" : "neon";
@@ -923,7 +922,7 @@ function renderViewer(id) {
     SUBS = easy ? easy.subs || {} : {};
     const sheet = $("sheet");
     sheet.style.setProperty("--tab-size", (14 * song.size).toFixed(1) + "px");
-    sheet.style.setProperty("--lyric-size", (17 * song.size * sysText * (data.settings.stage ? 1.2 : 1)).toFixed(1) + "px");
+    sheet.style.setProperty("--lyric-size", (17 * song.size * sysText).toFixed(1) + "px");
     // With a capo the shapes sit lower than the sound: shift the chords down by the capo.
     // A chart's own capo, taken off: the shapes go up to the key it sounds in.
     const off = isChords && song.capoOff ? bodyCapo(song.body) : 0;
@@ -1292,7 +1291,7 @@ const FOCUS_SCALE = 1.05; /* matches .sheet.focus > .cur in the styles */
 function showPausedRow(block = pausedBlock()) {
   const sheet = $("sheet");
   if (!sheet || chordEdit) return;
-  const want = diag.armed && !scroll.on && data.settings.pauseDiagrams !== false && diag.rows?.length && block;
+  const want = diag.armed && !scroll.on && diag.rows?.length && block;
   const old = sheet.querySelector(".prow");
   if (!want) { old?.remove(); diag.rowKey = null; return; }
   // Chord rows inside the current line (a long line may wrap onto several rows).
@@ -1637,7 +1636,6 @@ function buildMap() {
   map.el = null;
   const sheet = $("sheet");
   if (!sheet || route().name !== "song") return;
-  if (data.settings.songMap === false) return; /* Settings > Chord diagrams > Song map */
   const secs = [...sheet.querySelectorAll(":scope > .sec")];
   if (secs.length < 2) return;
   /* Dots sit where each section is in the song; jumping puts its label at the reading line. */
@@ -2376,7 +2374,6 @@ function showChordPop(target) {
   sheet.appendChild(pop);
   target.classList.add("sel");
 }
-let stageTap = 0;
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet") || chordEdit) return;
   if (loopPick && e.target instanceof Element) {
@@ -2387,20 +2384,8 @@ document.addEventListener("click", e => {
   /* While playing, a tap anywhere on the page pauses, so there's no button to aim for. */
   /* (A target no longer in the page was a button that redrew itself, like play.) */
   if (scroll.on && e.target instanceof Element && e.target.isConnected && !e.target.closest("button, a, input, select, label, .dock, .menu, .panel, .scrim, .nextup, .chead, .loopbanner, .rc, .ringx, .dial")) {
-    /* On stage a single stray touch shouldn't stop the song: tap twice to pause. */
-    if (data.settings.stage && Date.now() - (stageTap || 0) > 1500) {
-      stageTap = Date.now();
-      document.querySelector(".tappause")?.remove();
-      const h = document.createElement("div");
-      h.className = "tappause hint";
-      h.textContent = "Tap again to pause";
-      document.body.appendChild(h);
-      setTimeout(() => h.remove(), 1500);
-      return;
-    }
-    stageTap = 0;
     document.querySelector(".tappause")?.remove();
-    markUsed(data.settings.stage ? "pauseStage" : "pause");
+    markUsed("pause");
     stopScroll();
     const g = document.createElement("div");
     g.className = "tappause";
@@ -2479,10 +2464,6 @@ window.addEventListener("touchstart", e => {
   hold.touching = true; hold.active = true; clearTimeout(hold.timer);
 }, { passive: true });
 window.addEventListener("touchend", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
-/* Stage mode: while a song plays, a brushing hand can't scroll the page. */
-window.addEventListener("touchmove", e => {
-  if (data.settings.stage && scroll.on && !(e.target instanceof Element && e.target.closest(".dock, .panel, .menu"))) e.preventDefault();
-}, { passive: false });
 window.addEventListener("touchcancel", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
 window.addEventListener("wheel", () => { hold.active = true; releaseSoon(250); }, { passive: true });
 
@@ -2616,7 +2597,7 @@ function endMoment(song) {
    Not on stage, in Play together, or in the middle of a set. */
 function streakSoon(song) {
   const st = data.settings, day = todayKey();
-  if (st.streakMoment === false || st.stage || scroll.duet || setCtx || gigHooks.on || st.streakShown === day) return;
+  if (st.streakMoment === false || scroll.duet || setCtx || gigHooks.on || st.streakShown === day) return;
   st.streakShown = day; Tabs.save(data);
   setTimeout(() => {
     if (viewing !== song || route().name !== "song") return;
@@ -2637,8 +2618,7 @@ async function startScroll(song, opts = {}) {
   foldApi?.mode?.(); /* the bar folds into Play's corner */
   playsHere++;
   setTimeout(() => {
-    const k = data.settings.stage ? "pauseStage" : "pause";
-    if (scroll.on && viewing === song && coachTip(k)) demoPause();
+    if (scroll.on && viewing === song && coachTip("pause")) demoPause();
   }, 2500);
   wakeControls();
   showChordPop(null);

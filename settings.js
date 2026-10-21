@@ -78,33 +78,13 @@ function renderSettings() {
         <button class="toggle ${s.streakMoment !== false ? "on" : ""}" id="s-streak" role="switch" aria-checked="${s.streakMoment !== false}" aria-label="Streak celebration"></button>
       </div>
       <div class="set">
-        <span class="tile">${icon("stage")}</span><span class="name">Stage mode</span>
-        <button class="toggle ${s.stage ? "on" : ""}" id="s-stage" role="switch" aria-checked="${!!s.stage}" aria-label="Stage mode"></button>
-      </div>
-    </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Bass plays the root of each chord under the song at its sounding pitch (the capo is counted), and keeps time without the metronome; Auto picks its pattern from the drum beat, and Bass only mutes the drums. Each song can have its own drum beat, swing and bass, found by the AI the first time it plays with the metronome or bass on (and when you add it) and kept on the song; change it in Edit, where a song can also have a bass riff of its own. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (in More). Stage mode is for playing live: larger, higher-contrast text, no chord cards, and while a song plays, stray touches are ignored (tap twice to pause).</p>`],
-    diagrams: ["Chord diagrams", `
-    <div class="set-group glass">
-      <div class="set">
-        <span class="tile">${icon("fretboard")}</span><span class="name">Now and Next while playing</span>
-        <button class="toggle ${s.diagrams === true ? "on" : ""}" id="s-diagrams" role="switch" aria-checked="${s.diagrams === true}" aria-label="Now and Next chords"></button>
-      </div>
-      <div class="set">
-        <span class="tile">${icon("pause")}</span><span class="name">Diagrams when paused</span>
-        <button class="toggle ${s.pauseDiagrams !== false ? "on" : ""}" id="s-pause" role="switch" aria-checked="${s.pauseDiagrams !== false}" aria-label="Diagrams when paused"></button>
-      </div>
-      <div class="set">
-        <span class="tile">${icon("sections")}</span><span class="name">Song map</span>
-        <button class="toggle ${s.songMap !== false ? "on" : ""}" id="s-map" role="switch" aria-checked="${s.songMap !== false}" aria-label="Song map: the section rail on the right edge"></button>
-      </div>
-      <div class="set">
         <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span><span class="val">${{ always: "Always", playing: "While playing", off: "Off" }[s.focus] || "Always"}</span>${icon("chev", "chev")}
         <select id="s-focus" aria-label="Focus current line">
           ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
         </select>
       </div>
     </div>
-    <p class="foot">Tap a chord for its fingering, or a line to start from it. The song map is the rail of sections on the right edge; touch it and slide to jump to a section.</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Bass plays the root of each chord under the song at its sounding pitch (the capo is counted), and keeps time without the metronome; Auto picks its pattern from the drum beat, and Bass only mutes the drums. Each song can have its own drum beat, swing and bass, found by the AI the first time it plays with the metronome or bass on (and when you add it) and kept on the song; change it in Edit, where a song can also have a bass riff of its own. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (in More). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
     look: ["Look", `
     <div class="set-group glass">
       <div class="set">
@@ -213,14 +193,12 @@ function renderSettings() {
   } else {
     // The main menu: one row per page, each showing where it stands.
     const city = s.place?.name?.split(",")[0];
-    const diagOn = [s.diagrams === true, s.pauseDiagrams !== false, s.songMap !== false, (s.focus || "always") !== "off"].filter(Boolean).length;
     const theme = { dark: "Dark", light: "Light", green: "Green Room" }[s.theme] || "Auto";
     const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
     app.innerHTML = head("Settings", "Back") + `
     <div class="set-group glass">
-      ${row("playing", "play", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "Count-in", s.stage && "Stage"].filter(Boolean).join(" · "))}
-      ${row("diagrams", "fretboard", "Chord diagrams", `${diagOn} of 4 on`)}
+      ${row("playing", "play", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "Count-in"].filter(Boolean).join(" · "))}
       ${row("look", "moon", "Look", theme)}
       ${row("newsongs", "sliders", "New songs", `${s.speedMode === "multiplier" ? ((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1) + "x" : mmss(s.startLength || 210)} · ${t ? semis(t) : "No transpose"}`)}
     </div>
@@ -260,10 +238,7 @@ function renderSettings() {
   $("s-bassstyle")?.addEventListener("change", e => { s.bassStyle = e.target.value; Tabs.save(data); renderSettings(); bassPreview(); });
   $("s-bassonly")?.addEventListener("click", () => { s.bassOnly = !s.bassOnly; Tabs.save(data); renderSettings(); });
   app.querySelectorAll("#s-metsound [data-m]").forEach(b => b.onclick = () => { s.metroSound = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
-  $("s-stage").onclick = () => { s.stage = !s.stage; Tabs.save(data); applyTheme(); renderSettings(); };
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
-  $("s-diagrams").onclick = () => { s.diagrams = s.diagrams !== true; Tabs.save(data); renderSettings(); };
-  $("s-map").onclick = () => { s.songMap = s.songMap === false; Tabs.save(data); renderSettings(); };
   $("s-apple").onclick = () => { s.appleMusic = !s.appleMusic; Tabs.save(data); renderSettings(); };
   $("s-applesave")?.addEventListener("click", () => {
     const u = $("s-appletoken").value.trim();
@@ -294,7 +269,6 @@ function renderSettings() {
   $("s-cityfind")?.addEventListener("click", findCity);
   $("s-city")?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); findCity(); } });
   $("s-cityremove")?.addEventListener("click", () => { delete s.place; Tabs.save(data); renderSettings(); toast("Weather off"); });
-  $("s-pause").onclick = () => { s.pauseDiagrams = s.pauseDiagrams === false; Tabs.save(data); renderSettings(); };
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
   app.querySelectorAll("#s-theme [data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {

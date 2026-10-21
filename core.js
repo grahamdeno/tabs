@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.14.2";
+export const VERSION = "4.15.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -11,7 +11,7 @@ export const TRASH_DAYS = 30;
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
 const DEFAULT_SETTINGS = {
-  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" / "green" (Green Room, 4.0.0) */ diagrams: false, focus: "always", pauseDiagrams: true,
+  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" / "green" (Green Room, 4.0.0) */ diagrams: false, focus: "always",
   speedMode: "length",   // "length" (song length, mm:ss) or "multiplier" (1x style)
   startSpeed: 45,        // 1x-style starting speed for new songs
   startLength: 210,      // song-length starting value, seconds (3:30)
@@ -20,7 +20,6 @@ const DEFAULT_SETTINGS = {
   tunerGuided: true,     // guitar tuner walks the strings low to high
   a4: 440,               // pitch reference for the tuner, Hz
   micExplained: false,   // the tuner has said why it needs the microphone
-  songMap: true,          // the section rail on the right edge of a song
   nudge: true,            // the library's Today line: practice streak and a song for today
   gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6), or "full" (4.4.0)
   gigScore: true,        // a gig starts listening for your chord changes (4.2.0)
@@ -50,6 +49,7 @@ export function migrate(data) {
   settings.v = 6;
   delete settings.scrollSpeed;
   delete settings.arcSweep; /* the ring is gone (3.19.0) */
+  delete settings.stage; delete settings.songMap; delete settings.pauseDiagrams; /* retired in 4.15.0: the Gig is the stage; the rail and paused diagrams are always on */
   const songs = data.songs.map(s => {
     const song = { ...s };
     if (song.body === undefined) {

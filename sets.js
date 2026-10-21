@@ -3,7 +3,7 @@
 import { TUNINGS, Tabs, appleTrackId, firstLyric, logSetRun, playsThisWeek, rankTracks, untilLabel } from "./core.js";
 import { $, app, esc, icon, layer, oneHandMQ, onLeave, toast } from "./ui.js";
 import { noteError } from "./store.js";
-import { applyTheme, calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, tunedRecently, viewing } from "./app.js";
+import { calm, data, go, keyOf, lazy, mmss, openTuner, render, setFilter, shareSet, songLength, songTuning, tunedRecently, viewing } from "./app.js";
 
 // ---------- Sets ----------
 onLeave(() => document.querySelectorAll(".nextup, .nextline").forEach(el => { clearInterval(+el.dataset.timer); el.remove(); }));
@@ -72,8 +72,7 @@ function renderSet(id) {
       <div><b>${mmss(last.secs)}</b><span>last run time</span></div>
       <div><b>${last.songs}/${songs.length}</b><span>songs played</span></div></div>`; })() : ""}
     ${!setEditing ? `<label class="set-note"><span class="sr">Note for this set</span><textarea id="s-note" rows="1" placeholder="${set.runs?.length ? "What did you learn this time?" : "A note for this set (optional)"}">${esc(set.note || "")}</textarea></label>` : ""}
-    ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}${set.runs?.length ? "Play again" : "Play set"}</button>
-      <button class="stagechip ${data.settings.stage ? "on" : ""}" id="s-stagechip" role="switch" aria-checked="${!!data.settings.stage}">${icon("stage")}Stage mode <b>${data.settings.stage ? "On" : "Off"}</b></button>` : ""}
+    ${songs.length && !setEditing ? `<button class="btn primary cta" id="playset">${icon("play")}${set.runs?.length ? "Play again" : "Play set"}</button>` : ""}
     <div class="list glass" style="margin-top:16px">
       ${songs.map((s, i) => `<div class="row setrow" data-i="${i}">
         <span class="num">${i + 1}</span>
@@ -93,7 +92,6 @@ function renderSet(id) {
   $("s-cover").onclick = toggleCovers; $("s-edc").onclick = toggleCovers;
   $("s-edit")?.addEventListener("click", () => { setEditing = !setEditing; renderSet(id); });
   $("s-share")?.addEventListener("click", () => shareSet(set));
-  $("s-stagechip")?.addEventListener("click", () => { data.settings.stage = !data.settings.stage; Tabs.save(data); applyTheme(); renderSet(id); });
   $("s-tune")?.addEventListener("click", () => openTuner(songTuning(songs[0]), () => {
     /* Tuned just now: clear the reminder dot without redrawing the page. */
     const b = $("s-tune");

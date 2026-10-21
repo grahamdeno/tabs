@@ -33,93 +33,43 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 The guitar is how you play the game. Design system: three palettes (Light =
 Festival Poster, Dark = Neon Midnight, Green = Green Room), flat colour with no
 outlines, chunky buttons on a darker lip, Fredoka and Nunito, Louie the amp as
-the mascot (no guitar-pick mascot). The mockup canvas has nine screens. 4.0.0
-shipped the look, Louie, the stat bar, the tab bar and the Road path; 4.0.1 put
-every screen on the design system; 4.1.0 shipped the Gig (`gig.js`, scoring in
-`core.js`: gigChange and friends) with Show complete and Encore, and the Louie
-icon (Take 3A up close on pink; Take 2's whole body for launch screens). Graham
-wants the Gig to show more than 2 lines (4 to 6, Lines in a gig in Tools; 5 is the default, Graham
-leaning to keep it after 4.2.3, confirm). 4.2.0 replaced the song page with one song
-screen built from Gig parts: Play opens the Gig (4.4.0: Lines in a gig 4, 5, 6 or Full, Full being the song page under a strip; the 4.3.0
-Gig | Sheet switch is gone. Plain sheet while practicing
-a section or slower, for tabs; tests set plainPlay), Tools is one bottom
-sheet, Pause holds the show in place (Back a line, Tools, Sheet, Resume), and
-Hearing you turns scoring off per show (Score my plays sets the default).
-Louie's friends (Graham's art, 2026-10-21), redrawn in Louie's style for Your
-band, 18 and Louie: Lola guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp,
-Pip pick (rounder, yellow, never rainbow), Beat bass drum, Slide brass slide,
-Strap guitar strap (multicolor is fine), Key keyboard key, Metro metronome,
-Pickup single-coil, Whammy whammy bar, Shaker maraca, Reverb tank, Triangle,
-Looper pedal, Humb humbucker. Graham dropped Boomer, Cable and Reed. Drawings
-are in `friends.js` and on the canvas Friends board.
-Still to build, one release each, stopping after
-each for Graham to try: Tour quests (done in 4.5.0, `tour.js`; duet quest waits for XP), Charts (done in 4.6.0, `charts.js`: XP, weekly chart
-per tier, top 5 move up, records, daily rival battle; 4.11.0: bottom 3 move down,
-players with kinds like weekend, streaker, fader, skipper and a shadow), Your band (done in 4.7.0, `band.js` + `friends.js`: friends join by
-lifetime plays, `BAND` in `core.js`; Beat and Bex play drums and bass in gigs), Rehearse hub (done in 4.8.0: `renderRehearse` in `practice.js` at
-#/practice, the neck moved to #/practice/neck; soundcheck from missed gig changes,
-`soundcheck` in `core.js`), Merch table (done in 4.14.0, `merch.js`, `MERCH` in
-`core.js`: Graham kept it simple, fans are money and the stat bar shows fans to
-spend; no 7th tab, it opens from the fans count, More and one Show complete line;
-gear Rain check, Double set, Second take; Louie finishes via body[data-wear];
-backdrops behind the top of the Gig). XP lives on Charts.
-The Tour duet quest stays locked until a friend's XP can reach the phone.
-Competition plan (Graham, 2026-10-21), like Duolingo: the weekly chart is the league
-(computer players now, real players at your tier from a server at App Store
-launch, computer players filling empty spots); friends are a separate layer.
-Order: 1 livelier players + move down (4.11.0), 2 song duels by link (4.12.0, `duel.js`), 3 Friends
-view on Charts + Friend quest (4.13.0; friends' XP rides on duel links; Play together
-from a friend's head-to-head), 4 real-player league.
+the mascot (no guitar-pick mascot anywhere; 4.14.1 and 4.15.0 removed the last
+picks). Text in the accent colour uses `--accent-ink` (contrast in the light
+palettes). The mockup canvas artifact has the screens and the Friends board.
+Louie's friends (Graham's art, 2026-10-21), redrawn in Louie's style: Lola
+guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp, Pip pick (rounder,
+yellow, never rainbow), Beat bass drum, Slide brass slide, Strap guitar strap
+(multicolor is fine), Key keyboard key, Metro metronome, Pickup single-coil,
+Whammy whammy bar, Shaker maraca, Reverb tank, Triangle, Looper pedal, Humb
+humbucker. Graham dropped Boomer, Cable and Reed. Drawings are in `friends.js`.
 
-## Next up (Graham's order, agreed 2026-10-19)
+Built, one release each, stopping after each for Graham to try: the look, the
+Gig (4.1.0), one song screen (4.2.0), Full (4.4.0), Tour quests (4.5.0), Charts
+(4.6.0, 4.11.0), Your band (4.7.0), Rehearse (4.8.0), the Songbook (4.9.0),
+cover requests (4.10.0), song duels (4.12.0), Friends and the Friend quest
+(4.13.0), the Merch table (4.14.0: kept simple, fans are money, no 7th tab).
+The README describes each as it works today.
 
-Apple Music features only work with Apple Music turned on. Stop after each
-release so Graham can try it.
+## Open
 
-0. Done in 3.21.0. The Neck shows Learning songs on top
-   (cover, progress, the one thing to do next; a tap opens the song in
-   Practice mode on that section) with Skills below, plus a new Scales section
-   (lessons and listening, like the chord lessons). Practice mode on the song:
-   a Practicing chip and one Practice row (section, speed, Build up, drums,
-   Check me) that replaces the loop banner; Learning songs open in it.
-   The cover header on Listen and Get the song followed in 3.23.0.
-   German practice stays on its chip under the title (Graham), not in the
-   Practice row.
-0b. Done in 3.22.0. Chord timing without a paid service. Spread
-   each LRCLIB line's words over its time by syllables and snap chord changes
-   to the measured beat grid (3.18.0); use LRCLIB's word-level times when a
-   song has them. "Learn from your playing" (mic hears your chord changes)
-   goes with the mic chord check (#9). No Musixmatch.
-1. Done in 3.17.0. Automatic line timing: LRCLIB's synced lyrics give each line's time
-   in the recording; match them to the sheet's lines and save them as sync
-   marks (only the times are kept). Also move Apple Music out of Settings >
-   Keys into its own Settings row.
-2. Done in 3.18.0 (needs the Worker redeployed once for /preview). Preview analysis: Apple's 30-second preview (not copy protected)
-   gives the true tempo, swing and key; flag a sheet in the wrong key or capo.
-3. Done in 3.23.0. Drums that fit the song: the AI returns a 16-step kick, snare and
-   hat grid per section (fills, sparse verse, full chorus) from the measured
-   tempo and feel, genre and year; Busier / Simpler kept per song.
-4. Done in 3.24.0 (4.10.0: became cover requests on the Tour tab). Just heard it: Apple's recently played offers "Play along?" on
-   Tonight.
-5. 3.21.0 Playlists both ways: import an Apple Music playlist into the
-   library; save a set as an Apple Music playlist.
-6. 3.22.0 You listen to it, now play it: heavy rotation (and Replay, if the
-   API allows) against the chords he knows.
-7. 3.23.0 In the Recording sheet: other versions (acoustic, live) and Watch
-   it live (music videos).
-8. 3.24.0 Play together on the recording.
-9. 3.25.0 Mic chord check during a play-along ("Chorus, 3rd chord sounds
-   like Em").
-10. Small touches, batched: About this song notes, more from this artist,
-    similar artists, genre charts, new in library, Your playing by decade and
-    genre, listened vs played.
+- Real-player league (competition step 4, Graham 2026-10-21): real players at
+  your tier from a server at App Store launch, computer players filling empty
+  spots. Friends stay a separate layer.
+- Lines in a gig: default 5; Graham was leaning to keep it after 4.2.3, confirm.
+- Apple Music ideas not built yet (Apple Music features only work with Apple
+  Music turned on): playlists both ways; heavy rotation against the chords he
+  knows; other versions and music videos in the Recording sheet; Play together
+  on the recording; mic chord check during a play-along ("Chorus, 3rd chord
+  sounds like Em"), which also brings "learn from your playing"; small touches
+  (about this song, more from this artist, listened vs played).
+- The clean-up plan in docs/AUDIT-PLAN.md: steps 5 to 7.
 
 ## Where things are
 
 | Area | File |
 |---|---|
 | Pure logic, parsing, chords, Changes, tuner math (unit tested) | `core.js` |
-| Library, song page, playback, Find songs, router | `app.js` |
+| Songbook, song page, playback, Find songs, router | `app.js` |
 | Share links, opening a shared link, Play together | `share.js` |
 | Listen: recordings, previews, length from the recording | `listen.js` |
 | The bar folding into Play's corner while playing, pull down to go back | `fold.js` |
@@ -139,6 +89,7 @@ release so Graham can try it.
 | Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
 | Pull-up drawers: the Tour Map's scene sheet | `drawer.js` (used by `playmap.js`) |
+| The Gig: the scored show over a playing song | `gig.js` (scoring: `gigChange` and friends in `core.js`) |
 | Offline copy; lists every app file | `sw.js` |
 
 A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
@@ -160,12 +111,15 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
   that hit the old ring instead of More shipped broken buttons in 3.13.0/3.14.0.
 - Screenshots for Graham: write a throwaway `tests/e2e/zz_*.e2e.mjs` that
   saves to `$SHOT`, run it, then delete it.
-- Visual references: CI compares against `tests/visual/ci`, so a release that
-  changes how a screen looks shows as a visual difference in CI until they're
-  remade (expected; not a real failure). Graham (2026-10-19): don't remake
-  them and don't ask for 15 more releases counted from 3.19.0. Releases since
-  3.19.0: 6 (3.20.0 to 3.24.0, 4.0.0). 4.0.0 changed every screen's look. To remake when he says yes:
+- Visual references: CI compares screens against `tests/visual/ci` in a step
+  that can't turn the run red (4.14.1), since a release that changes a screen
+  differs until they're remade. Graham (2026-10-21): remake them once the
+  clean-up plan's step 4 is in; after that, remake when he says. To remake:
   `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`.
+- CI's annotation lists every failing test with its location and message, and
+  the a11y test (axe) must pass. Read it with
+  `gh api repos/grahamdeno/tabs/commits/<sha>/check-runs` and the check run's
+  `/annotations` (the sandbox can't download logs).
 - Mockup screenshots cost tokens: make them only when Graham asks for a
   mockup or a change can't be judged without one.
 - ESLint is installed here: run `eslint .` before a push (CI runs it too).
@@ -180,3 +134,13 @@ A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
    rebase first.
 4. The cloud sandbox can't delete branches or call GitHub's write APIs other
    than workflow dispatch; ask Graham to do those on github.com.
+
+## Larger jobs: plan with Opus, run with Sonnet
+
+For a clean-up or a multi-release job, Opus writes a plan file (like
+docs/AUDIT-PLAN.md) with numbered steps, each marked [Sonnet] or [Opus] and
+any decisions Graham needs to make listed up top. Whoever runs a step: one
+task per commit, `eslint .` and `node tests/quick.mjs`, bump the patch at the
+end of a step that changes app files, rebase and push. When something doesn't
+match the plan, stop that task and write it under "Surprises" in the plan
+file. Tell Graham which model the next step wants. Don't use Haiku.

@@ -137,26 +137,26 @@ Bump the patch version, push (rules 3 and 6).
     - the Road's `div > small`
 
     Change colours as little as possible, and show Graham a before-and-after for any that visibly change.
-- [ ] **3.3 Check CI is green** apart from anything D1 leaves expected.
+- [x] **3.3 Check CI is green** apart from anything D1 leaves expected.
 
 ## Step 4 [Opus]: CSS, docs and settings
 
-- [ ] **4.1 Before-and-after picture check.** Write `tests/e2e/zz_css_guard.e2e.mjs`, kept until step 4.2 is done.
+- [x] **4.1 Before-and-after picture check.** Write `tests/e2e/zz_css_guard.e2e.mjs`, kept until step 4.2 is done.
   - It screenshots about 25 screens in all three looks to `test-results/css-guard/<name>.png`: Road, Tour, Charts, Band, Rehearse, Merch, Try it on, Songbook, song paused, Tools, Gig, Gig paused, Show complete, Settings pages, editor, tuner, set, Your playing, Tour Map.
   - With `GUARD=compare`, it fails on any pixel difference.
-- [ ] **4.2 Remove the overridden styles from before version 4,** in small passes:
+- [x] **4.2 Remove the overridden styles from before version 4,** in small passes:
   - tolex
   - old palettes
   - glass and copper
   - duplicate `.btn.primary` and similar
 
   The guard must stay identical after each pass. Target: well under half of today's 277 KB.
-- [ ] **4.3 Docs.**
+- [x] **4.3 Docs.**
   - Rewrite CLAUDE.md: drop the 3.x "Next up" history, replace "Still to build" with what's actually open, fix the visual-reference note, and add the step and model routine from this plan.
   - Restructure the README: what the app does today first, then a short version history.
   - Then [Sonnet] reformat DATA.md into one short section per stored key. Facts unchanged, every key kept; check by listing the keys before and after.
-- [ ] **4.4 Settings inventory,** from D3. Retire what Graham says to, with a `migrate()` cleanup.
-- [ ] **4.5 The streak celebration,** if D2 is yes: redraw it around Louie on the design system.
+- [x] **4.4 Settings inventory,** from D3. Retire what Graham says to, with a `migrate()` cleanup.
+- [x] **4.5 The streak celebration,** if D2 is yes: redraw it around Louie on the design system.
 
 ## Step 5 [Opus, optional, only if D4 is yes]: split the big files
 
@@ -216,3 +216,17 @@ Bump the patch version, push (rules 3 and 6).
   - Found while checking: Settings said "Library and backups"; now "Songbook and backups".
 - CI's other two failures: German practice's test expected German not to be in Tools, but 4.2.0 put it there on purpose; test updated. The Gig test passes locally every time, so the CI failure is likely timing; the CI summary now prints each failure's location and message to pin it down.
 - Not checked by CI: Green Room contrast (the a11y test runs dark and light only). The Green Room banner (white on #0F8B8D, 4.1:1) is slightly low.
+
+### Notes from Step 4 (Opus 5.5, released as 4.15.0)
+
+- 3.3: CI after 4.14.2 had one failure left, the Gig test reading the save before it landed on GitHub's slower machines; it now waits for the save. Check the run after 4.15.0.
+- 4.1: the guard took 84 screenshots (about 28 screens, three looks) and compared them with a mask built from two baseline runs, so moving things (toasts, the Tour Map, computer players' XP) don't count. The Tour Map was left out (it's drawn, not styled). Guard files are kept in the session scratchpad, not the repo.
+- 4.2: styles.css went from 271 KB to about 245 KB, every guarded screen identical:
+  - 681 declarations that can never win were removed: a later rule with the same selector, or a version 4 rule whose selector matches every element the old one does and outranks it (data-look is always set), sets the same property.
+  - The tolex covering rules, Stage mode's styles, and comments for removed features went.
+  - The stray `}` is gone, so the tuner's "All in tune" green glow now shows as it was meant to.
+  - Surprise: the target of "well under half" isn't reachable safely. Most of the remaining older rules are live: version 4 redraws the amp materials (copper, plate, recess, lamps, glass) by redefining their variables, so those rules still paint today's screens. Shrinking further means restyling those components on the design system, screen by screen, with a mockup for Graham. Worth a release of its own if the file size starts to hurt.
+- 4.3: CLAUDE.md drops the 3.x history, lists what's open, fixes the visual note and adds the plan-with-Opus routine. The README leads with what the app does today (42 KB to 18 KB) with a short version history. DATA.md reformat is left for Sonnet (it only gained a line about the retired settings).
+- 4.4 (D3, decided as a low-friction designer): retired Stage mode (the Gig is the stage; the set's Stage chip went too), Song map and Diagrams when paused (both always on now). Now and Next stays, in Tools only. Focus current line moved to Playing, so the Chord diagrams page is gone (8 settings pages). Speed style stays: each song saves its speed in one style or the other, so removing it would change saved songs. `migrate()` drops `stage`, `songMap` and `pauseDiagrams`.
+- 4.5: the streak celebration is around Louie: the streak colour floods the screen (Neon uses cyan so pink Louie shows), rays turn, Louie drops and squashes on landing, a flame that grows with the tier and confetti burst, the count rolls up and the week fills in. The share picture is Festival colours with Louie. The old pick, neck and fireworks drawing and their styles are gone.
+- Visual references: remake them now (D1 said after Step 4).

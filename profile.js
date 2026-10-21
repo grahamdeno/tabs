@@ -174,105 +174,68 @@ async function shareCard(p) {
 }
 
 // ---------- The streak moment ----------
-// Once a day, after the first song you finish: a flame races up the G string to
-// the 12th fret, bursts into fireworks, and settles as the pick on fire, while
-// the count rolls up and the week's lamps light. Drawn in SVG and moved with
-// CSS, so there's nothing to download. With Reduce Motion it opens on the
-// final picture. Tap anywhere (or Keep playing) to close.
-const FLAME = "M100 250 C66 222 34 178 36 132 C38 96 56 70 70 46 C74 74 84 84 92 86 C90 60 104 30 128 12 C124 44 140 64 152 86 C162 104 166 120 164 136 C160 180 130 222 100 250 Z";
-const INNER = "M100 232 C80 210 64 184 66 158 C68 134 82 122 92 108 C94 126 102 132 110 134 C110 120 118 110 126 104 C130 120 136 136 136 156 C136 186 120 212 100 232 Z";
-const PICK = "M100 250 C72 214 40 168 40 128 C40 96 66 80 100 80 C134 80 160 96 160 128 C160 168 128 214 100 250 Z";
-const SK_DEFS = `<defs>
-  <linearGradient id="sk-fl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d8401c"/><stop offset=".45" stop-color="#f27b22"/><stop offset=".8" stop-color="#ffc03c"/><stop offset="1" stop-color="#ffe17a"/></linearGradient>
-  <linearGradient id="sk-fl2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f29a2e"/><stop offset="1" stop-color="#ffe9a0"/></linearGradient>
-  <radialGradient id="sk-hot" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff6d8"/><stop offset="1" stop-color="#fff6d8" stop-opacity="0"/></radialGradient>
-  <radialGradient id="sk-glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff9a3c" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/></radialGradient>
-  <linearGradient id="sk-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4127"/><stop offset=".5" stop-color="#55331d"/><stop offset="1" stop-color="#432714"/></linearGradient>
-  <linearGradient id="sk-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1d9a0"/><stop offset=".5" stop-color="#cfab6a"/><stop offset="1" stop-color="#8f6a32"/></linearGradient>
-  <filter id="sk-soft"><feGaussianBlur stdDeviation="3"/></filter>
-</defs>`;
-/* Fret positions along a 12-fret neck, from the nut at x0 to the 12th fret at x1. */
-const fretX = (i, x0 = 10, x1 = 350) => x0 + (x1 - x0) * (1 - 2 ** (-i / 12)) * 2;
-function runSVG() {
-  const y = 8 + 3 * 16, mid12 = (fretX(11) + fretX(12)) / 2;
-  let s = `<svg class="sk-run" viewBox="0 0 360 330" aria-hidden="true">${SK_DEFS}<g transform="translate(0 117)"><g class="sk-neck">
-    <rect x="2" y="-4" width="356" height="104" rx="8" fill="#000" opacity=".35" filter="url(#sk-soft)"/>
-    <rect x="10" y="0" width="340" height="96" rx="3" fill="url(#sk-wood)"/><rect x="10" y="0" width="5" height="96" fill="#efe6d2"/>`;
-  for (let i = 1; i <= 12; i++) s += `<rect x="${(fretX(i) - 1).toFixed(1)}" y="0" width="2" height="96" fill="#b9b9c2"/>`;
-  for (const i of [3, 5, 7, 9]) s += `<circle cx="${((fretX(i - 1) + fretX(i)) / 2).toFixed(1)}" cy="48" r="5" fill="#e9e2d0" opacity=".85"/>`;
-  s += `<g class="sk-twelve"><circle cx="${mid12.toFixed(1)}" cy="26" r="5" fill="#e9e2d0"/><circle cx="${mid12.toFixed(1)}" cy="70" r="5" fill="#e9e2d0"/></g>`;
-  for (let k = 0; k < 6; k++) s += `<rect x="10" y="${8 + k * 16}" width="340" height="${(1 + (5 - k) * 0.35).toFixed(2)}" fill="#e8e2d4"/>`;
-  s += `<path class="sk-trail" d="M14 ${y}H${mid12.toFixed(1)}" stroke="#ffd27a" stroke-width="2.5" stroke-linecap="round" pathLength="1"/>
-    <g class="sk-spark" style="--to:${(mid12 - 14).toFixed(1)}px"><g transform="translate(14 ${y})"><circle r="30" fill="url(#sk-glow)"/>
-      <g transform="translate(0 6) scale(.3) translate(-100 -250)"><path d="${FLAME}" fill="url(#sk-fl)"/><ellipse cx="100" cy="190" rx="22" ry="30" fill="url(#sk-hot)"/></g></g></g>
-  </g></g>`;
-  /* fireworks: rays from a centre, each burst with its own delay */
-  [[190, 120, 66, "#ffc03c", 0], [90, 150, 44, "#ff7a3c", 0.15], [290, 110, 46, "#ffe17a", 0.25], [240, 210, 28, "#f2643a", 0.4], [130, 70, 30, "#ffd27a", 0.5]].forEach(([cx, cy, r, c, d]) => {
-    s += `<g transform="translate(${cx} ${cy})"><g class="sk-burst" style="--d:${d}s">`;
-    for (let a = 0; a < 16; a++) { const t = a / 16 * Math.PI * 2, cs = Math.cos(t), sn = Math.sin(t);
-      s += `<line x1="${(cs * r * .45).toFixed(1)}" y1="${(sn * r * .45).toFixed(1)}" x2="${(cs * r).toFixed(1)}" y2="${(sn * r).toFixed(1)}" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/><circle cx="${(cs * r).toFixed(1)}" cy="${(sn * r).toFixed(1)}" r="2.6" fill="#fff3d0"/>`; }
-    s += `</g></g>`;
-  });
-  return s + `</svg>`;
-}
-const pickSVG = tier => `<svg class="sk-pick t${tier}" viewBox="0 0 200 290" aria-hidden="true">${SK_DEFS}
-  <ellipse cx="100" cy="272" rx="56" ry="9" fill="#000" opacity=".45"/><circle cx="100" cy="150" r="118" fill="url(#sk-glow)"/>
-  <g class="sk-burn"><path d="${FLAME}" fill="url(#sk-fl)"/><path d="${PICK}" fill="none" stroke="url(#sk-gold)" stroke-width="7"/>
-  <path d="${INNER}" fill="url(#sk-fl2)" opacity=".9"/><ellipse class="sk-core" cx="100" cy="182" rx="20" ry="26" fill="url(#sk-hot)"/></g></svg>`;
+// Once a day, after the first song you finish (4.15.0): the screen floods with
+// the streak colour, Louie drops in and lands with a squash, throws the horns
+// in front of a flame that grows with the streak, confetti falls, the count
+// rolls up and the week's circles fill one by one. SVG and CSS only. With
+// Reduce Motion it opens on the final picture. Tap anywhere (or Keep playing)
+// to close.
+const SK_FLAME = `<svg class="sk-flame" viewBox="0 0 30 34" aria-hidden="true"><path class="sk-f1" d="M15 1c2 6 13 10 13 20a13 13 0 0 1-26 0c0-6 3-9 6-12 0 4 2 6 3 6 0-6-1-10 4-14z"/><path class="sk-f2" d="M15 7c2 5 9 8 9 15a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 4 2 4 0-4 0-7 3-11z"/><path class="sk-f3" d="M15 18c2 3 4 4 4 7a4 4 0 0 1-8 0c0-3 2-4 4-7z"/></svg>`;
+/* confetti: fixed spots so every run looks the same; colours come from the palette */
+const SK_BITS = Array.from({ length: 22 }, (_, i) => `<i style="--x:${(i * 37 + 11) % 100}%;--d:${((i * 7) % 10) / 10 + 0.5}s;--r:${(i * 53) % 360}deg;--s:${(i % 3) + 1}"></i>`).join("");
 
 export function showStreak(m, { share } = {}) {
   document.querySelector(".sk")?.remove();
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const el = document.createElement("div");
   el.className = "sk" + (still ? " still" : "");
+  el.dataset.tier = m.tier;
   el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `${m.n} day streak`);
-  el.innerHTML = `<div class="sk-art">${runSVG()}${pickSVG(m.tier)}</div>
+  el.innerHTML = `<div class="sk-art" aria-hidden="true"><div class="sk-rays"></div><div class="sk-bits">${SK_BITS}</div>${SK_FLAME}<div class="sk-lou">${louie("cheer", { pose: "hornsUp", size: 170 })}</div><span class="sk-ping"></span></div>
     <div class="sk-num" aria-live="polite">${still ? m.n : 0}</div><div class="sk-unit">day streak</div>
     <div class="sk-week">${m.slots.map(s => `<small class="${s.today ? "now" : ""}">${s.label}</small>`).join("")}${m.slots.map((s, i) => `<i class="${s.on ? "on" : ""}${s.goal ? " goal" : ""}${s.today ? " today" : ""}" style="--i:${i}">${s.goal && !s.on ? s.goal : ""}</i>`).join("")}</div>
     <p class="sk-say"><b>${esc(m.lead)}</b> ${esc(m.next)}</p>${m.best > m.n ? `<div class="sk-best">Your best: ${m.best} days</div>` : ""}
-    <div class="sk-foot"><button class="sb2" id="sk-share" aria-label="Share your streak">${icon("share")}</button><button class="btn primary" id="sk-ok">Keep playing</button></div>`;
+    <div class="sk-foot"><button class="sb2" id="sk-share" aria-label="Share your streak">${icon("share")}</button><button class="btn" id="sk-ok">Keep playing</button></div>`;
   document.body.appendChild(el);
   const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 250); removeEventListener("keydown", key); };
   const key = e => { if (e.key === "Escape") close(); };
   addEventListener("keydown", key);
   el.addEventListener("click", e => { if (!e.target.closest("#sk-share")) close(); });
   el.querySelector("#sk-share").onclick = () => (share || shareStreak)(m);
-  /* roll the number up once the pick appears */
+  /* roll the number up as Louie lands */
   if (!still) setTimeout(() => {
     const num = el.querySelector(".sk-num"), t0 = performance.now(), dur = Math.min(900, 300 + m.n * 40);
     const step = t => { const k = Math.min(1, (t - t0) / dur); num.textContent = Math.round(m.n * (1 - (1 - k) ** 3)); if (k < 1 && el.isConnected) requestAnimationFrame(step); };
     requestAnimationFrame(step);
-  }, 1900);
+  }, 700);
   return el;
 }
 
-// The streak as a picture: the burning pick, the count and the week.
+// The streak as a picture: Louie in front of the flame, the count and the week, in Festival colours.
 async function shareStreak(m) {
   const W = 1080, H = 1350, c = document.createElement("canvas");
   c.width = W; c.height = H;
-  const g = c.getContext("2d");
-  const bg = g.createRadialGradient(W / 2, 420, 50, W / 2, 420, 900); bg.addColorStop(0, "#3a1e0a"); bg.addColorStop(1, "#0c0c0d");
-  g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  g.strokeStyle = "#b8935a"; g.lineWidth = 6; g.strokeRect(36, 36, W - 72, H - 72);
-  g.save(); g.translate(W / 2 - 300, 60); g.scale(3, 3);
-  const fl = g.createLinearGradient(0, 250, 0, 12); fl.addColorStop(0, "#d8401c"); fl.addColorStop(.45, "#f27b22"); fl.addColorStop(.8, "#ffc03c"); fl.addColorStop(1, "#ffe17a");
-  g.fillStyle = fl; g.fill(new Path2D(FLAME));
-  const gold = g.createLinearGradient(0, 80, 0, 250); gold.addColorStop(0, "#f1d9a0"); gold.addColorStop(1, "#8f6a32");
-  g.strokeStyle = gold; g.lineWidth = 7; g.stroke(new Path2D(PICK));
-  const in2 = g.createLinearGradient(0, 232, 0, 104); in2.addColorStop(0, "#f29a2e"); in2.addColorStop(1, "#ffe9a0");
-  g.fillStyle = in2; g.fill(new Path2D(INNER));
-  const hot = g.createRadialGradient(100, 185, 2, 100, 185, 26); hot.addColorStop(0, "#fff"); hot.addColorStop(1, "rgba(255,246,216,0)");
-  g.fillStyle = hot; g.beginPath(); g.ellipse(100, 182, 20, 26, 0, 0, Math.PI * 2); g.fill();
+  const g = c.getContext("2d"), INK = "#14213D";
+  g.fillStyle = "#FF8A00"; g.fillRect(0, 0, W, H);
+  /* sunburst */
+  g.save(); g.translate(W / 2, 470); g.fillStyle = "rgba(255,255,255,.14)";
+  for (let k = 0; k < 16; k++) { g.rotate(Math.PI / 8); g.beginPath(); g.moveTo(0, 0); g.lineTo(-90, -900); g.lineTo(90, -900); g.closePath(); g.fill(); }
   g.restore();
-  const text = (s, x, y, size, color, weight = 700) => { g.font = `${weight} ${size}px -apple-system, "SF Pro Display", "Segoe UI", sans-serif`; g.fillStyle = color; g.textAlign = "center"; g.fillText(s, x, y); };
-  const num = g.createLinearGradient(0, 860, 0, 1040); num.addColorStop(0, "#ffd27a"); num.addColorStop(1, "#e0562a");
-  text(String(m.n), W / 2, 1030, 220, num, 800);
-  text("DAY STREAK ON TABS", W / 2, 1100, 40, "#ffb24a");
+  /* the flame, then Louie */
+  g.save(); g.translate(W / 2 - 300, 120); g.scale(20, 20);
+  [["M15 1c2 6 13 10 13 20a13 13 0 0 1-26 0c0-6 3-9 6-12 0 4 2 6 3 6 0-6-1-10 4-14z", "#FFD23F"], ["M15 7c2 5 9 8 9 15a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 4 2 4 0-4 0-7 3-11z", "#FFFFFF"], ["M15 18c2 3 4 4 4 7a4 4 0 0 1-8 0c0-3 2-4 4-7z", "#FF3D7F"]].forEach(([d, f]) => { g.fillStyle = f; g.fill(new Path2D(d)); });
+  g.restore();
+  try { const im = await louieCardImage(); const w = 440, h = Math.round(w * im.naturalHeight / im.naturalWidth); g.drawImage(im, W / 2 - w / 2, 720 - h, w, h); } catch {}
+  try { await document.fonts.load('700 200px "Fredoka"'); } catch {}
+  const text = (s, x, y, size, color, weight = 700) => { g.font = `${weight} ${size}px "Fredoka", "Nunito", -apple-system, sans-serif`; g.fillStyle = color; g.textAlign = "center"; g.fillText(s, x, y); };
+  text(String(m.n), W / 2, 960, 220, INK);
+  text("DAY STREAK ON THE ROAD", W / 2, 1040, 44, INK, 600);
   m.slots.forEach((s, i) => {
     const x = W / 2 + (i - 3) * 120, y = 1190;
-    g.beginPath(); g.arc(x, y, 34, 0, Math.PI * 2); g.fillStyle = s.on ? "#f08a2a" : "#2a2a2e"; g.fill();
-    if (s.goal && !s.on) { g.lineWidth = 4; g.strokeStyle = "#b8935a"; g.stroke(); text(String(s.goal), x, y + 10, 28, "#d9bd85"); }
-    text(s.label, x, y - 50, 26, s.today ? "#ffb24a" : "#8a7f70", 600);
+    g.beginPath(); g.arc(x, y, 38, 0, Math.PI * 2); g.fillStyle = s.on ? "#FFFFFF" : "rgba(20,33,61,.18)"; g.fill();
+    if (s.on) { g.strokeStyle = "#C96A00"; g.lineWidth = 8; g.lineCap = "round"; g.lineJoin = "round"; g.beginPath(); g.moveTo(x - 14, y + 1); g.lineTo(x - 3, y + 12); g.lineTo(x + 16, y - 10); g.stroke(); }
+    else if (s.goal) text(String(s.goal), x, y + 11, 30, INK);
+    text(s.label, x, y - 56, 28, INK, s.today ? 700 : 500);
   });
   const blob = await new Promise(ok => c.toBlob(ok, "image/png"));
   const file = new File([blob], "my-streak.png", { type: "image/png" });

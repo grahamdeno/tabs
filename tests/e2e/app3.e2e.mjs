@@ -29,18 +29,14 @@ test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest
   assert.equal(await pad.evaluate(() => document.body.classList.contains("fold")), false, "iPad: the bar stays");
   assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
 });
-test("2.5 Settings > Song map turns the section rail off and on", { skip: skip() }, async t => {
-  const page = await phone(t);
-  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  assert.equal(await page.locator(".smap").count(), 1, "on by default");
-  await page.goto(base + "#/settings/diagrams"); await page.waitForTimeout(300);
-  await page.click("#s-map"); await page.waitForTimeout(200);
-  assert.equal(await page.getAttribute("#s-map", "aria-checked"), "false");
-  await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  assert.equal(await page.locator(".smap").count(), 0, "off: no rail");
-  await page.goto(base + "#/settings/diagrams"); await page.waitForTimeout(300);
-  await page.click("#s-map"); await page.goto(base + "#/song/a"); await page.waitForTimeout(500);
-  assert.equal(await page.locator(".smap").count(), 1, "back on");
+test("4.15.0: the section rail is always there; Stage mode and the old toggles are gone from Settings", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, songMap: false, stage: true, pauseDiagrams: false } });
+  await page.goto(base + "#/song/a"); await page.waitForSelector(".smap");
+  assert.equal(await page.evaluate(() => document.body.classList.contains("stage")), false, "no stage look");
+  await page.goto(base + "#/settings/playing"); await page.waitForSelector("#s-focus");
+  assert.equal(await page.locator("#s-stage, #s-map, #s-pause, #s-diagrams").count(), 0);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
+  assert.equal("stage" in saved || "songMap" in saved || "pauseDiagrams" in saved, false, "dropped from saves");
 });
 
 test("2.5 Back: beside the title (4.2.0); pull down at the top; the library opens at its top", { skip: skip() }, async t => {

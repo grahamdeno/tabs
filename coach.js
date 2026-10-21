@@ -155,13 +155,12 @@ function playCoach(song) {
 }
 // While playing: the pause badge fades in and out (without pausing).
 function demoPause() {
-  const stage = !!data.settings.stage;
   const g = document.createElement("div");
   g.className = "tappause ghost";
   g.innerHTML = icon("pause");
   document.body.appendChild(g);
   setTimeout(() => g.remove(), 1700);
-  coach(null, stage ? "On stage, tap twice anywhere to pause" : "Tap anywhere to pause", { ms: 3200 });
+  coach(null, "Tap anywhere to pause", { ms: 3200 });
 }
 // Paused: a line mid-screen gets the real focus look, the way play will start from it.
 function demoLine() {

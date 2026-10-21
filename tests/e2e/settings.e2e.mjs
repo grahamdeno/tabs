@@ -8,9 +8,9 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, nudge: true, place: { name: "Wilmington, North Carolina, US", lat: 34.23, lon: -77.94 } } });
   const errs = []; page.on("pageerror", e => errs.push(e.message));
   await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForTimeout(300);
-  assert.equal(await page.locator("[data-page]").count(), 9);
+  assert.equal(await page.locator("[data-page]").count(), 8);
   assert.match(await page.innerText("[data-page='today']"), /Wilmington/);
-  assert.match(await page.innerText("[data-page='diagrams']"), /of 4 on/);
+  assert.equal(await page.locator("[data-page='diagrams']").count(), 0, "4.15.0: Chord diagrams folded into Playing");
   assert.equal(await page.locator(".s-dock #s-backup").count(), 1, "Back up now is docked at the bottom");
 
   await page.click("[data-page='playing']"); await page.waitForTimeout(300);
