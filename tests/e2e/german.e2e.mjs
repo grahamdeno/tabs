@@ -34,10 +34,10 @@ test("German practice: translate once, pick a level, tap a word; nothing leaves 
     r.fulfill({ status: 200, contentType: "text/event-stream", headers: cors, body });
   });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
-  await page.goto(page.url().replace(/#.*$/, "") + "#/song/h"); await page.waitForTimeout(500);
+  await page.goto(page.url().replace(/#.*$/, "") + "#/song/h"); await page.waitForSelector("#dechip");
   assert.match(await page.innerText("#dechip"), /DE\s*German/, "the chip is the way in");
   await page.click("#more"); assert.equal(await page.locator(".menu [data-m='de']").count(), 1, "also in Tools (4.2.0)"); await page.keyboard.press("Escape");
-  await page.click("#dechip"); await page.waitForTimeout(300);
+  await page.click("#dechip"); await page.waitForSelector("#de-go");
   await page.click("#de-go");
   assert.equal(await page.locator(".de-sheet").count(), 0, "the sheet gets out of the way");
   await page.waitForFunction(() => /Basic/.test(document.getElementById("dechip")?.textContent || ""), null, { timeout: 8000 });
@@ -60,8 +60,8 @@ test("German practice: translate once, pick a level, tap a word; nothing leaves 
   assert.match(await page.innerText(".sheet"), /Bring the lights home/, "English underneath");
   assert.ok(await page.locator(".sheet .c[data-ch='G']").count(), "the chords stay");
   // Tap a word for its card.
-  await page.click("[data-en='off']"); await page.click(".de-lv[data-lv='2']"); await page.click("#de-x"); await page.waitForTimeout(200);
-  await page.click(".sheet .de.g-die"); await page.waitForTimeout(400);
+  await page.click("[data-en='off']"); await page.click(".de-lv[data-lv='2']"); await page.click("#de-x"); await page.waitForSelector(".de-sheet", { state: "detached" });
+  await page.click(".sheet .de.g-die"); await page.waitForSelector(".decard");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/de-card.png" });
   const card = await page.innerText(".decard");
   assert.match(card, /die\s+Hafenmauer/); assert.match(card, /Hafen \(harbor\) \+ Mauer \(wall\)/); assert.match(card, /die Hafenmauern/);
@@ -87,19 +87,19 @@ test("German practice in the background: batches land as they come; a dropped co
     r.fulfill({ status: 200, contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" }, body: sse(reply(r.request())) });
   });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
-  await page.goto(page.url().replace(/#.*$/, "") + "#/song/l"); await page.waitForTimeout(500);
+  await page.goto(page.url().replace(/#.*$/, "") + "#/song/l"); await page.waitForSelector("#dechip");
   await page.click("#dechip"); await page.click("#de-go");
   await page.waitForFunction(() => /German stopped at 6 of 8/.test(document.getElementById("toast")?.textContent || ""), null, { timeout: 8000 });
   assert.equal((await page.innerText(".sheet")).match(/Hafen/g)?.length, 6, "the first six lines are German already");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "l").de?.lines?.filter(Boolean).length === 6, null, { timeout: 5000 });  /* and kept */
   // Resume from the sheet, then leave the song while it finishes.
   fail = false;
-  await page.click("#dechip"); await page.waitForTimeout(200);
+  await page.click("#dechip"); await page.waitForSelector(".de-sheet");
   assert.match(await page.innerText(".de-sheet"), /2 of 8 lines still need translating/);
   await page.click("#de-go");
   await page.evaluate(() => { location.hash = "#/library"; });
   await page.waitForFunction(() => /German ready: Long Song/.test(document.getElementById("toast")?.textContent || ""), null, { timeout: 8000 });
-  await page.click("#toast button"); await page.waitForTimeout(400);
+  await page.click("#toast button"); await page.waitForFunction(() => /#\/song\/l/.test(location.hash));
   assert.match(await page.evaluate(() => location.hash), /#\/song\/l/, "Open goes to the song");
   assert.equal((await page.innerText(".sheet")).match(/Hafen/g)?.length, 8, "every line");
   await page.waitForFunction(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "l").de; return d && !d.partial && d.lines.every(Boolean); }, null, { timeout: 5000 });
@@ -108,18 +108,18 @@ test("German practice in the background: batches land as they come; a dropped co
 test("German opens from its chip, and its sheet closes with a swipe down", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }] }, { isMobile: true });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
-  await page.goto(page.url().replace(/#.*$/, "") + "#/set/s"); await page.waitForTimeout(400);
-  await page.click("[data-open='0']"); await page.waitForTimeout(700);
+  await page.goto(page.url().replace(/#.*$/, "") + "#/set/s"); await page.waitForSelector("[data-open='0']");
+  await page.click("[data-open='0']"); await page.waitForSelector("#dechip");
   // Swipe the German sheet down from its handle: it closes.
   await page.click("#dechip"); await page.waitForSelector(".de-sheet");
   const g = await page.evaluate(() => { const r = document.querySelector(".de-sheet .grab").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   const cdp = await page.context().newCDPSession(page);
   const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: y == null ? [] : [{ x: g.x, y }] });
-  await touch("touchStart", g.y); for (let k = 1; k <= 8; k++) { await touch("touchMove", g.y + k * 25); await page.waitForTimeout(16); } await touch("touchEnd");
-  await page.waitForTimeout(400);
+  await touch("touchStart", g.y); for (let k = 1; k <= 8; k++) { await touch("touchMove", g.y + k * 25); await page.waitForTimeout(16) /* real timer */; } await touch("touchEnd");
+  await page.waitForSelector(".de-sheet", { state: "detached" });
   assert.equal(await page.locator(".de-sheet").count(), 0, "swiped away");
   // A short pull springs back.
   await page.click("#dechip"); await page.waitForSelector(".de-sheet");
-  await touch("touchStart", g.y + 40); await touch("touchMove", g.y + 70); await touch("touchEnd"); await page.waitForTimeout(400);
+  await touch("touchStart", g.y + 40); await touch("touchMove", g.y + 70); await touch("touchEnd"); await page.waitForTimeout(400) /* real timer: the spring back settles */;
   assert.equal(await page.locator(".de-sheet").count(), 1, "a short pull keeps it");
 });
