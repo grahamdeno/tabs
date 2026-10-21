@@ -75,7 +75,7 @@ export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } =
   page.on("pageerror", e => errors.push(String(e)));
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
   await page.goto(base + (home ? "" : "#/library")); /* most tests start in the Library; home: true starts on Tonight */
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(300); /* real timer: waitForLoadState alone made app.e2e flaky (Step 6.2) */
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), lib);
   await page.reload();
   await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0); /* drawn, rather than a fixed wait */

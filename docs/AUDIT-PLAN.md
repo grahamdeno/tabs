@@ -166,11 +166,11 @@ Bump the patch version, push (rules 3 and 6).
 
 ## Step 6 [Sonnet]: faster, steadier browser tests
 
-- [ ] **6.1 Replace fixed sleeps with waits,** one test file per commit. Start with `settings`, then `playnext`, `german`, `strum`, `today`, `regress`, then `app`, `app2`, `app3`. Rules:
+- [x] **6.1 Replace fixed sleeps with waits,** one test file per commit. Start with `settings`, then `playnext`, `german`, `strum`, `today`, `regress`, then `app`, `app2`, `app3`. Rules:
   - Replace `await page.waitForTimeout(n)` with a `waitForSelector` or `waitForFunction` for the thing the next line checks.
   - Keep any sleep that tests a timer: Play settling after 5 s, count-in, auto-scroll moving, a toast timing out, a long press. If unsure, keep it and add `/* real timer */`.
   - Run the changed file 3 times: `node --test tests/e2e/<file>.e2e.mjs`. If any run fails, revert that file's change.
-- [ ] **6.2 Faster setup.** In `harness.mjs` `phone()`, replace `await page.waitForTimeout(300)` after the first `goto` with `await page.waitForLoadState("domcontentloaded")`. Run `app` 3 times.
+- [x] **6.2 Faster setup (tried, reverted).** In `harness.mjs` `phone()`, replace `await page.waitForTimeout(300)` after the first `goto` with `await page.waitForLoadState("domcontentloaded")`. Run `app` 3 times.
 
 ## Step 7 [Opus]: test coverage and final review
 
@@ -239,3 +239,16 @@ Bump the patch version, push (rules 3 and 6).
 - The import test now reads core/ and resolves "../" paths; ESLint covers core/*.js; quick.mjs maps the new files.
 - Flaky: "a bass riff: drawn in Edit" fails in the parallel quick run but passes alone, before and after the split. A Step 6 candidate.
 - app.js could split further (the song menu, the tuner glue, Speed, Practice a section). Not needed now.
+
+### Notes from Step 6 (Sonnet 5.5, released as 4.15.3)
+
+- 6.1 is done for all nine files, one commit each, every file run at least 3 times. About 45 sleeps remain, all marked `/* real timer */` (holds, melody notes, count-in, tuner dwell, 16 ms touch steps, absence checks such as "no second fetch"). Of the 244 sleeps, roughly 200 became waits.
+- 6.2 was tried and reverted. With `waitForLoadState("domcontentloaded")` in `phone()`, `app` failed in all three runs (different tests each time). The 300 ms stays, marked as a real timer.
+- Saves are asynchronous, so a test that checks `localStorage` must wait on the saved value, not on the screen. Most failures while converting were this.
+- After a screen change the browser's cross-fade holds taps off the new screen for about half a second. Added `settled(page)` to `harness.mjs`, which waits for the view transition to end. Use it before tapping or pressing right after navigating.
+- Also added `until(cond)` to `harness.mjs` for conditions on the test's side (captured requests, flags, values computed in Node).
+- A toast's button can fail Playwright's "stable" check for the whole timeout while it slides in; those clicks use `force: true`.
+- DATA.md reformat (Settings as tables) was done earlier in this release series.
+- The flaky "a bass riff: drawn in Edit" test passed in every run here, including the full `node tests/quick.mjs` (285 of 285). It was not changed; watch CI.
+- Step 7 wants Opus.
+
