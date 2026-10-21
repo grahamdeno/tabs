@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, openSpeed, speedText } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled, openSpeed, speedText } from "./harness.mjs";
 
 useBrowser();
 

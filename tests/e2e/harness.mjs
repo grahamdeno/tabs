@@ -99,3 +99,9 @@ navigator.mediaDevices.getUserMedia = async () => {
   return dest.stream;
 };`;
 
+
+/* After a screen change the browser's view transition (a short cross-fade) holds taps off the new screen until it ends. */
+export async function settled(page) {
+  await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok))));
+  await page.waitForFunction(() => !document.getAnimations().some(a => /view-transition/.test(a.effect?.pseudoElement || "")));
+}
