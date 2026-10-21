@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.14.0";
+export const VERSION = "4.14.1";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -22,7 +22,6 @@ const DEFAULT_SETTINGS = {
   micExplained: false,   // the tuner has said why it needs the microphone
   songMap: true,          // the section rail on the right edge of a song
   nudge: true,            // the library's Today line: practice streak and a song for today
-  arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
   gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6), or "full" (4.4.0)
   gigScore: true,        // a gig starts listening for your chord changes (4.2.0)
   lastBackup: null, backupSnooze: null, tipsSeen: false,
@@ -50,6 +49,7 @@ export function migrate(data) {
   if (v < 6 && settings.theme !== "light") settings.theme = "auto";
   settings.v = 6;
   delete settings.scrollSpeed;
+  delete settings.arcSweep; /* the ring is gone (3.19.0) */
   const songs = data.songs.map(s => {
     const song = { ...s };
     if (song.body === undefined) {
@@ -1667,19 +1667,11 @@ export function rankTracks(results, title, artist) {
 // Just heard it (3.24.0): the newest song in Apple Music's recently played, offered on Tonight for 3 hours
 // from when the app first sees it, until you act on it or close it. seen is { k, at, done? } from last time.
 // Returns { seen, offer } where offer is { track, song } (song: the library song it matches, or null).
-export const HEARD_FOR = 3 * 3600000;
 export function heardMatch(songs, track) {
   const t = norm(track?.title), a = norm(track?.artist);
   if (!t) return null;
   const same = s => norm(s.title) === t && (!a || !s.artist || norm(s.artist) === a || norm(s.artist).includes(a) || a.includes(norm(s.artist)));
   return (songs || []).find(same) || null;
-}
-export function heardOffer(songs, latest, seen, now = Date.now()) {
-  if (!latest?.title) return { seen, offer: null };
-  const k = `${norm(latest.title)}|${norm(latest.artist)}`;
-  if (seen?.k !== k) seen = { k, at: now };
-  if (seen.done || now - seen.at > HEARD_FOR) return { seen, offer: null };
-  return { seen, offer: { track: latest, song: heardMatch(songs, latest) } };
 }
 // A link someone pasted: which service is it?
 // ---------- Song length from the recording ----------
@@ -1854,28 +1846,6 @@ export function nextSet(sets, now = Date.now()) {
 // "today", "tomorrow", "in 3 days", "in 2 weeks", or "now" for a set under way.
 // Gig day: the time left until a set starts, as h:mm:ss, on its own calendar
 // day and only before it starts. Anything else: "" (no countdown).
-// The ring's arc: where a sweep puts the song. The pace comes from how
-// far the thumb has swept, not how fast, so it's steady: near where the thumb
-// landed it's fine (about a screen per arc), and it picks up smoothly so that
-// reaching the end of the arc reaches the end of the song (or the start, going
-// down). Moving back retraces the same path. A sweep that starts close to an
-// end of the arc gets at least a third of the arc's room, so the rest of the
-// song is never squeezed into a few degrees.
-// a, from: angles (180 left, 270 up); a0, a1: the arc's ends; y0: the scroll
-// position when the sweep began; max: the furthest scroll; fine: px per degree.
-export function arcMap({ a, from, a0, a1, y0, max, fine, whole = true }) {
-  const clamp = y => Math.min(max, Math.max(0, y));
-  if (!whole) return clamp(y0 + (a - from) * fine);
-  const span = a1 - a0, up = a >= from;
-  /* Within 2 degrees of an end counts as the end (a thumb rarely hits it exactly). */
-  const room = Math.max((up ? a1 - from : from - a0) - 2, span / 3);
-  const dist = up ? max - y0 : y0;
-  if (dist <= 0) return clamp(y0);
-  const u = Math.min(1, Math.abs(a - from) / room);
-  const c = Math.min(1, fine * room / dist);           /* the starting pace, as a share of the straight line */
-  const g = c * u + (1 - c) * u * u;                   /* fine at first, then picks up evenly; g(1) = 1 */
-  return clamp(up ? y0 + dist * g : y0 - dist * g);
-}
 export function gigCountdown(when, now = Date.now()) {
   const t = Date.parse(when);
   if (isNaN(t) || t <= now) return "";
@@ -2979,24 +2949,8 @@ export function coarseSpot(lat, lon) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
   return { lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 };
 }
-/* The territory on a real map. Each hexagon is HEX_M metres from centre to corner,
-   laid out from the practice spot; web-mercator pixels place it on map tiles. */
+/* The territory on a real map: each hexagon is HEX_M metres from centre to corner. */
 export const HEX_M = 250;
-export function hexCentre(spot, [q, r], S = HEX_M) {
-  const east = S * Math.sqrt(3) * (q + r / 2), south = S * 1.5 * r;
-  return { lat: spot.lat - south / 111320, lon: spot.lon + east / (111320 * Math.cos(spot.lat * Math.PI / 180)) };
-}
-export function mercator(lat, lon, z) {
-  const n = 256 * 2 ** z, s = Math.sin(Math.max(-85.05, Math.min(85.05, lat)) * Math.PI / 180);
-  return [(lon + 180) / 360 * n, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n];
-}
-/* The closest zoom (9 to 16) at which every hexagon fits a w by h picture. */
-export function fitZoom(lat, cells, w, h, S = HEX_M) {
-  const ext = hexSpiral(cells).reduce((m, [q, r]) => Math.max(m, Math.abs(S * Math.sqrt(3) * (q + r / 2)) + S, Math.abs(S * 1.5 * r) + S), S);
-  const mpp = 2 * ext * 1.08 / Math.max(1, Math.min(w, h));
-  return Math.max(9, Math.min(16, Math.floor(Math.log2(156543.03 * Math.cos(lat * Math.PI / 180) / mpp))));
-}
-export const spotLabel = spot => spot ? `${Math.abs(spot.lat).toFixed(2)}° ${spot.lat >= 0 ? "N" : "S"}, ${Math.abs(spot.lon).toFixed(2)}° ${spot.lon >= 0 ? "E" : "W"}` : "";
 /* Credited plays over all time: the journal counts one each time a song is played through. */
 export const lifetimePlays = data => Object.values(journalOf(data).months).reduce((n, m) => n + (m.plays || 0) + Math.floor((m.psecs || 0) / PRACTICE_PLAY), 0);
 
@@ -3009,11 +2963,9 @@ export function venueOf(plays) {
   const t = territory(plays);
   return { ring: t.rings, name: venueName(t.rings), next: venueName(t.rings + 1), nextAt: t.nextAt, toNext: t.toNext };
 }
-/* The outline of the first n cells of the territory, as segments in units of
-   one cell's corner radius (pointy-topped, centre of cell 0 at 0,0, y down).
-   Edges two lit cells share are left out, so the territory reads as one shape. */
-export const hexOutline = n => cellsOutline(hexSpiral(n));
-/* the outline of any set of cells, in the same units */
+/* The outline of a set of cells, as segments in units of one cell's corner radius
+   (pointy-topped, centre of cell 0 at 0,0, y down). Edges two lit cells share are
+   left out, so the territory reads as one shape. */
 export function cellsOutline(cells) {
   const R3 = Math.sqrt(3), seen = new Map();
   for (const [q, r] of cells) {
@@ -3325,20 +3277,6 @@ export function chordTargets(name, tuning = "standard", a4 = 440) {
     const hz = noteFreq(notes[i], a4) * 2 ** (f / 12);
     return { i, hz, fret: f, note: nearestNote(hz, a4).name, openHz: noteFreq(notes[i], a4) };
   });
-}
-/* Which string a heard pitch belongs to, with what happened: "ring" (right), "open" (the open string
-   rang: the finger is not pressing), "low" or "high" (a fret off), or "" (not one of this chord's). */
-export function judgeString(hz, targets) {
-  if (!(hz > 0)) return null;
-  const c = (a, b) => 1200 * Math.log2(a / b);
-  for (const t of targets) if (t.hz && Math.abs(c(hz, t.hz)) <= 35) return { i: t.i, say: "ring" };
-  for (const t of targets) {
-    if (!t.hz) continue;
-    if (t.fret > 0 && Math.abs(c(hz, t.openHz)) <= 35) return { i: t.i, say: "open" };
-    if (Math.abs(c(hz, t.hz * 2 ** (-1 / 12))) <= 35) return { i: t.i, say: "low" };
-    if (Math.abs(c(hz, t.hz * 2 ** (1 / 12))) <= 35) return { i: t.i, say: "high" };
-  }
-  return null;
 }
 /* How the neck listens. One set of numbers for the lessons and for What I hear, so a
    reading taken on What I hear says exactly what a lesson would do with it. Like the

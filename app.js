@@ -54,7 +54,6 @@ function applyTheme() {
   document.documentElement.dataset.theme = light ? "light" : "dark";
   /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
   document.documentElement.dataset.look = green ? "green" : light ? "festival" : "neon";
-  document.documentElement.dataset.tolex = "off";
   /* 4.14.0: the finish Louie wears, bought at the Merch table */
   const wear = merchWorn(data);
   if (wear === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = wear;
@@ -735,7 +734,7 @@ function showPasteCard(original) {
       <div class="actions">
         <button class="btn" id="p-edit">Review</button>
         ${aiKey() ? `<button class="btn" id="p-clean">${icon("wand")}Clean up</button>` : ""}
-        <button class="btn primary" id="p-save">Save to Library</button>
+        <button class="btn primary" id="p-save">Save to Songbook</button>
       </div>
     </div>`;
   const show = () => {

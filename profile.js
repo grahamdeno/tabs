@@ -10,6 +10,7 @@
 import { Tabs, profileOf, territory, lifetimePlays, venueOf } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
 import { data, go } from "./app.js";
+import { louie } from "./louie.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -111,6 +112,13 @@ function bars(vals, labels) {
   return `<div class="pf-cols13" role="img" aria-label="Songs you've got, by month">${vals.map((v, i) => `<div><i style="--h:${Math.round(v / hi * 100)}%"></i><small>${esc(labels[i])}</small></div>`).join("")}</div>`;
 }
 
+/* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */
+const LOUIE_CARD_CSS = ".lv-b{fill:#3A86FF}.lv-s{fill:#2C6FE0}.lv-ss{stroke:#2C6FE0}.lv-hi{fill:#6BA4FF;opacity:.9}.lv-f{fill:#FFD23F}.lv-fs{fill:#F2B705}.lv-l{stroke:#2C6FE0}.lv-c{fill:#FF3D7F;opacity:.6}.lv-p{fill:#14213D}.lv-ps{stroke:#14213D}.lv-g{fill:#14213D}.lv-gs{fill:#2A3A63}.lv-m{fill:#14213D}.lv-ms{stroke:#14213D}.lv-t{fill:#FF3D7F}.lv-lamp{fill:#FF3D7F}.lv-shadow{fill:#14213D;opacity:.18}";
+async function louieCardImage() {
+  const svg = louie("cheer", { pose: "hornsUp", size: 400 }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/^<svg[^>]*>/, m => `${m}<style>${LOUIE_CARD_CSS}</style>`);
+  const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
+  return im;
+}
 // The share card: a picture of the headline numbers, the newest milestone and
 // your most played change, drawn on the phone and handed to the share sheet.
 async function shareCard(p) {
@@ -123,8 +131,8 @@ async function shareCard(p) {
   const text = (s, x, y, size, color, weight = 600, align = "left") => { g.font = `${weight} ${size}px -apple-system, "SF Pro Display", "Segoe UI", sans-serif`; g.fillStyle = color; g.textAlign = align; g.fillText(s, x, y); };
   text(`MY GUITAR · SINCE ${shortDay(p.since).toUpperCase()}`, 96, 150, 34, "#b8935a", 700);
   text("Played on The Road", 96, 220, 64, "#f1e3c4", 600);
-  /* the leather pick, top right */
-  try { const im = new Image(); im.src = "icons/pick-512.png"; await im.decode(); g.drawImage(im, W - 96 - 172, 64, 172, 172); } catch {}
+  /* Louie throwing the horns, top right */
+  try { const im = await louieCardImage(); g.drawImage(im, W - 96 - 200, 36, 200, Math.round(200 * im.naturalHeight / im.naturalWidth)); } catch {}
   /* the plate */
   const plate = g.createLinearGradient(0, 260, 0, 520); plate.addColorStop(0, "#e6cb92"); plate.addColorStop(0.42, "#cfab6a"); plate.addColorStop(1, "#b08b4f");
   g.fillStyle = plate; g.beginPath(); g.roundRect(96, 260, W - 192, 260, 36); g.fill();

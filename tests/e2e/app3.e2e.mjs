@@ -508,7 +508,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
   assert.match(await page.innerText(".tq-req"), /REQUEST LINE[\s\S]*asked for/);
-  assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the duet quest");
+  assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the Friend quest");
   await page.click("#tabs [data-tab=charts]"); await page.waitForSelector(".ch-head");
   assert.match(await page.innerText(".ch-head"), /Garage Chart/, "4.6.0: Charts start at the Garage");
   assert.equal(await page.locator(".ch-row").count(), 10);

@@ -143,4 +143,3 @@ export function closeDial() {
   el.classList.remove("on");
   setTimeout(() => el.remove(), 160);
 }
-export const dialOpen = () => !!open;

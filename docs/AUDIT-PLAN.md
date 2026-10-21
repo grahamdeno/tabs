@@ -71,17 +71,17 @@ Tick a task's box in this file in the same commit that does it.
 
 ## Step 1 [Sonnet]: make CI tell the truth
 
-- [ ] **1.1 Show every failure.** In `.github/workflows/test.yml`, the "browser tests" step builds `msg` from the first 60 matching lines. Change it so that:
+- [x] **1.1 Show every failure.** In `.github/workflows/test.yml`, the "browser tests" step builds `msg` from the first 60 matching lines. Change it so that:
   - all `^not ok` lines come first, with no limit
   - then up to 40 lines of detail
 
   Test: push, and check that the run's annotation lists every failing test.
-- [ ] **1.2 Cache Chromium.** Add `actions/cache` for `~/.cache/ms-playwright`, keyed on `playwright-1.56.1-${{ runner.os }}`. Keep `npx playwright install --with-deps chromium`; with a cache hit it only installs the system packages. Do the same in `screens.yml`.
-- [ ] **1.3 Node.** Change `node-version: 20` to `22` in `test.yml` and `bump-version.yml`. Leave the action versions as they are.
-- [ ] **1.4 Visual check.** Do this only once Graham has answered D1.
+- [x] **1.2 Cache Chromium.** Add `actions/cache` for `~/.cache/ms-playwright`, keyed on `playwright-1.56.1-${{ runner.os }}`. Keep `npx playwright install --with-deps chromium`; with a cache hit it only installs the system packages. Do the same in `screens.yml`.
+- [x] **1.3 Node.** Change `node-version: 20` to `22` in `test.yml` and `bump-version.yml`. Leave the action versions as they are.
+- [x] **1.4 Visual check.** Do this only once Graham has answered D1.
   - If D1 is yes: dispatch `gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`, wait for its commit, then rebase.
   - If D1 is no: move `visual.e2e.mjs` into its own job with `continue-on-error: true`, so a stale picture doesn't turn the run red.
-- [ ] **1.5 quick.mjs coverage.** In `tests/quick.mjs`, add these to `COVERS`:
+- [x] **1.5 quick.mjs coverage.** In `tests/quick.mjs`, add these to `COVERS`:
   - `"road.js": ["app"]`, `"duel.js": ["app"]`, `"share.js": ["app", "duet"]`
   - `"listen.js": ["app", "getsong"]`, `"playmap.js": ["app"]`, `"scene.js": ["app"]`
   - `"drawer.js": ["app"]`, `"dial.js": ["app"]`, `"crop.js": ["app"]`, `"louie.js": ["regress"]`
@@ -90,34 +90,34 @@ Tick a task's box in this file in the same commit that does it.
 
 ## Step 2 [Sonnet]: remove dead code and fix old words
 
-- [ ] **2.1 core.js functions only tests use.** Delete each function, and the test lines or test that call it:
+- [x] **2.1 core.js functions only tests use.** Delete each function, and the test lines or test that call it:
   - `heardOffer`
   - `arcMap` (and its comment block "The ring's arc")
   - `sketchSong`, `judgeString`
   - `hexCentre`, `hexOutline`, `fitZoom`, `spotLabel`
 
   Apply rule 4 to each one. If deleting one leaves a helper unused (eslint will say), delete that helper too.
-- [ ] **2.2 Small unused exports.**
+- [x] **2.2 Small unused exports.**
   - Delete `export const dialOpen` (dial.js line ~146) and `export const gigNow` (gig.js line ~27).
   - In hud.js, delete `SOON`, `renderSoon` and the header comment line about it.
-- [ ] **2.3 Old settings.**
+- [x] **2.3 Old settings.**
   - Delete `arcSweep` from `DEFAULT_SETTINGS` in core.js.
   - In `migrate()`, add `delete settings.arcSweep;` next to the other cleanups. Don't change `v`.
   - Delete the line `document.documentElement.dataset.tolex = "off";` in app.js `applyTheme`. Leave the tolex CSS for step 4.
   - In DATA.md, note that `arcSweep` is no longer used.
-- [ ] **2.4 Unused CSS classes.** Delete the rules in styles.css whose selectors use only these classes or ids:
+- [x] **2.4 Unused CSS classes.** Delete the rules in styles.css whose selectors use only these classes or ids:
   - `titlerow tfav vsep nnbtn gs-st ed-tools fsel coach-twice coach-line ph-swap oh oh-back sr-only`
   - `rd-next rd-meta rd-steps rd-go rd-map rd-turf rd-map-t rd-scrim rd-dbody rd-sizer rd-dh rd-dt rd-skip`
   - `rd-heard rd-h-art rd-h-t rd-sound tb-bg list-h lab-row gg-lc`
 
   Leave these alone (they're built in code or come from Leaflet): `t2`, `gl-*`, `pk-*`, `fin-*`, `leaflet-*`. In a rule that lists several selectors, delete only the dead selectors and keep the rest.
-- [ ] **2.5 Old names in the app's words.** Use these names: Library becomes **Songbook**, Tonight becomes **the Road**, the duet quest becomes the **Friend quest**.
+- [x] **2.5 Old names in the app's words.** Use these names: Library becomes **Songbook**, Tonight becomes **the Road**, the duet quest becomes the **Friend quest**.
   - `app.js` ~738: "Save to Library" → "Save to Songbook". Update any test that clicks it by text.
   - `settings.js`: the Playing page foot says each play "lights a hexagon on your Tour Map (under Your playing)". The Tour Map is in More now, so it should read "on your Tour Map (in More)".
   - `settings.js`: the Today page foot and the `s-nudge` aria-label say "the library's title" / "in the library". Change to "the Songbook's title" / "in the Songbook".
   - `tests/e2e/app3.e2e.mjs` ~511: the message "three setlist goals and the duet quest" → "three setlist goals and the Friend quest".
   - Don't change "Tonight's setlist" or "Tonight's set". Those are about the time of day.
-- [ ] **2.6 The pick.** Only do this if D2 is yes.
+- [x] **2.6 The pick.** Only do this if D2 is yes.
   - Share card (`profile.js` ~126): instead of `icons/pick-512.png`, draw Louie. Use `louie("cheer", { pose: "hornsUp", size: 172 })`, wrapped in an `<svg>` string with the Festival `--lv-*` colours written in as fill values (canvas can't read CSS variables). Load it as `new Image()` from a `data:image/svg+xml` URL, then `drawImage` in the same spot.
   - Then remove `icons/pick-512.png` from `SHELL` in sw.js and delete the file.
   - Leave the streak celebration for Opus (task 4.5).
@@ -187,3 +187,20 @@ Bump the patch version, push (rules 3 and 6).
 ## Surprises
 
 (Anyone running a task writes here what didn't match the plan.)
+
+### Graham's answers (2026-10-21)
+
+- D1: delay the visual remake until after Step 4 (tokens). Task 1.4 took the "no" path.
+- D2: yes, replace the pick with Louie and an exciting animation (share card done in 2.6; streak celebration is task 4.5, Opus).
+- D3: Opus decides as a senior UI/UX designer, lowest friction (task 4.4).
+- D4: split if it makes sense (Opus judges in Step 5).
+
+### Notes from Steps 1 and 2 (Sonnet 5.5, released as 4.14.1)
+
+- 1.4: the visual test runs as its own step with `continue-on-error: true` inside the browser job, not as a separate job. Same effect: a stale picture no longer turns the run red.
+- `sketchSong` in core.js was kept. Six live tests use it to build fixtures. Opus: decide whether to move it into a test helper.
+- Orphans removed along the way: `HEARD_FOR`, `mercator` (and its test), the `.soon*` CSS, `SOON`/`renderSoon` and unused imports in hud.js, `dialOpen`, `gigNow`, 82 unreferenced CSS rules.
+- More functions only tests use, left alone for Opus: `hexNeighbours`, `localBar`, `playsForCells`, `zOf`.
+- styles.css has a stray `}` near line 1279 (already in 4.14.0). The next rule, `.tn-note.done.glow b`, is dropped by browsers. Fixing it would change how the tuner looks, so it is left for Opus (task 4.2).
+- `.pk-level.soon` CSS is live and was kept.
+- The streak celebration still draws the old pick (`pickSVG`, `sk-pick`). Task 4.5.

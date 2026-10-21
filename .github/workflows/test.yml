@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: node --test
       - run: npx --yes eslint@10.1.0 .
 
@@ -25,26 +25,37 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.2
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.56.1-${{ runner.os }}
       - run: npx playwright install --with-deps chromium
       # app: features end to end; regress: the main path at three sizes and both
-      # themes; a11y: names and axe; visual: screens compared with tests/visual/ci.
+      # themes; a11y: names and axe. The visual test runs in its own step below.
       - name: browser tests
         shell: bash
-        env:
-          # Compare screens against references made on GitHub, once they exist.
-          VISUAL: ${{ hashFiles('tests/visual/ci/*.png') != '' && 'compare' || '' }}
-          VISUAL_DIR: tests/visual/ci
         run: |
           set +e -o pipefail
-          node --test tests/e2e/*.e2e.mjs 2>&1 | tee e2e.log
+          node --test $(ls tests/e2e/*.e2e.mjs | grep -v visual.e2e.mjs) 2>&1 | tee e2e.log
           status=$?
           if [ $status -ne 0 ]; then
-            # One annotation with what failed, readable from the run's summary and the API.
-            msg=$( { grep -aE "^not ok|Error|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log || tail -40 e2e.log; } | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
-            echo "::error title=Browser tests failed::$msg"
+            # One annotation with every test that failed, then some detail, readable from the run's summary and the API.
+            fails=$(grep -aE "^not ok" e2e.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            detail=$( { grep -aE "Error|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log || tail -40 e2e.log; } | head -40 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Browser tests failed::${fails}%0A${detail}"
           fi
-          [ "$VISUAL" = compare ] && echo "::notice title=Screens::compared with the references in tests/visual/ci"
           exit $status
+      # Screens compared with tests/visual/ci. This step can't turn the run red: a
+      # release that changes how screens look is expected to differ until the
+      # references are remade (update screenshots workflow).
+      - name: visual comparison
+        continue-on-error: true
+        shell: bash
+        env:
+          VISUAL: ${{ hashFiles('tests/visual/ci/*.png') != '' && 'compare' || '' }}
+          VISUAL_DIR: tests/visual/ci
+        run: node --test tests/e2e/visual.e2e.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

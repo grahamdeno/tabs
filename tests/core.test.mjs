@@ -892,22 +892,6 @@ test("gig day countdown: same day and before the start only", () => {
   assert.equal(C.gigCountdown("", now), "");
 });
 
-test("arc sweep: fine near the start, reaches the ends exactly, no jumps", () => {
-  const o = { from: 190, a0: 187, a1: 264, y0: 0, max: 4000, fine: 11 };
-  assert.equal(C.arcMap({ ...o, a: 264 }), 4000, "bottom to top of the arc: the end of the song");
-  assert.equal(C.arcMap({ ...o, a: 270 }), 4000, "past the end stays at the end");
-  const small = C.arcMap({ ...o, a: 192 });
-  assert.ok(small > 15 && small < 30, `a 2 degree nudge moves about two lines (${small})`);
-  let prev = 0, biggest = 0;
-  for (let a = 190; a <= 264; a += 0.5) { const y = C.arcMap({ ...o, a }); biggest = Math.max(biggest, y - prev); assert.ok(y >= prev, "always forward"); prev = y; }
-  assert.ok(biggest < 4000 / 20, `no single half-degree step moves more than 5% of the song (${biggest})`);
-  assert.equal(C.arcMap({ ...o, from: 260, y0: 4000, a: 187 }), 0, "top to bottom: the start");
-  const late = C.arcMap({ ...o, from: 262, y0: 1000, a: 264 });
-  assert.ok(late - 1000 < 600, `starting near the top end doesn't squeeze the song into a few degrees (${late})`);
-  assert.equal(C.arcMap({ ...o, a: 200, whole: false }), 110, "one screen: steady fine pace");
-  assert.equal(C.arcMap({ ...o, y0: 4000, a: 230 }), 4000, "already at the end");
-});
-
 // ---- Get the song ----
 const V = (albumName, duration, extra = {}) => ({ trackName: "Harbor Lights", artistName: "The Cape Fear", albumName, duration, instrumental: false, plainLyrics: "a line\nanother", syncedLyrics: "[00:01.00] a line", ...extra });
 test("pickVersions: the length the chart found picks the recording", () => {
@@ -1412,26 +1396,10 @@ test("A practice spot is kept to about a kilometre", () => {
   assert.deepEqual(C.coarseSpot(40.71278, -74.00594), { lat: 40.71, lon: -74.01 });
   assert.equal(C.coarseSpot("x", 3), null);
   assert.equal(C.coarseSpot(91, 0), null);
-  assert.equal(C.spotLabel({ lat: 40.71, lon: -74.01 }), "40.71° N, 74.01° W");
-  assert.equal(C.spotLabel(null), "");
 });
 
 test("lifetimePlays adds up the journal's months", () => {
   assert.equal(C.lifetimePlays({ songs: [], journal: { v: 1, months: { "2026-09": { plays: 3 }, "2026-10": { plays: 4 } } } }) >= 0, true);
-});
-
-test("The territory sits on a real map: hexagon spacing in metres, mercator pixels, a zoom that fits", () => {
-  const spot = { lat: 40.71, lon: -74.01 };
-  assert.deepEqual(C.hexCentre(spot, [0, 0]), spot);
-  const e = C.hexCentre(spot, [1, 0]);
-  assert.equal(Math.abs(e.lat - spot.lat) < 1e-9, true, "a neighbour to the east is level");
-  const m = (e.lon - spot.lon) * 111320 * Math.cos(spot.lat * Math.PI / 180);
-  assert.ok(Math.abs(m - 250 * Math.sqrt(3)) < 0.5);
-  assert.ok(C.hexCentre(spot, [0, 1]).lat < spot.lat, "rows go south");
-  const [x, y] = C.mercator(0, 0, 1);
-  assert.deepEqual([x, y], [256, 256]);
-  assert.ok(C.fitZoom(40.71, 1, 340, 340) > C.fitZoom(40.71, 91, 340, 340), "a bigger territory zooms out");
-  for (const n of [0, 1, 7, 91, 500]) { const z = C.fitZoom(40.71, n, 340, 340); assert.ok(z >= 9 && z <= 16); }
 });
 
 test("Venues name the rings, and the outline leaves out shared edges", () => {
@@ -1440,9 +1408,9 @@ test("Venues name the rings, and the outline leaves out shared edges", () => {
   assert.equal(C.venueOf(15).next, "Coffeehouse");
   assert.equal(C.venueOf(15).toNext, 1);
   assert.match(C.venueName(9), /World tour/);
-  assert.equal(C.hexOutline(1).length, 6);
-  assert.equal(C.hexOutline(7).length, 18, "a ring of six around one: 18 outer edges");
-  assert.equal(C.hexOutline(19).length, 30);
+  assert.equal(C.cellsOutline(C.hexSpiral(1)).length, 6);
+  assert.equal(C.cellsOutline(C.hexSpiral(7)).length, 18, "a ring of six around one: 18 outer edges");
+  assert.equal(C.cellsOutline(C.hexSpiral(19)).length, 30);
 });
 
 test("Your scene: density from places, guitarists, the local bar and your percentile", () => {
@@ -1541,14 +1509,10 @@ test("The neck: lessons unlock in order, a lesson done is kept clean, and chords
   assert.equal(C.cleanSkills({ done: {}, last: 0 }), null);
 });
 
-test("The neck: the strings of a chord, what a heard pitch means, and grading a switch drill", () => {
+test("The neck: the strings of a chord and grading a switch drill", () => {
   const t = C.chordTargets("C");
   assert.equal(t[0].hz, 0, "the low E is left out of C");
   assert.equal(t[1].note, "C");
-  assert.deepEqual(C.judgeString(t[1].hz * 1.005, t), { i: 1, say: "ring" });
-  assert.deepEqual(C.judgeString(110, t), { i: 1, say: "open" }, "the A string ringing open is not pressed");
-  assert.equal(C.judgeString(t[1].hz * 2 ** (-1 / 12), t).say, "low");
-  assert.equal(C.judgeString(-1, t), null);
   const spb = 1, due = [10, 14, 18, 22];
   const g = C.gradeSwitches(due, [10.1, 14.6, 17.95], spb);
   assert.deepEqual([g.on, g.late, g.miss, g.clean], [2, 1, 1, false]);
@@ -1731,18 +1695,11 @@ test("drums that fit the song: parts by section, a clean bar, simpler and busier
   assert.equal(C.barHits(bar, 0, 0.667).find(x => x.k === "hat" && x.at > 0).at, 0.667, "swung off-beat");
 });
 
-test("just heard it: the newest Apple Music song is offered for 3 hours, matched to the library, until it is done", () => {
+test("a heard song is matched to the library, ignoring a remaster tag and a missing artist", () => {
   const songs = [{ id: "a", title: "Wonderwall", artist: "Oasis" }, { id: "b", title: "Hallelujah", artist: "" }];
-  const t0 = 1e12;
-  let r = C.heardOffer(songs, { title: "Wonderwall (Remastered)", artist: "Oasis" }, null, t0);
-  assert.equal(r.offer.song.id, "a"); assert.equal(r.seen.at, t0);
-  r = C.heardOffer(songs, { title: "Wonderwall", artist: "Oasis" }, r.seen, t0 + 3600000);
-  assert.ok(r.offer, "still offered an hour later"); assert.equal(r.seen.at, t0, "first seen time kept");
-  assert.equal(C.heardOffer(songs, { title: "Wonderwall", artist: "Oasis" }, r.seen, t0 + C.HEARD_FOR + 1).offer, null, "gone after 3 hours");
-  assert.equal(C.heardOffer(songs, { title: "Wonderwall", artist: "Oasis" }, { ...r.seen, done: true }, t0 + 1).offer, null, "closed or acted on");
-  const n = C.heardOffer(songs, { title: "Hallelujah", artist: "Jeff Buckley" }, { ...r.seen, done: true }, t0 + 5);
-  assert.equal(n.offer.song.id, "b", "a new song is offered again; a sheet with no artist still matches");
-  assert.equal(C.heardOffer(songs, { title: "Yellow", artist: "Coldplay" }, null, t0).offer.song, null, "not in the library");
+  assert.equal(C.heardMatch(songs, { title: "Wonderwall (Remastered)", artist: "Oasis" }).id, "a");
+  assert.equal(C.heardMatch(songs, { title: "Hallelujah", artist: "Jeff Buckley" }).id, "b", "a sheet with no artist still matches");
+  assert.equal(C.heardMatch(songs, { title: "Yellow", artist: "Coldplay" }), null, "not in the library");
   assert.equal(C.heardMatch(songs, { title: "Wonderwall", artist: "Blur" }), null, "another artist's song");
 });
 

@@ -24,7 +24,6 @@ import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 
 let gig = null; /* the show on stage, or null */
-export const gigNow = () => gig;
 const $ = id => document.getElementById(id);
 const LINES = [4, 5, 6, "full"];
 const linesWanted = () => LINES.includes(data.settings.gigLines) ? data.settings.gigLines : 5;

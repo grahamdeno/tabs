@@ -3,11 +3,9 @@
 //   statBar()        the venue, the gig streak and your fans, as buttons (bindStatBar wires them)
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   openMore()       a sheet of the places that aren't tabs: Songbook, Merch table, Tour Map, Your playing, Tuner, Settings
-//   renderSoon(name) a page still to come (none now: Tour 4.5.0, Charts 4.6.0, Your band 4.7.0)
 import { Tabs, fansToSpend, lifetimePlays, playSongs, rainSettle, streakOf, venueOf } from "./core.js";
-import { app, esc, icon, layer, toast } from "./ui.js";
+import { esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
-import { louie } from "./louie.js";
 
 const n = x => x.toLocaleString("en-US");
 
@@ -84,18 +82,3 @@ export function openMore() {
 /* which pages show the tab bar, and which tab each one lights */
 export const TABBED = new Set(["road", "tour", "charts", "band", "practice", "you", "merch"]);
 export const tabFor = name => ({ practice: "rehearse", you: "more", merch: "more" })[name] || name;
-
-/* ---- the pages still to come ---- */
-const SOON = {
-};
-export function renderSoon(name) {
-  const p = SOON[name];
-  if (!p) return go("#/");
-  app.innerHTML = `<div class="head"><h1 class="title script">${esc(p.title)}</h1></div>
-    <div class="soon">${louie("happy", { pose: "point", size: 170 })}
-      <h2>Coming soon</h2>
-      <p>${esc(p.line)}</p>
-      <ul>${p.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
-      <span class="soon-tag">Coming in a 4.x release</span>
-    </div>`;
-}
