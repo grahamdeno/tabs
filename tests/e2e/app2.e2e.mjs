@@ -116,7 +116,7 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   // Name it and save; the song page offers the recording and Simple or Rich.
   await page.fill("#ed-title", "Porch Light"); await page.dispatchEvent("#ed-title", "change");
   await page.click("#ce-done"); await page.waitForSelector('h1.song-title');
-  await page.waitForSelector("#sk-hear:not([hidden])", { timeout: 4000 });
+  await page.waitForSelector("#sk-hear:not([hidden])", { timeout: 4000 }); await settled(page); /* the song page has just faded in: taps wait for it */
   /* keep hold of the Undo button the moment it appears: on a busy machine a later toast can replace it before the save lands */
   await page.click("[data-st='rich']"); await page.waitForFunction(() => (window.__undo = document.querySelector("#toast .tact")) && /Rich|7ths/.test(document.getElementById("toast").textContent));
   await page.waitForFunction(() => /\nD7\s+G\nHome to you/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));

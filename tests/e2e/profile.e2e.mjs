@@ -9,9 +9,15 @@ test("Your profile: worked out from the songs you've played, with a passport, ch
   const page = await phone(t, { ...LIB, songs }, { home: true });
   await page.waitForSelector("#h-streak"); await settled(page);
   await page.click("#h-streak");
-  await page.waitForSelector(".pf-plate");
+  await page.waitForSelector(".pf-player");
   assert.match(await page.innerText("h1"), /Your profile/);
-  assert.equal(await page.locator(".pf-streak .ri-knob").count(), 1, "the streak's knob");
+  /* 4.17.0: the player card, its tiles, badges and band */
+  assert.match(await page.innerText(".pf-player"), /LEVEL 1[\s\S]*\/ 100 XP/);
+  assert.equal(await page.locator(".pf-tile-streak .ri-knob").count(), 1, "the streak's knob");
+  assert.match(await page.innerText(".pf-tiles"), /SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
+  assert.ok(await page.locator(".pf-badge:not(.locked)").count() >= 1, "a song played through is a badge");
+  assert.match(await page.innerText(".pf-label:has-text('BADGES')"), /\d+ of 25/);
+  await page.click(".pf-more > summary");
   assert.match(await page.innerText(".pf-plate"), /SONGS PLAYED/i);
   assert.match(await page.innerText(".pf-card:has(h2:text('Chord passport'))"), /chords? stamped/);
   assert.match(await page.innerText(".pf-card:has(h2:text('Your changes'))"), /is the switch you make most/);
@@ -19,7 +25,9 @@ test("Your profile: worked out from the songs you've played, with a passport, ch
   await page.click(".pf-song >> nth=0");
   await page.waitForSelector("#sheet");
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-plate");
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
+  await page.click("#pf-map"); await page.waitForFunction(() => location.hash === "#/playmap"); /* the venue opens the Tour Map */
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
   await page.click("#back"); await page.waitForSelector(".rd-path"); /* 4.0.0: back to the Road */
 });
 

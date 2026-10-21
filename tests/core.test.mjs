@@ -1939,6 +1939,25 @@ test("Friends (4.13.0): the friends list and the Friend quest from XP that rides
   assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests);
 });
 
+test("Levels and badges (4.17.0): XP from plays and gigs, levels that take a little longer each time, badges from what's saved", () => {
+  const now = new Date(2026, 9, 21, 20).getTime();
+  assert.deepEqual([1, 2, 3, 4].map(C.levelStart), [0, 100, 300, 600]);
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.equal(C.levelOf(data).level, 1);
+  data.xp = { days: { "2026-10-20": 40 } };
+  C.addXP(data, 70, now);
+  assert.equal(data.xp.life, 110, "the lifetime total starts from what days held");
+  assert.equal(C.xpTotal(data), 110);
+  assert.deepEqual(C.levelOf(data), { level: 2, xp: 110, from: 100, to: 300, into: 10, need: 200 });
+  assert.equal(C.cleanXP({ days: {}, life: 5000 }).life, 5000, "kept in saves after the days roll off");
+  const p = C.profileOf(data, now), b = C.badgesOf(data, p);
+  assert.equal(b.all.length, 25);
+  assert.equal(b.got.length, 0, "nothing played yet");
+  data.gig = { shows: 12, fans: 0, best: {} };
+  const ids = C.badgesOf(data, p).got.map(x => x.id);
+  assert.deepEqual(ids, ["show1", "show10"]);
+});
+
 test("Merch table (4.16.0): Pink and Teal are free to wear, and test fans only add to what you can spend", () => {
   const now = new Date(2026, 9, 21, 20).getTime();
   const data = { songs: [], sets: [], trash: [], settings: {} };

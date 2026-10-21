@@ -3,7 +3,7 @@
 import { DAY, dayKey, heardMatch, isObj, norm, playDays, playSongs } from "../core.js";
 import { chordShape, parseBlocks } from "./chords.js";
 import { skillState } from "./neck.js";
-import { VENUES, lifetimePlays, venueName } from "./turf.js";
+import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
 
 // ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
 // Each leg is one track of the neck (Open chords, Chord switches, Scales). Its stops are the
@@ -176,6 +176,9 @@ const weekStart = wk => { const [y, m, d] = wk.split("-").map(Number); return ne
 export function addXP(data, n, now = Date.now()) {
   if (!(n > 0)) return;
   const x = data.xp || (data.xp = { days: {} }), k = dayKey(now);
+  /* 4.17.0: a lifetime total too (days only keeps 60), started from what days still holds */
+  if (!(x.life >= 0)) x.life = Object.values(x.days).reduce((a, b) => a + (b || 0), 0);
+  x.life += Math.round(n);
   x.days[k] = (x.days[k] || 0) + Math.round(n);
   const keep = dayKey(now - 60 * DAY);
   for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d];
@@ -291,7 +294,42 @@ export function cleanXP(raw) {
   if (!isObj(raw) || !isObj(raw.days)) return null;
   const days = {};
   for (const [k, v] of Object.entries(raw.days).slice(-90)) if (/^\d{4}-\d\d-\d\d$/.test(k) && v > 0) days[k] = Math.min(1e5, Math.round(v));
-  return Object.keys(days).length ? { days } : null;
+  const life = raw.life >= 0 ? Math.min(1e8, Math.round(raw.life)) : null;
+  return Object.keys(days).length || life ? { days, ...(life != null ? { life } : {}) } : null;
+}
+
+// ---------- Levels and badges (4.17.0): the player card on Your profile ----------
+// Your level comes from all the XP you've earned: 10 a play (lifetime plays, from the journal) plus the
+// gig and quest XP in data.xp.life. Level L starts at 50 x (L-1) x L XP: 100 for level 2, 300 for 3,
+// 600 for 4, so each level takes a little longer. Badges are worked out from what's already saved.
+export const levelStart = L => 50 * (L - 1) * L;
+export function xpTotal(data) {
+  const x = data.xp, bonus = x?.life >= 0 ? x.life : Object.values(x?.days || {}).reduce((a, b) => a + (b || 0), 0);
+  return lifetimePlays(data) * XP.play + bonus;
+}
+export function levelOf(data) {
+  const xp = xpTotal(data);
+  let level = 1;
+  while (xp >= levelStart(level + 1)) level++;
+  const from = levelStart(level), to = levelStart(level + 1);
+  return { level, xp, from, to, into: xp - from, need: to - from };
+}
+/* p is profileOf(data): the journal's numbers (chords, best streak, songs got, tune-ups) */
+export function badgesOf(data, p) {
+  const shows = data.gig?.shows || 0, ring = venueOf(lifetimePlays(data)).ring, band = bandState(data);
+  const won = (data.duels?.list || []).some(d => duelWon(d) === true), promoted = (data.charts?.records || []).length > 0;
+  const b = (id, top, lab, kind, got) => ({ id, top, lab, kind, got: !!got });
+  const all = [
+    b("song1", "1st", "SONG PLAYED", "song", p.songsPlayed >= 1), b("song10", "10", "SONGS PLAYED", "song", p.songsPlayed >= 10), b("song25", "25", "SONGS PLAYED", "song", p.songsPlayed >= 25),
+    b("show1", "1st", "GIG", "show", shows >= 1), b("show10", "10", "GIGS", "show", shows >= 10), b("show50", "50", "GIGS", "show", shows >= 50), b("show100", "100", "GIGS", "show", shows >= 100),
+    b("streak7", "7", "NIGHT STREAK", "streak", p.best >= 7), b("streak30", "30", "NIGHT STREAK", "streak", p.best >= 30), b("streak100", "100", "NIGHT STREAK", "streak", p.best >= 100),
+    b("chords5", "5", "CHORDS", "chord", p.chords.length >= 5), b("chords10", "10", "CHORDS", "chord", p.chords.length >= 10), b("chords20", "20", "CHORDS", "chord", p.chords.length >= 20), b("barre", "1st", "BARRE CHORD", "chord", p.barres >= 1),
+    b("got1", "1st", "SONG GOT", "song", p.got >= 1), b("got10", "10", "SONGS GOT", "song", p.got >= 10),
+    b("openmic", VENUES[1].toUpperCase(), "REACHED", "venue", ring >= 1), b("coffee", "CAFE", VENUES[2].toUpperCase(), "venue", ring >= 2), b("club", VENUES[3].toUpperCase(), "REACHED", "venue", ring >= 3),
+    b("band1", "1st", "BAND MEMBER", "band", band.joined.length >= 1), b("drums", "BEAT", "ON DRUMS", "band", band.joined.some(x => x.id === "beat")), b("band18", "ALL", "FULL BAND", "band", band.joined.length >= BAND.length),
+    b("promoted", "UP", "PROMOTED", "chart", promoted), b("duel", "WIN", "SONG DUEL", "chart", won), b("tune10", "10", "TUNE-UPS", "streak", p.tune.sessions >= 10)
+  ];
+  return { all, got: all.filter(x => x.got) };
 }
 
 // ---------- Your band (4.7.0): Louie's friends join as you play ----------

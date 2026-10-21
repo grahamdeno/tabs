@@ -12,7 +12,7 @@
 const GUITAR_BODY = `<g class="ri-g"><rect class="ri-hd" x="13.6" y="0.5" width="4.8" height="4.5" rx="1.6"/><rect class="ri-neck" x="14.7" y="3.5" width="2.6" height="12" rx="1"/>`
   + `<circle class="ri-lip" cx="16.6" cy="24.6" r="6.8"/><circle class="ri-lip" cx="16.6" cy="17.4" r="4.8"/>`
   + `<circle class="ri-bd" cx="16" cy="24" r="6.8"/><circle class="ri-bd" cx="16" cy="16.8" r="4.8"/>`
-  + `<rect class="ri-ink" x="13" y="18.6" width="6" height="2.2" rx="1.1"/><rect class="ri-ink" x="13.6" y="25.2" width="4.8" height="1.8" rx=".9"/><circle class="ri-knob" cx="19.8" cy="27" r="1.1"/></g>`;
+  + `<rect class="ri-ink" x="13" y="18.6" width="6" height="2.2" rx="1.1"/><rect class="ri-ink" x="13.6" y="25.2" width="4.8" height="1.8" rx=".9"/><circle class="ri-dot" cx="19.8" cy="27" r="1.1"/></g>`;
 
 export const guitarIcon = (on, size = 28) => `<svg class="ri ri-guitar${on ? " on" : ""}" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true">`
   + `<g class="ri-tilt">${GUITAR_BODY}</g><g class="ri-waves"><path d="M26 6q3 3 0 6"/><path d="M28.5 4q4 5 0 10"/></g></svg>`;

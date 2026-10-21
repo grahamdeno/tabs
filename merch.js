@@ -11,7 +11,7 @@ import { data, go } from "./app.js";
 import { louie } from "./louie.js";
 
 const n = x => x.toLocaleString("en-US");
-const TK = `<svg class="mc-tkic" width="20" height="16" viewBox="0 0 34 28" aria-hidden="true"><path class="mc-tkd" d="M3 6h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/><path class="mc-tk" d="M3 4h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/></svg>`;
+const TK = `<svg class="mc-tkic" width="20" height="16" viewBox="0 0 34 28" aria-hidden="true"><path class="mc-tk" d="M3 4h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/></svg>`;
 const GEAR = {
   rain: `<svg width="56" height="52" viewBox="0 0 70 64" aria-hidden="true"><path d="M18 40a11 11 0 0 1 3-21.6A15 15 0 0 1 49 20a10 10 0 0 1 3 20z" fill="#2C6FE0"/><path d="M18 36a11 11 0 0 1 3-21.6A15 15 0 0 1 49 16a10 10 0 0 1 3 20z" fill="#7FB3FF"/><path d="M26 20a9 9 0 0 1 9-5" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M24 46l-3 7M35 46l-3 7M46 46l-3 7" stroke="#3A86FF" stroke-width="4" stroke-linecap="round"/></svg>`,
   double: `<svg width="56" height="52" viewBox="0 0 70 64" aria-hidden="true"><circle cx="35" cy="34" r="25" fill="#0B1226"/><circle cx="35" cy="31" r="25" fill="#14213D"/><circle cx="35" cy="31" r="17" fill="none" stroke="#2A3A63" stroke-width="2"/><circle cx="35" cy="31" r="10" fill="#FF8A00"/><text x="35" y="37" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="15" fill="#14213D">2x</text></svg>`,

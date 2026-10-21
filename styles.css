@@ -1888,7 +1888,7 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .hud .h-fans { color: var(--fans-text); }
 .h-vb { fill: var(--accent); } .h-vbd { fill: var(--accent-deep); }
 .h-fl1 { fill: var(--fans); } .h-fl2 { fill: var(--streak); } .h-streak.off .h-fl1, .h-streak.off .h-fl2 { fill: var(--locked-ic); }
-.h-tk { fill: var(--fans); } .h-tkd { fill: var(--fans-deep); }
+.h-tk { fill: var(--fans); }
 
 /* ---- The tab bar (4.0.0): Road, Tour, Charts, Band, Rehearse, More ---- */
 #tabs { display: none; }
@@ -2700,12 +2700,12 @@ body.gigging .ask { z-index: 66; }
 .fin-mint .louie, body[data-wear="mint"] .louie:not(.fin .louie) { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; --lv-face: #FFF4E2; --lv-face-sh: #F0DDBD; --lv-grille: #1E3A34; --lv-slat: #33584F; --lv-pupil: #1E3A34; --lv-cheek: #FF7A9C; --lv-lamp: #FF3D7F; --lv-tongue: #FF7A9C; --lv-shadow: #1E3A34; }
 .fin-gold .louie, body[data-wear="gold"] .louie:not(.fin .louie) { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; --lv-face: #FFF3C4; --lv-face-sh: #F2DD8C; --lv-grille: #3A2A10; --lv-slat: #5C4420; --lv-pupil: #3A2A10; --lv-cheek: #FF3D7F; --lv-lamp: #FF3D7F; --lv-tongue: #FF3D7F; --lv-shadow: #3A2A10; }
 .fin { display: inline-block; line-height: 0; }
-.mc-tk { fill: var(--fans); } .mc-tkd { fill: var(--fans-deep); }
+.mc-tk { fill: var(--fans); }
 .mc { padding-bottom: calc(var(--tabs) + 24px); }
 .mc-head { display: flex; align-items: center; gap: 10px; padding-top: 8px; }
 .mc-head h1 { flex: 1; margin: 0; font: 700 26px var(--display); color: var(--fg); }
 .mc-back, .mt-x { width: 40px; height: 40px; border-radius: 14px; border: 0; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 700 24px var(--display); display: grid; place-items: center; padding: 0; }
-.mc-fans { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 14px; background: var(--card); box-shadow: 0 3px 0 var(--rim); font: 700 18px var(--display); color: var(--fans-text); }
+.mc-fans { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 14px; background: var(--card); box-shadow: none; /* 4.17.0: no lip (Graham) */ font: 700 18px var(--display); color: var(--fans-text); }
 .mc-table { position: relative; height: 128px; margin: 6px -20px 0; color: var(--fg); overflow: hidden; }
 .mc-line { position: absolute; left: 0; top: 0; width: 100%; height: 56px; }
 .mc-lou { position: absolute; left: 50%; top: 22px; margin-left: -20px; }
@@ -2729,7 +2729,7 @@ body.gigging .ask { z-index: 66; }
 .mc-fin.on, .mc-drop.on { border: 3px solid var(--strings); }
 .mc-have { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 9px; background: var(--fg); color: var(--bg); font: 700 12px var(--display); }
 .mc-price { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 11px; background: var(--fans); box-shadow: 0 3px 0 var(--fans-deep); color: #14213D; font: 700 14px var(--display); }
-.mc-price .mc-tk { fill: #14213D; opacity: .35; } .mc-price .mc-tkd { fill: #14213D; opacity: .2; }
+.mc-price .mc-tk { fill: #14213D; opacity: .35; }
 .mc-price.short { background: var(--locked); box-shadow: none; color: var(--locked-ic); }
 .mc-on { display: inline-block; padding: 5px 9px; border-radius: 11px; background: var(--tabs-on); color: var(--strings); font: 800 12px var(--sans); letter-spacing: .06em; }
 .mc-on.own { background: var(--card-2); color: var(--muted); }
@@ -2829,13 +2829,13 @@ body.gigging .ask { z-index: 66; }
 /* ---------- Rock icons (4.16.0): the streak's guitar, stage light, horns and knob (rock.js) ---------- */
 .ri { overflow: visible; display: block; }
 .ri-guitar .ri-bd, .ri-guitar .ri-hd { fill: #FF4FA3; } .ri-guitar .ri-neck, .ri-guitar .ri-lip { fill: #C2338A; }
-.ri-guitar .ri-ink { fill: #1B1838; } .ri-guitar .ri-knob { fill: #FFD84D; }
+.ri-guitar .ri-ink { fill: #1B1838; } .ri-guitar .ri-dot { fill: #FFD84D; }
 .ri-guitar .ri-waves path { fill: none; stroke: #3DE0FF; stroke-width: 2.4; stroke-linecap: round; }
 .ri-guitar .ri-waves path + path { opacity: .6; }
 .ri-tilt { transform-origin: 16px 24px; transform: rotate(-35deg); }
 /* not played tonight: grey and upright, breathing to say "play" */
 .ri-guitar:not(.on) .ri-tilt { transform: rotate(-8deg); }
-.ri-guitar:not(.on) .ri-bd, .ri-guitar:not(.on) .ri-hd, .ri-guitar:not(.on) .ri-neck, .ri-guitar:not(.on) .ri-lip, .ri-guitar:not(.on) .ri-knob { fill: var(--locked-ic, #6E6898); }
+.ri-guitar:not(.on) .ri-bd, .ri-guitar:not(.on) .ri-hd, .ri-guitar:not(.on) .ri-neck, .ri-guitar:not(.on) .ri-lip, .ri-guitar:not(.on) .ri-dot { fill: var(--locked-ic, #6E6898); }
 .ri-guitar:not(.on) .ri-waves { display: none; }
 .ri-guitar:not(.on) { animation: ri-breathe 2.6s ease-in-out infinite; transform-origin: 50% 80%; }
 /* played tonight: it rocks back and forth, then rests, every few seconds; the sound waves pulse */
@@ -2887,4 +2887,52 @@ body.gigging .ask { z-index: 66; }
 /* the streak moment: the stage light (and on milestone nights the horns) instead of the flame */
 .sk-art .ri-light { position: absolute; left: 50%; top: 8px; width: 190px; height: 190px; margin-left: -95px; }
 .sk-art .ri-horns { position: absolute; right: -6px; top: 6px; width: 92px; height: 92px; }
-.pf-streak .ri-knob { margin: 0 auto 2px; } /* 4.16.0: the knob fills toward the next streak goal */
+
+/* ---------- Your profile as a player card (4.17.0) ---------- */
+.pf-player { margin: 14px 0 0; padding: 16px; border-radius: 24px; background: var(--streak); box-shadow: 0 6px 0 var(--streak-deep); color: #1B1838; position: relative; overflow: hidden; }
+.pf-player::before { content: ""; position: absolute; right: -40px; top: -40px; width: 170px; height: 170px; border-radius: 50%; background: #fff; opacity: .16; }
+.pf-pc-top { position: relative; display: flex; gap: 14px; align-items: center; }
+.pf-pc-lou { flex: none; width: 112px; height: 112px; border-radius: 28px; background: #1B1838; display: grid; place-items: center; overflow: hidden; }
+.pf-pc-lou .louie { width: 100px; height: auto; margin-top: 8px; }
+.pf-pc-who { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.pf-pc-who > small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .08em; opacity: .8; }
+.pf-pc-venue { border: 0; background: none; padding: 0; color: inherit; text-align: left; display: flex; flex-direction: column; min-height: 44px; justify-content: center; }
+.pf-pc-venue b { font: 700 26px/1.05 var(--display); }
+.pf-pc-venue span { font: 700 14px var(--body, Nunito, sans-serif); display: inline-flex; align-items: center; gap: 2px; }
+.pf-pc-venue .chev { width: 16px; height: 16px; }
+.pf-pc-chart { margin-top: 4px; background: #1B1838; color: #B8F34A; border-radius: 999px; padding: 5px 11px; font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; }
+.pf-pc-level { position: relative; margin-top: 14px; background: #1B1838; border-radius: 14px; padding: 10px 12px; color: #F4F1FF; }
+.pf-pc-level > div { display: flex; justify-content: space-between; font: 800 12px var(--body, Nunito, sans-serif); letter-spacing: .06em; }
+.pf-pc-level > div span { color: #B9B3DA; }
+.pf-pc-level > i { display: block; height: 10px; border-radius: 5px; margin-top: 6px; background: linear-gradient(90deg, #B8F34A var(--w), #3A3570 var(--w)); }
+.pf-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.pf-tile { background: var(--card); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; justify-content: center; }
+.pf-tile b { font: 700 26px var(--display); color: var(--fg); } .pf-tile b span { font-size: 16px; color: var(--muted); }
+.pf-tile small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; color: var(--muted); margin-top: 2px; }
+.pf-tile .pf-fans { color: var(--fans-text); }
+.pf-tile-streak { flex-direction: row; align-items: center; gap: 8px; }
+.pf-tile-streak .pf-tn { display: flex; align-items: center; gap: 2px; } .pf-tile-streak .pf-tn b { color: var(--streak); }
+.pf-tile-streak .ri-guitar { width: 28px; height: 28px; }
+.pf-label { display: flex; justify-content: space-between; margin: 20px 2px 8px; font: 800 12px var(--body, Nunito, sans-serif); letter-spacing: .08em; color: var(--muted); }
+.pf-label span + span { color: var(--accent-ink); }
+.pf-badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pf-badge { border-radius: 16px; padding: 10px 4px; text-align: center; color: #1B1838; min-height: 64px; display: flex; flex-direction: column; justify-content: center; }
+.pf-badge b { font: 700 20px/1.1 var(--display); overflow-wrap: anywhere; } .pf-badge small { font: 800 9.5px var(--body, Nunito, sans-serif); letter-spacing: .04em; }
+.pf-badge.k-song { background: #B8F34A; box-shadow: 0 4px 0 #8FCF2A; } .pf-badge.k-show { background: #FF4FA3; box-shadow: 0 4px 0 #C2338A; }
+.pf-badge.k-streak { background: #3DE0FF; box-shadow: 0 4px 0 #1F9FC0; } .pf-badge.k-chord { background: #FFD84D; box-shadow: 0 4px 0 #D9AE1F; }
+.pf-badge.k-venue { background: #8A7CFF; box-shadow: 0 4px 0 #5A4FB0; } .pf-badge.k-band { background: #FF8A3D; box-shadow: 0 4px 0 #C9621F; } .pf-badge.k-chart { background: #6BA4FF; box-shadow: 0 4px 0 #2C6FE0; }
+.pf-badge.locked { background: var(--card); box-shadow: none; color: var(--muted); }
+.pf-allbadges { margin-top: 10px; } .pf-allbadges > summary { list-style: none; min-height: 44px; display: flex; align-items: center; justify-content: center; font: 700 15px var(--display); color: var(--accent-ink); cursor: pointer; }
+.pf-allbadges > summary::-webkit-details-marker { display: none; }
+.pf-band { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 8px 12px; border: 0; border-radius: 20px; background: var(--card); color: inherit; min-height: 72px; }
+.pf-band .friend { width: 52px; height: 52px; flex: none; }
+.pf-band-more { width: 52px; height: 52px; border-radius: 16px; border: 3px dashed var(--muted); display: grid; place-items: center; font: 700 18px var(--display); color: var(--muted); flex: none; margin-left: auto; }
+.pf-duel { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 18px; padding: 12px 14px; margin-bottom: 8px; }
+.pf-duel > div { flex: 1; display: flex; flex-direction: column; } .pf-duel > div b { font: 700 17px var(--display); } .pf-duel small { color: var(--muted); font-weight: 700; }
+.pf-duel > span { font: 700 24px var(--display); color: var(--muted); } .pf-duel > span b { color: var(--fg); } .pf-duel > span b.up { color: var(--accent-ink); }
+.pf-more { margin-top: 16px; }
+.pf-more > summary { list-style: none; display: flex; flex-direction: column; gap: 2px; padding: 14px 40px 14px 14px; border-radius: 18px; background: var(--card); cursor: pointer; position: relative; min-height: 44px; }
+.pf-more > summary::-webkit-details-marker { display: none; }
+.pf-more > summary::after { content: ""; position: absolute; right: 18px; top: 50%; width: 10px; height: 10px; border-right: 3px solid var(--muted); border-bottom: 3px solid var(--muted); transform: translateY(-70%) rotate(45deg); transition: transform .2s; }
+.pf-more[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
+.pf-more > summary b { font: 700 17px var(--display); } .pf-more > summary small { color: var(--muted); font-weight: 700; font-size: 13px; }

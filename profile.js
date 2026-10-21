@@ -7,11 +7,12 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { STREAK_GOALS, Tabs, profileOf, territory, lifetimePlays, venueOf } from "./core.js";
+import { STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
 import { data, go } from "./app.js";
 import { louie } from "./louie.js";
-import { stageLight, hornsIcon, knobIcon, buzz } from "./rock.js";
+import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
+import { friend } from "./friends.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -31,7 +32,7 @@ export function renderProfile() {
   const hero = `<div class="pf-plate" role="group" aria-label="Headline numbers">
     <div class="pf-read"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)} played</span></div>
     <div class="pf-read"><b>${p.songsPlayed}</b><span>song${p.songsPlayed === 1 ? "" : "s"} played</span></div>
-    <div class="pf-read pf-streak">${knobIcon(p.streak, STREAK_GOALS.find(g => g > p.streak) || p.streak, 40)}<b>${p.streak}</b><span>day streak${p.best > p.streak ? ` · best ${p.best}` : ""}</span></div>
+    <div class="pf-read"><b>${p.streak}</b><span>day streak${p.best > p.streak ? ` · best ${p.best}` : ""}</span></div>
   </div>${p.practiceSecs >= 60 ? `<p class="pf-line pf-prac" id="pf-prac">Practice is part of that: ${Math.round(p.practiceSecs / 60)} min, worth ${Math.floor(p.practiceSecs / 240)} play${Math.floor(p.practiceSecs / 240) === 1 ? "" : "s"} on the Tour Map.</p>` : ""}`;
 
   const firsts = p.firsts.length ? `<div class="pf-firsts" aria-label="Latest milestones">${p.firsts.map(f => `<span class="pf-first${f.kind === "chord" && /^(F|Bm|F#m|Bb|B|C#m|Gm|Cm)$/.test(f.name) ? " big" : ""}"><i class="nx-lamp"></i>${f.kind === "chord" ? `First <b>${esc(f.name)}</b>` : `Got it: <b>${esc(f.name)}</b>`}<small>${esc(shortDay(f.at))}</small></span>`).join("")}</div>` : "";
@@ -84,18 +85,42 @@ export function renderProfile() {
     `Tuned ${p.tune.sessions} time${p.tune.sessions === 1 ? "" : "s"}.${tw && tw.rate > 0 ? ` The <b>${esc(tw.string)}</b> string drifts most: off in ${Math.round(tw.rate * 100)}% of checks.` : ""}`,
     p.tune.drift.some(x => x.checked) ? `<div class="pf-bars">${p.tune.drift.map(x => `<div class="pf-bar"><span>${esc(x.string)}</span><i style="--w:${Math.max(2, Math.round(x.rate * 100))}%"></i><small>${x.checked ? Math.round(x.rate * 100) + "%" : "–"}</small></div>`).join("")}</div>` : "") : "";
 
-  const plays = lifetimePlays(data), terr = territory(plays);
+  const plays = lifetimePlays(data);
   const ven = venueOf(plays);
-  const mapCard = `<button class="pf-card pf-mapcard" id="pf-map"><h2>Tour Map</h2><p class="pf-line"><b>${esc(ven.name)}.</b> ${terr.cells} hexagon${terr.cells === 1 ? "" : "s"} lit, ${ven.toNext} play${ven.toNext === 1 ? "" : "s"} to the ${esc(ven.next)}.</p>${icon("chev", "chev")}</button>`;
+  /* 4.17.0: the player card. Louie in your finish, your venue (tap for the Tour Map), your chart, your level */
+  const lv = levelOf(data), ch = chartState(data), can = playableSongs(data), band = bandState(data), badges = badgesOf(data, p);
+  const goal = STREAK_GOALS.find(g => g > p.streak) || p.streak, num = x => x.toLocaleString("en-US");
+  const playerCard = `<section class="pf-player" aria-label="Your card">
+      <div class="pf-pc-top"><div class="pf-pc-lou">${louie("proud", { pose: "hornsUp", size: 104 })}</div>
+        <div class="pf-pc-who"><small>${esc(since ? since.replace(/^Since/, "On the road since").toUpperCase() : "ON THE ROAD")}</small>
+          <button class="pf-pc-venue" id="pf-map" aria-label="${esc(ven.name)}, venue ${ven.ring + 1}. Open the Tour Map"><b>${esc(ven.name)}</b><span>Venue ${ven.ring + 1} · Tour Map ${icon("chev", "chev")}</span></button>
+          <span class="pf-pc-chart">${esc(ch.name.toUpperCase())} CHART · ${ch.you.rank}${["ST", "ND", "RD"][ch.you.rank - 1] || "TH"}</span></div></div>
+      <div class="pf-pc-level"><div><b>LEVEL ${lv.level}</b><span>${num(lv.into)} / ${num(lv.need)} XP</span></div><i style="--w:${Math.round(lv.into / lv.need * 100)}%"></i></div>
+    </section>
+    <div class="pf-tiles">
+      <div class="pf-tile pf-tile-streak">${knobIcon(p.streak, goal, 46)}<div><span class="pf-tn">${guitarIcon(p.streak > 0)}<b>${p.streak}</b></span><small>${p.streak >= goal ? "NIGHTS IN A ROW" : `NIGHTS · NEXT ${goal}`}</small></div></div>
+      <div class="pf-tile"><b class="pf-fans">${num(fansToSpend(data))}</b><small>FANS TO SPEND</small></div>
+      <div class="pf-tile"><b>${num(data.gig?.shows || 0)}</b><small>SHOWS PLAYED</small></div>
+      <div class="pf-tile"><b>${can.now} <span>of ${can.of}</span></b><small>SONGS YOU CAN PLAY</small></div>
+    </div>`;
+  const badge = x => `<div class="pf-badge k-${x.kind}${x.got ? "" : " locked"}" role="img" aria-label="${esc(x.top)} ${esc(x.lab.toLowerCase())}${x.got ? "" : ", not yet"}"><b>${esc(x.got ? x.top : "?")}</b><small>${esc(x.lab)}</small></div>`;
+  const order = [...badges.got, ...badges.all.filter(x => !x.got)];
+  const badgeCard = `<div class="pf-label"><span>BADGES</span><span>${badges.got.length} of ${badges.all.length}</span></div>
+    <div class="pf-badges">${order.slice(0, 8).map(badge).join("")}</div>
+    ${order.length > 8 ? `<details class="pf-allbadges"><summary>All ${badges.all.length} badges</summary><div class="pf-badges">${order.slice(8).map(badge).join("")}</div></details>` : ""}`;
+  const bandCard = `<div class="pf-label"><span>YOUR BAND</span><span>${band.joined.length} of ${band.members.length}</span></div>
+    <button class="pf-band" id="pf-band" aria-label="Your band: ${band.joined.length} of ${band.members.length} joined. Open the Band tab">${band.joined.slice(-4).map(f => friend(f.id, { size: 52 })).join("")}${band.joined.length < band.members.length ? `<span class="pf-band-more">+${band.members.length - band.joined.length}</span>` : ""}</button>`;
+  const fr = friendsOf(data).filter(f => f.w + f.l > 0).slice(0, 3);
+  const duelCard = fr.length ? `<div class="pf-label"><span>SONG DUELS</span></div>${fr.map(f => `<div class="pf-duel"><div><b>You and ${esc(f.name)}</b>${f.last ? `<small>Last: ${esc(f.last.title)}</small>` : ""}</div><span><b class="${f.w >= f.l ? "up" : ""}">${f.w}</b> – <b class="${f.l > f.w ? "up" : ""}">${f.l}</b></span></div>`).join("")}` : "";
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button></div>
     <h1 class="title" style="margin:14px 2px 2px">Your profile</h1>
-    <p class="pf-since">${esc(since)}</p>
-    ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${hero}${mapCard}${firsts}${passport}${changes}${rhythm}${keys}${rep}${zone}${sets}${tune}
+    ${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, keys, tempo and your changes</small></summary>${hero}${firsts}${changes}${rhythm}${keys}${rep}${zone}${sets}${tune}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
-    ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share my playing</button></div>`}`;
+    ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
   document.getElementById("back").onclick = () => go("#/");
   document.getElementById("pf-map")?.addEventListener("click", () => go("#/playmap"));
+  document.getElementById("pf-band")?.addEventListener("click", () => go("#/band"));
   app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.song)));
   document.getElementById("pf-share")?.addEventListener("click", () => shareCard(p));
 }
