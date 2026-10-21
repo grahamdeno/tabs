@@ -57,16 +57,15 @@ function headSVG(kind, t, { mini = false } = {}) {
   const H = HEADS[kind], notes = TUNINGS[t.tuning].notes;
   const pad = mini ? 10 : 230;
   const cur = mini ? -1 : t.cur, good = !mini && t.good;
-  const col = good ? "var(--good)" : "var(--tune)"; /* green: the string in hand; brighter when in tune */
+  const col = good ? "var(--good)" : "var(--tn-lit)"; /* 4.17.2: the string in hand in a colour that stands out on the headstock; green when in tune */
   let s = `<svg viewBox="${-pad} 0 ${H.w + pad * 2} ${mini ? 1760 : H.h}" ${mini ? 'aria-hidden="true"' : `role="img" aria-label="${esc(MODES.find(m => m[0] === kind)[1])} headstock"`}><path d="${H.d}" fill="var(--head)" fill-rule="evenodd"/>`;
   if (mini) return s + "</svg>";
   H.strings.forEach((g, i) => {
     const [kx, ky, kw, kh] = g.key, on = i === cur, done = !!t.ok[i];
     if (on) {
-      /* 4.16.0: a dark edge under the lit string, so it stands out on a light headstock */
-      s += `<g stroke="var(--bg)" opacity=".85"><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke-width="26" stroke-linecap="round"/><line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke-width="26"/></g><circle cx="${g.px}" cy="${g.py}" r="${g.r + 7}" fill="var(--bg)" opacity=".85"/>`;
-      s += `<line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="14" stroke-linecap="round"/>`;
-      s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="14"/>`;
+      /* the string itself wavers while the mic hears it (.ringing on the stage, styles.css) */
+      s += `<g class="tn-lit"><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="18" stroke-linecap="round"/>`;
+      s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="18"/></g>`;
       s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="${col}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${col}"/>`;
     } else if (done) s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r * 0.55}" fill="var(--good)"/>`;
     /* The note is printed on its key, so changing the tuning relabels the
@@ -302,10 +301,12 @@ function listen(t, an, buf) {
   }
   /* A dropped reading or two while the string rings doesn't reset anything. */
   if (f < 0) {
+    if (now - t.quietSince > 300) document.getElementById("tn-stage")?.classList.remove("ringing");
     if (now - t.quietSince > 2000 && t.hits.length) idle(t);
     return;
   }
   t.quietSince = now;
+  document.getElementById("tn-stage")?.classList.add("ringing");
   /* Octave slips: fold toward the string being tuned, or any string. */
   if (t.mode !== "chromatic") f = octaveFix(f, t.tuning, t.a4, t.guided ? t.cur : t.lock);
   /* Smooth over the last three readings: steady, but quick to follow the peg. */

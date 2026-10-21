@@ -1803,7 +1803,7 @@ body.is-home .rd-song b { font-size: 26px; }
   --bad: #FF6B5B; --bad-line: rgba(255,107,91,.45);
   --card: #2C2360; --card-2: #342A6E; --rim: #3A2F70; --hair: #31286A; --rim-hi: rgba(255,255,255,.06);
   --bar: #251C52; --solid: #251C52; --scrim: rgba(8,5,26,.62); --head: #F4F0FF;
-  --good: #B8F34A; --tune: #3DE0FF; --good-soft: rgba(184,243,74,.14); --shadow: 0 8px 24px rgba(0,0,0,.35);
+  --good: #B8F34A; --tune: #3DE0FF; --tn-lit: #FF4FA3; --good-soft: rgba(184,243,74,.14); --shadow: 0 8px 24px rgba(0,0,0,.35);
   --streak: #FF4FA3; --streak-deep: #C42C7A; --fans: #FFD84D; --fans-deep: #C9A600; --fans-text: #FFD84D; --strings: #3DE0FF; --strings-deep: #1FA8C4;
   --banner: #3DE0FF; --banner-deep: #1FA8C4; --on-banner: #1D1640; --banner-sub: #0E4F5E;
   --locked: #3A2F70; --locked-deep: #2A2156; --locked-ic: #6E64A6; --tabs-on: rgba(61,224,255,.14); --tabs-ring: #3DE0FF;
@@ -1816,7 +1816,7 @@ body.is-home .rd-song b { font-size: 26px; }
   --bad: #C42037; --bad-line: rgba(214,40,57,.4);
   --card: #FFFFFF; --card-2: #F4F8FE; --rim: #C9DCF5; --hair: #D9E6F7; --rim-hi: rgba(255,255,255,.9);
   --bar: #FFFFFF; --solid: #FFFFFF; --scrim: rgba(20,33,61,.35); --head: #14213D;
-  --good: #12936F; --tune: #12936F; --good-soft: rgba(18,147,111,.12); --shadow: 0 8px 24px rgba(20,33,61,.12);
+  --good: #12936F; --tune: #12936F; --tn-lit: #FFD23F; --good-soft: rgba(18,147,111,.12); --shadow: 0 8px 24px rgba(20,33,61,.12);
   --streak: #FF8A00; --streak-deep: #C96A00; --fans: #FFD23F; --fans-deep: #F2B705; --fans-text: #8A6A00; --strings: #3A86FF; --strings-deep: #2C6FE0;
   --banner: #2C6FE0; --banner-deep: #1F56B8; --on-banner: #FFFFFF; --banner-sub: #FFFFFF;
   --locked: #D9E6F7; --locked-deep: #B9CCE6; --locked-ic: #8FA4C4; --tabs-on: #D6E7FF; --tabs-ring: #3A86FF;
@@ -1829,7 +1829,7 @@ body.is-home .rd-song b { font-size: 26px; }
   --bad: #B83227; --bad-line: rgba(184,50,39,.4);
   --card: #FAFCF8; --card-2: #F1F6F0; --rim: #C6D6C8; --hair: #D5E2D6; --rim-hi: rgba(255,255,255,.9);
   --bar: #FAFCF8; --solid: #FAFCF8; --scrim: rgba(27,43,39,.35); --head: #1B2B27;
-  --good: #0F8B8D; --tune: #0F8B8D; --good-soft: rgba(15,139,141,.12); --shadow: 0 8px 24px rgba(27,43,39,.12);
+  --good: #0F8B8D; --tune: #0F8B8D; --tn-lit: #FFD23F; --good-soft: rgba(15,139,141,.12); --shadow: 0 8px 24px rgba(27,43,39,.12);
   --streak: #F2B705; --streak-deep: #B98C00; --fans: #0F8B8D; --fans-deep: #0B6F71; --fans-text: #0F7A7C; --strings: #7A2E8E; --strings-deep: #5C1F6C;
   --banner: #0F8B8D; --banner-deep: #0B6F71; --on-banner: #FFFFFF; --banner-sub: #CDEBEB;
   --locked: #CFDDD1; --locked-deep: #B3C6B6; --locked-ic: #8AA190; --tabs-on: #D3E6D6; --tabs-ring: #0F8B8D;
@@ -2936,3 +2936,8 @@ body.gigging .ask { z-index: 66; }
 .pf-more > summary::after { content: ""; position: absolute; right: 18px; top: 50%; width: 10px; height: 10px; border-right: 3px solid var(--muted); border-bottom: 3px solid var(--muted); transform: translateY(-70%) rotate(45deg); transition: transform .2s; }
 .pf-more[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
 .pf-more > summary b { font: 700 17px var(--display); } .pf-more > summary small { color: var(--muted); font-weight: 700; font-size: 13px; }
+
+/* 4.17.2: the lit tuner string wavers while the mic hears it, like a ringing string */
+#tn-stage.ringing .tn-lit { animation: tn-ring .09s linear infinite alternate; }
+@keyframes tn-ring { from { transform: translateX(-12px); } to { transform: translateX(12px); } } /* user units: about 3 px on screen */
+@media (prefers-reduced-motion: reduce) { #tn-stage.ringing .tn-lit { animation: none; } }
