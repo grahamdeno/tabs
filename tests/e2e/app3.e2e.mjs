@@ -591,6 +591,7 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
   assert.equal(await page.locator('.menu [data-m="edit"]').count(), 0, "from a show, only what you change mid-song");
   await page.click('.menu [data-lines="5"]');
   await page.waitForSelector('#gig[data-lines="5"]', { timeout: 3000 });
+  assert.equal(await page.innerText(".menu [data-lines].on"), "5", "4.2.3: the picked count lights up");
   await page.mouse.click(200, 120); await page.waitForTimeout(200);
   assert.equal(await page.locator(".menu").count(), 0, "a tap above Tools closes it");
   assert.equal(await page.locator("#gig.paused").count(), 1, "and the show stays paused");

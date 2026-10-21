@@ -1767,7 +1767,7 @@ function songMenu(song, anchor, redrawSong) {
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier, chords = song.format !== "tab", inGig = gigHooks.on;
-  const lines = [4, 5, 6].includes(data.settings.gigLines) ? data.settings.gigLines : 5;
+  const lines = () => [4, 5, 6].includes(data.settings.gigLines) ? data.settings.gigLines : 5;
   const along = [
     { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", hint: $("sv")?.textContent || "" },
     { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
@@ -1805,7 +1805,7 @@ function songMenu(song, anchor, redrawSong) {
       <div class="tl-head"><b>Tools</b>
         <div class="mrow size" role="group" aria-label="Text size"><span class="ml">Text size</span>
           <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div></div>
-      ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6].map(n => `<button role="menuitem" data-lines="${n}" class="${n === lines ? "on" : ""}" aria-pressed="${n === lines}">${n}</button>`).join("")}</div></div>` : ""}
+      ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6].map(n => `<button role="menuitem" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-pressed="${n === lines()}">${n}</button>`).join("")}</div></div>` : ""}
       <div class="tl-h">PLAY ALONG</div><div class="tl-grid">${along.map(tile).join("")}</div>
       ${inGig ? "" : `<div class="tl-h">THE SONG</div><div class="tl-grid">${theSong.map(tile).join("")}</div>`}`;
   };
@@ -1839,7 +1839,7 @@ function songMenu(song, anchor, redrawSong) {
       return;
     }
     const ln = ev.target.closest("[data-lines]");
-    if (ln) { data.settings.gigLines = +ln.dataset.lines; Tabs.save(data); paint(); return; }
+    if (ln) { data.settings.gigLines = +ln.dataset.lines; Tabs.save(data); paint(); m.querySelector(`[data-lines="${ln.dataset.lines}"]`)?.focus({ preventScroll: true }); return; }
     const b = ev.target.closest("[data-m]");
     if (!b) return;
     const id = b.dataset.m;

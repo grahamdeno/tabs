@@ -38,8 +38,8 @@ shipped the look, Louie, the stat bar, the tab bar and the Road path; 4.0.1 put
 every screen on the design system; 4.1.0 shipped the Gig (`gig.js`, scoring in
 `core.js`: gigChange and friends) with Show complete and Encore, and the Louie
 icon (Take 3A up close on pink; Take 2's whole body for launch screens). Graham
-wants the Gig to show more than 2 lines (4 to 6, Lines in a gig in Tools; settle
-the default after he tries it). 4.2.0 replaced the song page with one song
+wants the Gig to show more than 2 lines (4 to 6, Lines in a gig in Tools; 5 is the default, Graham
+leaning to keep it after 4.2.3, confirm). 4.2.0 replaced the song page with one song
 screen built from Gig parts: Play opens the Gig (plain scroll while practicing
 a section or slower, for tabs, or with Play as a gig off), Tools is one bottom
 sheet, Pause holds the show in place (Back a line, Tools, Sheet, Resume), and
