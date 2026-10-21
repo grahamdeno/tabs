@@ -375,11 +375,14 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   await page.waitForSelector(".tm-map svg path", { state: "attached" });
   assert.equal(await page.evaluate(() => document.body.classList.contains("tm-open")), true, "the page is locked while the map is open");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".tm-page")).touchAction), "none");
-  await page.waitForSelector("#tm-venue:not([hidden])");
+  await page.waitForSelector(".tm-bd.you");
   assert.equal(await page.locator(".tm-bd.you").count(), 1, "the scene board ranks you with the rivals");
-  assert.match(await page.textContent("#tm-sbody"), /You hold \d+ hexagon/);
+  assert.match(await page.textContent("#tm-sbody"), /\d+HEXAGONS? YOU HOLD/);
   assert.ok(await page.locator(".tm-rival").count() >= 4, "rival players have turf around you");
-  assert.match(await page.innerText(".tm-venue"), /Open mic · \d+ plays? to the Coffeehouse/);
+  /* 4.18.0: the venue and the fine print are behind About the map */
+  await page.click("#tm-info"); await page.waitForSelector("#mi-x");
+  assert.match(await page.innerText("[role=dialog][aria-label='About the map']"), /Open mic: \d+ plays? to the Coffeehouse[\s\S]*simulated/);
+  await page.click("#mi-x"); await page.waitForSelector("#mi-x", { state: "detached" });
   assert.ok(await page.locator(".tm-map path").count() >= 3, "fog, glow and outline are drawn");
   assert.equal(tiles.length, 0, "no map pictures before a spot");
   assert.equal(await page.evaluate(() => window.__asked), 0, "no location asked");
@@ -391,14 +394,15 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   assert.equal(await page.evaluate(() => window.__asked), 0, "the explanation comes first");
   await page.context().grantPermissions(["geolocation"], { origin: new URL(page.url()).origin });
   await page.click("#pf-go");
-  await page.waitForSelector("#tm-forget");
+  await page.waitForFunction(() => !!localStorage.getItem("tabs.spot.v1")); await page.waitForSelector("#tm-flag", { state: "detached" });
   await page.waitForFunction(n => window.__asked > 0, 0);
   assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs.spot.v1"))), { lat: 40.71, lon: -74.01 });
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs-v1").includes("40.71")), false, "not in the library");
   await page.waitForFunction(() => document.querySelectorAll(".tm-map img.leaflet-tile").length > 0);
   assert.ok(tiles.every(u => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(u)));
   if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/tm-spot.png" }); }
-  await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "open");
+  await page.waitForSelector("#tm-take-go"); await page.waitForFunction(() => !document.querySelector("[role=dialog][aria-label='About the map']"));
+  await page.click("#tm-info"); await page.waitForSelector("#tm-forget");
   await page.click("#tm-forget"); await page.waitForSelector("#tm-flag");
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
   await page.click("#back"); await page.waitForFunction(() => !document.body.classList.contains("tm-open"));
@@ -483,15 +487,15 @@ test("The Road on a new library: Louie waves and the first song is ready to play
   assert.match(await page.innerText("#rd-tonight"), /Gig: /);
 });
 
-test("Tour Map: the scene sheet says how many songs and minutes take a rival corner, pulls up for the details and the scene, and Play starts the song", { skip: skip() }, async t => {
+test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
   const page = await phone(t, LIB);
   await page.evaluate(() => { location.hash = "#/playmap"; });
   await page.waitForSelector("#tm-take-go");
-  assert.match(await page.innerText("#tm-take"), /Take \S+'s corner\s*(One song|\d+ songs) · about \d+ min/);
+  assert.match(await page.innerText("#tm-take"), /NEXT CORNER TO TAKE\s*\S+ \S+'s corner[\s\S]*About \d+ min of playing takes it[\s\S]*START WITH/);
   assert.equal(await page.getAttribute("#tm-sheet", "data-state"), "closed");
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("tm-sbody")).opacity), "0", "the details stay hidden until the sheet is pulled up");
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "open");
-  assert.match(await page.innerText("#tm-sbody"), /Start with[\s\S]*minutes a day[\s\S]*You hold/i);
+  assert.match(await page.innerText("#tm-sbody"), /Your scene this week[\s\S]*min a day[\s\S]*NEXT[\s\S]*HEXAGONS? YOU HOLD[\s\S]*CORNERS? TAKEN/i);
   if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/scene-open.png" }); }
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "closed");
   if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/scene-closed.png" }); }

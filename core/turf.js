@@ -141,10 +141,12 @@ const HABIT_MIX = ["daily", "weekend", "casual", "casual", "weekend", "newcomer"
    `history` days ago to today; the same seed and day give the same result. */
 export function simulateRivals({ seed, guitarists = 0, now = Date.now(), history = 60, userRings = 1 }) {
   const r = rng(seed), count = Math.max(4, Math.min(12, 4 + Math.floor(2.5 * Math.log10(guitarists + 1))));
-  const today = Math.floor(now / DAY), names = new Set(), homes = [];
+  const today = Math.floor(now / DAY), firsts = new Set(), lasts = new Set(), homes = [];
   const out = [];
   for (let i = 0; i < count; i++) {
-    let name; do { name = `${FIRST[Math.floor(r() * FIRST.length)]} ${LAST[Math.floor(r() * LAST.length)]}`; } while (names.has(name)); names.add(name);
+    /* 4.18.0: no two rivals share a word, so a scene never has two Gravels */
+    let f, l; do { f = FIRST[Math.floor(r() * FIRST.length)]; } while (firsts.has(f)); do { l = LAST[Math.floor(r() * LAST.length)]; } while (lasts.has(l));
+    firsts.add(f); lasts.add(l); const name = `${f} ${l}`;
     const habit = HABIT_MIX[i % HABIT_MIX.length], h = HABITS[habit];
     const skill = Math.exp((r() - 0.5) * 0.8); /* some practise longer than others with the same habit */
     const joined = today - (habit === "newcomer" ? 3 + Math.floor(r() * 18) : 14 + Math.floor(r() * 36));
@@ -253,5 +255,18 @@ export function takeoverPlan({ plays, held, lost = 0, owner, rivals }) {
 
 export function cleanTour(raw) {
   if (!isObj(raw)) return null;
-  return { lost: Math.max(0, Math.floor(+raw.lost || 0)), below: Math.max(0, Math.min(HOLD_DAYS, Math.floor(+raw.below || 0))), checked: /^\d{4}-\d{2}-\d{2}$/.test(raw.checked) ? raw.checked : "" };
+  return { lost: Math.max(0, Math.floor(+raw.lost || 0)), below: Math.max(0, Math.min(HOLD_DAYS, Math.floor(+raw.below || 0))), checked: /^\d{4}-\d{2}-\d{2}$/.test(raw.checked) ? raw.checked : "",
+    ...(raw.taken > 0 ? { taken: Math.min(1e5, Math.floor(+raw.taken)) } : {}), ...(raw.seen >= 0 ? { seen: Math.min(1e6, Math.floor(+raw.seen)) } : {}) };
+}
+/* Corners taken (4.18.0): each hexagon you newly hold that a rival held is one. data.tour.seen is the count
+   you held when last looked; the first look only sets it. Returns how many were taken just now. */
+export function cornersSettle(data, held, rivals) {
+  const t = data.tour || (data.tour = { lost: 0, below: 0 });
+  const was = t.seen >= 0 ? t.seen : null;
+  t.seen = held;
+  if (was === null || held <= was) return 0;
+  const { owner } = sceneMap(hexSpiral(was), rivals), cells = hexSpiral(held).slice(was);
+  const n = cells.filter(c => { const o = owner.get(cellKey(c)); return o && o !== "you"; }).length;
+  if (n) t.taken = (t.taken || 0) + n;
+  return n;
 }

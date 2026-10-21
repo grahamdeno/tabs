@@ -5,7 +5,7 @@
 // Population comes from vendor/natural-earth-5/places.json (Natural Earth
 // populated places, public domain), loaded once and kept for offline use.
 // Everything is worked out on the phone; nothing about your scene is sent.
-import { GUITAR_SHARE, HEX_KM2, HEX_M, Tabs, claimCells, densityAt, edgePressure, hexSpiral, lifetimePlays, percentileOf, sceneMap, seedOf, simulateRivals, territory, tourDay, userAvg7, venueOf } from "./core.js";
+import { GUITAR_SHARE, HEX_KM2, HEX_M, Tabs, claimCells, cornersSettle, densityAt, edgePressure, hexSpiral, lifetimePlays, percentileOf, sceneMap, seedOf, simulateRivals, territory, tourDay, userAvg7, venueOf } from "./core.js";
 import { data } from "./app.js";
 
 let places = null;
@@ -45,13 +45,16 @@ export async function sceneFor(spot, now = Date.now()) {
   if (earned) { const before = JSON.stringify(data.tour || {}); tourDay(data, pressure.bar, earned, now); if (JSON.stringify(data.tour) !== before) Tabs.save(data); }
   const tour = data.tour || { lost: 0, below: 0 };
   if (tour.lost !== (+t0.lost || 0)) Object.assign(turf, sceneMap(hexSpiral(Math.max(1, earned - tour.lost)), rivals).turf);
+  /* 4.18.0: rival hexagons you've taken since you last looked */
+  const heldNow = Math.max(earned ? 1 : 0, earned - tour.lost), seenWas = data.tour?.seen;
+  if (earned) { cornersSettle(data, heldNow, rivals); if (data.tour.seen !== seenWas) Tabs.save(data); }
   const avg = userAvg7(data, now), pct = percentileOf(avg);
   const board = [...rivals.map(r => ({ id: r.id, avg: r.avg7 })), { id: "you", avg }].sort((a, b) => b.avg - a.avg);
   return {
     at, spot, plays, earned, held: Math.max(earned ? 1 : 0, earned - tour.lost), lost: tour.lost, below: tour.below,
     yours: hexSpiral(Math.max(earned ? 1 : 0, earned - tour.lost)), rivals, owner, turf, pressure,
     pusher: pressure.by === "scene" ? null : rivals.find(r => r.id === pressure.by),
-    people, guitarists, avg, pct, rank: board.findIndex(b => b.id === "you") + 1, players: board.length,
+    taken: data.tour?.taken || 0, people, guitarists, avg, pct, rank: board.findIndex(b => b.id === "you") + 1, players: board.length,
     venue: venueOf(plays), guitaristsAt, claimCells
   };
 }

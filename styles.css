@@ -1618,9 +1618,6 @@ body.is-home .rd-song b { font-size: 26px; }
 /* Tour Map bottom (3.5): the venue line over the map and the scene sheet, a pull-up drawer in the
    app's glass with the copper Play. Pulled up: the takeover details and the scene in a recess. */
 .tm-above { position: absolute; left: 12px; right: 12px; bottom: calc(var(--tm-peek, 90px) + 8px); z-index: 500; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.tm-venue { margin: 0; padding: 8px 14px; border-radius: 20px; font-size: 13px; }
-.tm-venue b { color: var(--fg); font-weight: 600; }
-.tm-venue[hidden] { display: none; }
 .tm-scrim { position: absolute; inset: 0; z-index: 600; opacity: 0; pointer-events: none; }
 .tm-sheet { position: absolute; left: 50%; bottom: 0; width: min(560px, 100%); max-height: calc(100% - 96px - var(--safe-t)); z-index: 700; display: flex; flex-direction: column; box-sizing: border-box; padding: 0 0 calc(14px + var(--safe-b)); touch-action: pan-y; will-change: transform; transform: translate3d(-50%, 100%, 0); }
 .tm-sizer { position: absolute; left: 0; right: 0; top: 0; pointer-events: none; visibility: hidden; }
@@ -2117,7 +2114,6 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look] .tm-page .tm-top .title.script { color: var(--fg); text-shadow: none; }
 :root[data-look] .tm-top .ib, :root[data-look] .tm-ctl .ib { color: var(--fg); }
 :root[data-look] .tm-flag { background: var(--card); border: 2px solid var(--rim); color: var(--fg); box-shadow: 0 4px 0 var(--rim); }
-:root[data-look] .tm-venue { background: var(--card); border: 2px solid var(--rim); color: var(--muted); -webkit-backdrop-filter: none; backdrop-filter: none; }
 :root[data-look] .tm-badge { background: var(--card); box-shadow: 0 3px 0 var(--rim); }
 :root[data-look] .tm-pin.badge { background: var(--card); border: 2px solid var(--rim); color: var(--fg); box-shadow: 0 3px 0 var(--rim); font-family: var(--display); }
 :root[data-look] .tm-pin.badge svg { stroke: var(--fg); }
@@ -2941,3 +2937,35 @@ body.gigging .ask { z-index: 66; }
 #tn-stage.ringing .tn-lit { animation: tn-ring .09s linear infinite alternate; }
 @keyframes tn-ring { from { transform: translateX(-12px); } to { transform: translateX(12px); } } /* user units: about 3 px on screen */
 @media (prefers-reduced-motion: reduce) { #tn-stage.ringing .tn-lit { animation: none; } }
+
+
+/* ---------- Tour Map sheet (4.18.0): one goal, one unit, then pull up ---------- */
+.tm-top .tm-info { margin-left: auto; }
+#tm-take.tm-goalrow { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.tm-goal { display: flex; align-items: center; gap: 12px; }
+.tm-goal .tm-badge { width: 50px; height: 50px; font-size: 15px; border-width: 3px; }
+.tm-goal .tm-sh-t small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .08em; color: var(--muted); }
+.tm-goal .tm-sh-t b { font: 700 21px/1.15 var(--display); white-space: normal; }
+.tm-prog { cursor: pointer; } .tm-prog span { font-size: 15px; font-weight: 700; } .tm-prog b { color: var(--accent-ink); }
+.tm-prog i { display: block; height: 14px; margin-top: 7px; border-radius: 7px; background: linear-gradient(90deg, var(--accent) var(--w), var(--card) var(--w)); box-shadow: inset 0 0 0 2px var(--rim); }
+.tm-start { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 14px; border-radius: 18px; background: var(--card); }
+.tm-start > span { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-start > span small { display: block; font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .08em; }
+.tm-start > span b { font: 700 18px var(--display); color: var(--fg); }
+.tm-start .tm-go { flex: none; width: auto; height: 52px; padding: 0 22px; font-size: 18px; }
+.tm-pull { margin: 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.tm-lab { display: flex; justify-content: space-between; }
+.tm-bd { grid-template-columns: 18px 34px 1fr auto; min-height: 44px; font-size: 15px; }
+.tm-bd > span:nth-child(3) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.tm-bd > span:nth-child(3) small { color: var(--streak); font-weight: 800; font-size: 11px; letter-spacing: .06em; }
+.tm-av { width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid var(--c); display: grid; place-items: center; font: 800 11px var(--body, Nunito, sans-serif); }
+.tm-bd.you .tm-av { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-size: 9px; }
+.tm-bd.you > span:nth-child(3), .tm-bd.you b { color: var(--accent-ink); }
+.tm-bd.next { background: var(--accent-soft); border-radius: 12px; margin: 0 -8px; padding: 0 8px; }
+.tm-bd b { font: 700 18px var(--display); }
+.tm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tm-tiles > div { background: var(--card); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; }
+.tm-tiles b { font: 700 26px var(--display); } .tm-tiles small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; color: var(--muted); }
+.tm-bd > span.tm-av { color: var(--fg); }
+.tm-bd.you > span.tm-av { color: var(--on-accent); }
+#tm-sheet[data-state="open"] .tm-pull { visibility: hidden; }

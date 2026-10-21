@@ -157,7 +157,7 @@ These sit next to `songs`, `sets` and `settings` in the saved library. Rival pla
 
 | Key | Shape | Notes |
 |---|---|---|
-| `data.tour` | `{ lost, below, checked }` (2.52.0) | Edge hexagons lost on the Tour Map, days in a row below the pressure on your edge, and the day it was last checked |
+| `data.tour` | `{ lost, below, checked, seen, taken }` (2.52.0; `seen`, `taken` 4.18.0) | Edge hexagons lost on the Tour Map, days in a row below the pressure on your edge, and the day it was last checked. `seen`: how many hexagons you held when the map last looked; `taken`: rival hexagons you've taken since 4.18.0 (corners taken) |
 | `data.kept` | `{ days: { "YYYY-MM-DD": count } }` | Last 60 days: plays of songs that were deleted for good, so the weekly count and streak don't change when you tidy up; counts only, no titles |
 | `data.skills` | `{ done, last }` (3.6.0) | `done` maps a lesson id (`c:G` a chord, `s:G-C` a switch) to `{ n, best, at }` (times finished, best tempo in BPM for switches, time); `last` is when a lesson last finished. Level checks are worked out from your plays and not stored |
 | `data.gig` | `{ shows, fans, best }` (4.1.0) | Shows played as a gig, the bonus fans they earned (counted in your fans), and `best` mapping a song id to its best share of chord changes landed (0 to 100). A show's strums are heard and graded on the phone and never kept |

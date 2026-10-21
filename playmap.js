@@ -15,7 +15,7 @@
 // position once and keeps it no finer than about a kilometre, in its own key on
 // this phone (tabs.spot.v1), outside the library and every backup. Map pictures
 // come from OpenStreetMap, which sees the area shown, never your plays.
-import { HEX_M, PRACTICE_MEDIAN, cellsOutline, coarseSpot, hexSpiral, pickNudge, takeoverPlan, territory } from "./core.js";
+import { HEX_M, cellsOutline, coarseSpot, hexSpiral, pickNudge, playsForCells, takeoverPlan, territory } from "./core.js";
 import { RIVAL_COLORS, cellCentre, offset, pressureLine, sceneFor } from "./scene.js";
 import { app, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { data, go, mmss, playSong, songLength } from "./app.js";
@@ -64,7 +64,7 @@ export async function renderPlayMap() {
   app.innerHTML = `
     <div class="tm-page">
       <div id="tm-map" class="tm-map" role="img" aria-label="Your Tour Map"></div>
-      <div class="tm-top"><button class="ib" id="back" aria-label="Back">${icon("back")}</button><h1 class="title script">Tour Map</h1></div>
+      <div class="tm-top"><button class="ib" id="back" aria-label="Back">${icon("back")}</button><h1 class="title script">Tour Map</h1><button class="ib glass tm-info" id="tm-info" aria-label="About the map">${icon("info")}</button></div>
       <div class="tm-ctl">
         <button class="ib glass" id="tm-in" aria-label="Zoom in">${icon("plus")}</button>
         <button class="ib glass" id="tm-out" aria-label="Zoom out">${icon("minus")}</button>
@@ -73,7 +73,6 @@ export async function renderPlayMap() {
       <div class="tm-scrim" id="tm-scrim"></div>
       <div class="tm-above" id="tm-above">
         ${spot ? "" : `<button class="btn tm-flag" id="tm-flag">${icon("flag")}Plant your flag on a real map</button>`}
-        <p class="tm-venue glass" id="tm-venue" hidden></p>
       </div>
       <section class="tm-sheet" id="tm-sheet" aria-label="Your scene">
         <div class="tm-sizer"></div>
@@ -107,32 +106,36 @@ function takeover(sc) {
 }
 function sceneSheet(sc) {
   const $ = id => document.getElementById(id);
-  const t = takeover(sc), v = sc.venue, short = name => name.split(" ")[0];
-  const venue = $("tm-venue");
-  venue.innerHTML = `<b>${esc(v.name)}</b> · ${plural(v.toNext, "play")} to the ${esc(v.next)}`; venue.hidden = false;
+  const t = takeover(sc), v = sc.venue;
   const initials = name => name.split(" ").map(w => w[0]).join("").slice(0, 2);
-  $("tm-take").innerHTML = t
-    ? `<button class="tm-badge" id="tm-find" style="--c:${t.color}" aria-label="Show ${esc(t.rival.name)}'s hexagon on the map">${esc(initials(t.rival.name))}</button>
-       <span class="tm-sh-t" data-grab><b>Take ${esc(short(t.rival.name))}'s corner</b><span>${t.n === 1 ? "One song" : `${t.n} songs`} · about ${t.mins} min</span></span>
-       <button class="btn primary tm-go" id="tm-take-go" aria-label="Play ${esc(t.first.title)}">${icon("play")}Play</button>`
-    : `<span class="tm-sh-t" data-grab><b>Your scene</b><span>${ordinal(sc.rank)} of ${sc.players} players nearby</span></span>`;
-  /* the scene this week: everyone ranked by minutes a day, you always shown */
-  const board = [...sc.rivals.map((r, i) => ({ name: r.name, avg: r.avg7, c: RIVAL_COLORS[i % RIVAL_COLORS.length] })), { name: "You", avg: sc.avg, you: true }].sort((a, b) => b.avg - a.avg);
-  const top = Math.max(1, board[0].avg), me = board.findIndex(b => b.you);
-  const row = (b, i) => `<div class="tm-bd${b.you ? " you" : ""}"><span>${i + 1}</span><span>${esc(b.name)}</span><i style="--c:${b.c || "#ffb24a"};width:${Math.max(b.avg ? 3 : 0, Math.round(b.avg / top * 100))}%"></i><b>${b.avg >= 10 ? Math.round(b.avg) : Math.round(b.avg * 10) / 10}</b></div>`;
-  const shown = board.slice(0, 3).map(row);
-  if (me > 3) shown.push(`<div class="tm-bd more"><span></span><span>${plural(me - 3, "more player")}</span><i></i><b></b></div>`);
-  if (me >= 3) shown.push(row(board[me], me));
+  /* 4.18.0: collapsed, one goal in one unit (minutes of playing), how far along you are, and Play.
+     Pull up for your scene this week (minutes a day) and your turf. The fine print sits behind the info button. */
+  if (t) {
+    const from = playsForCells(sc.earned), to = playsForCells(sc.plan.index + 1 + sc.lost);
+    const done = Math.max(0, Math.min(1, to > from ? (sc.plays - from) / (to - from) : 0));
+    $("tm-take").classList.add("tm-goalrow");
+    $("tm-take").innerHTML = `
+      <div class="tm-goal"><button class="tm-badge" id="tm-find" style="--c:${t.color}" aria-label="Show ${esc(t.rival.name)}'s hexagon on the map">${esc(initials(t.rival.name))}</button>
+        <span class="tm-sh-t" data-grab><small>NEXT CORNER TO TAKE</small><b>${esc(t.rival.name)}'s corner</b></span></div>
+      <div class="tm-prog" data-grab><span>About <b>${t.mins} min</b> of playing takes it</span><i style="--w:${Math.max(4, Math.round(done * 100))}%;--c:${t.color}" role="img" aria-label="${Math.round(done * 100)}% of the way"></i></div>
+      <div class="tm-start"><span><small>START WITH</small><b>${esc(t.first.title)}</b> · ${mmss(songLength(t.first))}</span>
+        <button class="btn primary tm-go" id="tm-take-go" aria-label="Play ${esc(t.first.title)}">${icon("play")}Play</button></div>
+      <p class="tm-pull" data-grab>Pull up for your scene</p>`;
+  } else $("tm-take").innerHTML = `<span class="tm-sh-t" data-grab><b>Your scene</b><span>${ordinal(sc.rank)} of ${sc.players} players nearby</span></span>`;
+  /* the scene this week: everyone ranked by minutes a day, you always shown, the next corner marked */
+  const board = [...sc.rivals.map((r, i) => ({ id: r.id, name: r.name, avg: r.avg7, c: RIVAL_COLORS[i % RIVAL_COLORS.length] })), { name: "You", avg: sc.avg, you: true }].sort((a, b) => b.avg - a.avg);
+  const me = board.findIndex(b => b.you);
+  const row = (b, i) => `<div class="tm-bd${b.you ? " you" : ""}${t && b.id === t.rival.id ? " next" : ""}"><span>${i + 1}</span><span class="tm-av" style="--c:${b.c || "var(--accent)"}">${b.you ? "YOU" : esc(initials(b.name))}</span><span>${esc(b.name)}${t && b.id === t.rival.id ? " <small>NEXT</small>" : ""}</span><b>${b.avg >= 10 ? Math.round(b.avg) : Math.round(b.avg * 10) / 10}</b></div>`;
+  /* the top three, the next corner's owner and you, in order */
+  const keep = new Set([0, 1, 2, me, t ? board.findIndex(b => b.id === t.rival.id) : -1]);
+  const shown = board.map((b, i) => keep.has(i) ? row(b, i) : "").filter(Boolean);
   const push = pressureLine(sc);
   $("tm-sbody").innerHTML = `
-    ${t ? `<p class="tm-line">Start with <b>${esc(t.first.title)}</b> (${mmss(songLength(t.first))}). Each song you play through lights one more hexagon.${t.rival.avg7 > sc.avg ? ` To hold it, keep up with ${esc(t.rival.name)}: <b>${Math.ceil(t.rival.avg7)} min a day</b>.` : ""}</p>` : ""}
     ${push ? `<p class="tm-push">${esc(push)}</p>` : ""}
-    <h2 class="tm-lab">Your scene this week · minutes a day</h2>
+    <h2 class="tm-lab"><span>Your scene this week</span><span>min a day</span></h2>
     <div class="tm-board">${shown.join("")}</div>
-    <p class="tm-line">You hold <b>${plural(sc.held, "hexagon")}</b>. About ${sc.guitarists.toLocaleString()} guitarists live around your turf; the typical one plays ${PRACTICE_MEDIAN} min a day.</p>
-    ${sc.spot ? `<p class="tm-line"><button class="linkish" id="tm-forget">Forget my spot</button></p>` : ""}
-    <p class="tm-fine">The other players are simulated from your area's population.</p>`;
-  $("tm-forget")?.addEventListener("click", () => { forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
+    <div class="tm-tiles"><div><b>${sc.held}</b><small>HEXAGON${sc.held === 1 ? "" : "S"} YOU HOLD</small></div><div><b>${sc.taken}</b><small>CORNER${sc.taken === 1 ? "" : "S"} TAKEN</small></div></div>`;
+  $("tm-info").onclick = () => mapInfo(sc, v);
   const sheet = $("tm-sheet"), head = $("tm-sh"), page = document.querySelector(".tm-page");
   const size = () => {
     const peek = head.offsetHeight + parseFloat(getComputedStyle(sheet).paddingBottom || "0");
@@ -146,6 +149,18 @@ function sceneSheet(sc) {
     $("tm-take-go").onclick = () => playSong(t.first.id);
     $("tm-find").onclick = () => { drawer.close(); map?.flyTo(cellCentre(sc.at, sc.plan.cell), Math.max(map.getZoom(), 15), { duration: 0.8 }); };
   }
+}
+/* About the map: your venue, how the other players work, and forgetting your spot */
+function mapInfo(sc, v) {
+  layer.innerHTML = `<div class="scrim" id="mi-scrim"></div><div class="panel card" role="dialog" aria-label="About the map">
+    <h2>About the map</h2>
+    <p class="tm-line"><b>${esc(v.name)}</b>: ${plural(v.toNext, "play")} to the ${esc(v.next)}. Each song you play through lights one more hexagon.</p>
+    <p class="tm-line">The other players are simulated from your area's population: about ${sc.guitarists.toLocaleString()} guitarists live around your turf.</p>
+    ${sc.spot ? `<p class="tm-line">Your spot is kept on this phone, rounded to about a kilometre.</p>` : ""}
+    <div class="actions">${sc.spot ? `<button class="btn" id="tm-forget">Forget my spot</button>` : ""}<button class="btn primary" id="mi-x">Done</button></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("mi-scrim").onclick = close; document.getElementById("mi-x").onclick = close;
+  document.getElementById("tm-forget")?.addEventListener("click", () => { close(); forgetSpot(); toast("Spot forgotten. Your turf stays."); renderPlayMap(); });
 }
 const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
 

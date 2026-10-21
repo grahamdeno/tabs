@@ -1939,6 +1939,27 @@ test("Friends (4.13.0): the friends list and the Friend quest from XP that rides
   assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests);
 });
 
+test("Tour Map (4.18.0): rivals never share a word in their names, and corners taken count rival hexagons you newly hold", () => {
+  for (const seed of [1, 7, 42, 99, 1234, 98765]) {
+    const rv = C.simulateRivals({ seed, guitarists: 5000 });
+    const words = rv.flatMap(r => r.name.split(" ").length === 2 ? r.name.split(" ") : [r.name]);
+    const firsts = rv.map(r => r.name.split(" ").slice(0, -1).join(" ")), lasts = rv.map(r => r.name.split(" ").at(-1));
+    assert.equal(new Set(firsts).size, rv.length, `no shared first word (seed ${seed})`);
+    assert.equal(new Set(lasts).size, rv.length, `no shared last word (seed ${seed})`);
+    assert.ok(words.length >= rv.length);
+  }
+  const rivals = C.simulateRivals({ seed: 42, guitarists: 5000, userRings: 1 });
+  const data = { songs: [], settings: {} };
+  assert.equal(C.cornersSettle(data, 7, rivals), 0, "the first look only remembers what you hold");
+  assert.equal(data.tour.seen, 7);
+  const { owner } = C.sceneMap(C.hexSpiral(7), rivals), next = C.hexSpiral(60).slice(7);
+  const theirs = next.filter(c => (owner.get(c[0] + "," + c[1]) || "you") !== "you").length;
+  assert.equal(C.cornersSettle(data, 60, rivals), theirs);
+  assert.equal(data.tour.taken || 0, theirs);
+  assert.equal(C.cleanTour(data.tour).taken || 0, theirs, "kept in saves");
+  assert.equal(C.cornersSettle(data, 60, rivals), 0, "nothing new");
+});
+
 test("Levels and badges (4.17.0): XP from plays and gigs, levels that take a little longer each time, badges from what's saved", () => {
   const now = new Date(2026, 9, 21, 20).getTime();
   assert.deepEqual([1, 2, 3, 4].map(C.levelStart), [0, 100, 300, 600]);
