@@ -68,8 +68,12 @@ The README describes each as it works today.
 
 | Area | File |
 |---|---|
-| Pure logic, parsing, chords, Changes, tuner math (unit tested) | `core.js` |
-| Songbook, song page, playback, Find songs, router | `app.js` |
+| Pure logic (unit tested): storage, markup, backups, tuner maths, German, Strum it; re-exports every topic | `core.js` |
+| Core topics: chords, recording, sketch, playing, groove, turf, neck, game (4.15.1) | `core/*.js` (import from `core.js`, not these) |
+| Song page, playback, Find songs, router | `app.js` |
+| Songbook: search, filters, list, swipes, paste card | `library.js` |
+| The band: metronome, drums, bass | `audio.js` |
+| AI help: the request to Anthropic, errors, limits | `aihelp.js` |
 | Share links, opening a shared link, Play together | `share.js` |
 | Listen: recordings, previews, length from the recording | `listen.js` |
 | The bar folding into Play's corner while playing, pull down to go back | `fold.js` |
@@ -92,7 +96,7 @@ The README describes each as it works today.
 | The Gig: the scored show over a playing song | `gig.js` (scoring: `gigChange` and friends in `core.js`) |
 | Offline copy; lists every app file | `sw.js` |
 
-A new app `.js` file must be added to `SHELL` in `sw.js` (a test checks).
+A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a test checks). Topic files in `core/` must not read another file's values while loading (only inside functions), since they import each other.
 
 ## Tests
 

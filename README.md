@@ -107,8 +107,11 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 |---|---|
 | `index.html` | Page shell and content security policy |
 | `styles.css` | All styles; the version 4 look is at the end |
-| `core.js` | Data, parsing, chords, transposing, Changes, tuner math. No screen code; unit tested |
-| `app.js` | Songbook, song page (auto-scroll, Now and Next, song map, iPad layouts, pedals), Find songs, router |
+| `core.js`, `core/` | Data and logic with no screen code, unit tested. `core.js` keeps storage, markup, backups and tuner maths and re-exports the topics in `core/` (chords, recording, sketch, playing, groove, turf, neck, game) |
+| `app.js` | Song page (auto-scroll, Now and Next, song map, iPad layouts, pedals), Find songs, router |
+| `library.js` | The Songbook: search, filters, the song list, swipes, the paste card |
+| `audio.js` | Metronome, drums and bass |
+| `aihelp.js` | AI help: the request to Anthropic, errors and limits |
 | `ui.js` | Icons, toasts, `ask()` questions, `onLeave` and `onScroll` hooks. Depends only on `core.js` |
 | `editor.js` | Editing in place, new songs, writing mode, tap tempo, chord picker |
 | `settings.js` | Settings menu and pages, Recently deleted |

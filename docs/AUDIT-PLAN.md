@@ -160,9 +160,9 @@ Bump the patch version, push (rules 3 and 6).
 
 ## Step 5 [Opus, optional, only if D4 is yes]: split the big files
 
-- [ ] Split `app.js` into `library.js` (Library and paste card), `audio.js` (metronome, drums, bass) and `aihelp.js` (AI help). Keep the router and song screen in `app.js`.
-- [ ] Split `core.js` into topic files, re-exported from `core.js` so no import elsewhere changes.
-- [ ] Add each new file to `SHELL` in sw.js.
+- [x] Split `app.js` into `library.js` (Library and paste card), `audio.js` (metronome, drums, bass) and `aihelp.js` (AI help). Keep the router and song screen in `app.js`.
+- [x] Split `core.js` into topic files, re-exported from `core.js` so no import elsewhere changes.
+- [x] Add each new file to `SHELL` in sw.js.
 
 ## Step 6 [Sonnet]: faster, steadier browser tests
 
@@ -230,3 +230,12 @@ Bump the patch version, push (rules 3 and 6).
 - 4.4 (D3, decided as a low-friction designer): retired Stage mode (the Gig is the stage; the set's Stage chip went too), Song map and Diagrams when paused (both always on now). Now and Next stays, in Tools only. Focus current line moved to Playing, so the Chord diagrams page is gone (8 settings pages). Speed style stays: each song saves its speed in one style or the other, so removing it would change saved songs. `migrate()` drops `stage`, `songMap` and `pauseDiagrams`.
 - 4.5: the streak celebration is around Louie: the streak colour floods the screen (Neon uses cyan so pink Louie shows), rays turn, Louie drops and squashes on landing, a flame that grows with the tier and confetti burst, the count rolls up and the week fills in. The share picture is Festival colours with Louie. The old pick, neck and fireworks drawing and their styles are gone.
 - Visual references: remake them now (D1 said after Step 4).
+
+### Notes from Step 5 (Opus 5.5, released as 4.15.1 and 4.15.2)
+
+- core.js 232 KB to 75 KB; eight topic files in core/ (chords 19, recording 13, sketch 25, playing 13, groove 13, turf 15, neck 12, game 45 KB). core.js re-exports all 299 names it had; six small helpers (DAY, dayKey, isObj, norm, playDays, pruneDays) are newly exported for the topics.
+- app.js 178 KB to 116 KB: library.js (38 KB, with the four search and filter state variables and leaveSearch, so only it writes them), audio.js (17 KB), aihelp.js (9 KB). app.js exports everything it did.
+- The split was done by a parser (acorn) that lists each section's definitions, what it uses from elsewhere, what it writes and what runs at load. No section reads another's values at load, so the files import each other safely.
+- The import test now reads core/ and resolves "../" paths; ESLint covers core/*.js; quick.mjs maps the new files.
+- Flaky: "a bass riff: drawn in Edit" fails in the parallel quick run but passes alone, before and after the split. A Step 6 candidate.
+- app.js could split further (the song menu, the tuner glue, Speed, Practice a section). Not needed now.
