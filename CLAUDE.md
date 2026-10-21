@@ -22,6 +22,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
   and don't change how keys are stored.
 - He uses the phone one-handed, mostly right hand: put actions people reach
   for mid-song in thumb reach (bottom of sheets, `pfoot`, the bar).
+- Lines in a gig: 5 by default (Graham, 2026-10-21, confirmed after 4.2.3).
 - No ring controls (Graham, 3.19.0): on a phone the rectangular bar is out
   while paused and folds into Play's corner while playing. Don't bring back
   the hold-Play ring, the arc, the island or Play following the hand.
@@ -55,7 +56,6 @@ The README describes each as it works today.
 - Real-player league (competition step 4, Graham 2026-10-21): real players at
   your tier from a server at App Store launch, computer players filling empty
   spots. Friends stay a separate layer.
-- Lines in a gig: default 5; Graham was leaning to keep it after 4.2.3, confirm.
 - Apple Music ideas not built yet (Apple Music features only work with Apple
   Music turned on): playlists both ways; heavy rotation against the chords he
   knows; other versions and music videos in the Recording sheet; Play together
