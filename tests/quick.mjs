@@ -20,7 +20,7 @@ const COVERS = {
   /* core/ (4.15.1): each topic's screens */
   "core/chords.js": ["app", "regress"], "core/recording.js": ["app"], "core/sketch.js": ["strum", "app"],
   "core/playing.js": ["profile", "today"], "core/groove.js": ["app"], "core/turf.js": ["app"],
-  "core/neck.js": ["practice"], "core/game.js": ["app", "duet"],
+  "core/neck.js": ["practice"], "core/game.js": ["app", "duet", "gig"],
   "ui.js": ["app", "regress"],
   "settings.js": ["settings", "today"],
   "findai.js": ["playnext", "getsong"],
@@ -39,7 +39,7 @@ const COVERS = {
   "sw.js": ["app"],
   "profile.js": ["profile"],
   "practice.js": ["practice"],
-  "gig.js": ["app"], "tour.js": ["app"], "charts.js": ["app"], "band.js": ["app"], "friends.js": ["app"], "merch.js": ["app"], "hud.js": ["app"],
+  "gig.js": ["app", "gig"], "tour.js": ["app"], "charts.js": ["app"], "band.js": ["app"], "friends.js": ["app"], "merch.js": ["app", "gig"], "hud.js": ["app"],
   "road.js": ["app"], "duel.js": ["app"], "share.js": ["app", "duet"], "listen.js": ["app", "getsong"], "playmap.js": ["app"],
   "scene.js": ["app"], "drawer.js": ["app"], "dial.js": ["app"], "crop.js": ["app"], "louie.js": ["regress"]
 };

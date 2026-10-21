@@ -174,15 +174,15 @@ Bump the patch version, push (rules 3 and 6).
 
 ## Step 7 [Opus]: test coverage and final review
 
-- [ ] **7.1 Cover the Gig.** Most tests set `plainPlay: true`. Add a small set where it's false:
+- [x] **7.1 Cover the Gig.** Most tests set `plainPlay: true`. Add a small set where it's false:
   - Play opens the Gig
   - Lines 4, 5, 6 and Full
   - pause and resume
   - Show complete with the merch tip and a Double set
 
   Fix the Gig test that flakes when the machine is busy.
-- [ ] **7.2 Overlap.** Read app, app2 and app3 for tests that check the same path. Merge or delete duplicates, and list what went.
-- [ ] **7.3 Final review** of everything, then delete this file's ticked steps or move it to `docs/history/`.
+- [x] **7.2 Overlap.** Read app, app2 and app3 for tests that check the same path. Merge or delete duplicates, and list what went.
+- [x] **7.3 Final review** of everything, then delete this file's ticked steps or move it to `docs/history/`.
 
 ## Surprises
 
@@ -251,4 +251,25 @@ Bump the patch version, push (rules 3 and 6).
 - DATA.md reformat (Settings as tables) was done earlier in this release series.
 - The flaky "a bass riff: drawn in Edit" test passed in every run here, including the full `node tests/quick.mjs` (285 of 285). It was not changed; watch CI.
 - Step 7 wants Opus.
+
+### Notes from Step 7 (Opus 5.5, 2026-10-21; tests and docs only, so no version bump)
+
+- 7.1: `tests/e2e/gig.e2e.mjs` holds the Gig tests, all with `plainPlay` off:
+  - a scored show from Play to Show complete: Lines from settings, Hearing you on and off, pause, Tools with only mid-song items, Resume, the chorus gel, graded changes, a Double set used (2 to 1), the merch tip said once and opening the Merch table, Best show on the song
+  - Lines 4, 5 and 6 from Tools while paused, keeping the line you stopped on; Resume moves on; Sheet goes back paused
+  - the two existing ones moved from app3: dragging the Gig (4.2.2) and Full (4.4.0)
+  - `quick.mjs` runs it when `gig.js`, `merch.js` or `core/game.js` change.
+- The Gig flake: the test replaced the library right after the first load, and on a busy machine the app's own first save could land on top of it. The scored test now seeds the library before the app starts (`addInitScript`), so there is no race. The same race is why Step 6.2 failed; the harness keeps its 300 ms for now.
+- Two more flakes found under heavy load (6 test files at once) and fixed: the sketch test's Undo toast and the bass riff sheet's scrim could fail Playwright's "stable" check or time out; both are now tapped in one step inside the page.
+- Under that load, gig, app, app2, app3 and tips passed 4 runs of 70 tests with no failures.
+- 7.2, merged (each kept every check the two had, one browser start fewer):
+  - Tips & gestures: app's list-and-Show-me test and app3's 2.6.4 test are one test in app. Each demo's tip stays covered by `tips.e2e.mjs`.
+  - Tuner: app3's octave-slip test (2.16.1) is a step in app's guided tuner test.
+  - Speed dial: app3's 2.6.5 (wobble, nothing selectable, Undo) and app2's 2.1 (sweep, save, the Speed tile) are one test in app2. The 2.16.5 corner-slip and 2.25.0 meter tests stay: different cases.
+  - Looked at and kept: the bass tests (root, walking line, riff each test something else), Back from a set vs pull down to go back, the two 3.19.0 one-hand tests (song vs set dial), regress's main path vs app's single-song tests (regress runs at three sizes).
+- 7.3, final review:
+  - CI was green on every push from 4.14.2 (after its fix) to 4.15.3.
+  - About 18 functions are exported but only used in their own file (for example `closeGig`, `openMore`, `applyWear`). Harmless; left alone.
+  - Test files outside Step 6's list still have about 30 fixed sleeps (duet, getsong, swipe, visual, practice, profile, tips, a11y, changes). Same method if they ever flake.
+  - CLAUDE.md and README point at `gig.e2e.mjs`, `settled()`, `until()` and saved-value waits; this file moved to `docs/history/`.
 

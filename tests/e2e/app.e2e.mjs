@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser, until } from "./harness.mjs";
+import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled } from "./harness.mjs";
 
 useBrowser();
 
@@ -302,6 +302,9 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.equal((await read()).say, "Play the E string");
   assert.equal(await page.locator(".tn-tile.on").textContent(), "Acoustic");
   const at = (hz, cents) => page.evaluate(f => { window.__hz = f; }, hz * 2 ** (cents / 1200));
+  /* 2.16.1: an octave slip on the low E still reads E, 20 cents flat, not a far-off note */
+  await at(82.41 * 2, -20); await page.waitForFunction(() => document.getElementById('tn-n').textContent === 'E' && document.getElementById('tn-say').textContent === 'Tighten the E string');
+  await at(0, 0);
   await at(82.41, -25); await page.waitForFunction(() => document.getElementById('tn-say').textContent === 'Tighten the E string');
   assert.deepEqual(await read(), { note: "E", say: "Tighten the E string", tag: "Too low" });
   await at(82.41, -4); await page.waitForFunction(() => parseFloat(document.getElementById('tn-dot').style.left) < 42);
@@ -335,22 +338,22 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.deepEqual(errors, []);
 });
 
-test("Tips & gestures lists every gesture and Show me replays a tip where it happens", { skip: skip() }, async t => {
+test("Tips & gestures (2.6.4): opens from Help, one-hand group first, no button-only rows, and Show me plays the real thing", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.goto(base + "#/settings/help");
   await page.click("#s-tips");
-  await page.waitForSelector('.gs-row');
-  assert.ok(await page.locator(".gs-row").count() >= 20, "all gestures listed");
+  await page.waitForFunction(() => /One hand/i.test(document.querySelector(".label")?.textContent || "")); await settled(page);
+  const rows = await page.locator(".gs-row").count();
+  assert.ok(rows >= 20 && rows <= 24, `every gesture, trimmed (${rows})`);
+  const text = await page.innerText("#app");
+  for (const t of ["Press Play", "Pull down at the top", "Tools, then Speed"]) assert.ok(text.includes(t), t);
+  for (const t of ["Hold Play", "Sweep the arc", "Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
   // The page itself scrolls (it isn't a sheet over Settings).
   await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
   assert.ok(await page.evaluate(() => scrollY > 200));
-  await page.click("[data-demo='search']");
-  await page.waitForFunction(() => /Paste a chord sheet to add it/.test([...document.querySelectorAll('.coach')].pop()?.innerText || ''));
-  assert.match(await page.locator(".coach").last().innerText(), /Paste a chord sheet to add it/);
-  await page.goto(base + "#/gestures");
+  /* Each demo's tip is checked in tips.e2e.mjs; here, one shows the real screen behind it. */
   await page.click("[data-demo='line']");
   await page.waitForFunction(() => /Tap a line to start from it/.test([...document.querySelectorAll('.coach')].pop()?.innerText || ''));
-  assert.match(await page.locator(".coach").last().innerText(), /Tap a line to start from it/);
   assert.ok(await page.evaluate(() => document.getElementById("sheet").classList.contains("focus")), "real focus look");
 });
 

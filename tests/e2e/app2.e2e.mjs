@@ -120,7 +120,7 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   await page.click("[data-st='rich']"); await page.waitForFunction(() => /\nD7\s+G\nHome to you/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
   const body = async () => JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch).body;
   assert.match(await body(), /\nD7\s+G\nHome to you/, "Rich: the V chord becomes D7");
-  await page.waitForSelector("#toast.show .tact"); await page.click("#toast .tact", { force: true }); await page.waitForFunction(() => !/D7/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
+  await page.waitForSelector("#toast .tact", { state: "attached" }); await page.evaluate(() => document.querySelector("#toast .tact").click()); /* in one step, and even if a busy machine let the toast time out */ await page.waitForFunction(() => !/D7/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.sketch).body));
   assert.match(await body(), /\nD\s+G\nHome to you/, "Undo");
   // Hear it back: the first line is lit while it plays, then Stop.
   await page.click("#sk-hear"); await page.waitForSelector('#sheet > .pr.skcur');
@@ -338,27 +338,38 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: tuner at the top");
 });
 
-test("2.1 speed dial (4.2.0: Tools, then Speed): sweep the corner; the length follows and saves", { skip: skip() }, async t => {
+test("2.1, 2.6.5 speed dial (4.2.0: Tools, then Speed): a wobble changes nothing; a sweep sets the length, saves, and Undo puts it back", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
-  await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
+  await page.goto(base + "#/song/a"); await page.waitForSelector(".metarow"); await settled(page);
   const before = await speedText(page);
-  await openSpeed(page);
   const x = 250, y = 700;
+  // A small wobble changes nothing, and nothing on the dial gets selected.
+  await openSpeed(page);
+  await page.mouse.move(x, y); await page.mouse.down();
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".dial-big")).webkitUserSelect || getComputedStyle(document.querySelector(".dial-big")).userSelect), "none");
+  await page.mouse.move(x + 6, y - 8, { steps: 3 }); await page.mouse.up(); await page.waitForTimeout(300); /* real timer: let a wobble settle */
+  if (await page.locator(".dial").count()) { await page.mouse.click(60, 120); await page.waitForSelector(".dial", { state: "detached" }); }
+  assert.equal(await speedText(page), before, "a small wobble changes nothing");
+  // A real sweep: it closes on release and the page keeps what the dial showed.
+  await openSpeed(page);
   await page.mouse.move(x, y); await page.mouse.down();
   await page.mouse.move(x + 60, y - 140, { steps: 8 });
   const shown = await page.textContent(".dial-big");
-  await page.mouse.up(); await page.waitForSelector('.dial', { state: 'detached' });
-  assert.equal(await page.locator(".dial").count(), 0, "it closes on release");
+  await page.mouse.up(); await page.waitForSelector(".dial", { state: "detached" });
   const after = await speedText(page);
   assert.notEqual(after, before, "the length changed");
   assert.equal(after, shown.trim(), "the page keeps what the dial showed");
-  assert.ok(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").durationSet, "saved");
-  await page.click("#more"); await page.waitForSelector('.menu');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "a").durationSet, null, { timeout: 5000 });
+  assert.match(await page.innerText("#toast"), /Length .*Undo/s);
+  await page.click("#more"); await page.waitForSelector(".menu");
   assert.match(await page.innerText('.menu [data-m="speed"]'), new RegExp(after), "the Speed tile shows it");
-  await page.click('.menu [data-m="speed"]'); await page.waitForSelector('.dial');
-  assert.equal(await page.locator(".dial").count(), 1);
-  await page.mouse.click(60, 120); await page.waitForSelector('.dial', { state: 'detached' });
+  await page.click('.menu [data-m="speed"]'); await page.waitForSelector(".dial");
+  await page.mouse.click(60, 120); await page.waitForSelector(".dial", { state: "detached" });
   assert.equal(await page.locator(".dial").count(), 0, "a tap off it closes it");
+  // Undo puts it back.
+  await page.waitForSelector("#toast .tact", { state: "attached" }); await page.evaluate(() => document.querySelector("#toast .tact").click());
+  await until(async () => (await speedText(page)) === before);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "a").duration === 200);
 });
 
 test("2.1 set dial: in a set, sweep to a song and let go to open it", { skip: skip() }, async t => {

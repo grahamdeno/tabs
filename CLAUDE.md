@@ -62,7 +62,6 @@ The README describes each as it works today.
   on the recording; mic chord check during a play-along ("Chorus, 3rd chord
   sounds like Em"), which also brings "learn from your playing"; small touches
   (about this song, more from this artist, listened vs played).
-- The clean-up plan in docs/AUDIT-PLAN.md: steps 5 to 7.
 
 ## Where things are
 
@@ -109,8 +108,15 @@ A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a te
   when he asks or something points to a failure there. Most long sleeps in the tests are real
   timers being checked (Play settling after 5 s), so leave those.
 - Browser tests use `phone()` from `tests/e2e/harness.mjs`; mock network calls
-  with `page.route`. Prefer `waitForSelector` / `waitForFunction` over fixed
-  `waitForTimeout` sleeps in new tests.
+  with `page.route`. Wait for the thing the next line checks
+  (`waitForSelector` / `waitForFunction`), not a fixed `waitForTimeout`; a
+  sleep that tests a real timer stays, marked `/* real timer */` (4.15.3).
+  - Saves land after the screen changes: to check `localStorage`, wait on the
+    saved value itself.
+  - After a screen change, `settled(page)` before a tap (the cross-fade holds
+    taps off the new screen). `until(cond)` waits on the test's side.
+  - The Gig (the main Play path) has its own file, `gig.e2e.mjs`; elsewhere
+    `LIB` sets `plainPlay: true`.
 - Edit with exact, unique matches and check what changed: a find-and-replace
   that hit the old ring instead of More shipped broken buttons in 3.13.0/3.14.0.
 - Screenshots for Graham: write a throwaway `tests/e2e/zz_*.e2e.mjs` that
@@ -142,7 +148,7 @@ A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a te
 ## Larger jobs: plan with Opus, run with Sonnet
 
 For a clean-up or a multi-release job, Opus writes a plan file (like
-docs/AUDIT-PLAN.md) with numbered steps, each marked [Sonnet] or [Opus] and
+docs/history/AUDIT-PLAN.md) with numbered steps, each marked [Sonnet] or [Opus] and
 any decisions Graham needs to make listed up top. Whoever runs a step: one
 task per commit, `eslint .` and `node tests/quick.mjs`, bump the patch at the
 end of a step that changes app files, rebase and push. When something doesn't
