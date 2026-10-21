@@ -2799,7 +2799,8 @@ function renderRoute() {
   else if (r.name === "import") renderImport(r.id);
   else if (r.name === "road") lazy("road.js").then(m => { if (route().name === "road") { m.renderRoad(); window.scrollTo(0, 0); } });
   else if (r.name === "tour") lazy("tour.js").then(m => { if (route().name === "tour") { m.renderTour(); window.scrollTo(0, 0); } });
-  else if (r.name === "charts" || r.name === "band") lazy("hud.js").then(m => { if (route().name === r.name) { m.renderSoon(r.name); window.scrollTo(0, 0); } });
+  else if (r.name === "charts") lazy("charts.js").then(m => { if (route().name === "charts") { m.renderCharts(); window.scrollTo(0, 0); } });
+  else if (r.name === "band") lazy("hud.js").then(m => { if (route().name === "band") { m.renderSoon("band"); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }
 

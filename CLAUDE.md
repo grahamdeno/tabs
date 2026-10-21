@@ -51,10 +51,11 @@ mockup first. Pip stays but must not be rainbow. Eleven more (2026-10-21): Beat
 bass drum, Slide brass slide, Strap guitar strap (multicolor is fine), Key keyboard key, Reed
 clarinet reed, Cable audio cable, Boomer boom mic, Metro metronome, Pickup
 single-coil, Whammy whammy bar; 17 in all, collected as rewards. Still to build, one release each, stopping after
-each for Graham to try: Tour quests (done in 4.5.0, `tour.js`; duet quest waits for XP), Charts (record tiers,
-promotion, rival battles), Your band (players join by venue, heard in the
+each for Graham to try: Tour quests (done in 4.5.0, `tour.js`; duet quest waits for XP), Charts (done in 4.6.0, `charts.js`: XP, weekly chart
+per tier, top 5 move up, records, daily rival battle; nobody moves down), Your band (players join by venue, heard in the
 backing), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
-backdrops). XP arrives with Charts; until then the Road shows fans.
+backdrops). The stat bar still shows fans (Merch spends them); XP lives on Charts.
+The Tour duet quest stays locked until a friend's XP can reach the phone.
 
 ## Next up (Graham's order, agreed 2026-10-19)
 
@@ -116,8 +117,9 @@ release so Graham can try it.
 | German practice | `german.js` |
 | The neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
 | The Road (home, 4.0.0): path, Louie, Library drawer | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
-| Stat bar, tab bar, More sheet, Coming soon (Charts, Band) | `hud.js` |
+| Stat bar, tab bar, More sheet, Coming soon (Band) | `hud.js` |
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
+| Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
 | Pull-up drawers: the Road's Library, the Tour Map's scene sheet | `drawer.js` (used by `road.js`, `playmap.js`) |
 | Offline copy; lists every app file | `sw.js` |

@@ -2779,3 +2779,59 @@ body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
 .tq-ckd { fill: var(--fans-deep); } .tq-ck { fill: var(--fans); }
 .tq-bxd { fill: var(--streak-deep, var(--streak)); } .tq-bx { fill: var(--streak); } .tq-lid { fill: var(--fans); } .tq-rib { fill: var(--strings); }
 .tq-lock { opacity: .65; border-style: dashed; }
+/* ==========================================================================
+   Charts (4.6.0): the weekly chart at your tier, records, rival battles
+   ========================================================================== */
+.ch, .bt { padding-bottom: calc(var(--tabs) + 24px); }
+.ch-last { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; padding: 10px 12px; border-radius: 16px; background: var(--fans); color: #14213D; }
+.ch-last p { flex: 1; margin: 0; font: 700 14.5px/1.35 var(--sans); }
+.ch-last .sb { flex: none; border: 0; border-radius: 10px; background: #fff; padding: 8px 12px; font: 700 14px var(--display); color: #14213D; }
+.ch-head { display: flex; align-items: center; gap: 10px; margin: 10px -20px 0; padding: 18px 20px; background: var(--strings); color: #fff; }
+.ch-head > div:first-child { flex: 1; }
+.ch-head h1 { margin: 0; font: 700 28px var(--display); }
+.ch-head small { font: 800 13px var(--sans); letter-spacing: .06em; opacity: .85; }
+.ch-recs { display: flex; gap: 2px; }
+.ch-vd { fill: #0B1226; } .ch-v { fill: #14213D; } .ch-lab { fill: var(--accent); } .ch-gold { fill: var(--fans); }
+.ch-sub { margin: 12px 2px 6px; font: 700 14px var(--sans); color: var(--muted); }
+.ch-list { list-style: none; margin: 0; padding: 0; }
+.ch-row { display: flex; align-items: center; gap: 12px; padding: 8px 6px; border-radius: 16px; }
+.ch-row.you { background: var(--card); border: 2px solid var(--strings); box-shadow: 0 3px 0 color-mix(in srgb, var(--strings) 45%, transparent); }
+.ch-rk { width: 24px; text-align: center; font: 700 17px var(--display); color: var(--muted); }
+.ch-row.up .ch-rk { color: var(--good); }
+.ch-av { width: 42px; height: 42px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 700 18px var(--display); color: #14213D; overflow: hidden; }
+.ch-av .louie { width: 34px; height: auto; }
+.ch-nm { flex: 1; min-width: 0; font: 700 17px var(--sans); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-xp { font: 700 16px var(--display); color: var(--fg-2); white-space: nowrap; }
+.ch-btl { flex: none; padding: 3px 8px; border-radius: 999px; background: var(--accent); color: #14213D; font: 800 10.5px var(--sans); letter-spacing: .06em; }
+.ch-zone { display: flex; align-items: center; gap: 10px; margin: 6px 0; font: 800 11.5px var(--sans); letter-spacing: .08em; color: var(--good); }
+.ch-zone::before, .ch-zone::after { content: ""; flex: 1; border-top: 2px dashed currentColor; opacity: .6; }
+.ch-go { display: flex; align-items: center; gap: 12px; margin: 14px 0 0; padding: 12px 14px; border-radius: 18px; background: var(--accent); box-shadow: 0 5px 0 var(--accent-deep); color: #14213D; }
+.ch-go.done { background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); color: var(--fg); }
+.ch-go p { flex: 1; margin: 0; font: 700 15px/1.35 var(--sans); }
+.ch-gobtn { flex: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 35%, #fff); font: 700 16px var(--display); color: var(--accent-deep); }
+.ch-how { margin: 16px 2px 0; font: 700 12.5px/1.45 var(--sans); color: var(--muted); }
+/* the battle */
+.bt { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-top: 12px; }
+.bt-x { position: absolute; left: 0; top: 8px; }
+.bt-h { margin-top: 10px; font: 800 12px var(--sans); letter-spacing: .08em; color: var(--accent); }
+.bt h1 { margin: 0; font: 700 26px/1.15 var(--display); color: var(--fg); }
+.bt-s { margin: 0; font: 700 15px/1.4 var(--sans); color: var(--fg-2); max-width: 320px; }
+.bt-vs { display: flex; align-items: center; justify-content: space-around; width: 100%; margin-top: 6px; }
+.bt-p { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 40%; }
+.bt-p .louie { width: 104px; height: auto; }
+.bt-p b { font: 700 17px var(--display); color: var(--fg); }
+.bt-p small { font: 700 13px var(--sans); color: var(--muted); }
+.bt-av { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; background: var(--streak); font: 700 44px var(--display); color: #14213D; box-shadow: 0 5px 0 var(--streak-deep, var(--streak)); }
+.bt-v { font: 700 26px var(--display); color: var(--accent); }
+.bt-song { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 18px; background: var(--card); border: 2px solid var(--rim); }
+.bt-song b { display: block; font: 700 19px var(--display); color: var(--fg); }
+.bt-song small { font: 700 13px var(--sans); color: var(--muted); }
+.bt-tiles { display: flex; gap: 10px; width: 100%; }
+.bt-t { flex: 1; border-radius: 16px; padding: 10px; text-align: left; }
+.bt-t small { display: block; font: 800 11.5px var(--sans); letter-spacing: .08em; }
+.bt-t b { font: 700 14.5px var(--sans); }
+.bt-t.win { background: var(--good-soft, var(--card)); border: 2px solid var(--good); color: var(--fg); }
+.bt-t.lose { background: var(--card); border: 2px solid var(--rim); color: var(--fg-2); }
+.bt-note { margin: 0; font: 700 13px var(--sans); color: var(--muted); }
+.bt-acts { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 4px; }
+.bt-acts .btn { width: 100%; height: 56px; flex: none; }

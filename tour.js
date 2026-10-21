@@ -1,7 +1,7 @@
 // Tour quests (4.5.0): the Tour tab.
 //   the month's tour   play 20 shows this month (any play counts); 100 fans when it's done
 //   request line       a fan asks for one of your songs each day; played as a gig, its bonus fans double
-//   duet quest         earn XP with a friend: arrives with Charts, where XP begins
+//   duet quest         earn XP with a friend: waits until a friend's XP can reach your phone (Your band)
 //   tonight's setlist  three small goals a day, 10 fans each and 25 more for all three
 // The numbers are worked out in core.js (questState, questsSettle); fans are credited when you open the tab
 // or finish a play.
@@ -44,9 +44,9 @@ export function renderTour() {
         ${st.goals.map(g => `<div class="tq-row${g.done ? " done" : ""}"><div class="tq-rg"><b>${esc(g.label)}</b>${bar(g.have, g.need, g.done ? "full" : "")}<small>${g.have} / ${g.need}${g.done ? "" : ` · ${QUEST.goalFans} fans`}</small></div>${g.done ? CHECK : BOX(`${QUEST.goalFans} fans`)}</div>`).join("")}
         <p class="tq-foot">${st.setDone ? `All three done: +${QUEST.setFans} fans. New goals tomorrow.` : `All three: ${QUEST.setFans} more fans.`}</p>
       </section>
-      <h2 class="tq-h"><span>DUET QUEST</span><span>WITH CHARTS</span></h2>
+      <h2 class="tq-h"><span>DUET QUEST</span><span>LATER</span></h2>
       <section class="tq-card tq-lock" aria-label="Duet quest">
-        <div class="tq-row"><div class="tq-rg"><b>Earn XP together</b><small>Play together with a friend toward one goal. It arrives with Charts, where XP begins.</small></div>${BOX("A merch box")}</div>
+        <div class="tq-row"><div class="tq-rg"><b>Earn XP together</b><small>Play together with a friend toward one XP goal. It needs your friend's XP on your phone, which comes with Your band.</small></div>${BOX("A merch box")}</div>
       </section>
     </div>`;
   bindStatBar();

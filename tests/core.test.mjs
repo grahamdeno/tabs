@@ -1830,6 +1830,45 @@ test("Tour quests (4.5.0): the month's tour, tonight's setlist and the request l
   assert.equal(C.cleanQuests({ fans: -4, got: ["x"] }), null);
 });
 
+test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles", () => {
+  const mon = new Date(2026, 9, 19, 9).getTime(), wed = mon + 2 * 86400e3;
+  assert.equal(C.weekOf(wed), "2026-10-19"); assert.equal(C.weekOf(new Date(2026, 9, 25, 23).getTime()), "2026-10-19", "Sunday is the same week");
+  const song = { id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 3, last: 0, days: { "2026-10-20": 3, "2026-10-12": 5 } } };
+  const data = { songs: [song], sets: [], trash: [], settings: {} };
+  C.addXP(data, 7, wed);
+  assert.equal(C.weekXP(data, "2026-10-19"), 37, "10 a play this week, and kept XP");
+  const r1 = C.chartRivals("2026-10-19", 0, 0.5), r2 = C.chartRivals("2026-10-19", 0, 1);
+  assert.equal(r1.length, 9); assert.deepEqual(r1.map(x => x.name), r2.map(x => x.name), "the same players all week");
+  assert.ok(r1.every((x, i) => x.xp <= r2[i].xp), "their XP grows through the week");
+  const st = C.chartState(data, wed);
+  assert.equal(st.name, "Garage"); assert.equal(st.next, "Open mic"); assert.equal(st.rows.length, 10); assert.equal(st.daysLeft, 5);
+  assert.equal(st.you.xp, 37);
+  /* the first look starts the week; the next week settles it */
+  assert.equal(C.chartsSettle(data, wed), null);
+  data.xp.days["2026-10-21"] = 5000;
+  const last = C.chartsSettle(data, wed + 7 * 86400e3);
+  assert.deepEqual([last.rank, last.up, data.charts.tier], [1, true, 1], "first place: up to the Open mic");
+  assert.deepEqual(data.charts.records, [{ tier: 0, week: "2026-10-19", rank: 1 }]);
+  assert.equal(C.chartsSettle(data, wed + 7 * 86400e3), null, "once a week");
+  /* a quiet week: no move, no record, nobody moves down */
+  C.chartsSettle(data, wed + 14 * 86400e3);
+  assert.deepEqual([data.charts.last.xp, data.charts.last.up, data.charts.tier, data.charts.records.length], [0, false, 1, 1]);
+  /* the battle: the player above you, a song of yours, a score to beat */
+  const now = wed + 14 * 86400e3, b = C.startBattle(data, now);
+  assert.equal(b.songId, "a"); assert.ok(b.target >= 55 && b.target <= 95);
+  assert.equal(b.rival, C.chartState(data, now).rival.name);
+  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.gigChange(g, i, [i]);
+  const fans0 = C.fansOf(data, now), xp0 = C.weekXP(data, C.weekOf(now));
+  const r = C.gigDone(data, "a", g, false, now);
+  assert.equal(r.battle.result, "won"); assert.equal(r.battle.pct, 100);
+  assert.equal(C.weekXP(data, C.weekOf(now)) - xp0, 10 + 10 + 30, "landed changes, the crowd and the battle");
+  assert.ok(C.fansOf(data, now) - fans0 >= 40, "40 fans for the win");
+  assert.equal(C.gigDone(data, "a", g, false, now).battle, undefined, "one battle a day");
+  const kept = C.cleanCharts(JSON.parse(JSON.stringify(data.charts)));
+  assert.deepEqual(kept, data.charts, "kept through a save");
+  assert.deepEqual(C.cleanXP(JSON.parse(JSON.stringify(data.xp))), data.xp);
+});
+
 test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Verse 2"), "verse");
   assert.equal(C.gelOf("Chorus"), "chorus");
