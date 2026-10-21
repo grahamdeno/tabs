@@ -7,20 +7,17 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
-import { app, esc, icon, toast } from "./ui.js";
-import { data, go } from "./app.js";
+import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
+import { app, esc, icon, layer, toast } from "./ui.js";
+import { chordSVG, data, go } from "./app.js";
 import { louie } from "./louie.js";
 import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
 import { friend } from "./friends.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const shortDay = d => { const [y, m, dd] = String(d).split("-"); return y && m ? `${MONTHS[+m - 1]} ${+dd || ""}${y !== String(new Date().getFullYear()) ? `, ${y}` : ""}`.replace(" ,", ",") : ""; };
-const monthName = ym => { const [y, m] = String(ym).split("-"); return y && m ? `${FULL_MONTHS[+m - 1]}${y !== String(new Date().getFullYear()) ? ` ${y}` : ""}` : ""; };
 const hoursText = h => h >= 10 ? Math.round(h).toString() : h >= 1 ? h.toFixed(1) : String(Math.round(h * 60));
 const hoursUnit = h => h >= 1 ? "hours" : "minutes";
-const card = (title, line, body) => `<section class="pf-card"><h2>${title}</h2><p class="pf-line">${line}</p>${body}</section>`;
 
 export function renderProfile() {
   const p = profileOf(data);
@@ -28,62 +25,40 @@ export function renderProfile() {
   const nothing = !p.plays && !p.tune.sessions;
   const since = p.since ? `Since ${shortDay(p.since)}` : "";
 
-  /* The headline: three readouts set into an amp plate. */
-  const hero = `<div class="pf-plate" role="group" aria-label="Headline numbers">
-    <div class="pf-read"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)} played</span></div>
-    <div class="pf-read"><b>${p.songsPlayed}</b><span>song${p.songsPlayed === 1 ? "" : "s"} played</span></div>
-    <div class="pf-read"><b>${p.streak}</b><span>day streak${p.best > p.streak ? ` · best ${p.best}` : ""}</span></div>
-  </div>${p.practiceSecs >= 60 ? `<p class="pf-line pf-prac" id="pf-prac">Practice is part of that: ${Math.round(p.practiceSecs / 60)} min, worth ${Math.floor(p.practiceSecs / 240)} play${Math.floor(p.practiceSecs / 240) === 1 ? "" : "s"} on the Tour Map.</p>` : ""}`;
+  /* 4.19.0: the chord passport. A page per family with every chord to collect: earned stamps solid and
+     a little rotated like ink, the rest dashed. The next one to earn has Learn it (a lesson in Rehearse). */
+  const have = new Map(p.chords.map(c => [c.name, c]));
+  const nextUp = PASSPORT.flatMap(f => f.chords).find(c => !have.has(c));
+  const tilt = name => ((name.charCodeAt(0) * 7 + name.length * 13) % 11) - 5;
+  const stamp = (c, fam) => have.has(c)
+    ? `<button class="pf-pstamp on k-${fam}" data-stamp="${esc(c)}" style="--r:${tilt(c)}deg" aria-label="${esc(c)}: stamped. Show it">${esc(c)}</button>`
+    : `<span class="pf-pstamp${c === nextUp ? " next" : ""}" aria-label="${esc(c)}: ${c === nextUp ? "next to earn" : "not yet"}">${esc(c)}</span>`;
+  const extra = p.chords.filter(c => !PASSPORT.some(f => f.chords.includes(c.name)));
+  const pages = [...PASSPORT, ...(extra.length ? [{ id: "other", name: "More chords", chords: extra.map(c => c.name), all: true }] : [])];
+  const passport = `<div class="pf-label"><span>CHORD PASSPORT</span><span>${p.chords.length} stamped</span></div>
+    <section class="pf-passport">${pages.map(f => { const got = f.chords.filter(c => have.has(c)).length;
+      return `<div class="pf-ppage"><div class="pf-ppage-h"><b>${esc(f.name)}</b><span>${f.all ? got : `${got} of ${f.chords.length}`}</span></div><div class="pf-pgrid">${f.chords.map(c => stamp(c, f.id)).join("")}</div></div>`; }).join("")}
+      ${nextUp ? `<div class="pf-pnext"><span><small>NEXT STAMP</small><b>${esc(nextUp)}</b></span><button class="btn primary" id="pf-learn" data-chord="${esc(nextUp)}">Learn it</button></div>` : ""}
+    </section>`;
 
-  const firsts = p.firsts.length ? `<div class="pf-firsts" aria-label="Latest milestones">${p.firsts.map(f => `<span class="pf-first${f.kind === "chord" && /^(F|Bm|F#m|Bb|B|C#m|Gm|Cm)$/.test(f.name) ? " big" : ""}"><i class="nx-lamp"></i>${f.kind === "chord" ? `First <b>${esc(f.name)}</b>` : `Got it: <b>${esc(f.name)}</b>`}<small>${esc(shortDay(f.at))}</small></span>`).join("")}</div>` : "";
-
-  /* Chord passport: a stamp per chord, in the order you first played them. */
-  const passport = p.chords.length ? card("Chord passport",
-    `${p.chords.length} chord${p.chords.length === 1 ? "" : "s"} stamped${p.barres ? `, ${p.barres} of them barre chord${p.barres === 1 ? "" : "s"}` : ""}.${p.nextStamp ? ` Next stamp to earn: <b>${esc(p.nextStamp)}</b>.` : ""}`,
-    `<div class="pf-stamps">${p.chords.map(c => `<div class="pf-stamp${c.barre ? " barre" : ""}"><b>${esc(c.name)}</b><span>${c.n}×</span><small>${esc(shortDay(c.first))}</small></div>`).join("")}${p.nextStamp ? `<div class="pf-stamp next"><b>${esc(p.nextStamp)}</b><span>next</span></div>` : ""}</div>`) : "";
-
-  /* The switches your hands make most. */
-  const top = p.changes[0]?.n || 1;
-  const changes = p.changes.length ? card("Your changes",
-    `<b>${esc(p.changes[0].a)} to ${esc(p.changes[0].b)}</b> is the switch you make most: about ${p.changes[0].n.toLocaleString()} times.`,
-    `<div class="pf-bars">${p.changes.map(c => `<div class="pf-bar"><span>${esc(c.a)} ↔ ${esc(c.b)}</span><i style="--w:${Math.max(4, Math.round(c.n / top * 100))}%"></i><small>${c.n.toLocaleString()}</small></div>`).join("")}</div>`) : "";
-
-  /* When you play: a lamp per weekday and part of the day, brighter the more you play. */
+  /* 4.19.0: Your stats, four cards: a big number, one small picture, one short caption */
+  const wk = p.week, wkMax = Math.max(60, ...wk.map(d => d.secs)), wkMins = Math.round(wk.reduce((a, d) => a + d.secs, 0) / 60);
+  const statTime = `<section class="pf-stat"><div class="pf-stat-h"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)} played</span></div>
+      <div class="pf-wbars" role="img" aria-label="Minutes played on each of the last seven days">${wk.map(d => `<div><i style="--h:${Math.round(d.secs / wkMax * 100)}%"></i><small>${d.day}</small></div>`).join("")}</div>
+      <p>${wkMins ? `${wkMins} min in the last seven days` : "Nothing in the last seven days yet"}</p></section>`;
   const most = Math.max(1, ...p.rhythm.grid.flat());
-  const rhythmHas = p.rhythm.top || p.best > 1 || p.rhythm.bestMonth;
-  const rhythm = rhythmHas ? card("When you play",
-    [p.rhythm.top && `Mostly on <b>${esc(p.rhythm.top)}</b>.`, p.best > 1 && `Longest streak: ${p.best} days.`, p.rhythm.bestMonth && `Best month: ${esc(monthName(p.rhythm.bestMonth.m))}, ${p.rhythm.bestMonth.plays} plays.`].filter(Boolean).join(" "),
-    p.rhythm.top ? `<div class="pf-grid" role="img" aria-label="Plays by day and time of day">
-      <span></span>${["Morn", "Aft", "Eve", "Late"].map(x => `<small>${x}</small>`).join("")}
-      ${p.rhythm.grid.map((row, d) => `<small>${"SMTWTFS"[d]}</small>${row.map(n => `<i style="--a:${n ? (0.25 + 0.75 * n / most).toFixed(2) : 0}"></i>`).join("")}`).join("")}
-    </div>` : "") : "";
-
-  /* Keys you live in, and whether your tempo is creeping up. */
-  const keyTotal = p.keys.reduce((a, k) => a + k.n, 0) || 1;
-  const t = p.tempo, trend = t.earlier && t.recent ? Math.round(t.recent - t.earlier) : 0;
-  const keys = p.keys.length ? card("Keys and tempo",
-    `You live in <b>${esc(p.keys[0].key)}</b> (${Math.round(p.keys[0].n / keyTotal * 100)}% of your plays).${t.avg ? ` Average tempo ${Math.round(t.avg)} BPM${trend >= 3 ? `, up ${trend} lately` : trend <= -3 ? `, down ${-trend} lately` : ""}.` : ""}`,
-    `<div class="pf-keys">${p.keys.map(k => `<span><b>${esc(k.key)}</b>${Math.round(k.n / keyTotal * 100)}%</span>`).join("")}</div>
-     ${t.months.length >= 2 ? spark(t.months.map(x => x.bpm), "Average tempo by month") : ""}`) : "";
-
-  /* Repertoire: songs marked Got it, month by month over the last year. */
-  const rep = p.got ? card("Repertoire",
-    `<b>${p.got} song${p.got === 1 ? "" : "s"}</b> you've got${p.yearAgo < p.got ? `, up from ${p.yearAgo} a year ago` : ""}.`,
-    bars(p.repertoire.map(x => x.n), p.repertoire.map(x => MONTHS[+x.m.slice(5) - 1][0]))) : "";
-
-  /* Comfort zone and the ones worth another try: each opens the song. */
-  const row = s => `<button class="pf-song" data-song="${esc(s.id)}"><span>${esc(s.title)}</span><small>${s.n} play${s.n === 1 ? "" : "s"}</small>${icon("chev", "chev")}</button>`;
-  const zone = p.comfort.length ? card("Comfort zone and stretch",
-    p.dropped.length ? `You keep coming back to <b>${esc(p.comfort[0].title)}</b>. ${p.dropped.length === 1 ? "One song" : `${p.dropped.length} songs`} you tried and left might be ready for another go.` : `You keep coming back to <b>${esc(p.comfort[0].title)}</b>.`,
-    `<div class="pf-cols"><div><h3>Go-tos</h3>${p.comfort.map(row).join("")}</div>${p.dropped.length ? `<div><h3>Worth another try</h3>${p.dropped.map(row).join("")}</div>` : ""}</div>`) : "";
-
-  const sets = p.sets || p.together.length ? card("Sets",
-    [p.sets && `Most played set: <b>${esc(p.sets.name)}</b>, played through ${p.sets.runs} time${p.sets.runs === 1 ? "" : "s"}.`, p.together[0] && `<b>${esc(p.together[0].a)}</b> and <b>${esc(p.together[0].b)}</b> always end up together.`].filter(Boolean).join(" "), "") : "";
-
-  const tw = p.tune.worst;
-  const tune = p.tune.sessions ? card("Tuning",
-    `Tuned ${p.tune.sessions} time${p.tune.sessions === 1 ? "" : "s"}.${tw && tw.rate > 0 ? ` The <b>${esc(tw.string)}</b> string drifts most: off in ${Math.round(tw.rate * 100)}% of checks.` : ""}`,
-    p.tune.drift.some(x => x.checked) ? `<div class="pf-bars">${p.tune.drift.map(x => `<div class="pf-bar"><span>${esc(x.string)}</span><i style="--w:${Math.max(2, Math.round(x.rate * 100))}%"></i><small>${x.checked ? Math.round(x.rate * 100) + "%" : "–"}</small></div>`).join("")}</div>` : "") : "";
+  const statWhen = p.rhythm.top ? `<section class="pf-stat"><div class="pf-stat-h"><b>${esc(p.rhythm.top.split(" ")[0].slice(0, 3))}</b><span>${esc(p.rhythm.top.split(" ").slice(1).join(" "))}</span></div>
+      <div class="pf-grid" role="img" aria-label="Plays by day and time of day"><span></span>${["Morn", "Aft", "Eve", "Late"].map(x => `<small>${x}</small>`).join("")}
+      ${p.rhythm.grid.map((row, d) => `<small>${"SMTWTFS"[d]}</small>${row.map(n => `<i style="--a:${n ? (0.25 + 0.75 * n / most).toFixed(2) : 0}"></i>`).join("")}`).join("")}</div>
+      <p>Mostly ${esc(p.rhythm.top)}</p></section>` : "";
+  const ch0 = p.changes.slice(0, 3), chTop = ch0[0]?.n || 1;
+  const statChanges = ch0.length ? `<section class="pf-stat"><div class="pf-stat-h"><b>${esc(ch0[0].a)} → ${esc(ch0[0].b)}</b><span>your most played change</span></div>
+      ${ch0.map(c => `<div class="pf-chg"><span>${esc(c.a)} ↔ ${esc(c.b)}</span><i style="--w:${Math.max(6, Math.round(c.n / chTop * 100))}%"></i><button class="pf-drill" data-drill="${esc(c.a)}-${esc(c.b)}" aria-label="Drill ${esc(c.a)} to ${esc(c.b)} in Rehearse">Drill it</button></div>`).join("")}</section>` : "";
+  const t = p.tempo, trend = t.earlier && t.recent ? Math.round(t.recent - t.earlier) : 0, keyTotal = p.keys.reduce((a, k) => a + k.n, 0) || 1;
+  const statKeys = p.keys.length ? `<section class="pf-stat"><div class="pf-stat-h"><b>${esc(p.keys[0].key)}</b><span>your key, ${Math.round(p.keys[0].n / keyTotal * 100)}% of plays</span></div>
+      <div class="pf-keys">${p.keys.slice(0, 4).map(k => `<span><b>${esc(k.key)}</b>${Math.round(k.n / keyTotal * 100)}%</span>`).join("")}</div>
+      ${t.avg ? `<p>Average tempo ${Math.round(t.avg)} BPM${trend >= 3 ? `, up ${trend} lately` : trend <= -3 ? `, down ${-trend} lately` : ""}</p>` : ""}</section>` : "";
+  const stats = `<div class="pf-stats">${statTime}${statWhen}${statChanges}${statKeys}</div>`;
 
   const plays = lifetimePlays(data);
   const ven = venueOf(plays);
@@ -115,26 +90,28 @@ export function renderProfile() {
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button></div>
     <h1 class="title" style="margin:14px 2px 2px">Your profile</h1>
-    ${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, keys, tempo and your changes</small></summary>${hero}${firsts}${changes}${rhythm}${keys}${rep}${zone}${sets}${tune}</details>
+    ${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
   document.getElementById("back").onclick = () => go("#/");
   document.getElementById("pf-map")?.addEventListener("click", () => go("#/playmap"));
   document.getElementById("pf-band")?.addEventListener("click", () => go("#/band"));
+  document.getElementById("pf-learn")?.addEventListener("click", e => go("#/practice/" + encodeURIComponent("c:" + e.currentTarget.dataset.chord)));
+  app.querySelectorAll("[data-drill]").forEach(b => b.onclick = () => go("#/practice/" + encodeURIComponent("s:" + b.dataset.drill)));
+  app.querySelectorAll("[data-stamp]").forEach(b => b.onclick = () => stampSheet(have.get(b.dataset.stamp)));
   app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.song)));
   document.getElementById("pf-share")?.addEventListener("click", () => shareCard(p));
 }
 
-// A small line of the last months' values.
-function spark(vals, label) {
-  const w = 280, h = 44, lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
-  const pts = vals.map((v, i) => `${(i / (vals.length - 1) * w).toFixed(1)},${(h - 6 - (v - lo) / span * (h - 12)).toFixed(1)}`).join(" ");
-  return `<svg class="pf-spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(label)}"><polyline points="${pts}"/></svg>`;
-}
-// Monthly bars with a letter under each.
-function bars(vals, labels) {
-  const hi = Math.max(1, ...vals);
-  return `<div class="pf-cols13" role="img" aria-label="Songs you've got, by month">${vals.map((v, i) => `<div><i style="--h:${Math.round(v / hi * 100)}%"></i><small>${esc(labels[i])}</small></div>`).join("")}</div>`;
+/* 4.19.0: a stamp opened: the chord's diagram, how often you've played it and since when */
+function stampSheet(c) {
+  if (!c) return;
+  layer.innerHTML = `<div class="scrim" id="st-scrim"></div><div class="panel card pf-stampsheet" role="dialog" aria-label="${esc(c.name)} chord">
+    <div class="pf-ss-dg">${chordSVG(c.name, 1.6)}</div><h2>${esc(c.name)}</h2>
+    <p class="pf-line">Played about ${c.n.toLocaleString("en-US")} time${c.n === 1 ? "" : "s"}, first on ${esc(shortDay(c.first))}.</p>
+    <div class="actions"><button class="btn primary" id="st-x">Done</button></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("st-scrim").onclick = close; document.getElementById("st-x").onclick = close;
 }
 
 /* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */

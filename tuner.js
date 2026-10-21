@@ -199,7 +199,11 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       $("tn-meter").hidden = false;
       paintHead();
       const left = t.ok.filter(Boolean).length;
-      foot.innerHTML = `<label class="tn-switch"><input type="checkbox" id="tn-guided" ${t.guided ? "checked" : ""}><i></i>Guided</label><span class="tn-status" id="tn-status">${t.guided || left ? `${left} of 6 in tune` : "Follows the string you play"}</span>`;
+      /* 4.19.0 (from Your profile's old Tuning card): the string that drifts most, before you start */
+      const jt = data.journal?.tune, names = ["low E", "A", "D", "G", "B", "high e"];
+      const worst = !left && jt?.checked ? jt.checked.map((c, i) => ({ i, rate: c >= 3 ? (jt.drift?.[i] || 0) / c : 0 })).sort((a, b) => b.rate - a.rate)[0] : null;
+      const tip = worst?.rate > 0 && t.tuning === "standard" ? `Your ${names[worst.i]} drifts most · ` : "";
+      foot.innerHTML = `<label class="tn-switch"><input type="checkbox" id="tn-guided" ${t.guided ? "checked" : ""}><i></i>Guided</label><span class="tn-status" id="tn-status">${tip}${t.guided || left ? `${left} of 6 in tune` : "Follows the string you play"}</span>`;
       $("tn-guided").onchange = e => { t.guided = e.target.checked; st.tunerGuided = t.guided; Tabs.save(data); t.lock = -1; t.cur = t.guided ? guidedTarget(t.ok) : -1; t.inTuneSince = 0; paint(); };
     }
   };

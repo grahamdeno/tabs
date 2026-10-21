@@ -143,7 +143,11 @@ export function renderSession(id) {
   /* a switch that isn't on the neck (a change you dropped in a gig) */
   const m = !hit && /^s:([^-]+)-(.+)$/.exec(id);
   if (m && chordSVG(m[1]) && chordSVG(m[2])) return switchLesson({ id, kind: "switch", a: m[1], b: m[2], to: 80, state: "now" });
-  if (!hit || hit.st.state === "locked" || hit.st.kind === "check") return go("#/practice/neck");
+  /* 4.19.0: a chord that isn't on the neck (Learn it from the chord passport) */
+  const mc = !hit && /^c:(.+)$/.exec(id);
+  if (mc && chordSVG(mc[1]) && chordTargets(mc[1], "standard").some(t => t.hz)) return chordLesson({ id, kind: "chord", chord: mc[1], state: "now" });
+  /* a chord lesson opens even before its fret on the neck (Learn it from the chord passport, 4.19.0) */
+  if (!hit || (hit.st.state === "locked" && hit.st.kind !== "chord") || hit.st.kind === "check") return go("#/practice/neck");
   hit.st.kind === "chord" ? chordLesson(hit.st) : hit.st.kind === "scale" ? scaleLesson(hit.st) : switchLesson(hit.st);
 }
 

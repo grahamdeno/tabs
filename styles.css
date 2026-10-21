@@ -2969,3 +2969,33 @@ body.gigging .ask { z-index: 66; }
 .tm-bd > span.tm-av { color: var(--fg); }
 .tm-bd.you > span.tm-av { color: var(--on-accent); }
 #tm-sheet[data-state="open"] .tm-pull { visibility: hidden; }
+
+/* ---------- Chord passport and Your stats (4.19.0) ---------- */
+.pf-passport { background: var(--card); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 16px; }
+.pf-ppage-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.pf-ppage-h b { font: 700 17px var(--display); } .pf-ppage-h span { font: 800 12px var(--body, Nunito, sans-serif); letter-spacing: .06em; color: var(--accent-ink); }
+.pf-pgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.pf-pstamp { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font: 700 18px var(--display); color: var(--muted); border: 3px dashed var(--rim); background: none; padding: 0; opacity: .7; }
+.pf-pstamp.on { border: 0; opacity: 1; color: #1B1838; transform: rotate(var(--r)); box-shadow: 0 4px 0 rgba(0,0,0,.28), inset 0 0 0 4px rgba(255,255,255,.35); }
+.pf-pstamp.on.k-open { background: #B8F34A; } .pf-pstamp.on.k-seventh { background: #3DE0FF; } .pf-pstamp.on.k-color { background: #FFD84D; }
+.pf-pstamp.on.k-barre { background: #FF4FA3; } .pf-pstamp.on.k-other { background: #8A7CFF; }
+.pf-pstamp.next { opacity: 1; border-color: var(--accent); color: var(--accent-ink); animation: pf-next 1.6s ease-in-out infinite; }
+@keyframes pf-next { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+.pf-pnext { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 14px; border-radius: 16px; background: var(--bg); }
+.pf-pnext > span { flex: 1; display: flex; flex-direction: column; } .pf-pnext small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .08em; color: var(--muted); }
+.pf-pnext b { font: 700 22px var(--display); } .pf-pnext .btn { flex: none; width: auto; padding: 0 20px; }
+.pf-stampsheet { text-align: center; } .pf-ss-dg { display: grid; place-items: center; margin-bottom: 4px; }
+.pf-stats { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.pf-stat { background: var(--card); border-radius: 20px; padding: 14px; }
+.pf-stat-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.pf-stat-h b { font: 700 30px var(--display); } .pf-stat-h span { font-weight: 700; color: var(--muted); }
+.pf-stat > p { margin: 10px 0 0; font-weight: 700; color: var(--muted); font-size: 14px; }
+.pf-wbars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 90px; align-items: end; }
+.pf-wbars > div { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.pf-wbars i { width: 100%; height: max(4px, var(--h)); border-radius: 8px; background: var(--accent); }
+.pf-wbars small { font: 800 11px var(--body, Nunito, sans-serif); color: var(--muted); }
+.pf-chg { display: grid; grid-template-columns: max-content 1fr auto; align-items: center; gap: 10px; min-height: 44px; }
+.pf-chg span { font-weight: 800; white-space: nowrap; } .pf-chg i { height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--strings, var(--accent)) var(--w), var(--bg) var(--w)); }
+.pf-drill { border: 0; border-radius: 12px; padding: 8px 12px; min-height: 36px; background: var(--accent); color: var(--on-accent); font: 700 14px var(--display); box-shadow: 0 3px 0 var(--accent-deep); }
+@media (prefers-reduced-motion: reduce) { .pf-pstamp.next { animation: none; } }
+.upn-c.again { background: #8A7CFF; box-shadow: 0 4px 0 #5A4FB0; color: #1B1838; } /* 4.19.0 */

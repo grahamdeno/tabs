@@ -4,14 +4,14 @@
 import { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, syncSeconds, syncWhere, wordTimes } from "./core/recording.js";
 import { SECTION_RE, buildWords, chordShape, detectPaste, guessKey, isChord, isChordLine, isTabLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, secName, transposeChord, transposeKey, wrapTab } from "./core/chords.js";
 import { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, mergeWords, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes } from "./core/sketch.js";
-import { PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment } from "./core/playing.js";
+import { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment } from "./core/playing.js";
 import { BASS_STYLES, DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, RIFF_STEPS, barHits, bassHits, bassStyle, bassWhere, chordBass, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset, validRiff } from "./core/groove.js";
 import { GUITAR_SHARE, HEX_KM2, HEX_M, HOLD_DAYS, PRACTICE_MEDIAN, PRACTICE_SPREAD, VENUES, cellsOutline, claimCells, cleanTour, coarseSpot, densityAt, edgePressure, hexNeighbours, hexSpiral, lifetimePlays, localBar, percentileOf, playsForCells, rng, sceneMap, seedOf, simulateRivals, takeoverPlan, territory, tourDay, userAvg7, venueName, venueOf, zOf, cornersSettle } from "./core/turf.js";
 import { HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, chordTargets, cleanSkills, gradeSwitches, judgeTarget, pitchRms, practiceRate, practicing, scaleTargets, skillDone, skillState, stringRange, strumDetector, strumLine, trackFloor } from "./core/neck.js";
 import { BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, GIG_STRINGS, GIG_WINDOW, MERCH, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigChange, gigCrowd, gigDone, gigFans, gigPct, gigStart, gigTiming, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.18.0";
+export const VERSION = "4.19.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -1325,7 +1325,7 @@ export function playCredited({ end = 0, cover = 0, ms = 0, expectedMs = 0 } = {}
 export { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, syncSeconds, syncWhere, wordTimes };
 export { buildWords, chordShape, detectPaste, guessKey, isChord, isChordLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, transposeChord, transposeKey, wrapTab };
 export { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, mergeWords, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes };
-export { PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment };
+export { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment };
 export { BASS_STYLES, DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, RIFF_STEPS, barHits, bassHits, bassStyle, bassWhere, chordBass, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset, validRiff };
 export { GUITAR_SHARE, HEX_KM2, HEX_M, HOLD_DAYS, PRACTICE_MEDIAN, PRACTICE_SPREAD, VENUES, cellsOutline, claimCells, cleanTour, coarseSpot, densityAt, edgePressure, hexNeighbours, hexSpiral, lifetimePlays, localBar, percentileOf, playsForCells, rng, sceneMap, seedOf, simulateRivals, takeoverPlan, territory, tourDay, userAvg7, venueName, venueOf, zOf, cornersSettle };
 export { HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, chordTargets, cleanSkills, gradeSwitches, judgeTarget, pitchRms, practiceRate, practicing, scaleTargets, skillDone, skillState, stringRange, strumDetector, strumLine, trackFloor };

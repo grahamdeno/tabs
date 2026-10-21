@@ -282,15 +282,19 @@ function fitOf(s) {
   return out;
 }
 const canPlayCount = () => data.songs.filter(s => fitOf(s).can).length;
-/* Up next for you: the song one new chord opens, and tonight's request */
+/* Up next for you: the song one new chord opens, tonight's request, and (4.19.0, from Your profile's old
+   Comfort zone card) a song you tried once or twice and left three weeks ago, when there's room for it */
 function upNextHTML() {
   if (data.songs.length < 3 || searching) return "";
   const one = data.songs.filter(s => fitOf(s).missing.length === 1).sort((a, b) => (b.status === "learning") - (a.status === "learning") || (b.opened || 0) - (a.opened || 0))[0];
   const req = requestSong(data);
-  if (!one && !req) return "";
+  const again = one && req ? null : data.songs.filter(s => { const n = playCount(s); return n >= 1 && n <= 2 && s.status !== "got" && Date.now() - (s.playLog?.last || 0) > 21 * 864e5 && s !== one && s !== req; })
+    .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0];
+  if (!one && !req && !again) return "";
   return `<div class="label">Up next for you</div><div class="upn">
     ${one ? `<button class="upn-c one" data-id="${esc(one.id)}"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><span>Learn ${esc(fitOf(one).missing[0])} and it's yours</span></button>` : ""}
     ${req ? `<button class="upn-c req" data-gig="${esc(req.id)}"><small>${data.quests?.heard?.id === req.id ? "FROM YOUR LISTENING" : "REQUESTED"}</small><b>${esc(req.title)}</b><span>2x bonus fans tonight</span></button>` : ""}
+    ${again ? `<button class="upn-c again" data-id="${esc(again.id)}"><small>WORTH ANOTHER TRY</small><b>${esc(again.title)}</b><span>You left it ${Math.round((Date.now() - again.playLog.last) / 864e5 / 7)} weeks ago</span></button>` : ""}
   </div>`;
 }
 

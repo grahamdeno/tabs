@@ -123,6 +123,13 @@ export function journalGot(data, song, now = Date.now()) {
 // The chords that tend to come next for a player, easiest first; the
 // passport suggests the first one you haven't played.
 const NEXT_STAMPS = ["G", "C", "D", "Em", "Am", "E", "A", "Dm", "Cadd9", "Dsus4", "E7", "A7", "D7", "G7", "B7", "Asus2", "Fmaj7", "F", "Bm", "F#m", "Bb", "C#m", "Gm", "Cm"];
+/* 4.19.0: the chord passport's pages, each a family of chords to collect (the order you'd learn them) */
+export const PASSPORT = [
+  { id: "open", name: "Open chords", chords: ["G", "C", "D", "Em", "Am", "E", "A", "Dm"] },
+  { id: "seventh", name: "7th chords", chords: ["E7", "A7", "D7", "G7", "B7"] },
+  { id: "color", name: "Colour chords", chords: ["Cadd9", "Dsus4", "Asus2", "Fmaj7"] },
+  { id: "barre", name: "Barre chords", chords: ["F", "Bm", "F#m", "Bb", "C#m", "Gm", "Cm"] }
+];
 const BARRES = new Set(["F", "Bm", "F#m", "Bb", "B", "C#m", "Gm", "Cm", "G#m", "Fm", "Ab", "Eb", "Db"]);
 export const isBarre = c => BARRES.has(String(c).replace(/\/.*$/, ""));
 // Everything the profile page shows, worked out from the library and journal.
@@ -171,6 +178,8 @@ export function profileOf(data, now = Date.now()) {
     changes: changes.slice(0, 5),
     keys: keys.slice(0, 5), tempo: { avg: avg(tempo), recent: avg(recent), earlier: avg(earlier), months: tempo.slice(-12) },
     rhythm: { grid, top: top && `${DAYS[top.d]} ${parts[top.p][2]}`, bestMonth: bestMonth && { m: bestMonth, plays: j.months[bestMonth].plays } },
+    /* 4.19.0: seconds played on each of the last seven days, oldest first */
+    week: Array.from({ length: 7 }, (_, i) => { const t = now - (6 - i) * DAY; return { day: "SMTWTFS"[new Date(t).getDay()], secs: (j.days || {})[dayKey(t)] || 0 }; }),
     repertoire, yearAgo: repertoire[0].n,
     comfort, dropped, sets: sets.filter(x => x.runs).slice(0, 1)[0] || null, together,
     tune: { sessions: j.tune.n, worst, drift }
