@@ -249,7 +249,7 @@ function frame() {
     $("gg-nowname").textContent = name;
     $("gg-nowdg").innerHTML = chordSVG(name, 1.35);
     /* a change on stage: graded once its window has passed */
-    if (scroll.on && !counting && prev && prev !== name && g.stream) g.due.push(g.clock());
+    if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push(g.clock());
   }
   $("gg-nextname").textContent = w.next >= 0 ? seq[w.next].name : seq.length ? "End" : "";
   const bpm = song.bpm || 90, beats = w.until == null ? 0 : Math.max(0, Math.min(4, Math.ceil(w.until * bpm / 60)));
@@ -271,6 +271,20 @@ function frame() {
   }
 }
 
+/* A finger moves the song (4.2.2): drag the lines, or the line you stopped on, and the page underneath
+   moves with it; the show follows. Changes passed while dragging aren't graded. */
+function bindDrag(g) {
+  let last = null;
+  const move = y => { if (last == null) return; window.scrollBy(0, (last - y) * 1.4); last = y; g.dragUntil = performance.now() + 700; };
+  for (const el of [$("gg-lines"), $("gg-hold")]) {
+    el.addEventListener("touchstart", e => { if (!e.target.closest("button")) last = e.touches[0].clientY; }, { passive: true });
+    el.addEventListener("touchmove", e => { if (last == null) return; e.preventDefault(); move(e.touches[0].clientY); }, { passive: false });
+    el.addEventListener("touchend", () => { last = null; }, { passive: true });
+    el.addEventListener("touchcancel", () => { last = null; }, { passive: true });
+  }
+  g.el.addEventListener("wheel", e => { if (e.target.closest(".gc")) return; e.preventDefault(); window.scrollBy(0, e.deltaY); g.dragUntil = performance.now() + 700; }, { passive: false });
+}
+
 function flash(hit) {
   const el = $("gg-now");
   if (!el) return;
@@ -282,7 +296,7 @@ export function openGig(song, opts = {}) {
   closeGig(true);
   const audio = sound();
   const g = gig = {
-    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "",
+    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "", dragUntil: 0,
     audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
   g.el = shell(song);
@@ -299,6 +313,7 @@ export function openGig(song, opts = {}) {
   $("gg-sheet").onclick = () => leave();
   $("gg-tools").onclick = e => { e.stopPropagation(); openTools($("gg-tools")); };
   $("gg-back").onclick = () => backALine();
+  bindDrag(g);
   g.el.dataset.lines = linesWanted();
   paintMap(); paintMic(); paintScore();
   /* Score my plays (Settings > Playing) decides whether a show starts listening. */

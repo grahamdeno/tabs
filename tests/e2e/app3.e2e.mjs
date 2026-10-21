@@ -613,3 +613,20 @@ test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it h
   assert.equal(await page.evaluate(() => location.hash), "#/song/g", "Sheet: back to the song, paused");
   assert.deepEqual(errors, []);
 });
+
+test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped on", { skip: skip() }, async t => {
+  const long = { id: "l", title: "Long", artist: "A", key: "G", format: "chords", duration: 300, body: "[Verse]\n" + Array.from({ length: 30 }, (_, i) => `G   C\nLine ${i} of the song`).join("\n") + "\n\n[Chorus]\nD   G\nThe end" };
+  const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, gigPlay: true, gigScore: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
+  await page.click("#play"); await page.waitForSelector("#gig");
+  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  assert.match(await page.getAttribute("#gg-mic", "aria-label"), /Not listening/, "Score my plays off: the show starts unscored");
+  const before = await page.evaluate(() => scrollY), line = await page.innerText("#gg-hline");
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 420 }] });
+  for (let y = 410; y >= 200; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.waitForFunction(b => scrollY > b + 150, before);
+  await page.waitForFunction(l => document.getElementById("gg-hline").innerText !== l, line);
+  assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
+});
