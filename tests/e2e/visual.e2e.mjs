@@ -27,10 +27,10 @@ const lib = theme => ({
 });
 const SHOTS = [
   ["library", "#/library"], ["sketch", "#/sketch"], ["song", "#/song/a"], ["tab", "#/song/c"], ["set", "#/set/s"], ["settings", "#/settings"], ["gestures", "#/gestures"],
-  ["menu", "#/song/a", p => p.click("button.more:visible")],
-  ["edit", "#/song/a", async p => { await p.click("button.more:visible"); await p.click(".menu [data-m='edit']"); }],
+  ["menu", "#/song/a", p => p.click("#more")],
+  ["edit", "#/song/a", async p => { await p.click("#more"); await p.click(".menu [data-m='edit']"); }],
   ["search", "#/library", async p => { await p.click("#q"); await p.keyboard.type("willow"); }],
-  ["ask", "#/song/a", async p => { await p.click("button.more:visible"); await p.click(".menu [data-m='edit']"); await p.waitForTimeout(300); await p.click("[data-sec]"); }]
+  ["ask", "#/song/a", async p => { await p.click("#more"); await p.click(".menu [data-m='edit']"); await p.waitForTimeout(300); await p.click("[data-sec]"); }]
 ];
 
 // Pixels that differ by more than a little, counted in the page itself.
