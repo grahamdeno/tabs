@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumStyle, DRUM_SWING, partOf, drumLevelBar, barHits, grooveOf, grooveText, soundOffset, gigCountdown, streakOf, pickNudge, changesOf, weatherMood, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, searchSongs, sortSongs, lastPlayed, TUNINGS, detectTuning, nextSet, untilLabel, parseSheet, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, indexLetter, appleTrackId, artistSortName, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, I, app, esc, followKeyboard, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -64,10 +64,16 @@ const go = h => { location.hash = h; };
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
-const gigHooks = { on: false, credited: null, stopped: null };
+const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null };
+/* Play opens the Gig (4.2.0), except while practicing a section or slower, for a tab, in Play together,
+   or with Play as a gig off (Settings > Playing). */
+const gigsOn = song => data.settings.gigPlay !== false && song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet;
+const playFace = on => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : "PLAY"}</span>`;
+const playLabel = (song, on) => on ? "Pause auto-scroll" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
+let songSpeed = null; /* the song page's speed dial, for the Tools sheet */
 let gigNext = null;
 const playGig = (id, opts = {}) => { gigNext = { id, ...opts }; if (route().name === "song" && route().id === id) return openGigNow(); go("#/song/" + encodeURIComponent(id)); };
-function openGigNow() { const g = gigNext; gigNext = null; if (g && viewing?.id === g.id) lazy("gig.js").then(m => m.openGig(viewing, g)); }
+function openGigNow() { const g = gigNext; gigNext = null; if (g && viewing?.id === g.id) lazy("gig.js").then(m => { if (viewing?.id === g.id && route().name === "song" && $("sheet")) m.openGig(viewing, g); }); }
 const openSearch = () => { searchNext = true; go("#/library"); };
 /* The Neck's Learning list opens a song on the section you last practiced (3.24.2). */
 let sectionNext = null;
@@ -750,23 +756,24 @@ function renderViewer(id) {
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
   const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to library" };
   diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
+  /* One song screen (4.2.0): the song at the top (back, title, favorite), its chips, the song map,
+     the chords, the sheet, and at the bottom Tools and Play. Play opens the Gig. */
   app.innerHTML = `
-    <div class="head">
-      <button class="ib glass" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
-      <div class="row-btns">
-        <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
-        <button class="ib glass more" id="more-top" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
-      </div>
+    <div class="head ehead"></div>
+    <div class="shead">
+      <button class="sh-btn sh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
+      <div class="sh-t"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><div class="meta" id="meta"></div></div>
+      <button class="sh-btn fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
     </div>
     ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
       if (!x || list[setCtx.idx]?.id !== song.id) { setSetCtx(null); return ""; }
       return `<div class="setbar"><button class="sb" id="sprev" aria-label="Previous song" ${setCtx.idx === 0 ? "disabled" : ""}>${icon("back")}</button>
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
-    <div class="titlerow"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><button class="sb tfav fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button></div>
-    <div class="metarow"><div class="meta" id="meta"></div><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat pchip" id="pchip"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="metarow"><span class="keyslot" id="keyslot"></span><button class="stat" id="stat" aria-label="Learning status"></button><button class="stat pchip" id="pchip"></button>${listenChip(song)}<button class="stat dechip" id="dechip" hidden aria-label="German practice"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
+    <nav class="secbar" id="secbar" aria-label="Song sections"></nav>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -788,20 +795,16 @@ function renderViewer(id) {
       <div class="nn" id="nn"></div>
       <div class="looprow" id="looprow"></div>
       <div class="player">
-        <button class="play" id="play" aria-label="Start auto-scroll">${icon("play")}</button>
-        <span class="jewel" id="jewel" aria-hidden="true"></span>
-        <button class="sb oh oh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
-        <button class="sb oh more" id="more" aria-label="More for this song" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
-        <button class="oh dialbtn" id="dialbtn" aria-label="Song speed. Hold and sweep to change">${icon("gauge")}<span></span></button>
+        <button class="tl more" id="more" aria-label="Tools" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
-          return x && list[setCtx.idx]?.id === song.id ? `<button class="oh dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
-        <div class="speed">
+          return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
+        <div class="speed" hidden>
           ${byLength()
             ? `<input type="range" id="speed" min="${540 - MAX_LENGTH}" max="480" step="1" value="${540 - songLength(song)}" aria-label="Song length">`
             : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
-        ${isChords ? `<button class="sb nnbtn ${data.settings.diagrams === true ? "on" : ""}" id="nnbtn" aria-label="Now and Next chords" aria-pressed="${data.settings.diagrams === true}">${icon("fretboard")}</button>` : ""}
+        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false)}</button>
       </div>
       </div>
     </div>`;
@@ -851,12 +854,14 @@ function renderViewer(id) {
     const baseKey = isChords ? (song.key || guessKey(song.body || "")) : "";
     const key = transposeKey(baseKey, steps); // the key it sounds in
     const capoTxt = capo ? `Capo <b>${capo}</b>` : "";
+    const best = data.gig?.best?.[song.id];
     $("meta").innerHTML = [
       song.artist && `<span>${esc(song.artist)}</span>`,
-      key && `<button class="keybtn" id="keybtn" aria-label="Key ${esc(key)}. Change the key"><span>Key <b>${esc(key)}</b></span>${icon("chev", "kchev")}</button>`,
+      best != null && `<span>Best show ${best}%</span>`,
       capoTxt && `<span>${capoTxt}</span>`,
       !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>');
+    $("keyslot").innerHTML = key ? `<button class="keybtn" id="keybtn" aria-label="Key ${esc(key)}. Change the key"><span>Key <b>${esc(key)}</b></span>${icon("chev", "kchev")}</button>` : "";
     $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, capoTxt, !isChords && "Tab"]
       .filter(Boolean).join(" · ");
     SUBS = easy ? easy.subs || {} : {};
@@ -875,6 +880,7 @@ function renderViewer(id) {
     renderBlocks(sheet, blocks);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
+    paintSecbar();
   };
   draw();
   redraw = () => { draw(); paintLoop(song); buildMap(); };
@@ -971,19 +977,15 @@ function renderViewer(id) {
       input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
       done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
-  $("meta").addEventListener("click", e => { if (e.target.closest("#keybtn")) keyDial(); });
-  $("play").onclick = () => scroll.on ? stopScroll() : startScroll(song);
-  $("nnbtn")?.addEventListener("click", () => {
-    const on = data.settings.diagrams !== true;
-    data.settings.diagrams = on;
-    Tabs.save(data);
-    $("nnbtn").classList.toggle("on", on);
-    $("nnbtn").setAttribute("aria-pressed", on);
-    diag.nn = on && diag.seq.length > 0;
-    diag.idx = null;
-    updateDiagrams();
-    toast(on ? "Now and Next on" : "Now and Next off", $("nnbtn"));
-  });
+  $("keyslot").addEventListener("click", e => { if (e.target.closest("#keybtn")) keyDial(); });
+  /* Play: the Gig, or plain auto-scroll while practicing, for a tab, or with Play as a gig off (Settings > Playing). */
+  $("play").onclick = () => {
+    if (scroll.on) return stopScroll();
+    if (gigHooks.resume) return gigHooks.resume();
+    if (gigsOn(song)) return playGig(song.id);
+    startScroll(song);
+  };
+  songSpeed = () => speedDial(null);
   window.scrollTo(0, 0);
   fab.lastY = 0; fab.reveal = 1;
 }
@@ -1377,6 +1379,8 @@ function setPracticing(song, on) {
 const PRACTICE_SPEEDS = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
 const DRUM_LEVELS = { "-1": "simpler", 0: "as written", 1: "busier" };
 function paintLoop(song) {
+  const pb = $("play");
+  if (pb && !scroll.on && viewing === song) pb.setAttribute("aria-label", playLabel(song, false));
   const lines = sheetLines(), on = practicing(song), lp = activeLoop(song);
   lines.forEach(el => el.classList.remove("inloop", "loopa", "loopfirst", "looplast"));
   const chip = $("pchip");
@@ -1752,51 +1756,58 @@ function toggleBass(song, near) {
   if (scroll.on) on || data.settings.metronome ? startMetronome(song) : stopMetronome();
   toast(!on ? "Bass off" : song.format === "tab" ? "Bass on. It plays under songs with chords" : `Bass on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}`, near);
 }
+/* The Tools sheet (4.2.0): everything for the song in one sheet that rises from the bottom, from the
+   paused song and from a paused gig. Text size and the Gig's lines at the top, then Play along and The song. */
+const GIG_KEEPS = ["metro", "bass", "speed"]; /* what can change without leaving a paused gig */
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
   if (old) { old.remove(); return; }
-  /* Opening the menu mid-song pauses it, so the scrolling doesn't close it. */
+  /* Opening the sheet mid-song pauses it, so the scrolling doesn't close it. */
   if (scroll.on) stopScroll();
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
-  const ez = song.easier;
-  const items = [
-    { id: "size" },
-    { id: "set", icon: "listplus", label: "Add to set" },
-    { id: "loop", icon: "loop", label: "Practice a section" },
+  const ez = song.easier, chords = song.format !== "tab", inGig = gigHooks.on;
+  const lines = [4, 5, 6].includes(data.settings.gigLines) ? data.settings.gigLines : 5;
+  const along = [
+    { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", hint: $("sv")?.textContent || "" },
     { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
-    song.format !== "tab" && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
-    { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
-    { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
-    { id: "share", icon: "share", label: "Share song" },
+    chords && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
     { id: "duet", icon: "pick", label: "Play together" },
-    song.format !== "tab" && { id: "gig", icon: "play", label: "Play as a gig", hint: data.gig?.best?.[song.id] != null ? `Best ${data.gig.best[song.id]}%` : "" },
+    { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
+    chords && bodyCapo(song.body) && { id: "capo", icon: "fretboard", label: song.capoOff ? "Capo back" : "Capo off", hint: song.capoOff ? `Was ${bodyCapo(song.body)}` : `Capo ${bodyCapo(song.body)}` },
+    chords && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
+    { id: "loop", icon: "loop", label: "Practice a section" },
+    chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", hint: data.settings.diagrams === true ? "On" : "Off" },
+    chords && !inGig && !gigsOn(song) && { id: "gig", icon: "play", label: "Play as a gig", hint: data.gig?.best?.[song.id] != null ? `Best ${data.gig.best[song.id]}%` : "" }
+  ].filter(Boolean);
+  const theSong = [
     { id: "edit", icon: "edit", label: "Edit" },
-    song.format !== "tab" && bodyCapo(song.body) && { id: "capo", icon: "fretboard", label: song.capoOff ? "Put the capo back" : "Remove the capo", hint: song.capoOff ? `Off · was Capo ${bodyCapo(song.body)}` : `Capo ${bodyCapo(song.body)}` },
-    (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
+    { id: "set", icon: "listplus", label: "Add to set" },
+    { id: "share", icon: "share", label: "Share" },
+    chords && (aiKey() || song.de) && { id: "de", icon: "chat", label: "German" },
+    { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
     (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
     song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
   ].filter(Boolean);
   const m = document.createElement("div");
   m.setAttribute("role", "menu");
-  /* One hand (phone upright): the menu rises from the bottom, and what you
-     reach for mid-song (Text size, Metronome, Tuner) sits lowest. */
+  m.setAttribute("aria-label", "Tools");
   const sheet = oneHandMQ.matches;
-  if (sheet) {
-    const low = ["capo", "loop", "tuner", "bass", "metro", "size"];
-    items.sort((a, b) => low.indexOf(a.id) - low.indexOf(b.id));
-    m.className = "menu glass float msheet";
-  } else {
-    m.className = "menu glass float";
+  m.className = "menu tools" + (sheet ? " msheet" : "");
+  if (!sheet) {
     const r = anchor.getBoundingClientRect();
-    m.style.top = (r.bottom + 8) + "px";
+    m.style.bottom = Math.max(12, innerHeight - r.top + 10) + "px";
     m.style.right = Math.max(12, innerWidth - r.right) + "px";
   }
+  const tile = it => `<button class="mrow tl" role="menuitem" data-m="${it.id}"${it.id === "speed" ? ' id="dialbtn"' : ""}><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}${NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : ""}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`;
   const paint = () => {
-    m.innerHTML = (sheet ? '<div class="grab" aria-hidden="true"></div>' : "") + items.map(it => it.id === "size"
-      ? `<div class="mrow size" role="group" aria-label="Text size"><span class="mi">${icon("text")}</span><span class="ml" aria-hidden="true">Text size</span>
-          <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`
-      : `<button class="mrow" role="menuitem" data-m="${it.id}"><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}${NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : ""}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`).join("");
+    m.innerHTML = (sheet ? '<div class="grab" aria-hidden="true"></div>' : "") + `
+      <div class="tl-head"><b>Tools</b>
+        <div class="mrow size" role="group" aria-label="Text size"><span class="ml">Text size</span>
+          <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div></div>
+      ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6].map(n => `<button role="menuitem" data-lines="${n}" class="${n === lines ? "on" : ""}" aria-pressed="${n === lines}">${n}</button>`).join("")}</div></div>` : ""}
+      <div class="tl-h">PLAY ALONG</div><div class="tl-grid">${along.map(tile).join("")}</div>
+      ${inGig ? "" : `<div class="tl-h">THE SONG</div><div class="tl-grid">${theSong.map(tile).join("")}</div>`}`;
   };
   paint();
   document.body.appendChild(m);
@@ -1827,21 +1838,39 @@ function songMenu(song, anchor, redrawSong) {
       Tabs.save(data); paint(); redrawSong();
       return;
     }
+    const ln = ev.target.closest("[data-lines]");
+    if (ln) { data.settings.gigLines = +ln.dataset.lines; Tabs.save(data); paint(); return; }
     const b = ev.target.closest("[data-m]");
     if (!b) return;
-    if (NEW_IN_MENU[b.dataset.m]) markUsed(NEW_IN_MENU[b.dataset.m]);
+    const id = b.dataset.m;
+    if (NEW_IN_MENU[id]) markUsed(NEW_IN_MENU[id]);
     close();
+    if (gigHooks.on && !GIG_KEEPS.includes(id)) gigHooks.leave?.(); /* the rest happens on the song page */
     ({ set: () => addToSet(song), edit: () => songEditor(song),
+       speed: () => songSpeed?.(),
        capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
-       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), gig: () => { window.scrollTo(0, 0); playGig(song.id); }, loop: () => { setPracticing(song, true); startLoopPick(song); }, tuner: () => openTuner(songTuning(song)), de: () => songDeOpen?.(),
+       tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), gig: () => playGig(song.id), loop: () => { setPracticing(song, true); startLoopPick(song); }, tuner: () => openTuner(songTuning(song)),
+       nn: () => toggleNN(),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
-       de: () => germanSheet(song, redrawSong),
+       de: () => songDeOpen?.(),
        bass: () => toggleBass(song, moreBtn()),
-       metro: () => toggleMetronome(song, moreBtn()) })[b.dataset.m]?.();
+       metro: () => toggleMetronome(song, moreBtn()) })[id]?.();
   };
 }
+/* Now and Next: the chord you're on and the next one, in the bar while the song plays. */
+function toggleNN() {
+  const on = data.settings.diagrams !== true;
+  data.settings.diagrams = on;
+  Tabs.save(data);
+  diag.nn = on && diag.seq.length > 0;
+  diag.idx = null;
+  updateDiagrams();
+  toast(on ? "Now and Next on" : "Now and Next off", moreBtn());
+}
+/* Tools, from the paused gig. */
+function openTools(anchor) { if (viewing) songMenu(viewing, anchor, () => redraw?.()); }
 
 // ---------- Find songs you don't have yet ----------
 // No match in the library: search the web for a chord sheet, then come back and
@@ -2239,10 +2268,34 @@ function renderStrip(sheet, isChords, song) {
   if (!box) return;
   const names = isChords ? [...new Set([...sheet.querySelectorAll(".c[data-ch]")].map(el => el.dataset.ch))] : [];
   const easyBtn = `<span class="n">${names.length}</span>`;
+  /* A chord you haven't learned yet is marked NEW, once you know a few (4.2.0). */
+  const known = knownChords(data), fresh = n => known.size > 0 && !known.has(n);
   box.innerHTML = names.length ? `
-    <div class="strip-h"><span>Chords in this song</span>${easyBtn}</div>
+    <div class="strip-h"><span>Chords</span>${easyBtn}</div>
     <div class="strip" role="list">${names.map(n =>
-      `<button class="scard" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)}: show where it's played">${chordSVG(n)}</button>`).join("")}</div>` : "";
+      `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)}${fresh(n) ? ", new to you" : ""}: show where it's played"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n)}</button>`).join("")}</div>` : "";
+}
+
+/* The song map under the chips (4.2.0): each section in its Stage Gel, as long as it is in the song.
+   Tap one to go there; Play starts from where the page is. */
+function paintSecbar() {
+  const bar = $("secbar"), sheet = $("sheet");
+  if (!bar || !sheet) return;
+  const secs = [...sheet.querySelectorAll(":scope > .sec")];
+  if (secs.length < 2) { bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  const tops = secs.map(el => el.offsetTop), end = Math.max(tops[tops.length - 1] + 1, sheet.scrollHeight);
+  bar.innerHTML = secs.map((el, i) => {
+    const name = el.textContent.trim(), w = Math.max(1, (tops[i + 1] ?? end) - tops[i]);
+    return `<button class="sbar gl-${gelOf(name)}" data-i="${i}" style="flex:${w}" aria-label="Go to ${esc(name)}"><span>${esc(name)}</span></button>`;
+  }).join("");
+  bar.onclick = e => {
+    const b = e.target.closest(".sbar"), el = b && secs[+b.dataset.i];
+    if (!el?.isConnected) return;
+    hold.active = true; releaseSoon(900);
+    window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + scrollY - innerHeight * READ_AT), behavior: calm() ? "auto" : "smooth" });
+    diag.pinned = null;
+  };
 }
 
 function clearSel() {
@@ -2548,7 +2601,7 @@ async function startScroll(song, opts = {}) {
   diag.pinned = null; diag.scrolling = false;
   updateDiagrams();
   const btn = $("play");
-  btn.innerHTML = icon("pause");
+  btn.innerHTML = playFace(true);
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   if (data.settings.metronome || data.settings.bass) {
@@ -2635,7 +2688,7 @@ function stopScroll() {
   scroll.lock?.release?.().catch(() => {});
   scroll.lock = null;
   const btn = $("play");
-  if (btn) { btn.innerHTML = icon("play"); btn.setAttribute("aria-label", "Start auto-scroll"); }
+  if (btn) { btn.innerHTML = playFace(false); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
   updateDiagrams();
   if (btn) { diag.armed = true; showPausedRow(); }
   /* After playing: the first pause shows starting from a line; a later one, Now and Next. */
@@ -2775,4 +2828,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { gigHooks, playGig, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

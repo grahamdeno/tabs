@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, openSpeed, speedText } from "./harness.mjs";
 
 useBrowser();
 
@@ -43,14 +43,14 @@ test("2.5 Settings > Song map turns the section rail off and on", { skip: skip()
   assert.equal(await page.locator(".smap").count(), 1, "back on");
 });
 
-test("2.5 Back: in the bar; pull down at the top; the library opens at its top", { skip: skip() }, async t => {
+test("2.5 Back: beside the title (4.2.0); pull down at the top; the library opens at its top", { skip: skip() }, async t => {
   const songs = Array.from({ length: 30 }, (_, i) => ({ id: "s" + i, title: "Song " + String(i).padStart(2, "0"), artist: "A", format: "chords", body: "[Verse]\nG C\nla" }));
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...songs] }, { isMobile: true });
   await page.evaluate(() => scrollTo(0, 1500)); await page.waitForTimeout(200);
   await page.evaluate(() => { location.hash = "#/song/s25"; }); await page.waitForTimeout(500);
-  const b = await page.evaluate(() => { const el = document.querySelector(".player .oh-back"), r = el.getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(el).display }; });
-  assert.ok(b.y > 700 && b.v !== "none", `Back sits in the bar (${JSON.stringify(b)})`);
-  await page.click(".player .oh-back"); await page.waitForTimeout(500);
+  const b = await page.evaluate(() => { const el = document.querySelector(".shead .sh-back"), r = el.getBoundingClientRect(); return { x: r.left, y: r.top, v: getComputedStyle(el).display }; });
+  assert.ok(b.y < 100 && b.v !== "none", `4.2.0: Back sits beside the title (${JSON.stringify(b)})`);
+  await page.click(".shead .sh-back"); await page.waitForTimeout(500);
   assert.equal(await page.evaluate(() => location.hash), "#/library");
   assert.equal(await page.evaluate(() => scrollY), 0, "the library opens at its top");
   /* Pull down at the top of a song. */
@@ -75,7 +75,7 @@ test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me 
   const labels = await page.evaluate(() => [...document.querySelectorAll(".label")].map(x => x.textContent));
   assert.match(labels[0], /One hand/i, "one-hand group first");
   const text = await page.innerText("#app");
-  for (const t of ["Press Play", "Pull down at the top", "Hold the time"]) assert.ok(text.includes(t), t);
+  for (const t of ["Press Play", "Pull down at the top", "Tools, then Speed"]) assert.ok(text.includes(t), t);
   for (const t of ["Hold Play", "Sweep the arc", "Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
   assert.ok(await page.locator(".gs-row").count() <= 24, "trimmed");
   await page.click(".gs-show[data-demo='speed']"); await page.waitForTimeout(1800);
@@ -85,19 +85,20 @@ test("2.6.4 Tips & gestures: one-hand group first, no button-only rows, Show me 
 test("2.6.5 speed dial: a wobble doesn't change it; Undo restores; nothing selectable", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  const before = (await page.innerText("#dialbtn")).trim();
-  const b = await page.locator("#dialbtn").boundingBox();
-  const x = b.x + 20, y = b.y + 16;
+  const before = await speedText(page);
+  await openSpeed(page);
+  const x = 250, y = 700;
   await page.mouse.move(x, y); await page.mouse.down();
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".dial-big")).webkitUserSelect || getComputedStyle(document.querySelector(".dial-big")).userSelect), "none");
   await page.mouse.move(x + 6, y - 8, { steps: 3 }); await page.mouse.up(); await page.waitForTimeout(300);
   if (await page.locator(".dial").count()) { await page.mouse.click(60, 120); await page.waitForTimeout(300); }
-  assert.equal((await page.innerText("#dialbtn")).trim(), before, "a small wobble changes nothing");
+  assert.equal(await speedText(page), before, "a small wobble changes nothing");
+  await openSpeed(page);
   await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 60, y - 140, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(300);
-  assert.notEqual((await page.innerText("#dialbtn")).trim(), before, "a real sweep changes it");
+  assert.notEqual(await speedText(page), before, "a real sweep changes it");
   assert.match(await page.innerText("#toast"), /Length .*Undo/s);
   await page.click("#toast .tact"); await page.waitForTimeout(300);
-  assert.equal((await page.innerText("#dialbtn")).trim(), before, "Undo puts it back");
+  assert.equal(await speedText(page), before, "Undo puts it back");
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").duration, 200);
 });
 
@@ -480,13 +481,16 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   /* another stop's card opens on a tap, and the current one closes */
   await page.click(".rd-node.locked >> nth=0");
   assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
-  /* tonight's song plays as a gig (4.1.0); leaving the gig comes back to the Road */
+  /* tonight's song plays as a gig (4.1.0) */
   await page.click("#rd-tonight");
   await page.waitForSelector("#gig");
   assert.ok(await page.evaluate(() => /#\/song\//.test(location.hash)));
   await page.click("#gg-x");
+  await page.waitForFunction(() => !document.getElementById("gig"));
+  assert.match(await page.evaluate(() => location.hash), /#\/song\//, "4.2.0: leaving the show goes to the song, paused");
+  await page.click(".shead .sh-back");
   await page.waitForSelector(".rd-path");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "a gig started on the Road goes back to the Road");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "and Back goes to the Road");
   /* the Library drawer: the Road never scrolls, the drawer opens by tap or drag, closes by drag, scrim or handle */
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "the Road does not scroll");
   assert.match(await page.innerText("#rd-dh"), /Library/);
@@ -554,7 +558,7 @@ test("4.0.1: one design system: buttons, chips, sheets and the editor's title fi
   assert.ok(await page.evaluate(() => document.getElementById("ed-title").getBoundingClientRect().width > 200), "the title field has room (the artist line sits below it)");
 });
 
-test("The Gig (4.1.0): a song played as a show, graded by strums, then Show complete with Encore", { skip: skip() }, async t => {
+test("The Gig (4.1.0, 4.2.0): Play opens the show, graded by strums; paused it holds in place with Tools; Show complete", { skip: skip() }, async t => {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
   const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
@@ -563,16 +567,35 @@ test("The Gig (4.1.0): a song played as a show, graded by strums, then Show comp
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.goto(base + "#/library"); await page.waitForTimeout(300);
   const body = "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand\n\n[Chorus]\nD        A\nCarry me home\nE        A\nLay me down";
-  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, songs: [{ id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16, body }], settings: { ...LIB.settings, gigLines: 4 } });
+  await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, songs: [{ id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16, body }], settings: { ...LIB.settings, gigLines: 4, gigPlay: true } });
   await page.goto(base + "#/song/g"); await page.reload(); await page.waitForTimeout(600);
   await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
-  await page.evaluate(() => document.querySelector("#more").click()); await page.waitForSelector(".menu [data-m='gig']");
-  await page.click(".menu [data-m='gig']");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Play as a gig");
+  await page.click("#play");
   await page.waitForSelector("#gig");
-  assert.equal(await page.locator("#gg-lines > *").count(), 4, "four lines of the song");
+  assert.equal(await page.getAttribute("#gig", "data-lines"), "4", "four lines of the song");
+  assert.ok(await page.locator("#gg-lines > *").count() <= 4);
   assert.equal(await page.locator(".gg-map i").count(), 2, "the song map: a gel for each section");
-  await page.click("#gg-lc");
-  assert.equal(await page.innerText("#gg-lc"), "5 lines", "the Lines chip steps through 4, 5 and 6");
+  assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
+  /* Hearing you: a tap stops listening for this show, another starts it again */
+  await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
+  await page.click("#gg-mic");
+  assert.match(await page.getAttribute("#gg-mic", "aria-label"), /Not listening/);
+  await page.click("#gg-mic");
+  await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
+  /* Paused, the show holds in place: the line you stopped on, Back a line, Tools, Sheet, Resume */
+  await page.click("#gg-pause");
+  await page.waitForSelector("#gg-hold:not([hidden])");
+  assert.equal(await page.locator("#gg-hline > *").count(), 1, "the line you stopped on");
+  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  assert.equal(await page.locator('.menu [data-m="edit"]').count(), 0, "from a show, only what you change mid-song");
+  await page.click('.menu [data-lines="5"]');
+  await page.waitForSelector('#gig[data-lines="5"]', { timeout: 3000 });
+  await page.mouse.click(200, 120); await page.waitForTimeout(200);
+  assert.equal(await page.locator(".menu").count(), 0, "a tap above Tools closes it");
+  assert.equal(await page.locator("#gig.paused").count(), 1, "and the show stays paused");
+  await page.click("#gg-resume");
+  await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
   await page.waitForFunction(() => document.getElementById("gg-sec").textContent === "CHORUS", null, { timeout: 15000 });
   assert.equal(await page.getAttribute("#gig", "data-gel"), "chorus", "the stage washes into the chorus gel");
   await page.waitForSelector(".gc", { timeout: 40000 });
@@ -580,8 +603,13 @@ test("The Gig (4.1.0): a song played as a show, graded by strums, then Show comp
   assert.match(await page.innerText(".gc-list"), /changes landed/, "the show was graded");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.equal(saved.gig.shows, 1); assert.ok(saved.gig.best.g >= 0);
+  assert.equal(saved.settings.gigLines, 5);
   assert.equal(saved.songs[0].playLog.total, 1, "the show counts as a play");
-  await page.click("#gc-encore"); await page.waitForSelector("#gig:not(.done)");
-  await page.click("#gg-x"); await page.waitForFunction(() => !document.getElementById("gig"));
+  await page.click("#gc-go"); await page.waitForFunction(() => !document.getElementById("gig"));
+  assert.match(await page.innerText(".shead .meta"), /Best show \d+%/, "the song shows its best show");
+  await page.click("#play"); await page.waitForSelector("#gig:not(.done)");
+  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
+  assert.equal(await page.evaluate(() => location.hash), "#/song/g", "Sheet: back to the song, paused");
   assert.deepEqual(errors, []);
 });

@@ -44,7 +44,7 @@ export const LIB = {
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
   sets: [], trash: [],
-  settings: { v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false }
+  settings: { v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, gigPlay: false }
 };
 
 export let server, browser, base;
@@ -76,6 +76,11 @@ export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } =
   t.after(async () => { assert.deepEqual(errors, [], "page errors"); await ctx.close(); });
   return page;
 }
+/* The song speed dial (4.2.0: in Tools). Opened by a tap, it stays open to sweep anywhere. */
+export async function openSpeed(page) {
+  await page.click("#more"); await page.click('.menu [data-m="speed"]'); await page.waitForSelector(".dial");
+}
+export const speedText = page => page.evaluate(() => document.getElementById("sv").textContent.trim());
 export const skip = () => !chromium && "Playwright not installed";
 
 // A pretend microphone: a steady tone whose pitch the test sets with window.__hz.

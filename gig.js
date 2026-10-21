@@ -7,15 +7,17 @@
 //   crowd     12 fans: how many of your last 12 chord changes landed
 //   chords    Now (with its shape) and Next, with the beats until the change; Louie reacts
 //   timing    a bass string: still when your changes land on time, a wobble when early or late
-//   lines     4, 5 or 6 lines of the song (the Lines chip), the current one biggest
-//   bottom    the microphone and Pause, in thumb reach
+//   lines     4, 5 or 6 lines of the song (Lines in a gig, in Tools), the current one biggest
+//   bottom    Hearing you (tap to stop or start listening for this show) and Pause, in thumb reach
+// Paused, the show dims in place: the line you stopped on, Louie, and in thumb reach Back a line,
+// Tools, Sheet (leave the show for the song page) and a big Resume (4.2.0).
 // The microphone hears your strums; each chord change is landed by a strum near it (gigChange in
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
 import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, Tabs } from "./core.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
-import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, route, homeHooks } from "./app.js";
+import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
 
 let gig = null; /* the show on stage, or null */
@@ -32,11 +34,13 @@ function guitarBand(ctx, src) {
   return b;
 }
 async function listen(g) {
+  g.off = false; g.asking = true; paintMic();
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error("none");
     g.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-  } catch { g.stream = null; paintMic(); return; }
-  if (gig !== g) { g.stream.getTracks().forEach(t => t.stop()); return; }
+  } catch { g.stream = null; g.asking = false; g.denied = true; paintMic(); return; }
+  g.asking = false;
+  if (gig !== g || g.off) { g.stream.getTracks().forEach(t => t.stop()); g.stream = null; paintMic(); return; }
   const ctx = g.audio;
   if (!ctx) return;
   const an = ctx.createAnalyser(); an.fftSize = 1024;
@@ -50,6 +54,16 @@ async function listen(g) {
     if (hear(rms, now, 0)) { g.strums.push(now); while (g.strums.length && now - g.strums[0] > 6) g.strums.shift(); }
   }, 10);
   paintMic();
+}
+
+/* Stop listening for the rest of this show (Hearing you, tapped). Changes already heard still count. */
+function deafen(g) {
+  g.off = true;
+  clearInterval(g.timer); g.timer = 0;
+  try { g.src?.disconnect(); } catch {}
+  g.stream?.getTracks().forEach(t => t.stop());
+  g.stream = null; g.due = []; g.level = null;
+  paintMic(); paintScore();
 }
 
 /* the sections of the song, top to bottom, with where each starts on the page */
@@ -134,8 +148,19 @@ function shell(song) {
     <div class="gg-lines sheet" id="gg-lines"></div>
     <div class="gg-bottom">
       <button class="gg-mic" id="gg-mic" aria-label="Microphone"></button>
-      <button class="gg-lc" id="gg-lc" aria-label="Lines shown: ${linesWanted()}. Change">${linesWanted()} lines</button>
       <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
+    </div>
+    <div class="gg-hold" id="gg-hold" hidden>
+      <div class="gg-here"><small>YOU STOPPED HERE</small><div class="gg-hline sheet" id="gg-hline"></div>
+        <div class="gg-say"><span id="gg-hlouie"></span><p id="gg-hsay"></p></div></div>
+      <div class="gg-hacts">
+        <div class="gg-hrow">
+          <button class="btn gg-hb" id="gg-back">${icon("up")}Back a line</button>
+          <button class="btn gg-hb" id="gg-tools" aria-haspopup="menu">${icon("dots")}Tools</button>
+          <button class="btn gg-hb" id="gg-sheet">${icon("list")}Sheet</button>
+        </div>
+        <button class="btn primary gg-resume" id="gg-resume">${icon("play")}RESUME</button>
+      </div>
     </div>`;
   document.body.appendChild(el);
   return el;
@@ -144,10 +169,14 @@ function shell(song) {
 function paintMic() {
   const b = $("gg-mic");
   if (!b || !gig) return;
-  const on = !!gig.stream;
+  const g = gig, on = !!g.stream;
+  const [big, small, label] = on ? ["Hearing you", "TAP TO TURN OFF", "Hearing you: this show is scored. Tap to stop listening"]
+    : g.asking ? ["Listening…", "ALLOW THE MICROPHONE", "Asking for the microphone"]
+    : g.denied ? ["No microphone", "TAP TO TRY AGAIN", "No microphone: this show isn't scored. Tap to try again"]
+    : ["Not listening", "TAP TO SCORE IT", "Not listening: this show isn't scored. Tap to listen"];
   b.classList.toggle("off", !on);
-  b.innerHTML = `${icon("mic")}<span class="gg-lv" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>${on ? "Hearing you" : "Not listening"}</span>`;
-  b.setAttribute("aria-label", on ? "Hearing you" : "Not listening: the show plays without a score");
+  b.innerHTML = `${icon("mic")}<span class="gg-lv" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="gg-mt">${big}<small>${small}</small></span>`;
+  b.setAttribute("aria-label", label);
 }
 
 function paintMap() {
@@ -209,8 +238,9 @@ function frame() {
   const gel = gelOf(w.sec || "verse");
   if (gel !== g.gel) { g.gel = gel; g.el.dataset.gel = gel; }
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
-  /* lines */
-  if (w.b !== g.b) { g.b = w.b; paintLines(w); }
+  /* lines (Lines in a gig can change in Tools) */
+  if (+g.el.dataset.lines !== linesWanted()) { g.el.dataset.lines = linesWanted(); g.b = -1; }
+  if (w.b !== g.b) { g.b = w.b; paintLines(w); if (g.paused) paintHold(); }
   /* chords */
   const seq = diag.seq || [];
   if (w.idx >= 0 && w.idx !== g.idx) {
@@ -260,17 +290,19 @@ export function openGig(song, opts = {}) {
   gigHooks.on = true;
   gigHooks.credited = () => { if (gig === g) g.credited = true; };
   gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
+  gigHooks.resume = () => { if (gig === g) resume(); };
+  gigHooks.leave = () => { if (gig === g) leave(); };
   $("gg-x").onclick = () => leave();
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
-  $("gg-lc").onclick = () => {
-    const n = LINES[(LINES.indexOf(linesWanted()) + 1) % LINES.length];
-    data.settings.gigLines = n; Tabs.save(data);
-    $("gg-lc").textContent = `${n} lines`; $("gg-lc").setAttribute("aria-label", `Lines shown: ${n}. Change`);
-    g.el.dataset.lines = n; g.b = -1;
-  };
+  $("gg-mic").onclick = () => { if (g.stream) deafen(g); else if (!g.asking) listen(g); };
+  $("gg-resume").onclick = () => resume();
+  $("gg-sheet").onclick = () => leave();
+  $("gg-tools").onclick = e => { e.stopPropagation(); openTools($("gg-tools")); };
+  $("gg-back").onclick = () => backALine();
   g.el.dataset.lines = linesWanted();
   paintMap(); paintMic(); paintScore();
-  listen(g);
+  /* Score my plays (Settings > Playing) decides whether a show starts listening. */
+  if (data.settings.gigScore !== false) listen(g); else { g.off = true; paintMic(); }
   g.raf = requestAnimationFrame(frame);
   if (!scroll.on) startScroll(song);
 }
@@ -279,16 +311,37 @@ function paused(on) {
   if (!g) return;
   g.paused = on;
   g.el.classList.toggle("paused", on);
-  $("gg-pause").innerHTML = icon(on ? "play" : "pause");
+  $("gg-hold").hidden = !on;
   $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
+  if (on) { paintHold(); $("gg-resume").focus({ preventScroll: true }); }
 }
-function resume() { const g = gig; if (!g) return; paused(false); startScroll(g.song); }
+/* Paused: the line you stopped on, and Louie keeping the crowd */
+function paintHold() {
+  const g = gig, box = $("gg-hline");
+  if (!g || !box) return;
+  const now = $("gg-lines")?.querySelector(".gl-now");
+  box.replaceChildren(...(now ? [now.cloneNode(true)] : []));
+  $("gg-hlouie").innerHTML = louie("happy", { size: 64 });
+  $("gg-hsay").textContent = g.score.combo >= 2 ? "Take a breath. The crowd's still with you, and your combo is held." : "Take a breath. The crowd's still here when you're ready.";
+}
+/* Back a line: the line before the one you stopped on comes to the reading line */
+function backALine() {
+  const g = gig, sheet = $("sheet");
+  if (!g || !sheet || !diag.blocks?.length) return;
+  let i = Math.max(0, g.b) - 1;
+  while (i > 0 && !isLine(diag.blocks[i].el)) i--;
+  const to = scrollY + sheet.getBoundingClientRect().top + diag.blocks[Math.max(0, i)].y - innerHeight * READ_AT + 1;
+  window.scrollTo(0, Math.max(0, to));
+  g.b = -1; g.idx = -1;
+}
+function resume() { const g = gig; if (!g) return; document.querySelector(".menu")?.remove(); paused(false); startScroll(g.song); }
+/* Leave the show (X or Sheet): the song stays open, paused where it was */
 function leave() {
   const g = gig;
   if (!g) return;
   g.leaving = true;
   if (scroll.on) stopScroll();
-  closeGig();
+  closeGig(true);
 }
 export function closeGig(quiet = false) {
   const g = gig;
@@ -300,8 +353,9 @@ export function closeGig(quiet = false) {
   g.stream?.getTracks().forEach(t => t.stop());
   g.el?.remove();
   document.body.classList.remove("gigging");
-  gigHooks.on = false; gigHooks.credited = null; gigHooks.stopped = null;
-  if (!quiet && g.from === "road" && route().name === "song") go("#/");
+  gigHooks.on = false; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
+  document.querySelector(".menu.tools")?.remove();
+  if (!quiet && g.from === "road") go("#/");
 }
 onLeave(() => closeGig(true));
 
@@ -336,7 +390,7 @@ function showComplete() {
       ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
       <button class="btn" id="gc-go">CONTINUE</button>
     </div></div>`;
-  $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } };
+  $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else redraw?.(); };
   $("gc-encore")?.addEventListener("click", () => {
     const song = g.song, from = g.from;
     closeGig(true);

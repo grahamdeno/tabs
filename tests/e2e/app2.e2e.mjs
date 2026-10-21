@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, openSpeed, speedText } from "./harness.mjs";
 
 useBrowser();
 
@@ -16,12 +16,14 @@ test("menus and panels work from a keyboard: focus moves in, Escape closes", { s
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
   await page.focus("#more"); await page.keyboard.press("Enter"); await page.waitForTimeout(300);
   assert.equal(await inside(".menu"), true, "focus is in the menu");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "speed", "4.2.0: Tools starts on its first tile");
   await page.keyboard.press("ArrowDown");
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "listen", "on a phone held upright the menu is a bottom sheet; mid-song items sit lowest");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "metro");
   await page.keyboard.press("Escape"); await page.waitForTimeout(200);
   assert.equal(await page.locator(".menu").count(), 0);
   assert.equal(await page.evaluate(() => document.activeElement.id), "more");
   await page.keyboard.press("Enter"); await page.waitForTimeout(200);
+  await page.focus('.menu [data-m="set"]');
   await page.keyboard.press("Enter"); await page.waitForTimeout(400); /* Add to set */
   assert.equal(await page.getAttribute("#layer [role=dialog]", "aria-modal"), "true");
   assert.equal(await inside("#layer"), true, "focus is in the panel");
@@ -165,14 +167,14 @@ test("Back from a song opened in a set returns to that set; from the library, to
   const hash = () => page.evaluate(() => location.hash);
   await page.goto(base + "#/set/s"); await page.waitForTimeout(300);
   await page.click("[data-open='0']"); await page.waitForTimeout(400);
-  assert.equal(await page.getAttribute(".oh-back", "aria-label"), "Back to Friday");
+  assert.equal(await page.getAttribute(".shead .sh-back", "aria-label"), "Back to Friday");
   await page.click("#snext"); await page.waitForTimeout(400);               // on to the next song in the set
-  await page.click(".oh-back"); await page.waitForTimeout(400);
+  await page.click(".shead .sh-back"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/set/s");
   await page.goto(base + "#/library"); await page.waitForTimeout(300);
   await page.click('#list .row[data-id="a"]'); await page.waitForTimeout(400);
-  assert.equal(await page.getAttribute(".oh-back", "aria-label"), "Back to library");
-  await page.click(".oh-back"); await page.waitForTimeout(400);
+  assert.equal(await page.getAttribute(".shead .sh-back", "aria-label"), "Back to library");
+  await page.click(".shead .sh-back"); await page.waitForTimeout(400);
   assert.equal(await hash(), "#/library");
 });
 
@@ -309,7 +311,7 @@ test("iPhone: Listen opens Apple Music's search, and Paste on return saves the l
 
 test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad keeps its layout", { skip: skip() }, async t => {
   const page = await phone(t);
-  const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right } : null; }, sel);
+  const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right, left: r.left } : null; }, sel);
   const H = 844;
   assert.ok((await box("#chips")).top < H * 0.3, "filters at the top (2.6: moved back)");
   assert.ok((await box("#tunerbtn")).top < 100, "tuner in the header (2.6: moved back)");
@@ -317,46 +319,46 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const dot = await page.evaluate(() => { const d = document.querySelector("#tunerbtn .dotmark"); return d && getComputedStyle(d).position; });
   if (dot) assert.equal(dot, "absolute", "the not-tuned dot sits in the corner");
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  assert.equal(await box(".head"), null, "song page top has no buttons");
-  for (const sel of [".oh-back", "#nnbtn", "#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
-  assert.ok((await box(".titlerow .tfav")).top < H * 0.2, "3.20.0: the heart is beside the title");
-  assert.equal(await page.locator(".player .fav, .player #up, .player #down").count(), 0, "3.20.0: one row, no favorite or key buttons");
-  assert.ok((await box("#play")).right > 330, "Play at the bottom right");
+  /* 4.2.0: one song screen. Back, the title and the heart at the top; Tools and a big Play at the bottom. */
+  assert.ok((await box(".shead .sh-back")).top < 100 && (await box(".shead .fav")).top < 100, "back and the heart beside the title");
+  for (const sel of ["#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
+  assert.equal(await page.locator(".player .fav, .player #nnbtn, .player .oh-back").count(), 0, "just Tools and Play");
+  assert.ok((await box("#play")).right > 330 && (await box("#play")).left < 120, "Play fills the bar");
+  assert.equal(await page.locator(".secbar .sbar").count(), 2, "the song map: one button per section");
   await page.click("#more"); await page.waitForTimeout(300);
   const m = await box(".menu");
-  assert.ok(m.bottom > H - 40 && m.top > H * 0.35, "the menu rises from the bottom");
-  assert.match(await page.evaluate(() => [...document.querySelectorAll(".menu .mrow")].at(-1).textContent), /Text size/, "Text size lowest");
+  assert.ok(m.bottom > H - 40 && m.top > H * 0.2, "Tools rises from the bottom");
+  assert.match(await page.innerText(".menu .tl-head"), /Tools\s*Text size/, "Text size beside the title");
+  assert.match(await page.innerText(".menu"), /Lines in a gig/);
 
   const pad = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForTimeout(400);
-  assert.ok(await pad.evaluate(() => document.querySelector(".head [data-go]").getBoundingClientRect().top < 100), "iPad: buttons stay at the top");
-  assert.equal(await pad.evaluate(() => document.querySelector(".oh-back").offsetParent), null, "iPad: no bar copies");
+  assert.ok(await pad.evaluate(() => document.querySelector(".shead [data-go]").getBoundingClientRect().top < 100), "iPad: back at the top");
   await pad.goto(base + "#/library"); await pad.waitForTimeout(400);
   assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: tuner at the top");
 });
 
-test("2.1 speed dial: hold the time and sweep the corner; the length follows and saves", { skip: skip() }, async t => {
+test("2.1 speed dial (4.2.0: Tools, then Speed): sweep the corner; the length follows and saves", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  const before = await page.innerText("#dialbtn");
-  const b = await page.locator("#dialbtn").boundingBox();
-  const x = b.x + 20, y = b.y + 16;
+  const before = await speedText(page);
+  await openSpeed(page);
+  const x = 250, y = 700;
   await page.mouse.move(x, y); await page.mouse.down();
-  await page.waitForSelector(".dial", { timeout: 2000 }).catch(() => {});
-  assert.equal(await page.locator(".dial").count(), 1, "the dial opens on press");
   await page.mouse.move(x + 60, y - 140, { steps: 8 });
   const shown = await page.textContent(".dial-big");
   await page.mouse.up(); await page.waitForTimeout(300);
   assert.equal(await page.locator(".dial").count(), 0, "it closes on release");
-  const after = await page.innerText("#dialbtn");
-  assert.notEqual(after.trim(), before.trim(), "the length changed");
-  assert.equal(after.trim(), shown.trim(), "the bar shows what the dial showed");
+  const after = await speedText(page);
+  assert.notEqual(after, before, "the length changed");
+  assert.equal(after, shown.trim(), "the page keeps what the dial showed");
   assert.ok(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").durationSet, "saved");
-  /* A tap opens it to sweep anywhere; a tap off it closes it. */
-  await page.click("#dialbtn"); await page.waitForTimeout(200);
+  await page.click("#more"); await page.waitForTimeout(200);
+  assert.match(await page.innerText('.menu [data-m="speed"]'), new RegExp(after), "the Speed tile shows it");
+  await page.click('.menu [data-m="speed"]'); await page.waitForTimeout(200);
   assert.equal(await page.locator(".dial").count(), 1);
   await page.mouse.click(60, 120); await page.waitForTimeout(300);
-  assert.equal(await page.locator(".dial").count(), 0);
+  assert.equal(await page.locator(".dial").count(), 0, "a tap off it closes it");
 });
 
 test("2.1 set dial: in a set, sweep to a song and let go to open it", { skip: skip() }, async t => {
@@ -430,22 +432,22 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
 test("2.16.5 speed dial: a tap that slips a little near the corner closes it without changing the time", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 200 } : s) });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  const before = (await page.innerText("#dialbtn")).trim();
-  await page.click("#dialbtn"); await page.waitForSelector(".dial");
+  const before = await speedText(page);
+  await openSpeed(page);
   /* Tap on the wheel close to the corner, drifting 8 px: about 9 degrees there. */
   const x = 390 - 20, y = 844 - 25;
   await page.mouse.move(x, y); await page.mouse.down();
   await page.mouse.move(x - 8, y, { steps: 3 });
   await page.mouse.up(); await page.waitForTimeout(300);
   assert.equal(await page.locator(".dial").count(), 0, "the tap closed it");
-  assert.equal((await page.innerText("#dialbtn")).trim(), before, "the time didn't change");
+  assert.equal(await speedText(page), before, "the time didn't change");
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").duration, 200, "nothing saved");
 });
 
 test("2.25.0 speed dial is a meter: the needle swings with the length, and whole minutes are marked", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 235 } : s) });
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  await page.click("#dialbtn"); await page.waitForSelector(".dial-needle");
+  await openSpeed(page); await page.waitForSelector(".dial-needle");
   const tip = () => page.evaluate(() => { const n = document.querySelector(".dial-needle"); return [+n.getAttribute("x2"), +n.getAttribute("y2")]; });
   const before = await tip();
   assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll(".dial-labels .sc")].map(e => e.textContent)), ["2:00", "3:00", "4:00", "5:00", "6:00", "8:00", "10:00", "15:00"], "3.19.0: up to 15 minutes");
@@ -453,7 +455,7 @@ test("2.25.0 speed dial is a meter: the needle swings with the length, and whole
   await page.keyboard.press("Escape").catch(() => {});
   await page.evaluate(() => { const s = document.getElementById("speed"); s.value = 480; s.oninput(); });
   await page.mouse.click(60, 120); await page.waitForTimeout(250);
-  await page.click("#dialbtn"); await page.waitForSelector(".dial-needle");
+  await openSpeed(page); await page.waitForSelector(".dial-needle");
   const after = await tip();
   assert.ok(after[1] < before[1], `faster points higher: ${before} then ${after}`);
 });

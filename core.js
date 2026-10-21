@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.1.0";
+export const VERSION = "4.2.0";
 
 const STORAGE_KEY = "tabs-v1";
 const DAY = 86400000;
@@ -24,6 +24,8 @@ const DEFAULT_SETTINGS = {
   nudge: true,            // the library's Today line: practice streak and a song for today
   arcSweep: "song",      // ring: a full sweep of the arc covers the whole "song" (speed-sensitive) or one "screen"
   gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6)
+  gigPlay: true,         // Play opens the Gig (4.2.0); off, Play is plain auto-scroll
+  gigScore: true,        // a gig starts listening for your chord changes (4.2.0)
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
 };

@@ -26,7 +26,7 @@ test("first launch adds the sample song and opens on the Road with it ready (4.0
 test("a song opens, its Key opens the key dial, and it plays; a tap pauses it", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.goto(base + "#/song/a"); await page.waitForTimeout(400);
-  assert.match(await page.innerText("#meta"), /Key A/);
+  assert.match(await page.innerText(".metarow"), /Key A/);
   /* 3.20.0: Key is a button under the title that opens the key dial */
   await page.click("#keybtn"); await page.waitForSelector(".dial.key");
   assert.match(await page.textContent(".dial-small"), /KEY A/);

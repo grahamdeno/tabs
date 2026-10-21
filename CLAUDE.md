@@ -38,8 +38,15 @@ shipped the look, Louie, the stat bar, the tab bar and the Road path; 4.0.1 put
 every screen on the design system; 4.1.0 shipped the Gig (`gig.js`, scoring in
 `core.js`: gigChange and friends) with Show complete and Encore, and the Louie
 icon (Take 3A up close on pink; Take 2's whole body for launch screens). Graham
-wants the Gig to show more than 2 lines (4 to 6, the Lines chip; settle the
-default after he tries it). Still to build, one release each, stopping after
+wants the Gig to show more than 2 lines (4 to 6, Lines in a gig in Tools; settle
+the default after he tries it). 4.2.0 replaced the song page with one song
+screen built from Gig parts: Play opens the Gig (plain scroll while practicing
+a section or slower, for tabs, or with Play as a gig off), Tools is one bottom
+sheet, Pause holds the show in place (Back a line, Tools, Sheet, Resume), and
+Hearing you turns scoring off per show (Score my plays sets the default).
+Louie's friends (Lola guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp,
+Pip pick; Graham's art, 2026-10-21) get redrawn in Louie's style for Your band,
+mockup first. Pip stays but must not be rainbow. Still to build, one release each, stopping after
 each for Graham to try: Tour quests, Charts (record tiers,
 promotion, rival battles), Your band (players join by venue, heard in the
 backing), Rehearse hub, Merch table (spend fans on gear, Louie finishes,
