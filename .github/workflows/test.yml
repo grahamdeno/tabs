@@ -42,7 +42,8 @@ jobs:
           if [ $status -ne 0 ]; then
             # One annotation with every test that failed, then some detail, readable from the run's summary and the API.
             fails=$(grep -aE "^not ok" e2e.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
-            detail=$( { grep -aE "Error|^\s+(error|expected|actual):|\(serious\)|\(critical\)|no name:|PROBLEM" e2e.log || tail -40 e2e.log; } | head -40 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            # Each failure's own error lines (location and message), then axe and naming problems.
+            detail=$( { awk '/^not ok/{n=12} n>0 && /^not ok|location:|error:|^ {4}[^ ]/{print} {n--}' e2e.log; grep -aE "PROBLEM|no name:" e2e.log; } | head -120 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
             echo "::error title=Browser tests failed::${fails}%0A${detail}"
           fi
           exit $status

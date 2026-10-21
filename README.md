@@ -99,7 +99,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Help and settings
 - Tips appear once, at the moment they're useful, spaced out and never while a song plays. Settings > Help > Tips & gestures lists every gesture with Show me.
-- Settings is a short menu (Playing, Chord diagrams, Look, New songs, Today, Keys, Library and backups, Help), with Back up now at the bottom in thumb reach.
+- Settings is a short menu (Playing, Chord diagrams, Look, New songs, Today, Keys, Songbook and backups, Help), with Back up now at the bottom in thumb reach.
 - Theme follows the phone, or set Dark or Light. Amp covering (Settings > Look) adds a tolex grain behind everything.
 
 ## Look

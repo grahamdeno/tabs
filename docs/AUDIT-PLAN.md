@@ -126,8 +126,8 @@ Bump the patch version, push (rules 3 and 6).
 
 ## Step 3 [Opus]: real CI failures and review of steps 1 and 2
 
-- [ ] **3.1 Review the diffs of steps 1 and 2.** Check that nothing live was deleted.
-- [ ] **3.2 Accessibility.**
+- [x] **3.1 Review the diffs of steps 1 and 2.** Check that nothing live was deleted.
+- [x] **3.2 Accessibility.**
   - The Lines in a gig buttons (`app.js` ~1863): `role="menuitem"` with a pressed state isn't allowed. Use `role="menuitemradio"` with `aria-checked`, or drop the role.
   - Fix colour contrast in the v4 palettes for the places axe names:
     - `.rd-pop > p`
@@ -204,3 +204,15 @@ Bump the patch version, push (rules 3 and 6).
 - styles.css has a stray `}` near line 1279 (already in 4.14.0). The next rule, `.tn-note.done.glow b`, is dropped by browsers. Fixing it would change how the tuner looks, so it is left for Opus (task 4.2).
 - `.pk-level.soon` CSS is live and was kept.
 - The streak celebration still draws the old pick (`pickSVG`, `sk-pick`). Task 4.5.
+
+### Notes from Step 3 (Opus 5.5, released as 4.14.2)
+
+- 3.1: no live use of anything removed in Steps 1 and 2 (names grepped across js, html, css and tests; removed CSS classes checked against template strings).
+- 3.2: axe-core can't be installed in the cloud sandbox (npm registry unreachable), so contrast was checked with a probe that does the same maths, then confirmed in CI.
+  - New `--accent-ink` token: the accent as text. Same as the accent in Neon; deeper pink (#C21B57) in Festival and deeper red (#B03228) in Green Room. All 121 `color: var(--accent)` rules use it, so chord names and setting values are a deeper pink in Light.
+  - Festival `--bad` is a touch darker (#C42037); the Road banner's small line is white in Light; the Verse gel has dark letters (Green Room keeps white on a deeper teal).
+  - Paused, the sheet no longer dims other lines (it was below 2:1). Dimming happens only while playing; the current line keeps its emphasis either way.
+  - Lines in a gig buttons: `role="menuitemradio"` with `aria-checked`.
+  - Found while checking: Settings said "Library and backups"; now "Songbook and backups".
+- CI's other two failures: German practice's test expected German not to be in Tools, but 4.2.0 put it there on purpose; test updated. The Gig test passes locally every time, so the CI failure is likely timing; the CI summary now prints each failure's location and message to pin it down.
+- Not checked by CI: Green Room contrast (the a11y test runs dark and light only). The Green Room banner (white on #0F8B8D, 4.1:1) is slightly low.

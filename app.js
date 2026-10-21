@@ -1859,7 +1859,7 @@ function songMenu(song, anchor, redrawSong) {
       <div class="tl-head"><b>Tools</b>
         <div class="mrow size" role="group" aria-label="Text size"><span class="ml">Text size</span>
           <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div></div>
-      ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6, "full"].map(n => `<button role="menuitem" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-pressed="${n === lines()}">${n === "full" ? "Full" : n}</button>`).join("")}</div></div>` : ""}
+      ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6, "full"].map(n => `<button role="menuitemradio" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-checked="${n === lines()}">${n === "full" ? "Full" : n}</button>`).join("")}</div></div>` : ""}
       <div class="tl-h">PLAY ALONG</div><div class="tl-grid">${along.map(tile).join("")}</div>
       ${inGig ? "" : `<div class="tl-h">THE SONG</div><div class="tl-grid">${theSong.map(tile).join("")}</div>`}`;
   };

@@ -25,7 +25,7 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   assert.equal(await page.locator("#s-key").count(), 1); assert.equal(await page.locator("#s-bpmkey").count(), 1);
   await page.goto(page.url().replace(/#.*/, "#/trash")); await page.waitForTimeout(300);
   await page.click("#back"); await page.waitForTimeout(300);
-  assert.match(await page.innerText("h1"), /Library and backups/, "Recently deleted goes back to its page");
+  assert.match(await page.innerText("h1"), /Songbook and backups/, "Recently deleted goes back to its page");
   await page.evaluate(() => { location.hash = "#/settings/nope"; }); await page.waitForTimeout(300);
   assert.match(await page.innerText("h1"), /Settings/, "an unknown page shows the menu");
   assert.deepEqual(errs, []);

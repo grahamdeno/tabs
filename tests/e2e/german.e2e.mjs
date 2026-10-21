@@ -36,7 +36,7 @@ test("German practice: translate once, pick a level, tap a word; nothing leaves 
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
   await page.goto(page.url().replace(/#.*$/, "") + "#/song/h"); await page.waitForTimeout(500);
   assert.match(await page.innerText("#dechip"), /DE\s*German/, "the chip is the way in");
-  await page.click("#more"); assert.equal(await page.locator(".menu [data-m='de']").count(), 0, "not in the More menu"); await page.keyboard.press("Escape");
+  await page.click("#more"); assert.equal(await page.locator(".menu [data-m='de']").count(), 1, "also in Tools (4.2.0)"); await page.keyboard.press("Escape");
   await page.click("#dechip"); await page.waitForTimeout(300);
   await page.click("#de-go");
   assert.equal(await page.locator(".de-sheet").count(), 0, "the sheet gets out of the way");

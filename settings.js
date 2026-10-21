@@ -194,7 +194,7 @@ function renderSettings() {
       </div>` : ""}
     </div>
     <details class="foot s-why"><summary>What it's used for</summary>The recording plays here instead of opening Apple Music, and the page follows it. Songs also get their genre, year and composer, the search screen shows what you played lately, and each line is timed from LRCLIB's synced lyrics (only the times are kept). Off, nothing is loaded and nothing is sent. On, The Road loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
-    library: ["Library and backups", `
+    library: ["Songbook and backups", `
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
@@ -230,7 +230,7 @@ function renderSettings() {
       ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
     </div>
     <div class="set-group glass s-gap">
-      ${row("library", "cloud", "Library and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
+      ${row("library", "cloud", "Songbook and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
       ${row("help", "info", "Help", problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : "Tips, diagnostics", true)}
     </div>
     <p class="foot s-ver" id="s-ver">The Road ${VERSION}</p>
