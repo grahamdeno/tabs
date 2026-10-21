@@ -15,6 +15,10 @@ const changed = new Set([
 const COVERS = {
   "app.js": ["app", "regress", "duet", "changes", "today", "swipe"],
   "core.js": ["app", "changes", "today", "profile"],
+  /* core/ (4.15.1): each topic's screens */
+  "core/chords.js": ["app", "regress"], "core/recording.js": ["app"], "core/sketch.js": ["strum", "app"],
+  "core/playing.js": ["profile", "today"], "core/groove.js": ["app"], "core/turf.js": ["app"],
+  "core/neck.js": ["practice"], "core/game.js": ["app", "duet"],
   "ui.js": ["app", "regress"],
   "settings.js": ["settings", "today"],
   "findai.js": ["playnext", "getsong"],

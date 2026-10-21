@@ -1,0 +1,673 @@
+// The Road: core logic, Version 4's game: the Road, Tour quests, Charts, Your band, Rehearse, song duels, the Gig and the Merch table.
+// Re-exported from core.js, so other files import it from there.
+import { DAY, dayKey, heardMatch, isObj, norm, playDays, playSongs } from "../core.js";
+import { chordShape, parseBlocks } from "./chords.js";
+import { skillState } from "./neck.js";
+import { VENUES, lifetimePlays, venueName } from "./turf.js";
+
+// ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
+// Each leg is one track of the neck (Open chords, Chord switches, Scales). Its stops are the
+// lessons in order, a merch box after every third lesson, and the level check at the end as the
+// leg's headline show. Nothing new is stored: every stop's state comes from skillState, and a box
+// is open once every stop before it is done. Only the first open stop on the whole road is the
+// current one; later open stops (Scales are open from the start) can be played but aren't ringed.
+export const BOX_EVERY = 3;
+export function roadPath(data, now = Date.now()) {
+  const sk = skillState(data, now);
+  let current = null;
+  const legs = sk.levels.filter(lv => !lv.soon && lv.steps.length).map((lv, li) => {
+    const stops = [];
+    let since = 0, allDone = true;
+    for (const st of lv.steps) {
+      if (st.kind !== "check" && since === BOX_EVERY) { stops.push({ id: `b:${lv.id}-${stops.length}`, kind: "box", name: "Merch box", state: allDone ? "done" : "locked" }); since = 0; }
+      const state = st.state === "now" ? (current ? "open" : "now") : st.state;
+      const stop = { ...st, kind: st.kind === "check" ? "headline" : st.kind, state, leg: lv.id };
+      if (state === "now") current = stop;
+      stops.push(stop);
+      if (st.state !== "done") allDone = false;
+      if (st.kind !== "check") since++;
+    }
+    return { id: lv.id, n: li + 1, name: lv.name, note: lv.note, stops, done: lv.steps.every(s => s.state === "done") };
+  });
+  const coming = sk.levels.filter(lv => lv.soon).map(lv => lv.name);
+  const leg = legs.find(l => l.stops.includes(current)) || legs.find(l => !l.done) || legs.at(-1) || null;
+  return { legs, current, leg, coming };
+}
+
+/* Fans (4.0.0): the score you earn by playing. 10 for every play (a song played through, or four
+   minutes of practice), 5 for every lesson round finished, and 25 for every merch box opened on
+   the Road. Worked out from what is already kept, so it needs no storage and survives a backup. */
+export const FANS = { play: 10, lesson: 5, box: 25 };
+export function fansOf(data, now = Date.now()) {
+  const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
+  const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
+  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0) + (data.quests?.fans || 0) + (data.charts?.fans || 0);
+}
+
+// ---------- Tour quests (4.5.0) ----------
+// The month's tour (20 shows), tonight's setlist (three small goals a day) and the request line (a fan asks
+// for one of your songs each day; played as a gig, its bonus fans double). Fans from quests are kept in
+// data.quests.fans; what's earned is settled once (questsSettle), so nothing is counted twice.
+export const QUEST = { tourShows: 20, tourFans: 100, goalFans: 10, setFans: 25 };
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function hashDay(key) { let h = 7; for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+/* the song a fan asks for today: a chord song not played in the last week (any, if all were), the ones
+   you can already play first; the same one all day */
+export function requestSong(data, now = Date.now()) {
+  const songs = (data.songs || []).filter(s => s.format !== "tab" && /\S/.test(s.body || "") && !s.isNew);
+  if (!songs.length) return null;
+  /* 4.10.0: the song you just played in Apple Music is today's request */
+  const heard = data.quests?.heard;
+  if (heard?.day === dayKey(now)) { const h = songs.find(s => s.id === heard.id); if (h) return h; }
+  const week = new Set(Array.from({ length: 7 }, (_, i) => dayKey(now - i * DAY)));
+  const fresh = songs.filter(s => !Object.entries(s.playLog?.days || {}).some(([k, n]) => n > 0 && week.has(k)));
+  const known = knownChords(data, now), can = s => sheetChords(s.body).every(c => known.has(c));
+  const pool = (fresh.length ? fresh : songs).slice().sort((a, b) => (can(b) - can(a)) || String(a.id).localeCompare(String(b.id)));
+  const ok = pool.filter(can), from = ok.length ? ok : pool;
+  return from[hashDay(dayKey(now)) % from.length];
+}
+export function questState(data, now = Date.now()) {
+  const d = new Date(now), today = dayKey(now), month = today.slice(0, 7), q = data.quests || {};
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  let shows = 0, todayPlays = 0;
+  for (const s of playSongs(data)) for (const [k, n] of Object.entries(s.playLog?.days || {})) { if (k.startsWith(month)) shows += n || 0; if (k === today) todayPlays += n || 0; }
+  const mins = Math.floor((data.journal?.days?.[today] || 0) / 60), crowd = q.crowd?.day === today ? q.crowd.n : 0;
+  const got = q.day === today ? q.got || [] : [];
+  const goals = [
+    { id: "two", label: "Play 2 songs through", have: Math.min(2, todayPlays), need: 2 },
+    { id: "crowd", label: "Get the crowd to 10 of 12 in a gig", have: Math.min(10, crowd), need: 10 },
+    { id: "mins", label: "Play for 5 minutes", have: Math.min(5, mins), need: 5 }
+  ].map(g => ({ ...g, done: g.have >= g.need, claimed: got.includes(g.id) }));
+  const req = requestSong(data, now);
+  return {
+    today, month, monthName: MONTHS[d.getMonth()], daysLeft: last - d.getDate(),
+    tour: { shows: Math.min(QUEST.tourShows, shows), need: QUEST.tourShows, done: shows >= QUEST.tourShows, claimed: q.month === month && !!q.tour },
+    goals, setDone: goals.every(g => g.done), setClaimed: got.includes("set"),
+    request: req && { song: req, done: q.req?.day === today && q.req.id === req.id && !!q.req.done }
+  };
+}
+/* Credit what's newly done: fans for each goal, the full setlist and the month's tour. Returns what was earned. */
+export function questsSettle(data, now = Date.now()) {
+  const st = questState(data, now), q = data.quests || (data.quests = { fans: 0 });
+  if (q.day !== st.today) { q.day = st.today; q.got = []; }
+  const out = [];
+  for (const g of st.goals) if (g.done && !q.got.includes(g.id)) { q.got.push(g.id); out.push({ label: g.label, fans: QUEST.goalFans }); }
+  if (st.setDone && !q.got.includes("set")) { q.got.push("set"); out.push({ label: "Tonight's setlist", fans: QUEST.setFans }); }
+  if (q.month !== st.month) { q.month = st.month; q.tour = false; }
+  if (st.tour.done && !q.tour) { q.tour = true; out.push({ label: `${st.monthName} Tour`, fans: QUEST.tourFans }); }
+  q.fans = (q.fans || 0) + out.reduce((n, x) => n + x.fans, 0);
+  addXP(data, out.length * XP.goal, now); /* Charts (4.6.0) */
+  return out;
+}
+/* Cover requests (4.10.0): what you listen to in Apple Music. A song in your Songbook becomes today's
+   request; one you don't have becomes a cover quest (get the song, learn its chords, play it as a gig for
+   3x bonus fans). noteHeard takes the latest track; returns true when something changed. */
+export const COVER_MULT = 3;
+export function noteHeard(data, track, now = Date.now()) {
+  if (!track?.title) return false;
+  const q = data.quests || (data.quests = { fans: 0 }), today = dayKey(now), song = heardMatch(data.songs || [], track);
+  if (song && song.format !== "tab") {
+    if (q.heard?.day === today && q.heard.id === song.id) return false;
+    if (q.req?.day === today && q.req.done) return false; /* today's request is already played */
+    q.heard = { day: today, id: song.id };
+    return true;
+  }
+  if (song) return false;
+  const c = q.cover, same = c && norm(c.title) === norm(track.title) && norm(c.artist || "") === norm(track.artist || "");
+  if (same || (c && !c.done && now - c.at < 7 * DAY)) return false;
+  q.cover = { title: track.title, artist: track.artist || "", ...(track.url ? { url: track.url } : {}), ...(track.art ? { art: track.art } : {}), at: now };
+  return true;
+}
+/* the cover quest now: the song once it's in your Songbook, and the chords it still needs */
+export function coverState(data, now = Date.now()) {
+  const c = data.quests?.cover;
+  if (!c || c.done || now - c.at > 14 * DAY) return null;
+  const song = (c.id && data.songs.find(s => s.id === c.id)) || heardMatch(data.songs || [], c) || null;
+  if (song && c.id !== song.id) c.id = song.id;
+  const known = knownChords(data, now), missing = song ? sheetChords(song.body).filter(x => !known.has(x)) : [];
+  return { ...c, song, missing, step: !song ? 1 : missing.length ? 2 : 3 };
+}
+/* a gig finished: the crowd it reached today, and the request line (its bonus fans double, once a day) */
+function questsShow(data, songId, crowd, fans, now) {
+  const q = data.quests || (data.quests = { fans: 0 }), today = dayKey(now);
+  if (crowd != null) q.crowd = { day: today, n: Math.max(q.crowd?.day === today ? q.crowd.n : 0, crowd) };
+  /* the cover quest: your first gig of the song you went and learned pays 3x */
+  const cv = coverState(data, now);
+  if (cv?.song?.id === songId) { q.cover.done = true; q.cover.id = songId; const extra = fans * (COVER_MULT - 1); q.fans = (q.fans || 0) + extra; return extra; }
+  const req = requestSong(data, now);
+  if (!req || req.id !== songId || (q.req?.day === today && q.req.done)) return 0;
+  q.req = { day: today, id: songId, done: true };
+  q.fans = (q.fans || 0) + fans;
+  return fans;
+}
+export function cleanQuests(raw) {
+  if (!isObj(raw)) return null;
+  const day = /^\d{4}-\d\d-\d\d$/, out = { fans: Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0))) };
+  if (day.test(raw.day)) { out.day = raw.day; out.got = (Array.isArray(raw.got) ? raw.got : []).filter(x => ["two", "crowd", "mins", "set"].includes(x)); }
+  if (/^\d{4}-\d\d$/.test(raw.month)) { out.month = raw.month; out.tour = raw.tour === true; }
+  if (isObj(raw.crowd) && day.test(raw.crowd.day)) out.crowd = { day: raw.crowd.day, n: Math.max(0, Math.min(12, Math.round(+raw.crowd.n || 0))) };
+  if (isObj(raw.req) && day.test(raw.req.day) && typeof raw.req.id === "string") out.req = { day: raw.req.day, id: raw.req.id.slice(0, 40), done: raw.req.done === true };
+  if (isObj(raw.heard) && day.test(raw.heard.day) && typeof raw.heard.id === "string") out.heard = { day: raw.heard.day, id: raw.heard.id.slice(0, 40) };
+  if (isObj(raw.fq) && day.test(raw.fq.wk) && typeof raw.fq.with === "string") out.fq = { wk: raw.fq.wk, with: raw.fq.with.slice(0, 30), ...(raw.fq.claimed === true ? { claimed: true } : {}) };
+  const c = raw.cover;
+  if (isObj(c) && typeof c.title === "string" && c.title.trim() && c.at > 0) out.cover = { title: c.title.slice(0, 100), artist: String(c.artist || "").slice(0, 100), ...(/^https:\/\/music\.apple\.com\//.test(c.url || "") ? { url: c.url } : {}), ...(/^https:\/\//.test(c.art || "") ? { art: c.art } : {}), at: Math.floor(c.at), ...(typeof c.id === "string" ? { id: c.id.slice(0, 40) } : {}), ...(c.done === true ? { done: true } : {}) };
+  return out.fans || out.day || out.month || out.crowd || out.req || out.heard || out.cover || out.fq ? out : null;
+}
+
+// ---------- Charts (4.6.0): XP, the weekly chart, records and rival battles ----------
+// XP is earned this week: 10 for every song played through (from the play log), and what's kept in
+// data.xp.days: 1 for each chord change landed in a gig, 10 for a crowd of 10 or more, 5 for each setlist
+// goal, 30 for a battle won. Each week you're on a chart with nine simulated players at your tier (the
+// venues, Garage up); the top 5 move up a tier and earn its record, and the bottom 3 move down (4.11.0;
+// never below the Garage). The players behave like people: steady ones, weekend players who surge on
+// Saturday and Sunday, streakers who play every day, faders who start hot and stop, skippers who miss
+// days, and one shadow who stays just ahead of you as long as they can keep up.
+export const XP = { play: 10, landed: 1, crowd: 10, goal: 5, battle: 30, battleFans: 40 };
+export const CHART_PROMOTE = 5;
+export const CHART_DEMOTE = 3;
+const RIVAL_KINDS = ["steady", "weekend", "streaker", "fader", "skipper", "skipper", "steady", "weekend", "streaker"];
+const RIVAL_NAMES = ["Neon Jen", "Basement Ray", "Capo Kid", "Sixstring Sal", "Open-tuning Ollie", "Fret Fiona", "Barre Chord Bo", "Strummin' Stu", "Pickslide Pia", "Drop-D Dee", "Hammer-on Hal", "Feedback Flo", "Tremolo Tess", "Slide Sam", "Busker Bea", "Riff Rico", "Power Chord Pat", "Fingerpick Finn", "Chorus Cora", "Amp Stack Max"];
+/* Monday of the week a time falls in, as YYYY-MM-DD */
+export function weekOf(now = Date.now()) {
+  const d = new Date(now); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+  return dayKey(d.getTime());
+}
+const weekStart = wk => { const [y, m, d] = wk.split("-").map(Number); return new Date(y, m - 1, d).getTime(); };
+export function addXP(data, n, now = Date.now()) {
+  if (!(n > 0)) return;
+  const x = data.xp || (data.xp = { days: {} }), k = dayKey(now);
+  x.days[k] = (x.days[k] || 0) + Math.round(n);
+  const keep = dayKey(now - 60 * DAY);
+  for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d];
+}
+/* XP in the week that starts on wk */
+export function weekXP(data, wk = weekOf(), upTo = null) {
+  const t0 = weekStart(wk), last = upTo == null ? null : dayKey(upTo);
+  const days = new Set(Array.from({ length: 7 }, (_, i) => dayKey(t0 + i * DAY + 12 * 3600e3)).filter(k => !last || k <= last));
+  let n = 0;
+  for (const s of playSongs(data)) for (const [k, c] of Object.entries(s.playLog?.days || {})) if (days.has(k)) n += (c || 0) * XP.play;
+  for (const [k, c] of Object.entries(data.xp?.days || {})) if (days.has(k)) n += c || 0;
+  return n;
+}
+/* the nine players on your chart this week: the same all week, their XP growing as it goes */
+function rand(seed) { let h = seed >>> 0; return () => { h = (h + 0x6D2B79F5) >>> 0; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+export function chartRivals(wk, tier, at = 1, you = 0) {
+  const r = rand(hashDay(`${wk}:${tier}`)), names = RIVAL_NAMES.slice();
+  for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
+  const base = 90 + tier * 55, f = Math.max(0, Math.min(1, at)), kinds = RIVAL_KINDS.slice();
+  for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
+  const shadow = Math.floor(r() * 9); /* one of them keeps just ahead of you */
+  const t = f * 7, day = Math.min(6, Math.floor(t)), part = t - day; /* Monday is day 0 */
+  return names.slice(0, 9).map((name, i) => {
+    const kind = i === shadow ? "shadow" : kinds[i], target = Math.round(base * (0.35 + 1.3 * r()));
+    /* a share of the week's XP for each day, by the kind of player */
+    const w = Array.from({ length: 7 }, (_, d) => {
+      const coin = r();
+      if (kind === "weekend") return d >= 5 ? 3 + coin : coin < 0.3 ? 0.4 : 0;
+      if (kind === "streaker") return 0.8 + 0.4 * coin;
+      if (kind === "fader") return d < 3 ? 2 + coin : coin < 0.15 ? 0.3 : 0;
+      if (kind === "skipper") return coin < 0.45 ? 0 : 0.6 + coin;
+      return 0.6 + 0.8 * coin;
+    });
+    const sum = w.reduce((a, b) => a + b, 0) || 1, per = w.map(x => target * x / sum);
+    const by = d => per.slice(0, d).reduce((a, b) => a + b, 0);
+    let xp = Math.round(by(day) + per[day] * part), yday = Math.round(by(Math.max(0, day)));
+    const lead = 6 + Math.floor(r() * 18), cap = Math.round(base * 1.7 * Math.min(1, 0.25 + f));
+    if (kind === "shadow") { xp = Math.min(cap, Math.max(xp, you + lead)); yday = Math.min(xp, yday); }
+    const quiet = per.slice(Math.max(0, day - 1), day + 1).every(x => x < 1) && day > 0;
+    return { id: "r" + i, name, xp, target, kind, today: xp - yday, quiet };
+  });
+}
+/* the chart now: you and the rivals in order, the days left, the battle on offer */
+export function chartState(data, now = Date.now()) {
+  const c = data.charts || {}, wk = weekOf(now), tier = Math.max(0, Math.min(VENUES.length - 1, c.tier || 0));
+  const at = (now - weekStart(wk)) / (7 * DAY), you = weekXP(data, wk);
+  const rows = [...chartRivals(wk, tier, at, you), { id: "you", name: "You", xp: you, you: true, today: weekXP(data, wk) - weekXP(data, wk, now - DAY) }]
+    .sort((a, b) => b.xp - a.xp || (a.you ? -1 : b.you ? 1 : 0)).map((x, i) => ({ ...x, rank: i + 1 }));
+  const me = rows.find(x => x.you), above = me.rank > 1 ? rows[me.rank - 2] : rows[1]; /* at the top, the one chasing you */
+  const today = dayKey(now), b = c.battle?.day === today ? c.battle : null;
+  return {
+    week: wk, tier, name: venueName(tier), next: tier < VENUES.length - 1 ? venueName(tier + 1) : null,
+    daysLeft: Math.max(0, Math.ceil((weekStart(wk) + 7 * DAY - now) / DAY)), rows, you: me, rival: above,
+    battle: b, records: c.records || [], last: c.last && !c.last.seen ? c.last : null
+  };
+}
+/* today's rival battle: the player just above you, on a song you can play, with the score to beat */
+export function battleFor(data, now = Date.now()) {
+  const st = chartState(data, now);
+  if (st.battle) return st.battle;
+  if (!st.rival) return null;
+  const songs = (data.songs || []).filter(s => s.format !== "tab" && /\S/.test(s.body || "") && sheetChords(s.body).length);
+  if (!songs.length) return null;
+  const best = data.gig?.best || {}, r = rand(hashDay(`${dayKey(now)}:${st.rival.name}`));
+  const pool = songs.slice().sort((a, b) => (best[b.id] ?? -1) - (best[a.id] ?? -1) || String(a.id).localeCompare(String(b.id))).slice(0, 5);
+  const song = pool[Math.floor(r() * pool.length)];
+  return { day: dayKey(now), rival: st.rival.name, songId: song.id, target: Math.min(95, 55 + st.tier * 4 + Math.floor(r() * 18)) };
+}
+export function startBattle(data, now = Date.now()) {
+  const b = battleFor(data, now);
+  if (!b) return null;
+  (data.charts || (data.charts = { tier: 0 })).battle = b;
+  return b;
+}
+/* A new week: last week's place, a move up for the top 5 and that tier's record */
+export function chartsSettle(data, now = Date.now()) {
+  const c = data.charts || (data.charts = { tier: 0 }), wk = weekOf(now);
+  if (!c.week) { c.week = wk; return null; }
+  if (c.week === wk) return null;
+  const prev = c.week, tier = c.tier || 0, you = weekXP(data, prev);
+  const rows = [...chartRivals(prev, tier, 1, you), { you: true, xp: you }].sort((a, b) => b.xp - a.xp || (a.you ? -1 : b.you ? 1 : 0));
+  const rank = rows.findIndex(x => x.you) + 1, up = you > 0 && rank <= CHART_PROMOTE && tier < VENUES.length - 1;
+  const down = !up && rank > rows.length - CHART_DEMOTE && tier > 0;
+  if (you > 0 && rank <= CHART_PROMOTE) (c.records || (c.records = [])).push({ tier, week: prev, rank });
+  c.last = { week: prev, tier, rank, xp: you, up, ...(down ? { down: true } : {}) };
+  if (up) c.tier = tier + 1;
+  if (down) c.tier = tier - 1;
+  c.week = wk;
+  return c.last;
+}
+/* a gig finished: XP for it, and the battle if it was today's battle song */
+function chartsShow(data, songId, g, pct, now, mult = 1) {
+  addXP(data, mult * (g.hits * XP.landed + (g.last.length >= 6 && gigCrowd(g) >= 10 ? XP.crowd : 0)), now);
+  const b = data.charts?.battle;
+  if (!b || b.day !== dayKey(now) || b.songId !== songId || b.result || pct === null) return null;
+  b.result = pct >= b.target ? "won" : "lost"; b.pct = pct;
+  if (b.result === "won") { addXP(data, mult * XP.battle, now); data.charts.fans = (data.charts.fans || 0) + XP.battleFans; }
+  return { ...b };
+}
+export function cleanCharts(raw) {
+  if (!isObj(raw)) return null;
+  const day = /^\d{4}-\d\d-\d\d$/, out = { tier: Math.max(0, Math.min(VENUES.length - 1, Math.floor(+raw.tier || 0))) };
+  if (day.test(raw.week)) out.week = raw.week;
+  const fans = Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0))); if (fans) out.fans = fans;
+  const recs = (Array.isArray(raw.records) ? raw.records : []).filter(r => isObj(r) && day.test(r.week) && r.rank >= 1 && r.rank <= 10).slice(-100).map(r => ({ tier: Math.max(0, Math.min(VENUES.length - 1, Math.floor(+r.tier || 0))), week: r.week, rank: Math.floor(r.rank) }));
+  if (recs.length) out.records = recs;
+  if (isObj(raw.last) && day.test(raw.last.week)) out.last = { week: raw.last.week, tier: Math.floor(+raw.last.tier || 0), rank: Math.floor(+raw.last.rank || 0), xp: Math.max(0, Math.floor(+raw.last.xp || 0)), up: raw.last.up === true, ...(raw.last.down === true ? { down: true } : {}), ...(raw.last.seen === true ? { seen: true } : {}) };
+  const b = raw.battle;
+  if (isObj(b) && day.test(b.day) && typeof b.songId === "string" && typeof b.rival === "string") out.battle = { day: b.day, rival: b.rival.slice(0, 40), songId: b.songId.slice(0, 40), target: Math.max(0, Math.min(100, Math.round(+b.target || 0))), ...(b.result === "won" || b.result === "lost" ? { result: b.result, pct: Math.max(0, Math.min(100, Math.round(+b.pct || 0))) } : {}) };
+  return out.tier || out.week || out.records || out.fans || out.battle ? out : null;
+}
+export function cleanXP(raw) {
+  if (!isObj(raw) || !isObj(raw.days)) return null;
+  const days = {};
+  for (const [k, v] of Object.entries(raw.days).slice(-90)) if (/^\d{4}-\d\d-\d\d$/.test(k) && v > 0) days[k] = Math.min(1e5, Math.round(v));
+  return Object.keys(days).length ? { days } : null;
+}
+
+// ---------- Your band (4.7.0): Louie's friends join as you play ----------
+// Each friend joins after a number of songs played through (lifetime plays). Beat (drums) and Bex (bass)
+// play behind you in gigs once they've joined, unless Settings or the Band tab turn that off.
+export const BAND = [
+  ["lola", 1], ["tilly", 3], ["beat", 6, "drums"], ["metro", 10], ["bex", 15, "bass"], ["jax", 20], ["milo", 26], ["pip", 32], ["key", 40],
+  ["strap", 48], ["slide", 56], ["shaker", 65], ["pickup", 75], ["humb", 85], ["reverb", 95], ["triangle", 110], ["whammy", 125], ["looper", 140]
+].map(([id, at, plays]) => ({ id, at, ...(plays ? { plays } : {}) }));
+export function bandState(data) {
+  const plays = lifetimePlays(data), seen = new Set(data.band?.seen || []);
+  const members = BAND.map(b => ({ ...b, joined: plays >= b.at, fresh: plays >= b.at && !seen.has(b.id) }));
+  const next = members.find(b => !b.joined) || null;
+  return { plays, members, joined: members.filter(b => b.joined), next: next && { ...next, more: next.at - plays } };
+}
+/* who has joined since you last looked; marks them met */
+export function bandMeet(data) {
+  const st = bandState(data), fresh = st.members.filter(b => b.fresh);
+  if (fresh.length) { const b = data.band || (data.band = { seen: [] }); b.seen = [...new Set([...(b.seen || []), ...fresh.map(x => x.id)])]; }
+  return fresh;
+}
+/* the parts your band plays in a gig: drums once Beat has joined, bass once Bex has */
+export function bandParts(data) {
+  if (data.settings?.bandPlays === false) return {};
+  const st = bandState(data), has = id => st.joined.some(b => b.id === id);
+  return { drums: has("beat"), bass: has("bex") };
+}
+export function cleanBand(raw) {
+  if (!isObj(raw)) return null;
+  const seen = (Array.isArray(raw.seen) ? raw.seen : []).filter(id => BAND.some(b => b.id === id));
+  return seen.length ? { seen } : null;
+}
+
+// ---------- Rehearse (4.8.0): the soundcheck and the changes you dropped ----------
+// A gig keeps the chord changes you missed (from > to, the last 14 days). Today's soundcheck is built from
+// the two you missed most in the last week: drill both (switch lessons) and it's done, worth 20 XP once a day.
+// With nothing missed yet, it's the next switch on the neck.
+export const SOUNDCHECK_XP = 20;
+export function rehearseMisses(data, missed = {}, now = Date.now()) {
+  const pairs = Object.entries(missed).filter(([k, n]) => n > 0 && /^[^>]+>[^>]+$/.test(k));
+  if (!pairs.length) return;
+  const r = data.rehearse || (data.rehearse = {}), m = r.misses || (r.misses = {}), today = dayKey(now);
+  for (const [k, n] of pairs) { const x = m[k] || (m[k] = { n: 0, days: {} }); x.days[today] = (x.days[today] || 0) + n; }
+  const keep = dayKey(now - 14 * DAY);
+  for (const [k, x] of Object.entries(m)) { for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d]; x.n = Object.values(x.days).reduce((a, b) => a + b, 0); if (!x.n) delete m[k]; }
+}
+/* the changes you dropped, most first: [{ a, b, n }] over the last `days` days */
+export function missedChanges(data, now = Date.now(), days = 14) {
+  const from = dayKey(now - (days - 1) * DAY);
+  return Object.entries(data.rehearse?.misses || {}).map(([k, x]) => {
+    const [a, b] = k.split(">"), n = Object.entries(x.days || {}).reduce((t, [d, c]) => d >= from ? t + c : t, 0);
+    return { a, b, id: `s:${a}-${b}`, n };
+  }).filter(x => x.n > 0).sort((p, q) => q.n - p.n || p.id.localeCompare(q.id));
+}
+export function soundcheck(data, now = Date.now()) {
+  const today = dayKey(now), sc = data.rehearse?.sc?.day === today ? data.rehearse.sc : { day: today, got: [] };
+  let pairs = missedChanges(data, now, 7).slice(0, 2);
+  const fromMisses = pairs.length > 0;
+  if (!pairs.length) {
+    const sw = skillState(data, now).levels.flatMap(l => l.steps).find(s => s.kind === "switch" && s.state === "now")
+      || skillState(data, now).levels.flatMap(l => l.steps).filter(s => s.kind === "switch" && s.state === "done").sort((a, b) => (a.best || 0) - (b.best || 0))[0];
+    if (sw) pairs = [{ a: sw.a, b: sw.b, id: sw.id, n: 0 }];
+  }
+  if (sc.pairs) pairs = sc.pairs.map(id => { const [a, b] = id.slice(2).split(/-(.+)/); return { a, b, id, n: pairs.find(p => p.id === id)?.n || 0 }; });
+  return { day: today, pairs: pairs.map(p => ({ ...p, done: (sc.got || []).includes(p.id) })), fromMisses, done: !!sc.done };
+}
+/* a switch lesson finished: if it's in today's soundcheck, tick it; the last one done earns the XP */
+export function soundcheckDone(data, id, now = Date.now()) {
+  const st = soundcheck(data, now);
+  if (!st.pairs.some(p => p.id === id)) return null;
+  const r = data.rehearse || (data.rehearse = {});
+  const sc = r.sc?.day === st.day ? r.sc : (r.sc = { day: st.day, got: [], pairs: st.pairs.map(p => p.id) });
+  if (!sc.pairs) sc.pairs = st.pairs.map(p => p.id);
+  if (!sc.got.includes(id)) sc.got.push(id);
+  if (sc.done || !sc.pairs.every(p => sc.got.includes(p))) return { done: false, left: sc.pairs.length - sc.got.length };
+  sc.done = true; addXP(data, SOUNDCHECK_XP, now);
+  return { done: true, xp: SOUNDCHECK_XP };
+}
+export function cleanRehearse(raw) {
+  if (!isObj(raw)) return null;
+  const day = /^\d{4}-\d\d-\d\d$/, out = {}, misses = {};
+  for (const [k, x] of Object.entries(isObj(raw.misses) ? raw.misses : {}).slice(0, 200)) {
+    if (!/^[^>]{1,12}>[^>]{1,12}$/.test(k) || !isObj(x?.days)) continue;
+    const days = {}; for (const [d, n] of Object.entries(x.days)) if (day.test(d) && n > 0) days[d] = Math.min(9999, Math.round(n));
+    const n = Object.values(days).reduce((a, b) => a + b, 0); if (n) misses[k] = { n, days };
+  }
+  if (Object.keys(misses).length) out.misses = misses;
+  const sc = raw.sc;
+  if (isObj(sc) && day.test(sc.day)) out.sc = { day: sc.day, got: (Array.isArray(sc.got) ? sc.got : []).filter(x => typeof x === "string").slice(0, 4), ...(Array.isArray(sc.pairs) ? { pairs: sc.pairs.filter(x => typeof x === "string").slice(0, 4) } : {}), ...(sc.done === true ? { done: true } : {}) };
+  return out.misses || out.sc ? out : null;
+}
+
+// ---------- Song duels (4.12.0): beat a friend's score on a song, by link ----------
+// After a scored gig you send "I hit 88% on River Road. Beat it." The link carries the song and your score.
+// Your friend plays it as a gig and sends their score back the same way. No server: each phone keeps its own
+// list of duels in data.duels, { name, list: [{ id, title, artist, songId, opp, mine, theirs, started, at }] }.
+const score = x => isObj(x) && x.pct >= 0 && x.pct <= 100 ? { pct: Math.round(x.pct), combo: Math.max(0, Math.min(9999, Math.round(+x.combo || 0))), crowd: Math.max(0, Math.min(12, Math.round(+x.crowd || 0))) } : null;
+export function cleanDuelLink(d) {
+  if (!isObj(d) || typeof d.id !== "string" || !/^[a-z0-9]{6,24}$/.test(d.id) || typeof d.from !== "string") return null;
+  const sc = score(d);
+  if (!sc) return null;
+  const wk = typeof d.wk === "string" && /^\d{4}-\d\d-\d\d$/.test(d.wk) && d.xp >= 0 ? { xp: Math.min(1e5, Math.round(d.xp)), wk: d.wk } : {};
+  return { id: d.id, from: d.from.trim().slice(0, 30) || "A friend", ...sc, ...wk, ...(d.reply === true ? { reply: true } : {}) };
+}
+const duelsOf = data => data.duels || (data.duels = { list: [] });
+/* you challenge a friend: the duel starts with your score */
+export function startDuel(data, song, mine, now = Date.now()) {
+  const id = (now.toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 14);
+  const d = { id, title: song.title, artist: song.artist || "", songId: song.id, opp: "", mine: score(mine), theirs: null, started: "me", at: now };
+  const ds = duelsOf(data); ds.list.unshift(d); ds.list = ds.list.slice(0, 100);
+  return d;
+}
+/* a link comes in: a challenge to answer, or the answer to yours. It also brings that friend's XP this week. */
+export function takeDuel(data, link, song, now = Date.now()) {
+  const ds = duelsOf(data), sc = score(link);
+  if (link.wk) { const f = ds.friends || (ds.friends = {}); f[link.from] = { xp: link.xp, wk: link.wk, at: now }; }
+  let d = ds.list.find(x => x.id === link.id);
+  if (link.reply) {
+    if (!d) return null;
+    d.theirs = sc; d.opp = link.from; d.at = now;
+    return d;
+  }
+  if (d) return d; /* the same challenge opened twice */
+  d = { id: link.id, title: song.title, artist: song.artist || "", songId: song.id, opp: link.from, mine: null, theirs: sc, started: "them", at: now };
+  ds.list.unshift(d); ds.list = ds.list.slice(0, 100);
+  return d;
+}
+/* a scored gig answers the oldest open challenge on that song */
+function duelsShow(data, songId, sc) {
+  if (!sc || !data.duels?.list) return null;
+  const d = data.duels.list.filter(x => x.songId === songId && x.started === "them" && !x.mine && x.theirs).pop();
+  if (!d) return null;
+  d.mine = sc;
+  return { ...d };
+}
+export const duelWon = d => d?.mine && d?.theirs ? (d.mine.pct > d.theirs.pct ? true : d.mine.pct < d.theirs.pct ? false : null) : undefined;
+/* Friends (4.13.0): everyone you've dueled, with your record and their XP this week (as of their last link) */
+export function friendsOf(data, now = Date.now()) {
+  const wk = weekOf(now), names = [...new Set((data.duels?.list || []).map(d => d.opp).filter(Boolean))];
+  return names.map(name => {
+    const f = data.duels?.friends?.[name], rec = duelRecord(data, name), last = data.duels.list.find(d => d.opp === name);
+    return { name, ...rec, xp: f?.wk === wk ? f.xp : 0, seen: f?.at || last?.at || 0, last };
+  }).sort((a, b) => b.xp - a.xp || b.seen - a.seen);
+}
+/* Friend quest (4.13.0): this week, you and one friend earn XP toward one goal (their XP arrives with their links) */
+export const FRIEND_QUEST = { goal: 300, fans: 50 };
+export function friendQuest(data, now = Date.now()) {
+  const fr = friendsOf(data, now);
+  if (!fr.length) return null;
+  const wk = weekOf(now), q = data.quests?.fq?.wk === wk ? data.quests.fq : null;
+  const pal = fr.find(f => f.name === q?.with) || fr.slice().sort((a, b) => b.seen - a.seen)[0];
+  const mine = weekXP(data, wk, now), theirs = pal.xp;
+  return { with: pal.name, goal: FRIEND_QUEST.goal, mine, theirs, seen: pal.seen, done: mine + theirs >= FRIEND_QUEST.goal, claimed: !!q?.claimed, friends: fr.map(f => f.name) };
+}
+export function friendQuestPick(data, name, now = Date.now()) {
+  const q = data.quests || (data.quests = { fans: 0 }), wk = weekOf(now);
+  q.fq = { wk, with: name, ...(q.fq?.wk === wk && q.fq.claimed ? { claimed: true } : {}) };
+}
+export function friendQuestSettle(data, now = Date.now()) {
+  const fq = friendQuest(data, now);
+  if (!fq?.done || fq.claimed) return 0;
+  const q = data.quests || (data.quests = { fans: 0 });
+  q.fq = { wk: weekOf(now), with: fq.with, claimed: true };
+  q.fans = (q.fans || 0) + FRIEND_QUEST.fans;
+  return FRIEND_QUEST.fans;
+}
+/* your record against one friend: wins, losses, and the last few results (newest first) */
+export function duelRecord(data, opp) {
+  const done = (data.duels?.list || []).filter(d => d.opp === opp && duelWon(d) !== undefined);
+  return { w: done.filter(d => duelWon(d) === true).length, l: done.filter(d => duelWon(d) === false).length, last: done.slice(0, 5).map(d => duelWon(d)) };
+}
+export function cleanDuels(raw) {
+  if (!isObj(raw)) return null;
+  const out = {};
+  if (typeof raw.name === "string" && raw.name.trim()) out.name = raw.name.trim().slice(0, 30);
+  const list = (Array.isArray(raw.list) ? raw.list : []).filter(d => isObj(d) && typeof d.id === "string" && /^[a-z0-9]{6,24}$/.test(d.id) && typeof d.title === "string").slice(0, 100)
+    .map(d => ({ id: d.id, title: d.title.slice(0, 100), artist: String(d.artist || "").slice(0, 100), songId: String(d.songId || "").slice(0, 40), opp: String(d.opp || "").slice(0, 30), mine: score(d.mine), theirs: score(d.theirs), started: d.started === "them" ? "them" : "me", at: Math.max(0, Math.floor(+d.at || 0)) }));
+  if (list.length) out.list = list;
+  const fr = {};
+  for (const [k, v] of Object.entries(isObj(raw.friends) ? raw.friends : {}).slice(0, 100)) if (k && k.length <= 30 && isObj(v) && /^\d{4}-\d\d-\d\d$/.test(v.wk)) fr[k] = { xp: Math.max(0, Math.min(1e5, Math.round(+v.xp || 0))), wk: v.wk, at: Math.max(0, Math.floor(+v.at || 0)) };
+  if (Object.keys(fr).length) out.friends = fr;
+  return out.name || out.list || out.friends ? out : null;
+}
+
+/* The chords you can play: every chord lesson done, and any chord played in songs five times. */
+export function knownChords(data, now = Date.now()) {
+  const sk = skillState(data, now), out = new Set();
+  for (const lv of sk.levels) for (const st of lv.steps) if (st.kind === "chord" && st.state === "done") out.add(st.chord);
+  for (const [c, x] of Object.entries(data.journal?.chords || {})) if ((x?.n || 0) >= 5) out.add(c);
+  return out;
+}
+/* How many songs in the library use only chords you know, and how many more one new chord opens. */
+export function playableSongs(data, extra = "", now = Date.now()) {
+  const known = knownChords(data, now), songs = (data.songs || []).filter(s => s.format !== "tab");
+  const ok = (s, set) => { const c = sheetChords(s.body); return c.length > 0 && c.every(n => set.has(n)); };
+  const now1 = songs.filter(s => ok(s, known)).length;
+  const more = extra && !known.has(extra) ? songs.filter(s => ok(s, new Set([...known, extra]))).length - now1 : 0;
+  return { now: now1, of: songs.length, more };
+}
+/* The chords a sheet uses, in order, whatever its format (chords over words, inline, or chord lines). */
+export function sheetChords(body) {
+  const out = [];
+  for (const b of parseBlocks(body || "")) {
+    const raw = b.kind === "pair" ? b.words.flatMap(w => w.parts || []).map(p => p.chord).filter(Boolean) : b.kind === "chords" ? b.items : [];
+    for (const r of raw) { const n = String(r).split(/\s+/)[0].replace(/^\(|\)$/g, ""); if (chordShape(n) && !out.includes(n)) out.push(n); }
+  }
+  return out;
+}
+
+// ---------- The Gig (4.1.0): a song played as a scored show ----------
+// The song plays as it always does (auto-scroll, the recording or the band); the Gig listens for
+// your strums and grades each chord change: a strum within GIG_WINDOW seconds of the change lands it.
+// A landed change adds to the combo; a missed one ends the combo and snaps a string (eight in a row
+// restring one). The crowd is how many of your last 12 changes landed (out of 12). Nothing fails:
+// with no strings left the show goes on. Without the microphone nothing is graded.
+export const GIG_WINDOW = 0.35;
+export const GIG_STRINGS = 6;
+export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, strings: GIG_STRINGS, run: 0, last: [], offsets: [] }; }
+/* grade one change, due at `due` seconds, against the strums heard (seconds, same clock) */
+export function gigChange(g, due, strums, win = GIG_WINDOW) {
+  let near = null;
+  for (const t of strums) if (Math.abs(t - due) <= win && (near === null || Math.abs(t - due) < Math.abs(near - due))) near = t;
+  const hit = near !== null;
+  if (hit) {
+    g.hits++; g.combo++; g.best = Math.max(g.best, g.combo); g.run++;
+    if (g.run >= 8) { g.run = 0; g.strings = Math.min(GIG_STRINGS, g.strings + 1); }
+    g.offsets.push(Math.round((near - due) * 1000) / 1000);
+    if (g.offsets.length > 40) g.offsets.shift();
+  } else { g.misses++; g.combo = 0; g.run = 0; g.strings = Math.max(0, g.strings - 1); }
+  g.last.push(hit); if (g.last.length > 12) g.last.shift();
+  return { hit, offset: hit ? near - due : null };
+}
+/* how many of the 12 in the crowd are cheering: your last 12 changes (half the crowd before any) */
+export const gigCrowd = g => g.last.length ? Math.round(12 * g.last.filter(Boolean).length / g.last.length) : 6;
+/* the share of changes landed, 0 to 100 (null with nothing graded) */
+export const gigPct = g => g.hits + g.misses ? Math.round(100 * g.hits / (g.hits + g.misses)) : null;
+/* the show's bonus fans, on top of the play's own: 1 for every change landed, 5 for every 10 in the
+   best combo, and 10 for a crowd of 10 or more at the end. An encore doubles it. */
+export function gigFans(g, encore = false) {
+  const n = g.hits + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
+  return encore ? n * 2 : n;
+}
+/* the timing meter: how far off your landed changes are lately, in seconds (positive is late) */
+export function gigTiming(g) {
+  const o = g.offsets.slice(-6);
+  if (!o.length) return 0;
+  return o.reduce((a, b) => a + b, 0) / o.length;
+}
+/* Stage Gels: the colour family of a section, from its name */
+export function gelOf(name) {
+  const n = String(name || "").toLowerCase();
+  if (/chorus|refrain|hook/.test(n) && !/pre/.test(n)) return "chorus";
+  if (/bridge|pre|middle/.test(n)) return "bridge";
+  if (/solo|instrumental|interlude|riff|break/.test(n)) return "solo";
+  return "verse";
+}
+/* a show finished: keep the count, the bonus fans and each song's best */
+export function gigDone(data, songId, g, encore = false, now = Date.now()) {
+  const fans = gigFans(g, encore), pct = gigPct(g);
+  const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {} });
+  gs.shows++; gs.fans += fans;
+  if (pct !== null) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
+  /* Tour quests (4.5.0): the crowd it reached, and the request line doubles its bonus fans */
+  const cover = coverState(data, now)?.song?.id === songId;
+  const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
+  /* Charts (4.6.0): XP for the show, and today's rival battle; a Double set doubles a scored show's XP (4.14.0) */
+  const own = data.merch?.own, doubled = pct !== null && own?.double > 0;
+  if (doubled) own.double--;
+  const battle = chartsShow(data, songId, g, pct, now, doubled ? 2 : 1);
+  /* Song duels (4.12.0): a scored show answers a friend's challenge on this song */
+  const duel = pct === null ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
+  return { ...(duel ? { duel } : {}), fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
+}
+export function cleanGig(raw) {
+  if (!isObj(raw)) return null;
+  const best = {};
+  for (const [id, v] of Object.entries(isObj(raw.best) ? raw.best : {}).slice(0, 2000)) if (typeof id === "string" && id.length <= 40 && v >= 0 && v <= 100) best[id] = Math.round(v);
+  const shows = Math.max(0, Math.min(1e6, Math.floor(+raw.shows || 0))), fans = Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0)));
+  return shows || fans || Object.keys(best).length ? { shows, fans, best } : null;
+}
+
+// ---------- The Merch table (4.14.0) ----------
+// Fans are what you spend. The fans you've earned stay worked out from what you've played (fansOf);
+// data.merch.spent is taken off to give what you have to spend, so buying never touches XP or the chart.
+// Gear is used up: a Rain check covers a night you didn't play (used on its own, up to 2 held), a Double
+// set doubles the XP of your next 3 scored gigs, a Second take gives today's lost rival battle another go.
+// Louie's finishes and stage backdrops are kept once bought, and you pick which one is on.
+export const MERCH = [
+  { id: "rain", kind: "gear", name: "Rain check", line: "Covers a night you miss", price: 200, max: 2 },
+  { id: "double", kind: "gear", name: "Double set", line: "2x XP on your next 3 gigs", price: 150, max: 9, adds: 3 },
+  { id: "take", kind: "gear", name: "Second take", line: "Another go at today's rival", price: 100, max: 3 },
+  { id: "stock", kind: "louie", name: "Stock", price: 0, line: "Louie as he comes, in the colours of your look." },
+  { id: "tweed", kind: "louie", name: "Tweed", price: 600, line: "A fifties cabinet with a cream grille." },
+  { id: "black", kind: "louie", name: "Blackface", price: 800, line: "Black tolex and a silver face, the studio classic." },
+  { id: "mint", kind: "louie", name: "Mint", price: 1000, line: "Surf green with a cream face." },
+  { id: "gold", kind: "louie", name: "Gold top", price: 1500, line: "Gold all over, for the headliner." },
+  { id: "basement", kind: "backdrop", name: "Basement", price: 0, line: "The plain stage you started on." },
+  { id: "brick", kind: "backdrop", name: "Brick wall", price: 300, line: "A club wall under one warm light." },
+  { id: "stars", kind: "backdrop", name: "Starlight", price: 400, line: "An open-air night sky." },
+  { id: "sunset", kind: "backdrop", name: "Sunset fest", price: 500, line: "A festival field at golden hour." }
+];
+const merchItem = id => MERCH.find(x => x.id === id);
+export const fansToSpend = (data, now = Date.now()) => Math.max(0, fansOf(data, now) - (data.merch?.spent || 0));
+export function merchState(data, now = Date.now()) {
+  const m = data.merch || {}, has = new Set(["stock", "basement", ...(m.has || [])]);
+  return { fans: fansToSpend(data, now), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement" };
+}
+/* what's on, without working out fans (cheap enough for every screen) */
+export function merchWorn(data, kind = "louie") {
+  const m = data.merch || {};
+  return (m.has || []).includes(m[kind]) ? m[kind] : kind === "louie" ? "stock" : "basement";
+}
+/* buy one: { ok } or { why: "fans" | "max" | "have" } */
+export function merchBuy(data, id, now = Date.now()) {
+  const it = merchItem(id);
+  if (!it) return { why: "none" };
+  const st = merchState(data, now), m = data.merch || (data.merch = {});
+  if (it.kind === "gear" ? st.own[id] + (it.adds || 1) > it.max : st.has.has(id)) return { why: it.kind === "gear" ? "max" : "have" };
+  if (st.fans < it.price) return { why: "fans" };
+  m.spent = (m.spent || 0) + it.price;
+  if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
+  else { (m.has || (m.has = [])).push(id); m[it.kind] = id; }
+  return { ok: true };
+}
+export function merchWear(data, id) {
+  const it = merchItem(id), st = merchState(data);
+  if (!it || it.kind === "gear" || !st.has.has(id)) return false;
+  (data.merch || (data.merch = {}))[it.kind] = id;
+  return true;
+}
+/* Rain checks: the nights missed since your last play, covered when you hold enough checks for all of them */
+export function rainSettle(data, now = Date.now()) {
+  const m = data.merch;
+  if (!(m?.own?.rain > 0)) return [];
+  const days = playDays(playSongs(data));
+  if (!days.size) return [];
+  let k = 0;
+  while (k < 30 && !days.has(dayKey(now - (k + 1) * DAY))) k++;
+  if (!k || k >= 30 || k > m.own.rain) return [];
+  const used = Array.from({ length: k }, (_, i) => dayKey(now - (k - i) * DAY));
+  m.own.rain -= k;
+  m.rainDays = [...(m.rainDays || []), ...used].slice(-60);
+  return used;
+}
+/* Second take: today's lost battle can be played again */
+export function secondTake(data, now = Date.now()) {
+  const b = data.charts?.battle, own = data.merch?.own;
+  if (!b || b.day !== dayKey(now) || b.result !== "lost" || !(own?.take > 0)) return false;
+  own.take--;
+  delete b.result; delete b.pct;
+  return true;
+}
+/* Show complete: the cheapest finish or backdrop you can now afford, said once */
+export function merchTip(data, now = Date.now()) {
+  const st = merchState(data, now), m = data.merch || {};
+  const told = new Set(m.told || []);
+  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !st.has.has(x.id) && x.price <= st.fans && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
+  if (!it) return null;
+  const mm = data.merch || (data.merch = {});
+  (mm.told || (mm.told = [])).push(it.id);
+  return it;
+}
+export function cleanMerch(raw) {
+  if (!isObj(raw)) return null;
+  const out = {}, day = /^\d{4}-\d\d-\d\d$/, ids = new Set(MERCH.map(x => x.id));
+  const spent = Math.max(0, Math.min(1e7, Math.floor(+raw.spent || 0))); if (spent) out.spent = spent;
+  const own = {};
+  for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }
+  if (Object.keys(own).length) out.own = own;
+  const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => ids.has(id) && merchItem(id).kind !== "gear"))];
+  if (has.length) out.has = has;
+  if (has.includes(raw.louie)) out.louie = raw.louie;
+  if (has.includes(raw.backdrop)) out.backdrop = raw.backdrop;
+  const rain = (Array.isArray(raw.rainDays) ? raw.rainDays : []).filter(d => day.test(d)).slice(-60);
+  if (rain.length) out.rainDays = rain;
+  const told = [...new Set((Array.isArray(raw.told) ? raw.told : []).filter(id => ids.has(id)))];
+  if (told.length) out.told = told;
+  return Object.keys(out).length ? out : null;
+}

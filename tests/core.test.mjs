@@ -35,7 +35,7 @@ test("version matches the service worker cache name", () => {
 
 test("every app script parses, and index.html loads them", () => {
   // A syntax error stops the whole app from loading, so check before every release.
-  const scripts = fs.readdirSync(root).filter(f => f.endsWith(".js"));
+  const scripts = [...fs.readdirSync(root).filter(f => f.endsWith(".js")), ...fs.readdirSync(path.join(root, "core")).filter(f => f.endsWith(".js")).map(f => "core/" + f)];
   for (const f of scripts) execFileSync(process.execPath, ["--check", path.join(root, f)], { stdio: "pipe" });
   const html = read("index.html");
   assert.match(html, /<script type="module" src="app.js"><\/script>/);
@@ -676,7 +676,8 @@ test("tips are spaced 30 seconds apart unless one leads into the next", () => {
 
 test("every name a module imports from another app file is exported there", async () => {
   const fs = await import("node:fs");
-  const files = fs.readdirSync(new URL("..", import.meta.url)).filter(f => f.endsWith(".js") && f !== "sw.js" && f !== "eslint.config.js");
+  const files = [...fs.readdirSync(new URL("..", import.meta.url)).filter(f => f.endsWith(".js") && f !== "sw.js" && f !== "eslint.config.js"),
+    ...fs.readdirSync(new URL("../core", import.meta.url)).filter(f => f.endsWith(".js")).map(f => "core/" + f)];
   const src = Object.fromEntries(files.map(f => [f, fs.readFileSync(new URL("../" + f, import.meta.url), "utf8")]));
   const exported = f => {
     const s = src[f], out = new Set();
@@ -685,9 +686,13 @@ test("every name a module imports from another app file is exported there", asyn
     return out;
   };
   const missing = [];
-  for (const [f, s] of Object.entries(src)) for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*"\.\/([^"?]+)"/g)) {
-    const have = exported(m[2]);
-    for (const n of m[1].split(",").map(x => x.trim().split(/\s+as\s+/)[0]).filter(Boolean)) if (!have.has(n)) missing.push(`${f} imports ${n} from ${m[2]}`);
+  /* a path relative to the importing file: "./x.js" from core/ is core/x.js, "../core.js" is core.js */
+  const resolve = (from, p) => { const parts = [...from.split("/").slice(0, -1), ...p.split("/")], out = []; for (const x of parts) x === ".." ? out.pop() : x !== "." && out.push(x); return out.join("/"); };
+  for (const [f, s] of Object.entries(src)) for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*"(\.\.?\/[^"?]+)"/g)) {
+    const to = resolve(f, m[2]);
+    if (!src[to]) { missing.push(`${f} imports from ${m[2]}, which isn't an app file`); continue; }
+    const have = exported(to);
+    for (const n of m[1].split(",").map(x => x.trim().split(/\s+as\s+/)[0]).filter(Boolean)) if (!have.has(n)) missing.push(`${f} imports ${n} from ${to}`);
   }
   assert.deepEqual(missing, []);
 });
