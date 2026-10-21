@@ -1817,7 +1817,7 @@ function songMenu(song, anchor, redrawSong) {
   /* Swipe the sheet down to close it. */
   if (sheet) {
     let y0 = null;
-    m.addEventListener("touchstart", ev => { y0 = ev.touches[0].clientY; }, { passive: true });
+    m.addEventListener("touchstart", ev => { y0 = m.scrollTop > 0 ? null : ev.touches[0].clientY; }, { passive: true }); /* scrolled down, a swipe scrolls the sheet */
     m.addEventListener("touchmove", ev => { if (y0 != null) m.style.transform = `translateY(${Math.max(0, ev.touches[0].clientY - y0)}px)`; }, { passive: true });
     m.addEventListener("touchend", ev => { const dy = y0 == null ? 0 : ev.changedTouches[0].clientY - y0; y0 = null; if (dy > 70) close(); else m.style.transform = ""; });
   }
