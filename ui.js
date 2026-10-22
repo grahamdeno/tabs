@@ -77,6 +77,9 @@ window.addEventListener("scroll", () => {
 }, { passive: true });
 const app = $("app");
 const layer = $("layer");
+// 4.29.1 (Graham): no page zoom. iPhone Safari ignores user-scalable=no, so its pinch gesture is
+// stopped here too; the Tour Map (Leaflet) zooms itself with touch events and is left alone.
+for (const ev of ["gesturestart", "gesturechange"]) document.addEventListener(ev, e => { if (!e.target?.closest?.(".tm-page, .leaflet-container")) e.preventDefault(); }, { passive: false });
 // Sheets in the layer close with a swipe down: from the handle or
 // title row, or from the content once it's scrolled to the top. They follow
 // the finger, and spring back from a short pull. Closing goes through the

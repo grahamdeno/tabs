@@ -38,7 +38,7 @@
   
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { background: var(--bg); touch-action: manipulation; } /* pinch zoom stays; double-tap zoom goes (stage mode pauses on a double tap) */
+html { background: var(--bg); touch-action: pan-x pan-y; } /* 4.29.1 (Graham): no pinch or double-tap zoom on any page; Text size in Tools makes a sheet bigger, and the Tour Map zooms itself (touch-action: none, Leaflet) */
 body {
   margin: 0; min-height: 100dvh; color: var(--fg); font-size: 16px;
   
@@ -2823,14 +2823,16 @@ body.gigging .ask { z-index: 66; }
 
 /* ---------- Rock icons (4.16.0): the streak's guitar, stage light, horns and knob (rock.js) ---------- */
 .ri { overflow: visible; display: block; }
-.ri-guitar .ri-bd, .ri-guitar .ri-hd { fill: var(--streak, #FF4FA3); } .ri-guitar .ri-neck, .ri-guitar .ri-lip { fill: var(--streak-deep, #C2338A); }
+.ri-guitar .ri-bd, .ri-guitar .ri-hd, .ri-guitar .ri-neck { fill: var(--streak, #FF4FA3); } .ri-guitar .ri-lip { fill: var(--streak-deep, #C2338A); }
+.ri-guitar .ri-gl { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; opacity: .75; } .ri-guitar .ri-gl2 { fill: #fff; opacity: .7; }
 .ri-guitar .ri-ink { fill: #1B1838; } .ri-guitar .ri-dot { fill: #FFD84D; }
 .ri-guitar .ri-waves path { fill: none; stroke: #3DE0FF; stroke-width: 2.4; stroke-linecap: round; }
 .ri-guitar .ri-waves path + path { opacity: .6; }
 .ri-tilt { transform-origin: 16px 24px; transform: rotate(-35deg); }
 /* not played tonight: grey and upright, breathing to say "play" */
 .ri-guitar:not(.on) .ri-tilt { transform: rotate(-8deg); }
-.ri-guitar:not(.on) .ri-bd, .ri-guitar:not(.on) .ri-hd, .ri-guitar:not(.on) .ri-neck, .ri-guitar:not(.on) .ri-lip, .ri-guitar:not(.on) .ri-dot { fill: var(--locked-ic, #6E6898); }
+.ri-guitar:not(.on) .ri-bd, .ri-guitar:not(.on) .ri-hd, .ri-guitar:not(.on) .ri-neck, .ri-guitar:not(.on) .ri-dot { fill: var(--locked-ic, #6E6898); }
+.ri-guitar:not(.on) .ri-lip { fill: color-mix(in srgb, var(--locked-ic, #6E6898) 72%, #000); } .ri-guitar:not(.on) .ri-gl, .ri-guitar:not(.on) .ri-gl2 { opacity: .45; }
 .ri-guitar:not(.on) .ri-waves { display: none; }
 .ri-guitar:not(.on) { animation: ri-breathe 2.6s ease-in-out infinite; transform-origin: 50% 80%; }
 /* played tonight: it rocks back and forth, then rests, every few seconds; the sound waves pulse */
@@ -3045,7 +3047,7 @@ body.gigging .ask { z-index: 66; }
 .today .nudge { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 0; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
 .today .nudge.k-streak { background: var(--streak); box-shadow: 0 4px 0 var(--streak-deep); color: #1B1838; }
 .today .nudge.k-streak .ri-guitar .ri-bd, .today .nudge.k-streak .ri-guitar .ri-hd { fill: #fff; }
-.today .nudge.k-streak .ri-guitar .ri-neck, .today .nudge.k-streak .ri-guitar .ri-lip { fill: rgba(255,255,255,.7); }
+.today .nudge.k-streak .ri-guitar .ri-neck { fill: #fff; } .today .nudge.k-streak .ri-guitar .ri-lip { fill: rgba(255,255,255,.55); }
 .today .nudge .ng-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,.18); color: var(--accent-ink); }
 .today .nudge.k-streak .ng-ic { color: inherit; }
 .today .nudge > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }

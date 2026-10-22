@@ -307,7 +307,9 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.equal(await page.isVisible("#tn-menu"), false, "the menu starts closed");
   const faceFill = () => page.evaluate(() => getComputedStyle(document.querySelector(".tn-face rect")).fill);
   assert.equal(await faceFill(), "rgb(154, 91, 52)", "acoustic is wood");
-  await page.click("#tn-menubtn"); await page.click("[data-mode='electric']");
+  await page.click("#tn-menubtn");
+  assert.ok((await page.locator("[data-mode='electric']").boundingBox()).y < 300, "4.29.1: the menu opens under the pill, on screen");
+  await page.click("[data-mode='electric']");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.tunerMode === "electric");
   assert.equal(await page.isVisible("#tn-menu"), false, "choosing closes the menu");
   assert.equal((await page.innerText("#tn-menubtn")).trim(), "Standard · Electric");
@@ -475,4 +477,11 @@ test("a page-turner pedal: left plays and pauses, right goes to the next section
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
   await page.keyboard.press(" "); await page.waitForFunction(() => document.getElementById('play').getAttribute('aria-label') === 'Start auto-scroll');
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
+});
+
+test("4.29.1 no page zoom: pinch and double-tap zoom are off everywhere but the map", { skip: skip() }, async t => {
+  const page = await phone(t);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).touchAction), "pan-x pan-y");
+  const stopped = await page.evaluate(() => { const e = new Event("gesturestart", { cancelable: true, bubbles: true }); document.getElementById("app").dispatchEvent(e); return e.defaultPrevented; });
+  assert.equal(stopped, true, "iPhone's pinch gesture is stopped");
 });

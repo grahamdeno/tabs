@@ -150,11 +150,11 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       <div class="tn-top">
         <button class="tn-menubtn" id="tn-menubtn" aria-haspopup="true" aria-expanded="false" aria-controls="tn-menu"><b id="tn-tname"></b>${icon("chev", "chev")}</button>
         <button class="tb go" id="tn-done">Done</button>
-      </div>
       <div class="tn-menu" id="tn-menu" hidden>
         <div class="cap" id="tn-ihd">Instrument</div>
         <div class="tn-seg" role="tablist" aria-labelledby="tn-ihd">${MODES.map(([k, n]) => `<button class="tn-opt" role="tab" data-mode="${k}">${n}</button>`).join("")}</div>
         <label class="tn-menurow" id="tn-tuning-row"><span class="cap">Tuning</span><b id="tn-tname2"></b>${icon("chev", "chev")}<select id="tn-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("")}</select></label>
+      </div>
       </div>
       <div class="tn-read">
         <div class="tn-note"><b id="tn-n">–</b><sub id="tn-o"></sub></div>

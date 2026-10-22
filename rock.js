@@ -9,9 +9,12 @@
 // The motion is CSS (the "Rock icons" section of styles.css) and stops with Reduce Motion.
 
 /* one straight guitar, drawn upright on x = 16 and tilted as a whole: headstock, neck, upper and lower bout, pickup, bridge */
-const GUITAR_BODY = `<g class="ri-g"><rect class="ri-hd" x="13.6" y="0.5" width="4.8" height="4.5" rx="1.6"/><rect class="ri-neck" x="14.7" y="3.5" width="2.6" height="12" rx="1"/>`
-  + `<circle class="ri-lip" cx="16.6" cy="24.6" r="6.8"/><circle class="ri-lip" cx="16.6" cy="17.4" r="4.8"/>`
+/* 4.29.1: a thick darker lip and a white shine, the way the venue badge and the fans ticket are drawn */
+const GUITAR_BODY = `<g class="ri-g"><rect class="ri-lip" x="13.6" y="2.1" width="4.8" height="4.5" rx="1.6"/><rect class="ri-lip" x="14.7" y="5.1" width="2.6" height="12" rx="1"/>`
+  + `<circle class="ri-lip" cx="17.6" cy="25.6" r="6.8"/><circle class="ri-lip" cx="17.6" cy="18.4" r="4.8"/>`
+  + `<rect class="ri-hd" x="13.6" y="0.5" width="4.8" height="4.5" rx="1.6"/><rect class="ri-neck" x="14.7" y="3.5" width="2.6" height="12" rx="1"/>`
   + `<circle class="ri-bd" cx="16" cy="24" r="6.8"/><circle class="ri-bd" cx="16" cy="16.8" r="4.8"/>`
+  + `<path class="ri-gl" d="M11.4 21.6a5 5 0 0 1 3-3"/><rect class="ri-gl2" x="14.2" y="1.2" width="1.6" height="2.4" rx=".8"/>`
   + `<rect class="ri-ink" x="13" y="18.6" width="6" height="2.2" rx="1.1"/><rect class="ri-ink" x="13.6" y="25.2" width="4.8" height="1.8" rx=".9"/><circle class="ri-dot" cx="19.8" cy="27" r="1.1"/></g>`;
 
 export const guitarIcon = (on, size = 28) => `<svg class="ri ri-guitar${on ? " on" : ""}" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true">`
