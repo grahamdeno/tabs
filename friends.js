@@ -224,6 +224,62 @@ const DRAW = {
       ${arm(62, 112, 38, 128, "#9FD9E2")}${arm(138, 112, 162, 96, "#9FD9E2")}
       ${feet(176, "#9FD9E2", [84, 116])}`;
   },
+  gigbag: m => { /* a gig bag: urban grey, shaped like the guitar inside, a zipped pocket on the front */
+    const g = "#8A8F9C", gD = "#666B78", gL = "#A9AEB9";
+    const bag = (f, dx, dy) => `<path d="M${88 + dx} ${14 + dy} H${112 + dx} Q${124 + dx} ${14 + dy} ${124 + dx} ${28 + dy} V${70 + dy} Q${150 + dx} ${84 + dy} ${150 + dx} ${126 + dy} Q${150 + dx} ${178 + dy} ${100 + dx} ${178 + dy} Q${50 + dx} ${178 + dy} ${50 + dx} ${126 + dy} Q${50 + dx} ${84 + dy} ${76 + dx} ${70 + dy} V${28 + dy} Q${76 + dx} ${14 + dy} ${88 + dx} ${14 + dy}Z" fill="${f}"/>`;
+    return `<path d="M58 100 q-20 10 -12 34" fill="none" stroke="${gD}" stroke-width="8" stroke-linecap="round"/>
+      ${solid(bag, g, gD)}${hi(84, 24, 8, 40)}
+      <path d="M118 22 V66" stroke="${gD}" stroke-width="3" stroke-dasharray="3 3"/>
+      ${face(100, 98, 0.74, m)}
+      <rect x="70" y="136" width="60" height="34" rx="12" fill="${gD}"/><rect x="70" y="133" width="60" height="32" rx="12" fill="${gL}"/>
+      <path d="M76 140 H124" stroke="${gD}" stroke-width="3" stroke-linecap="round"/><rect x="116" y="136" width="9" height="6" rx="2" fill="${C.silver}"/>
+      ${feet(176, gD, [84, 116])}`;
+  },
+  kazo: m => { /* a kazoo: candy-apple red, a tapered tube with a round cap on top */
+    const tube = (f, dx, dy) => `<path d="M${70 + dx} ${40 + dy} H${130 + dx} Q${142 + dx} ${40 + dy} ${140 + dx} ${54 + dy} L${126 + dx} ${168 + dy} Q${124 + dx} ${178 + dy} ${114 + dx} ${178 + dy} H${86 + dx} Q${76 + dx} ${178 + dy} ${74 + dx} ${168 + dy} L${60 + dx} ${54 + dy} Q${58 + dx} ${40 + dy} ${70 + dx} ${40 + dy}Z" fill="${f}"/>`;
+    return `${solid(tube, C.red, C.redD)}${hi(70, 52, 8, 60)}
+      <ellipse cx="104" cy="44" rx="28" ry="12" fill="${C.redD}"/><ellipse cx="100" cy="38" rx="28" ry="12" fill="#FF7A7A"/><ellipse cx="100" cy="38" rx="17" ry="6" fill="${C.redD}"/>
+      ${face(100, 104, 0.78, m)}
+      <ellipse cx="100" cy="170" rx="14" ry="5" fill="${C.redD}"/>
+      ${arm(64, 110, 40, 124, C.redD)}${arm(136, 110, 160, 94, C.redD)}`;
+  },
+  tuk: m => { /* a ukulele: golden acacia, small and round, four tuning pegs */
+    const body = (f, dx, dy) => `<path d="M${100 + dx} ${92 + dy} c-26 0 -38 14 -32 30 c3 8 0 12 -4 18 c-10 16 4 34 36 34 c32 0 46 -18 36 -34 c-4 -6 -7 -10 -4 -18 c6 -16 -6 -30 -32 -30z" fill="${f}"/>`;
+    return `<rect x="93" y="22" width="14" height="80" rx="5" fill="${C.woodD}"/><rect x="91" y="20" width="12" height="80" rx="5" fill="${C.woodL}"/>
+      <rect x="86" y="6" width="26" height="24" rx="8" fill="${C.woodD}"/>
+      ${[[82, 12], [82, 24], [116, 12], [116, 24]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="${C.silver}"/>`).join("")}
+      ${solid(body, C.tan, C.tanD)}${hi(76, 104, 30)}
+      <circle cx="100" cy="150" r="10" fill="${C.woodD}"/><rect x="84" y="166" width="32" height="6" rx="3" fill="${C.woodD}"/>
+      ${face(100, 124, 0.72, m)}${feet(176, C.tanD, [82, 118])}`;
+  },
+  capo: m => { /* a trigger capo: polished chrome, a black pad under its arm, a lever below */
+    const block = (f, dx, dy) => `<rect x="${52 + dx}" y="${58 + dy}" width="76" height="92" rx="26" fill="${f}"/>`;
+    return `<path d="M60 66 Q60 30 104 30 H168 Q178 30 178 40 V46 Q178 54 168 54 H112 Q96 54 96 70" fill="${C.silverD}"/>
+      <path d="M56 62 Q56 26 100 26 H164 Q174 26 174 36 V42 Q174 50 164 50 H108 Q92 50 92 66" fill="${C.silver}"/>
+      <rect x="110" y="50" width="62" height="12" rx="6" fill="${C.ink}"/>
+      ${solid(block, C.silver, C.silverD)}${hi(62, 68, 30, 7)}
+      <path d="M70 146 Q60 176 34 182" fill="none" stroke="${C.silverD}" stroke-width="16" stroke-linecap="round"/>
+      <path d="M66 142 Q56 172 30 178" fill="none" stroke="${C.ink}" stroke-width="11" stroke-linecap="round"/>
+      ${face(90, 100, 0.72, m)}${feet(166, C.silverD, [80, 112])}`;
+  },
+  spool: m => { /* a spool of string: bright copper, wound round and round, the loose ends for arms */
+    const cu = "#D9773A", cuD = "#A8521F", cuL = "#F2A36B";
+    return `<circle cx="106" cy="104" r="70" fill="${cuD}"/><circle cx="100" cy="98" r="70" fill="${cu}"/>
+      ${[60, 48, 36].map((r, i) => `<circle cx="100" cy="98" r="${r}" fill="none" stroke="${i % 2 ? cuL : cuD}" stroke-width="3" opacity=".7"/>`).join("")}
+      <circle cx="100" cy="98" r="28" fill="${cuL}" opacity=".5"/>${hi(60, 40, 30, 7)}
+      ${face(100, 96, 0.78, m)}
+      <path d="M32 100 q-14 -8 -8 -24 q6 -12 -6 -18" fill="none" stroke="${cuD}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M168 96 q16 4 12 20 q-4 14 10 18" fill="none" stroke="${cuD}" stroke-width="4" stroke-linecap="round"/>
+      ${feet(166, cuD, [80, 120])}`;
+  },
+  peg: m => { /* a tuning peg: shiny nickel, a flat button for a head on a post with a nut */
+    const head = (f, dx, dy) => `<rect x="${44 + dx}" y="${22 + dy}" width="112" height="84" rx="34" fill="${f}"/>`;
+    return `<rect x="84" y="100" width="36" height="20" rx="6" fill="${C.silverD}"/><rect x="80" y="98" width="36" height="20" rx="6" fill="${C.silver}"/>
+      <path d="M78 122 h44 l-6 18 h-32z" fill="${C.silverD}"/><path d="M74 120 h44 l-6 18 h-32z" fill="${C.silver}"/>
+      <rect x="88" y="138" width="24" height="34" rx="8" fill="${C.silverD}"/><rect x="86" y="138" width="20" height="34" rx="8" fill="${C.silverL}"/>
+      ${solid(head, C.silverL, C.silverD)}${hi(58, 30, 46, 8)}
+      ${face(100, 62, 0.8, m)}${feet(172, C.silverD, [84, 116])}`;
+  },
   whammy: m => { /* whammy bar: a silver rod that curls, with a round tip for a head */
     return `<path d="M60 176 Q60 120 96 112 Q140 104 142 70" fill="none" stroke="${C.silverD}" stroke-width="16" stroke-linecap="round"/>
       <path d="M58 172 Q56 118 94 108 Q136 100 138 68" fill="none" stroke="${C.silver}" stroke-width="12" stroke-linecap="round"/>
@@ -238,7 +294,8 @@ export const FRIENDS = [
   ["bex", "Bex", "Bass amp"], ["pip", "Pip", "Pick"], ["beat", "Beat", "Bass drum"], ["slide", "Slide", "Brass slide"],
   ["strap", "Strap", "Guitar strap"], ["key", "Key", "Keyboard key"], ["metro", "Metro", "Metronome"], ["pickup", "Pickup", "Single-coil pickup"], ["whammy", "Whammy", "Whammy bar"],
   ["shaker", "Shaker", "Maraca"], ["reverb", "Reverb", "Reverb tank"], ["triangle", "Triangle", "Triangle"], ["looper", "Looper", "Looper pedal"], ["humb", "Humb", "Humbucker"],
-  ["clip", "Pick-Clip", "Pick holder"], ["vial", "Vial", "Vacuum tube"], ["bottle", "Bottle-Slide", "Bottle slide"]
+  ["clip", "Pick-Clip", "Pick holder"], ["vial", "Vial", "Vacuum tube"], ["bottle", "Bottle-Slide", "Bottle slide"],
+  ["gigbag", "Gig-Bag", "Gig bag"], ["kazo", "Kazo", "Kazoo"], ["tuk", "Tuk", "Ukulele"], ["capo", "Capo", "Capo"], ["spool", "Spool", "String spool"], ["peg", "Peg", "Tuning peg"]
 ].map(([id, name, what]) => ({ id, name, what }));
 
 export function friend(id, { size = 120, mood = "happy" } = {}) {

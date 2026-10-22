@@ -30,7 +30,13 @@ const LINES = {
   looper: "Looper plays it again. And again.",
   clip: "Pick-Clip keeps a spare pick where you can reach it.",
   vial: "Vial glows warm before every show.",
-  bottle: "Bottle-Slide plays the blues, one long note at a time."
+  bottle: "Bottle-Slide plays the blues, one long note at a time.",
+  gigbag: "Gig-Bag carries the whole show to the next town.",
+  kazo: "Kazo hums along to every chorus.",
+  tuk: "Tuk is small, with four strings and a big smile.",
+  capo: "Capo moves any song to where your voice sits.",
+  spool: "Spool always has a fresh string when one snaps.",
+  peg: "Peg turns a little until everything sounds right."
 };
 const nameOf = id => FRIENDS.find(f => f.id === id)?.name || id;
 
