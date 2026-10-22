@@ -83,6 +83,8 @@ function headSVG(kind, t, { mini = false } = {}) {
     s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="var(--tn-post)"/><rect x="${kx}" y="${ky + 14}" width="${kw}" height="${kh}" rx="44" fill="${done && !on ? "var(--good)" : "var(--tn-keylip)"}" opacity="${done && !on ? 0.55 : 1}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${done && !on ? "var(--good)" : "var(--tn-key)"}"/>`;
     if (on) {
       /* the string itself wavers while the mic hears it (.ringing on the stage, styles.css) */
+      /* 4.29.2: a dark lip under the lit string and its post, so yellow reads on a light finish (Tweed, Gold, the wood) */
+      s += `<g class="tn-lip" fill="none" stroke="rgba(20,17,13,.5)" stroke-linecap="round"><line x1="${g.px + 6}" y1="${g.py + 6}" x2="${g.nx + 6}" y2="${H.nutY}" stroke-width="30"/><line x1="${g.nx + 6}" y1="${H.nutY}" x2="${g.nx + 6}" y2="${H.h - 40}" stroke-width="30"/></g><circle cx="${g.px + 6}" cy="${g.py + 8}" r="${g.r + 8}" fill="rgba(20,17,13,.5)"/>`;
       s += `<g class="tn-lit"><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="18" stroke-linecap="round"/>`;
       s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="18"/></g>`;
       s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="${col}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${col}"/>`;
