@@ -45,6 +45,20 @@ test("a chord lesson lights a lamp for each string it hears ring clean, and the 
   await page.evaluate(() => { window.__hz = 98; }); /* the low string fretted at the 3rd: G */
   await page.waitForFunction(() => document.querySelectorAll(".pk-str .gs-lamp.on").length === 1, null, { timeout: 6000 });
   await page.evaluate(() => { window.__hz = 0; });
+  /* 4.23.1: while listening the button says so and stops; if the mic stops by itself, it comes back */
+  assert.match(await page.innerText("#pk-start"), /Listening · tap to stop/);
+  assert.equal(await page.isEnabled("#pk-start"), true);
+  await page.click("#pk-start"); await page.waitForFunction(() => /Start listening/.test(document.getElementById("pk-start").textContent));
+  assert.match(await page.innerText("#pk-say"), /Stopped/);
+  await page.click("#pk-start"); await page.waitForFunction(() => /Listening/.test(document.getElementById("pk-start").textContent));
+  await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); Object.defineProperty(document, "hidden", { configurable: true, get: () => false }); });
+  await page.waitForFunction(() => /Start listening/.test(document.getElementById("pk-start").textContent));
+  assert.match(await page.innerText("#pk-say"), /Paused while the app was away/);
+  /* 4.24.0: the tuner opens right here, over the lesson */
+  await page.click("#pk-tune"); await page.waitForSelector(".tuner2");
+  assert.match(page.url(), /practice\/c%3AG/);
+  await page.click("#tn-done");
+  await page.waitForSelector(".tuner2", { state: "detached" });
   await page.click("#pk-self");
   await page.waitForSelector(".pf-plate");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["c:G"]?.n === 1);

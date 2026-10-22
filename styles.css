@@ -1673,6 +1673,14 @@ body.is-home .rd-song b { font-size: 26px; }
 .pk-beats i.on { background: var(--lamp-on); box-shadow: 0 0 10px rgba(255,178,74,.8); }
 .pk-lesson .rd-say { margin-top: 10px; }
 .s-dock .btn:disabled { opacity: .6; }
+/* 4.23.1: a hidden dock button really hides (.btn's display:flex beat the hidden attribute, so a
+   lesson's Start listening sat there disabled and looked broken) */
+.s-dock .btn[hidden] { display: none; }
+.s-dock .btn.on { background: var(--card-2); color: var(--fg); box-shadow: 0 4px 0 var(--rim); }
+.pk-rec { width: 10px; height: 10px; border-radius: 50%; background: var(--good); animation: pk-rec 1.2s ease-in-out infinite; }
+@keyframes pk-rec { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .pk-rec { animation: none; } }
+.head .pk-tune { margin-left: auto; }
 
 /* ---- What I hear (3.8.0): the microphone, live ---- */
 .pk-hearcard { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; color: inherit; font: inherit; }
@@ -3144,3 +3152,14 @@ body.gigging .ask { z-index: 66; }
 .rh-ycs .ls-n { background: var(--good); color: #fff; box-shadow: none; }
 .rh-ycs .ls-n .i { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 3; }
 .rh-ycall { width: 100%; height: 56px; font-size: 18px; }
+
+/* 4.24.0: the hidden switch that gives an iPhone its haptic tick */
+.hap { position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+/* 4.24.0: all six in tune, a small party over the headstock */
+#tn-stage { position: relative; }
+.tn-party { position: absolute; inset: 0; pointer-events: none; display: grid; place-items: center; }
+.tn-party i { position: absolute; left: 50%; top: 55%; width: 10px; height: 14px; border-radius: 3px; opacity: 0; animation: tn-pop 1.4s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes tn-pop { 0% { opacity: 1; transform: translate(-50%, 0) rotate(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(var(--y) + 120px)) rotate(var(--r)); } }
+.tn-louie { position: absolute; bottom: 4px; right: 8px; animation: tn-louie .5s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes tn-louie { from { transform: translateY(40px) scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tn-party i { display: none; } .tn-louie { animation: none; } }

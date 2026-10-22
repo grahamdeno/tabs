@@ -1,6 +1,6 @@
 # Redo plan (after 4.20.0, 2026-10-21)
 
-Graham asked "is this your best idea?" about seven screens. The answers became mockups on the mockup canvas (the Design artifact), in the last two rows, and Graham approved them on 2026-10-21. This plan builds them, one release per step.
+Graham asked "is this your best idea?" about seven screens, and later about the Songbook page and Get the song (2026-10-21, both approved the same night). The answers became mockups on the mockup canvas (the Design artifact), in the last two rows, and Graham approved them on 2026-10-21. This plan builds them, one release per step.
 
 Each task says who should do it:
 
@@ -25,6 +25,9 @@ Tick a task's box in this file in the same commit that does it.
 - Electric headstock: **matches Louie's finish** (the Merch table's Stock blue, Pink, Teal and the rest). Acoustic stays wood.
 - Tuner keeps the original headstock drawings (`heads.js`), in colour.
 - Play next: the "in between" card (board "Play next v3 · in between").
+- Songbook and Get the song: all four boards in the row "Slimmer Songbook, and Get the song that keeps what it found" (approved 2026-10-21).
+- Order (2026-10-21): Tuner, then the slimmer Songbook, then Get the song, then Play next (its Learn button runs Get the song, so that comes first), then Play together.
+- Already shipped outside the plan in 4.24.0: Start listening in the neck's lessons turns into "Listening · tap to stop" and comes back when the mic stops; a tuner button in the neck and every lesson opens the tuner over the page; the tuner ticks (haptics) on reaching the in-tune zone, two ticks per string tuned, three and a small party (confetti, Louie with his horns up) for the whole guitar, with louder chimes. Step 5 keeps all of this.
 
 ## Step 1 [Sonnet] 4.20.1: Songbook filters that fit (board "Songbook filters · one row that fits")
 
@@ -63,30 +66,50 @@ Don't change how the search bar works: only the screen under it while it's focus
 - [x] 4.3 Remove the old Changes sheet and its bar chart (the "To work on" stats in Your profile's More stats now link to this section). Grep for `showChanges`, `chg-`, `changesSheet` before deleting.
 - [x] 4.4 Tests: unit tests for `changesToWork`; browser test for the section and a Drill tap; update `changes.e2e.mjs`.
 
-## Step 5 [Sonnet] 4.24.0: Tuner (boards "Tuner v3 · acoustic in colour" and "Tuner v3 · electric in colour")
+## Step 5 [Sonnet] 4.25.0: Tuner (boards "Tuner v3 · acoustic in colour" and "Tuner v3 · electric in colour")
 
 - [ ] 5.1 `tuner.js`: Acoustic, Electric and Chromatic move into the tuning menu (one pill: "Standard · Acoustic ▾"); the three type cards go.
 - [ ] 5.2 The note big at the top (96px, `--display`) with the status beside it ("A little sharp", "Loosen it slightly · +12"), and the meter bolder (thicker ticks, a filled in-tune zone, a 6px needle in `--accent`).
 - [ ] 5.3 `headSVG` keeps the drawing and the lit, shimmering string, and adds colour, flat with no outlines: the headstock path filled in a face colour with a darker right half (clip the path, two rects), keys in their own colour with a darker lip, posts and the nut in cream. Acoustic: mahogany face `#9A5B34`, side `#7A4426`, a darker veneer, cream keys. Electric: Louie's finish (`--lv-body` for the face, `--lv-shade` for the side, `--lv-hi` for a highlight stripe), so it follows `body[data-wear]`. The key in hand is `--tn-lit`, tuned keys `--good` with a check.
 - [ ] 5.4 Chromatic keeps its dial.
-- [ ] 5.5 Tests: the type is chosen from the menu and saved; the electric face uses the Louie finish (set `data-wear="pink"` and check the fill); existing tuner tests still pass.
+- [ ] 5.5 Tests: the type is chosen from the menu and saved; the electric face uses the Louie finish (set `data-wear="pink"` and check the fill); existing tuner tests still pass, including 4.24.0's haptics and party (`.tn-party` is appended to `#tn-stage`, so the new stage must keep `#tn-stage` and `position: relative`).
 
-## Step 6 [Opus] 4.25.0: Play next (boards "Play next v3 · in between" and "Play next · loading (animated)")
+## Step 6 [Sonnet] 4.26.0: The Songbook, slimmer (board "Songbook · slimmer")
 
-- [ ] 6.1 The level switch moves to the top of the sheet (`#nx-level`, keep the ids); "One new chord each, closest first" under it; Show different songs is the only bottom button.
-- [ ] 6.2 Cards: cover (Apple Music art when available; tap plays the 30-second preview, replacing the note button), title, artist, one **Learn** button (gets the song and then opens the new chord's lesson `#/practice/c:X`), and the inset strip: chord shape, "NEW Cm", "You know ...", and "+n songs" when that chord also completes other songs in his library.
-- [ ] 6.3 Sort by fewest new chords first.
-- [ ] 6.4 Check the AI's chord list against the fetched sheet: when a song is fetched (Get the song), read its chords from the sheet and correct the card; if the "new" chord isn't in the sheet, say so on the song instead of teaching a wrong chord. (Hotel California came back with a C# it doesn't have.)
-- [ ] 6.5 Loading: Louie digging through a record crate. Records flip up one after another, each in a palette colour with one of his known chords; one line underneath that changes once ("Looking at your 12 chords", then "Finding songs one chord away"); ghost cards below. Results fly in as cards. Reduce Motion: Louie still, the line changes.
-- [ ] 6.6 Tests: mocked AI response renders the cards sorted; Learn opens the chord lesson after getting the song; a wrong chord is caught; the loading state shows the crate and the line.
+The list is the page. Everything above it shrinks to one strip.
 
-## Step 7 [Opus] 4.26.0: Play together, clap to start (board "Play together · clap to start")
+- [ ] 6.1 One "Today" strip (58px, chunky, in the nudge's colour) in place of the nudge card (`todayHTML` and `#nudge` in `library.js`) and "Up next for you" (`upNextHTML`). It pages through what both show today, the streak song first when the streak is at risk, with dots for how many there are ("Today · 1 of 3"). Swipe sideways or tap the dots to page; tapping the strip opens what that card opens today. One item: no dots. Nothing: no strip.
+- [ ] 6.2 Your sets leave the page: drop `setsShelf()` from `.lib-top` in `renderList`. The Sets button in the header (4.20.1) opens them. The empty "New set" tile goes; making a set stays in the Sets list. Keep `setsShelf` if anything else still calls it (grep first).
+- [ ] 6.3 Under the filters, one line: "23 songs" on the left and the sort menu on the right (today's "All songs" label goes).
+- [ ] 6.4 Tests: the strip pages and opens the right song; no sets shelf on All; the first song row sits within 280px of the top at 390x844; update tests that look for `#nudge`, `.upn` or `#sh-all` on the Songbook (grep).
 
-- [ ] 7.1 `share.js` `duetSheet`: Louie waving, "Your part" (Chords, Bass line, Melody; Melody shows the words with the melody notes if the song has a sketch melody, otherwise is hidden), "Start" explaining the clap, and two buttons: **Send song** (today's share link, without the start time) and **Listen for clap**.
-- [ ] 7.2 Listen for clap: the microphone listens for one sharp onset (reuse the strum onset detection the Gig uses); on it, the one-bar count-in starts from the moment of the clap, so two phones in the same room start together. Ignore onsets for 300 ms after opening; time out after 60 s with "Didn't hear a clap. Tap to listen again".
-- [ ] 7.3 Bass line plays Bex's line through the band; Chords is today's play.
-- [ ] 7.4 Remove the start-time picker (In 1, 2, 5 min) and the shared start time from the link; an old link with a time still opens the song.
-- [ ] 7.5 Tests: a mocked onset starts the count-in; the old-link fallback; Send song shares without a time.
+## Step 7 [Opus] 4.27.0: Get the song that keeps what it found (boards "Get the song · ready", "· which recording", "· swiped away, kept")
+
+The fetch costs time and AI calls, so nothing throws it away by accident. Code: `getSong` in `findai.js` (`gs-*`).
+
+- [ ] 7.1 Closing: once there is a result, the scrim tap, the swipe down and Cancel no longer discard it. Cancel goes; a down-arrow button at the top left ("Keep it for later") puts it aside. Only **Not this one** discards, with no question asked. While it's still fetching, closing also puts it aside and the fetch carries on.
+- [ ] 7.2 Kept for later: a "Hurt is ready · Not added yet" bar with an **Add** button above the search bar (Songbook and Road), tapping it reopens the sheet exactly as it was (level, recording, edits). One kept song at a time, in memory and in `sessionStorage` (a reload keeps it; it is not a saved field, so no DATA.md change). A new Get the song replaces it after a toast "Hurt put aside" with Undo.
+- [ ] 7.3 The sheet: cover (Apple Music art when available) with a play button for the 30-second preview; a "You know all 4 chords" line (or "1 new chord: Dsus2") listing the chords, using the same can-play check as the Songbook; the level switch; key, capo, BPM and time as small chips; one Recording row ("American IV · 3:38 · timed  Change ›"); the first lines of the sheet with "Show the whole sheet"; the source line under it. Words are LRCLIB's as today (the AI never writes lyrics).
+- [ ] 7.4 The dock, fixed at the bottom in thumb reach: **Add to my songs** (accent, full width), with "Not this one" and "Edit first" under it.
+- [ ] 7.5 Which recording: its own view with Back, one card per recording (art or tile, name, year and length, a Timed tag), the one whose length is closest to the chord sheet's (or the Apple Music track's) first and tagged "Best match"; "Use this one" in the dock; "None of these: paste the words" under the list.
+- [ ] 7.6 Tests: a scrim tap and a swipe with a result keep it (the bar shows, tapping it restores the same level and recording); Not this one discards; Add from the dock adds; Best match orders by length; the can-play line.
+
+## Step 8 [Opus] 4.28.0: Play next (boards "Play next v3 · in between" and "Play next · loading (animated)")
+
+- [ ] 8.1 The level switch moves to the top of the sheet (`#nx-level`, keep the ids); "One new chord each, closest first" under it; Show different songs is the only bottom button.
+- [ ] 8.2 Cards: cover (Apple Music art when available; tap plays the 30-second preview, replacing the note button), title, artist, one **Learn** button (runs Get the song as rebuilt in Step 7 and then opens the new chord's lesson `#/practice/c:X`), and the inset strip: chord shape, "NEW Cm", "You know ...", and "+n songs" when that chord also completes other songs in his library.
+- [ ] 8.3 Sort by fewest new chords first.
+- [ ] 8.4 Check the AI's chord list against the fetched sheet: when a song is fetched (Get the song), read its chords from the sheet and correct the card; if the "new" chord isn't in the sheet, say so on the song instead of teaching a wrong chord. (Hotel California came back with a C# it doesn't have.)
+- [ ] 8.5 Loading: Louie digging through a record crate. Records flip up one after another, each in a palette colour with one of his known chords; one line underneath that changes once ("Looking at your 12 chords", then "Finding songs one chord away"); ghost cards below. Results fly in as cards. Reduce Motion: Louie still, the line changes.
+- [ ] 8.6 Tests: mocked AI response renders the cards sorted; Learn opens the chord lesson after getting the song; a wrong chord is caught; the loading state shows the crate and the line.
+
+## Step 9 [Opus] 4.29.0: Play together, clap to start (board "Play together · clap to start")
+
+- [ ] 9.1 `share.js` `duetSheet`: Louie waving, "Your part" (Chords, Bass line, Melody; Melody shows the words with the melody notes if the song has a sketch melody, otherwise is hidden), "Start" explaining the clap, and two buttons: **Send song** (today's share link, without the start time) and **Listen for clap**.
+- [ ] 9.2 Listen for clap: the microphone listens for one sharp onset (reuse the strum onset detection the Gig uses); on it, the one-bar count-in starts from the moment of the clap, so two phones in the same room start together. Ignore onsets for 300 ms after opening; time out after 60 s with "Didn't hear a clap. Tap to listen again".
+- [ ] 9.3 Bass line plays Bex's line through the band; Chords is today's play.
+- [ ] 9.4 Remove the start-time picker (In 1, 2, 5 min) and the shared start time from the link; an old link with a time still opens the song.
+- [ ] 9.5 Tests: a mocked onset starts the count-in; the old-link fallback; Send song shares without a time.
 
 ## Surprises
 
@@ -96,3 +119,4 @@ Don't change how the search bar works: only the screen under it while it's focus
 - Step 2: the lesson lives in `data.rehearse.lesson` (not `data.lesson`), so it saves through the existing `cleanRehearse`.
 - Step 4 (4.23.0): the old Changes sheet was already gone in 4.20.0, so 4.3 removed nothing. Your profile's "most played" changes card (`pf-chg`, `.pf-drill`) stays.
 - Step 4: a lesson opened from Rehearse used to bounce to the neck when its switch was still locked on the ladder (Em to Am before G to C), and ended on "Next: <the ladder's next lesson>". Rehearse drills now open locked switches and end on "Back to Rehearse".
+- 4.24.0 (outside the plan, from the phone): the neck's Start listening sat there disabled after it started, because `.btn`'s `display: flex` beat the `hidden` attribute, so it looked broken. Fixed with a listening state, plus a tuner in the neck and tuner haptics. Steps 5 to 7 moved up one minor version and Play next and Play together moved to Steps 8 and 9.

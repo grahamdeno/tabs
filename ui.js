@@ -241,6 +241,20 @@ export { oneHandMQ };
 // needs sound (never just for opening the app, so music playing alongside
 // isn't interrupted) and woken by any touch if iPhone has paused it.
 let audioCtx = null;
+/* 4.24.0: a tap you feel. Android has navigator.vibrate. iPhone Safari has no vibrate, but from iOS 18
+   flipping a switch checkbox gives the system's tick, so a hidden one is flipped (n ticks, 110 ms apart). */
+let hapLabel = null;
+export function haptic(n = 1) {
+  try {
+    if (navigator.vibrate) { navigator.vibrate(n > 1 ? Array.from({ length: n * 2 - 1 }, (_, i) => i % 2 ? 70 : 25) : 18); return; }
+    if (!hapLabel) {
+      hapLabel = document.createElement("label"); hapLabel.className = "hap"; hapLabel.setAttribute("aria-hidden", "true");
+      const i = document.createElement("input"); i.type = "checkbox"; i.setAttribute("switch", ""); i.tabIndex = -1;
+      hapLabel.append(i); document.body.append(hapLabel);
+    }
+    for (let k = 0; k < n; k++) setTimeout(() => hapLabel.click(), k * 110);
+  } catch { /* no haptics here */ }
+}
 export function sound() {
   try {
     audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();

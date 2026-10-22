@@ -50,6 +50,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Tuner
 - Acoustic and electric headstocks with each key labelled, a meter that eases into the last few cents, Guided (low to high) and Chromatic with adjustable A4. Standard, Drop D, half and whole step down, DADGAD, Open G and Open D.
+- The tuner opens from inside the neck and every lesson (4.24.0). Each string you tune ticks (Android vibrates; iPhone gets the system tick from iOS 18) and chimes, reaching the in-tune zone gives a light tick, and the whole guitar gets three ticks, a louder chime and a small party with Louie. In a lesson, Start listening turns into "Listening · tap to stop" and comes back by itself if the microphone stops.
 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog, plays previews and saves a recording with its album art and length.

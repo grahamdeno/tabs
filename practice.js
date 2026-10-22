@@ -17,7 +17,7 @@
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
 import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
-import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong } from "./app.js";
+import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
 import { louie } from "./louie.js";
 
@@ -89,13 +89,13 @@ export function renderNeck() {
   backTo = "#/practice/neck";
   const { levels } = skillState(data), l = lessonOfDay(data);
   app.innerHTML = `
-    <div class="head"><button class="ib glass" id="back" aria-label="Back to Rehearse">${icon("back")}</button></div>
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to Rehearse">${icon("back")}</button>${tuneBtn()}</div>
     <h1 class="title script" style="margin:14px 2px 2px">The neck</h1>
     ${lessonCard(l)}
     ${skillsCard(levels)}
     ${learningCard()}
     ${l ? `<div class="s-dock"><button class="btn primary" id="ls-go">${l.finished ? `${icon("fretboard")}All lessons` : `${icon("play")}${l.done.some(Boolean) ? `Go on: part ${l.now + 1}` : "Start lesson"}`}</button></div>` : ""}`;
-  $("back").onclick = () => go("#/practice");
+  $("back").onclick = () => go("#/practice"); bindTune();
   $("ls-all").onclick = () => go("#/practice/skills");
   $("ls-go")?.addEventListener("click", () => l.finished ? go("#/practice/skills") : startPart(l, l.now));
   app.querySelectorAll(".ls-step").forEach(b => b.onclick = () => startPart(l, +b.dataset.part));
@@ -222,7 +222,16 @@ export function renderSession(id) {
   hit.st.kind === "chord" ? chordLesson(hit.st) : hit.st.kind === "scale" ? scaleLesson(hit.st) : switchLesson(hit.st);
 }
 
-const head = (title, sub) => `<div class="head"><button class="ib glass" id="back" aria-label="Back to the neck">${icon("back")}</button></div>
+/* 4.24.0: the tuner from inside the neck, so practice doesn't mean going all the way out to tune */
+const tuneBtn = () => `<button class="ib chunky-tune pk-tune" id="pk-tune" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
+function bindTune() {
+  const b = $("pk-tune"); if (!b) return;
+  b.onclick = () => {
+    live?.idle ? live.idle("Tune up, then tap Start listening.") : stopLive(); /* one thing uses the mic at a time */
+    openTuner("standard", () => { const d = $("pk-tune"); if (d && tunedRecently()) { d.querySelector(".dotmark")?.remove(); d.setAttribute("aria-label", "Tuner"); } });
+  };
+}
+const head = (title, sub) => `<div class="head"><button class="ib glass" id="back" aria-label="Back to the neck">${icon("back")}</button>${tuneBtn()}</div>
     <h1 class="title script" style="margin:14px 2px 2px">${esc(title)}</h1><p class="pf-since">${esc(sub)}</p>`;
 
 /* The guitar's strum, without the beat: two low-pass filters keep what is under 1.5 kHz (the body of a
@@ -237,6 +246,23 @@ function mic() {
   if (!navigator.mediaDevices?.getUserMedia) return Promise.reject(new Error("none"));
   return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
 }
+
+/* 4.23.1: while the mic is on, Start listening reads "Listening · tap to stop". It comes back by itself
+   when the mic stops (the screen locks, a call, the app goes away, another app takes the mic), so a
+   lesson never sits on a dead button. */
+function listening(say) {
+  const b = $("pk-start"); if (!b || !live) return;
+  b.disabled = false; b.classList.add("on"); b.innerHTML = `<i class="pk-rec" aria-hidden="true"></i>Listening · tap to stop`;
+  const idle = msg => {
+    stopLive();
+    const e = $("pk-start"); if (!e) return;
+    e.classList.remove("on"); e.disabled = false; e.innerHTML = `${icon("fork")}Start listening`;
+    if (msg) say(msg);
+  };
+  live.idle = idle;
+  live.stream?.getTracks().forEach(t => t.addEventListener("ended", () => live?.idle === idle && idle("The microphone stopped. Tap Start listening to go on.")));
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden && live?.idle) live.idle("Paused while the app was away. Tap Start listening to go on."); });
 
 /* A chord, one string at a time: the lowest string not yet lit is the one listened for (tap a lamp
    to pick another). Its lamp glows warm while it waits. Three readings in a row decide. */
@@ -309,7 +335,7 @@ function chordLesson(st) {
       <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Finger the chord. I'll ask for one string at a time; pluck it and let it ring.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
-  $("back").onclick = () => go(backTo);
+  $("back").onclick = () => go(backTo); bindTune();
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const finish = (heard = true) => {
     stopLive();
@@ -319,6 +345,7 @@ function chordLesson(st) {
   };
   $("pk-self").onclick = () => finish(false);
   $("pk-start").onclick = () => {
+    if (live?.idle) return live.idle("Stopped. Tap Start listening when you're ready.");
     $("pk-start").disabled = true; say("Starting the microphone…");
     mic().then(stream => {
       const ctx = sound();
@@ -338,7 +365,7 @@ function chordLesson(st) {
         else if (ev?.say && Date.now() - told > 1500) { told = Date.now(); say(stringAdvice(ev, strName(ev.t.i, tuning))); }
       }, 45) };
       ask();
-      $("pk-start").hidden = true;
+      listening(say);
     }).catch(() => fail());
     const fail = () => { $("pk-start").hidden = true; say("I can't use the microphone here. Play the chord, then tap \"I can't hear it, I got it\"."); };
   };
@@ -376,7 +403,7 @@ function scaleLesson(st) {
       <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">${esc(sc.tip)} Tap Hear it, then play it up and back down, one note at a time.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-play">${icon("play")}Hear it</button><button class="tb" id="pk-self">I got it</button></div>`;
-  $("back").onclick = () => go(backTo);
+  $("back").onclick = () => go(backTo); bindTune();
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const paint = () => {
     const b = $("pk-board"); if (b) b.innerHTML = scaleSVG(targets, k, lit);
@@ -392,7 +419,7 @@ function scaleLesson(st) {
   $("pk-self").onclick = () => finish(false);
   /* Hear it: each note plucked in turn (a soft triangle tone), up and back down */
   $("pk-play").onclick = () => {
-    if (live) { stopLive(); $("pk-start").hidden = false; $("pk-start").disabled = false; }
+    if (live?.idle) live.idle(); else stopLive();
     const ctx = sound(); if (!ctx) return toast("The phone won't play sound here.");
     const at = ctx.currentTime + 0.05, gap = 0.34;
     /* the board follows the notes as they sound (3.24.1) */
@@ -407,6 +434,7 @@ function scaleLesson(st) {
     say("Listen to it go up and back down. Then press Start listening and play along.");
   };
   $("pk-start").onclick = () => {
+    if (live?.idle) return live.idle("Stopped. Tap Start listening when you're ready.");
     $("pk-start").disabled = true; say("Starting the microphone…");
     mic().then(stream => {
       const ctx = sound();
@@ -438,7 +466,7 @@ function scaleLesson(st) {
         }
       }, 45) };
       ask();
-      $("pk-start").hidden = true;
+      listening(say);
     }).catch(() => { $("pk-start").hidden = true; say("I can't use the microphone here. Play it through, then tap \"I got it\"."); });
   };
 }
@@ -457,7 +485,7 @@ function switchLesson(st) {
         <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the beat.</p></div>
       </section>
       <div class="s-dock"><button class="btn primary" id="pk-start">${icon("play")}Start round</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
-    $("back").onclick = () => go(backTo);
+    $("back").onclick = () => go(backTo); bindTune();
     $("pk-self").onclick = () => finish(bpm, "Marked as got.");
     $("pk-start").onclick = start;
   };
@@ -564,7 +592,7 @@ function done(st, { secs, line, bpm = 0, sc = null }) {
       ${total ? `<div class="pf-read"><b>${have}/${total}</b><span>${esc(lv.name.toLowerCase())}</span></div>` : ""}
     </div>
     <div class="s-dock">${sg ? `<button class="btn primary" id="pk-song">${icon("play")}Play ${esc(sg.title)}</button>` : ""}<button class="${sg && !qm ? "tb" : "btn primary"}" id="pk-next">${qm ? `Next: ${esc(qm[1])} to ${esc(qm[2])}` : nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? "Next: " + esc(lessonName(nxt)) : backTo === "#/practice" ? "Back to Rehearse" : "Back to the neck"}</button></div>`;
-  $("back").onclick = () => go(backTo);
+  $("back").onclick = () => go(backTo); bindTune();
   $("pk-song")?.addEventListener("click", () => playSong(sg.id));
   $("pk-next").onclick = () => { if (qm) { drillQueue.shift(); return go("#/practice/" + encodeURIComponent(queued)); } nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? go("#/practice/" + encodeURIComponent(nxt.id)) : go(backTo); };
 }
@@ -600,7 +628,7 @@ function whatIHear() {
       <p class="rd-bubble ph-say" id="pk-say" aria-live="polite">Tap Start, then pluck single strings, strum a chord, and stay quiet for a moment.</p>
     </section>
     <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
-  $("back").onclick = () => go(backTo);
+  $("back").onclick = () => go(backTo); bindTune();
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const strings = () => {
     const box = $("ph-strings");

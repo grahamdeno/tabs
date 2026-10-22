@@ -5,7 +5,8 @@
 // few cents are easy to see.
 import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch, journalTune } from "./core.js";
 import { HEADS } from "./heads.js";
-import { sound } from "./ui.js";
+import { haptic, sound } from "./ui.js";
+import { louie } from "./louie.js";
 import { $, data, icon, layer, esc, coach, markUsed, toast } from "./app.js";
 
 const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "♯");
@@ -49,8 +50,16 @@ function tone(freq, { len = 2.1, gain = 0.35, harm = [0.5, 0.18, 0.08] } = {}) {
   } catch {}
 }
 /* All six in tune: a rising E major arpeggio (E, G#, B, E). */
-const doneChime = () => [659.3, 830.6, 987.8, 1318.5].forEach((f, i) => setTimeout(() => tone(f, { len: i === 3 ? 0.9 : 0.4, gain: 0.07, harm: [0.6] }), i * 120));
-const chime = () => { tone(1318.5, { len: 0.5, gain: 0.08, harm: [0.6] }); setTimeout(() => tone(1760, { len: 0.7, gain: 0.07, harm: [0.6] }), 90); };
+/* 4.24.0: louder, since iPhone plays quieter while the microphone is open */
+const doneChime = () => [659.3, 830.6, 987.8, 1318.5].forEach((f, i) => setTimeout(() => tone(f, { len: i === 3 ? 0.9 : 0.4, gain: 0.16, harm: [0.6] }), i * 120));
+const chime = () => { tone(1318.5, { len: 0.5, gain: 0.16, harm: [0.6] }); setTimeout(() => tone(1760, { len: 0.7, gain: 0.14, harm: [0.6] }), 90); };
+/* All six: a small party over the headstock, confetti in the palette and Louie with his horns up. */
+const PARTY = ["var(--accent)", "var(--good)", "var(--tn-lit)", "#EE5C9F", "#7ADCF6", "#FFD23F"];
+function party(stage) {
+  if (!stage || stage.querySelector(".tn-party")) return;
+  const bits = Array.from({ length: 18 }, (_, i) => `<i style="--x:${Math.round(Math.cos(i * 2.1) * 140)}px;--y:${-60 - Math.round(Math.abs(Math.sin(i * 1.7)) * 160)}px;--r:${(i * 47) % 360}deg;background:${PARTY[i % PARTY.length]};animation-delay:${(i % 6) * 30}ms"></i>`).join("");
+  stage.insertAdjacentHTML("beforeend", `<div class="tn-party" aria-hidden="true">${bits}<span class="tn-louie">${louie("happy", { pose: "hornsUp", size: 86 })}</span></div>`);
+}
 
 // ---- The headstock: the drawing, plus the lit key, post and string ----
 function headSVG(kind, t, { mini = false } = {}) {
@@ -191,6 +200,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       $("tn-say").textContent = ""; $("tn-c").textContent = `${TUNINGS[t.tuning].name} · 6 of 6`;
       layer.querySelector(".tn-note").classList.add("done", "glow");  /* success glows */
       t.cur = -1; paintHead();
+      if (t.party) { t.party = false; party(stage); }
       foot.innerHTML = `<button class="btn" id="tn-again">Tune again</button><button class="btn primary" id="tn-back">${back}</button>`;
       $("tn-again").onclick = () => { t.ok = []; t.finished = false; t.cur = t.guided ? 0 : -1; layer.querySelector(".tn-note").classList.remove("done"); paint(); };
       $("tn-back").onclick = closeTuner;
@@ -342,7 +352,7 @@ function listen(t, an, buf) {
   const adv = tuneAdvice(cents);
   const good = adv.tone === "good";
   if (!t.guided && t.lock < 0 && idx !== t.cur) { t.cur = idx; t.good = good; t.paintHead(); }
-  if (good !== t.good) { t.good = good; t.paintHead(); }
+  if (good !== t.good) { t.good = good; t.paintHead(); if (good && !t.ok[idx]) haptic(1); /* in the zone: hold it */ }
   $("tn-n").textContent = stringName(notes, idx); $("tn-o").textContent = octave(notes[idx]);
   layer.querySelector(".tn-note")?.classList.toggle("glow", good); /* in tune: the letter glows */
   $("tn-c").textContent = `${cents > 0 ? "+" : ""}${cents} cents · ${fs.toFixed(1)} Hz`;
@@ -364,10 +374,11 @@ function listen(t, an, buf) {
   if (t.ok.filter(Boolean).length === 6) {
     /* Guided goes E, A, D, G, B, e; after the last: success. */
     t.finished = true; data.settings.lastTuned = Date.now(); Tabs.save(data);
-    doneChime();
+    doneChime(); haptic(3);
     toast("All six strings in tune");
+    t.party = true;
   } else {
-    chime();
+    chime(); haptic(2);
     if (t.guided) t.cur = guidedTarget(t.ok);
   }
   t.hits = [];

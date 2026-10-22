@@ -314,6 +314,7 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.equal(await glows(), true, "in tune: the letter glows");
   await at(82.41, -25); await page.waitForFunction(() => !document.querySelector('.tn-note').classList.contains('glow'));
   assert.equal(await glows(), false, "out of tune: no glow");
+  await page.evaluate(() => { window.__vib = []; navigator.vibrate = p => { window.__vib.push(p); return true; }; });
   const order = [];
   for (const hz of [82.41, 110, 146.83, 196, 246.94, 329.63]) {
     order.push(await page.evaluate(() => document.querySelector(".tn-key") && document.querySelector("#tn-stage text.on")?.textContent));
@@ -322,6 +323,12 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.deepEqual(order.map(x => (x || "").replace(/[^A-Ga-g]/g, "")), ["E", "A", "D", "G", "B", "e"], "guided: E, A, D, G, B, e in order");
   assert.equal((await read()).note, "All in tune");
   assert.match(await page.innerText("#toast"), /All six strings in tune/, "success is announced");
+  /* 4.24.0: you feel each string land (two ticks) and the whole guitar (three), and Louie throws a small party */
+  const vib = await page.evaluate(() => window.__vib);
+  assert.equal(vib.filter(v => Array.isArray(v) && v.length === 3).length, 5, "two ticks for each of the first five strings");
+  assert.equal(vib.filter(v => Array.isArray(v) && v.length === 5).length, 1, "three ticks for the whole guitar");
+  assert.ok(vib.includes(18), "a light tick on reaching the in-tune zone");
+  await page.waitForSelector(".tn-party .louie");
   assert.equal(await page.evaluate(() => document.querySelector(".tn-note").classList.contains("glow")), true, "and glows");
   assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--tune")), /#/, "the tuner's green");
   await page.click("[data-mode='chromatic']");
