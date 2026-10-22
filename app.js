@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts } from "./core.js";
+import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -265,8 +265,8 @@ function renderViewer(id) {
     const body = off ? (song.body || "").replace(/\[?capo\s*(\d{1,2})\]?/i, "No capo (Capo $1 taken off)") : song.body || "";
     let blocks = parseBlocks(body, isChords ? steps - capo + off : 0, isChords && prefersFlats(baseKey, steps - capo));
     /* German practice: only while the translation matches the words on screen. */
-    const lvl = song.deLevel || 0, fresh = song.de && song.de.src === deSource(sungText(blocks));
-    if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true });
+    const lvl = song.deLevel || 0, fresh = deLangOk(song, data) && song.de.src === deSource(sungText(blocks));
+    if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true, translit: langOf(data) === "ru" && data.settings.deTranslit !== false });
     paintDeChip(song, fresh, lvl);
     renderBlocks(sheet, blocks);
     renderStrip(sheet, isChords, song);
@@ -391,7 +391,7 @@ function renderBlocks(sheet, blocks) {
   const word = w => w.space ? " " : `<span class="w">${w.parts.map(p => p.chord
     ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord)}<span class="l">${txt(p)}</span></span>`
     : txt(p)).join("")}</span>`;
-  const under = b => b.en ? `<span class="de-en">${esc(b.en)}</span>` : "";
+  const under = b => (b.tr ? `<span class="de-tr">${esc(b.tr)}</span>` : "") + (b.en ? `<span class="de-en">${esc(b.en)}</span>` : "");
   sheet.innerHTML = blocks.map((b, i) => {
     if (b.kind === "section") return `<div class="sec">${esc(b.text)}</div>`;
     if (b.kind === "blank") return `<div class="gap"></div>`;
@@ -1177,7 +1177,8 @@ function songMenu(song, anchor, redrawSong) {
       { id: "edit", icon: "edit", label: "Edit", sub: "Words, chords and sections", go: true },
       { id: "set", icon: "listplus", label: "Add to a set", sub: (() => { const x = data.sets.find(z => (z.songs || []).some(i => (i.id || i) === song.id)); return x ? `In ${x.name}` : "Gigs and practice lists"; })(), go: true },
       { id: "share", icon: "share", label: "Share", sub: "Send the song as a link", go: true },
-      chords && (aiKey() || song.de) && { id: "de", icon: "chat", label: "German", sub: deHint.get(song.id) || "Practice the words in German", go: true },
+      chords && (aiKey() || song.de) && (langChosen(data) ? { id: "de", icon: "chat", label: LANGS[langOf(data)].name, sub: deHint.get(song.id) || `Practice the words in ${LANGS[langOf(data)].name}`, go: true }
+        : { id: "de", icon: "chat", label: "Learn a language", sub: "German, Spanish or Russian", go: true }),
       (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", sub: song.tone ? "Saved" : "A tone for your amp", go: true },
       song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words", sub: "From LRCLIB", go: true }
     ] }
@@ -1363,14 +1364,15 @@ function paintDeChip(song, fresh, lvl) {
   dc.classList.toggle("on", !!(lvl && fresh) || !!job);
   dc.classList.toggle("busy", !!job);
   dc.style.setProperty("--p", job ? (job.done / Math.max(1, job.total)).toFixed(2) : 0);
-  dc.innerHTML = `<b>DE</b>${job ? `${job.done} of ${job.total} lines` : !song.de ? "German" : !fresh ? "Update" : song.de.lines?.some(l => !l) ? "Finish" : DE_LEVELS[lvl]}`;
+  const L = LANGS[langOf(data)];
+  dc.innerHTML = `<b>${L.short}</b>${job ? `${job.done} of ${job.total} lines` : !song.de ? L.name : !fresh ? "Update" : song.de.lines?.some(l => !l) ? "Finish" : DE_LEVELS[lvl]}`;
 }
 // A translation's progress: the chip now; the sheet once lines land (not
 // mid-song: it waits for a pause so the scrolling doesn't jump).
 let deWaiting = 0;
 document.addEventListener("tabs:de-progress", e => {
   if (!viewing || viewing.id !== e.detail?.id || route().name !== "song") return;
-  const blocks = parseBlocks(viewing.body || ""), fresh = viewing.de && viewing.de.src === deSource(sungText(blocks));
+  const blocks = parseBlocks(viewing.body || ""), fresh = deLangOk(viewing, data) && viewing.de.src === deSource(sungText(blocks));
   paintDeChip(viewing, fresh, viewing.deLevel || 0);
   if (!e.detail.lines) return;
   if (!scroll.on) { redraw?.(); return; }

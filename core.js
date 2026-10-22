@@ -11,7 +11,7 @@ import { HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, chordTargets, cleanS
 import { CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, GIG_STRINGS, GIG_WINDOW, MERCH, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigChange, gigCrowd, gigDone, gigFans, gigPct, gigStart, gigTiming, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.35.0";
+export const VERSION = "4.36.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -515,6 +515,20 @@ export function riffNotes(notes) {
 // (phrases, verbs, real grammar). Level 4 (Fluent) sings the whole line.
 // Translations never travel: SHARE_FIELDS leaves them out, and so do backups.
 export const DE_LEVELS = ["Off", "Basic", "Common", "Intermediate", "Fluent"];
+// One language for every song (4.36.0): German, Spanish or Russian, in settings.lang (German when
+// missing, so a German library is unchanged). song.de keeps its name for whichever language is on and
+// carries a lang tag. Nouns carry their gender: the article for German and Spanish, m/f/n for Russian.
+// Russian lines are written with stress marks and come with the sound in Latin letters ("tr").
+export const LANGS = {
+  de: { name: "German", own: "Deutsch", short: "DE", speech: "de-DE", genders: ["der", "die", "das"], sample: "Der Fluss, the river" },
+  es: { name: "Spanish", own: "Español", short: "ES", speech: "es-ES", genders: ["el", "la"], sample: "El río, the river" },
+  ru: { name: "Russian", own: "Русский", short: "RU", speech: "ru-RU", genders: ["m", "f", "n"], sample: "Река́, the river" }
+};
+export const langOf = data => LANGS[data?.settings?.lang] ? data.settings.lang : "de";
+/* picked, or already in use (a library translated before 4.36.0 is German) */
+export const langChosen = data => !!LANGS[data?.settings?.lang] || (data?.songs || []).some(s => s.de);
+/* a song's translation is in the language that's on */
+export const deLangOk = (song, data) => !!song?.de && (song.de.lang || "de") === langOf(data);
 const deWords = w => w.parts.map(p => p.text).join("");
 // The sung lines, in order, as the AI sees them (words split by spaces).
 export function sungText(blocks) {
@@ -531,16 +545,18 @@ export function deSource(lines) {
   return h.toString(36);
 }
 // The AI's reply, checked: swaps inside the line, levels 1-3, short strings.
-export function cleanGerman(j, lines) {
+export function cleanGerman(j, lines, lang = "de") {
   const str = (v, n = 120) => String(v ?? "").replace(/[<>]/g, "").trim().slice(0, n);
+  const genders = (LANGS[lang] || LANGS.de).genders, ru = lang === "ru";
   const byI = new Map((Array.isArray(j?.lines) ? j.lines : []).map(l => [+l?.i, l]));
   return lines.map((ln, i) => {
     const l = byI.get(i) || {};
     const s = (Array.isArray(l.s) ? l.s : []).map(x => ({
       w: Math.floor(+x?.w), n: Math.max(1, Math.floor(+x?.n || 1)), l: Math.floor(+x?.l), de: str(x?.de, 80).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""),
-      g: ["der", "die", "das"].includes(x?.g) ? x.g : "", lemma: str(x?.lemma, 60), en: str(x?.en, 60), pl: str(x?.pl, 60), built: str(x?.built, 120), note: str(x?.note, 200)
+      g: genders.includes(x?.g) ? x.g : "", lemma: str(x?.lemma, 60), en: str(x?.en, 60), pl: str(x?.pl, 60), built: str(x?.built, 120), note: str(x?.note, 200),
+      ...(ru ? { tr: str(x?.tr, 80) } : {})
     })).filter(x => x.de && x.w >= 0 && x.l >= 1 && x.l <= 3 && x.w + x.n <= ln.tokens.length);
-    return { de: str(l.de, 300), s };
+    return { de: str(l.de, 300), s, ...(ru ? { tr: str(l.tr, 300) } : {}) };
   });
 }
 // Which swaps show at a level: Intermediate phrases first (longest first),
@@ -563,14 +579,14 @@ const edge = t => { const m = /^([^\p{L}\p{N}]*)([\s\S]*?)([^\p{L}\p{N}]*)$/u.ex
 // their word (a swap keeps the first word's chords; the words it covers keep
 // theirs, without text). Fluent spreads the German line under the chords by
 // position. Each German part carries { k: "line.swap", g } for its card.
-export function germanBlocks(blocks, de, level, { english = false } = {}) {
+export function germanBlocks(blocks, de, level, { english = false, translit = false } = {}) {
   if (!de?.lines || !level) return blocks;
   const lines = sungText(blocks), at = new Map(lines.map((l, i) => [l.bi, i]));
   return blocks.map((b, bi) => {
     const i = at.get(bi), t = i == null ? null : de.lines[i];
     if (!t) return b;
     const en = english ? lines[i].text : "";
-    if (level >= 4 && t.de) return fluentBlock(b, t.de, i, en);
+    if (level >= 4 && t.de) return { ...fluentBlock(b, t.de, i, en), tr: translit && t.tr ? t.tr : "" };
     const spans = deSpans(t.s || [], level);
     if (!spans.length) return b;
     if (b.kind === "lyric") {
@@ -854,13 +870,15 @@ export function octaveFix(freq, tuning = "standard", a4 = 440, idx = -1) {
 // then a neural or natural voice in other browsers; Germany's German first.
 // The playful novelty voices are left for last. null when there's none.
 const NOVELTY = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Bahh|Bells|Boing|Bubbles|Cellos|Wobble|Good News|Bad News|Jester|Organ|Superstar|Trinoids|Whisper|Zarvox|Albert|Fred|Junior|Kathy|Ralph)\b/i;
-export function bestGermanVoice(voices = []) {
-  const score = v => (/premium/i.test(v.name) ? 40 : 0) + (/enhanced|erweitert|verbessert/i.test(v.name) ? 25 : 0)
-    + (/neural|natural|online/i.test(v.name) ? 15 : 0) + (/^de[-_]DE/i.test(v.lang) ? 3 : 0) + (v.default ? 1 : 0)
+export function bestVoice(voices = [], lang = "de") {
+  const region = (LANGS[lang] || LANGS.de).speech.replace("-", "[-_]");
+  const score = v => (/premium/i.test(v.name) ? 40 : 0) + (/enhanced|erweitert|verbessert|mejorad|улучш/i.test(v.name) ? 25 : 0)
+    + (/neural|natural|online/i.test(v.name) ? 15 : 0) + (new RegExp("^" + region, "i").test(v.lang) ? 3 : 0) + (v.default ? 1 : 0)
     - (NOVELTY.test(v.name) ? 50 : 0);
-  const de = voices.filter(v => /^de/i.test(v.lang || ""));
-  return de.length ? de.reduce((a, b) => (score(b) > score(a) ? b : a)) : null;
+  const mine = voices.filter(v => new RegExp("^" + lang, "i").test(v.lang || ""));
+  return mine.length ? mine.reduce((a, b) => (score(b) > score(a) ? b : a)) : null;
 }
+export const bestGermanVoice = (voices = []) => bestVoice(voices, "de");
 // ---------- Tuner guidance ----------
 // In tune within 3 cents; a reading has to drift past 5 before a string that
 // was in tune stops counting, so one shaky reading doesn't start the hold over.

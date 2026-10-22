@@ -1054,7 +1054,7 @@ test("the AI rules hold: charts never carry lyrics; German only translates the l
   const find = read("findai.js"), de = read("german.js");
   assert.match(find, /Never include lyrics or any words from the song/);
   assert.match(de, /Translate only the lines given\. Never add, complete or look up lyrics\./);
-  assert.match(read("README.md"), /Translation exception \(German practice\)/);
+  assert.match(read("README.md"), /Translation exception \(language practice\)/);
 });
 test("deSpans: Common is a small step up from Basic: two more words a line at most, nouns first", () => {
   const sw = [
@@ -2132,4 +2132,25 @@ test("4.29.0 Play together links: the tempo rides along, an old start time is dr
   const old = await C.unpackShare(await C.packShare({ song, duet: { at: Date.now() + 60000, bpm: 500 } }));
   assert.deepEqual(old.duet, { bpm: 300 }, "the time goes, the tempo is kept in range");
   assert.equal(old.song.title, "A");
+});
+
+test("4.36.0 languages: Spanish and Russian genders, the sound of Russian kept, German unchanged by default", () => {
+  const L = [{ tokens: ["Grey", "boats", "home"], text: "Grey boats home" }];
+  const ru = C.cleanGerman({ lines: [{ i: 0, de: "Се́рые ло́дки домо́й", tr: "Sérye lódki domóy", s: [{ w: 1, n: 1, l: 1, de: "ло́дки", tr: "lódki", g: "f", lemma: "ло́дка" }, { w: 2, n: 1, l: 1, de: "домо́й", g: "der" }] }] }, L, "ru");
+  assert.equal(ru[0].tr, "Sérye lódki domóy");
+  assert.equal(ru[0].s[0].g, "f"); assert.equal(ru[0].s[0].tr, "lódki");
+  assert.equal(ru[0].s[1].g, "", "a German article isn't a Russian gender");
+  const es = C.cleanGerman({ lines: [{ i: 0, de: "Barcos grises", tr: "x", s: [{ w: 1, n: 1, l: 1, de: "barcos", g: "el" }, { w: 2, n: 1, l: 1, de: "casa", g: "die" }] }] }, L, "es");
+  assert.equal(es[0].s[0].g, "el"); assert.equal(es[0].s[1].g, ""); assert.equal(es[0].tr, undefined, "only Russian keeps a sound line");
+  assert.equal(C.cleanGerman({ lines: [{ i: 0, de: "x", s: [{ w: 0, n: 1, l: 1, de: "Boote", g: "das" }] }] }, L)[0].s[0].g, "das", "German by default");
+  assert.equal(C.langOf({ settings: {} }), "de"); assert.equal(C.langOf({ settings: { lang: "ru" } }), "ru"); assert.equal(C.langOf({ settings: { lang: "fr" } }), "de");
+  assert.equal(C.langChosen({ settings: {}, songs: [] }), false); assert.equal(C.langChosen({ settings: {}, songs: [{ de: {} }] }), true, "a library translated before 4.36.0 counts as German");
+  assert.equal(C.deLangOk({ de: {} }, { settings: { lang: "es" } }), false, "an untagged translation is German");
+  const v = (name, lang) => ({ name, lang });
+  assert.equal(C.bestVoice([v("Anna", "de-DE"), v("Milena", "ru-RU"), v("Monica", "es-ES")], "ru").name, "Milena");
+  assert.equal(C.bestVoice([v("Anna", "de-DE")], "es"), null);
+  const blocks = C.parseBlocks("[V]\nGrey boats home");
+  const out = C.germanBlocks(blocks, { lines: [ru[0]] }, 4, { translit: true });
+  assert.ok(out.some(b => b.tr === "Sérye lódki domóy"), "Fluent carries the sound under the line");
+  assert.ok(C.germanBlocks(blocks, { lines: [ru[0]] }, 4).every(b => !b.tr), "only when asked");
 });

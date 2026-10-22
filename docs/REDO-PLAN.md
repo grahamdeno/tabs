@@ -180,10 +180,10 @@ Graham (2026-10-22, after 4.34.1): no flag. A pick's card opens only on a tap (l
 ## Step 15 [Opus] 4.36.0: Learn a language (German, Spanish or Russian)
 
 Graham (2026-10-22): one language for every song, chosen from German, Spanish and Russian (nothing to install on the phone). Mockups first, then his go.
-- [ ] 15.1 Mockups: the picker (first open and in Settings), the Song tab row named for the language, the practice sheet and a word card in Spanish and in Russian.
-- [ ] 15.2 One setting, `settings.lang` ("de", "es" or "ru"; German when missing, so nothing changes for him). The Tools row, the practice sheet and toasts use the language's name.
-- [ ] 15.3 The AI instructions per language (the levels stay the same). Grammar extras by language: der/die/das colours for German; el/la for Spanish; Russian shows stress marks and a transliteration line under each Russian line (Cyrillic is new to read).
-- [ ] 15.4 The voice: the best installed voice for the chosen language (`bestGermanVoice` becomes `bestVoice(lang)`).
-- [ ] 15.5 Data: `song.de` stays as the stored field name for whichever language is on (docs/DATA.md says so) with a `lang` tag on it; switching languages keeps nothing from the old one (one language for every song), after a confirm that says how many songs lose their translation. Backups leave it out, as now.
-- [ ] 15.6 Tests: the picker, a Spanish and a Russian translation (mocked), switching asks first, German users see no change.
+- [x] 15.1 Mockups: the picker (first open and in Settings), the Song tab row named for the language, the practice sheet and a word card in Spanish and in Russian.
+- [x] 15.2 One setting, `settings.lang` ("de", "es" or "ru"; German when missing, so nothing changes for him). The Tools row, the practice sheet and toasts use the language's name.
+- [x] 15.3 The AI instructions per language (the levels stay the same). Grammar extras by language: der/die/das colours for German; el/la for Spanish; Russian shows stress marks and a transliteration line under each Russian line (Cyrillic is new to read).
+- [x] 15.4 The voice: the best installed voice for the chosen language (`bestGermanVoice` becomes `bestVoice(lang)`).
+- [x] 15.5 Data: `song.de` stays as the stored field name for whichever language is on (docs/DATA.md says so) with a `lang` tag on it; switching languages keeps nothing from the old one (one language for every song), after a confirm that says how many songs lose their translation. Backups leave it out, as now.
+- [x] 15.6 Tests: the picker, a Spanish and a Russian translation (mocked), switching asks first, German users see no change.
 

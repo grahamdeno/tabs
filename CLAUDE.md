@@ -16,7 +16,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - The AI never writes lyrics itself (Claude won't reproduce them, and lyrics
   from memory come out wrong). Lyrics come from LRCLIB (Get the song) or
   Graham's own sheet; fetching them from a lyrics source is fine. The one
-  place the AI handles lyrics is German practice, which translates songs
+  place the AI handles lyrics is language practice (German, Spanish or Russian), which translates songs
   already in his library.
 - API keys stay on the phone only. Never put a key in the code or in a backup,
   and don't change how keys are stored.
@@ -81,7 +81,7 @@ The README describes each as it works today.
 | Play next, chord charts, Get the song | `findai.js` |
 | Tuner | `tuner.js` (+ `heads.js`) |
 | Your profile (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
-| German practice | `german.js` |
+| Language practice (German, Spanish, Russian) | `german.js` |
 | Rehearse (hub), the neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
 | The Road (home, 4.0.0): path, Louie, the Songbook bar (4.9.0; the Songbook page is `renderLibrary` in `app.js`) | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
 | Stat bar, tab bar, More sheet | `hud.js` |

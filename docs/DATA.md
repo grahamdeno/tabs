@@ -58,6 +58,8 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `drums` | `{ intro?, verse?, prechorus?, chorus?, bridge?, solo?, outro?, fill?, level?, src }` | Drums that fit the song (3.23.0): written once by the AI. Each part is one bar of 4/4, `{ kick, snare, hat }`, 16 characters each (`.` rest, `x` hit, `X` accent, `o` ghost note, `O` open hi-hat). `level` is -1 simpler or 1 busier, missing for as written. `src` is `"ai"` |
 | `practice` | `{ on?, rate? }` | Practice mode (3.21.0): `on` only when it differs from the default (on for a Learning song), `rate` the practice speed 0.5 to 1. An older `recRate` becomes `rate` |
 | `easier` | object | Make it easier result: `{ on, capo, subs, note, before, after }` |
+| `de` | `{ v: 1, lang?, src, at, partial?, lines: [{ de, tr?, s: [{ w, n, l, de, tr?, g, lemma, en, pl, built, note }] }] }` | Language practice: the song's sung lines translated once (the field kept its name when Spanish and Russian came in 4.36.0). `lang` is `"de"`, `"es"` or `"ru"` (missing means German); `g` is der/die/das, el/la or m/f/n; `tr` is the sound of Russian in Latin letters. Never backed up or shared |
+| `deLevel` | 0 to 4 | Off, Basic, Common, Intermediate, Fluent for this song |
 | `tone` | object | Spark tone result |
 | `sketch` | object | Made with Sing it: `{ v: 1, key, style: "simple" \| "rich", lines: [{ n: [[midi, start, length], ...] }] }`, the sung melody per line (seconds, to 0.01), for restyling and chord suggestions. Older sketches may hold `true` |
 | `status` | `"learning"` or `"got"` | Learning status |
@@ -143,7 +145,11 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | `tunerGuided` | boolean | |
 | `a4` | Hz | Pitch reference |
 | `lastTuned` | time | |
-| `deVoiceTip` | boolean | The German word card has said where to get a more natural voice (2.17.1) |
+| `deVoiceTip`, `deVoiceTip_es`, `deVoiceTip_ru` | boolean | The word card has said where to get a more natural voice in that language (2.17.1) |
+| `lang` | `"de"`, `"es"` or `"ru"` | The one language every song uses for practice (4.36.0). Missing means German if any song is translated, else not picked yet |
+| `deLevel` | 1 to 4 | The level a newly translated song starts at |
+| `deEnglish` | boolean | English under each line |
+| `deTranslit` | boolean | `false` hides the Latin-letter line under Russian at Fluent |
 
 #### Apple Music
 

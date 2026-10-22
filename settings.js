@@ -1,5 +1,5 @@
 // Tabs Settings and Recently deleted screens.
-import { BASS_STYLES, DRUM_BEATS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, raw } from "./core.js";
+import { BASS_STYLES, DRUM_BEATS, LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
@@ -182,6 +182,16 @@ function renderSettings() {
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
     <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if The Road isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add The Road to your Home Screen from the Share menu to use it offline.</p>`],
+    lang: ["Language practice", `
+    <div class="label">Every song uses</div>
+    <div class="lp-list s-lp" role="radiogroup" aria-label="Language">${Object.entries(LANGS).map(([k, L]) => { const on = langChosen(data) && langOf(data) === k; return `<button class="lp-row${on ? " on" : ""}" role="radio" aria-checked="${on}" data-lang="${k}"><span class="lp-em lp-${k}">${L.short}</span><span class="lp-t"><b>${L.name}</b><small>${esc(L.own)} · ${esc(L.sample)}</small></span><i></i></button>`; }).join("")}</div>
+    <div class="set-group glass s-gap">
+      <div class="set"><span class="tile">${icon("chat")}</span><span class="name">English under each line<small class="sub">At every level</small></span>
+        <button class="toggle ${s.deEnglish === true ? "on" : ""}" id="s-deen" role="switch" aria-checked="${s.deEnglish === true}" aria-label="English under each line"></button></div>
+      ${langOf(data) === "ru" ? `<div class="set"><span class="tile">${icon("chat")}</span><span class="name">Latin letters under Russian<small class="sub">The sound of each Russian line, at Fluent</small></span>
+        <button class="toggle ${s.deTranslit !== false ? "on" : ""}" id="s-detr" role="switch" aria-checked="${s.deTranslit !== false}" aria-label="Latin letters under Russian"></button></div>` : ""}
+    </div>
+    <p class="foot">${(() => { const n = data.songs.filter(x => x.de).length; return n ? `${LANGS[langOf(data)].name} is in ${n} song${n === 1 ? "" : "s"}. ` : ""; })()}Translations stay on this phone and aren't backed up. Switching deletes them, after asking.</p>`],
     help: ["Help", `
     <div class="set-group glass">
       <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
@@ -212,6 +222,7 @@ function renderSettings() {
       ${row("today", "flame", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
       ${row("apple", "note", "Apple Music", s.appleMusic ? (s.appleMusicToken ? "On" : "On · no token") : "Off")}
       ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
+      ${row("lang", "chat", "Language practice", langChosen(data) ? LANGS[langOf(data)].name : "Not picked")}
     </div>
     <div class="set-group glass s-gap">
       ${row("library", "cloud", "Songbook and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
@@ -222,6 +233,10 @@ function renderSettings() {
   }
   document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/");
   app.querySelectorAll("[data-page]").forEach(b => b.onclick = () => go("#/settings/" + b.dataset.page));
+  /* 4.36.0: one language for every song; switching asks first (german.js) */
+  app.querySelectorAll(".s-lp [data-lang]").forEach(b => b.onclick = () => import("./german.js").then(m => m.switchLang(b.dataset.lang, renderSettings)));
+  document.getElementById("s-deen")?.addEventListener("click", () => { s.deEnglish = s.deEnglish !== true; Tabs.save(data); renderSettings(); });
+  document.getElementById("s-detr")?.addEventListener("click", () => { s.deTranslit = s.deTranslit === false; Tabs.save(data); renderSettings(); });
   document.getElementById("s-backup")?.addEventListener("click", async () => { if (await backupNow()) { renderSettings(); toast("Backed up"); } });
   // Each page has only its own controls; the rest are skipped.
   const $ = id => document.getElementById(id) || { addEventListener() {}, querySelectorAll: () => [] };

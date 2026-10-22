@@ -66,7 +66,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await page.goto(base + "#/set/s"); await page.waitForFunction(() => /#\/set\/s/.test(location.hash) && !document.querySelector("#ed-title"));
     await fits("set");
     await page.goto(base + "#/settings"); await page.waitForSelector("[data-page]");
-    await is(() => document.querySelectorAll("[data-page]").length === 8, "settings menu renders");
+    await is(() => document.querySelectorAll("[data-page]").length === 9, "settings menu renders"); /* 4.36.0: Language practice */
     await fits("settings");
     for (const pg of ["playing", "look", "newsongs", "today", "keys", "library", "help"]) {
       await page.goto(base + "#/settings/" + pg); await page.waitForSelector(".set, .fld");

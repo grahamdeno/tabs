@@ -25,7 +25,7 @@ const words = page => page.evaluate(() => [...document.querySelectorAll(".sheet 
 }).join(" | "));
 
 test("German practice: translate once, pick a level, tap a word; nothing leaves the phone", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, songs: [{ id: "h", title: "Harbor Lights", artist: "The Cape Fear", key: "G", format: "chords", body: BODY }, ...LIB.songs] });
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lang: "de" }, songs: [{ id: "h", title: "Harbor Lights", artist: "The Cape Fear", key: "G", format: "chords", body: BODY }, ...LIB.songs] });
   let asked = 0, sent = "";
   /* The reply streams (server-sent events), in small pieces as it's written. */
   await page.route(/api\.anthropic\.com/, r => {
@@ -79,7 +79,7 @@ const LONG = "[Verse]\n" + Array.from({ length: 8 }, (_, i) => `G   C\nline numb
 const reply = req => { const lines = JSON.parse(JSON.parse(req.postData()).messages[0].content.replace(/\n[\s\S]*$/, "")); return { lines: lines.map(l => ({ i: l.i, de: `Zeile ${l.line.split(" ")[2]}`, s: [{ w: 4, n: 1, l: 1, de: "Hafen", g: "der", lemma: "der Hafen", en: "harbor", pl: "die Häfen", built: "", note: "" }] })) }; };
 
 test("German practice in the background: batches land as they come; a dropped connection keeps what's done and resumes", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, songs: [{ id: "l", title: "Long Song", artist: "X", format: "chords", body: LONG }, ...LIB.songs] });
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lang: "de" }, songs: [{ id: "l", title: "Long Song", artist: "X", format: "chords", body: LONG }, ...LIB.songs] });
   let calls = 0, fail = true;
   await page.route(/api\.anthropic\.com/, async r => {
     calls++;
@@ -108,7 +108,7 @@ test("German practice in the background: batches land as they come; a dropped co
 });
 
 test("German opens from Tools, and its sheet closes with a swipe down", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }] }, { isMobile: true });
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lang: "de" }, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }] }, { isMobile: true });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
   await page.goto(page.url().replace(/#.*$/, "") + "#/set/s"); await page.waitForSelector("[data-open='0']");
   await page.click("[data-open='0']"); await page.waitForSelector("#more"); await settled(page);
@@ -124,4 +124,46 @@ test("German opens from Tools, and its sheet closes with a swipe down", { skip: 
   await deOpen(page); await page.waitForSelector(".de-sheet");
   await touch("touchStart", g.y + 40); await touch("touchMove", g.y + 70); await touch("touchEnd"); await page.waitForTimeout(400) /* real timer: the spring back settles */;
   assert.equal(await page.locator(".de-sheet").count(), 1, "a short pull keeps it");
+});
+
+/* 4.36.0: one language for every song. The lines and their translations are invented. */
+const RU = { lines: [
+  { i: 0, de: "Се́рые ло́дки у стены́ прича́ла", tr: "Sérye lódki u stený prichála", s: [
+    { w: 1, n: 1, l: 1, de: "ло́дки", tr: "lódki", g: "f", lemma: "ло́дка", en: "boats", pl: "ло́дки", built: "", note: "Plural." }] },
+  { i: 1, de: "Неси́ огни́ домо́й", tr: "Nesí ogní domóy", s: [{ w: 2, n: 1, l: 1, de: "огни́", tr: "ogní", g: "m", lemma: "ого́нь", en: "lights", pl: "огни́", built: "", note: "" }] }
+] };
+test("4.36.0 languages: pick one the first time, Russian with its sound in Latin letters, switching asks first", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [{ id: "h", title: "Harbor Lights", artist: "The Cape Fear", key: "G", format: "chords", body: BODY }, ...LIB.songs] });
+  let sys = "";
+  await page.route(/api\.anthropic\.com/, r => { sys = JSON.stringify(JSON.parse(r.request().postData()).system); r.fulfill({ status: 200, contentType: "text/event-stream", headers: cors, body: sse(RU) }); });
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
+  await page.goto(page.url().replace(/#.*$/, "") + "#/song/h"); await page.waitForSelector("#more"); await settled(page);
+  assert.match(await deTile(page), /Learn a language/, "nothing picked yet");
+  await deOpen(page); await page.waitForSelector(".lp [data-lang='ru']");
+  assert.deepEqual(await page.$$eval(".lp [data-lang]", b => b.map(x => x.dataset.lang)), ["de", "es", "ru"]);
+  await page.click(".lp [data-lang='ru']"); assert.match(await page.innerText("#lp-go"), /Use Russian/);
+  await page.click("#lp-go"); await page.waitForSelector("#de-go");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.lang === "ru");
+  assert.match(await page.innerText(".de-sheet h2"), /Russian practice/);
+  await page.click("#de-go");
+  await page.waitForFunction(() => document.querySelectorAll(".sheet .de").length > 0, null, { timeout: 8000 });
+  assert.match(sys, /learn Russian/); assert.match(sys, /stress/);
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "h").de);
+  await page.waitForFunction(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "h").de; return d && !d.partial; });
+  const de = await saved();
+  assert.equal(de.lang, "ru"); assert.equal(de.lines[0].tr, "Sérye lódki u stený prichála", "the sound is kept");
+  assert.equal(await page.locator(".sheet .de.g-f").count(), 1, "ло́дки, feminine");
+  /* Fluent: the Russian line with its sound under it */
+  await deOpen(page); await page.waitForSelector(".de-lv"); await page.click(".de-lv[data-lv='4']"); await page.click("#de-x");
+  assert.match(await page.innerText(".sheet"), /Sérye lódki u stený prichála/);
+  /* switching asks, and says how many songs lose their translation */
+  await page.evaluate(() => { location.hash = "#/settings/lang"; }); await page.waitForSelector(".s-lp [data-lang='es']");
+  assert.equal(await page.getAttribute(".s-lp [data-lang='ru']", "aria-checked"), "true");
+  await page.click(".s-lp [data-lang='es']"); await page.waitForSelector(".ls-ask");
+  assert.match(await page.innerText(".ls-ask"), /Switch to Spanish\?[\s\S]*Russian in your 1 translated song is deleted/);
+  await page.click("#ls-keep"); await page.waitForSelector(".ls-ask", { state: "detached" });
+  assert.ok(await saved(), "kept");
+  await page.click(".s-lp [data-lang='es']"); await page.click("#ls-go");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.lang === "es");
+  assert.equal(await saved(), undefined, "the Russian is gone");
 });

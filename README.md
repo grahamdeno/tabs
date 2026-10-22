@@ -89,11 +89,11 @@ Settings > Keys > paste an Anthropic API key. Without a key the app works the sa
 - **Add the words:** paste lyrics you've copied and Tabs puts a chart's chords over them, section by section.
 - **What can I play next?:** suggests well-known songs that use mostly your chords, or with A step up, songs that are clearly harder. Songs already shown aren't repeated. Only Close shuts the sheet (a tap outside doesn't), and reopening it within the hour shows the same list without asking again; Show different songs asks for more. The level switch is on top and the songs come fewest new chords first, as cards (4.28.0): the cover plays the 30-second preview, Learn gets the song and then opens the new chord's lesson, and a strip shows the new chord's shape, the chords you know and how many more of your songs it opens. If the fetched sheet doesn't use the chord Play next named, it says so instead of teaching it. While it looks, Louie digs through a crate of records, one for each of your chords.
 - **Spark tone:** a starting tone for a Positive Grid Spark amp. No lyrics are sent.
-- **German practice:** see below.
+- **Language practice (4.36.0):** German, Spanish or Russian, one for every song. See below.
 
 **Lyrics rule.** The AI never supplies, finds or completes lyrics.
 
-**Translation exception (German practice):** for a song already in your library, the AI may translate its sung lines into German, only when you turn it on for that song. Translations stay on the phone with the song, are never shared or exported, and are dropped when the song's words change. Tests check this (`tests/core.test.mjs`, `tests/e2e/german.e2e.mjs`). German practice has levels from a few common nouns to fully German, shows each noun's gender, and has a word card with meaning, grammar and a German voice.
+**Translation exception (language practice):** for a song already in your library, the AI may translate its sung lines into the language you picked (German, Spanish or Russian; one for every song, chosen the first time and changed in Settings > Language practice, which deletes the old translations after asking), only when you turn it on for that song. Translations stay on the phone with the song, are never shared or exported, and are dropped when the song's words change. Tests check this (`tests/core.test.mjs`, `tests/e2e/german.e2e.mjs`). German practice has levels from a few common nouns to fully German, shows each noun's gender, and has a word card with meaning, grammar and a voice in that language. Spanish shows el or la; Russian marks the stress on every word and, at Fluent, puts the sound in Latin letters under each line (a switch in Settings turns that off).
 
 ### About the API key
 
@@ -132,7 +132,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `aitools.js` | Make it easier, Spark tone |
 | `tuner.js`, `heads.js` | Tuner and headstock drawings |
 | `sketch.js`, `strum.js` | Sing it, Strum it (`strum.js` loads `vendor/basic-pitch/`) |
-| `german.js` | German practice |
+| `german.js` | Language practice (German, Spanish or Russian) |
 | `crop.js` | Cover photo framing |
 | `road.js`, `hud.js` | The Road (home): the path, Louie and the Songbook bar; the stat bar, tab bar and More sheet |
 | `gig.js` | The Gig (scoring in `core.js`) |
