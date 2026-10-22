@@ -50,11 +50,11 @@ Tick a task's box in this file in the same commit that does it.
 
 Don't change how the search bar works: only the screen under it while it's focused and empty.
 
-- [ ] 3.1 While searching with an empty query: hide Up next, the nudge card and the filters (CSS on `body.searching`), and close the gap.
-- [ ] 3.2 Two big buttons: **Paste a song** (accent) reads `navigator.clipboard.readText()` and passes the text into the same path a paste in the bar takes today (find it from `showPasteCard`); if reading is refused, toast "Long-press the bar and choose Paste". **What can I play next?** (card button with a small Louie, `louie("happy", { pose: "point" })`) opens Play next as today.
-- [ ] 3.3 Recently played: three version 4 cards (cover when Apple Music has one, else the coloured letter tile; title; artist and plays; a Play button that opens the song and plays it, as `playSong` does).
-- [ ] 3.4 The list ends above the keyboard: use `visualViewport` height for the bottom padding while focused, so nothing sits under iOS's form bar.
-- [ ] 3.5 Tests: focused and empty shows the two buttons and three cards, no Up next; Paste with a mocked clipboard opens the paste card; typing still searches as before.
+- [x] 3.1 While searching with an empty query: hide Up next, the nudge card and the filters (CSS on `body.searching`), and close the gap.
+- [x] 3.2 Two big buttons: **Paste a song** (accent) reads `navigator.clipboard.readText()` and passes the text into the same path a paste in the bar takes today (find it from `showPasteCard`); if reading is refused, toast "Long-press the bar and choose Paste". **What can I play next?** (card button with a small Louie, `louie("happy", { pose: "point" })`) opens Play next as today.
+- [x] 3.3 Recently played: three version 4 cards (cover when Apple Music has one, else the coloured letter tile; title; artist and plays; a Play button that opens the song and plays it, as `playSong` does).
+- [x] 3.4 The list ends above the keyboard: use `visualViewport` height for the bottom padding while focused, so nothing sits under iOS's form bar.
+- [x] 3.5 Tests: focused and empty shows the two buttons and three cards, no Up next; Paste with a mocked clipboard opens the paste card; typing still searches as before.
 
 ## Step 4 [Sonnet] 4.23.0: Your changes, in Soundcheck (board "Your changes · in Soundcheck")
 

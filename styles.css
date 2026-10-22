@@ -570,7 +570,7 @@ body.writing .cebar { bottom: auto; top: calc(var(--vv-top, 0px) + var(--vv-h, 1
 body.writing .coach, body.writing .coach-dim { display: none; }
 
 .qcancel { display: none; border: 0; background: none; color: var(--accent-ink); font-size: 16px; padding: 0 4px 0 6px; flex: none; }
-body.searching .head, body.searching .weekly, body.searching .today, body.searching #chips, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none; }
+body.searching .head, body.searching .weekly, body.searching .today, body.searching #chips, body.searching .lib-top, body.searching .bk, body.searching .dock-fade, body.searching .dock .add { display: none; }
 body.searching .qcancel { display: block; }
 body.searching .dock { top: calc(10px + var(--safe-t)); bottom: auto; transform: translateX(-50%) !important; animation: totop .28s cubic-bezier(.2,.8,.2,1); }
 body.searching #list { padding-top: 52px; }
@@ -3101,3 +3101,25 @@ body.gigging .ask { z-index: 66; }
 .ls-bar > span { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; }
 .ls-bar i { display: block; height: 100%; border-radius: 4px; }
 .ls-bar b { font: 800 12px var(--sans); }
+
+/* ---------- Search, focused (4.22.0): two big buttons, then your last songs as cards ---------- */
+.sr-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 6px; }
+.sr-btns.one { grid-template-columns: 1fr; }
+.sr-paste, .sr-next { height: 84px; border: 0; border-radius: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 16px/1.15 var(--display); color: var(--fg); }
+.sr-paste { flex-direction: column; gap: 4px; background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-deep); }
+.sr-paste svg { width: 26px; height: 26px; fill: currentColor; stroke: none; }
+.sr-paste svg path { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; fill: none; }
+.sr-paste svg .clipt { fill: var(--accent); stroke: currentColor; stroke-width: 1.6; }
+.sr-next { background: var(--card); box-shadow: 0 4px 0 var(--rim); justify-content: flex-start; padding: 0 12px 0 8px; text-align: left; }
+.sr-next .louie { flex: none; }
+.sr-paste:active, .sr-next:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+.sr-cards { display: flex; flex-direction: column; gap: 10px; }
+.sr-card { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); }
+.sr-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; text-align: left; color: var(--fg); padding: 0; }
+.sr-cv { flex: none; width: 52px; height: 52px; border-radius: 12px; overflow: hidden; display: block; }
+.sr-cv img, .sr-cv span { width: 100%; height: 100%; object-fit: cover; display: grid; place-items: center; font: 700 22px var(--display); color: rgba(255,255,255,.92); }
+.sr-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sr-tx b { font: 700 17px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-tx small { font: 700 13px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-play { flex: none; width: 44px; height: 44px; border: 0; border-radius: 14px; background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-deep); display: grid; place-items: center; }
+.sr-play .i { width: 18px; height: 18px; fill: currentColor; stroke: none; }

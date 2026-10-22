@@ -37,7 +37,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - **Merch table:** spend fans on gear (Rain check keeps a streak through a missed night, Double set doubles XP for 3 gigs, Second take replays a lost battle), Louie's finishes (Stock blue, plus Pink and Teal free) and gig backdrops. Spending never touches XP. Settings > Help can add test fans to try it.
 
 ### Songbook, sets and editing
-- Search titles, artists and lyrics; paste a chord sheet into the bar and it works out the format, key, sections, title and artist. Nothing found offers the web, then Get the song.
+- Search titles, artists and lyrics. Tapping the bar clears the screen to two big buttons (Paste a song, which reads the clipboard, and What can I play next? when the AI is on) and your last three songs as cards with a Play button; the list stops above the keyboard. Paste a chord sheet into the bar and it works out the format, key, sections, title and artist. Nothing found offers the web, then Get the song.
 - One nudge card at the top (the song that keeps your streak, or one for today's weather or a change to work on); the streak itself is in the stat bar, and your week's changes are in Your profile.
 - Filters in one row that always fits (All, Can play, Learning, a heart for Favorites), the chosen one filled. Sets is a button in the header and Tabs only is in the sort menu. Sorts, a letter index, Up next for you (the song one new chord opens, tonight's request, or a song worth another try: one you played once or twice and left three weeks ago). Swipe left to delete (with Undo), right to favorite.
 - Sets with a date, place and drawn cover; Play set runs them with a Next up card and remembers each run.

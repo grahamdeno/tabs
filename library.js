@@ -3,12 +3,13 @@ import { coachTip, demoSearch, dismissCoach, markUsed, searchOpened, tick, tipDu
 import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
 import { recentApple } from "./listen.js";
 import { guitarIcon } from "./rock.js";
+import { louie } from "./louie.js";
 import { fullWhen, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
 import { renderImport } from "./share.js";
 import { ago, backupNow, needsBackup } from "./store.js";
 import { $, I, app, esc, followKeyboard, icon, layer, onLeave, toast } from "./ui.js";
 import { aiError, aiKey, busy, cleanSheet } from "./aihelp.js";
-import { bindFind, data, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, route, tunedRecently } from "./app.js";
+import { bindFind, data, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, playSong, route, tunedRecently } from "./app.js";
 
 export let query = "";
 export let filter = "all";
@@ -96,8 +97,7 @@ export function renderLibrary() {
     </div>
     ${todayHTMLOrSpot()}
     ${chipsHTML()}
-    ${filter === "all" ? upNextHTML() : ""}
-    ${filter === "all" && data.songs.length ? setsShelf() : ""}
+    <div class="lib-top">${filter === "all" ? upNextHTML() : ""}${filter === "all" && data.songs.length ? setsShelf() : ""}</div>
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
       <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
@@ -179,6 +179,10 @@ export function renderLibrary() {
   $("clear").onclick = e => { e.preventDefault(); query = ""; q.value = ""; $("clear").hidden = true; renderList(); q.focus(); };
   renderList();
   followKeyboard();
+  /* 4.22.0: while searching, the list ends above the keyboard (and iOS's form bar) */
+  const padList = () => { const l = $("list"); if (l && searching) l.style.paddingBottom = Math.max(0, innerHeight - (visualViewport?.height || innerHeight) - (visualViewport?.offsetTop || 0)) + 70 + "px"; else if (l) l.style.paddingBottom = ""; };
+  padList();
+  if (visualViewport) { visualViewport.onresize = padList; }
   /* After the first song: invite a tap on search, which does more than find. */
   if ((used("chord") || tipsSeen().play) && tipDue("searchInvite") && !searching) setTimeout(() => {
     if (route().name !== "library" || layer.innerHTML || searching || document.activeElement === q || !coachTip("searchInvite")) return;
@@ -348,11 +352,29 @@ export function renderList() {
     /* Before typing: recently played songs, ready to tap. */
     const recentSongs = sortSongs(data.songs.filter(s => lastPlayed(s)), "recent").slice(0, 8);
     const shown = recentSongs.length ? recentSongs : sortSongs(data.songs, "title");
-    list.innerHTML = `<p class="empty-hint" style="margin:4px 0 12px">Search titles, artists or a line from the lyrics. Paste a chord sheet here to add it.</p>
-      ${aiKey() && data.songs.length ? `<button class="nextidea glass" id="nextidea">${icon("wand")}<span><b>What can I play next?</b>Songs that use the chords you already know</span>${icon("chev", "chev")}</button>` : ""}
-      <div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div><div class="list glass">${shown.map(s => songRow(s)).join("")}</div>
+    /* 4.22.0: a clean screen under the bar: two big buttons, then the songs you played last as cards */
+    const cover = x => /^https:\/\//.test(x.listen?.art || x.art || "") ? `<img src="${esc(x.listen?.art || x.art)}" alt="">` : `<span style="background:${keyColor(keyOf(x), x.title, 0.9)}">${esc((x.title || "?").slice(0, 1).toUpperCase())}</span>`;
+    const card = x => { const n = playCount(x); return `<div class="sr-card"><button class="sr-open" data-id="${esc(x.id)}"><i class="sr-cv">${cover(x)}</i><span class="sr-tx"><b>${esc(x.title)}</b><small>${esc(x.artist || "Unknown artist")}${n ? ` · ${n} play${n === 1 ? "" : "s"}` : ""}${x.status === "learning" ? " · Learning" : ""}</small></span></button><button class="sr-play" data-play="${esc(x.id)}" aria-label="Play ${esc(x.title)}">${icon("play")}</button></div>`; };
+    const next = aiKey() && data.songs.length;
+    list.innerHTML = `<div class="sr-btns${next ? "" : " one"}">
+        <button class="sr-paste" id="sr-paste"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="3"/><rect x="8.5" y="2.5" width="7" height="4" rx="1.5" class="clipt"/><path d="M8.5 11h7M8.5 15h4.5"/></svg>Paste a song</button>
+        ${next ? `<button class="sr-next" id="nextidea">${louie("happy", { pose: "point", size: 46 })}<span>What can I play next?</span></button>` : ""}
+      </div>
+      <div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div>
+      <div class="sr-cards">${shown.slice(0, 3).map(card).join("")}</div>
       <div id="amrecent"></div>`;
-    bindRows(list);
+    list.querySelectorAll("[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
+    list.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playSong(b.dataset.play));
+    $("sr-paste").onclick = async () => {
+      let text = "";
+      try { text = await navigator.clipboard.readText(); } catch { return toast("Long-press the bar and choose Paste"); }
+      if (!text.trim()) return toast("Nothing to paste yet. Copy a chord sheet first.");
+      const link = text.match(/#\/import\/([zj][A-Za-z0-9_-]+)/);
+      if (link) { $("q")?.blur(); return renderImport(link[1]); }
+      if (text.trim().split("\n").filter(l => l.trim()).length < 2) { query = text.trim(); const qi = $("q"); if (qi) qi.value = query; $("clear").hidden = false; return renderList(); }
+      $("q")?.blur();
+      showPasteCard(detectPaste(text));
+    };
     /* Apple Music (only when it is turned on): what you played there lately. A tap fills the search with it. */
     if (data.settings.appleMusic) recentApple().then(rows => {
       const box = $("amrecent");

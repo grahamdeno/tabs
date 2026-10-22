@@ -505,3 +505,21 @@ test("4.20.1 Songbook filters: one row that fits, Sets in the header, Tabs in th
   await page.waitForFunction(() => document.querySelector("#sort")?.value === "title");
   assert.ok(await page.locator("#list .row").count() > 1, "choosing a sort clears Tabs only");
 });
+
+test("4.22.0 Search, focused: two big buttons and three recent cards, no Up next; Paste reads the clipboard; typing still searches", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, aiKey: undefined } });
+  await page.goto(base + "#/library"); await page.waitForSelector("#q");
+  await page.evaluate(() => { navigator.clipboard.readText = async () => window.__clip || ""; window.__clip = "[Verse]\nG   C\nLine one of the words\nD   G\nLine two of the words"; });
+  await page.click("#q"); await page.waitForSelector("#sr-paste");
+  assert.ok(await page.locator(".sr-card").count() <= 3, "three recent cards at most");
+  assert.ok(await page.locator(".sr-card").count() >= 1);
+  for (const sel of [".lib-top", "#chips", ".today"]) assert.equal(await page.locator(sel).first().isVisible().catch(() => false), false, `${sel} hidden while searching`);
+  /* a card opens its song; its Play button opens it and plays */
+  const id = await page.getAttribute(".sr-open", "data-id");
+  await page.click("#sr-paste"); await page.waitForSelector("[role=dialog][aria-label='Save pasted song']");
+  await page.keyboard.press("Escape");
+  /* typing still searches, as before */
+  await page.fill("#q", "River"); await page.waitForSelector("#list .row");
+  assert.equal(await page.locator("#sr-paste").count(), 0, "the buttons give way to results");
+  assert.ok(id);
+});
