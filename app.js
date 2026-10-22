@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderS
 import { copyDiagnostics, loadLibrary, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, onFeel, recordingSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { bassOn, bassPreview, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, recLength, riffPreview, startMetronome, stopMetronome, tempoFor } from "./audio.js";
@@ -153,7 +153,8 @@ function renderViewer(id) {
     <div class="head ehead"></div>
     <div class="shead">
       <button class="sh-btn sh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
-      <div class="sh-t"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><div class="meta" id="meta"></div></div>
+      ${coverBtn(song)}
+      <div class="sh-t"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><button class="meta" id="meta" aria-label="About this song"></button></div>
       <button class="sh-btn fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
     </div>
     ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
@@ -161,7 +162,7 @@ function renderViewer(id) {
       return `<div class="setbar"><button class="sb" id="sprev" aria-label="Previous song" ${setCtx.idx === 0 ? "disabled" : ""}>${icon("back")}</button>
         <button class="setname" data-go="#/set/${encodeURIComponent(x.id)}">${esc(x.name)} · ${setCtx.idx + 1} of ${list.length}</button>
         <button class="sb" id="snext" aria-label="Next song" ${setCtx.idx === list.length - 1 ? "disabled" : ""}>${icon("chev")}</button></div>`; })()}
-    <div class="metarow"><span class="keyslot" id="keyslot"></span><button class="stat" id="stat" aria-label="Learning status"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
+    <div class="metarow"><button class="stat" id="stat" aria-label="Learning status"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
     <nav class="secbar" id="secbar" aria-label="Song sections"></nav>
@@ -186,8 +187,7 @@ function renderViewer(id) {
       <div class="nn" id="nn"></div>
       <div class="looprow" id="looprow"></div>
       <div class="player">
-        <button class="tl more" id="more" aria-label="Tools" aria-haspopup="menu">${icon("dots")}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
-        ${listenChip(song)}
+        <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="menu">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed" hidden>
@@ -221,7 +221,8 @@ function renderViewer(id) {
   };
   paintStat();
   $("tunechip")?.addEventListener("click", () => openTuner(songTuning(song)));
-  $("listen").onclick = () => hasMusic(song) ? openRecording(song) : listenSheet(song);
+  $("meta").onclick = () => openAbout(song);
+  bindCover(song);
   $("stat").onclick = () => {
     song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
     if (!song.status) delete song.status;
@@ -251,8 +252,7 @@ function renderViewer(id) {
       best != null && `<span>Best show ${best}%</span>`,
       capoTxt && `<span>${capoTxt}</span>`,
       !isChords && `<span>Tab</span>`
-    ].filter(Boolean).join('<span class="dot"></span>');
-    $("keyslot").innerHTML = key ? `<button class="keybtn" id="keybtn" aria-label="Key ${esc(key)}. Change the key"><span>Key <b>${esc(key)}</b></span>${icon("chev", "kchev")}</button>` : "";
+    ].filter(Boolean).join('<span class="dot"></span>') + `<span class="sh-ab">about this song${icon("chev")}</span>`;
     $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, capoTxt, !isChords && "Tab"]
       .filter(Boolean).join(" · ");
     SUBS = easy ? easy.subs || {} : {};
@@ -359,7 +359,7 @@ function renderViewer(id) {
       input: i => { song.transpose = steps[i]; Tabs.save(data); draw(); },
       done: (i, changed) => { if (changed) toast(`Key ${base ? transposeKey(base, steps[i]) : steps[i]}`, null, { label: "Undo", fn: () => { song.transpose = was; Tabs.save(data); draw(); } }); } });
   };
-  $("keyslot").addEventListener("click", e => { if (e.target.closest("#keybtn")) keyDial(); });
+  curKeyDial = keyDial;
   /* Play: the Gig, or plain auto-scroll while practicing, for a tab, or with Play as a gig off (Settings > Playing). */
   $("play").onclick = () => {
     if (scroll.on) return stopScroll();
@@ -1079,16 +1079,19 @@ function setBacking(song, mode, near, quiet) {
   const band = data.settings.metronome || data.settings.bass;
   toast(mode === "band" ? (band ? "Band: drums and bass, no recording" : "Band: turn on the metronome or bass in More") : "Recording: no drums or bass", near);
 }
-/* 4.20.0: the recording button beside Play (it was a chip under the title). With Apple Music on and a linked
-   track it shows the cover, lit when Play starts the recording, and opens the Recording sheet; otherwise a note
-   that finds a recording. The words stay for screen readers. */
-function listenChip(song) {
-  if (!hasMusic(song)) return `<button class="tl listen" id="listen" aria-label="${song.listen ? `Listen on ${esc(song.listen.service)}` : "Find a recording to listen to"}">${icon("note")}<span class="vh">${song.listen ? esc(song.listen.service) : "Listen"}</span></button>`;
-  const rec = usesMusic(song), art = /^https:\/\//.test(song.listen.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : icon("note");
-  const n = recordingNotes(song), look = !!(n.key || n.bpm);
-  return `<button class="tl listen rec${rec ? " on" : ""}" id="listen" aria-label="${rec ? "Play starts the recording" : "Play starts the band"}.${look ? " The recording doesn't match the sheet." : ""} Open the recording">
-    <span class="rc-art">${art}</span>${look ? '<i class="rc-look"></i>' : ""}<span class="vh">${rec ? "Recording" : "Band"}</span></button>`;
+/* 4.31.0: the cover beside the title (it was a button beside Play). The Apple Music art when a recording
+   is linked, else the song's letter on a palette colour; it and "about this song" open About this song.
+   A dot on it when the recording doesn't match the sheet. */
+let curKeyDial = null;
+const TILE_HUES = ["#3D8BFF", "#FF3D7F", "#22B573", "#FFB020", "#8B5CF6", "#14B8C4"];
+const tileOf = song => ({ hue: TILE_HUES[[...(song.title || "?")].reduce((a, c) => a + c.charCodeAt(0), 0) % TILE_HUES.length],
+  letter: esc(((song.title || "?").replace(/^(the|a)\s+/i, "").match(/[\p{L}\p{N}]/u) || ["?"])[0].toUpperCase()) });
+function coverBtn(song) {
+  const art = /^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="">` : "";
+  const n = recordingNotes(song), look = !!(n.key || n.bpm), rec = hasMusic(song), { hue, letter } = tileOf(song);
+  return `<button class="sh-cover${rec ? " rec" : ""}${usesMusic(song) ? " on" : ""}" id="about" style="--tile:${hue}" aria-label="About this song${rec ? `. Play starts ${usesMusic(song) ? "the recording" : "the band"}` : ""}${look ? ". The recording doesn't match the sheet" : ""}">${art || `<span class="sh-l">${letter}</span>`}${look ? '<i class="rc-look"></i>' : ""}</button>`;
 }
+function bindCover(song) { const b = $("about"); if (b) b.onclick = () => openAbout(song); }
 /* How the sheet differs from the measured recording (3.18.0): key, in half steps (the shortest move),
    and tempo when it's more than 6% off and not just half or double time. */
 function recordingNotes(song) {
@@ -1100,16 +1103,24 @@ function recordingNotes(song) {
   const off = Math.min(Math.abs(r - 1), Math.abs(r - 2), Math.abs(r - 0.5)) > 0.06 && (f.sure || 0) >= 0.1;
   return { key: gap || 0, bpm: off };
 }
+/* the cover and Play's second line follow the recording */
 function paintListenChip(song) {
-  const el = $("listen");
+  const el = $("about");
   if (!el || viewing !== song) return;
-  el.outerHTML = listenChip(song);
-  $("listen").onclick = () => hasMusic(song) ? openRecording(song) : listenSheet(song);
+  el.outerHTML = coverBtn(song);
+  bindCover(song);
+  refreshPlay(song);
 }
-function openRecording(song) {
-  recordingSheet(song, {
+function openAbout(song) {
+  const base = song.format === "tab" ? "" : (song.key || guessKey(song.body || ""));
+  aboutSheet(song, {
+    music: () => hasMusic(song),
     mode: () => usesMusic(song) ? "music" : "band",
     setMode: m => setBacking(song, m, null, true),
+    key: () => base ? transposeKey(base, song.transpose || 0) : "",
+    length: () => song.listen?.length || song.duration || 0,
+    tile: () => tileOf(song),
+    changeKey: base ? () => curKeyDial?.() : null,
     reset: () => { delete song.syncs; Tabs.save(data); toast(song.timed?.at ? "Your fixes are cleared. The line timing stays" : "The page will start learning this song again"); },
     changed: () => { paintListenChip(song); paintLoop(song); },
     notes: () => recordingNotes(song),

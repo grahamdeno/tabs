@@ -43,3 +43,17 @@ test("System: chips and cards are flat on a lip, with no thin outline (Get the s
   }
   assert.equal(await page.evaluate(() => document.querySelectorAll(".nx-lamp").length), 0);
 });
+
+test("4.31.0 Song screen: the title opens About this song, no key chip, the bar is Tools and Play", { skip: skip() }, async t => {
+  const page = await phone(t, LIB);
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#about"); await settled(page);
+  assert.equal(await page.locator("#keybtn, .keyslot").count(), 0, "the key chip is gone");
+  assert.equal(await page.locator(".player #listen").count(), 0, "one button beside Play");
+  assert.match(await page.innerText("#more"), /Tools/);
+  assert.match(await page.innerText("#meta"), /about this song/i);
+  await page.click("#about"); await page.waitForSelector("#rs");
+  assert.match(await page.innerText("#rs"), /Tempo[\s\S]*Length[\s\S]*Key/i);
+  assert.match(await page.innerText("#rs"), /Find a recording/, "no recording linked: offered here");
+  await page.click("#rs-done"); await page.waitForSelector("#rs", { state: "detached" });
+  await page.click("#meta"); await page.waitForSelector("#rs");
+});

@@ -149,10 +149,10 @@ The audit found (2026-10-21):
 
 ## Step 11 [Opus] 4.31.0: The song screen, details from the title (boards "Song · details from the title, two buttons" and "About this song")
 
-- [ ] 11.1 The title row: a small cover (Apple Music art, else the coloured letter tile) and "about this song ›" under the artist; tapping opens About this song. The key chip goes (the key moves into About); "Mark as learning" stays.
-- [ ] 11.2 The play bar: Tools (with its word) and Play. Play's second line says what it plays with. The second button (`#listen`, the recording) goes.
-- [ ] 11.3 About this song replaces the Recording sheet: cover, title, artist, genre and year, a preview button; Tempo, Length and Key tiles; the mismatch note with Match it; "When you press Play" as one segmented control (With the recording, With the band); Timing and Change recording as rows; Done at the bottom. With no recording linked: the same sheet with "Find a recording" in place of the recording rows.
-- [ ] 11.4 Tests: the title opens About; the backing choice is saved per song; no `#listen` in the bar.
+- [x] 11.1 The title row: a small cover (Apple Music art, else the coloured letter tile) and "about this song ›" under the artist; tapping opens About this song. The key chip goes (the key moves into About); "Mark as learning" stays.
+- [x] 11.2 The play bar: Tools (with its word) and Play. Play's second line says what it plays with. The second button (`#listen`, the recording) goes.
+- [x] 11.3 About this song replaces the Recording sheet: cover, title, artist, genre and year, a preview button; Tempo, Length and Key tiles; the mismatch note with Match it; "When you press Play" as one segmented control (With the recording, With the band); Timing and Change recording as rows; Done at the bottom. With no recording linked: the same sheet with "Find a recording" in place of the recording rows.
+- [x] 11.4 Tests: the title opens About; the backing choice is saved per song; no `#listen` in the bar.
 
 ## Step 12 [Opus] 4.32.0: Tools in three tabs (boards "Tools · Play", "Tools · Practice", "Tools · Song")
 

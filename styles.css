@@ -3004,12 +3004,6 @@ body.gigging .ask { z-index: 66; }
 .vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .app.viewer > .metarow { flex-wrap: wrap; overflow: visible; margin-top: 8px; gap: 6px; }
 .app.viewer > .metarow .stat { min-height: 32px; padding: 4px 12px; font-size: 13px; box-shadow: none; }
-.player .tl.listen { padding: 0; overflow: hidden; position: relative; }
-.player .tl.listen .rc-art { position: absolute; inset: 0; width: auto; height: auto; border-radius: inherit; box-shadow: none; display: grid; place-items: center; }
-.player .tl.listen .rc-art img { width: 100%; height: 100%; object-fit: cover; }
-.player .tl.listen.rec:not(.on) .rc-art img { opacity: .55; filter: grayscale(.6); }
-.player .tl.listen.rec.on { border: 3px solid var(--accent); }
-.player .tl.listen .rc-look { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--fans); box-shadow: 0 0 0 2px var(--card); }
 .play .pw-with { display: block; font: 800 10px var(--body, Nunito, sans-serif); letter-spacing: .08em; opacity: .8; margin-top: 1px; }
 .tl-prac { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 2px 0; padding: 10px 12px; border-radius: 16px; background: var(--card); }
 .tl-prac .ml { display: flex; flex-direction: column; font: 700 15px var(--display); color: var(--fg); }
@@ -3366,3 +3360,45 @@ body.searching .gs-kept { display: none; }
 :root[data-look] .ce-alt.on, :root[data-look] .de-lv.on, :root[data-look] .gs-ver.on { box-shadow: 0 0 0 3px var(--accent), 0 3px 0 var(--rim); background: var(--card); }
 /* lists of places to go: one 56 tall row */
 :root[data-look] .set { min-height: 56px; }
+
+/* ==========================================================================
+   The song screen, details from the title (4.31.0)
+   ========================================================================== */
+.shead .sh-cover { position: relative; flex: none; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 14px; overflow: hidden;
+  background: var(--tile, var(--accent)); box-shadow: 0 3px 0 color-mix(in srgb, var(--tile, var(--accent)) 60%, #000); display: grid; place-items: center; }
+.shead .sh-cover img { width: 100%; height: 100%; object-fit: cover; }
+.shead .sh-cover.rec:not(.on) img { filter: saturate(.7); }
+.shead .sh-l { font: 700 26px var(--display); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.18); }
+.shead .sh-cover .rc-look { position: absolute; top: 4px; right: 4px; left: auto; width: 10px; height: 10px; border-radius: 50%; background: var(--fans); box-shadow: 0 0 0 2px var(--card); }
+.app.viewer .shead button.meta { display: flex; width: 100%; min-height: 24px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.shead .meta .sh-ab { display: inline-flex; align-items: center; gap: 2px; color: var(--accent-ink); }
+.shead .meta .sh-ab svg { width: 14px; height: 14px; }
+.app.viewer .player .tl.tools { width: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
+.app.viewer .player .tl.tools .tl-w { font: 700 13px var(--display); }
+.app.viewer .player .tl.tools svg { width: 22px; height: 22px; }
+/* About this song */
+.ab .rs-body { padding-bottom: 8px; }
+.ab-pv { flex: none; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--card); color: var(--fg); box-shadow: 0 3px 0 var(--rim); display: grid; place-items: center; align-self: center; }
+.ab-pv svg { width: 20px; height: 20px; }
+.ab-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 12px; }
+.ab-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 0; border-radius: 16px; background: var(--card-2); box-shadow: 0 3px 0 var(--rim); color: var(--fg); text-align: left; min-width: 0; }
+.ab-cap { font: 800 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ab-tile b { font: 700 20px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-tile b small { font: 700 12px var(--sans); color: var(--muted); }
+button.ab-tile b { color: var(--accent-ink); }
+.ab-swing { margin: -4px 0 10px; font: 700 13px var(--sans); color: var(--muted); }
+.ab .rs-look { margin-bottom: 12px; }
+.ab .ab-mode { width: 100%; margin: 6px 0 8px; }
+.ab-rows { display: flex; flex-direction: column; }
+.ab-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 4px; border: 0; border-bottom: 2px solid var(--hair); background: none; color: var(--fg); text-align: left; width: 100%; }
+.ab-row:last-child { border-bottom: 0; }
+.ab-ic { width: 36px; height: 36px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); }
+.ab-ic svg { width: 18px; height: 18px; }
+.ab-rt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ab-rt b { font: 700 16px var(--display); } .ab-rt small { font: 700 13px var(--sans); color: var(--muted); }
+.ab-chev { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.ab .rs-row { margin: 0 0 6px; }
+.ab-foot .btn { flex: 1; }
+.shead .meta .sh-ab { flex-basis: 100%; }
+.rs-head .rs-art.ab-lt { background: var(--tile); box-shadow: 0 4px 0 color-mix(in srgb, var(--tile) 60%, #000); }
+.rs-head .rs-art.ab-lt span { font: 700 40px var(--display); color: #fff; }

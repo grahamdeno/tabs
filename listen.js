@@ -20,8 +20,7 @@ async function findTracks(song, q) {
 function saveListen(song, url, extra = {}) {
   song.listen = { url, service: linkService(url), ...extra };
   Tabs.save(data);
-  const chip = $("listen");
-  if (chip) chip.innerHTML = `${icon("note")}${esc(song.listen.service)}`;
+  feelArrived?.(song); /* the cover beside the title follows */
 }
 // The recording's length becomes the song's length (for song length speed) when
 // you haven't set one; if you have, it's offered instead of replacing yours.
@@ -292,49 +291,58 @@ export const musicPlaying = song => !!(inst && playingId && song?.listen && play
 //  o.mode() "music" | "band", o.setMode(m), o.reset(), o.changed(),
 //  o.spots() { auto, mine }: where the timed lines and your nudges sit down the sheet (0 to 1),
 //  o.notes() { key, bpm }: how the sheet differs from the measured recording; o.matchKey(), o.matchBpm()
-export function recordingSheet(song, o) {
+/* About this song (4.31.0, it was the Recording sheet): opened from the cover or "about this song" under
+   the title. The recording's cover with a preview, Tempo, Length and Key, a word when the sheet doesn't
+   match the recording, When you press Play, Timing and Change recording. With no recording linked the
+   same sheet offers Find a recording. Done is at the bottom, in thumb reach. */
+export function aboutSheet(song, o) {
+  let showTiming = false;
   const close = () => { detailsArrived = null; layer.innerHTML = ""; o.changed?.(); };
   const paint = () => {
-    const l = song.listen || {}, band = o.mode() === "band", marks = song.syncs || [], on = musicPlaying(song);
+    const l = song.listen || {}, music = o.music(), band = o.mode() === "band", marks = song.syncs || [], on = music && musicPlaying(song);
     const timed = song.timed?.at?.length || 0, spots = o.spots?.() || { auto: [], mine: marks.map(m => m[0]) };
-    /* 4.20.0: the recording's facts as chips, and a word when the sheet doesn't match it */
-    const f = l.feel && !l.feel.none ? l.feel : null, look = f ? o.notes?.() || {} : {};
-    const facts = f ? [f.bpm && `${f.bpm} BPM`, f.swing && ({ straight: "Straight", light: "Light swing", full: "Swung" })[f.swing], f.key && `Key of ${f.key}`].filter(Boolean) : [];
+    const f = music && l.feel && !l.feel.none ? l.feel : null, look = f ? o.notes?.() || {} : {};
     const keyNote = look.key ? `<div class="rs-look"><span>The recording sounds ${Math.abs(look.key)} half step${Math.abs(look.key) === 1 ? "" : "s"} ${look.key > 0 ? "higher" : "lower"} than your sheet.</span><button class="btn sm" id="rs-key">Match it</button></div>` : "";
     const bpmNote = look.bpm ? `<div class="rs-look"><span>Your tempo is ${song.bpm}. The recording is ${f.bpm}.</span><button class="btn sm" id="rs-bpm">Use ${f.bpm}</button></div>` : "";
-    const details = [l.genre, l.year, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
-    const opt = (m, ic, t, sub) => `<button data-mode="${m}" class="rs-opt${(m === "band") === band ? " on" : ""}" aria-pressed="${(m === "band") === band}"><span class="rs-oi">${icon(ic)}</span><span class="rs-ot"><b>${t}</b><small>${sub}</small></span><span class="rs-ok" aria-hidden="true">${icon("check")}</span></button>`;
-    const sync = band ? "" : `<div class="rs-row"><div class="rs-l">Sync<b>${timed ? `${timed} lines timed${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet"}${marks.length ? `<button class="rs-reset" id="rs-reset">Start over</button>` : ""}</b></div>
+    const details = [l.genre, l.year, music ? "Apple Music" : l.service, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
+    const bpm = song.bpm || f?.bpm || 0, swing = f?.swing && f.swing !== "straight" ? ({ light: "Light swing", full: "Swung" })[f.swing] : "";
+    const len = o.length?.() || 0, key = o.key?.() || "";
+    const tile = (cap, val, sub, id) => `<${id ? `button id="${id}" aria-label="${cap} ${esc(val)}. Change it"` : "div"} class="ab-tile"><span class="ab-cap">${cap}</span><b>${val ? esc(val) : "–"}${sub ? ` <small>${sub}</small>` : ""}</b></${id ? "button" : "div"}>`;
+    const row = (id, ic, t, sub) => `<button class="ab-row" id="${id}"><span class="ab-ic">${icon(ic)}</span><span class="ab-rt"><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "ab-chev")}</button>`;
+    const timing = timed ? `${timed} lines timed to the recording${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet";
+    const sync = `<div class="rs-row"><div class="rs-l">Sync<b>${timing}${marks.length ? `<button class="rs-reset" id="rs-reset">Start over</button>` : ""}</b></div>
         <div class="rs-track" aria-hidden="true">${spots.auto.map(w => `<b style="left:${(w * 100).toFixed(1)}%"></b>`).join("")}${spots.mine.map(w => `<i style="left:${(w * 100).toFixed(1)}%"></i>`).join("")}</div>
         ${timed ? `<p class="rs-note">Each line is timed to the recording${f?.bpm ? ", and its chords land on the beat" : ""}. Nudge the page to fix a spot. <a href="https://lrclib.net" target="_blank" rel="noopener">Timing from LRCLIB</a></p>` : `<p class="rs-note">Nudge the page while it plays and it learns where the lines fall.</p>`}</div>`;
-    layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs" id="rs" role="dialog" aria-label="Recording">
+    const recRows = music
+      ? `<div class="rs-h">WHEN YOU PRESS PLAY</div>
+        <div class="seg ab-mode" role="group" aria-label="When you press Play">${[["music", "With the recording"], ["band", "With the band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
+        <div class="ab-rows">${band ? "" : row("ab-timing", "metro", "Timing", timing)}${band || !showTiming ? "" : sync}${row("rs-change", "note", "Change recording", "Pick another version")}</div>`
+      : `<div class="ab-rows">${song.listen ? row("ab-open", "play", `Listen on ${esc(l.service || "the web")}`, "Opens the recording") : ""}${row("ab-find", "note", song.listen ? "Change recording" : "Find a recording", "Pick the recording you play along with")}</div>`;
+    const side = music ? `<button class="ab-pv" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button>` : "";
+    layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs ab" id="rs" role="dialog" aria-label="About this song">
       <div class="grab" aria-hidden="true"></div>
-      ${coverHead({ art: l.art, title: l.title || song.title, artist: l.artist || song.artist, details, tint: l.tint,
-        side: `<button class="rs-x" id="rs-done" aria-label="Close">${icon("x")}</button>` })}
+      ${coverHead({ art: l.art, title: song.title, artist: song.artist || l.artist, details, tint: l.tint, side, tile: o.tile?.() })}
       <div class="rs-body">
-        ${facts.length ? `<div class="rs-facts">${facts.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}${keyNote}${bpmNote}
-        <div class="rs-h">WHEN YOU PRESS PLAY</div>
-        <div class="rs-choice" role="group" aria-label="When you press Play">
-          ${opt("music", "note", "Play along with the recording", "It plays and the page follows it")}
-          ${opt("band", "metro", "Play with your band", "Your metronome, drums and bass. No recording")}
-        </div>
-        <button class="btn rs-hear" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}${on ? "Pause" : "Listen first"}</button>
-        ${sync}
-        <button class="rs-change" id="rs-change">Change recording</button>
-      </div></div>`;
+        <div class="ab-tiles">${tile("Tempo", bpm ? String(bpm) : "", bpm ? "BPM" : "")}${tile("Length", len ? mmss(len) : "", "")}${tile("Key", key, "", key && o.changeKey ? "ab-key" : "")}</div>
+        ${swing ? `<p class="ab-swing">${swing}</p>` : ""}${keyNote}${bpmNote}
+        ${recRows}
+      </div>
+      <div class="pfoot ab-foot"><button class="btn" id="rs-done">Done</button></div></div>`;
     $("rs-scrim").onclick = close;
     $("rs-done").onclick = close;
-    $("rs-listen").onclick = () => playApple(song).then(() => setTimeout(paint, 150));
-    /* a choice saves and closes */
-    layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { o.setMode(b.dataset.mode); close(); });
+    $("rs-listen")?.addEventListener("click", () => playApple(song).then(() => setTimeout(paint, 150)));
+    layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (b.dataset.mode === o.mode()) return; o.setMode(b.dataset.mode); o.changed?.(); paint(); });
+    $("ab-timing")?.addEventListener("click", () => { showTiming = !showTiming; paint(); });
+    $("ab-key")?.addEventListener("click", () => { close(); o.changeKey(); });
     $("rs-reset")?.addEventListener("click", () => { o.reset(); paint(); });
     $("rs-key")?.addEventListener("click", () => { o.matchKey?.(); paint(); });
     $("rs-bpm")?.addEventListener("click", () => { o.matchBpm?.(); paint(); });
-    $("rs-change").onclick = () => { close(); listenSheet(song, true); };
+    $("rs-change")?.addEventListener("click", () => { close(); listenSheet(song, true); });
+    $("ab-find")?.addEventListener("click", () => { close(); listenSheet(song, true); });
+    $("ab-open")?.addEventListener("click", () => openLink(l.url));
   };
   detailsArrived = s2 => { if (s2 === song && $("rs")) paint(); };
-  fetchDetails(song);
-  listenToPreview(song);
+  if (o.music()) { fetchDetails(song); listenToPreview(song); }
   paint();
 }
 export function musicClock(song) {
@@ -462,7 +470,7 @@ async function pasteListen(song, close, { apple = false } = {}) {
 }
 function clearListen(song, close) {
   delete song.listen; Tabs.save(data); close();
-  const c = $("listen"); if (c) c.innerHTML = `${icon("note")}Listen`;
+  feelArrived?.(song);
   toast("Link removed");
 }
 // iPhone: Apple's catalog can't be searched from a web page there (see sets.js),
@@ -500,9 +508,10 @@ export { appleSearchURL, listenSheet, openLink, recordingLength };
 
 /* The cover header (3.16.0, shared in 3.23.0): album art, title, artist and a line of details over a wash
    of the album's colour. Used by the Recording, Listen and Get the song sheets. side is a button on the right. */
-export function coverHead({ art, title, artist, details, tint, side = "" }) {
+export function coverHead({ art, title, artist, details, tint, side = "", tile = null }) {
   const wash = /^[0-9a-f]{6}$/i.test(tint || "") ? ` style="--album:#${tint}"` : "";
-  return `<div class="rs-head cover-head"${wash}><div class="rs-art">${/^https:\/\//.test(art || "") ? `<img src="${esc(art)}" alt="">` : icon("note")}</div>
+  const img = /^https:\/\//.test(art || "");
+  return `<div class="rs-head cover-head"${wash}><div class="rs-art${!img && tile ? " ab-lt" : ""}"${!img && tile ? ` style="--tile:${tile.hue}"` : ""}>${img ? `<img src="${esc(art)}" alt="">` : tile ? `<span>${tile.letter}</span>` : icon("note")}</div>
     <div class="rs-txt"><div class="rs-t">${esc(title || "")}</div>${artist ? `<div class="rs-a">${esc(artist)}</div>` : ""}${details ? `<div class="rs-d">${esc(details)}</div>` : ""}</div>${side}</div>`;
 }
 const listenHead = song => coverHead({ art: song.listen?.art || song.art, title: song.title, artist: song.artist, tint: song.listen?.tint,

@@ -26,9 +26,11 @@ test("first launch adds the sample song and opens on the Road with it ready (4.0
 test("a song opens, its Key opens the key dial, and it plays; a tap pauses it", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
-  assert.match(await page.innerText(".metarow"), /Key A/);
-  /* 3.20.0: Key is a button under the title that opens the key dial */
-  await page.click("#keybtn"); await page.waitForSelector(".dial.key");
+  assert.doesNotMatch(await page.innerText(".metarow"), /Key/, "4.31.0: no key chip under the title");
+  /* 4.31.0: the key is in About this song (from the title), and its tile opens the key dial */
+  await page.click("#meta"); await page.waitForSelector("#ab-key");
+  assert.match(await page.innerText("#ab-key"), /Key\s+A/i);
+  await page.click("#ab-key"); await page.waitForSelector(".dial.key");
   assert.match(await page.textContent(".dial-small"), /KEY A/);
   await page.mouse.click(60, 120); await page.waitForSelector('.dial', { state: 'detached' });
   assert.equal(await page.locator(".dial").count(), 0);
@@ -238,7 +240,7 @@ test("an Apple Music link sets the song's length; tapping sets the tempo", { ski
   await page.route("https://music.apple.com/**", r => r.fulfill({ status: 200, body: "" }));
   await page.goto(base + "#/song/b");
   await page.waitForSelector('.metarow');
-  await page.click("#listen");
+  await page.click("#about"); await page.click("#ab-find");
   await page.waitForSelector("[data-t='0']");
   await page.click("[data-t='0']");
   await page.waitForFunction(() => document.getElementById('sv')?.textContent === '3:52');

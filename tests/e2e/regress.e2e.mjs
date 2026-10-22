@@ -52,7 +52,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await page.click("#more"); await page.click('.menu [data-m="nn"]'); await page.waitForFunction(() => !document.body.classList.contains("nn-on") && !!document.querySelector(".prow"));
     await is(() => !!document.querySelector(".prow"), "diagrams when paused");
     await is(() => [...document.querySelectorAll(".prow .pcard")].every(c => c.getBoundingClientRect().top >= Math.max(document.getElementById("sheet").getBoundingClientRect().top, (r => r && r.right > document.getElementById("sheet").getBoundingClientRect().left && r.left < document.getElementById("sheet").getBoundingClientRect().right ? r.bottom : -1e9)(document.querySelector("#strip .strip")?.getBoundingClientRect())) - 1), "2.26.2: the cards never cover Chords in this song");
-    await page.click("#keybtn"); await page.waitForSelector(".dial.key");
+    await page.click("#meta"); await page.click("#ab-key"); await page.waitForSelector(".dial.key");
     await page.mouse.click(60, 120); await page.waitForSelector(".dial.key", { state: "detached" });
 
     await page.goto(base + "#/song/t"); await page.waitForFunction(() => /#\/song\/t/.test(location.hash) && !!document.querySelector("h1.song-title"));

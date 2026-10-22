@@ -239,8 +239,8 @@ test("Listen searches Apple Music in the app: change the words, hear a preview, 
   await page.route("https://audio-ssl.itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "audio/mp4", body: "" }));
   await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a", "hex") }));
   let left = false; page.on("popup", () => { left = true; });
-  await page.goto(base + "#/song/b"); await page.waitForSelector('#listen');
-  await page.click("#listen"); await page.waitForSelector('.ls-row');
+  await page.goto(base + "#/song/b"); await page.waitForSelector('#about');
+  await page.click("#about"); await page.click("#ab-find"); await page.waitForSelector('.ls-row');
   assert.equal(await page.inputValue("#ls-q"), "Harbor Lights Me");
   assert.match(await page.innerText("#ls-panel .cover-head"), /Harbor Lights/, "the cover header tops the sheet");
   assert.equal(await page.locator(".ls-row").count(), 2);
@@ -268,8 +268,8 @@ test("Listen still finds songs when Safari blocks Apple's reply, and offers a wa
     if (!cb) return r.abort("accessdenied");
     r.fulfill({ status: 200, contentType: "text/javascript", body: `${cb}(${JSON.stringify({ results: [hit] })});` });
   });
-  await page.goto(base + "#/song/b"); await page.waitForSelector('#listen');
-  await page.click("#listen"); await page.waitForSelector('.ls-row');
+  await page.goto(base + "#/song/b"); await page.waitForSelector('#about');
+  await page.click("#about"); await page.click("#ab-find"); await page.waitForSelector('.ls-row');
   assert.equal(await page.locator(".ls-row").count(), 1, "found by the fallback");
   down = true;
   await page.fill("#ls-q", "Harbor"); await page.press("#ls-q", "Enter"); await page.waitForFunction(() => /Couldn't reach/.test(document.getElementById('ls-res')?.innerText || ''));
@@ -296,8 +296,8 @@ test("iPhone: Listen opens Apple Music's search, and Paste on return saves the l
   let searched = false, opened = "";
   await page.route("https://itunes.apple.com/search**", r => { searched = true; r.abort(); });
   await page.context().route("https://music.apple.com/**", r => { opened = r.request().url(); r.fulfill({ status: 200, body: "" }); });
-  await page.goto(base + "#/song/b"); await page.waitForSelector('#listen');
-  await page.click("#listen"); await page.waitForSelector('#ls-open');
+  await page.goto(base + "#/song/b"); await page.waitForSelector('#about');
+  await page.click("#about"); await page.click("#ab-find"); await page.waitForSelector('#ls-open');
   assert.equal(await page.locator("#ls-q").count(), 0, "no in-app search on an iPhone");
   await page.click("#ls-open"); await until(() => opened !== '');
   assert.match(opened, /music\.apple\.com\/search\?term=Harbor%20Lights%20Me/);
