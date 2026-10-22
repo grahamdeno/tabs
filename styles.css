@@ -3470,3 +3470,59 @@ button.ab-tile b { color: var(--accent-ink); }
 .rh .rh-yc .rh-pairs { margin-top: 8px; }
 .rh .rh-yc .rh-ycall { margin-top: 12px; }
 .rh .rh-yc .btn.rh-ycd { min-height: 42px; height: 42px; }
+
+/* ==========================================================================
+   The Road's stops as guitar picks (4.34.0): flat colour on a darker lip, a shine,
+   a halo behind the next one, and its flag beside it that starts it
+   ========================================================================== */
+.rd-path { gap: 18px; }
+.rd-node, .rd-node.big, .rd-node.now, .rd-node.open, .rd-node.locked, .rd-node.box.done { width: 72px; height: 72px; border-radius: 0; background: none; box-shadow: none; overflow: visible; color: #fff; }
+.rd-node.big { width: 84px; height: 84px; }
+.rd-node.now { width: 88px; height: 88px; }
+.rd-node::after { display: none; }
+.rd-node:active, .rd-node.now:active { transform: translateY(4px); box-shadow: none; }
+.rd-node .rd-pk { position: absolute; inset: -10%; width: 120%; height: 120%; overflow: visible; }
+.rd-node { --pk: var(--accent); --pkd: var(--accent-deep); }
+.rd-node.done { --pk: var(--good); --pkd: color-mix(in srgb, var(--good) 72%, #000); }
+.rd-node.now { --pk: var(--streak); --pkd: var(--streak-deep); }
+.rd-node.open { --pk: var(--strings); --pkd: var(--strings-deep); }
+.rd-node.locked { --pk: var(--locked); --pkd: var(--locked-deep); }
+.rd-node.box.done { --pk: var(--fans); --pkd: var(--fans-deep); }
+.rd-pk .rd-body { fill: var(--pk); }
+.rd-pk .rd-lip { fill: var(--pkd); }
+.rd-pk .rd-halo { fill: var(--pk); opacity: .26; }
+.rd-pk .rd-shine { fill: none; stroke: rgba(255,255,255,.4); stroke-width: 7; stroke-linecap: round; }
+.rd-node.locked .rd-shine { display: none; }
+.rd-node .rd-ic { position: relative; display: grid; place-items: center; margin-top: -10px; }
+.rd-node .rd-ic svg { width: 30px; height: 30px; }
+.rd-node.now .rd-ic svg { width: 34px; height: 34px; }
+:root[data-look="neon"] .rd-node.done, :root[data-look="neon"] .rd-node.box.done { color: #1D1640; }
+:root[data-look="neon"] .rd-node.headline:not(.locked) { color: #1D1640; }
+.rd-node.locked.headline { color: var(--locked-ic); }
+/* the flag beside the next pick */
+.rd-stop.cur { align-items: flex-start; }
+.rd-flag { position: absolute; left: calc(50% + 40px); top: 50%; transform: translateY(-50%); z-index: 2; display: flex; align-items: center; gap: 10px; max-width: 236px; padding: 6px 6px 6px 14px; box-sizing: border-box; border-radius: 18px; background: var(--streak); box-shadow: 0 5px 0 var(--streak-deep); color: #14213D; transition: opacity .15s; }
+.rd-stop.cur { align-items: center; }
+.rd-flag .rd-ft { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rd-flag .rd-ft small { font: 800 10.5px var(--sans); letter-spacing: .06em; opacity: .75; white-space: nowrap; }
+.rd-flag .rd-ft b { font: 700 16px/1.15 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-flag .rd-start { flex: none; display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 14px; border: 0; border-radius: 13px; background: var(--good); box-shadow: 0 4px 0 color-mix(in srgb, var(--good) 72%, #000); color: #14213D; font: 700 15px var(--display); }
+:root[data-look="festival"] .rd-flag .rd-start, :root[data-look="green"] .rd-flag .rd-start { background: #fff; box-shadow: 0 4px 0 var(--streak-deep); color: var(--streak-deep); }
+.rd-flag .rd-start svg { width: 11px; height: 13px; }
+.rd-flag .rd-start:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in srgb, var(--good) 72%, #000); }
+.rd-flag.head { flex-wrap: wrap; }
+.rd-flag .rd-other { position: absolute; left: 14px; top: calc(100% + 12px); padding: 0; border: 0; background: none; color: var(--accent-ink); font: 700 14px var(--display); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+:root[data-look="neon"] .rd-flag .rd-other { color: var(--strings); }
+.rd-path.has-pop .rd-flag { opacity: .5; }
+/* the bubble on any other pick */
+.rd-pop { display: flex; align-items: center; gap: 10px; width: 236px; margin-top: 14px; padding: 10px 10px 10px 14px; border: 0; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); }
+.rd-pop::before { border: 0; background: var(--card); }
+.rd-pop .rd-pt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rd-pop .rd-pt small { font: 800 10.5px var(--sans); letter-spacing: .06em; color: var(--muted); }
+.rd-pop.done .rd-pt small { color: var(--good); }
+.rd-pop .rd-pt b { font: 700 17px var(--display); }
+.rd-pop .rd-pt p { margin: 2px 0 0; font: 700 13px var(--sans); color: var(--muted); opacity: 1; }
+.rd-pop .rd-start { width: auto; flex: none; }
+.rd-others .list .row { min-height: 56px; }
+.rd-pop { width: 264px; }
+.rd-pop .rd-pt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

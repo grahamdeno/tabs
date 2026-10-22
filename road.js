@@ -3,16 +3,18 @@
 //   stat bar    your venue, gig streak and fans (hud.js)
 //   leg banner  the leg you're on and the venue you've reached; the book opens the neck
 //   songs chip  how many of your songs you can play, and how many the next chord opens
-//   the path    every stop of every leg: lessons, merch boxes and the headline show at the end
-//               (a level check: play a real song through). Done stops are lit, the current stop
-//               is ringed with its card open (Start), later ones are locked. Tap any stop for its card.
+//   the path    every stop of every leg as a guitar pick (4.34.0): lessons, merch boxes and the headline
+//               show at the end (a level check: play a real song through). Done picks carry a check, the
+//               next one is bigger with a halo and a flag beside it that starts it (one tap), later ones
+//               are locked. Tap any other pick for a small bubble; at a headline the flag names a song.
 //   Louie       beside the path, with one line that fits the moment and tonight's song to play
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
 import { lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
-import { app, esc, icon, toast } from "./ui.js";
-import { chordNames, data, go, homeHooks, openSearch, playGig, route } from "./app.js";
+import { app, esc, icon, layer, toast } from "./ui.js";
+import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route } from "./app.js";
+import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { statBar, bindStatBar } from "./hud.js";
 
@@ -66,22 +68,53 @@ const ICONS = {
   scale: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="7" cy="24" r="3.6" fill="#fff"/><circle cx="16" cy="16" r="3.6" fill="#fff"/><circle cx="25" cy="8" r="3.6" fill="#fff"/><path d="M7 24l9-8 9-8" stroke="#fff" stroke-width="2.4" stroke-dasharray="2 3"/></svg>`,
   box: `<svg viewBox="0 0 34 30" aria-hidden="true"><path class="rd-bx" d="M4 14h26v11a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/><path class="rd-bx" d="M4 12a8 8 0 0 1 8-8h10a8 8 0 0 1 8 8v1H4z"/><rect class="rd-bxk" x="13" y="11" width="8" height="8" rx="2"/><path class="rd-bxs" d="M4 13h26" stroke-width="2.4"/></svg>`,
   headline: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="10" r="7" fill="#fff"/><rect x="13.5" y="16" width="5" height="10" rx="2.5" fill="#fff"/><rect x="9" y="26" width="14" height="4" rx="2" fill="#fff"/></svg>`,
-  lock: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg>`
+  lock: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg>`,
+  check: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 17l6 6 12-13" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  star: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l4 8.3 9 1.3-6.5 6.3 1.6 9L16 23.6 7.9 27.9l1.6-9L3 12.6l9-1.3z" fill="currentColor"/></svg>`
 };
+/* 4.34.0: each stop is a rounded guitar pick (flat colour on a darker lip, a shine), point down */
+const PICK = "M0 42 C-14 42 -46 14 -46 -12 C-46 -36 -26 -46 0 -46 C26 -46 46 -36 46 -12 C46 14 14 42 0 42 Z";
+const pickSVG = now => `<svg class="rd-pk" viewBox="-60 -60 120 120" aria-hidden="true">${now ? `<path class="rd-halo" d="${PICK}" transform="scale(1.3)"/>` : ""}<path class="rd-lip" d="${PICK}" transform="translate(0 7)"/><path class="rd-body" d="${PICK}"/><path class="rd-shine" d="M-30 -30 C-20 -38 -4 -40 10 -40"/></svg>`;
+const iconOf = s => s.state === "locked" && s.kind !== "box" ? ICONS.lock : s.kind === "headline" ? ICONS.star : s.kind === "box" ? ICONS.box : s.state === "done" ? ICONS.check : ICONS[s.kind] || ICONS.chord;
+/* the songs a headline show can be played with: only that leg's chords, the last played first */
+const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chordNames(sg.body || ""); return c.length >= 2 && c.every(n => stop.chords.includes(n)); })
+  .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
+const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
+const ARROW = `<svg viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1l9 6-9 6z" fill="currentColor"/></svg>`;
+/* The next stop's flag: what it is and the button that starts it, beside the pick */
+function stopFlag(stop) {
+  if (stop.kind === "headline") {
+    const fits = fitsFor(stop), song = data.songs.find(x => x.id === stop.song) || fits[0];
+    return `<div class="rd-flag head"><span class="rd-ft"><small>HEADLINE · +${FANS.play} FANS</small><b>${song ? esc(song.title) : "A song with only these chords"}</b></span>
+      <button class="rd-start" data-go="${esc(stop.id)}" aria-label="${song ? `Play ${esc(song.title)}` : "Find a song that fits"}">${song ? "Play" : "Find"}${ARROW}</button>
+      ${fits.length > 1 ? `<button class="rd-other" id="rd-other">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
+  }
+  return `<div class="rd-flag"><span class="rd-ft"><small>NEXT · +${FANS.lesson} FANS</small><b>${esc(stopTitle(stop))}</b></span><button class="rd-start" data-go="${esc(stop.id)}" aria-label="Start ${esc(stopTitle(stop))}">Start${ARROW}</button></div>`;
+}
 const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
 
+/* Any other pick: a small bubble under it, with Play again for a done lesson */
 function stopCard(stop) {
   const song = stop.song && data.songs.find(s => s.id === stop.song);
-  const title = stop.kind === "headline" ? "Headline show" : stop.kind === "box" ? "Merch box" : stop.kind === "chord" ? `The ${stop.name} chord` : stop.name;
-  const line = stop.kind === "chord" ? "Ring every string clean, one at a time."
-    : stop.kind === "switch" ? "Land the change on the beat."
-    : stop.kind === "scale" ? "Up and back down, one note at a time."
-    : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Opens when you reach it: +${FANS.box} fans.`)
-    : song ? `Play ${song.title} through, start to finish.` : "Play a song that uses only these chords, start to finish.";
-  const go1 = stop.state === "locked" ? "" : stop.kind === "box" ? ""
-    : stop.kind === "headline" ? `<button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? `PLAY +${FANS.play} FANS` : "FIND A SONG"}</button>`
-    : `<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PRACTICE AGAIN" : `START +${FANS.lesson} FANS`}</button>`;
-  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it." : line)}</p>${go1}</div>`;
+  const title = stopTitle(stop);
+  const cap = stop.kind === "box" ? (stop.state === "done" ? `OPENED · +${FANS.box} FANS` : `+${FANS.box} FANS WHEN YOU REACH IT`)
+    : stop.state === "done" ? "DONE" : stop.state === "locked" ? "LOCKED" : "OPEN";
+  const line = stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it."
+    : stop.kind === "headline" && song ? `Played with ${song.title}.` : "";
+  const act = stop.kind === "box" || stop.state === "locked" ? "" : stop.kind === "headline" && !song ? ""
+    : `<button class="btn sm rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "Play again" : "Start"}</button>`;
+  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><span class="rd-pt"><small>${cap}</small><b>${esc(title)}</b>${line ? `<p>${esc(line)}</p>` : ""}</span>${act}</div>`;
+}
+/* Other songs for a headline show: a short list, any of them starts the gig */
+function otherSongs(stop) {
+  const fits = fitsFor(stop);
+  layer.innerHTML = `<div class="scrim" id="ro-scrim"></div><div class="panel de-sheet rd-others" role="dialog" aria-label="Songs for the headline show"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="ro-x">Close</button><h2>Headline show</h2><span style="width:56px"></span></div>
+    <div class="pbody"><p class="easy-note">These use only ${esc(stop.chords.join(", "))}. Play one start to finish.</p>
+    <div class="list glass">${fits.map(sg => `<button class="row" data-play="${esc(sg.id)}"><div class="txt"><div class="t">${esc(sg.title)}</div><div class="a">${esc(sg.artist || "")}</div></div></button>`).join("")}</div></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("ro-scrim").onclick = close; document.getElementById("ro-x").onclick = close;
+  layer.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { close(); playGig(b.dataset.play, { from: "road" }); });
 }
 
 export function renderRoad() {
@@ -101,10 +134,10 @@ export function renderRoad() {
   const legsHTML = road.legs.map(l => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
     ${l.stops.map(s => {
-      const x = ZIG[i++ % ZIG.length], big = s.kind === "headline";
-      const ic = s.state === "locked" && s.kind !== "box" ? ICONS.lock : ICONS[s.kind] || ICONS.chord;
+      const z = ZIG[i++ % ZIG.length], x = s === cur ? -92 : z, big = s.kind === "headline"; /* the next pick sits left, its flag beside it */
+      const ic = iconOf(s);
       const label = `${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`;
-      return `<div class="rd-stop" style="--x:${x}px"><button class="rd-node ${s.kind} ${s.state}${big ? " big" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${ic}</button>${s === cur ? stopCard(s) : ""}</div>`;
+      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px"><button class="rd-node ${s.kind} ${s.state}${big ? " big" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span></button>${s === cur ? stopFlag(s) : ""}</div>`;
     }).join("")}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
@@ -140,18 +173,26 @@ export function renderRoad() {
   const start = id => {
     const s = all.find(x => x.id === id);
     if (!s) return;
-    if (s.kind === "headline") return s.song ? playGig(s.song, { from: "road" }) : (toast("Add a song that uses only these chords, then play it through"), go("#/practice/neck"));
+    if (s.kind === "headline") {
+      const sg = s.song || fitsFor(s)[0]?.id;
+      if (sg) return playGig(sg, { from: "road" });
+      if (aiKey()) return nextSongs(); /* songs from the chords you play */
+      toast(`Add a song that uses only ${s.chords.join(", ")}, then play it through`); return go("#/library");
+    }
     go("#/practice/" + encodeURIComponent(s.id));
   };
+  const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   path.addEventListener("click", e => {
     const goBtn = e.target.closest("[data-go]");
     if (goBtn) return start(goBtn.dataset.go);
+    if (e.target.closest("#rd-other")) return otherSongs(cur);
     const node = e.target.closest("[data-stop]");
-    if (!node) return;
+    if (!node) return closePop(); /* a tap anywhere else closes the bubble */
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
+    if (s === cur) { closePop(); return start(s.id); } /* the next pick starts, like its flag */
     const open = wrap.querySelector(".rd-pop");
-    path.querySelectorAll(".rd-pop").forEach(p => p.remove());
-    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); wrap.querySelector(".rd-pop").scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }
+    closePop();
+    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); wrap.querySelector(".rd-pop").scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }
   });
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);

@@ -167,13 +167,21 @@ The audit found (2026-10-21):
 - [x] 13.2 `#/practice/neck` opens Rehearse at the lesson; the skills page (`#/practice/skills`) stays as All lessons. Lessons go back to Rehearse.
 - [x] 13.3 Tests: update the neck and Rehearse tests; the lesson card starts the lesson from Rehearse.
 
-## Step 14 [Opus] 4.34.0: Learn a language (German, Spanish or Russian)
+## Step 14 [Opus] 4.34.0: The Road's stops as picks, the flag starts the next one (boards "Road · recommended", "Road · tap another pick", "Road · headline")
+
+Graham (2026-10-22): rounded picks, no dotted path, the halo kept behind the next pick, build it.
+- [x] 14.1 Each stop is a rounded guitar pick on a darker lip with a shine: done picks with a check, the next one bigger with a halo, the rest dim with a lock; no labels beside done picks.
+- [x] 14.2 The next pick's flag starts it with one tap (so does the pick); no card open on arrival.
+- [x] 14.3 Any other pick: a small bubble (Play again on a done lesson); a tap anywhere else closes it.
+- [x] 14.4 At a headline the flag names a song that fits; Other songs that fit lists the rest; with none, Find opens What can I play next.
+
+## Step 15 [Opus] 4.35.0: Learn a language (German, Spanish or Russian)
 
 Graham (2026-10-22): one language for every song, chosen from German, Spanish and Russian (nothing to install on the phone). Mockups first, then his go.
-- [ ] 14.1 Mockups: the picker (first open and in Settings), the Song tab row named for the language, the practice sheet and a word card in Spanish and in Russian.
-- [ ] 14.2 One setting, `settings.lang` ("de", "es" or "ru"; German when missing, so nothing changes for him). The Tools row, the practice sheet and toasts use the language's name.
-- [ ] 14.3 The AI instructions per language (the levels stay the same). Grammar extras by language: der/die/das colours for German; el/la for Spanish; Russian shows stress marks and a transliteration line under each Russian line (Cyrillic is new to read).
-- [ ] 14.4 The voice: the best installed voice for the chosen language (`bestGermanVoice` becomes `bestVoice(lang)`).
-- [ ] 14.5 Data: `song.de` stays as the stored field name for whichever language is on (docs/DATA.md says so) with a `lang` tag on it; switching languages keeps nothing from the old one (one language for every song), after a confirm that says how many songs lose their translation. Backups leave it out, as now.
-- [ ] 14.6 Tests: the picker, a Spanish and a Russian translation (mocked), switching asks first, German users see no change.
+- [ ] 15.1 Mockups: the picker (first open and in Settings), the Song tab row named for the language, the practice sheet and a word card in Spanish and in Russian.
+- [ ] 15.2 One setting, `settings.lang` ("de", "es" or "ru"; German when missing, so nothing changes for him). The Tools row, the practice sheet and toasts use the language's name.
+- [ ] 15.3 The AI instructions per language (the levels stay the same). Grammar extras by language: der/die/das colours for German; el/la for Spanish; Russian shows stress marks and a transliteration line under each Russian line (Cyrillic is new to read).
+- [ ] 15.4 The voice: the best installed voice for the chosen language (`bestGermanVoice` becomes `bestVoice(lang)`).
+- [ ] 15.5 Data: `song.de` stays as the stored field name for whichever language is on (docs/DATA.md says so) with a `lang` tag on it; switching languages keeps nothing from the old one (one language for every song), after a confirm that says how many songs lose their translation. Backups leave it out, as now.
+- [ ] 15.6 Tests: the picker, a Spanish and a Russian translation (mocked), switching asks first, German users see no change.
 

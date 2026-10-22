@@ -428,13 +428,17 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.match(await page.innerText("#h-fans"), /\d/, "and your fans");
   assert.match(await page.innerText(".rd-banner"), /LEG 1[\s\S]*Open chords/);
   assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
-  assert.match(await page.innerText(".rd-pop.now"), /The G chord[\s\S]*START/, "its card is open");
+  assert.match(await page.innerText(".rd-flag"), /NEXT[\s\S]*The G chord[\s\S]*Start/, "4.34.0: its flag starts it");
+  assert.equal(await page.locator(".rd-pop").count(), 0, "no card open");
+  assert.equal(await page.locator(".rd-node .rd-pk").count() > 3, true, "the stops are picks");
+  assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next pick");
   assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie beside the path");
   assert.equal(await page.locator(".rd-node.headline").count() >= 1, true, "each leg ends in a headline show");
   assert.equal(await page.locator(".rd-node.box").count() >= 1, true, "with merch boxes along the way");
-  /* another stop's card opens on a tap, and the current one closes */
+  /* another pick: a small bubble; a tap anywhere else closes it */
   await page.click(".rd-node.locked >> nth=0");
-  assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
+  assert.match(await page.innerText(".rd-pop"), /LOCKED[\s\S]*Finish the stops before this one/);
+  await page.click(".rd-legmark >> nth=1"); await page.waitForSelector(".rd-pop", { state: "detached" });
   /* tonight's song plays as a gig (4.1.0) */
   await page.click("#rd-tonight");
   await page.waitForSelector("#gig");
@@ -475,8 +479,8 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
   assert.equal(await page.locator(".bd-card.locked").count(), 18 - joined);
   assert.match(await page.innerText(".bd-next"), /NEXT TO JOIN[\s\S]*more song/);
-  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-pop.now");
-  await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-flag");
+  await page.click(".rd-flag .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
   await page.click("#tabs [data-tab=more]"); await page.click("#m-set"); await page.waitForFunction(() => location.hash === "#/settings");
   await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
@@ -581,4 +585,18 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.equal(saved.charts.battle.result, undefined, "the battle is on again");
   assert.deepEqual([saved.merch.own.take || 0, saved.merch.own.rain || 0, saved.merch.louie], [0, 0, "tweed"], "both used");
+});
+
+test("4.34.0 the Road's headline: the flag names a song that fits, Other songs lists the rest, the next pick starts with one tap", { skip: skip() }, async t => {
+  const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map((c, i) => [`c:${c}`, { n: 1, at: Date.now() - 1000 + i }]));
+  const songs = [{ ...LIB.songs[0], id: "h1", title: "Low Tide", body: "[V]\n[G]a [C]b [D]c [G]d", playLog: { total: 1, last: Date.now() - 2 * 864e5, days: {} } },
+    { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d", playLog: { total: 1, last: Date.now() - 5 * 864e5, days: {} } }];
+  const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
+  await page.waitForSelector(".rd-flag.head");
+  assert.match(await page.innerText(".rd-flag"), /HEADLINE[\s\S]*Low Tide[\s\S]*Play/, "the last played song that fits");
+  assert.match(await page.innerText("#rd-other"), /Other songs that fit \(1\)/);
+  await page.click("#rd-other"); await page.waitForSelector(".rd-others [data-play]");
+  assert.deepEqual(await page.$$eval(".rd-others [data-play]", b => b.map(x => x.dataset.play)), ["h1", "h2"]);
+  await page.click("#ro-x"); await page.waitForSelector(".rd-others", { state: "detached" });
+  await page.click(".rd-node.now"); await page.waitForSelector("#gig"); /* the pick itself starts it too */
 });
