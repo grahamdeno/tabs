@@ -5,14 +5,21 @@
 // louie(mood, { pose, size }) returns an <svg> string.
 //   moods: happy, cheer, sleepy, worried, proud
 //   poses: rest, hornsUp, thumb, point, wave, peace (no arms when absent)
+//   No hand ever shows one finger standing straight up: it reads as the middle finger (Graham, 4.39.1).
 
 const cap = (x, y, w, h, cls = "lv-f") => `<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2}"/>`;
 /* hands are drawn with the wrist at 0,0 and the fingers pointing up (negative y) */
 const HANDS = {
   fist: () => `<circle class="lv-f" cx="0" cy="-9" r="12"/>${cap(-13, -13, 9, 12, "lv-fs")}`,
   horns: () => cap(-12, -40, 10, 30) + cap(3, -36, 9, 26) + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs"),
-  thumb: () => cap(-6, -42, 11, 28) + `<rect class="lv-f" x="-14" y="-24" width="28" height="22" rx="11"/>` + cap(-10, -17, 20, 4, "lv-fs"),
-  point: () => cap(-5, -44, 10, 30) + `<rect class="lv-f" x="-13" y="-22" width="26" height="22" rx="11"/>` + cap(-16, -16, 12, 9, "lv-fs"),
+  /* a real thumbs up: a wide fist with the curled fingers showing, the thumb short and tipped out to the side.
+     Never one finger standing straight up from the middle (that reads as the middle finger). */
+  thumb: () => `<g transform="rotate(-32 -9 -27)">${cap(-15, -50, 12, 26)}</g><rect class="lv-f" x="-15" y="-31" width="31" height="29" rx="11"/>`
+    + [-25, -17, -9].map(y => `<rect class="lv-fs" x="0" y="${y}" width="16" height="5" rx="2.5"/>`).join(""),
+  /* pointing: the same fist with the index finger out from the front edge and the thumb tucked; the pose
+     turns it toward the speech bubble, so it never stands straight up */
+  point: () => cap(4, -50, 11, 28) + `<rect class="lv-f" x="-15" y="-31" width="31" height="29" rx="11"/>`
+    + [-17, -9].map(y => `<rect class="lv-fs" x="0" y="${y}" width="16" height="5" rx="2.5"/>`).join("") + cap(-15, -22, 14, 8, "lv-fs"),
   wave: () => [[-12, -12], [-5, -4], [3, 4], [10, 14]].map(([x, r]) => `<g transform="rotate(${r} ${x + 4} -12)">${cap(x, -36, 8, 26)}</g>`).join("") + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + `<g transform="rotate(-55 -12 -6)">${cap(-16, -20, 9, 18, "lv-fs")}</g>`,
   peace: () => `<g transform="rotate(-12 -5 -12)">${cap(-10, -42, 10, 32)}</g><g transform="rotate(12 5 -12)">${cap(0, -42, 10, 32)}</g><circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs")
 };
@@ -21,7 +28,7 @@ const POSES = {
   rest: [[38, 128, 22, 160, 200, "fist"], [162, 128, 178, 160, 160, "fist"]],
   hornsUp: [[40, 118, 6, 54, -22, "horns"], [160, 118, 194, 54, 22, "horns"]],
   thumb: [[38, 128, 22, 160, 200, "fist"], [160, 118, 198, 92, 14, "thumb"]],
-  point: [[38, 128, 22, 160, 200, "fist"], [160, 124, 200, 120, 90, "point"]],
+  point: [[38, 128, 22, 160, 200, "fist"], [160, 122, 180, 108, 40, "point"]],
   wave: [[38, 128, 22, 160, 200, "fist"], [160, 116, 196, 50, 18, "wave"]],
   peace: [[38, 128, 22, 160, 200, "fist"], [160, 116, 194, 52, 16, "peace"]]
 };

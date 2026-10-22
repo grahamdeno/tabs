@@ -2154,3 +2154,11 @@ test("4.36.0 languages: Spanish and Russian genders, the sound of Russian kept, 
   assert.ok(out.some(b => b.tr === "Sérye lódki domóy"), "Fluent carries the sound under the line");
   assert.ok(C.germanBlocks(blocks, { lines: [ru[0]] }, 4).every(b => !b.tr), "only when asked");
 });
+
+test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing hand leans toward the bubble", async () => {
+  const { louie } = await import("../louie.js");
+  const up = louie("cheer", { pose: "thumb" });
+  assert.match(up, /rotate\(-32 -9 -27\)/, "the thumb is tipped out to the side, not standing in the middle");
+  assert.equal((up.match(/class="lv-fs" x="0"/g) || []).length, 3, "three curled fingers show on the fist");
+  assert.match(louie("happy", { pose: "point" }), /translate\(180 108\) rotate\(40\)/, "the pointing hand leans, never straight up");
+});

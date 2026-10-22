@@ -188,10 +188,9 @@ Graham (2026-10-22): one language for every song, chosen from German, Spanish an
 - [x] 15.6 Tests: the picker, a Spanish and a Russian translation (mocked), switching asks first, German users see no change.
 
 
-## Step 16 [Opus] Louie's raised finger (not built; waiting for Graham's go)
+## Step 16 [Opus] 4.39.1: Louie's raised finger
 
-Graham (2026-10-22, Support page): Louie with one finger up looks like he is flipping you off. Nothing to fix now.
-- [ ] 16.1 The cause is the `thumb` pose in `louie.js`: the hand is a mitten with one long finger standing straight up, which reads as the middle finger. Used in `support.js` (Support The Road), `road.js` (played today), `practice.js` (the first-lesson card). Check the `point` pose too (`practice.js`, `duel.js`, `library.js`): its finger sticks out sideways, but look at it small and from the side before leaving it.
-- [ ] 16.2 Mockups first: a few options on the Design canvas, shown at the sizes used in the app. Ideas: a real thumbs up (a fist with the thumb angled out and a little to the side, with the fingers curled and showing), an open wave, the horns (`hornsUp`) for cheer, or two thumbs. Nothing with a single finger standing straight up. Wait for his go.
-- [ ] 16.3 Replace `thumb` everywhere it is used; keep the pose name or rename it, and check `point` against the same rule. Update the tests that look for the pose class, and the pose list in the header comment of `louie.js`.
-- [ ] 16.4 Also check the other mascots and friends for the same shape: any friend with one finger or one stub standing straight up (`friends.js`).
+Graham (2026-10-22, Support page): Louie with one finger up looks like he is flipping you off. Fix it now (same morning, no mockups).
+- [x] 16.1 `thumb` is now a real thumbs up: a wide fist with three curled fingers showing and a short thumb tipped out to the side.
+- [x] 16.2 `point` was clipped at the edge of the picture and read as a blob; it is now the same fist with the index finger out, leaning toward the speech bubble.
+- [x] 16.3 Rule in `louie.js`: no hand shows one finger standing straight up. The friends have no hands, so nothing to change there.
