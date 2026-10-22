@@ -28,7 +28,7 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
   await page.waitForFunction(() => /Breakwater/.test(document.querySelector("#nx-body")?.innerText));
   assert.match(systems[1], /real step up/);
   const body = await page.innerText("#nx-body");
-  assert.match(body, /Breakwater/); assert.match(body, /First barre chords/); assert.match(body, /A step up from your songs/);
+  assert.match(body, /Breakwater/); assert.match(body, /First barre chords/); assert.match(await page.innerText("#nx-top"), /A step up from your songs/, "4.28.0: said under the level switch");
   assert.equal(await page.locator(".nx-ch span.new").count(), 2, "both new chords are marked");
 
   await page.click("#nx-x"); await page.waitForFunction(() => !document.querySelector("#nx-body") && JSON.parse(localStorage.getItem("tabs-v1")).settings.nextLevel === "step");
@@ -131,4 +131,55 @@ test("Play next: an empty reply says why it ended, and the AI gets room to think
   await page.click("#nextidea"); await page.waitForSelector(".nx-err");
   assert.ok(max.every(m => m >= 8000), `room to think: ${max}`);
   assert.match(await page.textContent(".nx-err details pre"), /stopped with: max_tokens/);
+});
+
+/* 4.28.0: cards sorted by fewest new chords, the crate while it looks, Learn gets the song and then the
+   lesson, and a chord the sheet doesn't have is caught instead of taught */
+const CHART = { found: true, title: "Harbor Lights", artist: "The Cape Fear", album: "Northern Coast", duration: 222, key: "G", capo: 0, tuning: "standard", bpm: 90,
+  sections: [{ name: "Verse", chords: "G D Em C", repeat: 1 }], confidence: "high" };
+const NEXT = { songs: [
+  { title: "Harbor Lights", artist: "The Cape Fear", chords: ["G", "D", "Em", "C"], new: ["C"], why: "One new chord" },
+  { title: "Wrong One", artist: "The Cape Fear", chords: ["G", "C#"], new: ["C#"], why: "A sharp one" },
+  { title: "Low Tide", artist: "The Dunes", chords: ["G", "D"], new: [], why: "All yours" }] };
+test("4.28.0 Play next: the crate while it looks, cards fewest new chords first, Learn goes on to the lesson, a wrong chord is caught", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-test"));
+  let nexts = 0;
+  await page.route(/api\.anthropic\.com/, async r => {
+    const next = /suggest songs a guitarist/.test(JSON.stringify(JSON.parse(r.request().postData()).system));
+    if (next && nexts++ === 0) await new Promise(ok => setTimeout(ok, 3600)); /* real timer: long enough to see the line change */
+    r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(next ? NEXT : CHART) }], stop_reason: "end_turn" }) });
+  });
+  await page.route(/lrclib\.net\/api/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: "[]" }));
+  await page.route(/itunes\.apple\.com/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ results: [] }) }));
+  await page.reload(); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
+  await page.click("#nextidea"); await page.waitForSelector(".nx-dig");
+  assert.ok(await page.locator(".nx-rec").count() >= 1, "records in the crate");
+  assert.match(await page.innerText("#nx-line"), /Looking at your \d+ chords?/);
+  await page.waitForFunction(() => /Finding songs one chord away/.test(document.getElementById("nx-line")?.textContent || ""));
+  assert.equal(await page.isDisabled("#nx-level [data-lv='step']"), true, "the switch waits while it looks");
+  await page.waitForSelector(".nx-card");
+  const titles = await page.locator(".nx-tt b").allInnerTexts();
+  assert.deepEqual(titles, ["Low Tide", "Harbor Lights", "Wrong One"], "fewest new chords first");
+  assert.match(await page.innerText(".nx-card >> nth=1"), /New\s*C\s*You know G, D, Em/i);
+  assert.equal(await page.locator(".nx-card >> nth=1 >> .nx-shape svg").count(), 1, "the new chord's shape");
+  assert.equal(await page.innerText("#nx-foot"), "Show different songs", "the only button at the bottom");
+  /* Learn: Get the song, then the chord's lesson */
+  await page.click(".nx-card >> nth=1 >> .nx-learn");
+  await page.waitForSelector("#gs-add", { timeout: 8000 });
+  assert.equal(await page.innerText("#gs-add"), "Add and learn C");
+  await page.click("#gs-add");
+  await page.waitForFunction(() => decodeURIComponent(location.hash) === "#/practice/c:C");
+  /* a chord the sheet doesn't have: said, not taught */
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#q");
+  await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
+  await page.click("#nextidea"); await page.waitForSelector(".nx-card");
+  await page.click(".nx-card:has-text('Wrong One') >> .nx-learn");
+  await page.waitForSelector(".gs-teach", { timeout: 8000 });
+  assert.match(await page.innerText(".gs-teach"), /Play next said C#, but this sheet doesn't use it/);
+  assert.equal(await page.innerText("#gs-add"), "Add to my songs");
+  await page.click("#gs-add");
+  await page.waitForFunction(() => /#\/song\//.test(location.hash));
+  assert.match(await page.innerText("#toast"), /doesn't use C#, so there's no C# lesson/);
 });

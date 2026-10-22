@@ -4,7 +4,8 @@ import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, chang
 import { oneHandMQ } from "./ui.js";
 import { coverHead } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route, chordSVG } from "./app.js";
+import { louie } from "./louie.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
 async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
@@ -280,9 +281,23 @@ export function getSong(q, preset = {}) {
       ...(len >= 60 ? { duration: len, recLength: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
       ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}), ...(st.art ? { art: st.art } : {}) });
     close(); leaveSearch();
-    go("#/song/" + encodeURIComponent(s.id));
     grooveFor(s); /* how it feels, in the background */
+    /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really
+       has that chord (the AI's chord list can be wrong: Hotel California came back with a C# it doesn't have) */
+    const teach = teachOf();
+    if (teach.ok) { go("#/practice/" + encodeURIComponent("c:" + teach.chord)); return toast(`Added ${c.title}. Now learn ${teach.chord}`); }
+    go("#/song/" + encodeURIComponent(s.id));
+    if (teach.chord) return toast(teach.say);
     toast(body === c.body ? "Added. Tap Listen to hear it while you check the chords" : "Added with the words. Check the chord spots by ear");
+  };
+  /* What Play next said to learn, checked against the sheet that came back */
+  const teachOf = () => {
+    const chord = preset.teach || "";
+    if (!chord || !st.chart) return { chord: "" };
+    const inSheet = sheetChords(st.chart.body), have = knownChords(data);
+    if (inSheet.includes(chord)) return { chord, ok: !!chordSVG(chord) };
+    const fresh = inSheet.filter(x => !have.has(x));
+    return { chord, ok: false, say: `The sheet doesn't use ${chord}, so there's no ${chord} lesson. ${fresh.length ? `Its new chord${fresh.length === 1 ? " is" : "s are"} ${fresh.slice(0, 3).join(", ")}.` : "It uses only chords you know."}` };
   };
   /* "You know all 4 chords" or "1 new chord: Dsus2", the same check the Songbook's Can play uses */
   const canLine = body => {
@@ -339,6 +354,7 @@ export function getSong(q, preset = {}) {
     body.innerHTML = `
       ${head(c.title, c.artist)}
       ${canLine(c.body)}
+      ${preset.teach && !sheetChords(c.body).includes(preset.teach) ? `<p class="gs-teach" role="note">Play next said ${esc(preset.teach)}, but this sheet doesn't use it. No lesson for it; the line above has the chords it does use.</p>` : ""}
       ${levelPlate()}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
       ${v ? `<button class="gs-pick" id="gs-pick"${more ? "" : " disabled"}><span>Recording: <b>${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}</b></span>${more ? `<em>Change ${icon("chev")}</em>` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
@@ -346,7 +362,8 @@ export function getSong(q, preset = {}) {
       <p class="foot">${m ? "Check the chord spots by ear. Edit fixes any line." : "Paste the words, or add the chords alone."}</p>
       <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
         ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Lyrics from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>`;
-    dock(`<button class="btn primary" id="gs-add">Add to my songs</button><div class="gs-dock2"><button class="tb" id="gs-no">Not this one</button><button class="tb" id="gs-edit">${m ? "Edit first" : "Paste the words"}</button></div>`);
+    const teach = teachOf();
+    dock(`<button class="btn primary" id="gs-add">${teach.ok ? `Add and learn ${esc(teach.chord)}` : "Add to my songs"}</button><div class="gs-dock2"><button class="tb" id="gs-no">Not this one</button><button class="tb" id="gs-edit">${m ? "Edit first" : "Paste the words"}</button></div>`);
     $("gs-pick")?.addEventListener("click", () => { if (more) { st.pick = st.vi; st.view = "versions"; paint(); } });
     $("gs-full")?.addEventListener("click", () => { st.full = true; paint(); });
     $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
@@ -455,59 +472,107 @@ function nextSeen(add = []) {
   }
   return list.filter(t => typeof t === "string").slice(0, 60);
 }
+/* 4.28.0 Play next: the level switch on top, cards in between the list and a full page (cover that plays
+   the preview, title and artist, Learn, and an inset strip with the new chord's shape, "NEW Cm", the chords
+   you know and how many more of your songs it opens), fewest new chords first. While it looks, Louie digs
+   through a crate of records, each one of your chords. */
+const NX_TINT = ["#3A86FF", "#7A2E8E", "#0F8B8D", "#F2B705", "#FF5A4E", "#2E4640"];
+const nxTile = (x, i) => `linear-gradient(135deg, ${NX_TINT[i % NX_TINT.length]}, ${NX_TINT[(i + 3) % NX_TINT.length]})`;
 export async function nextSongs() {
   const known = chordCounts(data.songs).slice(0, 24);
   const level = () => data.settings.nextLevel === "step" ? "step" : "same";
-  let state = { busy: true, list: [], err: "" };
-  const foot = oneHandMQ.matches;
+  let state = { busy: true, list: [], err: "" }, audio = null, playing = -1, lineTimer = 0;
   layer.innerHTML = `<div class="scrim" id="nx-scrim"></div><div class="panel full nx" role="dialog" aria-label="What can I play next?"><div class="grab"></div>
-    <div class="ph"><button class="tb" id="nx-x">Close</button><h2>Play next</h2><span style="width:56px"></span></div><div class="pbody" id="nx-body"></div>${foot ? `<div class="pfoot" id="nx-foot"></div>` : ""}</div>`;
-  const close = () => { layer.innerHTML = ""; };
+    <div class="ph"><button class="tb" id="nx-x">Close</button><h2>Play next</h2><span style="width:56px"></span></div>
+    <div class="nx-top" id="nx-top"></div><div class="pbody" id="nx-body"></div><div class="pfoot" id="nx-foot"></div></div>`;
+  const stop = () => { audio?.pause(); audio = null; playing = -1; };
+  const close = () => { stop(); clearTimeout(lineTimer); layer.innerHTML = ""; };
   $("nx-scrim").onclick = close; $("nx-x").onclick = close;
-  const controls = () => `<div class="nx-ctl">
-      <div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}><i class="nx-lamp" aria-hidden="true"></i>${n}</button>`).join("")}</div>
-      ${state.busy ? "" : state.err ? `<button class="btn primary" id="nx-again">Try again</button>` : `<button class="btn" id="nx-more">Show different songs</button>`}</div>`;
-  const bindControls = () => {
+  /* which of your songs one chord opens: the songs short of just that chord (the Songbook's Can play check) */
+  const have = knownChords(data);
+  const opens = c => have.size ? data.songs.filter(s => s.format !== "tab" && (() => { const ch = sheetChords(s.body); const miss = ch.filter(n => !have.has(n)); return ch.length && miss.length === 1 && miss[0] === c; })()).length : 0;
+  const top = () => {
+    $("nx-top").innerHTML = `<div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}><i class="nx-lamp" aria-hidden="true"></i>${n}</button>`).join("")}</div>
+      <p class="nx-sub">${level() === "step" ? "A step up from your songs, fewest new chords first" : "One new chord each, closest first"}</p>`;
     document.querySelectorAll("#nx-level [data-lv]").forEach(b => b.onclick = () => {
       if (b.dataset.lv === level()) return;
       data.settings.nextLevel = b.dataset.lv; Tabs.save(data); load();
     });
-    const more = $("nx-more"), again = $("nx-again");
-    if (more) more.onclick = () => load(state.list.map(x => x.title));
-    if (again) again.onclick = () => load(state.skip);
   };
+  const foot = () => {
+    const f = $("nx-foot");
+    f.innerHTML = state.busy ? "" : state.err ? `<button class="btn primary" id="nx-again">Try again</button>` : `<button class="btn" id="nx-more">Show different songs</button>`;
+    f.hidden = state.busy;
+    $("nx-more")?.addEventListener("click", () => load(state.list.map(x => x.title)));
+    $("nx-again")?.addEventListener("click", () => load(state.skip));
+  };
+  /* the crate: Louie digs, records flip up one after another, each a palette colour with one of your chords */
+  const crate = () => {
+    const recs = (known.length ? known : ["G", "C", "D", "Em"]).slice(0, 4);
+    return `<div class="easy-wait nx-dig" role="status">
+      <div class="nx-crate-art" aria-hidden="true"><span class="nx-louie">${louie("happy", { size: 112 })}</span>
+        <span class="nx-recs">${recs.map((c, i) => `<i class="nx-rec" style="--d:${i * 0.8}s;background:${NX_TINT[i % NX_TINT.length]};z-index:${9 - i}">${esc(c)}</i>`).join("")}</span><span class="nx-crate"></span></div>
+      <span class="nx-line" id="nx-line">Looking at your ${known.length} chord${known.length === 1 ? "" : "s"}</span></div>
+      <div class="nx-ghost" aria-hidden="true"></div><div class="nx-ghost" aria-hidden="true"></div>`;
+  };
+  const strip = x => {
+    const nw = x.new[0], shape = nw ? chordSVG(nw, 0.55) : "", n = nw ? opens(nw) : 0;
+    const know = x.chords.filter(c => !x.new.includes(c));
+    return `<div class="nx-strip">${shape ? `<span class="nx-shape" aria-hidden="true">${shape}</span>` : ""}
+      <span class="nx-st"><span class="nx-ch">${x.new.length ? `<small>New</small>${x.new.map(c => `<span class="new">${esc(c)}</span>`).join("")}` : `<small>No new chords</small>`}</span>
+      ${know.length ? `<em>You know ${know.map(esc).join(", ")}</em>` : ""}</span>
+      ${n ? `<span class="nx-opens">+${n} song${n === 1 ? "" : "s"}</span>` : ""}</div>`;
+  };
+  const card = (x, i) => `<div class="nx-card" style="--i:${i}">
+      <div class="nx-row1"><button class="nx-cv" data-nl="${i}" aria-label="${x.preview ? `${playing === i ? "Stop" : "Hear"} ${esc(x.title)}` : `Listen to ${esc(x.title)}`}">${x.art ? `<img src="${esc(x.art)}" alt="">` : `<span class="nx-tile" style="background:${nxTile(x, i)}">${esc(x.title.slice(0, 1).toUpperCase())}</span>`}<i class="nx-play${playing === i ? " on" : ""}">${icon(playing === i ? "pause" : "play")}</i></button>
+        <div class="nx-tt"><b>${esc(x.title)}</b><span>${esc(x.artist)}</span>${x.why ? `<small class="nx-why">${esc(x.why)}</small>` : ""}</div>
+        <button class="btn primary nx-learn" data-nc="${i}" aria-label="Learn ${esc(x.title)}${x.new[0] ? `: get the song, then the ${esc(x.new[0])} lesson` : ""}">Learn</button></div>
+      ${strip(x)}</div>`;
   const paint = () => {
     const body = $("nx-body");
     if (!body) return;
-    if (foot) $("nx-foot").innerHTML = controls();
-    const tail = foot ? "" : controls();
+    top(); foot();
     if (state.busy) {
-      /* the amp warms up: a jewel lamp glows while the AI works. */
-      body.innerHTML = `<div class="easy-wait nx-warm" role="status"><i class="nx-jewel" aria-hidden="true"></i><span>${level() === "step" ? "Warming up: songs a step up from yours" : "Warming up: songs that fit your chords"}</span></div>${tail}`;
+      body.innerHTML = crate();
       const was = state;
-      setTimeout(() => { const w = body.querySelector(".easy-wait"); if (state === was && w) w.lastChild.textContent = " Still looking, this can take a few more seconds"; }, 9000);
+      clearTimeout(lineTimer);
+      lineTimer = setTimeout(() => { const l = $("nx-line"); if (state === was && l) l.textContent = level() === "step" ? "Finding songs a step up" : "Finding songs one chord away"; }, 3000);
+      return;
     }
-    else if (state.err) body.innerHTML = `<div class="nx-err" role="alert">${icon("wand")}<b>No suggestions this time</b><p>${esc(state.err)}</p>
-        ${state.raw ? `<details><summary>What came back</summary><pre>${esc(state.raw)}</pre></details>` : ""}</div>${tail}`;
-    else {
-      const anyNew = state.list.some(x => x.new.length);
-      const note = level() === "step"
-        ? `A step up from your songs: barre chords, faster changes, riffs or picking.`
-        : `You play ${known.length} chords. These songs use mostly those${anyNew ? ", plus one new chord to learn" : ""}.`;
-      body.innerHTML = `
-      <p class="easy-note">${note}</p>
-      <div class="list glass">${state.list.map((x, i) => `<div class="row nx-row">
-        <div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}</div>${x.why ? `<div class="nx-why">${esc(x.why)}</div>` : ""}
-          <div class="nx-ch">${x.chords.map(c => `<span class="${x.new.includes(c) ? "new" : ""}">${esc(c)}</span>`).join("")}${x.new.filter(c => !x.chords.includes(c)).map(c => `<span class="new">${esc(c)}</span>`).join("")}</div></div>
-        <div class="nx-b"><button class="sb" data-nl="${i}" aria-label="Listen to ${esc(x.title)}">${icon("note")}</button><button class="btn sm primary nx-add" data-nc="${i}" aria-label="Add ${esc(x.title)}: get its chord chart">Add</button></div>
-      </div>`).join("")}</div>${tail}`;
-      body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => openLink(appleSearchURL(state.list[+b.dataset.nl])));
-      body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const x = state.list[+b.dataset.nc]; aiKey() ? getSong("", { title: x.title, artist: x.artist, level: level() === "step" ? "rec" : "mine" }) : null; });
+    if (state.err) {
+      body.innerHTML = `<div class="nx-err" role="alert">${icon("wand")}<b>No suggestions this time</b><p>${esc(state.err)}</p>
+        ${state.raw ? `<details><summary>What came back</summary><pre>${esc(state.raw)}</pre></details>` : ""}</div>`;
+      return;
     }
-    bindControls();
+    body.innerHTML = `<div class="nx-cards">${state.list.map(card).join("")}</div>`;
+    body.querySelectorAll("[data-nl]").forEach(b => b.onclick = () => {
+      const i = +b.dataset.nl, x = state.list[i];
+      if (!x.preview) return openLink(appleSearchURL(x));
+      const again = playing === i; stop();
+      if (!again) { audio = new Audio(x.preview); playing = i; audio.play().catch(() => { stop(); paint(); }); audio.onended = () => { stop(); paint(); }; }
+      paint();
+    });
+    body.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => {
+      const x = state.list[+b.dataset.nc];
+      if (!aiKey()) return;
+      stop();
+      getSong("", { title: x.title, artist: x.artist, level: level() === "step" ? "rec" : "mine", teach: x.new[0] || "" });
+    });
+  };
+  /* covers and previews from Apple's public catalog, card by card as they come */
+  const covers = list => {
+    if (appleBlocksSearch()) return;
+    list.forEach(x => itunes("search", { term: `${x.title} ${x.artist}`, media: "music", entity: "song", limit: 6 }).then(j => {
+      const hit = rankTracks(j?.results || [], x.title, x.artist)[0];
+      if (!hit || hit.score < 4.5 || state.list !== list) return;
+      if (hit.artworkUrl100) x.art = String(hit.artworkUrl100).replace(/\d+x\d+bb/, "300x300bb");
+      if (/^https:\/\//.test(hit.previewUrl || "")) x.preview = hit.previewUrl;
+      paint();
+    }).catch(() => {}));
   };
   const load = async (skip = []) => {
     const lv = level();
+    stop();
     state = { busy: true, list: [], err: "", skip }; paint();
     try {
       const have = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 60).join("; ");
@@ -526,9 +591,12 @@ export async function nextSongs() {
       if (lv !== level()) return; // switched while this was loading
       const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
       const max = lv === "step" ? 3 : 1;
-      state = { busy: false, err: "", skip, list: (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: [].concat(x.new || []).filter(ok).slice(0, max), why: String(x.why || "").slice(0, 80) })) };
-      nextSeen(state.list.map(x => x.title));
-      if (!state.list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
+      const list = (j.songs || []).filter(x => x && x.title).slice(0, 8).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 8), new: [].concat(x.new || []).filter(ok).slice(0, max), why: String(x.why || "").slice(0, 80) }))
+        .map((x, i) => ({ ...x, i })).sort((a, b) => a.new.length - b.new.length || a.i - b.i); /* fewest new chords first */
+      state = { busy: false, err: "", skip, list };
+      nextSeen(list.map(x => x.title));
+      if (!list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
+      else covers(list);
     } catch (e) {
       if (lv !== level()) return;
       state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form The Road couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
