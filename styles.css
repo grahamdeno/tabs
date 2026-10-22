@@ -3526,3 +3526,12 @@ button.ab-tile b { color: var(--accent-ink); }
 .rd-others .list .row { min-height: 56px; }
 .rd-pop { width: 264px; }
 .rd-pop .rd-pt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 4.34.1: the pick drawing keeps its size on big stops (an older rule sized every svg in .big to 38px),
+   and the headline flag stays one row */
+.rd-node .rd-pk, .rd-node.big .rd-pk, .rd-node.now .rd-pk { position: absolute; inset: -10%; width: 120%; height: 120%; }
+.rd-node.big .rd-ic svg { width: 34px; height: 34px; }
+.rd-flag.head { flex-wrap: nowrap; }
+.rd-node.big ~ .rd-flag { left: calc(50% + 46px); }
+.rd-flag { max-width: 240px; }
+.rd-flag { max-width: 226px; }
+.rd-stop.cur:has(.rd-other) { margin-bottom: 26px; }

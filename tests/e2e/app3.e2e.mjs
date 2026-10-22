@@ -595,6 +595,11 @@ test("4.34.0 the Road's headline: the flag names a song that fits, Other songs l
   await page.waitForSelector(".rd-flag.head");
   assert.match(await page.innerText(".rd-flag"), /HEADLINE[\s\S]*Low Tide[\s\S]*Play/, "the last played song that fits");
   assert.match(await page.innerText("#rd-other"), /Other songs that fit \(1\)/);
+  const pk = await page.evaluate(() => { const r = document.querySelector(".rd-node.now .rd-pk").getBoundingClientRect(), f = document.querySelector(".rd-flag").getBoundingClientRect(), n = document.querySelector(".rd-node.now").getBoundingClientRect(); return { w: r.width, flagMid: f.top + f.height / 2, nodeMid: n.top + n.height / 2, right: f.right }; });
+  assert.ok(pk.w > 80, `4.34.1: the headline pick keeps its size (${pk.w})`);
+  assert.ok(Math.abs(pk.flagMid - pk.nodeMid) < 12, "the flag sits beside the pick");
+  assert.ok(pk.right <= 390, "the flag stays on screen");
+  assert.ok(await page.evaluate(() => { const t = document.querySelector(".rd-flag .rd-ft").getBoundingClientRect(), b = document.querySelector(".rd-flag .rd-start").getBoundingClientRect(); return b.left >= t.right - 1; }), "Play sits after the name, not over it");
   await page.click("#rd-other"); await page.waitForSelector(".rd-others [data-play]");
   assert.deepEqual(await page.$$eval(".rd-others [data-play]", b => b.map(x => x.dataset.play)), ["h1", "h2"]);
   await page.click("#ro-x"); await page.waitForSelector(".rd-others", { state: "detached" });
