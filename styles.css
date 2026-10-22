@@ -1317,9 +1317,9 @@ details.s-why summary { cursor: pointer; color: var(--muted); margin-bottom: 6px
 
 /* ---- Lamps ----
    One lamp in four sizes. .on is lit, .warm pulses while something is working. */
-.jewel, .gs-lamp, .nx-lamp, .nx-jewel, #chips .chip::before {
+.jewel, .gs-lamp, .nx-jewel, #chips .chip::before {
   border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
-body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, .gs #gs-level button.on .nx-lamp, #chips .chip.on::before, .nx-jewel {
+body.playing .jewel, .gs-lamp.on, #chips .chip.on::before, .nx-jewel {
   background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
 .gs-lamp.warm { background: var(--lamp-warm); animation: lampwarm 1.2s ease-in-out infinite alternate; }
 .nx-jewel { animation: lampwarm 1.6s ease-in-out infinite alternate; }
@@ -1327,7 +1327,6 @@ body.playing .jewel, .gs-lamp.on, .nx #nx-level button.on .nx-lamp, .gs #gs-leve
 @media (prefers-reduced-motion: reduce) { .gs-lamp.warm, .nx-jewel { animation: none; } }
 .jewel { width: 12px; height: 12px; margin: 0 4px; align-self: center; }
 .gs-lamp { width: 12px; height: 12px; }
-.nx-lamp { width: 8px; height: 8px; }
 .nx-jewel { width: 34px; height: 34px; }
 
 /* ---- Tolex cards: the result cards in Play next and Get the song ---- */
@@ -2067,7 +2066,7 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look] .pf-read b { font-family: var(--display); color: var(--accent-deep); text-shadow: none; }
 :root[data-look="neon"] .pf-read b { color: var(--accent-ink); }
 :root[data-look] .pf-read span, :root[data-look] .tm-bd { color: var(--muted); }
-:root[data-look] .pf-first .nx-lamp, :root[data-look] .gs-lamp.on, :root[data-look] .nx-jewel { background: var(--accent); box-shadow: none; }
+:root[data-look] :root[data-look] .gs-lamp.on, :root[data-look] .nx-jewel { background: var(--accent); box-shadow: none; }
 
 /* ---- the neck's fretboard ---- */
 :root[data-look] .pk-fret { border-right: 3px solid var(--rim); color: var(--muted); font-family: var(--display); }
@@ -3341,3 +3340,29 @@ body.searching .gs-kept { display: none; }
 .tn-note.done b { font: 700 34px var(--display); color: var(--good); }
 .tn-note.done::before { content: ""; width: 34px; height: 34px; border-radius: 50%; flex: none; background: var(--good) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px no-repeat; box-shadow: 0 3px 0 color-mix(in srgb, var(--good) 70%, #000); }
 .tn-read:has(.tn-note.done) .tn-c { grid-column: 1; font: 700 14px var(--sans); margin-top: 6px; }
+
+/* ==========================================================================
+   One button and control system (4.30.0)
+   Buttons: main 56, row action 42, chip 32. Segmented: one look, two sizes.
+   Outlines: flat card colour on a darker lip, no thin rules.
+   ========================================================================== */
+:root[data-look] .btn { height: 56px; min-height: 56px; font-size: 18px; }
+:root[data-look] .btn.sm, :root[data-look] .gs-show, :root[data-look] .ce-add { height: 42px; min-height: 42px; padding: 0 16px; font-size: 16px; }
+:root[data-look] .tn-chip, :root[data-look] .ce-chip, :root[data-look] .skc { height: 32px; min-height: 32px; }
+/* segmented controls: full width 48 track, compact 36 track */
+:root[data-look] .seg { min-height: 48px; box-sizing: border-box; align-items: stretch; }
+:root[data-look] .seg button { min-height: 40px; height: auto; font-size: 15px; }
+:root[data-look] .seg.mini { min-height: 36px; height: auto; }
+:root[data-look] .seg.mini button { min-height: 28px; height: auto; font-size: 13px; padding: 0 12px; }
+:root[data-look] .nx-top .seg button, :root[data-look] .nx-ctl .seg button, :root[data-look] .pt-parts button { height: auto; min-height: 40px; }
+/* chips and small cards: flat card colour on a lip, no thin outline */
+:root[data-look] .cs-meta span, :root[data-look] .nx-ch span, :root[data-look] .hist div, :root[data-look] .ce-alt,
+:root[data-look] .de-lv, :root[data-look] .gs-ver, :root[data-look] .ce-fitb, :root[data-look] .skcmp button, :root[data-look] .sknb,
+:root[data-look] .findcard, :root[data-look] .cs-chart, :root[data-look] .ns-f, :root[data-look] .tn-chip,
+:root[data-look] .ce-chip, :root[data-look] .skc, :root[data-look] .ask-pv, :root[data-look] .cvo i, :root[data-look] .ecard,
+:root[data-look] .tile.ftile, :root[data-look] .rs-listen {
+  border: 0; background: var(--card); box-shadow: 0 3px 0 var(--rim); }
+:root[data-look] .cs-meta span { margin-bottom: 3px; }
+:root[data-look] .ce-alt.on, :root[data-look] .de-lv.on, :root[data-look] .gs-ver.on { box-shadow: 0 0 0 3px var(--accent), 0 3px 0 var(--rim); background: var(--card); }
+/* lists of places to go: one 56 tall row */
+:root[data-look] .set { min-height: 56px; }

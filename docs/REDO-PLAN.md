@@ -141,11 +141,11 @@ Graham's phone check after Step 9 raised these. Fixes went out as 4.29.1 and 4.2
 ## Step 10 [Sonnet] 4.30.0: One button and control system (board "Buttons · one system")
 
 The audit found (2026-10-21):
-- [ ] 10.1 Buttons: the main action is 56 tall with 18px text and the shine above the words (`.btn.primary::before` stays clear of the label); row actions (Drill, Learn, Add) are 42 tall and white with a lip; chips are 32. The Your changes Drill buttons become row actions.
-- [ ] 10.2 Segmented controls: seven variants (`.seg`, `.seg mini`, the Songbook filter row, Lines in a gig, the tuner menu, Play next and Get the song levels, Play together parts). One look: the Songbook filter row's (filled accent with its lip). The jewel lamps in the Play next and Get the song level switches (`nx-lamp`, a version 3 leftover) go.
-- [ ] 10.3 Thin outlines: 37 rules still draw `1px solid var(--rim)` borders (the Get the song chips `.cs-meta span`, `.gs-ver`, `.nx-ch span`, `.tn-chip` and more). Version 4 is flat colour on a darker lip: swap them for `box-shadow: 0 3px 0 var(--rim)` on a card colour.
-- [ ] 10.4 Lists of places to go (Rehearse's Skill work, Settings, More): one row (icon tile, name, one line under it, chevron), 56 tall.
-- [ ] 10.5 Tests: a computed-style test per component (height, lip) on two screens each.
+- [x] 10.1 Buttons: the main action is 56 tall with 18px text and the shine above the words (`.btn.primary::before` stays clear of the label); row actions (Drill, Learn, Add) are 42 tall and white with a lip; chips are 32. The Your changes Drill buttons become row actions.
+- [x] 10.2 Segmented controls: seven variants (`.seg`, `.seg mini`, the Songbook filter row, Lines in a gig, the tuner menu, Play next and Get the song levels, Play together parts). One look: the Songbook filter row's (filled accent with its lip). The jewel lamps in the Play next and Get the song level switches (`nx-lamp`, a version 3 leftover) go.
+- [x] 10.3 Thin outlines: 37 rules still draw `1px solid var(--rim)` borders (the Get the song chips `.cs-meta span`, `.gs-ver`, `.nx-ch span`, `.tn-chip` and more). Version 4 is flat colour on a darker lip: swap them for `box-shadow: 0 3px 0 var(--rim)` on a card colour.
+- [x] 10.4 Lists of places to go (Rehearse's Skill work, Settings, More): one row (icon tile, name, one line under it, chevron), 56 tall.
+- [x] 10.5 Tests: a computed-style test per component (height, lip) on two screens each.
 
 ## Step 11 [Opus] 4.31.0: The song screen, details from the title (boards "Song · details from the title, two buttons" and "About this song")
 

@@ -63,7 +63,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ## Look
 
-Version 4's design system, at the end of `styles.css`: three palettes (Light is Festival Poster, Dark is Neon Midnight, Green is Green Room), flat colour with no outlines, chunky buttons on a darker lip, Fredoka for titles and Nunito for text (bundled). Game colours: `--streak`, `--fans`, `--strings`; `--accent-ink` is the accent for text, deep enough to read on the light palettes. Louie the amp is the mascot and the app icon. Older amp materials (copper, plate, lamps) are still in the file and redrawn from the palette.
+Version 4's design system, at the end of `styles.css`: three palettes (Light is Festival Poster, Dark is Neon Midnight, Green is Green Room), flat colour with no outlines, chunky buttons on a darker lip, Fredoka for titles and Nunito for text (bundled). Game colours: `--streak`, `--fans`, `--strings`; `--accent-ink` is the accent for text, deep enough to read on the light palettes. Louie the amp is the mascot and the app icon. One control system (4.30.0): main buttons are 56 tall, row actions 42, chips 32; every segmented control is the Songbook filter's look (a track, the chosen part filled on its lip); chips and small cards are flat colour on a lip with no thin outline; lists of places to go are 56 tall rows. Older amp materials (copper, plate, lamps) are still in the file and redrawn from the palette.
 
 ## Chord sheet format
 

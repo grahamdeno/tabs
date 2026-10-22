@@ -242,7 +242,7 @@ export function getSong(q, preset = {}) {
   };
   /* The level switch: a plate with a lamp on the pick. Picking another level
      saves it and works the chords out again. */
-  const levelPlate = () => `<div class="seg" id="gs-level" role="group" aria-label="How hard">${CHART_LEVELS.map(([k, n]) => `<button data-lv="${k}" class="${level === k ? "on" : ""}" aria-pressed="${level === k}"><i class="nx-lamp" aria-hidden="true"></i>${n}</button>`).join("")}</div>`;
+  const levelPlate = () => `<div class="seg" id="gs-level" role="group" aria-label="How hard">${CHART_LEVELS.map(([k, n]) => `<button data-lv="${k}" class="${level === k ? "on" : ""}" aria-pressed="${level === k}">${n}</button>`).join("")}</div>`;
   const bindLevel = () => document.querySelectorAll("#gs-level [data-lv]").forEach(b => b.onclick = () => {
     if (b.dataset.lv === level) return;
     data.settings.chartLevel = b.dataset.lv; Tabs.save(data);
@@ -492,7 +492,7 @@ export async function nextSongs() {
   const have = knownChords(data);
   const opens = c => have.size ? data.songs.filter(s => s.format !== "tab" && (() => { const ch = sheetChords(s.body); const miss = ch.filter(n => !have.has(n)); return ch.length && miss.length === 1 && miss[0] === c; })()).length : 0;
   const top = () => {
-    $("nx-top").innerHTML = `<div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}><i class="nx-lamp" aria-hidden="true"></i>${n}</button>`).join("")}</div>
+    $("nx-top").innerHTML = `<div class="seg" id="nx-level" role="group" aria-label="Difficulty">${[["same", "My level"], ["step", "A step up"]].map(([k, n]) => `<button data-lv="${k}" class="${level() === k ? "on" : ""}" aria-pressed="${level() === k}"${state.busy ? " disabled" : ""}>${n}</button>`).join("")}</div>
       <p class="nx-sub">${level() === "step" ? "A step up from your songs, fewest new chords first" : "One new chord each, closest first"}</p>`;
     document.querySelectorAll("#nx-level [data-lv]").forEach(b => b.onclick = () => {
       if (b.dataset.lv === level()) return;
