@@ -28,6 +28,9 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
   the hold-Play ring, the arc, the island or Play following the hand.
 - Writing he sees (UI text, README, commit messages, replies): plain and
   direct, no em dashes.
+- Onboarding (2026-10-22): docs/ONBOARDING.md lists every hidden feature by
+  page, what teaches it (tip, Show me, listed, none) and the order to teach it.
+  A release that adds, moves or removes a hidden feature or a tip updates it.
 
 ## Version 4: the gamified Road (agreed 2026-10-20)
 
