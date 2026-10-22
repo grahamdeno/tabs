@@ -1883,7 +1883,7 @@ function renderRoute() {
   if (r.name === "road" || r.name === "library") lastHome = r.name;
   document.body.classList.toggle("is-home", r.name === "road");
   /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings) */
-  const tabbed = ["road", "tour", "charts", "band", "practice", "you", "merch"].includes(r.name) && !(r.name === "practice" && r.id);
+  const tabbed = ["road", "tour", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id);
   if (!tabbed) document.body.classList.remove("tabbed");
   else lazy("hud.js").then(m => { if (route().name === r.name) m.paintTabs(m.tabFor(r.name)); });
   app.classList.remove("viewer");
@@ -1915,6 +1915,7 @@ function renderRoute() {
   else if (r.name === "duel") lazy("duel.js").then(m => { if (route().name === "duel") { m.renderDuel(r.id); window.scrollTo(0, 0); } });
   else if (r.name === "charts") lazy("charts.js").then(m => { if (route().name === "charts") { m.renderCharts(); window.scrollTo(0, 0); } });
   else if (r.name === "merch") lazy("merch.js").then(m => { if (route().name === "merch") { m.renderMerch(); window.scrollTo(0, 0); } });
+  else if (r.name === "support") lazy("support.js").then(m => { if (route().name === "support") { m.renderSupport(); window.scrollTo(0, 0); } });
   else if (r.name === "band") lazy("band.js").then(m => { if (route().name === "band") { m.renderBand(); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
 }

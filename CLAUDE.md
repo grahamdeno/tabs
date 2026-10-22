@@ -88,6 +88,7 @@ The README describes each as it works today.
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
 | Your band: the Band tab; Louie's friends drawn | `band.js`, `friends.js` (numbers: `bandState`, `bandParts` in `core.js`) |
 | Song duels: challenge links, the head-to-head | `duel.js` (numbers: `startDuel`, `takeDuel`, `duelRecord` in `core.js`) |
+| Support The Road: the Ko-fi page from More (an in-app tip jar at App Store launch) | `support.js` |
 | Merch table: gear, Louie's finishes, gig backdrops, Try it on | `merch.js` (numbers: `MERCH`, `merchBuy`, `rainSettle`, `secondTake` in `core.js`) |
 | Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |

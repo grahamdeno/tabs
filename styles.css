@@ -3585,3 +3585,13 @@ button.ab-tile b { color: var(--accent-ink); }
 .lp-h { margin: 6px 0 4px; font: 700 24px var(--display); }
 .ls-ask .actions { display: flex; gap: 10px; margin-top: 14px; }
 .ls-ask .actions .btn { flex: 1; }
+
+/* Support The Road (4.39.0) */
+.sp { padding-bottom: 40px; }
+.sp-hero { display: grid; place-items: center; margin: 4px 0 6px; }
+.sp-h { margin: 0 2px 10px; font: 700 30px/1.1 var(--display); text-align: center; }
+.sp-p { margin: 0 6px 10px; font: 700 16px/1.45 var(--sans); color: var(--fg-2); text-align: center; }
+.sp-acts { display: flex; flex-direction: column; gap: 14px; margin: 22px 0 14px; }
+.sp-acts .btn { width: 100%; flex: none; text-decoration: none; gap: 10px; }
+.sp-acts .btn svg { width: 20px; height: 20px; }
+.sp-foot { text-align: center; }
