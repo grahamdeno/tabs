@@ -1889,6 +1889,8 @@ firstLaunch();
 data.songs.filter(s => s.isNew).forEach(settleNew); /* a song being added when the app closed */
 setTimeout(() => (window.requestIdleCallback || (f => f()))(prefetch), 3000);
 render();
+/* 4.27.0: a song from Get the song that was put aside comes back to its bar after a reload */
+try { if (sessionStorage.getItem("tabs.gs.kept.v1")) setTimeout(() => lazy("findai.js").then(m => m.restoreKept()), 600); } catch { /* none */ }
 coverLoadAll().then(() => {
   /* Forget cover photos of sets that are gone for good (not in the library or Recently deleted). */
   const keep = new Set([...data.sets.map(x => x.id), ...data.trash.filter(t => t.type === "set").map(t => t.item.id)]);

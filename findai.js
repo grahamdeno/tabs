@@ -1,10 +1,10 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route } from "./app.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
 async function askClaudeSearch({ model = AI.vision, system, content, maxTokens = 6000, searches = 4, key = aiKey() }) {
@@ -171,18 +171,72 @@ async function bpmLookup(c, key) {
   if (!hit) hit = find(await getJSON(url(c.title), 2));
   return hit ? { tempo: +hit.tempo || 0, sig: String(hit.time_sig || ""), id: hit.id } : null;
 }
+/* 4.27.0: Get the song keeps what it found. Getting a song costs time and AI calls, so nothing throws
+   it away by accident: a tap outside, a swipe down or the arrow at the top puts it aside, and a bar above
+   the search bar ("Hurt is ready") brings it back exactly as it was. Only Not this one lets it go. One song
+   is kept at a time, in memory and in sessionStorage (a reload keeps it; it is not saved with the library). */
+const KEPT = "tabs.gs.kept.v1";
+let kept = null; /* { st, title, add, mount, save } of the song put aside */
+const keptTitle = k => k.st.chart?.title || k.title;
+function setKept(k) {
+  kept = k;
+  try {
+    const st = k?.st;
+    if (st && (st.view === "review" || st.view === "versions") && st.chart) sessionStorage.setItem(KEPT, JSON.stringify(k.save()));
+    else sessionStorage.removeItem(KEPT);
+  } catch { /* private mode: memory only */ }
+  paintKept();
+}
+/* The bar sits just above the page's search bar (the Songbook's dock, or the Road's Songbook bar). */
+export function paintKept() {
+  let bar = document.getElementById("gs-kept");
+  const r = route().name, open = !!layer.querySelector(".panel");
+  if (!kept || !["road", "library"].includes(r) || open || document.body.classList.contains("searching")) { bar?.remove(); return; }
+  if (!bar) { bar = document.createElement("div"); bar.id = "gs-kept"; bar.className = "gs-kept"; document.body.append(bar); }
+  const ready = kept.st.view === "review" || kept.st.view === "versions", t = keptTitle(kept);
+  const art = /^https:\/\//.test(kept.st.art || "") ? `<img src="${esc(kept.st.art)}" alt="">` : icon("note");
+  bar.innerHTML = `<button class="gs-kept-open" id="gs-kept-open" aria-label="${esc(t)}, ${ready ? "not added yet. Open it" : "still getting it. Open it"}"><span class="gs-kept-art">${art}</span><span class="gs-kept-t"><b>${ready ? `${esc(t)} is ready` : `Getting ${esc(t)}…`}</b><small>${ready ? "Not added yet · tap to open" : "Still working · tap to open"}</small></span></button>${ready ? `<button class="btn primary gs-kept-add" id="gs-kept-add">Add</button>` : ""}`;
+  const ref = document.querySelector(r === "road" ? ".rd-sbk" : ".dock.kb");
+  const top = ref?.getBoundingClientRect().top;
+  bar.style.bottom = top ? `${Math.max(12, innerHeight - top + 10)}px` : "";
+  $("gs-kept-open").onclick = () => kept?.mount();
+  $("gs-kept-add")?.addEventListener("click", () => kept?.add());
+}
+addEventListener("hashchange", () => setTimeout(paintKept, 450));
+/* After a reload: the song put aside comes back to the bar (app.js calls this when sessionStorage has one). */
+export function restoreKept() {
+  if (kept) return paintKept();
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem(KEPT) || "null"); } catch { /* none */ }
+  if (saved?.st?.chart) getSong(saved.q, { ...saved.preset, level: saved.level, resume: saved.st });
+}
+
 export function getSong(q, preset = {}) {
   const title0 = (preset.title || q || "").trim(), artist0 = (preset.artist || "").trim();
   const key = bpmKey();
   /* Play next's Add brings its own level and doesn't change the saved pick. */
   const level = CHART_LEVEL[preset.level] ? preset.level : chartLevel();
-  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, tempo: null, beats: 4, err: "", note: { words: "Looking", tempo: "", chart: "Listening" } };
-  let alive = true;
-  const close = () => { alive = false; layer.innerHTML = ""; };
+  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, pick: 0, tempo: null, beats: 4, err: "", full: false, note: { words: "Looking", tempo: "", chart: "Listening" } };
+  let alive = true, shown = false;
+  const me = { st, title: title0, mount: () => mount(), add: () => add(merged() || st.chart.body),
+    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, full: st.full, rows: st.rows, note: st.note } }) };
+  /* Let go: only Not this one (and a failed search, a new level or adding it) */
+  const close = () => { alive = false; shown = false; stopPreview(); layer.innerHTML = ""; if (kept === me) setKept(null); };
+  /* Put aside: the sheet goes, the song stays (and a search still running carries on) */
+  const aside = () => {
+    if (st.view === "error") return close();
+    shown = false; stopPreview(); layer.innerHTML = ""; leaveSearch(); /* back to the page, where its bar shows */
+    setKept(me);
+  };
+  let audio = null;
+  const stopPreview = () => { audio?.pause(); audio = null; };
   const mount = () => {
+    if (kept === me) { kept = null; try { sessionStorage.removeItem(KEPT); } catch { /* none */ } }
+    shown = true;
     layer.innerHTML = `<div class="scrim" id="gs-scrim"></div><div class="panel full cs gs" role="dialog" aria-label="Get the song"><div class="grab"></div>
-      <div class="ph"><button class="tb" id="gs-x">Cancel</button><h2>Get the song</h2><span style="width:56px"></span></div><div class="pbody" id="gs-body"></div></div>`;
-    $("gs-scrim").onclick = close; $("gs-x").onclick = close;
+      <div class="ph" id="gs-ph"></div><div class="pbody" id="gs-body"></div><div class="gs-dock" id="gs-dock" hidden></div></div>`;
+    $("gs-scrim").onclick = aside;
+    paintKept();
     paint();
   };
   /* The level switch: a plate with a lamp on the pick. Picking another level
@@ -193,17 +247,25 @@ export function getSong(q, preset = {}) {
     data.settings.chartLevel = b.dataset.lv; Tabs.save(data);
     close(); getSong(q, { ...preset, level: b.dataset.lv });
   });
-  /* The cover: Apple's public catalog, once the song's name and artist are known (3.23.0). */
+  /* The cover: Apple's public catalog, once the song's name and artist are known (3.23.0). Its 30-second
+     preview plays from the button beside the title (4.27.0). */
   const head = (title, artist) => {
     if (title && artist && st.artQ !== `${title}|${artist}` && !appleBlocksSearch()) {
       st.artQ = `${title}|${artist}`;
       itunes("search", { term: `${title} ${artist}`, media: "music", entity: "song", limit: 8 }).then(j => {
         const top = rankTracks(j?.results || [], title, artist)[0];
-        if (top?.artworkUrl100 && top.score >= 4.5 && alive) { st.art = String(top.artworkUrl100).replace(/\d+x\d+bb/, "600x600bb"); paint(); }
+        if (top?.artworkUrl100 && top.score >= 4.5 && alive) { st.art = String(top.artworkUrl100).replace(/\d+x\d+bb/, "600x600bb"); if (/^https:\/\//.test(top.previewUrl || "")) st.preview = top.previewUrl; paint(); }
       }).catch(() => {});
     }
-    return coverHead({ art: st.art, title, artist });
+    const side = st.preview ? `<button class="gs-hear${audio ? " on" : ""}" id="gs-hear" aria-label="${audio ? "Stop the preview" : "Hear 30 seconds"}">${icon(audio ? "pause" : "play")}</button>` : "";
+    return coverHead({ art: st.art, title, artist, side });
   };
+  const bindHear = () => $("gs-hear")?.addEventListener("click", () => {
+    if (audio) { stopPreview(); return paint(); }
+    audio = new Audio(st.preview); audio.play().catch(() => { audio = null; toast("Couldn't play the preview"); paint(); });
+    audio.onended = () => { audio = null; paint(); };
+    paint();
+  });
   const version = () => st.versions[st.vi] || null;
   const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
   /* a jewel lamp per step, like a channel strip: dark while waiting,
@@ -222,51 +284,84 @@ export function getSong(q, preset = {}) {
     grooveFor(s); /* how it feels, in the background */
     toast(body === c.body ? "Added. Tap Listen to hear it while you check the chords" : "Added with the words. Check the chord spots by ear");
   };
+  /* "You know all 4 chords" or "1 new chord: Dsus2", the same check the Songbook's Can play uses */
+  const canLine = body => {
+    const ch = sheetChords(body), known = knownChords(data);
+    if (!ch.length) return "";
+    const missing = known.size ? ch.filter(x => !known.has(x)) : [];
+    const ok = known.size && !missing.length;
+    return `<div class="gs-can${ok ? " ok" : ""}"><span class="gs-can-ic">${icon(ok ? "check" : "note")}</span><span class="gs-can-t"><b>${!known.size ? `${ch.length} chord${ch.length === 1 ? "" : "s"}` : ok ? `You know all ${ch.length} chord${ch.length === 1 ? "" : "s"}` : `${missing.length} new chord${missing.length === 1 ? "" : "s"}: ${missing.map(esc).join(", ")}`}</b><small>${ch.map(esc).join(" · ")}</small></span>${ok ? `<span class="gs-can-tag">Can play</span>` : ""}</div>`;
+  };
+  const top = (left, title) => { const ph = $("gs-ph"); if (ph) ph.innerHTML = `${left}<h2>${title}</h2><span style="width:44px"></span>`; };
+  const DOWN = `<button class="ib gs-down" id="gs-aside" aria-label="Keep it for later">${icon("chev")}</button>`;
+  const dock = html => { const d = $("gs-dock"); if (!d) return; d.hidden = !html; d.innerHTML = html; };
   const paint = () => {
+    if (kept === me && !shown) paintKept(); /* the bar says when it's ready */
     const body = $("gs-body");
-    if (!body || !alive) return;
+    if (!body || !alive || !shown) return;
     const c = st.chart;
     if (st.view === "error") {
+      top(`<button class="tb" id="gs-x">Close</button>`, "Get the song"); $("gs-x").onclick = close;
+      dock("");
       body.innerHTML = `${head(title0, artist0)}<p class="err" style="margin:10px 2px">${esc(st.err)}</p>
         <div class="actions"><button class="btn" id="gs-own">Find it yourself</button><button class="btn primary" id="gs-again">Try again</button></div>`;
       $("gs-own").onclick = close; $("gs-again").onclick = () => { close(); getSong(q, preset); };
       return;
     }
+    top(st.view === "versions" ? `<button class="ib" id="gs-back" aria-label="Back">${icon("back")}</button>` : DOWN, st.view === "versions" ? "Which recording?" : "Get the song");
+    $("gs-aside")?.addEventListener("click", aside);
+    $("gs-back")?.addEventListener("click", () => { st.view = "review"; paint(); });
     if (st.view === "work") {
       const r = st.rows;
       const row = (k, label) => r[k] ? `<div class="gs-row">${ROW[r[k]]}<span class="${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
+      dock("");
       body.innerHTML = `${head(c?.title || title0, c?.artist || artist0)}
         ${levelPlate()}
         <div class="gs-rows glass">${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("chart", "Working out the chords")}${row("merge", "Lining the chords up with the lyrics")}</div>
-        <p class="foot" style="margin-top:12px">Only the song's name${level === "mine" ? " and the chords you play are" : " is"} sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key.</p>`;
-      bindLevel();
+        <p class="foot" style="margin-top:12px">Only the song's name${level === "mine" ? " and the chords you play are" : " is"} sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key. You can put it aside with the arrow and keep using the app.</p>`;
+      bindLevel(); bindHear();
       return;
     }
     if (st.view === "versions") {
-      body.innerHTML = `<div class="gs-vh"><b>Which recording?</b><span>Words and timing differ between versions.</span></div>
-        ${st.versions.slice(0, 8).map((v, i) => `<button class="gs-ver${i === st.vi ? " on" : ""}" data-v="${i}"><i></i><span><b>${esc(v.albumName || v.trackName)}</b><small>${mmssOf(v.duration || 0)}${v.syncedLyrics ? " · timed" : ""}</small></span></button>`).join("")}
-        <button class="gs-ver" id="gs-paste"><i></i><span><b>None of these: paste the words</b></span></button>`;
-      body.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { st.vi = +b.dataset.v; st.view = "review"; paint(); });
+      const tint = ["#7A2E8E", "#C93A30", "#0F8B8D", "#F2B705", "#3A86FF", "#FF5A4E", "#2E4640", "#8A7CFF"];
+      body.innerHTML = `<p class="gs-vh">Words and timing differ between recordings. The one closest to the chord sheet's length is first.</p>
+        ${st.versions.slice(0, 8).map((v, i) => `<button class="gs-ver${i === st.pick ? " on" : ""}" data-v="${i}" aria-pressed="${i === st.pick}"><span class="gs-ver-cv" style="background:${tint[i % tint.length]}" aria-hidden="true"></span><span class="gs-ver-t"><b>${esc(v.albumName || v.trackName)}</b><small>${mmssOf(v.duration || 0)}<em class="${v.syncedLyrics ? "timed" : ""}">${v.syncedLyrics ? "Timed" : "Words only"}</em></small></span>${i === 0 ? `<span class="gs-best">Best match</span>` : ""}</button>`).join("")}
+        <button class="tb gs-none" id="gs-paste">None of these: paste the words</button>`;
+      body.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { st.pick = +b.dataset.v; paint(); });
       $("gs-paste").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library" }, b => add(b, false), mount);
+      dock(`<button class="btn primary" id="gs-use">Use this one</button><p class="gs-dock-note">${esc(c.title)} stays found while you choose</p>`);
+      $("gs-use").onclick = () => { st.vi = st.pick; st.view = "review"; paint(); };
       return;
     }
     const v = version(), m = merged(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
     const tempoChip = t?.bpm > 0 ? `<span class="${t.agree ? "agree" : ""}">${t.bpm} BPM${t.agree ? ` ${icon("check")}` : ""}${!t.agree && t.measured && t.chart ? ` <small>· chart said ${Math.round(t.chart)}</small>` : ""}</span>` : "";
+    const more = st.versions.length > 1;
     body.innerHTML = `
       ${head(c.title, c.artist)}
+      ${canLine(c.body)}
       ${levelPlate()}
-      ${v ? `<button class="gs-pick" id="gs-pick">${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}${st.versions.length > 1 ? ` ${icon("chev")}` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
-      <pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>
+      ${v ? `<button class="gs-pick" id="gs-pick"${more ? "" : " disabled"}><span>Recording: <b>${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}</b></span>${more ? `<em>Change ${icon("chev")}</em>` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
+      <div class="gs-sheet${st.full ? " full" : ""}"><pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>${st.full ? "" : `<button class="gs-more" id="gs-full">Show the whole sheet</button>`}</div>
       <p class="foot">${m ? "Check the chord spots by ear. Edit fixes any line." : "Paste the words, or add the chords alone."}</p>
       <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
-        ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Lyrics from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>
-      <div class="actions" style="margin-top:12px"><button class="btn" id="gs-edit">${m ? "Edit" : "Paste the words"}</button><button class="btn primary" id="gs-add">Add to library</button></div>`;
-    $("gs-pick")?.addEventListener("click", () => { if (st.versions.length > 1) { st.view = "versions"; paint(); } });
+        ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Lyrics from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>`;
+    dock(`<button class="btn primary" id="gs-add">Add to my songs</button><div class="gs-dock2"><button class="tb" id="gs-no">Not this one</button><button class="tb" id="gs-edit">${m ? "Edit first" : "Paste the words"}</button></div>`);
+    $("gs-pick")?.addEventListener("click", () => { if (more) { st.pick = st.vi; st.view = "versions"; paint(); } });
+    $("gs-full")?.addEventListener("click", () => { st.full = true; paint(); });
     $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
     $("gs-add").onclick = () => add(m || c.body);
-    bindLevel();
+    $("gs-no").onclick = close;
+    bindLevel(); bindHear();
   };
+  /* After a reload: straight back to the bar, nothing asked again */
+  if (preset.resume) { Object.assign(st, preset.resume); kept = me; paintKept(); return; }
+  /* A new search lets the one put aside go, with Undo */
+  if (kept) {
+    const prev = kept;
+    setKept(null);
+    toast(`Let go of ${keptTitle(prev)}`, null, { label: "Undo", fn: () => setKept(prev) });
+  }
   mount();
   const run = async () => {
     const early = getJSON(`${LRC}/search?q=${encodeURIComponent(`${title0} ${artist0}`.trim())}`);
@@ -275,6 +370,7 @@ export function getSong(q, preset = {}) {
     catch (e) {
       if (!alive) return;
       st.view = "error"; st.err = e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e);
+      if (kept === me) setKept(null);
       return paint();
     }
     if (!alive) return;
@@ -290,7 +386,9 @@ export function getSong(q, preset = {}) {
     st.rows.merge = st.versions.length ? "ok" : "none"; st.note.merge = st.versions.length ? "Done" : "No lyrics to line up"; paint();
     await wait(450);
     if (!alive) return;
-    st.view = "review"; paint();
+    st.view = "review";
+    if (kept === me) setKept(me); /* ready while put aside: saved for a reload, and the bar says so */
+    paint();
   };
   run();
 }

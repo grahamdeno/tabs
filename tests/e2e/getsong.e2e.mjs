@@ -12,8 +12,8 @@ const V = (id, albumName, duration, plain) => ({ id, trackName: "Harbor Lights",
 const VERSIONS = [V(2, "Live at the Pier", 260, "pier words one\npier words two\n\npier chorus line"), V(1, "Northern Coast", 221, "grey boats lean on the harbor wall\nwaiting on a tide to call\n\nbring the lights home\nbring the long way round"), V(3, "Karaoke Hits", 221, "k one\n\nk two")];
 const cors = { "access-control-allow-origin": "*", "access-control-expose-headers": "retry-after" };
 
-async function setup(t, { bpm = true } = {}) {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } });
+async function setup(t, { bpm = true, extra = {} } = {}) {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false }, ...extra });
   await page.evaluate(k => { localStorage.setItem("tabs.apikey.v1", "sk-ant-test"); if (k) localStorage.setItem("tabs.bpmkey.v1", "bpm-test"); }, bpm);
   const calls = { lrc: 0, bpm: [], ai: 0 };
   await page.route(/api\.anthropic\.com/, async r => { calls.ai++; if (process.env.SHOT) await new Promise(ok => setTimeout(ok, 2500)); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(CHART) }], stop_reason: "end_turn" }) }); });
@@ -51,7 +51,7 @@ test("Get the song: one tap gathers chords, words and tempo, and saves a playabl
   // Another recording: the words re-fit under the same chords
   await page.click("#gs-pick");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/gs-ver.png" });
-  await page.click(".gs-ver:has-text('Live at the Pier')");
+  await page.click(".gs-ver:has-text('Live at the Pier')"); await page.click("#gs-use");
   assert.match(await page.innerText(".gs-chart"), /pier words one/);
   assert.match(await page.innerText("#gs-pick"), /Live at the Pier · 4:20/);
   await page.click("#gs-add");
@@ -95,4 +95,57 @@ test("Get the song: pick how hard (Easy, My level, As recorded); the pick is kep
   assert.match(asked.at(-1).system, /Level: as recorded/);
   assert.doesNotMatch(asked.at(-1).messages[0].content, /Chords I play/);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.chartLevel, "rec", "kept for next time");
+});
+
+const F = { n: 5, first: "2026-01-01" };
+const JOURNAL = { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, chords: { G: F, D: F, Em: F } };
+test("4.27.0 Get the song keeps what it found: a tap outside puts it aside, its bar brings it back, a reload keeps it, Not this one lets go", { skip: skip() }, async t => {
+  const { page } = await setup(t, { extra: { journal: JOURNAL } });
+  await search(page, "harbor lights");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-add", { timeout: 8000 });
+  /* the review: whether you can play it, Add at the bottom, the recording as one row */
+  assert.match(await page.innerText(".gs-can"), /1 new chord: C[\s\S]*G · D · Em · C/);
+  assert.equal(await page.innerText("#gs-add"), "Add to my songs");
+  const addBox = await page.locator("#gs-add").boundingBox();
+  assert.ok(addBox.y > 700, "Add is in thumb reach at the bottom");
+  assert.equal(await page.locator("#gs-x").count(), 0, "no Cancel");
+  /* Which recording: cards, the closest length first and marked */
+  await page.click("#gs-pick"); await page.waitForSelector(".gs-ver");
+  assert.match(await page.innerText(".gs-ver >> nth=0"), /Northern Coast[\s\S]*Best match/i);
+  await page.click(".gs-ver:has-text('Live at the Pier')");
+  assert.match(await page.innerText(".gs-ver.on"), /Live at the Pier/);
+  await page.click("#gs-use"); await page.waitForSelector("#gs-add");
+  assert.match(await page.innerText("#gs-pick"), /Live at the Pier/);
+  await page.click("#gs-level [data-lv='mine']"); /* the same level: nothing changes */
+  /* a tap outside puts it aside (a swipe down goes through the same tap) */
+  await page.evaluate(() => document.getElementById("gs-scrim").click());
+  await page.waitForSelector("#gs-kept");
+  assert.equal(await page.locator(".panel").count(), 0);
+  assert.match(await page.innerText("#gs-kept"), /Harbor Lights is ready\s*Not added yet/);
+  assert.ok(await page.evaluate(() => !!sessionStorage.getItem("tabs.gs.kept.v1")));
+  /* its bar brings it back exactly as it was */
+  await page.click("#gs-kept-open"); await page.waitForSelector("#gs-add");
+  assert.match(await page.innerText("#gs-pick"), /Live at the Pier/, "the same recording");
+  assert.equal(await page.getAttribute("#gs-level [data-lv='mine']", "aria-pressed"), "true", "the same level");
+  assert.equal(await page.locator("#gs-kept").count(), 0, "the bar goes while the sheet is open");
+  /* the arrow puts it aside too, and a reload keeps it */
+  await page.click("#gs-aside"); await page.waitForSelector("#gs-kept");
+  await page.reload(); await page.waitForSelector("#gs-kept");
+  assert.match(await page.innerText("#gs-kept"), /Harbor Lights is ready/);
+  await page.click("#gs-kept-add");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(x => x.title === "Harbor Lights" && x.words));
+  const s = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(x => x.title === "Harbor Lights" && x.words);
+  assert.deepEqual(s.words, { src: "lrclib", id: 2 }, "added with the recording chosen before the reload");
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("tabs.gs.kept.v1")), null);
+  /* Not this one lets it go */
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#q");
+  await search(page, "harbor lights two");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-add", { timeout: 8000 });
+  await page.click("#gs-no");
+  await page.waitForFunction(() => !document.querySelector(".panel"));
+  await page.waitForTimeout(500); /* real timer: the bar would show after the route settles */
+  assert.equal(await page.locator("#gs-kept").count(), 0);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("tabs.gs.kept.v1")), null);
 });

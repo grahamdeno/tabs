@@ -3206,3 +3206,58 @@ body[data-wear="gold"] .tuner2 { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-h
 @media (prefers-reduced-motion: reduce) { .tdy-dot i { transition: none; } }
 .lib-count { display: flex; align-items: center; justify-content: space-between; margin: 12px 4px 6px; font: 700 14px var(--sans); color: var(--muted); }
 .lib-count .sortby { font: 700 15px var(--display); color: var(--fg); }
+
+/* 4.27.0 Get the song: put aside instead of lost, Add in thumb reach, the recording as cards */
+.gs .ph h2 { flex: 1; text-align: center; }
+.gs-down svg { transform: rotate(90deg); }
+.gs-dock { flex: none; padding: 12px 16px calc(14px + var(--safe-b)); background: var(--card); box-shadow: 0 -10px 20px color-mix(in srgb, var(--card) 85%, transparent); display: flex; flex-direction: column; gap: 8px; }
+.gs-dock[hidden] { display: none; }
+.gs-dock > .btn { width: 100%; height: 56px; font-size: 18px; }
+.gs-dock2 { display: flex; justify-content: space-between; padding: 0 6px; }
+.gs-dock2 .tb { min-height: 44px; }
+.gs-dock2 #gs-no { color: var(--muted); }
+.gs-dock-note { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+.gs .pbody { padding-bottom: 16px; }
+.gs-hear { width: 46px; height: 46px; flex: none; margin-left: auto; border: 0; border-radius: 50%; background: var(--card-2); color: var(--fg); box-shadow: 0 3px 0 var(--rim); display: grid; place-items: center; }
+.gs-hear svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+.gs-hear.on { background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+.gs-can { display: flex; align-items: center; gap: 10px; margin: 12px 0 0; padding: 10px 12px; border-radius: 16px; background: var(--card-2); }
+.gs-can-ic { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--rim); color: var(--fg); }
+.gs-can.ok .gs-can-ic { background: var(--good); color: var(--on-accent, #14110d); }
+.gs-can-ic svg { width: 16px; height: 16px; }
+.gs-can-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gs-can-t b { font: 700 16px var(--display); }
+.gs-can-t small { font: 700 13px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-can-tag, .gs-best { flex: none; font: 800 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 4px 9px; background: var(--good); color: var(--on-accent, #14110d); }
+.gs .seg { margin-top: 12px; }
+button.gs-pick { display: flex; width: 100%; align-items: center; gap: 8px; margin: 2px 0 10px; padding: 0 14px; min-height: 48px; border-radius: 14px; background: var(--card-2); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font-size: 14.5px; text-align: left; }
+button.gs-pick > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button.gs-pick b { font-family: var(--display); }
+button.gs-pick em { font: 700 15px var(--display); font-style: normal; color: var(--accent-ink); display: inline-flex; align-items: center; gap: 2px; }
+button.gs-pick:disabled { opacity: 1; }
+.gs-sheet { position: relative; }
+.gs-sheet:not(.full) .gs-chart { max-height: 220px; overflow: hidden; }
+.gs-sheet:not(.full)::after { content: ""; position: absolute; left: 1px; right: 1px; bottom: 1px; height: 80px; border-radius: 0 0 12px 12px; background: linear-gradient(transparent, var(--card) 75%); pointer-events: none; }
+.gs-more { position: absolute; z-index: 1; left: 50%; bottom: 8px; transform: translateX(-50%); min-height: 40px; border: 0; background: none; font: 700 15px var(--display); color: var(--accent-ink); }
+p.gs-vh { margin: 2px 2px 14px; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.gs .gs-ver { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 0 14px; margin-bottom: 12px; border: 0; border-radius: 18px; background: var(--card-2); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
+.gs .gs-ver.on { background: var(--card-2); box-shadow: 0 0 0 3px var(--accent), 0 4px 0 var(--rim); }
+.gs-ver-cv { width: 48px; height: 48px; border-radius: 14px; flex: none; }
+.gs-ver-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.gs .gs-ver-t b { font: 700 16px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-ver-t small { display: flex; align-items: center; gap: 8px; font: 700 13px var(--sans); color: var(--muted); }
+.gs-ver-t em { font: 800 11px var(--sans); font-style: normal; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: 2px 8px; background: var(--rim); color: var(--fg-2); }
+.gs-ver-t em.timed { background: var(--good-soft); color: var(--good); }
+.gs-none { align-self: flex-start; min-height: 44px; color: var(--fg); }
+/* the bar above the search bar while a song waits to be added */
+.gs-kept { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + var(--safe-b)); width: min(496px, calc(100% - 24px)); z-index: 19; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 20px; background: var(--card); box-shadow: 0 0 0 2px var(--accent), 0 4px 0 var(--rim), 0 10px 24px rgba(0,0,0,.18); animation: up .35s cubic-bezier(.2,1.15,.3,1); }
+body.searching .gs-kept { display: none; }
+.gs-kept-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; color: var(--fg); text-align: left; padding: 0; min-height: 44px; }
+.gs-kept-art { width: 44px; height: 44px; border-radius: 12px; flex: none; overflow: hidden; display: grid; place-items: center; background: var(--card-2); color: var(--accent-ink); }
+.gs-kept-art img { width: 100%; height: 100%; object-fit: cover; }
+.gs-kept-art svg { width: 20px; height: 20px; }
+.gs-kept-t { min-width: 0; display: flex; flex-direction: column; }
+.gs-kept-t b { font: 700 16px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-kept-t small { font: 700 12.5px var(--sans); color: var(--muted); }
+.gs-kept-add { flex: none; height: 44px; padding: 0 18px; }
+@media (prefers-reduced-motion: reduce) { .gs-kept { animation: none; } }
