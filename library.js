@@ -71,7 +71,7 @@ function todayItems() {
   if (filter === "all" && data.songs.length >= 3 && !searching) {
     const one = data.songs.filter(x => fitOf(x).missing.length === 1).sort((a, b) => (b.status === "learning") - (a.status === "learning") || (b.opened || 0) - (a.opened || 0))[0];
     const req = requestSong(data);
-    const again = one && req ? null : data.songs.filter(x => { const c = playCount(x); return c >= 1 && c <= 2 && x.status !== "got" && Date.now() - (x.playLog?.last || 0) > 21 * 864e5 && x !== one && x !== req; })
+    const again = data.songs.filter(x => { const c = playCount(x); return c >= 1 && c <= 2 && x.status !== "got" && Date.now() - (x.playLog?.last || 0) > 21 * 864e5 && x !== one && x !== req; })
       .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0];
     if (one) items.push(`<button class="tdy-i upn-c one" data-id="${esc(one.id)}"><span class="tdy-t"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><em>Learn ${esc(fitOf(one).missing[0])} and it's yours</em></span></button>`);
     if (req) items.push(`<button class="tdy-i upn-c req" data-gig="${esc(req.id)}"><span class="tdy-t"><small>${data.quests?.heard?.id === req.id ? "FROM YOUR LISTENING" : "REQUESTED"}</small><b>${esc(req.title)}</b><em>2x bonus fans tonight</em></span></button>`);

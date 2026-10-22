@@ -11,7 +11,7 @@ import { HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, chordTargets, cleanS
 import { CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, GIG_STRINGS, GIG_WINDOW, MERCH, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigChange, gigCrowd, gigDone, gigFans, gigPct, gigStart, gigTiming, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.32.0";
+export const VERSION = "4.33.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;

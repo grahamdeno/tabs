@@ -32,8 +32,8 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - **Charts:** XP this week on a chart at your tier with nine computer players who play like people (weekend players, daily players, ones who fade). Top 5 move up on Monday, bottom 3 move down. A daily rival battle on one of your songs. Friends lists everyone you've dueled, ranked by XP.
 - **Song duels:** after a scored gig, send a link with the song and your score; your friend plays it and sends theirs back. No server.
 - **Band:** Louie's 18 friends join one at a time as you play songs through (Lola after your first, Looper at 140).
-- **The neck's lesson of the day:** about four minutes built from your songs: warm up on a change you already have, learn the change your songs need most (with the song it comes from), then play that song's section at 70%, looped in Practice mode (twice through counts). 40 XP when all three are done. Your skills sit under it as three bars, and All lessons has every fret.
-- **Rehearse:** Your changes (4.23.0: the three changes your songs need most that you land least, why each is there, a landed bar, Drill on each, one you have down, and Drill all three that goes from one to the next), Soundcheck (the two changes you dropped most in gigs this week, drilled), Missed changes, the neck (chord lessons that listen to each string, chord switches against a click, scales), Sit in with the band, the tuner and What I hear (the microphone, live).
+- **The lesson of the day:** about four minutes built from your songs: warm up on a change you already have, learn the change your songs need most (with the song it comes from), then play that song's section at 70%, looped in Practice mode (twice through counts). 40 XP when all three are done. Your skills sit under it as three bars, and All lessons has every fret.
+- **Rehearse (4.33.0, one page):** today's lesson first (three parts as a bar, Start or Go on); then Your changes in one card: today's soundcheck changes first while it's on (the ones you dropped most in gigs this week, marked, +20 XP for both), then the changes your songs need most that you land least, each with why, a landed bar and Drill, one you have down, other changes you dropped, and Drill all; then Your skills (three bars, All lessons); then three tiles: Sit in with the band, Tuner, What I hear. The old neck address opens Rehearse. All lessons holds every lesson (chord lessons that listen to each string, chord switches against a click, scales) and the songs you're Learning.
 - **Merch table:** spend fans on gear (Rain check keeps a streak through a missed night, Double set doubles XP for 3 gigs, Second take replays a lost battle), Louie's finishes (Stock blue, plus Pink and Teal free) and gig backdrops. Spending never touches XP. Settings > Help can add test fans to try it.
 
 ### Songbook, sets and editing
@@ -50,7 +50,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Tuner
 - Acoustic and electric headstocks in colour (acoustic is wood; electric matches Louie's finish) with each key labelled, the note big at the top with what to do beside it, a bolder meter that eases into the last few cents, the instrument and tuning in one menu at the top, Guided (low to high) and Chromatic with adjustable A4. Standard, Drop D, half and whole step down, DADGAD, Open G and Open D.
-- The tuner opens from inside the neck and every lesson (4.24.0). Each string you tune ticks (Android vibrates; iPhone gets the system tick from iOS 18) and chimes, reaching the in-tune zone gives a light tick, and the whole guitar gets three ticks, a louder chime and a small party with Louie. In a lesson, Start listening turns into "Listening · tap to stop" and comes back by itself if the microphone stops.
+- The tuner opens from Rehearse and every lesson (4.24.0). Each string you tune ticks (Android vibrates; iPhone gets the system tick from iOS 18) and chimes, reaching the in-tune zone gives a light tick, and the whole guitar gets three ticks, a louder chime and a small party with Louie. In a lesson, Start listening turns into "Listening · tap to stop" and comes back by itself if the microphone stops.
 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog, plays previews and saves a recording with its album art and length.
@@ -137,7 +137,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `road.js`, `hud.js` | The Road (home): the path, Louie and the Songbook bar; the stat bar, tab bar and More sheet |
 | `gig.js` | The Gig (scoring in `core.js`) |
 | `tour.js`, `charts.js`, `band.js`, `friends.js`, `duel.js`, `merch.js` | Tour quests, Charts, Your band and Louie's friends, song duels, the Merch table (numbers in `core.js`) |
-| `practice.js` | Rehearse and the neck |
+| `practice.js` | Rehearse (one page with today's lesson), All lessons, the lessons |
 | `playmap.js`, `scene.js`, `drawer.js` | The Tour Map, rival players, pull-up drawers |
 | `louie.js` | Louie, drawn in the palette's colours |
 | `vendor/fonts/` | Fredoka and Nunito (SIL Open Font License) |

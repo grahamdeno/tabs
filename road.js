@@ -112,7 +112,7 @@ export function renderRoad() {
     <div class="rd-top">${statBar()}</div>
     ${leg ? `<section class="rd-banner" aria-label="The leg you're on">
       <div><small>LEG ${leg.n} · ${esc(v.name.toUpperCase())}</small><b>${esc(leg.name)}</b></div>
-      <button class="rd-book" id="rd-book" aria-label="Open the neck: every lesson">${icon("fretboard")}</button>
+      <button class="rd-book" id="rd-book" aria-label="Open Rehearse: today's lesson">${icon("fretboard")}</button>
     </section>` : ""}
     ${chip ? `<div class="rd-chip">${chip}</div>` : ""}
     <div class="rd-path" id="rd-path">

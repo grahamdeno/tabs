@@ -3433,3 +3433,40 @@ button.ab-tile b { color: var(--accent-ink); }
 .menu.tools3 .t3-tabs .newdot { position: absolute; top: 6px; right: 10px; }
 .menu.tools3 .t3l { display: inline-flex; align-items: center; gap: 6px; }
 .menu.tools3 .t3l .newdot { position: static; margin: 0; }
+
+/* ==========================================================================
+   Rehearse as one page (4.33.0)
+   ========================================================================== */
+.rh-lesson { display: flex; flex-direction: column; gap: 12px; }
+.rh-lesson .ls-top { align-items: flex-start; }
+.rh-segs { display: flex; gap: 8px; }
+.rh-seg { flex: 1; height: 22px; padding: 7px 0; border: 0; background: none; display: block; }
+.rh-seg i { display: block; height: 8px; border-radius: 4px; background: var(--card-2); box-shadow: inset 0 0 0 2px var(--hair); }
+.rh-seg.done i { background: var(--accent); box-shadow: none; }
+.rh-seg.now i { background: color-mix(in srgb, var(--accent) 35%, var(--card-2)); box-shadow: none; }
+.rh-lesson .rh-lgo { width: 100%; flex: none; }
+.rh-yc .rh-yct small { display: block; }
+.rh-ycr.ok { opacity: .7; }
+.rh-scb { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font: 800 11px var(--sans); font-style: normal; letter-spacing: .05em; text-transform: uppercase; vertical-align: 4px; }
+.rh-ycr.ok .rh-scb { background: var(--good-soft, var(--card-2)); color: var(--good); }
+.rh-more { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 14px; border: 0; border-radius: 16px; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 700 15px var(--display); text-align: left; }
+.rh-more .rh-n { margin-left: auto; min-width: 26px; height: 26px; border-radius: 13px; }
+.rh-more .chev { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.rh-yc-none .rh-yct small { margin-top: 4px; }
+.rh .ls-skills { margin-top: 14px; }
+.rh-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 24px; }
+.rh-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-height: 104px; padding: 12px; border: 0; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
+.rh-tile b { font: 700 15px/1.2 var(--display); }
+.rh-tile .rh-ic { width: 38px; height: 38px; border-radius: 12px; }
+.rh-tile .rh-ic svg { width: 20px; height: 20px; }
+.rh-tile:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+/* Your changes as one card (the board): rows inside it, split by a line */
+.rh .rh-yc { padding: 16px; border-radius: 22px; background: var(--card); box-shadow: 0 4px 0 var(--rim); gap: 0; }
+.rh .rh-yc .rh-yct { margin-bottom: 6px; }
+.rh .rh-yc .rh-yct b { font-size: 20px; }
+.rh .rh-yc .rh-ycr { padding: 12px 0; border-radius: 0; background: none; box-shadow: none; border-bottom: 2px solid var(--hair); }
+.rh .rh-yc .rh-ycr:last-of-type { border-bottom: 0; }
+.rh .rh-yc .rh-ycs, .rh .rh-yc .rh-more { margin: 8px 0 0; }
+.rh .rh-yc .rh-pairs { margin-top: 8px; }
+.rh .rh-yc .rh-ycall { margin-top: 12px; }
+.rh .rh-yc .btn.rh-ycd { min-height: 42px; height: 42px; }

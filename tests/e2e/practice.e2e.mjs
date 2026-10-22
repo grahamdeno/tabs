@@ -4,15 +4,17 @@ import assert from "node:assert/strict";
 import { chromium, base, skip, LIB, FAKE_MIC, phone, useBrowser, settled } from "./harness.mjs";
 useBrowser();
 
-test("Rehearse leads to the neck; All lessons lists levels with the next lesson lit", { skip: skip() }, async t => {
+test("4.33.0 Rehearse is one page with today's lesson; All lessons lists levels with the next lesson lit", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs }, { home: true });
-  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-list");
-  await page.click("#rh-neck");
-  await page.waitForSelector(".ls-card");
-  assert.equal(await page.innerText("h1.title"), "The neck");
-  /* 4.21.0: the lesson of the day first; every lesson is under All lessons */
+  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-lesson");
+  assert.equal(await page.locator("#rh-neck, .rh-list").count(), 0, "4.33.0: no separate neck page to go to");
+  const order = await page.$$eval(".rh > section, .rh > .ls-skills, .rh > .rh-tiles", e => e.map(x => x.className.split(" ").find(c => /^(rh-lesson|rh-yc|ls-skills|rh-tiles)$/.test(c)) || x.className));
+  assert.deepEqual(order.filter(Boolean).slice(-3), ["rh-yc", "ls-skills", "rh-tiles"]);
+  assert.match(order[0], /rh-lesson/, "today's lesson first");
+  assert.match(await page.innerText(".rh-tiles"), /Sit in with the band[\s\S]*Tuner[\s\S]*What I hear/);
+  /* every lesson is under All lessons */
   await page.click("#ls-all"); await page.waitForSelector(".pk-board");
   assert.equal(await page.locator(".pk-level").count(), 6, "with Scales (3.21.0)");
   assert.equal(await page.locator(".pk-level.soon").count(), 3, "strumming, picking and fingerstyle are coming");
@@ -94,27 +96,27 @@ test("What I hear: the level, the pitch and the string it lights, and readings t
   assert.deepEqual(errors, []);
 });
 
-test("Rehearse (4.8.0): the soundcheck is built from the changes you dropped, and a dropped change drills from here", { skip: skip() }, async t => {
+test("4.33.0 Your changes takes in the soundcheck: the changes you dropped come first, drill from here, +20 XP for both", { skip: skip() }, async t => {
   const d = new Date(), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const page = await phone(t, { ...LIB, rehearse: { misses: { "C>F": { n: 4, days: { [k]: 4 } }, "G>Em": { n: 2, days: { [k]: 2 } } } } }, { home: true });
-  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-sc");
-  assert.match(await page.innerText(".rh-sc"), /Soundcheck[\s\S]*C to F[\s\S]*G to Em[\s\S]*START · \+20 XP/);
-  assert.equal(await page.innerText(".rh-n"), "6");
-  await page.click("#rh-missed"); await page.waitForSelector(".rh-pair");
-  assert.equal(await page.locator(".rh-pair").count(), 2);
-  await page.click("#rh-sc"); await page.waitForSelector(".pk-pair");
+  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-yc");
+  assert.equal(await page.locator(".rh-sc").count(), 0, "no separate soundcheck card");
+  const yc = await page.innerText(".rh-yc");
+  assert.match(yc, /Soundcheck: drill both marked for \+20 XP/);
+  assert.match(yc, /C → F[\s\S]*Dropped 4× in your gigs this week[\s\S]*G → Em[\s\S]*Dropped 2×/);
+  assert.match(await page.innerText("#rh-ycall"), /\+20 XP/);
+  await page.click(".rh-ycd >> nth=0"); await page.waitForSelector(".pk-pair");
   assert.match(await page.innerText("h1.title"), /C to F/, "C to F isn't on the neck, but it drills");
   await page.click("#pk-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText(".rd-first-t"), /One more change for today's soundcheck/);
   assert.equal(await page.innerText("#pk-next"), "Back to Rehearse");
-  await page.click("#pk-next"); await page.waitForSelector(".rh-sc");
-  await page.click("#rh-sc"); await page.waitForSelector(".pk-pair");
+  await page.click("#pk-next"); await page.waitForSelector(".rh-ycr.ok");
+  await page.click(".rh-ycd >> nth=1"); await page.waitForSelector(".pk-pair");
   assert.match(await page.innerText("h1.title"), /G to Em/, "on to the second");
   await page.click("#pk-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText(".rd-first-t"), /Soundcheck done: \+20 XP/);
-  await page.click("#pk-next"); await page.waitForSelector(".rh-sc.done");
-  await page.click("#rh-neck"); await page.waitForSelector(".ls-card");
-  await page.click("#back"); await page.waitForSelector(".rh-list");
+  await page.click("#pk-next"); await page.waitForSelector(".rh-yc");
+  assert.match(await page.innerText(".rh-yc"), /Soundcheck done for today/);
 });
 
 test("4.21.0 the lesson of the day: three parts from your songs, Start, and a switch lesson ticks its part", { skip: skip() }, async t => {
@@ -124,9 +126,10 @@ test("4.21.0 the lesson of the day: three parts from your songs, Start, and a sw
   await page.evaluate(() => { location.hash = "#/practice/neck"; }); await page.waitForSelector(".ls-card");
   const card = await page.innerText(".ls-card");
   assert.match(card, /C to Dm, then the Verse/);
-  assert.match(card, /Built from Anger/);
-  assert.match(card, /Warm up: G to C/);
+  assert.match(await page.getAttribute(".ls-step[data-part='0']", "aria-label"), /Warm up: G to C/);
   assert.match(card, /Play the Verse at 70%/);
+  assert.match(await page.evaluate(() => location.hash), /#\/practice/, "4.33.0: the neck's address opens Rehearse");
+  assert.equal(await page.locator(".rh-yc").count(), 1, "on the Rehearse page");
   assert.equal(await page.locator(".ls-step").count(), 3);
   assert.match(await page.innerText("#ls-go"), /Start lesson/);
   assert.match(await page.innerText(".ls-skills"), /Open chords[\s\S]*Switches[\s\S]*Scales/);
@@ -148,7 +151,7 @@ test("4.21.0 the lesson of the day: three parts from your songs, Start, and a sw
 test("4.23.0 Your changes in Rehearse: three rows with why and landed, Drill, and Drill all three goes on to the next", { skip: skip() }, async t => {
   const d = new Date(), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const songs = [{ ...LIB.songs[0], id: "dl", title: "Anger", body: "[V]\n[C]a [Dm]b [C]c [Dm]d [C]e [Dm]f" }, { ...LIB.songs[1], id: "pc", title: "Porch", body: "[V]\n[Em]a [Am]b [Em]c [Am]d [Em]e [Am]f" }, { ...LIB.songs[1], id: "gc", title: "Gee", body: "[V]\n[G]g [C]h [G]i [C]j [G]k [C]l" }];
-  const page = await phone(t, { ...LIB, songs, rehearse: { lands: { "G>C": { n: 41, days: { [k]: 41 } } }, misses: { "G>C": { n: 2, days: { [k]: 2 } } } } }, { home: true });
+  const page = await phone(t, { ...LIB, songs, rehearse: { lands: { "G>C": { n: 41, days: { [k]: 41 } } }, misses: { "G>C": { n: 2, days: { [k]: 2 } } }, sc: { day: k, got: ["s:G-C"], pairs: ["s:G-C"], done: true } } }, { home: true }); /* today's soundcheck already done */
   await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-yc");
   assert.equal(await page.locator(".rh-ycr").count(), 2);
   const txt = await page.innerText(".rh-yc");

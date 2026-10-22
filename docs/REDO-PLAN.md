@@ -163,6 +163,17 @@ The audit found (2026-10-21):
 
 ## Step 13 [Opus] 4.33.0: Rehearse as one page (board "Rehearse · one page with the neck in it")
 
-- [ ] 13.1 Rehearse shows, in order: today's lesson card (from the neck, with Start or Go on), Your changes (which also takes over Missed changes and Soundcheck), Your skills (three bars, All lessons), and More ways to practice (Sit in with the band, Tuner, What I hear) as three tiles.
-- [ ] 13.2 `#/practice/neck` opens Rehearse at the lesson; the skills page (`#/practice/skills`) stays as All lessons. Lessons go back to Rehearse.
-- [ ] 13.3 Tests: update the neck and Rehearse tests; the lesson card starts the lesson from Rehearse.
+- [x] 13.1 Rehearse shows, in order: today's lesson card (from the neck, with Start or Go on), Your changes (which also takes over Missed changes and Soundcheck), Your skills (three bars, All lessons), and More ways to practice (Sit in with the band, Tuner, What I hear) as three tiles.
+- [x] 13.2 `#/practice/neck` opens Rehearse at the lesson; the skills page (`#/practice/skills`) stays as All lessons. Lessons go back to Rehearse.
+- [x] 13.3 Tests: update the neck and Rehearse tests; the lesson card starts the lesson from Rehearse.
+
+## Step 14 [Opus] 4.34.0: Learn a language (German, Spanish or Russian)
+
+Graham (2026-10-22): one language for every song, chosen from German, Spanish and Russian (nothing to install on the phone). Mockups first, then his go.
+- [ ] 14.1 Mockups: the picker (first open and in Settings), the Song tab row named for the language, the practice sheet and a word card in Spanish and in Russian.
+- [ ] 14.2 One setting, `settings.lang` ("de", "es" or "ru"; German when missing, so nothing changes for him). The Tools row, the practice sheet and toasts use the language's name.
+- [ ] 14.3 The AI instructions per language (the levels stay the same). Grammar extras by language: der/die/das colours for German; el/la for Spanish; Russian shows stress marks and a transliteration line under each Russian line (Cyrillic is new to read).
+- [ ] 14.4 The voice: the best installed voice for the chosen language (`bestGermanVoice` becomes `bestVoice(lang)`).
+- [ ] 14.5 Data: `song.de` stays as the stored field name for whichever language is on (docs/DATA.md says so) with a `lang` tag on it; switching languages keeps nothing from the old one (one language for every song), after a confirm that says how many songs lose their translation. Backups leave it out, as now.
+- [ ] 14.6 Tests: the picker, a Spanish and a Russian translation (mocked), switching asks first, German users see no change.
+
