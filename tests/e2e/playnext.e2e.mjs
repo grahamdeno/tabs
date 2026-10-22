@@ -33,8 +33,13 @@ test("Play next: switch to A step up, the AI is asked for harder songs, and the 
 
   await page.click("#nx-x"); await page.waitForFunction(() => !document.querySelector("#nx-body") && JSON.parse(localStorage.getItem("tabs-v1")).settings.nextLevel === "step");
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.nextLevel, "step");
-  await page.click("#nextidea"); await until(() => systems.length > 2);
-  assert.match(systems[2], /real step up/, "the choice is remembered");
+  await page.click("#nextidea"); await page.waitForFunction(() => /Breakwater/.test(document.querySelector("#nx-body")?.innerText));
+  assert.equal(systems.length, 2, "4.30.1: reopened within the hour, the same list without asking again");
+  assert.equal(await page.getAttribute("#nx-level [data-lv='step']", "aria-pressed"), "true", "the choice is remembered");
+  await page.click("#nx-scrim", { position: { x: 20, y: 10 } }).catch(() => {});
+  assert.equal(await page.locator("#nx-body").count(), 1, "4.30.1: a tap outside doesn't close it");
+  await page.click("#nx-more"); await until(() => systems.length > 2);
+  assert.match(systems[2], /real step up/, "Show different songs still asks");
 });
 
 // replies with a stray brace before the JSON, one bad reply, or two.
@@ -91,9 +96,9 @@ test("Play next: songs already shown are sent along so the list moves on (2.13.1
   await page.click("#q").catch(() => {}); await page.waitForSelector("#nextidea");
   await page.click("#nextidea"); await until(() => asks.length > 0);
   assert.doesNotMatch(asks[0], /Already suggested/);
-  await page.click("#nx-x"); await page.waitForFunction(() => !document.querySelector("#nx-body"));
-  await page.click("#nextidea"); await until(() => asks.length > 1);
-  assert.match(asks[1], /Already suggested: Low Tide/);
+  await page.waitForSelector("#nx-more");
+  await page.click("#nx-more"); await until(() => asks.length > 1);
+  assert.match(asks[1], /Already suggested: Low Tide|Not these either: Low Tide/);
   assert.match(asks[1], /Variety number: \d+/);
 });
 

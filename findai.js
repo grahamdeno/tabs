@@ -478,6 +478,11 @@ function nextSeen(add = []) {
    through a crate of records, each one of your chords. */
 const NX_TINT = ["#3A86FF", "#7A2E8E", "#0F8B8D", "#F2B705", "#FF5A4E", "#2E4640"];
 const nxTile = (x, i) => `linear-gradient(135deg, ${NX_TINT[i % NX_TINT.length]}, ${NX_TINT[(i + 3) % NX_TINT.length]})`;
+/* 4.30.1: the last list stays for an hour, so a sheet closed by mistake opens to the same songs
+   without asking again (and without the wait). A tap outside no longer closes it; Close does. */
+let nxLast = null;
+try { nxLast = JSON.parse(sessionStorage.getItem("tabs.nx.last.v1") || "null"); } catch { /* private mode */ }
+const NX_KEEP = 60 * 60 * 1000;
 export async function nextSongs() {
   const known = chordCounts(data.songs).slice(0, 24);
   const level = () => data.settings.nextLevel === "step" ? "step" : "same";
@@ -487,7 +492,7 @@ export async function nextSongs() {
     <div class="nx-top" id="nx-top"></div><div class="pbody" id="nx-body"></div><div class="pfoot" id="nx-foot"></div></div>`;
   const stop = () => { audio?.pause(); audio = null; playing = -1; };
   const close = () => { stop(); clearTimeout(lineTimer); layer.innerHTML = ""; };
-  $("nx-scrim").onclick = close; $("nx-x").onclick = close;
+  $("nx-x").onclick = close;
   /* which of your songs one chord opens: the songs short of just that chord (the Songbook's Can play check) */
   const have = knownChords(data);
   const opens = c => have.size ? data.songs.filter(s => s.format !== "tab" && (() => { const ch = sheetChords(s.body); const miss = ch.filter(n => !have.has(n)); return ch.length && miss.length === 1 && miss[0] === c; })()).length : 0;
@@ -595,15 +600,19 @@ export async function nextSongs() {
         .map((x, i) => ({ ...x, i })).sort((a, b) => a.new.length - b.new.length || a.i - b.i); /* fewest new chords first */
       state = { busy: false, err: "", skip, list };
       nextSeen(list.map(x => x.title));
+      nxLast = { lv, skip, list, at: Date.now() };
+      try { sessionStorage.setItem("tabs.nx.last.v1", JSON.stringify(nxLast)); } catch { /* full or private */ }
       if (!list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
       else covers(list);
     } catch (e) {
       if (lv !== level()) return;
       state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form The Road couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
     }
-    paint();
+    if ($("nx-body")) paint(); /* closed while loading: the list is still kept for next time */
   };
-  load();
+  if (nxLast && nxLast.lv === level() && nxLast.list?.length && Date.now() - nxLast.at < NX_KEEP) {
+    state = { busy: false, err: "", skip: nxLast.skip || [], list: nxLast.list }; paint(); covers(state.list);
+  } else load();
 }
 
 // The tempo of a song in the library that has none, for the metronome: the
