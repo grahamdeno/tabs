@@ -194,6 +194,36 @@ const DRAW = {
       <rect x="12" y="92" width="18" height="20" rx="6" fill="${C.silverD}"/><rect x="170" y="92" width="18" height="20" rx="6" fill="${C.silverD}"/>
       ${feet(168, C.silverD, [72, 128])}`;
   },
+  clip: m => { /* a pick holder: a black clip, wider at the top, a spare orange pick in it, an orange band */
+    const body = (f, dx, dy) => `<path d="M${52 + dx} ${66 + dy} Q${52 + dx} ${56 + dy} ${62 + dx} ${56 + dy} H${138 + dx} Q${148 + dx} ${56 + dy} ${148 + dx} ${66 + dy} L${132 + dx} ${168 + dy} Q${130 + dx} ${178 + dy} ${120 + dx} ${178 + dy} H${80 + dx} Q${70 + dx} ${178 + dy} ${68 + dx} ${168 + dy}Z" fill="${f}"/>`;
+    return `<path d="M100 74 C88 74 66 52 66 34 C66 18 82 12 100 12 C118 12 134 18 134 34 C134 52 112 74 100 74Z" fill="${C.orangeD}" transform="translate(5 4)"/>
+      <path d="M100 74 C88 74 66 52 66 34 C66 18 82 12 100 12 C118 12 134 18 134 34 C134 52 112 74 100 74Z" fill="${C.orange}"/>${hi(80, 20, 26, 6)}
+      ${solid(body, C.black, C.blackD)}${hi(64, 64, 40, 7)}
+      <rect x="70" y="146" width="60" height="14" rx="7" fill="${C.orange}"/>
+      ${face(100, 106, 0.8, m)}${feet(178, C.blackD, [84, 116])}`;
+  },
+  vial: m => { /* a vacuum tube: a glass bulb with warm filaments inside, on a silver base with pins */
+    const glass = (f, dx, dy) => `<path d="M${58 + dx} ${150 + dy} V${70 + dy} Q${58 + dx} ${26 + dy} ${100 + dx} ${22 + dy} Q${142 + dx} ${26 + dy} ${142 + dx} ${70 + dy} V${150 + dy}Z" fill="${f}"/>`;
+    return `${glass("#B9E4F5", 6, 4)}${glass("#E4F6FD", 0, 0)}
+      <rect x="96" y="12" width="8" height="14" rx="4" fill="#B9E4F5"/>
+      <path d="M70 142 V58 M130 142 V58 M70 58 H130" fill="none" stroke="${C.silverD}" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="100" cy="66" rx="26" ry="12" fill="${C.orangeL}" opacity=".45"/>
+      <path d="M82 72 q4 -14 9 0 q4 -14 9 0 q4 -14 9 0 q4 -14 9 0" fill="none" stroke="${C.orange}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${hi(62, 48, 6, 70)}
+      ${face(100, 108, 0.72, m)}
+      <rect x="54" y="148" width="98" height="22" rx="8" fill="${C.silverD}"/><rect x="50" y="146" width="98" height="22" rx="8" fill="${C.silver}"/>${hi(58, 150, 40, 5)}
+      ${[72, 90, 108, 126].map(x => `<rect x="${x - 3}" y="168" width="6" height="18" rx="3" fill="${C.silverD}"/>`).join("")}`;
+  },
+  bottle: m => { /* a bottle slide: a clear glass tube, open at the top, a thicker ring of glass at the bottom */
+    const tube = (f, dx, dy) => `<rect x="${62 + dx}" y="${26 + dy}" width="76" height="150" rx="22" fill="${f}"/>`;
+    return `${solid(tube, "#DDF5F8", "#9FD9E2")}
+      <ellipse cx="100" cy="30" rx="34" ry="9" fill="#9FD9E2"/><ellipse cx="100" cy="30" rx="26" ry="5" fill="#C5EDF2"/>
+      <rect x="62" y="150" width="76" height="20" rx="10" fill="#B7E6EE"/>
+      ${hi(72, 46, 10, 92)}${hi(122, 60, 5, 50)}
+      ${face(102, 94, 0.82, m)}
+      ${arm(62, 112, 38, 128, "#9FD9E2")}${arm(138, 112, 162, 96, "#9FD9E2")}
+      ${feet(176, "#9FD9E2", [84, 116])}`;
+  },
   whammy: m => { /* whammy bar: a silver rod that curls, with a round tip for a head */
     return `<path d="M60 176 Q60 120 96 112 Q140 104 142 70" fill="none" stroke="${C.silverD}" stroke-width="16" stroke-linecap="round"/>
       <path d="M58 172 Q56 118 94 108 Q136 100 138 68" fill="none" stroke="${C.silver}" stroke-width="12" stroke-linecap="round"/>
@@ -207,7 +237,8 @@ export const FRIENDS = [
   ["lola", "Lola", "Acoustic guitar"], ["jax", "Jax", "Effects pedal"], ["tilly", "Tilly", "Tuner"], ["milo", "Milo", "Microphone"],
   ["bex", "Bex", "Bass amp"], ["pip", "Pip", "Pick"], ["beat", "Beat", "Bass drum"], ["slide", "Slide", "Brass slide"],
   ["strap", "Strap", "Guitar strap"], ["key", "Key", "Keyboard key"], ["metro", "Metro", "Metronome"], ["pickup", "Pickup", "Single-coil pickup"], ["whammy", "Whammy", "Whammy bar"],
-  ["shaker", "Shaker", "Maraca"], ["reverb", "Reverb", "Reverb tank"], ["triangle", "Triangle", "Triangle"], ["looper", "Looper", "Looper pedal"], ["humb", "Humb", "Humbucker"]
+  ["shaker", "Shaker", "Maraca"], ["reverb", "Reverb", "Reverb tank"], ["triangle", "Triangle", "Triangle"], ["looper", "Looper", "Looper pedal"], ["humb", "Humb", "Humbucker"],
+  ["clip", "Pick-Clip", "Pick holder"], ["vial", "Vial", "Vacuum tube"], ["bottle", "Bottle-Slide", "Bottle slide"]
 ].map(([id, name, what]) => ({ id, name, what }));
 
 export function friend(id, { size = 120, mood = "happy" } = {}) {

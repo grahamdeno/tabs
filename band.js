@@ -27,7 +27,10 @@ const LINES = {
   reverb: "Reverb makes a small room sound like an arena.",
   triangle: "Triangle waits all song for one perfect ding.",
   whammy: "Whammy bends the rules, and the notes.",
-  looper: "Looper plays it again. And again."
+  looper: "Looper plays it again. And again.",
+  clip: "Pick-Clip keeps a spare pick where you can reach it.",
+  vial: "Vial glows warm before every show.",
+  bottle: "Bottle-Slide plays the blues, one long note at a time."
 };
 const nameOf = id => FRIENDS.find(f => f.id === id)?.name || id;
 

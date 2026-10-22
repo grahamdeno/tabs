@@ -42,7 +42,7 @@ guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp, Pip pick (rounder,
 yellow, never rainbow), Beat bass drum, Slide brass slide, Strap guitar strap
 (multicolor is fine), Key keyboard key, Metro metronome, Pickup single-coil,
 Whammy whammy bar, Shaker maraca, Reverb tank, Triangle, Looper pedal, Humb
-humbucker. Graham dropped Boomer, Cable and Reed. Drawings are in `friends.js`.
+humbucker, Pick-Clip pick holder (the face is on the clip, not the pick), Vial vacuum tube, Bottle-Slide glass slide (4.37.0). Graham dropped Boomer, Cable and Reed. Drawings are in `friends.js`.
 
 Built, one release each, stopping after each for Graham to try: the look, the
 Gig (4.1.0), one song screen (4.2.0), Full (4.4.0), Tour quests (4.5.0), Charts

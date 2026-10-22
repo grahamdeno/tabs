@@ -337,7 +337,8 @@ export function badgesOf(data, p) {
 // play behind you in gigs once they've joined, unless Settings or the Band tab turn that off.
 export const BAND = [
   ["lola", 1], ["tilly", 3], ["beat", 6, "drums"], ["metro", 10], ["bex", 15, "bass"], ["jax", 20], ["milo", 26], ["pip", 32], ["key", 40],
-  ["strap", 48], ["slide", 56], ["shaker", 65], ["pickup", 75], ["humb", 85], ["reverb", 95], ["triangle", 110], ["whammy", 125], ["looper", 140]
+  ["strap", 48], ["slide", 56], ["shaker", 65], ["pickup", 75], ["humb", 85], ["reverb", 95], ["triangle", 110], ["whammy", 125], ["looper", 140],
+  ["clip", 160], ["vial", 180], ["bottle", 200] /* 4.37.0: Graham's art, 2026-10-22 */
 ].map(([id, at, plays]) => ({ id, at, ...(plays ? { plays } : {}) }));
 export function bandState(data) {
   const plays = lifetimePlays(data), seen = new Set(data.band?.seen || []);

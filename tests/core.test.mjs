@@ -1843,7 +1843,7 @@ test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles
 
 test("Your band (4.7.0): friends join as you play; Beat and Bex play in gigs", () => {
   const data = { songs: [], sets: [], trash: [], settings: {}, journal: { v: 1, months: { "2026-10": { plays: 7 } } } };
-  assert.equal(C.BAND.length, 18);
+  assert.equal(C.BAND.length, 21, "4.37.0: Pick-Clip, Vial and Bottle-Slide joined");
   const st = C.bandState(data);
   assert.deepEqual(st.joined.map(b => b.id), ["lola", "tilly", "beat"]);
   assert.deepEqual([st.next.id, st.next.more], ["metro", 3]);

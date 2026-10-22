@@ -479,9 +479,9 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.match(await page.innerText(".bt"), /wants your spot[\s\S]*TAKE THE STAGE/);
   await page.click("#bt-no"); await page.waitForSelector(".ch-head");
   await page.click("#tabs [data-tab=band]"); await page.waitForSelector(".bd-head");
-  const joined = +(await page.innerText(".bd-head")).match(/(\d+) OF 18 JOINED/)[1];
+  const joined = +(await page.innerText(".bd-head")).match(/(\d+) OF 21 JOINED/)[1];
   assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
-  assert.equal(await page.locator(".bd-card.locked").count(), 18 - joined);
+  assert.equal(await page.locator(".bd-card.locked").count(), 21 - joined);
   assert.match(await page.innerText(".bd-next"), /NEXT TO JOIN[\s\S]*more song/);
   await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-node.now");
   await page.click(".rd-node.now"); await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
