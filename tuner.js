@@ -13,6 +13,8 @@ const noteLabel = n => n.replace(/-?\d$/, "").replace("b", "♭").replace("#", "
 /* String names on the headstock: the top string is "e" when it doubles the low E. */
 const stringName = (notes, i) => { const n = noteLabel(notes[i]); return i === 5 && n === noteLabel(notes[0]) ? n.toLowerCase() : n; };
 const octave = n => (/(-?\d)$/.exec(n) || [])[1] || "";
+/* where the nut sits on each drawing, for its cream bar */
+const NUT = { acoustic: [449, 1036], electric: [444, 950] };
 const MODES = [["acoustic", "Acoustic"], ["electric", "Electric"], ["chromatic", "Chromatic"]];
 let tunerState = null;
 
@@ -67,10 +69,18 @@ function headSVG(kind, t, { mini = false } = {}) {
   const pad = mini ? 10 : 230;
   const cur = mini ? -1 : t.cur, good = !mini && t.good;
   const col = good ? "var(--good)" : "var(--tn-lit)"; /* 4.17.2: the string in hand in a colour that stands out on the headstock; green when in tune */
-  let s = `<svg viewBox="${-pad} 0 ${H.w + pad * 2} ${mini ? 1760 : H.h}" ${mini ? 'aria-hidden="true"' : `role="img" aria-label="${esc(MODES.find(m => m[0] === kind)[1])} headstock"`}><path d="${H.d}" fill="var(--head)" fill-rule="evenodd"/>`;
-  if (mini) return s + "</svg>";
+  let s = `<svg viewBox="${-pad} 0 ${H.w + pad * 2} ${mini ? 1760 : H.h}" ${mini ? 'aria-hidden="true"' : `role="img" aria-label="${esc(MODES.find(m => m[0] === kind)[1])} headstock"`}>`;
+  if (mini) return s + `<path d="${H.d}" fill="var(--head)" fill-rule="evenodd"/></svg>`;
+  /* 4.25.0: the headstock in colour, flat with no outlines. The face and a darker right half, clipped to the
+     drawing; acoustic adds a dark veneer along the top, electric a highlight stripe. The colours are CSS
+     variables on .tuner2[data-kind], and the electric one follows Louie's finish (body[data-wear]). */
+  s += `<defs><clipPath id="tn-clip"><path d="${H.d}" clip-rule="evenodd"/></clipPath></defs><g clip-path="url(#tn-clip)" class="tn-face"><rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="${H.h}" fill="var(--tn-face)"/><rect x="${H.w / 2}" y="0" width="${H.w / 2 + pad}" height="${H.h}" fill="var(--tn-side)"/>`
+    + (kind === "acoustic" ? `<rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="150" fill="var(--tn-vein)"/>` : `<rect x="${H.w * 0.3}" y="0" width="70" height="${H.h}" rx="35" fill="var(--lv-hi)" opacity=".45"/>`) + `</g>`;
+  const [n0, n1] = NUT[kind];
+  s += `<rect x="${n0}" y="${H.nutY - 24}" width="${n1 - n0}" height="40" rx="12" fill="var(--tn-post)"/>`;
   H.strings.forEach((g, i) => {
     const [kx, ky, kw, kh] = g.key, on = i === cur, done = !!t.ok[i];
+    s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="var(--tn-post)"/><rect x="${kx}" y="${ky + 14}" width="${kw}" height="${kh}" rx="44" fill="${done && !on ? "var(--good)" : "var(--tn-keylip)"}" opacity="${done && !on ? 0.55 : 1}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${done && !on ? "var(--good)" : "var(--tn-key)"}"/>`;
     if (on) {
       /* the string itself wavers while the mic hears it (.ringing on the stage, styles.css) */
       s += `<g class="tn-lit"><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="18" stroke-linecap="round"/>`;
@@ -80,7 +90,7 @@ function headSVG(kind, t, { mini = false } = {}) {
     /* The note is printed on its key, so changing the tuning relabels the
        keys; a tuned string gets a check beside its key. */
     const name = stringName(notes, i);
-    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 800 : 700}" style="font-family: var(--display)"${on ? ' class="on"' : ""} fill="${on ? "#14110d" : "var(--bg)"}">${name}</text>`;
+    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 800 : 700}" style="font-family: var(--display)"${on ? ' class="on"' : ""} fill="${on || done ? "#14110d" : "var(--tn-ink)"}">${name}</text>`;
     if (done && !on) s += `<text x="${g.side < 0 ? kx - 30 : kx + kw + 30}" y="${ky + kh / 2 + 32}" text-anchor="${g.side < 0 ? "end" : "start"}" font-size="92" font-weight="600" fill="var(--good)">✓</text>`;
     // a generous tap target over the key and its name
     const hx = g.side < 0 ? kx - 230 : kx;
@@ -138,12 +148,16 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   layer.innerHTML = `
     <div class="tuner2" role="dialog" aria-label="Tuner">
       <div class="tn-top">
-        <label class="tn-chip">Tuning <b id="tn-tname"></b>${icon("chev", "chev")}<select id="tn-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("")}</select></label>
+        <button class="tn-menubtn" id="tn-menubtn" aria-haspopup="true" aria-expanded="false" aria-controls="tn-menu"><b id="tn-tname"></b>${icon("chev", "chev")}</button>
         <button class="tb go" id="tn-done">Done</button>
       </div>
-      <div class="tn-tiles" role="tablist" aria-label="Instrument">${MODES.map(([k, n]) => `<button class="tn-tile" role="tab" data-mode="${k}"><span>${n}</span><i>${k === "chromatic" ? `<svg viewBox="0 0 80 40" aria-hidden="true">${[-3, -2, -1, 0, 1, 2, 3].map(j => `<rect x="${39 + j * 10}" y="${j === 0 ? 2 : j % 2 ? 14 : 9}" width="${j === 0 ? 3 : 1.8}" height="${j === 0 ? 36 : j % 2 ? 22 : 28}" rx="1" fill="currentColor" opacity="${j === 0 ? 1 : 0.55}"/>`).join("")}</svg>` : headSVG(k, t, { mini: true })}</i></button>`).join("")}</div>
+      <div class="tn-menu" id="tn-menu" hidden>
+        <div class="cap" id="tn-ihd">Instrument</div>
+        <div class="tn-seg" role="tablist" aria-labelledby="tn-ihd">${MODES.map(([k, n]) => `<button class="tn-opt" role="tab" data-mode="${k}">${n}</button>`).join("")}</div>
+        <label class="tn-menurow" id="tn-tuning-row"><span class="cap">Tuning</span><b id="tn-tname2"></b>${icon("chev", "chev")}<select id="tn-tuning" aria-label="Tuning">${Object.entries(TUNINGS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("")}</select></label>
+      </div>
       <div class="tn-read">
-        <div class="tn-note"><b id="tn-n">·</b><sub id="tn-o"></sub></div>
+        <div class="tn-note"><b id="tn-n">–</b><sub id="tn-o"></sub></div>
         <div class="tn-sayrow"><i class="tn-lamp" id="tn-lamp" aria-hidden="true"></i><span class="tn-say" id="tn-say" role="status">Starting the microphone…</span></div>
         <div class="tn-c" id="tn-c"></div>
       </div>
@@ -159,11 +173,16 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   $("tn-done").onclick = closeTuner;
   const sel = $("tn-tuning");
   sel.value = t.tuning;
-  sel.onchange = () => { t.tuning = sel.value; t.ok = []; t.lock = -1; t.finished = false; t.cur = t.guided ? 0 : -1; paint(); };
+  /* 4.25.0: one pill, "Standard · Acoustic", opens the menu with the instrument and the tuning */
+  const menu = $("tn-menu"), menuBtn = $("tn-menubtn");
+  const openMenu = on => { menu.hidden = !on; menuBtn.setAttribute("aria-expanded", on); };
+  menuBtn.onclick = () => openMenu(menu.hidden);
+  sel.onchange = () => { t.tuning = sel.value; t.ok = []; t.lock = -1; t.finished = false; t.cur = t.guided ? 0 : -1; openMenu(false); paint(); };
   layer.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
     t.mode = b.dataset.mode; st.tunerMode = t.mode; Tabs.save(data);
-    t.finished = t.finished && t.mode !== "chromatic"; paint();
+    t.finished = t.finished && t.mode !== "chromatic"; openMenu(false); paint();
   });
+  layer.querySelector(".tuner2").addEventListener("click", e => { if (!menu.hidden && !e.target.closest("#tn-menu, #tn-menubtn")) openMenu(false); });
 
   const paintHead = () => {
     const stage = $("tn-stage");
@@ -182,8 +201,11 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
   // Everything that changes with the mode, the tuning or the string in hand.
   const paint = () => {
     const chrom = t.mode === "chromatic";
-    $("tn-tname").textContent = TUNINGS[t.tuning].name;
-    layer.querySelector(".tn-top label").hidden = chrom;
+    const kindName = MODES.find(m => m[0] === t.mode)[1];
+    $("tn-tname").textContent = chrom ? kindName : `${TUNINGS[t.tuning].name} · ${kindName}`;
+    $("tn-tname2").textContent = TUNINGS[t.tuning].name;
+    $("tn-tuning-row").hidden = chrom;
+    layer.querySelector(".tuner2").dataset.kind = t.mode;
     layer.querySelectorAll("[data-mode]").forEach(b => { const on = b.dataset.mode === t.mode; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
     layer.querySelector(".tuner2").classList.toggle("chrom", chrom);
     if (t.guided && !chrom && !t.finished && t.cur < 0) t.cur = guidedTarget(t.ok);
@@ -274,8 +296,8 @@ function idle(t) {
   $("tn-lamp")?.classList.remove("on");
   if ($("tn-pill")) $("tn-pill").textContent = "";
   if (t.finished && t.mode !== "chromatic") return;
-  $("tn-n").textContent = "·"; $("tn-o").textContent = ""; $("tn-c").textContent = "";
-  layer.querySelector(".tn-note")?.classList.remove("glow");
+  $("tn-n").textContent = "–"; $("tn-o").textContent = ""; $("tn-c").textContent = "";
+  layer.querySelector(".tn-note")?.classList.remove("glow", "live");
   if (t.mode === "chromatic") return t.say("Play a note");
   const notes = TUNINGS[t.tuning].notes;
   t.say(t.guided && t.cur >= 0 ? `Play the ${stringName(notes, t.cur)} string` : t.lock >= 0 ? `Play the ${stringName(notes, t.lock)} string` : "Play a string");
@@ -353,7 +375,7 @@ function listen(t, an, buf) {
   const good = adv.tone === "good";
   if (!t.guided && t.lock < 0 && idx !== t.cur) { t.cur = idx; t.good = good; t.paintHead(); }
   if (good !== t.good) { t.good = good; t.paintHead(); if (good && !t.ok[idx]) haptic(1); /* in the zone: hold it */ }
-  $("tn-n").textContent = stringName(notes, idx); $("tn-o").textContent = octave(notes[idx]);
+  $("tn-n").textContent = stringName(notes, idx); $("tn-o").textContent = octave(notes[idx]); layer.querySelector(".tn-note")?.classList.add("live");
   layer.querySelector(".tn-note")?.classList.toggle("glow", good); /* in tune: the letter glows */
   $("tn-c").textContent = `${cents > 0 ? "+" : ""}${cents} cents · ${fs.toFixed(1)} Hz`;
   const name = stringName(notes, idx);
@@ -400,7 +422,7 @@ function readChromatic(t, fs) {
   if (!t.shown || n.name + n.octave !== t.shown.key) t.shown = { key: n.name + n.octave, n, f: fs * Math.pow(2, -n.cents / 1200) };
   const good = Math.abs(n.cents) <= TUNE.good;
   $("tn-lamp")?.classList.add("on");
-  $("tn-n").textContent = n.name.replace("b", "♭").replace("#", "♯"); $("tn-o").textContent = n.octave;
+  $("tn-n").textContent = n.name.replace("b", "♭").replace("#", "♯"); $("tn-o").textContent = n.octave; layer.querySelector(".tn-note")?.classList.add("live");
   layer.querySelector(".tn-note")?.classList.toggle("glow", good);
   $("tn-c").textContent = `${n.cents > 0 ? "+" : ""}${n.cents} cents · ${fs.toFixed(1)} Hz`;
   const a = Math.abs(n.cents);

@@ -68,11 +68,11 @@ Don't change how the search bar works: only the screen under it while it's focus
 
 ## Step 5 [Sonnet] 4.25.0: Tuner (boards "Tuner v3 · acoustic in colour" and "Tuner v3 · electric in colour")
 
-- [ ] 5.1 `tuner.js`: Acoustic, Electric and Chromatic move into the tuning menu (one pill: "Standard · Acoustic ▾"); the three type cards go.
-- [ ] 5.2 The note big at the top (96px, `--display`) with the status beside it ("A little sharp", "Loosen it slightly · +12"), and the meter bolder (thicker ticks, a filled in-tune zone, a 6px needle in `--accent`).
-- [ ] 5.3 `headSVG` keeps the drawing and the lit, shimmering string, and adds colour, flat with no outlines: the headstock path filled in a face colour with a darker right half (clip the path, two rects), keys in their own colour with a darker lip, posts and the nut in cream. Acoustic: mahogany face `#9A5B34`, side `#7A4426`, a darker veneer, cream keys. Electric: Louie's finish (`--lv-body` for the face, `--lv-shade` for the side, `--lv-hi` for a highlight stripe), so it follows `body[data-wear]`. The key in hand is `--tn-lit`, tuned keys `--good` with a check.
-- [ ] 5.4 Chromatic keeps its dial.
-- [ ] 5.5 Tests: the type is chosen from the menu and saved; the electric face uses the Louie finish (set `data-wear="pink"` and check the fill); existing tuner tests still pass, including 4.24.0's haptics and party (`.tn-party` is appended to `#tn-stage`, so the new stage must keep `#tn-stage` and `position: relative`).
+- [x] 5.1 `tuner.js`: Acoustic, Electric and Chromatic move into the tuning menu (one pill: "Standard · Acoustic ▾"); the three type cards go.
+- [x] 5.2 The note big at the top (96px, `--display`) with the status beside it ("A little sharp", "Loosen it slightly · +12"), and the meter bolder (thicker ticks, a filled in-tune zone, a 6px needle in `--accent`).
+- [x] 5.3 `headSVG` keeps the drawing and the lit, shimmering string, and adds colour, flat with no outlines: the headstock path filled in a face colour with a darker right half (clip the path, two rects), keys in their own colour with a darker lip, posts and the nut in cream. Acoustic: mahogany face `#9A5B34`, side `#7A4426`, a darker veneer, cream keys. Electric: Louie's finish (`--lv-body` for the face, `--lv-shade` for the side, `--lv-hi` for a highlight stripe), so it follows `body[data-wear]`. The key in hand is `--tn-lit`, tuned keys `--good` with a check.
+- [x] 5.4 Chromatic keeps its dial.
+- [x] 5.5 Tests: the type is chosen from the menu and saved; the electric face uses the Louie finish (set `data-wear="pink"` and check the fill); existing tuner tests still pass, including 4.24.0's haptics and party (`.tn-party` is appended to `#tn-stage`, so the new stage must keep `#tn-stage` and `position: relative`).
 
 ## Step 6 [Sonnet] 4.26.0: The Songbook, slimmer (board "Songbook · slimmer")
 
@@ -120,3 +120,4 @@ The fetch costs time and AI calls, so nothing throws it away by accident. Code: 
 - Step 4 (4.23.0): the old Changes sheet was already gone in 4.20.0, so 4.3 removed nothing. Your profile's "most played" changes card (`pf-chg`, `.pf-drill`) stays.
 - Step 4: a lesson opened from Rehearse used to bounce to the neck when its switch was still locked on the ladder (Em to Am before G to C), and ended on "Next: <the ladder's next lesson>". Rehearse drills now open locked switches and end on "Back to Rehearse".
 - 4.24.0 (outside the plan, from the phone): the neck's Start listening sat there disabled after it started, because `.btn`'s `display: flex` beat the `hidden` attribute, so it looked broken. Fixed with a listening state, plus a tuner in the neck and tuner haptics. Steps 5 to 7 moved up one minor version and Play next and Play together moved to Steps 8 and 9.
+- Step 5 (4.25.0): the instrument tiles and the tuning chip became one pill and one menu (`#tn-menubtn`, `#tn-menu`, with `[data-mode]` buttons and the native `#tn-tuning` select inside), so tests open the menu before choosing Chromatic. The idle big note shows a muted dash. Electric keys are silver and acoustic keys cream (plan said "their own colour").

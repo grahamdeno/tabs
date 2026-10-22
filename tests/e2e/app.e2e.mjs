@@ -300,7 +300,23 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   await page.waitForSelector('#tn-say');
   const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent, tag: document.getElementById("tn-tag").textContent }));
   assert.equal((await read()).say, "Play the E string");
-  assert.equal(await page.locator(".tn-tile.on").textContent(), "Acoustic");
+  assert.equal(await page.locator(".tn-opt.on").textContent(), "Acoustic");
+  /* 4.25.0: one pill says the tuning and the instrument; the note is big and always there */
+  assert.equal((await page.innerText("#tn-menubtn")).trim(), "Standard · Acoustic");
+  assert.ok(await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".tn-note b")).fontSize) >= 96), "the note is 96px");
+  assert.equal(await page.isVisible("#tn-menu"), false, "the menu starts closed");
+  const faceFill = () => page.evaluate(() => getComputedStyle(document.querySelector(".tn-face rect")).fill);
+  assert.equal(await faceFill(), "rgb(154, 91, 52)", "acoustic is wood");
+  await page.click("#tn-menubtn"); await page.click("[data-mode='electric']");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.tunerMode === "electric");
+  assert.equal(await page.isVisible("#tn-menu"), false, "choosing closes the menu");
+  assert.equal((await page.innerText("#tn-menubtn")).trim(), "Standard · Electric");
+  assert.equal(await faceFill(), "rgb(58, 134, 255)", "electric follows Louie's finish: the stock blue");
+  await page.evaluate(() => { document.body.dataset.wear = "pink"; });
+  assert.equal(await faceFill(), "rgb(255, 79, 163)", "and Pink");
+  await page.evaluate(() => { delete document.body.dataset.wear; });
+  await page.click("#tn-menubtn"); await page.click("[data-mode='acoustic']");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.tunerMode === "acoustic");
   const at = (hz, cents) => page.evaluate(f => { window.__hz = f; }, hz * 2 ** (cents / 1200));
   /* 2.16.1: an octave slip on the low E still reads E, 20 cents flat, not a far-off note */
   await at(82.41 * 2, -20); await page.waitForFunction(() => document.getElementById('tn-n').textContent === 'E' && document.getElementById('tn-say').textContent === 'Tighten the E string');
@@ -331,7 +347,7 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   await page.waitForSelector(".tn-party .louie");
   assert.equal(await page.evaluate(() => document.querySelector(".tn-note").classList.contains("glow")), true, "and glows");
   assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--tune")), /#/, "the tuner's green");
-  await page.click("[data-mode='chromatic']");
+  await page.click("#tn-menubtn"); await page.click("[data-mode='chromatic']");
   await at(185, -12); await page.waitForFunction(() => document.getElementById('tn-n').textContent === 'F♯' && document.getElementById('tn-say').textContent === 'A little flat');
   const r = await read();
   assert.equal(r.note, "F♯");

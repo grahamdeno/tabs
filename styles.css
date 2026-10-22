@@ -724,21 +724,16 @@ body.tuning { overflow: hidden; }
 .tn-chip b { color: var(--fg); font-weight: 600; }
 .tn-chip .chev { width: 12px; height: 12px; transform: rotate(90deg); color: var(--muted); }
 .tn-chip select { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
-.tn-tiles { display: flex; gap: 8px; margin-top: 10px; }
-.tn-tile { flex: 1; height: 92px; border-radius: 16px; border: 1px solid var(--rim); color: var(--muted); padding: 10px 0 0; display: flex; flex-direction: column; align-items: center; overflow: hidden; font: 600 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; }
-.tn-tile i { display: flex; justify-content: center; align-items: flex-start; margin-top: 8px; height: 60px; }
-.tn-tile i svg { height: 64px; width: auto; }
-.tn-tile[data-mode="chromatic"] i svg { height: 36px; margin-top: 8px; }
-.tn-tile.on { border-color: var(--accent-line); color: var(--accent-ink); }
-:root[data-theme="light"] .tn-tile.on { color: #8f4524; } /* small caps on a copper tint need a deeper copper */
-.tn-read { text-align: center; margin-top: 18px; }
+.tn-read { display: grid; grid-template-columns: auto 1fr; column-gap: 16px; align-items: center; text-align: left; margin-top: 14px; }
+.tn-read .tn-sayrow { justify-content: flex-start; grid-column: 2; }
+.tn-read .tn-c { grid-column: 2; }
 /* Strings show the advice only: the headstock already says which string.
    Chromatic and "All in tune" keep the big letter. */
-.tn-note { min-height: 78px; display: none; align-items: baseline; justify-content: center; }
-.tuner2.chrom .tn-note, .tn-note.done { display: flex; }
-.tn-note b { font-family: var(--serif); font-weight: 400; font-size: 72px; line-height: 1; color: var(--fg); }
+.tn-note { grid-row: 1 / span 2; min-width: 96px; min-height: 104px; display: flex; align-items: baseline; justify-content: center; }
+.tn-note b { font-family: var(--display, var(--serif)); font-weight: 700; font-size: 96px; line-height: 1; color: var(--fg); }
 .tn-note sub { font-size: 22px; color: var(--muted); margin-left: 2px; vertical-align: baseline; }
-.tn-note.done b { font-size: 46px; color: var(--good); }
+.tn-note:not(.live):not(.done) b { color: var(--rim); }
+.tn-note.done b { font-size: 40px; color: var(--good); }
 .tn-sayrow { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 24px; }
 .tn-say { font: 500 18px var(--sans); color: var(--fg); }
 .tn-say.warn { font-weight: 400; font-size: 14px; color: var(--muted); padding: 0 10px; }
@@ -753,11 +748,11 @@ body.tuning { overflow: hidden; }
   box-shadow: var(--recess-shadow), 0 0 0 3px rgba(0,0,0,.35); overflow: hidden; }
 .tn-meter { position: absolute; inset: 0; }
 .tn-meter[hidden] { display: none; }
-.tn-tick { position: absolute; top: 24px; width: 1.5px; height: 22px; margin-left: -.75px; border-radius: 1px; background: rgba(241,227,196,.38); }
-.tn-tick.big { top: 18px; height: 34px; background: rgba(241,227,196,.6); }
-.tn-zone { position: absolute; top: 12px; bottom: 8px; border-radius: 5px; background: color-mix(in srgb, var(--good) 16%, transparent); }
+.tn-tick { position: absolute; top: 22px; width: 3px; height: 24px; margin-left: -1.5px; border-radius: 2px; background: rgba(241,227,196,.5); }
+.tn-tick.big { top: 16px; height: 36px; width: 4px; margin-left: -2px; background: rgba(241,227,196,.8); }
+.tn-zone { position: absolute; top: 12px; bottom: 8px; border-radius: 5px; background: color-mix(in srgb, var(--good) 30%, transparent); }
 .tn-mid { position: absolute; left: 50%; top: 8px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--recess-fg); }
-.tn-dot { position: absolute; top: 18px; width: 6px; height: 34px; margin-left: -3px; border-radius: 3px; --c: #e0a43a; background: var(--c); box-shadow: 0 0 10px var(--c); transition: left .12s ease-out, background .2s, opacity .3s; }
+.tn-dot { position: absolute; top: 14px; width: 8px; height: 40px; margin-left: -4px; border-radius: 4px; --c: #e0a43a; background: var(--c); box-shadow: 0 0 10px var(--c); transition: left .12s ease-out, background .2s, opacity .3s; }
 .tn-dot.far { --c: #d9534f; }
 .tn-dot.good { --c: var(--good); }
 .tn-dot.idle { opacity: 0; left: 50%; }
@@ -771,11 +766,11 @@ body.tuning { overflow: hidden; }
 .tn-stage .tn-key { cursor: pointer; }
 .tn-stage svg text { font-family: var(--sans); }
 .tn-dial { width: 100%; max-width: 320px; height: auto; }
-#tn-needle line { stroke: var(--accent); } #tn-needle circle { fill: var(--accent); }
+#tn-needle line { stroke: var(--accent); stroke-width: 6; } #tn-needle circle { fill: var(--accent); }
 #tn-needle.good line { stroke: var(--good); } #tn-needle.good circle { fill: var(--good); }
 #tn-needle.idle { opacity: .25; }
 #tn-needle { transform-box: view-box; transform-origin: 150px 176px; transition: transform .16s cubic-bezier(.3,.7,.4,1), opacity .3s; } /* glides between readings */
-.tuner2.chrom .tn-note b { font-size: 92px; }
+.tuner2.chrom .tn-note b { font-size: 96px; }
 .tn-foot { display: flex; align-items: center; gap: 10px; min-height: 48px; flex: none; }
 .tn-foot .btn { flex: 1; height: 46px; }
 .tn-foot .btn.primary { flex: 1.4; }
@@ -1452,11 +1447,8 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 /* ---- The tuner: an amp front ----
    Tolex behind everything, the instrument tiles as channel buttons with a
    lamp on the one in use, and a pilot lamp that lights while a note is heard. */
-.tn-tile { background: var(--tolex-card); background-size: 120px 120px, auto; border-color: var(--bronze-line); box-shadow: var(--tolex-inset); }
-.tn-tile.on { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--tolex-card); background-size: auto, 120px 120px, auto; }
-.tn-tile > span { display: inline-flex; align-items: center; gap: 6px; }
-.tn-tile > span::before, .tn-lamp { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
-.tn-tile.on > span::before, .tn-lamp.on { background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
+.tn-lamp { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--lamp-off); box-shadow: var(--lamp-ring); transition: background .3s, box-shadow .3s; }
+.tn-lamp.on { background: var(--lamp-on); box-shadow: var(--lamp-ring), var(--lamp-glow); }
 .tn-lamp { width: 10px; height: 10px; }
 .tn-sayrow:has(.warn) .tn-lamp, .tuner2.chrom .tn-lamp { display: none; }
 :root[data-theme="light"] .tn-pill { background: var(--card); border-color: var(--bronze-line); color: var(--fg-2); }
@@ -3163,3 +3155,26 @@ body.gigging .ask { z-index: 66; }
 .tn-louie { position: absolute; bottom: 4px; right: 8px; animation: tn-louie .5s cubic-bezier(.3,1.6,.5,1) both; }
 @keyframes tn-louie { from { transform: translateY(40px) scale(.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .tn-party i { display: none; } .tn-louie { animation: none; } }
+
+/* 4.25.0 Tuner: one pill with the instrument and tuning in a menu, the note big, the headstock in colour */
+.tn-menubtn { height: 44px; padding: 0 16px; border: 0; border-radius: 16px; background: var(--card-2); color: var(--fg); box-shadow: 0 4px 0 var(--rim); display: inline-flex; align-items: center; gap: 8px; font: 700 16px var(--display, var(--sans)); cursor: pointer; }
+.tn-menubtn .chev { width: 12px; height: 12px; transform: rotate(90deg); color: var(--muted); }
+.tn-top { position: relative; }
+.tn-menu { position: absolute; z-index: 6; left: 0; right: 0; top: 100%; margin: 6px 0 0; padding: 12px; border-radius: 20px; background: var(--card); box-shadow: 0 6px 0 var(--rim), 0 14px 30px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 10px; }
+.tn-menu[hidden] { display: none; }
+.tn-seg { display: flex; gap: 4px; background: var(--card-2); border-radius: 16px; padding: 4px; }
+.tn-opt { flex: 1; height: 44px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: 700 15px var(--display, var(--sans)); cursor: pointer; }
+.tn-opt.on { background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+.tn-menurow { position: relative; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-radius: 14px; background: var(--card-2); }
+.tn-menurow[hidden] { display: none; }
+.tn-menurow b { flex: 1; text-align: right; font: 700 16px var(--display, var(--sans)); }
+.tn-menurow .chev { width: 12px; height: 12px; transform: rotate(90deg); color: var(--muted); }
+.tn-menurow select { position: absolute; inset: 0; opacity: 0; font-size: 16px; width: 100%; }
+.tuner2 { --tn-face: #9A5B34; --tn-side: #7A4426; --tn-vein: #5E3318; --tn-key: #F1E3C2; --tn-keylip: #C9B48A; --tn-post: #F1E3C2; --tn-ink: #2A1A0F; }
+.tuner2[data-kind="electric"] { --tn-face: var(--lv-body); --tn-side: var(--lv-shade); --tn-key: #DDE2EA; --tn-keylip: #98A1B0; --tn-post: #EFEAD8; }
+body[data-wear="pink"] .tuner2 { --lv-body: #FF4FA3; --lv-shade: #D93A8A; --lv-hi: #FF84C0; }
+body[data-wear="teal"] .tuner2 { --lv-body: #0F8B8D; --lv-shade: #0B6F71; --lv-hi: #3BA7A9; }
+body[data-wear="tweed"] .tuner2 { --lv-body: #D8B571; --lv-shade: #B08A48; --lv-hi: #EBD39C; }
+body[data-wear="black"] .tuner2 { --lv-body: #2A2B33; --lv-shade: #16171C; --lv-hi: #474956; }
+body[data-wear="mint"] .tuner2 { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; }
+body[data-wear="gold"] .tuner2 { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; }
