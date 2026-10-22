@@ -11,7 +11,7 @@ import { HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, chordTargets, cleanS
 import { CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, GIG_STRINGS, GIG_WINDOW, MERCH, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigChange, gigCrowd, gigDone, gigFans, gigPct, gigStart, gigTiming, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.28.0";
+export const VERSION = "4.29.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -745,8 +745,8 @@ export async function unpackShare(code) {
     const p = JSON.parse(new TextDecoder().decode(bytes));
     const ok = s => s && typeof s.title === "string" && typeof s.body === "string";
     // Play together: a start time and tempo ride along with the song.
-    const duet = p.duet && Number.isFinite(p.duet.at) && p.duet.at > 1.6e12 && p.duet.at < 4e12
-      ? { at: Math.round(p.duet.at), bpm: Math.min(300, Math.max(30, +p.duet.bpm || 90)) } : null;
+    /* Play together: 4.29.0 links carry only the tempo (a clap starts both phones); an older link's start time is dropped */
+    const duet = p.duet && typeof p.duet === "object" ? { bpm: Math.min(300, Math.max(30, +p.duet.bpm || 90)) } : null;
     const duel = cleanDuelLink(p.duel);
     if (p.song && ok(p.song)) return duet ? { song: shareable(p.song), duet } : duel ? { song: shareable(p.song), duel } : { song: shareable(p.song) };
     if (p.set && Array.isArray(p.set.songs) && p.set.songs.every(ok))

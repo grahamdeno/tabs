@@ -3307,3 +3307,24 @@ body.searching .gs-kept { display: none; }
 .nx-ghost::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--card) 70%, transparent), transparent); animation: nx-sh 1.6s infinite; }
 @keyframes nx-sh { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .nx-card, .nx-louie .louie, .nx-ghost::after { animation: none; } .nx-rec { animation: none; } .nx-rec:not(:first-child) { display: none; } }
+
+/* 4.29.0 Play together: your part, and one clap starts both phones */
+.panel.pt { padding: 6px 20px calc(18px + var(--safe-b)); }
+.pt-head { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.pt-head b { display: block; font: 700 24px var(--display); color: var(--fg); }
+.pt-head span { font: 700 14px var(--sans); color: var(--muted); }
+.pt-cap { margin-top: 16px; font: 800 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pt-parts { margin-top: 8px; width: 100%; }
+.pt-parts button { flex: 1; height: 42px; }
+.pt-note { margin: 6px 0 0; font: 700 13px var(--sans); color: var(--muted); line-height: 1.4; }
+.pt-start { margin-top: 8px; padding: 14px; display: flex; gap: 12px; align-items: center; border-radius: 18px; background: var(--card-2); font: 700 14px/1.35 var(--sans); color: var(--fg); }
+.pt-start svg { width: 40px; height: 40px; flex: none; fill: none; stroke: var(--accent-ink); stroke-width: 3; stroke-linecap: round; }
+.pt-start .pt-halo { fill: var(--accent); opacity: .15; stroke: none; }
+.pt-start.on .pt-halo { animation: pt-pulse 1.2s ease-in-out infinite; transform-origin: 20px 20px; }
+@keyframes pt-pulse { 50% { opacity: .35; transform: scale(1.12); } }
+.pt-btns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; margin-top: 18px; }
+.pt-btns .btn { height: 56px; font-size: 16px; }
+.pt-btns .btn.primary { font-size: 18px; }
+.pt-btns .btn.on { background: var(--card-2); color: var(--fg); box-shadow: 0 4px 0 var(--rim); }
+.mel-notes { display: block; margin-top: 2px; font: 700 13px var(--mono, monospace); letter-spacing: .04em; color: var(--accent-ink); }
+@media (prefers-reduced-motion: reduce) { .pt-start.on .pt-halo { animation: none; opacity: .3; } }

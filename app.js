@@ -1069,7 +1069,7 @@ const newDot = k => used(k) ? "" : `<i class="newdot" data-new="${k}" aria-label
 const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k => !used(k));
 /* What Play starts: the Apple Music recording alone, or the band (drums, click, bass) alone.
    A song with a linked recording defaults to the recording; "band" is remembered per song. */
-const usesMusic = song => hasMusic(song) && song.backing !== "band";
+const usesMusic = song => hasMusic(song) && song.backing !== "band" && scroll.part !== "bass"; /* Play together's Bass line plays with the band */
 function setBacking(song, mode, near, quiet) {
   if (mode === "band") song.backing = "band"; else delete song.backing;
   Tabs.save(data);
@@ -1652,7 +1652,7 @@ async function startScroll(song, opts = {}) {
   const first = $("sheet")?.querySelector(":scope > .pr, :scope > .ly, :scope > .tab, :scope > .crow");
   const fr = first?.getBoundingClientRect();
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
-  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.duet = !!opts.duet;
+  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.duet = !!opts.duet; scroll.part = opts.part || ""; /* 4.29.0: Play together's part */
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
@@ -1751,7 +1751,7 @@ onLeave(() => stopScroll());
 function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;
-  scroll.on = false; scroll.duet = false;
+  scroll.on = false; scroll.duet = false; scroll.part = "";
   if (scroll.ms - (scroll.saved || 0) > 1000) { (practicing(viewing) ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();

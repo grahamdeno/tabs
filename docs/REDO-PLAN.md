@@ -105,11 +105,11 @@ The fetch costs time and AI calls, so nothing throws it away by accident. Code: 
 
 ## Step 9 [Opus] 4.29.0: Play together, clap to start (board "Play together · clap to start")
 
-- [ ] 9.1 `share.js` `duetSheet`: Louie waving, "Your part" (Chords, Bass line, Melody; Melody shows the words with the melody notes if the song has a sketch melody, otherwise is hidden), "Start" explaining the clap, and two buttons: **Send song** (today's share link, without the start time) and **Listen for clap**.
-- [ ] 9.2 Listen for clap: the microphone listens for one sharp onset (reuse the strum onset detection the Gig uses); on it, the one-bar count-in starts from the moment of the clap, so two phones in the same room start together. Ignore onsets for 300 ms after opening; time out after 60 s with "Didn't hear a clap. Tap to listen again".
-- [ ] 9.3 Bass line plays Bex's line through the band; Chords is today's play.
-- [ ] 9.4 Remove the start-time picker (In 1, 2, 5 min) and the shared start time from the link; an old link with a time still opens the song.
-- [ ] 9.5 Tests: a mocked onset starts the count-in; the old-link fallback; Send song shares without a time.
+- [x] 9.1 `share.js` `duetSheet`: Louie waving, "Your part" (Chords, Bass line, Melody; Melody shows the words with the melody notes if the song has a sketch melody, otherwise is hidden), "Start" explaining the clap, and two buttons: **Send song** (today's share link, without the start time) and **Listen for clap**.
+- [x] 9.2 Listen for clap: the microphone listens for one sharp onset (reuse the strum onset detection the Gig uses); on it, the one-bar count-in starts from the moment of the clap, so two phones in the same room start together. Ignore onsets for 300 ms after opening; time out after 60 s with "Didn't hear a clap. Tap to listen again".
+- [x] 9.3 Bass line plays Bex's line through the band; Chords is today's play.
+- [x] 9.4 Remove the start-time picker (In 1, 2, 5 min) and the shared start time from the link; an old link with a time still opens the song.
+- [x] 9.5 Tests: a mocked onset starts the count-in; the old-link fallback; Send song shares without a time.
 
 ## Surprises
 
@@ -124,3 +124,4 @@ The fetch costs time and AI calls, so nothing throws it away by accident. Code: 
 - Step 6 (4.26.0): the next dated set still shows, as a card in the Today strip (it carries the gig-day countdown and Play), because dropping the shelf would have lost it; an undated set does not. `setsShelf` and `bindShelf` stay, since the Road's drawer uses them. The dots sit under the strip, not inside it, so they read on every card colour. The plan's "All songs" label became the count line for every filter.
 - Step 7 (4.27.0): putting a song aside also leaves search, so its bar is in view (the bar hides while searching). Starting a new Get the song lets the kept one go with the toast "Let go of Hurt" and Undo, rather than "put aside". The recording cards have no year (LRCLIB doesn't give one) and use a coloured tile for art. A song still being fetched isn't written to sessionStorage, so a reload mid-fetch drops it; only a finished one survives a reload. The swipe down is tested through the scrim tap it fires (ui.js), not with real touches.
 - Step 8 (4.28.0): the chord check happens in Get the song (it says so in the sheet and in a toast after Add) rather than correcting the Play next card, which is closed by then. A cover with no preview falls back to Apple Music search, as the old note button did. "+n songs" counts your songs short of just that chord, using the chords you know from lessons and plays (the Songbook's Can play check), so it is hidden until you know some.
+- Step 9 (4.29.0): the clap is heard on the raw microphone level (the Gig's `strumDetector`, without its guitar-band filter, since a clap is mostly high frequencies). Melody shows the sung notes' names under each line, matched to the sheet's lines in order. Bass line plays with the band even when the song has a linked recording. A link still carries a `duet` marker (tempo only), so the friend lands on Play together; `unpackShare` drops any old start time. The 60-second timeout is not covered by a test. The board's note about the server (seeing when your friend is ready) was left out of the sheet.

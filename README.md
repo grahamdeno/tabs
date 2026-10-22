@@ -55,7 +55,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog, plays previews and saves a recording with its album art and length.
 - Apple Music (optional, its own Settings row): with a subscription, Play can start the recording, and the page follows it line by line (synced lyrics times from LRCLIB) and chord by chord. Its 30-second preview gives the tempo, feel and key. Needs the token Worker (`worker/README.md`).
-- Share a song or set as a link (the song travels inside it). Play together starts two phones at the same moment.
+- Share a song or set as a link (the song travels inside it). Play together (4.29.0, clap to start): pick your part (Chords; Bass line, where Bex plays the bass line with you; or Melody, the words with the notes you sang, when the song has a sung melody), Send song shares it to your friend, then both phones Listen for clap and one clap in the room starts the one-bar count-in on both. No server and no start time. A link opens the song and Play together on your friend's phone (an older link with a start time opens the same way).
 
 ### Help and settings
 - Tips appear once, when they're useful. Settings > Help > Tips & gestures lists every gesture with Show me.

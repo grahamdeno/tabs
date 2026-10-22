@@ -2124,3 +2124,12 @@ test("4.23.0 the changes you land are kept like the ones you drop", () => {
   const clean = C.cleanRehearse(JSON.parse(JSON.stringify(data.rehearse)));
   assert.equal(clean.lands["G>C"].n, 1);
 });
+
+test("4.29.0 Play together links: the tempo rides along, an old start time is dropped", async () => {
+  const song = { title: "A", body: "G C" };
+  const now = await C.unpackShare(await C.packShare({ song, duet: { bpm: 120 } }));
+  assert.deepEqual(now.duet, { bpm: 120 });
+  const old = await C.unpackShare(await C.packShare({ song, duet: { at: Date.now() + 60000, bpm: 500 } }));
+  assert.deepEqual(old.duet, { bpm: 300 }, "the time goes, the tempo is kept in range");
+  assert.equal(old.song.title, "A");
+});

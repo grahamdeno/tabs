@@ -1,52 +1,56 @@
-// Play together: the link carries the song, a start time and the tempo;
-// both phones count in at that moment and scroll together. No server.
+// Play together (4.29.0): pick your part, Send song shares the song without a start time, and one clap
+// heard by the microphone starts the count-in. No server.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { base, skip, LIB, phone, useBrowser } from "./harness.mjs";
+import { base, chromium, skip, LIB, FAKE_MIC, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
-test("Play together: share a start time, and the friend's phone joins and starts on time", { skip: skip() }, async t => {
-  const me = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
-  await me.goto(base + "#/song/a"); await me.waitForTimeout(400);
-  await me.click("#more"); await me.waitForTimeout(150);
-  await me.click(".menu [data-m='duet']"); await me.waitForTimeout(250);
-  await me.click("#du-mins [data-min='1']");
-  if (process.env.SHOT) await me.screenshot({ path: process.env.SHOT + "/duet-share.png" });
-  await me.click("#du-go"); await me.waitForTimeout(400);
+test("Play together: parts, Send song without a start time, and a clap starts the count-in", { skip: skip() }, async t => {
+  const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
+  t.after(() => browser2.close());
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block", permissions: ["clipboard-read", "clipboard-write"] });
+  await ctx.addInitScript(FAKE_MIC);
+  await ctx.addInitScript(json => { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); } }, JSON.stringify({ ...LIB, settings: { ...LIB.settings, countIn: true } }));
+  const me = await ctx.newPage();
+  const errors = []; me.on("pageerror", e => errors.push(String(e)));
+  await me.goto(base + "#/song/a"); await me.waitForSelector("#more");
+  await me.click("#more"); await me.click(".menu [data-m='duet']"); await me.waitForSelector("#pt-listen");
+  const sheet = await me.innerText("[aria-label='Play together']");
+  assert.match(sheet, /Your part[\s\S]*Chords[\s\S]*Bass line/i);
+  assert.doesNotMatch(sheet, /Melody/, "no sung melody, no Melody part");
+  assert.doesNotMatch(sheet, /In 1 min|start time/i, "the start-time picker is gone");
+  await me.click("[data-part='bass']");
+  assert.equal(await me.getAttribute("[data-part='bass']", "aria-pressed"), "true");
+  assert.match(await me.innerText("#pt-pnote"), /Bex plays the bass line/);
+  /* Send song: the song, its tempo and length, and no start time */
+  await me.click("#pt-send");
+  await me.waitForFunction(async () => /#\/import\//.test(await navigator.clipboard.readText().catch(() => "")));
   const url = await me.evaluate(() => navigator.clipboard.readText());
-  assert.match(url, /#\/import\/z/);
-  assert.match(await me.innerText(".duet-wait"), /until the count-in/);
   const got = await me.evaluate(async u => (await import("./core.js")).unpackShare(u.split("#/import/")[1]), url);
   assert.equal(got.song.title, "River Road"); assert.equal(got.song.duration, 30);
-  assert.equal(got.duet.at % 15000, 0, "a quarter-minute start");
-  const ahead = got.duet.at - Date.now();
-  assert.ok(ahead > 45000 && ahead < 80000, `about a minute ahead: ${ahead}`);
-  await me.click("#dw-x"); await me.waitForTimeout(150);
-  assert.equal(await me.locator(".duet-wait").count(), 0, "Cancel stops waiting");
-
-  // The friend: an empty library, a link that starts in nine seconds (room for a busy test machine).
-  const friend = await phone(t, { ...LIB, songs: [] });
-  const code = await friend.evaluate(async g => (await import("./core.js")).packShare({ song: g.song, duet: { at: Date.now() + 9000, bpm: 240 } }), got);
-  await friend.goto(base + "#/import/" + code); await friend.reload();
-  await friend.waitForSelector("[aria-label='Play together']", { timeout: 8000 });
-  const join = await friend.innerText("[aria-label='Play together']");
-  assert.match(join, /River Road/); assert.match(join, /until the count-in/);
-  if (process.env.SHOT) await friend.screenshot({ path: process.env.SHOT + "/duet-join.png" });
-  await friend.click("#dj-yes"); await friend.waitForTimeout(600);
-  assert.match(await friend.evaluate(() => location.hash), /#\/song\//);
-  assert.equal(JSON.parse(await friend.evaluate(() => localStorage.getItem("tabs-v1"))).songs.length, 1, "the song was added");
-  assert.equal(await friend.locator(".duet-wait").count(), 1);
-  assert.equal(await friend.evaluate(() => document.body.classList.contains("playing")), false, "not before the start");
-  /* Starts at the start time (waited for, not slept on, so a busy test machine doesn't flake). */
-  await friend.waitForFunction(() => document.body.classList.contains("playing"), null, { timeout: 15000 });
-  assert.equal(await friend.locator(".countin").count(), 1, "with a count-in");
+  assert.ok(got.duet && got.duet.at === undefined, "marked as Play together, with no start time");
+  /* Listen for clap: one sharp onset starts the count-in */
+  await me.click("[data-part='chords']");
+  await me.click("#pt-listen");
+  await me.waitForFunction(() => /Listening/.test(document.getElementById("pt-listen")?.textContent || ""));
+  assert.equal(await me.evaluate(() => document.body.classList.contains("playing")), false, "nothing before the clap");
+  await me.waitForTimeout(500); /* real timer: past the quiet moment after the tap */
+  await me.evaluate(() => { window.__gain = 0.9; window.__hz = 220; });
+  await me.waitForFunction(() => document.body.classList.contains("playing"), null, { timeout: 5000 });
+  await me.evaluate(() => { window.__hz = 0; });
+  assert.equal(await me.locator(".countin").count(), 1, "the one-bar count-in");
+  assert.equal(await me.locator("[aria-label='Play together']").count(), 0, "the sheet goes");
+  assert.deepEqual(errors, []);
 });
 
-test("Play together: a link opened after its start time just offers the song", { skip: skip() }, async t => {
+test("Play together: a link, even an old one with a start time, opens the song and Play together", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [] });
   const code = await page.evaluate(async s => (await import("./core.js")).packShare({ song: s, duet: { at: Date.now() - 60000, bpm: 90 } }), { title: "Late Song", body: "G C\nla" });
   await page.goto(base + "#/import/" + code); await page.reload();
-  await page.waitForSelector("[aria-label='Shared with you']", { timeout: 8000 });
-  assert.match(await page.innerText("[aria-label='Shared with you']"), /Late Song/);
-  assert.equal(await page.locator(".duet-wait, #dj-yes").count(), 0);
+  await page.waitForSelector("#pj-yes", { timeout: 8000 });
+  assert.match(await page.innerText("[aria-label='Play together']"), /Late Song/);
+  await page.click("#pj-yes");
+  await page.waitForSelector("#pt-listen", { timeout: 8000 });
+  assert.match(await page.evaluate(() => location.hash), /#\/song\//);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.length === 1); /* the song was added */
 });

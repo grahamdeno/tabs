@@ -15,7 +15,7 @@ export const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null };
 const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= 1 ? v : 0.8; };
 /* Your band (4.7.0): in a gig, Beat plays the drums and Bex the bass once they've joined (gigHooks.band) */
 export const metroOn = () => data.settings.metronome || !!gigHooks.band?.drums;
-export const bassOn = () => data.settings.bass || !!gigHooks.band?.bass;
+export const bassOn = () => data.settings.bass || !!gigHooks.band?.bass || scroll.part === "bass"; /* 4.29.0: Play together's Bass line */
 export const metroDrums = () => data.settings.metroSound !== "click" || (!data.settings.metronome && !!gigHooks.band?.drums);
 export async function startMetronome(song) {
   stopMetronome();
