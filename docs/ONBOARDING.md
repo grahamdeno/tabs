@@ -127,7 +127,7 @@ anything a person found on their own is skipped.
 ## Better than tips
 
 - **The tutorial leg.** The first leg of the Road teaches by doing; each pick is one thing, Louie says
-  one line, and finishing it is the reward. Mockup: Design canvas, row "Onboarding · the tutorial leg".
+  one line, and finishing it is the reward. Mockup: Design canvas, row "Onboarding: the tutorial leg" (seven boards, 2026-10-22).
 - **Look tappable before teaching.** A small arrow on the stat bar's three items, a play badge on the
   song cover. A permanent cue beats a tip people dismiss.
 - **Louie explains every page once.** The Merch table already does it: one bubble on a first visit
