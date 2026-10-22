@@ -78,10 +78,10 @@ Don't change how the search bar works: only the screen under it while it's focus
 
 The list is the page. Everything above it shrinks to one strip.
 
-- [ ] 6.1 One "Today" strip (58px, chunky, in the nudge's colour) in place of the nudge card (`todayHTML` and `#nudge` in `library.js`) and "Up next for you" (`upNextHTML`). It pages through what both show today, the streak song first when the streak is at risk, with dots for how many there are ("Today · 1 of 3"). Swipe sideways or tap the dots to page; tapping the strip opens what that card opens today. One item: no dots. Nothing: no strip.
-- [ ] 6.2 Your sets leave the page: drop `setsShelf()` from `.lib-top` in `renderList`. The Sets button in the header (4.20.1) opens them. The empty "New set" tile goes; making a set stays in the Sets list. Keep `setsShelf` if anything else still calls it (grep first).
-- [ ] 6.3 Under the filters, one line: "23 songs" on the left and the sort menu on the right (today's "All songs" label goes).
-- [ ] 6.4 Tests: the strip pages and opens the right song; no sets shelf on All; the first song row sits within 280px of the top at 390x844; update tests that look for `#nudge`, `.upn` or `#sh-all` on the Songbook (grep).
+- [x] 6.1 One "Today" strip (58px, chunky, in the nudge's colour) in place of the nudge card (`todayHTML` and `#nudge` in `library.js`) and "Up next for you" (`upNextHTML`). It pages through what both show today, the streak song first when the streak is at risk, with dots for how many there are ("Today · 1 of 3"). Swipe sideways or tap the dots to page; tapping the strip opens what that card opens today. One item: no dots. Nothing: no strip.
+- [x] 6.2 Your sets leave the page: drop `setsShelf()` from `.lib-top` in `renderList`. The Sets button in the header (4.20.1) opens them. The empty "New set" tile goes; making a set stays in the Sets list. Keep `setsShelf` if anything else still calls it (grep first).
+- [x] 6.3 Under the filters, one line: "23 songs" on the left and the sort menu on the right (today's "All songs" label goes).
+- [x] 6.4 Tests: the strip pages and opens the right song; no sets shelf on All; the first song row sits within 280px of the top at 390x844; update tests that look for `#nudge`, `.upn` or `#sh-all` on the Songbook (grep).
 
 ## Step 7 [Opus] 4.27.0: Get the song that keeps what it found (boards "Get the song · ready", "· which recording", "· swiped away, kept")
 
@@ -121,3 +121,4 @@ The fetch costs time and AI calls, so nothing throws it away by accident. Code: 
 - Step 4: a lesson opened from Rehearse used to bounce to the neck when its switch was still locked on the ladder (Em to Am before G to C), and ended on "Next: <the ladder's next lesson>". Rehearse drills now open locked switches and end on "Back to Rehearse".
 - 4.24.0 (outside the plan, from the phone): the neck's Start listening sat there disabled after it started, because `.btn`'s `display: flex` beat the `hidden` attribute, so it looked broken. Fixed with a listening state, plus a tuner in the neck and tuner haptics. Steps 5 to 7 moved up one minor version and Play next and Play together moved to Steps 8 and 9.
 - Step 5 (4.25.0): the instrument tiles and the tuning chip became one pill and one menu (`#tn-menubtn`, `#tn-menu`, with `[data-mode]` buttons and the native `#tn-tuning` select inside), so tests open the menu before choosing Chromatic. The idle big note shows a muted dash. Electric keys are silver and acoustic keys cream (plan said "their own colour").
+- Step 6 (4.26.0): the next dated set still shows, as a card in the Today strip (it carries the gig-day countdown and Play), because dropping the shelf would have lost it; an undated set does not. `setsShelf` and `bindShelf` stay, since the Road's drawer uses them. The dots sit under the strip, not inside it, so they read on every card colour. The plan's "All songs" label became the count line for every filter.

@@ -62,3 +62,26 @@ test("Settings: find a city for the weather, and remove it", { skip: skip() }, a
   await page.click("#s-cityremove"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.place === undefined);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.place, undefined);
 });
+
+test("4.26.0 Songbook, slimmer: one Today strip that pages, no sets shelf, the list starts high", { skip: skip() }, async t => {
+  const four = [0, 1, 2, 3].map(i => ({ ...LIB.songs[i % 2], id: "s" + i, title: ["River Road", "Harbor Lights", "Wagon Wheel", "Zombie"][i], playLog: i === 1 ? log(30) : i === 0 ? log(1, 2) : undefined }));
+  const sets = [{ id: "x1", name: "Friday Gig", songs: ["s0", "s2"], when: null }, { id: "x2", name: "Porch", songs: ["s1"], when: null }];
+  const page = await phone(t, { ...lib({ place: undefined }), songs: four, sets });
+  await page.waitForSelector("#tdy .tdy-i");
+  const items = await page.locator("#tdy .tdy-i").count(), dots = await page.locator(".tdy-dot").count();
+  assert.ok(items >= 2, "the nudge and Worth another try share the strip");
+  assert.equal(dots, items, "one dot for each");
+  assert.equal(await page.locator(".tdy-dot.on").count(), 1);
+  assert.equal(await page.locator(".shelf, #sh-all, .upn, .lib-top").count(), 0, "no sets shelf and no Up next block");
+  assert.ok((await page.locator("#tdy").boundingBox()).height <= 70, "the strip is slim");
+  const top = (await page.locator("#list .row").first().boundingBox()).y;
+  assert.ok(top < 330, `the first song starts high (at ${Math.round(top)})`);
+  assert.match(await page.innerText("#list .lib-count"), /4 songs/);
+  /* tapping the last dot pages there, and the card opens its song */
+  await page.click(`.tdy-dot[data-k="${items - 1}"]`);
+  await page.waitForFunction(k => document.querySelectorAll(".tdy-dot")[k].classList.contains("on"), items - 1);
+  const last = page.locator("#tdy .tdy-i").last();
+  const goes = await last.getAttribute("data-song") || await last.getAttribute("data-id");
+  await last.click(); await page.waitForFunction(() => /#\/song\//.test(location.hash));
+  assert.equal(decodeURIComponent(await page.evaluate(() => location.hash)), "#/song/" + goes);
+});

@@ -56,12 +56,34 @@ async function fetchWeather(p) {
     if (el && route().name === "library" && !searching) { el.outerHTML = todayHTMLOrSpot(); bindToday(); }
   } catch { /* offline: no weather today */ }
 }
-/* 4.20.0: no streak line here (the stat bar and Your profile have it): just the one nudge, as a card */
+/* 4.26.0: one 58px "Today" strip in place of the nudge card, Up next for you and the up next set. It pages
+   sideways (swipe, or tap a dot), the streak song first when the streak is at risk. A single item has no dots. */
+function todayItems() {
+  const items = [];
+  const up = filter === "all" ? nextSet(data.sets) : null;
+  if (up && up.when) {
+    const cd = gigCountdown(up.when);
+    items.push(`<div class="tdy-i upnext-i" id="upnext" data-set="${esc(up.id)}"><button class="tdy-open" id="un-open" aria-label="Up next: ${esc(up.name)}, ${esc(fullWhen(up.when))}"><span class="tdy-ic">${icon("list")}</span><span class="tdy-t"><small>Up next · ${cd ? "Today" : esc(whenText(up.when))}</small><b>${esc(up.name)}</b></span>${cd ? `<span class="un-cd glow" id="un-cd" aria-hidden="true">${cd}</span>` : ""}</button>${setSongs(up).length ? `<button class="un-play" id="un-play" aria-label="Play ${esc(up.name)}">${icon("play")}</button>` : ""}</div>`);
+  }
+  const n = data.settings.nudge === false ? null : pickNudge({ songs: data.songs, mood: wxMood(), gigToday: data.sets.some(x => gigCountdown(x.when)) });
+  const nudge = n ? `<button class="tdy-i nudge k-${esc(n.kind || "learn")}" id="nudge" data-song="${esc(n.songId)}"><span class="ng-ic">${n.kind === "streak" ? guitarIcon(true, 30) : icon(NUDGE_ICON[n.kind] || "note")}</span><span class="tdy-t"><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span></button>` : "";
+  if (nudge && n.kind === "streak") items.push(nudge);
+  if (filter === "all" && data.songs.length >= 3 && !searching) {
+    const one = data.songs.filter(x => fitOf(x).missing.length === 1).sort((a, b) => (b.status === "learning") - (a.status === "learning") || (b.opened || 0) - (a.opened || 0))[0];
+    const req = requestSong(data);
+    const again = one && req ? null : data.songs.filter(x => { const c = playCount(x); return c >= 1 && c <= 2 && x.status !== "got" && Date.now() - (x.playLog?.last || 0) > 21 * 864e5 && x !== one && x !== req; })
+      .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0];
+    if (one) items.push(`<button class="tdy-i upn-c one" data-id="${esc(one.id)}"><span class="tdy-t"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><em>Learn ${esc(fitOf(one).missing[0])} and it's yours</em></span></button>`);
+    if (req) items.push(`<button class="tdy-i upn-c req" data-gig="${esc(req.id)}"><span class="tdy-t"><small>${data.quests?.heard?.id === req.id ? "FROM YOUR LISTENING" : "REQUESTED"}</small><b>${esc(req.title)}</b><em>2x bonus fans tonight</em></span></button>`);
+    if (again) items.push(`<button class="tdy-i upn-c again" data-id="${esc(again.id)}"><span class="tdy-t"><small>WORTH ANOTHER TRY</small><b>${esc(again.title)}</b><em>You left it ${Math.round((Date.now() - again.playLog.last) / 864e5 / 7)} weeks ago</em></span></button>`);
+  }
+  if (nudge && n.kind !== "streak") items.push(nudge);
+  return items;
+}
 function todayHTML() {
-  if (data.settings.nudge === false) return "";
-  const n = pickNudge({ songs: data.songs, mood: wxMood(), gigToday: data.sets.some(x => gigCountdown(x.when)) });
-  if (!n) return "";
-  return `<div class="today" id="today"><button class="nudge k-${esc(n.kind || "learn")}" id="nudge" data-song="${esc(n.songId)}"><span class="ng-ic">${n.kind === "streak" ? guitarIcon(true, 30) : icon(NUDGE_ICON[n.kind] || "note")}</span><span><small>${esc(n.text)}</small><b>${esc(n.title)}</b></span>${icon("chev", "chev")}</button></div>`;
+  const items = todayItems();
+  if (!items.length) return "";
+  return `<div class="today" id="today"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>`;
 }
 // An empty, hidden #today keeps a place for the line when there's nothing to
 // show yet, so a forecast that arrives after the library is drawn can still
@@ -69,6 +91,22 @@ function todayHTML() {
 const todayHTMLOrSpot = (...a) => todayHTML(...a) || `<div id="today" hidden></div>`;
 function bindToday() {
   $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
+  clearInterval(gigTimer);
+  const strip = $("tdy"); if (!strip) return;
+  strip.querySelectorAll(".upn-c[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
+  strip.querySelectorAll(".upn-c[data-gig]").forEach(b => b.onclick = () => playGig(b.dataset.gig));
+  const up = $("upnext");
+  if (up) {
+    const set = data.sets.find(x => x.id === up.dataset.set);
+    $("un-open").onclick = () => go("#/set/" + encodeURIComponent(set.id));
+    $("un-play")?.addEventListener("click", () => playSet(set));
+    if ($("un-cd")) gigTimer = setInterval(() => { const el = $("un-cd"), t = el && gigCountdown(set.when); if (!el) return clearInterval(gigTimer); if (t) el.textContent = t; else { clearInterval(gigTimer); refreshLibrary(); } }, 1000);
+  }
+  /* the dots follow the swipe, and a tap on a dot pages there */
+  const dots = [...app.querySelectorAll(".tdy-dot")];
+  if (!dots.length) return;
+  strip.addEventListener("scroll", () => { const k = Math.round(strip.scrollLeft / strip.clientWidth); dots.forEach((d, i) => d.classList.toggle("on", i === k)); }, { passive: true });
+  dots.forEach(d => d.onclick = () => strip.scrollTo({ left: +d.dataset.k * strip.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
 }
 /* The filter chips, on the Library page and in Tonight's drawer. */
 export function chipsHTML() {
@@ -97,7 +135,6 @@ export function renderLibrary() {
     </div>
     ${todayHTMLOrSpot()}
     ${chipsHTML()}
-    <div class="lib-top">${filter === "all" ? upNextHTML() : ""}${filter === "all" && data.songs.length ? setsShelf() : ""}</div>
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
       <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
@@ -117,14 +154,11 @@ export function renderLibrary() {
   bindToday();
   $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
   $("setsbtn").onclick = () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); };
-  app.querySelectorAll(".upn-c[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
-  app.querySelectorAll(".upn-c[data-gig]").forEach(b => b.onclick = () => playGig(b.dataset.gig));
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   $("add").onclick = () => newSong();
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
-  bindShelf();
   const q = $("q");
   const enterSearch = () => {
     if (searching) return;
@@ -263,22 +297,6 @@ function fitOf(s) {
   return out;
 }
 const canPlayCount = () => data.songs.filter(s => fitOf(s).can).length;
-/* Up next for you: the song one new chord opens, tonight's request, and (4.19.0, from Your profile's old
-   Comfort zone card) a song you tried once or twice and left three weeks ago, when there's room for it */
-function upNextHTML() {
-  if (data.songs.length < 3 || searching) return "";
-  const one = data.songs.filter(s => fitOf(s).missing.length === 1).sort((a, b) => (b.status === "learning") - (a.status === "learning") || (b.opened || 0) - (a.opened || 0))[0];
-  const req = requestSong(data);
-  const again = one && req ? null : data.songs.filter(s => { const n = playCount(s); return n >= 1 && n <= 2 && s.status !== "got" && Date.now() - (s.playLog?.last || 0) > 21 * 864e5 && s !== one && s !== req; })
-    .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0];
-  if (!one && !req && !again) return "";
-  return `<div class="label">Up next for you</div><div class="upn">
-    ${one ? `<button class="upn-c one" data-id="${esc(one.id)}"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><span>Learn ${esc(fitOf(one).missing[0])} and it's yours</span></button>` : ""}
-    ${req ? `<button class="upn-c req" data-gig="${esc(req.id)}"><small>${data.quests?.heard?.id === req.id ? "FROM YOUR LISTENING" : "REQUESTED"}</small><b>${esc(req.title)}</b><span>2x bonus fans tonight</span></button>` : ""}
-    ${again ? `<button class="upn-c again" data-id="${esc(again.id)}"><small>WORTH ANOTHER TRY</small><b>${esc(again.title)}</b><span>You left it ${Math.round((Date.now() - again.playLog.last) / 864e5 / 7)} weeks ago</span></button>` : ""}
-  </div>`;
-}
-
 const sortBy = sort => {
   const tabs = data.songs.some(s => s.format === "tab"), tabsOnly = filter === "tab" && tabs;
   const opts = Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort && !tabsOnly ? "selected" : ""}>${v}</option>`).join("") + (tabs ? `<option value="tabs" ${tabsOnly ? "selected" : ""}>Tabs only</option>` : "");
@@ -401,8 +419,7 @@ export function renderList() {
         <div class="t">${esc(s.title)}</div>
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
-    ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</span>
-      ${sortBy(sort)}</div>`}
+    ${q ? "" : `<div class="lib-count lrow"><span id="lib-n">${sorted.length} song${sorted.length === 1 ? "" : "s"}</span>${sortBy(sort)}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
   $("sort")?.addEventListener("change", e => {
     if (e.target.value === "tabs") filter = "tab";
