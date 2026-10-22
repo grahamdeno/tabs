@@ -125,3 +125,44 @@ The fetch costs time and AI calls, so nothing throws it away by accident. Code: 
 - Step 7 (4.27.0): putting a song aside also leaves search, so its bar is in view (the bar hides while searching). Starting a new Get the song lets the kept one go with the toast "Let go of Hurt" and Undo, rather than "put aside". The recording cards have no year (LRCLIB doesn't give one) and use a coloured tile for art. A song still being fetched isn't written to sessionStorage, so a reload mid-fetch drops it; only a finished one survives a reload. The swipe down is tested through the scrim tap it fires (ui.js), not with real touches.
 - Step 8 (4.28.0): the chord check happens in Get the song (it says so in the sheet and in a toast after Add) rather than correcting the Play next card, which is closed by then. A cover with no preview falls back to Apple Music search, as the old note button did. "+n songs" counts your songs short of just that chord, using the chords you know from lessons and plays (the Songbook's Can play check), so it is hidden until you know some.
 - Step 9 (4.29.0): the clap is heard on the raw microphone level (the Gig's `strumDetector`, without its guitar-band filter, since a clap is mostly high frequencies). Melody shows the sung notes' names under each line, matched to the sheet's lines in order. Bass line plays with the band even when the song has a linked recording. A link still carries a `duet` marker (tempo only), so the friend lands on Play together; `unpackShare` drops any old start time. The 60-second timeout is not covered by a test. The board's note about the server (seeing when your friend is ready) was left out of the sheet.
+
+# Part 2 (2026-10-21, evening): waiting for Graham's go on the boards
+
+Graham's phone check after Step 9 raised these. Fixes went out as 4.29.1 and 4.29.2 (guitar icon A, the tuner menu, no page zoom, Profile out of More, the lit string's lip, a clean All in tune, Your changes button sizes, the play bar cover). The rest needs his go on the boards in the row "Song screen, Tools in three tabs, Rehearse as one page, one button system". Don't start these until he says so.
+
+## Decisions for Graham
+
+- The song screen: details open from the title (cover, "about this song"), the bar keeps two buttons (Tools, Play), the key chip goes.
+- Tools: three tabs (Play, Practice, Song) with rows instead of fifteen tiles, the tabs at the bottom in thumb reach.
+- Rehearse and the neck become one page: today's lesson, your changes, your skills, more ways to practice.
+- Buttons: three sizes used the same everywhere (main 56, row action 42, chip 32).
+- The key tile at the end of each Songbook row: keep it, or drop it too (it says the same thing as the key chip)?
+
+## Step 10 [Sonnet] 4.30.0: One button and control system (board "Buttons · one system")
+
+The audit found (2026-10-21):
+- [ ] 10.1 Buttons: the main action is 56 tall with 18px text and the shine above the words (`.btn.primary::before` stays clear of the label); row actions (Drill, Learn, Add) are 42 tall and white with a lip; chips are 32. The Your changes Drill buttons become row actions.
+- [ ] 10.2 Segmented controls: seven variants (`.seg`, `.seg mini`, the Songbook filter row, Lines in a gig, the tuner menu, Play next and Get the song levels, Play together parts). One look: the Songbook filter row's (filled accent with its lip). The jewel lamps in the Play next and Get the song level switches (`nx-lamp`, a version 3 leftover) go.
+- [ ] 10.3 Thin outlines: 37 rules still draw `1px solid var(--rim)` borders (the Get the song chips `.cs-meta span`, `.gs-ver`, `.nx-ch span`, `.tn-chip` and more). Version 4 is flat colour on a darker lip: swap them for `box-shadow: 0 3px 0 var(--rim)` on a card colour.
+- [ ] 10.4 Lists of places to go (Rehearse's Skill work, Settings, More): one row (icon tile, name, one line under it, chevron), 56 tall.
+- [ ] 10.5 Tests: a computed-style test per component (height, lip) on two screens each.
+
+## Step 11 [Opus] 4.31.0: The song screen, details from the title (boards "Song · details from the title, two buttons" and "About this song")
+
+- [ ] 11.1 The title row: a small cover (Apple Music art, else the coloured letter tile) and "about this song ›" under the artist; tapping opens About this song. The key chip goes (the key moves into About); "Mark as learning" stays.
+- [ ] 11.2 The play bar: Tools (with its word) and Play. Play's second line says what it plays with. The second button (`#listen`, the recording) goes.
+- [ ] 11.3 About this song replaces the Recording sheet: cover, title, artist, genre and year, a preview button; Tempo, Length and Key tiles; the mismatch note with Match it; "When you press Play" as one segmented control (With the recording, With the band); Timing and Change recording as rows; Done at the bottom. With no recording linked: the same sheet with "Find a recording" in place of the recording rows.
+- [ ] 11.4 Tests: the title opens About; the backing choice is saved per song; no `#listen` in the bar.
+
+## Step 12 [Opus] 4.32.0: Tools in three tabs (boards "Tools · Play", "Tools · Practice", "Tools · Song")
+
+- [ ] 12.1 `songMenu` becomes a sheet with Play, Practice and Song tabs at the bottom (thumb reach); the last tab is remembered.
+- [ ] 12.2 Play: Song length or Speed (stepper), Metronome, Bass line, Now and Next (switches with their value under the name), Lines in a gig, Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words.
+- [ ] 12.3 Rows, not tiles: switches toggle in place; a row with a chevron opens its sheet. The new dots stay on rows.
+- [ ] 12.4 Tests: update every test that opens a tool through `.menu [data-m=…]` (grep), keep the `data-m` values.
+
+## Step 13 [Opus] 4.33.0: Rehearse as one page (board "Rehearse · one page with the neck in it")
+
+- [ ] 13.1 Rehearse shows, in order: today's lesson card (from the neck, with Start or Go on), Your changes (which also takes over Missed changes and Soundcheck), Your skills (three bars, All lessons), and More ways to practice (Sit in with the band, Tuner, What I hear) as three tiles.
+- [ ] 13.2 `#/practice/neck` opens Rehearse at the lesson; the skills page (`#/practice/skills`) stays as All lessons. Lessons go back to Rehearse.
+- [ ] 13.3 Tests: update the neck and Rehearse tests; the lesson card starts the lesson from Rehearse.
