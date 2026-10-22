@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled, openSpeed, speedText } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled, openSpeed, speedText, tool } from "./harness.mjs";
 
 useBrowser();
 
@@ -70,7 +70,7 @@ test("Add the words: paste lyrics on a chord chart and the chords go over them",
   const chart = "[Verse]\nG   D   Em   C\n\n[Chorus]\nC   G   D";
   const page = await phone(t, { ...LIB, songs: [{ id: "c", title: "Chart Song", artist: "X", format: "chords", ai: "chart", body: chart }, ...LIB.songs] });
   await page.goto(base + "#/song/c"); await page.waitForSelector('.metarow');
-  await page.click("#more"); await page.click(".menu [data-m='words']"); await page.waitForSelector('#ws-text');
+  await tool(page, "words"); await page.waitForSelector('#ws-text');
   assert.equal(await page.isDisabled("#ws-ok"), true, "nothing to save before words");
   await page.fill("#ws-text", "first line of the verse here\nsecond line goes on\n\n[Chorus]\nthis is the chorus line");
   await page.waitForFunction(() => /first line of the verse here/.test(document.getElementById('ws-prev')?.textContent || ''));
@@ -189,7 +189,7 @@ test("the bass plays the root of each chord, at the sounding pitch, with the met
   assert.ok(capoed.includes(110), `Capo 2: the G shape sounds an A at 110 Hz (${capoed})`);
   assert.ok(!capoed.includes(98), "the shape's own G is not played");
   await page.evaluate(i => { location.hash = "#/song/" + i; }, "bs1"); await page.waitForSelector("#more");
-  await page.click("#more"); await page.click(".menu [data-m='bass']");
+  await tool(page, "bass");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.bass === false);
   assert.match(await page.innerText("#toast"), /Bass off/);
   assert.deepEqual(errors, []);
@@ -229,7 +229,7 @@ test("a song's groove is found once, used for the song, and changed in Edit", { 
   assert.match(await page.innerText("#toast"), /Groove: Half time, light swing, walking bass/);
   await page.click("#play"); await page.click("#play"); await page.click("#play");
   assert.equal(asks, 1, "asked once; a song with a groove is not looked up again");
-  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForSelector("#ed-g-beat");
+  await tool(page, "edit"); await page.waitForSelector("#ed-g-beat");
   assert.match(await page.innerText(".ed-chips"), /Drums\s*Half time\s*Found/);
   const saved = src => page.waitForFunction(w => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove?.src === w, src);
   await page.selectOption("#ed-g-beat", "rock"); await saved("you");
@@ -294,7 +294,7 @@ test("a bass riff: drawn in Edit, kept on the song, and played on each chord", {
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   const groove = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "rf1").groove);
   await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
-  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForSelector("#ed-g-bass");
+  await tool(page, "edit"); await page.waitForSelector("#ed-g-bass");
   await page.selectOption("#ed-g-bass", "riff"); await page.waitForSelector(".rf-c");
   assert.equal((await page.$$(".rf-c")).length, 16, "sixteen steps");
   assert.equal(await page.innerText(".rf-c[data-k='0']"), "1", "a root on the beat to start from");
@@ -354,13 +354,13 @@ test("Remove the capo: a chart's capo comes off and the chords move to the key i
   await page.evaluate(() => { location.hash = "#/song/cp"; }); await page.waitForSelector("#sheet");
   const chords = () => page.$$eval("#sheet .c", els => els.map(e => e.textContent.trim()).filter(Boolean));
   const before = await chords();
-  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForFunction(() => /No capo \(Capo 2 taken off\)/.test(document.getElementById('sheet').innerText));
+  await tool(page, "capo"); await page.waitForFunction(() => /No capo \(Capo 2 taken off\)/.test(document.getElementById('sheet').innerText));
   const after = await chords();
   assert.match(await page.innerText("#sheet"), /No capo \(Capo 2 taken off\)/);
   assert.ok(before.includes("G") && after.includes("A") && after.includes("F#m"), `G D Em C becomes A E F#m D (${before} → ${after})`);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.id === 'cp').capoOff === true);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "cp").capoOff, true);
-  await page.click("#more"); await page.click(".menu [data-m='capo']"); await page.waitForFunction(() => !/No capo/.test(document.getElementById('sheet').innerText));
+  await tool(page, "capo"); await page.waitForFunction(() => !/No capo/.test(document.getElementById('sheet').innerText));
   assert.deepEqual(await chords(), before, "and back");
 });
 

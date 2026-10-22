@@ -1153,46 +1153,63 @@ function songMenu(song, anchor, redrawSong) {
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier, chords = song.format !== "tab", inGig = gigHooks.on;
   const lines = () => [4, 5, 6, "full"].includes(data.settings.gigLines) ? data.settings.gigLines : 5;
-  const along = [
-    { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", hint: $("sv")?.textContent || "" },
-    { id: "metro", icon: "metro", label: "Metronome", hint: data.settings.metronome ? `On · ${song.bpm || 90}` : "Off" },
-    chords && { id: "bass", icon: "note", label: "Bass line", hint: data.settings.bass ? "On" : "Off" },
-    { id: "duet", icon: "pick", label: "Play together" },
-    { id: "tuner", icon: "fork", label: "Tuner", hint: songTuning(song) !== "standard" ? TUNINGS[songTuning(song)].name : "" },
-    chords && bodyCapo(song.body) && { id: "capo", icon: "fretboard", label: song.capoOff ? "Capo back" : "Capo off", hint: song.capoOff ? `Was ${bodyCapo(song.body)}` : `Capo ${bodyCapo(song.body)}` },
-    chords && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", hint: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "" },
-    { id: "loop", icon: "loop", label: "Practice a section" },
-    chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", hint: data.settings.diagrams === true ? "On" : "Off" }
-  ].filter(Boolean);
-  const theSong = [
-    { id: "edit", icon: "edit", label: "Edit" },
-    { id: "set", icon: "listplus", label: "Add to set" },
-    { id: "share", icon: "share", label: "Share" },
-    chords && (aiKey() || song.de) && { id: "de", icon: "chat", label: "German", hint: deHint.get(song.id) || "" },
-    { id: "listen", icon: "note", label: song.listen ? "Listening link" : "Find a recording", hint: song.listen ? song.listen.service : "" },
-    (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", hint: song.tone ? "Saved" : "" },
-    song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words" }
-  ].filter(Boolean);
+  /* 4.32.0: three tabs at the bottom, in thumb reach (Play, Practice, Song), rows instead of tiles.
+     Switches toggle in place; a row with a chevron opens its sheet. The last tab is remembered. */
+  const capo = chords ? bodyCapo(song.body) : 0;
+  const tabsOf = () => [
+    { id: "play", label: "Play", head: "HOW IT PLAYS", rows: [
+      { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
+      { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: !!data.settings.metronome },
+      chords && { id: "bass", icon: "note", label: "Bass line", sub: "Plays along under the chords", on: !!data.settings.bass },
+      chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", sub: "Chord shapes while you play", on: data.settings.diagrams === true },
+      chords && { id: "lines", icon: "list", label: "Lines in a gig", lines: true },
+      { id: "size", icon: "type", label: "Text size", size: true }
+    ] },
+    { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
+      !inGig && { id: "prac", icon: "loop", label: "Practice mode", sub: practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through", on: practicing(song), prac: true },
+      { id: "loop", icon: "loop", label: "Practice a section", sub: "Pick the part to loop", go: true },
+      chords && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", sub: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "Simpler chords, or a capo", ...(aiKey() ? { go: true } : { on: !!ez?.on }) },
+      capo && { id: "capo", icon: "fretboard", label: "Capo", sub: song.capoOff ? `Off: the sheet says capo ${capo}` : `On: capo ${capo}`, on: !song.capoOff },
+      { id: "tuner", icon: "fork", label: "Tuner", sub: TUNINGS[songTuning(song)].name, go: true },
+      { id: "duet", icon: "pick", label: "Play together", sub: "One clap starts two phones", go: true }
+    ] },
+    !inGig && { id: "song", label: "Song", head: "THE SONG", rows: [
+      { id: "edit", icon: "edit", label: "Edit", sub: "Words, chords and sections", go: true },
+      { id: "set", icon: "listplus", label: "Add to a set", sub: (() => { const x = data.sets.find(z => (z.songs || []).some(i => (i.id || i) === song.id)); return x ? `In ${x.name}` : "Gigs and practice lists"; })(), go: true },
+      { id: "share", icon: "share", label: "Share", sub: "Send the song as a link", go: true },
+      chords && (aiKey() || song.de) && { id: "de", icon: "chat", label: "German", sub: deHint.get(song.id) || "Practice the words in German", go: true },
+      (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", sub: song.tone ? "Saved" : "A tone for your amp", go: true },
+      song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words", sub: "From LRCLIB", go: true }
+    ] }
+  ].filter(Boolean).map(t => ({ ...t, rows: t.rows.filter(Boolean) }));
+  let tab = tabsOf().some(t => t.id === data.settings.toolsTab) ? data.settings.toolsTab : "play";
   const m = document.createElement("div");
   m.setAttribute("role", "menu");
   m.setAttribute("aria-label", "Tools");
   const sheet = oneHandMQ.matches;
-  m.className = "menu tools" + (sheet ? " msheet" : "");
+  m.className = "menu tools tools3" + (sheet ? " msheet" : "");
   if (!sheet) {
     const r = anchor.getBoundingClientRect();
     m.style.bottom = Math.max(12, innerHeight - r.top + 10) + "px";
     m.style.right = Math.max(12, innerWidth - r.right) + "px";
   }
-  const tile = it => `<button class="mrow tl" role="menuitem" data-m="${it.id}"${it.id === "speed" ? ' id="dialbtn"' : ""}><span class="mi">${icon(it.icon)}</span><span class="ml">${it.label}${NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : ""}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ""}</button>`;
+  const sw = on => `<span class="toggle${on ? " on" : ""}" aria-hidden="true"></span>`;
+  const row = it => {
+    const nd = NEW_IN_MENU[it.id] ? newDot(NEW_IN_MENU[it.id]) : "";
+    const left = `<span class="mi">${icon(it.icon)}</span><span class="ml"><span class="t3l">${it.label}${nd}</span>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</span>`;
+    if (it.step) return `<div class="mrow t3" role="group" aria-label="${it.label}">${left}<button class="sb" role="menuitem" data-step="-1" aria-label="${byLength() ? "Shorter" : "Slower"}">${icon("minus")}</button><button class="t3v" role="menuitem" data-m="speed" id="dialbtn" aria-label="${it.label}: ${esc($("sv")?.textContent || "")}. Open the dial"><span>${esc($("sv")?.textContent || "")}</span></button><button class="sb" role="menuitem" data-step="1" aria-label="${byLength() ? "Longer" : "Faster"}">${icon("plus")}</button></div>`;
+    if (it.size) return `<div class="mrow t3 size" role="group" aria-label="Text size">${left}<button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v t3v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`;
+    if (it.lines) return `<div class="mrow t3 tl-lines" role="group" aria-label="Lines in a gig">${left}<div class="seg mini">${[4, 5, 6, "full"].map(n => `<button role="menuitemradio" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-checked="${n === lines()}">${n === "full" ? "All" : n}</button>`).join("")}</div></div>`;
+    if (it.prac) return `<button class="mrow t3" role="menuitemcheckbox" data-prac aria-checked="${it.on}" aria-label="Practice mode">${left}${sw(it.on)}</button>`;
+    if (it.on !== undefined) return `<button class="mrow t3" role="menuitemcheckbox" data-m="${it.id}" aria-checked="${it.on}">${left}${sw(it.on)}</button>`;
+    return `<button class="mrow t3" role="menuitem" data-m="${it.id}">${left}${icon("chev", "t3c")}</button>`;
+  };
   const paint = () => {
+    const tabs = tabsOf();
     m.innerHTML = (sheet ? '<div class="grab" aria-hidden="true"></div>' : "") + `
-      <div class="tl-head"><b>Tools</b>
-        <div class="mrow size" role="group" aria-label="Text size"><span class="ml">Text size</span>
-          <button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div></div>
-      ${chords ? `<div class="tl-lines" role="group" aria-label="Lines in a gig"><span class="ml">Lines in a gig</span><div class="seg mini">${[4, 5, 6, "full"].map(n => `<button role="menuitemradio" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-checked="${n === lines()}">${n === "full" ? "Full" : n}</button>`).join("")}</div></div>` : ""}
-      ${inGig ? "" : `<div class="tl-prac"><span class="ml">Practice mode<small>${practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through"}</small></span><button class="toggle ${practicing(song) ? "on" : ""}" role="switch" data-prac aria-checked="${practicing(song)}" aria-label="Practice mode"></button></div>`}
-      <div class="tl-h">PLAY ALONG</div><div class="tl-grid">${along.map(tile).join("")}</div>
-      ${inGig ? "" : `<div class="tl-h">THE SONG</div><div class="tl-grid">${theSong.map(tile).join("")}</div>`}`;
+      <div class="tl-head"><b>Tools</b><span class="t3-song">${esc(song.title)}</span></div>
+      ${tabs.map(t => `<div class="t3-panel" data-panel="${t.id}"${t.id === tab ? "" : " hidden"}><div class="tl-h">${t.head}</div>${t.rows.map(row).join("")}${t.id === "song" ? '<p class="t3-note">The recording and its details are under the song\'s title.</p>' : ""}</div>`).join("")}
+      <div class="seg t3-tabs" role="tablist" aria-label="Tools">${tabs.map(t => `<button role="tab" data-tab="${t.id}" class="${t.id === tab ? "on" : ""}" aria-selected="${t.id === tab}">${t.label}${t.rows.some(r => NEW_IN_MENU[r.id] && !used(NEW_IN_MENU[r.id])) ? '<i class="newdot"></i>' : ""}</button>`).join("")}</div>`;
   };
   paint();
   document.body.appendChild(m);
@@ -1208,13 +1225,13 @@ function songMenu(song, anchor, redrawSong) {
   }
   /* Keyboard: focus starts on the first item; arrows move, Escape closes. */
   m.addEventListener("keydown", ev => {
-    const its = [...m.querySelectorAll("button")], i = its.indexOf(document.activeElement);
+    const its = [...m.querySelectorAll("button")].filter(b => !b.closest("[hidden]")), i = its.indexOf(document.activeElement);
     if (ev.key === "Escape") { ev.preventDefault(); close(); anchor.focus(); }
     else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); its[(i + (ev.key === "ArrowDown" ? 1 : -1) + its.length) % its.length]?.focus(); }
     else return;
     ev.stopPropagation();
   });
-  m.querySelector("[data-m]")?.focus({ preventScroll: true });
+  (m.querySelector(".t3-panel:not([hidden]) [data-m]") || m.querySelector(".t3-panel:not([hidden]) button"))?.focus({ preventScroll: true });
   m.onclick = ev => {
     ev.stopPropagation();
     const d = ev.target.closest("[data-d]");
@@ -1222,6 +1239,23 @@ function songMenu(song, anchor, redrawSong) {
       song.size = Math.min(1.6, Math.max(0.7, +(song.size + (+d.dataset.d) * 0.1).toFixed(2)));
       Tabs.save(data); paint(); redrawSong();
       return;
+    }
+    const tb = ev.target.closest("[data-tab]");
+    if (tb) { tab = data.settings.toolsTab = tb.dataset.tab; Tabs.save(data); paint(); m.querySelector(`[data-tab="${tab}"]`)?.focus({ preventScroll: true }); return; }
+    const st = ev.target.closest("[data-step]");
+    if (st) {
+      const sp = $("speed"); if (!sp) return;
+      const dir = +st.dataset.step * (byLength() ? -1 : 1), stp = byLength() ? 5 : +sp.step;
+      sp.value = Math.min(+sp.max, Math.max(+sp.min, +sp.value + dir * stp)); sp.oninput?.();
+      paint(); return;
+    }
+    const inPlace = { metro: () => toggleMetronome(song, moreBtn()), bass: () => toggleBass(song, moreBtn()), nn: () => toggleNN(),
+      capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
+      easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
+    const ip = ev.target.closest("[data-m]");
+    if (ip && inPlace[ip.dataset.m] && inPlace[ip.dataset.m]() !== false) {
+      if (NEW_IN_MENU[ip.dataset.m]) markUsed(NEW_IN_MENU[ip.dataset.m]);
+      const id = ip.dataset.m; paint(); m.querySelector(`[data-m="${id}"]`)?.focus({ preventScroll: true }); return;
     }
     if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", moreBtn()); return; }
     const ln = ev.target.closest("[data-lines]");

@@ -3,7 +3,7 @@
 // failure names the screen, the size and the theme.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { base, phone, skip, SONG, useBrowser } from "./harness.mjs";
+import { base, phone, skip, SONG, useBrowser, tool } from "./harness.mjs";
 
 useBrowser();
 
@@ -46,10 +46,10 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await is(() => !document.querySelector(".prow"), "no diagrams over the words while playing");
     /* 3.19.0: on a phone the bar is folded away while playing, so Now and Next is turned on while paused */
     await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("playing"));
-    await page.click("#more"); await page.click('.menu [data-m="nn"]'); await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("nn-on"));
+    await tool(page, "nn"); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" }); /* 4.32.0: switches toggle in place */ await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("nn-on"));
     await is(() => document.body.classList.contains("nn-on") && document.querySelectorAll("#nn svg").length > 0, "Now and Next shows");
     await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("playing"));
-    await page.click("#more"); await page.click('.menu [data-m="nn"]'); await page.waitForFunction(() => !document.body.classList.contains("nn-on") && !!document.querySelector(".prow"));
+    await tool(page, "nn"); await page.waitForFunction(() => !document.body.classList.contains("nn-on") && !!document.querySelector(".prow")); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
     await is(() => !!document.querySelector(".prow"), "diagrams when paused");
     await is(() => [...document.querySelectorAll(".prow .pcard")].every(c => c.getBoundingClientRect().top >= Math.max(document.getElementById("sheet").getBoundingClientRect().top, (r => r && r.right > document.getElementById("sheet").getBoundingClientRect().left && r.left < document.getElementById("sheet").getBoundingClientRect().right ? r.bottom : -1e9)(document.querySelector("#strip .strip")?.getBoundingClientRect())) - 1), "2.26.2: the cards never cover Chords in this song");
     await page.click("#meta"); await page.click("#ab-key"); await page.waitForSelector(".dial.key");

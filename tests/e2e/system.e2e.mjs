@@ -57,3 +57,20 @@ test("4.31.0 Song screen: the title opens About this song, no key chip, the bar 
   await page.click("#rs-done"); await page.waitForSelector("#rs", { state: "detached" });
   await page.click("#meta"); await page.waitForSelector("#rs");
 });
+
+test("4.32.0 Tools: three tabs at the bottom, switches toggle in place, the last tab is remembered", { skip: skip() }, async t => {
+  const page = await phone(t, LIB);
+  await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#more"); await settled(page);
+  await page.click("#more"); await page.waitForSelector(".menu .t3-tabs");
+  assert.deepEqual(await page.$$eval(".menu [data-tab]", b => b.map(x => x.textContent.trim())), ["Play", "Practice", "Song"]);
+  assert.equal(await page.locator(".menu .tl-grid, .menu .mrow.tl").count(), 0, "rows, not tiles");
+  await page.click(".menu [data-m='metro']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metronome === true);
+  assert.equal(await page.locator(".menu").count(), 1, "the sheet stays open");
+  assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "true");
+  await page.click(".menu [data-tab='song']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.toolsTab === "song");
+  assert.ok(await page.isVisible(".menu [data-m='edit']"));
+  assert.equal(await page.locator(".menu [data-m='listen']").count(), 0, "the recording moved to the title");
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+  await page.click("#more"); await page.waitForSelector(".menu [data-tab='song'].on");
+  assert.ok(await page.isVisible(".menu [data-m='edit']"), "reopens on Song");
+});

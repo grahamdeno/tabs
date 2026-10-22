@@ -2,10 +2,10 @@
 // The song and its translation are invented.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { skip, LIB, phone, useBrowser, settled } from "./harness.mjs";
+import { skip, LIB, phone, useBrowser, settled, showTool, tool } from "./harness.mjs";
 /* 4.20.0: German lives in Tools (the chip under the title is gone); its tile shows where it stands */
-const deTile = async page => { await page.click("#more"); await page.waitForSelector(".menu [data-m='de']"); const t = await page.innerText(".menu [data-m='de']"); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" }); return t; };
-const deOpen = async page => { await page.click("#more"); await page.waitForSelector(".menu [data-m='de']"); await page.click(".menu [data-m='de']"); };
+const deTile = async page => { await showTool(page, "de"); const t = await page.innerText(".menu [data-m='de']"); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" }); return t; };
+const deOpen = async page => { await tool(page, "de"); };
 useBrowser();
 
 const BODY = "[Verse]\nG               D\nGrey boats lean on the harbor wall\nC        G\nBring the lights home";

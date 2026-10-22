@@ -2,7 +2,7 @@
 // heard by the microphone starts the count-in. No server.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { base, chromium, skip, LIB, FAKE_MIC, phone, useBrowser } from "./harness.mjs";
+import { base, chromium, skip, LIB, FAKE_MIC, phone, useBrowser, tool } from "./harness.mjs";
 useBrowser();
 
 test("Play together: parts, Send song without a start time, and a clap starts the count-in", { skip: skip() }, async t => {
@@ -14,7 +14,7 @@ test("Play together: parts, Send song without a start time, and a clap starts th
   const me = await ctx.newPage();
   const errors = []; me.on("pageerror", e => errors.push(String(e)));
   await me.goto(base + "#/song/a"); await me.waitForSelector("#more");
-  await me.click("#more"); await me.click(".menu [data-m='duet']"); await me.waitForSelector("#pt-listen");
+  await tool(me, "duet"); await me.waitForSelector("#pt-listen");
   const sheet = await me.innerText("[aria-label='Play together']");
   assert.match(sheet, /Your part[\s\S]*Chords[\s\S]*Bass line/i);
   assert.doesNotMatch(sheet, /Melody/, "no sung melody, no Melody part");

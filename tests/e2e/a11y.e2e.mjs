@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { base, phone, skip, LIB, useBrowser } from "./harness.mjs";
+import { base, phone, skip, LIB, useBrowser, tool } from "./harness.mjs";
 
 useBrowser();
 const require = createRequire(import.meta.url);
@@ -20,7 +20,7 @@ const lib = theme => ({ ...LIB, sets: [{ id: "s", name: "Friday", songIds: ["a",
 const SCREENS = [
   ["tonight", "#/"], ["library", "#/library"], ["song", "#/song/a"], ["set", "#/set/s"], ["settings", "#/settings"], ["trash", "#/trash"], ["gestures", "#/gestures"],
   ["menu", "#/song/a", p => p.click("#more")],
-  ["editor", "#/song/a", async p => { await p.click("#more"); await p.click(".menu [data-m='edit']"); }],
+  ["editor", "#/song/a", async p => { await tool(p, "edit"); }],
   ["question", "#/trash", p => p.click("[data-forget]")],
   ["tuner", "#/library", p => p.click("#tunerbtn")],
   ["sketch", "#/sketch"]

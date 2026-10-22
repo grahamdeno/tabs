@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled } from "./harness.mjs";
+import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled, tool } from "./harness.mjs";
 
 useBrowser();
 
@@ -57,8 +57,7 @@ test("search moves to the top, finds lyrics, and offers to find what's missing",
 test("Edit places a chord over a word, and Text keeps the change", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
-  await page.click("#more"); await page.waitForSelector(".menu [data-m='edit']");
-  await page.click(".menu [data-m='edit']"); await page.waitForSelector(".ce-w[data-word='road']");
+  await tool(page, "edit"); await page.waitForSelector(".ce-w[data-word='road']");
   await page.click(".ce-w[data-word='road']"); await page.waitForSelector("[data-u='E']");
   await page.click("[data-u='E']"); await page.waitForSelector("[data-v='text']");
   await page.click("[data-v='text']"); await page.waitForSelector('#ed-body');
@@ -88,8 +87,7 @@ test("a new set with a date shows as Up next and plays after its title card", { 
 test("a shared song link opens the Shared with you sheet", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
-  await page.click("#more"); await page.waitForSelector(".menu [data-m='share']");
-  await page.click(".menu [data-m='share']");
+  await tool(page, "share");
   /* Waited for, not slept on, so a busy test machine doesn't flake. */
   await page.waitForFunction(async () => /#\/import\//.test(await navigator.clipboard.readText()), null, { timeout: 8000 });
   const url = await page.evaluate(() => navigator.clipboard.readText());
@@ -210,7 +208,7 @@ test("questions are asked in the app: rename a section, any chord, delete for go
   page.on("dialog", d => { d.dismiss(); throw new Error("native dialog: " + d.message()); });
   const body = async () => JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.id === "a").body;
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
-  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForSelector('[data-sec]');
+  await tool(page, "edit"); await page.waitForSelector('[data-sec]');
   await page.click("[data-sec] >> nth=0"); await page.waitForSelector('#ask-in');
   assert.equal(await page.inputValue("#ask-in"), "Verse");
   await page.click(".ask [data-pick='Intro']"); await page.waitForFunction(() => /^\[Intro\]/.test(JSON.parse(localStorage.getItem('tabs-v1')).songs.find(s => s.id === 'a').body));
@@ -247,8 +245,7 @@ test("an Apple Music link sets the song's length; tapping sets the tempo", { ski
   assert.equal(await page.locator("#sv").textContent(), "3:52");
   assert.match(await page.locator("#toast").textContent(), /Length set from the recording: 3:52/);
 
-  await page.click("#more");
-  await page.click(".menu [data-m='edit']");
+  await tool(page, "edit");
   await page.waitForSelector('#ed-tap');
   const box = await page.locator("#ed-tap").boundingBox();
   for (let i = 0; i < 5; i++) { await page.mouse.click(box.x + 10, box.y + 10); await page.waitForTimeout(500); /* real timer */ }

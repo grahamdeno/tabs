@@ -84,8 +84,16 @@ export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } =
 }
 /* The song speed dial (4.2.0: in Tools). Opened by a tap, it stays open to sweep anywhere. */
 export async function openSpeed(page) {
-  await page.click("#more"); await page.click('.menu [data-m="speed"]'); await page.waitForSelector(".dial");
+  await tool(page, "speed"); await page.waitForSelector(".dial");
 }
+/* Tools (4.32.0) has three tabs: open it (unless it's open), go to the tab that holds the item, and show it.
+   tool() taps the item; showTool() only brings it into view. */
+export async function showTool(page, id) {
+  if (!(await page.locator(".menu.tools").count())) { await page.click("#more"); await page.waitForSelector(".menu.tools"); }
+  const tab = await page.evaluate(id => document.querySelector(`.menu [data-m="${id}"]`)?.closest("[data-panel]")?.dataset.panel, id);
+  if (tab && !(await page.locator(`.menu [data-tab="${tab}"].on`).count())) await page.click(`.menu [data-tab="${tab}"]`);
+}
+export async function tool(page, id) { await showTool(page, id); await page.click(`.menu [data-m="${id}"]`); }
 export const speedText = page => page.evaluate(() => document.getElementById("sv").textContent.trim());
 export const skip = () => !chromium && "Playwright not installed";
 

@@ -122,8 +122,8 @@ test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls und
   const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
   await page.click("#more"); await page.click('.menu [data-lines="full"]');
-  assert.equal(await page.innerText(".menu [data-lines].on"), "Full");
-  await page.mouse.click(200, 100); await page.waitForSelector('.menu', { state: 'detached' });
+  assert.equal(await page.innerText(".menu [data-lines].on"), "All", "4.32.0: the whole song is called All");
+  await page.keyboard.press("Escape"); await page.waitForSelector('.menu', { state: 'detached' }); /* a tap at the top now lands on "about this song" */
   await page.click("#play"); await page.waitForSelector("#gig");
   assert.equal(await page.getAttribute("#gig", "data-lines"), "full");
   assert.ok(await page.evaluate(() => document.body.classList.contains("gig-full")), "the page shows");

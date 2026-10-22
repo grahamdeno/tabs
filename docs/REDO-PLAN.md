@@ -156,10 +156,10 @@ The audit found (2026-10-21):
 
 ## Step 12 [Opus] 4.32.0: Tools in three tabs (boards "Tools · Play", "Tools · Practice", "Tools · Song")
 
-- [ ] 12.1 `songMenu` becomes a sheet with Play, Practice and Song tabs at the bottom (thumb reach); the last tab is remembered.
-- [ ] 12.2 Play: Song length or Speed (stepper), Metronome, Bass line, Now and Next (switches with their value under the name), Lines in a gig, Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words.
-- [ ] 12.3 Rows, not tiles: switches toggle in place; a row with a chevron opens its sheet. The new dots stay on rows.
-- [ ] 12.4 Tests: update every test that opens a tool through `.menu [data-m=…]` (grep), keep the `data-m` values.
+- [x] 12.1 `songMenu` becomes a sheet with Play, Practice and Song tabs at the bottom (thumb reach); the last tab is remembered.
+- [x] 12.2 Play: Song length or Speed (stepper), Metronome, Bass line, Now and Next (switches with their value under the name), Lines in a gig, Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words.
+- [x] 12.3 Rows, not tiles: switches toggle in place; a row with a chevron opens its sheet. The new dots stay on rows.
+- [x] 12.4 Tests: update every test that opens a tool through `.menu [data-m=…]` (grep), keep the `data-m` values.
 
 ## Step 13 [Opus] 4.33.0: Rehearse as one page (board "Rehearse · one page with the neck in it")
 

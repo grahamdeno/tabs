@@ -3402,3 +3402,34 @@ button.ab-tile b { color: var(--accent-ink); }
 .shead .meta .sh-ab { flex-basis: 100%; }
 .rs-head .rs-art.ab-lt { background: var(--tile); box-shadow: 0 4px 0 color-mix(in srgb, var(--tile) 60%, #000); }
 .rs-head .rs-art.ab-lt span { font: 700 40px var(--display); color: #fff; }
+
+/* ==========================================================================
+   Tools in three tabs (4.32.0): rows, not tiles; the tabs at the bottom
+   ========================================================================== */
+.menu.tools3 { display: flex; flex-direction: column; max-height: min(86vh, 720px); }
+.menu.tools3 .tl-head { padding: 4px 4px 0; }
+.menu.tools3 .t3-song { font: 700 14px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+.menu.tools3 .t3-panel { flex: 1; overflow-y: auto; min-height: 380px; }
+.menu.tools3 .t3-panel[hidden] { display: none; }
+.menu.tools3 .tl-h { margin: 12px 4px 4px; }
+.menu.tools3 .mrow.t3 { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; height: auto; margin: 0; padding: 6px 4px; border: 0; border-bottom: 2px solid var(--hair); border-radius: 0; background: none; box-shadow: none; color: var(--fg); text-align: left; box-sizing: border-box; }
+.menu.tools3 .mrow.t3:last-of-type { border-bottom: 0; }
+.menu.tools3 .mrow.t3 .mi { width: 36px; height: 36px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-deep); margin: 0; }
+:root[data-look="neon"] .menu.tools3 .mrow.t3 .mi { color: var(--accent-ink); }
+.menu.tools3 .mrow.t3 .mi svg { width: 18px; height: 18px; }
+.menu.tools3 .mrow.t3 .ml { flex: 1; min-width: 0; display: flex; flex-direction: column; font: 700 16px var(--display); white-space: normal; position: relative; }
+.menu.tools3 .mrow.t3 .ml small { font: 700 13px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu.tools3 .mrow.t3 .t3c { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.menu.tools3 .mrow.t3 .sb { flex: none; width: 36px; height: 36px; border-radius: 12px; border: 0; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); display: grid; place-items: center; }
+.menu.tools3 .mrow.t3 .t3v { flex: none; min-width: 52px; text-align: center; font: 700 16px var(--display); color: var(--fg); border: 0; background: none; padding: 0; }
+.menu.tools3 .mrow.t3.size { border-bottom: 0 !important; padding: 6px 4px !important; min-height: 58px; width: 100%; flex: none; gap: 12px; }
+.menu.tools3 .mrow.t3.size .ml { font: 700 16px var(--display); color: var(--fg); }
+.menu.tools3 .mrow.t3.tl-lines { margin: 0; font: inherit; justify-content: flex-start; }
+.menu.tools3 .mrow.t3.tl-lines .seg.mini button { min-width: 40px; }
+.menu.tools3 .toggle { pointer-events: none; }
+.menu.tools3 .t3-note { margin: 10px 4px 0; font: 700 13px var(--sans); color: var(--muted); }
+.menu.tools3 .t3-tabs { flex: none; width: 100%; margin: 10px 0 0; }
+.menu.tools3 .t3-tabs button { position: relative; flex: 1; }
+.menu.tools3 .t3-tabs .newdot { position: absolute; top: 6px; right: 10px; }
+.menu.tools3 .t3l { display: inline-flex; align-items: center; gap: 6px; }
+.menu.tools3 .t3l .newdot { position: static; margin: 0; }

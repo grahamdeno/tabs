@@ -29,6 +29,7 @@ const I = {
   focus: '<path d="M4 7h16"/><path d="M4 12h16" stroke-width="2.4"/><path d="M4 17h16"/>',
   cup: '<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M9 3c-1 1.5 1 2.5 0 4M12.5 3c-1 1.5 1 2.5 0 4"/>',
   list: '<path d="M5 6h14M5 12h14M5 18h10"/>',
+  type: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
   flag: '<path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/>',
   target: '<circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
   wand: '<path d="M4 20 14.5 9.5"/><path d="m13 8 3 3"/><path d="M17 3.5v3M15.5 5h3M20 9v2M19 10h2"/>',

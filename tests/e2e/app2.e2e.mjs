@@ -5,7 +5,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled, openSpeed, speedText } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled, openSpeed, speedText, tool, showTool } from "./harness.mjs";
 
 useBrowser();
 
@@ -18,12 +18,12 @@ test("menus and panels work from a keyboard: focus moves in, Escape closes", { s
   assert.equal(await inside(".menu"), true, "focus is in the menu");
   assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "speed", "4.2.0: Tools starts on its first tile");
   await page.keyboard.press("ArrowDown");
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.m), "metro");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.step), "1", "4.32.0: arrows move through each control in the tab");
   await page.keyboard.press("Escape"); await page.waitForSelector('.menu', { state: 'detached' });
   assert.equal(await page.locator(".menu").count(), 0);
   assert.equal(await page.evaluate(() => document.activeElement.id), "more");
   await page.keyboard.press("Enter"); await page.waitForSelector('.menu');
-  await page.focus('.menu [data-m="set"]');
+  await showTool(page, "set"); await page.focus('.menu [data-m="set"]');
   await page.keyboard.press("Enter"); await page.waitForSelector('#layer [role=dialog]'); /* Add to set */
   assert.equal(await page.getAttribute("#layer [role=dialog]", "aria-modal"), "true");
   assert.equal(await inside("#layer"), true, "focus is in the panel");
@@ -132,7 +132,7 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   assert.equal(await page.locator("#sheet.skplay").count(), 0);
 
   // In Edit, a word's chord picker shows chords that fit the melody and other ways for the line.
-  await page.click("#more"); await page.click(".menu [data-m='edit']"); await page.waitForSelector(".ce-line[data-line='3']");
+  await tool(page, "edit"); await page.waitForSelector(".ce-line[data-line='3']");
   await page.click(".ce-line[data-line='3'] .ce-w >> nth=0"); await page.waitForSelector('.ce-fitb');
   assert.equal(await page.locator(".ce-fitb").count(), 4);
   assert.match(await page.innerText(".ce-alt.on"), /D · G\s*now/);
@@ -331,7 +331,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length); const m = await box(".menu");
   assert.ok(m.bottom > H - 40 && m.top > H * 0.1 /* 4.20.0: taller with the Practice switch */, `Tools rises from the bottom (${m.top}, ${m.bottom})`);
   assert.ok(Math.abs(m.left - (390 - m.right)) < 2, `4.19.1: Tools sits centred (${m.left}, ${m.right})`);
-  assert.match(await page.innerText(".menu .tl-head"), /Tools\s*Text size/, "Text size beside the title");
+  assert.equal(await page.locator(".menu .t3-tabs [data-tab]").count(), 3, "4.32.0: Play, Practice and Song tabs");
+  assert.ok((await box(".menu .t3-tabs")).bottom > H - 60, "the tabs sit at the bottom, in thumb reach");
   assert.match(await page.innerText(".menu"), /Lines in a gig/);
 
   const pad = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
@@ -364,8 +365,8 @@ test("2.1, 2.6.5 speed dial (4.2.0: Tools, then Speed): a wobble changes nothing
   assert.equal(after, shown.trim(), "the page keeps what the dial showed");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "a").durationSet, null, { timeout: 5000 });
   assert.match(await page.innerText("#toast"), /Length .*Undo/s);
-  await page.click("#more"); await page.waitForSelector(".menu");
-  assert.match(await page.innerText('.menu [data-m="speed"]'), new RegExp(after), "the Speed tile shows it");
+  await showTool(page, "speed");
+  assert.match(await page.innerText('.menu [data-m="speed"]'), new RegExp(after), "the Speed row shows it");
   await page.click('.menu [data-m="speed"]'); await page.waitForSelector(".dial");
   await page.mouse.click(60, 120); await page.waitForSelector(".dial", { state: "detached" });
   assert.equal(await page.locator(".dial").count(), 0, "a tap off it closes it");
