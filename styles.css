@@ -76,9 +76,8 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .chead .cs b { color: var(--fg-2); font-weight: 500; }
 
 /* Chips */
-.chips { display: flex; gap: 8px; margin: 14px -20px 0; padding: 0 20px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.chips::-webkit-scrollbar { display: none; }
-.chips > * { flex: none; }
+.chips { display: flex; gap: 4px; margin: 14px 0 0; }
+.chips > * { flex: 1 1 auto; min-width: 0; }
 .chip { height: 28px; padding: 0 12px; font-size: 13px; }
 
 /* Sections and lists */
@@ -3041,7 +3040,7 @@ body.gigging .ask { z-index: 66; }
 .rs-body .rs-row { margin: 0; padding: 0; border: 0; }
 .rs-change { align-self: center; border: 0; background: none; min-height: 44px; font: 700 15px var(--display); color: var(--accent-ink); }
 
-/* ---------- Songbook top (4.20.0): the nudge as a card, flat filters with no lamps ---------- */
+/* ---------- Songbook top (4.20.0): the nudge as a card; 4.20.1: filters as one segmented row ---------- */
 .today { margin: 6px 0 12px; }
 .today .nudge { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 0; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
 .today .nudge.k-streak { background: var(--streak); box-shadow: 0 4px 0 var(--streak-deep); color: #1B1838; }
@@ -3053,6 +3052,15 @@ body.gigging .ask { z-index: 66; }
 .today .nudge small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
 .today .nudge b { font: 700 18px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .today .nudge:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+/* 4.20.1: one segmented row that always fits; the chosen part is filled with its lip showing */
+:root[data-look] #chips { background: var(--card); border-radius: 16px; padding: 4px; box-shadow: 0 3px 0 var(--rim); margin-bottom: 4px; }
+:root[data-look] #chips .chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 8px; border: 0; border-radius: 12px; background: none; box-shadow: none; color: var(--muted); font: 700 15px var(--display); white-space: nowrap; }
 :root[data-look] #chips .chip::before { display: none; }
-#chips .chip { padding-left: 14px; }
-:root[data-look] #chips .chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+:root[data-look] #chips .chip[data-f="fav"] { flex: 0 0 52px; }
+:root[data-look] #chips .chip .i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; }
+:root[data-look] #chips .chip small { font: 800 12px var(--sans); background: var(--card-2); border-radius: 999px; padding: 1px 7px; }
+:root[data-look] #chips .chip.on { background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+:root[data-look] #chips .chip.on small { background: rgba(255,255,255,.35); }
+.sets-btn { height: 44px; padding: 0 12px; border-radius: 14px; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
+.sets-btn .i { width: 20px; height: 20px; }
+.sets-btn.on { background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-deep); }

@@ -67,7 +67,7 @@ test("Edit places a chord over a word, and Text keeps the change", { skip: skip(
 
 test("a new set with a date shows as Up next and plays after its title card", { skip: skip() }, async t => {
   const page = await phone(t);
-  await page.click("[data-f='sets']"); await page.waitForSelector('#newset');
+  await page.click("#setsbtn"); await page.waitForSelector('#newset');
   await page.click("#newset"); await page.waitForSelector('#ns-name');
   await page.fill("#ns-name", "Friday Gig");
   const d = new Date(Date.now() + 3 * 864e5); const when = `${d.toISOString().slice(0, 10)}T20:00`;

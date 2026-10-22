@@ -75,8 +75,9 @@ export function chipsHTML() {
   const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
   const can = canPlayCount();
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can)) filter = "all";
-  const chip = (f, label) => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}">${label}</button>`;
-  return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play · ${can}`) : ""}${chip("sets", "Sets")}${hasFav ? chip("fav", "Favorites") : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasTab ? chip("tab", "Tabs") : ""}</div>`;
+  /* 4.20.1: one row that always fits. Sets is a button in the header and Tabs is a choice in the sort menu. */
+  const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
+  return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play<small>${can}</small>`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
 export const homeHooks = { refresh: null, openDrawer: false }; /* openDrawer: Tonight opens with the Library up (3.24.2) */
@@ -89,6 +90,7 @@ export function renderLibrary() {
     <div class="head">
       <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Songbook</h1></div>
       <div class="row-btns">
+        <button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets">${icon("list")}Sets</button>
         ${tunerBtn("ib chunky-tune")}
       </div>
     </div>
@@ -113,7 +115,8 @@ export function renderLibrary() {
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
-  $("libback").onclick = () => go("#/");
+  $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
+  $("setsbtn").onclick = () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); };
   app.querySelectorAll(".upn-c[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
   app.querySelectorAll(".upn-c[data-gig]").forEach(b => b.onclick = () => playGig(b.dataset.gig));
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
@@ -272,7 +275,11 @@ function upNextHTML() {
   </div>`;
 }
 
-const sortBy = sort => `<label class="sortby">${esc(SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort ? "selected" : ""}>${v}</option>`).join("")}</select></label>`;
+const sortBy = sort => {
+  const tabs = data.songs.some(s => s.format === "tab"), tabsOnly = filter === "tab" && tabs;
+  const opts = Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort && !tabsOnly ? "selected" : ""}>${v}</option>`).join("") + (tabs ? `<option value="tabs" ${tabsOnly ? "selected" : ""}>Tabs only</option>` : "");
+  return `<label class="sortby">${esc(tabsOnly ? "Tabs only" : SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${opts}</select></label>`;
+};
 // A–Z index on the right edge of a long list: touch or drag to jump to a letter.
 function bindIndex(list, sorted, sort) {
   document.querySelector(".azx")?.remove();
@@ -375,7 +382,11 @@ export function renderList() {
     ${q ? "" : `<div class="label lrow"><span>${filter === "fav" ? "Favorites" : filter === "tab" ? "Tabs" : filter === "learn" ? "Learning" : "All songs"}</span>
       ${sortBy(sort)}</div>`}
     ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
-  $("sort")?.addEventListener("change", e => { data.settings.sort = e.target.value; Tabs.save(data); renderList(); });
+  $("sort")?.addEventListener("change", e => {
+    if (e.target.value === "tabs") filter = "tab";
+    else { data.settings.sort = e.target.value; if (filter === "tab") filter = "all"; Tabs.save(data); }
+    renderLibrary();
+  });
   bindRows(list);
   bindFind(list);
   if (!drawer) bindIndex(list, sorted, q ? "" : sort);

@@ -28,11 +28,11 @@ Tick a task's box in this file in the same commit that does it.
 
 ## Step 1 [Sonnet] 4.20.1: Songbook filters that fit (board "Songbook filters · one row that fits")
 
-- [ ] 1.1 `chipsHTML()` in `library.js`: one segmented row, full width, no scrolling: **All · Can play (count) · Learning · ♥** (the heart's `aria-label` is "Favorites"). Hide a part with no songs, as today. Keep `id="chips"`, the `.chip` class, `data-f` values and `.on` so the filter code and tests keep working.
-- [ ] 1.2 Sets leaves the row: a chunky "Sets" button in the Songbook header beside the tuner button, which sets `filter = "sets"` (the list branch at `if (filter === "sets" && !searching)` in `renderList` stays). Back from the Sets list returns to All.
-- [ ] 1.3 Tabs leaves the row: a "Tabs only" choice in the sort menu (`SORTS` / `sortBy` in `library.js`) that sets `filter = "tab"`. Choosing a sort clears it.
-- [ ] 1.4 `styles.css`: `.chips` stops scrolling (`overflow: visible`, no negative margins), the parts share the width, the chosen one is filled in `--accent` with its lip (`0 3px 0 var(--accent-deep)`) fully visible. Remove the 4.20.0 `#chips .chip` pill rules that the segmented look replaces.
-- [ ] 1.5 Tests: app2's "2.25.0 filter chips" test (filled, no lamp) still passes; add: the row's right edge is inside the screen at 390 wide; the Sets button opens the Sets list; "Tabs only" filters to tabs. Grep tests for `data-f='sets'` and `data-f='tab'` and move them to the new controls.
+- [x] 1.1 `chipsHTML()` in `library.js`: one segmented row, full width, no scrolling: **All · Can play (count) · Learning · ♥** (the heart's `aria-label` is "Favorites"). Hide a part with no songs, as today. Keep `id="chips"`, the `.chip` class, `data-f` values and `.on` so the filter code and tests keep working.
+- [x] 1.2 Sets leaves the row: a chunky "Sets" button in the Songbook header beside the tuner button, which sets `filter = "sets"` (the list branch at `if (filter === "sets" && !searching)` in `renderList` stays). Back from the Sets list returns to All.
+- [x] 1.3 Tabs leaves the row: a "Tabs only" choice in the sort menu (`SORTS` / `sortBy` in `library.js`) that sets `filter = "tab"`. Choosing a sort clears it.
+- [x] 1.4 `styles.css`: `.chips` stops scrolling (`overflow: visible`, no negative margins), the parts share the width, the chosen one is filled in `--accent` with its lip (`0 3px 0 var(--accent-deep)`) fully visible. Remove the 4.20.0 `#chips .chip` pill rules that the segmented look replaces.
+- [x] 1.5 Tests: app2's "2.25.0 filter chips" test (filled, no lamp) still passes; add: the row's right edge is inside the screen at 390 wide; the Sets button opens the Sets list; "Tabs only" filters to tabs. Grep tests for `data-f='sets'` and `data-f='tab'` and move them to the new controls.
 
 ## Step 2 [Opus] 4.21.0: The neck, a lesson of the day (board "The neck · lesson of the day")
 

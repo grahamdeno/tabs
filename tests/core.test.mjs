@@ -1487,7 +1487,8 @@ test("Takeover: plays to light a count of hexagons, and the nearest rival hexago
 });
 
 test("Daily average: a day counts the larger of recorded time and the songs played through that day", () => {
-  const day = k => new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
+  /* local days, as the app keeps them (a UTC day was wrong every evening in a western time zone) */
+  const day = k => { const d = new Date(Date.now() - k * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const data = { songs: [{ id: "a", title: "A", body: "[V]\nG", duration: 180, playLog: { total: 14, last: Date.now(), days: { [day(0)]: 7 } } }], sets: [], trash: [], settings: {} };
   assert.equal(C.userAvg7(data), 3); /* 7 plays x 3 min over 7 days */
   C.journalTime(data, 1800, Date.now()); /* 30 min recorded: more than the plays suggest */

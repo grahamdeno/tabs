@@ -486,3 +486,22 @@ test("2.25.0 filter chips: the selected one is filled in the accent colour (4.20
   await page.click("#chips [data-f='fav']"); await until(async () => (await fill("#chips [data-f='fav']")) === go);
   assert.notEqual(await fill("#chips [data-f='all']"), go);
 });
+
+test("4.20.1 Songbook filters: one row that fits, Sets in the header, Tabs in the sort menu", { skip: skip() }, async t => {
+  const songs = LIB.songs.map((s, i) => ({ ...s, favorite: i === 0, format: i === 1 ? "tab" : s.format }));
+  const page = await phone(t, { ...LIB, songs });
+  await page.waitForSelector("#chips");
+  const r = await page.evaluate(() => { const b = document.querySelector("#chips").getBoundingClientRect(); return { right: b.right, w: innerWidth, scroll: document.querySelector("#chips").scrollWidth - document.querySelector("#chips").clientWidth }; });
+  assert.ok(r.right <= r.w, `the row ends inside the screen (${r.right} of ${r.w})`);
+  assert.ok(r.scroll <= 0, "nothing scrolls sideways");
+  assert.equal(await page.locator("#chips [data-f='sets'], #chips [data-f='tab']").count(), 0, "Sets and Tabs are not in the row");
+  await page.click("#setsbtn"); await page.waitForSelector("#newset");
+  await page.click("#libback"); await page.waitForSelector("#chips [data-f='all'].on");
+  assert.equal(await page.locator("#newset").count(), 0, "Back from Sets goes to All, not out of the Songbook");
+  await page.selectOption("#sort", "tabs");
+  await page.waitForFunction(() => document.querySelector("#sort")?.value === "tabs");
+  assert.equal(await page.locator("#list .row").count(), 1, "only the tab song");
+  await page.selectOption("#sort", "title");
+  await page.waitForFunction(() => document.querySelector("#sort")?.value === "title");
+  assert.ok(await page.locator("#list .row").count() > 1, "choosing a sort clears Tabs only");
+});

@@ -38,7 +38,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ### Songbook, sets and editing
 - Search titles, artists and lyrics; paste a chord sheet into the bar and it works out the format, key, sections, title and artist. Nothing found offers the web, then Get the song.
 - One nudge card at the top (the song that keeps your streak, or one for today's weather or a change to work on); the streak itself is in the stat bar, and your week's changes are in Your profile.
-- Filters (All, Can play, Sets, Favorites, Learning, Tabs) as flat pills, the chosen one filled; sorts, a letter index, Up next for you (the song one new chord opens, tonight's request, or a song worth another try: one you played once or twice and left three weeks ago). Swipe left to delete (with Undo), right to favorite.
+- Filters in one row that always fits (All, Can play, Learning, a heart for Favorites), the chosen one filled. Sets is a button in the header and Tabs only is in the sort menu. Sorts, a letter index, Up next for you (the song one new chord opens, tonight's request, or a song worth another try: one you played once or twice and left three weeks ago). Swipe left to delete (with Undo), right to favorite.
 - Sets with a date, place and drawn cover; Play set runs them with a Next up card and remembers each run.
 - Add opens a writing pad: Paste, Type, Sing or strum (key and chords found on the phone), and with an AI key, Scan a page or Find the chords. Edit works in place: tap a word to set its chord, every change saves with Undo. Deleted songs and sets stay 30 days in Recently deleted.
 
