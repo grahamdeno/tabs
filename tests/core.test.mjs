@@ -2040,3 +2040,52 @@ test("Stage Gels (4.1.0): each section's light from its name", () => {
   assert.equal(C.gelOf("Guitar solo"), "solo");
   assert.equal(C.gelOf("Intro"), "verse");
 });
+
+test("4.21.0 lesson of the day: warm up, the change his songs need, then that song's section at 70%", () => {
+  const body = "[Verse]\n[C]Slip in[Dm]side the [C]eye of your [Dm]mind\n[Chorus]\n[G]So Sally can [C]wait\n[C]Here [Dm]we go [C]again";
+  const other = "[Verse]\n[G]One [C]two [G]three [C]four";
+  const data = { songs: [{ id: "a", title: "Anger", body, status: "learning" }, { id: "b", title: "Porch", body: other }], sets: [], trash: [], settings: {}, skills: { done: { "s:G-C": { n: 2, best: 90, at: 1 } }, last: 1 } };
+  const now = new Date(2026, 9, 21, 10).getTime();
+  const l = C.lessonOfDay(data, now);
+  assert.deepEqual([l.warm.a, l.warm.b], ["G", "C"], "warm up on the switch he passed");
+  assert.equal(l.learn.id, "s:C-Dm", "the change in the learning song he hasn't learned");
+  assert.equal(l.learn.song, "Anger"); assert.equal(l.learn.times, 5);
+  assert.equal(l.play.songId, "a"); assert.equal(l.play.sec, 0); assert.equal(l.play.secName, "Verse");
+  assert.deepEqual(l.done, [false, false, false]); assert.equal(l.now, 0);
+  /* the same all day, even after the library changes */
+  assert.equal(C.lessonDone(data, 0, now).finished, false);
+  data.songs.push({ id: "c", title: "New", body: "[V]\n[E]a [Am]b [E]c [Am]d [E]e [Am]f", status: "learning" });
+  assert.equal(C.lessonOfDay(data, now + 3600e3).learn.id, "s:C-Dm");
+  assert.equal(C.lessonPartOf(data, "s:C-Dm", now), 1);
+  assert.equal(C.lessonPartOf(data, "s:E-Am", now), -1);
+  C.lessonDone(data, 1, now);
+  const before = data.xp?.life || 0;
+  const r = C.lessonDone(data, 2, now);
+  assert.deepEqual(r, { finished: true, xp: C.LESSON_XP });
+  assert.equal(data.xp.life - before, C.LESSON_XP);
+  assert.equal(C.lessonDone(data, 2, now).finished, false, "the XP once");
+  assert.equal(C.lessonOfDay(data, now).finished, true);
+  /* kept through a save */
+  assert.deepEqual(C.cleanRehearse(JSON.parse(JSON.stringify(data.rehearse))).lesson.done.sort(), [0, 1, 2]);
+  /* tomorrow: a new plan, and a learned change is skipped */
+  data.skills.done["s:C-Dm"] = { n: 1, best: 80, at: now };
+  const t = C.lessonOfDay(data, now + 86400e3);
+  assert.notEqual(t.learn.id, "s:C-Dm"); assert.deepEqual(t.done, [false, false, false]);
+});
+
+test("4.21.0 lesson of the day: nothing to build from", () => {
+  assert.equal(C.lessonOfDay({ songs: [], sets: [], trash: [], settings: {} }), null);
+  assert.equal(C.lessonOfDay({ songs: [{ id: "t", title: "Tab", format: "tab", body: "e|--0--|" }], sets: [], trash: [], settings: {} }), null);
+  /* no passed switches and nothing played: G to C to get going */
+  const l = C.lessonOfDay({ songs: [{ id: "a", title: "A", body: "[V]\n[Am]x [F]y [Am]z [F]w" }], sets: [], trash: [], settings: {} });
+  assert.equal(l.learn.id, "s:Am-F"); assert.equal(l.warm.id, "s:G-C"); assert.equal(l.play.sec, 0);
+});
+
+test("4.21.0 lesson of the day: learning the new change mid-lesson doesn't swap the lesson", () => {
+  const data = { songs: [{ id: "a", title: "A", body: "[V]\n[Am]x [F]y [Am]z [F]w", status: "learning" }], sets: [], trash: [], settings: {} };
+  const now = new Date(2026, 9, 21, 10).getTime();
+  C.lessonKeep(data, now);
+  C.skillDone(data, "s:Am-F", 80, now);
+  assert.equal(C.lessonPartOf(data, "s:Am-F", now), 1);
+  assert.equal(C.lessonOfDay(data, now).learn.id, "s:Am-F");
+});

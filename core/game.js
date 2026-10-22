@@ -1,7 +1,7 @@
 // The Road: core logic, Version 4's game: the Road, Tour quests, Charts, Your band, Rehearse, song duels, the Gig and the Merch table.
 // Re-exported from core.js, so other files import it from there.
-import { DAY, dayKey, heardMatch, isObj, norm, playDays, playSongs } from "../core.js";
-import { chordShape, parseBlocks } from "./chords.js";
+import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, shapeSteps, songChanges } from "../core.js";
+import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
 import { skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
 
@@ -419,7 +419,117 @@ export function cleanRehearse(raw) {
   if (Object.keys(misses).length) out.misses = misses;
   const sc = raw.sc;
   if (isObj(sc) && day.test(sc.day)) out.sc = { day: sc.day, got: (Array.isArray(sc.got) ? sc.got : []).filter(x => typeof x === "string").slice(0, 4), ...(Array.isArray(sc.pairs) ? { pairs: sc.pairs.filter(x => typeof x === "string").slice(0, 4) } : {}), ...(sc.done === true ? { done: true } : {}) };
-  return out.misses || out.sc ? out : null;
+  const lesson = cleanLesson(raw.lesson);
+  if (lesson) out.lesson = lesson;
+  return out.misses || out.sc || out.lesson ? out : null;
+}
+
+// ---------- Lesson of the day (4.21.0) ----------
+// About four minutes, built from his own songs, the same all day:
+//   1. warm up on a change he already has (a switch lesson he passed, else the change he plays most)
+//   2. learn the change his songs need most that he hasn't learned (a learning song's first),
+//      with the song it comes from and how many times it's in it
+//   3. play the section of that song holding the change at 70%, looped: two passes count
+// Kept in data.rehearse.lesson = { day, plan, done: [0..2], xp? }. All three done: LESSON_XP once.
+export const LESSON_XP = 40;
+export const LESSON_PASSES = 2;
+const pairId = (a, b) => `s:${a}-${b}`;
+/* the section (its order among the song's section labels) holding a change most, with its name */
+function sectionOf(song, a, b) {
+  const steps = shapeSteps(song), counts = new Map();
+  let sec = -1, name = "", prev = null;
+  for (const l of chordModel(song.body || "")) {
+    if (l.kind === "section") { sec++; name = l.text; prev = null; continue; }
+    const cs = l.kind === "lyric" ? l.chords.map(c => c.chord) : l.kind === "chords" ? l.text.split(/\s+/).map(t => t.replace(/^\(|\)$/g, "")) : [];
+    for (const c of cs) {
+      if (!c || !isChord(c)) continue;
+      const x = transposeChord(c, steps, /^[A-G]b/.test(c));
+      if (prev && prev !== x && ((prev === a && x === b) || (prev === b && x === a)) && sec >= 0) { const k = counts.get(sec) || { sec, name, n: 0 }; k.n++; counts.set(sec, k); }
+      prev = x;
+    }
+  }
+  return [...counts.values()].sort((p, q) => q.n - p.n || p.sec - q.sec)[0] || null;
+}
+function planLesson(data, now) {
+  const songs = (data.songs || []).filter(s => s.format !== "tab" && s.body);
+  if (!songs.length) return null;
+  const learned = new Set(Object.keys(data.skills?.done || {}).filter(id => id.startsWith("s:")).flatMap(id => { const [a, b] = id.slice(2).split(/-(.+)/); return [a + "|" + b, b + "|" + a]; }));
+  const all = new Map();
+  for (const s of songs) for (const [k, x] of songChanges(s)) {
+    const c = all.get(k) || { key: k, inSongs: 0, week: 0, learning: false, dir: {}, best: null };
+    c.inSongs += x.n; c.week += playsThisWeek(s, now) * x.n;
+    if (s.status === "learning") c.learning = true;
+    for (const [d, n] of Object.entries(x.dir)) c.dir[d] = (c.dir[d] || 0) + n;
+    const mine = { id: s.id, title: s.title, n: x.n, learning: s.status === "learning" };
+    if (!c.best || (mine.learning && !c.best.learning) || (mine.learning === c.best.learning && mine.n > c.best.n)) c.best = mine;
+    all.set(k, c);
+  }
+  const dirOf = c => Object.entries(c.dir).sort((x, y) => y[1] - x[1])[0][0].split(">");
+  const fresh = [...all.values()].filter(c => !learned.has(c.key) && c.key.split("|").every(n => chordShape(n)))
+    .sort((x, y) => (y.learning - x.learning) || y.inSongs - x.inSongs || (x.key < y.key ? -1 : 1));
+  if (!fresh.length) return null;
+  /* the same all day; among changes nearly as needed as the top one (up to three), a different one each day */
+  const close = fresh.filter(c => c.learning === fresh[0].learning && c.inSongs * 2 >= fresh[0].inSongs).slice(0, 3);
+  const dayN = Math.floor(new Date(dayKey(now) + "T12:00:00").getTime() / DAY);
+  const pick = close[dayN % close.length];
+  const [na, nb] = dirOf(pick), song = (data.songs || []).find(s => s.id === pick.best.id);
+  const sec = song ? sectionOf(song, na, nb) : null;
+  /* the warm-up: the passed switch with the best tempo, else the change he plays most, else G to C */
+  const passed = Object.entries(data.skills?.done || {}).filter(([id]) => id.startsWith("s:") && id !== pairId(na, nb))
+    .sort((p, q) => (q[1].best || 0) - (p[1].best || 0) || (q[1].n || 0) - (p[1].n || 0) || (p[0] < q[0] ? -1 : 1))[0];
+  let warm;
+  if (passed) { const [a, b] = passed[0].slice(2).split(/-(.+)/); warm = { a, b, why: "A change you already have" }; }
+  else {
+    const most = [...all.values()].filter(c => c.week > 0 && c.key !== pick.key && c.key.split("|").every(n => chordShape(n))).sort((x, y) => y.week - x.week || (x.key < y.key ? -1 : 1))[0];
+    if (most) { const [a, b] = dirOf(most); warm = { a, b, why: "The change you play most" }; }
+    else warm = pick.key === "C|G" ? { a: "Em", b: "C", why: "To get your hands going" } : { a: "G", b: "C", why: "To get your hands going" };
+  }
+  return {
+    warm: { id: pairId(warm.a, warm.b), a: warm.a, b: warm.b, why: warm.why },
+    learn: { id: pairId(na, nb), a: na, b: nb, song: pick.best.title, times: pick.best.n, inSongs: pick.inSongs },
+    play: { songId: pick.best.id, title: pick.best.title, sec: sec ? sec.sec : -1, secName: sec ? sec.name : "", rate: 0.7 }
+  };
+}
+export function lessonOfDay(data, now = Date.now()) {
+  const day = dayKey(now), saved = data.rehearse?.lesson?.day === day ? data.rehearse.lesson : null;
+  const plan = saved?.plan || planLesson(data, now);
+  if (!plan) return null;
+  const done = saved?.done || [];
+  return { day, ...plan, done: [0, 1, 2].map(i => done.includes(i)), now: [0, 1, 2].find(i => !done.includes(i)) ?? -1, finished: !!saved?.xp, xp: LESSON_XP };
+}
+/* keep today's plan, so finishing a part (which marks a switch learned) doesn't change the lesson under it */
+export function lessonKeep(data, now = Date.now()) {
+  const st = lessonOfDay(data, now);
+  if (!st) return null;
+  const r = data.rehearse || (data.rehearse = {});
+  return r.lesson?.day === st.day ? r.lesson : (r.lesson = { day: st.day, plan: { warm: st.warm, learn: st.learn, play: st.play }, done: [] });
+}
+/* a part finished (0 warm up, 1 the new change, 2 the song): kept with the day's plan; all three earn the XP once */
+export function lessonDone(data, part, now = Date.now()) {
+  if (![0, 1, 2].includes(part)) return null;
+  const l = lessonKeep(data, now);
+  if (!l) return null;
+  if (!l.done.includes(part)) l.done.push(part);
+  if (l.xp || l.done.length < 3) return { finished: false, left: 3 - l.done.length };
+  l.xp = true; addXP(data, LESSON_XP, now);
+  return { finished: true, xp: LESSON_XP };
+}
+/* which part a finished switch lesson is, in today's lesson (-1: neither) */
+export function lessonPartOf(data, id, now = Date.now()) {
+  const st = lessonOfDay(data, now);
+  return !st ? -1 : st.warm.id === id ? 0 : st.learn.id === id ? 1 : -1;
+}
+const cleanPair = p => isObj(p) && typeof p.a === "string" && typeof p.b === "string" && p.a.length <= 12 && p.b.length <= 12 ? { id: pairId(p.a, p.b), a: p.a, b: p.b } : null;
+function cleanLesson(l) {
+  if (!isObj(l) || !/^\d{4}-\d\d-\d\d$/.test(l.day) || !isObj(l.plan)) return null;
+  const w = cleanPair(l.plan.warm), n = cleanPair(l.plan.learn), p = l.plan.play;
+  if (!w || !n || !isObj(p) || typeof p.songId !== "string") return null;
+  const str = (x, k) => String(x || "").slice(0, k);
+  return { day: l.day, plan: {
+    warm: { ...w, why: str(l.plan.warm.why, 40) },
+    learn: { ...n, song: str(l.plan.learn.song, 120), times: Math.max(0, Math.min(999, Math.round(+l.plan.learn.times || 0))), inSongs: Math.max(0, Math.min(9999, Math.round(+l.plan.learn.inSongs || 0))) },
+    play: { songId: str(p.songId, 64), title: str(p.title, 120), sec: Math.max(-1, Math.min(99, Math.round(+p.sec))), secName: str(p.secName, 40), rate: 0.7 }
+  }, done: (Array.isArray(l.done) ? l.done : []).filter(x => [0, 1, 2].includes(x)).filter((x, i, a) => a.indexOf(x) === i), ...(l.xp === true ? { xp: true } : {}) };
 }
 
 // ---------- Song duels (4.12.0): beat a friend's score on a song, by link ----------

@@ -32,6 +32,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - **Charts:** XP this week on a chart at your tier with nine computer players who play like people (weekend players, daily players, ones who fade). Top 5 move up on Monday, bottom 3 move down. A daily rival battle on one of your songs. Friends lists everyone you've dueled, ranked by XP.
 - **Song duels:** after a scored gig, send a link with the song and your score; your friend plays it and sends theirs back. No server.
 - **Band:** Louie's 18 friends join one at a time as you play songs through (Lola after your first, Looper at 140).
+- **The neck's lesson of the day:** about four minutes built from your songs: warm up on a change you already have, learn the change your songs need most (with the song it comes from), then play that song's section at 70%, looped in Practice mode (twice through counts). 40 XP when all three are done. Your skills sit under it as three bars, and All lessons has every fret.
 - **Rehearse:** Soundcheck (the two changes you dropped most in gigs this week, drilled), Missed changes, the neck (chord lessons that listen to each string, chord switches against a click, scales), Sit in with the band, the tuner and What I hear (the microphone, live).
 - **Merch table:** spend fans on gear (Rain check keeps a streak through a missed night, Double set doubles XP for 3 gigs, Second take replays a lost battle), Louie's finishes (Stock blue, plus Pink and Teal free) and gig backdrops. Spending never touches XP. Settings > Help can add test fans to try it.
 

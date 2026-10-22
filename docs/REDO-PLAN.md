@@ -36,15 +36,15 @@ Tick a task's box in this file in the same commit that does it.
 
 ## Step 2 [Opus] 4.21.0: The neck, a lesson of the day (board "The neck · lesson of the day")
 
-- [ ] 2.1 `core/neck.js`: `lessonOfDay(data, now)` (pure, unit tested). Three parts, about 4 minutes:
+- [x] 2.1 `core/neck.js`: `lessonOfDay(data, now)` (pure, unit tested). Three parts, about 4 minutes:
   1. Warm up: a change he already lands well (from the gig change records `soundcheck` uses in `core/game.js`, or the switch lessons he has passed).
   2. The new change: the change his songs need most that he hasn't learned, with the song it comes from and how many times it appears (use `changesOf` in `core.js` for counts across songs).
   3. Play it: a verse (or the section holding that change) from that song at 70% with the band, counted when he lands 4 of 6.
 
   The same lesson all day (seeded by the date), stored as `data.lesson = { day, parts, done: [] }` (document in docs/DATA.md). 40 XP when all three are done (`XP` in core). Say which song it opens next when the new chord unlocks one (`fitOf`-style check).
-- [ ] 2.2 `practice.js` `renderNeck()`: the lesson card at the top, three steps with done/now/next states, "+40 XP" and "Opens X next" tags, and one "Start lesson" button at the bottom in thumb reach. Part 1 and 2 run the existing `switchLesson`; part 3 opens the song in Practice mode with the section looped at 0.7.
-- [ ] 2.3 The skill tiles below become one "Your skills" card: three bars (Open chords, Switches, Scales, "n of m") and "All lessons" opening today's full grid on its own page (`#/practice/skills`).
-- [ ] 2.4 Tests: unit tests for `lessonOfDay` (same all day, changes tomorrow, skips learned changes, empty library); a browser test for the card and Start.
+- [x] 2.2 `practice.js` `renderNeck()`: the lesson card at the top, three steps with done/now/next states, "+40 XP" and "Opens X next" tags, and one "Start lesson" button at the bottom in thumb reach. Part 1 and 2 run the existing `switchLesson`; part 3 opens the song in Practice mode with the section looped at 0.7.
+- [x] 2.3 The skill tiles below become one "Your skills" card: three bars (Open chords, Switches, Scales, "n of m") and "All lessons" opening today's full grid on its own page (`#/practice/skills`).
+- [x] 2.4 Tests: unit tests for `lessonOfDay` (same all day, changes tomorrow, skips learned changes, empty library); a browser test for the card and Start.
 
 ## Step 3 [Sonnet] 4.22.0: Search, focused (board "Search · focused")
 
@@ -90,4 +90,7 @@ Don't change how the search bar works: only the screen under it while it's focus
 
 ## Surprises
 
-(none yet)
+- Step 2 (4.21.0): Practice mode has no landing check, so "counted when he lands 4 of 6" became "twice through the looped section counts" (once through when the song has no section labels). A real landing check would need the Gig's scoring in Practice mode.
+- Step 2: "Opens X next" was dropped. A switch lesson doesn't add a chord he knows, so no song opens because of it; the card says how often the change is in his other songs instead.
+- Step 2: the day's plan is kept as soon as a part starts, since passing the new change's switch lesson would otherwise swap the lesson for a different change.
+- Step 2: the lesson lives in `data.rehearse.lesson` (not `data.lesson`), so it saves through the existing `cleanRehearse`.

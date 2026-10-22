@@ -2,7 +2,8 @@
 //
 //   #/practice          Rehearse: today's soundcheck (built from the changes you dropped in gigs),
 //                       the missed changes, the neck, sitting in with the band, the tuner, What I hear
-//   #/practice/neck     the neck: levels of frets (lessons) and inlays (level checks)
+//   #/practice/neck     the neck: the lesson of the day (4.21.0) and your skills in three bars
+//   #/practice/skills   every lesson: levels of frets (lessons) and inlays (level checks)
 //   #/practice/<step>   one lesson (any switch, s:A-B, even one that isn't on the neck)
 //
 // A chord lesson listens to one string at a time with the same pitch reading the
@@ -14,9 +15,9 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate } from "./core.js";
+import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
-import { beatTrack, chordSVG, data, go, openAtSection, openTuner, playSong } from "./app.js";
+import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
 import { louie } from "./louie.js";
 
@@ -38,21 +39,80 @@ function stopLive() {
 onLeave(stopLive);
 
 /* ---------- the neck ---------- */
+/* 4.21.0: the lesson of the day first (warm up, the change your songs need, then that song's section at
+   70%), one Start in thumb reach, and your skills as three bars; every lesson is a tap away. */
+const lessonTitle = l => `${l.learn.a} to ${l.learn.b}, then ${l.play.secName ? `the ${l.play.secName}` : "the song"}`;
+function startPart(l, i) {
+  lessonKeep(data); Tabs.save(data);
+  if (i === 0 || i === 1) {
+    const p = i === 0 ? l.warm : l.learn;
+    if (!chordSVG(p.a) || !chordSVG(p.b)) return toast("I don't have a shape for one of those chords yet.");
+    return go("#/practice/" + encodeURIComponent(p.id));
+  }
+  if (!data.songs.some(s => s.id === l.play.songId)) return toast("That song isn't in your Songbook any more. A new lesson comes tomorrow.");
+  const need = l.play.sec >= 0 ? LESSON_PASSES : 1;
+  loopHooks.pass = (song, pass) => {
+    if (song.id !== l.play.songId || pass < need) return;
+    loopHooks.pass = null;
+    const r = lessonDone(data, 2); Tabs.save(data);
+    toast(r?.finished ? `Lesson of the day done: +${r.xp} XP` : r ? "That part of today's lesson is done" : "Nice");
+  };
+  openLessonSong(l.play.songId, l.play.sec, l.play.rate);
+}
+function lessonCard(l) {
+  if (!l) return `<section class="pf-card ls-card"><div class="ls-top"><div><small class="ls-cap">Today's lesson</small><b class="ls-t">Add a song to start</b><p class="pf-line">Each day's lesson is built from your songs: the change they need most, then a real section to play.</p></div>${louie("happy", { pose: "point", size: 70 })}</div></section>`;
+  const stepRow = (i, t, sub, mins) => { const st = l.done[i] ? "done" : l.now === i ? "now" : "next";
+    return `<button class="ls-step ${st}" data-part="${i}" aria-label="${esc(t)}${st === "done" ? ", done" : st === "now" ? ", up now" : ""}"><span class="ls-n">${st === "done" ? icon("check") : i + 1}</span><span class="ls-tx"><b>${esc(t)}</b><small>${esc(sub)}</small></span><span class="ls-min">${mins}</span></button>`; };
+  const where = l.play.secName ? `the ${l.play.secName}` : "it through";
+  return `<section class="pf-card ls-card${l.finished ? " finished" : ""}" aria-label="Today's lesson">
+    <div class="ls-top"><div><small class="ls-cap">${l.finished ? "Done for today" : "Today's lesson · 4 min"}</small><b class="ls-t">${esc(lessonTitle(l))}</b>
+      <p class="pf-line">Built from ${esc(l.learn.song)}. It has ${esc(l.learn.a)} to ${esc(l.learn.b)} ${l.learn.times} time${l.learn.times === 1 ? "" : "s"}.</p></div>
+      ${louie(l.finished ? "cheer" : "happy", { pose: l.finished ? "thumb" : "point", size: 70 })}</div>
+    <div class="ls-steps">
+      ${stepRow(0, `Warm up: ${l.warm.a} to ${l.warm.b}`, l.warm.why, "1 min")}
+      ${stepRow(1, `Learn ${l.learn.a} to ${l.learn.b}`, "Slow, then on the click. The mic checks each landing", "2 min")}
+      ${stepRow(2, `Play ${where} at ${Math.round(l.play.rate * 100)}%`, `${l.play.title}, looped in Practice mode. ${l.play.sec >= 0 ? (LESSON_PASSES === 2 ? "Twice through" : `${LESSON_PASSES} times through`) : "Once through"} counts`, "1 min")}
+    </div>
+    <div class="ls-tags"><span class="ls-xp">${l.finished ? "Earned" : "+"}${l.xp} XP</span>${l.learn.inSongs > l.learn.times ? `<span class="ls-more">In more of your songs: ${l.learn.inSongs} times in all</span>` : ""}</div>
+  </section>`;
+}
+function skillsCard(levels) {
+  const bar = (lv, c) => { const n = lv.steps.filter(s => s.state === "done").length, m = lv.steps.length;
+    return `<div class="ls-bar"><small>${esc(lv.name === "Chord switches" ? "Switches" : lv.name)}</small><span><i style="width:${Math.round(n / Math.max(1, m) * 100)}%;background:${c}"></i></span><b>${n} of ${m}</b></div>`; };
+  const pick = id => levels.find(l => l.id === id);
+  return `<button class="pf-card ls-skills" id="ls-all" aria-label="Your skills. All lessons"><span class="ls-sk-h"><small class="ls-cap">Your skills</small><span class="ls-all">All lessons${icon("chev", "chev")}</span></span>
+    <span class="ls-bars">${bar(pick("open"), "var(--accent)")}${bar(pick("switch"), "var(--good)")}${bar(pick("scales"), "var(--strings, var(--accent))")}</span></button>`;
+}
 export function renderNeck() {
   stopLive();
   backTo = "#/practice/neck";
-  const { levels, next } = skillState(data);
-  const fret = (st, i) => {
-    const cls = st.kind === "check" ? "inlay" : "fret";
-    return `<button class="pk-${cls} ${st.state}" data-id="${esc(st.id)}" data-state="${st.state}" aria-label="${esc(lessonName(st))}, ${st.state === "done" ? "done" : st.state === "now" ? "up next" : "locked"}">${st.kind === "check" ? "" : `<b>${esc(st.name)}</b><small>${st.state === "done" ? (st.n ? st.n + "×" : "known") : st.state === "now" ? "next" : ""}</small>`}</button>`;
-  };
-  const done = lv => lv.steps.filter(s => s.state === "done").length;
+  const { levels } = skillState(data), l = lessonOfDay(data);
   app.innerHTML = `
     <div class="head"><button class="ib glass" id="back" aria-label="Back to Rehearse">${icon("back")}</button></div>
     <h1 class="title script" style="margin:14px 2px 2px">The neck</h1>
-    <p class="pf-since">Your songs and your skills. Practice here counts on the Tour Map.</p>
+    ${lessonCard(l)}
+    ${skillsCard(levels)}
     ${learningCard()}
-    <h2 class="pk-skills">Skills</h2>
+    ${l ? `<div class="s-dock"><button class="btn primary" id="ls-go">${l.finished ? `${icon("fretboard")}All lessons` : `${icon("play")}${l.done.some(Boolean) ? `Go on: part ${l.now + 1}` : "Start lesson"}`}</button></div>` : ""}`;
+  $("back").onclick = () => go("#/practice");
+  $("ls-all").onclick = () => go("#/practice/skills");
+  $("ls-go")?.addEventListener("click", () => l.finished ? go("#/practice/skills") : startPart(l, l.now));
+  app.querySelectorAll(".ls-step").forEach(b => b.onclick = () => startPart(l, +b.dataset.part));
+  app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => openAtSection(b.dataset.song));
+}
+/* every lesson on the neck (before 4.21.0 this was the neck page itself) */
+function renderSkills() {
+  stopLive();
+  backTo = "#/practice/skills";
+  const { levels, next } = skillState(data);
+  const fret = st => {
+    const cls = st.kind === "check" ? "inlay" : "fret";
+    return `<button class="pk-${cls} ${st.state}" data-id="${esc(st.id)}" data-state="${st.state}" aria-label="${esc(lessonName(st))}, ${st.state === "done" ? "done" : st.state === "now" ? "up next" : "locked"}">${st.kind === "check" ? "" : `<b>${esc(st.name)}</b><small>${st.state === "done" ? (st.n ? `${st.n}×` : "known") : st.state === "now" ? "next" : ""}</small>`}</button>`;
+  };
+  const done = lv => lv.steps.filter(s => s.state === "done").length;
+  app.innerHTML = `
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to the neck">${icon("back")}</button></div>
+    <h1 class="title script" style="margin:14px 2px 2px">All lessons</h1>
     <p class="pf-since pk-skills-note">Frets are lessons. The inlays are level checks: play a real song through.</p>
     ${levels.map(lv => `<section class="pf-card pk-level${lv.soon ? " soon" : ""}" aria-label="${esc(lv.name)}">
       <h2>${esc(lv.name)}${lv.soon ? "" : `<span class="pk-count">${done(lv)} of ${lv.steps.length}</span>`}</h2>
@@ -61,7 +121,7 @@ export function renderNeck() {
     </section>`).join("")}
     <button class="pf-card pk-hearcard" id="pk-hear">${icon("fork")}<span><b>What I hear</b><span class="pf-line">Check the microphone with your guitar: level, pitch and strums, live.</span></span>${icon("chev", "chev")}</button>
     ${next ? `<div class="s-dock"><button class="btn primary" id="pk-go">${icon("play")}${next.kind === "check" ? "Level check" : "Next: " + esc(lessonName(next))}</button></div>` : ""}`;
-  $("back").onclick = () => go("#/practice");
+  $("back").onclick = () => go("#/practice/neck");
   const open = st => {
     if (st.state === "locked") return toast("Finish the lesson before it first.");
     if (st.kind === "check") {
@@ -74,7 +134,6 @@ export function renderNeck() {
   app.querySelectorAll("[data-id]").forEach(b => b.onclick = () => open(all.find(s => s.id === b.dataset.id)));
   $("pk-go")?.addEventListener("click", () => open(next));
   $("pk-hear").onclick = () => go("#/practice/hear");
-  app.querySelectorAll("[data-song]").forEach(b => b.onclick = () => openAtSection(b.dataset.song));
 }
 /* Rehearse (4.8.0): the hub. Today's soundcheck first (two changes you dropped in gigs, 20 XP for both),
    then skill work: the missed changes, the neck, sitting in with the band, the tuner, What I hear. */
@@ -138,6 +197,7 @@ function learningCard() {
 export function renderSession(id) {
   stopLive();
   if (id === "hear") return whatIHear();
+  if (id === "skills") return renderSkills();
   const hit = find(id);
   if (id === "neck") return renderNeck();
   /* a switch that isn't on the neck (a change you dropped in a gig) */
@@ -393,10 +453,14 @@ function switchLesson(st) {
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const finish = (at, line) => {
     stopLive();
+    const part = lessonPartOf(data, st.id); /* 4.21.0: part of today's lesson? (before it counts as learned) */
+    if (part >= 0) lessonKeep(data);
     skillDone(data, st.id, at);
     const sc = soundcheckDone(data, st.id); /* Rehearse (4.8.0): part of today's soundcheck? */
+    const ls = part >= 0 ? lessonDone(data, part) : null;
     const secs = (Date.now() - t0) / 1000; Tabs.save(data);
-    done(st, { secs, line: sc?.done ? `${line} Soundcheck done: +${sc.xp} XP.` : sc ? `${line} One more change for today's soundcheck.` : line, bpm: at, sc });
+    const more = ls?.finished ? ` Lesson of the day done: +${ls.xp} XP.` : ls ? ` Part ${part + 1} of today's lesson done.` : "";
+    done(st, { secs, line: (sc?.done ? `${line} Soundcheck done: +${sc.xp} XP.` : sc ? `${line} One more change for today's soundcheck.` : line) + more, bpm: at, sc: sc || ls });
   };
   const show = k => { /* chord for bar k (k < 0: the count-in shows the first) */
     const cur = k % 2 === 1 ? st.b : st.a, nxt = cur === st.a ? st.b : st.a;

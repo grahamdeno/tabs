@@ -4,14 +4,16 @@ import assert from "node:assert/strict";
 import { chromium, base, skip, LIB, FAKE_MIC, phone, useBrowser } from "./harness.mjs";
 useBrowser();
 
-test("Rehearse leads to the neck, and the neck lists levels with the next lesson lit", { skip: skip() }, async t => {
+test("Rehearse leads to the neck; All lessons lists levels with the next lesson lit", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs }, { home: true });
   await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-list");
   await page.click("#rh-neck");
-  await page.waitForSelector(".pk-board");
+  await page.waitForSelector(".ls-card");
   assert.equal(await page.innerText("h1.title"), "The neck");
+  /* 4.21.0: the lesson of the day first; every lesson is under All lessons */
+  await page.click("#ls-all"); await page.waitForSelector(".pk-board");
   assert.equal(await page.locator(".pk-level").count(), 6, "with Scales (3.21.0)");
   assert.equal(await page.locator(".pk-level.soon").count(), 3, "strumming, picking and fingerstyle are coming");
   assert.equal(await page.locator(".pk-fret.now").first().innerText().then(x => x.split("\n")[0]), "G");
@@ -21,6 +23,7 @@ test("Rehearse leads to the neck, and the neck lists levels with the next lesson
   assert.match(await page.innerText("h1.title"), /G chord/);
   await page.click("#back");
   await page.waitForSelector(".pk-board");
+  await page.click("#back"); await page.waitForSelector(".ls-card");
 });
 
 test("a chord lesson lights a lamp for each string it hears ring clean, and the self-report finishes it", { skip: skip() }, async t => {
@@ -59,7 +62,7 @@ test("What I hear: the level, the pitch and the string it lights, and readings t
   await page.goto(base);
   await page.waitForTimeout(400);
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
-  await page.goto(base + "#/practice/neck");
+  await page.goto(base + "#/practice/skills");
   await page.click("#pk-hear");
   await page.waitForSelector("#ph-lane");
   await page.click(".ph-chords [data-c='Am']");
@@ -96,6 +99,34 @@ test("Rehearse (4.8.0): the soundcheck is built from the changes you dropped, an
   await page.click("#pk-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText(".rd-first-t"), /Soundcheck done: \+20 XP/);
   await page.click("#pk-next"); await page.waitForSelector(".rh-sc.done");
-  await page.click("#rh-neck"); await page.waitForSelector(".pk-board");
+  await page.click("#rh-neck"); await page.waitForSelector(".ls-card");
   await page.click("#back"); await page.waitForSelector(".rh-list");
+});
+
+test("4.21.0 the lesson of the day: three parts from your songs, Start, and a switch lesson ticks its part", { skip: skip() }, async t => {
+  const body = "[Verse]\n[C]Slip in[Dm]side the [C]eye of your [Dm]mind\n[Chorus]\n[C]So Sally [Dm]can wait";
+  const songs = [{ ...LIB.songs[0], id: "dl", title: "Anger", body, status: "learning" }, LIB.songs[1]];
+  const page = await phone(t, { ...LIB, songs, skills: { done: { "s:G-C": { n: 1, best: 90, at: 1 } }, last: 1 } });
+  await page.evaluate(() => { location.hash = "#/practice/neck"; }); await page.waitForSelector(".ls-card");
+  const card = await page.innerText(".ls-card");
+  assert.match(card, /C to Dm, then the Verse/);
+  assert.match(card, /Built from Anger/);
+  assert.match(card, /Warm up: G to C/);
+  assert.match(card, /Play the Verse at 70%/);
+  assert.equal(await page.locator(".ls-step").count(), 3);
+  assert.match(await page.innerText("#ls-go"), /Start lesson/);
+  assert.match(await page.innerText(".ls-skills"), /Open chords[\s\S]*Switches[\s\S]*Scales/);
+  await page.click(".ls-step[data-part='1']"); await page.waitForSelector("#pk-self");
+  assert.match(await page.innerText("h1.title"), /C to Dm/);
+  await page.click("#pk-self"); await page.waitForSelector(".pf-plate");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).rehearse?.lesson?.done?.includes(1));
+  assert.match(await page.innerText(".rd-first-t"), /Part 2 of today's lesson done/);
+  await page.evaluate(() => { location.hash = "#/practice/neck"; }); await page.waitForSelector(".ls-step[data-part='1'].done");
+  /* part 3 opens the song in Practice mode, the Verse looped at 70% */
+  await page.click(".ls-step[data-part='2']");
+  await page.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dl"); return s.loop && s.practice?.rate === 0.7; });
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "dl"));
+  assert.equal(s.loop.a, 0, "from the Verse label");
+  assert.match(s.loop.name, /Verse/);
+  await page.waitForSelector("#looprow.on");
 });

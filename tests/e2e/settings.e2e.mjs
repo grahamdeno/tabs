@@ -416,6 +416,7 @@ test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a s
   assert.match(await page.innerText(".pk-learn"), /River Road/);
   assert.match(await page.innerText(".pk-learn"), /Next: Chorus at 80%/);
   assert.match(await page.innerText(".pk-learn"), /0 of 5 plays/);
+  await page.evaluate(() => { location.hash = "#/practice/skills"; }); await page.waitForSelector(".pk-level");
   const scales = page.locator(".pk-level", { hasText: "Scales" });
   assert.match(await scales.innerText(), /Am pent/);
   await scales.locator("[data-id='x:Ampent']").click(); await page.waitForSelector(".pk-scale");

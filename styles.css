@@ -3064,3 +3064,40 @@ body.gigging .ask { z-index: 66; }
 .sets-btn { height: 44px; padding: 0 12px; border-radius: 14px; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
 .sets-btn .i { width: 20px; height: 20px; }
 .sets-btn.on { background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-deep); }
+
+/* ---------- The neck (4.21.0): the lesson of the day and your skills in three bars ---------- */
+.ls-card { padding: 18px; margin-top: 14px; }
+.ls-top { display: flex; gap: 10px; align-items: center; }
+.ls-top > div { flex: 1; min-width: 0; }
+.ls-top .louie { flex: none; }
+.ls-cap { display: block; font: 800 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); }
+.ls-card.finished .ls-cap { color: var(--good); }
+.ls-t { display: block; font: 700 24px/1.1 var(--display); margin-top: 4px; }
+.ls-card .pf-line { margin-top: 4px; }
+.ls-steps { margin-top: 10px; }
+.ls-step { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 10px 0; border: 0; border-bottom: 2px solid var(--hair); background: none; color: var(--fg); text-align: left; }
+.ls-step:last-child { border-bottom: 0; }
+.ls-n { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 800 12px var(--sans); background: var(--card-2); color: var(--muted); box-shadow: inset 0 0 0 2px var(--rim); }
+.ls-step.now .ls-n { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.ls-step.done .ls-n { background: var(--good); color: #fff; box-shadow: none; }
+.ls-step.done .ls-n .i { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 3; }
+.ls-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ls-tx b { font: 700 17px var(--display); }
+.ls-step.done .ls-tx b { color: var(--muted); text-decoration: line-through; }
+.ls-tx small { font: 700 13px var(--sans); color: var(--muted); }
+.ls-min { font: 800 12px var(--sans); color: var(--muted); white-space: nowrap; }
+.ls-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ls-tags span { font: 800 13px var(--sans); border-radius: 999px; padding: 4px 10px; }
+.ls-xp { background: var(--good-soft); color: var(--good); }
+.ls-more { background: var(--accent-soft); color: var(--accent-ink); }
+.ls-skills { display: block; width: 100%; padding: 14px 16px; margin-top: 14px; text-align: left; color: var(--fg); border: 0; }
+.ls-sk-h { display: flex; align-items: center; }
+.ls-sk-h .ls-cap { flex: 1; color: var(--muted); }
+.ls-all { display: inline-flex; align-items: center; gap: 2px; font: 700 14px var(--sans); color: var(--accent-ink); }
+.ls-all .chev { width: 14px; height: 14px; }
+.ls-bars { display: flex; gap: 14px; margin-top: 10px; }
+.ls-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ls-bar small { font: 800 12px var(--sans); color: var(--muted); }
+.ls-bar > span { height: 8px; border-radius: 4px; background: var(--card-2); overflow: hidden; }
+.ls-bar i { display: block; height: 100%; border-radius: 4px; }
+.ls-bar b { font: 800 12px var(--sans); }

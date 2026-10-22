@@ -100,6 +100,24 @@ const openSearch = () => { searchNext = true; go("#/library"); };
 /* The Neck's Learning list opens a song on the section you last practiced (3.24.2). */
 let sectionNext = null;
 const openAtSection = id => { sectionNext = id; go("#/song/" + encodeURIComponent(id)); };
+/* 4.21.0: the lesson of the day opens its song at a section (its order among the section labels, -1 for
+   the whole song), looped in Practice mode at a speed. loopHooks.pass hears each pass of a loop. */
+let lessonOpen = null;
+export const loopHooks = { pass: null };
+const openLessonSong = (id, sec, rate) => { lessonOpen = { id, sec, rate }; go("#/song/" + encodeURIComponent(id)); };
+function applyLessonOpen(song, lo) {
+  const lines = sheetLines();
+  if (!lines.length) return;
+  let a = 0, b = lines.length - 1;
+  if (lo.sec >= 0) {
+    const el = lines.filter(x => x.classList.contains("sec"))[lo.sec];
+    if (el) { a = lines.indexOf(el); let j = a + 1; while (j < lines.length && !lines[j].classList.contains("sec")) j++; while (j - 1 > a && lines[j - 1].classList.contains("gap")) j--; b = j - 1; }
+  }
+  song.loop = { a, b, build: false };
+  song.loop.name = lo.sec >= 0 ? loopName(song) : "Whole song";
+  song.practice = { ...(song.practice || {}), rate: lo.rate };
+  setPracticing(song, true);
+}
 const route = () => {
   const [, name = "", id = ""] = location.hash.split("/");
   return { name: name || "road", id: decodeURIComponent(id) };
@@ -815,6 +833,7 @@ function loopCheck(song) {
   if (last.getBoundingClientRect().bottom > line - 4 && !endDone) return false;
   loopRun.endSince = 0;
   loopRun.pass++;
+  loopHooks.pass?.(song, loopRun.pass);
   hold.active = true; releaseSoon(900);
   const back = Math.max(0, scrollY + first.getBoundingClientRect().top - line);
   /* The recording goes back with the page, at this pass's speed. */
@@ -1827,6 +1846,7 @@ function renderRoute() {
   if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return renderRoute(); }
   if (r.name === "song") {
     renderViewer(r.id);
+    if (lessonOpen?.id === r.id) { const lo = lessonOpen; lessonOpen = null; sectionNext = r.id; setTimeout(() => { if (viewing?.id === r.id) applyLessonOpen(viewing, lo); }, 120); }
     if (sectionNext === r.id) { sectionNext = null; setTimeout(() => { const s = viewing, first = s?.id === r.id && s.loop && sheetLines()[s.loop.a]; if (first && !scroll.on) window.scrollTo({ top: Math.max(0, scrollY + first.getBoundingClientRect().top - innerHeight * READ_AT), behavior: "auto" }); }, 200); }
     if (playNext === r.id) { playNext = null; setTimeout(() => { if (viewing?.id === r.id && !scroll.on) $("play")?.click(); }, 450); }
     if (gigNext?.id === r.id) setTimeout(openGigNow, 350);
@@ -1891,4 +1911,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
