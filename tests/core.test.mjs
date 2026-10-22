@@ -2089,3 +2089,38 @@ test("4.21.0 lesson of the day: learning the new change mid-lesson doesn't swap 
   assert.equal(C.lessonPartOf(data, "s:Am-F", now), 1);
   assert.equal(C.lessonOfDay(data, now).learn.id, "s:Am-F");
 });
+
+test("4.23.0 Your changes: the three your songs need most that you land least, and the one that's solid", () => {
+  const now = new Date(2026, 9, 21, 10).getTime(), day = dayKey => dayKey;
+  const k = new Date(now); const today = `${k.getFullYear()}-${String(k.getMonth() + 1).padStart(2, "0")}-${String(k.getDate()).padStart(2, "0")}`;
+  const data = { songs: [
+    { id: "a", title: "Anger", body: "[V]\n[C]a [Dm]b [C]c [Dm]d [C]e [Dm]f" },
+    { id: "b", title: "Porch", body: "[V]\n[G]a [C]b [G]c [C]d [G]e [C]f [G]g" },
+    { id: "c", title: "Late", body: "[V]\n[Em]a [Am]b [Em]c [Am]d [G]e [C]f" }
+  ], sets: [], trash: [], settings: {}, rehearse: { lands: { "G>C": { n: 41, days: { [today]: 41 } }, "C>G": { n: 0, days: {} } }, misses: { "G>C": { n: 2, days: { [today]: 2 } }, "Em>Am": { n: 5, days: { [today]: 5 } } } } };
+  data.rehearse.lands["Em>Am"] = { n: 2, days: { [today]: 2 } };
+  const r = C.changesToWork(data, now);
+  assert.equal(r.solid.id, "s:G-C"); assert.equal(r.solid.landed, 41); assert.equal(r.solid.of, 43);
+  assert.equal(r.work[0].id, "s:C-Dm", "not tried yet, and the most in his songs, comes first");
+  assert.match(r.work[0].why, /In Anger, 5 times|In Anger, \d+ times/);
+  assert.equal(r.work[0].tried, false);
+  assert.ok(r.work.some(w => w.id === "s:Em-Am" && w.landed === 2 && w.of === 7 && /Late/.test(w.why)));
+  assert.ok(!r.work.some(w => w.id === "s:G-C"), "the solid one isn't a thing to work on");
+  assert.ok(r.work.length <= 3);
+  /* a window of seven days: old landings don't count */
+  const later = C.changesToWork(data, now + 9 * 86400e3);
+  assert.equal(later.solid, null);
+  /* a library with no changes, or tab songs only */
+  assert.deepEqual(C.changesToWork({ songs: [], sets: [], trash: [], settings: {} }, now), { work: [], solid: null });
+});
+
+test("4.23.0 the changes you land are kept like the ones you drop", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  const now = new Date(2026, 9, 21, 10).getTime();
+  C.rehearseMisses(data, { "C>F": 2 }, now, { "G>C": 9, "bad": 3 });
+  assert.equal(data.rehearse.lands["G>C"].n, 9); assert.equal(data.rehearse.lands.bad, undefined);
+  C.rehearseMisses(data, {}, now + 20 * 86400e3, { "G>C": 1 });
+  assert.equal(data.rehearse.lands["G>C"].n, 1, "older than 14 days is dropped");
+  const clean = C.cleanRehearse(JSON.parse(JSON.stringify(data.rehearse)));
+  assert.equal(clean.lands["G>C"].n, 1);
+});

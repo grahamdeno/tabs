@@ -264,6 +264,7 @@ function frame() {
   while (g.due.length && now - g.due[0].t > GIG_WINDOW) {
     const d = g.due.shift(), r = gigChange(g.score, d.t, g.strums);
     if (!r.hit) g.missed[d.pair] = (g.missed[d.pair] || 0) + 1; /* for Rehearse's soundcheck (4.8.0) */
+    else g.landed[d.pair] = (g.landed[d.pair] || 0) + 1; /* and Your changes (4.23.0) */
     graded = true;
     flash(r.hit);
   }
@@ -305,7 +306,7 @@ export function openGig(song, opts = {}) {
   closeGig(true);
   const audio = sound();
   const g = gig = {
-    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "", dragUntil: 0, missed: {},
+    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "", dragUntil: 0, missed: {}, landed: {},
     audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
   g.el = shell(song);
@@ -398,7 +399,7 @@ function showComplete() {
   g.stream?.getTracks().forEach(t => t.stop());
   const graded = g.score.hits + g.score.misses > 0;
   const { fans, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore);
-  rehearseMisses(data, g.missed); /* the changes you dropped: tomorrow's soundcheck */
+  rehearseMisses(data, g.missed, Date.now(), g.landed); /* the changes you dropped (tomorrow's soundcheck) and landed (Your changes) */
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
   const tip = merchTip(data); /* the Merch table (4.14.0): something you can now afford, said once */

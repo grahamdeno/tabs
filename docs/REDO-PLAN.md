@@ -58,10 +58,10 @@ Don't change how the search bar works: only the screen under it while it's focus
 
 ## Step 4 [Sonnet] 4.23.0: Your changes, in Soundcheck (board "Your changes · in Soundcheck")
 
-- [ ] 4.1 `core`: `changesToWork(data, now)` (pure, unit tested): the three changes his songs contain most that he lands least (landing from gig records; "not tried yet" when there are none), each with where it comes from ("In Don't Look Back in Anger, 6 times" or "In 3 of your songs, 9 times"), and one change he has down (landed 90% or more, most landings this week).
-- [ ] 4.2 Rehearse (`renderRehearse` in `practice.js`): a "Your changes" section with the three rows (pair, why, landed bar, Drill opening `#/practice/s:A-B`), the "solid" line, and "Drill all three" at the bottom.
-- [ ] 4.3 Remove the old Changes sheet and its bar chart (the "To work on" stats in Your profile's More stats now link to this section). Grep for `showChanges`, `chg-`, `changesSheet` before deleting.
-- [ ] 4.4 Tests: unit tests for `changesToWork`; browser test for the section and a Drill tap; update `changes.e2e.mjs`.
+- [x] 4.1 `core`: `changesToWork(data, now)` (pure, unit tested): the three changes his songs contain most that he lands least (landing from gig records; "not tried yet" when there are none), each with where it comes from ("In Don't Look Back in Anger, 6 times" or "In 3 of your songs, 9 times"), and one change he has down (landed 90% or more, most landings this week).
+- [x] 4.2 Rehearse (`renderRehearse` in `practice.js`): a "Your changes" section with the three rows (pair, why, landed bar, Drill opening `#/practice/s:A-B`), the "solid" line, and "Drill all three" at the bottom.
+- [x] 4.3 Remove the old Changes sheet and its bar chart (the "To work on" stats in Your profile's More stats now link to this section). Grep for `showChanges`, `chg-`, `changesSheet` before deleting.
+- [x] 4.4 Tests: unit tests for `changesToWork`; browser test for the section and a Drill tap; update `changes.e2e.mjs`.
 
 ## Step 5 [Sonnet] 4.24.0: Tuner (boards "Tuner v3 · acoustic in colour" and "Tuner v3 · electric in colour")
 
@@ -94,3 +94,5 @@ Don't change how the search bar works: only the screen under it while it's focus
 - Step 2: "Opens X next" was dropped. A switch lesson doesn't add a chord he knows, so no song opens because of it; the card says how often the change is in his other songs instead.
 - Step 2: the day's plan is kept as soon as a part starts, since passing the new change's switch lesson would otherwise swap the lesson for a different change.
 - Step 2: the lesson lives in `data.rehearse.lesson` (not `data.lesson`), so it saves through the existing `cleanRehearse`.
+- Step 4 (4.23.0): the old Changes sheet was already gone in 4.20.0, so 4.3 removed nothing. Your profile's "most played" changes card (`pf-chg`, `.pf-drill`) stays.
+- Step 4: a lesson opened from Rehearse used to bounce to the neck when its switch was still locked on the ladder (Em to Am before G to C), and ended on "Next: <the ladder's next lesson>". Rehearse drills now open locked switches and end on "Back to Rehearse".

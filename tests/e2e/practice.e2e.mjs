@@ -1,7 +1,7 @@
 // Rehearse and the neck: the permanent practice place, the soundcheck, and a chord lesson that listens.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, skip, LIB, FAKE_MIC, phone, useBrowser } from "./harness.mjs";
+import { chromium, base, skip, LIB, FAKE_MIC, phone, useBrowser, settled } from "./harness.mjs";
 useBrowser();
 
 test("Rehearse leads to the neck; All lessons lists levels with the next lesson lit", { skip: skip() }, async t => {
@@ -129,4 +129,30 @@ test("4.21.0 the lesson of the day: three parts from your songs, Start, and a sw
   assert.equal(s.loop.a, 0, "from the Verse label");
   assert.match(s.loop.name, /Verse/);
   await page.waitForSelector("#looprow.on");
+});
+
+test("4.23.0 Your changes in Rehearse: three rows with why and landed, Drill, and Drill all three goes on to the next", { skip: skip() }, async t => {
+  const d = new Date(), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const songs = [{ ...LIB.songs[0], id: "dl", title: "Anger", body: "[V]\n[C]a [Dm]b [C]c [Dm]d [C]e [Dm]f" }, { ...LIB.songs[1], id: "pc", title: "Porch", body: "[V]\n[Em]a [Am]b [Em]c [Am]d [Em]e [Am]f" }, { ...LIB.songs[1], id: "gc", title: "Gee", body: "[V]\n[G]g [C]h [G]i [C]j [G]k [C]l" }];
+  const page = await phone(t, { ...LIB, songs, rehearse: { lands: { "G>C": { n: 41, days: { [k]: 41 } } }, misses: { "G>C": { n: 2, days: { [k]: 2 } } } } }, { home: true });
+  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-yc");
+  assert.equal(await page.locator(".rh-ycr").count(), 2);
+  const txt = await page.innerText(".rh-yc");
+  assert.match(txt, /Your changes[\s\S]*C\s*→\s*Dm[\s\S]*In Anger/);
+  assert.match(txt, /Not tried yet/);
+  assert.match(txt, /Em\s*→\s*Am[\s\S]*In Porch/);
+  assert.match(txt, /G to C is solid: landed 41 of 43 this week/);
+  assert.match(await page.innerText("#rh-ycall"), /Drill all two/);
+  await page.click("#rh-ycall"); await page.waitForSelector("#pk-self");
+  assert.match(await page.innerText("h1.title"), /C to Dm/);
+  await settled(page); await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  assert.match(await page.innerText("#pk-next"), /Next: Em to Am/);
+  await settled(page); await page.click("#pk-next"); await page.waitForSelector("#pk-self");
+  assert.match(await page.innerText("h1.title"), /Em to Am/);
+  await settled(page); await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  assert.equal(await page.innerText("#pk-next"), "Back to Rehearse");
+  /* one row drills on its own */
+  await settled(page); await page.click("#pk-next"); await page.waitForSelector(".rh-yc");
+  await page.click(".rh-ycd >> nth=0"); await page.waitForSelector("#pk-self");
+  assert.match(await page.innerText("h1.title"), /C to Dm/);
 });

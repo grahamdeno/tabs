@@ -368,13 +368,17 @@ export function cleanBand(raw) {
 // the two you missed most in the last week: drill both (switch lessons) and it's done, worth 20 XP once a day.
 // With nothing missed yet, it's the next switch on the neck.
 export const SOUNDCHECK_XP = 20;
-export function rehearseMisses(data, missed = {}, now = Date.now()) {
-  const pairs = Object.entries(missed).filter(([k, n]) => n > 0 && /^[^>]+>[^>]+$/.test(k));
-  if (!pairs.length) return;
-  const r = data.rehearse || (data.rehearse = {}), m = r.misses || (r.misses = {}), today = dayKey(now);
-  for (const [k, n] of pairs) { const x = m[k] || (m[k] = { n: 0, days: {} }); x.days[today] = (x.days[today] || 0) + n; }
-  const keep = dayKey(now - 14 * DAY);
-  for (const [k, x] of Object.entries(m)) { for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d]; x.n = Object.values(x.days).reduce((a, b) => a + b, 0); if (!x.n) delete m[k]; }
+export function rehearseMisses(data, missed = {}, now = Date.now(), landed = {}) {
+  const keep = dayKey(now - 14 * DAY), today = dayKey(now);
+  const add = (field, src) => {
+    const pairs = Object.entries(src).filter(([k, n]) => n > 0 && /^[^>]+>[^>]+$/.test(k));
+    if (!pairs.length) return;
+    const r = data.rehearse || (data.rehearse = {}), m = r[field] || (r[field] = {});
+    for (const [k, n] of pairs) { const x = m[k] || (m[k] = { n: 0, days: {} }); x.days[today] = (x.days[today] || 0) + n; }
+    for (const [k, x] of Object.entries(m)) { for (const d of Object.keys(x.days)) if (d < keep) delete x.days[d]; x.n = Object.values(x.days).reduce((a, b) => a + b, 0); if (!x.n) delete m[k]; }
+  };
+  add("misses", missed);
+  add("lands", landed); /* 4.23.0: the changes you landed, for Your changes */
 }
 /* the changes you dropped, most first: [{ a, b, n }] over the last `days` days */
 export function missedChanges(data, now = Date.now(), days = 14) {
@@ -417,11 +421,54 @@ export function cleanRehearse(raw) {
     const n = Object.values(days).reduce((a, b) => a + b, 0); if (n) misses[k] = { n, days };
   }
   if (Object.keys(misses).length) out.misses = misses;
+  const lands = {};
+  for (const [k, x] of Object.entries(isObj(raw.lands) ? raw.lands : {}).slice(0, 200)) {
+    if (!/^[^>]{1,12}>[^>]{1,12}$/.test(k) || !isObj(x?.days)) continue;
+    const days = {}; for (const [d, n] of Object.entries(x.days)) if (day.test(d) && n > 0) days[d] = Math.min(9999, Math.round(n));
+    const n = Object.values(days).reduce((a, b) => a + b, 0); if (n) lands[k] = { n, days };
+  }
+  if (Object.keys(lands).length) out.lands = lands;
   const sc = raw.sc;
   if (isObj(sc) && day.test(sc.day)) out.sc = { day: sc.day, got: (Array.isArray(sc.got) ? sc.got : []).filter(x => typeof x === "string").slice(0, 4), ...(Array.isArray(sc.pairs) ? { pairs: sc.pairs.filter(x => typeof x === "string").slice(0, 4) } : {}), ...(sc.done === true ? { done: true } : {}) };
   const lesson = cleanLesson(raw.lesson);
   if (lesson) out.lesson = lesson;
-  return out.misses || out.sc || out.lesson ? out : null;
+  return out.misses || out.lands || out.sc || out.lesson ? out : null;
+}
+
+// ---------- Your changes (4.23.0): in Rehearse, the three your songs need most that you land least ----------
+// A change is a pair, either direction ("C to Dm" and "Dm to C" are one). How often you landed it in gigs
+// over the last 7 days comes from data.rehearse.lands and .misses; a change you haven't tried is "not tried
+// yet" and ranks first among equals. One more is "solid": the one you land best (90% or more, five tries or more).
+export const CHANGES_DAYS = 7;
+export function changesToWork(data, now = Date.now()) {
+  const from = dayKey(now - (CHANGES_DAYS - 1) * DAY);
+  const sum = (field, a, b) => [`${a}>${b}`, `${b}>${a}`].reduce((t, k) => t + Object.entries(data.rehearse?.[field]?.[k]?.days || {}).reduce((n, [d, c]) => d >= from ? n + c : n, 0), 0);
+  const songs = (data.songs || []).filter(s => s.format !== "tab");
+  const full = changesOfAll(songs);
+  const rows = full.filter(c => chordShape(c.a) && chordShape(c.b)).map(c => {
+    const landed = sum("lands", c.a, c.b), missed = sum("misses", c.a, c.b), of = landed + missed;
+    return { a: c.a, b: c.b, id: `s:${c.a}-${c.b}`, landed, of, rate: of ? landed / of : 0, tried: of > 0, times: c.best?.n || 0, inSongs: c.inSongs, songCount: c.songCount, song: c.best?.title || "" };
+  });
+  const solid = rows.filter(r => r.of >= 5 && r.rate >= 0.9).sort((x, y) => y.landed - x.landed || (x.id < y.id ? -1 : 1))[0] || null;
+  const work = rows.filter(r => r !== solid && !(r.of >= 5 && r.rate >= 0.9))
+    .sort((x, y) => x.rate - y.rate || y.inSongs - x.inSongs || (x.id < y.id ? -1 : 1)).slice(0, 3)
+    .map(r => ({ ...r, why: r.songCount <= 1 ? `In ${r.song}, ${r.inSongs} time${r.inSongs === 1 ? "" : "s"}` : `In ${r.songCount} of your songs, ${r.inSongs} times` }));
+  return { work, solid };
+}
+/* every change in the songs, with the song that has it most: the ranking above needs all of them */
+function changesOfAll(songs) {
+  const map = new Map();
+  for (const s of songs) for (const [k, x] of songChanges(s)) {
+    const c = map.get(k) || { key: k, inSongs: 0, dir: {}, songs: [] };
+    c.inSongs += x.n; c.songs.push({ id: s.id, title: s.title, n: x.n });
+    for (const [d, n] of Object.entries(x.dir)) c.dir[d] = (c.dir[d] || 0) + n;
+    map.set(k, c);
+  }
+  return [...map.values()].map(c => {
+    const [d] = Object.entries(c.dir).sort((x, y) => y[1] - x[1])[0], [a, b] = d.split(">");
+    c.songs.sort((x, y) => y.n - x.n || (x.title < y.title ? -1 : 1));
+    return { key: c.key, a, b, inSongs: c.inSongs, songCount: c.songs.length, best: c.songs[0] };
+  });
 }
 
 // ---------- Lesson of the day (4.21.0) ----------

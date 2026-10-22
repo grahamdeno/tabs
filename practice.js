@@ -15,7 +15,7 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES } from "./core.js";
+import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -27,6 +27,7 @@ const find = id => { for (const lv of skillState(data).levels) for (const st of 
 const lessonName = st => st.kind === "chord" ? `${st.chord} chord` : st.kind === "switch" ? `${st.a} to ${st.b}` : st.kind === "scale" ? SCALES[st.scale]?.name || "Scale" : "Level check";
 
 let live = null; /* the lesson running now: stopped when you leave */
+let drillQueue = []; /* 4.23.0: "Drill all three" in Rehearse: the switch lessons still to do, in order */
 let backTo = "#/practice/neck"; /* where a lesson's Back goes: the neck, or Rehearse when it was opened there */
 function stopLive() {
   if (!live) return;
@@ -140,7 +141,7 @@ function renderSkills() {
 export function renderRehearse() {
   stopLive();
   backTo = "#/practice";
-  const sc = soundcheck(data), missed = missedChanges(data), dropped = missed.reduce((n, x) => n + x.n, 0);
+  const sc = soundcheck(data), missed = missedChanges(data), dropped = missed.reduce((n, x) => n + x.n, 0), yc = changesToWork(data);
   const learn = data.songs.filter(x => x.status === "learning" && x.format !== "tab").sort((a, b) => (b.opened || 0) - (a.opened || 0))[0]
     || data.songs.filter(x => x.format !== "tab").sort((a, b) => (b.opened || 0) - (a.opened || 0))[0];
   const nextPair = sc.pairs.find(p => !p.done);
@@ -152,6 +153,14 @@ export function renderRehearse() {
       <div class="rh-sct"><b>Soundcheck</b><p>${sc.done ? "Done for today. A new one tomorrow." : sc.fromMisses ? `Built from the changes you dropped: ${sc.pairs.map(p => `<b class="${p.done ? "ok" : ""}">${esc(p.a)} to ${esc(p.b)}</b>`).join(" and ")}` : `Warm up on <b>${esc(sc.pairs[0].a)} to ${esc(sc.pairs[0].b)}</b>. Play a gig and it'll be built from the changes you drop.`}</p></div>
       ${louie(sc.done ? "cheer" : "happy", { pose: sc.done ? "thumb" : "point", size: 82 })}
       ${sc.done ? "" : `<button class="btn primary rh-go" id="rh-sc">START · +${SOUNDCHECK_XP} XP</button>`}
+    </section>` : ""}
+    ${yc.work.length ? `<section class="rh-yc" aria-label="Your changes">
+      <div class="rh-yct">${louie("worried", { size: 52 })}<div><b>Your changes</b><small>The three your songs need most and you land least</small></div></div>
+      ${yc.work.map(c => `<div class="rh-ycr"><div class="rh-ycx"><b>${esc(c.a)} <i>→</i> ${esc(c.b)}</b><small>${esc(c.why)}</small>
+          <span class="rh-ycm"><span><i style="width:${Math.max(4, Math.round(c.rate * 100))}%"></i></span><em>${c.tried ? `Landed ${c.landed} of ${c.of}` : "Not tried yet"}</em></span></div>
+        <button class="btn primary rh-ycd" data-drill="${esc(c.id)}" aria-label="Drill ${esc(c.a)} to ${esc(c.b)}">Drill</button></div>`).join("")}
+      ${yc.solid ? `<p class="rh-ycs"><span class="ls-n">${icon("check")}</span>${esc(yc.solid.a)} to ${esc(yc.solid.b)} is solid: landed ${yc.solid.landed} of ${yc.solid.of} this week</p>` : ""}
+      <button class="btn primary rh-ycall" id="rh-ycall">${icon("play")}Drill all ${yc.work.length === 1 ? "one" : yc.work.length === 2 ? "two" : "three"} · ${yc.work.length * 1} min</button>
     </section>` : ""}
     <h2 class="tq-h"><span>SKILL WORK</span></h2>
     <div class="rh-list">
@@ -167,6 +176,8 @@ export function renderRehearse() {
   $("rh-sc")?.addEventListener("click", () => nextPair && go("#/practice/" + encodeURIComponent(nextPair.id)));
   $("rh-missed").onclick = () => { if (!missed.length) return toast("Play a gig with the microphone on. The changes you drop show up here."); $("rh-pairs").hidden = !$("rh-pairs").hidden; };
   app.querySelectorAll(".rh-pair").forEach(b => b.onclick = () => go("#/practice/" + encodeURIComponent(b.dataset.id)));
+  app.querySelectorAll(".rh-ycd").forEach(b => b.onclick = () => { drillQueue = []; go("#/practice/" + encodeURIComponent(b.dataset.drill)); });
+  $("rh-ycall")?.addEventListener("click", () => { drillQueue = yc.work.slice(1).map(c => c.id); go("#/practice/" + encodeURIComponent(yc.work[0].id)); });
   $("rh-neck").onclick = () => go("#/practice/neck");
   $("rh-band")?.addEventListener("click", () => openAtSection(learn.id));
   $("rh-tuner").onclick = () => openTuner();
@@ -207,7 +218,7 @@ export function renderSession(id) {
   const mc = !hit && /^c:(.+)$/.exec(id);
   if (mc && chordSVG(mc[1]) && chordTargets(mc[1], "standard").some(t => t.hz)) return chordLesson({ id, kind: "chord", chord: mc[1], state: "now" });
   /* a chord lesson opens even before its fret on the neck (Learn it from the chord passport, 4.19.0) */
-  if (!hit || (hit.st.state === "locked" && hit.st.kind !== "chord") || hit.st.kind === "check") return go("#/practice/neck");
+  if (!hit || (hit.st.state === "locked" && hit.st.kind !== "chord" && hit.st.kind !== "switch") || hit.st.kind === "check") return go("#/practice/neck");
   hit.st.kind === "chord" ? chordLesson(hit.st) : hit.st.kind === "scale" ? scaleLesson(hit.st) : switchLesson(hit.st);
 }
 
@@ -543,6 +554,7 @@ function done(st, { secs, line, bpm = 0, sc = null }) {
   const chords = st.kind === "chord" ? [st.chord] : [st.a, st.b];
   const sg = st.kind === "scale" ? null : data.songs.find(s => chords.every(c => new RegExp("\\[" + c.replace("#", "\\#") + "(?![#b\\w])").test(s.body || ""))) || data.songs.find(s => new RegExp("\\[" + chords[0] + "(?![#b\\w])").test(s.body || ""));
   const nxt = skillState(data).next;
+  const queued = drillQueue[0] || null, qm = queued && /^s:([^-]+)-(.+)$/.exec(queued);
   const m = Math.floor(secs / 60), s = Math.round(secs % 60);
   app.innerHTML = `${head(lessonName(st), "Done")}
     <div class="rd-first">${louie("happy", { pose: "thumb", size: 170 })}<p class="rd-first-t">${esc(line)}</p></div>
@@ -551,10 +563,10 @@ function done(st, { secs, line, bpm = 0, sc = null }) {
       <div class="pf-read"><b>${bpm || (data.skills?.done?.[st.id]?.n || 1) + "×"}</b><span>${bpm ? "BPM" : "practiced"}</span></div>
       ${total ? `<div class="pf-read"><b>${have}/${total}</b><span>${esc(lv.name.toLowerCase())}</span></div>` : ""}
     </div>
-    <div class="s-dock">${sg ? `<button class="btn primary" id="pk-song">${icon("play")}Play ${esc(sg.title)}</button>` : ""}<button class="${sg ? "tb" : "btn primary"}" id="pk-next">${nxt && nxt.kind !== "check" && !sc ? "Next: " + esc(lessonName(nxt)) : backTo === "#/practice" ? "Back to Rehearse" : "Back to the neck"}</button></div>`;
+    <div class="s-dock">${sg ? `<button class="btn primary" id="pk-song">${icon("play")}Play ${esc(sg.title)}</button>` : ""}<button class="${sg && !qm ? "tb" : "btn primary"}" id="pk-next">${qm ? `Next: ${esc(qm[1])} to ${esc(qm[2])}` : nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? "Next: " + esc(lessonName(nxt)) : backTo === "#/practice" ? "Back to Rehearse" : "Back to the neck"}</button></div>`;
   $("back").onclick = () => go(backTo);
   $("pk-song")?.addEventListener("click", () => playSong(sg.id));
-  $("pk-next").onclick = () => nxt && nxt.kind !== "check" && !sc ? go("#/practice/" + encodeURIComponent(nxt.id)) : go(backTo);
+  $("pk-next").onclick = () => { if (qm) { drillQueue.shift(); return go("#/practice/" + encodeURIComponent(queued)); } nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? go("#/practice/" + encodeURIComponent(nxt.id)) : go(backTo); };
 }
 
 /* ---------- What I hear ----------
