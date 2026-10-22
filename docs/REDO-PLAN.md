@@ -175,7 +175,9 @@ Graham (2026-10-22): rounded picks, no dotted path, the halo kept behind the nex
 - [x] 14.3 Any other pick: a small bubble (Play again on a done lesson); a tap anywhere else closes it.
 - [x] 14.4 At a headline the flag names a song that fits; Other songs that fit lists the rest; with none, Find opens What can I play next.
 
-## Step 15 [Opus] 4.35.0: Learn a language (German, Spanish or Russian)
+Graham (2026-10-22, after 4.34.1): no flag. A pick's card opens only on a tap (like Duolingo's), the next pick's halo pulses and the pick wiggles now and then. Built in 4.35.0.
+
+## Step 15 [Opus] 4.36.0: Learn a language (German, Spanish or Russian)
 
 Graham (2026-10-22): one language for every song, chosen from German, Spanish and Russian (nothing to install on the phone). Mockups first, then his go.
 - [ ] 15.1 Mockups: the picker (first open and in Settings), the Song tab row named for the language, the practice sheet and a word card in Spanish and in Russian.

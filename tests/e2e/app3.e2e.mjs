@@ -428,8 +428,12 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.match(await page.innerText("#h-fans"), /\d/, "and your fans");
   assert.match(await page.innerText(".rd-banner"), /LEG 1[\s\S]*Open chords/);
   assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
-  assert.match(await page.innerText(".rd-flag"), /NEXT[\s\S]*The G chord[\s\S]*Start/, "4.34.0: its flag starts it");
-  assert.equal(await page.locator(".rd-pop").count(), 0, "no card open");
+  assert.equal(await page.locator(".rd-pop, .rd-flag").count(), 0, "4.35.0: nothing open on arrival, no flag");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-node.now .rd-halo")).animationName), "rd-halo", "the halo pulses");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-node.now .rd-body")).animationName), "rd-wiggle", "the pick wiggles now and then");
+  await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
+  assert.match(await page.innerText(".rd-pop.now"), /The G chord[\s\S]*START · \+5 FANS/, "a tap opens its card");
+  await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop", { state: "detached" });
   assert.equal(await page.locator(".rd-node .rd-pk").count() > 3, true, "the stops are picks");
   assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next pick");
   assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie beside the path");
@@ -437,7 +441,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.equal(await page.locator(".rd-node.box").count() >= 1, true, "with merch boxes along the way");
   /* another pick: a small bubble; a tap anywhere else closes it */
   await page.click(".rd-node.locked >> nth=0");
-  assert.match(await page.innerText(".rd-pop"), /LOCKED[\s\S]*Finish the stops before this one/);
+  assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
   await page.click(".rd-legmark >> nth=1"); await page.waitForSelector(".rd-pop", { state: "detached" });
   /* tonight's song plays as a gig (4.1.0) */
   await page.click("#rd-tonight");
@@ -479,8 +483,8 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
   assert.equal(await page.locator(".bd-card.locked").count(), 18 - joined);
   assert.match(await page.innerText(".bd-next"), /NEXT TO JOIN[\s\S]*more song/);
-  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-flag");
-  await page.click(".rd-flag .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-node.now");
+  await page.click(".rd-node.now"); await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
   await page.click("#tabs [data-tab=more]"); await page.click("#m-set"); await page.waitForFunction(() => location.hash === "#/settings");
   await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
@@ -587,21 +591,19 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.deepEqual([saved.merch.own.take || 0, saved.merch.own.rain || 0, saved.merch.louie], [0, 0, "tweed"], "both used");
 });
 
-test("4.34.0 the Road's headline: the flag names a song that fits, Other songs lists the rest, the next pick starts with one tap", { skip: skip() }, async t => {
+test("4.35.0 the Road's headline: a tap opens its card, which names a song that fits; Other songs lists the rest", { skip: skip() }, async t => {
   const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map((c, i) => [`c:${c}`, { n: 1, at: Date.now() - 1000 + i }]));
   const songs = [{ ...LIB.songs[0], id: "h1", title: "Low Tide", body: "[V]\n[G]a [C]b [D]c [G]d", playLog: { total: 1, last: Date.now() - 2 * 864e5, days: {} } },
     { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d", playLog: { total: 1, last: Date.now() - 5 * 864e5, days: {} } }];
   const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
-  await page.waitForSelector(".rd-flag.head");
-  assert.match(await page.innerText(".rd-flag"), /HEADLINE[\s\S]*Low Tide[\s\S]*Play/, "the last played song that fits");
+  await page.waitForSelector(".rd-node.now.headline");
+  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rd-pk").getBoundingClientRect().width);
+  assert.ok(w > 80, `4.34.1: the headline pick keeps its size (${w})`);
+  await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
+  assert.match(await page.innerText(".rd-pop.now"), /Headline show[\s\S]*Low Tide[\s\S]*PLAY LOW TIDE/, "the last played song that fits");
   assert.match(await page.innerText("#rd-other"), /Other songs that fit \(1\)/);
-  const pk = await page.evaluate(() => { const r = document.querySelector(".rd-node.now .rd-pk").getBoundingClientRect(), f = document.querySelector(".rd-flag").getBoundingClientRect(), n = document.querySelector(".rd-node.now").getBoundingClientRect(); return { w: r.width, flagMid: f.top + f.height / 2, nodeMid: n.top + n.height / 2, right: f.right }; });
-  assert.ok(pk.w > 80, `4.34.1: the headline pick keeps its size (${pk.w})`);
-  assert.ok(Math.abs(pk.flagMid - pk.nodeMid) < 12, "the flag sits beside the pick");
-  assert.ok(pk.right <= 390, "the flag stays on screen");
-  assert.ok(await page.evaluate(() => { const t = document.querySelector(".rd-flag .rd-ft").getBoundingClientRect(), b = document.querySelector(".rd-flag .rd-start").getBoundingClientRect(); return b.left >= t.right - 1; }), "Play sits after the name, not over it");
   await page.click("#rd-other"); await page.waitForSelector(".rd-others [data-play]");
   assert.deepEqual(await page.$$eval(".rd-others [data-play]", b => b.map(x => x.dataset.play)), ["h1", "h2"]);
   await page.click("#ro-x"); await page.waitForSelector(".rd-others", { state: "detached" });
-  await page.click(".rd-node.now"); await page.waitForSelector("#gig"); /* the pick itself starts it too */
+  await page.click(".rd-pop.now .rd-start"); await page.waitForSelector("#gig");
 });

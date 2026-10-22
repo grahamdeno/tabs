@@ -5,14 +5,15 @@
 //   songs chip  how many of your songs you can play, and how many the next chord opens
 //   the path    every stop of every leg as a guitar pick (4.34.0): lessons, merch boxes and the headline
 //               show at the end (a level check: play a real song through). Done picks carry a check, the
-//               next one is bigger with a halo and a flag beside it that starts it (one tap), later ones
-//               are locked. Tap any other pick for a small bubble; at a headline the flag names a song.
+//               next one is bigger, its halo pulses and it wiggles now and then (4.35.0); later ones are
+//               locked. Nothing is open on arrival: tap a pick for its card (Start on the next one); at a
+//               headline the card names a song that fits, with the others a tap away.
 //   Louie       beside the path, with one line that fits the moment and tonight's song to play
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
 import { lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
-import { app, esc, icon, layer, toast } from "./ui.js";
+import { app, esc, haptic, icon, layer, toast } from "./ui.js";
 import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
@@ -80,30 +81,25 @@ const iconOf = s => s.state === "locked" && s.kind !== "box" ? ICONS.lock : s.ki
 const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chordNames(sg.body || ""); return c.length >= 2 && c.every(n => stop.chords.includes(n)); })
   .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
 const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
-const ARROW = `<svg viewBox="0 0 12 14" aria-hidden="true"><path d="M2 1l9 6-9 6z" fill="currentColor"/></svg>`;
-/* The next stop's flag: what it is and the button that starts it, beside the pick */
-function stopFlag(stop) {
-  if (stop.kind === "headline") {
+const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
+/* A pick's card, opened by a tap (4.35.0, like the old card but only on a tap): the next stop's is in the
+   streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
+function stopCard(stop) {
+  const title = stopTitle(stop), now = stop.state === "now" || stop.state === "open";
+  if (stop.kind === "headline" && stop.state !== "locked") {
     const fits = fitsFor(stop), song = data.songs.find(x => x.id === stop.song) || fits[0];
-    return `<div class="rd-flag head"><span class="rd-ft"><small>HEADLINE · +${FANS.play} FANS</small><b>${song ? esc(song.title) : "A song with only these chords"}</b></span>
-      <button class="rd-start" data-go="${esc(stop.id)}" aria-label="${song ? `Play ${esc(song.title)}` : "Find a song that fits"}">${song ? "Play" : "Find"}${ARROW}</button>
+    const line = song ? `Play ${song.title} start to finish. It uses only this leg's chords.` : `Play a song that uses only ${stop.chords.join(", ")}, start to finish.`;
+    return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
+      <button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? `${stop.state === "done" ? "PLAY AGAIN" : `PLAY ${esc(song.title.toUpperCase())}`} · +${FANS.play} FANS` : "FIND A SONG THAT FITS"}</button>
       ${fits.length > 1 ? `<button class="rd-other" id="rd-other">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
   }
-  return `<div class="rd-flag"><span class="rd-ft"><small>NEXT · +${FANS.lesson} FANS</small><b>${esc(stopTitle(stop))}</b></span><button class="rd-start" data-go="${esc(stop.id)}" aria-label="Start ${esc(stopTitle(stop))}">Start${ARROW}</button></div>`;
-}
-const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
-
-/* Any other pick: a small bubble under it, with Play again for a done lesson */
-function stopCard(stop) {
-  const song = stop.song && data.songs.find(s => s.id === stop.song);
-  const title = stopTitle(stop);
-  const cap = stop.kind === "box" ? (stop.state === "done" ? `OPENED · +${FANS.box} FANS` : `+${FANS.box} FANS WHEN YOU REACH IT`)
-    : stop.state === "done" ? "DONE" : stop.state === "locked" ? "LOCKED" : "OPEN";
-  const line = stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it."
-    : stop.kind === "headline" && song ? `Played with ${song.title}.` : "";
-  const act = stop.kind === "box" || stop.state === "locked" ? "" : stop.kind === "headline" && !song ? ""
-    : `<button class="btn sm rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "Play again" : "Start"}</button>`;
-  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><span class="rd-pt"><small>${cap}</small><b>${esc(title)}</b>${line ? `<p>${esc(line)}</p>` : ""}</span>${act}</div>`;
+  const line = stop.kind === "chord" ? "Ring every string clean, one at a time."
+    : stop.kind === "switch" ? "Land the change on the beat."
+    : stop.kind === "scale" ? "Up and back down, one note at a time."
+    : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Opens when you reach it: +${FANS.box} fans.`) : "";
+  const act = stop.kind === "box" || stop.state === "locked" ? ""
+    : `<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : `START · +${FANS.lesson} FANS`}</button>`;
+  return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it." : line)}</p>${act}</div>`;
 }
 /* Other songs for a headline show: a short list, any of them starts the gig */
 function otherSongs(stop) {
@@ -134,10 +130,10 @@ export function renderRoad() {
   const legsHTML = road.legs.map(l => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
     ${l.stops.map(s => {
-      const z = ZIG[i++ % ZIG.length], x = s === cur ? -92 : z, big = s.kind === "headline"; /* the next pick sits left, its flag beside it */
+      const x = ZIG[i++ % ZIG.length], big = s.kind === "headline";
       const ic = iconOf(s);
       const label = `${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`;
-      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px"><button class="rd-node ${s.kind} ${s.state}${big ? " big" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span></button>${s === cur ? stopFlag(s) : ""}</div>`;
+      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px"><button class="rd-node ${s.kind} ${s.state}${big ? " big" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span></button></div>`;
     }).join("")}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
@@ -189,10 +185,9 @@ export function renderRoad() {
     const node = e.target.closest("[data-stop]");
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
-    if (s === cur) { closePop(); return start(s.id); } /* the next pick starts, like its flag */
     const open = wrap.querySelector(".rd-pop");
     closePop();
-    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); wrap.querySelector(".rd-pop").scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }
+    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); wrap.querySelector(".rd-pop").scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }
   });
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
