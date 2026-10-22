@@ -370,7 +370,7 @@ test("Tips & gestures (2.6.4): opens from Help, one-hand group first, no button-
   const rows = await page.locator(".gs-row").count();
   assert.ok(rows >= 20 && rows <= 24, `every gesture, trimmed (${rows})`);
   const text = await page.innerText("#app");
-  for (const t of ["Press Play", "Pull down at the top", "Tools, then Speed"]) assert.ok(text.includes(t), t);
+  for (const t of ["Press Play", "Pull down at the top", "Tools, then Song length"]) assert.ok(text.includes(t), t);
   for (const t of ["Hold Play", "Sweep the arc", "Tap the cover", "Arrows in Edit", "Tap the status chip", "Sheet and Text"]) assert.ok(!text.includes(t), `no ${t}`);
   // The page itself scrolls (it isn't a sheet over Settings).
   await page.evaluate(() => scrollTo(0, document.body.scrollHeight));

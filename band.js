@@ -60,7 +60,7 @@ export function renderBand() {
     <h2 class="tq-h"><span>ON STAGE</span><span>${n}</span></h2>
     <div class="bd-grid">${st.members.map(m => m.joined
       ? `<button class="bd-card${met.some(x => x.id === m.id) ? " fresh" : ""}" data-id="${m.id}" aria-label="${esc(nameOf(m.id))}: ${esc(LINES[m.id] || "")}">${friend(m.id, { size: 92, mood: met.some(x => x.id === m.id) ? "cheer" : "happy" })}<b>${esc(nameOf(m.id))}</b>${part(m) ? `<small class="bd-part">${part(m)}</small>` : ""}</button>`
-      : `<div class="bd-card locked" aria-label="Joins after ${m.at} songs"><div class="bd-sil">${friend(m.id, { size: 92 })}</div><b>?</b><small>${m.at} SONGS</small></div>`).join("")}</div>
+      : `<div class="bd-card locked" aria-label="Joins after ${m.at} song${m.at === 1 ? "" : "s"}"><div class="bd-sil">${friend(m.id, { size: 92 })}</div><b>?</b><small>${m.at} SONG${m.at === 1 ? "" : "S"}</small></div>`).join("")}</div>
   </div>`;
   bindStatBar();
   app.querySelectorAll(".bd-card[data-id]").forEach(b => b.onclick = () => toast(LINES[b.dataset.id] || nameOf(b.dataset.id), b));

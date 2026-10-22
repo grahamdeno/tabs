@@ -38,7 +38,7 @@ sees, and what teaches them anything.
 | Tools | Play, Practice and Song tabs at the foot, dots on Practice and Song | Dots | Fine |
 | Tour | October Tour, a request line asking for Harbor Lights, tonight's setlist | On screen | Good. A lot at once on day one |
 | Charts | Nine computer players already scoring, a Battle on day one | On screen | **Day one shows a full league and a rival battle before one song is played** |
-| Band | 0 of 27, silhouettes | On screen | The first silhouette reads "1 SONGS" (a small bug to fix) |
+| Band | 0 of 27, silhouettes | On screen | The first silhouette read "1 SONGS" (fixed in 4.39.2) |
 | Rehearse | Today's lesson and Your changes from a song never played | On screen | Fine, if a little early |
 | More | Settings, Tuner, Songbook, Support | | The Songbook's own page lives here; the Road's bar is the other way in |
 | Your profile | Garage, level 1, 0 of 25 badges | On screen | Fine |
@@ -116,7 +116,7 @@ anything a person found on their own is skipped.
 5. **The setup steps** (Home Screen, microphone, backups, AI key) aren't explained anywhere.
 6. **Two dots that mean different things.** The pink dot on More means "tune up", the Tools dots mean
    "new". The More dot is lit most of the time, so people learn to ignore dots.
-7. **Tips & gestures is out of date in four places** (fix these whatever else we decide):
+7. **Tips & gestures was out of date in four places** (fixed in 4.39.2):
    - "Key: − and + in the bar": the key moved to About this song's Key tile and its dial (4.31.0).
    - "Now and Next ... turn it on with the fretboard below": it's a switch in Tools > Play now (4.32.0).
    - "Drag the song map (Settings > Chord diagrams > Song map)": there's no such setting.
@@ -269,7 +269,7 @@ anything a person found on their own is skipped.
 
 ## Suggested releases (for Graham to choose)
 
-1. **Patch:** the four stale Tips & gestures lines, "1 SONGS" on the Band page.
+1. **Patch (4.39.2, done):** the four stale Tips & gestures lines, "1 SONGS" on the Band page.
 2. **The tutorial leg** (mockup first): the first leg of the Road as onboarding, with Louie asking for
    the microphone and explaining the Gig.
 3. **Setup steps:** Add to Home Screen card, backup timing, the AI key line where its gap shows.

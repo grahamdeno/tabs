@@ -188,7 +188,7 @@ function demoNN() {
   nn.innerHTML = `<div class="nowcol"><div class="lab">NOW</div><div>${card(diag.seq[idx].name, 1.26)}</div></div><div class="vs"></div>
     <div style="min-width:0"><div class="lab">NEXT</div><div class="cards">${next.map((n, i) => card(n, 1, fade[i])).join("")}</div></div>`;
   document.body.classList.add("nn-demo");
-  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on with ${icon("fretboard")} below.</span>` });
+  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on in Tools, on the Play tab.</span>` });
   setTimeout(() => { document.body.classList.remove("nn-demo"); if (!scroll.on) nn.innerHTML = ""; }, 3800);
   return true;
 }
@@ -262,7 +262,7 @@ function showMe(name) {
 /* One hand: point at the control where it is. Only on a phone held upright. */
 const ONE_HAND = {
   pull: () => [document.querySelector(".song-title"), "<b>Pull down here</b><span>At the top of a song, pull down past \u201cRelease for Songbook\u201d and let go.</span>", "below"],
-  speed: () => [document.getElementById("more"), "<b>Tap Tools, then Speed</b><span>Sweep around the corner to set the song's length.</span>"],
+  speed: () => [document.getElementById("more"), "<b>Tap Tools, then the time</b><span>Under Song length, \u2212 and + step it and the time opens the dial.</span>"],
   setdial: () => [document.getElementById("setdial"), "<b>Hold \u201c4 of 9\u201d</b><span>Sweep through the set; let go to open a song.</span>"]
 };
 function runDemo(name, song) {
@@ -286,15 +286,15 @@ const GESTURES = [
   ["One hand (phone held upright)", [
     ["", "Press Play", "Play opens the Gig. Practicing a section, the bar folds into Play's corner instead", "play"],
     ["pull", "Pull down at the top of a song", "Let go at \u201cRelease for Songbook\u201d to go back (when paused)", "back"],
-    ["speed", "Tools, then Speed", "The speed dial: sweep the corner to set the song's length", "gauge"],
+    ["speed", "Tools, then Song length", "\u2212 and + step it; tap the time for the dial and sweep to set it", "gauge"],
     ["setdial", "Hold \u201c4 of 9\u201d in a set", "The set dial: sweep through the set, let go to open a song", "listplus"]]],
   ["On a song", [
     ["chord", "Tap a chord", "See how to play it; tap a chord card above the song to mark everywhere it's played", "fretboard"],
     ["line", "Tap a line", "Play starts from there", "play"],
-    ["map", "Drag the song map", "Jump through the song's sections (Settings > Chord diagrams > Song map)", "sections"],
+    ["map", "Drag the song map", "Jump through the song's sections (practicing, a tab or Play together)", "sections"],
     ["nn", "Now and Next", "The chord you're on, and what's coming", "fretboard"],
     ["", "Tap the title bar", "Back to the top", "up"],
-    ["", "Key", "\u2212 and + in the bar (on a tab they change the text size)", "plus"],
+    ["", "Change the key", "Tap the title for About this song, then the Key tile", "plus"],
     ["", "Count-in", "Plays only when you start from the top", "metro"]]],
   ["While playing", [
     ["pause", "Tap anywhere", "Pause (tap twice on stage). Scroll by hand and it carries on from there", "pause"]]],
