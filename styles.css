@@ -3649,3 +3649,11 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 /* 4.42.3: room between the Songbook's top buttons (Back, Sets, Tuner, each on a 4px lip) and the card
    under them, so the buttons don't sit on it. */
 .head:has(#libback) + .today, .head:has(#libback) + * { margin-top: 18px; }
+
+/* 4.42.4: the last version 3 buttons (round frosted glass: Back, the heart and ••• on the song page,
+   Settings, Sets, the Tour Map, Rehearse, Support, Your profile, tips) now match the Songbook's
+   version 4 buttons: rounded squares on a lip. */
+:root[data-look] .ib.glass { width: 46px; height: 46px; border: 0; border-radius: 14px; background: var(--card); box-shadow: 0 4px 0 var(--rim); }
+:root[data-look] .ib.glass svg { width: 22px; height: 22px; stroke-width: 2.8; }
+:root[data-look] .ib.glass.on { background: var(--accent-soft); box-shadow: 0 4px 0 var(--accent-line, var(--accent)); color: var(--accent-ink); }
+:root[data-look] .ib.glass:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
