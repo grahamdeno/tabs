@@ -166,7 +166,7 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
 test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", { skip: skip() }, async t => {
   const page = await phone(t);
   const titles = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.map(s => s.title + (s.isNew ? "*" : "")));
-  await page.click("#add");
+  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */
   await page.waitForSelector('#ed-body');
   assert.equal(await page.locator("#ce-done").textContent(), "Save");
   assert.ok(await page.locator("#ed-body").isVisible(), "opens in the Text view");
@@ -185,7 +185,7 @@ test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", {
 
   await page.goto(base + "#/library");
   await page.waitForSelector('#add');
-  await page.click("#add");
+  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */
   await page.waitForSelector('#ed-body');
   await page.fill("#ed-body", "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|");
   await page.waitForFunction(() => /Format\s*Tab/.test(document.querySelector('.ed-chips')?.textContent || ''));

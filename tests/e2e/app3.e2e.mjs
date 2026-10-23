@@ -85,7 +85,7 @@ test("Add the words: paste lyrics on a chord chart and the chords go over them",
 
 test("typing in Text on a phone opens writing mode; the editor fills the top and the bar rides above", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { isMobile: true });
-  await page.click("#add");
+  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */
   await page.waitForSelector('#ed-body'); await settled(page);
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.focus("#ed-body");
@@ -122,7 +122,7 @@ test("2.19.1 Library: the Recent cards show (the ring's styles had been hiding t
 
 test("2.30.1: editing or adding a song hides Play", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { isMobile: true });
-  await page.click("#add"); await page.waitForSelector('#ed-body'); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector('#ed-body'); await settled(page);
   await page.mouse.click(200, 300); await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok))));
   assert.equal(await page.evaluate(() => { const f = document.getElementById("fp"); return !f || getComputedStyle(f).display === "none"; }), true, "no Play on the new song page");
   assert.equal(await page.locator("#play").isVisible(), false);
@@ -130,7 +130,7 @@ test("2.30.1: editing or adding a song hides Play", { skip: skip() }, async t =>
 
 test("2.33.0: writing mode keeps the song in view: a strip with title, artist and key; Return comes back to the pad", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { isMobile: true });
-  await page.click("#add"); await page.waitForSelector('#ed-body'); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector('#ed-body'); await settled(page);
   await page.focus("#ed-body"); await page.waitForSelector('#ed-strip'); await page.waitForFunction(() => document.body.classList.contains('writing'));
   assert.ok(await page.locator("#ed-strip").isVisible(), "the strip shows while writing");
   assert.match(await page.innerText("#ed-strip"), /Add a title/);
@@ -523,4 +523,30 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
   assert.deepEqual(await page.$$eval(".rd-others [data-play]", b => b.map(x => x.dataset.play)), ["h1", "h2"]);
   await page.click("#ro-x"); await page.waitForSelector(".rd-others", { state: "detached" });
   await page.click(".rd-pop.now .rd-start"); await page.waitForSelector("#gig");
+});
+
+test("4.45.0 Add asks \"What song?\": Songbook matches first, then recordings; a pick opens it, a pasted sheet goes to the paste card", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
+  await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify({ results: [{ trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show", releaseDate: "2004-01-01" }, { trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show" }, { trackName: "Wagon Wheel", artistName: "Darius Rucker" }] }) }));
+  await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#as-q");
+  assert.equal(await page.locator(".as button:visible").count(), 2, "at the start, without an AI key: Paste and Write my own");
+  assert.equal(await page.locator("#as-scan").count(), 0, "Scan needs the AI");
+  const own = LIB.songs[0].title;
+  await page.fill("#as-q", own.slice(0, 5)); await page.waitForSelector("[data-open]");
+  assert.match(await page.innerText(".as-list"), /IN YOUR SONGBOOK/);
+  await page.fill("#as-q", "wagon wh"); await page.waitForFunction(() => /Write "wagon wh" myself/.test(document.querySelector(".as-list").innerText) && document.querySelector("[data-rec]"));
+  assert.equal(await page.locator("[data-rec]").count(), 2, "the same recording twice shows once");
+  assert.match(await page.innerText(".as-list"), /ADD IT[\s\S]*Old Crow Medicine Show · 2004[\s\S]*Darius Rucker[\s\S]*Write "wagon wh" myself/);
+  await page.click("[data-rec='1']"); await page.waitForSelector("#ed-body");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.title === "Wagon Wheel"));
+  const added = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.title === "Wagon Wheel"));
+  assert.equal(added?.artist, "Darius Rucker", "without an AI key the pick opens Write my own with the title and artist");
+  /* a whole sheet pasted into the field */
+  await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#as-q");
+  await page.evaluate(() => navigator.clipboard.writeText("Porch Song\n[Verse]\nG C\nla la"));
+  await page.click("#as-paste"); await page.waitForSelector("#p-title");
+  assert.equal(await page.locator("#as-q").count(), 0, "the paste card took over");
 });

@@ -1,6 +1,6 @@
 // The Road: the Songbook (search, filters, the song list, swipes) and the paste card. Split from app.js (4.15.1); app.js re-exports what other files use.
 import { coachTip, demoSearch, dismissCoach, markUsed, searchOpened, tick, tipDue, tipsSeen, used } from "./coach.js";
-import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
+import { VERSION, Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
 import { recentApple } from "./listen.js";
 import { guitarIcon } from "./rock.js";
 import { louie } from "./louie.js";
@@ -157,7 +157,7 @@ export function renderLibrary() {
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
-  $("add").onclick = () => newSong();
+  $("add").onclick = () => import(`./addsong.js?v=${VERSION}`).then(m => m.askSong()); /* 4.45.0: "What song?" first */
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
   const q = $("q");
   const enterSearch = () => {

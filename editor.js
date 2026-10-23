@@ -1,6 +1,6 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { VERSION, DRUM_BEATS, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
+import { DRUM_BEATS, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
 import { READ_AT, aiError, aiKey, busy, calm, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
@@ -428,17 +428,15 @@ function paintText(song) {
   const sheet = $("sheet");
   textSnap ||= snapshot(song);
   const empty = song.isNew && !String(song.body || "").trim();
-  /* a new, empty song offers ways to start, under the pad; once
+  /* 4.45.0: Paste, Type and Find the chords moved to "What song?" (addsong.js); the pad pastes and types.
+     a new, empty song offers ways to start, under the pad; once
      there's text, the tools sit just above the bar. */
   sheet.innerHTML = `
     <div class="ed-tx"><div class="ed-tx-in"><pre class="ed-hl" id="ed-hl" aria-hidden="true">${hlText(song.body || "")}</pre>
       <textarea id="ed-body" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Song text" placeholder="${esc(TEXT_HINT)}">${esc(song.body || "")}</textarea></div></div>
     <div class="ed-start" id="ed-start" ${empty ? "" : "hidden"}>
-      <button class="ed-tile" id="ed-paste">${icon("clip")}<span><b>Paste</b><small>From a website or notes</small></span></button>
-      <button class="ed-tile" id="ed-type">${icon("edit")}<span><b>Type</b><small>Chords and words</small></span></button>
       <button class="ed-tile" id="ed-sing">${icon("mic")}<span><b>Sing or strum</b><small>Hold and play a line</small></span></button>
-      ${aiKey() ? `<button class="ed-tile" id="ed-scan0">${icon("camera")}<span><b>Scan a page</b><small>Photo of a songbook</small></span></button>
-      <button class="ed-tile wide" id="ed-find">${icon("wand")}<span><b>Find the chords with AI</b></span></button>` : ""}
+      ${aiKey() ? `<button class="ed-tile" id="ed-scan0">${icon("camera")}<span><b>Scan a page</b><small>Photo of a songbook</small></span></button>` : ""}
     </div>
     <input type="file" id="ed-photo" accept="image/*" hidden>
     <p class="ed-hint" id="ed-txhint">${textHint(song)}</p>
@@ -488,18 +486,6 @@ function paintText(song) {
     if (file) run($("ed-scan") || $("ed-scan0"), "Reading page", async () => ({ ...(await cleanSheet({ image: await readPhoto(file) })), label: "Read from photo" }));
   });
   $("ed-scan0")?.addEventListener("click", () => $("ed-photo").click());
-  $("ed-type")?.addEventListener("click", () => ta.focus());
-  $("ed-paste")?.addEventListener("click", async () => {
-    let t = "";
-    try { t = await navigator.clipboard.readText(); } catch {}
-    if (!t.trim()) { ta.focus(); return toast("Nothing to paste. Copy the song first, or touch and hold the page to paste"); }
-    ta.value = t; ta.oninput(); flushText(song);
-  });
-  $("ed-find")?.addEventListener("click", () => {
-    const title = $("ed-title")?.value.trim() || "";
-    if (!title) { toast("Type the song's title first"); return $("ed-title")?.focus(); }
-    import(`./findai.js?v=${VERSION}`).then(m => m.getSong(title, { title, artist: $("ed-artist")?.value.trim() || "" }));
-  });
   tools();
   $("ed-delete")?.addEventListener("click", () => deleteFromEdit(song));
 }

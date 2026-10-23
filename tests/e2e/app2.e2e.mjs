@@ -77,7 +77,7 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
   await page.reload(); await page.waitForSelector('#add');
   // From Add: an empty new song offers Sing it.
-  await page.click("#add"); await page.waitForSelector('#ed-sing');
+  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector('#ed-sing');
   await page.click("#ed-sing"); await page.waitForSelector('#sk-pad');
   assert.match(await page.innerText("h1"), /New sketch/);
   const hz = m => 440 * 2 ** ((m - 69) / 12);

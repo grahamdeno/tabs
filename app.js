@@ -1934,7 +1934,7 @@ function renderRoute() {
   app.classList.remove("viewer");
   layer.innerHTML = "";
   /* Old links: #/add and #/edit/<id> open the editor. */
-  if (r.name === "add") { history.replaceState(null, "", "#/"); return newSong(); }
+  if (r.name === "add") { history.replaceState(null, "", "#/library"); render(); return lazy("addsong.js").then(m => m.askSong()); }
   if (r.name === "edit") { openEdit = { id: r.id, view: "text" }; history.replaceState(null, "", "#/song/" + encodeURIComponent(r.id)); return renderRoute(); }
   if (r.name === "song") {
     renderViewer(r.id);

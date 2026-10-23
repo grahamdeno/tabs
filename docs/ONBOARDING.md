@@ -222,6 +222,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 
 | # | Hidden feature | How you do it | Coverage | Why here |
 |---|---|---|---|---|
+| 0 | Add asks "What song?" (4.45.0): type a title and pick it, or Paste, Scan, Write my own | The Add button | On screen | Visible; no tip needed |
 | 1 | Paste or type, chords turn copper | The pad | Tip | Keep |
 | 2 | Tap a word to place its chord | Tap a word | Listed | First edit of an existing song; this is the main way to fix a chart |
 | 3 | Tap tempo | Tap along | Tip, Show me | Keep |
