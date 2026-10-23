@@ -8,7 +8,7 @@ import { renderImport } from "./share.js";
 import { ago, backupNow, needsBackup } from "./store.js";
 import { $, I, app, esc, followKeyboard, icon, layer, onLeave, toast } from "./ui.js";
 import { aiError, aiKey, busy, cleanSheet, readPhoto } from "./aihelp.js";
-import { bindFind, data, findAI, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, playSong, route, tunedRecently } from "./app.js";
+import { bindFind, data, findAI, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, route, tunedRecently } from "./app.js";
 
 export let query = "";
 export let filter = "all";
@@ -480,19 +480,11 @@ export function renderList() {
     return;
   }
   if (searching && !q) {
-    /* Before typing: recently played songs, ready to tap. */
-    const recentSongs = sortSongs(data.songs.filter(s => lastPlayed(s)), "recent").slice(0, 8);
-    /* 4.22.0: a clean screen under the bar: two big buttons, then the songs you played last as cards */
-    const cover = x => /^https:\/\//.test(x.listen?.art || x.art || "") ? `<img src="${esc(x.listen?.art || x.art)}" alt="">` : `<span style="background:${keyColor(keyOf(x), x.title, 0.9)}">${esc((x.title || "?").slice(0, 1).toUpperCase())}</span>`;
-    const card = x => { const n = playCount(x); return `<div class="sr-card"><button class="sr-open" data-id="${esc(x.id)}"><i class="sr-cv">${cover(x)}</i><span class="sr-tx"><b>${esc(x.title)}</b><small>${esc(x.artist || "Unknown artist")}${n ? ` · ${n} play${n === 1 ? "" : "s"}` : ""}${x.status === "learning" ? " · Learning" : ""}</small></span></button><button class="sr-play" data-play="${esc(x.id)}" aria-label="Play ${esc(x.title)}">${icon("play")}</button></div>`; };
+    /* Before typing: Apple Music, the Songbook (from the Road) and the ways to add. 4.49.2: no recent songs; the Songbook has those */
     const count = data.songs.length, can = data.songs.filter(x => fitOf(x).can).length;
     list.innerHTML = `${amRow()}${searchFrom === "road" ? `<button class="sr-browse" id="sr-browse"><span class="sr-bic">${icon("list")}</span><span><b>Open your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>` : ""}
-      ${recentSongs.length ? `<div class="label">Played lately</div><div class="sr-cards">${recentSongs.slice(0, 3).map(card).join("")}</div>` : ""}
-      ${addTools()}
-`;
+      ${addTools()}`;
     $("sr-browse")?.addEventListener("click", () => $("qcancel").click());
-    list.querySelectorAll("[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
-    list.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playSong(b.dataset.play));
     bindAddTools(list);
     /* 4.49.0: Apple Music is one row with the ways to add; its count fills in once the list arrives */
     if (data.settings.appleMusic) recentApple().then(rows => {

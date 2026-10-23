@@ -536,8 +536,8 @@ test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road
   assert.match(await page.innerText("#rd-search"), /Search or add a song/);
   await page.click("#rd-search"); await page.waitForSelector("#sr-browse");
   assert.match(await page.innerText("#sr-browse"), /Open your Songbook[\s\S]*2 songs/, "from the Road, the Songbook is the first row");
-  assert.match(await page.innerText("#list"), /Played lately[\s\S]*Not in your Songbook yet\?[\s\S]*Paste[\s\S]*Sing it[\s\S]*Write one from scratch/i);
-  assert.equal(await page.locator(".sr-card").count(), 1, "only songs you played");
+  assert.match(await page.innerText("#list"), /Not in your Songbook yet\?[\s\S]*Paste[\s\S]*Sing it[\s\S]*Write one from scratch/i);
+  assert.equal(await page.locator(".sr-card").count(), 0, "4.49.2: no recent songs here; the Songbook has those");
   assert.equal(await page.locator("#sr-scan").count(), 0, "Scan needs the AI");
   await page.click("#sr-browse"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
   /* the Songbook: one bar, its + opens the same screen without the Songbook row */
