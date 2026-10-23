@@ -16,12 +16,9 @@ test("Play together: parts, Send song without a start time, and a clap starts th
   await me.goto(base + "#/song/a"); await me.waitForSelector("#more");
   await tool(me, "duet"); await me.waitForSelector("#pt-listen");
   const sheet = await me.innerText("[aria-label='Play together']");
-  assert.match(sheet, /Your part[\s\S]*Chords[\s\S]*Bass line/i);
+  assert.doesNotMatch(sheet, /Your part|Bass line/i, "4.42.0: no bass line; with no melody Chords is the only part, so no picker");
   assert.doesNotMatch(sheet, /Melody/, "no sung melody, no Melody part");
   assert.doesNotMatch(sheet, /In 1 min|start time/i, "the start-time picker is gone");
-  await me.click("[data-part='bass']");
-  assert.equal(await me.getAttribute("[data-part='bass']", "aria-pressed"), "true");
-  assert.match(await me.innerText("#pt-pnote"), /Bex plays the bass line/);
   /* Send song: the song, its tempo and length, and no start time */
   await me.click("#pt-send");
   await me.waitForFunction(async () => /#\/import\//.test(await navigator.clipboard.readText().catch(() => "")));
@@ -30,7 +27,6 @@ test("Play together: parts, Send song without a start time, and a clap starts th
   assert.equal(got.song.title, "River Road"); assert.equal(got.song.duration, 30);
   assert.ok(got.duet && got.duet.at === undefined, "marked as Play together, with no start time");
   /* Listen for clap: one sharp onset starts the count-in */
-  await me.click("[data-part='chords']");
   await me.click("#pt-listen");
   await me.waitForFunction(() => /Listening/.test(document.getElementById("pt-listen")?.textContent || ""));
   assert.equal(await me.evaluate(() => document.body.classList.contains("playing")), false, "nothing before the clap");

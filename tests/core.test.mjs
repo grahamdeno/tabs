@@ -1207,82 +1207,18 @@ test("drum beats: Auto goes by the song, compound and odd time keep their own, s
   assert.equal(C.drumHits("ballad", 1, 4, 0.667).every(h => h.at === 0), true, "the ballad has no off-beats to swing");
 });
 
-test("bass line: notes follow the chord, the capo and slash chords; styles follow the drum beat", () => {
-  const cb = C.chordBass;
-  assert.deepEqual(cb("G"), { root: 7, bass: 7, third: 4, fifth: 7, sixth: 9 });
-  assert.deepEqual(cb("Am7"), { root: 9, bass: 9, third: 3, fifth: 7, sixth: 10 });
-  assert.equal(cb("G/B").bass, 11); assert.equal(cb("G/B").root, 7);
-  assert.equal(cb("Gsus4").third, null); assert.equal(cb("E5").third, null);
-  assert.equal(cb("Bdim").fifth, 6); assert.equal(cb("Caug").fifth, 8);
-  assert.equal(cb("D7").sixth, 10); assert.equal(cb("Dmaj7").sixth, 9);
-  assert.equal(cb("C", 2).root, 2, "a capo moves the shape up to the sound");
-  assert.equal(cb("C", -1).root, 11);
-  assert.equal(cb("not a chord"), null);
-  const capo = { body: "Capo 2\n\n[Verse]\nG D Em C" };
-  assert.equal(C.soundOffset(capo), 2);
-  assert.equal(C.soundOffset({ ...capo, capoOff: true }), 0, "capo taken off: the chords are already the sound");
-  assert.equal(C.soundOffset({ ...capo, easier: { on: true, capo: 3 } }), 5);
-  assert.equal(C.soundOffset({ body: "G D" }), 0);
-  assert.equal(C.bassStyle("auto", "ballad"), "root"); assert.equal(C.bassStyle("auto", "half"), "root");
-  assert.equal(C.bassStyle("auto", "rock"), "pulse"); assert.equal(C.bassStyle("auto", "four"), "pulse");
-  assert.equal(C.bassStyle("auto", "six8", 6), "fifth"); assert.equal(C.bassStyle("auto", "waltz", 3), "fifth");
-  assert.equal(C.bassStyle("auto", "rock", 4, "full"), "walk");
-  assert.equal(C.bassStyle("walk", "waltz", 3), "fifth", "walking needs four beats");
-  assert.equal(C.bassStyle("pulse", "ballad"), "pulse", "a pick wins");
-  const G = cb("G"), Cc = cb("C"), Am = cb("Am");
-  const m = (st, ch, nx, b, beats = 4) => C.bassHits(st, ch, nx, b, beats).map(h => h.m);
-  assert.deepEqual(m("root", G, Cc, 0), [43]); assert.deepEqual(m("root", G, Cc, 1), []);
-  assert.deepEqual(m("root", G, Cc, 2), [43], "a lighter root on three");
-  assert.deepEqual(m("pulse", G, Cc, 0), [43, 43]); assert.equal(C.bassHits("pulse", G, Cc, 1, 4, 0.58)[1].at, 0.58);
-  assert.deepEqual(m("fifth", G, Cc, 0), [43]); assert.deepEqual(m("fifth", G, Cc, 2), [50]); assert.deepEqual(m("fifth", G, Cc, 1), []);
-  assert.deepEqual([0, 1, 2].map(b => m("fifth", G, Cc, b, 3)[0]), [43, 50, 50], "waltz: root, fifth, fifth");
-  assert.deepEqual([0, 3].map(b => m("fifth", G, Cc, b, 6)[0]), [43, 50], "6/8: root, then fifth");
-  assert.deepEqual([0, 1, 2].map(b => m("walk", G, Cc, b)[0]), [43, 47, 50], "walking: root, third, fifth");
-  assert.equal(m("walk", Am, G, 1)[0], 48, "a minor chord walks up a minor third");
-  assert.equal(m("walk", G, Cc, 3)[0], 49, "approaches C by a half step, from the nearer side");
-  assert.equal(m("walk", G, G, 3)[0], 52, "same chord next: the sixth");
-  assert.equal(m("walk", G, null, 3)[0], 52, "no next chord: the sixth");
-  assert.equal(C.bassHits("root", null, null, 0).length, 0);
-  assert.equal(m("root", cb("G/B"), null, 0)[0], 47, "a slash chord plays its named bass note");
-  for (const st of ["root", "fifth", "pulse", "walk"]) for (const ch of ["C", "F#m", "Bb", "E/G#", "A7", "Dsus2"]) for (let b = 0; b < 4; b++)
-    for (const h of C.bassHits(st, cb(ch), cb("G"), b, 4)) assert.ok(h.m >= 38 && h.m <= 57, `${st} ${ch} ${h.m} stays in the bass range`);
-});
-
-test("bass line: it moves on by itself on chord-only rows and follows the page over lyrics", () => {
-  /* two chord rows of four chords, then two lyric rows of two chords */
-  const rows = [
-    { lo: 0, hi: 3, kind: "bar", r0: 0, r1: 30 }, { lo: 4, hi: 7, kind: "bar", r0: 40, r1: 70 },
-    { lo: 8, hi: 9, kind: "line", r0: 100, r1: 130 }, { lo: 10, hi: 11, kind: "line", r0: 140, r1: 170 }
-  ];
-  const W = C.bassWhere;
-  assert.equal(W(null, rows, 10, true), 0, "starts on the first chord of the row at the reading line");
-  assert.equal(W(0, rows, 10, true), 1, "a bar later, the next chord");
-  assert.equal(W(1, rows, 12, false), 1, "no change between bars");
-  assert.equal(W(3, rows, 10, true), 4, "it runs a little ahead of the page without being pulled back");
-  assert.equal(W(2, rows, 50, true), 3, "and a little behind");
-  assert.equal(W(9, rows, 5, true), 0, "more than a row ahead of the page: back to its row");
-  assert.equal(W(11, rows, 45, true), 4, "after a scroll back");
-  assert.equal(W(3, [rows[0]], 10, true), 3, "the last chord of the song holds");
-  assert.equal(W(5, rows, 100, false), 8, "over lyrics: the first chord while the row begins");
-  assert.equal(W(8, rows, 120, false), 9, "the second chord once the page is halfway through the row");
-  assert.equal(W(9, rows, 140, false), 10, "and the next row's first");
-  assert.equal(W(9, rows, 169, false), 11);
-  assert.equal(W(0, [], 10, true), null);
-  assert.equal(W(null, rows, -50, true), 0, "before the first row: the first chord");
-});
-
 test("song groove: cleaned, resolved against Settings, and said in words", () => {
-  assert.deepEqual(C.cleanGroove({ beat: "half", swing: "light", bass: "walk", src: "ai" }), { src: "ai", beat: "half", swing: "light", bass: "walk" });
+  assert.deepEqual(C.cleanGroove({ beat: "half", swing: "light", bass: "walk", riff: "1.......5.......", src: "ai" }), { src: "ai", beat: "half", swing: "light" }, "4.42.0: a stored bass or riff is dropped");
   assert.deepEqual(C.cleanGroove({ beat: "polka", swing: "full", bass: 3 }), { src: "you", swing: "full" }, "unknown parts are dropped, and src defaults to you");
   assert.deepEqual(C.cleanGroove({ beat: "rock" }, "ai"), { src: "ai", beat: "rock" });
   assert.equal(C.cleanGroove(null), null); assert.equal(C.cleanGroove([1]), null);
   assert.deepEqual(C.cleanGroove({ src: "you" }), { src: "you" }, "a groove with no parts means: keep the defaults");
-  const s = { metroBeat: "four", metroSwing: "light", bassStyle: "root" };
-  assert.deepEqual(C.grooveOf({}, s), { beat: "four", swing: "light", bass: "root", riff: "" }, "no groove: Settings");
-  assert.deepEqual(C.grooveOf({ groove: { beat: "half", bass: "walk", src: "ai" } }, s), { beat: "half", swing: "light", bass: "walk", riff: "" }, "the song's parts win, the rest come from Settings");
+  const s = { metroBeat: "four", metroSwing: "light" };
+  assert.deepEqual(C.grooveOf({}, s), { beat: "four", swing: "light" }, "no groove: Settings");
+  assert.deepEqual(C.grooveOf({ groove: { beat: "half", src: "ai" } }, s), { beat: "half", swing: "light" }, "the song's parts win, the rest come from Settings");
   assert.deepEqual(C.grooveOf({ groove: { swing: "straight", src: "you" } }, s).swing, "straight", "straight on a song beats a swung Setting");
-  assert.deepEqual(C.grooveOf({}, {}), { beat: "auto", swing: "straight", bass: "auto", riff: "" });
-  assert.equal(C.grooveText({ beat: "half", swing: "light", bass: "walk" }), "Half time, light swing, walking bass");
+  assert.deepEqual(C.grooveOf({}, {}), { beat: "auto", swing: "straight" });
+  assert.equal(C.grooveText({ beat: "half", swing: "light" }), "Half time, light swing");
   assert.equal(C.grooveText({ beat: "four", swing: "straight" }), "Four on the floor");
   assert.equal(C.grooveText({ src: "you" }), "the defaults");
   const song = C.cleanSong({ id: "g", body: "G", groove: { beat: "ballad", junk: 1 } });
@@ -1290,38 +1226,8 @@ test("song groove: cleaned, resolved against Settings, and said in words", () =>
   assert.equal(C.cleanSong({ id: "g", body: "G", groove: "shuffle" }).groove, undefined, "a groove of the wrong type is dropped");
 });
 
-test("bass riff: a bar in chord degrees plays on any chord, with swing, and is checked", () => {
-  const R = "1.....5.8.3.7...";
-  assert.equal(C.validRiff(R), true);
-  for (const bad of ["", "1.....5.8.3.7..", "1.....5.8.3.7....", "................", "1.....5.8.3.7..x", null, 5]) assert.equal(C.validRiff(bad), false, `${bad} is not a riff`);
-  assert.deepEqual(C.cleanGroove({ bass: "riff", riff: R }), { src: "you", bass: "riff", riff: R });
-  assert.deepEqual(C.cleanGroove({ bass: "riff" }), { src: "you" }, "the riff style needs a riff");
-  assert.deepEqual(C.cleanGroove({ bass: "walk", riff: "nope" }), { src: "you", bass: "walk" });
-  assert.deepEqual(C.cleanGroove({ bass: "pulse", riff: R }), { src: "you", bass: "pulse", riff: R }, "a riff is kept when another style is picked");
-  assert.equal(C.grooveOf({ groove: { bass: "riff", riff: R } }, {}).riff, R);
-  assert.equal(C.grooveText({ beat: "rock", bass: "riff" }), "Rock, a bass riff");
-  assert.equal(C.bassStyle("riff", "rock", 4, "straight", R), "riff");
-  assert.equal(C.bassStyle("riff", "rock", 4, "straight", ""), "pulse", "no riff: a pulse");
-  assert.equal(C.bassStyle("riff", "waltz", 3, "straight", R), "fifth", "a riff is for four beats");
-  const G = C.chordBass("G"), at = (b, sw) => C.bassHits("riff", G, null, b, 4, sw, R);
-  assert.deepEqual(at(0).map(h => [h.m, h.at]), [[43, 0]]);
-  assert.equal(at(0)[0].len, 1.35, "a note rings until the next one");
-  assert.deepEqual(at(1).map(h => [h.m, h.at]), [[50, 0.5]], "the fifth on the off-beat");
-  assert.deepEqual(at(2).map(h => [h.m, h.at]), [[55, 0], [47, 0.5]], "an octave, then the third");
-  assert.deepEqual(at(3).map(h => [h.m, h.at]), [[53, 0]], "the flat seventh");
-  assert.equal(at(3)[0].len, 0.9, "the last note rings to the end of the bar");
-  assert.equal(C.bassHits("riff", G, null, 1, 4, 0.667, R)[0].at.toFixed(3), "0.667", "swing moves the off-beat eighth");
-  assert.equal(C.bassHits("riff", G, null, 0, 4, 0.5, "1" + "1" + ".".repeat(14))[1].at, 0.25, "sixteenths straight");
-  assert.equal(C.bassHits("riff", G, null, 0, 4, 0.667, "1" + "1" + ".".repeat(14))[1].at.toFixed(2), "0.33", "and swung");
-  assert.deepEqual(C.bassHits("riff", C.chordBass("Am"), null, 2, 4, 0.5, R).map(h => h.m), [57, 48], "the same riff on Am: the minor third, the root up an octave");
-  assert.deepEqual(C.bassHits("riff", G, null, 0, 3, 0.5, R).map(h => h.m), [43], "three beats: not a riff (bassStyle falls back first); the root plays");
-  for (const ch of ["C", "F#m", "Bb", "E/G#", "A7", "Dsus2"]) for (let b = 0; b < 4; b++)
-    for (const h of C.bassHits("riff", C.chordBass(ch), null, b, 4, 0.5, R)) assert.ok(h.m >= 38 && h.m <= 61, `${ch} ${h.m} stays in range`);
-});
-
 // ---------- Plays that outlive a song, credited plays, the Play map ----------
 const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-
 test("Plays are kept when a song leaves Recently deleted, and nothing else about it", () => {
   const today = dayKey(Date.now());
   const song = { id: "s", title: "Secret", body: "A D", playLog: { total: 3, last: Date.now(), days: { [today]: 2 } } };
@@ -1843,18 +1749,18 @@ test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles
   assert.deepEqual(C.cleanXP(JSON.parse(JSON.stringify(data.xp))), data.xp);
 });
 
-test("Your band (4.7.0): friends join as you play; Beat and Bex play in gigs", () => {
+test("Your band (4.7.0): friends join as you play; Beat plays the drums in gigs (4.42.0: Bex no longer plays bass)", () => {
   const data = { songs: [], sets: [], trash: [], settings: {}, journal: { v: 1, months: { "2026-10": { plays: 7 } } } };
   assert.equal(C.BAND.length, 27, "4.38.0: six more after Bottle-Slide");
   const st = C.bandState(data);
   assert.deepEqual(st.joined.map(b => b.id), ["lola", "tilly", "beat"]);
   assert.deepEqual([st.next.id, st.next.more], ["metro", 3]);
-  assert.deepEqual(C.bandParts(data), { drums: true, bass: false }, "Beat plays the drums");
+  assert.deepEqual(C.bandParts(data), { drums: true }, "Beat plays the drums");
   assert.deepEqual(C.bandMeet(data).map(b => b.id), ["lola", "tilly", "beat"], "new friends, met once");
   assert.deepEqual(C.bandMeet(data), []);
   data.journal.months["2026-10"].plays = 15;
   assert.deepEqual(C.bandMeet(data).map(b => b.id), ["metro", "bex"]);
-  assert.deepEqual(C.bandParts(data), { drums: true, bass: true });
+  assert.deepEqual(C.bandParts(data), { drums: true }, "Bex joins but plays nothing");
   data.settings.bandPlays = false;
   assert.deepEqual(C.bandParts(data), {}, "turned off on the Band tab");
   assert.deepEqual(C.cleanBand({ seen: ["lola", "nobody"] }), { seen: ["lola"] });

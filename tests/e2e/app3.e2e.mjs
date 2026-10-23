@@ -166,52 +166,6 @@ test("the metronome plays a drum beat: kick, snare and hi-hat", { skip: skip() }
   assert.deepEqual(errors, []);
 });
 
-test("the bass plays the root of each chord, at the sounding pitch, with the metronome off", { skip: skip() }, async t => {
-  const plain = { id: "bs1", title: "Bass Song", artist: "Me", key: "G", format: "chords", bpm: 240, body: "[Verse]\nG   D   Em   C" };
-  const capo = { id: "bs2", title: "Capo Bass", artist: "Me", key: "A", format: "chords", bpm: 240, body: "Capo 2 · Strum: D-DU-UDU\n\n[Verse]\nG   D   Em   C" };
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, plain, capo], settings: { ...LIB.settings, metronome: false, bass: true, bassStyle: "root", countIn: false, controls: "bar" } });
-  await page.evaluate(() => {
-    window.__osc = [];
-    const C = window.AudioContext || window.webkitAudioContext, o = C.prototype.createOscillator;
-    C.prototype.createOscillator = function () { const n = o.call(this); window.__osc.push(n); return n; };
-  });
-  const errors = []; page.on("pageerror", e => errors.push(String(e)));
-  const freqs = async id => {
-    await page.evaluate(() => { window.__osc.length = 0; });
-    await page.evaluate(i => { location.hash = "#/song/" + i; }, id); await page.waitForSelector("#play");
-    await page.click("#play"); await page.waitForTimeout(2700); /* real timer */ await page.click("#play");
-    return page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
-  };
-  const low = await freqs("bs1");
-  assert.ok(low.includes(98), `a G root at 98 Hz with the metronome off (${low})`);
-  assert.ok(low.includes(146.8) && low.includes(82.4), `then D (146.8 Hz) and Em (82.4 Hz), a chord a bar (${low})`);
-  const capoed = await freqs("bs2");
-  assert.ok(capoed.includes(110), `Capo 2: the G shape sounds an A at 110 Hz (${capoed})`);
-  assert.ok(!capoed.includes(98), "the shape's own G is not played");
-  await page.evaluate(i => { location.hash = "#/song/" + i; }, "bs1"); await page.waitForSelector("#more");
-  await tool(page, "bass");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.bass === false);
-  assert.match(await page.innerText("#toast"), /Bass off/);
-  assert.deepEqual(errors, []);
-});
-
-test("the bass also plays under a lyric sheet, with the walking line and the metronome on", { skip: skip() }, async t => {
-  const song = { id: "bs3", title: "Words Song", artist: "Me", key: "G", format: "chords", bpm: 200, body: "[Verse]\nG       C\nHello there my friend\nD       Em\nSing along with me" };
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: true, bass: true, bassStyle: "walk", countIn: false, controls: "bar" } });
-  await page.evaluate(() => {
-    window.__osc = [];
-    const C = window.AudioContext || window.webkitAudioContext, o = C.prototype.createOscillator;
-    C.prototype.createOscillator = function () { const n = o.call(this); window.__osc.push(n); return n; };
-  });
-  const errors = []; page.on("pageerror", e => errors.push(String(e)));
-  await page.evaluate(() => { location.hash = "#/song/bs3"; }); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForTimeout(1800); /* real timer */ await page.click("#play");
-  const f = await page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
-  assert.ok(f.includes(98), `the first chord's root is played (${f})`);
-  assert.ok(f.some(x => x > 98 && x < 200), "and the walk moves to other notes");
-  assert.deepEqual(errors, []);
-});
-
 test("a song's groove is found once, used for the song, and changed in Edit", { skip: skip() }, async t => {
   const song = { id: "gv", title: "Slow Blues", artist: "Me", key: "G", format: "chords", bpm: 100, body: "[Verse]\nG   C   G   D" };
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: true, countIn: false, controls: "bar" } });
@@ -225,17 +179,17 @@ test("a song's groove is found once, used for the song, and changed in Edit", { 
   await page.evaluate(() => { location.hash = "#/song/gv"; }); await page.waitForSelector("#play");
   await page.click("#play");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove, null, { timeout: 5000 });
-  assert.deepEqual(await groove(), { src: "ai", beat: "half", swing: "light", bass: "walk" });
-  assert.match(await page.innerText("#toast"), /Groove: Half time, light swing, walking bass/);
+  assert.deepEqual(await groove(), { src: "ai", beat: "half", swing: "light" }, "4.42.0: a bass in the answer is dropped");
+  assert.match(await page.innerText("#toast"), /Groove: Half time, light swing/);
   await page.click("#play"); await page.click("#play"); await page.click("#play");
   assert.equal(asks, 1, "asked once; a song with a groove is not looked up again");
   await tool(page, "edit"); await page.waitForSelector("#ed-g-beat");
   assert.match(await page.innerText(".ed-chips"), /Drums\s*Half time\s*Found/);
   const saved = src => page.waitForFunction(w => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove?.src === w, src);
   await page.selectOption("#ed-g-beat", "rock"); await saved("you");
-  assert.deepEqual(await groove(), { src: "you", beat: "rock", swing: "light", bass: "walk" });
-  await page.selectOption("#ed-g-swing", ""); await page.waitForSelector("#ed-g-bass");
-  await page.selectOption("#ed-g-bass", ""); await page.waitForSelector("#ed-g-beat");
+  assert.deepEqual(await groove(), { src: "you", beat: "rock", swing: "light" });
+  assert.equal(await page.locator("#ed-g-bass").count(), 0, "4.42.0: no bass chip");
+  await page.selectOption("#ed-g-swing", ""); await page.waitForSelector("#ed-g-beat");
   await page.selectOption("#ed-g-beat", "");
   await page.waitForFunction(() => Object.keys(JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "gv").groove).length === 1);
   assert.deepEqual(await groove(), { src: "you" }, "all defaults: kept, and not looked up again");
@@ -283,40 +237,6 @@ test("drums that fit the song: written once by the AI, played per section, busie
   assert.deepEqual(errors, []);
 });
 
-test("a bass riff: drawn in Edit, kept on the song, and played on each chord", { skip: skip() }, async t => {
-  const song = { id: "rf1", title: "Riff Song", artist: "Me", key: "G", format: "chords", bpm: 240, body: "[Verse]\nG   G   G   G" };
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, song], settings: { ...LIB.settings, metronome: false, bass: true, countIn: false, controls: "bar" } });
-  await page.evaluate(() => {
-    window.__osc = [];
-    const C = window.AudioContext || window.webkitAudioContext, o = C.prototype.createOscillator;
-    C.prototype.createOscillator = function () { const n = o.call(this); window.__osc.push(n); return n; };
-  });
-  const errors = []; page.on("pageerror", e => errors.push(String(e)));
-  const groove = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "rf1").groove);
-  await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
-  await tool(page, "edit"); await page.waitForSelector("#ed-g-bass");
-  await page.selectOption("#ed-g-bass", "riff"); await page.waitForSelector(".rf-c");
-  assert.equal((await page.$$(".rf-c")).length, 16, "sixteen steps");
-  assert.equal(await page.innerText(".rf-c[data-k='0']"), "1", "a root on the beat to start from");
-  for (let i = 0; i < 3; i++) await page.click(".rf-c[data-k='8']"); /* rest, root, third, fifth */
-  assert.equal(await page.innerText(".rf-c[data-k='8']"), "5");
-  await page.click("#rf-play"); await page.click("#rf-ok");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "rf1").groove?.riff);
-  assert.deepEqual(await groove(), { src: "you", bass: "riff", riff: "1.......5......." });
-  assert.ok(await page.$("#ed-g-riff"), "Edit riff is there");
-  await page.click("#ed-g-riff"); await page.waitForSelector(".rf-c");
-  assert.equal(await page.innerText(".rf-c[data-k='8']"), "5", "the riff opens as it was saved");
-  await page.evaluate(() => document.getElementById("rf-scrim").click()); /* a busy machine can keep the sheet "moving" past Playwright's stable check */
-  await page.waitForSelector("#rf-scrim", { state: "detached" });
-  await page.evaluate(() => { window.__osc.length = 0; });
-  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector(".list .row");
-  await page.evaluate(() => { location.hash = "#/song/rf1"; }); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForTimeout(1300); /* real timer */ await page.click("#play");
-  const f = await page.evaluate(() => [...new Set(window.__osc.map(n => Math.round(n.frequency.value * 10) / 10))]);
-  assert.ok(f.includes(98) && f.includes(146.8), `the riff plays the root (98 Hz) and the fifth (146.8 Hz) of G (${f})`);
-  assert.deepEqual(errors, []);
-});
-
 test("Settings: the metronome's switch, volume and sound; a song with no tempo gets one", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false, controls: "bar" } });
   await page.route("https://api.anthropic.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: '{"bpm": 120, "beats": 4}' }], stop_reason: "end_turn" }) }));
@@ -332,13 +252,10 @@ test("Settings: the metronome's switch, volume and sound; a song with no tempo g
   assert.equal(await page.$("#s-metbeat"), null, "the drum beat and swing only show with Drums");
   await page.click("#s-metsound [data-m='drums']"); await page.waitForSelector("#s-metbeat");
   await page.selectOption("#s-metbeat", "half"); await page.click("#s-metswing [data-m='light']"); await page.click("#s-metdrop");
-  await page.click("#s-bass");
-  assert.equal(await page.getAttribute("#s-bass", "aria-checked"), "true");
-  await page.selectOption("#s-bassstyle", "walk"); await page.click("#s-bassonly");
+  assert.equal(await page.locator("#s-bass").count(), 0, "4.42.0: no bass in Settings");
   await page.click("#s-metsound [data-m='click']");
-  await page.waitForFunction(() => { const x = JSON.parse(localStorage.getItem("tabs-v1")).settings; return x.metroDrop === true && x.bassOnly === true && x.metroSound === "click"; });
+  await page.waitForFunction(() => { const x = JSON.parse(localStorage.getItem("tabs-v1")).settings; return x.metroDrop === true && x.metroSound === "click"; });
   const s2 = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
-  assert.equal(s2.bass, true); assert.equal(s2.bassStyle, "walk"); assert.equal(s2.bassOnly, true);
   assert.equal(s2.metroBeat, "half"); assert.equal(s2.metroSwing, "light"); assert.equal(s2.metroSound, "click");
   const id = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => !x.bpm)?.id);
   assert.ok(id, "a test song without a tempo");

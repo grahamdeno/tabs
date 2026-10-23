@@ -75,7 +75,7 @@ The README describes each as it works today.
 | Core topics: chords, recording, sketch, playing, groove, turf, neck, game (4.15.1) | `core/*.js` (import from `core.js`, not these) |
 | Song page, playback, Find songs, router | `app.js` |
 | Songbook: search, filters, list, swipes, paste card | `library.js` |
-| The band: metronome, drums, bass | `audio.js` |
+| The band: metronome, drums (the bass went in 4.42.0) | `audio.js` |
 | AI help: the request to Anthropic, errors, limits | `aihelp.js` |
 | Share links, opening a shared link, Play together | `share.js` |
 | Listen: recordings, previews, length from the recording | `listen.js` |

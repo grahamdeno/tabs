@@ -679,22 +679,19 @@ export async function findTempo(song) {
   return +j?.bpm > 0 ? { bpm: +j.bpm, beats: beatsOf(j.beats) } : null;
 }
 
-// How a song feels for the drums and the bass: { beat, swing, bass, src: "ai" }
-// or null. Musical facts only, never lyrics. Claude searches when it isn't
-// sure and leaves a part out when it still isn't.
-const GROOVE_SYSTEM = `You describe how one recorded song feels, so a practice drummer and bass player can play along. Search the web if you are not sure. Reply with JSON only, no other text:
-{"beat": "rock"|"half"|"ballad"|"four"|null, "swing": "straight"|"light"|"full"|null, "bass": "root"|"fifth"|"pulse"|"walk"|"riff"|null, "riff": string or null}
+// How a song feels for the drums: { beat, swing, src: "ai" } or null. Musical facts only, never lyrics.
+// Claude searches when it isn't sure and leaves a part out when it still isn't.
+const GROOVE_SYSTEM = `You describe how one recorded song feels, so a practice drummer can play along. Search the web if you are not sure. Reply with JSON only, no other text:
+{"beat": "rock"|"half"|"ballad"|"four"|null, "swing": "straight"|"light"|"full"|null}
 - "beat": rock is kick on 1 and 3 with snare on 2 and 4; half is a half-time feel (snare only on 3, a slow heavy pulse even at a fast tempo); ballad is quiet, a side-stick on 2 and 4; four is a kick on every beat (disco, dance, four on the floor).
 - "swing": straight, light (a loose, slightly swung feel) or full (a shuffle or triplet feel, as in blues and swing).
-- "bass": root is one long note per chord; fifth is root and fifth (country, folk, waltz); pulse is steady eighth notes (rock, pop); walk is a walking line (blues, jazz, shuffle).
-- "riff": only when the bass part is built around a repeating figure, set "bass" to "riff" and give one bar of its rhythm in 16 characters, four per beat (the beat, the "e", the "and", the "a"), using only: "." no new note, "1" the chord's root, "3" its third, "5" its fifth, "7" its flat seventh, "8" the root an octave up. Describe the character of the part in general terms (where it hits, where it jumps an octave or to the fifth); do not copy a transcription note for note. Otherwise "riff" is null.
 - Use null for any part you are not reasonably sure of. Never include lyrics or any words from the song.`;
 export async function findGroove(song) {
   if (!song?.title || !aiKey()) return null;
   const { text } = await askClaudeSearch({ system: GROOVE_SYSTEM, maxTokens: 500, searches: 2,
     content: `${song.title}${song.artist ? ` by ${song.artist}` : ""}${song.bpm ? `. Tempo on file: ${song.bpm} BPM` : ""}` }).catch(() => ({ text: "" }));
   const g = cleanGroove(parseJSON(text), "ai");
-  return g && (g.beat || g.swing || g.bass) ? g : null;
+  return g && (g.beat || g.swing) ? g : null;
 }
 
 // Drums that fit the song (3.23.0): one bar of 4/4 per kind of section and a fill, written for this

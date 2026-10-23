@@ -40,7 +40,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `size` | number 0.6 to 1.6 | Text size |
 | `duration` | seconds | Song length speed style. Set from the recording when linked to Apple Music, unless you chose your own |
 | `recLength` | seconds | The recording's length, kept when Get the song adds it, so the metronome can slow with the speed dial (2.41.0) |
-| `groove` | object | What the drums and bass do for this song: `beat` (`"rock"`, `"half"`, `"ballad"` or `"four"`), `swing` (`"straight"`, `"light"` or `"full"`) and `bass` (`"root"`, `"fifth"`, `"pulse"`, `"walk"` or `"riff"`), each optional (a missing part comes from Settings), and `src`: `"ai"` for what was found, `"you"` once it was changed in Edit. `riff` is one bar of a bass part in sixteenth notes: 16 characters from `.` (no new note), `1` (root), `3` (third), `5` (fifth), `7` (flat seventh) and `8` (the root an octave up), played on whatever chord the song is on; `bass: "riff"` plays it, and the riff is kept if another style is picked (2.47.0). `{ src: "you" }` alone means keep the defaults and don't look it up again. Looked up once, in the background, the first time the song plays with the metronome or bass on, and when Get the song or Play next adds it (2.46.0) |
+| `groove` | object | What the drums do for this song: `beat` (`"rock"`, `"half"`, `"ballad"` or `"four"`) and `swing` (`"straight"`, `"light"` or `"full"`), each optional (a missing part comes from Settings), and `src`: `"ai"` for what was found, `"you"` once it was changed in Edit. `{ src: "you" }` alone means keep the defaults and don't look it up again. Looked up once, in the background, the first time the song plays with the metronome on, and when Get the song or Play next adds it (2.46.0). A `bass` or `riff` from before 4.42.0 is dropped when it loads |
 | `capoOff` | boolean | The chart's own capo is taken off: chords show in the key the song sounds in (2.41.0) |
 | `durationSet` | boolean | You moved the length slider; the recording's length is then offered, not applied |
 | `speed` | number | 1x speed style |
@@ -49,7 +49,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `favorite` | boolean | |
 | `created` | ISO date | |
 | `art` | string | Album art for set covers, found on Apple Music when the title and artist clearly match (https only). A Listen link's own art comes first |
-| `backing` | `"band"` | Only set when Play should start the drums and bass instead of the linked Apple Music recording; absent means the recording (when one is linked and Apple Music is on) |
+| `backing` | `"band"` | Only set when Play should start the drums instead of the linked Apple Music recording; absent means the recording (when one is linked and Apple Music is on) |
 | `recRate` | number | The linked recording's speed for this song, 0.5 to 1; absent means full speed |
 | `timed` | `{ h, id?, at?: [[line, seconds], ...], w?: { line: [seconds, ...] }, none? }` | Line times from LRCLIB's synced lyrics for the linked recording: `line` is the sheet line's index, `w` the word times of lines whose lyrics carry them (3.22.0), `h` a fingerprint of the words (looked up again after an edit), `none` when no timing was found. No lyric text is kept |
 | `syncs` | `[[where, seconds], ...]` | Marks tying a place on the sheet (0 to 1 down it) to a time in the linked recording, saved when you nudge the page while it plays; up to 12, rising together |
@@ -112,11 +112,7 @@ Defaults are in `DEFAULT_SETTINGS` in `core.js`. `v` is the save format version 
 | `metroBeat` | `"auto"` (when missing), `"rock"`, `"half"`, `"ballad"` or `"four"` | The drum beat (2.44.0) |
 | `metroSwing` | `"straight"` (when missing), `"light"` or `"full"` | (2.44.0) |
 | `metroDrop` | boolean | Silences every other bar (2.44.0) |
-| `bass` | boolean | Plays a bass line under chord songs (2.45.0) |
-| `bassVol` | 0 to 1 | Volume; 0.7 when missing |
-| `bassStyle` | `"auto"` (when missing), `"root"`, `"fifth"`, `"pulse"` or `"walk"` | |
-| `bassOnly` | boolean | Mutes the drums or click while the bass plays. Nothing about the bass is stored on a song |
-| `bandPlays` | boolean, on unless false | Lets Beat and Bex play drums and bass in gigs (4.7.0) |
+| `bandPlays` | boolean, on unless false | Lets Beat play the drums in gigs (4.7.0) |
 | `chartLevel` | `"easy"`, `"mine"` (My level, the default) or `"rec"` (As recorded) | Get the song's last pick (2.41.0) |
 | `nextLevel` | `"same"` or `"step"` | What can I play next?'s level (2.12) |
 
@@ -200,6 +196,7 @@ The journal keeps `days` (`{ "YYYY-MM-DD": seconds }`, last 60 days) and `daysFr
 - `tolex` (boolean, 2.20.0, Amp covering) and `arcSweep`: `arcSweep` is dropped from saves when they load.
 - `stage` (Stage mode), `songMap` (the section rail is always on) and `pauseDiagrams` (diagrams when paused are always on), retired in 4.15.0 and dropped from saves when they load.
 - `gigPlay` (4.2.0) and a song's `playAs` (4.3.0).
+- `bass`, `bassVol`, `bassStyle` and `bassOnly` (the bass line, 2.45.0 to 4.41.0) and a song's `groove.bass` and `groove.riff`: dropped when they load (4.42.0).
 
 ## Backup file
 

@@ -23,8 +23,8 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Pause holds the show in place: Back a line, Tools, Sheet and a big Resume, in thumb reach. Drag the lines to move the song.
 - Show complete: bonus fans, the crowd, changes landed, Encore (double bonus fans) and Challenge a friend.
 - Practicing a section or slower, a tab, or Play together plays the plain sheet: chords over the words, the current line stands out and the others dim while it plays, the section rail on the right edge, tap a chord for its fingering, a diagram over each chord on the line you pause on.
-- Tools (4.32.0) is one sheet from the bottom with three tabs at its foot, in thumb reach; the last tab is remembered. Play: song length or speed (− and + step it, the value opens the dial), Metronome, Bass line and Now and Next as switches, Lines in a gig (4, 5, 6 or All), Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words. Rows, not tiles: a switch toggles in place, a row with an arrow opens its sheet. From a show, the Song tab and Practice mode are left out.
-- The band: a metronome (click or a drum beat that fits the song, written per section by the AI when there's a key), and a synthesized bass playing each chord's root. Beat and Bex from Your band play drums and bass in gigs once they've joined.
+- Tools (4.32.0) is one sheet from the bottom with three tabs at its foot, in thumb reach; the last tab is remembered. Play: song length or speed (− and + step it, the value opens the dial), Metronome and Now and Next as switches, Lines in a gig (4, 5, 6 or All), Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words. Rows, not tiles: a switch toggles in place, a row with an arrow opens its sheet. From a show, the Song tab and Practice mode are left out.
+- The band: a metronome (click or a drum beat that fits the song, written per section by the AI when there's a key). Beat from Your band plays the drums in gigs once he's joined. The synthesized bass line was taken out in 4.42.0 (it never sounded like the song).
 - Practice mode (the switch in Tools; a learning song opens in it): loop a section, slow it to 50%, Build up, drums busier or simpler. Practice time counts as plays on the Tour Map.
 - Bluetooth page-turner pedals work: left or Space plays and pauses, right goes to the next section.
 
@@ -57,7 +57,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog, plays previews and saves a recording with its album art and length.
 - Apple Music (optional, its own Settings row): with a subscription, Play can start the recording, and the page follows it line by line (synced lyrics times from LRCLIB) and chord by chord. Its 30-second preview gives the tempo, feel and key. Needs the token Worker (`worker/README.md`).
-- Share a song or set as a link (the song travels inside it). Play together (4.29.0, clap to start): pick your part (Chords; Bass line, where Bex plays the bass line with you; or Melody, the words with the notes you sang, when the song has a sung melody), Send song shares it to your friend, then both phones Listen for clap and one clap in the room starts the one-bar count-in on both. No server and no start time. A link opens the song and Play together on your friend's phone (an older link with a start time opens the same way).
+- Share a song or set as a link (the song travels inside it). Play together (4.29.0, clap to start): pick your part when the song has a sung melody (Chords, or Melody: the words with the notes you sang), Send song shares it to your friend, then both phones Listen for clap and one clap in the room starts the one-bar count-in on both. No server and no start time. A link opens the song and Play together on your friend's phone (an older link with a start time opens the same way).
 
 ### Help and settings
 - Tips appear once, when they're useful. Settings > Help > Tips & gestures lists every gesture with Show me.
@@ -117,7 +117,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `core.js`, `core/` | Data and logic with no screen code, unit tested. `core.js` keeps storage, markup, backups and tuner maths and re-exports the topics in `core/` (chords, recording, sketch, playing, groove, turf, neck, game) |
 | `app.js` | Song page (auto-scroll, Now and Next, song map, iPad layouts, pedals), Find songs, router |
 | `library.js` | The Songbook: search, filters, the song list, swipes, the paste card |
-| `audio.js` | Metronome, drums and bass |
+| `audio.js` | Metronome and drums |
 | `aihelp.js` | AI help: the request to Anthropic, errors and limits |
 | `ui.js` | Icons, toasts, `ask()` questions, `onLeave` and `onScroll` hooks. Depends only on `core.js` |
 | `editor.js` | Editing in place, new songs, writing mode, tap tempo, chord picker |

@@ -1,9 +1,9 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { DRUM_BEATS, BASS_STYLES, GROOVE, RIFF_STEPS, grooveText, validRiff, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
+import { DRUM_BEATS, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
-import { READ_AT, aiError, aiKey, busy, calm, grooveFor, riffPreview, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
+import { READ_AT, aiError, aiKey, busy, calm, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
 
 // ---------- Edit (in place) ----------
 // Edit turns the song page itself into the editor: title and artist are typed in
@@ -197,14 +197,12 @@ function paintDetails(song) {
   $("ed-key")?.addEventListener("change", e => editChange(song, `Key: ${e.target.value || "Auto"}`, () => { song.key = e.target.value; }));
   $("ed-tuning").onchange = e => editChange(song, `Tuning: ${TUNINGS[e.target.value].name}`, () => { if (e.target.value === "standard") delete song.tuning; else song.tuning = e.target.value; });
   for (const k of Object.keys(GROOVE)) $("ed-g-" + k)?.addEventListener("change", e => {
-    if (k === "bass" && e.target.value === "riff") return riffSheet(song); /* a riff needs its notes */
     editChange(song, `${GROOVE_LABEL[k]}: ${e.target.selectedOptions[0].textContent}`, () => {
       const g = { ...song.groove, src: "you" };
       if (e.target.value) g[k] = e.target.value; else delete g[k];
       song.groove = g;
     });
   });
-  $("ed-g-riff")?.addEventListener("click", () => riffSheet(song));
   $("ed-g-find")?.addEventListener("click", async () => {
     const b = $("ed-g-find"); b.disabled = true; b.querySelector("span").textContent = "Finding";
     const was = song.groove, g = await grooveFor(song, true);
@@ -236,13 +234,13 @@ function paintDetails(song) {
   };
   tap.onclick = e => e.preventDefault();
 }
-/* The groove chips: drums, swing and bass for this song. "Default" means
+/* The groove chips: drums and swing for this song. "Default" means
    Settings (and Auto) decide. "Found" marks what the AI suggested. */
-const GROOVE_LABEL = { beat: "Drums", swing: "Swing", bass: "Bass" };
+const GROOVE_LABEL = { beat: "Drums", swing: "Swing" };
 function grooveChips(song, isTab) {
   const g = song.groove || {}, found = g.src === "ai";
   const opts = {
-    beat: DRUM_BEATS.filter(([k]) => k !== "auto"), bass: [...BASS_STYLES.filter(([k]) => k !== "auto"), ["riff", "Riff"]],
+    beat: DRUM_BEATS.filter(([k]) => k !== "auto"),
     swing: [["straight", "Straight"], ["light", "Light"], ["full", "Full"]]
   };
   const chip = k => {
@@ -250,36 +248,7 @@ function grooveChips(song, isTab) {
     return `<label class="ed-chip"><span>${GROOVE_LABEL[k]}</span><b>${cur ? esc(cur[1]) : "Default"}</b>${cur && found ? '<i class="found">Found</i>' : ""}
       <select id="ed-g-${k}" aria-label="${GROOVE_LABEL[k]} for this song"><option value="">Default</option>${opts[k].map(([v, n]) => `<option value="${v}" ${v === g[k] ? "selected" : ""}>${n}</option>`).join("")}</select></label>`;
   };
-  return `${chip("beat")}${chip("swing")}${isTab ? "" : chip("bass")}${!isTab && g.bass === "riff" ? `<button class="ed-chip" id="ed-g-riff" aria-label="Edit the bass riff">${icon("note")}<span>Edit riff</span></button>` : ""}${aiKey() ? `<button class="ed-chip" id="ed-g-find" aria-label="Find how this song feels">${icon("note")}<span>${song.groove ? "Find again" : "Find"}</span></button>` : ""}`;
-}
-/* The bass riff: one bar in sixteenth notes, four steps a beat. Tap a step to
-   cycle it through rest, root, third, fifth, flat seventh and octave. The
-   buttons sit at the bottom, in thumb reach. */
-function riffSheet(song) {
-  let riff = validRiff(song.groove?.riff) ? song.groove.riff : "1" + ".".repeat(15);
-  const swing = song.groove?.swing || data.settings.metroSwing || "straight";
-  const label = c => ({ ".": "·", 7: "b7" }[c] || c);
-  const cell = k => `<button class="rf-c ${riff[k] === "." ? "" : "on"}" data-k="${k}" aria-label="Step ${k + 1}">${label(riff[k])}</button>`;
-  const close = () => { layer.innerHTML = ""; paintEdit(song); };
-  layer.innerHTML = `<div class="scrim" id="rf-scrim"></div><div class="panel card rf" role="dialog" aria-modal="true" aria-label="Bass riff">
-    <b class="ask-t">Bass riff</b>
-    <p class="ask-p">One bar, four steps a beat. Tap a step to change it: root (1), third (3), fifth (5), flat seventh (b7) or the root an octave up (8). It follows each chord.</p>
-    <div class="rf-grid"><div class="rf-row rf-top"><i></i><span>1</span><span>e</span><span>and</span><span>a</span></div>
-      ${[0, 1, 2, 3].map(b => `<div class="rf-row"><i>${b + 1}</i>${[0, 1, 2, 3].map(i => cell(b * 4 + i)).join("")}</div>`).join("")}</div>
-    <div class="actions"><button class="btn" id="rf-play">Play</button><button class="btn" id="rf-clear">Clear</button><button class="btn primary" id="rf-ok">Done</button></div></div>`;
-  $("rf-scrim").onclick = close;
-  document.querySelectorAll(".rf-c").forEach(b => b.onclick = () => {
-    const k = +b.dataset.k;
-    riff = riff.slice(0, k) + RIFF_STEPS[(RIFF_STEPS.indexOf(riff[k]) + 1) % RIFF_STEPS.length] + riff.slice(k + 1);
-    b.textContent = label(riff[k]); b.classList.toggle("on", riff[k] !== ".");
-  });
-  $("rf-play").onclick = () => riffPreview(riff, swing);
-  $("rf-clear").onclick = () => { riff = ".".repeat(16); document.querySelectorAll(".rf-c").forEach(b => { b.textContent = "·"; b.classList.remove("on"); }); };
-  $("rf-ok").onclick = () => {
-    layer.innerHTML = "";
-    if (validRiff(riff)) editChange(song, "Bass riff saved", () => { song.groove = { ...song.groove, src: "you", bass: "riff", riff }; });
-    else editChange(song, "Bass riff removed", () => { const g = { ...song.groove, src: "you" }; delete g.riff; if (g.bass === "riff") delete g.bass; song.groove = g; });
-  };
+  return `${chip("beat")}${chip("swing")}${aiKey() ? `<button class="ed-chip" id="ed-g-find" aria-label="Find how this song feels">${icon("note")}<span>${song.groove ? "Find again" : "Find"}</span></button>` : ""}`;
 }
 function paintSheet(song, sheet) {
   /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */

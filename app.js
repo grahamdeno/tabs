@@ -10,7 +10,7 @@ import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.j
 import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
-import { bassOn, bassPreview, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, recLength, riffPreview, startMetronome, stopMetronome, tempoFor } from "./audio.js";
+import { beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
 
 
 // ---------- State ----------
@@ -66,7 +66,7 @@ const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
 const gigsOn = song => canGig(song);
 /* 4.20.0: the face says what plays with you: the recording or the band (nothing when neither will) */
-const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : (data.settings.metronome || data.settings.bass || bandParts(data).drums || bandParts(data).bass) ? "WITH THE BAND" : "";
+const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : (data.settings.metronome || bandParts(data).drums) ? "WITH THE BAND" : "";
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : "PLAY"}${!on && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
@@ -457,13 +457,6 @@ function layoutDiagrams(sheet, isChords) {
   diag.seq = isChords ? [...sheet.querySelectorAll(".c[data-ch]")].map(el => ({
     el, name: el.dataset.ch, y: el.getBoundingClientRect().top - top
   })) : [];
-  /* For the bass: the chord rows (a chord-only row has a bar per chord). */
-  diag.brows = [];
-  diag.seq.forEach((it, i) => {
-    const el = it.el.closest(".crow, .pr") || it.el, last = diag.brows[diag.brows.length - 1];
-    if (last?.el === el) last.hi = i;
-    else { const r = el.getBoundingClientRect(); diag.brows.push({ el, lo: i, hi: i, kind: el.classList.contains("crow") ? "bar" : "line", r0: r.top - top, r1: r.bottom - top }); }
-  });
   // Screen rows of chords, for the paused diagrams.
   const left0 = sheet.getBoundingClientRect().left;
   diag.rows = [];
@@ -1069,17 +1062,17 @@ function toneSheet(song) { aiTools().then(m => m.toneSheet(song)); }
 const NEW_IN_MENU = { loop: "practice", metro: "metronome", tuner: "tuner", share: "share", easy: "easier", tone: "tone" };
 const newDot = k => used(k) ? "" : `<i class="newdot" data-new="${k}" aria-label="New"></i>`;
 const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k => !used(k));
-/* What Play starts: the Apple Music recording alone, or the band (drums, click, bass) alone.
+/* What Play starts: the Apple Music recording alone, or the band (drums or click) alone.
    A song with a linked recording defaults to the recording; "band" is remembered per song. */
-const usesMusic = song => hasMusic(song) && song.backing !== "band" && scroll.part !== "bass"; /* Play together's Bass line plays with the band */
+const usesMusic = song => hasMusic(song) && song.backing !== "band";
 function setBacking(song, mode, near, quiet) {
   if (mode === "band") song.backing = "band"; else delete song.backing;
   Tabs.save(data);
   if (scroll.on) { if (usesMusic(song)) { stopMetronome(); startMusic(song); } else { pauseMusic(); startMetronome(song); } }
   paintListenChip(song);
   if (quiet) return;
-  const band = data.settings.metronome || data.settings.bass;
-  toast(mode === "band" ? (band ? "Band: drums and bass, no recording" : "Band: turn on the metronome or bass in More") : "Recording: no drums or bass", near);
+  const band = data.settings.metronome;
+  toast(mode === "band" ? (band ? "Band: drums, no recording" : "Band: turn on the metronome in Tools") : "Recording: no drums", near);
 }
 /* 4.31.0: the cover beside the title (it was a button beside Play). The Apple Music art when a recording
    is linked, else the song's letter on a palette colour; it and "about this song" open About this song.
@@ -1134,18 +1127,12 @@ function openAbout(song) {
 function toggleMetronome(song, near) {
   if (usesMusic(song) && !data.settings.metronome) { data.settings.metronome = true; return setBacking(song, "band", near); }
   data.settings.metronome = !data.settings.metronome; Tabs.save(data);
-  if (scroll.on) data.settings.metronome || data.settings.bass ? startMetronome(song) : stopMetronome();
+  if (scroll.on) data.settings.metronome ? startMetronome(song) : stopMetronome();
   toast(data.settings.metronome ? `Metronome on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}` : "Metronome off", near);
-}
-function toggleBass(song, near) {
-  if (usesMusic(song) && !data.settings.bass) { data.settings.bass = true; return setBacking(song, "band", near); }
-  const on = data.settings.bass = !data.settings.bass; Tabs.save(data);
-  if (scroll.on) on || data.settings.metronome ? startMetronome(song) : stopMetronome();
-  toast(!on ? "Bass off" : song.format === "tab" ? "Bass on. It plays under songs with chords" : `Bass on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}`, near);
 }
 /* The Tools sheet (4.2.0): everything for the song in one sheet that rises from the bottom, from the
    paused song and from a paused gig. Text size and the Gig's lines at the top, then Play along and The song. */
-const GIG_KEEPS = ["metro", "bass", "speed"]; /* what can change without leaving a paused gig */
+const GIG_KEEPS = ["metro", "speed"]; /* what can change without leaving a paused gig */
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
   if (old) { old.remove(); return; }
@@ -1162,7 +1149,6 @@ function songMenu(song, anchor, redrawSong) {
     { id: "play", label: "Play", head: "HOW IT PLAYS", rows: [
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: !!data.settings.metronome },
-      chords && { id: "bass", icon: "note", label: "Bass line", sub: "Plays along under the chords", on: !!data.settings.bass },
       chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", sub: "Chord shapes while you play", on: data.settings.diagrams === true },
       chords && { id: "lines", icon: "list", label: "Lines in a gig", lines: true },
       { id: "size", icon: "type", label: "Text size", size: true }
@@ -1252,7 +1238,7 @@ function songMenu(song, anchor, redrawSong) {
       sp.value = Math.min(+sp.max, Math.max(+sp.min, +sp.value + dir * stp)); sp.oninput?.();
       paint(); return;
     }
-    const inPlace = { metro: () => toggleMetronome(song, moreBtn()), bass: () => toggleBass(song, moreBtn()), nn: () => toggleNN(),
+    const inPlace = { metro: () => toggleMetronome(song, moreBtn()), nn: () => toggleNN(),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
@@ -1278,7 +1264,6 @@ function songMenu(song, anchor, redrawSong) {
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => songDeOpen?.(),
-       bass: () => toggleBass(song, moreBtn()),
        metro: () => toggleMetronome(song, moreBtn()) })[id]?.();
   };
 }
@@ -1732,7 +1717,7 @@ async function startScroll(song, opts = {}) {
   btn.innerHTML = playFace(true);
   btn.setAttribute("aria-label", "Pause auto-scroll");
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
-  if (metroOn() || bassOn()) {
+  if (metroOn()) {
     if (!song.bpm) tempoFor(song); /* look it up during the count-in */
     grooveFor(song); /* and how it feels, which joins in when it arrives */
     if (metroOn() && metroDrums()) drumsFor(song); /* and drums written for it */
@@ -1964,4 +1949,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, bassPreview, riffPreview, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

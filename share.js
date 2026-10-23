@@ -26,10 +26,10 @@ const moreBtn = () => [...document.querySelectorAll("button.more")].find(b => b.
 const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (The Road)`, moreBtn());
 // ---------- Play together (4.29.0: clap to start) ----------
 // No server. Send song shares the song (with its tempo and length). Each player picks a part (Chords,
-// Bass line, or Melody when the song has a sung melody) and taps Listen for clap; both phones listen,
+// or Melody when the song has a sung melody; the Bass line went in 4.42.0) and taps Listen for clap; both phones listen,
 // and one clap in the room starts the one-bar count-in on both at once. On a call it works the same,
 // as long as each phone can hear the clap. Pause or jump on one phone doesn't reach the other.
-const PARTS = [["chords", "Chords"], ["bass", "Bass line"], ["melody", "Melody"]];
+const PARTS = [["chords", "Chords"], ["melody", "Melody"]];
 const CLAP_QUIET = 300, CLAP_WAIT = 60000; /* ignore the tap that started listening; give up after a minute */
 let duetPart = "chords", duet = null; // duet: { stream, src, timer, until } while listening
 const wakeAudio = () => sound();
@@ -41,17 +41,17 @@ function duetSheet(song) {
   if (!parts.some(([k]) => k === duetPart)) duetPart = "chords";
   layer.innerHTML = `<div class="scrim" id="pt-scrim"></div><div class="panel card pt" role="dialog" aria-label="Play together"><div class="grab" aria-hidden="true"></div>
     <div class="pt-head">${louie("happy", { pose: "wave", size: 60 })}<div><b>Play together</b><span>Two phones, one song, one start</span></div></div>
-    <div class="pt-cap" id="pt-parth">Your part</div>
+    ${parts.length > 1 ? `<div class="pt-cap" id="pt-parth">Your part</div>
     <div class="seg pt-parts" id="pt-part" role="group" aria-labelledby="pt-parth">${parts.map(([k, n]) => `<button data-part="${k}" class="${k === duetPart ? "on" : ""}" aria-pressed="${k === duetPart}">${n}</button>`).join("")}</div>
-    <p class="pt-note" id="pt-pnote"></p>
+    <p class="pt-note" id="pt-pnote"></p>` : ""}
     <div class="pt-cap">Start</div>
     <div class="pt-start" id="pt-start"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" class="pt-halo"/><path d="M13 22c0-5 3-9 7-9s7 4 7 9M8 14l3 2M32 14l-3 2M20 6v4"/></svg><span id="pt-say" role="status">Both phones listen. One clap, and both count in together.</span></div>
     <div class="pt-btns"><button class="btn" id="pt-send">${icon("share")}Send song</button><button class="btn primary" id="pt-listen">Listen for clap</button></div></div>`;
-  const note = () => { $("pt-pnote").textContent = duetPart === "bass" ? `Bex plays the bass line with you, ${song.bpm || 90} BPM. Your friend picks theirs on their phone.` : duetPart === "melody" ? "The words with the melody notes you sang. Your friend picks theirs on their phone." : "Your friend picks theirs on their phone."; };
+  const note = () => { if ($("pt-pnote")) $("pt-pnote").textContent = duetPart === "melody" ? "The words with the melody notes you sang. Your friend picks theirs on their phone." : "Your friend picks theirs on their phone."; };
   note();
   const close = () => { duetCancel(); layer.innerHTML = ""; };
   $("pt-scrim").onclick = close;
-  $("pt-part").querySelectorAll("[data-part]").forEach(b => b.onclick = () => {
+  $("pt-part")?.querySelectorAll("[data-part]").forEach(b => b.onclick = () => {
     duetPart = b.dataset.part;
     $("pt-part").querySelectorAll("[data-part]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
     note();

@@ -379,10 +379,10 @@ export function badgesOf(data, p) {
 }
 
 // ---------- Your band (4.7.0): Louie's friends join as you play ----------
-// Each friend joins after a number of songs played through (lifetime plays). Beat (drums) and Bex (bass)
-// play behind you in gigs once they've joined, unless Settings or the Band tab turn that off.
+// Each friend joins after a number of songs played through (lifetime plays). Beat (drums) plays behind
+// you in gigs once he's joined, unless Settings or the Band tab turn that off (Bex's bass went in 4.42.0).
 export const BAND = [
-  ["lola", 1], ["tilly", 3], ["beat", 6, "drums"], ["metro", 10], ["bex", 15, "bass"], ["jax", 20], ["milo", 26], ["pip", 32], ["key", 40],
+  ["lola", 1], ["tilly", 3], ["beat", 6, "drums"], ["metro", 10], ["bex", 15], ["jax", 20], ["milo", 26], ["pip", 32], ["key", 40],
   ["strap", 48], ["slide", 56], ["shaker", 65], ["pickup", 75], ["humb", 85], ["reverb", 95], ["triangle", 110], ["whammy", 125], ["looper", 140],
   ["clip", 160], ["vial", 180], ["bottle", 200], /* 4.37.0: Graham's art, 2026-10-22 */
   ["gigbag", 225], ["kazo", 250], ["tuk", 275], ["capo", 300], ["spool", 330], ["peg", 360] /* 4.38.0 */
@@ -399,11 +399,11 @@ export function bandMeet(data) {
   if (fresh.length) { const b = data.band || (data.band = { seen: [] }); b.seen = [...new Set([...(b.seen || []), ...fresh.map(x => x.id)])]; }
   return fresh;
 }
-/* the parts your band plays in a gig: drums once Beat has joined, bass once Bex has */
+/* the parts your band plays in a gig: drums once Beat has joined */
 export function bandParts(data) {
   if (data.settings?.bandPlays === false) return {};
   const st = bandState(data), has = id => st.joined.some(b => b.id === id);
-  return { drums: has("beat"), bass: has("bex") };
+  return { drums: has("beat") };
 }
 export function cleanBand(raw) {
   if (!isObj(raw)) return null;

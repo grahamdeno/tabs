@@ -1508,13 +1508,6 @@ body.writing .ed-tx { top: calc(var(--vv-top, 0px) + var(--safe-t) + 56px); heig
 
 
 /* Bass riff editor: a grid of sixteenth-note steps, a beat to a row. */
-.rf .rf-grid { margin: 4px 0 12px; display: flex; flex-direction: column; gap: 6px; }
-.rf .rf-row { display: grid; grid-template-columns: 22px repeat(4, 1fr); gap: 6px; align-items: center; }
-.rf .rf-row i { font-style: normal; color: var(--muted); font-size: 13px; text-align: center; }
-.rf .rf-top span { color: var(--muted); font-size: 12px; text-align: center; }
-.rf .rf-c { height: 46px; border-radius: 10px; border: 1px solid var(--rim); background: var(--card-2); color: var(--muted); font-size: 18px; font-weight: 600; }
-.rf .rf-c.on { color: var(--accent-ink); border-color: var(--accent-line); background: var(--accent-soft); }
-.rf .actions .btn { flex: 1; }
 
 /* Tour Map: full screen. The page is locked while it is open; the map takes pinch and drag. */
 body.tm-open { overflow: hidden; overscroll-behavior: none; }

@@ -1,8 +1,8 @@
-// The Road: the band: metronome, drums and bass. Split from app.js (4.15.1); app.js re-exports what other files use.
-import { DRUM_SWING, Tabs, barHits, bassHits, bassStyle, bassWhere, chordBass, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset } from "./core.js";
+// The Road: the band: metronome and drums. Split from app.js (4.15.1); app.js re-exports what other files use.
+import { DRUM_SWING, Tabs, barHits, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf } from "./core.js";
 import { $, sound, toast } from "./ui.js";
 import { aiKey } from "./aihelp.js";
-import { READ_AT, byLength, data, diag, findAI, gigHooks, loopFactor, paintLoop, pxPerSecond, scroll, songLength, usesMusic, viewing } from "./app.js";
+import { READ_AT, byLength, data, findAI, gigHooks, loopFactor, paintLoop, pxPerSecond, scroll, songLength, usesMusic, viewing } from "./app.js";
 
 // ---------- Metronome ----------
 // While a song scrolls (on from the ring or the ••• menu), either a click or a
@@ -13,14 +13,13 @@ import { READ_AT, byLength, data, diag, findAI, gigHooks, loopFactor, paintLoop,
 // scheduled ahead on the audio clock, so they stay even.
 export const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null };
 const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= 1 ? v : 0.8; };
-/* Your band (4.7.0): in a gig, Beat plays the drums and Bex the bass once they've joined (gigHooks.band) */
+/* Your band (4.7.0): in a gig, Beat plays the drums once he's joined (gigHooks.band). The bass went in 4.42.0. */
 export const metroOn = () => data.settings.metronome || !!gigHooks.band?.drums;
-export const bassOn = () => data.settings.bass || !!gigHooks.band?.bass || scroll.part === "bass"; /* 4.29.0: Play together's Bass line */
 export const metroDrums = () => data.settings.metroSound !== "click" || (!data.settings.metronome && !!gigHooks.band?.drums);
 export async function startMetronome(song) {
   stopMetronome();
-  if (!metroOn() && !bassOn()) return;
-  if (usesMusic(song)) return; /* the recording is playing: no drums or bass on top */
+  if (!metroOn()) return;
+  if (usesMusic(song)) return; /* the recording is playing: no drums on top */
   const run = ++metro.run;
   if (!song.bpm) {
     await tempoFor(song);
@@ -29,7 +28,7 @@ export async function startMetronome(song) {
   }
   const audio = sound();
   if (!audio) return;
-  metro.next = audio.currentTime + 0.05; metro.beat = 0; metro.bar = null; bass.idx = null; bass.shift = null;
+  metro.next = audio.currentTime + 0.05; metro.beat = 0; metro.bar = null;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
       const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
@@ -37,13 +36,10 @@ export async function startMetronome(song) {
       const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1, b = metro.beat % beats;
       const groove = grooveOf(song, data.settings);
       const style = drumStyle(groove.beat, { bpm: song.bpm || 90, beats, body: song.body });
-      /* Bass only: the drums or click rest and the bass plays alone. */
-      const rhythm = metroOn() && !(bassOn() && data.settings.bassOnly);
-      if (quiet || !rhythm) { /* silent bar, or no drums */ }
+      if (quiet) { /* a silent bar */ }
       else if (metroDrums() && songBar(song, b, beats, spb)) for (const h of barHits(metro.bar, b, DRUM_SWING[groove.swing] || 0.5)) drum(h.k, metro.next + h.at * spb, h.v);
       else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style, groove.swing);
       else clickAt(metro.next, b === 0);
-      bassBeat(song, metro.next, b, beats, spb, quiet, style, groove);
       metro.next += spb; metro.beat++;
     }
   }, 25);
@@ -140,64 +136,6 @@ export function beatTrack(bpm, onBeat, { hats = false } = {}) {
   tick();
   const id = setInterval(tick, 40);
   return { audio, t0, spb, lag: (audio.baseLatency || 0) + (audio.outputLatency || 0), stop: () => clearInterval(id) };
-}
-/* The bass. It rides the same clock as the drums (or a silent one when the
-   metronome is off). On chord-only rows it moves a chord a bar; over lyrics it
-   goes where the page is. The patterns are in core.js. */
-const bass = { idx: null, shift: null };
-const bassVol = () => { const v = data.settings.bassVol; return v >= 0 && v <= 1 ? v : 0.7; };
-function bassBeat(song, t, b, beats, spb, quiet, drum, groove) {
-  const seq = diag.seq, sheet = $("sheet");
-  if (!bassOn() || !seq.length || !sheet) return;
-  /* From the top of the song, the first row is the first thing played, not
-     whatever sits at the reading line: the bass counts the scroll from there. */
-  const reading = innerHeight * READ_AT - sheet.getBoundingClientRect().top;
-  if (bass.shift == null) bass.shift = scrollY < 40 && diag.brows.length ? diag.brows[0].r0 - reading : 0;
-  bass.idx = bassWhere(bass.idx, diag.brows, reading + bass.shift, b === 0);
-  if (quiet || bass.idx == null) return;
-  const off = soundOffset(song), now = seq[bass.idx].name;
-  const next = seq.slice(bass.idx + 1).find(x => x.name !== now);
-  const swing = DRUM_SWING[groove.swing] || 0.5;
-  const style = bassStyle(groove.bass, drum, beats, groove.swing, groove.riff);
-  for (const h of bassHits(style, chordBass(now, off), next ? chordBass(next.name, off) : null, b, beats, swing, groove.riff)) bassNote(h.m, t + h.at * spb, h.len * spb, h.v);
-}
-/* Settings plays a bar of G and a bar of C in the chosen style and volume. */
-export function bassPreview() {
-  const audio = sound();
-  if (!audio) return;
-  const t = audio.currentTime + 0.05, spb = 0.5, style = bassStyle(data.settings.bassStyle, "rock", 4, data.settings.metroSwing);
-  const G = chordBass("G"), C = chordBass("C"), swing = DRUM_SWING[data.settings.metroSwing] || 0.5;
-  for (let b = 0; b < 8; b++) for (const h of bassHits(style, b < 4 ? G : C, b < 4 ? C : G, b % 4, 4, swing)) bassNote(h.m, t + (b + h.at) * spb, h.len * spb, h.v);
-}
-/* The riff editor plays the riff on G, then C, so you hear it move with the chord. */
-export function riffPreview(riff, swingKey = "straight") {
-  const audio = sound();
-  if (!audio || !riff) return;
-  const t = audio.currentTime + 0.05, spb = 0.4, swing = DRUM_SWING[swingKey] || 0.5, G = chordBass("G"), C = chordBass("C");
-  for (let b = 0; b < 8; b++) for (const h of bassHits("riff", b < 4 ? G : C, b < 4 ? C : G, b % 4, 4, swing, riff)) bassNote(h.m, t + (b + h.at) * spb, h.len * spb, h.v);
-}
-/* A synthesized bass guitar: a triangle for the body, a filtered saw for the
-   finger, and a sine an octave up so a phone speaker (which can't play the low
-   notes) still sounds the pitch. The filter closes as the note rings. */
-function bassNote(m, t, dur, vel = 1) {
-  const audio = sound();
-  if (!audio) return;
-  try {
-    const f = 440 * 2 ** ((m - 69) / 12), v = bassVol() * vel, end = t + Math.min(Math.max(dur, 0.12), 2.4);
-    const out = audio.createGain(), lp = audio.createBiquadFilter();
-    out.gain.setValueAtTime(0.0001, t);
-    out.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.3 * v), t + 0.008);
-    out.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.14 * v), t + Math.min(0.35, (end - t) * 0.6));
-    out.gain.exponentialRampToValueAtTime(0.0001, end);
-    lp.type = "lowpass"; lp.Q.value = 1.2;
-    lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(260, t + 0.25);
-    lp.connect(out); out.connect(audio.destination);
-    for (const [type, mult, gain] of [["triangle", 1, 1], ["sawtooth", 1, 0.35], ["sine", 2, 0.4]]) {
-      const o = audio.createOscillator(), g = audio.createGain();
-      o.type = type; o.frequency.value = f * mult; g.gain.value = gain;
-      o.connect(g).connect(lp); o.start(t); o.stop(end + 0.02);
-    }
-  } catch {}
 }
 /* The classic click: a short high beep, higher on 1. */
 export function clickAt(t, accent) {
