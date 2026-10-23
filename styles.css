@@ -3002,8 +3002,9 @@ body.gigging .ask { z-index: 66; }
 .tl-prac .ml small { font: 700 12px var(--body, Nunito, sans-serif); color: var(--muted); }
 
 /* ---------- The Recording sheet (4.20.0) ---------- */
-.panel.rs > .cover-head { margin: 0; border-radius: 0; padding-top: 6px; } /* the cover sat 16px outside the sheet */
-.panel.rs > .grab { margin: 8px auto 2px; }
+.panel.rs > .cover-head { margin: 0; border-radius: 0; padding-top: 22px; } /* the cover sat 16px outside the sheet */
+/* 4.42.7: the handle sits on the header, so its gradient starts at the sheet's top edge and follows the rounded corners */
+.panel.rs > .grab { position: absolute; top: 8px; left: 0; right: 0; margin: 0 auto; z-index: 1; }
 .rs-head .rs-art { width: 84px; height: 84px; border-radius: 16px; }
 .rs-head .rs-t { font: 700 20px/1.15 var(--display); } .rs-head .rs-a { font-weight: 700; }
 .rs-x { flex: none; align-self: flex-start; width: 40px; height: 40px; border-radius: 12px; border: 0; background: var(--card-2, var(--card)); color: var(--fg); display: grid; place-items: center; }

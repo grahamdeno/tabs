@@ -48,13 +48,29 @@ function tone(freq, { len = 2.1, gain = 0.35, harm = [0.5, 0.18, 0.08] } = {}) {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(gain, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    g.connect(audio.destination);
+    g.connect(limiter(audio));
   } catch {}
 }
-/* All six in tune: a rising E major arpeggio (E, G#, B, E). */
-/* 4.24.0: louder, since iPhone plays quieter while the microphone is open */
-const doneChime = () => [659.3, 830.6, 987.8, 1318.5].forEach((f, i) => setTimeout(() => tone(f, { len: i === 3 ? 0.9 : 0.4, gain: 0.16, harm: [0.6] }), i * 120));
-const chime = () => { tone(1318.5, { len: 0.5, gain: 0.16, harm: [0.6] }); setTimeout(() => tone(1760, { len: 0.7, gain: 0.14, harm: [0.6] }), 90); };
+/* 4.42.7: every tuner sound goes through one limiter, so the louder chimes never clip when they overlap */
+const limits = new WeakMap();
+function limiter(audio) {
+  let l = limits.get(audio);
+  if (!l) {
+    l = audio.createDynamicsCompressor();
+    l.threshold.value = -3; l.knee.value = 0; l.ratio.value = 20; l.attack.value = 0.002; l.release.value = 0.12;
+    l.connect(audio.destination); limits.set(audio, l);
+  }
+  return l;
+}
+/* All six in tune: a rising E major arpeggio (E, G#, B, E), then the chord rings out.
+   4.42.7 (#81): about two and a half times louder than before, fuller than a string's chime, and longer. */
+export const CHIME = { string: n => 0.26 + 0.02 * Math.min(5, Math.max(1, n)), done: 0.34, chord: 0.16, harm: [1, 0.35] };
+const doneChime = () => {
+  [659.3, 830.6, 987.8, 1318.5].forEach((f, i) => setTimeout(() => tone(f, { len: i === 3 ? 1.1 : 0.45, gain: CHIME.done, harm: CHIME.harm }), i * 120));
+  setTimeout(() => [659.3, 830.6, 987.8, 1318.5].forEach(f => tone(f, { len: 1.4, gain: CHIME.chord, harm: CHIME.harm })), 520);
+};
+/* One string in tune: two bright notes, a little louder with each string you finish (1 of 6 up to 5 of 6). */
+const chime = n => { tone(1318.5, { len: 0.55, gain: CHIME.string(n), harm: CHIME.harm }); setTimeout(() => tone(1760, { len: 0.75, gain: CHIME.string(n) * 0.9, harm: CHIME.harm }), 90); };
 /* All six: a small party over the headstock, confetti in the palette and Louie with his horns up. */
 const PARTY = ["var(--accent)", "var(--good)", "var(--tn-lit)", "#EE5C9F", "#7ADCF6", "#FFD23F"];
 function party(stage) {
@@ -402,7 +418,7 @@ function listen(t, an, buf) {
     toast("All six strings in tune");
     t.party = true;
   } else {
-    chime(); haptic(2);
+    chime(t.ok.filter(Boolean).length); haptic(2);
     if (t.guided) t.cur = guidedTarget(t.ok);
   }
   t.hits = [];

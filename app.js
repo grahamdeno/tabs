@@ -1918,7 +1918,8 @@ window.addEventListener("hashchange", () => {
   const leaving = route().name !== "song" && viewing ? viewing.id : null;
   if (leaving) lastOpened = leaving;
   const t = document.startViewTransition(() => render());
-  t.finished.finally(() => { delete document.documentElement.dataset.vt; });
+  t.ready.catch(() => {}); /* 4.42.7: a quick second tap skips this cross-fade; that's fine, not an error */
+  t.finished.catch(() => {}).finally(() => { delete document.documentElement.dataset.vt; });
 });
 applyTheme();
 firstLaunch();

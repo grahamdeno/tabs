@@ -53,7 +53,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 
 ### Tuner
 - Acoustic and electric headstocks in colour (acoustic is wood; electric matches Louie's finish) with each key labelled, the note big at the top with what to do beside it, a bolder meter that eases into the last few cents, the instrument and tuning in one menu at the top, Guided (low to high) and Chromatic with adjustable A4. Standard, Drop D, half and whole step down, DADGAD, Open G and Open D.
-- The tuner opens from Rehearse and every lesson (4.24.0). Each string you tune ticks (Android vibrates; iPhone gets the system tick from iOS 18) and chimes, reaching the in-tune zone gives a light tick, and the whole guitar gets three ticks, a louder chime and a small party with Louie. In a lesson, Start listening turns into "Listening · tap to stop" and comes back by itself if the microphone stops.
+- The tuner opens from Rehearse and every lesson (4.24.0). Each string you tune ticks (Android vibrates; iPhone gets the system tick from iOS 18) and chimes, reaching the in-tune zone gives a light tick, and the whole guitar gets three ticks, a louder chime and a small party with Louie. The chimes are loud enough to hear over the guitar, each string a little louder than the last, and the finish rings out as a chord (4.42.7). In a lesson, Start listening turns into "Listening · tap to stop" and comes back by itself if the microphone stops.
 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog, plays previews and saves a recording with its album art and length.
