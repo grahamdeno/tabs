@@ -34,7 +34,7 @@ function restoreSnap(song, snap) { for (const k of EDIT_FIELDS) { if (snap[k] ==
 function editChange(song, label, fn) {
   const before = snapshot(song);
   fn();
-  if (song.body !== before.body) delete song.loop;
+  if (song.body !== before.body) { delete song.loop; if (song.spots || song.ai === "chart") song.spots = "mine"; } /* 4.41.0: your own edit is never lined up again by the AI */
   Tabs.save(data);
   paintEdit(song);
   if (label) toast(label, null, { label: "Undo", fn: () => { restoreSnap(song, before); Tabs.save(data); paintEdit(song); } });
@@ -540,6 +540,7 @@ function flushText(song) {
   if (!ta || ta.value === song.body) return;
   song.body = ta.value;
   delete song.loop;
+  if (song.spots || song.ai === "chart") song.spots = "mine";
   if (song.isNew && !song.formatSet) song.format = looksLikeTab(song.body) ? "tab" : "chords";
   Tabs.save(data);
   if (chordEdit === song) paintDetails(song);

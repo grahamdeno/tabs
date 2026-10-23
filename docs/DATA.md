@@ -65,6 +65,8 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `status` | `"learning"` or `"got"` | Learning status |
 | `gotAt` | ISO date | When the song was marked Got it, for Repertoire on Your playing (2.42.0) |
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
+| `spots` | `"placed"`, `"guess"` or `"mine"` (4.41.0) | How the chords got over the words: `placed` where the chord sites have them (the AI answered with line and word positions); `guess` spread over the lines by the phone (two a line), which is lined up once from the chord sites when the song is next opened with an AI key, and whose changes the Gig never counts as misses; `mine` after you edit the sheet, never lined up again. Missing on older songs: one added by Get the song (`ai: "chart"`) whose sheet looks like the guess counts as `guess` |
+| `spotsTried` | time | The last time lining it up didn't work; it's tried again a week later |
 
 ### Journal
 

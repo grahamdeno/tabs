@@ -416,6 +416,95 @@ export function mergeWords(chartBody, lyricsText) {
   return out.join("\n").trim();
 }
 
+// ---------- Chords where the chord sites have them (4.41.0) ----------
+// The AI reads the song's lyrics and the chord sites, and answers with positions only: for each numbered
+// line, the chords that start on it as [word number, chord] (0 before the first word). It never writes
+// the lyrics back; the phone builds the sheet here. numberLyrics gives the AI its numbered lines.
+const wordsOf = line => [...String(line).matchAll(/\S+/g)].map(m => ({ at: m.index, w: m[0] }));
+export function numberLyrics(text) {
+  const stanzas = lyricStanzas(text), lines = [];
+  stanzas.forEach((st, si) => st.lines.forEach(t => lines.push({ n: lines.length + 1, s: si + 1, text: t, words: wordsOf(t) })));
+  const prompt = stanzas.map((st, si) => `Stanza ${si + 1}${st.name ? ` (${st.name})` : ""}\n` + lines.filter(l => l.s === si + 1)
+    .map(l => `${l.n}| ${l.words.map((x, i) => `[${i + 1}]${x.w}`).join(" ")}`).join("\n")).join("\n\n");
+  return { stanzas, lines, prompt };
+}
+/* the AI's answer, checked: chords must be chords, lines and stanzas must exist, words are clamped */
+export function cleanPlaced(j, num) {
+  if (!j || typeof j !== "object" || j.found === false) return null;
+  const byN = new Map(num.lines.map(l => [l.n, l]));
+  const lines = {};
+  for (const x of Array.isArray(j.lines) ? j.lines : []) {
+    const l = byN.get(+x?.n);
+    if (!l || !Array.isArray(x.c)) continue;
+    const cs = x.c.map(p => [Math.max(0, Math.min(l.words.length, Math.floor(+p?.[0] || 0))), String(p?.[1] || "").trim()]).filter(([, c]) => isChord(c));
+    if (cs.length) lines[l.n] = cs.sort((p, q) => p[0] - q[0]).slice(0, 8);
+  }
+  const sheet = [];
+  for (const it of Array.isArray(j.sheet) ? j.sheet : []) {
+    const section = String(it?.section || "").replace(/[\[\]]/g, "").trim().slice(0, 30);
+    if (+it?.stanza >= 1 && +it.stanza <= num.stanzas.length) sheet.push({ section, stanza: +it.stanza });
+    else if (typeof it?.chords === "string") { const ch = it.chords.trim().split(/\s+/).filter(isChord).slice(0, 32); if (ch.length && section) sheet.push({ section, chords: ch }); }
+  }
+  if (Object.keys(lines).length < Math.min(3, num.lines.length) || !sheet.some(x => x.stanza)) return null;
+  return { lines, sheet, confidence: ["high", "medium", "low"].includes(j.confidence) ? j.confidence : "" };
+}
+/* one chord row over a line: each chord at the column of the word it starts on */
+function placedRow(words, cs) {
+  let row = "";
+  for (const [w, c] of cs) {
+    const col = w <= 1 || !words.length ? 0 : words[w - 1].at;
+    row = row.length ? row.padEnd(Math.max(col, row.length + 1), " ") + c : " ".repeat(col) + c;
+  }
+  return row;
+}
+export function placedSheet(chartBody, lyricsText, placed) {
+  const num = numberLyrics(lyricsText);
+  if (!placed || !num.lines.length) return null;
+  const { head } = chartSections(chartBody);
+  const out = [...head];
+  if (head.length) out.push("");
+  const used = new Set();
+  const stanza = (si, name) => {
+    used.add(si);
+    out.push(`[${name || num.stanzas[si - 1].name || "Verse"}]`);
+    for (const l of num.lines.filter(x => x.s === si)) { const cs = placed.lines[l.n]; if (cs) out.push(placedRow(l.words, cs)); out.push(l.text); }
+    out.push("");
+  };
+  for (const it of placed.sheet) {
+    if (it.stanza) stanza(it.stanza, it.section);
+    else out.push(`[${it.section}]`, it.chords.join("   "), "");
+  }
+  num.stanzas.forEach((_, i) => { if (!used.has(i + 1)) stanza(i + 1, ""); }); /* nothing is ever dropped */
+  return out.join("\n").trim();
+}
+/* The lyrics of a sheet, by section, for lining up a song you already have (chord rows left out). */
+export function lyricsOfSheet(body) {
+  const out = [];
+  for (const line of String(body || "").split("\n")) {
+    const sec = line.match(SECTION_RE);
+    if (sec) { out.push("", `[${(sec[1] || sec[2] || "").trim()}]`); continue; }
+    if (!line.trim()) { if (out.length && out[out.length - 1] !== "") out.push(""); continue; }
+    if (isChordLine(line)) continue;
+    out.push(line.trim());
+  }
+  return out.join("\n").replace(/\[[^\]]*\]\n(?=\n|\[|$)/g, "").trim();
+}
+/* Chords over the words by the old guess (two a line, the second over the middle word): most chord rows
+   sit only at the start of the line or over its middle word. Such a sheet can be lined up again, and in
+   the Gig its changes are never counted as misses. */
+export function looksGuessed(body) {
+  const rows = String(body || "").split("\n");
+  let pairs = 0, guess = 0;
+  for (let i = 0; i < rows.length - 1; i++) {
+    if (!isChordLine(rows[i]) || !rows[i + 1].trim() || isChordLine(rows[i + 1]) || SECTION_RE.test(rows[i + 1])) continue;
+    pairs++;
+    const ws = wordsOf(rows[i + 1]), mid = ws.length >= 2 ? ws[Math.floor(ws.length / 2)].at : 0;
+    const cols = [...rows[i].matchAll(/\S+/g)].map(m => m.index);
+    if (cols.length <= 2 && cols[0] === 0 && (cols.length === 1 || Math.abs(cols[1] - mid) <= 1)) guess++;
+  }
+  return pairs >= 4 && guess / pairs >= 0.9;
+}
+
 // ---- Get the song ----
 // LRCLIB returns many recordings of a song (album, live, covers, karaoke).
 // pickVersions ranks the ones that have words: the title and artist must match;

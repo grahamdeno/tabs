@@ -1050,10 +1050,12 @@ test("translations never travel: not in a shared song, not in a backup", () => {
   assert.equal(JSON.parse(C.Tabs.export({ songs: [song], sets: [] })).songs[0].de, undefined);
   assert.ok(song.de, "the song itself keeps it");
 });
-test("the AI rules hold: charts never carry lyrics; German only translates the lines it's given", () => {
+test("the AI rules hold: the AI reads lyrics but never writes them; charts carry none; German only translates the lines it's given", () => {
   const find = read("findai.js"), de = read("german.js");
   assert.match(find, /Never include lyrics or any words from the song/);
+  assert.match(find, /Refer to the words only by line number and word number\. Don't write any of the lyrics in your reply\./, "4.41.0: placing answers with positions");
   assert.match(de, /Translate only the lines given\. Never add, complete or look up lyrics\./);
+  assert.match(read("README.md"), /Lyrics and the AI \(4\.41\.0\)/);
   assert.match(read("README.md"), /Translation exception \(language practice\)/);
 });
 test("deSpans: Common is a small step up from Basic: two more words a line at most, nouns first", () => {
@@ -2180,4 +2182,28 @@ test("4.40.0 Opening night: only for a new player, one step at a time, fans once
   const s = fresh(); C.openingSkip(s); assert.equal(C.openingView(s), null, "Skip ends it");
   assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 5, fans: 25, micOff: true });
   assert.equal(C.cleanOpening("no"), null);
+});
+
+test("4.41.0 chords where the chord sites have them: numbered words in, positions out, the sheet built on the phone", () => {
+  const lyr = "[Verse 1]\nSaw the lights come on at six\nGulls were arguing over tricks\n\n[Chorus]\nCarry me home tonight\nLay me down";
+  const num = C.numberLyrics(lyr);
+  assert.match(num.prompt, /Stanza 1 \(Verse 1\)\n1\| \[1\]Saw \[2\]the/);
+  assert.equal(num.lines.length, 4);
+  const p = C.cleanPlaced({ found: true, sheet: [{ section: "Intro", chords: "G D" }, { section: "Verse 1", stanza: 1 }, { section: "Chorus", stanza: 2 }, { section: "Bad", stanza: 9 }],
+    lines: [{ n: 1, c: [[1, "G"], [3, "D"]] }, { n: 2, c: [[0, "C"], [4, "Em"]] }, { n: 3, c: [[2, "A"]] }, { n: 4, c: [[9, "E"], [1, "Zz"]] }, { n: 99, c: [[1, "G"]] }] }, num);
+  assert.deepEqual(p.lines[4], [[3, "E"]], "a word past the end is the last word; not-a-chord is dropped");
+  assert.equal(p.sheet.length, 3, "a stanza that doesn't exist is dropped");
+  const body = C.placedSheet("Key: G\n[Verse]\nG D", lyr, p);
+  assert.match(body, /^Key: G\n\n\[Intro\]\nG {3}D\n\n\[Verse 1\]\nG {7}D\nSaw the lights come on at six\nC {18}Em\nGulls/);
+  assert.match(body, /\[Chorus\]\n {6}A\nCarry me home tonight/);
+  assert.equal(C.cleanPlaced({ found: false }, num), null);
+  assert.equal(C.cleanPlaced({ found: true, sheet: [], lines: [] }, num), null, "too little to trust");
+  const once = C.placedSheet("", "a b\nc d\n\ne f", C.cleanPlaced({ found: true, sheet: [{ section: "Verse", stanza: 1 }], lines: [{ n: 1, c: [[1, "G"]] }, { n: 2, c: [[1, "D"]] }, { n: 3, c: [[1, "C"]] }] }, C.numberLyrics("a b\nc d\n\ne f")));
+  assert.match(once, /e f/, "a stanza the AI left out is never dropped");
+  const guess = C.mergeWords("[Verse]\nG D Em C\n[Chorus]\nC G", "a b c d e\nf g h i\nj k l m\nn o p q r");
+  assert.equal(C.looksGuessed(guess), true, "the old guess is recognised");
+  assert.equal(C.looksGuessed(body), false);
+  assert.equal(C.lyricsOfSheet(guess), "[Verse]\na b c d e\nf g h i\nj k l m\nn o p q r", "the words back out of a sheet, chords left out");
+  assert.equal(C.cleanSong({ id: "x", body: "a", spots: "placed", spotsTried: 5 }).spots, "placed");
+  assert.equal(C.cleanSong({ id: "x", body: "a", spots: "nope", spotsTried: "x" }).spots, undefined);
 });

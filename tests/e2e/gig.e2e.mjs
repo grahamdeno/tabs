@@ -11,7 +11,7 @@ useBrowser();
 /* A page that hears a strum every 400 ms, with the library in place before the app starts.
    Seeding it before the first load (instead of replacing it after) means the app's own first
    save can't land on top of it, which is what made the scored Gig test flaky on a busy machine. */
-async function strummingPage(t, lib, hash) {
+async function strummingPage(t, lib, hash, { strum = true } = {}) {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
   const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
@@ -21,7 +21,7 @@ async function strummingPage(t, lib, hash) {
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   t.after(() => assert.deepEqual(errors, [], "page errors"));
   await page.goto(base + hash); await page.waitForSelector("#play"); await settled(page);
-  await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
+  if (strum) await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
   return page;
 }
 const SHORT = { id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16,
@@ -141,4 +141,12 @@ test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls und
   await page.mouse.click(200, 100); await page.waitForSelector('.menu', { state: 'detached' });
   await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
   assert.equal(await page.evaluate(() => document.body.classList.contains("gig-full")), false);
+});
+
+test("4.41.0 a sheet whose chords are a guess: a change you don't strum is never a miss", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [{ ...SHORT, spots: "guess" }], settings: { ...LIB.settings, plainPlay: false } }, "#/song/g", { strum: false });
+  await page.click("#play"); await page.waitForSelector("#gig");
+  await page.waitForSelector(".gc", { timeout: 40000 });
+  assert.match(await page.innerText(".gc-list"), /still a best guess, so a change you missed wasn't counted/);
+  assert.equal(await page.locator(".gc-list b").filter({ hasText: /^0$/ }).count(), 0, "no 0 of n changes landed");
 });

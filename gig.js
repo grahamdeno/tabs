@@ -16,7 +16,7 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, Tabs } from "./core.js";
+import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, looksGuessed, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
@@ -264,7 +264,9 @@ function frame() {
   const now = g.clock();
   let graded = false;
   while (g.due.length && now - g.due[0].t > GIG_WINDOW) {
-    const d = g.due.shift(), r = gigChange(g.score, d.t, g.strums);
+    const d = g.due.shift();
+    if (g.guess && !g.strums.some(t => Math.abs(t - d.t) <= GIG_WINDOW)) continue;
+    const r = gigChange(g.score, d.t, g.strums);
     if (!r.hit) g.missed[d.pair] = (g.missed[d.pair] || 0) + 1; /* for Rehearse's soundcheck (4.8.0) */
     else g.landed[d.pair] = (g.landed[d.pair] || 0) + 1; /* and Your changes (4.23.0) */
     graded = true;
@@ -311,6 +313,8 @@ export function openGig(song, opts = {}) {
     song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], due: [], b: -1, idx: -1, beats: -1, gel: "", mood: "", dragUntil: 0, missed: {}, landed: {},
     audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
+  /* 4.41.0: chords spread over the lines as a guess are never counted as misses, only as hits */
+  g.guess = song.spots === "guess" || (!song.spots && song.ai === "chart" && looksGuessed(song.body));
   g.el = shell(song);
   document.body.classList.add("gigging");
   gigHooks.on = true;
@@ -424,7 +428,7 @@ function showComplete() {
     <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
     <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("ON THE BEAT", pct === null ? "–" : `${pct}%`, "beat")}</div>
     <div class="gc-list">
-      ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
+      ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>` : g.guess && !g.off ? `<p>The chords in this song are still a best guess, so a change you missed wasn't counted. It still counts as a play.</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
       ${battle ? `<p>${battle.result === "won" ? `Rival battle: you beat <b>${esc(battle.rival)}</b>, ${battle.pct}% to ${battle.target}%. <b>+30 XP, +40 fans</b>` : `Rival battle: ${esc(battle.rival)} held on, ${battle.target}% to your ${battle.pct}%`}</p>` : ""}
       ${joined.map(f => { const n = FRIENDS.find(x => x.id === f.id)?.name || f.id; return `<p><b>${esc(n)} joined your band!</b>${f.plays ? ` You'll hear ${f.plays === "drums" ? "drums" : "bass"} in your gigs.` : ""}</p>`; }).join("")}
       ${duel ? `<p>Song duel: ${duel.mine.pct > duel.theirs.pct ? `<b>you beat ${esc(duel.opp)}</b>` : duel.mine.pct < duel.theirs.pct ? `${esc(duel.opp)} wins this one` : "a tie"}, ${duel.mine.pct}% to ${duel.theirs.pct}%</p>` : ""}

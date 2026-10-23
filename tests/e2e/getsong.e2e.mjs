@@ -12,11 +12,13 @@ const V = (id, albumName, duration, plain) => ({ id, trackName: "Harbor Lights",
 const VERSIONS = [V(2, "Live at the Pier", 260, "pier words one\npier words two\n\npier chorus line"), V(1, "Northern Coast", 221, "grey boats lean on the harbor wall\nwaiting on a tide to call\n\nbring the lights home\nbring the long way round"), V(3, "Karaoke Hits", 221, "k one\n\nk two")];
 const cors = { "access-control-allow-origin": "*", "access-control-expose-headers": "retry-after" };
 
-async function setup(t, { bpm = true, extra = {} } = {}) {
+async function setup(t, { bpm = true, extra = {}, placed = { found: false } } = {}) {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false }, ...extra });
   await page.evaluate(k => { localStorage.setItem("tabs.apikey.v1", "sk-ant-test"); if (k) localStorage.setItem("tabs.bpmkey.v1", "bpm-test"); }, bpm);
   const calls = { lrc: 0, bpm: [], ai: 0 };
-  await page.route(/api\.anthropic\.com/, async r => { calls.ai++; if (process.env.SHOT) await new Promise(ok => setTimeout(ok, 2500)); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(CHART) }], stop_reason: "end_turn" }) }); });
+  await page.route(/api\.anthropic\.com/, async r => { calls.ai++; if (process.env.SHOT) await new Promise(ok => setTimeout(ok, 2500));
+    const placing = /You place a song's chords/.test(JSON.parse(r.request().postData() || "{}").system || ""); /* 4.41.0: the second call */
+    r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(placing ? placed : CHART) }], stop_reason: "end_turn" }) }); });
   await page.route(/lrclib\.net\/api\/search/, r => { calls.lrc++; calls.lrc === 1 ? r.fulfill({ status: 429, headers: { ...cors, "retry-after": "0.2" }, body: "{}" }) : r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(VERSIONS) }); });
   await page.route(/api\.getsong\.co/, r => { calls.bpm.push(r.request().url()); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ search: [{ id: "x", title: "Harbor Lights", tempo: "92", time_sig: "3/4", artist: { name: "The Cape Fear" } }] }) }); });
   await page.route(/itunes\.apple\.com\/search/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "The Cape Fear", collectionName: "Northern Coast", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", artworkUrl100: "https://is1-ssl.mzstatic.com/hl/100x100bb.jpg" }] }) }));
@@ -52,7 +54,8 @@ test("Get the song: one tap gathers chords, words and tempo, and saves a playabl
   await page.click("#gs-pick");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/gs-ver.png" });
   await page.click(".gs-ver:has-text('Live at the Pier')"); await page.click("#gs-use");
-  assert.match(await page.innerText(".gs-chart"), /pier words one/);
+  await page.click("#gs-full");
+  assert.match(await page.evaluate(() => document.querySelector(".gs-chart").textContent), /pier words one/);
   assert.match(await page.innerText("#gs-pick"), /Live at the Pier · 4:20/);
   await page.click("#gs-add");
   await page.waitForTimeout(500);
@@ -92,8 +95,9 @@ test("Get the song: pick how hard (Easy, My level, As recorded); the pick is kep
   await page.click("#gs-level [data-lv='rec']");
   await page.waitForSelector("#gs-add", { timeout: 8000 });
   assert.equal(await page.getAttribute("#gs-level [data-lv='rec']", "aria-pressed"), "true");
-  assert.match(asked.at(-1).system, /Level: as recorded/);
-  assert.doesNotMatch(asked.at(-1).messages[0].content, /Chords I play/);
+  const chart = asked.filter(a => /Level:/.test(a.system)).at(-1); /* 4.41.0: the chart call, not the placing one */
+  assert.match(chart.system, /Level: as recorded/);
+  assert.doesNotMatch(chart.messages[0].content, /Chords I play/);
   assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).settings.chartLevel, "rec", "kept for next time");
 });
 
@@ -148,4 +152,39 @@ test("4.27.0 Get the song keeps what it found: a tap outside puts it aside, its 
   await page.waitForTimeout(500); /* real timer: the bar would show after the route settles */
   assert.equal(await page.locator("#gs-kept").count(), 0);
   assert.equal(await page.evaluate(() => sessionStorage.getItem("tabs.gs.kept.v1")), null);
+});
+
+/* 4.41.0: the AI reads the numbered words and the chord sites and answers with positions only */
+const PLACED = { found: true, confidence: "high", sheet: [{ section: "Intro", chords: "G D" }, { section: "Verse", stanza: 1 }, { section: "Chorus", stanza: 2 }],
+  lines: [{ n: 1, c: [[1, "G"], [6, "D"]] }, { n: 2, c: [[3, "Em"]] }, { n: 3, c: [[2, "C"]] }, { n: 4, c: [[4, "G"], [6, "D"]] }] };
+test("4.41.0 Get the song puts each chord over the word the chord sites have it on, from positions the AI sends back", { skip: skip() }, async t => {
+  const { page } = await setup(t, { placed: PLACED });
+  const asked = [];
+  page.on("request", r => { if (/api\.anthropic\.com/.test(r.url())) asked.push(JSON.parse(r.postData() || "{}")); });
+  await search(page, "harbor lights");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-add", { timeout: 8000 });
+  const place = asked.find(a => /You place a song's chords/.test(a.system));
+  assert.ok(place, "a second call places the chords");
+  assert.match(place.system, /Don't write any of the lyrics in your reply/);
+  assert.match(place.messages[0].content, /1\| \[1\]grey \[2\]boats/, "the words go numbered");
+  await page.click("#gs-full");
+  assert.match(await page.evaluate(() => document.querySelector(".gs-chart").textContent), /\[Intro\]\nG {3}D[\s\S]*G {22}D\ngrey boats lean on the harbor wall/, "D over harbor");
+  assert.match(await page.innerText(".gs .foot"), /the word the chord sites have it on/);
+  await page.click("#gs-add");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.spots === "placed"));
+});
+
+test("4.41.0 a song whose chords were guessed is lined up once when opened, with Undo", { skip: skip() }, async t => {
+  const guessed = "[Verse]\nG               D\ngrey boats lean on the harbor wall\nEm           C\nwaiting on a tide to call\nG            D\nwaiting on a tide to fall\nEm        C\nbring the long way round"; /* the old guess: the second chord over the middle word */
+  const { page } = await setup(t, { placed: { ...PLACED, sheet: [{ section: "Verse", stanza: 1 }], lines: [{ n: 1, c: [[1, "G"], [6, "D"]] }, { n: 2, c: [[4, "Em"]] }, { n: 3, c: [[2, "C"]] }, { n: 4, c: [[1, "G"]] }] },
+    extra: { songs: [...LIB.songs, { id: "g", title: "Harbor Lights", artist: "The Cape Fear", format: "chords", key: "G", ai: "chart", body: guessed }] } });
+  await page.evaluate(() => { location.hash = "#/song/g"; });
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "g").spots === "placed");
+  await page.waitForSelector("#toast.show");
+  assert.match(await page.innerText("#toast"), /Lined up the chords in Harbor Lights[\s\S]*Undo/);
+  const body = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "g").body);
+  assert.match(body, /G {22}D\ngrey boats lean on the harbor wall/);
+  await page.click("#toast button");
+  await page.waitForFunction(b => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "g").body === b, guessed);
 });

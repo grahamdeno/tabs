@@ -280,6 +280,8 @@ function renderViewer(id) {
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (openingOn(data)) import("./opening.js").then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
+  /* 4.41.0: a song whose chords were guessed is lined up from the chord sites, once, in the background */
+  if (aiKey() && song.format !== "tab" && (song.spots === "guess" || (!song.spots && song.ai === "chart"))) setTimeout(() => { if (viewing === song) lazy("findai.js").then(m => m.relineSong(song)); }, 1500);
 
   const speed = $("speed");
   // Song length style: the slider sets how long the song takes (right = shorter = faster).
@@ -1344,8 +1346,9 @@ document.addEventListener("visibilitychange", () => {
 function wordsFor(song) {
   findAI().then(m => m.wordsSheet(song.body, { title: song.title, ok: "Save" }, merged => {
     const was = song.body;
-    song.body = merged; delete song.loop; Tabs.save(data); render();
-    toast("Words added. Check the chord spots by ear", null, { label: "Undo", fn: () => { song.body = was; Tabs.save(data); render(); } });
+    song.body = merged; delete song.loop; song.spots = "guess"; delete song.spotsTried; Tabs.save(data); render();
+    toast(aiKey() ? "Words added. Lining the chords up from the chord sites" : "Words added. Check the chord spots by ear", null, { label: "Undo", fn: () => { song.body = was; Tabs.save(data); render(); } });
+    m.relineSong(song); /* 4.41.0: each chord over the word the chord sites have it on */
   }));
 }
 // German practice: songs with words, when there's a key or a translation.

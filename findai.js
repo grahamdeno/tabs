@@ -1,10 +1,10 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, looksGuessed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route, chordSVG } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route, chordSVG, redraw } from "./app.js";
 import { louie } from "./louie.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
@@ -69,6 +69,43 @@ async function findChart(title, artist, level = "easy") {
   return { title: String(j.title || title).slice(0, 80), artist: String(j.artist || artist).slice(0, 80), album: String(j.album || "").slice(0, 80), duration: Math.max(0, Math.min(1800, +j.duration || 0)),
     key: String(j.key || "").slice(0, 4), capo: parseInt(j.capo, 10) || 0, tuning: j.tuning, bpm: +j.bpm || 0, confidence: j.confidence, body, sources };
 }
+// ---- Chords where the chord sites have them (4.41.0) ----
+// The AI gets the chart's chords and the lyrics as numbered lines with numbered words, reads the chord
+// sites, and answers with positions only; placedSheet (core) builds the sheet on the phone.
+const PLACE_SYSTEM = `You place a song's chords over its lyrics the way guitar chord sites show them: each chord written over the word where the change happens. Use web search to read chord sites for this song. You get the song's chord chart (sections and chords) and its lyrics as numbered lines, with each word numbered in brackets. Reply with JSON only, no other text:
+{"found": boolean, "sheet": [{"section": string, "chords": string} or {"section": string, "stanza": number}], "lines": [{"n": number, "c": [[number, string]]}], "confidence": "high"|"medium"|"low"}
+- Refer to the words only by line number and word number. Don't write any of the lyrics in your reply.
+- "sheet": the whole song in the order it's played. A part with no singing (Intro, Solo, Instrumental, an Outro with no words) is {"section", "chords"}, its chords space separated. A sung part is {"section", "stanza"} with the stanza number you were given; a stanza can appear more than once only if it's sung again.
+- "lines": for each sung line, the chords that start on it, as [word number, chord name]. Use 0 for a chord played before the first word. Leave out a line where the chord doesn't change.
+- Use the chord names from the chart (its key and capo).
+- Where sources disagree, follow most of them. If you can't tell where the chords fall, set "found" to false.`;
+async function placeChords(chartBody, lyricsText, { title = "", artist = "" } = {}) {
+  const num = numberLyrics(lyricsText);
+  if (num.lines.length < 2) return null;
+  const { text } = await askClaudeSearch({ system: PLACE_SYSTEM, searches: 3, maxTokens: 8000,
+    content: `Song: ${title}${artist ? ` by ${artist}` : ""}\n\nChord chart:\n${chartBody}\n\nLyrics:\n${num.prompt}` });
+  return cleanPlaced(parseJSON(text), num);
+}
+/* A song added before 4.41.0 (or with pasted words) whose chords were guessed: lined up once, quietly,
+   the first time it's opened with an AI key; a toast offers Undo. Tried again a week after a miss. */
+const relining = new Set();
+export function relineSong(song) {
+  if (!aiKey() || !song || song.format === "tab" || relining.has(song.id)) return;
+  const guess = song.spots === "guess" || (!song.spots && song.ai === "chart" && looksGuessed(song.body));
+  if (!guess || Date.now() - (song.spotsTried || 0) < 7 * 86400000) return;
+  const lyrics = lyricsOfSheet(song.body), before = song.body;
+  if (numberLyrics(lyrics).lines.length < 4) return;
+  relining.add(song.id);
+  placeChords(before, lyrics, song).then(placed => {
+    const body = placed && placedSheet(before, lyrics, placed);
+    if (song.body !== before) return; /* edited meanwhile: leave it */
+    if (!body) { song.spots = "guess"; song.spotsTried = Date.now(); Tabs.save(data); return; }
+    song.body = body; song.spots = "placed"; delete song.spotsTried; Tabs.save(data);
+    redrawIf(song);
+    toast(`Lined up the chords in ${song.title} from the chord sites`, null, { label: "Undo", fn: () => { song.body = before; song.spots = "guess"; song.spotsTried = Date.now(); Tabs.save(data); redrawIf(song); } });
+  }, () => { relining.delete(song.id); }).finally(() => relining.delete(song.id));
+}
+const redrawIf = song => { if (route().name === "song" && route().id === song.id && !document.body.classList.contains("playing")) redraw?.(); };
 export function chartSheet(q, preset = {}) {
   const [t0, a0] = preset.title ? [preset.title, preset.artist || ""] : q.split(/\s+(?:by|-|–)\s+/i);
   let state = { busy: false, chart: preset.chart || null, err: "" };
@@ -102,7 +139,7 @@ export function chartSheet(q, preset = {}) {
     $("cs-again").onclick = () => { state.chart = null; paint(); };
     const add = (body, note) => {
       const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body,
-        ...(c.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, c.bpm))) } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart" });
+        ...(c.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, c.bpm))) } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart", ...(body !== c.body ? { spots: "guess" } : {}) });
       close();
       leaveSearch();
       go("#/song/" + encodeURIComponent(s.id));
@@ -220,7 +257,7 @@ export function getSong(q, preset = {}) {
   const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, pick: 0, tempo: null, beats: 4, err: "", full: false, note: { words: "Looking", tempo: "", chart: "Listening" } };
   let alive = true, shown = false;
   const me = { st, title: title0, mount: () => mount(), add: () => add(merged() || st.chart.body),
-    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, full: st.full, rows: st.rows, note: st.note } }) };
+    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, full: st.full, rows: st.rows, note: st.note, placed: st.placed, placedFor: st.placedFor } }) };
   /* Let go: only Not this one (and a failed search, a new level or adding it) */
   const close = () => { alive = false; shown = false; stopPreview(); layer.innerHTML = ""; if (kept === me) setKept(null); };
   /* Put aside: the sheet goes, the song stays (and a search still running carries on) */
@@ -268,7 +305,14 @@ export function getSong(q, preset = {}) {
     paint();
   });
   const version = () => st.versions[st.vi] || null;
-  const merged = () => version() ? mergeWords(st.chart.body, version().plainLyrics) : null;
+  /* 4.41.0: the chords where the chord sites have them, for the recording picked; the old guess while it's working or when it couldn't tell */
+  const placedFor = v => v && st.placed && st.placedFor === v.id ? placedSheet(st.chart.body, v.plainLyrics, st.placed) : null;
+  const merged = () => version() ? placedFor(version()) || mergeWords(st.chart.body, version().plainLyrics) : null;
+  const place = v => {
+    if (!v || st.placing === v.id || (st.placed && st.placedFor === v.id)) return Promise.resolve();
+    st.placing = v.id;
+    return placeChords(st.chart.body, v.plainLyrics, st.chart).then(p => { if (p) { st.placed = p; st.placedFor = v.id; } }, () => {}).finally(() => { if (st.placing === v.id) st.placing = null; if (alive) paint(); });
+  };
   /* a jewel lamp per step, like a channel strip: dark while waiting,
      warming while working, lit when done. Said in a musician's words, not the
      names of the services behind them. */
@@ -279,7 +323,8 @@ export function getSong(q, preset = {}) {
     const s = Tabs.addSong(data, { title: c.title, artist: c.artist || "", key: c.key || "", format: "chords", body,
       ...(t?.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, t.bpm))) } : {}), ...(st.beats !== 4 ? { beats: st.beats } : {}),
       ...(len >= 60 ? { duration: len, recLength: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
-      ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}), ...(st.art ? { art: st.art } : {}) });
+      ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}), ...(st.art ? { art: st.art } : {}),
+      ...(body !== c.body ? { spots: body === placedFor(v) ? "placed" : "guess" } : {}) });
     close(); leaveSearch();
     grooveFor(s); /* how it feels, in the background */
     /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really
@@ -288,7 +333,7 @@ export function getSong(q, preset = {}) {
     if (teach.ok) { go("#/practice/" + encodeURIComponent("c:" + teach.chord)); return toast(`Added ${c.title}. Now learn ${teach.chord}`); }
     go("#/song/" + encodeURIComponent(s.id));
     if (teach.chord) return toast(teach.say);
-    toast(body === c.body ? "Added. Tap Listen to hear it while you check the chords" : "Added with the words. Check the chord spots by ear");
+    toast(body === c.body ? "Added. Tap Listen to hear it while you check the chords" : s.spots === "placed" ? "Added. Each chord sits where the chord sites have it" : "Added with the words. I'll line the chords up when you open it");
   };
   /* What Play next said to learn, checked against the sheet that came back */
   const teachOf = () => {
@@ -333,7 +378,7 @@ export function getSong(q, preset = {}) {
       body.innerHTML = `${head(c?.title || title0, c?.artist || artist0)}
         ${levelPlate()}
         <div class="gs-rows glass">${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("chart", "Working out the chords")}${row("merge", "Lining the chords up with the lyrics")}</div>
-        <p class="foot" style="margin-top:12px">Only the song's name${level === "mine" ? " and the chords you play are" : " is"} sent. Working out the chords takes about 20 seconds and costs a few cents on your AI key. You can put it aside with the arrow and keep using the app.</p>`;
+        <p class="foot" style="margin-top:12px">The song's name${level === "mine" ? " and the chords you play" : ""} go to the AI, then its words, to put each chord over the right one. It takes about 40 seconds and costs a few cents on your AI key. You can put it aside with the arrow and keep using the app.</p>`;
       bindLevel(); bindHear();
       return;
     }
@@ -345,7 +390,7 @@ export function getSong(q, preset = {}) {
       body.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { st.pick = +b.dataset.v; paint(); });
       $("gs-paste").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library" }, b => add(b, false), mount);
       dock(`<button class="btn primary" id="gs-use">Use this one</button><p class="gs-dock-note">${esc(c.title)} stays found while you choose</p>`);
-      $("gs-use").onclick = () => { st.vi = st.pick; st.view = "review"; paint(); };
+      $("gs-use").onclick = () => { st.vi = st.pick; st.view = "review"; place(version()); paint(); };
       return;
     }
     const v = version(), m = merged(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
@@ -359,7 +404,7 @@ export function getSong(q, preset = {}) {
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
       ${v ? `<button class="gs-pick" id="gs-pick"${more ? "" : " disabled"}><span>Recording: <b>${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}</b></span>${more ? `<em>Change ${icon("chev")}</em>` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
       <div class="gs-sheet${st.full ? " full" : ""}"><pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>${st.full ? "" : `<button class="gs-more" id="gs-full">Show the whole sheet</button>`}</div>
-      <p class="foot">${m ? "Check the chord spots by ear. Edit fixes any line." : "Paste the words, or add the chords alone."}</p>
+      <p class="foot">${!m ? "Paste the words, or add the chords alone." : st.placing ? "Lining the chords up with the words from the chord sites…" : placedFor(v) ? "Each chord sits over the word the chord sites have it on." : "The chords are spread over the lines as a guess. Edit fixes any line."}</p>
       <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
         ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Lyrics from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>`;
     const teach = teachOf();
@@ -400,7 +445,8 @@ export function getSong(q, preset = {}) {
     if (!alive) return;
     st.tempo = tempoPick(c.bpm, measured?.tempo || 0);
     if (measured?.sig) { st.sig = measured.sig; st.beats = beatsOf(measured.sig); }
-    st.rows.merge = st.versions.length ? "ok" : "none"; st.note.merge = st.versions.length ? "Done" : "No lyrics to line up"; paint();
+    if (st.versions.length) { st.rows.merge = "busy"; st.note.merge = "Reading the chord sites"; paint(); await place(st.versions[0]); if (!alive) return; }
+    st.rows.merge = st.versions.length ? "ok" : "none"; st.note.merge = !st.versions.length ? "No lyrics to line up" : st.placed ? "Done" : "A best guess"; paint();
     await wait(450);
     if (!alive) return;
     st.view = "review";

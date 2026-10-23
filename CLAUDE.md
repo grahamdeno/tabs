@@ -13,11 +13,12 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
   app (Graham, 2.19.0: bronze piping and frosted glass like the other bars).
 - When Graham asks for mockups or an explanation first, give those and wait
   for a go before building.
-- The AI never writes lyrics itself (Claude won't reproduce them, and lyrics
-  from memory come out wrong). Lyrics come from LRCLIB (Get the song) or
-  Graham's own sheet; fetching them from a lyrics source is fine. The one
-  place the AI handles lyrics is language practice (German, Spanish or Russian), which translates songs
-  already in his library.
+- Lyrics and the AI (Graham, 2026-10-22): the AI may read a song's lyrics
+  (from LRCLIB or Graham's own sheet) to do its job: place chords over the
+  right words, translate for language practice. It answers with positions and
+  translations, never with the lyrics themselves: it doesn't write lyrics from
+  memory (Claude won't reproduce them, and they come out wrong), and the phone
+  puts the words and chords together. Lyrics still come from LRCLIB or his sheet.
 - API keys stay on the phone only. Never put a key in the code or in a backup,
   and don't change how keys are stored.
 - He uses the phone one-handed, mostly right hand: put actions people reach
