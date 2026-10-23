@@ -3645,3 +3645,7 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 @media (max-width: 379px) { :root[data-look] .btn.sets-btn .i, :root[data-look] .btn.sets-btn svg { display: none; } }
 /* 4.42.2: a toast that has faded out no longer blocks taps where it was (a "near" toast stays in place, invisible) */
 .toast:not(.show) { pointer-events: none; }
+
+/* 4.42.3: room between the Songbook's top buttons (Back, Sets, Tuner, each on a 4px lip) and the card
+   under them, so the buttons don't sit on it. */
+.head:has(#libback) + .today, .head:has(#libback) + * { margin-top: 18px; }
