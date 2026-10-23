@@ -525,7 +525,7 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
   await page.click(".rd-pop.now .rd-start"); await page.waitForSelector("#gig");
 });
 
-test("4.46.0 One search: the bar is a magnifier until tapped; before typing it shows Browse, recents and the ways to add; typing shows your songs, then recordings", { skip: skip() }, async t => {
+test("4.47.0 One search: the bar is a magnifier until tapped; before typing it shows Browse, recents and the ways to add; typing shows your songs, then recordings", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
   await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show", releaseDate: "2004-01-01" }, { trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show" }, { trackName: "Wagon Wheel", artistName: "Darius Rucker" }] }) }));

@@ -343,7 +343,7 @@ function bindIndex(list, sorted, sort) {
 }
 onLeave(() => { document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx"); });
 
-// ---- Adding a song from the search screen (4.46.0) ----
+// ---- Adding a song from the search screen (4.47.0) ----
 /* The ways in that aren't "type its name": Paste, Scan (AI key), Sing it, Ideas (AI key), and a plain Write my own. */
 const TOOL = {
   paste: '<rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/>',
