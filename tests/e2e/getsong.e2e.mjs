@@ -34,7 +34,7 @@ const search = async (page, q) => {
 test("Get the song: one tap gathers chords, words and tempo, and saves a playable song", { skip: skip() }, async t => {
   const { page, calls } = await setup(t);
   await search(page, "harbor lights");
-  assert.match(await page.innerText("#fc-ai"), /Get the song/);
+  assert.match(await page.innerText("#fc-ai"), /Get the chords/); /* 4.48.0: the row says what it does */
   await page.click("#fc-ai");
   if (process.env.SHOT) { await page.waitForTimeout(1200); await page.screenshot({ path: process.env.SHOT + "/gs-work.png" }); }
   await page.waitForSelector("#gs-add", { timeout: 8000 });

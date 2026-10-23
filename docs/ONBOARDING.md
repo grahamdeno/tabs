@@ -221,7 +221,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 
 | # | Hidden feature | How you do it | Coverage | Why here |
 |---|---|---|---|---|
-| 0 | One search finds and adds (4.47.0): tap the magnifier; Browse, Played lately and the ways to add are on the screen before you type | The magnifier or Add | On screen | Visible; no tip needed |
+| 0 | One search finds and adds (4.48.0): Songbook and "Search or add a song" are labelled buttons on the Road; the search screen lists Played lately and the ways to add before you type | The Road's two buttons, the Songbook bar | On screen | Visible; no tip needed |
 | 1 | Paste or type, chords turn copper | The pad | Tip | Keep |
 | 2 | Tap a word to place its chord | Tap a word | Listed | First edit of an existing song; this is the main way to fix a chart |
 | 3 | Tap tempo | Tap along | Tip, Show me | Keep |

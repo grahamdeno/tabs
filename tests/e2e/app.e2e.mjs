@@ -44,12 +44,10 @@ test("search moves to the top, finds lyrics, and offers to find what's missing",
   const page = await phone(t);
   await page.tap("#q"); await page.waitForFunction(() => document.body.classList.contains('searching'));
   assert.ok(await page.evaluate(() => document.body.classList.contains("searching")));
-  await page.keyboard.type("willows"); await page.waitForFunction(() => /River Road/.test(document.getElementById('list').innerText) && /Find “willows” elsewhere/.test(document.querySelector('.findcard.more')?.innerText || ''));
+  await page.keyboard.type("willows"); await page.waitForFunction(() => /River Road/.test(document.getElementById('list').innerText) && document.querySelector('.sr-web [data-find="ug"]'));
   assert.match(await page.innerText("#list"), /River Road/);
-  assert.match(await page.innerText(".findcard.more"), /Find “willows” elsewhere/, "matches still leave a way to look further");
-  assert.ok(await page.locator(".findcard.more [data-find='ug']").count());
-  await page.fill("#q", "zzz unknown"); await page.dispatchEvent("#q", "input"); await page.waitForSelector('.findcard');
-  assert.ok(await page.locator(".findcard").count());
+  assert.match(await page.innerText(".sr-web"), /Or look on Ultimate Guitar/, "4.48.0: matches still leave a way to look further");
+  await page.fill("#q", "zzz unknown"); await page.dispatchEvent("#q", "input"); await page.waitForFunction(() => /Write “zzz unknown” myself/.test(document.getElementById("sr-writeq")?.innerText || ""));
   await page.tap("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains('searching'));
   assert.ok(!(await page.evaluate(() => document.body.classList.contains("searching"))));
 });

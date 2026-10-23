@@ -214,9 +214,9 @@ export function renderRoad() {
     <div class="rd-sbk">
       <button class="rd-sbk-go" id="rd-songbook" aria-label="Open the Songbook">
         <span class="rd-sbk-ic" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M7 3v10a3.5 3.5 0 1 1-2-3.2V1l10 2v4L7 5z"/></svg></span>
-        <span class="rd-sbk-t"><b>Songbook</b><small>${data.songs.length ? `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}${ps.of ? ` · ${ps.now} you can play` : ""}` : "Add your first song"}</small></span>
+        <span class="rd-sbk-t"><b>Songbook</b><small>${data.songs.length ? `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}` : "Empty"}</small></span>
       </button>
-      <button class="rd-sbk-q" id="rd-search" aria-label="Search, or paste a song">${icon("search")}</button>
+      <button class="rd-sbk-q" id="rd-search">${icon("search")}<span>Search or add a song</span></button>
     </div>`;
   const $ = id => document.getElementById(id);
   bindStatBar();
@@ -225,7 +225,7 @@ export function renderRoad() {
   $("rd-songbook").onclick = () => go("#/library");
   $("rd-book")?.addEventListener("click", () => go("#/practice"));
   $("rd-tonight")?.addEventListener("click", () => playGig(song.id, { from: "road" })); /* 4.1.0: tonight's song is a gig */
-  $("rd-search").onclick = () => openSearch();
+  $("rd-search").onclick = () => openSearch("road"); /* 4.48.0: opens with "Open your Songbook" on top */
 
   /* a stop: tap it for its card (the current stop's is open already); Start opens the lesson or the song */
   const path = $("rd-path"), all = road.legs.flatMap(l => l.stops);

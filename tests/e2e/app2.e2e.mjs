@@ -508,7 +508,7 @@ test("4.20.1 Songbook filters: one row that fits, Sets in the header, Tabs in th
 });
 
 test("4.22.0 Search, focused: two big buttons and three recent cards, no Up next; Paste reads the clipboard; typing still searches", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, aiKey: undefined } });
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map((x, i) => i ? x : { ...x, opened: Date.now() - 3600e3 }), settings: { ...LIB.settings, aiKey: undefined } }); /* 4.48.0: Played lately shows only songs you played */
   await page.goto(base + "#/library"); await page.waitForSelector("#q");
   await page.evaluate(() => { navigator.clipboard.readText = async () => window.__clip || ""; window.__clip = "[Verse]\nG   C\nLine one of the words\nD   G\nLine two of the words"; });
   await page.click("#q"); await page.waitForSelector("#sr-paste");

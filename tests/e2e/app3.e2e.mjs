@@ -525,32 +525,38 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
   await page.click(".rd-pop.now .rd-start"); await page.waitForSelector("#gig");
 });
 
-test("4.47.0 One search: the bar is a magnifier until tapped; before typing it shows Browse, recents and the ways to add; typing shows your songs, then recordings", { skip: skip() }, async t => {
-  const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
+test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road; before typing only what helps; typing shows your songs, then rows that say what they do", { skip: skip() }, async t => {
+  const songs = LIB.songs.map((x, i) => i ? x : { ...x, opened: Date.now() - 3600e3 });
+  const page = await phone(t, { ...LIB, songs }, { home: true, permissions: ["clipboard-read", "clipboard-write"] });
   await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show", releaseDate: "2004-01-01" }, { trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show" }, { trackName: "Wagon Wheel", artistName: "Darius Rucker" }] }) }));
-  await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
-  assert.equal(await page.evaluate(() => document.getElementById("dock").classList.contains("collapsed")), true, "the bar starts as a magnifier");
-  assert.ok((await page.locator(".dock .cmd").boundingBox()).width < 70, "a button's width");
-  await page.click("#q"); await page.waitForSelector("#sr-browse");
-  assert.equal(await page.evaluate(() => document.getElementById("dock").classList.contains("collapsed")), false, "tapping opens the bar");
-  assert.match(await page.innerText("#list"), /Browse your Songbook[\s\S]*Not in your Songbook yet\?[\s\S]*Paste[\s\S]*Sing it[\s\S]*Write my own/i);
+  /* the Road: Songbook and Search or add, both labelled */
+  await page.waitForSelector("#rd-search"); await settled(page);
+  assert.match(await page.innerText("#rd-songbook"), /Songbook[\s\S]*2 songs/);
+  assert.match(await page.innerText("#rd-search"), /Search or add a song/);
+  await page.click("#rd-search"); await page.waitForSelector("#sr-browse");
+  assert.match(await page.innerText("#sr-browse"), /Open your Songbook[\s\S]*2 songs/, "from the Road, the Songbook is the first row");
+  assert.match(await page.innerText("#list"), /Played lately[\s\S]*Not in your Songbook yet\?[\s\S]*Paste[\s\S]*Sing it[\s\S]*Write one from scratch/i);
+  assert.equal(await page.locator(".sr-card").count(), 1, "only songs you played");
   assert.equal(await page.locator("#sr-scan").count(), 0, "Scan needs the AI");
-  const own = LIB.songs[0].title;
-  await page.fill("#q", own.slice(0, 5)); await page.waitForSelector("#list [data-id]");
+  await page.click("#sr-browse"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
+  /* the Songbook: one bar, its + opens the same screen without the Songbook row */
+  assert.equal(await page.getAttribute("#q", "placeholder"), "Search or add a song");
+  assert.ok((await page.locator(".dock .cmd").boundingBox()).width > 300, "a full-width bar");
+  await page.click("#add"); await page.waitForSelector("#sr-paste");
+  assert.equal(await page.locator("#sr-browse").count(), 0, "from the Songbook there's no Open your Songbook row");
+  await page.fill("#q", LIB.songs[0].title.slice(0, 5)); await page.waitForSelector("#list [data-id]");
   assert.match(await page.innerText("#list"), /In your Songbook/i);
   await page.fill("#q", "wagon wh"); await page.waitForSelector("[data-cat]");
   assert.equal(await page.locator("[data-cat]").count(), 2, "the same recording twice shows once");
-  assert.match(await page.innerText("#sr-cat"), /Add it[\s\S]*Old Crow Medicine Show · 2004[\s\S]*Darius Rucker[\s\S]*Write “wagon wh” myself/i);
+  assert.match(await page.innerText("#sr-cat"), /Not in your Songbook[\s\S]*Old Crow Medicine Show · 2004[\s\S]*Start a sheet[\s\S]*Darius Rucker[\s\S]*Or look on Ultimate Guitar[\s\S]*Write “wagon wh” myself/i);
+  assert.equal(await page.locator(".findcard").count(), 0, "no second card saying the same thing");
   await page.click("[data-cat='1']"); await page.waitForSelector("#ed-body");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.title === "Wagon Wheel"));
   const added = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.title === "Wagon Wheel"));
-  assert.equal(added?.artist, "Darius Rucker", "without an AI key the pick opens Write my own with the title and artist");
-  /* Add is the same screen; Browse goes back to the list; a sheet on the clipboard goes to the paste card */
+  assert.equal(added?.artist, "Darius Rucker", "without an AI key the row starts a sheet with the title and artist");
+  /* a sheet on the clipboard goes to the paste card */
   await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
-  await page.click("#add"); await page.waitForSelector("#sr-browse");
-  await page.click("#sr-browse"); await page.waitForSelector("#sr-browse", { state: "detached" });
-  assert.equal(await page.evaluate(() => document.getElementById("dock").classList.contains("collapsed")), true, "Browse folds the bar back");
   await page.click("#add"); await page.waitForSelector("#sr-paste");
   await page.evaluate(() => navigator.clipboard.writeText("Porch Song\n[Verse]\nG C\nla la"));
   await page.click("#sr-paste"); await page.waitForSelector("#p-title");

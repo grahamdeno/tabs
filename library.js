@@ -17,6 +17,9 @@ export const setFilter = f => { filter = f; };
 // results sit between the bar and the keyboard. (iPhone doesn't resize the page
 // for the keyboard; it pushes the page up instead, which hid results at the top.)
 export let searching = false;
+/* 4.48.0: the Road opens search with "Open your Songbook" on top; from the Songbook itself that row would go nowhere */
+let searchFrom = "";
+export const setSearchFrom = v => { searchFrom = v; };
 let keepSearch = false; /* back from a song opened from results: show the results again */
 onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); } });
 
@@ -141,13 +144,13 @@ export function renderLibrary() {
     </div>` : ""}
     <div id="list"></div>
     <div class="dock-fade"></div>
-    <div class="dock kb${searching || (keepSearch && query.trim()) ? "" : " collapsed"}" id="dock">
+    <div class="dock kb">
       <label class="cmd glass float">
         ${icon("search")}
-        <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search, or paste a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or paste a song">
+        <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search or add a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or add a song">
         <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
+        <button class="cmd-add" id="add" aria-label="Add a song">${icon("plus")}</button>
       </label>
-      <button class="add" id="add" aria-label="Add song"><svg class="add-note" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="add-silver" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#f4f4f6"/><stop offset=".5" stop-color="#c9cacf"/><stop offset="1" stop-color="#9a9ba1"/></linearGradient></defs><g fill="url(#add-silver)" stroke="#6d6e74" stroke-width=".35"><path d="M8.2 6.4 19 4v12.3h-1.8V6.3L10 7.9v10.3H8.2z"/><ellipse cx="6.4" cy="18.1" rx="2.6" ry="2.1" transform="rotate(-20 6.4 18.1)"/><ellipse cx="15.6" cy="16.2" rx="2.6" ry="2.1" transform="rotate(-20 15.6 16.2)"/></g></svg><i class="add-bdg" aria-hidden="true">+</i></button>
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
@@ -161,15 +164,14 @@ export function renderLibrary() {
   const enterSearch = () => {
     if (searching) return;
     searching = true;
-    $("dock")?.classList.remove("collapsed"); /* 4.46.0: the magnifier opens into the bar */
     document.body.classList.add("searching");
     window.scrollTo(0, 0);
     renderList();
     searchOpened();
   };
-  $("add").onclick = () => { enterSearch(); q.focus({ preventScroll: true }); }; /* 4.46.0: Add is the search screen, where "Not in your Songbook yet?" lives */
+  $("add").onclick = e => { e.preventDefault(); enterSearch(); q.focus({ preventScroll: true }); }; /* 4.48.0: + in the bar opens the same screen */
   const exitSearch = () => {
-    searching = false;
+    searching = false; searchFrom = "";
     query = ""; q.value = ""; $("clear").hidden = true;
     document.body.classList.remove("searching");
     q.blur();
@@ -355,7 +357,7 @@ const addTools = () => {
   const ai = !!aiKey();
   return `<div class="label">Not in your Songbook yet?</div>
     <div class="sr-tools">${toolBtn("sr-paste", "paste", "Paste")}${ai ? toolBtn("sr-scan", "scan", "Scan") : ""}${toolBtn("sr-sing", "sing", "Sing it")}${ai && data.songs.length ? toolBtn("nextidea", "ideas", "Ideas") : ""}</div>
-    <button class="sr-write" id="sr-write">${icon("edit")}Write my own</button>
+    <button class="sr-write" id="sr-write">${icon("edit")}Write one from scratch</button>
     <input type="file" id="sr-photo" accept="image/*" hidden>`;
 };
 const pasteClip = async () => {
@@ -389,15 +391,21 @@ let catSeq = 0, catTimer = 0, catCache = { q: "", rows: [] };
 function paintCatalog(term, rows, looking) {
   const box = $("sr-cat");
   if (!box) return;
-  box.innerHTML = `${rows.length ? `<div class="label">Add it</div><div class="list glass">${rows.map((r, i) => `<button class="row" data-cat="${i}"><div class="txt"><div class="t">${esc(r.title)}</div><div class="a">${esc(r.artist)}${r.year ? " · " + esc(r.year) : ""}</div></div>${icon("plus")}</button>`).join("")}</div>` : ""}
+  const ai = !!aiKey(), act = ai ? "Get the chords" : "Start a sheet";
+  const row = (attr, t, a) => `<div class="sr-crow"><span class="sr-ctx"><b>${esc(t)}</b><small>${esc(a)}</small></span><button class="sr-act" ${attr} aria-label="${act}: ${esc(t)}${a ? ", " + esc(a) : ""}">${act}</button></div>`;
+  const list = [...rows.map((r, i) => row(`data-cat="${i}"`, r.title, `${r.artist}${r.year ? " · " + r.year : ""}`)),
+    ...(ai ? [row('id="fc-ai"', `“${term}”`, rows.length ? "Not listed? Louie looks it up" : "Louie finds the chords, words and tempo")] : [])];
+  box.innerHTML = `${list.length ? `<div class="label">Not in your Songbook</div><div class="sr-clist">${list.join("")}</div>` : ""}
     ${looking ? `<p class="sr-note">${busy("Looking")}</p>` : ""}
+    <p class="sr-web">Or look on <button data-find="ug">Ultimate Guitar</button> · <button data-find="chordify">Chordify</button></p>
     <button class="sr-writeq" id="sr-writeq">${icon("edit")}<span>Write “${esc(term)}” myself</span></button>`;
   box.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
     const r = rows[+b.dataset.cat];
     query = ""; /* the search is done: coming back shows the Songbook, not the old words */
-    if (aiKey()) findAI().then(m => m.getSong(r.title, { title: r.title, artist: r.artist }));
+    if (ai) findAI().then(m => m.getSong(r.title, { title: r.title, artist: r.artist }));
     else newSong({ title: r.title, artist: r.artist }, "text");
   });
+  bindFind(box);
   $("sr-writeq").onclick = () => { query = ""; newSong({ title: term }, "text"); };
 }
 function catalogSearch(term) {
@@ -443,17 +451,15 @@ export function renderList() {
   if (searching && !q) {
     /* Before typing: recently played songs, ready to tap. */
     const recentSongs = sortSongs(data.songs.filter(s => lastPlayed(s)), "recent").slice(0, 8);
-    const shown = recentSongs.length ? recentSongs : sortSongs(data.songs, "title");
     /* 4.22.0: a clean screen under the bar: two big buttons, then the songs you played last as cards */
     const cover = x => /^https:\/\//.test(x.listen?.art || x.art || "") ? `<img src="${esc(x.listen?.art || x.art)}" alt="">` : `<span style="background:${keyColor(keyOf(x), x.title, 0.9)}">${esc((x.title || "?").slice(0, 1).toUpperCase())}</span>`;
     const card = x => { const n = playCount(x); return `<div class="sr-card"><button class="sr-open" data-id="${esc(x.id)}"><i class="sr-cv">${cover(x)}</i><span class="sr-tx"><b>${esc(x.title)}</b><small>${esc(x.artist || "Unknown artist")}${n ? ` · ${n} play${n === 1 ? "" : "s"}` : ""}${x.status === "learning" ? " · Learning" : ""}</small></span></button><button class="sr-play" data-play="${esc(x.id)}" aria-label="Play ${esc(x.title)}">${icon("play")}</button></div>`; };
     const count = data.songs.length, can = data.songs.filter(x => fitOf(x).can).length;
-    list.innerHTML = `<button class="sr-browse" id="sr-browse">${icon("list")}<span><b>Browse your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>
-      <div class="label">${recentSongs.length ? "Played lately" : "Your songs"}</div>
-      <div class="sr-cards">${shown.slice(0, 3).map(card).join("")}</div>
+    list.innerHTML = `${searchFrom === "road" ? `<button class="sr-browse" id="sr-browse"><span class="sr-bic">${icon("list")}</span><span><b>Open your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>` : ""}
+      ${recentSongs.length ? `<div class="label">Played lately</div><div class="sr-cards">${recentSongs.slice(0, 3).map(card).join("")}</div>` : ""}
       ${addTools()}
       <div id="amrecent"></div>`;
-    $("sr-browse").onclick = () => $("qcancel").click();
+    $("sr-browse")?.addEventListener("click", () => $("qcancel").click());
     list.querySelectorAll("[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
     list.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playSong(b.dataset.play));
     bindAddTools(list);
@@ -483,7 +489,7 @@ export function renderList() {
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="lib-count lrow"><span id="lib-n">${sorted.length} song${sorted.length === 1 ? "" : "s"}</span>${sortBy(sort)}</div>`}
-    ${sorted.length ? `${q ? '<div class="label">In your Songbook</div>' : ""}<div class="list glass">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? `<div id="sr-cat"></div>${findCard(query, true)}` : ""}` : `${q ? '<div id="sr-cat"></div>' : ""}${findCard(query)}`}`;
+    ${sorted.length ? `${q ? '<div class="label">In your Songbook</div>' : ""}<div class="list glass">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? '<div id="sr-cat"></div>' : ""}` : q ? '<div id="sr-cat"></div>' : findCard(query)}`;
   if (q) catalogSearch(query.trim());
   $("sort")?.addEventListener("change", e => {
     if (e.target.value === "tabs") filter = "tab";

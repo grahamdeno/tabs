@@ -8,7 +8,7 @@ import { copyDiagnostics, loadLibrary, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
 import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
-import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setsShelf, showPasteCard, todayKey } from "./library.js";
+import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
 
@@ -106,7 +106,7 @@ let songSpeed = null; /* the song page's speed dial, for the Tools sheet */
 let gigNext = null;
 const playGig = (id, opts = {}) => { gigNext = { id, ...opts }; if (route().name === "song" && route().id === id) return openGigNow(); go("#/song/" + encodeURIComponent(id)); };
 function openGigNow() { const g = gigNext; gigNext = null; if (g && viewing?.id === g.id) lazy("gig.js").then(m => { if (viewing?.id === g.id && route().name === "song" && $("sheet")) m.openGig(viewing, g); }); }
-const openSearch = () => { searchNext = true; go("#/library"); };
+const openSearch = (from = "") => { searchNext = true; setSearchFrom(from); go("#/library"); };
 /* The Neck's Learning list opens a song on the section you last practiced (3.24.2). */
 let sectionNext = null;
 const openAtSection = id => { sectionNext = id; go("#/song/" + encodeURIComponent(id)); };
