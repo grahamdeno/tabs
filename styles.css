@@ -3625,3 +3625,7 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 .on-count-in { width: 100%; box-sizing: border-box; border-radius: 24px 24px 0 0; background: var(--card); padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); text-align: center; animation: up .42s cubic-bezier(.2, 1.15, .3, 1); }
 .hud .h-lab { font: 800 10px var(--sans); letter-spacing: .06em; color: var(--muted); }
 .hud .h-lab::after { content: " \203A"; }
+
+/* 4.42.1: while search is open the page doesn't bounce when pulled down: the bar is fixed, so a bounce
+   slid the buttons away from it and iOS drew the text cursor in the gap. A long list still scrolls. */
+html:has(> body.searching), body.searching { overscroll-behavior: none; }
