@@ -561,3 +561,12 @@ test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road
   await page.evaluate(() => navigator.clipboard.writeText("Porch Song\n[Verse]\nG C\nla la"));
   await page.click("#sr-paste"); await page.waitForSelector("#p-title");
 });
+
+test("4.49.1 The search screen holds still before you type, and scrolls again once you do", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#sr-paste");
+  assert.equal(await page.evaluate(() => document.body.classList.contains("sr-lock") && getComputedStyle(document.body).overflow), "hidden");
+  await page.fill("#q", "river"); await page.waitForFunction(() => !document.body.classList.contains("sr-lock"));
+  await page.click("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains("searching") && !document.body.classList.contains("sr-lock"));
+});

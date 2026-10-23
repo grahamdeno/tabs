@@ -21,7 +21,10 @@ export let searching = false;
 let searchFrom = "";
 export const setSearchFrom = v => { searchFrom = v; };
 let keepSearch = false; /* back from a song opened from results: show the results again */
-onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching"); } });
+onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching", "sr-lock"); } });
+
+/* 4.49.1: while the search screen is locked, a drag doesn't scroll it (sheets in the layer still scroll) */
+document.addEventListener("touchmove", e => { if (document.body.classList.contains("sr-lock") && !e.target.closest("#layer")) e.preventDefault(); }, { passive: false });
 
 // ---------- Library ----------
 // ---- Today: the practice streak and one song for today ----
@@ -171,7 +174,7 @@ export function renderLibrary() {
   };
   $("add").onclick = e => { e.preventDefault(); enterSearch(); q.focus({ preventScroll: true }); }; /* 4.48.0: + in the bar opens the same screen */
   const exitSearch = () => {
-    searching = false; searchFrom = "";
+    searching = false; searchFrom = ""; document.body.classList.remove("sr-lock");
     query = ""; q.value = ""; $("clear").hidden = true;
     document.body.classList.remove("searching");
     q.blur();
@@ -353,11 +356,12 @@ const TOOL = {
   sing: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   ideas: '<path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/>' };
 const toolBtn = (id, k, label) => `<button class="sr-tool" id="${id}"><svg viewBox="0 0 24 24" aria-hidden="true">${TOOL[k]}</svg>${label}</button>`;
+/* 4.49.1: Apple Music sits at the top of the search screen, where it's seen */
+const amRow = () => data.settings.appleMusic ? `<button class="sr-am" id="sr-am"><span class="sr-amic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span><span class="sr-amt"><b>From Apple Music</b><small>What you've listened to lately</small></span>${icon("chev", "chev")}</button>` : "";
 const addTools = () => {
   const ai = !!aiKey();
   return `<div class="label">Not in your Songbook yet?</div>
     <div class="sr-tools">${toolBtn("sr-paste", "paste", "Paste")}${ai ? toolBtn("sr-scan", "scan", "Scan") : ""}${toolBtn("sr-sing", "sing", "Sing it")}${ai && data.songs.length ? toolBtn("nextidea", "ideas", "Ideas") : ""}</div>
-    ${data.settings.appleMusic ? `<button class="sr-am" id="sr-am"><span class="sr-amic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span><span class="sr-amt"><b>From Apple Music</b><small>What you've listened to lately</small></span>${icon("chev", "chev")}</button>` : ""}
     <button class="sr-write" id="sr-write">${icon("edit")}Write one from scratch</button>
     <input type="file" id="sr-photo" accept="image/*" hidden>`;
 };
@@ -450,6 +454,7 @@ function catalogSearch(term) {
   }).catch(() => { if (me === catSeq) paintCatalog(term, [], false); }), 250);
 }
 export function renderList() {
+  document.body.classList.toggle("sr-lock", searching && !query.trim()); /* 4.49.1: the search screen holds still until you type */
   const list = $("list"), drawer = route().name === "road";
   document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx");
   if (!data.songs.length) {
@@ -481,7 +486,7 @@ export function renderList() {
     const cover = x => /^https:\/\//.test(x.listen?.art || x.art || "") ? `<img src="${esc(x.listen?.art || x.art)}" alt="">` : `<span style="background:${keyColor(keyOf(x), x.title, 0.9)}">${esc((x.title || "?").slice(0, 1).toUpperCase())}</span>`;
     const card = x => { const n = playCount(x); return `<div class="sr-card"><button class="sr-open" data-id="${esc(x.id)}"><i class="sr-cv">${cover(x)}</i><span class="sr-tx"><b>${esc(x.title)}</b><small>${esc(x.artist || "Unknown artist")}${n ? ` · ${n} play${n === 1 ? "" : "s"}` : ""}${x.status === "learning" ? " · Learning" : ""}</small></span></button><button class="sr-play" data-play="${esc(x.id)}" aria-label="Play ${esc(x.title)}">${icon("play")}</button></div>`; };
     const count = data.songs.length, can = data.songs.filter(x => fitOf(x).can).length;
-    list.innerHTML = `${searchFrom === "road" ? `<button class="sr-browse" id="sr-browse"><span class="sr-bic">${icon("list")}</span><span><b>Open your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>` : ""}
+    list.innerHTML = `${amRow()}${searchFrom === "road" ? `<button class="sr-browse" id="sr-browse"><span class="sr-bic">${icon("list")}</span><span><b>Open your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>` : ""}
       ${recentSongs.length ? `<div class="label">Played lately</div><div class="sr-cards">${recentSongs.slice(0, 3).map(card).join("")}</div>` : ""}
       ${addTools()}
 `;
