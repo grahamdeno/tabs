@@ -1070,7 +1070,6 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
   /* Song page: the top is just the song; its buttons move into the bar. */
   body:not(.cedit) .app.viewer > .head { display: none; }
 
-  .app.viewer .chead .ib { display: none; }
   .app.viewer .player { 
     grid-template-columns: auto auto minmax(0, auto) minmax(0, auto) 1fr auto auto;
     grid-template-areas: "back nn dial set . more play"; }
@@ -3629,3 +3628,20 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 /* 4.42.1: while search is open the page doesn't bounce when pulled down: the bar is fixed, so a bounce
    slid the buttons away from it and iOS drew the text cursor in the gap. A long list still scrolls. */
 html:has(> body.searching), body.searching { overscroll-behavior: none; }
+
+/* 4.42.2: on a phone the slim title bar keeps its Back button, so you can leave a song from anywhere in it:
+   scroll up a little and the bar (Back, the title) is there. */
+
+/* 4.42.2: the Songbook header's three buttons are one size (46, like the tuner). 4.30.0 had taken Sets to 56,
+   which crowded the cards under it. Back (and the song's heart) were still the outlined circle from before
+   version 4: now a rounded square on a darker lip with no outline, with a bolder arrow. */
+:root[data-look] .btn.sets-btn { height: 46px; min-height: 46px; font-size: 16px; padding: 0 12px; border: 0; border-radius: 14px; box-shadow: 0 4px 0 var(--rim); }
+:root[data-look] .sh-btn { width: 46px; height: 46px; border: 0; border-radius: 14px; background: var(--card); box-shadow: 0 4px 0 var(--rim); }
+:root[data-look] .sh-btn svg { width: 22px; height: 22px; stroke-width: 2.8; }
+:root[data-look] .sh-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+:root[data-look] .sh-btn.fav.on { box-shadow: 0 4px 0 var(--accent-line, var(--accent)); }
+.app:not(.viewer) .head-l .sh-btn { margin-right: 4px; }
+.app:not(.viewer) .head .row-btns { gap: 8px; }
+@media (max-width: 379px) { :root[data-look] .btn.sets-btn .i, :root[data-look] .btn.sets-btn svg { display: none; } }
+/* 4.42.2: a toast that has faded out no longer blocks taps where it was (a "near" toast stays in place, invisible) */
+.toast:not(.show) { pointer-events: none; }

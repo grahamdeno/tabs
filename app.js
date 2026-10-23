@@ -1543,7 +1543,7 @@ window.addEventListener("touchend", () => { hold.touching = false; releaseSoon(1
 window.addEventListener("touchcancel", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
 window.addEventListener("wheel", () => { hold.active = true; releaseSoon(250); }, { passive: true });
 
-// Compact header fade: scrolling up reveals it gradually, scrolling down hides it.
+// Compact header fade: scrolling up reveals it (Back and the title) within a short pull, scrolling down hides it.
 // Near the top the full header is in view, so the compact one hands back to it.
 const fab = { lastY: 0, reveal: 1 };
 function updateHeader(d) {
@@ -1553,7 +1553,7 @@ function updateHeader(d) {
   const meta = $("meta");
   const handoff = meta ? meta.offsetTop + meta.offsetHeight - 56 : 120; // full header gone above this
   if (y < 60) fab.reveal = 1;
-  else if (d < 0) fab.reveal = Math.min(1, fab.reveal - d / 140);
+  else if (d < 0) fab.reveal = Math.min(1, fab.reveal - d / 40); /* 4.42.2: a short pull down shows it */
   else if (d > 0) fab.reveal = Math.max(0, fab.reveal - d / 60);
   const past = Math.min(1, Math.max(0, (y - handoff) / 40)); // soft cross-fade at the handoff
   const op = fab.reveal * past;

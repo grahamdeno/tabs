@@ -484,3 +484,19 @@ test("4.29.1 no page zoom: pinch and double-tap zoom are off everywhere but the 
   const stopped = await page.evaluate(() => { const e = new Event("gesturestart", { cancelable: true, bubbles: true }); document.getElementById("app").dispatchEvent(e); return e.defaultPrevented; });
   assert.equal(stopped, true, "iPhone's pinch gesture is stopped");
 });
+
+test("4.42.2 back from anywhere in a song: a short scroll up shows the slim bar with Back, which leaves the song", { skip: skip() }, async t => {
+  const long = { id: "lg", title: "Long Song", artist: "A", key: "G", format: "chords", body: "[Verse]\n" + Array.from({ length: 40 }, (_, i) => `G   C\nLine ${i + 1} of the song`).join("\n") };
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, long] }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/lg"; }); await page.waitForSelector("#chead"); await settled(page);
+  await page.evaluate(() => window.scrollTo(0, 1600));
+  await page.waitForFunction(() => scrollY >= 1500);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); /* the scroll is handled */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("chead")).pointerEvents), "none", "scrolled down: the bar is out of the way");
+  await page.evaluate(() => window.scrollBy(0, -60)); /* a short pull down */
+  await page.waitForFunction(() => getComputedStyle(document.getElementById("chead")).pointerEvents === "auto");
+  const back = page.locator("#chead [data-go]");
+  assert.ok(await back.isVisible(), "Back shows on a phone");
+  await back.click();
+  await page.waitForFunction(() => location.hash !== "#/song/lg");
+});
