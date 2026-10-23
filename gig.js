@@ -123,6 +123,12 @@ function where(song) {
 /* ---- the screen ---- */
 const PLUG = `<svg width="22" height="24" viewBox="0 0 30 32" aria-hidden="true"><rect x="6" y="6" width="18" height="22" rx="6" fill="var(--strings-deep)"/><rect x="5" y="4" width="18" height="22" rx="6" fill="var(--strings)"/><rect x="10" y="0" width="3" height="6" rx="1.5" fill="var(--muted)"/><rect x="15" y="0" width="3" height="6" rx="1.5" fill="var(--muted)"/></svg>`;
 
+/* The crowd as 12 small fans (back from the 4.1.0 card, Graham 2026-10-23): a fan stands and raises
+   their arms when a change lands, in the section colours. */
+const FAN = (on, i) => {
+  const col = ["var(--g-chorus)", "var(--g-verse)", "var(--fans)", "var(--g-solo)"][i % 4], f = on ? col : "var(--locked)";
+  return `<svg class="gg-fan${on ? " on" : ""}" viewBox="-2 0 30 40" aria-hidden="true"><circle cx="13" cy="${on ? 13 : 16}" r="8" fill="${f}"/><rect x="3" y="${on ? 23 : 26}" width="20" height="15" rx="8" fill="${f}"/>${on ? `<path d="M4 25 L0 12 M22 25 L26 12" stroke="${col}" stroke-width="4" stroke-linecap="round"/>` : ""}</svg>`;
+};
 function shell(song) {
   const el = document.createElement("div");
   el.id = "gig"; el.className = "gig"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `Gig: ${song.title}`);
@@ -133,7 +139,7 @@ function shell(song) {
       <span class="gg-combo" id="gg-combo"></span><b class="gg-tw" id="gg-tw" aria-live="polite"></b>
       <span class="gg-str" id="gg-str" aria-label="Strings">${PLUG}<b>${GIG_STRINGS}</b></span>
     </div>
-    <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-cap">CROWD</span><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
+    <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-cap" id="gg-cap">CROWD</span><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-chords" aria-hidden="true">
       <div class="gg-now" id="gg-now"><small>NOW</small><b id="gg-nowname"></b><div id="gg-nowdg"></div></div>
       <div class="gg-next"><small>NEXT</small><b id="gg-nextname"></b><span class="gg-beats" id="gg-beats"><i></i><i></i><i></i><i></i></span></div>
@@ -253,7 +259,8 @@ function paintScore() {
   if (!g) return;
   const crowd = g.stream ? gigCrowd(g.score) : 0;
   const fans = $("gg-fans");
-  fans.innerHTML = Array.from({ length: 12 }, (_, i) => `<i class="${g.stream && i < crowd ? "on c" + (i % 4) : ""}" style="height:${12 + (i * 7) % 10}px"></i>`).join("");
+  fans.innerHTML = Array.from({ length: 12 }, (_, i) => FAN(g.stream && i < crowd, i)).join("");
+  const cap = $("gg-cap"); if (cap) { cap.textContent = g.stream ? "CROWD" : "LISTENING IS OFF"; cap.classList.toggle("off", !g.stream); }
   fans.setAttribute("aria-label", !g.stream ? "Crowd: listening is off" : `Crowd: ${crowd} of 12 on their feet`);
   $("gg-combo").textContent = g.score.combo >= 2 ? `x${g.score.combo}` : "";
   $("gg-str").querySelector("b").textContent = g.score.strings;

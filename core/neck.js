@@ -188,3 +188,109 @@ export function gradeSwitches(due, onsets, spb) {
   }
   return { on, late, early, miss, clean: on >= Math.ceil(due.length * 0.75) };
 }
+
+// ---------- Chord test (trial on the words-first branch) ----------
+// Can the phone tell which chord you're strumming? The scoring idea (right chord, in order)
+// only works if it can, so this measures it first. The mic's spectrum folds into 12 pitch
+// classes (a chroma); each chord has a template of its notes; a frame is "heard" when the
+// chord we expect fits at least as well as any plain major or minor chord and clearly better
+// than the chord before it. Close relatives count: a plain F is a hit for Fmaj7/A.
+export const CHORD_HEAR = { lo: 90, hi: 2200, frames: 3, margin: 0.03, prevMargin: 0.04, minFit: 0.6, wait: 6 };
+const NOTE_PC = { C: 0, "B#": 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, Fb: 4, "E#": 5, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11, Cb: 11 };
+const PC_NAME = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const CHORD_PARTS = /^([A-G][#b]?)([^/]*)(?:\/([A-G][#b]?))?$/;
+
+// The notes of a chord as intervals over its root, plus its bass note's pitch class (or -1).
+export function chordNotes(name) {
+  const m = CHORD_PARTS.exec(String(name || "").trim());
+  if (!m || NOTE_PC[m[1]] == null) return null;
+  const root = NOTE_PC[m[1]], q = m[2] || "";
+  const minor = /^(m(?!aj)|min|-)/.test(q), dim = /dim|°/.test(q), aug = /aug|\+/.test(q);
+  let iv = [0, minor || dim ? 3 : 4, dim ? 6 : aug ? 8 : 7];
+  if (/sus2/.test(q)) iv[1] = 2; else if (/sus/.test(q)) iv[1] = 5;
+  if (/^5$/.test(q)) iv = [0, 7];
+  if (/maj7|M7|Δ/.test(q)) iv.push(11); else if (/7|9|11|13/.test(q) && !/add/.test(q)) iv.push(dim && /dim7/.test(q) ? 9 : 10);
+  if (/6/.test(q) && !/\/6/.test(q)) iv.push(9);
+  if (/9/.test(q)) iv.push(2);
+  const bass = m[3] && NOTE_PC[m[3]] != null ? NOTE_PC[m[3]] : -1;
+  return { root, iv: [...new Set(iv)], bass, minor: minor && !dim };
+}
+
+// A 12-number template: the root and fifth strongest, the third next, colour notes softer,
+// a slash bass added. Normalised to length 1.
+export function chordTemplate(name) {
+  const c = chordNotes(name); if (!c) return null;
+  const t = new Array(12).fill(0);
+  c.iv.forEach((v, k) => { t[(c.root + v) % 12] += k === 0 ? 1 : v === 7 || v === 6 || v === 8 ? 0.85 : k < 3 ? 0.8 : 0.5; });
+  if (c.bass >= 0) t[c.bass] += 0.6;
+  const n = Math.hypot(...t);
+  return t.map(v => v / n);
+}
+
+// The chord itself, or a plainer chord that still counts for it (Fmaj7/A -> F, E7 -> E, Asus4 -> A).
+export function closeChords(name) {
+  const c = chordNotes(name); if (!c) return [];
+  const root = /^[A-G][#b]?/.exec(name)[0], out = new Set([name, name.split("/")[0]]);
+  out.add(root + (c.minor ? "m" : ""));
+  return [...out];
+}
+
+// Frequency data from an AnalyserNode (dB per bin) folded into 12 pitch classes, normalised.
+export function chromaOf(db, rate, fftSize, h = CHORD_HEAR) {
+  const ch = new Array(12).fill(0), hz = rate / fftSize;
+  const lo = Math.max(1, Math.floor(h.lo / hz)), hi = Math.min(db.length - 2, Math.ceil(h.hi / hz));
+  for (let b = lo; b <= hi; b++) {
+    if (!(db[b] > db[b - 1] && db[b] >= db[b + 1])) continue; /* peaks only, so a smear doesn't count twice */
+    const a = Math.pow(10, db[b] / 20); if (!(a > 0)) continue;
+    const midi = 69 + 12 * Math.log2((b * hz) / 440);
+    const near = Math.round(midi); if (Math.abs(midi - near) > 0.4) continue;
+    ch[((near % 12) + 12) % 12] += Math.sqrt(a) * (1 - Math.abs(midi - near));
+  }
+  const n = Math.hypot(...ch);
+  return n > 0 ? ch.map(v => v / n) : ch;
+}
+
+const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+const PLAIN = PC_NAME.flatMap(n => [n, n + "m"]);
+const PLAIN_T = new Map(PLAIN.map(n => [n, chordTemplate(n)]));
+
+// How well each plain chord fits a chroma, best first.
+export function chordGuesses(chroma, count = 3) {
+  return PLAIN.map(n => ({ name: n, fit: dot(chroma, PLAIN_T.get(n)) })).sort((a, b) => b.fit - a.fit).slice(0, count);
+}
+
+// One frame: is it the chord we expect (or a close relative), rather than the one before it?
+export function judgeChord(chroma, expected, previous = "", h = CHORD_HEAR) {
+  const ok = closeChords(expected), prevOk = previous ? closeChords(previous) : [];
+  const same = (a, b) => { const x = chordNotes(a), y = chordNotes(b); return x && y && x.root === y.root && x.minor === y.minor; };
+  const fitOf = name => { const t = chordTemplate(name); return t ? dot(chroma, t) : 0; };
+  const exp = Math.max(...ok.map(fitOf)), prev = prevOk.length ? Math.max(...prevOk.map(fitOf)) : 0;
+  const rival = chordGuesses(chroma, 24).find(g => !ok.some(o => same(o, g.name)));
+  const sharesRoot = previous && ok.some(o => prevOk.some(p => same(o, p)));
+  const hit = exp >= h.minFit && exp >= (rival?.fit || 0) - h.margin && (!previous || sharesRoot || exp >= prev + h.prevMargin);
+  return { hit, exp, prev, rival: rival?.name || "", rivalFit: rival?.fit || 0, stillPrev: !!previous && !sharesRoot && prev > exp };
+}
+
+// The chords to test: a song's chords in order, a chord repeated in a row only once.
+export function chordRun(chords, max = 16) {
+  const out = [];
+  for (const c of chords) if (chordNotes(c) && c !== out[out.length - 1]) out.push(c);
+  return out.slice(0, max);
+}
+
+// The summary of a test: each step is { chord, prev, heard, strumAt, heardAt, stillPrev, rivals }.
+export function chordTestReport(steps) {
+  const done = steps.filter(s => s.tried);
+  const heard = done.filter(s => s.heard);
+  const lat = heard.filter(s => s.strumAt != null).map(s => s.heardAt - s.strumAt).sort((a, b) => a - b);
+  const med = lat.length ? lat[Math.floor(lat.length / 2)] : null;
+  const fooled = done.filter(s => s.stillPrev >= 3).length;
+  const by = {};
+  for (const s of done) {
+    const b = by[s.chord] || (by[s.chord] = { chord: s.chord, of: 0, heard: 0, rivals: {} });
+    b.of++; if (s.heard) b.heard++;
+    for (const [n, k] of Object.entries(s.rivals || {})) b.rivals[n] = (b.rivals[n] || 0) + k;
+  }
+  const chords = Object.values(by).map(b => ({ ...b, mixed: Object.entries(b.rivals).sort((x, y) => y[1] - x[1]).slice(0, 2).map(([n]) => n) }));
+  return { of: done.length, heard: heard.length, median: med, fooled, chords };
+}

@@ -15,7 +15,7 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
+import { CHORD_HEAR, chordGuesses, chordRun, chordTestReport, chromaOf, isChord, isChordLine, judgeChord, HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -180,6 +180,7 @@ export function renderRehearse() {
       ${tile("rh-band", "metro", "Sit in with the band")}
       ${tile("rh-tuner", "fork", "Tuner")}
       ${tile("rh-hear", "mic", "What I hear")}
+      ${tile("rh-ctest", "mic", "Chord test (trial)")}
     </div>
   </div>`;
   bindStatBar();
@@ -193,6 +194,7 @@ export function renderRehearse() {
   $("rh-band").onclick = () => learn ? openAtSection(learn.id) : toast("Add a song with chords to sit in with the band.");
   $("rh-tuner").onclick = () => openTuner();
   $("rh-hear").onclick = () => go("#/practice/hear");
+  $("rh-ctest").onclick = () => go("#/practice/chordtest");
 }
 
 /* Learning (3.21.0): the songs you're learning, each with the one thing to do next and how far along
@@ -219,6 +221,7 @@ function learningCard() {
 export function renderSession(id) {
   stopLive();
   if (id === "hear") return whatIHear();
+  if (id === "chordtest") return chordTest();
   if (id === "skills") return renderSkills();
   const hit = find(id);
   if (id === "neck") return renderNeck();
@@ -782,5 +785,120 @@ function whatIHear() {
       `Settings: ${Object.entries(HEAR).map(([k, v]) => `${k} ${v}`).join(", ")}`
     ].filter(Boolean).join("\n");
     navigator.clipboard?.writeText(text).then(() => toast("Readings copied. Paste them into a message."), () => toast("Couldn't copy here."));
+  };
+}
+
+/* ---------- Chord test (trial, the words-first branch) ----------
+   Before chords are scored by ear, this measures whether the phone can tell them apart on your
+   guitar. Pick a run of chords (a few common ones, or a song's), then strum each one when it's
+   up. The app listens for that chord and not the one before it, and notes how long it took after
+   your strum, whether the last chord's ring fooled it, and what it mistook a chord for. After
+   6 seconds a chord counts as not heard and the test moves on. Copy results puts a plain summary
+   on the clipboard to paste into a message. Nothing is recorded, kept or sent. */
+const TEST_RUNS = [["G", "C", "D", "Em"], ["Am", "F", "C", "G"], ["E", "A", "D", "A"], ["C", "G", "Am", "F"], ["G", "Em", "C", "D", "Fmaj7/A", "Am"]];
+function songChords(song) {
+  const out = [];
+  for (const line of String(song.body || "").split("\n")) if (isChordLine(line)) for (const t of line.trim().split(/\s+/)) if (isChord(t)) out.push(t);
+  return out;
+}
+function chordTest() {
+  const songs = data.songs.filter(x => x.format !== "tab").sort((a, b) => (b.opened || 0) - (a.opened || 0)).map(x => ({ x, run: chordRun(songChords(x)) })).filter(o => o.run.length >= 3).slice(0, 4);
+  const runs = [...TEST_RUNS.map(r => ({ label: r.join(" "), run: r })), ...songs.map(o => ({ label: o.x.title, run: o.run }))];
+  let pick = 0, steps = [], k = 0, running = false, report = null;
+  app.innerHTML = `${head("Chord test", "Can the phone tell your chords apart? Nothing is recorded or sent.")}
+    <section class="pf-card pk-lesson">
+      <h2 class="ph-h">Chords to test</h2>
+      <div class="ph-chords ct-runs" role="group" aria-label="Chords to test">${runs.map((r, i) => `<button data-r="${i}" class="${i ? "" : "on"}">${esc(r.label)}</button>`).join("")}</div>
+      <div class="ct-stage" aria-live="polite"><small id="ct-step">Ready</small><b id="ct-now">${esc(runs[0].run[0])}</b><span id="ct-next">then ${esc(runs[0].run[1] || "")}</span></div>
+      <p class="ct-hear" id="ct-hear">Hearing: –</p>
+      <p class="rd-bubble ph-say" id="pk-say">Tap Start, then strum each chord when it shows. Let the last one ring if you like: that's part of the test.</p>
+      <div class="ct-res" id="ct-res" hidden></div>
+    </section>
+    <div class="s-dock"><button class="btn primary" id="ct-go">${icon("mic")}Start</button><div class="ph-row"><button class="tb" id="ct-skip" disabled>Skip chord</button><button class="tb" id="ct-copy" disabled>Copy results</button></div></div>`;
+  $("back").onclick = () => go(backTo); bindTune();
+  const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
+  const run = () => runs[pick].run;
+  const show = () => {
+    const r = run(), c = r[k];
+    $("ct-step").textContent = running ? `Chord ${k + 1} of ${r.length}` : "Ready";
+    $("ct-now").textContent = c || "Done"; $("ct-next").textContent = r[k + 1] ? `then ${r[k + 1]}` : running ? "last one" : "";
+    $("ct-now").classList.remove("hit");
+  };
+  app.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
+    if (running) return;
+    pick = +b.dataset.r; k = 0;
+    app.querySelectorAll("[data-r]").forEach(x => x.classList.toggle("on", x === b));
+    show();
+  });
+  const results = () => {
+    report = chordTestReport(steps);
+    const sec = v => v == null ? "–" : `${v.toFixed(1)} s`;
+    $("ct-res").hidden = false;
+    $("ct-res").innerHTML = `<p><b>Heard ${report.heard} of ${report.of}</b> · ${sec(report.median)} after your strum (middle value)${report.fooled ? ` · the last chord's ring fooled it ${report.fooled}×` : ""}</p>
+      ${report.chords.map(c => `<p class="ct-row"><b>${esc(c.chord)}</b> ${c.heard} of ${c.of}${c.mixed.length && c.heard < c.of ? ` · mistaken for ${esc(c.mixed.join(", "))}` : ""}</p>`).join("")}`;
+    $("ct-copy").disabled = false;
+  };
+  const start = () => {
+    $("ct-go").disabled = true; say("Starting the microphone…");
+    mic().then(stream => {
+      const ctx = sound();
+      if (!ctx) throw new Error("none");
+      const fast = ctx.createAnalyser(), slow = ctx.createAnalyser();
+      fast.fftSize = 1024; slow.fftSize = 8192; slow.smoothingTimeConstant = 0.3;
+      const src = ctx.createMediaStreamSource(stream); guitarBand(ctx, src).connect(fast); src.connect(slow);
+      const fb = new Float32Array(fast.fftSize), db = new Float32Array(slow.frequencyBinCount), strum = strumDetector();
+      steps = run().map((c, i, a) => ({ chord: c, prev: i ? a[i - 1] : "", tried: false, heard: false, strumAt: null, heardAt: null, stillPrev: 0, rivals: {}, t0: 0 }));
+      k = 0; running = true; $("ct-res").hidden = true;
+      let streak = 0, n = 0, wait = 0;
+      const begin = now => { const st = steps[k]; st.t0 = now; st.tried = true; streak = 0; show(); };
+      const advance = now => { k++; if (k >= steps.length) { stop(); results(); say("Done. Copy results to send them, or pick another run."); return; } begin(now); };
+      begin(ctx.currentTime);
+      live = { at: Date.now(), stream, src, ctx, timeouts: [], floor: strum.floor, timer: setInterval(() => {
+        const now = ctx.currentTime, st = steps[k];
+        if (!st) return;
+        fast.getFloatTimeDomainData(fb);
+        let rms = 0; for (const v of fb) rms += v * v; rms = Math.sqrt(rms / fb.length);
+        if (strum(rms, now, 0) && st.strumAt == null && !st.heard) st.strumAt = now;
+        if (wait) { if (now >= wait) { wait = 0; advance(now); } return; }
+        if (++n % 5) return; /* the chord every 50 ms */
+        const since = now - (st.strumAt ?? st.t0), limit = st.strumAt == null ? CHORD_HEAR.wait * 1.5 : CHORD_HEAR.wait;
+        if (since > limit) { say(`${st.chord}: not heard. On to the next one.`); return advance(now); }
+        if (rms < strumLine(strum.floor()) * 0.5) { streak = 0; return; }
+        slow.getFloatFrequencyData(db);
+        const ch = chromaOf(db, ctx.sampleRate, slow.fftSize), j = judgeChord(ch, st.chord, st.prev);
+        const top = chordGuesses(ch, 3);
+        $("ct-hear").textContent = "Hearing: " + top.map(g => `${g.name} ${g.fit.toFixed(2)}`).join(" · ");
+        if (j.stillPrev) st.stillPrev++;
+        if (j.hit) {
+          if (++streak >= CHORD_HEAR.frames) {
+            st.heard = true; st.heardAt = now; if (st.strumAt == null) st.strumAt = st.t0;
+            $("ct-now").classList.add("hit"); say(`${st.chord}: heard, ${(now - st.strumAt).toFixed(1)} s after your strum.`);
+            wait = now + 0.7;
+          }
+        } else { streak = 0; if (j.rival && j.rivalFit > j.exp) st.rivals[j.rival] = (st.rivals[j.rival] || 0) + 1; }
+      }, 10) };
+      $("ct-go").disabled = false; $("ct-go").innerHTML = `${icon("pause")}Stop`; $("ct-skip").disabled = false;
+      say(`Strum ${steps[0].chord}.`);
+      live.stream.getTracks().forEach(t => t.addEventListener("ended", () => { if (running) { stop(); say("The microphone stopped. Tap Start to try again."); } }));
+    }).catch(() => { $("ct-go").disabled = false; say("I can't use the microphone here. On iPhone: Settings, Apps, Safari, Microphone, Ask. Then try again."); });
+  };
+  const stop = () => {
+    stopLive(); running = false;
+    if (!document.contains($("ct-go"))) return;
+    $("ct-go").innerHTML = `${icon("mic")}Start`; $("ct-skip").disabled = true;
+    if (steps.some(s => s.tried)) results();
+    show();
+  };
+  $("ct-go").onclick = () => running ? (stop(), say("Stopped. Copy results to send them, or start again.")) : start();
+  $("ct-skip").onclick = () => { const st = steps[k]; if (!running || !st) return; say(`Skipped ${st.chord}.`); st.tried = false; k++; if (k >= steps.length) { stop(); say("Done."); } else { steps[k].t0 = live.ctx.currentTime; steps[k].tried = true; show(); } };
+  $("ct-copy").onclick = () => {
+    if (!report) return;
+    const text = [
+      `The Road ${VERSION}, Chord test: ${runs[pick].label}`,
+      `Heard ${report.heard} of ${report.of} · middle time after the strum ${report.median == null ? "–" : report.median.toFixed(2) + " s"} · last chord's ring fooled it ${report.fooled}×`,
+      ...steps.filter(s => s.tried).map(s => `${s.prev ? s.prev + " to " : ""}${s.chord}: ${s.heard ? `heard ${(s.heardAt - s.strumAt).toFixed(2)} s after the strum` : "not heard"}${s.stillPrev ? ` · still hearing ${s.prev} ${s.stillPrev}×` : ""}${Object.keys(s.rivals).length ? ` · heard instead: ${Object.entries(s.rivals).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, c]) => `${n} ${c}`).join(", ")}` : ""}`),
+      `Sample rate ${live?.ctx?.sampleRate || sound()?.sampleRate || "?"} · settings: ${Object.entries(CHORD_HEAR).map(([a, b]) => `${a} ${b}`).join(", ")}`
+    ].join("\n");
+    navigator.clipboard?.writeText(text).then(() => toast("Results copied. Paste them into a message."), () => toast("Couldn't copy here."));
   };
 }

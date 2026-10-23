@@ -2113,3 +2113,26 @@ test("4.41.0 chords where the chord sites have them: numbered words in, position
   assert.equal(C.cleanSong({ id: "x", body: "a", spots: "placed", spotsTried: 5 }).spots, "placed");
   assert.equal(C.cleanSong({ id: "x", body: "a", spots: "nope", spotsTried: "x" }).spots, undefined);
 });
+
+test("Chord test (trial): templates, close relatives, and telling a chord from the one before it", () => {
+  const rate = 48000, N = 8192, db = new Float32Array(N / 2);
+  const spec = notes => { db.fill(-140); for (const m of notes) for (let h = 1; h <= 4; h++) { const b = Math.round(440 * 2 ** ((m - 69) / 12) * h / (rate / N)); if (b < db.length) db[b] = Math.max(db[b], -20 - h * 8); } return C.chromaOf(db, rate, N); };
+  const G = spec([43, 47, 50, 55, 59, 67]), Cc = spec([48, 52, 55, 60, 64]), F = spec([53, 57, 60, 65]);
+  assert.equal(C.chordGuesses(G, 1)[0].name, "G", "a G chord is heard as G");
+  assert.equal(C.judgeChord(G, "G", "C").hit, true);
+  const ring = C.judgeChord(Cc, "G", "C");
+  assert.equal(ring.hit, false, "still the C before it is not a G");
+  assert.equal(ring.stillPrev, true);
+  assert.equal(C.judgeChord(F, "Fmaj7/A", "C").hit, true, "a plain F counts for Fmaj7/A");
+  assert.deepEqual(C.closeChords("E7"), ["E7", "E"]);
+  assert.deepEqual(C.chordNotes("Am").iv, [0, 3, 7]);
+  assert.deepEqual(C.chordRun(["G", "G", "C", "N.C.", "D"]), ["G", "C", "D"], "repeats once, non-chords dropped");
+  const r = C.chordTestReport([
+    { chord: "G", prev: "", tried: true, heard: true, strumAt: 1, heardAt: 1.4, stillPrev: 0, rivals: {} },
+    { chord: "C", prev: "G", tried: true, heard: false, strumAt: 3, heardAt: null, stillPrev: 5, rivals: { Am: 4 } },
+    { chord: "D", prev: "C", tried: false }
+  ]);
+  assert.equal(r.of, 2); assert.equal(r.heard, 1); assert.equal(r.fooled, 1);
+  assert.ok(Math.abs(r.median - 0.4) < 1e-9);
+  assert.deepEqual(r.chords.find(c => c.chord === "C").mixed, ["Am"]);
+});
