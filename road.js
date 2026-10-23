@@ -170,7 +170,7 @@ function renderOpening(view) {
     const node = e.target.closest("[data-ostep]");
     const open = node?.parentElement.querySelector(".rd-pop");
     closePop();
-    if (node && !open) { node.parentElement.insertAdjacentHTML("beforeend", openingCard(+node.dataset.ostep, step)); haptic(1); }
+    if (node && !open) { node.parentElement.insertAdjacentHTML("beforeend", openingCard(+node.dataset.ostep, step)); haptic(1); revealPop(path, node.parentElement.querySelector(".rd-pop")); }
   });
 }
 
@@ -250,7 +250,7 @@ export function renderRoad() {
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
     const open = wrap.querySelector(".rd-pop");
     closePop();
-    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); wrap.querySelector(".rd-pop").scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }
+    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); }
   });
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
@@ -258,6 +258,16 @@ export function renderRoad() {
   if (plays) fillScene(st);
 }
 
+
+/* 4.45.2: a tapped stop's card can open below the visible path (under the tab bar); scroll the path so all of it shows, button included */
+function revealPop(path, pop) {
+  requestAnimationFrame(() => {
+    const p = path.getBoundingClientRect(), r = pop.getBoundingClientRect();
+    const tabs = document.getElementById("tabs"), floor = Math.min(p.bottom, tabs && tabs.offsetParent !== null ? tabs.getBoundingClientRect().top : p.bottom) - 14;
+    const over = r.bottom - floor;
+    if (over > 0) path.scrollTo({ top: path.scrollTop + over, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+}
 
 /* The scene loads a moment later: when someone is pushing on your edge, Louie says so. */
 async function fillScene(st) {

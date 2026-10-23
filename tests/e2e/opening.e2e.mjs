@@ -79,3 +79,10 @@ test("4.40.0 Opening night: someone who already plays never sees it; Tips & gest
   await page.waitForSelector(".rd-banner.on-night");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).replay === true);
 });
+
+test("4.45.2 Opening night: tapping the last pick scrolls its card and button above the tab bar", { skip: skip() }, async t => {
+  const page = await phone(t, { ...FRESH, opening: { step: 4, fans: 20 } }, { home: true });
+  await page.waitForSelector('[data-ostep="4"]');
+  await page.click('[data-ostep="4"]'); await page.waitForSelector(".rd-pop");
+  await page.waitForFunction(() => { const r = document.querySelector(".rd-pop").getBoundingClientRect(), b = document.getElementById("tabs").getBoundingClientRect(); return r.bottom <= b.top; }, null, { timeout: 4000 });
+});
