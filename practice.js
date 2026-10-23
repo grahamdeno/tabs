@@ -20,6 +20,7 @@ import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
 import { louie } from "./louie.js";
+import { callout } from "./callout.js";
 
 const $ = id => document.getElementById(id);
 const strName = (i, tuning) => { const n = (TUNINGS[tuning] || TUNINGS.standard).notes[i].replace(/\d/, ""); return i === 0 ? `low ${n}` : i === 5 ? `high ${n}` : n; };
@@ -56,6 +57,7 @@ function startPart(l, i) {
     if (song.id !== l.play.songId || pass < need) return;
     loopHooks.pass = null;
     const r = lessonDone(data, 2); Tabs.save(data);
+    if (r?.finished) callout(data, { kind: "lesson", word: "LESSON DONE", big: `+${r.xp} XP` }); /* 4.44.0 */
     toast(r?.finished ? `Lesson of the day done: +${r.xp} XP` : r ? "That part of today's lesson is done" : "Nice");
   };
   openLessonSong(l.play.songId, l.play.sec, l.play.rate);
@@ -508,6 +510,7 @@ function switchLesson(st) {
     skillDone(data, st.id, at);
     const sc = soundcheckDone(data, st.id); /* Rehearse (4.8.0): part of today's soundcheck? */
     const ls = part >= 0 ? lessonDone(data, part) : null;
+    if (ls?.finished) callout(data, { kind: "lesson", word: "LESSON DONE", big: `+${ls.xp} XP` }); /* 4.44.0 */
     const secs = (Date.now() - t0) / 1000; Tabs.save(data);
     const more = ls?.finished ? ` Lesson of the day done: +${ls.xp} XP.` : ls ? ` Part ${part + 1} of today's lesson done.` : "";
     done(st, { secs, line: (sc?.done ? `${line} Soundcheck done: +${sc.xp} XP.` : sc ? `${line} One more change for today's soundcheck.` : line) + more, bpm: at, sc: sc || ls });

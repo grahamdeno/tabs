@@ -360,6 +360,39 @@ export function levelOf(data) {
   const from = levelStart(level), to = levelStart(level + 1);
   return { level, xp, from, to, into: xp - from, need: to - from };
 }
+/* ---- Achievement callouts (4.44.0, #77) ----
+   achSettle(data, p, had) after a play: what to celebrate now. A level or badge is celebrated once
+   (data.ach keeps what was seen); the first time it runs, everything you already have counts as seen.
+   had: the chords journaled before the play, so a new one gets its own callout. */
+export const COMBO_STEPS = [10, 25, 50, 100];
+export function achSettle(data, p, had = null) {
+  const lv = levelOf(data).level, got = badgesOf(data, p).got;
+  const seen = isObj(data.ach) ? data.ach : null, out = [];
+  if (had) for (const c of p.chords) if (!had.has(c.name)) out.push({ kind: "chord", word: "NEW CHORD", big: c.name });
+  if (seen) {
+    if (lv > (seen.level || 1)) out.push({ kind: "level", word: "LEVEL UP", big: String(lv) });
+    for (const b of got) if (!(seen.badges || []).includes(b.id)) out.push({ kind: "badge", word: b.lab, big: b.top });
+  }
+  data.ach = { level: Math.max(lv, seen?.level || 1), badges: [...new Set([...(seen?.badges || []), ...got.map(b => b.id)])] };
+  return out.slice(0, 3); /* a big night caps at three callouts; the rest are on Your profile */
+}
+/* Variations (#79): each kind has a few looks; the next one is never the one just shown. */
+export const CALLOUT_LOOKS = { combo: ["bolt", "rays", "burst"], chord: ["stamp", "burst"], level: ["light", "rays"], badge: ["flip", "burst", "rays"], join: ["burst", "light"], lesson: ["rays", "burst"] };
+export function pickLook(kind, last, r = Math.random()) {
+  const looks = CALLOUT_LOOKS[kind] || ["burst"], pool = looks.length > 1 ? looks.filter(x => x !== last) : looks;
+  return pool[Math.floor(r * pool.length) % pool.length];
+}
+/* Your band celebrates (#80): only friends who've joined; some kinds have their own (Beat for combos,
+   Lola for chords, Metro for levels, Tilly for lessons); otherwise one of the band, not the last one shown. */
+const CALLOUT_CAST = { combo: "beat", chord: "lola", level: "metro", lesson: "tilly" };
+export function castFor(data, kind, last, r = Math.random(), who = null) {
+  const joined = bandState(data).joined.map(b => b.id);
+  if (who && joined.includes(who)) return who;
+  const own = CALLOUT_CAST[kind];
+  if (own && joined.includes(own) && own !== last) return own;
+  const pool = joined.length > 1 ? joined.filter(x => x !== last) : joined;
+  return pool.length ? pool[Math.floor(r * pool.length) % pool.length] : null;
+}
 /* p is profileOf(data): the journal's numbers (chords, best streak, songs got, tune-ups) */
 export function badgesOf(data, p) {
   const shows = data.gig?.shows || 0, ring = venueOf(lifetimePlays(data)).ring, band = bandState(data);

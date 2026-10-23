@@ -3685,3 +3685,38 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 :root[data-look] .btn.sets-btn .i, :root[data-look] .btn.sets-btn svg { width: 18px; height: 18px; }
 :root[data-look] .ib.glass::after, :root[data-look] .sh-btn::after, :root[data-look] .ib.chunky-tune::after, :root[data-look] .btn.sets-btn::after, .mc-back::after {
   content: ""; position: absolute; inset: -4px; }
+
+/* ---- Achievement callouts (4.44.0, #77): callout.js. Takes no taps; only transform and opacity move. ---- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.co { position: fixed; z-index: 60; left: 0; right: 0; top: calc(var(--safe-t, 0px) + 13vh); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; animation: co-in .42s cubic-bezier(.2,1.5,.35,1) both; }
+.co.out { animation: co-out .26s ease-in both; }
+.co-badge { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding: 10px 26px 14px; border-radius: 26px; background: var(--card); box-shadow: 0 6px 0 color-mix(in srgb, var(--card) 55%, #000), 0 18px 40px rgba(0,0,0,.35); border: 3px solid var(--accent); }
+.co-badge small { font: 800 15px var(--sans); letter-spacing: .12em; color: var(--accent-ink); text-transform: uppercase; }
+.co-badge b { font: 700 58px/1 var(--display); color: #fff; -webkit-text-stroke: 3px var(--card); paint-order: stroke fill; text-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 70%, #000); }
+.co-cast { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 2px; margin-top: -4px; }
+.co-cast > svg, .co-cast .co-friend { animation: co-hop .5s .15s cubic-bezier(.3,1.6,.5,1) both; }
+.co-cast .co-friend { animation-delay: .25s; }
+.co-fx { position: absolute; z-index: 1; left: 50%; top: 50%; width: 0; height: 0; }
+/* looks: bolt (a lightning bolt through the badge), rays (light turning behind it), burst (bits flying out),
+   stamp (it lands like a passport stamp), light (a stage light from above), flip (it turns over like a badge) */
+.co-bolt .co-fx svg { position: absolute; width: 120px; height: 220px; left: -110px; top: -150px; fill: var(--fans); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--fans) 70%, transparent)); animation: co-bolt .5s steps(3) both; }
+.co-bolt .co-badge { border-color: var(--fans); }
+.co-rays .co-fx { width: 340px; height: 340px; margin: -170px 0 0 -170px; border-radius: 50%; background: repeating-conic-gradient(color-mix(in srgb, var(--accent) 34%, transparent) 0 12deg, transparent 12deg 30deg); mask: radial-gradient(circle, #000 30%, transparent 70%); -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); animation: co-spin 2.4s linear both; }
+.co-burst .co-fx i { position: absolute; width: 12px; height: 12px; margin: -6px; border-radius: 3px; background: var(--streak); transform: rotate(var(--a)) translateY(0); animation: co-bit .7s var(--d) cubic-bezier(.1,.8,.3,1) both; }
+.co-burst .co-fx i:nth-child(3n) { background: var(--strings); } .co-burst .co-fx i:nth-child(3n+1) { background: var(--fans); }
+.co-stamp .co-badge { animation: co-stamp .38s cubic-bezier(.5,0,.6,1.4) both; border-style: dashed; }
+.co-light .co-fx { width: 300px; height: 420px; margin: -330px 0 0 -150px; background: conic-gradient(from 160deg at 50% 0, transparent 0deg, color-mix(in srgb, #fff 30%, transparent) 20deg, transparent 40deg); animation: co-fade .5s both; }
+.co-flip .co-badge { animation: co-flip .55s cubic-bezier(.3,1.3,.5,1) both; }
+.co.still, .co.still * { animation: none !important; }
+.co.still { animation: co-fade .3s both !important; }
+.co.still.out { animation: co-out-still .3s both !important; }
+@keyframes co-in { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes co-out { to { transform: translateY(-24px) scale(.9); opacity: 0; } }
+@keyframes co-out-still { to { opacity: 0; } }
+@keyframes co-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes co-hop { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes co-bolt { 0% { opacity: 0; transform: translateY(-30px); } 40% { opacity: 1; } 70% { opacity: .5; } 100% { opacity: 1; transform: none; } }
+@keyframes co-spin { from { transform: rotate(0); opacity: 0; } 15% { opacity: 1; } to { transform: rotate(60deg); opacity: 1; } }
+@keyframes co-bit { to { transform: rotate(var(--a)) translateY(-150px) rotate(200deg); opacity: 0; } }
+@keyframes co-stamp { from { transform: scale(1.8) rotate(-12deg); opacity: 0; } to { transform: rotate(-4deg); opacity: 1; } }
+@keyframes co-flip { from { transform: perspective(500px) rotateY(180deg); opacity: 0; } to { transform: none; opacity: 1; } }

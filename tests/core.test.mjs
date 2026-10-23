@@ -2118,3 +2118,28 @@ test("4.41.0 chords where the chord sites have them: numbered words in, position
   assert.equal(C.cleanSong({ id: "x", body: "a", spots: "placed", spotsTried: 5 }).spots, "placed");
   assert.equal(C.cleanSong({ id: "x", body: "a", spots: "nope", spotsTried: "x" }).spots, undefined);
 });
+
+test("4.44.0 achievement callouts: a level and a badge are celebrated once; the first run counts what you have as seen", () => {
+  const p = { songsPlayed: 0, chords: [], best: 0, got: 0, barres: 0, tune: { sessions: 0 } };
+  const data = { songs: [], gig: { shows: 1 } };
+  assert.deepEqual(C.achSettle(data, p), [], "first run: nothing, everything you have is seen");
+  assert.ok(data.ach.badges.includes("show1"));
+  data.gig.shows = 10;
+  const got = C.achSettle(data, p);
+  assert.deepEqual(got.map(x => [x.kind, x.word, x.big]), [["badge", "GIGS", "10"]]);
+  assert.deepEqual(C.achSettle(data, p), [], "not again");
+  const had = new Set(["G"]), p2 = { ...p, chords: [{ name: "G" }, { name: "F" }] };
+  assert.deepEqual(C.achSettle(data, p2, had).map(x => x.big), ["F"], "a new chord");
+});
+
+test("4.44.0 callout looks never repeat back to back, and only joined friends celebrate", () => {
+  for (const kind of Object.keys(C.CALLOUT_LOOKS)) for (const last of C.CALLOUT_LOOKS[kind]) for (const r of [0, 0.5, 0.99]) assert.notEqual(C.pickLook(kind, last, r), last, `${kind} after ${last}`);
+  const none = { songs: [] };
+  assert.equal(C.castFor(none, "combo", null, 0), null, "no band yet: Louie alone");
+  const band = { songs: [], journal: { v: 1, months: { "2026-10": { plays: 20 } } } }, joined = C.bandState(band).joined.map(b => b.id);
+  assert.ok(joined.includes("beat"));
+  assert.equal(C.castFor(band, "combo", null, 0), "beat", "Beat takes the combos");
+  assert.notEqual(C.castFor(band, "combo", "beat", 0), "beat", "not the same friend twice in a row");
+  for (let i = 0; i < 20; i++) assert.ok(joined.includes(C.castFor(band, "badge", null, i / 20)), "always one who has joined");
+  assert.equal(C.castFor(band, "join", "beat", 0, "beat"), "beat", "a new member is the one shown");
+});

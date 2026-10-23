@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, openingOn, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { achSettle, profileOf, MAX_LENGTH, openingOn, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -76,11 +76,22 @@ function refreshPlay(song) {
   pb.setAttribute("aria-label", playLabel(song, false));
   pb.innerHTML = playFace(false, song);
 }
-/* Your band (4.7.0): a play that brings in a new friend says so */
+/* Achievement callouts (4.44.0, #77): after a play, a new chord, a level and new badges each get a moment.
+   The streak moment comes first when there is one, so the callouts wait a little. */
+const chordsHad = () => new Set(profileOf(data).chords.map(c => c.name));
+let calloutMod = null; /* one load, so callouts keep the order they were asked for */
+export const showCallout = c => (calloutMod ||= lazy("callout.js")).then(m => m.callout(data, c));
+function celebrate(had) {
+  const got = achSettle(data, profileOf(data), had);
+  Tabs.save(data);
+  if (got.length) setTimeout(() => got.forEach(showCallout), 900);
+}
+/* Your band (4.7.0): a play that brings in a new friend says so (4.44.0: with a callout, the friend in it) */
 function bandToast() {
   const fresh = bandMeet(data);
   if (!fresh.length) return;
   Tabs.save(data);
+  fresh.slice(0, 2).forEach(f => setTimeout(() => showCallout({ kind: "join", word: "JOINED YOUR BAND", big: FRIEND_NAMES[f.id] || f.id, who: f.id }), 2000));
   const names = fresh.map(f => FRIEND_NAMES[f.id] || f.id);
   setTimeout(() => toast(`${names.join(" and ")} joined your band!`, null, { label: "Meet", fn: () => go("#/band") }), 2500);
 }
@@ -1802,7 +1813,7 @@ async function startScroll(song, opts = {}) {
       if (!activeLoop(song) && end >= 0 && scrollY >= end - 2) {
         const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
         if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
-          scroll.logged = true; scroll.credited = true; Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); if (!gigHooks.on) { questToast(); bandToast(); } if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
+          scroll.logged = true; scroll.credited = true; const had = chordsHad(); Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); celebrate(had); if (!gigHooks.on) { questToast(); bandToast(); } if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
         }
         /* A sheet that fits the screen has only the clock to go by, so it plays on until it counts. */
         if (scroll.logged || end >= 40) {

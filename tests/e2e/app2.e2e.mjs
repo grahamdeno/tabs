@@ -550,3 +550,29 @@ test("4.43.0 the band from the song screen: on or off, drums or click and up to 
   assert.match(await page.innerText(".menu [data-m='band']"), /Click · 150%/);
   await page.click(".menu [data-m='band']"); await page.waitForSelector("#band-sheet");
 });
+
+test("4.44.0 an achievement callout bursts over a playing song, takes no taps, clears itself and waits its turn", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900 } : s), settings: { ...LIB.settings, countIn: false } };
+  const page = await phone(t, lib);
+  await page.goto(base + "#/song/a"); await page.waitForSelector("#play");
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("fold"));
+  await page.evaluate(() => import("/app.js").then(m => { m.showCallout({ kind: "combo", word: "COMBO", big: "x10" }); m.showCallout({ kind: "level", word: "LEVEL UP", big: "3" }); }));
+  await page.waitForSelector(".co");
+  assert.equal(await page.locator(".co").count(), 1, "one at a time");
+  assert.match(await page.innerText(".co-badge"), /COMBO\s*x10/);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".co")).pointerEvents), "none", "taps go to the screen underneath");
+  await page.waitForFunction(() => /COMBO x10/.test(document.getElementById("co-say")?.textContent || ""));
+  await page.waitForFunction(() => /LEVEL UP/.test(document.querySelector(".co-badge")?.textContent || ""), null, { timeout: 5000 }); /* the next one, after the first clears */
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "the song kept playing");
+  await page.waitForSelector(".co", { state: "detached", timeout: 5000 });
+});
+
+test("4.44.0 with Reduce Motion a callout is still, and a play-through with a new chord gets one", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 12 } : s), settings: { ...LIB.settings, countIn: false } };
+  const page = await phone(t, lib, { reducedMotion: "reduce" });
+  await page.goto(base + "#/song/a"); await page.waitForSelector("#play");
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("tabs-v1")); d.ach = { level: 1, badges: [] }; localStorage.setItem("tabs-v1", JSON.stringify(d)); });
+  await page.evaluate(() => import("/app.js").then(m => m.showCallout({ kind: "chord", word: "NEW CHORD", big: "F" })));
+  await page.waitForSelector(".co.still");
+  assert.equal(await page.evaluate(() => document.getAnimations().filter(a => a.effect?.target?.closest?.(".co") && a.effect.getComputedTiming().duration > 400).length), 0, "nothing moves");
+});

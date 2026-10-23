@@ -182,6 +182,8 @@ anything a person found on their own is skipped.
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
 
+Achievement callouts (4.44.0) teach themselves: they appear when something is earned and point to nothing hidden, so they need no tip.
+
 ### Plain sheet (practice, tabs, Play together)
 
 | # | Hidden feature | How you do it | Coverage | Why here |

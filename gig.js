@@ -16,11 +16,12 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { VERSION, gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, looksGuessed, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, looksGuessed, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
+import { callout } from "./callout.js";
 import { friend, FRIENDS } from "./friends.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
@@ -273,6 +274,8 @@ function frame() {
     flash(r.hit);
   }
   if (graded) paintScore();
+  /* 4.44.0 (#78): a combo of 10, 25, 50 or 100 bursts over the show, once each per show */
+  if (graded && COMBO_STEPS.includes(g.score.combo) && g.comboShown !== g.score.combo) { g.comboShown = g.score.combo; callout(data, { kind: "combo", word: "COMBO", big: `x${g.score.combo}` }); }
   /* the mic's level */
   if (g.stream && g.level != null) {
     const bars = $("gg-mic")?.querySelectorAll(".gg-lv i") || [];
