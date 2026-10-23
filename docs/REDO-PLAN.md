@@ -11,7 +11,7 @@ Tick a task's box in this file in the same commit that does it.
 
 ## Rules for whoever runs a step
 
-1. Read CLAUDE.md first. Its standing rules apply: plain writing with no em dashes, don't change how the search bar works, keys stay on the phone, the AI never writes lyrics, mid-song actions in thumb reach.
+1. Read CLAUDE.md first. Its standing rules apply: plain writing with no em dashes, keys stay on the phone, the AI never writes lyrics, mid-song actions in thumb reach.
 2. Open the mockup board named in the step (the canvas boards are listed by title) and match it. Where the board and this plan disagree, the board wins for looks and this plan wins for behaviour.
 3. One step per release: a feature is a minor version (4.21.0), a fix is a patch. Bump `VERSION` in `core.js` and `CACHE` in `sw.js` together (edit only the `const CACHE` line; a broad replace broke `sw.js` once).
 4. Add or update tests for what changed. Run `eslint .` and `node tests/quick.mjs` before each push. Don't run the full suite. Then `git fetch origin main && git rebase origin/main` and push to `main`.
@@ -51,7 +51,6 @@ Tick a task's box in this file in the same commit that does it.
 
 ## Step 3 [Sonnet] 4.22.0: Search, focused (board "Search · focused")
 
-Don't change how the search bar works: only the screen under it while it's focused and empty.
 
 - [x] 3.1 While searching with an empty query: hide Up next, the nudge card and the filters (CSS on `body.searching`), and close the gap.
 - [x] 3.2 Two big buttons: **Paste a song** (accent) reads `navigator.clipboard.readText()` and passes the text into the same path a paste in the bar takes today (find it from `showPasteCard`); if reading is refused, toast "Long-press the bar and choose Paste". **What can I play next?** (card button with a small Louie, `louie("happy", { pose: "point" })`) opens Play next as today.

@@ -9,8 +9,6 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - Versions: a feature is a minor release (2.15.0), a fix is a patch (2.16.1),
   numbered from the release where the defect was found. Bump `VERSION` in
   `core.js` and `CACHE` in `sw.js` together (a test checks they match).
-- Don't change how the search bar works. Its look may follow the rest of the
-  app (Graham, 2.19.0: bronze piping and frosted glass like the other bars).
 - When Graham asks for mockups or an explanation first, give those and wait
   for a go before building.
 - Lyrics and the AI (Graham, 2026-10-22): the AI may read a song's lyrics
