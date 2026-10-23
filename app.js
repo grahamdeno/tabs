@@ -1294,7 +1294,7 @@ function songMenu(song, anchor, redrawSong) {
       sp.value = Math.min(+sp.max, Math.max(+sp.min, +sp.value + dir * stp)); sp.oninput?.();
       paint(); return;
     }
-    const inPlace = { metro: () => toggleMetronome(song, moreBtn()), nn: () => toggleNN(),
+    const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()), nn: () => toggleNN(),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
@@ -1302,7 +1302,7 @@ function songMenu(song, anchor, redrawSong) {
       if (NEW_IN_MENU[ip.dataset.m]) markUsed(NEW_IN_MENU[ip.dataset.m]);
       const id = ip.dataset.m; paint(); m.querySelector(`[data-m="${id}"]`)?.focus({ preventScroll: true }); return;
     }
-    if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", moreBtn()); return; }
+    if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", toolsAnchor()); return; }
     const ln = ev.target.closest("[data-lines]");
     if (ln) { data.settings.gigLines = ln.dataset.lines === "full" ? "full" : +ln.dataset.lines; Tabs.save(data); paint(); m.querySelector(`[data-lines="${ln.dataset.lines}"]`)?.focus({ preventScroll: true }); return; }
     const b = ev.target.closest("[data-m]");
@@ -1320,10 +1320,12 @@ function songMenu(song, anchor, redrawSong) {
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => songDeOpen?.(),
-       metro: () => toggleMetronome(song, moreBtn()),
+       metro: () => toggleMetronome(song, toolsAnchor()),
        band: () => bandSheet(song) })[id]?.();
   };
 }
+/* 4.45.1: a toast from a switch in Tools sits just above the open sheet (it floated at the top of the screen, behind the header) */
+const toolsAnchor = () => document.querySelector(".menu.tools") || moreBtn();
 /* Now and Next: the chord you're on and the next one, in the bar while the song plays. */
 function toggleNN() {
   const on = data.settings.diagrams !== true;
@@ -1332,7 +1334,7 @@ function toggleNN() {
   diag.nn = on && diag.seq.length > 0;
   diag.idx = null;
   updateDiagrams();
-  toast(on ? "Now and Next on" : "Now and Next off", moreBtn());
+  toast(on ? "Now and Next on" : "Now and Next off", toolsAnchor());
 }
 /* Tools, from the paused gig. */
 function openTools(anchor) { if (viewing) songMenu(viewing, anchor, () => redraw?.()); }

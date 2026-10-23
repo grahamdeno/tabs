@@ -3605,7 +3605,6 @@ button.ab-tile b { color: var(--accent-ink); }
 .rd-banner.on-night { background: var(--streak); box-shadow: 0 5px 0 var(--streak-deep); color: #14213D; }
 .rd-banner.on-night small { color: rgba(20, 33, 61, .62); }
 .on-skip { flex: none; height: 38px; padding: 0 14px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .24); color: #14213D; font: 700 15px var(--display); }
-.rd-top.on-quiet .hud { opacity: .45; }
 .on-stop { margin-bottom: 4px; }
 .on-lab { position: absolute; top: 10px; width: 132px; font: 700 15px var(--display); color: var(--fg); line-height: 1.15; pointer-events: none; }
 .on-lab small { display: block; font: 700 12px var(--sans); color: var(--muted); margin-top: 2px; }

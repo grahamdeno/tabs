@@ -576,3 +576,12 @@ test("4.44.0 with Reduce Motion a callout is still, and a play-through with a ne
   await page.waitForSelector(".co.still");
   assert.equal(await page.evaluate(() => document.getAnimations().filter(a => a.effect?.target?.closest?.(".co") && a.effect.getComputedTiming().duration > 400).length), 0, "nothing moves");
 });
+
+test("4.45.1: a toast from a switch in Tools sits above the sheet, not at the top of the screen", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
+  await page.click("#more"); await page.waitForSelector('.menu.tools');
+  await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length);
+  await page.click('.menu [data-m="nn"]'); await page.waitForSelector('.toast.show');
+  await page.waitForFunction(() => { const t = document.getElementById("toast").getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return Math.abs(t.bottom - m.top) < 24; });
+});
