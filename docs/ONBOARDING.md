@@ -19,6 +19,11 @@ and a release that adds a tip or Show me marks it.
 - **Order** under each page is the order to teach them. Across pages, the time-based list below decides
   which comes first: a feature is taught on its page at the moment it pays off, not in a tour up front.
 
+## Built so far
+
+- 4.39.2: the four stale Tips & gestures lines, "1 SONGS".
+- 4.40.0: Opening night (the first five steps of the first session below: mic, chord, verse, pause, first show), Skip (asks first), Replay in Tips & gestures, and the stat bar's VENUE, STREAK and FANS labels until each is tapped once. Not now on the microphone plays Opening night unscored and says so; it never asks again by itself.
+
 ## The fresh-install walkthrough (2026-10-22, 4.39.1)
 
 Empty storage, an iPhone-sized screen, Dark, the microphone allowed. Screens in order, what a new person
@@ -270,8 +275,8 @@ anything a person found on their own is skipped.
 ## Suggested releases (for Graham to choose)
 
 1. **Patch (4.39.2, done):** the four stale Tips & gestures lines, "1 SONGS" on the Band page.
-2. **The tutorial leg** (mockup first): the first leg of the Road as onboarding, with Louie asking for
-   the microphone and explaining the Gig.
+2. **The tutorial leg (4.40.0, done as Opening night)**: the first leg of the Road as onboarding, with
+   Louie asking for the microphone and explaining the Gig; the stat bar's labels came with it.
 3. **Setup steps:** Add to Home Screen card, backup timing, the AI key line where its gap shows.
 4. **Louie's one line on each page** and the stat bar arrows.
 5. **Pages light up as earned**, if Graham wants it.

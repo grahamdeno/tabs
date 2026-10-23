@@ -1,6 +1,6 @@
 // Tabs coach: one-time tips shown in place, the demos behind Show me, and the
 // Tips & gestures page. Loaded with the app; app.js calls in when a tip is due.
-import { Tabs, tipPaced } from "./core.js";
+import { Tabs, openingReplay, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
 import { setSetCtx } from "./sets.js";
 import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
@@ -323,10 +323,12 @@ function renderGestures() {
     <p class="gs-intro">Things you can do with a tap or a drag that don't have a button. <b>Show me</b> plays the tip again where it happens.</p>
     ${GESTURES.map(([h, rows]) => `<div class="label">${h}</div><div class="list glass gs-list">${rows.map(([demo, t, s, ic]) => `
       <div class="gs-row"><span class="gs-ic">${icon(ic)}</span><div class="gs-t"><b>${esc(t)}</b><span>${esc(s)}</span></div>${demo ? `<button class="gs-show" data-demo="${demo}">Show me</button>` : ""}</div>`).join("")}</div>`).join("")}
+    <div class="label">Opening night</div><div class="list glass gs-list"><div class="gs-row"><span class="gs-ic">${icon("play")}</span><div class="gs-t"><b>The first leg of the Road</b><span>Five steps on the sample song: the microphone, a chord, a verse, a pause, a show</span></div><button class="gs-show gs-replay" id="gs-opening" data-demo="opening">Replay</button></div></div>
     <button class="btn" id="gs-reset" style="display:block;margin:22px auto 6px">Reset tips</button>
     <p class="foot" style="text-align:center;margin:0 0 30px">Shows each tip again, once, when it's next useful.</p>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
-  app.querySelectorAll("[data-demo]").forEach(b => b.onclick = () => showMe(b.dataset.demo));
+  app.querySelectorAll(".gs-row [data-demo]:not(#gs-opening)").forEach(b => b.onclick = () => showMe(b.dataset.demo));
+  $("gs-opening").onclick = () => { openingReplay(data); Tabs.save(data); go("#/"); };
   $("gs-reset").onclick = () => {
     data.settings.tipsSeen = {}; data.settings.used = {}; lastCoach = { key: "", at: 0 }; Tabs.save(data);
     window.scrollTo({ top: 0, behavior: calm() ? "auto" : "smooth" }); /* back to the top, where Back is */

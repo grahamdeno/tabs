@@ -139,7 +139,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | Key | Values | Notes |
 |---|---|---|
 | `theme` | `"auto"` (follow the phone, the default), `"dark"` or `"light"`; may also be `"green"` | Green Room (4.0.0) |
-| `tipsSeen`, `used` | objects | Which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help |
+| `tipsSeen`, `used` | objects | Which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `used["hud-venue"]`, `["hud-streak"]`, `["hud-fans"]` (4.40.0): the stat bar item was tapped once, so its label goes |
 | `micExplained` | boolean | The tuner has explained the microphone |
 | `tunerMode` | `"acoustic"`, `"electric"` or `"chromatic"` | |
 | `tunerGuided` | boolean | |
@@ -178,6 +178,7 @@ These sit next to `songs`, `sets` and `settings` in the saved library. Rival pla
 | `friends` | `{ [name]: { xp, wk, at } }` | A friend's XP that week as of their last link (4.13.0) |
 | `data.rehearse` | `{ misses, lands, sc }` (4.8.0) | `lands` (4.23.0) is the same shape as `misses` for the changes you landed in gigs (they feed "Your changes"); `misses` maps a chord change `"C>F"` to `{ n, days }`, the times you missed it in gigs per day (last 14 days); `sc` is today's soundcheck `{ day, pairs, got, done? }` (the switch lesson ids it's made of, the ones done, and whether its XP was earned); `lesson` (4.21.0) is the neck's lesson of the day `{ day, plan: { warm, learn, play }, done, xp? }`: the warm-up and new change as `{ id, a, b }` (plus `why`, or `song`, `times`, `inSongs`), the song part as `{ songId, title, sec, secName, rate }` (`sec` is the section's order among the song's labels, -1 for the whole song), the parts done (0 to 2), and whether its 40 XP was earned |
 | `data.merch` | `{ spent, test, own, has, louie, backdrop, rainDays, told }` (4.14.0; `test` 4.16.0) | `test`: fans added from Settings > Help to try the Merch table; they only add to what you can spend, never to XP, the chart or your venue. Free finishes (Pink, Teal, 4.16.0) can be worn without being in `has`. Fans spent at the Merch table (taken off the fans you've earned to give what you have to spend), gear held `{ rain, double, take }` (Double set counts the gigs left), the finishes and backdrops bought, the ones on (`stock` and `basement` when missing), the days a Rain check covered (last 60; they count for the streak, never as plays or XP), and the items Show complete has already pointed out |
+| `data.opening` | `{ step, fans, micOff, done, seen, skipped, replay, started }` (4.40.0) | Opening night, the first leg of the Road. `step` is how many of the five steps are done (mic, chord, verse, pause, show); `fans` the lesson fans its first four steps gave (counted in your fans, once); `micOff` when Not now was chosen for the microphone (Opening night's shows play unscored); `done`, `seen`, `skipped` and `started` are times. Missing for a new player (it starts on Opening night) and for anyone who had a play or a lesson before 4.40.0 (they never see it) |
 
 A duel link carries the song and `{ id, from, pct, combo, crowd, xp?, wk?, reply? }` (xp and wk, the sender's XP that week, since 4.13.0).
 

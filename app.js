@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { MAX_LENGTH, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { MAX_LENGTH, openingOn, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -279,7 +279,7 @@ function renderViewer(id) {
   paintLoop(song);
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
-  else setTimeout(() => songCoach(song), 600);
+  else setTimeout(() => { if (openingOn(data)) import("./opening.js").then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
 
   const speed = $("speed");
   // Song length style: the slider sets how long the song takes (right = shorter = faster).
@@ -1500,7 +1500,7 @@ document.addEventListener("click", e => {
   if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");
     showChordPop(same ? null : chord);
-    if (!same) chordTapped(chord);
+    if (!same) { chordTapped(chord); if (openingOn(data)) import("./opening.js").then(m => m.onChord()); }
     return;
   }
   if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);

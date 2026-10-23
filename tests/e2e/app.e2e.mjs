@@ -10,15 +10,15 @@ import { chromium, base, browser, phone, skip, LIB, FAKE_MIC, useBrowser, until,
 useBrowser();
 
 
-test("first launch adds the sample song and opens on the Road with it ready (4.0.0)", { skip: skip() }, async t => {
+test("first launch adds the sample song and opens on the Road at Opening night (4.0.0, 4.40.0)", { skip: skip() }, async t => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.goto(base); await page.waitForSelector(".rd-path");
   assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
-  assert.match(await page.innerText("#rd-tonight"), /Gig: /, "the sample song is ready to play as a gig");
-  await page.click("#rd-songbook"); await page.waitForSelector("#list .row"); /* 4.9.0: the Songbook page */
-  assert.equal(await page.locator("#list .row").count(), 1);
+  assert.equal(await page.locator(".rd-banner.on-night").count(), 1, "4.40.0: a new player starts on Opening night");
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#list .row");
+  assert.equal(await page.locator("#list .row").count(), 1, "the sample song is there");
   assert.deepEqual(errors, []);
   await ctx.close();
 });

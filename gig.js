@@ -22,6 +22,7 @@ import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
+import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
 let gig = null; /* the show on stage, or null */
 const $ = id => document.getElementById(id);
@@ -240,6 +241,7 @@ function frame() {
   const gel = gelOf(w.sec || "verse");
   if (gel !== g.gel) { g.gel = gel; g.el.dataset.gel = gel; }
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
+  gigFrame(g, w.sec, scroll.on && !counting);
   /* lines (Lines in a gig can change in Tools) */
   if (g.el.dataset.lines !== String(linesWanted())) { g.el.dataset.lines = linesWanted(); setFull(g); g.b = -1; }
   if (w.b !== g.b) { g.b = w.b; paintLines(w); if (g.paused) paintHold(); }
@@ -329,9 +331,11 @@ export function openGig(song, opts = {}) {
   setFull(g);
   paintMap(); paintMic(); paintScore();
   /* Score my plays (Settings > Playing) decides whether a show starts listening. */
-  if (data.settings.gigScore !== false) listen(g); else { g.off = true; paintMic(); }
+  /* Opening night (4.40.0): the first verse waits for Count me in; Not now on the microphone plays unscored */
+  const waits = gigOpen(g, g.el, () => { if (gig === g && !scroll.on) startScroll(song); });
+  if (data.settings.gigScore !== false && !g.noMic) listen(g); else { g.off = true; paintMic(); }
   g.raf = requestAnimationFrame(frame);
-  if (!scroll.on) startScroll(song);
+  if (!scroll.on && !waits) startScroll(song);
 }
 function paused(on) {
   const g = gig;
@@ -340,7 +344,7 @@ function paused(on) {
   g.el.classList.toggle("paused", on);
   $("gg-hold").hidden = !on;
   $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
-  if (on) { paintHold(); $("gg-resume").focus({ preventScroll: true }); }
+  if (on) { g.holdSay = gigPaused(g); paintHold(); $("gg-resume").focus({ preventScroll: true }); }
 }
 /* Full (4.4.0): the song page shows; the show is a strip at the top and Hearing you and Pause at the bottom */
 function setFull(g) { document.body.classList.toggle("gig-full", g.el.dataset.lines === "full" && !g.ended); }
@@ -351,7 +355,7 @@ function paintHold() {
   const now = $("gg-lines")?.querySelector(".gl-now");
   box.replaceChildren(...(now ? [now.cloneNode(true)] : []));
   $("gg-hlouie").innerHTML = louie("happy", { size: 64 });
-  $("gg-hsay").textContent = g.score.combo >= 2 ? "Take a breath. The crowd's still with you, and your combo is held." : "Take a breath. The crowd's still here when you're ready.";
+  $("gg-hsay").textContent = g.holdSay ? g.holdSay : g.score.combo >= 2 ? "Take a breath. The crowd's still with you, and your combo is held." : "Take a breath. The crowd's still here when you're ready.";
 }
 /* Back a line: the line before the one you stopped on comes to the reading line */
 function backALine() {
@@ -363,7 +367,7 @@ function backALine() {
   window.scrollTo(0, Math.max(0, to));
   g.b = -1; g.idx = -1;
 }
-function resume() { const g = gig; if (!g) return; document.querySelector(".menu")?.remove(); paused(false); startScroll(g.song); }
+function resume() { const g = gig; if (!g) return; document.querySelector(".menu")?.remove(); paused(false); g.holdSay = ""; startScroll(g.song); gigResumed(g); }
 /* Leave the show (X or Sheet): the song stays open, paused where it was */
 function leave() {
   const g = gig;
@@ -383,6 +387,7 @@ export function closeGig(quiet = false) {
   g.el?.remove();
   g.unbind?.();
   document.body.classList.remove("gigging", "gig-full");
+  hideStrip();
   gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
   document.querySelector(".menu.tools")?.remove();
   if (!quiet && g.from === "road") go("#/");
@@ -403,6 +408,8 @@ function showComplete() {
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
   const tip = merchTip(data); /* the Merch table (4.14.0): something you can now afford, said once */
+  const opened = gigDoneHere(); /* Opening night's last step */
+  if (opened) g.from = "road";
   Tabs.save(data);
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
   const crowd = graded ? gigCrowd(g.score) : null;
@@ -424,6 +431,7 @@ function showComplete() {
       ${doubled !== undefined ? `<p>Double set: <b>2x XP</b> on this show. ${doubled ? `${doubled} more to go.` : "That was the last one."}</p>` : ""}
       ${cover ? `<p>Cover quest done: you learned a song you love. <b>3x bonus fans</b></p>` : ""}
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
+      ${opened ? `<p><b>Opening night: done!</b> Your streak starts tonight.</p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}

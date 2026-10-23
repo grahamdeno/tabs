@@ -566,7 +566,7 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const lib = { ...LIB, songs, merch: { own: { rain: 1, take: 1 } }, charts: { tier: 0, battle: { day: dk(0), rival: "Neon Jen", songId: "a", target: 70, result: "lost", pct: 50 } } };
   const page = await phone(t, lib, { home: true });
   await page.waitForSelector("#h-fans");
-  assert.match(await page.innerText("#h-streak"), /^\s*3\s*$/, "the Rain check covered yesterday");
+  assert.match(await page.innerText("#h-streak > span"), /^\s*3\s*$/, "the Rain check covered yesterday");
   const fans = +(await page.innerText("#h-fans")).replace(/\D/g, "");
   assert.ok(fans >= 1200, "fans to spend");
   await page.click("#h-fans"); await page.waitForSelector(".mc-head");

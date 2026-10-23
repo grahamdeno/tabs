@@ -2162,3 +2162,22 @@ test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing h
   assert.equal((up.match(/class="lv-fs" x="0"/g) || []).length, 3, "three curled fingers show on the fist");
   assert.match(louie("happy", { pose: "point" }), /translate\(180 108\) rotate\(40\)/, "the pointing hand leans, never straight up");
 });
+
+test("4.40.0 Opening night: only for a new player, one step at a time, fans once, skip and replay", () => {
+  const fresh = () => ({ songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], sets: [], trash: [], settings: {} });
+  const d = fresh();
+  assert.equal(C.openingView(d), "leg", "a new player starts on Opening night");
+  assert.equal(C.openingView({ ...fresh(), skills: { done: { "chord-G": { n: 1 } } } }), null, "anyone with a lesson (or a play) never sees it");
+  assert.equal(C.openingAdvance(d, "chord"), false, "steps go in order");
+  assert.equal(C.openingAdvance(d, "mic"), true);
+  assert.equal(C.openingStep(d), 1); assert.equal(C.fansOf(d), C.FANS.lesson, "a step gives lesson fans");
+  for (const id of ["chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
+  assert.equal(d.opening.fans, 4 * C.FANS.lesson, "the show itself pays as a play, not as a step");
+  assert.equal(C.openingView(d), "done", "the Road shows it done once");
+  d.opening.seen = 1; assert.equal(C.openingView(d), null);
+  C.openingReplay(d); assert.equal(C.openingView(d), "leg", "Tips & gestures replays it");
+  C.openingAdvance(d, "mic"); assert.equal(d.opening.fans, 4 * C.FANS.lesson, "no fans twice");
+  const s = fresh(); C.openingSkip(s); assert.equal(C.openingView(s), null, "Skip ends it");
+  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 5, fans: 25, micOff: true });
+  assert.equal(C.cleanOpening("no"), null);
+});

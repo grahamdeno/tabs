@@ -3,7 +3,7 @@
 //   statBar()        the venue, the gig streak and your fans, as buttons (bindStatBar wires them)
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the fans in the stat bar (4.16.2)
-import { Tabs, fansToSpend, lifetimePlays, playSongs, rainSettle, streakOf, venueOf } from "./core.js";
+import { Tabs, fansToSpend, lifetimePlays, openingOn, playSongs, rainSettle, streakOf, venueOf } from "./core.js";
 import { esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
 import { guitarIcon, buzz } from "./rock.js";
@@ -19,14 +19,18 @@ export function statBar() {
   const used = rainSettle(data);
   if (used.length) { Tabs.save(data); rained = used; }
   const plays = lifetimePlays(data), v = venueOf(plays), st = streakOf(playSongs(data)), fans = fansToSpend(data);
+  /* 4.40.0: each one says what it is, with a ›, until you've tapped it once (not during Opening night) */
+  const lab = (k, t) => openingOn(data) || data.settings.used?.["hud-" + k] ? "" : `<small class="h-lab" aria-hidden="true">${t}</small>`;
   return `<div class="hud" role="group" aria-label="Your stats">
-    <button id="h-venue" aria-label="${esc(v.name)}, venue ${v.ring + 1}. Open the Tour Map">${BADGE}<span>${v.ring + 1}</span></button>
-    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${guitarIcon(st.today)}<span>${st.days}</span></button>
-    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans to spend. Open the Merch table">${TICKET}<span>${n(fans)}</span></button>
+    <button id="h-venue" aria-label="${esc(v.name)}, venue ${v.ring + 1}. Open the Tour Map">${BADGE}<span>${v.ring + 1}</span>${lab("venue", "VENUE")}</button>
+    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${guitarIcon(st.today)}<span>${st.days}</span>${lab("streak", "STREAK")}</button>
+    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans to spend. Open the Merch table">${TICKET}<span>${n(fans)}</span>${lab("fans", "FANS")}</button>
   </div>`;
 }
 export function bindStatBar() {
   const $ = id => document.getElementById(id);
+  const learned = k => { if (data.settings.used?.["hud-" + k]) return; data.settings.used = { ...(data.settings.used || {}), ["hud-" + k]: true }; Tabs.save(data); };
+  for (const k of ["venue", "streak", "fans"]) $("h-" + k)?.addEventListener("click", () => learned(k));
   $("h-venue")?.addEventListener("click", () => go("#/playmap"));
   /* 4.16.0: the guitar rocks and the phone taps before your profile opens */
   $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });

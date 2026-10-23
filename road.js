@@ -12,8 +12,9 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { lifetimePlays, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS } from "./core.js";
-import { app, esc, haptic, icon, layer, toast } from "./ui.js";
+import { lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS, OPENING, Tabs } from "./core.js";
+import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
+import { micSheet, songFor } from "./opening.js";
 import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
@@ -113,8 +114,70 @@ function otherSongs(stop) {
   layer.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { close(); playGig(b.dataset.play, { from: "road" }); });
 }
 
+/* ---- Opening night (4.40.0): the first leg teaches the app by doing it ---- */
+const OIC = {
+  mic: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="11" y="3" width="10" height="17" rx="5" fill="#fff"/><path d="M6.5 14a9.5 9.5 0 0 0 19 0M16 24v5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>`,
+  chord: ICONS.chord,
+  verse: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 5l17 11-17 11z" fill="#fff"/></svg>`,
+  pause: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="7" height="22" rx="2.5" fill="#fff"/><rect x="18" y="5" width="7" height="22" rx="2.5" fill="#fff"/></svg>`,
+  show: ICONS.star
+};
+const OSAY = ["Hi, I'm Louie. Tap the glowing pick and I'll show you around. Five steps, then your first show.",
+  "Now a chord. Tap the glowing pick.", "Time to play. Just the first verse.",
+  "Next: pausing, and picking up where you left off.", "Last one: your first show, start to finish."];
+function openingCard(i, step) {
+  const o = OPENING[i], state = i < step ? "done" : i === step ? "now" : "locked";
+  const line = state === "locked" ? "Finish the steps before this one." : state === "done" ? "Done." : [
+    "I'll say why I listen, then your phone asks for the microphone.", "Open the song and tap a chord to see its shape.",
+    "Play the first verse. Strum once on each chord change.", "Play, tap anywhere to pause, then Resume.", "Play a song start to finish."][i];
+  const btn = state === "now" ? `<button class="btn primary rd-start" data-ostart="${i}">${o.id === "show" ? `PLAY · +${FANS.play} FANS` : `START · +${FANS.lesson} FANS`}</button>` : "";
+  return `<div class="rd-pop ${state}" role="dialog" aria-label="${esc(o.name)}"><b>${esc(o.name)}</b><p>${esc(line)}</p>${btn}</div>`;
+}
+function renderOpening(view) {
+  const done = view === "done", step = done ? OPENING.length : openingStep(data);
+  if (done && !data.opening.seen) { data.opening.seen = Date.now(); Tabs.save(data); }
+  const stops = OPENING.map((o, i) => {
+    const state = i < step ? "done" : i === step ? "now" : "locked", x = ZIG[i % ZIG.length], big = o.id === "show";
+    return `<div class="rd-stop on-stop" style="--x:${x}px"><button class="rd-node ${big ? "headline big" : "chord"} ${state}" data-ostep="${i}" aria-label="${esc(`${o.name}, ${state === "now" ? "your next step" : state}`)}">${pickSVG(state === "now")}<span class="rd-ic">${state === "done" ? ICONS.check : OIC[o.id]}</span></button><span class="on-lab ${x > 0 ? "l" : "r"}${state === "locked" ? " dim" : ""}"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></span></div>`;
+  }).join("");
+  app.innerHTML = `
+    <div class="rd-top${done ? "" : " on-quiet"}">${statBar()}</div>
+    <section class="rd-banner on-night" aria-label="Opening night">
+      <div><small>OPENING NIGHT${done ? " · DONE" : ` · ${OPENING.length} STEPS`}</small><b>${done ? "Your first night" : "Learn the stage"}</b></div>
+      ${done ? `<button class="on-skip" id="on-next">On to Leg 1</button>` : `<button class="on-skip" id="on-skip">Skip</button>`}
+    </section>
+    <div class="rd-path on-path" id="rd-path">
+      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[step])}</p></div>${louie(done ? "cheer" : "happy", { pose: done ? "thumb" : "wave", size: 112 })}</div>
+      ${stops}
+    </div>`;
+  const $ = id => document.getElementById(id);
+  bindStatBar();
+  homeHooks.refresh = null;
+  $("on-next")?.addEventListener("click", () => renderRoad());
+  $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
+    () => { openingSkip(data); Tabs.save(data); renderRoad(); }));
+  const path = $("rd-path");
+  const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); };
+  path.addEventListener("click", e => {
+    const st = e.target.closest("[data-ostart]");
+    if (st) {
+      const id = OPENING[+st.dataset.ostart].id;
+      if (id === "mic") return micSheet(() => renderRoad());
+      const song = songFor();
+      if (!song) { toast("Add a song with chords first; then it's your stage"); return go("#/library"); }
+      return id === "chord" ? go("#/song/" + encodeURIComponent(song.id)) : playGig(song.id, { from: "road" });
+    }
+    const node = e.target.closest("[data-ostep]");
+    const open = node?.parentElement.querySelector(".rd-pop");
+    closePop();
+    if (node && !open) { node.parentElement.insertAdjacentHTML("beforeend", openingCard(+node.dataset.ostep, step)); haptic(1); }
+  });
+}
+
 export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
+  const ov = openingView(data);
+  if (ov) { homeHooks.openDrawer = false; return renderOpening(ov); }
   const wantDrawer = homeHooks.openDrawer; homeHooks.openDrawer = false;
   const plays = lifetimePlays(data), st = streakOf(playSongs(data)), v = venueOf(plays);
   const road = roadPath(data), cur = road.current, leg = road.leg;

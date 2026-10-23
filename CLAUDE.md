@@ -81,6 +81,7 @@ The README describes each as it works today.
 | The bar folding into Play's corner while playing, pull down to go back | `fold.js` |
 | Settings menu and pages, Recently deleted | `settings.js` |
 | Tips, Show me demos, Tips & gestures | `coach.js` |
+| Opening night: the first leg that teaches by doing (the strip, the mic sheet, the Gig's hooks; the leg is drawn in `road.js`) | `opening.js` (steps: `OPENING`, `openingAdvance` in `core.js`) |
 | Play next, chord charts, Get the song | `findai.js` |
 | Tuner | `tuner.js` (+ `heads.js`) |
 | Your profile (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |

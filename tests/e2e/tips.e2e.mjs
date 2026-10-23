@@ -12,7 +12,7 @@ const EXPECT = {
 test("every Show me demos on screen", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }], settings: { ...LIB.settings, micExplained: true } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/gestures"; }); await page.waitForTimeout(400);
-  const demos = await page.evaluate(() => [...document.querySelectorAll(".gs-show")].map(b => b.dataset.demo));
+  const demos = await page.evaluate(() => [...document.querySelectorAll(".gs-show:not(.gs-replay)")].map(b => b.dataset.demo));
   assert.deepEqual([...demos].sort(), Object.keys(EXPECT).sort(), "every demo is covered here");
   for (const d of demos) {
     await page.evaluate(() => { location.hash = "#/gestures"; }); await page.waitForTimeout(350);
