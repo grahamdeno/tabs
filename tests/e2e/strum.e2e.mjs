@@ -99,7 +99,7 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
   await page.goto(base + "#/library"); await page.waitForSelector("#add"); /* 4.9.0: Add is in the Songbook */
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
   await page.reload(); await page.waitForSelector("#add");
-  await page.click("#add"); await page.waitForSelector("#as-write"); await page.click("#as-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector("#ed-sing");
+  await page.click("#add"); await page.waitForSelector("#sr-write"); await page.click("#sr-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector("#ed-sing");
   await page.click("#ed-sing"); await page.waitForSelector("[data-mode='sing']");
   assert.equal(await page.getAttribute("[data-mode='sing']", "aria-pressed"), "true", "Sing it stays the default");
   await page.click("[data-mode='strum']");

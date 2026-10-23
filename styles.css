@@ -3086,16 +3086,6 @@ body.gigging .ask { z-index: 66; }
 .ls-bar b { font: 800 12px var(--sans); }
 
 /* ---------- Search, focused (4.22.0): two big buttons, then your last songs as cards ---------- */
-.sr-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 6px; }
-.sr-btns.one { grid-template-columns: 1fr; }
-.sr-paste, .sr-next { height: 84px; border: 0; border-radius: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 16px/1.15 var(--display); color: var(--fg); }
-.sr-paste { flex-direction: column; gap: 4px; background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-deep); }
-.sr-paste svg { width: 26px; height: 26px; fill: currentColor; stroke: none; }
-.sr-paste svg path { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; fill: none; }
-.sr-paste svg .clipt { fill: var(--accent); stroke: currentColor; stroke-width: 1.6; }
-.sr-next { background: var(--card); box-shadow: 0 4px 0 var(--rim); justify-content: flex-start; padding: 0 12px 0 8px; text-align: left; }
-.sr-next .louie { flex: none; }
-.sr-paste:active, .sr-next:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
 .sr-cards { display: flex; flex-direction: column; gap: 10px; }
 .sr-card { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); }
 .sr-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; text-align: left; color: var(--fg); padding: 0; }
@@ -3703,28 +3693,6 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 @keyframes co-stamp { from { transform: scale(1.8) rotate(-12deg); opacity: 0; } to { transform: rotate(-4deg); opacity: 1; } }
 @keyframes co-flip { from { transform: perspective(500px) rotateY(180deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
-/* ---- Add a song, asked first (4.45.0, #74): addsong.js ---- */
-.panel.as { display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 40px - var(--safe-t)); }
-.as-h { margin: 2px 2px 0; font: 700 30px/1.1 var(--display); color: var(--fg); }
-.as-field { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 14px; border-radius: 16px; background: var(--card); border: 2px solid var(--accent); }
-.as-field svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
-.as-field input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: 700 17px var(--sans); outline: none; }
-.as-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
-.as-note { margin: 4px 2px; color: var(--fg-2); font-size: 14px; line-height: 1.4; }
-.as-lab { margin: 6px 2px 0; font: 800 12px var(--sans); letter-spacing: .08em; color: var(--muted); }
-.as-row { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 12px; border: 0; border-radius: 16px; background: var(--card); color: var(--fg); text-align: left; }
-.as-art { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex: none; display: grid; place-items: center; background: var(--card-2); }
-.as-art img { width: 100%; height: 100%; object-fit: cover; }
-.as-art i { width: 100%; height: 100%; display: grid; place-items: center; font: 700 20px var(--display); font-style: normal; color: var(--on-accent); }
-.as-art svg { width: 22px; height: 22px; color: var(--accent-ink); }
-.as-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.as-tx b { font: 800 16px var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.as-tx small { font-size: 13px; color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.as-row .chev { width: 18px; height: 18px; color: var(--muted); flex: none; }
-.as-foot { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }
-.as-b { height: 70px; border: 0; border-radius: 16px; background: var(--card); box-shadow: 0 4px 0 color-mix(in srgb, var(--card) 55%, #000); color: var(--fg); font: 800 14px var(--sans); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
-.as-b svg { width: 22px; height: 22px; color: var(--accent-ink); }
-
 /* ---- The Gig, words first (4.43.0): the words fill the screen, the game is one slim strip ---- */
 .gig { gap: 8px; }
 .gg-top .gg-combo { min-width: 34px; text-align: right; font: 700 18px var(--display); color: var(--fans-text); }
@@ -3769,3 +3737,22 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 .gg-moment.go { animation: gg-moment 2.6s ease both; }
 @keyframes gg-moment { 0% { opacity: 0; transform: translateY(-14px); } 10%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .gg-combo.hit, .gg-moment.go { animation: none; } }
+/* ---- Search screen (4.46.0): Browse, played lately, the ways to add a song; the bar folds into a magnifier ---- */
+.dock.collapsed { justify-content: flex-end; }
+.dock.collapsed .cmd { flex: none; width: 52px; padding: 0; justify-content: center; position: relative; }
+.dock.collapsed .cmd input { position: absolute; inset: 0; width: 100%; opacity: 0; }
+.dock.collapsed .cmd .clear { display: none; }
+.sr-browse { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 60px; margin: 14px 0 4px; padding: 8px 14px; border: 0; border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
+.sr-browse > .i:first-child { width: 24px; height: 24px; color: var(--accent-ink); flex: none; }
+.sr-browse > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sr-browse b { font: 700 17px var(--display); }
+.sr-browse small { font: 700 13px var(--sans); color: var(--fg-2); }
+.sr-browse .chev { width: 18px; height: 18px; color: var(--muted); flex: none; }
+.sr-browse:active, .sr-tool:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+.sr-tools { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin-top: 6px; }
+.sr-tool { height: 76px; border: 0; border-radius: 16px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); font: 800 13px var(--sans); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.sr-tool svg { width: 24px; height: 24px; fill: none; stroke: var(--accent-ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.sr-write, .sr-writeq { width: 100%; min-height: 48px; margin-top: 8px; border: 0; border-radius: 14px; background: none; color: var(--accent-ink); font: 800 15px var(--sans); display: flex; align-items: center; gap: 10px; padding: 0 4px; text-align: left; }
+.sr-write .i, .sr-writeq .i { width: 20px; height: 20px; flex: none; }
+.sr-writeq span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-note { margin: 10px 2px; color: var(--fg-2); font-size: 14px; }

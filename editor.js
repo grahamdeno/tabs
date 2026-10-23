@@ -428,7 +428,7 @@ function paintText(song) {
   const sheet = $("sheet");
   textSnap ||= snapshot(song);
   const empty = song.isNew && !String(song.body || "").trim();
-  /* 4.45.0: Paste, Type and Find the chords moved to "What song?" (addsong.js); the pad pastes and types.
+  /* 4.45.0: Paste, Type and Find the chords moved to "What song?"; the pad pastes and types.
      a new, empty song offers ways to start, under the pad; once
      there's text, the tools sit just above the bar. */
   sheet.innerHTML = `

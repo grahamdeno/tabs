@@ -1,15 +1,14 @@
 // The Road: the Songbook (search, filters, the song list, swipes) and the paste card. Split from app.js (4.15.1); app.js re-exports what other files use.
 import { coachTip, demoSearch, dismissCoach, markUsed, searchOpened, tick, tipDue, tipsSeen, used } from "./coach.js";
-import { VERSION, Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
+import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
 import { recentApple } from "./listen.js";
 import { guitarIcon } from "./rock.js";
-import { louie } from "./louie.js";
-import { fullWhen, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
+import { fullWhen, itunes, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
 import { renderImport } from "./share.js";
 import { ago, backupNow, needsBackup } from "./store.js";
 import { $, I, app, esc, followKeyboard, icon, layer, onLeave, toast } from "./ui.js";
-import { aiError, aiKey, busy, cleanSheet } from "./aihelp.js";
-import { bindFind, data, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, playSong, route, tunedRecently } from "./app.js";
+import { aiError, aiKey, busy, cleanSheet, readPhoto } from "./aihelp.js";
+import { bindFind, data, findAI, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, playSong, route, tunedRecently } from "./app.js";
 
 export let query = "";
 export let filter = "all";
@@ -142,7 +141,7 @@ export function renderLibrary() {
     </div>` : ""}
     <div id="list"></div>
     <div class="dock-fade"></div>
-    <div class="dock kb">
+    <div class="dock kb${searching || (keepSearch && query.trim()) ? "" : " collapsed"}" id="dock">
       <label class="cmd glass float">
         ${icon("search")}
         <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search, or paste a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or paste a song">
@@ -157,17 +156,18 @@ export function renderLibrary() {
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
-  $("add").onclick = () => import(`./addsong.js?v=${VERSION}`).then(m => m.askSong()); /* 4.45.0: "What song?" first */
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
   const q = $("q");
   const enterSearch = () => {
     if (searching) return;
     searching = true;
+    $("dock")?.classList.remove("collapsed"); /* 4.46.0: the magnifier opens into the bar */
     document.body.classList.add("searching");
     window.scrollTo(0, 0);
     renderList();
     searchOpened();
   };
+  $("add").onclick = () => { enterSearch(); q.focus({ preventScroll: true }); }; /* 4.46.0: Add is the search screen, where "Not in your Songbook yet?" lives */
   const exitSearch = () => {
     searching = false;
     query = ""; q.value = ""; $("clear").hidden = true;
@@ -342,11 +342,85 @@ function bindIndex(list, sorted, sort) {
   x.addEventListener("pointerup", end); x.addEventListener("pointercancel", end);
 }
 onLeave(() => { document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx"); });
+
+// ---- Adding a song from the search screen (4.46.0) ----
+/* The ways in that aren't "type its name": Paste, Scan (AI key), Sing it, Ideas (AI key), and a plain Write my own. */
+const TOOL = {
+  paste: '<rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/>',
+  scan: '<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16"/>',
+  sing: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  ideas: '<path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/>' };
+const toolBtn = (id, k, label) => `<button class="sr-tool" id="${id}"><svg viewBox="0 0 24 24" aria-hidden="true">${TOOL[k]}</svg>${label}</button>`;
+const addTools = () => {
+  const ai = !!aiKey();
+  return `<div class="label">Not in your Songbook yet?</div>
+    <div class="sr-tools">${toolBtn("sr-paste", "paste", "Paste")}${ai ? toolBtn("sr-scan", "scan", "Scan") : ""}${toolBtn("sr-sing", "sing", "Sing it")}${ai && data.songs.length ? toolBtn("nextidea", "ideas", "Ideas") : ""}</div>
+    <button class="sr-write" id="sr-write">${icon("edit")}Write my own</button>
+    <input type="file" id="sr-photo" accept="image/*" hidden>`;
+};
+const pasteClip = async () => {
+  let text = "";
+  try { text = await navigator.clipboard.readText(); } catch { return toast("Long-press the bar and choose Paste"); }
+  if (!text.trim()) return toast("Nothing to paste yet. Copy a chord sheet first.");
+  const link = text.match(/#\/import\/([zj][A-Za-z0-9_-]+)/);
+  if (link) { $("q")?.blur(); return renderImport(link[1]); }
+  if (text.trim().split("\n").filter(l => l.trim()).length < 2) { query = text.trim(); const qi = $("q"); if (qi) qi.value = query; $("clear").hidden = false; return renderList(); }
+  $("q")?.blur();
+  showPasteCard(detectPaste(text));
+};
+function bindAddTools(list) {
+  $("sr-paste")?.addEventListener("click", pasteClip);
+  $("nextidea")?.addEventListener("click", () => nextSongs());
+  $("sr-sing")?.addEventListener("click", () => go("#/sketch"));
+  $("sr-write")?.addEventListener("click", () => { const t = query.trim(); query = ""; newSong(t ? { title: t } : {}, "text"); });
+  $("sr-scan")?.addEventListener("click", () => $("sr-photo").click());
+  $("sr-photo")?.addEventListener("change", async e => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const b = $("sr-scan"), was = b.innerHTML; b.disabled = true; b.innerHTML = busy("Reading");
+    try {
+      const r = await cleanSheet({ image: await readPhoto(file) });
+      newSong({ title: r.title || "", artist: r.artist || "", ...(r.key ? { key: r.key } : {}), ...(r.format ? { format: r.format } : {}), body: r.body }, "text");
+    } catch (err) { toast(aiError(err)); b.disabled = false; b.innerHTML = was; }
+  });
+}
+/* Typing: recordings from Apple's public catalog under your own matches, so a song you don't have is one tap away. */
+let catSeq = 0, catTimer = 0, catCache = { q: "", rows: [] };
+function paintCatalog(term, rows, looking) {
+  const box = $("sr-cat");
+  if (!box) return;
+  box.innerHTML = `${rows.length ? `<div class="label">Add it</div><div class="list glass">${rows.map((r, i) => `<button class="row" data-cat="${i}"><div class="txt"><div class="t">${esc(r.title)}</div><div class="a">${esc(r.artist)}${r.year ? " · " + esc(r.year) : ""}</div></div>${icon("plus")}</button>`).join("")}</div>` : ""}
+    ${looking ? `<p class="sr-note">${busy("Looking")}</p>` : ""}
+    <button class="sr-writeq" id="sr-writeq">${icon("edit")}<span>Write “${esc(term)}” myself</span></button>`;
+  box.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
+    const r = rows[+b.dataset.cat];
+    query = ""; /* the search is done: coming back shows the Songbook, not the old words */
+    if (aiKey()) findAI().then(m => m.getSong(r.title, { title: r.title, artist: r.artist }));
+    else newSong({ title: r.title, artist: r.artist }, "text");
+  });
+  $("sr-writeq").onclick = () => { query = ""; newSong({ title: term }, "text"); };
+}
+function catalogSearch(term) {
+  clearTimeout(catTimer);
+  const me = ++catSeq, online = navigator.onLine !== false;
+  if (term.length < 2 || !online) return paintCatalog(term, [], false);
+  if (catCache.q === term) return paintCatalog(term, catCache.rows, false);
+  paintCatalog(term, [], true);
+  catTimer = setTimeout(() => itunes("search", { term, media: "music", entity: "song", limit: 5 }).then(j => {
+    if (me !== catSeq || query.trim() !== term) return;
+    const seen = new Set();
+    const rows = (j?.results || []).map(x => ({ title: String(x.trackName || "").slice(0, 100), artist: String(x.artistName || "").slice(0, 100), year: String(x.releaseDate || "").slice(0, 4) }))
+      .filter(r => { const k = (r.title + "|" + r.artist).toLowerCase(); if (!r.title || seen.has(k)) return false; seen.add(k); return true; }).slice(0, 4);
+    catCache = { q: term, rows };
+    paintCatalog(term, rows, false);
+  }).catch(() => { if (me === catSeq) paintCatalog(term, [], false); }), 250);
+}
 export function renderList() {
   const list = $("list"), drawer = route().name === "road";
   document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx");
   if (!data.songs.length) {
-    list.innerHTML = `<div class="empty">No songs yet.<br>Paste a chord sheet into the bar below,<br>or tap + to write one.</div>`;
+    list.innerHTML = `<div class="empty">No songs yet.<br>Add your first one: search for it by name below,<br>or use one of these.</div>${addTools()}`;
+    bindAddTools(list);
     return;
   }
   const q = query.trim().toLowerCase();
@@ -373,26 +447,16 @@ export function renderList() {
     /* 4.22.0: a clean screen under the bar: two big buttons, then the songs you played last as cards */
     const cover = x => /^https:\/\//.test(x.listen?.art || x.art || "") ? `<img src="${esc(x.listen?.art || x.art)}" alt="">` : `<span style="background:${keyColor(keyOf(x), x.title, 0.9)}">${esc((x.title || "?").slice(0, 1).toUpperCase())}</span>`;
     const card = x => { const n = playCount(x); return `<div class="sr-card"><button class="sr-open" data-id="${esc(x.id)}"><i class="sr-cv">${cover(x)}</i><span class="sr-tx"><b>${esc(x.title)}</b><small>${esc(x.artist || "Unknown artist")}${n ? ` · ${n} play${n === 1 ? "" : "s"}` : ""}${x.status === "learning" ? " · Learning" : ""}</small></span></button><button class="sr-play" data-play="${esc(x.id)}" aria-label="Play ${esc(x.title)}">${icon("play")}</button></div>`; };
-    const next = aiKey() && data.songs.length;
-    list.innerHTML = `<div class="sr-btns${next ? "" : " one"}">
-        <button class="sr-paste" id="sr-paste"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="3"/><rect x="8.5" y="2.5" width="7" height="4" rx="1.5" class="clipt"/><path d="M8.5 11h7M8.5 15h4.5"/></svg>Paste a song</button>
-        ${next ? `<button class="sr-next" id="nextidea">${louie("happy", { pose: "point", size: 46 })}<span>What can I play next?</span></button>` : ""}
-      </div>
-      <div class="label">${recentSongs.length ? "Recently played" : "All songs"}</div>
+    const count = data.songs.length, can = data.songs.filter(x => fitOf(x).can).length;
+    list.innerHTML = `<button class="sr-browse" id="sr-browse">${icon("list")}<span><b>Browse your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>
+      <div class="label">${recentSongs.length ? "Played lately" : "Your songs"}</div>
       <div class="sr-cards">${shown.slice(0, 3).map(card).join("")}</div>
+      ${addTools()}
       <div id="amrecent"></div>`;
+    $("sr-browse").onclick = () => $("qcancel").click();
     list.querySelectorAll("[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
     list.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playSong(b.dataset.play));
-    $("sr-paste").onclick = async () => {
-      let text = "";
-      try { text = await navigator.clipboard.readText(); } catch { return toast("Long-press the bar and choose Paste"); }
-      if (!text.trim()) return toast("Nothing to paste yet. Copy a chord sheet first.");
-      const link = text.match(/#\/import\/([zj][A-Za-z0-9_-]+)/);
-      if (link) { $("q")?.blur(); return renderImport(link[1]); }
-      if (text.trim().split("\n").filter(l => l.trim()).length < 2) { query = text.trim(); const qi = $("q"); if (qi) qi.value = query; $("clear").hidden = false; return renderList(); }
-      $("q")?.blur();
-      showPasteCard(detectPaste(text));
-    };
+    bindAddTools(list);
     /* Apple Music (only when it is turned on): what you played there lately. A tap fills the search with it. */
     if (data.settings.appleMusic) recentApple().then(rows => {
       const box = $("amrecent");
@@ -400,7 +464,6 @@ export function renderList() {
       box.innerHTML = `<div class="label">Recently on Apple Music</div><div class="list glass">${rows.map((r, n) => `<button class="row" data-amr="${n}"><div class="txt"><div class="t">${esc(r.title)}</div><div class="a">${esc(r.artist)}</div></div>${icon("chev", "chev")}</button>`).join("")}</div>`;
       box.querySelectorAll("[data-amr]").forEach(b => b.onclick = () => { const r = rows[+b.dataset.amr]; query = `${r.title} ${r.artist}`.trim(); const qi = $("q"); if (qi) qi.value = query; $("clear").hidden = false; renderList(); });
     });
-    $("nextidea")?.addEventListener("click", () => nextSongs());
     return;
   }
   const pool = searching ? data.songs : data.songs.filter(s =>
@@ -420,7 +483,8 @@ export function renderList() {
         <div class="a">${esc(s.artist || "Unknown artist")}</div>
       </button>`).join("")}</div>` : ""}
     ${q ? "" : `<div class="lib-count lrow"><span id="lib-n">${sorted.length} song${sorted.length === 1 ? "" : "s"}</span>${sortBy(sort)}</div>`}
-    ${sorted.length ? `<div class="list glass" style="${q ? "margin-top:18px" : ""}">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? findCard(query, true) : ""}` : findCard(query)}`;
+    ${sorted.length ? `${q ? '<div class="label">In your Songbook</div>' : ""}<div class="list glass">${sorted.map(s => songRow(s, hits.get(s.id))).join("")}</div>${q ? `<div id="sr-cat"></div>${findCard(query, true)}` : ""}` : `${q ? '<div id="sr-cat"></div>' : ""}${findCard(query)}`}`;
+  if (q) catalogSearch(query.trim());
   $("sort")?.addEventListener("change", e => {
     if (e.target.value === "tabs") filter = "tab";
     else { data.settings.sort = e.target.value; if (filter === "tab") filter = "all"; Tabs.save(data); }

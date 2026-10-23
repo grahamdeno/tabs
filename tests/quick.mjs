@@ -29,7 +29,6 @@ const COVERS = {
   "heads.js": ["app"],
   "fold.js": ["tips", "app", "settings", "app2"],
   "callout.js": ["app2", "gig"],
-  "addsong.js": ["app3", "app", "strum", "app2"],
   "coach.js": ["tips"],
   "german.js": ["german"],
   "sets.js": ["app", "regress"],
