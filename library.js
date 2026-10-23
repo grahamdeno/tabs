@@ -24,7 +24,7 @@ let keepSearch = false; /* back from a song opened from results: show the result
 onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching", "sr-lock"); } });
 
 /* 4.49.1: while the search screen is locked, a drag doesn't scroll it (sheets in the layer still scroll) */
-document.addEventListener("touchmove", e => { if (document.body.classList.contains("sr-lock") && !e.target.closest("#layer")) e.preventDefault(); }, { passive: false });
+document.addEventListener("touchmove", e => { if (document.body.classList.contains("sr-lock") && document.body.classList.contains("searching") && !e.target.closest("#layer")) e.preventDefault(); }, { passive: false });
 
 // ---------- Library ----------
 // ---- Today: the practice streak and one song for today ----
@@ -591,7 +591,7 @@ function bindRows(list) {
   list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => {
     if (el.dataset.swiped) { delete el.dataset.swiped; return; }
     setSetCtx(null);
-    if (searching) { keepSearch = !!query.trim(); searching = false; document.body.classList.remove("searching"); }
+    if (searching) { keepSearch = !!query.trim(); searching = false; document.body.classList.remove("searching", "sr-lock"); }
     // Name this row's title so it glides into the song header.
     list.querySelectorAll("[data-id], .t").forEach(t => t.style.viewTransitionName = "");
     el.querySelector(".t").style.viewTransitionName = "song-title";
@@ -676,4 +676,4 @@ export function showPasteCard(original) {
   followKeyboard();
 }
 
-export function leaveSearch() { if (searching) { searching = false; document.body.classList.remove("searching"); query = ""; } }
+export function leaveSearch() { if (searching) { searching = false; document.body.classList.remove("searching", "sr-lock"); query = ""; } }

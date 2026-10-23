@@ -586,3 +586,13 @@ test("4.49.3 Closing the keyboard keeps the search screen; Cancel goes back wher
   await page.click("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
   assert.equal(await page.evaluate(() => location.hash), "#/library", "from the Songbook, Cancel stays on the Songbook");
 });
+
+test("4.49.5 Leaving search any way lets the page scroll again (Get the song from the empty search screen left it locked)", { skip: skip() }, async t => {
+  const page = await phone(t);
+  await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#sr-paste");
+  assert.equal(await page.evaluate(() => document.body.classList.contains("sr-lock")), true, "locked before typing");
+  await page.evaluate(async () => (await import("./app.js")).leaveSearch()); /* what Get the song does when it opens */
+  assert.equal(await page.evaluate(() => document.body.classList.contains("sr-lock")), false, "the lock goes with the search");
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.body).overflow), "hidden");
+});

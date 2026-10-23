@@ -3772,7 +3772,7 @@ body.searching .cmd-add { display: none; }
 .sr-act.ghost { background: var(--card-2, var(--bg)); box-shadow: none; color: var(--fg-2); }
 .am-done { height: 52px; flex: none; }
 /* 4.49.1: the search screen doesn't scroll before you type */
-html:has(body.sr-lock), body.sr-lock { overflow: hidden; overscroll-behavior: none; }
+html:has(body.searching.sr-lock), body.searching.sr-lock { overflow: hidden; overscroll-behavior: none; }
 .sr-am + .sr-browse { margin-top: 10px; }
 /* 4.49.4: Get the song shows the whole sheet (the page scrolls as one), and the album colour starts at the top edge */
 .gs .gs-chart { max-height: none; overflow: visible; }
