@@ -170,8 +170,12 @@ function xposeToken(tok, steps, flats) {
 }
 
 // Split a lyric into words, attaching each chord to the character it sits over.
-// Returns items: { space: true } or { parts: [{ chord, text }] }.
+// Returns items: { space: true } or { parts: [{ chord, text }], lead? }.
 // A word is never split, so a line can only wrap between words.
+// A lead (4.49.6): chords over the indent before the first word (two spaces or
+// more) are played before the singing starts, so they stand on their own ahead
+// of the words instead of riding on the first one, the way chord sites show it.
+export const LEAD_GAP = 2;
 export function buildWords(lyric, chordsAt) {
   const positions = [...chordsAt.keys()].sort((a, b) => a - b);
   const last = positions.length ? positions[positions.length - 1] : -1;
@@ -192,6 +196,10 @@ export function buildWords(lyric, chordsAt) {
     const s = m.index, e = s + m[0].length;
     const inside = positions.filter(p => p >= s && p < e);
     if (!m[0].trim()) {
+      if (s === 0 && inside.length && e - s >= LEAD_GAP && e < text.length) {
+        for (const p of inside) items.push({ lead: true, parts: [{ chord: chordsAt.get(p), text: NBSP }] }, { space: true });
+        continue;
+      }
       // Chords over a gap: all but the last stand alone; the last waits for the next word.
       if (pending) items.push({ parts: [{ chord: pending, text: NBSP }] });
       for (const p of inside.slice(0, -1)) items.push({ parts: [{ chord: chordsAt.get(p), text: NBSP }] }, { space: true });

@@ -82,6 +82,25 @@ export function wordTimes(words, start, end, { bpm = 0, given = null } = {}) {
   }
   return t;
 }
+/* 4.49.6: the times of a line's chord spots, words and gaps alike. A spot with no word under it ("")
+   is a chord played in a gap: before the singing (a lead, a bar ahead of the first word by default),
+   between two words (shared out between them), or after the last word (shared out to the line's end).
+   Only the real words are timed by wordTimes, so a gap no longer pushes the words later. */
+export function spotTimes(words, start, end, { bpm = 0, given = null, bar = 0 } = {}) {
+  const real = words.map((w, k) => w ? k : -1).filter(k => k >= 0);
+  const out = words.map(() => null);
+  if (!real.length) return words.map((_, k) => start + (end - start) * k / Math.max(1, words.length));
+  wordTimes(real.map(k => words[k]), start, end, { bpm, given }).forEach((t, j) => { out[real[j]] = t; });
+  const lead = bar > 0 ? bar : bpm > 0 ? 240 / bpm : 2;
+  for (let k = 0; k < words.length;) {
+    if (out[k] != null) { k++; continue; }
+    let z = k; while (z < words.length && out[z] == null) z++;
+    const r = z - k, p = k > 0 ? out[k - 1] : null, q = z < words.length ? out[z] : null;
+    for (let i = 0; i < r; i++) out[k + i] = p == null ? q - lead * (r - i) / r : q == null ? p + (Math.max(end, p) - p) * (i + 1) / (r + 1) : p + (q - p) * (i + 1) / (r + 1);
+    k = z;
+  }
+  return out;
+}
 const lrcWords = t => String(t || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
 function lineLike(a, b) {
   if (!a.length || !b.length) return 0;

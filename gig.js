@@ -17,7 +17,7 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, looksGuessed, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
@@ -370,7 +370,7 @@ export function openGig(song, opts = {}) {
     audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
   /* 4.41.0: chords spread over the lines as a guess are never counted as misses, only as hits */
-  g.guess = song.spots === "guess" || (!song.spots && song.ai === "chart" && looksGuessed(song.body));
+  g.guess = liningDue(song) === "guess";
   g.el = shell(song);
   document.body.classList.add("gigging");
   gigHooks.on = true;

@@ -428,34 +428,59 @@ export function numberLyrics(text) {
     .map(l => `${l.n}| ${l.words.map((x, i) => `[${i + 1}]${x.w}`).join(" ")}`).join("\n")).join("\n\n");
   return { stanzas, lines, prompt };
 }
-/* the AI's answer, checked: chords must be chords, lines and stanzas must exist, words are clamped */
-export function cleanPlaced(j, num) {
+/* The chart's own chord names (4.49.6): a chord the chart doesn't use is put back to the chart's chord
+   with the same root and quality (D/F# to D, Dsus4 to D when only D is there) or dropped, so the
+   placing step can't swap in chords the chart didn't pick. With no chart chords, anything goes. */
+export function chartChord(name, allowed) {
+  if (!allowed?.size || allowed.has(name)) return name;
+  const bare = name.replace(/\/.*$/, "");
+  if (allowed.has(bare)) return bare;
+  const root = (bare.match(/^[A-G][#b]?m?(?!aj)/) || [""])[0];
+  return root && allowed.has(root) ? root : "";
+}
+/* the AI's answer, checked: chords must be chords (the chart's), lines and stanzas must exist, words are
+   clamped. Word 0 is before the singing and the word after the last is after it (4.49.6). A sung part may
+   be part of a stanza (from and to, line numbers inside it), so a Pre-Chorus can be cut from its Chorus. */
+export function cleanPlaced(j, num, allowed = null) {
   if (!j || typeof j !== "object" || j.found === false) return null;
   const byN = new Map(num.lines.map(l => [l.n, l]));
   const lines = {};
   for (const x of Array.isArray(j.lines) ? j.lines : []) {
     const l = byN.get(+x?.n);
     if (!l || !Array.isArray(x.c)) continue;
-    const cs = x.c.map(p => [Math.max(0, Math.min(l.words.length, Math.floor(+p?.[0] || 0))), String(p?.[1] || "").trim()]).filter(([, c]) => isChord(c));
+    const cs = x.c.map(p => [Math.max(0, Math.min(l.words.length + 1, Math.floor(+p?.[0] || 0))), chartChord(String(p?.[1] || "").trim(), allowed)]).filter(([, c]) => isChord(c));
     if (cs.length) lines[l.n] = cs.sort((p, q) => p[0] - q[0]).slice(0, 8);
   }
   const sheet = [];
   for (const it of Array.isArray(j.sheet) ? j.sheet : []) {
     const section = String(it?.section || "").replace(/[\[\]]/g, "").trim().slice(0, 30);
-    if (+it?.stanza >= 1 && +it.stanza <= num.stanzas.length) sheet.push({ section, stanza: +it.stanza });
-    else if (typeof it?.chords === "string") { const ch = it.chords.trim().split(/\s+/).filter(isChord).slice(0, 32); if (ch.length && section) sheet.push({ section, chords: ch }); }
+    if (+it?.stanza >= 1 && +it.stanza <= num.stanzas.length) {
+      const st = num.lines.filter(l => l.s === +it.stanza).map(l => l.n);
+      const from = st.includes(+it.from) ? +it.from : st[0], to = st.includes(+it.to) && +it.to >= from ? +it.to : st[st.length - 1];
+      sheet.push({ section, stanza: +it.stanza, ...(from !== st[0] || to !== st[st.length - 1] ? { from, to } : {}) });
+    } else if (typeof it?.chords === "string") {
+      const ch = it.chords.trim().split(/\s+/).map(c => chartChord(c, allowed)).filter(isChord).slice(0, 32);
+      const repeat = Math.max(1, Math.min(8, Math.floor(+it.repeat || 1)));
+      if (ch.length && section) sheet.push({ section, chords: ch, ...(repeat > 1 ? { repeat } : {}) });
+    }
   }
   if (Object.keys(lines).length < Math.min(3, num.lines.length) || !sheet.some(x => x.stanza)) return null;
   return { lines, sheet, confidence: ["high", "medium", "low"].includes(j.confidence) ? j.confidence : "" };
 }
-/* one chord row over a line: each chord at the column of the word it starts on */
-function placedRow(words, cs) {
-  let row = "";
+/* One chord row over a line, and the line under it: each chord at the column of the word it starts on.
+   Chords before the singing (word 0) go first and the words move right past them, so the sheet shows
+   the chords played while nobody sings, the way chord sites indent the words; a chord after the last
+   word (the word number past the end) sits after the words. */
+function placedPair(words, text, cs) {
+  const lead = cs.filter(([w]) => w === 0).map(([, c]) => c).join(" ");
+  const pad = lead ? lead.length + 2 : 0;
+  let row = lead;
   for (const [w, c] of cs) {
-    const col = w <= 1 || !words.length ? 0 : words[w - 1].at;
+    if (w === 0) continue;
+    const col = pad + (!words.length ? 0 : w > words.length ? text.length + 2 : words[w - 1].at);
     row = row.length ? row.padEnd(Math.max(col, row.length + 1), " ") + c : " ".repeat(col) + c;
   }
-  return row;
+  return [row, " ".repeat(pad) + text];
 }
 export function placedSheet(chartBody, lyricsText, placed) {
   const num = numberLyrics(lyricsText);
@@ -464,18 +489,30 @@ export function placedSheet(chartBody, lyricsText, placed) {
   const out = [...head];
   if (head.length) out.push("");
   const used = new Set();
-  const stanza = (si, name) => {
-    used.add(si);
-    out.push(`[${name || num.stanzas[si - 1].name || "Verse"}]`);
-    for (const l of num.lines.filter(x => x.s === si)) { const cs = placed.lines[l.n]; if (cs) out.push(placedRow(l.words, cs)); out.push(l.text); }
+  const part = (ls, name) => {
+    if (!ls.length) return;
+    out.push(`[${name || num.stanzas[ls[0].s - 1].name || "Verse"}]`);
+    for (const l of ls) { used.add(l.n); const cs = placed.lines[l.n]; if (cs) out.push(...placedPair(l.words, l.text, cs)); else out.push(l.text); }
     out.push("");
   };
   for (const it of placed.sheet) {
-    if (it.stanza) stanza(it.stanza, it.section);
-    else out.push(`[${it.section}]`, it.chords.join("   "), "");
+    if (it.stanza) part(num.lines.filter(x => x.s === it.stanza && (!it.from || (x.n >= it.from && x.n <= it.to))), it.section);
+    /* a part with no singing played more than once is written out each time, so it takes its time on the page */
+    else out.push(`[${it.section}]`, ...Array.from({ length: Math.min(4, it.repeat || 1) }, () => it.chords.join("   ")), "");
   }
-  num.stanzas.forEach((_, i) => { if (!used.has(i + 1)) stanza(i + 1, ""); }); /* nothing is ever dropped */
+  /* nothing is ever dropped: lines the AI left out go at the end, with their stanza's name */
+  num.stanzas.forEach((_, i) => part(num.lines.filter(x => x.s === i + 1 && !used.has(x.n)), ""));
   return out.join("\n").trim();
+}
+/* How the chords were placed: 2 since 4.49.6 (chords before and after the singing, parts cut from a
+   stanza). A song placed the older way is lined up once more. */
+export const SPOTS_V = 2;
+/* Why a song should be lined up (again): "guess" for chords spread as a guess, "old" for chords placed
+   before SPOTS_V, "" otherwise. Your own edits (spots "mine") are never touched. */
+export function liningDue(song) {
+  if (!song || song.format === "tab") return "";
+  if (song.spots === "guess" || (!song.spots && song.ai === "chart" && looksGuessed(song.body))) return "guess";
+  return song.spots === "placed" && !((song.spotsV || 0) >= SPOTS_V) ? "old" : "";
 }
 /* The lyrics of a sheet, by section, for lining up a song you already have (chord rows left out). */
 export function lyricsOfSheet(body) {

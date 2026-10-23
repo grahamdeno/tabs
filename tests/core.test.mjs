@@ -2139,10 +2139,10 @@ test("4.41.0 chords where the chord sites have them: numbered words in, position
   assert.equal(num.lines.length, 4);
   const p = C.cleanPlaced({ found: true, sheet: [{ section: "Intro", chords: "G D" }, { section: "Verse 1", stanza: 1 }, { section: "Chorus", stanza: 2 }, { section: "Bad", stanza: 9 }],
     lines: [{ n: 1, c: [[1, "G"], [3, "D"]] }, { n: 2, c: [[0, "C"], [4, "Em"]] }, { n: 3, c: [[2, "A"]] }, { n: 4, c: [[9, "E"], [1, "Zz"]] }, { n: 99, c: [[1, "G"]] }] }, num);
-  assert.deepEqual(p.lines[4], [[3, "E"]], "a word past the end is the last word; not-a-chord is dropped");
+  assert.deepEqual(p.lines[4], [[4, "E"]], "a word past the end is after the last word (4.49.6); not-a-chord is dropped");
   assert.equal(p.sheet.length, 3, "a stanza that doesn't exist is dropped");
   const body = C.placedSheet("Key: G\n[Verse]\nG D", lyr, p);
-  assert.match(body, /^Key: G\n\n\[Intro\]\nG {3}D\n\n\[Verse 1\]\nG {7}D\nSaw the lights come on at six\nC {18}Em\nGulls/);
+  assert.match(body, /^Key: G\n\n\[Intro\]\nG {3}D\n\n\[Verse 1\]\nG {7}D\nSaw the lights come on at six\nC {21}Em\n {3}Gulls/, "a chord before the singing goes first and the words move past it (4.49.6)");
   assert.match(body, /\[Chorus\]\n {6}A\nCarry me home tonight/);
   assert.equal(C.cleanPlaced({ found: false }, num), null);
   assert.equal(C.cleanPlaced({ found: true, sheet: [], lines: [] }, num), null, "too little to trust");
@@ -2179,4 +2179,63 @@ test("4.44.0 callout looks never repeat back to back, and only joined friends ce
   assert.notEqual(C.castFor(band, "combo", "beat", 0), "beat", "not the same friend twice in a row");
   for (let i = 0; i < 20; i++) assert.ok(joined.includes(C.castFor(band, "badge", null, i / 20)), "always one who has joined");
   assert.equal(C.castFor(band, "join", "beat", 0, "beat"), "beat", "a new member is the one shown");
+});
+
+test("4.49.6 chords played before the singing: an indented line keeps its lead chords ahead of the words", () => {
+  const [b] = C.parseBlocks("Em            C\n  Another head   hangs lowly");
+  assert.ok(b.words[0].lead, "the chord over the indent stands on its own, first");
+  assert.equal(b.words[0].parts[0].chord, "Em");
+  const first = b.words.find(w => !w.space && !w.lead);
+  assert.equal(first.parts.map(p => p.text).join(""), "Another", "the first word carries no chord");
+  assert.equal(first.parts[0].chord, "");
+  const hangs = b.words.find(w => !w.space && w.parts.map(p => p.text).join("") === "hangs");
+  assert.equal(hangs.parts[0].chord, "C", "a chord over a gap between words still rides on the next word");
+  const [one] = C.parseBlocks("G\n Walking down");
+  assert.ok(!one.words.some(w => w.lead), "a one-space indent is not a lead");
+  const two = C.parseBlocks("[Em]  [C]  Another head");
+  assert.equal(two[0].words.filter(w => w.lead).length, 2, "inline chords before an indent are leads too");
+  const de = C.germanBlocks(C.parseBlocks("Em        C\n   head hangs low"), { lines: [{ de: "Kopf hängt tief", s: [] }] }, 4);
+  assert.ok(de[0].words[0].lead, "Fluent keeps the lead in front");
+});
+
+test("4.49.6 spot times: words timed alone, a lead a bar ahead, gaps shared between their neighbours", () => {
+  const t = C.spotTimes(["", "one", "two", "", "three", ""], 10, 18, { bar: 2 });
+  const w = C.wordTimes(["one", "two", "three"], 10, 18);
+  assert.deepEqual([t[1], t[2], t[4]], w, "a gap no longer pushes the words later");
+  assert.equal(t[0], w[0] - 2, "the lead is a bar ahead of the first word");
+  assert.equal(t[3], (w[1] + w[2]) / 2, "a gap chord sits between its words");
+  assert.ok(t[5] > w[2] && t[5] <= 18, "a chord after the words sits before the line ends");
+  const two = C.spotTimes(["", "", "go"], 20, 24, { bar: 4 });
+  assert.deepEqual(two, [16, 18, 20], "two leads share the bar before the words");
+  assert.equal(C.spotTimes(["", "go"], 20, 24, { bpm: 120 })[0], 18, "with no bar given, four beats of the tempo");
+});
+
+test("4.49.6 placing: word 0 is before the singing, chords stay the chart's, stanzas cut into parts, intros written out", () => {
+  const lyr = "Head hangs low\nChild is taken\nBut you see\nIt is not me\nIn your head\nZombie zombie";
+  const num = C.numberLyrics(lyr);
+  assert.equal(C.chartChord("D/F#", new Set(["Em", "C", "G", "D"])), "D", "a slash chord goes back to the chart's chord");
+  assert.equal(C.chartChord("Dsus4", new Set(["D"])), "D");
+  assert.equal(C.chartChord("Cmaj7", new Set(["C"])), "C");
+  assert.equal(C.chartChord("F", new Set(["G"])), "", "a chord the chart doesn't have is dropped");
+  assert.equal(C.chartChord("F", null), "F", "no chart chords: anything goes");
+  const p = C.cleanPlaced({ found: true, sheet: [{ section: "Intro", chords: "Em C G D/F#", repeat: 4 }, { section: "Verse", stanza: 1, from: 1, to: 2 },
+    { section: "Pre-Chorus", stanza: 1, from: 3, to: 4 }, { section: "Chorus", stanza: 1, from: 5, to: 99 }],
+    lines: [{ n: 1, c: [[0, "Em"], [2, "C"]] }, { n: 2, c: [[1, "G"], [4, "D/F#"]] }, { n: 3, c: [[3, "Em"]] }, { n: 5, c: [[1, "G"]] }] }, num, new Set(["Em", "C", "G", "D"]));
+  assert.deepEqual(p.sheet[0], { section: "Intro", chords: ["Em", "C", "G", "D"], repeat: 4 });
+  assert.deepEqual(p.sheet[3], { section: "Chorus", stanza: 1, from: 5, to: 6 }, "a line past the stanza ends it");
+  assert.deepEqual(p.lines[2], [[1, "G"], [4, "D"]], "word past the end kept, chord put back to the chart's");
+  const body = C.placedSheet("", lyr, p);
+  assert.equal((body.match(/^Em {3}C {3}G {3}D$/gm) || []).length, 4, "the intro written out four times, so it takes its time");
+  assert.match(body, /\[Verse\]\nEm {7}C\n {4}Head hangs low\nG {15}D\nChild is taken\n\n\[Pre-Chorus\]\n {8}Em\nBut you see\nIt is not me\n\n\[Chorus\]/, "lead indents the words; after-the-words chord follows them; parts cut");
+  assert.equal(C.placedSheet("", lyr, { ...p, sheet: p.sheet.slice(0, 2) }).match(/But you see/g).length, 1, "lines left out still come at the end, once");
+});
+
+test("4.49.6 lining up: guessed songs and songs placed the older way, never your own edits", () => {
+  assert.equal(C.liningDue({ spots: "guess", body: "" }), "guess");
+  assert.equal(C.liningDue({ spots: "placed", body: "" }), "old", "placed before 4.49.6 is lined up once more");
+  assert.equal(C.liningDue({ spots: "placed", spotsV: C.SPOTS_V, body: "" }), "");
+  assert.equal(C.liningDue({ spots: "mine", body: "" }), "");
+  assert.equal(C.liningDue({ spots: "guess", format: "tab", body: "" }), "");
+  assert.equal(C.cleanSong({ id: "x", body: "a", spotsV: 2 }).spotsV, 2);
+  assert.equal(C.cleanSong({ id: "x", body: "a", spotsV: "2" }).spotsV, undefined);
 });

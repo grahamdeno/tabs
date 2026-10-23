@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, looksGuessed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
@@ -51,8 +51,8 @@ const CHART_SYSTEM = `You find how to play one song on guitar, using web search 
 // show, the player's own level with a small stretch, or the record as played.
 const CHART_LEVELS = [["easy", "Easy"], ["mine", "My level"], ["rec", "As recorded"]];
 const CHART_LEVEL = {
-  easy: `- Level: easy. The simplest common version: open chords, a capo where it keeps the shapes open, and easy stand-ins for hard chords (for example Fmaj7 or a small F for F). A plain strum.`,
-  mine: `- Level: the player's own, with a small stretch. Keep the song in chords they play wherever the recording allows. Where the recording uses a barre chord (F, Bm, B, F#m, C#m, Gm), use it instead of an easy stand-in. At most two chords they don't play yet. The strum as the recording has it, with its muted strums and pushes.`,
+  easy: `- Level: easy. The simplest common version: open chords, a capo where it keeps the shapes open, and easy stand-ins for hard chords (for example Fmaj7 or a small F for F). A plain strum. Write the plain chord where most sites do (D, not D/F# or Dsus4).`,
+  mine: `- Level: the player's own, with a small stretch. Keep the song in chords they play wherever the recording allows. Where the recording uses a barre chord (F, Bm, B, F#m, C#m, Gm), use it instead of an easy stand-in. At most two chords they don't play yet. Write the plain chord where most sites do (D, not D/F# or Dsus4); a slash, sus or add chord only where most sites write it. The strum as the recording has it, with its muted strums and pushes.`,
   rec: `- Level: as recorded. The chords the recording actually uses, barre chords, sevenths, sus, add9 and slash chords included, in the key it sounds in. The rhythm as played.`
 };
 const chartLevel = () => CHART_LEVEL[data.settings.chartLevel] ? data.settings.chartLevel : "mine";
@@ -73,36 +73,40 @@ async function findChart(title, artist, level = "easy") {
 // The AI gets the chart's chords and the lyrics as numbered lines with numbered words, reads the chord
 // sites, and answers with positions only; placedSheet (core) builds the sheet on the phone.
 const PLACE_SYSTEM = `You place a song's chords over its lyrics the way guitar chord sites show them: each chord written over the word where the change happens. Use web search to read chord sites for this song. You get the song's chord chart (sections and chords) and its lyrics as numbered lines, with each word numbered in brackets. Reply with JSON only, no other text:
-{"found": boolean, "sheet": [{"section": string, "chords": string} or {"section": string, "stanza": number}], "lines": [{"n": number, "c": [[number, string]]}], "confidence": "high"|"medium"|"low"}
+{"found": boolean, "sheet": [{"section": string, "chords": string, "repeat": number} or {"section": string, "stanza": number, "from": number, "to": number}], "lines": [{"n": number, "c": [[number, string]]}], "confidence": "high"|"medium"|"low"}
 - Refer to the words only by line number and word number. Don't write any of the lyrics in your reply.
-- "sheet": the whole song in the order it's played. A part with no singing (Intro, Solo, Instrumental, an Outro with no words) is {"section", "chords"}, its chords space separated. A sung part is {"section", "stanza"} with the stanza number you were given; a stanza can appear more than once only if it's sung again.
-- "lines": for each sung line, the chords that start on it, as [word number, chord name]. Use 0 for a chord played before the first word. Leave out a line where the chord doesn't change.
-- Use the chord names from the chart (its key and capo).
+- "sheet": the whole song in the order it's played, every section the chord sites show (Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro). A part with no singing is {"section", "chords", "repeat"}: the chords of one pass, space separated, and how many passes are played in a row (an intro the sites write out four times is "repeat": 4). A sung part is {"section", "stanza"} with the stanza number you were given; a stanza can appear more than once only if it's sung again. When one stanza holds two sections (a Pre-Chorus and then the Chorus), give each its own part with "from" and "to", the first and last line numbers of that part; leave them out for a whole stanza.
+- "lines": for each sung line, the chords that start on it, as [word number, chord name].
+- Timing matters, so mark where nobody is singing. Use word 0 for a chord played before the singing on that line starts (chord sites show it over empty space with the words indented, or at the start of a line that begins after a pause). Use the word number after the line's last word for a chord played after the line is sung, in the gap before the next line. Otherwise use the word the change lands on.
+- Leave out a line where the chord doesn't change.
+- Use the chord names from the chart exactly (its key and capo). Don't add, swap or respell chords.
 - Where sources disagree, follow most of them. If you can't tell where the chords fall, set "found" to false.`;
 async function placeChords(chartBody, lyricsText, { title = "", artist = "" } = {}) {
   const num = numberLyrics(lyricsText);
   if (num.lines.length < 2) return null;
   const { text } = await askClaudeSearch({ system: PLACE_SYSTEM, searches: 3, maxTokens: 8000,
     content: `Song: ${title}${artist ? ` by ${artist}` : ""}\n\nChord chart:\n${chartBody}\n\nLyrics:\n${num.prompt}` });
-  return cleanPlaced(parseJSON(text), num);
+  return cleanPlaced(parseJSON(text), num, new Set(chordsUsed(chartBody)));
 }
-/* A song added before 4.41.0 (or with pasted words) whose chords were guessed: lined up once, quietly,
-   the first time it's opened with an AI key; a toast offers Undo. Tried again a week after a miss. */
+/* A song whose chords were guessed (added before 4.41.0, or with pasted words), or placed before 4.49.6
+   showed the gaps where nobody sings (SPOTS_V): lined up once, quietly, the first time it's opened with
+   an AI key; a toast offers Undo. Tried again a week after a miss. A sheet you've edited is never touched. */
 const relining = new Set();
 export function relineSong(song) {
-  if (!aiKey() || !song || song.format === "tab" || relining.has(song.id)) return;
-  const guess = song.spots === "guess" || (!song.spots && song.ai === "chart" && looksGuessed(song.body));
-  if (!guess || Date.now() - (song.spotsTried || 0) < 7 * 86400000) return;
+  const due = liningDue(song), old = due === "old";
+  if (!aiKey() || !due || relining.has(song.id) || Date.now() - (song.spotsTried || 0) < 7 * 86400000) return;
   const lyrics = lyricsOfSheet(song.body), before = song.body;
   if (numberLyrics(lyrics).lines.length < 4) return;
   relining.add(song.id);
   placeChords(before, lyrics, song).then(placed => {
     const body = placed && placedSheet(before, lyrics, placed);
     if (song.body !== before) return; /* edited meanwhile: leave it */
-    if (!body) { song.spots = "guess"; song.spotsTried = Date.now(); Tabs.save(data); return; }
-    song.body = body; song.spots = "placed"; delete song.spotsTried; Tabs.save(data);
+    const was = song.spots;
+    if (!body) { if (!old) song.spots = "guess"; song.spotsTried = Date.now(); Tabs.save(data); return; }
+    song.body = body; song.spots = "placed"; song.spotsV = SPOTS_V; delete song.spotsTried; Tabs.save(data);
     redrawIf(song);
-    toast(`Lined up the chords in ${song.title} from the chord sites`, null, { label: "Undo", fn: () => { song.body = before; song.spots = "guess"; song.spotsTried = Date.now(); Tabs.save(data); redrawIf(song); } });
+    toast(old ? `Lined up ${song.title} again, with the chords played before the words` : `Lined up the chords in ${song.title} from the chord sites`, null,
+      { label: "Undo", fn: () => { song.body = before; song.spots = was; if (old) song.spotsV = SPOTS_V; else song.spotsTried = Date.now(); Tabs.save(data); redrawIf(song); } });
   }, () => { relining.delete(song.id); }).finally(() => relining.delete(song.id));
 }
 const redrawIf = song => { if (route().name === "song" && route().id === song.id && !document.body.classList.contains("playing")) redraw?.(); };
@@ -324,7 +328,7 @@ export function getSong(q, preset = {}) {
       ...(t?.bpm > 0 ? { bpm: Math.round(Math.min(260, Math.max(30, t.bpm))) } : {}), ...(st.beats !== 4 ? { beats: st.beats } : {}),
       ...(len >= 60 ? { duration: len, recLength: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
       ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}), ...(st.art ? { art: st.art } : {}),
-      ...(body !== c.body ? { spots: body === placedFor(v) ? "placed" : "guess" } : {}) });
+      ...(body !== c.body ? body === placedFor(v) ? { spots: "placed", spotsV: SPOTS_V } : { spots: "guess" } : {}) });
     close(); leaveSearch();
     grooveFor(s); /* how it feels, in the background */
     /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really

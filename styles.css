@@ -151,6 +151,8 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .sheet .sg > .c { display: block; line-height: 1.25; padding-right: 0.45em; min-height: 1.25em; }
 .sheet .sg > .l { white-space: pre; }
 .sheet .sg.free > .c { width: 0; overflow: visible; white-space: nowrap; padding-right: 0; }
+/* 4.49.6: a chord played before the singing, with a short rest mark where the words would be */
+.sheet .w.lead .sg > .l { display: block; background: linear-gradient(currentColor, currentColor) left 60% / calc(100% - .45em) 2px no-repeat; opacity: .35; }
 .sheet .c[data-ch] { cursor: pointer; position: relative; }
 .sheet .c[data-ch]::after { content: ""; position: absolute; inset: -6px -4px; }
 .sheet .c.sel .ct { background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 4px var(--accent-line); }

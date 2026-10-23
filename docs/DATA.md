@@ -67,6 +67,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
 | `spots` | `"placed"`, `"guess"` or `"mine"` (4.41.0) | How the chords got over the words: `placed` where the chord sites have them (the AI answered with line and word positions); `guess` spread over the lines by the phone (two a line), which is lined up once from the chord sites when the song is next opened with an AI key, and whose changes the Gig never counts as misses; `mine` after you edit the sheet, never lined up again. Missing on older songs: one added by Get the song (`ai: "chart"`) whose sheet looks like the guess counts as `guess` |
 | `spotsTried` | time | The last time lining it up didn't work; it's tried again a week later |
+| `spotsV` | number (4.49.6) | How the chords were placed. 2: chords played before the singing (word 0) stand ahead of the words, which are indented past them, chords after the last word sit after it, and a stanza can be cut into parts (a Pre-Chorus and its Chorus). A `placed` song without it (or below 2) is lined up once more the next time it opens with an AI key, with Undo |
 
 ### Journal
 

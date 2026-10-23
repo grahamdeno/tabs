@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { achSettle, profileOf, MAX_LENGTH, openingOn, wordTimes, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -291,7 +291,7 @@ function renderViewer(id) {
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
   /* 4.41.0: a song whose chords were guessed is lined up from the chord sites, once, in the background */
-  if (aiKey() && song.format !== "tab" && (song.spots === "guess" || (!song.spots && song.ai === "chart"))) setTimeout(() => { if (viewing === song) lazy("findai.js").then(m => m.relineSong(song)); }, 1500);
+  if (aiKey() && liningDue(song)) setTimeout(() => { if (viewing === song) lazy("findai.js").then(m => m.relineSong(song)); }, 1500);
 
   const speed = $("speed");
   // Song length style: the slider sets how long the song takes (right = shorter = faster).
@@ -400,7 +400,7 @@ function chordLabel(text) {
 function renderBlocks(sheet, blocks) {
   /* German practice: a German word carries its card's key and its noun gender. */
   const txt = p => p.de ? `<span class="de${p.de.g ? " g-" + p.de.g : ""}" data-de="${esc(p.de.k)}">${esc(p.text)}</span>` : esc(p.text);
-  const word = w => w.space ? " " : `<span class="w">${w.parts.map(p => p.chord
+  const word = w => w.space ? " " : `<span class="w${w.lead ? " lead" : ""}">${w.parts.map(p => p.chord
     ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord)}<span class="l">${txt(p)}</span></span>`
     : txt(p)).join("")}</span>`;
   const under = b => (b.tr ? `<span class="de-tr">${esc(b.tr)}</span>` : "") + (b.en ? `<span class="de-en">${esc(b.en)}</span>` : "");
@@ -508,7 +508,7 @@ function chordTimes(song) {
       const ws = [...row.querySelectorAll(".w")], start = when.get(li), nx = order.find(i => i > li);
       const end = Math.min(nx !== undefined ? when.get(nx) : start + 8, start + 12);
       const words = ws.map(w => { const c = w.cloneNode(true); c.querySelectorAll(".c").forEach(x => x.remove()); return c.textContent.trim(); });
-      pl = { ws, t: wordTimes(words, start, end, { bpm, given: song.timed.w?.[li] }) };
+      pl = { ws, t: spotTimes(words, start, end, { bpm, given: song.timed.w?.[li], bar: bpm ? (song.beats || 4) * 60 / bpm : 0 }) };
       per.set(li, pl);
     }
     const k = pl.ws.indexOf(it.el.closest(".w"));
@@ -520,6 +520,12 @@ function chordTimes(song) {
   for (let n = 0; n + 1 < known.length; n++) {
     const p = known[n], q = known[n + 1];
     for (let i = p + 1; i < q; i++) times[i] = times[p] + (times[q] - times[p]) * (i - p) / (q - p);
+  }
+  /* a chord ahead of the singing (4.49.6) never comes before the chord played before it */
+  for (let i = 1; i < times.length; i++) {
+    if (times[i] == null || times[i - 1] == null || times[i] > times[i - 1]) continue;
+    const q = times.slice(i + 1).find(t => t != null && t > times[i - 1]);
+    times[i] = q != null ? (times[i - 1] + q) / 2 : times[i - 1] + 0.05;
   }
   chordTimeCache.key = key; chordTimeCache.times = times;
   return times;

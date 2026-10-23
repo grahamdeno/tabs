@@ -1,9 +1,9 @@
 // Tabs — core logic
 // Personal chord sheet and tab library. All data stays in localStorage.
 // Topics live in core/ (4.15.1); everything is re-exported here, so the rest of the app imports from core.js.
-import { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, syncSeconds, syncWhere, wordTimes } from "./core/recording.js";
+import { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes } from "./core/recording.js";
 import { SECTION_RE, buildWords, chordShape, detectPaste, guessKey, isChord, isChordLine, isTabLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, secName, transposeChord, transposeKey, wrapTab } from "./core/chords.js";
-import { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, looksGuessed, lyricsOfSheet, mergeWords, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes } from "./core/sketch.js";
+import { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, chartChord, liningDue, SPOTS_V, looksGuessed, lyricsOfSheet, mergeWords, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes } from "./core/sketch.js";
 import { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment } from "./core/playing.js";
 import { DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, barHits, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset } from "./core/groove.js";
 import { GUITAR_SHARE, HEX_KM2, HEX_M, HOLD_DAYS, PRACTICE_MEDIAN, PRACTICE_SPREAD, VENUES, cellsOutline, claimCells, cleanTour, coarseSpot, densityAt, edgePressure, hexNeighbours, hexSpiral, lifetimePlays, localBar, percentileOf, playsForCells, rng, sceneMap, seedOf, simulateRivals, takeoverPlan, territory, tourDay, userAvg7, venueName, venueOf, zOf, cornersSettle } from "./core/turf.js";
@@ -11,7 +11,7 @@ import { CHORD_FIT, HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, strumFit,
 import { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, GIG_STRINGS, GIG_WINDOW, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigChange, gigChord, GIG_LATE, gigCrowd, gigDone, gigFans, gigPct, gigStart, gigTiming, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.49.5";
+export const VERSION = "4.49.6";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -296,6 +296,7 @@ export function cleanSong(raw) {
   if (s.backing !== undefined && s.backing !== "band") delete s.backing;
   if (s.spots !== undefined && !["placed", "guess", "mine"].includes(s.spots)) delete s.spots; /* 4.41.0: how the chords got over the words */
   if (s.spotsTried !== undefined && !(Number.isFinite(s.spotsTried) && s.spotsTried > 0)) delete s.spotsTried;
+  if (s.spotsV !== undefined && !(Number.isInteger(s.spotsV) && s.spotsV > 0)) delete s.spotsV; /* 4.49.6: how the chords were placed (SPOTS_V) */
   delete s.playAs; /* Gig or Sheet per song (4.3.0) gave way to Full in the Gig (4.4.0) */
   /* Practice mode (3.21.0): { on?, rate? }. The recording's own speed (3.14.0) became the practice speed. */
   if (s.recRate !== undefined) { if (!(s.practice?.rate > 0)) s.practice = { ...(s.practice || {}), rate: s.recRate }; delete s.recRate; }
@@ -630,10 +631,11 @@ function fluentBlock(b, line, i, en) {
   const enN = Math.max(1, real.length), chordsAt = new Map();
   real.forEach((w, j) => w.parts.forEach(p => { if (p.chord) { const k = Math.min(dw.length - 1, Math.round(j * dw.length / enN)); (chordsAt.get(k) || chordsAt.set(k, []).get(k)).push(p); } }));
   /* Chords in the line that sit on no word (a chord row inside the pair) ride along at the end. */
-  const loose = b.words.filter(w => !w.space && !deWords(w).trim()).flatMap(w => w.parts.filter(p => p.chord));
-  const words = [];
+  const loose = b.words.filter(w => !w.space && !w.lead && !deWords(w).trim()).flatMap(w => w.parts.filter(p => p.chord));
+  /* Chords played before the singing (4.49.6) stay in front of the words. */
+  const words = b.words.filter(w => w.lead).flatMap(w => [w, { space: true }]);
   dw.forEach((d, k) => {
-    if (k) words.push({ space: true });
+    if (k && !words[words.length - 1]?.space) words.push({ space: true });
     const cs = chordsAt.get(k) || [];
     words.push({ parts: cs.length ? [...cs.slice(0, -1).map(p => ({ ...p, text: "" })), { ...cs[cs.length - 1], text: d, de: { k: `${i}.f`, g: "" } }] : [{ text: d, de: { k: `${i}.f`, g: "" } }] });
   });
@@ -1344,9 +1346,9 @@ export function playCredited({ end = 0, cover = 0, ms = 0, expectedMs = 0 } = {}
 }
 
 // ---------- Re-exported topics (core/) ----------
-export { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, syncSeconds, syncWhere, wordTimes };
+export { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes };
 export { buildWords, chordShape, detectPaste, guessKey, isChord, isChordLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, transposeChord, transposeKey, wrapTab };
-export { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, looksGuessed, lyricsOfSheet, mergeWords, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes };
+export { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, chartChord, liningDue, SPOTS_V, looksGuessed, lyricsOfSheet, mergeWords, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes };
 export { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment };
 export { DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, barHits, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset };
 export { GUITAR_SHARE, HEX_KM2, HEX_M, HOLD_DAYS, PRACTICE_MEDIAN, PRACTICE_SPREAD, VENUES, cellsOutline, claimCells, cleanTour, coarseSpot, densityAt, edgePressure, hexNeighbours, hexSpiral, lifetimePlays, localBar, percentileOf, playsForCells, rng, sceneMap, seedOf, simulateRivals, takeoverPlan, territory, tourDay, userAvg7, venueName, venueOf, zOf, cornersSettle };
