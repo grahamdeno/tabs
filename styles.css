@@ -2232,8 +2232,6 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 .gg-lines .gl-later { font-size: 18px; opacity: .45; }
 .gg-lines .c { color: var(--gel); font-family: var(--display); }
 :root[data-theme="light"] .gg-lines .c { color: color-mix(in srgb, var(--gel) 75%, #14213D); }
-.gig[data-lines="6"] .gg-crowd { padding-bottom: 2px; } .gig[data-lines="6"] .gg-fans { height: 30px; }
-.gig[data-lines="6"] .gg-now b { font-size: 36px; } .gig[data-lines="6"] .gg-louie { height: 66px; } .gig[data-lines="6"] .gg-louie .louie { height: 60px; }
 .gg-end { margin: 8px 0; color: var(--muted); font-weight: 700; }
 .gg-bottom { flex: none; display: flex; align-items: center; gap: 10px; }
 .gg-mic { flex: 1; min-width: 0; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--good); font: 700 15px var(--sans); }
@@ -2406,21 +2404,6 @@ body.gigging .menu.tools { z-index: 60; }
    Now and Next, the combo) and Hearing you and Pause at the bottom.
    ========================================================================== */
 .gg-mini { display: none; }
-body.gigging.gig-full { overflow: visible; }
-body.gig-full .app.viewer .dock, body.gig-full .app.viewer .dock-fade, body.gig-full .chead { visibility: hidden; }
-.gig[data-lines="full"]:not(.done) { background: none; padding: 0; pointer-events: none; gap: 0; }
-.gig[data-lines="full"]:not(.done) > * { pointer-events: auto; }
-.gig[data-lines="full"]:not(.done) > .gg-light, .gig[data-lines="full"]:not(.done) > .gg-crowd, .gig[data-lines="full"]:not(.done) > .gg-chords,
-.gig[data-lines="full"]:not(.done) > .gg-timing, .gig[data-lines="full"]:not(.done) > .gg-lines { display: none; }
-.gig[data-lines="full"]:not(.done) > .gg-top { background: var(--bg); padding: calc(8px + var(--safe-t)) 16px 2px; }
-.gig[data-lines="full"]:not(.done) > .gg-status { background: var(--bg); padding: 2px 16px 10px; border-bottom: 2px solid var(--rim); box-shadow: 0 6px 14px color-mix(in srgb, var(--bg) 80%, transparent); }
-.gig[data-lines="full"]:not(.done) .gg-mini { display: inline-flex; align-items: center; padding: 2px 12px; border-radius: 999px; background: var(--card); border: 2px solid var(--gel); font: 700 18px var(--display); color: var(--fg); white-space: nowrap; }
-.gig[data-lines="full"]:not(.done) > .gg-bottom { margin-top: auto; background: var(--bg); padding: 10px 16px calc(12px + var(--safe-b)); border-top: 2px solid var(--rim); }
-.gig.paused[data-lines="full"] > :not(.gg-light):not(.gg-hold) { opacity: 1; }
-.gig.paused[data-lines="full"] > .gg-status { pointer-events: none; }
-.gig[data-lines="full"] .gg-hold { top: auto; background: var(--bg); border-top: 2px solid var(--rim); padding-top: 12px; }
-.gig[data-lines="full"] .gg-here { display: none; }
-body.gig-full .app.viewer { padding-bottom: calc(120px + var(--safe-b)); }
 /* ==========================================================================
    Tour quests (4.5.0): the month's tour, the request line, tonight's
    setlist and the duet quest (locked until Charts)
@@ -3629,3 +3612,49 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 /* 4.42.1: while search is open the page doesn't bounce when pulled down: the bar is fixed, so a bounce
    slid the buttons away from it and iOS drew the text cursor in the gap. A long list still scrolls. */
 html:has(> body.searching), body.searching { overscroll-behavior: none; }
+
+
+/* ---- The Gig, words first (4.43.0): the words fill the screen, the game is one slim strip ---- */
+.gig { gap: 8px; }
+.gg-top .gg-combo { min-width: 34px; text-align: right; font: 700 18px var(--display); color: var(--fans-text); }
+.gg-combo.hit { animation: gg-pop .3s ease-out; }
+@keyframes gg-pop { 50% { transform: scale(1.25); } }
+.gg-tw { min-width: 38px; font: 800 11px var(--sans); letter-spacing: .06em; color: var(--muted); }
+.gg-tw.on { color: var(--fans-text); }
+.gg-status { justify-content: flex-start; gap: 10px; min-height: 28px; }
+.gg-cap { font: 800 10.5px var(--sans); letter-spacing: .08em; color: var(--muted); }
+.gg-status .gg-fans { flex: 1; display: flex; gap: 3px; align-items: flex-end; height: 22px; margin: 0; }
+.gg-status .gg-fans i { flex: 1; border-radius: 6px 6px 3px 3px; background: var(--locked); transition: background .25s; }
+.gg-status .gg-fans i.on.c0 { background: var(--g-chorus); } .gg-status .gg-fans i.on.c1 { background: var(--g-verse); }
+.gg-status .gg-fans i.on.c2 { background: var(--fans); } .gg-status .gg-fans i.on.c3 { background: var(--g-solo); }
+.gig .gg-chords { display: none; }
+.gig.bigc .gg-chords { display: flex; gap: 10px; flex: none; }
+.gig.bigc .gg-chords .gg-now { flex: 1.5; }
+.gig.bigc .gg-chords .gg-next { flex: 1; justify-content: center; }
+.gig.bigc .gg-lines { opacity: .7; }
+.gg-lines { gap: 6px; padding-top: 4px; --lyric-size: 21px; }
+.gg-lines > * { font-size: 21px; }
+.gg-lines .gl-now { font-size: 23px; font-weight: 700; opacity: 1; }
+.gg-lines .gl-soon { opacity: .72; }
+.gg-lines .gl-past { opacity: .32; }
+.gg-lines .c { color: var(--muted); }
+.gg-lines .gl-now .c, .gg-lines .gl-soon:nth-child(-n+4) .c { color: var(--gel); }
+.gg-lines .c.gc-rep { visibility: hidden; }
+.gg-lines .c.gc-lit .ct, .gg-lines .c.gc-next .ct { color: #14213D; border-radius: 6px; }
+.gg-lines .c.gc-lit .ct { background: var(--gel); box-shadow: 0 0 0 4px var(--gel), 0 6px 0 color-mix(in srgb, var(--gel) 55%, #000); }
+.gg-lines .c.gc-next .ct { background: var(--fans); box-shadow: 0 0 0 4px var(--fans), 0 6px 0 var(--fans-deep); }
+.gc-dots { position: absolute; left: calc(100% + 9px); top: .55em; display: inline-flex; gap: 3px; pointer-events: none; }
+.gc-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--locked); }
+.gc-dots i.on { background: var(--fans); }
+.gg-shape { position: absolute !important; right: 14px; top: 34%; z-index: 2; width: 96px; box-sizing: border-box; padding: 8px 6px; border-radius: 14px; background: var(--card); border: 2px solid var(--fans); box-shadow: 0 4px 0 var(--fans-deep); text-align: center; }
+.gg-shape[hidden] { display: none; }
+.gg-shape small { display: block; font: 800 9.5px var(--sans); letter-spacing: .06em; color: var(--fans-text); }
+.gg-shape b { display: block; font: 700 16px var(--display); color: var(--fg); }
+.gg-shape svg { display: block; margin: 2px auto 0; max-width: 80px; height: auto; }
+.gg-moment { position: absolute !important; left: 14px; right: 14px; top: calc(88px + var(--safe-t)); z-index: 3; display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 8px; border-radius: 20px; background: var(--streak); color: #14213D; box-shadow: 0 5px 0 var(--streak-deep); font: 700 15px var(--sans); }
+.gg-moment[hidden] { display: none; }
+.gg-moment .louie { width: 54px; height: auto; flex: none; }
+.gg-moment b { display: block; font: 700 18px var(--display); }
+.gg-moment.go { animation: gg-moment 2.6s ease both; }
+@keyframes gg-moment { 0% { opacity: 0; transform: translateY(-14px); } 10%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .gg-combo.hit, .gg-moment.go { animation: none; } }

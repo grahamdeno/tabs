@@ -333,7 +333,7 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   assert.ok(Math.abs(m.left - (390 - m.right)) < 2, `4.19.1: Tools sits centred (${m.left}, ${m.right})`);
   assert.equal(await page.locator(".menu .t3-tabs [data-tab]").count(), 3, "4.32.0: Play, Practice and Song tabs");
   assert.ok((await box(".menu .t3-tabs")).bottom > H - 60, "the tabs sit at the bottom, in thumb reach");
-  assert.match(await page.innerText(".menu"), /Lines in a gig/);
+  assert.doesNotMatch(await page.innerText(".menu"), /Lines in a gig/, "4.43.0: the Gig shows every line that fits");
 
   const pad = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForSelector(".shead [data-go]");

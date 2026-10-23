@@ -31,11 +31,10 @@ const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-
 
 test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, with a Double set and the merch tip", { skip: skip() }, async t => {
   /* 400 fans from earlier shows: enough for the Brick wall backdrop (300), the cheapest thing not owned */
-  const page = await strummingPage(t, { ...LIB, songs: [SHORT], gig: { shows: 3, fans: 400, best: {} }, merch: { own: { double: 2 } }, settings: { ...LIB.settings, gigLines: 4, plainPlay: false } }, "#/song/g");
+  const page = await strummingPage(t, { ...LIB, songs: [SHORT], gig: { shows: 3, fans: 400, best: {} }, merch: { own: { double: 2 } }, settings: { ...LIB.settings, plainPlay: false } }, "#/song/g");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Play as a gig");
   await page.click("#play"); await page.waitForSelector("#gig");
-  assert.equal(await page.getAttribute("#gig", "data-lines"), "4", "the lines you picked");
-  assert.ok(await page.locator("#gg-lines > *").count() <= 4);
+  assert.ok(await page.locator("#gg-lines > *").count() >= 4, "4.43.0: words first, every line that fits");
   assert.equal(await page.locator(".gg-map i").count(), 2, "the song map: a gel for each section");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Hearing you: a tap stops listening for this show, another starts it again */
@@ -73,22 +72,16 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.match(await page.innerText(".shead .meta"), /Best show \d+%/, "the song shows its best show");
 });
 
-test("Gig: Lines 4, 5 and 6 from Tools while paused keep the line you stopped on; Resume plays on; Sheet goes back", { skip: skip() }, async t => {
+test("Gig: paused, Tools has no Lines in a gig (4.43.0); Resume plays on; Sheet goes back", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
-  assert.equal(await page.getAttribute("#gig", "data-lines"), "5", "five lines unless you pick");
   await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
   const held = await page.innerText("#gg-hline");
-  for (const n of [4, 6, 5]) {
-    await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
-    await page.click(`.menu [data-lines="${n}"]`); await page.waitForSelector(`#gig[data-lines="${n}"]`);
-    assert.equal(await page.getAttribute(".menu [data-lines][aria-checked='true']", "data-lines"), String(n), `Lines ${n} is the one checked`);
-    await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
-    assert.ok(await page.locator("#gg-lines > *").count() <= n, `at most ${n} lines`);
-    await page.waitForFunction(n => JSON.parse(localStorage.getItem("tabs-v1")).settings.gigLines === n, n);
-  }
-  assert.equal(await page.innerText("#gg-hline"), held, "changing Lines while paused keeps the line you stopped on");
+  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  assert.equal(await page.locator(".menu [data-lines]").count(), 0, "no Lines in a gig");
+  await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
+  assert.equal(await page.innerText("#gg-hline"), held, "Tools while paused keeps the line you stopped on");
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
   const at = await page.evaluate(() => document.getElementById("gg-mark").style.left);
   await page.click("#gg-resume"); await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
@@ -98,7 +91,6 @@ test("Gig: Lines 4, 5 and 6 from Tools while paused keep the line you stopped on
   await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
   assert.equal(await page.evaluate(() => location.hash), "#/song/g", "Sheet: back to the song, paused");
 });
-
 
 test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped on", { skip: skip() }, async t => {
   const long = { id: "l", title: "Long", artist: "A", key: "G", format: "chords", duration: 300, body: "[Verse]\n" + Array.from({ length: 30 }, (_, i) => `G   C\nLine ${i} of the song`).join("\n") + "\n\n[Chorus]\nD   G\nThe end" };
@@ -117,30 +109,26 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
 });
 
-test("4.4.0 Full: the Gig as a strip over the whole song page, which scrolls under a finger", { skip: skip() }, async t => {
-  const long = { id: "l", title: "Long", artist: "A", key: "G", format: "chords", duration: 300, body: "[Verse]\n" + Array.from({ length: 30 }, (_, i) => `G   C\nLine ${i} of the song`).join("\n") + "\n\n[Chorus]\nD   G\nThe end" };
-  const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
-  await page.click("#more"); await page.click('.menu [data-lines="full"]');
-  assert.equal(await page.innerText(".menu [data-lines].on"), "All", "4.32.0: the whole song is called All");
-  await page.keyboard.press("Escape"); await page.waitForSelector('.menu', { state: 'detached' }); /* a tap at the top now lands on "about this song" */
+test("4.43.0 words first: the chord you're on lit in the line, the next one with its beats, a repeat shown once, a shape for a new chord, big cards with no words", { skip: skip() }, async t => {
+  const body = "[Intro]\nG   C   G   C\n\n[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G        G        Fmaj7\nLine ${i + 1} of the verse goes here`).join("\n");
+  const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
+  const journal = { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, chords: { G: { n: 9, first: "2026-01-01" }, C: { n: 9, first: "2026-01-01" } } };
+  const page = await phone(t, { ...LIB, songs: [song], journal, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
-  assert.equal(await page.getAttribute("#gig", "data-lines"), "full");
-  assert.ok(await page.evaluate(() => document.body.classList.contains("gig-full")), "the page shows");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer .dock")).visibility), "hidden", "the show's bar replaces the song's");
-  await page.waitForFunction(() => /→/.test(document.getElementById("gg-mini").textContent), null, { timeout: 5000 });
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  const before = await page.evaluate(() => scrollY);
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 500 }] });
-  for (let y = 490; y >= 250; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); /* real timer */ }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await page.waitForFunction(b => scrollY > b + 100, before);
-  await page.click("#gg-tools"); await page.click('.menu [data-lines="5"]');
-  await page.waitForFunction(() => !document.body.classList.contains("gig-full"), null, { timeout: 3000 });
-  await page.mouse.click(200, 100); await page.waitForSelector('.menu', { state: 'detached' });
-  await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
-  assert.equal(await page.evaluate(() => document.body.classList.contains("gig-full")), false);
+  /* the intro has no words: the big Now and Next */
+  await page.waitForSelector("#gig.bigc");
+  assert.ok(await page.locator(".gg-chords").isVisible(), "big cards in the intro");
+  /* into the verse: words first */
+  await page.waitForFunction(() => !document.getElementById("gig").classList.contains("bigc"), null, { timeout: 20000 });
+  assert.equal(await page.locator(".gg-chords").isVisible(), false, "no big cards over words");
+  assert.ok(await page.locator("#gg-lines > *").count() >= 7, "at least seven lines on screen");
+  await page.waitForSelector("#gg-lines .gc-lit"); await page.waitForSelector("#gg-lines .gc-next .gc-dots");
+  assert.ok(await page.locator("#gg-lines .gc-rep").count() > 0, "a chord played again in a row is hidden");
+  await page.waitForFunction(() => { const s = document.getElementById("gg-shape"); return s && !s.hidden && /Fmaj7/.test(s.textContent); }, null, { timeout: 20000 });
+  assert.match(await page.innerText("#gg-shape"), /NEW CHORD/, "a shape for the chord you haven't learned");
+  assert.equal(await page.locator("#gg-tw").count(), 1, "timing lives beside the combo");
+  assert.equal(await page.locator(".gg-timing, .gg-louie, .gg-crowd").count(), 0, "no timing bar, no Louie card, no crowd card");
 });
 
 test("4.41.0 a sheet whose chords are a guess: a change you don't strum is never a miss", { skip: skip() }, async t => {

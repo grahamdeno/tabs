@@ -11,7 +11,7 @@ import { HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, chordTargets, cleanS
 import { CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, GIG_STRINGS, GIG_WINDOW, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigChange, gigCrowd, gigDone, gigFans, gigPct, gigStart, gigTiming, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.42.1";
+export const VERSION = "4.43.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -30,7 +30,6 @@ const DEFAULT_SETTINGS = {
   a4: 440,               // pitch reference for the tuner, Hz
   micExplained: false,   // the tuner has said why it needs the microphone
   nudge: true,            // the library's Today line: practice streak and a song for today
-  gigLines: 5,           // the Gig (4.1.0): how many lines of the song show at once (4, 5 or 6), or "full" (4.4.0)
   gigScore: true,        // a gig starts listening for your chord changes (4.2.0)
   lastBackup: null, backupSnooze: null, tipsSeen: false,
   v: 6
@@ -60,6 +59,7 @@ export function migrate(data) {
   delete settings.arcSweep; /* the ring is gone (3.19.0) */
   delete settings.stage; delete settings.songMap; delete settings.pauseDiagrams; /* retired in 4.15.0: the Gig is the stage; the rail and paused diagrams are always on */
   delete settings.bass; delete settings.bassVol; delete settings.bassStyle; delete settings.bassOnly; /* the bass went in 4.42.0 */
+  delete settings.gigLines; /* 4.43.0: the Gig shows the words first, as many lines as fit; Lines in a gig and Full went */
   const songs = data.songs.map(s => {
     const song = { ...s };
     if (song.body === undefined) {
