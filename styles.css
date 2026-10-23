@@ -3657,3 +3657,18 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 :root[data-look] .ib.glass svg { width: 22px; height: 22px; stroke-width: 2.8; }
 :root[data-look] .ib.glass.on { background: var(--accent-soft); box-shadow: 0 4px 0 var(--accent-line, var(--accent)); color: var(--accent-ink); }
 :root[data-look] .ib.glass:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rim); }
+
+/* 4.42.5: top buttons drawn at 40px, like the Merch table's (Graham: a better height), with a 3px lip and a
+   20px icon. Each still catches taps over 48px: an invisible margin around it, so one-handed taps land. */
+:root[data-look] .ib.glass, :root[data-look] .sh-btn, :root[data-look] .ib.chunky-tune, .mc-back {
+  width: 40px; height: 40px; border-radius: 13px; position: relative; }
+:root[data-look] .ib.glass, :root[data-look] .sh-btn, .mc-back { box-shadow: 0 3px 0 var(--rim); }
+:root[data-look] .ib.glass.on { box-shadow: 0 3px 0 var(--accent-line, var(--accent)); }
+:root[data-look] .ib.chunky-tune { box-shadow: 0 3px 0 #D9AE1F; }
+:root[data-look] .ib.glass svg, :root[data-look] .sh-btn svg { width: 20px; height: 20px; }
+:root[data-look] .ib.chunky-tune svg { width: 21px; height: 21px; }
+:root[data-look] .btn.sets-btn { height: 40px; min-height: 40px; font-size: 15px; box-shadow: 0 3px 0 var(--rim); position: relative; }
+:root[data-look] .btn.sets-btn.on { box-shadow: 0 3px 0 var(--accent-deep); }
+:root[data-look] .btn.sets-btn .i, :root[data-look] .btn.sets-btn svg { width: 18px; height: 18px; }
+:root[data-look] .ib.glass::after, :root[data-look] .sh-btn::after, :root[data-look] .ib.chunky-tune::after, :root[data-look] .btn.sets-btn::after, .mc-back::after {
+  content: ""; position: absolute; inset: -4px; }
