@@ -357,6 +357,7 @@ const addTools = () => {
   const ai = !!aiKey();
   return `<div class="label">Not in your Songbook yet?</div>
     <div class="sr-tools">${toolBtn("sr-paste", "paste", "Paste")}${ai ? toolBtn("sr-scan", "scan", "Scan") : ""}${toolBtn("sr-sing", "sing", "Sing it")}${ai && data.songs.length ? toolBtn("nextidea", "ideas", "Ideas") : ""}</div>
+    ${data.settings.appleMusic ? `<button class="sr-am" id="sr-am"><span class="sr-amic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span><span class="sr-amt"><b>From Apple Music</b><small>What you've listened to lately</small></span>${icon("chev", "chev")}</button>` : ""}
     <button class="sr-write" id="sr-write">${icon("edit")}Write one from scratch</button>
     <input type="file" id="sr-photo" accept="image/*" hidden>`;
 };
@@ -384,6 +385,31 @@ function bindAddTools(list) {
       const r = await cleanSheet({ image: await readPhoto(file) });
       newSong({ title: r.title || "", artist: r.artist || "", ...(r.key ? { key: r.key } : {}), ...(r.format ? { format: r.format } : {}), body: r.body }, "text");
     } catch (err) { toast(aiError(err)); b.disabled = false; b.innerHTML = was; }
+  });
+}
+/* 4.49.0: Recently on Apple Music, in a sheet: songs you don't have first, each with one button that says what it does */
+const amKey = (t, a) => `${String(t || "").toLowerCase().replace(/\s*[([].*?[)\]]/g, "").trim()}|${String(a || "").toLowerCase().trim()}`;
+const inSongbook = r => data.songs.find(x => amKey(x.title, x.artist) === amKey(r.title, r.artist));
+function appleSheet(rows) {
+  const ai = !!aiKey(), act = ai ? "Get the chords" : "Start a sheet";
+  const sorted = [...rows].sort((a, b) => !!inSongbook(a) - !!inSongbook(b));
+  layer.innerHTML = `<div class="scrim" id="am-scrim"></div>
+    <div class="panel card am-sheet" role="dialog" aria-label="Recently on Apple Music"><div class="grab" aria-hidden="true"></div>
+      <h2 class="am-h">Recently on Apple Music</h2>
+      <div class="sr-clist">${sorted.map(r => { const mine = inSongbook(r), n = rows.indexOf(r);
+        return `<div class="sr-crow"><span class="sr-ctx"><b>${esc(r.title)}</b><small>${esc(r.artist)}</small></span>${mine
+          ? `<button class="sr-act ghost" data-amopen="${esc(mine.id)}">In your Songbook</button>`
+          : `<button class="sr-act" data-amr="${n}" aria-label="${act}: ${esc(r.title)}, ${esc(r.artist)}">${act}</button>`}</div>`; }).join("")}</div>
+      <button class="btn am-done" id="am-done">Done</button>
+    </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("am-scrim").onclick = close; $("am-done").onclick = close;
+  layer.querySelectorAll("[data-amopen]").forEach(b => b.onclick = () => { close(); go("#/song/" + encodeURIComponent(b.dataset.amopen)); });
+  layer.querySelectorAll("[data-amr]").forEach(b => b.onclick = () => {
+    const r = rows[+b.dataset.amr];
+    close(); query = "";
+    if (ai) findAI().then(m => m.getSong(r.title, { title: r.title, artist: r.artist }));
+    else newSong({ title: r.title, artist: r.artist }, "text");
   });
 }
 /* Typing: recordings from Apple's public catalog under your own matches, so a song you don't have is one tap away. */
@@ -458,17 +484,19 @@ export function renderList() {
     list.innerHTML = `${searchFrom === "road" ? `<button class="sr-browse" id="sr-browse"><span class="sr-bic">${icon("list")}</span><span><b>Open your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>` : ""}
       ${recentSongs.length ? `<div class="label">Played lately</div><div class="sr-cards">${recentSongs.slice(0, 3).map(card).join("")}</div>` : ""}
       ${addTools()}
-      <div id="amrecent"></div>`;
+`;
     $("sr-browse")?.addEventListener("click", () => $("qcancel").click());
     list.querySelectorAll("[data-id]").forEach(b => b.onclick = () => go("#/song/" + encodeURIComponent(b.dataset.id)));
     list.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playSong(b.dataset.play));
     bindAddTools(list);
-    /* Apple Music (only when it is turned on): what you played there lately. A tap fills the search with it. */
+    /* 4.49.0: Apple Music is one row with the ways to add; its count fills in once the list arrives */
     if (data.settings.appleMusic) recentApple().then(rows => {
-      const box = $("amrecent");
-      if (!box?.isConnected || !rows.length || !searching || query) return;
-      box.innerHTML = `<div class="label">Recently on Apple Music</div><div class="list glass">${rows.map((r, n) => `<button class="row" data-amr="${n}"><div class="txt"><div class="t">${esc(r.title)}</div><div class="a">${esc(r.artist)}</div></div>${icon("chev", "chev")}</button>`).join("")}</div>`;
-      box.querySelectorAll("[data-amr]").forEach(b => b.onclick = () => { const r = rows[+b.dataset.amr]; query = `${r.title} ${r.artist}`.trim(); const qi = $("q"); if (qi) qi.value = query; $("clear").hidden = false; renderList(); });
+      const b = $("sr-am");
+      if (!b?.isConnected) return;
+      if (!rows.length) { b.hidden = true; return; }
+      const fresh = rows.filter(r => !inSongbook(r)).length;
+      b.querySelector("small").textContent = fresh ? `${fresh} song${fresh === 1 ? "" : "s"} you've listened to lately` : "What you've listened to lately";
+      b.onclick = () => appleSheet(rows);
     });
     return;
   }

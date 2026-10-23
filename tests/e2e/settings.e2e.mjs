@@ -256,10 +256,12 @@ test("Apple Music: the Recording sheet shows genre, year and composer in the alb
   assert.equal(l.genre, "Rock"); assert.equal(l.year, 1995); assert.equal(l.tint, "c04a2b");
   await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#q");
   await page.tap("#q");
-  await page.waitForSelector("[data-amr]", { timeout: 5000 });
+  /* 4.49.0: one row with the ways to add, then a sheet; a song you don't have starts a sheet with its title and artist */
+  await page.waitForFunction(() => /2 songs you've listened to lately/.test(document.getElementById("sr-am")?.innerText || ""), null, { timeout: 5000 });
+  await page.click("#sr-am"); await page.waitForSelector("[data-amr]");
   assert.equal(await page.locator("[data-amr]").count(), 2, "the repeat is listed once");
-  await page.click("[data-amr='1']");
-  assert.equal(await page.inputValue("#q"), "Creep Radiohead");
+  await page.click("[data-amr='1']"); await page.waitForSelector("#ed-body");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.title === "Creep" && s.artist === "Radiohead"));
 });
 
 test("Apple Music off: no recording speed or volume anywhere", { skip: skip() }, async t => {
