@@ -570,3 +570,19 @@ test("4.49.1 The search screen holds still before you type, and scrolls again on
   await page.fill("#q", "river"); await page.waitForFunction(() => !document.body.classList.contains("sr-lock"));
   await page.click("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains("searching") && !document.body.classList.contains("sr-lock"));
 });
+
+test("4.49.3 Closing the keyboard keeps the search screen; Cancel goes back where you came from", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { home: true });
+  await page.waitForSelector("#rd-search"); await settled(page);
+  await page.click("#rd-search"); await page.waitForSelector("#sr-paste");
+  await page.evaluate(() => document.activeElement.blur()); /* the keyboard's checkmark */
+  await page.waitForTimeout(400); /* real timer: the old screen closed 200 ms after the keyboard did */
+  assert.equal(await page.evaluate(() => document.body.classList.contains("searching")), true, "still on the search screen");
+  await page.click("#qcancel"); await page.waitForSelector("#rd-search");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "from the Road, Cancel goes back to the Road");
+  await settled(page);
+  await page.click("#rd-songbook"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#sr-paste");
+  await page.click("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
+  assert.equal(await page.evaluate(() => location.hash), "#/library", "from the Songbook, Cancel stays on the Songbook");
+});

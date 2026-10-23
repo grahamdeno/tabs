@@ -18,7 +18,7 @@ export const setFilter = f => { filter = f; };
 // for the keyboard; it pushes the page up instead, which hid results at the top.)
 export let searching = false;
 /* 4.48.0: the Road opens search with "Open your Songbook" on top; from the Songbook itself that row would go nowhere */
-let searchFrom = "";
+let searchFrom = "", closeSearch = null;
 export const setSearchFrom = v => { searchFrom = v; };
 let keepSearch = false; /* back from a song opened from results: show the results again */
 onLeave(r => { if (r.name !== "library" && searching) { searching = false; document.body.classList.remove("searching", "sr-lock"); } });
@@ -191,8 +191,10 @@ export function renderLibrary() {
   q.addEventListener("focus", () => { enterSearch(); window.scrollTo(0, 0); });
   /* Closing the keyboard (its checkmark doesn't tap the page) also closes a search tip. */
   q.addEventListener("blur", () => dismissCoach());
-  q.addEventListener("blur", () => setTimeout(() => { if (searching && !query.trim() && document.activeElement !== q && route().name === "library" && !layer.innerHTML) exitSearch(); }, 200));
-  $("qcancel").onclick = e => { e.preventDefault(); exitSearch(); };
+  /* 4.49.3: closing the keyboard keeps the search screen; Cancel and Open your Songbook leave it */
+  closeSearch = exitSearch;
+  /* 4.49.3: Cancel goes back where you came from: the Road, or the Songbook */
+  $("qcancel").onclick = e => { e.preventDefault(); const back = searchFrom === "road"; exitSearch(); if (back) go("#/"); };
   if (keepSearch && query.trim()) searching = true;
   keepSearch = false;
   if (searching) document.body.classList.add("searching");
@@ -484,7 +486,7 @@ export function renderList() {
     const count = data.songs.length, can = data.songs.filter(x => fitOf(x).can).length;
     list.innerHTML = `${amRow()}${searchFrom === "road" ? `<button class="sr-browse" id="sr-browse"><span class="sr-bic">${icon("list")}</span><span><b>Open your Songbook</b><small>${count} song${count === 1 ? "" : "s"}${can ? ` · ${can} you can play` : ""}</small></span>${icon("chev", "chev")}</button>` : ""}
       ${addTools()}`;
-    $("sr-browse")?.addEventListener("click", () => $("qcancel").click());
+    $("sr-browse")?.addEventListener("click", () => closeSearch?.());
     bindAddTools(list);
     /* 4.49.0: Apple Music is one row with the ways to add; its count fills in once the list arrives */
     if (data.settings.appleMusic) recentApple().then(rows => {
