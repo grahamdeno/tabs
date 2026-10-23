@@ -130,6 +130,7 @@ test("4.21.0 the lesson of the day: three parts from your songs, Start, and a sw
   assert.match(card, /Play the Verse at 70%/);
   assert.match(await page.evaluate(() => location.hash), /#\/practice/, "4.33.0: the neck's address opens Rehearse");
   assert.equal(await page.locator(".rh-yc").count(), 1, "on the Rehearse page");
+  await page.waitForSelector("#tabs [data-tab=rehearse][aria-current=page]", { state: "visible" }); /* 4.42.5: the old address keeps the tab bar, so there's a way out */
   assert.equal(await page.locator(".ls-step").count(), 3);
   assert.match(await page.innerText("#ls-go"), /Start lesson/);
   assert.match(await page.innerText(".ls-skills"), /Open chords[\s\S]*Switches[\s\S]*Scales/);
@@ -172,4 +173,13 @@ test("4.23.0 Your changes in Rehearse: three rows with why and landed, Drill, an
   await settled(page); await page.click("#pk-next"); await page.waitForSelector(".rh-yc");
   await page.click(".rh-ycd >> nth=0"); await page.waitForSelector("#pk-self");
   assert.match(await page.innerText("h1.title"), /C to Dm/);
+});
+
+test("4.42.5 the Road's Rehearse button opens Rehearse with the tab bar, so you can get back", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { home: true });
+  await page.click("#rd-book"); await page.waitForSelector(".rh-lesson");
+  assert.equal(await page.evaluate(() => location.hash), "#/practice");
+  await page.waitForSelector("#tabs [data-tab=rehearse][aria-current=page]", { state: "visible" });
+  await settled(page);
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector("#rd-book");
 });

@@ -223,7 +223,7 @@ export function renderRoad() {
   homeHooks.refresh = null;
   if (wantDrawer) return go("#/library"); /* asked for the songs (4.9.0: the Songbook page, not a drawer) */
   $("rd-songbook").onclick = () => go("#/library");
-  $("rd-book")?.addEventListener("click", () => go("#/practice/neck"));
+  $("rd-book")?.addEventListener("click", () => go("#/practice"));
   $("rd-tonight")?.addEventListener("click", () => playGig(song.id, { from: "road" })); /* 4.1.0: tonight's song is a gig */
   $("rd-search").onclick = () => openSearch();
 
