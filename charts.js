@@ -7,7 +7,7 @@
 //                    scored gig; win and you take 30 XP and 40 fans.
 //   records          one for each week you finished in the top 5
 // The numbers are worked out in core.js (chartState, chartsSettle, battleFor, XP).
-import { CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
+import { VERSION, CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
 import { app, esc, toast } from "./ui.js";
 import { data, go, playGig } from "./app.js";
 import { louie } from "./louie.js";
@@ -59,7 +59,7 @@ export function renderCharts(view = "chart") {
   document.getElementById("ch-takeget")?.addEventListener("click", () => go("#/merch"));
   app.querySelectorAll("[data-pane]").forEach(b => b.onclick = () => { pane = b.dataset.pane; renderCharts(); });
   /* Song duels (4.12.0) and Friends (4.13.0) */
-  import("./duel.js").then(m => {
+  import(`./duel.js?v=${VERSION}`).then(m => {
     const box = document.getElementById("ch-duels");
     if (box) { box.innerHTML = m.duelsHTML(); box.querySelectorAll("[data-duel]").forEach(b => b.onclick = () => go("#/duel/" + b.dataset.duel)); }
     const fb = document.getElementById("ch-friends");

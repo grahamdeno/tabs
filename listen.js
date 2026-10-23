@@ -279,7 +279,11 @@ async function recentFetch() {
         ...(/^https:\/\/music\.apple\.com\//.test(a.url || "") ? { url: a.url } : {}), ...(/^https:\/\//.test(art) ? { art } : {}) });
     }
     return out.slice(0, 8);
-  } catch (e) { noteError(e, { quiet: true, where: "apple music recent" }); return []; }
+  } catch (e) {
+    /* 4.42.7 (#76): offline, there's nothing to fix, so nothing is logged; otherwise the log says which step failed */
+    if (navigator.onLine !== false) noteError(new Error(`${mkStep || "Apple's API"}: ${e?.message || e}`), { quiet: true, where: "apple music recent" });
+    return [];
+  }
 }
 /* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
 export const musicPlaying = song => !!(inst && playingId && song?.listen && playingId === appleTrackId(song.listen.url) && inst.isPlaying);

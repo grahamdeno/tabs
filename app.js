@@ -187,7 +187,7 @@ function renderViewer(id) {
       <div class="nn" id="nn"></div>
       <div class="looprow" id="looprow"></div>
       <div class="player">
-        <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="menu">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed" hidden>
@@ -279,7 +279,7 @@ function renderViewer(id) {
   paintLoop(song);
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
-  else setTimeout(() => { if (openingOn(data)) import("./opening.js").then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
+  else setTimeout(() => { if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
   /* 4.41.0: a song whose chords were guessed is lined up from the chord sites, once, in the background */
   if (aiKey() && song.format !== "tab" && (song.spots === "guess" || (!song.spots && song.ai === "chart"))) setTimeout(() => { if (viewing === song) lazy("findai.js").then(m => m.relineSong(song)); }, 1500);
 
@@ -1173,7 +1173,8 @@ function songMenu(song, anchor, redrawSong) {
   ].filter(Boolean).map(t => ({ ...t, rows: t.rows.filter(Boolean) }));
   let tab = tabsOf().some(t => t.id === data.settings.toolsTab) ? data.settings.toolsTab : "play";
   const m = document.createElement("div");
-  m.setAttribute("role", "menu");
+  /* 4.42.8: the sheet is a dialog (it holds tabs as well as rows); each tab's rows are the menu */
+  m.setAttribute("role", "dialog");
   m.setAttribute("aria-label", "Tools");
   const sheet = oneHandMQ.matches;
   m.className = "menu tools tools3" + (sheet ? " msheet" : "");
@@ -1197,7 +1198,7 @@ function songMenu(song, anchor, redrawSong) {
     const tabs = tabsOf();
     m.innerHTML = (sheet ? '<div class="grab" aria-hidden="true"></div>' : "") + `
       <div class="tl-head"><b>Tools</b><span class="t3-song">${esc(song.title)}</span></div>
-      ${tabs.map(t => `<div class="t3-panel" data-panel="${t.id}"${t.id === tab ? "" : " hidden"}><div class="tl-h">${t.head}</div>${t.rows.map(row).join("")}${t.id === "song" ? '<p class="t3-note">The recording and its details are under the song\'s title.</p>' : ""}</div>`).join("")}
+      ${tabs.map(t => `<div class="t3-panel" role="menu" aria-label="${t.label}" data-panel="${t.id}"${t.id === tab ? "" : " hidden"}><div class="tl-h">${t.head}</div>${t.rows.map(row).join("")}${t.id === "song" ? '<p class="t3-note">The recording and its details are under the song\'s title.</p>' : ""}</div>`).join("")}
       <div class="seg t3-tabs" role="tablist" aria-label="Tools">${tabs.map(t => `<button role="tab" data-tab="${t.id}" class="${t.id === tab ? "on" : ""}" aria-selected="${t.id === tab}">${t.label}${t.rows.some(r => NEW_IN_MENU[r.id] && !used(NEW_IN_MENU[r.id])) ? '<i class="newdot"></i>' : ""}</button>`).join("")}</div>`;
   };
   paint();
@@ -1488,7 +1489,7 @@ document.addEventListener("click", e => {
   if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");
     showChordPop(same ? null : chord);
-    if (!same) { chordTapped(chord); if (openingOn(data)) import("./opening.js").then(m => m.onChord()); }
+    if (!same) { chordTapped(chord); if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => m.onChord()); }
     return;
   }
   if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);

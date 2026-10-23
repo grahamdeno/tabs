@@ -8,7 +8,7 @@
 //   tonight's setlist  three small goals a day, 10 fans each and 25 more for all three
 // The numbers are worked out in core.js (questState, questsSettle); fans are credited when you open the tab
 // or finish a play.
-import { QUEST, COVER_MULT, FRIEND_QUEST, Tabs, questState, questsSettle, noteHeard, coverState, skillState, friendQuest, friendQuestPick, friendQuestSettle } from "./core.js";
+import { VERSION, QUEST, COVER_MULT, FRIEND_QUEST, Tabs, questState, questsSettle, noteHeard, coverState, skillState, friendQuest, friendQuestPick, friendQuestSettle } from "./core.js";
 import { app, esc, icon, toast } from "./ui.js";
 import { aiKey, data, go, openSearch, playGig } from "./app.js";
 import { louie } from "./louie.js";
@@ -25,7 +25,7 @@ let heardAsked = 0;
 function listenFor() {
   if (!data.settings.appleMusic || Date.now() - heardAsked < 60000) return;
   heardAsked = Date.now();
-  import("./listen.js").then(m => m.recentApple()).then(rows => {
+  import(`./listen.js?v=${VERSION}`).then(m => m.recentApple()).then(rows => {
     if (rows?.[0] && noteHeard(data, rows[0])) { Tabs.save(data); if (location.hash === "#/tour") renderTour(); }
   }).catch(() => {});
 }
@@ -91,7 +91,7 @@ export function renderTour() {
       return go(lesson ? "#/practice/" + encodeURIComponent(lesson.id) : "#/song/" + encodeURIComponent(cv.song.id));
     }
     const q = `${cv.title} ${cv.artist}`.trim();
-    if (aiKey()) return import("./findai.js").then(m => m.getSong(q, { title: cv.title, artist: cv.artist }));
+    if (aiKey()) return import(`./findai.js?v=${VERSION}`).then(m => m.getSong(q, { title: cv.title, artist: cv.artist }));
     openSearch(); setTimeout(() => { const i = document.getElementById("q"); if (i) { i.value = q; i.dispatchEvent(new Event("input")); } }, 400);
   });
   if (!data.songs.length) document.querySelector(".tq-req.empty")?.addEventListener("click", () => go("#/library"));

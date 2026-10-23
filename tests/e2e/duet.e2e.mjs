@@ -2,7 +2,7 @@
 // heard by the microphone starts the count-in. No server.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { base, chromium, skip, LIB, FAKE_MIC, phone, useBrowser, tool } from "./harness.mjs";
+import { base, chromium, skip, LIB, FAKE_MIC, phone, useBrowser, tool, settled } from "./harness.mjs";
 useBrowser();
 
 test("Play together: parts, Send song without a start time, and a clap starts the count-in", { skip: skip() }, async t => {
@@ -43,10 +43,10 @@ test("Play together: a link, even an old one with a start time, opens the song a
   const page = await phone(t, { ...LIB, songs: [] });
   const code = await page.evaluate(async s => (await import("./core.js")).packShare({ song: s, duet: { at: Date.now() - 60000, bpm: 90 } }), { title: "Late Song", body: "G C\nla" });
   await page.goto(base + "#/import/" + code); await page.reload();
-  await page.waitForSelector("#pj-yes", { timeout: 8000 });
+  await page.waitForSelector("#pj-yes", { timeout: 15000 }); /* 4.42.8: a busy machine needs longer than 8 s after the reload */
   assert.match(await page.innerText("[aria-label='Play together']"), /Late Song/);
-  await page.click("#pj-yes");
-  await page.waitForSelector("#pt-listen", { timeout: 8000 });
+  await settled(page); await page.click("#pj-yes");
+  await page.waitForSelector("#pt-listen", { timeout: 15000 });
   assert.match(await page.evaluate(() => location.hash), /#\/song\//);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.length === 1); /* the song was added */
 });

@@ -220,7 +220,7 @@ function renderSettings() {
   document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/");
   app.querySelectorAll("[data-page]").forEach(b => b.onclick = () => go("#/settings/" + b.dataset.page));
   /* 4.36.0: one language for every song; switching asks first (german.js) */
-  app.querySelectorAll(".s-lp [data-lang]").forEach(b => b.onclick = () => import("./german.js").then(m => m.switchLang(b.dataset.lang, renderSettings)));
+  app.querySelectorAll(".s-lp [data-lang]").forEach(b => b.onclick = () => import(`./german.js?v=${VERSION}`).then(m => m.switchLang(b.dataset.lang, renderSettings)));
   document.getElementById("s-deen")?.addEventListener("click", () => { s.deEnglish = s.deEnglish !== true; Tabs.save(data); renderSettings(); });
   document.getElementById("s-detr")?.addEventListener("click", () => { s.deTranslit = s.deTranslit === false; Tabs.save(data); renderSettings(); });
   document.getElementById("s-backup")?.addEventListener("click", async () => { if (await backupNow()) { renderSettings(); toast("Backed up"); } });

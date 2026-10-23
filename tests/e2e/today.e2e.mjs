@@ -64,7 +64,8 @@ test("Settings: find a city for the weather, and remove it", { skip: skip() }, a
 });
 
 test("4.26.0 Songbook, slimmer: one Today strip that pages, no sets shelf, the list starts high", { skip: skip() }, async t => {
-  const four = [0, 1, 2, 3].map(i => ({ ...LIB.songs[i % 2], id: "s" + i, title: ["River Road", "Harbor Lights", "Wagon Wheel", "Zombie"][i], playLog: i === 1 ? log(30) : i === 0 ? log(1, 2) : undefined }));
+  const four = [0, 1, 2, 3].map(i => ({ ...LIB.songs[i % 2], id: "s" + i, title: ["River Road", "Harbor Lights", "Wagon Wheel", "Zombie"][i], playLog: i === 1 ? log(30) : i === 3 ? log(25) : i === 0 ? log(1, 2) : undefined }));
+  /* 4.42.8: two songs worth another try, so the strip has two items whichever song is the day's request */
   const sets = [{ id: "x1", name: "Friday Gig", songs: ["s0", "s2"], when: null }, { id: "x2", name: "Porch", songs: ["s1"], when: null }];
   const page = await phone(t, { ...lib({ place: undefined }), songs: four, sets });
   await page.waitForSelector("#tdy .tdy-i");

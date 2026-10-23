@@ -44,6 +44,11 @@ test("every app script parses, and index.html loads them", () => {
   for (const f of ["index.html", "styles.css", ...scripts.filter(f => f !== "sw.js")]) assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
 });
 
+test("4.42.7 every part loaded later asks for the running release, so an update can't mix two releases", () => {
+  const scripts = fs.readdirSync(root).filter(f => f.endsWith(".js"));
+  for (const f of scripts) assert.doesNotMatch(read(f), /import\("\.\/[a-z]+\.js"\)/, `${f} loads a part without ?v=`);
+});
+
 test("the service worker never caches AI calls", () => {
   assert.match(read("sw.js"), /api\.anthropic\.com/);
 });

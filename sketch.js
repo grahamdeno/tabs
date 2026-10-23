@@ -3,7 +3,7 @@
 // sing hands-free); let go to keep it, slide left to redo, slide up to make
 // the song. A key wheel shows the key appearing as you sing and the chords it
 // offers. Everything happens on this phone. Loads on first use.
-import { detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, pitchShares, lineHint, packNotes, sungLines, unpackNotes, syllables, strumChords, riffNotes, cleanNotes, chordToneNotes, html, raw } from "./core.js";
+import { VERSION, detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, pitchShares, lineHint, packNotes, sungLines, unpackNotes, syllables, strumChords, riffNotes, cleanNotes, chordToneNotes, html, raw } from "./core.js";
 import { $, app, icon, toast, onLeave, ask, sound } from "./ui.js";
 import { data, go, markUsed, newSong, tick } from "./app.js";
 import { Tabs } from "./core.js";
@@ -22,7 +22,7 @@ let earState = ""; /* "", "loading", "ready", "failed" */
 function loadEar() {
   if (ear || earState === "loading") return;
   earState = "loading"; paint();
-  import("./strum.js").then(async m => { if (!(await m.ready())) throw new Error("model"); ear = m; earState = "ready"; paint(); })
+  import(`./strum.js?v=${VERSION}`).then(async m => { if (!(await m.ready())) throw new Error("model"); ear = m; earState = "ready"; paint(); })
     .catch(() => { earState = "failed"; paint(); });
 }
 // The line's recording, heard for chords (or a riff). One at a time.
@@ -32,7 +32,7 @@ export async function listenTo(blob) {
   const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
   const n = buf.length, x = new Float32Array(n);
   for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < n; i++) x[i] += d[i] / buf.numberOfChannels; }
-  ear ||= await import("./strum.js");
+  ear ||= await import(`./strum.js?v=${VERSION}`);
   const notes = await ear.hear(x, buf.sampleRate);
   return readPlaying(notes);
 }
@@ -71,8 +71,11 @@ function closeMic() {
 // context is made (or woken) right in the pad's touch, before the microphone
 // is asked for; made later, it can stay asleep and hear only silence.
 const primeAudio = () => sound(); /* the app's one audio engine */
+let stuckAudio = false;
 async function openMic() {
   primeAudio();
+  /* after a take where the audio clock stood still, wake the audio engine and take a fresh microphone */
+  if (stuckAudio && mic) { stuckAudio = false; mic.stream.getTracks().forEach(t => t.stop()); try { mic.src.disconnect(); await mic.ctx.suspend?.(); } catch { /* best effort */ } mic = null; }
   if (mic && mic.stream.getAudioTracks().some(t => t.readyState === "live")) { await mic.ctx.resume?.(); return mic; }
   if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("no mic"), { name: "NotSupportedError" });
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
@@ -101,7 +104,9 @@ async function startLine() {
   catch (e) { sk.rec = null; sk.again = -1; paint(); return micTrouble(e); }
   const rec = sk.rec;
   if (!rec) return;
-  rec.t0 = m.ctx.currentTime;
+  /* 4.42.7 (#76): a take is timed by the real clock. On an iPhone the audio clock can stand still while the
+     microphone sends only silence, which made a 5 second hold read as 0 seconds and "too short". */
+  rec.t0 = performance.now(); rec.a0 = m.ctx.currentTime;
   try {
     /* The recording takes its own copy of the microphone, so it can't starve the listening. */
     rec.recorder = new MediaRecorder(new MediaStream(m.stream.getAudioTracks().map(t => t.clone())));
@@ -110,7 +115,7 @@ async function startLine() {
   } catch { rec.recorder = null; /* hearing it back is a nicety */ }
   rec.timer = setInterval(() => {
     m.an.getFloatTimeDomainData(m.buf);
-    const t = m.ctx.currentTime - rec.t0;
+    const t = (performance.now() - rec.t0) / 1000;
     let e = 0; for (let k = 0; k < m.buf.length; k++) e += m.buf[k] * m.buf[k];
     const level = Math.sqrt(e / m.buf.length);
     rec.peak = Math.max(rec.peak || 0, level); rec.level = level;
@@ -163,8 +168,11 @@ function stopLine(how = "keep") {
   if (how === "keep" && !keep) {
     paint();
     const pitched = rec.frames.filter(f => f.hz > 0).length, secs = rec.frames.at(-1)?.t || 0;
-    noteError(new Error(`Sketch heard no notes: ${rec.frames.length} frames over ${secs.toFixed(1)}s, ${pitched} with pitch, peak level ${(rec.peak || 0).toFixed(4)}, audio ${mic?.ctx.state || "none"} at ${mic?.ctx.sampleRate || 0} Hz, track ${mic?.stream.getAudioTracks()[0]?.readyState || "none"}${mic?.stream.getAudioTracks()[0]?.muted ? " (muted)" : ""}`), { quiet: true, where: "sketch" });
-    return toast(secs < 0.6 ? "That was too short to hear. Hold the pad while you sing the whole line."
+    const audioSecs = mic ? mic.ctx.currentTime - (rec.a0 || 0) : 0, stuck = secs > 1 && audioSecs < 0.05;
+    if (stuck) stuckAudio = true;
+    noteError(new Error(`Sketch heard no notes: ${rec.frames.length} frames over ${secs.toFixed(1)}s (audio clock ${audioSecs.toFixed(1)}s${stuck ? ", stuck" : ""}), ${pitched} with pitch, peak level ${(rec.peak || 0).toFixed(4)}, audio ${mic?.ctx.state || "none"} at ${mic?.ctx.sampleRate || 0} Hz, track ${mic?.stream.getAudioTracks()[0]?.readyState || "none"}${mic?.stream.getAudioTracks()[0]?.muted ? " (muted)" : ""}`), { quiet: true, where: "sketch" });
+    return toast(!(rec.peak > 0.0005) && secs >= 0.6 ? "The microphone sent only silence. Try again; if it keeps happening, Settings > Help > Copy diagnostics, and send them to me."
+      : secs < 0.6 ? "That was too short to hear. Hold the pad while you sing the whole line."
       : !(rec.peak > 0.0005) ? "The microphone sent only silence. Settings > Help > Copy diagnostics, and send them to me."
       : "No steady notes were heard. Sing the line (not speak it), a little closer to the phone.");
   }

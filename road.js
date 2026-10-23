@@ -12,7 +12,7 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS, OPENING, Tabs } from "./core.js";
+import { VERSION, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route } from "./app.js";
@@ -262,7 +262,7 @@ export function renderRoad() {
 /* The scene loads a moment later: when someone is pushing on your edge, Louie says so. */
 async function fillScene(st) {
   let sc;
-  try { const m = await import("./scene.js"); sc = await m.sceneFor((await import("./playmap.js")).getSpot()); } catch { return; }
+  try { const m = await import(`./scene.js?v=${VERSION}`); sc = await m.sceneFor((await import(`./playmap.js?v=${VERSION}`)).getSpot()); } catch { return; }
   if (route().name !== "road") return;
   if (sc.below > 0 && !st.today) {
     const say = document.getElementById("rd-bubble");

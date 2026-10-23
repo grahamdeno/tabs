@@ -68,7 +68,10 @@ async function loadLibrary() {
 // can report them. The first one in a session shows a short note with a way to
 // copy the details; nothing is ever sent anywhere.
 const ERR_KEY = "tabs.errors.v1";
-const problems = (() => { try { return JSON.parse(localStorage.getItem(ERR_KEY)) || []; } catch { return []; } })();
+/* 4.42.7 (#76): problems from an older version are marked in Copy diagnostics, and drop off after 30 days */
+const OLD_DAYS = 30;
+const problems = (() => { try { return JSON.parse(localStorage.getItem(ERR_KEY)) || []; } catch { return []; } })()
+  .filter(p => p.v === VERSION || Date.now() - Date.parse(p.at) < OLD_DAYS * 864e5);
 let problemNoted = false;
 function noteError(e, { quiet = false, where = "" } = {}) {
   const err = e?.reason ?? e?.error ?? e;
@@ -101,9 +104,14 @@ async function diagnostics() {
     `Library: ${data.songs.length} songs, ${data.sets.length} sets, ${data.trash.length} recently deleted`,
     `Storage: ${where.db ? "database" : "localStorage only"}, copy ${where.copy === false ? "too big" : where.copy ? "ok" : "not yet"}, library ${mb(where.size || JSON.stringify(data).length)}; ${est ? `${mb(est.usage)} of ${mb(est.quota)}` : "unknown"} used; kept permanently: ${storageKept ? "yes" : storageKept === false ? "no" : "unknown"}; AI key: ${aiKey() ? "set" : "none"}`,
     `Settings: ${JSON.stringify(Object.fromEntries(Object.entries(s).filter(([k]) => !hidden.includes(k))))}`,
-    `Problems (${problems.length}):`,
-    ...(problems.length ? problems.slice().reverse().map(p => `- ${p.at} v${p.v} ${p.where}: ${p.msg}${p.stack ? "\n  " + p.stack.replace(/\n/g, "\n  ") : ""}`) : ["- none"])
+    ...problemLines()
   ].join("\n");
+}
+function problemLines() {
+  const line = p => `- ${p.at} v${p.v} ${p.where}: ${p.msg}${p.stack ? "\n  " + p.stack.replace(/\n/g, "\n  ") : ""}`;
+  const now = problems.filter(p => p.v === VERSION).reverse(), old = problems.filter(p => p.v !== VERSION).reverse();
+  return [`Problems in ${VERSION} (${now.length}):`, ...(now.length ? now.map(line) : ["- none"]),
+    ...(old.length ? [`Before ${VERSION} (${old.length}, may already be fixed; they drop off after ${OLD_DAYS} days):`, ...old.map(line)] : [])];
 }
 async function copyDiagnostics() {
   const text = await diagnostics();

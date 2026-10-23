@@ -16,7 +16,7 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, looksGuessed, Tabs } from "./core.js";
+import { VERSION, gigStart, gigChange, gigCrowd, gigTiming, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, looksGuessed, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
@@ -449,8 +449,8 @@ function showComplete() {
     </div></div>`;
   $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else if (from === "tour" || from === "charts") go("#/" + from); else redraw?.(); };
   $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
-  $("gc-duel")?.addEventListener("click", e => import("./duel.js").then(m => m.sendChallenge(g.song, { pct, combo: g.score.best, crowd: graded ? gigCrowd(g.score) : 0 }, e.currentTarget)));
-  $("gc-reply")?.addEventListener("click", e => import("./duel.js").then(m => m.sendReply(duel, e.currentTarget)));
+  $("gc-duel")?.addEventListener("click", e => import(`./duel.js?v=${VERSION}`).then(m => m.sendChallenge(g.song, { pct, combo: g.score.best, crowd: graded ? gigCrowd(g.score) : 0 }, e.currentTarget)));
+  $("gc-reply")?.addEventListener("click", e => import(`./duel.js?v=${VERSION}`).then(m => m.sendReply(duel, e.currentTarget)));
   $("gc-encore")?.addEventListener("click", () => {
     const song = g.song, from = g.from;
     closeGig(true);

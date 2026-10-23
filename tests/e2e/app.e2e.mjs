@@ -420,7 +420,8 @@ test("after an update, an open app still loads its parts from its own release", 
 test("a problem is kept, and Copy diagnostics reports it without song words or the key", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
   await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-ant-secret"));
-  await page.evaluate(() => { localStorage.setItem("tabs.errors.v1", JSON.stringify([{ at: "2026-10-01T00:00:00Z", v: "1.0.0", where: "#/", msg: "Earlier problem", stack: "" }])); });
+  await page.evaluate(() => { const ago = d => new Date(Date.now() - d * 864e5).toISOString();
+    localStorage.setItem("tabs.errors.v1", JSON.stringify([{ at: ago(40), v: "1.0.0", where: "#/", msg: "Ancient problem", stack: "" }, { at: ago(1), v: "1.0.0", where: "#/", msg: "Earlier problem", stack: "" }])); });
   await page.reload(); await page.waitForLoadState('domcontentloaded');
   await page.goto(base + "#/settings/help"); await page.waitForSelector('#s-diag');
   assert.match(await page.innerText("#s-diag"), /1 problem/);
@@ -429,6 +430,8 @@ test("a problem is kept, and Copy diagnostics reports it without song words or t
   assert.match(text, /The Road \d+\.\d+\.\d+/);
   assert.match(text, /2 songs/);
   assert.match(text, /Earlier problem/);
+  assert.match(text, /Problems in \d+\.\d+\.\d+ \(0\):\n- none\nBefore \d+\.\d+\.\d+ \(1, may already be fixed/, "4.42.7: older versions' problems are marked");
+  assert.doesNotMatch(text, /Ancient problem/, "4.42.7: an older version's problem drops off after 30 days");
   assert.match(text, /AI key: set/);
   assert.doesNotMatch(text, /sk-ant-secret|River Road|Walking down/);
 });

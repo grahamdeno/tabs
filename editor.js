@@ -1,6 +1,6 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { DRUM_BEATS, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
+import { VERSION, DRUM_BEATS, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
 import { READ_AT, aiError, aiKey, busy, calm, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
@@ -498,7 +498,7 @@ function paintText(song) {
   $("ed-find")?.addEventListener("click", () => {
     const title = $("ed-title")?.value.trim() || "";
     if (!title) { toast("Type the song's title first"); return $("ed-title")?.focus(); }
-    import("./findai.js").then(m => m.getSong(title, { title, artist: $("ed-artist")?.value.trim() || "" }));
+    import(`./findai.js?v=${VERSION}`).then(m => m.getSong(title, { title, artist: $("ed-artist")?.value.trim() || "" }));
   });
   tools();
   $("ed-delete")?.addEventListener("click", () => deleteFromEdit(song));
