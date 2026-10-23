@@ -2227,9 +2227,6 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 .gg-side { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .gg-next { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: var(--card); border: 2px solid var(--rim); border-radius: 20px; padding: 6px; }
 .gg-next b { font: 700 34px/1 var(--display); color: var(--fg-2); }
-.gg-beats { display: flex; gap: 6px; }
-.gg-beats i { width: 10px; height: 10px; border-radius: 50%; background: var(--locked); }
-.gg-beats i.on { background: var(--fans); }
 .gg-louie { display: grid; place-items: center; background: var(--card); border: 2px solid var(--rim); border-radius: 20px; height: 84px; }
 .gg-louie .louie { height: 76px; width: auto; }
 .gg-timing { flex: none; }
@@ -2238,13 +2235,6 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 .gg-string { fill: none; stroke: var(--fans); stroke-width: 5; stroke-linecap: round; }
 .gg-string.wob { animation: gg-wob .14s linear infinite alternate; transform-origin: center; }
 @keyframes gg-wob { to { transform: scaleY(-1); } }
-.gg-lines { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; --lyric-size: 18px; }
-.gg-lines > * { margin: 0 0 .25em !important; transition: opacity .25s; }
-.gg-lines .gl-now { font-size: 23px; font-weight: 700; }
-.gg-lines .gl-soon { font-size: 19px; opacity: .8; }
-.gg-lines .gl-later { font-size: 18px; opacity: .45; }
-.gg-lines .c { color: var(--gel); font-family: var(--display); }
-:root[data-theme="light"] .gg-lines .c { color: color-mix(in srgb, var(--gel) 75%, #14213D); }
 .gg-end { margin: 8px 0; color: var(--muted); font-weight: 700; }
 .gg-bottom { flex: none; display: flex; align-items: center; gap: 10px; }
 .gg-mic { flex: 1; min-width: 0; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--good); font: 700 15px var(--sans); }
@@ -3702,20 +3692,34 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 .gig.bigc .gg-chords .gg-now { flex: 1.5; }
 .gig.bigc .gg-chords .gg-next { flex: 1; justify-content: center; }
 .gig.bigc .gg-lines { opacity: .7; }
-.gg-lines { gap: 6px; padding-top: 4px; --lyric-size: 21px; }
-.gg-lines > * { font-size: 21px; }
-.gg-lines .gl-now { font-size: 23px; font-weight: 700; opacity: 1; }
-.gg-lines .gl-soon { opacity: .72; }
-.gg-lines .gl-past { opacity: .32; }
-.gg-lines .c { color: var(--muted); }
-.gg-lines .gl-now .c, .gg-lines .gl-soon:nth-child(-n+4) .c { color: var(--gel); }
+/* The lines (4.49.7): one line in focus. It sits on a band in the section's colour with a sweep that
+   crosses it in time, so each chord is reached as it comes; the next line is half lit, the rest recede.
+   Every line keeps a gutter on the left for the count-in of a chord that starts a line. */
+.gg-lines { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; --lyric-size: 21px; }
+.gg-lines > * { position: relative; margin: 0 !important; padding: 4px 10px 7px 36px; border-radius: 16px; font-size: 21px; opacity: .38; transition: opacity .25s, background-color .25s; }
+.gg-lines .gl-past { opacity: .2; }
+.gg-lines .gl-next { opacity: .62; }
+.gg-lines .gl-now { opacity: 1; padding-top: 10px; font-size: 24px; font-weight: 800; background: color-mix(in srgb, var(--gel) 16%, transparent); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gel) 45%, transparent); }
+.gl-sweep { position: absolute; left: 36px; right: 10px; bottom: 3px; height: 3px; border-radius: 2px; background: var(--gel); transform: scaleX(0); transform-origin: left center; pointer-events: none; }
+.gg-lines.step > * { animation: gl-step .22s ease-out; }
+@keyframes gl-step { from { transform: translateY(14px); } }
+.gg-lines .c { position: relative; color: var(--muted); font-family: var(--display); }
+.gg-lines :is(.gl-now, .gl-next) .c { color: var(--gel); }
+:root[data-theme="light"] .gg-lines :is(.gl-now, .gl-next) .c { color: color-mix(in srgb, var(--gel) 75%, #14213D); }
 .gg-lines .c.gc-rep { visibility: hidden; }
 .gg-lines .c.gc-lit .ct, .gg-lines .c.gc-next .ct { color: #14213D; border-radius: 6px; }
 .gg-lines .c.gc-lit .ct { background: var(--gel); box-shadow: 0 0 0 4px var(--gel), 0 6px 0 color-mix(in srgb, var(--gel) 55%, #000); }
 .gg-lines .c.gc-next .ct { background: var(--fans); box-shadow: 0 0 0 4px var(--fans), 0 6px 0 var(--fans-deep); }
-.gc-dots { position: absolute; left: calc(100% + 9px); top: .55em; display: inline-flex; gap: 3px; pointer-events: none; }
-.gc-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--locked); }
-.gc-dots i.on { background: var(--fans); }
+/* The count-in: a dot a beat on the chord's left, lit left to right; the chord is the beat after the last */
+.gc-dots { position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%); display: inline-flex; gap: 2px; pointer-events: none; }
+.gc-tight .gc-dots { right: auto; left: 0; top: auto; bottom: calc(100% + 6px); transform: none; }
+.gg-beats { display: flex; gap: 8px; }
+.gc-dots i, .gg-beats i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 22%, transparent); }
+.gg-beats i { width: 10px; height: 10px; }
+.gc-dots i.on, .gg-beats i.on { background: var(--fans); }
+.gc-dots i.pop, .gg-beats i.pop { animation: gc-pop .18s ease-out; }
+@keyframes gc-pop { from { transform: scale(1.8); } }
+@media (prefers-reduced-motion: reduce) { .gg-lines.step > *, .gc-dots i.pop, .gg-beats i.pop { animation: none; } }
 .gg-shape { position: absolute !important; right: 14px; top: 34%; z-index: 2; width: 96px; box-sizing: border-box; padding: 8px 6px; border-radius: 14px; background: var(--card); border: 2px solid var(--fans); box-shadow: 0 4px 0 var(--fans-deep); text-align: center; }
 .gg-shape[hidden] { display: none; }
 .gg-shape small { display: block; font: 800 9.5px var(--sans); letter-spacing: .06em; color: var(--fans-text); }

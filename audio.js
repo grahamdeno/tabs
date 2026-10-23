@@ -11,7 +11,7 @@ import { READ_AT, byLength, data, findAI, gigHooks, loopFactor, paintLoop, pxPer
 // tempo, slowed with Build up, and a tempo changed in Edit takes over on the
 // next beat. A song with no tempo gets one looked up first. Hits are
 // scheduled ahead on the audio clock, so they stay even.
-export const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null };
+export const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null, spb: 0 }; /* spb: the beat it is playing, for the Gig's count (4.49.7) */
 /* 4.43.0 (#83): the band goes up to 150%, through one limiter so the loudest kick never clips */
 export const BAND_MAX = 1.5;
 export const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= BAND_MAX ? v : 0.8; };
@@ -43,7 +43,7 @@ export async function startMetronome(song) {
   metro.next = audio.currentTime + 0.05; metro.beat = 0; metro.bar = null;
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
-      const spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
+      const spb = metro.spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
       /* Drop-out practice: every other bar is silent, so you hold the time. */
       const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1, b = metro.beat % beats;
       const groove = grooveOf(song, data.settings);

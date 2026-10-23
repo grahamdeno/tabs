@@ -147,3 +147,35 @@ test("4.41.0 a sheet whose chords are a guess: a change you don't strum is never
   assert.match(await page.innerText(".gc-list"), /still a best guess, so a change you missed wasn't counted/);
   assert.equal(await page.locator(".gc-list b").filter({ hasText: /^0$/ }).count(), 0, "no 0 of n changes landed");
 });
+
+test("4.49.7 the line you're on: a band with a sweep, the next one half lit; the count-in left of the next chord, lit left to right", { skip: skip() }, async t => {
+  const body = "[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G                 C\nLine ${i + 1} of the verse goes here`).join("\n");
+  const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#gig #gg-lines .gl-now");
+  assert.equal(await page.locator("#gg-lines .gl-now .gl-sweep").count(), 1, "a sweep on the line you're on");
+  assert.equal(await page.locator("#gg-lines .gl-next").count(), 1, "one next line");
+  await page.waitForFunction(() => { const s = document.querySelector("#gg-lines .gl-sweep"); return s && /scaleX\(0\.[1-9]/.test(s.style.transform); }, null, { timeout: 20000 });
+  const geo = await page.waitForFunction(() => {
+    const d = document.querySelector("#gg-lines .gc-next .gc-dots"), c = document.querySelector("#gg-lines .gc-next .ct");
+    if (!d || !c) return null;
+    const a = d.getBoundingClientRect(), b = c.getBoundingClientRect();
+    return { dotsRight: a.right, chordLeft: b.left, tight: !!d.closest(".gc-tight"), dotsTop: a.bottom, chordTop: b.top };
+  }, null, { timeout: 20000 }).then(h => h.jsonValue());
+  assert.ok(geo.tight ? geo.dotsTop <= geo.chordTop : geo.dotsRight <= geo.chordLeft, "the count sits on the chord's left (or over it when there's no room)");
+  /* lit left to right: once any dot is on, the first one is */
+  await page.waitForFunction(() => {
+    const ds = [...document.querySelectorAll("#gg-lines .gc-next .gc-dots i")], on = ds.map(e => e.classList.contains("on"));
+    return on.some(Boolean) && on.every((v, i) => i === 0 || !v || on[i - 1]);
+  }, null, { timeout: 20000 });
+});
+
+test("4.49.6 a chord before the singing stands ahead of the words on the song page", { skip: skip() }, async t => {
+  const song = { id: "l", title: "Lead", artist: "A", key: "Em", format: "chords", body: "[Verse]\nEm            C\n  Down the river   slowly" };
+  const page = await phone(t, { ...LIB, songs: [song] }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#sheet .pr"); await settled(page);
+  assert.equal(await page.locator("#sheet .w.lead .c").innerText(), "Em");
+  const x = await page.evaluate(() => ({ lead: document.querySelector("#sheet .w.lead").getBoundingClientRect().right, word: [...document.querySelectorAll("#sheet .w")].find(w => /Down/.test(w.textContent)).getBoundingClientRect().left }));
+  assert.ok(x.word > x.lead, "the words start after the lead chord");
+});

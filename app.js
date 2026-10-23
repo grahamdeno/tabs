@@ -828,6 +828,8 @@ function playFromSec(song) {
   }
   return musicSec(song, scrollY);
 }
+/* a beat at the pace the song plays: its tempo, practice speed and the speed dial, as the metronome counts it */
+export const beatSecs = song => 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song));
 export const loopFactor = song => practiceRate(song) * (activeLoop(song)?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1);
 // Called each frame while playing: when the section's last line passes the reading
 // point, glide back to its first line and count a pass.
@@ -1686,7 +1688,7 @@ function click(accent) {
 }
 function countIn(song) {
   return new Promise(resolve => {
-    const beat = 60000 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)); /* the same pace as the metronome */
+    const beat = 1000 * beatSecs(song);
     const el = document.createElement("div");
     el.className = "countin";
     el.style.top = (innerHeight * READ_AT - 60) + "px";
