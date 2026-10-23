@@ -1146,6 +1146,18 @@ body.fold .fp #play { position: fixed; z-index: 22; width: 52px; height: 52px; b
 body.fold .fp #play svg { width: 18px; height: 18px; }
 .fp-nav { position: fixed; z-index: 22; right: 80px; bottom: calc(18px + var(--safe-b)); height: 52px; max-width: calc(100vw - 112px); display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--bronze-line, var(--rim)); background: color-mix(in srgb, var(--solid) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: var(--fg); font: 600 14px var(--sans); box-shadow: 0 8px 22px rgba(0,0,0,.3); }
 .fp-nav[hidden] { display: none; }
+/* 4.43.0 (#83): the band, above Play while the song plays, and its short sheet (no scrim, the reading line stays in sight) */
+.fp-band { position: fixed; z-index: 22; right: 22px; bottom: calc(86px + var(--safe-b)); width: 52px; height: 52px; display: grid; place-items: center; border-radius: var(--r); border: 0; background: color-mix(in srgb, var(--solid) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: var(--accent-ink); box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+.fp-band[hidden] { display: none; }
+.fp-band svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.band-sheet { z-index: 45; display: flex; flex-direction: column; gap: 12px; }
+.band-sheet .bs-top { display: flex; align-items: center; justify-content: space-between; font: 700 18px var(--display); }
+.band-sheet .bs-row { display: flex; align-items: center; gap: 10px; min-height: 48px; }
+.band-sheet .bs-l { flex: 1; display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.band-sheet .bs-l svg { width: 20px; height: 20px; color: var(--accent-ink); }
+.band-sheet .bs-vol input { flex: 2; }
+.band-sheet output { width: 48px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.band-sheet .bs-note { margin: 0; color: var(--fg-2); }
 .fp-nav svg { width: 18px; height: 18px; flex: none; color: var(--accent-ink); }
 .fp-nav .fn-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fp-nav small { flex: none; color: var(--muted); font-weight: 500; }

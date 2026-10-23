@@ -24,7 +24,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 - Pause holds the show in place: Back a line, Tools, Sheet and a big Resume, in thumb reach. Drag the lines to move the song.
 - Show complete: bonus fans, the crowd, changes landed, Encore (double bonus fans) and Challenge a friend.
 - Practicing a section or slower, a tab, or Play together plays the plain sheet: chords over the words, the current line stands out and the others dim while it plays, the section rail on the right edge, tap a chord for its fingering, a diagram over each chord on the line you pause on.
-- Tools (4.32.0) is one sheet from the bottom with three tabs at its foot, in thumb reach; the last tab is remembered. Play: song length or speed (− and + step it, the value opens the dial), Metronome and Now and Next as switches, Lines in a gig (4, 5, 6 or All), Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words. Rows, not tiles: a switch toggles in place, a row with an arrow opens its sheet. From a show, the Song tab and Practice mode are left out.
+- Tools (4.32.0) is one sheet from the bottom with three tabs at its foot, in thumb reach; the last tab is remembered. Play: song length or speed (− and + step it, the value opens the dial), Metronome and Now and Next as switches, The band (4.43.0: on or off, drums or click and a volume up to 150%, through one limiter; while the song plays the same sheet opens from the band button above Play, and the song keeps going), Lines in a gig (4, 5, 6 or All), Text size. Practice: Practice mode, Practice a section, Make it easier, Capo, Tuner, Play together. Song: Edit, Add to a set, Share, German, Spark tone, Add the words. Rows, not tiles: a switch toggles in place, a row with an arrow opens its sheet. From a show, the Song tab and Practice mode are left out.
 - The band: a metronome (click or a drum beat that fits the song, written per section by the AI when there's a key). Beat from Your band plays the drums in gigs once he's joined. The synthesized bass line was taken out in 4.42.0 (it never sounded like the song).
 - Practice mode (the switch in Tools; a learning song opens in it): loop a section, slow it to 50%, Build up, drums busier or simpler. Practice time counts as plays on the Tour Map.
 - Bluetooth page-turner pedals work: left or Space plays and pauses, right goes to the next section.
@@ -158,7 +158,7 @@ Conventions:
 
 Data: the library lives in IndexedDB with a copy in localStorage written on every save; at start the newer readable one wins. Older saves migrate automatically. [docs/DATA.md](docs/DATA.md) describes every field, the backup file and how a restore is checked.
 
-Problems: the last 20 errors are kept on the phone, and the first in a session shows a note with Copy details. Settings > Help > Copy diagnostics copies the version, device, counts and storage, never song words, titles or keys.
+Problems: the last 20 errors are kept on the phone (4.42.8: problems from an older version are listed under "Before" and drop off after 30 days), and the first in a session shows a note with Copy details. Settings > Help > Copy diagnostics copies the version, device, counts and storage, never song words, titles or keys.
 
 ### Releases
 

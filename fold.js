@@ -22,8 +22,9 @@ export function setupFold(o) {
   const el = document.createElement("div");
   el.className = "fp";
   el.id = "fp";
-  el.innerHTML = `<div class="fp-pull" aria-hidden="true">↓ <span></span></div><button class="fp-nav" id="fp-nav"></button>`;
+  el.innerHTML = `<div class="fp-pull" aria-hidden="true">↓ <span></span></div><button class="fp-nav" id="fp-nav"></button>${o.band ? `<button class="fp-band" id="fp-band" aria-label="The band: on or off, and how loud" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button>` : ""}`;
   el.querySelector(".fp-nav").onclick = () => o.nav?.().run();
+  el.querySelector(".fp-band")?.addEventListener("click", () => o.band()); /* 4.43.0: the band while the song plays */
   app.appendChild(el);
   st = { o, el, home: null, cleanup: [] };
   const place = () => apply(true);
@@ -59,6 +60,8 @@ function apply(force) {
   else if (!on) restore();
   const nav = st.el.querySelector(".fp-nav"), n = on && st.o.nav?.();
   if (nav) { nav.hidden = !n; if (n) { nav.innerHTML = n.html; nav.setAttribute("aria-label", n.label); } }
+  const band = st.el.querySelector(".fp-band");
+  if (band) band.hidden = !on;
   if (before) foldEnd(on, before);
 }
 function restore() {

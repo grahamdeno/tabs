@@ -524,3 +524,29 @@ test("4.22.0 Search, focused: two big buttons and three recent cards, no Up next
   assert.equal(await page.locator("#sr-paste").count(), 0, "the buttons give way to results");
   assert.ok(id);
 });
+
+test("4.43.0 the band from the song screen: on or off, drums or click and up to 150%, while the song keeps playing", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900, bpm: 100 } : s), settings: { ...LIB.settings, countIn: false, metronome: true, metroSound: "drums" } };
+  const page = await phone(t, lib);
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
+  await page.goto(base + "#/song/a"); await page.waitForSelector("#play");
+  assert.equal(await page.locator("#fp-band:visible").count(), 0, "paused: no band button in the corner");
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("fold"));
+  await page.waitForSelector("#fp-band", { state: "visible" });
+  await page.click("#fp-band"); await page.waitForSelector("#band-sheet");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "the song keeps playing");
+  assert.equal(await page.getAttribute("#bs-on", "aria-checked"), "true");
+  await page.click("#bs-on"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metronome === false);
+  assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)), 0, "the band stops");
+  await page.click("#band-sheet [data-snd=click]"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroSound === "click");
+  assert.equal((await saved()).metronome, true, "picking a sound turns the band back on");
+  await page.locator("#bs-vol").fill("150"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroVol === 1.5);
+  assert.equal(await page.innerText("#bs-v"), "150%");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "still playing");
+  /* paused, Tools has the same sheet */
+  await page.click("#bs-x"); await page.waitForSelector("#band-sheet", { state: "detached" });
+  await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("fold"));
+  await settled(page); await page.click("#more"); await page.waitForSelector(".menu [data-m='band']");
+  assert.match(await page.innerText(".menu [data-m='band']"), /Click · 150%/);
+  await page.click(".menu [data-m='band']"); await page.waitForSelector("#band-sheet");
+});

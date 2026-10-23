@@ -12,7 +12,19 @@ import { READ_AT, byLength, data, findAI, gigHooks, loopFactor, paintLoop, pxPer
 // next beat. A song with no tempo gets one looked up first. Hits are
 // scheduled ahead on the audio clock, so they stay even.
 export const metro = { timer: 0, next: 0, beat: 0, run: 0, bar: null };
-const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= 1 ? v : 0.8; };
+/* 4.43.0 (#83): the band goes up to 150%, through one limiter so the loudest kick never clips */
+export const BAND_MAX = 1.5;
+export const metroVol = () => { const v = data.settings.metroVol; return v >= 0 && v <= BAND_MAX ? v : 0.8; };
+const buses = new WeakMap();
+function bandOut(audio) {
+  let l = buses.get(audio);
+  if (!l) {
+    l = audio.createDynamicsCompressor();
+    l.threshold.value = -4; l.knee.value = 2; l.ratio.value = 20; l.attack.value = 0.002; l.release.value = 0.1;
+    l.connect(audio.destination); buses.set(audio, l);
+  }
+  return l;
+}
 /* Your band (4.7.0): in a gig, Beat plays the drums once he's joined (gigHooks.band). The bass went in 4.42.0. */
 export const metroOn = () => data.settings.metronome || !!gigHooks.band?.drums;
 export const metroDrums = () => data.settings.metroSound !== "click" || (!data.settings.metronome && !!gigHooks.band?.drums);
@@ -146,7 +158,7 @@ export function clickAt(t, accent) {
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0002, (accent ? 0.3 : 0.18) * v), t + 0.005);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
-  o.connect(g).connect(audio.destination);
+  o.connect(g).connect(bandOut(audio));
   o.start(t); o.stop(t + 0.09);
 }
 /* One pulse of the pattern (the patterns live in core.js). Swing moves the
@@ -177,7 +189,7 @@ export function drum(kind, t, vel = 1) {
   try {
     const out = audio.createGain();
     out.gain.value = metroVol();
-    out.connect(audio.destination);
+    out.connect(bandOut(audio));
     const env = (node, peak, len) => {
       const g = audio.createGain();
       g.gain.setValueAtTime(0.0001, t);

@@ -18,7 +18,7 @@ function renderSettings() {
       <button class="ib glass" id="back" aria-label="${back}">${icon("back")}</button>
     </div>
     <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
-  const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
+  const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1.5 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
   const beatPick = DRUM_BEATS.find(([k]) => k === s.metroBeat) || DRUM_BEATS[0], swing = ["light", "full"].includes(s.metroSwing) ? s.metroSwing : "straight";
   const PAGES = {
     playing: ["Playing", `
@@ -40,7 +40,7 @@ function renderSettings() {
       </div>
       <div class="set">
         <span class="tile">${icon("metro")}</span><span class="name">Metronome</span>
-        <input type="range" class="s-vol" id="s-metvol" min="0" max="100" step="5" value="${metVol}" style="--fill:${metVol}%" aria-label="Metronome volume">
+        <input type="range" class="s-vol" id="s-metvol" min="0" max="150" step="5" value="${metVol}" style="--fill:${Math.round(metVol / 1.5)}%" aria-label="Metronome volume">
         <button class="toggle ${s.metronome ? "on" : ""}" id="s-metro" role="switch" aria-checked="${!!s.metronome}" aria-label="Metronome"></button>
       </div>
       <div class="set">
@@ -234,7 +234,7 @@ function renderSettings() {
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
-  $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", e.target.value + "%"); Tabs.save(data); });
+  $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", Math.round(e.target.value / 1.5) + "%"); Tabs.save(data); });
   $("s-metvol")?.addEventListener("change", () => metroPreview());
   $("s-metbeat")?.addEventListener("change", e => { s.metroBeat = e.target.value; Tabs.save(data); renderSettings(); metroPreview(); });
   app.querySelectorAll("#s-metswing [data-m]").forEach(b => b.onclick = () => { s.metroSwing = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
