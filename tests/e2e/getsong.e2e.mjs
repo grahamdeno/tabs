@@ -54,7 +54,6 @@ test("Get the song: one tap gathers chords, words and tempo, and saves a playabl
   await page.click("#gs-pick");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/gs-ver.png" });
   await page.click(".gs-ver:has-text('Live at the Pier')"); await page.click("#gs-use");
-  await page.click("#gs-full");
   assert.match(await page.evaluate(() => document.querySelector(".gs-chart").textContent), /pier words one/);
   assert.match(await page.innerText("#gs-pick"), /Live at the Pier · 4:20/);
   await page.click("#gs-add");
@@ -168,7 +167,6 @@ test("4.41.0 Get the song puts each chord over the word the chord sites have it 
   assert.ok(place, "a second call places the chords");
   assert.match(place.system, /Don't write any of the lyrics in your reply/);
   assert.match(place.messages[0].content, /1\| \[1\]grey \[2\]boats/, "the words go numbered");
-  await page.click("#gs-full");
   assert.match(await page.evaluate(() => document.querySelector(".gs-chart").textContent), /\[Intro\]\nG {3}D[\s\S]*G {22}D\ngrey boats lean on the harbor wall/, "D over harbor");
   assert.match(await page.innerText(".gs .foot"), /the word the chord sites have it on/);
   await page.click("#gs-add");

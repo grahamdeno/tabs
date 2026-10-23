@@ -3202,9 +3202,6 @@ button.gs-pick b { font-family: var(--display); }
 button.gs-pick em { font: 700 15px var(--display); font-style: normal; color: var(--accent-ink); display: inline-flex; align-items: center; gap: 2px; }
 button.gs-pick:disabled { opacity: 1; }
 .gs-sheet { position: relative; }
-.gs-sheet:not(.full) .gs-chart { max-height: 220px; overflow: hidden; }
-.gs-sheet:not(.full)::after { content: ""; position: absolute; left: 1px; right: 1px; bottom: 1px; height: 80px; border-radius: 0 0 12px 12px; background: linear-gradient(transparent, var(--card) 75%); pointer-events: none; }
-.gs-more { position: absolute; z-index: 1; left: 50%; bottom: 8px; transform: translateX(-50%); min-height: 40px; border: 0; background: none; font: 700 15px var(--display); color: var(--accent-ink); }
 p.gs-vh { margin: 2px 2px 14px; font-size: 14px; line-height: 1.4; color: var(--muted); }
 .gs .gs-ver { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 0 14px; margin-bottom: 12px; border: 0; border-radius: 18px; background: var(--card-2); box-shadow: 0 4px 0 var(--rim); color: var(--fg); text-align: left; }
 .gs .gs-ver.on { background: var(--card-2); box-shadow: 0 0 0 3px var(--accent), 0 4px 0 var(--rim); }
@@ -3777,3 +3774,7 @@ body.searching .cmd-add { display: none; }
 /* 4.49.1: the search screen doesn't scroll before you type */
 html:has(body.sr-lock), body.sr-lock { overflow: hidden; overscroll-behavior: none; }
 .sr-am + .sr-browse { margin-top: 10px; }
+/* 4.49.4: Get the song shows the whole sheet (the page scrolls as one), and the album colour starts at the top edge */
+.gs .gs-chart { max-height: none; overflow: visible; }
+.panel.gs.washed, :root[data-look] .panel.gs.washed { background-image: linear-gradient(160deg, color-mix(in srgb, var(--album, var(--accent)) 34%, transparent), transparent 440px); background-repeat: no-repeat; }
+.panel.gs.washed .pbody > .cover-head { background: none; }

@@ -257,7 +257,7 @@ export function getSong(q, preset = {}) {
   const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, pick: 0, tempo: null, beats: 4, err: "", full: false, note: { words: "Looking", tempo: "", chart: "Listening" } };
   let alive = true, shown = false;
   const me = { st, title: title0, mount: () => mount(), add: () => add(merged() || st.chart.body),
-    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, full: st.full, rows: st.rows, note: st.note, placed: st.placed, placedFor: st.placedFor } }) };
+    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, rows: st.rows, note: st.note, placed: st.placed, placedFor: st.placedFor } }) };
   /* Let go: only Not this one (and a failed search, a new level or adding it) */
   const close = () => { alive = false; shown = false; stopPreview(); layer.innerHTML = ""; if (kept === me) setKept(null); };
   /* Put aside: the sheet goes, the song stays (and a search still running carries on) */
@@ -355,7 +355,7 @@ export function getSong(q, preset = {}) {
   const top = (left, title) => { const ph = $("gs-ph"); if (ph) ph.innerHTML = `${left}<h2>${title}</h2><span style="width:44px"></span>`; };
   const DOWN = `<button class="ib gs-down" id="gs-aside" aria-label="Keep it for later">${icon("chev")}</button>`;
   const dock = html => { const d = $("gs-dock"); if (!d) return; d.hidden = !html; d.innerHTML = html; };
-  const paint = () => {
+  const paint0 = () => {
     if (kept === me && !shown) paintKept(); /* the bar says when it's ready */
     const body = $("gs-body");
     if (!body || !alive || !shown) return;
@@ -403,19 +403,27 @@ export function getSong(q, preset = {}) {
       ${levelPlate()}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
       ${v ? `<button class="gs-pick" id="gs-pick"${more ? "" : " disabled"}><span>Recording: <b>${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}</b></span>${more ? `<em>Change ${icon("chev")}</em>` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
-      <div class="gs-sheet${st.full ? " full" : ""}"><pre class="cs-chart gs-chart">${esc(m || c.body)}</pre>${st.full ? "" : `<button class="gs-more" id="gs-full">Show the whole sheet</button>`}</div>
+      <div class="gs-sheet full"><pre class="cs-chart gs-chart">${esc(m || c.body)}</pre></div>
       <p class="foot">${!m ? "Paste the words, or add the chords alone." : st.placing ? "Lining the chords up with the words from the chord sites…" : placedFor(v) ? "Each chord sits over the word the chord sites have it on." : "The chords are spread over the lines as a guess. Edit fixes any line."}</p>
       <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
         ${v ? `<a href="https://lrclib.net" target="_blank" rel="noopener">${icon("link")}Lyrics from LRCLIB</a>` : ""}${t?.measured ? `<a href="https://getsongbpm.com" target="_blank" rel="noopener">${icon("link")}Tempo data by GetSongBPM.com</a>` : ""}</div>`;
     const teach = teachOf();
     dock(`<button class="btn primary" id="gs-add">${teach.ok ? `Add and learn ${esc(teach.chord)}` : "Add to my songs"}</button><div class="gs-dock2"><button class="tb" id="gs-no">Not this one</button><button class="tb" id="gs-edit">${m ? "Edit first" : "Paste the words"}</button></div>`);
     $("gs-pick")?.addEventListener("click", () => { if (more) { st.pick = st.vi; st.view = "versions"; paint(); } });
-    $("gs-full")?.addEventListener("click", () => { st.full = true; paint(); });
     $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
     $("gs-add").onclick = () => add(m || c.body);
     $("gs-no").onclick = close;
     bindLevel(); bindHear();
   };
+  /* 4.49.4: the album's colour runs from the top edge, under the title bar, as on About this song */
+  const washTop = () => {
+    const p = layer.querySelector(".panel.gs"), ch = p?.querySelector(".pbody > .cover-head");
+    if (!p) return;
+    p.classList.toggle("washed", !!ch);
+    const a = ch?.style.getPropertyValue("--album");
+    if (a) p.style.setProperty("--album", a); else p.style.removeProperty("--album");
+  };
+  const paint = () => { paint0(); washTop(); };
   /* After a reload: straight back to the bar, nothing asked again */
   if (preset.resume) { Object.assign(st, preset.resume); kept = me; paintKept(); return; }
   /* A new search lets the one put aside go, with Undo */
