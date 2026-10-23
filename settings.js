@@ -39,6 +39,10 @@ function renderSettings() {
         <button class="toggle ${s.gigScore !== false ? "on" : ""}" id="s-score" role="switch" aria-checked="${s.gigScore !== false}" aria-label="Score my plays"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("metro")}</span><span class="name">Score the timing<small class="sub">Off: the right chord counts any time in the next second. On: only on the beat, and a late change breaks the combo</small></span>
+        <button class="toggle ${s.gigTime ? "on" : ""}" id="s-time" role="switch" aria-checked="${!!s.gigTime}" aria-label="Score the timing"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("metro")}</span><span class="name">Metronome</span>
         <input type="range" class="s-vol" id="s-metvol" min="0" max="150" step="5" value="${metVol}" style="--fill:${Math.round(metVol / 1.5)}%" aria-label="Metronome volume">
         <button class="toggle ${s.metronome ? "on" : ""}" id="s-metro" role="switch" aria-checked="${!!s.metronome}" aria-label="Metronome"></button>
@@ -231,6 +235,7 @@ function renderSettings() {
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-score").onclick = () => { s.gigScore = s.gigScore === false; Tabs.save(data); renderSettings(); };
+  $("s-time").onclick = () => { s.gigTime = !s.gigTime; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */

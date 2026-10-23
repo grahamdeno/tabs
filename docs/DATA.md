@@ -124,7 +124,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 
 | Key | Values | Notes |
 |---|---|---|
-| `gigLines` | 4, 5 or 6 (5 when missing), or `"full"` | How many lines of the song the Gig shows (4.1.0); `"full"` is the whole song page under a strip (4.4.0) |
+| `gigTime` | boolean, off unless true | Score the timing (4.46.0): only a strum on the beat lands a change; a late one breaks the combo. Off: the right chord counts from just before the change to 1.2 s after it |
 | `toolsTab` | `"play"`, `"practice"` or `"song"` (Play when missing) | The Tools tab last open (4.32.0) |
 | `gigScore` | boolean, on unless false | A show starts listening for your chord changes (4.2.0) |
 | `streakMoment` | boolean, on unless false | Shows the streak celebration once a day (2.43.0) |

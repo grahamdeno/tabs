@@ -21,7 +21,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
   and don't change how keys are stored.
 - He uses the phone one-handed, mostly right hand: put actions people reach
   for mid-song in thumb reach (bottom of sheets, `pfoot`, the bar).
-- Lines in a gig: 5 by default (Graham, 2026-10-21, confirmed after 4.2.3).
+- The Gig is words first (4.46.0): no Lines in a gig and no Full; the words fill the screen.
 - No ring controls (Graham, 3.19.0): on a phone the rectangular bar is out
   while paused and folds into Play's corner while playing. Don't bring back
   the hold-Play ring, the arc, the island or Play following the hand.

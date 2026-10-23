@@ -60,8 +60,7 @@ let playNext = null, searchNext = false, lastHome = "library"; /* where a song's
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
 const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null };
-/* Play opens the Gig (4.2.0). How much game you see is Lines in a gig: 4, 5, 6 or Full (4.4.0: the whole
-   sheet under a thin strip). Practicing a section or slower, a tab and Play together play the plain sheet.
+/* Play opens the Gig (4.2.0). The Gig is words first (4.46.0). Practicing a section or slower, a tab and Play together play the plain sheet.
    plainPlay (tests only, never set by the app) keeps Play plain. */
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
 const gigsOn = song => canGig(song);
@@ -1195,7 +1194,6 @@ function songMenu(song, anchor, redrawSong) {
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
   const ez = song.easier, chords = song.format !== "tab", inGig = gigHooks.on;
-  const lines = () => [4, 5, 6, "full"].includes(data.settings.gigLines) ? data.settings.gigLines : 5;
   /* 4.32.0: three tabs at the bottom, in thumb reach (Play, Practice, Song), rows instead of tiles.
      Switches toggle in place; a row with a chevron opens its sheet. The last tab is remembered. */
   const capo = chords ? bodyCapo(song.body) : 0;
@@ -1205,7 +1203,6 @@ function songMenu(song, anchor, redrawSong) {
       { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: !!data.settings.metronome },
       { id: "band", icon: "metro", label: "The band", sub: `${data.settings.metroSound === "click" ? "Click" : "Drums"} · ${Math.round(metroVol() * 100)}%`, go: true },
       chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", sub: "Chord shapes while you play", on: data.settings.diagrams === true },
-      chords && { id: "lines", icon: "list", label: "Lines in a gig", lines: true },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
@@ -1244,7 +1241,6 @@ function songMenu(song, anchor, redrawSong) {
     const left = `<span class="mi">${icon(it.icon)}</span><span class="ml"><span class="t3l">${it.label}${nd}</span>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</span>`;
     if (it.step) return `<div class="mrow t3" role="group" aria-label="${it.label}">${left}<button class="sb" role="menuitem" data-step="-1" aria-label="${byLength() ? "Shorter" : "Slower"}">${icon("minus")}</button><button class="t3v" role="menuitem" data-m="speed" id="dialbtn" aria-label="${it.label}: ${esc($("sv")?.textContent || "")}. Open the dial"><span>${esc($("sv")?.textContent || "")}</span></button><button class="sb" role="menuitem" data-step="1" aria-label="${byLength() ? "Longer" : "Faster"}">${icon("plus")}</button></div>`;
     if (it.size) return `<div class="mrow t3 size" role="group" aria-label="Text size">${left}<button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v t3v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`;
-    if (it.lines) return `<div class="mrow t3 tl-lines" role="group" aria-label="Lines in a gig">${left}<div class="seg mini">${[4, 5, 6, "full"].map(n => `<button role="menuitemradio" data-lines="${n}" class="${n === lines() ? "on" : ""}" aria-checked="${n === lines()}">${n === "full" ? "All" : n}</button>`).join("")}</div></div>`;
     if (it.prac) return `<button class="mrow t3" role="menuitemcheckbox" data-prac data-m="prac" aria-checked="${it.on}" aria-label="Practice mode">${left}${sw(it.on)}</button>`;
     if (it.on !== undefined) return `<button class="mrow t3" role="menuitemcheckbox" data-m="${it.id}" aria-checked="${it.on}">${left}${sw(it.on)}</button>`;
     return `<button class="mrow t3" role="menuitem" data-m="${it.id}">${left}${icon("chev", "t3c")}</button>`;
@@ -1302,9 +1298,7 @@ function songMenu(song, anchor, redrawSong) {
       if (NEW_IN_MENU[ip.dataset.m]) markUsed(NEW_IN_MENU[ip.dataset.m]);
       const id = ip.dataset.m; paint(); m.querySelector(`[data-m="${id}"]`)?.focus({ preventScroll: true }); return;
     }
-    if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", toolsAnchor()); return; }
-    const ln = ev.target.closest("[data-lines]");
-    if (ln) { data.settings.gigLines = ln.dataset.lines === "full" ? "full" : +ln.dataset.lines; Tabs.save(data); paint(); m.querySelector(`[data-lines="${ln.dataset.lines}"]`)?.focus({ preventScroll: true }); return; }
+    if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", moreBtn()); return; }
     const b = ev.target.closest("[data-m]");
     if (!b) return;
     const id = b.dataset.m;

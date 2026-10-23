@@ -99,12 +99,12 @@ anything a person found on their own is skipped.
 3. Charts and the rival battle (after the first scored Gig).
 4. Song duels (the Challenge button after a good show; Charts' Friends list).
 5. Practice mode, Practice a section, Build up (when a song is first marked Learning).
-6. Lines in a gig (after 3 Gigs).
-7. Sets and Play set (when there are 8 songs).
-8. Play together (the Song tab; when a friend's link first opens).
-9. The pedal and Space (the first key or pedal press).
-10. The pull down to go back, the set dial, the letter index (Show me only).
-11. Language practice, Spark tone, Make it easier (their dots in Tools).
+6. Sets and Play set (when there are 8 songs).
+7. Play together (the Song tab; when a friend's link first opens).
+8. The pedal and Space (the first key or pedal press).
+9. The pull down to go back, the set dial, the letter index (Show me only).
+10. Language practice, Spark tone, Make it easier (their dots in Tools).
+11. Score the timing (4.46.0: Settings > Playing, listed only; the default of the right chord anytime in the next second needs no teaching).
 
 ## What stands out
 
@@ -178,7 +178,6 @@ anything a person found on their own is skipped.
 | 2 | Tap to pause (twice on stage) | Tap the screen | None in the Gig (the tip is plain-sheet only) | First show, a few seconds in, as the pause tip already does elsewhere |
 | 3 | Drag the lines to move the song | Drag | None | First pause in a Gig |
 | 4 | Now and Next counts the beats to the change | Watch it | None | Second show, once they've seen the screen |
-| 5 | Lines in a gig (4, 5, 6, All) | Tools > Play | None | After a few shows, as a toast at the end: "More lines? Tools > Lines in a gig" |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
 

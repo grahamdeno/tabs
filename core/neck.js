@@ -97,6 +97,37 @@ export function skillDone(data, id, best = 0, now = Date.now()) {
   const sk = data.skills || (data.skills = { done: {}, last: 0 }), x = sk.done[id] || (sk.done[id] = { n: 0, best: 0, at: 0 });
   x.n++; x.best = Math.max(x.best, Math.floor(best) || 0); x.at = now; sk.last = now;
 }
+/* Which chord is it? (4.46.0) The Gig listens to the notes of a strum, not only that it happened.
+   chromaOf folds a spectrum (dB per bin, as an analyser gives it) into the 12 note names, C to B,
+   from the guitar's range (70 Hz to 1.3 kHz); null when it is silent. strumFit says how much of that
+   sound is in the notes of a chord (0 to 1, null for a chord without a shape): a strum of the right
+   chord is mostly its own notes; any other chord has a share well under it. */
+export function chromaOf(db, sampleRate, fftSize) {
+  const out = new Array(12).fill(0), step = sampleRate / fftSize;
+  let total = 0;
+  for (let i = Math.max(1, Math.floor(70 / step)); i < db.length && i * step <= 1300; i++) {
+    const m = 10 ** (db[i] / 20);
+    if (!(m > 1e-6)) continue;
+    const pc = ((Math.round(12 * Math.log2(i * step / 440)) + 9) % 12 + 12) % 12;
+    out[pc] += m * m; total += m * m;
+  }
+  return total > 1e-9 ? out.map(x => x / total) : null;
+}
+export function chordNotes(name) {
+  const t = chordTargets(name);
+  if (!t) return null;
+  const pcs = new Set(t.filter(x => x.hz > 0).map(x => ((Math.round(12 * Math.log2(x.hz / 440)) + 9) % 12 + 12) % 12));
+  return pcs.size ? pcs : null;
+}
+export const CHORD_FIT = 0.55;
+export function strumFit(chroma, name) {
+  const pcs = chordNotes(name);
+  if (!pcs || !chroma) return null;
+  let share = 0;
+  for (const pc of pcs) share += chroma[pc];
+  return share;
+}
+
 /* What each string should sound like for a chord: a frequency, or null for a string left out. */
 export function chordTargets(name, tuning = "standard", a4 = 440) {
   const sh = chordShape(name), notes = (TUNINGS[tuning] || TUNINGS.standard).notes;

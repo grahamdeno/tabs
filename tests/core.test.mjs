@@ -1650,6 +1650,43 @@ test("Playable songs (4.0.0): songs that use only chords you know, and how many 
   assert.equal(C.playableSongs(data).now, 2, "chords played in songs five times count as known");
 });
 
+/* a spectrum (dB per bin) with a peak at each frequency and its first overtones, as a guitar chord has */
+const specOf = (hzs, rate = 44100, size = 16384) => {
+  const db = new Float32Array(size / 2).fill(-140);
+  for (const f of hzs) for (const [m, a] of [[1, 0], [2, -8], [3, -14]]) { const i = Math.round(f * m / (rate / size)); db[i] = a; db[i - 1] = a - 6; db[i + 1] = a - 6; }
+  return db;
+};
+const hzsOf = name => C.chordTargets(name).filter(x => x.hz > 0).map(x => x.hz);
+
+test("Chord recognition (4.46.0): a strum of the right chord fits it; another chord does not", () => {
+  const chroma = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
+  assert.equal(C.chromaOf(new Float32Array(8192).fill(-140), 44100, 16384), null, "silence has no notes");
+  for (const name of ["G", "C", "D", "Am", "Em"]) assert.ok(C.strumFit(chroma(name), name) >= C.CHORD_FIT, `${name} fits itself`);
+  assert.ok(C.strumFit(chroma("G"), "F#m") < C.CHORD_FIT, "G is not F#m");
+  assert.ok(C.strumFit(chroma("C"), "F#") < C.CHORD_FIT, "C is not F#");
+  assert.ok(C.strumFit(chroma("Cmaj7"), "C") >= C.CHORD_FIT, "an extended chord is close enough to its plain form");
+  assert.equal(C.strumFit(chroma("G"), "Zz"), null, "no shape, no verdict");
+  assert.equal(C.strumFit(null, "G"), null, "no notes, no verdict");
+});
+
+test("The Gig (4.46.0): the right chord in order lands a change; on the beat earns a star; Score the timing counts only the beat", () => {
+  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
+  const G = sp("G"), D = sp("D");
+  const g = C.gigStart();
+  assert.deepEqual([C.gigChord(g, 10, [{ t: 10.1, chroma: G }], "G").hit, g.stars], [true, 1], "right chord on the beat: landed and a star");
+  assert.equal(C.gigChord(g, 20, [{ t: 20.8, chroma: G }], "G").star, false, "right chord a beat late: landed, no star");
+  assert.equal(g.hits, 2); assert.equal(g.stars, 1);
+  assert.equal(C.gigChord(g, 30, [{ t: 30.1, chroma: D }], "G").hit, false, "the wrong chord on the beat is a miss");
+  assert.equal(g.combo, 0);
+  assert.equal(C.gigChord(g, 40, [{ t: 40.1, chroma: null }], "G").hit, true, "a strum with no notes to judge counts");
+  assert.equal(C.gigChord(g, 50, [{ t: 52, chroma: G }], "G").hit, false, "too late is a miss");
+  assert.equal(C.gigChord(g, 60, [{ t: 59.5, chroma: G }], "G").hit, false, "far too early is a miss");
+  const s = C.gigStart();
+  assert.equal(C.gigChord(s, 10, [{ t: 10.8, chroma: G }], "G", true).hit, false, "Score the timing: late is a miss");
+  assert.equal(C.gigChord(s, 20, [{ t: 20.2, chroma: G }], "G", true).hit, true, "Score the timing: on the beat lands");
+  assert.equal(C.gigFans(s), 1 + 1, "a fan for the change and one for its star");
+});
+
 test("The Gig (4.1.0): changes landed by a strum near them, the combo, strings, crowd and bonus fans", () => {
   const g = C.gigStart();
   assert.equal(C.gigCrowd(g), 6, "half the crowd before any change");

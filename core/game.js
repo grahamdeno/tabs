@@ -2,7 +2,7 @@
 // Re-exported from core.js, so other files import it from there.
 import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, shapeSteps, songChanges } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
-import { skillState } from "./neck.js";
+import { CHORD_FIT, strumFit, skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
 
 // ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
@@ -785,29 +785,51 @@ export function sheetChords(body) {
 // with no strings left the show goes on. Without the microphone nothing is graded.
 export const GIG_WINDOW = 0.35;
 export const GIG_STRINGS = 6;
-export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, strings: GIG_STRINGS, run: 0, last: [], offsets: [] }; }
-/* grade one change, due at `due` seconds, against the strums heard (seconds, same clock) */
-export function gigChange(g, due, strums, win = GIG_WINDOW) {
-  let near = null;
-  for (const t of strums) if (Math.abs(t - due) <= win && (near === null || Math.abs(t - due) < Math.abs(near - due))) near = t;
+export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, strings: GIG_STRINGS, run: 0, last: [], offsets: [], stars: 0 }; }
+/* one change graded: the bookkeeping both ways of grading share */
+function gigApply(g, near, due, star) {
   const hit = near !== null;
   if (hit) {
     g.hits++; g.combo++; g.best = Math.max(g.best, g.combo); g.run++;
+    if (star) g.stars = (g.stars || 0) + 1;
     if (g.run >= 8) { g.run = 0; g.strings = Math.min(GIG_STRINGS, g.strings + 1); }
     g.offsets.push(Math.round((near - due) * 1000) / 1000);
     if (g.offsets.length > 40) g.offsets.shift();
   } else { g.misses++; g.combo = 0; g.run = 0; g.strings = Math.max(0, g.strings - 1); }
   g.last.push(hit); if (g.last.length > 12) g.last.shift();
-  return { hit, offset: hit ? near - due : null };
+  return { hit, offset: hit ? near - due : null, star: hit && star };
+}
+/* grade one change, due at `due` seconds, against the strums heard (seconds, same clock): any strum near it */
+export function gigChange(g, due, strums, win = GIG_WINDOW) {
+  let near = null;
+  for (const t of strums) if (Math.abs(t - due) <= win && (near === null || Math.abs(t - due) < Math.abs(near - due))) near = t;
+  return gigApply(g, near, due, false);
+}
+/* 4.46.0: grade one change by the chord. `heard` is the strums with what each sounded like ({ t, chroma }).
+   The change lands when you play the chord it asks for, any time from just before it comes (GIG_WINDOW) to
+   GIG_LATE seconds after it; a strum of the right chord on the beat (within GIG_WINDOW) also earns a star.
+   `strict` (Score the timing) counts only the strums on the beat. A strum with no notes to judge, or a chord
+   with no shape, counts as the right chord, so a quiet room never costs a change. */
+export const GIG_LATE = 1.2;
+export function gigChord(g, due, heard, name, strict = false) {
+  const to = strict ? GIG_WINDOW : GIG_LATE;
+  let near = null;
+  for (const h of heard) {
+    if (h.t < due - GIG_WINDOW || h.t > due + to) continue;
+    const fit = strumFit(h.chroma, name);
+    if (fit !== null && fit < CHORD_FIT) continue;
+    if (near === null || Math.abs(h.t - due) < Math.abs(near - due)) near = h.t;
+  }
+  return gigApply(g, near, due, near !== null && Math.abs(near - due) <= GIG_WINDOW);
 }
 /* how many of the 12 in the crowd are cheering: your last 12 changes (half the crowd before any) */
 export const gigCrowd = g => g.last.length ? Math.round(12 * g.last.filter(Boolean).length / g.last.length) : 6;
 /* the share of changes landed, 0 to 100 (null with nothing graded) */
 export const gigPct = g => g.hits + g.misses ? Math.round(100 * g.hits / (g.hits + g.misses)) : null;
-/* the show's bonus fans, on top of the play's own: 1 for every change landed, 5 for every 10 in the
+/* the show's bonus fans, on top of the play's own: 1 for every change landed (and 1 more for a star: the right chord on the beat), 5 for every 10 in the
    best combo, and 10 for a crowd of 10 or more at the end. An encore doubles it. */
 export function gigFans(g, encore = false) {
-  const n = g.hits + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
+  const n = g.hits + (g.stars || 0) + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
   return encore ? n * 2 : n;
 }
 /* the timing meter: how far off your landed changes are lately, in seconds (positive is late) */
