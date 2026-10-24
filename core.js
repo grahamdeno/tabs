@@ -11,7 +11,7 @@ import { CHORD_FIT, HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, strumFit,
 import { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigCrowd, gigDone, gigFans, gigPct, gigStart, catchScore, relativeOf, catchTargets, targetAt, catchStart, catchAt, catchOpen, catchHear, catchClose, beatsLate, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.63.0";
+export const VERSION = "4.63.1";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;

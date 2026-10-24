@@ -477,7 +477,7 @@ function fitText(sheet, song) {
   let widest = 0;
   for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width);
   sheet.classList.remove("measure");
-  const room = sheet.clientWidth * 0.95 - 2; /* lines keep 5% on the right for the focus line's scale */
+  const room = sheet.clientWidth * 0.95 - 4; /* lines keep 5% on the right, clear of the song map, and 4 px for rounding between measuring and drawing (4.63.1) */
   /* measured in the fallback font while the app's own is still loading: measure again once it's in */
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
   const fit = widest > 0 ? base * room / widest : base;

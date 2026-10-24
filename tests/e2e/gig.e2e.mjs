@@ -235,6 +235,9 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/f"; }); await page.waitForSelector("#sheet .pr"); await settled(page);
   const oneLine = () => page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].every(pr => new Set([...pr.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size === 1));
+  /* the size is measured again once the app's font is in (fitText); CI's slower font load showed the fallback's fit (4.63.1) */
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() => [...document.querySelectorAll("#sheet > .pr")].every(pr => new Set([...pr.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size === 1), null, { timeout: 5000 }).catch(() => {});
   assert.ok(await oneLine(), "every line of the song is one line on screen");
   const size = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize));
   assert.ok(size >= 14 && size <= 22, `the text is sized to fit (${size}px)`);
