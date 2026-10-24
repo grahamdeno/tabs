@@ -41,6 +41,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `duration` | seconds | Song length speed style. Set from the recording when linked to Apple Music, unless you chose your own |
 | `recLength` | seconds | The recording's length, kept when Get the song adds it, so the metronome can slow with the speed dial (2.41.0) |
 | `groove` | object | What the drums do for this song: `beat` (`"rock"`, `"half"`, `"ballad"` or `"four"`) and `swing` (`"straight"`, `"light"` or `"full"`), each optional (a missing part comes from Settings), and `src`: `"ai"` for what was found, `"you"` once it was changed in Edit. `{ src: "you" }` alone means keep the defaults and don't look it up again. Looked up once, in the background, the first time the song plays with the metronome on, and when Get the song or Play next adds it (2.46.0). A `bass` or `riff` from before 4.42.0 is dropped when it loads |
+| `waitForMe` | boolean | Wait for me (4.54.0): the show holds on each chord until you play it. Unset means on for a song with `status: "learning"`, off otherwise; never on with a linked recording playing |
 | `capoOff` | boolean | The chart's own capo is taken off: chords show in the key the song sounds in (2.41.0) |
 | `durationSet` | boolean | You moved the length slider; the recording's length is then offered, not applied |
 | `speed` | number | 1x speed style |
@@ -125,7 +126,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 
 | Key | Values | Notes |
 |---|---|---|
-| `gigTime` | boolean, off unless true | Score the timing (4.46.0): only a strum on the beat lands a change; a late one breaks the combo. Off: the right chord counts from just before the change to 1.2 s after it |
+| `gigTime` | retired (4.54.0) | Removed on load. The show scores the chord you play, never the timing |
 | `toolsTab` | `"play"`, `"practice"` or `"song"` (Play when missing) | The Tools tab last open (4.32.0) |
 | `gigScore` | boolean, on unless false | A show starts listening for your chord changes (4.2.0) |
 | `streakMoment` | boolean, on unless false | Shows the streak celebration once a day (2.43.0) |
@@ -166,7 +167,7 @@ These sit next to `songs`, `sets` and `settings` in the saved library. Rival pla
 | `data.tour` | `{ lost, below, checked, seen, taken }` (2.52.0; `seen`, `taken` 4.18.0) | Edge hexagons lost on the Tour Map, days in a row below the pressure on your edge, and the day it was last checked. `seen`: how many hexagons you held when the map last looked; `taken`: rival hexagons you've taken since 4.18.0 (corners taken) |
 | `data.kept` | `{ days: { "YYYY-MM-DD": count } }` | Last 60 days: plays of songs that were deleted for good, so the weekly count and streak don't change when you tidy up; counts only, no titles |
 | `data.skills` | `{ done, last }` (3.6.0) | `done` maps a lesson id (`c:G` a chord, `s:G-C` a switch) to `{ n, best, at }` (times finished, best tempo in BPM for switches, time); `last` is when a lesson last finished. Level checks are worked out from your plays and not stored |
-| `data.gig` | `{ shows, fans, best }` (4.1.0) | Shows played as a gig, the bonus fans they earned (counted in your fans), and `best` mapping a song id to its best share of chord changes landed (0 to 100). A show's strums are heard and graded on the phone and never kept |
+| `data.gig` | `{ shows, fans, best }` (4.1.0) | Shows played as a gig, the bonus fans they earned (counted in your fans), and `best` mapping a song id to its best share of chords caught (0 to 100; since 4.54.0 the share of the song's chords you played, and not set by a Wait for me show). A show's strums are heard and graded on the phone and never kept |
 | `data.quests` | `{ fans, day, got, month, tour, crowd, req }` (4.5.0) | Fans earned from Tour quests (counted in your fans), the day `got` lists the setlist goals already credited (`two`, `crowd`, `mins`, `set`), the month whose tour was credited when `tour` is true, today's best gig crowd `{ day, n }`, and the request line `{ day, id, done }`. The request itself is worked out from the date, not stored, unless `heard` `{ day, id }` names the song you just played in Apple Music (4.10.0) |
 | `cover` | `{ title, artist, url?, art?, at, id?, done? }` (4.10.0) | The cover quest: a song you listened to that wasn't in the library, its id once added, and whether its first gig was played |
 | `data.quests.fq` | `{ wk, with, claimed? }` (4.13.0) | The Friend quest |

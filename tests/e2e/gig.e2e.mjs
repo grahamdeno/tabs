@@ -279,3 +279,15 @@ test("4.54.0 Wait for me: playing the chord lets the song go on, and the show is
   assert.match(await page.innerText(".gc-list"), /practice show/);
   assert.doesNotMatch(await page.innerText(".gc-list"), /Rival battle:/);
 });
+
+test("4.54.0 the chords row on the song page is shape tiles: name over a diagram, 44 px or taller, tap marks the chord", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [SHORT], settings: { ...LIB.settings, plainPlay: false } }, "#/song/g", { strum: false });
+  const tiles = page.locator(".strip .scard");
+  assert.ok(await tiles.count() >= 3, "a tile for each chord");
+  const box = await tiles.first().boundingBox();
+  assert.ok(box.height >= 44 && box.width >= 44, "big enough for a thumb");
+  assert.ok(await tiles.first().locator("svg").count() === 1, "a diagram in the tile");
+  assert.match(await tiles.first().getAttribute("aria-label"), /^[A-G][#b]?\w* chord shape/);
+  await tiles.first().click();
+  await page.waitForSelector("#sheet .c.sel", { state: "attached" });
+});

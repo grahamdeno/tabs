@@ -104,7 +104,7 @@ anything a person found on their own is skipped.
 8. The pedal and Space (the first key or pedal press).
 9. The pull down to go back, the set dial, the letter index (Show me only).
 10. Language practice, Spark tone, Make it easier (their dots in Tools).
-11. Score the timing (4.46.0: Settings > Playing, listed only; the default of the right chord anytime in the next second needs no teaching).
+11. Wait for me (4.54.0: on by default for a song you are learning; the hold card explains itself). Score the timing is retired.
 
 ## What stands out
 
@@ -175,13 +175,14 @@ anything a person found on their own is skipped.
 
 | # | Hidden feature | How you do it | Coverage | Why here |
 |---|---|---|---|---|
-| 1 | The microphone hears your strums and scores the changes | Just strum on the change | On screen: "Hearing you · tap to turn off" says it listens, not why | The heart of the game. Before the first show: "Strum on each chord change. I'm listening" from Louie |
+| 1 | The microphone hears the chord you play and scores it (Chord Catch, 4.54.0) | Play each chord | On screen: "Hearing you · tap to turn off" says it listens, not why | The heart of the game. Before the first show: "Play each chord. I'm listening" from Louie |
 | 2 | Tap to pause (twice on stage) | Tap the screen | None in the Gig (the tip is plain-sheet only) | First show, a few seconds in, as the pause tip already does elsewhere |
 | 3 | Drag the song to move it (4.51.0: the song page itself scrolls under the show) | Drag | None | First pause in a Gig |
-| 4 | The beat dots count to the change | Watch them | None | Second show, once they've seen the screen (4.50.0: Now and Next is gone) |
-| 5 | Tap a section in the thin bar at the top to go there (4.53.0) | Tap a colour in the bar | None | Same as the plain sheet row 3b; a tip after the first show would do. The jump isn't graded |
+| 4 | A chord you play turns green and stays green (4.54.0, replaces the beat dots) | Play the chord | None | Seen on screen; no tip yet |
+| 5 | Tap a section on the page's rail to go there (4.53.0; the thin bar over the stage went in 4.54.0) | Tap the rail | None | The jump isn't graded; a tip after the first show would do |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
+| 8 | Wait for me (4.54.0): the song holds on each chord until you play it | Tools > Play > Wait for me; Skip this chord beside Pause | Switch, on for a learning song; the hold card says what it waits for | No tip yet; one the first time a learning song is played with the mic on would teach it. A practice show: no Charts, battles or duels |
 
 Achievement callouts (4.44.0) teach themselves: they appear when something is earned and point to nothing hidden, so they need no tip.
 

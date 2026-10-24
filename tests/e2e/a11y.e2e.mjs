@@ -55,3 +55,31 @@ for (const theme of ["dark", "light"]) {
     assert.deepEqual(problems, []);
   });
 }
+
+/* 4.54.0: the show, the song it waits on, and Show complete (Chord Catch) have names and pass axe in each palette */
+import { FAKE_MIC } from "./harness.mjs";
+for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", "green"]]) {
+  test(`the Gig, Wait for me and Show complete pass axe (${look})`, { skip: skip() }, async t => {
+    const song = { id: "w", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 12, waitForMe: true, bpm: 120,
+      body: "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand" };
+    const page = await phone(t, { ...lib(theme), songs: [song], settings: { ...lib(theme).settings, look, plainPlay: false } }, { colorScheme: theme, reducedMotion: "reduce" });
+    await page.context().addInitScript(FAKE_MIC);
+    await page.goto(base + "#/song/w"); await page.reload(); await page.waitForSelector("#play");
+    const problems = [];
+    const check = async screen => {
+      for (const html of await page.evaluate(unnamed)) problems.push(`${screen}: no name: ${html}`);
+      if (!axePath) return;
+      await page.evaluate(fs.readFileSync(axePath, "utf8"));
+      const found = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"], resultTypes: ["violations"] }))
+        .violations.filter(v => v.impact === "serious" || v.impact === "critical").map(v => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map(n => n.target.join(" ")).join(" | ")}`));
+      for (const f of found) problems.push(`${screen}: ${f}`);
+    };
+    await check("paused song with shape tiles");
+    await page.click("#play"); await page.waitForSelector("#gg-wait:not([hidden])", { timeout: 20000 });
+    await check("waiting for a chord");
+    await page.waitForFunction(() => { const b = document.getElementById("gg-skip"); if (b && !b.hidden) b.click(); return !!document.querySelector(".gc"); }, null, { timeout: 60000, polling: 300 }); /* skip each chord it waits on until the show ends */
+    await check("show complete");
+    for (const p of problems) console.log(`PROBLEM ${look} ${p}`);
+    assert.deepEqual(problems, []);
+  });
+}

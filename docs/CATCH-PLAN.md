@@ -217,4 +217,25 @@ Mockup D.
 
 ## Surprises
 
-(none yet)
+Written by Sonnet at the end of the build (2026-10-24):
+
+- The tag push was refused (403). The rollback anchor is the commit before the merge: sha 0528568 (the plan commit).
+- `catchHear(st, chroma)` differs from the plan: the state holds `cur`, and it has two more rules. A rival rule
+  (every other chord of the song and the chord's relative major or minor must fit no better than +0.08, so C is
+  not caught when Am is played) and a hold rule (a chord just caught can't be caught again until the room stops
+  fitting it or goes quiet). `relativeOf` has no direct unit test.
+- The mic's noise floor is a slow-rising minimum capped at 0.006, starting at 0.002. Tracking the level made the
+  floor rise to a ringing chord and stopped catching after the first chords.
+- A non-visual `st-on` marker was added on the chord you are on, for tests and later features.
+- The shape card shows the chord you are on (NOW) if uncaught and unlearned, else the next (NEXT).
+- Chords above the reading line at the start get a silent `catchClose` so they are not counted as misses; the
+  rail's jump dispatches `stage-jump` so skipped chords are not counted.
+- Wait for me: `scroll.wait` holds the page in `startScroll`'s tick and `holdScroll` stops and restarts the band.
+  A chord with no shape (`chordNotes` empty) is never waited on, since it can't be heard.
+- Contrast: `--got` in the festival palette went from #0B7A3E to #075E2D (4.0:1 on the blue chorus band); the
+  green palette's missed ink is `--miss-ink` #3F524C (4.35:1 before); the waiting chord's label is white on the
+  green palette's verse and solo colours. All three palettes are 4.5:1 or better for these.
+- axe-core isn't installed here; `npm i --no-save --no-package-lock axe-core` makes the a11y tests really run.
+  A new a11y test covers the paused page with tiles, the hold, and Show complete in each palette.
+- Under the parallel quick run, a few unrelated tests (shared link, diagnostics, writing mode) can fail on load
+  and pass alone.

@@ -1402,7 +1402,7 @@ function renderStrip(sheet, isChords, song) {
   box.innerHTML = names.length ? `
     <div class="strip-h"><span>Chords</span>${easyBtn}</div>
     <div class="strip" role="list">${names.map(n =>
-      `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)}${fresh(n) ? ", new to you" : ""}: show where it's played"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n)}</button>`).join("")}</div>` : "";
+      `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)} chord shape${fresh(n) ? ", new to you" : ""}"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n)}</button>`).join("")}</div>` : "";
 }
 
 /* The song map under the chips (4.2.0): each section in its Stage Gel, as long as it is in the song.
