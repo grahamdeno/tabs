@@ -4,11 +4,11 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, settled } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, CHORD_PLAYER, useBrowser, settled } from "./harness.mjs";
 
 useBrowser();
 
-/* A page that hears a strum every 400 ms, with the library in place before the app starts.
+/* A page whose microphone plays the chord the song is on (4.54.0), with the library in place before the app starts.
    Seeding it before the first load (instead of replacing it after) means the app's own first
    save can't land on top of it, which is what made the scored Gig test flaky on a busy machine. */
 async function strummingPage(t, lib, hash, { strum = true } = {}) {
@@ -21,7 +21,7 @@ async function strummingPage(t, lib, hash, { strum = true } = {}) {
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   t.after(() => assert.deepEqual(errors, [], "page errors"));
   await page.goto(base + hash); await page.waitForSelector("#play"); await settled(page);
-  if (strum) await page.evaluate(() => { setInterval(() => { window.__hz = 110; setTimeout(() => { window.__hz = 0; }, 90); }, 400); });
+  if (strum) await page.evaluate(CHORD_PLAYER); /* 4.54.0: plays the chord the song is waiting for */
   return page;
 }
 const SHORT = { id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16,
@@ -37,7 +37,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gg-lines").count(), 0, "4.51.0: the lines are the song page itself, not a copy");
   assert.ok(await page.evaluate(() => document.body.classList.contains("staged")), "the page is the stage");
-  assert.equal(await page.locator(".gg-map button").count(), 2, "the song map: a button and a gel for each section");
+  assert.equal(await page.locator(".gg-map, #st-map, #gg-str, #gg-tw").count(), 0, "4.54.0: no song map over the stage, no strings, no timing word");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Hearing you: a tap stops listening for this show, another starts it again */
   await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
@@ -62,7 +62,8 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   /* Show complete */
   await page.waitForSelector(".gc", { timeout: 40000 });
   assert.match(await page.innerText(".gc-t"), /Show complete/);
-  assert.match(await page.innerText(".gc-list"), /changes landed/, "the show was graded");
+  assert.match(await page.innerText(".gc-list"), /chords caught/, "the show was graded");
+  assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the chords you caught");
   assert.match(await page.innerText(".gc-list"), /Double set: 2x XP on this show\. 1 more to go\./);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.shows === 4); /* the save lands a moment after */
   const s = await saved(page);
@@ -89,14 +90,13 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; 
   await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
   assert.equal(await page.innerText("#sheet > .st-now"), held, "Tools while paused keeps the line you stopped on");
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
-  const at = await page.evaluate(() => document.getElementById("gg-mark").style.left);
+  const at = await page.evaluate(() => scrollY);
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   assert.equal(await page.locator("#gig.paused").count(), 0);
-  await page.waitForFunction(a => document.getElementById("gg-mark").style.left !== a, at, { timeout: 8000 });
+  await page.waitForFunction(a => scrollY > a + 20, at, { timeout: 8000 });
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   assert.equal(await page.evaluate(() => location.hash), "#/song/g", "paused on the song page");
   assert.ok(await page.evaluate(() => { const b = getComputedStyle(document.querySelector("#sheet > .st-now"), "::before"); return b.content !== "none"; }), "a quiet band on the line you stopped on");
-  assert.equal(await page.locator("#sheet .gc-run i:visible").count(), 0, "no dots while it's held");
   await page.click(".shead .sh-back"); await page.waitForFunction(() => !document.getElementById("gig"));
   assert.equal(await page.evaluate(() => document.body.classList.contains("held") || document.body.classList.contains("staged")), false, "leaving ends the show and clears the stage");
 });
@@ -142,7 +142,7 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
 });
 
-test("4.43.0 words first: the chord you're on lit in the line, the next one with its beats, a repeat shown once, a shape for a new chord", { skip: skip() }, async t => {
+test("4.54.0 words first: a repeat shown once, a shape for a chord you haven't learned, no dots and no lit chord", { skip: skip() }, async t => {
   const body = "[Intro]\nG   C   G   C\n\n[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G        G        Fmaj7\nLine ${i + 1} of the verse goes here`).join("\n");
   const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
   const journal = { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, chords: { G: { n: 9, first: "2026-01-01" }, C: { n: 9, first: "2026-01-01" } } };
@@ -151,75 +151,46 @@ test("4.43.0 words first: the chord you're on lit in the line, the next one with
   await page.click("#play"); await page.waitForSelector("#gig");
   /* words first (4.50.0: the big Now and Next cards are gone, so an intro is lines too) */
   assert.equal(await page.locator(".gg-chords, #gig.bigc").count(), 0, "no big cards");
-  await page.waitForSelector("#sheet .c.st-lit:not(.st-rep) .ct"); await page.waitForSelector("#sheet .gc-run i", { state: "attached" });
+  await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#sheet .gc-run, #sheet .st-lit").count(), 0, "4.54.0: no beat dots and no lit chord");
   assert.ok(await page.locator("#sheet .c.st-rep").count() > 0, "a chord played again in a row is hidden");
   await page.waitForFunction(() => { const s = document.getElementById("gg-shape"); return s && !s.hidden && /Fmaj7/.test(s.textContent); }, null, { timeout: 20000 });
-  assert.match(await page.innerText("#gg-shape"), /NEW CHORD/, "a shape for the chord you haven't learned");
-  assert.equal(await page.locator("#gg-tw").count(), 1, "timing lives beside the combo");
+  assert.match(await page.innerText("#gg-shape"), /NOW|NEXT/, "a shape for the chord you haven't learned");
   assert.equal(await page.locator(".gg-timing, .gg-louie, .gg-crowd").count(), 0, "no timing bar, no Louie card, no crowd card");
 });
 
-test("4.46.0 Score the timing: off by default; Settings > Playing turns it on and it is saved", { skip: skip() }, async t => {
-  const page = await phone(t, LIB, {});
-  await page.goto(page.url().split("#")[0] + "#/settings/playing"); await page.waitForSelector("#s-time"); await settled(page);
-  assert.equal(await page.getAttribute("#s-time", "aria-checked"), "false", "off by default");
-  assert.match(await page.innerText(".set:has(#s-time)"), /Score the timing[\s\S]*late change breaks the combo/);
-  await page.click("#s-time");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.gigTime === true);
-});
-
-test("4.41.0 a sheet whose chords are a guess: a change you don't strum is never a miss", { skip: skip() }, async t => {
+test("4.41.0 a sheet whose chords are a guess: a chord you don't play is never a miss", { skip: skip() }, async t => {
   const page = await strummingPage(t, { ...LIB, songs: [{ ...SHORT, spots: "guess" }], settings: { ...LIB.settings, plainPlay: false } }, "#/song/g", { strum: false });
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.waitForSelector(".gc", { timeout: 40000 });
-  assert.match(await page.innerText(".gc-list"), /still a best guess, so a change you missed wasn't counted/);
-  assert.equal(await page.locator(".gc-list b").filter({ hasText: /^0$/ }).count(), 0, "no 0 of n changes landed");
+  assert.match(await page.innerText(".gc-list"), /still a best guess, so a chord you missed wasn't counted/);
 });
 
-test("4.49.10 the beat dots sit between the chord you're on and the next, one lit at a time stepping toward it; no sweep; the crowd are fans", { skip: skip() }, async t => {
-  const body = "[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G                       C\nLine ${i + 1} of the verse goes on here`).join("\n");
-  const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
-  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
+test("4.54.0 Chord Catch: a chord you play turns green and stays green, the combo counts the run, and the crowd is bigger", { skip: skip() }, async t => {
+  const body = "[Verse]\n" + Array.from({ length: 6 }, (_, i) => `G        C\nLine ${i + 1} of the verse goes on here`).join("\n");
+  const song = { id: "k", title: "Catch", artist: "A", key: "G", format: "chords", duration: 40, bpm: 120, body };
+  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/k");
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
-  /* 4.49.14: the band runs the full width of the screen, so the time after the words reads as space in the line */
-  assert.ok(await page.evaluate(() => { const b = getComputedStyle(document.querySelector("#sheet > .st-now"), "::before"); return b.content !== "none" && parseFloat(b.left) <= -innerWidth / 2 + 1 && parseFloat(b.right) <= -innerWidth / 2 + 1; }), "a band from edge to edge");
-  assert.equal(await page.locator(".gl-sweep").count(), 0, "no sweep");
-  assert.equal(await page.locator("#sheet > .st-next").count(), 1, "one next line");
-  assert.equal(await page.locator("#gg-fans i svg").count(), 12, "the crowd is 12 fans");
-  const geo = await page.waitForFunction(() => {
-    const run = document.querySelector("#sheet .gc-run"), lit = document.querySelector("#sheet .c.st-lit .ct");
-    if (!run || !lit || !run.children.length) return null;
-    const xs = [...run.children].map(e => e.getBoundingClientRect().left);
-    return { first: xs[0], last: xs[xs.length - 1], n: xs.length, chordRight: lit.getBoundingClientRect().right, on: run.querySelectorAll("i.on").length };
-  }, null, { timeout: 20000 }).then(h => h.jsonValue());
-  assert.ok(geo.first > geo.chordRight, "the dots start on the right of the chord you're on");
-  assert.ok(geo.n >= 2 && geo.last > geo.first, "spread out toward the next chord");
-  await page.waitForFunction(() => document.querySelectorAll("#sheet .gc-run i.on").length === 1, null, { timeout: 20000 });
-  assert.ok(await page.evaluate(() => [...document.querySelectorAll("#sheet .c:not(.st-lit) .ct")].every(e => getComputedStyle(e).backgroundColor === "rgba(0, 0, 0, 0)")), "only the chord you're on is lit: the next stays plain until the dots reach it (4.49.11)");
+  assert.equal(await page.locator("#gg-fans svg").count(), 12, "the crowd is 12 fans");
+  assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "a bigger crowd, on its own row");
+  await page.waitForSelector("#sheet .c.st-got", { state: "attached", timeout: 25000 });
+  const first = await page.evaluate(() => [...document.querySelectorAll("#sheet .c[data-ch]")].findIndex(e => e.classList.contains("st-got")));
+  await page.waitForFunction(() => document.querySelectorAll("#sheet .c.st-got").length >= 3, null, { timeout: 25000 });
+  assert.ok(await page.evaluate(i => document.querySelectorAll("#sheet .c[data-ch]")[i].classList.contains("st-got"), first), "once green, it stays green");
+  assert.ok(await page.evaluate(() => { const e = document.querySelector("#sheet .c.st-got .ct"); return getComputedStyle(e).textDecorationLine === "underline"; }), "caught is marked by a bar as well as the colour");
+  await page.waitForFunction(() => /in a row/.test(document.getElementById("gg-combo").textContent), null, { timeout: 25000 });
+  assert.equal(await page.locator("#sheet .gc-run, #sheet .st-lit").count(), 0, "no beat dots and no lit chord");
 });
 
-test("4.53.1 the beat dots carry onto the next line when its first chord is a few beats in, faint until the band is there", { skip: skip() }, async t => {
-  const body = "[Verse]\n" + Array.from({ length: 12 }, (_, i) => `           D           C\nLine ${i + 1} of the verse goes on here`).join("\n");
-  const song = { id: "k", title: "Carry", artist: "A", key: "G", format: "chords", duration: 48, bpm: 120, body };
-  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/k"; }); await page.waitForSelector("#play"); await settled(page);
-  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
-  /* the last chord of a line, whose next chord is on the next line */
-  const geo = await page.waitForFunction(() => {
-    const run = document.querySelector("#sheet .gc-run.carry");
-    if (!run || !run.children.length) return null;
-    const own = [...document.querySelectorAll("#sheet .gc-run:not(.carry) i")], carried = [...run.children];
-    const nextRow = run.parentElement, chord = nextRow.querySelector(".ct").getBoundingClientRect(), lit = document.querySelector("#sheet .c.st-lit .ct").getBoundingClientRect();
-    return { own: own.length, carried: carried.length, last: Math.max(...carried.map(e => e.getBoundingClientRect().right)), chordLeft: chord.left, litRow: lit.top < nextRow.getBoundingClientRect().top, opacity: getComputedStyle(carried[0]).opacity };
-  }, null, { timeout: 30000 }).then(h => h.jsonValue());
-  assert.ok(geo.own >= 1 && geo.carried >= 1, "dots on both lines: " + JSON.stringify(geo));
-  assert.ok(geo.own + geo.carried <= 8, "no more than the run's most");
-  assert.ok(geo.last < geo.chordLeft, "the carried dots end before the next chord");
-  assert.ok(geo.litRow, "the chord you're on is on the line above");
-  assert.ok(+geo.opacity < 1, "faint until the band is on that line");
-  /* the lit dot steps across into the next line before the change */
-  await page.waitForFunction(() => document.querySelectorAll("#sheet .gc-run.carry i.on").length === 1, null, { timeout: 30000 });
+test("4.54.0 Chord Catch: a chord that goes by unplayed stays plain, with no snapped string; Show complete lists it outlined", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [SHORT], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g", { strum: false });
+  await page.click("#play"); await page.waitForSelector("#gig");
+  await page.waitForSelector("#sheet .c.st-miss", { state: "attached", timeout: 25000 });
+  assert.equal(await page.locator("#sheet .c.st-got").count(), 0, "nothing caught in a silent room");
+  await page.waitForSelector(".gc", { timeout: 40000 });
+  assert.match(await page.innerText(".gc-list"), /0 of \d+ chords caught/);
+  assert.ok(await page.locator(".gc-song .gc-ch.miss").count() > 0, "the song you played shows the chords that went by");
+  assert.match(await page.innerText(".gc-worst"), /MISSED MOST[\s\S]*to/);
 });
 
 test("4.49.6 a chord before the singing stands ahead of the words on the song page", { skip: skip() }, async t => {
@@ -269,35 +240,17 @@ test("4.52.0 unscored play is on the stage too: the band and the chord you're on
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gig").count(), 0, "no show: nothing scored, no crowd");
   assert.ok(await page.evaluate(() => document.body.classList.contains("staged-plain")), "the stage, with nothing on top");
-  await page.waitForSelector("#sheet .c.st-lit .ct");
   await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
-  assert.equal(await page.locator("#sheet .st-now, #sheet .st-lit, #st-bg").count(), 0, "paused, the page is as it was");
+  assert.equal(await page.locator("#sheet .st-now, #st-bg").count(), 0, "paused, the page is as it was");
 });
 
-test("4.53.0 the song map while playing: a bar of sections with a mark; tapping one goes there", { skip: skip() }, async t => {
+test("4.54.0 no section bar over the stage, in a show or in practice; the page's own rail still jumps", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
-  /* unscored play: the bar sits alone at the top */
-  await page.waitForSelector("#st-map button");
-  assert.equal(await page.locator("#st-map button").count(), 2, "a button for each section");
-  await page.waitForFunction(() => document.getElementById("gg-mark").style.left !== "");
-  const y0 = await page.evaluate(() => scrollY);
-  await page.click("#st-map button:last-of-type");
-  await page.waitForFunction(y => scrollY > y + 40, y0, { timeout: 5000 });
-  assert.ok(await page.evaluate(() => document.body.classList.contains("staged-plain")), "the tap did not pause the song");
+  assert.equal(await page.locator("#st-map, .gg-map").count(), 0, "unscored play has no bar");
   await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
-  assert.equal(await page.locator("#st-map").count(), 0, "paused, the bar goes and the chips are back");
-});
-
-test("4.53.0 in a show the song map is tappable too, and the jump is not graded", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  await page.click("#play"); await page.waitForSelector("#gig"); await page.waitForSelector("#sheet > .st-now");
-  const y0 = await page.evaluate(() => scrollY);
-  await page.click("#gg-map button:last-of-type");
-  await page.waitForFunction(y => scrollY > y + 40, y0, { timeout: 5000 });
-  assert.equal(await page.locator("#gig.paused").count(), 0, "the tap did not pause the show");
+  assert.equal(await page.locator(".smap").count() > 0 || await page.locator(".secbar").count() > 0, true, "paused, the chips and the rail are as they were");
 });

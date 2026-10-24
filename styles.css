@@ -2185,18 +2185,7 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 .gg-top { display: flex; align-items: center; gap: 10px; flex: none; }
 .gg-x { width: 44px; height: 44px; flex: none; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
 .gg-x svg { width: 24px; height: 24px; }
-.gg-map { flex: 1; position: relative; display: flex; gap: 2px; height: 14px; border-radius: 7px; overflow: visible; }
-.gg-map > button { display: block; position: relative; height: 100%; min-width: 0; padding: 0; border: 0; opacity: .9; }
-.gg-map > button::after { content: ""; position: absolute; left: 0; right: 0; top: -15px; bottom: -15px; } /* a finger-sized target (4.53.0) */
-.gg-map > button:first-child { border-radius: 7px 0 0 7px; } .gg-map > button:last-of-type { border-radius: 0 7px 7px 0; }
-.gg-map em { pointer-events: none; }
-/* unscored play: the same bar, alone at the top (4.53.0) */
-.st-map { position: fixed; z-index: 15; left: 16px; right: 16px; top: calc(var(--safe-t) + 12px); flex: none; height: 8px; }
-.st-map > button:first-child { border-radius: 4px 0 0 4px; } .st-map > button:last-of-type { border-radius: 0 4px 4px 0; }
-.st-map em { top: -4px; height: 16px; }
 .gl-verse { background: var(--g-verse); } .gl-chorus { background: var(--g-chorus); } .gl-bridge { background: var(--g-bridge); } .gl-solo { background: var(--g-solo); }
-.gg-map em { position: absolute; top: -5px; width: 6px; height: 24px; margin-left: -3px; border-radius: 3px; background: var(--fg); box-shadow: 0 0 0 2px var(--bg); transition: left .25s linear; }
-.gg-str { display: inline-flex; align-items: center; gap: 4px; font: 700 18px var(--display); color: var(--strings); }
 .gg-status { display: flex; align-items: center; justify-content: space-between; flex: none; min-height: 32px; }
 .gg-sec { padding: 4px 14px; border-radius: 999px; background: var(--gel); color: #14213D; font: 700 15px var(--display); letter-spacing: .05em; transition: background .4s; }
 .gg-combo { font: 700 18px var(--display); color: var(--streak); letter-spacing: .03em; }
@@ -3631,33 +3620,24 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 
 /* ---- The Gig, words first (4.43.0): the words fill the screen, the game is one slim strip ---- */
 .gig { gap: 8px; }
-.gg-top .gg-combo { min-width: 34px; text-align: right; font: 700 18px var(--display); color: var(--fans-text); }
+.gg-top .gg-combo { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 8%, transparent); min-height: 32px; font: 700 17px var(--display); color: var(--got); }
+.gg-top .gg-combo:empty { display: none; }
+.gg-top .gg-combo svg { width: 18px; height: 18px; stroke-width: 3; }
 .gg-combo.hit { animation: gg-pop .3s ease-out; }
 @keyframes gg-pop { 50% { transform: scale(1.25); } }
-.gg-tw { min-width: 38px; font: 800 11px var(--sans); letter-spacing: .06em; color: var(--muted); }
-.gg-tw.on { color: var(--fans-text); }
-.gg-status { justify-content: flex-start; gap: 10px; min-height: 28px; }
+.gg-status { justify-content: flex-start; gap: 10px; min-height: 56px; }
 .gg-cap { font: 800 10.5px var(--sans); letter-spacing: .08em; color: var(--muted); }
-.gg-status .gg-fans { flex: 1; display: flex; gap: 3px; align-items: flex-end; height: 28px; margin: 0; }
+.gg-status .gg-fans { flex: 1; display: flex; gap: 2px; align-items: flex-end; height: 56px; margin: 0; } /* a bigger crowd, on its own row (4.54.0) */
 .gg-status .gg-fans i { flex: 1; }
-/* the next chord stays plain until the dots reach it (4.49.11): only the chord you're on is lit */
-/* The beat dots (4.49.10): a dot for each beat of the chord you're on, between it and the next chord; one
-   lit, stepping toward the next chord on the beat */
-.gc-run { position: absolute; inset: 0; pointer-events: none; }
-.gc-run i { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 24%, transparent); transition: transform .12s ease-out, background-color .12s; }
-/* beats carried onto a later line (4.53.1): faint until the band is on that line */
-.gc-run.carry i:not(.on) { opacity: .45; }
-.st-now > .gc-run.carry i { opacity: 1; }
-.gc-run i.on { background: var(--fans); transform: scale(1.6); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fans) 30%, transparent); }
 /* The crowd (4.49.10): 12 fans; the ones on their feet stand up with their hands up */
 .gg-status .gg-fans i { display: flex; align-items: flex-end; justify-content: center; background: none; color: var(--locked); }
-.gg-status .gg-fans svg { width: 100%; max-width: 20px; height: auto; overflow: visible; fill: currentColor; transform: translateY(5px); transition: transform .25s, color .25s; }
+.gg-status .gg-fans svg { width: 100%; max-width: 38px; height: auto; overflow: visible; fill: currentColor; transform: translateY(5px); transition: transform .25s, color .25s; }
 .gg-status .gg-fans .arms { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; opacity: 0; transition: opacity .2s; }
 .gg-status .gg-fans i.on svg { transform: none; }
 .gg-status .gg-fans i.on .arms { opacity: 1; }
 .gg-status .gg-fans i.on.c0 { color: var(--g-chorus); } .gg-status .gg-fans i.on.c1 { color: var(--g-verse); }
 .gg-status .gg-fans i.on.c2 { color: var(--fans); } .gg-status .gg-fans i.on.c3 { color: var(--g-solo); }
-@media (prefers-reduced-motion: reduce) { .gc-run i, .gg-status .gg-fans svg { animation: none; transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gg-status .gg-fans svg { animation: none; transition: none; } }
 .gg-shape { position: absolute !important; right: 14px; top: 34%; z-index: 2; width: 96px; box-sizing: border-box; padding: 8px 6px; border-radius: 14px; background: var(--card); border: 2px solid var(--fans); box-shadow: 0 4px 0 var(--fans-deep); text-align: center; }
 .gg-shape[hidden] { display: none; }
 .gg-shape small { display: block; font: 800 9.5px var(--sans); letter-spacing: .06em; color: var(--fans-text); }
@@ -3742,13 +3722,25 @@ body.staged .sheet > .st-now::before { content: ""; position: absolute; z-index:
 body.staged .sheet .c { color: var(--gel); }
 :root[data-theme="light"] body.staged .sheet .c, :root[data-look="festival"] body.staged .sheet .c { color: color-mix(in srgb, var(--gel) 72%, #14213D); }
 body.staged .sheet .c.st-rep { visibility: hidden; }
-body.staged .sheet .c.st-lit .ct { color: #14213D; background: var(--gel); border-radius: 6px; box-shadow: 0 0 0 4px var(--gel), 0 6px 0 color-mix(in srgb, var(--gel) 55%, #000); }
+/* Chord Catch (4.54.0): a chord you played turns green and stays green, with a bar under it (green is never alone);
+   one that went by unplayed is plain; the one the song is waiting on has a soft ring */
+:root { --got: #7EE6A0; }
+:root[data-theme="light"], :root[data-look="festival"] { --got: #0B7A3E; }
+:root[data-look="green"] { --got: #0A5C2E; }
+:root body.staged .sheet .c.st-got { color: var(--got); }
+:root body.staged .sheet .c.st-got .ct { text-decoration: underline 3px; text-underline-offset: 5px; text-decoration-color: var(--got); }
+:root body.staged .sheet .c.st-miss { color: var(--muted); }
+:root body.staged .sheet .c.st-pop .ct { animation: catch-pop .55s ease-out; }
+@keyframes catch-pop { 0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--got) 55%, transparent); } 35% { transform: scale(1.3); box-shadow: 0 0 0 8px color-mix(in srgb, var(--got) 30%, transparent); } 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; } }
+:root body.staged .sheet .c.st-wait .ct { border-radius: 8px; background: var(--gel); color: #14213D; box-shadow: 0 0 0 5px color-mix(in srgb, var(--gel) 35%, transparent), 0 0 0 11px color-mix(in srgb, var(--gel) 14%, transparent); padding: 0 6px; margin-left: -6px; }
+@media (prefers-reduced-motion: reduce) { :root body.staged .sheet .c.st-pop .ct { animation: none; } }
 /* The stage light, quiet (Graham, 2026-10-24): behind the words, at most 12% of the section's colour, and gone
    before the band at the reading line, so it never sits on the words you're reading. */
 .st-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
 .st-bg i { position: absolute; left: 50%; display: block; }
-.st-bg .st-lamp { top: -150px; width: 300px; height: 300px; margin-left: -150px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 5%, transparent); }
-.st-bg .st-beam { top: 0; width: 520px; height: 38%; margin-left: -260px; clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, color-mix(in srgb, var(--gel) 12%, transparent), transparent 92%); transition: background .6s; }
+.st-bg .st-lamp { top: -22px; width: 56px; height: 44px; margin-left: -28px; border-radius: 0 0 28px 28px; background: color-mix(in srgb, var(--gel) 30%, #fff); box-shadow: 0 0 36px 14px color-mix(in srgb, var(--gel) 40%, transparent); }
+/* one cone from the lamp down, ending above the band so it never sits on the words (4.54.0, Graham's mockup) */
+.st-bg .st-beam { top: 0; width: 100vw; height: 40%; margin-left: -50vw; clip-path: polygon(41% 0, 59% 0, 96% 100%, 4% 100%); background: linear-gradient(180deg, color-mix(in srgb, var(--gel) 26%, transparent), color-mix(in srgb, var(--gel) 9%, transparent) 60%, transparent 96%); transition: background .6s; }
 /* A row of chords with no words (an intro, a solo) spreads across the width, so it reads as time going by
    (Graham, 2026-10-24); its chords are timed evenly along it too. */
 .sheet .crow > * { flex: 1 1 0; min-width: max-content; }
@@ -3767,8 +3759,21 @@ body.held .app.viewer { overflow-x: clip; }
 body.held .sheet > .st-now { position: relative; }
 body.held .sheet > .st-now::before { content: ""; position: absolute; z-index: -1; top: -6px; bottom: -2px; left: -50vw; right: -50vw; background: color-mix(in srgb, var(--gel) 10%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gel) 30%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--gel) 30%, transparent); pointer-events: none; }
 body.held .sheet.focus > .cur { transform: none; -webkit-text-stroke: 0; }
-body.held .sheet .gc-run { display: none; }
 /* Louie's line on a held show, just above Play */
 .held-say { position: fixed; left: 16px; right: 16px; z-index: 40; display: flex; align-items: center; gap: 12px; animation: pop .2s ease-out; }
 .held-say .louie { width: 56px; height: auto; flex: none; }
 .held-say p { flex: 1; margin: 0; background: var(--card); border: 2px solid var(--rim); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font: 700 15px/1.35 var(--sans); color: var(--fg); }
+
+/* Show complete (4.54.0): the song you played, and the change you missed most */
+.gc-song { margin: 14px 0 6px; padding: 12px 12px 6px; border-radius: 18px; background: color-mix(in srgb, var(--fg) 6%, transparent); text-align: left; }
+.gc-song h3 { margin: 0 0 8px; font: 700 17px var(--display); color: var(--fg); }
+.gc-sec { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+.gc-sec > b { flex: none; width: 66px; padding: 4px 0; border-radius: 8px; text-align: center; font: 800 10.5px var(--sans); letter-spacing: .06em; color: #14213D; }
+.gc-sec ul { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.gc-ch { padding: 4px 9px; border-radius: 9px; font: 700 15px var(--display); }
+.gc-ch.got { background: color-mix(in srgb, var(--got) 20%, transparent); color: var(--got); box-shadow: inset 0 -3px 0 var(--got); }
+.gc-ch.miss { color: var(--fg); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fg) 50%, transparent); }
+.gc-ch.skip { color: var(--muted); }
+.gc-worst { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--fg) 8%, transparent); text-align: left; }
+.gc-worst small { display: block; font: 800 11px var(--sans); letter-spacing: .08em; color: var(--muted); }
+.gc-worst b { font: 700 18px var(--display); color: var(--fg); }

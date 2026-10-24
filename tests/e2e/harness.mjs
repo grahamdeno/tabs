@@ -97,15 +97,28 @@ export async function tool(page, id) { await showTool(page, id); await page.clic
 export const speedText = page => page.evaluate(() => document.getElementById("sv").textContent.trim());
 export const skip = () => !chromium && "Playwright not installed";
 
-// A pretend microphone: a steady tone whose pitch the test sets with window.__hz.
+// A pretend microphone: a steady tone whose pitch the test sets with window.__hz, or a chord: window.__chord is a list
+// of pitches (Hz), each a clean sine, so what the Gig hears has the notes of that chord (4.54.0).
 export const FAKE_MIC = `
-window.__hz = 0;
+window.__hz = 0; window.__chord = [];
 navigator.mediaDevices.getUserMedia = async () => {
   const ctx = new AudioContext(), o = ctx.createOscillator(), g = ctx.createGain(), dest = ctx.createMediaStreamDestination();
   o.type = "sawtooth"; g.gain.value = 0; o.connect(g).connect(dest); o.start();
-  setInterval(() => { if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = window.__gain ?? 0.4; } else g.gain.value = 0; }, 20);
+  const voices = Array.from({ length: 6 }, () => { const v = ctx.createOscillator(), vg = ctx.createGain(); v.type = "sine"; vg.gain.value = 0; v.connect(vg).connect(dest); v.start(); return { v, vg }; });
+  setInterval(() => {
+    if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = window.__gain ?? 0.4; } else g.gain.value = 0;
+    voices.forEach((x, i) => { const hz = window.__chord?.[i]; if (hz) { x.v.frequency.value = hz; x.vg.gain.value = 0.12; } else x.vg.gain.value = 0; });
+  }, 20);
   return dest.stream;
 };`;
+/* Plays, in the page, the chord the song is on (4.54.0): the chord you're on, or the next one if it is already caught */
+export const CHORD_PLAYER = `
+setInterval(async () => {
+  const C = await import("/core.js");
+  const all = [...document.querySelectorAll("#sheet .c[data-ch]:not(.st-rep)")], i0 = Math.max(0, all.findIndex(e => e.classList.contains("st-on")));
+  const el = all.slice(i0).find(e => !/st-got|st-miss/.test(e.className));
+  window.__chord = el ? C.chordTargets(el.dataset.ch).filter(t => t.hz > 0).map(t => t.hz) : [];
+}, 100);`;
 
 
 /* After a screen change the browser's view transition (a short cross-fade) holds taps off the new screen until it ends. */

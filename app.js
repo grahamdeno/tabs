@@ -1417,6 +1417,7 @@ function paintSecbar() {
 function jumpToSection(el) {
   if (!el?.isConnected) return;
   hold.active = true; releaseSoon(900);
+  document.dispatchEvent(new Event("stage-jump")); /* the show doesn't count the chords a jump skips (4.54.0) */
   window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + scrollY - innerHeight * READ_AT), behavior: calm() ? "auto" : "smooth" });
   diag.pinned = null;
 }

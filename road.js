@@ -129,7 +129,7 @@ function openingCard(i, step) {
   const o = OPENING[i], state = i < step ? "done" : i === step ? "now" : "locked";
   const line = state === "locked" ? "Finish the steps before this one." : state === "done" ? "Done." : [
     "I'll say why I listen, then your phone asks for the microphone.", "Open the song and tap a chord to see its shape.",
-    "Play the first verse. Strum once on each chord change.", "Play, tap anywhere to pause, then Resume.", "Play a song start to finish."][i];
+    "Play the first verse. Play each chord as it comes.", "Play, tap anywhere to pause, then Resume.", "Play a song start to finish."][i];
   const btn = state === "now" ? `<button class="btn primary rd-start" data-ostart="${i}">${o.id === "show" ? `PLAY · +${FANS.play} FANS` : `START · +${FANS.lesson} FANS`}</button>` : "";
   return `<div class="rd-pop ${state}" role="dialog" aria-label="${esc(o.name)}"><b>${esc(o.name)}</b><p>${esc(line)}</p>${btn}</div>`;
 }

@@ -1,7 +1,7 @@
 // Opening night (4.40.0): the first leg of the Road teaches the app by doing it, on the sample song.
 //   1 Let me hear you    Louie gives the reason, then the phone asks for the microphone
 //   2 Tap a chord        in the song, a strip above Play says which one
-//   3 Play a verse       the Gig waits for Count me in and says to strum on each change
+//   3 Play a verse       the Gig waits for Count me in and says to play each chord
 //   4 Pause and pick up  tap anywhere, then Resume
 //   5 Your first show    the song through; the Road then shows the leg done and the stat bar's doors
 // The steps and fans live in core (`openingAdvance` and friends); this file is what you see.
@@ -67,7 +67,7 @@ export function micSheet(done) {
 /* ---- the song page ---- */
 const SONG_SAY = {
   chord: song => `Tap the ${firstChord(song)} to see how it's played. Every chord works that way.`,
-  verse: () => "Press Play. Strum once on each chord change, just the first verse.",
+  verse: () => "Press Play. Play each chord as it comes, just the first verse.",
   pause: () => "Press Play, then tap anywhere to pause.",
   show: () => "Press Play and play it through to the end. That's your first show."
 };
@@ -89,7 +89,7 @@ export function onChord() {
   document.querySelectorAll(".on-pulse").forEach(el => el.classList.remove("on-pulse"));
   advance("chord");
   data.settings.tipsSeen = { ...(data.settings.tipsSeen || {}), chord: true, play: true }; Tabs.save(data);
-  strip("That's how it's played. Now press Play and strum once on each chord change, just the first verse.");
+  strip("That's how it's played. Now press Play and play each chord as it comes, just the first verse.");
 }
 
 /* ---- the Gig ---- */
@@ -107,8 +107,8 @@ export function gigOpen(g, el, start) {
   card.className = "on-count";
   card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("happy", { pose: "point", size: 104 })}</div>
     <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k < 2 ? "done" : k === 2 ? "on" : ""}"></i>`).join("")}</div>
-    <h2>Strum on each change</h2>
-    <p>${off ? "The words scroll and the chord to play is in the big card. Your microphone is off, so I won't score this one; the mic button at the bottom turns it on." : "When the chord changes, strum once. Land it and the crowd gets up. Miss one and the song keeps going; nothing fails."} Just the first verse for now.</p>
+    <h2>Play each chord</h2>
+    <p>${off ? "The words scroll and the chords are in the song. Your microphone is off, so I won't score this one; the mic button at the bottom turns it on." : "Play the chord you see. Catch it and it turns green and the crowd gets up. Miss one and the song keeps going; nothing fails."} Just the first verse for now.</p>
     <button class="btn primary" id="on-go">Count me in</button></div>`;
   el.appendChild(card);
   card.querySelector("#on-go").onclick = () => { card.remove(); start(); };

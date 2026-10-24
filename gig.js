@@ -1,30 +1,30 @@
 // The Gig (4.1.0): a song played as a scored show. It sits over the song page while the song plays
-// as it always does underneath (auto-scroll, the recording or the band, a play counted at the end),
-// and reads where the song is from the page.
+// as it always does underneath (auto-scroll, the recording or the band), and reads where the song is from the page.
 //
-//   top       Close, the song map lit by section (Stage Gels, also the progress bar), the combo (a word
-//             flashes beside it when a change lands early or late), your strings
-//   status    the section you're in, in its colour, and the crowd as a row of 12 that fills up
-//   lines     the song page itself (4.51.0): the Gig is see-through in the middle, and stage.js draws the band,
-//             the chord you're on and the beat dots on the real sheet, so you read, scroll and drag the song
-//             itself. A small shape for a chord you haven't learned.
+//   top       Close, the section you're in (in its colour), and your run of chords caught
+//   crowd     the crowd as a row of 12 fans that fills up
+//   lines     the song page itself (4.51.0): the Gig is see-through in the middle, and stage.js draws the band
+//             and the chords on the real sheet, so you read, scroll and drag the song itself. A chord you
+//             played turns green and stays green (Chord Catch, 4.54.0). A small shape for the next chord
+//             you haven't learned.
 //   moments   Louie and the crowd pop in for a combo milestone or a full crowd, then go
 //   bottom    Hearing you (tap to stop or start listening for this show) and Pause, in thumb reach
 // Paused (4.52.0), the show steps aside and the song page is back as it always is: Tools and Play (reading
 // Resume) in thumb reach, a quiet band on the line you stopped on, and Louie's line above Play when there is
 // one to say. Play picks the show up again; the page's Back, or Tools for anything but the switches, ends it.
-// The microphone hears your strums; each chord change is landed by a strum near it (gigChange in
-// core.js). Without the microphone the show still plays and counts; nothing is graded.
-// At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
+// The microphone hears the room every 50 ms; the chord you're on and the next one are caught when two readings
+// in a row fit them (catchHear in core.js). When you played it doesn't matter. Without the microphone the show
+// still plays; nothing is scored.
+// At the end: Show complete, with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, startScroll, stopScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
 import { louie } from "./louie.js";
 import { callout } from "./callout.js";
 import { friend, FRIENDS } from "./friends.js";
-import { where, stageStart, stageClear, stageTick, stageMapHTML, stageMapTap, stageMark } from "./stage.js";
+import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
 let gig = null; /* the show on stage, or null */
@@ -49,21 +49,26 @@ async function listen(g) {
   if (!ctx) return;
   const an = ctx.createAnalyser(); an.fftSize = 1024;
   g.src = ctx.createMediaStreamSource(g.stream); guitarBand(ctx, g.src).connect(an);
-  /* 4.46.0: what the strum sounded like, read a moment after it (once the chord rings) */
+  /* Chord Catch (4.54.0): the room is read every 50 ms while something is sounding, and the chord you're on
+     and the next are caught when two readings in a row fit them. Silence clears the pair. */
   const sp = ctx.createAnalyser(); sp.fftSize = 16384; sp.smoothingTimeConstant = 0;
   guitarBand(ctx, g.src).connect(sp);
   const spec = new Float32Array(sp.frequencyBinCount);
-  const buf = new Float32Array(an.fftSize), hear = strumDetector();
+  const buf = new Float32Array(an.fftSize);
+  let floor = 0.002, last = 0;
   g.timer = setInterval(() => {
     an.getFloatTimeDomainData(buf);
     let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
     g.level = rms;
+    /* the room's quietest level, creeping up only slowly, so a chord that rings on is never taken for the room */
+    if (rms > 0.00002) floor = Math.min(rms, floor * 1.0002, 0.006);
     const now = g.clock();
-    if (hear(rms, now, 0)) {
-      g.strums.push(now); while (g.strums.length && now - g.strums[0] > 6) g.strums.shift();
-      const h = { t: now, chroma: null }; g.heard.push(h); while (g.heard.length && now - g.heard[0].t > 8) g.heard.shift();
-      setTimeout(() => { if (gig !== g || !g.stream) return; sp.getFloatFrequencyData(spec); h.chroma = chromaOf(spec, ctx.sampleRate, sp.fftSize); }, 140);
-    }
+    if (now - last < 0.05 || !g.catch) return;
+    last = now;
+    let hit = -1;
+    if (rms > Math.max(0.004, floor * 3)) { sp.getFloatFrequencyData(spec); hit = catchHear(g.catch, chromaOf(spec, ctx.sampleRate, sp.fftSize)); }
+    else catchHear(g.catch, null);
+    if (hit >= 0 && scoring(g)) caught(g, hit);
   }, 10);
   paintMic();
 }
@@ -74,12 +79,11 @@ function deafen(g) {
   clearInterval(g.timer); g.timer = 0;
   try { g.src?.disconnect(); } catch {}
   g.stream?.getTracks().forEach(t => t.stop());
-  g.stream = null; g.due = []; g.level = null;
+  g.stream = null; g.level = null;
   paintMic(); paintScore();
 }
 
 /* ---- the screen ---- */
-const PLUG = `<svg width="22" height="24" viewBox="0 0 30 32" aria-hidden="true"><rect x="6" y="6" width="18" height="22" rx="6" fill="var(--strings-deep)"/><rect x="5" y="4" width="18" height="22" rx="6" fill="var(--strings)"/><rect x="10" y="0" width="3" height="6" rx="1.5" fill="var(--muted)"/><rect x="15" y="0" width="3" height="6" rx="1.5" fill="var(--muted)"/></svg>`;
 
 function shell(song) {
   const el = document.createElement("div");
@@ -87,11 +91,10 @@ function shell(song) {
   el.innerHTML = `${backdropArt(merchWorn(data, "backdrop"))}
     <div class="gg-top">
       <button class="gg-x" id="gg-x" aria-label="Leave the gig">${icon("x")}</button>
-      <nav class="gg-map" id="gg-map" aria-label="Song sections"></nav>
-      <span class="gg-combo" id="gg-combo"></span><b class="gg-tw" id="gg-tw" aria-live="polite"></b>
-      <span class="gg-str" id="gg-str" aria-label="Strings">${PLUG}<b>${GIG_STRINGS}</b></span>
+      <span class="gg-sec" id="gg-sec">Get ready</span>
+      <span class="gg-combo" id="gg-combo"></span>
     </div>
-    <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-cap">CROWD</span><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
+    <div class="gg-status"><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
     <div class="gg-moment" id="gg-moment" hidden></div>
     <div class="gg-bottom">
@@ -116,20 +119,16 @@ function paintMic() {
   b.setAttribute("aria-label", label);
 }
 
-function paintMap() {
-  const box = $("gg-map");
-  if (!box) return;
-  box.innerHTML = stageMapHTML();
-  box.onclick = stageMapTap;
-}
-
 /* a small shape for a chord you haven't learned yet, beside the lines */
-function paintShape(name) {
+function paintShape() {
   const g = gig, el = $("gg-shape");
-  if (!g || !el) return;
-  const show = name && !g.known.has(name) && chordSVG(name, 1);
-  if (!show) { el.hidden = true; return; }
-  if (el.dataset.ch !== name) { el.dataset.ch = name; el.innerHTML = `<small>NEW CHORD</small><b>${esc(name)}</b>${chordSVG(name, 1)}`; }
+  if (!g || !el || !g.catch) return;
+  /* the chord you're on if you haven't caught it and haven't learned it, else the next one you haven't learned */
+  const c = g.catch, now = c.targets[c.cur], next = c.targets[c.cur + 1];
+  const pick = [[now, "NOW"], [next, "NEXT"]].find(([t]) => t && !g.known.has(t.name) && !c.caught[c.targets.indexOf(t)] && chordSVG(t.name, 1));
+  if (!pick) { el.hidden = true; return; }
+  const [t, label] = pick;
+  if (el.dataset.ch !== label + t.name) { el.dataset.ch = label + t.name; el.innerHTML = `<small>${label}</small><b>${esc(t.name)}</b>${chordSVG(t.name, 1)}`; }
   el.hidden = false;
 }
 /* Louie and the crowd show up for a moment, then go */
@@ -155,9 +154,7 @@ function paintScore() {
   const on = new Set(CROWD_ORDER.slice(0, crowd));
   [...fans.children].forEach((e, i) => { e.className = g.stream && on.has(i) ? "on c" + (i % 4) : ""; });
   fans.setAttribute("aria-label", !g.stream ? "Crowd: listening is off" : `Crowd: ${crowd} of 12 on their feet`);
-  $("gg-combo").textContent = g.score.combo >= 2 ? `x${g.score.combo}` : "";
-  $("gg-str").querySelector("b").textContent = g.score.strings;
-  $("gg-str").setAttribute("aria-label", `Strings ${g.score.strings} of ${GIG_STRINGS}`);
+  $("gg-combo").innerHTML = g.score.combo >= 2 ? `${icon("check")}${g.score.combo} in a row` : "";
   if (g.stream && MILESTONES.includes(g.score.combo) && g.said !== g.score.combo) { g.said = g.score.combo; moment(`${g.score.combo} in a row!`, crowd >= 12 ? "The whole crowd is up." : "Keep it going."); }
   else if (g.stream && crowd >= 12 && !g.fullSaid) { g.fullSaid = true; moment("The whole crowd is up!", ""); }
 }
@@ -169,53 +166,70 @@ function frame() {
   const song = g.song;
   const w = where(song);
   if (!w) return;
-  /* the song map's marker */
-  stageMark(w);
   /* section and Stage Gel */
   const counting = !!document.querySelector(".countin");
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
   gigFrame(g, w.sec, scroll.on && !counting);
-  /* the lines: the band, the chord you're on and its dots, on the sheet itself */
+  /* the lines: the band on the line you're on, on the sheet itself */
   g.b = w.b;
-  stageTick(song, w, counting, g.clock());
-  /* chords */
+  stageTick(song, w);
+  /* Chord Catch: the chords of the song are the targets (once the sheet is laid out) */
   const seq = diag.seq || [];
+  if (!g.catch && seq.length) { g.catch = catchStart(catchTargets(seq)); g.seqLen = seq.length; }
+  if (!g.catch) return;
+  if (seq.length !== g.seqLen) { g.catch = catchStart(catchTargets(seq)); g.seqLen = seq.length; g.score = gigStart(); } /* the sheet was edited: start the count again */
   if (w.idx >= 0 && w.idx !== g.idx) {
-    const name = seq[w.idx].name, prev = g.idx >= 0 ? seq[g.idx]?.name : null;
+    const start = g.idx < 0;
     g.idx = w.idx;
-    paintShape(name);
-    /* a change on stage: graded once its window has passed */
-    if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push({ t: g.clock(), name, pair: `${prev}>${name}` });
+    catchAt(g.catch, w.idx);
+    if (start) catchClose(g.catch); /* the chords above the reading line when the song starts aren't counted */
+    paintShape();
   }
-  /* grade the changes whose window has passed */
-  const now = g.clock();
-  const graded = gradeDue(g, now);
-  if (graded) paintScore();
-  /* 4.44.0 (#78): a combo of 10, 25, 50 or 100 bursts over the show, once each per show */
-  if (graded && COMBO_STEPS.includes(g.score.combo) && g.comboShown !== g.score.combo) { g.comboShown = g.score.combo; callout(data, { kind: "combo", word: "COMBO", big: `x${g.score.combo}` }); }
+  /* settle the chords that went by */
+  const gone = catchClose(g.catch);
+  if (gone.missed.length || gone.got.length) settle(g, gone, !counting && scoring(g));
   /* the mic's level */
   if (g.stream && g.level != null) {
     const bars = $("gg-mic")?.querySelectorAll(".gg-lv i") || [];
     const lv = Math.min(1, g.level * 40);
-    bars.forEach((b, i) => b.style.height = `${Math.round(5 + lv * 16 * (0.6 + 0.4 * Math.sin(i * 1.7 + now * 9)))}px`);
+    bars.forEach((b, i) => b.style.height = `${Math.round(5 + lv * 16 * (0.6 + 0.4 * Math.sin(i * 1.7 + g.clock() * 9)))}px`);
   }
 }
 
-/* Grade the changes whose time has passed: the right chord, any time up to GIG_LATE after the change (4.46.0);
-   with Score the timing on, only a strum on the beat. `now` of Infinity grades what is left (the end of the show). */
-function gradeDue(g, now) {
-  const strict = !!data.settings.gigTime, wait = strict ? GIG_WINDOW : GIG_LATE;
-  let any = false;
-  while (g.due.length && now - g.due[0].t > wait) {
-    const d = g.due.shift();
-    if (g.guess && !g.heard.some(h => Math.abs(h.t - d.t) <= GIG_WINDOW)) continue;
-    const r = gigChord(g.score, d.t, g.heard, d.name, strict);
-    if (!r.hit) g.missed[d.pair] = (g.missed[d.pair] || 0) + 1; /* for Rehearse's soundcheck (4.8.0) */
-    else g.landed[d.pair] = (g.landed[d.pair] || 0) + 1; /* and Your changes (4.23.0) */
-    any = true;
-    flash(r.hit, r.offset, r.star);
+/* Is the show counting chords right now? On with the mic, playing, past the count-in and not being dragged */
+function scoring(g) {
+  return !!g.stream && scroll.on && !document.querySelector(".countin") && performance.now() > g.dragUntil && !g.paused;
+}
+const placesOf = (g, i) => { const t = g.catch.targets[i], out = []; for (let k = t.first; k <= t.last; k++) out.push(k); return out; };
+const pairOf = (g, i) => i > 0 ? `${g.catch.targets[i - 1].name}>${g.catch.targets[i].name}` : null;
+/* a chord caught: it turns green and stays green */
+function caught(g, i) {
+  catchScore(g.score, true);
+  const pair = pairOf(g, i); if (pair) g.landed[pair] = (g.landed[pair] || 0) + 1; /* Your changes (4.23.0) */
+  g.got.add(i);
+  stageCatch(placesOf(g, i));
+  afterScore(g);
+}
+/* chords that went by: the ones with no shape that something was heard through are caught; the rest are missed
+   (never on a sheet whose chords are a guess, and not while dragging or without the mic) */
+function settle(g, gone, on) {
+  for (const i of gone.got) if (on) caught(g, i);
+  if (!on) return;
+  for (const i of gone.missed) {
+    if (g.got.has(i)) continue;
+    if (g.guess) continue;
+    catchScore(g.score, false);
+    const pair = pairOf(g, i); if (pair) g.missed[pair] = (g.missed[pair] || 0) + 1; /* for Rehearse's soundcheck (4.8.0) */
+    g.miss.add(i);
+    stageMiss(placesOf(g, i));
   }
-  return any;
+  if (gone.missed.length) afterScore(g);
+}
+function afterScore(g) {
+  paintScore();
+  const flashEl = $("gg-combo"); if (flashEl) { flashEl.classList.remove("hit"); void flashEl.offsetWidth; flashEl.classList.add("hit"); }
+  /* 4.44.0 (#78): a combo of 10, 25, 50 or 100 bursts over the show, once each per show */
+  if (COMBO_STEPS.includes(g.score.combo) && g.comboShown !== g.score.combo) { g.comboShown = g.score.combo; callout(data, { kind: "combo", word: "COMBO", big: `x${g.score.combo}` }); }
 }
 
 /* A finger moves the song (4.2.2): the page itself scrolls under the see-through show (4.51.0). Changes
@@ -224,18 +238,8 @@ function bindDrag(g) {
   const drag = () => { g.dragUntil = performance.now() + 700; };
   addEventListener("touchmove", drag, { passive: true });
   addEventListener("wheel", drag, { passive: true });
-  document.addEventListener("stage-jump", drag); /* a tap on the song map (4.53.0) */
+  document.addEventListener("stage-jump", drag); /* the rail's jump (4.54.0): the chords it skips aren't counted */
   g.unbind = () => { removeEventListener("touchmove", drag); removeEventListener("wheel", drag); document.removeEventListener("stage-jump", drag); };
-}
-
-/* 4.43.0: the timing bar folded into the combo: a word beside it when a change lands early or late */
-function flash(hit, off = null, star = false) {
-  for (const el of [$("gg-combo")]) { if (!el) continue; el.classList.remove("hit", "miss"); void el.offsetWidth; el.classList.add(hit ? "hit" : "miss"); }
-  const tw = $("gg-tw");
-  if (!tw || !gig) return;
-  const word = !hit ? "" : star ? "\u2605" : off != null && off > 0 ? "LATE" : off != null && off < 0 ? "EARLY" : "";
-  tw.textContent = word; tw.className = "gg-tw" + (word ? " on" : "");
-  clearTimeout(gig.twT); if (word) gig.twT = setTimeout(() => { tw.textContent = ""; tw.className = "gg-tw"; }, 900);
 }
 
 /* ---- open, pause, close ---- */
@@ -243,7 +247,7 @@ export function openGig(song, opts = {}) {
   closeGig(true);
   const audio = sound();
   const g = gig = {
-    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), strums: [], heard: [], due: [], b: -1, idx: -1, gel: "", mood: "", dragUntil: 0, missed: {}, landed: {},
+    song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), catch: null, seqLen: 0, got: new Set(), miss: new Set(), b: -1, idx: -1, gel: "", mood: "", dragUntil: 0, missed: {}, landed: {},
     audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
   /* 4.41.0: chords spread over the lines as a guess are never counted as misses, only as hits */
@@ -262,7 +266,7 @@ export function openGig(song, opts = {}) {
   $("gg-mic").onclick = () => { if (g.stream) deafen(g); else if (!g.asking) listen(g); };
   bindDrag(g);
   g.known = knownChords(data);
-  paintMap(); paintMic(); paintScore();
+  paintMic(); paintScore();
   /* Score my plays (Settings > Playing) decides whether a show starts listening. */
   /* Opening night (4.40.0): the first verse waits for Count me in; Not now on the microphone plays unscored */
   const waits = gigOpen(g, g.el, () => { if (gig === g && !scroll.on) startScroll(song); });
@@ -315,7 +319,7 @@ export function closeGig(quiet = false) {
   g.unbind?.();
   stageClear();
   document.body.classList.remove("gigging");
-  clearTimeout(g.momentT); clearTimeout(g.twT);
+  clearTimeout(g.momentT);
   hideStrip();
   $("gg-say")?.remove(); document.body.classList.remove("held");
   gigHooks.on = false; gigHooks.held = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
@@ -325,6 +329,20 @@ export function closeGig(quiet = false) {
 onLeave(() => closeGig(true));
 
 /* ---- Show complete ---- */
+/* The song you played (4.54.0): every chord of the song by section, filled green if you caught it, outlined if it went by */
+function songPlayed(g) {
+  if (!g.catch) return "";
+  const secs = sections(), seq = diag.seq || [], groups = [];
+  g.catch.targets.forEach((t, i) => {
+    const y = seq[t.first]?.y ?? 0; let sec = null;
+    for (const x of secs) if (x.y <= y + 1) sec = x;
+    const key = sec ? sec.y : -1, last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(i); else groups.push({ key, name: sec?.name || "", gel: sec?.gel || "verse", items: [i] });
+  });
+  const chip = i => { const name = g.catch.targets[i].name, got = g.got.has(i), miss = g.miss.has(i); return `<li class="gc-ch ${got ? "got" : miss ? "miss" : "skip"}" aria-label="${esc(name)}, ${got ? "caught" : miss ? "missed" : "not counted"}">${esc(name)}</li>`; };
+  return `<section class="gc-song"><h3>The song you played</h3>${groups.map(x => `<div class="gc-sec"><b class="gl-${x.gel}">${esc(x.name || "SONG").toUpperCase()}</b><ul>${x.items.map(chip).join("")}</ul></div>`).join("")}</section>`;
+}
+
 function showComplete() {
   const g = gig;
   if (!g || g.ended) return;
@@ -332,7 +350,7 @@ function showComplete() {
   cancelAnimationFrame(g.raf);
   clearInterval(g.timer);
   g.stream?.getTracks().forEach(t => t.stop());
-  gradeDue(g, Infinity); /* the changes still waiting to be judged */
+  if (g.catch) { g.catch.cur = g.catch.targets.length; settle(g, catchClose(g.catch), !!g.stream); } /* the chords still waiting to be judged */
   const graded = g.score.hits + g.score.misses > 0;
   const { fans, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore);
   rehearseMisses(data, g.missed, Date.now(), g.landed); /* the changes you dropped (tomorrow's soundcheck) and landed (Your changes) */
@@ -345,6 +363,9 @@ function showComplete() {
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
   const crowd = graded ? gigCrowd(g.score) : null;
   const tile = (lab, val, cls) => `<div class="gc-tile ${cls}"><small>${lab}</small><b>${val}</b></div>`;
+  const played = graded ? songPlayed(g) : "";
+  const worst = Object.entries(g.missed).sort((a, b) => b[1] - a[1])[0], [wa, wb] = worst ? worst[0].split(">") : [];
+  const drill = worst && chordSVG(wa, 1) && chordSVG(wb, 1);
   g.el.classList.remove("paused"); document.body.classList.remove("held"); gigHooks.held = false; $("gg-say")?.remove();
   g.el.classList.add("done");
   g.el.innerHTML = `<div class="gc">
@@ -352,9 +373,11 @@ function showComplete() {
     ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
     <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
     <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
-    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("RIGHT CHORDS", pct === null ? "–" : `${pct}%`, "beat")}</div>
+    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("CHORDS", graded ? `${g.score.hits} of ${g.score.hits + g.score.misses}` : "–", "beat")}</div>
+    ${played}
+    ${worst ? `<div class="gc-worst"><span><small>MISSED MOST</small><b>${esc(wa)} to ${esc(wb)}, ${worst[1]} time${worst[1] === 1 ? "" : "s"}</b></span>${drill ? `<button class="btn sm" id="gc-drill">Practice it</button>` : ""}</div>` : ""}
     <div class="gc-list">
-      ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} changes landed${g.score.best >= 3 ? `, best combo <b>${g.score.best}</b>` : ""}</p>${g.score.stars ? `<p><b>${g.score.stars}</b> on the beat \u2605 (+${g.score.stars} fans)</p>` : ""}` : g.guess && !g.off ? `<p>The chords in this song are still a best guess, so a change you missed wasn't counted. It still counts as a play.</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
+      ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} chords caught${g.score.best >= 3 ? `, best run <b>${g.score.best}</b>` : ""}</p>` : g.guess && !g.off ? `<p>The chords in this song are still a best guess, so a chord you missed wasn't counted. It still counts as a play.</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
       ${battle ? `<p>${battle.result === "won" ? `Rival battle: you beat <b>${esc(battle.rival)}</b>, ${battle.pct}% to ${battle.target}%. <b>+30 XP, +40 fans</b>` : `Rival battle: ${esc(battle.rival)} held on, ${battle.target}% to your ${battle.pct}%`}</p>` : ""}
       ${joined.map(f => { const n = FRIENDS.find(x => x.id === f.id)?.name || f.id; return `<p><b>${esc(n)} joined your band!</b>${f.plays ? ` You'll hear drums in your gigs.` : ""}</p>`; }).join("")}
       ${duel ? `<p>Song duel: ${duel.mine.pct > duel.theirs.pct ? `<b>you beat ${esc(duel.opp)}</b>` : duel.mine.pct < duel.theirs.pct ? `${esc(duel.opp)} wins this one` : "a tie"}, ${duel.mine.pct}% to ${duel.theirs.pct}%</p>` : ""}
@@ -375,6 +398,7 @@ function showComplete() {
     </div></div>`;
   $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else if (from === "tour" || from === "charts") go("#/" + from); else redraw?.(); };
   $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
+  $("gc-drill")?.addEventListener("click", () => { closeGig(true); go("#/practice/" + encodeURIComponent(`s:${wa}-${wb}`)); });
   $("gc-duel")?.addEventListener("click", e => import(`./duel.js?v=${VERSION}`).then(m => m.sendChallenge(g.song, { pct, combo: g.score.best, crowd: graded ? gigCrowd(g.score) : 0 }, e.currentTarget)));
   $("gc-reply")?.addEventListener("click", e => import(`./duel.js?v=${VERSION}`).then(m => m.sendReply(duel, e.currentTarget)));
   $("gc-encore")?.addEventListener("click", () => {

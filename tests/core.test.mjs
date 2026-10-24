@@ -1669,37 +1669,56 @@ test("Chord recognition (4.46.0): a strum of the right chord fits it; another ch
   assert.equal(C.strumFit(null, "G"), null, "no notes, no verdict");
 });
 
-test("The Gig (4.46.0): the right chord in order lands a change; on the beat earns a star; Score the timing counts only the beat", () => {
+test("Chord Catch (4.54.0): the targets, the two open chords, two readings in a row, and a ringing chord that can't be caught twice", () => {
   const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
-  const G = sp("G"), D = sp("D");
-  const g = C.gigStart();
-  assert.deepEqual([C.gigChord(g, 10, [{ t: 10.1, chroma: G }], "G").hit, g.stars], [true, 1], "right chord on the beat: landed and a star");
-  assert.equal(C.gigChord(g, 20, [{ t: 20.8, chroma: G }], "G").star, false, "right chord a beat late: landed, no star");
-  assert.equal(g.hits, 2); assert.equal(g.stars, 1);
-  assert.equal(C.gigChord(g, 30, [{ t: 30.1, chroma: D }], "G").hit, false, "the wrong chord on the beat is a miss");
-  assert.equal(g.combo, 0);
-  assert.equal(C.gigChord(g, 40, [{ t: 40.1, chroma: null }], "G").hit, true, "a strum with no notes to judge counts");
-  assert.equal(C.gigChord(g, 50, [{ t: 52, chroma: G }], "G").hit, false, "too late is a miss");
-  assert.equal(C.gigChord(g, 60, [{ t: 59.5, chroma: G }], "G").hit, false, "far too early is a miss");
-  const s = C.gigStart();
-  assert.equal(C.gigChord(s, 10, [{ t: 10.8, chroma: G }], "G", true).hit, false, "Score the timing: late is a miss");
-  assert.equal(C.gigChord(s, 20, [{ t: 20.2, chroma: G }], "G", true).hit, true, "Score the timing: on the beat lands");
-  assert.equal(C.gigFans(s), 1 + 1, "a fan for the change and one for its star");
+  const [G, D, C_, Am] = ["G", "D", "C", "Am"].map(sp);
+  const seq = ["G", "G", "D", "C", "Am", "G"].map(name => ({ name }));
+  const t = C.catchTargets(seq);
+  assert.deepEqual(t.map(x => [x.name, x.first, x.last]), [["G", 0, 1], ["D", 2, 2], ["C", 3, 3], ["Am", 4, 4], ["G", 5, 5]], "a chord repeated in a row is one target");
+  assert.equal(C.targetAt(t, 1), 0); assert.equal(C.targetAt(t, 3), 2); assert.equal(C.targetAt(t, 9), -1);
+  const st = C.catchStart(t);
+  assert.deepEqual(C.catchOpen(st), [0, 1], "the chord you are on and the next");
+  assert.equal(C.catchHear(st, G), -1, "one reading is not enough");
+  assert.equal(C.catchHear(st, G), 0, "two in a row catch it");
+  assert.ok(st.caught[0]);
+  assert.equal(C.catchHear(st, G), -1, "the same chord still ringing is not caught again"); assert.equal(C.catchHear(st, G), -1);
+  assert.equal(C.catchHear(st, C_), -1, "C is not open yet (it is two on)"); assert.equal(C.catchHear(st, C_), -1);
+  C.catchAt(st, 2);
+  assert.deepEqual(C.catchOpen(st), [1, 2], "now D and C");
+  assert.equal(C.catchHear(st, Am), -1, "Am is not open"); assert.equal(C.catchHear(st, Am), -1);
+  assert.equal(C.catchHear(st, D), -1); assert.equal(C.catchHear(st, G), -1, "a reading that breaks the pair starts again");
+  assert.equal(C.catchHear(st, D), -1); assert.equal(C.catchHear(st, D), 1, "D caught");
+  /* A to B to A: the second A is caught only after the room stopped sounding like the first */
+  const st2 = C.catchStart(C.catchTargets(["G", "D", "G"].map(name => ({ name }))));
+  C.catchHear(st2, G); assert.equal(C.catchHear(st2, G), 0);
+  C.catchAt(st2, 1); C.catchHear(st2, D); assert.equal(C.catchHear(st2, D), 1);
+  assert.equal(C.catchHear(st2, null), -1, "silence clears the hold");
+  C.catchAt(st2, 2); C.catchHear(st2, G); assert.equal(C.catchHear(st2, G), 2);
+  /* playing the next chord early settles the one you were on as missed; a chord gone by is missed once */
+  const st3 = C.catchStart(C.catchTargets(["G", "D", "C"].map(name => ({ name }))));
+  C.catchHear(st3, D); assert.equal(C.catchHear(st3, D), 1, "D played while G is on is caught");
+  assert.deepEqual(C.catchClose(st3), { missed: [0], got: [] });
+  assert.deepEqual(C.catchClose(st3), { missed: [], got: [] }, "once each");
+  C.catchAt(st3, 2); assert.deepEqual(C.catchClose(st3), { missed: [], got: [] }, "D was caught");
+  C.catchAt(st3, 2);
+  const st4 = C.catchStart(C.catchTargets(["Zz", "G"].map(name => ({ name }))));
+  C.catchHear(st4, G); C.catchAt(st4, 1);
+  assert.deepEqual(C.catchClose(st4), { missed: [], got: [0] }, "a chord with no shape counts when something was heard through it");
+  const st5 = C.catchStart(C.catchTargets(["Zz", "G"].map(name => ({ name })))); C.catchAt(st5, 1);
+  assert.deepEqual(C.catchClose(st5), { missed: [0], got: [] }, "and is missed when nothing was");
 });
 
-test("The Gig (4.1.0): changes landed by a strum near them, the combo, strings, crowd and bonus fans", () => {
+test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {
   const g = C.gigStart();
-  assert.equal(C.gigCrowd(g), 6, "half the crowd before any change");
+  assert.equal(C.gigCrowd(g), 6, "half the crowd before any chord");
   assert.equal(C.gigPct(g), null);
-  assert.equal(C.gigChange(g, 10, [10.2]).hit, true, "a strum within the window lands the change");
-  assert.equal(C.gigChange(g, 12, [11.5]).hit, false, "half a second early is a miss");
-  assert.equal(g.strings, C.GIG_STRINGS - 1, "a miss snaps a string");
-  for (let i = 0; i < 8; i++) C.gigChange(g, 20 + i, [20 + i]);
-  assert.equal(g.strings, C.GIG_STRINGS, "eight in a row restring it");
+  C.catchScore(g, true); C.catchScore(g, false);
+  assert.deepEqual([g.hits, g.misses, g.combo, g.best], [1, 1, 0, 1], "a miss ends the combo and nothing else snaps");
+  for (let i = 0; i < 8; i++) C.catchScore(g, true);
   assert.equal(g.best, 8); assert.equal(g.combo, 8);
-  assert.equal(C.gigCrowd(g), 11, "9 of the last 10 changes");
+  assert.equal(C.gigCrowd(g), 11, "9 of the last 10 chords");
   assert.equal(C.gigPct(g), 90);
-  assert.equal(C.gigFans(g), 9 + 10, "a fan a change, and 10 for a crowd of 10 or more");
+  assert.equal(C.gigFans(g), 9 + 10, "a fan a chord, and 10 for a crowd of 10 or more");
   assert.equal(C.gigFans(g, true), 38, "an encore doubles it");
   const data = { songs: [], sets: [], trash: [], settings: {} };
   assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, pct: 90, request: null });
@@ -1725,7 +1744,7 @@ test("Tour quests (4.5.0): the month's tour, tonight's setlist and the request l
   assert.deepEqual(got.map(x => x.fans), [10, 10], "two goals done");
   assert.deepEqual(C.questsSettle(data, now), [], "credited once");
   /* a gig of the requested song with a crowd of 12: bonus fans double, the crowd goal and the full setlist */
-  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.gigChange(g, i, [i]);
+  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.catchScore(g, true);
   const fans = C.gigFans(g), r = C.gigDone(data, req.id, g, false, now);
   assert.equal(r.fans, fans * 2); assert.equal(r.request, true);
   assert.equal(C.gigDone(data, req.id, g, false, now).request, null, "once a day");
@@ -1779,7 +1798,7 @@ test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles
   const now = wed + 14 * 86400e3, b = C.startBattle(data, now);
   assert.equal(b.songId, "a"); assert.ok(b.target >= 55 && b.target <= 95);
   assert.equal(b.rival, C.chartState(data, now).rival.name);
-  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.gigChange(g, i, [i]);
+  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.catchScore(g, true);
   const fans0 = C.fansOf(data, now), xp0 = C.weekXP(data, C.weekOf(now));
   const r = C.gigDone(data, "a", g, false, now);
   assert.equal(r.battle.result, "won"); assert.equal(r.battle.pct, 100);
@@ -1843,7 +1862,7 @@ test("Cover requests (4.10.0): your listening becomes the request or a cover que
   assert.deepEqual([cv.song.id, cv.step], ["w", 2], "added: learn its chords");
   data.journal = { chords: { G: { n: 9 }, D: { n: 9 }, Em: { n: 9 }, C: { n: 9 } } };
   assert.equal(C.coverState(data, now).step, 3, "then play the gig");
-  const g = C.gigStart(); for (let i = 0; i < 6; i++) C.gigChange(g, i, [i]);
+  const g = C.gigStart(); for (let i = 0; i < 6; i++) C.catchScore(g, true);
   const base = C.gigFans(g), r = C.gigDone(data, "w", g, false, now);
   assert.equal(r.cover, true); assert.equal(r.fans, base * 3, "3x bonus fans");
   assert.equal(C.coverState(data, now), null, "done");
@@ -1859,7 +1878,7 @@ test("Song duels (4.12.0): a challenge by link, answered by a gig, and the recor
   /* the friend takes it and plays it */
   const friend = { songs: [{ id: "x", title: "River Road", artist: "W", format: "chords", body: "[Verse]\nG C\nla" }], sets: [], trash: [], settings: {} };
   C.takeDuel(friend, got.duel, friend.songs[0], now);
-  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.gigChange(g, i, [i]);
+  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.catchScore(g, true);
   const r = C.gigDone(friend, "x", g, false, now);
   assert.equal(r.duel.opp, "Graham"); assert.equal(r.duel.mine.pct, 100); assert.equal(C.duelWon(r.duel), true);
   assert.equal(C.gigDone(friend, "x", g, false, now).duel, undefined, "answered once");
@@ -2240,34 +2259,9 @@ test("4.49.6 lining up: guessed songs and songs placed the older way, never your
   assert.equal(C.cleanSong({ id: "x", body: "a", spotsV: "2" }).spotsV, undefined);
 });
 
-test("4.49.10 the beat dots: a dot a beat between the chord you're on and the next, one lit, travelling toward the next chord", () => {
-  assert.equal(C.beatsBetween(4, 1), 4);
-  assert.equal(C.beatsBetween(3.6, 1.2), 3);
-  assert.equal(C.beatsBetween(0.2, 1), 1, "at least one");
-  /* 4.53.1: a chord's beats split over the lines the band passes before the change */
-  assert.deepEqual(C.splitBeats(8, [5], 8, 1), [5, 3], "the band moves at beat 5 of 8");
-  assert.deepEqual(C.splitBeats(8, [], 8, 1), [8], "no move");
-  assert.deepEqual(C.splitBeats(8, [3, 6], 8, 1), [3, 3, 2], "a line in between has its own beats");
-  assert.deepEqual(C.splitBeats(8, [9], 8, 1), [8], "the band moving after the change");
-  assert.deepEqual(C.splitBeats(8, [5], 8, 0), [8], "no beat length");
-  for (const [b, m, u, spb] of [[7, [2.4], 7.3, 1], [8, [0.2, 0.4], 8, 1], [3, [1], 9, 1], [6, [2.5, 4.6], 6.4, 1.1]]) {
-    const r = C.splitBeats(b, m, u, spb);
-    assert.equal(r.reduce((x, y) => x + y, 0), b, `${b} beats stay ${b}: ${r}`);
-    assert.ok(r.every(n => n >= 0));
-  }
-  assert.equal(C.beatsLate(0.01, 0.5), 0, "4.49.12: a hair late is still played");
+test("4.49.12 the band skips the beats a stall let pass, on the same grid", () => {
+  assert.equal(C.beatsLate(0.01, 0.5), 0, "a hair late is still played");
   assert.equal(C.beatsLate(0.6, 0.5), 2, "a stall skips the beats that passed, on the same grid");
   assert.equal(C.beatsLate(0.5, 0.5), 1);
   assert.equal(C.beatsLate(2, 0), 0, "no tempo, no skipping");
-  assert.equal(C.runDot(4, 1, 4), 0, "the chord's first beat: the first dot");
-  assert.equal(C.runDot(2.5, 1, 4), 1);
-  assert.equal(C.runDot(0.5, 1, 4), 3, "its last beat: the last dot, and the change is the next beat");
-  assert.equal(C.runDot(0, 1, 4), -1, "the change itself");
-  assert.equal(C.runDot(6, 1, 4), -1, "further off than the chord lasts");
-  assert.equal(C.runDot(0.5, 1, 8, 4), 3, "fewer dots than beats: the last ones show");
-  assert.equal(C.runDot(7.5, 1, 8, 4), -1);
-  assert.equal(C.runDot(null, 1, 4), -1);
-  assert.equal(C.onBeat(10.2, 8, 0.5), 10, "a change moved onto the nearest click");
-  assert.equal(C.onBeat(10.3, 8, 0.5), 10.5);
-  assert.equal(C.onBeat(10.3, NaN, 0.5), 10.3, "no band: left as it is");
 });

@@ -2,7 +2,7 @@
 // Re-exported from core.js, so other files import it from there.
 import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, shapeSteps, songChanges } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
-import { CHORD_FIT, strumFit, skillState } from "./neck.js";
+import { CHORD_FIT, chordNotes, strumFit, skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
 
 // ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
@@ -778,101 +778,90 @@ export function sheetChords(body) {
 }
 
 // ---------- The Gig (4.1.0): a song played as a scored show ----------
-// The song plays as it always does (auto-scroll, the recording or the band); the Gig listens for
-// your strums and grades each chord change: a strum within GIG_WINDOW seconds of the change lands it.
-// A landed change adds to the combo; a missed one ends the combo and snaps a string (eight in a row
-// restring one). The crowd is how many of your last 12 changes landed (out of 12). Nothing fails:
-// with no strings left the show goes on. Without the microphone nothing is graded.
-export const GIG_WINDOW = 0.35;
-export const GIG_STRINGS = 6;
-export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, strings: GIG_STRINGS, run: 0, last: [], offsets: [], stars: 0 }; }
-/* one change graded: the bookkeeping both ways of grading share */
-function gigApply(g, near, due, star) {
-  const hit = near !== null;
-  if (hit) {
-    g.hits++; g.combo++; g.best = Math.max(g.best, g.combo); g.run++;
-    if (star) g.stars = (g.stars || 0) + 1;
-    if (g.run >= 8) { g.run = 0; g.strings = Math.min(GIG_STRINGS, g.strings + 1); }
-    g.offsets.push(Math.round((near - due) * 1000) / 1000);
-    if (g.offsets.length > 40) g.offsets.shift();
-  } else { g.misses++; g.combo = 0; g.run = 0; g.strings = Math.max(0, g.strings - 1); }
-  g.last.push(hit); if (g.last.length > 12) g.last.shift();
-  return { hit, offset: hit ? near - due : null, star: hit && star };
+// Chord Catch (4.54.0): the show asks one question, did you play the chord? Not when. The chords of the song are
+// the targets, one for each run of the same chord. The phone listens for the one you are on and the one after
+// it (a yes or no against one or two shapes), and a target is caught when two readings in a row fit it.
+// A caught chord stays caught. Nothing snaps and nothing fails; a chord that went by is simply plain.
+export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, last: [] }; }
+/* one chord scored: the bookkeeping the show and the crowd share */
+export function catchScore(g, hit) {
+  if (hit) { g.hits++; g.combo++; g.best = Math.max(g.best, g.combo); }
+  else { g.misses++; g.combo = 0; }
+  g.last.push(!!hit); if (g.last.length > 12) g.last.shift();
+  return !!hit;
 }
-/* grade one change, due at `due` seconds, against the strums heard (seconds, same clock): any strum near it */
-export function gigChange(g, due, strums, win = GIG_WINDOW) {
-  let near = null;
-  for (const t of strums) if (Math.abs(t - due) <= win && (near === null || Math.abs(t - due) < Math.abs(near - due))) near = t;
-  return gigApply(g, near, due, false);
-}
-/* 4.46.0: grade one change by the chord. `heard` is the strums with what each sounded like ({ t, chroma }).
-   The change lands when you play the chord it asks for, any time from just before it comes (GIG_WINDOW) to
-   GIG_LATE seconds after it; a strum of the right chord on the beat (within GIG_WINDOW) also earns a star.
-   `strict` (Score the timing) counts only the strums on the beat. A strum with no notes to judge, or a chord
-   with no shape, counts as the right chord, so a quiet room never costs a change. */
-export const GIG_LATE = 1.2;
-export function gigChord(g, due, heard, name, strict = false) {
-  const to = strict ? GIG_WINDOW : GIG_LATE;
-  let near = null;
-  for (const h of heard) {
-    if (h.t < due - GIG_WINDOW || h.t > due + to) continue;
-    const fit = strumFit(h.chroma, name);
-    if (fit !== null && fit < CHORD_FIT) continue;
-    if (near === null || Math.abs(h.t - due) < Math.abs(near - due)) near = h.t;
-  }
-  return gigApply(g, near, due, near !== null && Math.abs(near - due) <= GIG_WINDOW);
-}
-/* how many of the 12 in the crowd are cheering: your last 12 changes (half the crowd before any) */
+/* how many of the 12 in the crowd are cheering: your last 12 chords (half the crowd before any) */
 export const gigCrowd = g => g.last.length ? Math.round(12 * g.last.filter(Boolean).length / g.last.length) : 6;
-/* the share of changes landed, 0 to 100 (null with nothing graded) */
+/* the share of chords caught, 0 to 100 (null with nothing scored) */
 export const gigPct = g => g.hits + g.misses ? Math.round(100 * g.hits / (g.hits + g.misses)) : null;
-/* the show's bonus fans, on top of the play's own: 1 for every change landed (and 1 more for a star: the right chord on the beat), 5 for every 10 in the
-   best combo, and 10 for a crowd of 10 or more at the end. An encore doubles it. */
+/* the show's bonus fans, on top of the play's own: 1 for every chord caught, 5 for every 10 in the best run,
+   and 10 for a crowd of 10 or more at the end. An encore doubles it. */
 export function gigFans(g, encore = false) {
-  const n = g.hits + (g.stars || 0) + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
+  const n = g.hits + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
   return encore ? n * 2 : n;
 }
-/* the timing meter: how far off your landed changes are lately, in seconds (positive is late) */
-export function gigTiming(g) {
-  const o = g.offsets.slice(-6);
-  if (!o.length) return 0;
-  return o.reduce((a, b) => a + b, 0) / o.length;
-}
-/* The beat dots (4.49.10): between the chord you're on and the next one, a dot for each beat the chord
-   lasts, spread across the gap. One dot is lit and it travels toward the next chord a beat at a time: the
-   first dot on the chord's first beat, the last on its last beat, and the change comes on the beat after.
-   `beatsBetween` is how many beats the chord you're on lasts; `runDot` is which dot is lit `until` seconds
-   before the change (0 the first, -1 none). With fewer dots shown than beats (no room), the last ones show. */
-export const RUN_MAX = 8;
-export const beatsBetween = (span, spb) => spb > 0 && span > 0 ? Math.max(1, Math.round(span / spb)) : 1;
-export function runDot(until, spb, beats, shown = beats) {
-  if (until == null || !(spb > 0) || until <= 0 || beats < 1) return -1;
-  const k = beats - Math.ceil(until / spb - 1e-6);
-  if (k < 0 || k > beats - 1) return -1;
-  const d = k - (beats - shown);
-  return d >= 0 && d < shown ? d : -1;
-}
-/* 4.53.1: a chord whose next change is on a later line has its beats on more than one line. `beats` is how many
-   it lasts, `moves` the seconds until the band reaches each later line up to the change's line (rising), `untilNext`
-   the seconds until the change. Counts per row, the chord's own line first; the later rows take the beats between
-   their move and the next move (or the change), counted back from the change, so the last dot is the one before it.
-   Never more or fewer than `beats` in all; trailing empty rows are left out. */
-export function splitBeats(beats, moves, untilNext, spb) {
-  if (!(spb > 0) || !moves?.length || !(beats > 0)) return [Math.max(0, beats | 0)];
-  const rest = moves.map((m, i) => Math.max(0, Math.round(((i + 1 < moves.length ? moves[i + 1] : untilNext) - m) / spb)));
-  let over = rest.reduce((a, b) => a + b, 0) - beats;
-  for (let i = rest.length - 1; i >= 0 && over > 0; i--) { const cut = Math.min(rest[i], over); rest[i] -= cut; over -= cut; }
-  const out = [beats - rest.reduce((a, b) => a + b, 0), ...rest];
-  while (out.length > 1 && out[out.length - 1] === 0) out.pop();
+/* The targets: one for each run of the same chord in the song's order (a chord played again in a row shows once),
+   with the first and last place in `seq` it covers. `seq` is the song's chords, each with a name. */
+export function catchTargets(seq) {
+  const out = [];
+  (seq || []).forEach((c, i) => { const t = out[out.length - 1]; if (t && t.name === c.name) t.last = i; else out.push({ name: c.name, first: i, last: i }); });
   return out;
 }
-/* A change's time moved onto the band's beat grid, so the count lights on the clicks you hear: `t` the
-   change, `next` the time of a beat the band has scheduled, `spb` its beat. */
-/* 4.49.12: how many beats a stalled scheduler has fallen behind; they are skipped, not played in a burst */
-export const beatsLate = (late, spb) => late > 0.04 && spb > 0 ? Math.ceil(late / spb) : 0;
-export function onBeat(t, next, spb) {
-  return spb > 0 && Number.isFinite(next) ? next + Math.round((t - next) / spb) * spb : t;
+/* which target the chord at `idx` in the song belongs to (-1: none) */
+export const targetAt = (targets, idx) => targets.findIndex(t => idx >= t.first && idx <= t.last);
+/* the chord that shares two notes with this one: a major's relative minor and a minor's relative major (C and Am) */
+const SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"], FLATS = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#" };
+export function relativeOf(name) {
+  const m = /^([A-G][#b]?)(m(?!aj))?/.exec(String(name || ""));
+  if (!m) return "";
+  const root = SHARP.indexOf(FLATS[m[1]] || m[1]);
+  if (root < 0) return "";
+  return m[2] ? SHARP[(root + 3) % 12] : SHARP[(root + 9) % 12] + "m";
 }
+/* A catch in progress. The phone only asks about the chord you are on and the next one, so a chord still ringing
+   from the last change can't be mistaken for the one two on. */
+export function catchStart(targets) {
+  return { targets, cur: 0, caught: targets.map(() => false), closed: targets.map(() => false), heard: targets.map(() => false), cand: -1, n: 0, hold: null };
+}
+/* the chord you are on moved to song place `idx` */
+export function catchAt(st, idx) { const t = targetAt(st.targets, idx); if (t >= 0) st.cur = t; return st.cur; }
+/* targets that can be caught now: the one you are on, then the next */
+export const catchOpen = st => [st.cur, st.cur + 1].filter(i => i < st.targets.length && !st.caught[i] && !st.closed[i]);
+/* One reading of the room (a chroma from `chromaOf`, or null for silence). Two readings in a row that fit the same
+   open target catch it. Returns the target caught, or -1. A chord just caught can't be caught again until the room
+   stops sounding like it (a ringing chord), so A to B to A counts the second A only when you play it again. */
+export function catchHear(st, chroma) {
+  if (!chroma) { st.cand = -1; st.n = 0; st.hold = null; return -1; }
+  for (const i of [st.cur, st.cur + 1]) if (i < st.targets.length) st.heard[i] = true;
+  if (st.hold && (strumFit(chroma, st.hold) ?? 0) < CHORD_FIT) st.hold = null;
+  let best = -1, fit = CHORD_FIT;
+  for (const i of catchOpen(st)) {
+    const name = st.targets[i].name;
+    if (name === st.hold) continue;
+    const f = strumFit(chroma, name);
+    /* a chord that shares two notes with this one (C and Am) must not fit better: the song's own chords, and its relative */
+    if (f !== null && f >= fit && st.targets.every(t => t.name === name || (strumFit(chroma, t.name) ?? 0) <= f + 0.08) && (strumFit(chroma, relativeOf(name)) ?? 0) <= f + 0.08) { best = i; fit = f; }
+  }
+  if (best < 0) { st.cand = -1; st.n = 0; return -1; }
+  st.n = best === st.cand ? st.n + 1 : 1; st.cand = best;
+  if (st.n < 2) return -1;
+  st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0;
+  return best;
+}
+/* Targets whose time has gone by, settled once each: `missed` for the ones you didn't play, `got` for a chord with
+   no shape to listen for that something was heard through (a quiet room never costs a chord). A target is gone by
+   once the chord after it has begun, or a later one was caught. */
+export function catchClose(st) {
+  const limit = Math.max(st.cur, st.caught.lastIndexOf(true)), out = { missed: [], got: [] };
+  for (let i = 0; i < limit; i++) {
+    if (st.caught[i] || st.closed[i]) continue;
+    st.closed[i] = true;
+    if (!chordNotes(st.targets[i].name) && st.heard[i]) { st.caught[i] = true; out.got.push(i); } else out.missed.push(i);
+  }
+  return out;
+}
+/* how many beats a stalled scheduler has fallen behind; they are skipped, not played in a burst */
+export const beatsLate = (late, spb) => late > 0.04 && spb > 0 ? Math.ceil(late / spb) : 0;
 /* Stage Gels: the colour family of a section, from its name */
 export function gelOf(name) {
   const n = String(name || "").toLowerCase();
