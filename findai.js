@@ -80,6 +80,7 @@ const PLACE_SYSTEM = `You place a song's chords over its lyrics the way guitar c
 - Timing matters, so mark where nobody is singing. Use word 0 for a chord played before the singing on that line starts (chord sites show it over empty space with the words indented, or at the start of a line that begins after a pause). Use the word number after the line's last word for a chord played after the line is sung, in the gap before the next line. Otherwise use the word the change lands on.
 - A row of chords alone between two sung lines belongs to the line before it, after its last word.
 - Leave out a line only when no chord is played on it at all (the chord before keeps ringing). A line that plays the same chords as the line before still lists them.
+- The chart gives one pass of each section's chords. How many times they go round, and how many chords fall on each line, come from the chord sites, not from the chart.
 - Use the chord names from the chart exactly (its key and capo). Don't add, swap or respell chords.
 - Where sources disagree, follow Ultimate Guitar's official or highest-rated version, then most of the others. If you can't tell where the chords fall, set "found" to false.`;
 async function placeChords(chartBody, lyricsText, { title = "", artist = "" } = {}) {

@@ -2333,7 +2333,8 @@ test("4.49.12 the band skips the beats a stall let pass, on the same grid", () =
 test("4.65.0 lining up the UG way: the chart sent has no words or columns, stacked chords before and after the words stay stacked", () => {
   const guess = "Key: F\n[Intro]\nF   Am   G\n\n[Verse]\nF             Am\nWalked the long road home\nG        F\nNever saw it\n\n[Chorus]\n[F]Carry me [Am]over";
   const chart = C.chartOfSheet(guess);
-  assert.equal(chart, "Key: F\n\n[Intro]\nF Am G\n\n[Verse]\nF Am G F\n\n[Chorus]\nF Am", "sections and chords in order, nothing else");
+  assert.equal(chart, "Key: F\n\n[Intro]\nF Am G\n\n[Verse]\nF Am G\n\n[Chorus]\nF Am", "sections and one pass of their chords, nothing else");
+  assert.equal(C.chartOfSheet("[Verse]\nF Am\nx\nG F\nx\nAm G\nx\nF Am\nx\n\n[Bridge]\nD C G D C G D C G D"), "[Verse]\nF Am G\n\n[Bridge]\nD C G", "4.65.1: one pass of a progression spread over the lines");
   assert.doesNotMatch(chart, /Walked|Never|Carry/, "no words, so a guessed sheet can't be handed back as the answer");
   const lyr = "[Verse]\nWalked the long road home\nNever saw it\nRain on the glass\nCold again\n\n[Chorus]\nCarry me over";
   const num = C.numberLyrics(lyr);

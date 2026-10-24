@@ -378,7 +378,10 @@ export function chartOfSheet(body) {
     if (isChordLine(line)) cur.chords.push(...line.trim().split(/\s+/).map(t => t.replace(/^\(|\)$/g, "")).filter(isChord));
     else for (const m of line.matchAll(/\[([^\]]+)\]/g)) if (isChord(m[1])) cur.chords.push(m[1]);
   }
-  return out.filter(x => x.head || x.chords.length).map(x => (x.head ? x.head : `[${x.name}]\n${x.chords.join(" ")}`)).join("\n\n");
+  /* 4.65.1: one pass of each section. A guessed sheet spreads the progression two a line ("F Am G F Am G F Am"),
+     and sent like that it told the AI how many chords go on each line; the chord sites should say that. */
+  const pass = cs => { for (let p = 1; p < cs.length; p++) if (cs.every((c, i) => c === cs[i % p])) return cs.slice(0, p); return cs; };
+  return out.filter(x => x.head || x.chords.length).map(x => (x.head ? x.head : `[${x.name}]\n${pass(x.chords).join(" ")}`)).join("\n\n");
 }
 export function lyricStanzas(text) {
   const out = [];

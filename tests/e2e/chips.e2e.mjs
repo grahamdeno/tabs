@@ -89,7 +89,7 @@ test("Edit: Line up from the chord sites sends the chart without the words' colu
   await waitBody(page, /^\[Verse\]\nF Am G\n {8}Walked the long road home\nF Am G\n {8}Never saw it/);
   const sent = JSON.parse(asked.find(a => /Chord chart/.test(a)));
   const text = JSON.stringify(sent.messages);
-  assert.match(text, /Chord chart:\\n\[Verse\]\\nF Am G F Am G F Am\\n/, "the chart is sections and chords only");
+  assert.match(text, /Chord chart:\\n\[Verse\]\\nF Am G\\n/, "the chart is sections and chords only");
   assert.doesNotMatch(text, /F {13}Am/, "not the guessed columns");
   assert.match(JSON.stringify(sent.system), /Ultimate Guitar/);
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "c").spots), "placed");
