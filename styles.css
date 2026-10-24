@@ -3905,3 +3905,7 @@ body.covered .menu .mrow .mi, body.covered .menu.tools .mrow.tl .mi, body.covere
 @media (prefers-reduced-motion: reduce) { .song-title .tt.go { animation: none; } }
 /* A bought backdrop is the show's picture when the song has no cover; with a cover, the cover is the backdrop (4.62.1) */
 body.covered .gg-bd, body:has(#gg-cover) .gg-bd { display: none; }
+/* 4.65.2: the editor's bars under a cover: glass and a dark fade, so words never show through a button */
+:root body.covered .cebar .ed-tl, :root body.covered .cebar .ed-tile, :root body.covered .cebar .ce-rec, :root body.covered .cebar .ce-plate .seg { background: rgba(20, 18, 24, .9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-color: var(--rim); }
+body.covered .cebar.plate { isolation: isolate; }
+body.covered .cebar.plate::before { content: ""; position: absolute; z-index: -1; left: -24px; right: -24px; top: -28px; bottom: calc(-14px - var(--safe-b)); background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .78) 36px); pointer-events: none; }

@@ -96,3 +96,17 @@ test("Edit: Line up from the chord sites sends the chart without the words' colu
   await page.click("#toast .tact");
   await waitBody(page, /^\[Verse\]\nF {13}Am\nWalked/);
 });
+
+test("Edit under an album cover: the bottom buttons are glass, not see-through (4.65.2)", { skip: skip() }, async t => {
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const l = lib("[Verse]\nAm   F\nSha la la la");
+  l.songs[0].listen = { art: "https://is1-ssl.mzstatic.com/image/x/600x600bb.jpg" };
+  const page = await phone(t, l);
+  await page.route("https://*.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from(png, "base64") }));
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-x"));
+  await page.goto(base + "#/song/c"); await page.reload(); await page.waitForSelector("body.covered");
+  await tool(page, "edit"); await page.waitForSelector(".cebar #ce-done");
+  await page.click("[data-v='text']"); await page.waitForSelector("#ed-clean");
+  const alphas = await page.evaluate(() => ["#ed-clean", "#ed-scan", "#ed-seg"].map(s => { const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(document.querySelector(s)).backgroundColor); const p = m[1].split(",").map(Number); return p.length > 3 ? p[3] : 1; }));
+  assert.ok(alphas.every(a => a >= 0.85), "Clean up, Scan and Edit/Preview are nearly solid: " + alphas);
+});
