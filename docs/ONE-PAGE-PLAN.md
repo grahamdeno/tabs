@@ -171,21 +171,21 @@ for now, over a see-through middle.
 
 ### Step 4. One page: the Gig layer goes [Opus], 4.52.0
 
-- [ ] 4.1 The top strip (X, progress, section pill, crowd, combo) and the bottom pair (mic, Pause) become part of the song
+- [x] 4.1 The top strip (X, progress, section pill, crowd, combo) and the bottom pair (mic, Pause) become part of the song
       page while playing, built by `stage.js`. The mic and Pause sit where Tools and Play sit when paused, so the thumb
       doesn't move.
-- [ ] 4.2 The scoring loop (`listen`, `deafen`, `frame`, `gradeDue`, `flash`, `paintScore`) moves into `stage.js` or
+- [x] 4.2 The scoring loop (`listen`, `deafen`, `frame`, `gradeDue`, `flash`, `paintScore`) moves into `stage.js` or
       stays in a much smaller `gig.js` that only scores and draws Show complete. Opus decides which, by what reads simpler.
-- [ ] 4.3 Pause shows the paused page: Tools and Play (reading Resume), in place, at the line you stopped on. `gg-hold`,
+- [x] 4.3 Pause shows the paused page: Tools and Play (reading Resume), in place, at the line you stopped on. `gg-hold`,
       `paintHold`, `backALine`, `leave` and the Sheet button go (per D6). `gigHooks.resume`, `.stopped`, `.leave` follow.
-- [ ] 4.4 `fold.js`: while playing, the bar folds into Play's corner today. On one page the bottom pair replaces it.
+- [x] 4.4 `fold.js`: while playing, the bar folds into Play's corner today. On one page the bottom pair replaces it.
       Decide with the no-ring rule in CLAUDE.md in mind; don't bring back the ring, the arc or the island.
-- [ ] 4.5 Opening night (`opening.js`: `gigOpen`, `gigFrame`, `gigPaused`, `gigResumed`, `gigDoneHere`, `hideStrip`) points at
+- [x] 4.5 Opening night (`opening.js`: `gigOpen`, `gigFrame`, `gigPaused`, `gigResumed`, `gigDoneHere`, `hideStrip`) points at
       the page instead of `#gig`. Louie's hint on pause shows above Play when `gigPaused` returns text.
-- [ ] 4.6 One Play: `canGig` / `gigsOn` / `playGig` / `openGigNow` in `app.js` decide only whether the play is scored.
+- [x] 4.6 One Play: `canGig` / `gigsOn` / `playGig` / `openGigNow` in `app.js` decide only whether the play is scored.
       Tabs, practice loops, a slowed section and Play together use the same page, with the strip or not per D1.
-- [ ] 4.7 Delete `#gig`'s shell markup and the CSS under "the Gig" and "The Gig, words first" that nothing uses now.
-- [ ] 4.8 Tests: rewrite `gig.e2e.mjs` and `opening.e2e.mjs` for the page; the tests that set `plainPlay` keep working or
+- [x] 4.7 Delete `#gig`'s shell markup and the CSS under "the Gig" and "The Gig, words first" that nothing uses now.
+- [x] 4.8 Tests: rewrite `gig.e2e.mjs` and `opening.e2e.mjs` for the page; the tests that set `plainPlay` keep working or
       move to the mic-off path. Update CLAUDE.md's table (`gig.js`, `stage.js`, `fold.js`) and the "Tests" notes.
 
 ### Step 5. Section chips as the progress bar [Sonnet], 4.53.0
@@ -210,4 +210,12 @@ for now, over a see-through middle.
   fixed. The Gig's new top and bottom fades first covered its own buttons (they now sit under them).
 - Step 3: the new-chord card sat on the band once the band was edge to edge; it moved low on the right.
 - Step 3: chords on every line take the section's colour while playing (the mockup's look), not only the band's.
+- Step 4 (4.52.0), how it was done: the Gig layer stays as the show's top strip and bottom pair (mic and Pause),
+  see-through in the middle; pausing hides it and hands back the song page (body.held), so Tools and Play are
+  where the mic and Pause were. Unscored play runs the same stage from stage.js (stagePlay) with nothing on top,
+  and keeps the folded Play corner as its pause (4.4: no ring, no arc, no island). The scoring loop stays in a
+  smaller gig.js (4.2).
+- Step 4: the text fit measured lines before the app's font had loaded, so lines wrapped once it arrived; it now
+  measures again when the fonts are in.
+- Step 4: the quiet band on a held show was drawn behind the page's background; the page is see-through while held.
 - Step 3: the scored-show test can time out under the parallel quick run on a busy machine; it passes alone.

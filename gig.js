@@ -10,21 +10,21 @@
 //             itself. A small shape for a chord you haven't learned.
 //   moments   Louie and the crowd pop in for a combo milestone or a full crowd, then go
 //   bottom    Hearing you (tap to stop or start listening for this show) and Pause, in thumb reach
-// Paused, the show dims in place: the line you stopped on, Louie, and in thumb reach Back a line,
-// Tools, Sheet (leave the show for the song page) and a big Resume (4.2.0).
+// Paused (4.52.0), the show steps aside and the song page is back as it always is: Tools and Play (reading
+// Resume) in thumb reach, a quiet band on the line you stopped on, and Louie's line above Play when there is
+// one to say. Play picks the show up again; the page's Back, or Tools for anything but the switches, ends it.
 // The microphone hears your strums; each chord change is landed by a strum near it (gigChange in
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, runDot, onBeat, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
-import { metro } from "./audio.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
-import { data, diag, scroll, viewing, READ_AT, startScroll, stopScroll, isLine, beatSecs, gigHooks, go, chordSVG, homeHooks, openTools, redraw } from "./app.js";
+import { data, diag, scroll, viewing, startScroll, stopScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
 import { louie } from "./louie.js";
 import { callout } from "./callout.js";
 import { friend, FRIENDS } from "./friends.js";
-import { where, sections, stageStart, stageClear, stageGel, stagePaint, stageRun, stageDots } from "./stage.js";
+import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
 let gig = null; /* the show on stage, or null */
@@ -98,17 +98,7 @@ function shell(song) {
       <button class="gg-mic" id="gg-mic" aria-label="Microphone"></button>
       <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
     </div>
-    <div class="gg-hold" id="gg-hold" hidden>
-      <div class="gg-say" id="gg-say" hidden><span id="gg-hlouie"></span><p id="gg-hsay"></p></div>
-      <div class="gg-hacts">
-        <div class="gg-hrow">
-          <button class="btn gg-hb" id="gg-back">${icon("up")}Back a line</button>
-          <button class="btn gg-hb" id="gg-tools" aria-haspopup="menu">${icon("dots")}Tools</button>
-          <button class="btn gg-hb" id="gg-sheet">${icon("list")}Sheet</button>
-        </div>
-        <button class="btn primary gg-resume" id="gg-resume">${icon("play")}RESUME</button>
-      </div>
-    </div>`;
+`;
   document.body.appendChild(el);
   return el;
 }
@@ -133,8 +123,6 @@ function paintMap() {
   box.innerHTML = (secs.length ? secs : [{ gel: "verse", share: 1 }]).map(s => `<i class="gl-${s.gel}" style="flex:${s.share.toFixed(3)}"></i>`).join("") + '<em id="gg-mark"></em>';
 }
 
-/* a beat, in seconds: the band's own when it's playing (so the dots move on its clicks), else the song's pace */
-const beatOf = g => metro.timer && metro.spb > 0 ? metro.spb : beatSecs(g.song);
 /* a small shape for a chord you haven't learned yet, beside the lines */
 function paintShape(name) {
   const g = gig, el = $("gg-shape");
@@ -186,13 +174,11 @@ function frame() {
   if (mark) mark.style.left = (w.progress * 100).toFixed(2) + "%";
   /* section and Stage Gel */
   const counting = !!document.querySelector(".countin");
-  const gel = gelOf(w.sec || "verse");
-  if (gel !== g.gel) { g.gel = gel; stageGel(gel); }
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
   gigFrame(g, w.sec, scroll.on && !counting);
   /* the lines: the band, the chord you're on and its dots, on the sheet itself */
   g.b = w.b;
-  stagePaint(w, beatOf(g));
+  stageTick(song, w, counting, g.clock());
   /* chords */
   const seq = diag.seq || [];
   if (w.idx >= 0 && w.idx !== g.idx) {
@@ -202,11 +188,6 @@ function frame() {
     /* a change on stage: graded once its window has passed */
     if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push({ t: g.clock(), name, pair: `${prev}>${name}` });
   }
-  /* the beat dots: one lit, a beat at a time toward the next chord, on the band's clicks when the band plays */
-  const spb = beatOf(g), band = metro.timer && metro.spb > 0;
-  const until = w.until == null ? null : band ? onBeat(g.clock() + w.until, metro.next, spb) - g.clock() : w.until;
-  const run = stageRun();
-  stageDots(counting || !run ? -1 : runDot(until, spb, run.beats));
   /* grade the changes whose window has passed */
   const now = g.clock();
   const graded = gradeDue(g, now);
@@ -279,10 +260,6 @@ export function openGig(song, opts = {}) {
   $("gg-x").onclick = () => leave();
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
   $("gg-mic").onclick = () => { if (g.stream) deafen(g); else if (!g.asking) listen(g); };
-  $("gg-resume").onclick = () => resume();
-  $("gg-sheet").onclick = () => leave();
-  $("gg-tools").onclick = e => { e.stopPropagation(); openTools($("gg-tools")); };
-  $("gg-back").onclick = () => backALine();
   bindDrag(g);
   g.known = knownChords(data);
   paintMap(); paintMic(); paintScore();
@@ -297,31 +274,28 @@ function paused(on) {
   const g = gig;
   if (!g) return;
   g.paused = on;
+  gigHooks.held = on;
   g.el.classList.toggle("paused", on);
-  $("gg-hold").hidden = !on;
+  document.body.classList.toggle("held", on);
+  document.body.classList.toggle("staged", !on);
   $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
-  if (on) { g.holdSay = gigPaused(g); paintHold(); $("gg-resume").focus({ preventScroll: true }); }
+  g.holdSay = on ? gigPaused(g) : "";
+  paintHold();
 }
-/* Paused (4.49.13): the lines stay as they are, in full colour, and only the buttons come up. Louie speaks
-   only when there is something to say, like Opening night's "Tap Resume". */
+/* Louie's line on pause (Opening night's "Tap Resume"), just above Play; nothing when there's nothing to say */
 function paintHold() {
-  const g = gig, box = $("gg-say");
-  if (!g || !box) return;
-  box.hidden = !g.holdSay;
-  if (g.holdSay) { $("gg-hlouie").innerHTML = louie("happy", { size: 64 }); $("gg-hsay").textContent = g.holdSay; }
-}
-/* Back a line: the line before the one you stopped on comes to the reading line */
-function backALine() {
-  const g = gig, sheet = $("sheet");
-  if (!g || !sheet || !diag.blocks?.length) return;
-  let i = Math.max(0, g.b) - 1;
-  while (i > 0 && !isLine(diag.blocks[i].el)) i--;
-  const to = scrollY + sheet.getBoundingClientRect().top + diag.blocks[Math.max(0, i)].y - innerHeight * READ_AT + 1;
-  window.scrollTo(0, Math.max(0, to));
-  g.b = -1; g.idx = -1;
+  const g = gig;
+  $("gg-say")?.remove();
+  if (!g?.holdSay) return;
+  const el = document.createElement("div");
+  el.className = "held-say"; el.id = "gg-say";
+  const dock = document.querySelector(".app.viewer .dock .pw, .app.viewer .dock"), top = dock?.getBoundingClientRect().top;
+  el.style.bottom = (top > 0 ? innerHeight - top + 12 : 110) + "px";
+  el.innerHTML = `<span id="gg-hlouie">${louie("happy", { size: 56 })}</span><p id="gg-hsay">${esc(g.holdSay)}</p>`;
+  document.body.appendChild(el);
 }
 function resume() { const g = gig; if (!g) return; document.querySelector(".menu")?.remove(); paused(false); g.holdSay = ""; startScroll(g.song); gigResumed(g); }
-/* Leave the show (X or Sheet): the song stays open, paused where it was */
+/* Leave the show (X, or Tools for anything but its switches): the song stays open, paused where it was */
 function leave() {
   const g = gig;
   if (!g) return;
@@ -343,7 +317,8 @@ export function closeGig(quiet = false) {
   document.body.classList.remove("gigging");
   clearTimeout(g.momentT); clearTimeout(g.twT);
   hideStrip();
-  gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
+  $("gg-say")?.remove(); document.body.classList.remove("held");
+  gigHooks.on = false; gigHooks.held = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
   document.querySelector(".menu.tools")?.remove();
   if (!quiet && g.from === "road") go("#/");
 }
@@ -370,7 +345,7 @@ function showComplete() {
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
   const crowd = graded ? gigCrowd(g.score) : null;
   const tile = (lab, val, cls) => `<div class="gc-tile ${cls}"><small>${lab}</small><b>${val}</b></div>`;
-  g.el.classList.remove("paused");
+  g.el.classList.remove("paused"); document.body.classList.remove("held"); gigHooks.held = false; $("gg-say")?.remove();
   g.el.classList.add("done");
   g.el.innerHTML = `<div class="gc">
     <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>

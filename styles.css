@@ -2345,27 +2345,11 @@ body.gigging .menu.tools { z-index: 60; }
 .gg-mt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; min-width: 0; }
 .gg-mt small { font: 800 10px var(--sans); letter-spacing: .04em; opacity: .8; }
 .gg-mic:not(.off) { border-color: var(--good); background: var(--good-soft, var(--card)); box-shadow: 0 3px 0 color-mix(in srgb, var(--good) 35%, transparent); }
-/* 4.49.13: paused, nothing dims: the song stays readable and draggable; only the buttons come up */
-.gig.paused > :not(.gg-hold):not(.gg-top) { pointer-events: none; }
-.gig.paused .gg-shape, .gig.paused .gg-moment { visibility: hidden; }
-.gig.paused .gg-bottom { visibility: hidden; }
-.gg-hold { position: absolute !important; left: 0; right: 0; bottom: 0; padding: 34px 16px calc(14px + var(--safe-b)); display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; background: linear-gradient(180deg, transparent, var(--bg) 34px); }
-.gg-hold[hidden] { display: none; }
-.gg-say { display: flex; align-items: center; gap: 12px; }
-.gg-say[hidden] { display: none; }
-.gg-say .louie { width: 64px; height: auto; flex: none; }
-.gg-say p { flex: 1; margin: 0; background: var(--card); border: 2px solid var(--rim); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font: 700 15px/1.35 var(--sans); color: var(--fg); }
-.gg-hacts { flex: none; display: flex; flex-direction: column; gap: 12px; }
-.gg-hrow { display: flex; gap: 10px; }
-.gg-hb { flex: 1; min-width: 0; height: 52px; padding: 0 4px; gap: 5px; font-size: 14px; white-space: nowrap; }
-.gg-hb svg { width: 18px; height: 18px; flex: none; }
-.gg-hold .gg-resume { flex: none; width: 100%; height: 64px; font-size: 19px; letter-spacing: .04em; gap: 10px; }
-.gg-resume svg { width: 20px; height: 20px; fill: currentColor; }
+/* 4.52.0: paused, the show steps aside and the song page is back (body.held) */
+.gig.paused { display: none; }
 .set .name small.sub { display: block; margin-top: 2px; font: 600 12.5px var(--sans); color: var(--muted); }
 /* Tools on a shorter phone: the sheet scrolls inside itself (4.2.1) */
 .menu.tools { max-height: calc(100dvh - 24px - var(--safe-t)); overflow-y: auto; overscroll-behavior: contain; }
-/* the Gig's lines move the song under a finger (4.2.2) */
-.gg-hold { touch-action: none; }
 /* ==========================================================================
    Full (4.4.0): Lines in a gig, Full. The song page shows whole and scrolls
    under your finger; the show is a strip at the top (the map, the section,
@@ -3736,7 +3720,9 @@ html:has(body.searching.sr-lock), body.searching.sr-lock { overflow: hidden; ove
    Nothing changes size or moves, so nothing rewraps. */
 body.staged { --gel: var(--g-verse); background: transparent; }
 body.staged[data-gel="chorus"] { --gel: var(--g-chorus); } body.staged[data-gel="bridge"] { --gel: var(--g-bridge); } body.staged[data-gel="solo"] { --gel: var(--g-solo); }
-body.staged .app.viewer > :not(.sheet), body.staged .chead, body.staged .smap, body.staged .shapecard { visibility: hidden; }
+body.staged .app.viewer > :not(.sheet):not(.dock):not(.dock-fade):not(.fp), body.staged .chead, body.staged .shapecard { visibility: hidden; }
+/* in a show the Gig's own controls replace the bar and the song map; unscored, the folded Play is the pause (4.52.0) */
+body.gigging.staged .app.viewer > :is(.dock, .dock-fade), body.gigging.staged .smap { visibility: hidden; }
 body.staged .app.viewer { overflow-x: clip; }
 body.staged .sheet { overflow-x: visible; }
 body.staged .sheet > * { position: relative; opacity: .7 !important; transform: none !important; -webkit-text-stroke: 0 !important; transition: opacity .25s; }
@@ -3762,3 +3748,18 @@ body.staged .sheet .c.st-lit .ct { color: #14213D; background: var(--gel); borde
 .sheet.measure .crow > * { flex: none; }
 /* the new-chord card sits low on the right, in thumb reach, clear of the band at the reading line (4.51.0) */
 .gig .gg-shape { top: auto; bottom: calc(96px + var(--safe-b)); }
+/* Held (4.52.0): a show you paused. The song page is back as it always is, with a quiet band on the line you
+   stopped on (no lit chord, no dots) and Play reading Resume. */
+body:is(.staged, .held) { --gel: var(--g-verse); }
+body.held[data-gel="chorus"] { --gel: var(--g-chorus); } body.held[data-gel="bridge"] { --gel: var(--g-bridge); } body.held[data-gel="solo"] { --gel: var(--g-solo); }
+body.held { background: transparent; } /* so the quiet band, drawn under the words, shows */
+body.held .st-bg { display: none; }
+body.held .app.viewer { overflow-x: clip; }
+body.held .sheet > .st-now { position: relative; }
+body.held .sheet > .st-now::before { content: ""; position: absolute; z-index: -1; top: -6px; bottom: -2px; left: -50vw; right: -50vw; background: color-mix(in srgb, var(--gel) 10%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gel) 30%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--gel) 30%, transparent); pointer-events: none; }
+body.held .sheet.focus > .cur { transform: none; -webkit-text-stroke: 0; }
+body.held .sheet .gc-run { display: none; }
+/* Louie's line on a held show, just above Play */
+.held-say { position: fixed; left: 16px; right: 16px; z-index: 40; display: flex; align-items: center; gap: 12px; animation: pop .2s ease-out; }
+.held-say .louie { width: 56px; height: auto; flex: none; }
+.held-say p { flex: 1; margin: 0; background: var(--card); border: 2px solid var(--rim); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font: 700 15px/1.35 var(--sans); color: var(--fg); }

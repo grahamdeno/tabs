@@ -3,9 +3,12 @@
 // you're on lights up over its word (the next one stays plain until the dots reach it, 4.49.11), with a dot
 // for each beat it lasts between it and the next chord (4.49.10). A chord played again in a row shows once.
 // Behind the words, a quiet stage light in the section's colour that fades out above the band.
-// Used by the Gig (gig.js), which adds the score, the crowd and the controls on top.
-import { RUN_MAX, beatsBetween, gelOf } from "./core.js";
-import { diag, READ_AT, musicClock, usesMusic, chordTimes, pxPerSecond, isLine } from "./app.js";
+// The Gig (gig.js) adds the score, the crowd and its controls on top. A song played unscored (practicing, a
+// tab, Play together) gets the same stage with nothing on top (4.52.0): stagePlay and stageStop, from app.js.
+import { RUN_MAX, beatsBetween, gelOf, runDot, onBeat } from "./core.js";
+import { diag, READ_AT, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, beatSecs } from "./app.js";
+import { metro } from "./audio.js";
+import { sound } from "./ui.js";
 
 const $ = id => document.getElementById(id);
 
@@ -88,7 +91,7 @@ export function stageClear() {
   Object.assign(st, { b: -2, lit: -2, lnext: -2, run: null, k: -2, seq: null });
 }
 /* the section's colour, for the band, the chords and the light */
-export function stageGel(gel) { document.body.dataset.gel = gel; }
+export function stageGel(gel) { if (document.body.dataset.gel !== gel) document.body.dataset.gel = gel; }
 
 /* the band, the lines around it and the chord you're on; spb is a beat in seconds, for the dots */
 export function stagePaint(w, spb) {
@@ -140,4 +143,37 @@ export function stageDots(k) {
   st.k = k;
   const run = st.run?.el ? [...st.run.el.children] : [], d = k - ((st.run?.beats || 0) - run.length);
   run.forEach((e, i) => e.classList.toggle("on", i === d));
+}
+
+/* a beat, in seconds: the band's own when it's playing (so the dots move on its clicks), else the song's pace */
+export const beatOf = song => metro.timer && metro.spb > 0 ? metro.spb : beatSecs(song);
+/* One frame of the stage: the section's colour, the band and the chord you're on, and the dot for this beat.
+   clock is in seconds on the audio clock when the band plays (its clicks are scheduled on it). */
+export function stageTick(song, w, counting, clock) {
+  if (!w) return;
+  stageGel(gelOf(w.sec || "verse"));
+  const spb = beatOf(song);
+  stagePaint(w, spb);
+  const band = metro.timer && metro.spb > 0;
+  const until = w.until == null ? null : band ? onBeat(clock + w.until, metro.next, spb) - clock : w.until;
+  stageDots(counting || !st.run ? -1 : runDot(until, spb, st.run.beats));
+}
+/* Unscored play on the stage (4.52.0): no score, no crowd, nothing on top; the folded Play is the pause */
+let plain = 0;
+export function stagePlay(song) {
+  stageStop();
+  stageStart();
+  document.body.classList.add("staged-plain");
+  const loop = () => {
+    plain = requestAnimationFrame(loop);
+    const clock = metro.timer ? sound()?.currentTime ?? performance.now() / 1000 : performance.now() / 1000;
+    stageTick(song, where(song), !!document.querySelector(".countin"), clock);
+  };
+  plain = requestAnimationFrame(loop);
+}
+export function stageStop() {
+  if (!plain && !document.body.classList.contains("staged-plain")) return;
+  cancelAnimationFrame(plain); plain = 0;
+  document.body.classList.remove("staged-plain");
+  stageClear();
 }

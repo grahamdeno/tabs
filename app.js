@@ -11,6 +11,7 @@ import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, m
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
+import { stagePlay, stageStop } from "./stage.js";
 
 
 // ---------- State ----------
@@ -59,15 +60,16 @@ const go = h => { location.hash = h; };
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
-const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null };
+const gigHooks = { on: false, held: false, credited: null, stopped: null, resume: null, leave: null, band: null };
 /* Play opens the Gig (4.2.0). The Gig is words first (4.46.0). Practicing a section or slower, a tab and Play together play the plain sheet.
    plainPlay (tests only, never set by the app) keeps Play plain. */
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
 const gigsOn = song => canGig(song);
 /* 4.20.0: the face says what plays with you: the recording or the band (nothing when neither will) */
 const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : (data.settings.metronome || bandParts(data).drums) ? "WITH THE BAND" : "";
-const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : "PLAY"}${!on && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
-const playLabel = (song, on) => on ? "Pause auto-scroll" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
+/* 4.52.0: a show you paused is held on the song page; Play picks it up again */
+const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
+const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
 function refreshPlay(song) {
   const pb = $("play");
@@ -389,7 +391,7 @@ function renderViewer(id) {
 let redraw = null;
 let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
 let foldApi = null;
-onLeave(() => { teardownFold(); foldApi = null; });
+onLeave(() => { teardownFold(); foldApi = null; stageStop(); });
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
 function chordLabel(text) {
@@ -462,6 +464,7 @@ function chordSVG(name, scale = 1) {
    line of the song is a line on screen, from 14 to 22 px (larger with the phone's own text size). Text size in
    Tools scales that up or down. Measured once per draw, each line laid out on one line. */
 const FIT_MIN = 14, FIT_MAX = 22;
+let fitWait = false;
 function fitText(sheet, song) {
   const base = 17 * sysText;
   sheet.style.setProperty("--lyric-size", base.toFixed(1) + "px");
@@ -471,7 +474,9 @@ function fitText(sheet, song) {
   let widest = 0;
   for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width);
   sheet.classList.remove("measure");
-  const room = sheet.clientWidth * 0.95; /* lines keep 5% on the right for the focus line's scale */
+  const room = sheet.clientWidth * 0.95 - 2; /* lines keep 5% on the right for the focus line's scale */
+  /* measured in the fallback font while the app's own is still loading: measure again once it's in */
+  if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
   const fit = widest > 0 ? base * room / widest : base;
   sheet.style.setProperty("--lyric-size", (Math.min(FIT_MAX * sysText, Math.max(FIT_MIN, fit)) * (song.size || 1)).toFixed(1) + "px");
 }
@@ -1703,6 +1708,8 @@ async function startScroll(song, opts = {}) {
     grooveFor(song); /* and how it feels, which joins in when it arrives */
     if (metroOn() && metroDrums()) drumsFor(song); /* and drums written for it */
   }
+  /* 4.52.0: unscored play (practicing, a tab, Play together) is on the stage too, with nothing on top */
+  if (!gigHooks.on) stagePlay(song);
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
   if (usesMusic(song)) startMusic(song, playFromSec(song), recRate(song)); else startMetronome(song);
@@ -1775,6 +1782,7 @@ function stopScroll() {
   clearTimeout(scroll.countTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");
+  stageStop();
   if (was) gigHooks.stopped?.();
   foldApi?.mode?.(); /* and unfolds when the song stops */
   wakeControls();

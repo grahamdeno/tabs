@@ -39,7 +39,7 @@ sees, and what teaches them anything.
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
 | Play (the Gig) | Count-in, "Listening is off", then "Hearing you · tap to turn off" | The mic pill says it is listening | Nothing says *why* (strum on the changes to score). On a real iPhone the microphone prompt arrives cold, with no reason given first |
-| Tap the Gig | Pauses: the lines stay as they are (4.49.13), with Back a line, Tools, Sheet, Resume under them | Found by accident | Tap to pause and drag the lines are never taught |
+| Tap the Gig | Pauses: the song page comes back as it always is, Play reads Resume, a quiet band on the line you stopped on (4.52.0) | Found by accident | Tap to pause and drag the lines are never taught |
 | Tools | Play, Practice and Song tabs at the foot, dots on Practice and Song | Dots | Fine |
 | Tour | October Tour, a request line asking for Harbor Lights, tonight's setlist | On screen | Good. A lot at once on day one |
 | Charts | Nine computer players already scoring, a Battle on day one | On screen | **Day one shows a full league and a rival battle before one song is played** |

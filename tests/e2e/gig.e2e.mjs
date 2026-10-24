@@ -46,15 +46,17 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   await page.click("#gg-mic");
   await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
   /* Paused, the show holds the line you stopped on; Tools has only what you change mid-song */
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  assert.equal(await page.locator("#gg-hline, .gg-here").count(), 0, "4.49.13: no focus card on pause");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now")).opacity), "1", "the line you stopped on is not dimmed");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  assert.equal(await page.locator("#gg-hline, .gg-here, #gg-hold, #gg-back, #gg-sheet").count(), 0, "4.52.0: no pause screen, no Back a line, no Sheet");
+  assert.ok(await page.locator(".app.viewer .shead").isVisible(), "paused, the song page is back");
+  assert.match(await page.innerText("#play"), /RESUME/, "Play reads Resume");
+  await page.waitForFunction(() => getComputedStyle(document.querySelector("#sheet > .st-now")).opacity === "1"); /* the line you stopped on is not dimmed */
   assert.equal(await page.locator("#sheet > .st-now").count(), 1, "the line you stopped on stays on its band");
-  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator('.menu [data-m="edit"]').count(), 0, "from a show, only what you change mid-song");
-  await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
-  assert.equal(await page.locator("#gig.paused").count(), 1, "a tap above Tools closes it, and the show stays paused");
-  await page.click("#gg-resume"); await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+  assert.equal(await page.locator("#gig.paused").count(), 1, "closing Tools, the show stays paused");
+  await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   await page.waitForFunction(() => document.getElementById("gg-sec").textContent === "CHORUS", null, { timeout: 15000 });
   assert.equal(await page.evaluate(() => document.body.dataset.gel), "chorus", "the stage washes into the chorus gel");
   /* Show complete */
@@ -76,24 +78,27 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.match(await page.innerText(".shead .meta"), /Best show \d+%/, "the song shows its best show");
 });
 
-test("Gig: paused, Tools has no Lines in a gig (4.43.0); Resume plays on; Sheet goes back", { skip: skip() }, async t => {
+test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; the page's Back ends it", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   const held = await page.innerText("#sheet > .st-now");
-  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator(".menu [data-lines]").count(), 0, "no Lines in a gig");
-  await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
   assert.equal(await page.innerText("#sheet > .st-now"), held, "Tools while paused keeps the line you stopped on");
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
   const at = await page.evaluate(() => document.getElementById("gg-mark").style.left);
-  await page.click("#gg-resume"); await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
+  await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   assert.equal(await page.locator("#gig.paused").count(), 0);
   await page.waitForFunction(a => document.getElementById("gg-mark").style.left !== a, at, { timeout: 8000 });
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  await page.click("#gg-sheet"); await page.waitForFunction(() => !document.getElementById("gig"));
-  assert.equal(await page.evaluate(() => location.hash), "#/song/g", "Sheet: back to the song, paused");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  assert.equal(await page.evaluate(() => location.hash), "#/song/g", "paused on the song page");
+  assert.ok(await page.evaluate(() => { const b = getComputedStyle(document.querySelector("#sheet > .st-now"), "::before"); return b.content !== "none"; }), "a quiet band on the line you stopped on");
+  assert.equal(await page.locator("#sheet .gc-run i:visible").count(), 0, "no dots while it's held");
+  await page.click(".shead .sh-back"); await page.waitForFunction(() => !document.getElementById("gig"));
+  assert.equal(await page.evaluate(() => document.body.classList.contains("held") || document.body.classList.contains("staged")), false, "leaving ends the show and clears the stage");
 });
 
 test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums go quiet when it is off, and come back when it is on", { skip: skip() }, async t => {
@@ -102,19 +107,19 @@ test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums g
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.waitForFunction(() => import("/audio.js").then(m => m.metro.timer > 0), null, { timeout: 8000 });
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "true", "Beat is playing, so the switch says on");
   await page.click(".menu [data-m='metro']");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.bandPlays === false);
   assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "false");
   assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metroOn())), false, "no drums once it is off");
-  await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
-  await page.click("#gg-resume"); await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+  await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   /* real timer */ await page.waitForTimeout(600);
   assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)), 0, "Resume does not start the drums again");
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#more"); await page.waitForSelector(".menu.tools");
   await page.click(".menu [data-m='metro']");
   await page.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("tabs-v1")).settings; return s.metronome === true && s.bandPlays === undefined; });
   assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metroOn())), true);
@@ -125,7 +130,7 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
   await page.click("#play"); await page.waitForSelector("#gig");
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   assert.match(await page.getAttribute("#gg-mic", "aria-label"), /Not listening/, "Score my plays off: the show starts unscored");
   const before = await page.evaluate(() => scrollY), line = await page.innerText("#sheet > .st-now");
   const cdp = await page.context().newCDPSession(page);
@@ -210,8 +215,8 @@ test("4.50.0 Now and Next is gone: an intro is lines like any other, and Tools h
   await page.evaluate(() => { location.hash = "#/song/i"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now .c");
   assert.equal(await page.locator("#gig.bigc, .gg-chords").count(), 0, "no big cards, even with the old setting on");
-  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator('.menu [data-m="nn"]').count(), 0, "no Now and Next row");
 });
 
@@ -233,4 +238,16 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
   await page.click("#gg-x"); await page.waitForFunction(() => !document.getElementById("gig"));
   assert.equal(await page.locator("#st-bg, #sheet .st-now, #sheet .st-lit").count(), 0, "leaving the show clears the stage");
+});
+
+test("4.52.0 unscored play is on the stage too: the band and the chord you're on, no score on top; pausing clears it", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#gig").count(), 0, "no show: nothing scored, no crowd");
+  assert.ok(await page.evaluate(() => document.body.classList.contains("staged-plain")), "the stage, with nothing on top");
+  await page.waitForSelector("#sheet .c.st-lit .ct");
+  await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
+  await page.waitForFunction(() => !document.body.classList.contains("staged"));
+  assert.equal(await page.locator("#sheet .st-now, #sheet .st-lit, #st-bg").count(), 0, "paused, the page is as it was");
 });
