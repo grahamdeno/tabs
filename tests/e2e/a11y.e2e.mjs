@@ -94,7 +94,7 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
     const page = await phone(t, { ...lib(theme), songs: [song], settings: { ...lib(theme).settings, look, plainPlay: false } }, { colorScheme: theme, reducedMotion: "reduce" });
     await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: WHITE_PNG }));
     await page.goto(base + "#/song/c"); await page.reload(); await page.waitForSelector("#play");
-    await page.click("#play"); await page.waitForSelector("body.covered #sheet > .st-now");
+    await page.waitForSelector("body.covered #gg-cover.in");
     const problems = [];
     const sweep = async screen => {
       for (const html of await page.evaluate(unnamed)) problems.push(`${screen}: no name: ${html}`);
@@ -104,6 +104,8 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
         .violations.filter(v => v.impact === "serious" || v.impact === "critical").map(v => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map(n => n.target.join(" ")).join(" | ")}`));
       problems.push(...found.map(f => `${screen}: ${f}`));
     };
+    await sweep("song page, before Play");
+    await page.click("#play"); await page.waitForSelector("#gig #gg-pause");
     await sweep("playing");
     /* 4.60.1: paused, the page and the Tools sheet are dark too (they were white on white in the light palettes) */
     await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);

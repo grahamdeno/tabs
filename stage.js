@@ -206,3 +206,24 @@ function openFade() {
   el.classList.add("go"); setTimeout(() => el.remove(), 400);
 }
 
+/* The album cover behind the song (4.59.0 the show, 4.61.0 the whole song screen, Graham, 2026-10-24): the
+   recording's cover, blown up and blurred, under a dark layer so white words always read. The screen then looks dark in every palette. One still layer, drawn
+   once, so it costs nothing while the words move. No cover, no change. */
+export function coverOn(song) {
+  const art = song.listen?.art;
+  if (!/^https:\/\/[^\s"'()\\]+$/.test(art || "")) return coverOff();
+  if (document.getElementById("gg-cover")?.dataset.art === art) return; /* already behind this song */
+  coverOff();
+  const el = document.createElement("div");
+  el.className = "gg-cover"; el.id = "gg-cover"; el.dataset.art = art; el.setAttribute("aria-hidden", "true");
+  el.style.backgroundImage = `url("${art}")`;
+  document.body.prepend(el);
+  /* the dark look waits for the picture, so white words never sit on a light palette */
+  const img = new Image();
+  img.onload = () => { if (document.getElementById("gg-cover") === el) { el.classList.add("in"); document.body.classList.add("covered"); } };
+  img.src = art;
+}
+export function coverOff() {
+  document.getElementById("gg-cover")?.remove();
+  document.body.classList.remove("covered");
+}

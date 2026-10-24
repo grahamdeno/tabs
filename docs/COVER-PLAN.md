@@ -47,15 +47,16 @@ Where: the 4.59.0 block at the end of `styles.css` (`body.covered { ... }`).
 
 Where: `gig.js` (`coverOn`, `coverOff` from 4.59.0), `stage.js`, `app.js` (the song page draw and its `onLeave`), `styles.css`.
 
-- [ ] 2.1 Move `coverOn(song)` and `coverOff()` from `gig.js` to `stage.js` and export them. `gig.js` imports them from there. No new file, so `sw.js` doesn't change.
-- [ ] 2.2 `app.js`: when the song page draws a song, call `coverOn(song)` (it already does nothing without an https cover, D2). On leaving the song route, call `coverOff()` in the existing `onLeave` at the `teardownFold` line. A song that gets its cover while open (Get the song, Listen) calls `coverOn` again (look for `feelArrived` in `listen.js` as the hook).
-- [ ] 2.3 `gig.js`: the Gig no longer turns the cover on or off; the page owns it. Remove `coverOn` and `coverOff` from `openGig` and `closeGig`.
-- [ ] 2.4 On the paused page under the cover, the top part of the page (`.shead`, the chord tiles, the header note) reads on the dark set from step 1. Check the chord tiles (`.crow` tiles, `aria-label="X chord shape"`) and the "Mark as learning" pill.
-- [ ] 2.5 Bold on the page (D3): `.sheet > :is(.pr, .ly)` gets `font-weight: 700` and `.sheet .c` 800 everywhere, not just under `body.staged`. Keep `.sheet.measure` at 800. The editor (writing mode) keeps its own weight: check `.ed-tx` isn't affected.
-- [ ] 2.6 The stage light stays off under the cover (4.59.0), and the band stays soft white, now in plain Play too.
-- [ ] 2.7 Tests: a song with a cover opens with `body.covered` on its page before Play; leaving to the Songbook removes it; a song without a cover never has it. Paused lyric weight is 700. Extend the step 1 axe sweep to the paused song page before any Play.
-- [ ] 2.8 README: rewrite the 4.59.0 line so it says the cover is behind the whole song screen. docs/DATA.md: nothing new stored.
+- [x] 2.1 Move `coverOn(song)` and `coverOff()` from `gig.js` to `stage.js` and export them. `gig.js` imports them from there. No new file, so `sw.js` doesn't change.
+- [x] 2.2 `app.js`: when the song page draws a song, call `coverOn(song)` (it already does nothing without an https cover, D2). On leaving the song route, call `coverOff()` in the existing `onLeave` at the `teardownFold` line. A song that gets its cover while open (Get the song, Listen) calls `coverOn` again (look for `feelArrived` in `listen.js` as the hook).
+- [x] 2.3 `gig.js`: the Gig no longer turns the cover on or off; the page owns it. Remove `coverOn` and `coverOff` from `openGig` and `closeGig`.
+- [x] 2.4 On the paused page under the cover, the top part of the page (`.shead`, the chord tiles, the header note) reads on the dark set from step 1. Check the chord tiles (`.crow` tiles, `aria-label="X chord shape"`) and the "Mark as learning" pill.
+- [x] 2.5 Bold on the page (D3): `.sheet > :is(.pr, .ly)` gets `font-weight: 700` and `.sheet .c` 800 everywhere, not just under `body.staged`. Keep `.sheet.measure` at 800. The editor (writing mode) keeps its own weight: check `.ed-tx` isn't affected.
+- [x] 2.6 The stage light stays off under the cover (4.59.0), and the band stays soft white, now in plain Play too.
+- [x] 2.7 Tests: a song with a cover opens with `body.covered` on its page before Play; leaving to the Songbook removes it; a song without a cover never has it. Paused lyric weight is 700. Extend the step 1 axe sweep to the paused song page before any Play.
+- [x] 2.8 README: rewrite the 4.59.0 line so it says the cover is behind the whole song screen. docs/DATA.md: nothing new stored.
 
 ## Surprises
 
+- Step 2: the cover sat behind an opaque body on the song page (it only worked in the show because the stage makes the body transparent), so `body.covered` sets `background: transparent` and the root paints the dark base. The cover test reloads after routing the picture, since the page now asks for it on opening.
 - Step 1: no extra surface tokens were needed beyond the listed set; the screenshots (Festival, Green, paused, pulled down, Tools open) all read. Green looked identical to Festival in the harness because both use the light cover look. axe can't be installed here, so the contrast sweep ran names-only locally; CI runs axe.

@@ -3846,6 +3846,9 @@ body:has(#st-open:not(.go)) .gg-shape, body:has(#st-open:not(.go)) .countin { vi
 @media (prefers-reduced-motion: reduce) { .gs-st.ring { animation: none; } .gs-bar i { transition: none; } }
 .gs-kept-bar { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 14%, transparent); overflow: hidden; }
 .gs-kept-bar i { display: block; height: 100%; background: var(--accent); }
+/* Bold on the song page too (4.61.0, Graham, 2026-10-24): the page and the stage read the same, and the size is already measured at the boldest weight (4.58.0) so nothing jumps when Play starts */
+.sheet > :is(.pr, .ly) { font-weight: 700; }
+.sheet .c { font-weight: 800; }
 /* The album cover behind the show (4.59.0, Graham, 2026-10-24): blown up, blurred, under a dark layer. The show
    then reads as dark in every palette: white words, a soft white band, no stage light. The section name keeps
    its colour. Plain Play and the paused sheet are unchanged. */
@@ -3868,3 +3871,6 @@ body.covered.staged .sheet > .st-now::before { background: rgba(255, 255, 255, .
 .gig :is(.gg-x, .gg-mic, .gg-pause) { transition: opacity .4s, visibility 0s; }
 .gig.idle :is(.gg-x, .gg-mic, .gg-pause) { opacity: 0; visibility: hidden; transition: opacity .4s, visibility 0s .4s; }
 @media (prefers-reduced-motion: reduce) { .gig :is(.gg-x, .gg-mic, .gg-pause), .gig.idle :is(.gg-x, .gg-mic, .gg-pause) { transition: none; } }
+/* the page itself lets the cover through (4.61.0): on the song screen the body no longer paints over it */
+body.covered { background: transparent; }
+html:has(body.covered) { background: #141218; }

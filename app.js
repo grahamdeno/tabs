@@ -11,7 +11,7 @@ import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, m
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
-import { stagePlay, stageStop, stageOpen, stageBeat } from "./stage.js";
+import { stagePlay, stageStop, stageOpen, stageBeat, coverOn, coverOff } from "./stage.js";
 
 
 // ---------- State ----------
@@ -145,7 +145,7 @@ function renderViewer(id) {
   if (!song) return go("#/");
   const isChords = song.format !== "tab";
   prepareMusic(song);
-  onFeel(s2 => { if (s2 === song) paintListenChip(song); });
+  onFeel(s2 => { if (s2 === song) { paintListenChip(song); coverOn(song); } });
   /* once the sheet is drawn: time its lines from the lyrics (3.17.0) */
   setTimeout(() => { if (viewing === song) timeLines(song, lyricLines); }, 700);
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
@@ -286,6 +286,7 @@ function renderViewer(id) {
   draw();
   redraw = () => { draw(); paintLoop(song); buildMap(); };
   viewing = song;
+  coverOn(song); /* 4.61.0: the song's cover is the room behind the whole song screen */
   paintLoop(song);
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
@@ -389,7 +390,7 @@ function renderViewer(id) {
 let redraw = null;
 let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
 let foldApi = null;
-onLeave(() => { teardownFold(); foldApi = null; stageStop(); });
+onLeave(() => { teardownFold(); foldApi = null; stageStop(); coverOff(); });
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
 function chordLabel(text) {

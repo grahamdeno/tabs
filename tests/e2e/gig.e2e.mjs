@@ -364,7 +364,11 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   const covered = { ...SHORT, id: "c", duration: 60, listen: { url: "https://music.apple.com/us/album/x/1?i=2", art } };
   const page = await strummingPage(t, { ...LIB, songs: [covered, { ...SHORT, duration: 60 }], settings: { ...LIB.settings, plainPlay: false } }, "#/song/c", { strum: false });
   await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: png }));
-  await page.click("#play"); await page.waitForSelector("body.covered #gg-cover.in");
+  /* 4.61.0: the cover is the room behind the whole song screen, before Play too, with bold words */
+  await page.reload(); await page.waitForSelector("#play"); /* the picture is routed now; the page tried it before */
+  await page.waitForSelector("body.covered #gg-cover.in");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .pr, #sheet > .ly")).fontWeight), "700", "bold on the song page too");
+  await page.click("#play"); await page.waitForSelector("#gig");
   await page.waitForFunction(() => getComputedStyle(document.querySelector("#sheet > .st-now")).color === "rgb(255, 255, 255)"); /* after the fade */
   const look = await page.evaluate(() => ({ fg: getComputedStyle(document.querySelector("#sheet > .st-now")).color, light: getComputedStyle(document.getElementById("st-bg")).display }));
   assert.equal(look.fg, "rgb(255, 255, 255)", "the words are white on the cover");
@@ -376,12 +380,14 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   assert.ok(!/rgb\(2[0-9]{2}, 2[0-9]{2}, 2[0-9]{2}\)/.test(dock.dockBg), "the dock is dark under a cover: " + dock.dockBg);
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   await page.click("#gg-x"); await page.waitForSelector("#gig", { state: "detached" });
-  assert.equal(await page.locator("#gg-cover").count(), 0, "the cover goes when you leave");
-  assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false);
+  assert.equal(await page.locator("#gg-cover").count(), 1, "leaving the show, the cover stays behind the song page");
+  await page.goto(base + "#/"); await page.waitForFunction(() => !document.getElementById("gg-cover"));
+  assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false, "off the song page, the cover is gone");
   /* a song with no cover: the show as before */
   await page.goto(base + "#/song/g"); await page.waitForSelector("#play"); await settled(page);
-  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gg-cover").count(), 0, "no cover, no change");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#gg-cover").count(), 0, "no cover in the show either");
   assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false);
 });
 
