@@ -278,6 +278,7 @@ function renderViewer(id) {
     if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true, translit: langOf(data) === "ru" && data.settings.deTranslit !== false });
     paintDeChip(song, fresh, lvl);
     renderBlocks(sheet, blocks);
+    if (isChords) fitText(sheet, song);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
     paintSecbar();
@@ -455,6 +456,24 @@ function chordSVG(name, scale = 1) {
   });
   if (base > 1) g += `<text class="db" x="48" y="${rowY(base) + 2.4}">${base}</text>`;
   return `<svg width="${52 * scale}" height="${76 * scale}" viewBox="0 0 52 76" role="img" aria-label="${esc(name)} chord fingering">${g}</svg>`;
+}
+
+/* 4.51.0 (Graham, 2026-10-24): the text size is the one that fits the song's longest line on one line, so a
+   line of the song is a line on screen, from 14 to 22 px (larger with the phone's own text size). Text size in
+   Tools scales that up or down. Measured once per draw, each line laid out on one line. */
+const FIT_MIN = 14, FIT_MAX = 22;
+function fitText(sheet, song) {
+  const base = 17 * sysText;
+  sheet.style.setProperty("--lyric-size", base.toFixed(1) + "px");
+  const lines = sheet.querySelectorAll(":scope > .pr, :scope > .ly, :scope > .crow");
+  if (!lines.length) return;
+  sheet.classList.add("measure");
+  let widest = 0;
+  for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width);
+  sheet.classList.remove("measure");
+  const room = sheet.clientWidth * 0.95; /* lines keep 5% on the right for the focus line's scale */
+  const fit = widest > 0 ? base * room / widest : base;
+  sheet.style.setProperty("--lyric-size", (Math.min(FIT_MAX * sysText, Math.max(FIT_MIN, fit)) * (song.size || 1)).toFixed(1) + "px");
 }
 
 // Record every chord label and every line, top to bottom, for the reading line.

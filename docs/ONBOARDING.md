@@ -176,7 +176,7 @@ anything a person found on their own is skipped.
 |---|---|---|---|---|
 | 1 | The microphone hears your strums and scores the changes | Just strum on the change | On screen: "Hearing you · tap to turn off" says it listens, not why | The heart of the game. Before the first show: "Strum on each chord change. I'm listening" from Louie |
 | 2 | Tap to pause (twice on stage) | Tap the screen | None in the Gig (the tip is plain-sheet only) | First show, a few seconds in, as the pause tip already does elsewhere |
-| 3 | Drag the lines to move the song | Drag | None | First pause in a Gig |
+| 3 | Drag the song to move it (4.51.0: the song page itself scrolls under the show) | Drag | None | First pause in a Gig |
 | 4 | The beat dots count to the change | Watch them | None | Second show, once they've seen the screen (4.50.0: Now and Next is gone) |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |

@@ -2171,12 +2171,17 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look="neon"] { --g-verse: #3DE0FF; --g-chorus: #FF4FA3; --g-bridge: #FFD84D; --g-solo: #B8F34A; }
 :root[data-look="festival"] { --g-verse: #3A86FF; --g-chorus: #FF3D7F; --g-bridge: #FF8A00; --g-solo: #FFD23F; }
 :root[data-look="green"] { --g-verse: #0B7A7C; --g-chorus: #FF5A4E; --g-bridge: #F2B705; --g-solo: #7A2E8E; }
-body.gigging { overflow: hidden; }
 body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach-dim, body.gigging .nextup, body.gigging .countin, body.gigging #tabs { visibility: hidden; }
-.gig { --gel: var(--g-verse); position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: calc(10px + var(--safe-t)) 16px calc(12px + var(--safe-b)); background: var(--bg); color: var(--fg); overflow: hidden; font-family: var(--sans); }
-.gig[data-gel="chorus"] { --gel: var(--g-chorus); } .gig[data-gel="bridge"] { --gel: var(--g-bridge); } .gig[data-gel="solo"] { --gel: var(--g-solo); }
-.gg-light { position: absolute; left: 50%; top: 0; width: 420px; height: 70%; transform: translateX(-50%); background: linear-gradient(180deg, color-mix(in srgb, var(--gel) 26%, transparent), transparent); clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%); pointer-events: none; transition: background .6s; }
-.gig > :not(.gg-light) { position: relative; }
+/* 4.51.0: the show is see-through in the middle: the song page under it is the lines (stage.js draws on it).
+   A fade at the top and the bottom keeps the controls clear of the words scrolling under them. */
+.gig { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: calc(10px + var(--safe-t)) 16px calc(12px + var(--safe-b)); color: var(--fg); overflow: hidden; font-family: var(--sans); pointer-events: none; }
+.gig > * { pointer-events: auto; }
+.gig > .gg-bd { pointer-events: none; }
+.gig::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; height: calc(var(--safe-t) + 150px); background: linear-gradient(180deg, var(--bg) calc(var(--safe-t) + 96px), transparent); pointer-events: none; }
+.gig::after { content: ""; position: absolute; z-index: -1; left: 0; right: 0; bottom: 0; height: calc(var(--safe-b) + 110px); background: linear-gradient(180deg, transparent, var(--bg) 44px); pointer-events: none; }
+.gig .gg-bottom { margin-top: auto; }
+.gig.done { background: var(--bg); }
+.gig > * { position: relative; }
 .gg-top { display: flex; align-items: center; gap: 10px; flex: none; }
 .gg-x { width: 44px; height: 44px; flex: none; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
 .gg-x svg { width: 24px; height: 24px; }
@@ -2202,7 +2207,6 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 .gg-string { fill: none; stroke: var(--fans); stroke-width: 5; stroke-linecap: round; }
 .gg-string.wob { animation: gg-wob .14s linear infinite alternate; transform-origin: center; }
 @keyframes gg-wob { to { transform: scaleY(-1); } }
-.gg-end { margin: 8px 0; color: var(--muted); font-weight: 700; }
 .gg-bottom { flex: none; display: flex; align-items: center; gap: 10px; }
 .gg-mic { flex: 1; min-width: 0; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--good); font: 700 15px var(--sans); }
 .gg-mic svg { width: 20px; height: 20px; flex: none; }
@@ -2341,13 +2345,13 @@ body.gigging .menu.tools { z-index: 60; }
 .gg-mt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; min-width: 0; }
 .gg-mt small { font: 800 10px var(--sans); letter-spacing: .04em; opacity: .8; }
 .gg-mic:not(.off) { border-color: var(--good); background: var(--good-soft, var(--card)); box-shadow: 0 3px 0 color-mix(in srgb, var(--good) 35%, transparent); }
-/* 4.49.13: paused, nothing dims: the lines stay readable and draggable; only the buttons come up */
-.gig.paused > :not(.gg-light):not(.gg-hold):not(.gg-lines):not(.gg-top) { pointer-events: none; }
+/* 4.49.13: paused, nothing dims: the song stays readable and draggable; only the buttons come up */
+.gig.paused > :not(.gg-hold):not(.gg-top) { pointer-events: none; }
 .gig.paused .gg-shape, .gig.paused .gg-moment { visibility: hidden; }
 .gig.paused .gg-bottom { visibility: hidden; }
 .gg-hold { position: absolute !important; left: 0; right: 0; bottom: 0; padding: 34px 16px calc(14px + var(--safe-b)); display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; background: linear-gradient(180deg, transparent, var(--bg) 34px); }
 .gg-hold[hidden] { display: none; }
-:root[data-theme="light"] .gg-say { display: flex; align-items: center; gap: 12px; }
+.gg-say { display: flex; align-items: center; gap: 12px; }
 .gg-say[hidden] { display: none; }
 .gg-say .louie { width: 64px; height: auto; flex: none; }
 .gg-say p { flex: 1; margin: 0; background: var(--card); border: 2px solid var(--rim); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font: 700 15px/1.35 var(--sans); color: var(--fg); }
@@ -2361,9 +2365,7 @@ body.gigging .menu.tools { z-index: 60; }
 /* Tools on a shorter phone: the sheet scrolls inside itself (4.2.1) */
 .menu.tools { max-height: calc(100dvh - 24px - var(--safe-t)); overflow-y: auto; overscroll-behavior: contain; }
 /* the Gig's lines move the song under a finger (4.2.2) */
-.gg-lines, .gg-hold { touch-action: none; }
-/* the lines are redrawn as you drag, so a finger must start on the box itself: a touch that starts on a line the redraw removes stops reaching it (4.49.13) */
-.gg-lines > * { pointer-events: none; }
+.gg-hold { touch-action: none; }
 /* ==========================================================================
    Full (4.4.0): Lines in a gig, Full. The song page shows whole and scrolls
    under your finger; the show is a strip at the top (the map, the section,
@@ -3648,24 +3650,6 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 .gg-cap { font: 800 10.5px var(--sans); letter-spacing: .08em; color: var(--muted); }
 .gg-status .gg-fans { flex: 1; display: flex; gap: 3px; align-items: flex-end; height: 28px; margin: 0; }
 .gg-status .gg-fans i { flex: 1; }
-/* The lines (4.49.7): one line in focus, on a band in the section's colour; the next line is half lit,
-   the rest recede. */
-/* 4.49.14: the lines run the full width of the screen and the band on the line you're on goes edge to edge,
-   so the time after the words (or a row of chords with no words) reads as empty space in the line, never a short
-   centred box. Every line is told to stretch and start at the left, so no browser shrinks one to its words. */
-.gg-lines { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding-top: 4px; margin: 0 -16px; --lyric-size: 21px; }
-.gg-lines > * { position: relative; align-self: stretch; width: auto; max-width: none; box-sizing: border-box; margin: 0 !important; padding: 4px 16px 7px 30px; border-radius: 0; font-size: 21px; text-align: left; justify-content: flex-start; opacity: .38; transition: opacity .25s, background-color .25s; }
-.gg-lines .gl-past { opacity: .2; }
-.gg-lines .gl-next { opacity: .62; }
-.gg-lines .gl-now { opacity: 1; padding-top: 10px; font-size: 24px; font-weight: 800; background: color-mix(in srgb, var(--gel) 16%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gel) 45%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--gel) 45%, transparent); }
-.gg-lines.step > * { animation: gl-step .22s ease-out; }
-@keyframes gl-step { from { transform: translateY(14px); } }
-.gg-lines .c { position: relative; color: var(--muted); font-family: var(--display); }
-.gg-lines :is(.gl-now, .gl-next) .c { color: var(--gel); }
-:root[data-theme="light"] .gg-lines :is(.gl-now, .gl-next) .c { color: color-mix(in srgb, var(--gel) 75%, #14213D); }
-.gg-lines .c.gc-rep { visibility: hidden; }
-.gg-lines .c.gc-lit .ct { color: #14213D; border-radius: 6px; }
-.gg-lines .c.gc-lit .ct { background: var(--gel); box-shadow: 0 0 0 4px var(--gel), 0 6px 0 color-mix(in srgb, var(--gel) 55%, #000); }
 /* the next chord stays plain until the dots reach it (4.49.11): only the chord you're on is lit */
 /* The beat dots (4.49.10): a dot for each beat of the chord you're on, between it and the next chord; one
    lit, stepping toward the next chord on the beat */
@@ -3680,7 +3664,7 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 .gg-status .gg-fans i.on .arms { opacity: 1; }
 .gg-status .gg-fans i.on.c0 { color: var(--g-chorus); } .gg-status .gg-fans i.on.c1 { color: var(--g-verse); }
 .gg-status .gg-fans i.on.c2 { color: var(--fans); } .gg-status .gg-fans i.on.c3 { color: var(--g-solo); }
-@media (prefers-reduced-motion: reduce) { .gg-lines.step > *, .gc-run i, .gg-status .gg-fans svg { animation: none; transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gc-run i, .gg-status .gg-fans svg { animation: none; transition: none; } }
 .gg-shape { position: absolute !important; right: 14px; top: 34%; z-index: 2; width: 96px; box-sizing: border-box; padding: 8px 6px; border-radius: 14px; background: var(--card); border: 2px solid var(--fans); box-shadow: 0 4px 0 var(--fans-deep); text-align: center; }
 .gg-shape[hidden] { display: none; }
 .gg-shape small { display: block; font: 800 9.5px var(--sans); letter-spacing: .06em; color: var(--fans-text); }
@@ -3745,3 +3729,36 @@ html:has(body.searching.sr-lock), body.searching.sr-lock { overflow: hidden; ove
 .gs .gs-chart { max-height: none; overflow: visible; }
 .panel.gs.washed, :root[data-look] .panel.gs.washed { background-image: linear-gradient(160deg, color-mix(in srgb, var(--album, var(--accent)) 34%, transparent), transparent 440px); background-repeat: no-repeat; }
 .panel.gs.washed .pbody > .cover-head { background: none; }
+
+/* ---- The stage on the song page (4.51.0, stage.js) ----
+   While a show plays, the song page is the stage: the rest of the page steps back, the line you're on sits on
+   a band in the section's colour from edge to edge, lines ahead stay readable (.7) and lines behind fade (.35).
+   Nothing changes size or moves, so nothing rewraps. */
+body.staged { --gel: var(--g-verse); background: transparent; }
+body.staged[data-gel="chorus"] { --gel: var(--g-chorus); } body.staged[data-gel="bridge"] { --gel: var(--g-bridge); } body.staged[data-gel="solo"] { --gel: var(--g-solo); }
+body.staged .app.viewer > :not(.sheet), body.staged .chead, body.staged .smap, body.staged .shapecard { visibility: hidden; }
+body.staged .app.viewer { overflow-x: clip; }
+body.staged .sheet { overflow-x: visible; }
+body.staged .sheet > * { position: relative; opacity: .7 !important; transform: none !important; -webkit-text-stroke: 0 !important; transition: opacity .25s; }
+body.staged .sheet > .st-past { opacity: .35 !important; }
+body.staged .sheet > .st-next { opacity: .85 !important; }
+body.staged .sheet > .st-now { opacity: 1 !important; }
+body.staged .sheet > .st-now::before { content: ""; position: absolute; z-index: -1; top: -6px; bottom: -2px; left: -50vw; right: -50vw; background: color-mix(in srgb, var(--gel) 16%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gel) 45%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--gel) 45%, transparent); pointer-events: none; transition: background-color .4s; }
+body.staged .sheet .c { color: var(--gel); }
+:root[data-theme="light"] body.staged .sheet .c, :root[data-look="festival"] body.staged .sheet .c { color: color-mix(in srgb, var(--gel) 72%, #14213D); }
+body.staged .sheet .c.st-rep { visibility: hidden; }
+body.staged .sheet .c.st-lit .ct { color: #14213D; background: var(--gel); border-radius: 6px; box-shadow: 0 0 0 4px var(--gel), 0 6px 0 color-mix(in srgb, var(--gel) 55%, #000); }
+/* The stage light, quiet (Graham, 2026-10-24): behind the words, at most 12% of the section's colour, and gone
+   before the band at the reading line, so it never sits on the words you're reading. */
+.st-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.st-bg i { position: absolute; left: 50%; display: block; }
+.st-bg .st-lamp { top: -150px; width: 300px; height: 300px; margin-left: -150px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 5%, transparent); }
+.st-bg .st-beam { top: 0; width: 520px; height: 38%; margin-left: -260px; clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, color-mix(in srgb, var(--gel) 12%, transparent), transparent 92%); transition: background .6s; }
+/* A row of chords with no words (an intro, a solo) spreads across the width, so it reads as time going by
+   (Graham, 2026-10-24); its chords are timed evenly along it too. */
+.sheet .crow > * { flex: 1 1 0; min-width: max-content; }
+/* Fitting the text (4.51.0): each line measured on one line, to find the size that fits the longest */
+.sheet.measure > :is(.pr, .ly, .crow) { width: max-content; white-space: nowrap; flex-wrap: nowrap; }
+.sheet.measure .crow > * { flex: none; }
+/* the new-chord card sits low on the right, in thumb reach, clear of the band at the reading line (4.51.0) */
+.gig .gg-shape { top: auto; bottom: calc(96px + var(--safe-b)); }

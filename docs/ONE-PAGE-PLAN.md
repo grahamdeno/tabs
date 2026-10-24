@@ -154,19 +154,19 @@ Independent of the rest, and it fixes the hidden chords Graham saw.
 The lines, the band, the lit chord and the dots move onto the real sheet. The Gig's top strip and bottom buttons stay
 for now, over a see-through middle.
 
-- [ ] 3.1 New file `stage.js` (add to `SHELL`): `where(song)`, `chordYs`, `paintLit` and the beat-dot logic move here
+- [x] 3.1 New file `stage.js` (add to `SHELL`): `where(song)`, `chordYs`, `paintLit` and the beat-dot logic move here
       from `gig.js`, unchanged in behaviour, working on `#sheet` instead of clones. `gig.js` imports them.
-- [ ] 3.2 Playing look on `body.playing`: the head, `.meta`, the chips row and the chord chips slide away (not just dim:
+- [x] 3.2 Playing look on `body.playing`: the head, `.meta`, the chips row and the chord chips slide away (not just dim:
       today's rules at "body.playing .app.viewer > .head" set them to .35). The sheet keeps `song.size`.
-- [ ] 3.3 The band: the line at `READ_AT` gets the band in the section's gel, full screen width (the Step 0 rule, moved
+- [x] 3.3 The band: the line at `READ_AT` gets the band in the section's gel, full screen width (the Step 0 rule, moved
       to the sheet). Ahead about .7, behind about .35. This replaces the `.cur` / `.cur2` focus dimming (.38 today).
-- [ ] 3.4 The lit chord and the beat dots draw on the real sheet's chord (`.c`), using `runDot`, `beatsBetween`,
+- [x] 3.4 The lit chord and the beat dots draw on the real sheet's chord (`.c`), using `runDot`, `beatsBetween`,
       `onBeat` from `core.js` as now. Only the current chord is lit (4.49.11).
-- [ ] 3.5 `gig.js`: `#gg-lines` is no longer drawn; `paintLines`, `cloneOf`, `g.lineMap` and the clone-only CSS go.
+- [x] 3.5 `gig.js`: `#gg-lines` is no longer drawn; `paintLines`, `cloneOf`, `g.lineMap` and the clone-only CSS go.
       The middle of `.gig` becomes see-through and lets touches through to the page, so dragging scrolls the real sheet
       and `bindDrag` goes.
-- [ ] 3.6 Stage colour: `data-gel` moves from `#gig` to `body` while playing, so the page washes into the section.
-- [ ] 3.7 Tests: `gig.e2e.mjs` checks for `.gl-now` and `#gg-lines` move to the sheet's band and lit chord; the 4.49.10
+- [x] 3.6 Stage colour: `data-gel` moves from `#gig` to `body` while playing, so the page washes into the section.
+- [x] 3.7 Tests: `gig.e2e.mjs` checks for `.gl-now` and `#gg-lines` move to the sheet's band and lit chord; the 4.49.10
       dots test keeps its timing checks. Check the count-in still shows.
 
 ### Step 4. One page: the Gig layer goes [Opus], 4.52.0
@@ -206,4 +206,8 @@ for now, over a see-through middle.
 
 ## Surprises
 
-(none yet)
+- Step 3 (4.51.0): a regex in 4.49.13 had left `.gg-say` (Louie's line on pause) styled only in the light look;
+  fixed. The Gig's new top and bottom fades first covered its own buttons (they now sit under them).
+- Step 3: the new-chord card sat on the band once the band was edge to edge; it moved low on the right.
+- Step 3: chords on every line take the section's colour while playing (the mockup's look), not only the band's.
+- Step 3: the scored-show test can time out under the parallel quick run on a busy machine; it passes alone.
