@@ -838,22 +838,24 @@ export function gigTiming(g) {
   if (!o.length) return 0;
   return o.reduce((a, b) => a + b, 0) / o.length;
 }
-/* The count-in to the next change (4.49.7): a dot a beat, lit left to right, so the last dot lights one
-   beat before the change and the change itself is the next beat. `until` is the seconds to the change,
-   `spb` the seconds a beat, `n` the dots. Returns how many are lit (0 when the change is further off). */
-export const COUNT_DOTS = 4;
-export function countLit(until, spb, n = COUNT_DOTS) {
-  if (until == null || !(spb > 0) || until <= 0 || until > n * spb + 1e-6) return 0;
-  return Math.min(n, n + 1 - Math.ceil(until / spb - 1e-6));
+/* The beat dots (4.49.10): between the chord you're on and the next one, a dot for each beat the chord
+   lasts, spread across the gap. One dot is lit and it travels toward the next chord a beat at a time: the
+   first dot on the chord's first beat, the last on its last beat, and the change comes on the beat after.
+   `beatsBetween` is how many beats the chord you're on lasts; `runDot` is which dot is lit `until` seconds
+   before the change (0 the first, -1 none). With fewer dots shown than beats (no room), the last ones show. */
+export const RUN_MAX = 8;
+export const beatsBetween = (span, spb) => spb > 0 && span > 0 ? Math.max(1, Math.round(span / spb)) : 1;
+export function runDot(until, spb, beats, shown = beats) {
+  if (until == null || !(spb > 0) || until <= 0 || beats < 1) return -1;
+  const k = beats - Math.ceil(until / spb - 1e-6);
+  if (k < 0 || k > beats - 1) return -1;
+  const d = k - (beats - shown);
+  return d >= 0 && d < shown ? d : -1;
 }
 /* A change's time moved onto the band's beat grid, so the count lights on the clicks you hear: `t` the
    change, `next` the time of a beat the band has scheduled, `spb` its beat. */
 export function onBeat(t, next, spb) {
   return spb > 0 && Number.isFinite(next) ? next + Math.round((t - next) / spb) * spb : t;
-}
-/* how far through the line you're on, 0 to 1: the reading point between this line's top and the next one's */
-export function lineFrac(at, y, nextY) {
-  return nextY > y ? Math.max(0, Math.min(1, (at - y) / (nextY - y))) : 0;
 }
 /* Stage Gels: the colour family of a section, from its name */
 export function gelOf(name) {

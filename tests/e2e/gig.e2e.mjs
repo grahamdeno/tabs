@@ -123,7 +123,7 @@ test("4.43.0 words first: the chord you're on lit in the line, the next one with
   await page.waitForFunction(() => !document.getElementById("gig").classList.contains("bigc"), null, { timeout: 20000 });
   assert.equal(await page.locator(".gg-chords").isVisible(), false, "no big cards over words");
   assert.ok(await page.locator("#gg-lines > *").count() >= 7, "at least seven lines on screen");
-  await page.waitForSelector("#gg-lines .gc-lit:not(.gc-rep) .ct"); await page.waitForSelector("#gg-lines .gc-next .gc-dots", { state: "attached" });
+  await page.waitForSelector("#gg-lines .gc-lit:not(.gc-rep) .ct"); await page.waitForSelector("#gg-lines .gc-next .ct"); await page.waitForSelector("#gg-lines .gc-run i", { state: "attached" });
   assert.ok(await page.locator("#gg-lines .gc-rep").count() > 0, "a chord played again in a row is hidden");
   await page.waitForFunction(() => { const s = document.getElementById("gg-shape"); return s && !s.hidden && /Fmaj7/.test(s.textContent); }, null, { timeout: 20000 });
   assert.match(await page.innerText("#gg-shape"), /NEW CHORD/, "a shape for the chord you haven't learned");
@@ -148,27 +148,24 @@ test("4.41.0 a sheet whose chords are a guess: a change you don't strum is never
   assert.equal(await page.locator(".gc-list b").filter({ hasText: /^0$/ }).count(), 0, "no 0 of n changes landed");
 });
 
-test("4.49.7 the line you're on: a band with a sweep, the next one half lit; the count-in left of the next chord, lit left to right", { skip: skip() }, async t => {
-  const body = "[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G                 C\nLine ${i + 1} of the verse goes here`).join("\n");
+test("4.49.10 the beat dots sit between the chord you're on and the next, one lit at a time stepping toward it; no sweep; the crowd are fans", { skip: skip() }, async t => {
+  const body = "[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G                       C\nLine ${i + 1} of the verse goes on here`).join("\n");
   const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
   const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig #gg-lines .gl-now");
-  assert.equal(await page.locator("#gg-lines .gl-now .gl-sweep").count(), 1, "a sweep on the line you're on");
+  assert.equal(await page.locator(".gl-sweep").count(), 0, "no sweep");
   assert.equal(await page.locator("#gg-lines .gl-next").count(), 1, "one next line");
-  await page.waitForFunction(() => { const s = document.querySelector("#gg-lines .gl-sweep"); return s && /scaleX\(0\.[1-9]/.test(s.style.transform); }, null, { timeout: 20000 });
+  assert.equal(await page.locator("#gg-fans i svg").count(), 12, "the crowd is 12 fans");
   const geo = await page.waitForFunction(() => {
-    const d = document.querySelector("#gg-lines .gc-next .gc-dots"), c = document.querySelector("#gg-lines .gc-next .ct");
-    if (!d || !c) return null;
-    const a = d.getBoundingClientRect(), b = c.getBoundingClientRect();
-    return { dotsRight: a.right, chordLeft: b.left, tight: !!d.closest(".gc-tight"), dotsTop: a.bottom, chordTop: b.top };
+    const run = document.querySelector("#gg-lines .gc-run"), lit = document.querySelector("#gg-lines .gc-lit .ct");
+    if (!run || !lit || !run.children.length) return null;
+    const xs = [...run.children].map(e => e.getBoundingClientRect().left);
+    return { first: xs[0], last: xs[xs.length - 1], n: xs.length, chordRight: lit.getBoundingClientRect().right, on: run.querySelectorAll("i.on").length };
   }, null, { timeout: 20000 }).then(h => h.jsonValue());
-  assert.ok(geo.tight ? geo.dotsTop <= geo.chordTop : geo.dotsRight <= geo.chordLeft, "the count sits on the chord's left (or over it when there's no room)");
-  /* lit left to right: once any dot is on, the first one is */
-  await page.waitForFunction(() => {
-    const ds = [...document.querySelectorAll("#gg-lines .gc-next .gc-dots i")], on = ds.map(e => e.classList.contains("on"));
-    return on.some(Boolean) && on.every((v, i) => i === 0 || !v || on[i - 1]);
-  }, null, { timeout: 20000 });
+  assert.ok(geo.first > geo.chordRight, "the dots start on the right of the chord you're on");
+  assert.ok(geo.n >= 2 && geo.last > geo.first, "spread out toward the next chord");
+  await page.waitForFunction(() => document.querySelectorAll("#gg-lines .gc-run i.on").length === 1, null, { timeout: 20000 });
 });
 
 test("4.49.6 a chord before the singing stands ahead of the words on the song page", { skip: skip() }, async t => {

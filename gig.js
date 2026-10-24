@@ -6,9 +6,10 @@
 //             flashes beside it when a change lands early or late), your strings
 //   status    the section you're in, in its colour, and the crowd as a row of 12 that fills up
 //   lines     words first (4.43.0): the song's lines fill the screen, the one you're on brightest. The chord
-//             you're on lights up over its word; the next one is yellow, counted in by a dot a beat on its
-//             left (4.49.7). The line you're on sits on a band with a sweep that reaches each chord as it
-//             comes. A chord played again in a row shows once. A small shape for a chord you haven't learned.
+//             you're on lights up over its word; the next one is yellow. Between them a dot for each beat of
+//             the chord you're on, one lit, travelling toward the next chord a beat at a time (4.49.10). The
+//             line you're on sits on a band in the section's colour. A chord played again in a row shows
+//             once. A small shape for a chord you haven't learned.
 //             With no words (an intro, a solo) and Now and Next on in Tools, the big Now and Next cards
 //             show instead (4.49.9; off by default, so the lines fill the screen).
 //   moments   Louie and the crowd pop in for a combo milestone or a full crowd, then go
@@ -19,7 +20,7 @@
 // core.js). Without the microphone the show still plays and counts; nothing is graded.
 // At the end: Show complete, with the bonus fans, the crowd and how many changes landed, and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, COUNT_DOTS, countLit, onBeat, lineFrac, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, RUN_MAX, beatsBetween, runDot, onBeat, gigChord, GIG_LATE, chromaOf, gigCrowd, knownChords, gigDone, gelOf, questsSettle, bandParts, bandMeet, rehearseMisses, GIG_WINDOW, GIG_STRINGS, strumDetector, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { metro } from "./audio.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
@@ -118,7 +119,7 @@ function where(song) {
   while (b < diag.blocks.length - 1 && !isLine(diag.blocks[b].el)) b++;
   let sec = null;
   for (let i = b; i >= 0; i--) if (diag.blocks[i].el.classList.contains("sec")) { sec = diag.blocks[i].el.textContent.trim(); break; }
-  let idx = -1, next = -1, until = null;
+  let idx = -1, next = -1, from = -1, until = null, span = 0;
   const seq = diag.seq || [];
   if (seq.length) {
     const clock = usesMusic(song) ? musicClock(song) : null, ct = clock !== null ? chordTimes(song) : null;
@@ -126,13 +127,15 @@ function where(song) {
     if (ct) { for (let i = 0; i < ct.length; i++) if (ct[i] != null && ct[i] <= clock) idx = i; }
     else { const ys = chordYs(); for (let i = 0; i < seq.length; i++) if (top + ys[i] <= line) idx = i; }
     for (let i = idx + 1; i < seq.length; i++) if (seq[i].name !== seq[idx].name) { next = i; break; }
-    if (next >= 0) until = ct && ct[next] != null ? ct[next] - clock : (top + chordYs()[next] - line) / Math.max(1, pxPerSecond(song));
+    /* a chord played again in a row shows once, so the one you're on starts where its run began */
+    from = idx; while (from > 0 && seq[from - 1].name === seq[from].name) from--;
+    if (next >= 0) {
+      until = ct && ct[next] != null ? ct[next] - clock : (top + chordYs()[next] - line) / Math.max(1, pxPerSecond(song));
+      span = ct ? (ct[next] != null && ct[from] != null ? ct[next] - ct[from] : 0) : (chordYs()[next] - chordYs()[from]) / Math.max(1, pxPerSecond(song));
+    }
   }
   const end = Math.max(1, diag.blocks[diag.blocks.length - 1].y);
-  /* how far through the line you're on: the page's chords come along a line by how far across they sit (chordYs) */
-  let nb = b + 1; while (nb < diag.blocks.length && !isLine(diag.blocks[nb].el)) nb++;
-  const frac = lineFrac(line - top, diag.blocks[b].y, diag.blocks[nb]?.y ?? diag.blocks[b].y + 40);
-  return { b, sec, idx, next, until, frac, progress: Math.max(0, Math.min(1, (line - top) / end)) };
+  return { b, sec, idx, next, from, until, span, progress: Math.max(0, Math.min(1, (line - top) / end)) };
 }
 
 /* ---- the screen ---- */
@@ -151,7 +154,7 @@ function shell(song) {
     <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-cap">CROWD</span><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-chords" aria-hidden="true">
       <div class="gg-now" id="gg-now"><small>NOW</small><b id="gg-nowname"></b><div id="gg-nowdg"></div></div>
-      <div class="gg-next"><small>NEXT</small><b id="gg-nextname"></b>${dots(dotsN(song), "gg-beats", "gg-beats")}</div>
+      <div class="gg-next"><small>NEXT</small><b id="gg-nextname"></b><span class="gg-beats" id="gg-beats" aria-hidden="true"></span></div>
     </div>
     <div class="gg-lines sheet" id="gg-lines"></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
@@ -198,9 +201,8 @@ function paintMap() {
 
 /* Words first (4.43.0): the lines from two back to as many as fit, the one you're on brightest. Each clone
    keeps its chords in order, so the chord you're on and the next one can be lit in place. */
-/* the count-in: a dot a beat, as many as the bar has (up to four), on the chord's left so you read into it */
-const dotsN = song => Math.min(COUNT_DOTS, Math.max(2, song.beats || COUNT_DOTS));
-const dots = (n, cls, id = "") => `<span class="${cls}"${id ? ` id="${id}"` : ""} aria-hidden="true">${"<i></i>".repeat(n)}</span>`;
+/* a beat, in seconds: the band's own when it's playing (so the dots move on its clicks), else the song's pace */
+const beatOf = g => metro.timer && metro.spb > 0 ? metro.spb : beatSecs(g.song);
 function paintLines(w) {
   const box = $("gg-lines"), g = gig;
   if (!box || !g) return;
@@ -215,7 +217,6 @@ function paintLines(w) {
     c.querySelectorAll(".now, .sel").forEach(x => x.classList.remove("now", "sel"));
     c.removeAttribute("id");
     c.classList.add(...(i < w.b ? ["gl-past"] : i === lines[here] ? ["gl-now"] : i === lines[here + 1] ? ["gl-soon", "gl-next"] : ["gl-soon"]));
-    if (i === lines[here]) c.insertAdjacentHTML("beforeend", '<span class="gl-sweep" aria-hidden="true"></span>');
     /* a chord played again in a row shows once */
     const oc = [...el.querySelectorAll(".c[data-ch]")], cc = [...c.querySelectorAll(".c[data-ch]")];
     oc.forEach((o, k) => { const n = at.get(o); if (n > 0 && seq[n - 1].name === seq[n].name) cc[k]?.classList.add("gc-rep"); });
@@ -227,7 +228,6 @@ function paintLines(w) {
   /* the lines step up into place rather than jump */
   if (g.stepped) { box.classList.remove("step"); void box.offsetWidth; box.classList.add("step"); }
   g.stepped = true;
-  g.sweep = box.querySelector(".gl-sweep"); g.frac = -1;
   g.lit = -2; g.lnext = -2;
 }
 /* light the chord you're on and the next one, in the lines on screen */
@@ -245,23 +245,31 @@ function paintLit(w) {
      Now and Next is on in Tools (4.49.9); by default the lines fill the screen */
   g.el.classList.toggle("bigc", data.settings.diagrams === true && !!diag.seq?.[w.idx]?.el?.closest(".crow"));
   box.querySelectorAll(".gc-lit, .gc-next").forEach(e => e.classList.remove("gc-lit", "gc-next"));
-  box.querySelectorAll(".gc-dots").forEach(e => e.remove());
-  box.querySelectorAll(".gc-tight").forEach(e => e.classList.remove("gc-tight"));
-  /* a chord played again in a row shows once, so the one lit is where the run began */
-  let from = w.idx; const q = diag.seq || [];
-  while (from > 0 && q[from - 1].name === q[from].name) from--;
-  cloneOf(from)?.classList.add("gc-lit");
-  const nx = cloneOf(w.next);
-  if (nx) {
-    nx.classList.add("gc-next"); nx.insertAdjacentHTML("afterbegin", dots(g.dotsN, "gc-dots"));
-    /* no room on the left (a chord just before it on the line): the count sits over the chord instead */
-    const d = nx.querySelector(".gc-dots").getBoundingClientRect(), top = nx.getBoundingClientRect().top;
-    const crowd = [...(nx.closest(".pr, .crow")?.querySelectorAll(".c:not(.gc-rep)") || [])]
-      .filter(c => c !== nx && c.compareDocumentPosition(nx) & 4 /* nx follows c */)
-      .map(c => c.querySelector(".ct")?.getBoundingClientRect()).filter(r => r && Math.abs(r.top - top) < 6);
-    if (crowd.some(r => r.right + 6 > d.left) || d.left < box.getBoundingClientRect().left) nx.classList.add("gc-tight");
+  box.querySelectorAll(".gc-run").forEach(e => e.remove());
+  const cur = cloneOf(w.from), nx = cloneOf(w.next);
+  cur?.classList.add("gc-lit");
+  nx?.classList.add("gc-next");
+  /* The beat dots (4.49.10): on the right of the chord you're on, one for each beat it lasts, spread over the
+     gap to the next chord (or to the end of the line when the next one is further down). */
+  const beats = w.next >= 0 ? Math.min(RUN_MAX, beatsBetween(w.span, beatOf(g))) : 0;
+  g.run = { beats, shown: 0, el: null };
+  const ct = cur?.querySelector(".ct"), row = cur && [...box.children].find(x => x.contains(cur));
+  if (ct && row && beats) {
+    const a = ct.getBoundingClientRect(), L = row.getBoundingClientRect(), nt = nx?.querySelector(".ct")?.getBoundingClientRect();
+    const same = nt && row.contains(nx) && Math.abs(nt.top - a.top) < 8 && nt.left > a.right;
+    const x0 = a.right + 10 - L.left, x1 = (same ? nt.left - 10 : L.right - 14) - L.left;
+    const shown = Math.min(beats, Math.floor((x1 - x0) / 16) + 1);
+    if (shown >= 1 && x1 > x0) {
+      const y = a.top + a.height / 2 - L.top;
+      const at = j => shown === 1 ? (x0 + x1) / 2 : x0 + (x1 - x0) * j / (shown - 1);
+      row.insertAdjacentHTML("beforeend", `<span class="gc-run" aria-hidden="true">${Array.from({ length: shown }, (_, j) => `<i style="left:${at(j).toFixed(1)}px;top:${y.toFixed(1)}px"></i>`).join("")}</span>`);
+      g.run = { beats, shown, el: row.querySelector(".gc-run") };
+    }
   }
-  g.beats = -1;
+  /* the big Next card (with Now and Next on) carries up to the last four */
+  const big = $("gg-beats");
+  if (big) big.innerHTML = "<i></i>".repeat(Math.min(4, beats));
+  g.beats = -2;
 }
 /* a small shape for a chord you haven't learned yet, beside the lines */
 function paintShape(name) {
@@ -282,12 +290,18 @@ function moment(text, sub) {
   clearTimeout(gig.momentT); gig.momentT = setTimeout(() => { el.hidden = true; }, 2600);
 }
 
+/* a fan: head, shoulders, and arms that only show when they're up; the order fans stand in, spread along the row */
+const FAN = '<svg viewBox="0 0 20 28" aria-hidden="true"><path class="arms" d="M5 18 L1.5 6 M15 18 L18.5 6"/><circle cx="10" cy="9" r="5"/><path d="M1 28 C1 19 5 16 10 16 C15 16 19 19 19 28 Z"/></svg>';
+const CROWD_ORDER = [5, 2, 9, 0, 7, 11, 3, 6, 10, 1, 8, 4];
 function paintScore() {
   const g = gig;
   if (!g) return;
   const crowd = g.stream ? gigCrowd(g.score) : 0;
   const fans = $("gg-fans");
-  fans.innerHTML = Array.from({ length: 12 }, (_, i) => `<i class="${g.stream && i < crowd ? "on c" + (i % 4) : ""}" style="height:${12 + (i * 7) % 10}px"></i>`).join("");
+  /* 4.49.10: the crowd as 12 fans; the ones on their feet stand up and throw their hands up */
+  if (!fans.children.length) fans.innerHTML = Array.from({ length: 12 }, () => `<i>${FAN}</i>`).join("");
+  const on = new Set(CROWD_ORDER.slice(0, crowd));
+  [...fans.children].forEach((e, i) => { e.className = g.stream && on.has(i) ? "on c" + (i % 4) : ""; });
   fans.setAttribute("aria-label", !g.stream ? "Crowd: listening is off" : `Crowd: ${crowd} of 12 on their feet`);
   $("gg-combo").textContent = g.score.combo >= 2 ? `x${g.score.combo}` : "";
   $("gg-str").querySelector("b").textContent = g.score.strings;
@@ -327,17 +341,17 @@ function frame() {
     if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push({ t: g.clock(), name, pair: `${prev}>${name}` });
   }
   $("gg-nextname").textContent = w.next >= 0 ? seq[w.next].name : seq.length ? "End" : "";
-  /* the count-in, on the band's clicks when the band is playing, otherwise on the song's beat */
-  const band = metro.timer && metro.spb > 0, spb = band ? metro.spb : beatSecs(song);
+  /* the beat dots: one lit, a beat at a time toward the next chord, on the band's clicks when the band plays */
+  const spb = beatOf(g), band = metro.timer && metro.spb > 0;
   const until = w.until == null ? null : band ? onBeat(g.clock() + w.until, metro.next, spb) - g.clock() : w.until;
-  const lit = counting ? 0 : countLit(until, spb, g.dotsN);
-  if (lit !== g.beats) {
-    const up = lit > g.beats && g.beats >= 0;
-    g.beats = lit;
-    for (const box of document.querySelectorAll("#gg-beats, #gg-lines .gc-dots")) [...box.children].forEach((e, i) => { e.classList.toggle("on", i < lit); e.classList.toggle("pop", up && i === lit - 1); });
+  const k = counting || !g.run ? -1 : runDot(until, spb, g.run.beats);
+  if (k !== g.beats) {
+    g.beats = k;
+    const run = g.run?.el ? [...g.run.el.children] : [], d = k - (g.run?.beats - run.length);
+    run.forEach((e, i) => e.classList.toggle("on", i === d));
+    const big = [...($("gg-beats")?.children || [])], b = k - (g.run?.beats - big.length);
+    big.forEach((e, i) => e.classList.toggle("on", i === b));
   }
-  /* the sweep across the line you're on */
-  if (g.sweep && Math.abs(w.frac - g.frac) > 0.002) { g.frac = w.frac; g.sweep.style.transform = `scaleX(${w.frac.toFixed(3)})`; }
   /* grade the changes whose window has passed */
   const now = g.clock();
   const graded = gradeDue(g, now);
@@ -403,7 +417,6 @@ export function openGig(song, opts = {}) {
   };
   /* 4.41.0: chords spread over the lines as a guess are never counted as misses, only as hits */
   g.guess = liningDue(song) === "guess";
-  g.dotsN = dotsN(song);
   g.el = shell(song);
   document.body.classList.add("gigging");
   gigHooks.on = true;
@@ -445,7 +458,7 @@ function paintHold() {
   if (!g || !box) return;
   const now = $("gg-lines")?.querySelector(".gl-now");
   const c = now?.cloneNode(true);
-  c?.querySelectorAll(".gl-sweep, .gc-dots").forEach(e => e.remove());
+  c?.querySelectorAll(".gc-run").forEach(e => e.remove());
   box.replaceChildren(...(c ? [c] : []));
   $("gg-hlouie").innerHTML = louie("happy", { size: 64 });
   $("gg-hsay").textContent = g.holdSay ? g.holdSay : g.score.combo >= 2 ? "Take a breath. The crowd's still with you, and your combo is held." : "Take a breath. The crowd's still here when you're ready.";

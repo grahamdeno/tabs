@@ -2240,19 +2240,19 @@ test("4.49.6 lining up: guessed songs and songs placed the older way, never your
   assert.equal(C.cleanSong({ id: "x", body: "a", spotsV: "2" }).spotsV, undefined);
 });
 
-test("4.49.7 the count-in: a dot a beat lit left to right, the change on the beat after the last, on the band's clicks", () => {
-  assert.equal(C.countLit(4.5, 1), 0, "further than four beats: nothing lit");
-  assert.equal(C.countLit(4, 1), 1, "four beats out: the first dot");
-  assert.equal(C.countLit(3.4, 1), 1);
-  assert.equal(C.countLit(3, 1), 2);
-  assert.equal(C.countLit(0.6, 1), 4, "the last beat before the change: all four");
-  assert.equal(C.countLit(0, 1), 0, "the change itself: the count is done");
-  assert.equal(C.countLit(1.4, 0.5, 3), 1, "three dots in 3/4");
-  assert.equal(C.countLit(null, 1), 0);
+test("4.49.10 the beat dots: a dot a beat between the chord you're on and the next, one lit, travelling toward the next chord", () => {
+  assert.equal(C.beatsBetween(4, 1), 4);
+  assert.equal(C.beatsBetween(3.6, 1.2), 3);
+  assert.equal(C.beatsBetween(0.2, 1), 1, "at least one");
+  assert.equal(C.runDot(4, 1, 4), 0, "the chord's first beat: the first dot");
+  assert.equal(C.runDot(2.5, 1, 4), 1);
+  assert.equal(C.runDot(0.5, 1, 4), 3, "its last beat: the last dot, and the change is the next beat");
+  assert.equal(C.runDot(0, 1, 4), -1, "the change itself");
+  assert.equal(C.runDot(6, 1, 4), -1, "further off than the chord lasts");
+  assert.equal(C.runDot(0.5, 1, 8, 4), 3, "fewer dots than beats: the last ones show");
+  assert.equal(C.runDot(7.5, 1, 8, 4), -1);
+  assert.equal(C.runDot(null, 1, 4), -1);
   assert.equal(C.onBeat(10.2, 8, 0.5), 10, "a change moved onto the nearest click");
   assert.equal(C.onBeat(10.3, 8, 0.5), 10.5);
   assert.equal(C.onBeat(10.3, NaN, 0.5), 10.3, "no band: left as it is");
-  assert.equal(C.lineFrac(150, 100, 200), 0.5);
-  assert.equal(C.lineFrac(50, 100, 200), 0);
-  assert.equal(C.lineFrac(250, 100, 200), 1);
 });
