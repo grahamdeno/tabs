@@ -197,12 +197,12 @@ for now, over a see-through middle.
 
 ### Step 6. Clean-up [Sonnet], patch
 
-- [ ] 6.1 README: one "Playing a song" section in place of the song page and Gig sections; the name per D2.
-- [ ] 6.2 `docs/ONBOARDING.md`: rows for the Gig's pause, Back a line, Sheet and Now and Next updated or removed; new rows
+- [x] 6.1 README: one "Playing a song" section in place of the song page and Gig sections; the name per D2.
+- [x] 6.2 `docs/ONBOARDING.md`: rows for the Gig's pause, Back a line, Sheet and Now and Next updated or removed; new rows
       for chord-chip shapes and tapping a section in the bar.
-- [ ] 6.3 `docs/DATA.md`: any settings retired in Steps 2 and 4.
-- [ ] 6.4 Ask Graham whether to remake the visual references (`screens.yml`), since every play screen changed.
-- [ ] 6.5 Move this file to `docs/history/`.
+- [x] 6.3 `docs/DATA.md`: any settings retired in Steps 2 and 4.
+- [ ] 6.4 Ask Graham whether to remake the visual references (`screens.yml`), since every play screen changed. (asked Graham 2026-10-24; waiting for his answer)
+- [x] 6.5 Move this file to `docs/history/`.
 
 ## Surprises
 

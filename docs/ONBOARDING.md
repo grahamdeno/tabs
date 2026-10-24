@@ -111,7 +111,8 @@ anything a person found on their own is skipped.
 1. **The first screen has two first steps.** Louie says play Harbor Lights; the glowing pick says learn G.
    The tutorial leg fixes this: the first pick *is* playing the sample song.
 2. **The Gig has no tips at all.** Play opens the Gig for almost every song (4.1.0), but the pause,
-   line, Now and Next and song map tips only fire in the plain sheet (practice, tabs, Play together).
+   line and section tips only fire in the plain sheet (practice, tabs, Play together). (4.50.0 to 4.53.0 retired Now and
+   Next, Back a line and Sheet; the show and the plain sheet are now one page.)
    The mic pill says it is listening, but not why.
 3. **Everything opens on day one.** Tour, a full chart of rivals with a battle, 27 band silhouettes, the
    Merch table. Each page is good; all six at once before a single song is a lot.
@@ -178,6 +179,7 @@ anything a person found on their own is skipped.
 | 2 | Tap to pause (twice on stage) | Tap the screen | None in the Gig (the tip is plain-sheet only) | First show, a few seconds in, as the pause tip already does elsewhere |
 | 3 | Drag the song to move it (4.51.0: the song page itself scrolls under the show) | Drag | None | First pause in a Gig |
 | 4 | The beat dots count to the change | Watch them | None | Second show, once they've seen the screen (4.50.0: Now and Next is gone) |
+| 5 | Tap a section in the thin bar at the top to go there (4.53.0) | Tap a colour in the bar | None | Same as the plain sheet row 3b; a tip after the first show would do. The jump isn't graded |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
 
