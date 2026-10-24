@@ -376,6 +376,70 @@ test("inline [G] sheets stay inline", () => {
   assert.equal(C.setChordAt("[G]Walking down", 0, 8, "C"), "[G]Walking [C]down");
 });
 
+/* 4.63.0: placing chords the way a chart does, next to one another and over spaces with no words */
+const UG_VERSE = "F Am G\n      Passed the road to your house";
+const slotsOf = (body, i) => { const ln = C.chordModel(body).find(l => l.kind === "lyric" && l.i === i); return C.chordSlots(ln.text, ln.chords).list.map(c => `${c.chord}@${c.part}${c.word}`); };
+test("4.63.0 chords before the words build UG's lead-in, the words indented past them", () => {
+  let b = "Passed the road to your house";
+  b = C.addChordNear(b, 0, -1, "F");
+  b = C.addChordNear(b, 1, 0, "Am");
+  b = C.addChordNear(b, 1, 1, "G");
+  assert.equal(b, UG_VERSE);
+  assert.deepEqual(slotsOf(b, 1), ["F@lead-1", "Am@lead-1", "G@lead-1"]);
+});
+test("4.63.0 a chord after the last word, over no words", () => {
+  const b = C.addChordNear(UG_VERSE, 1, 2, "F", { word: 5, part: "after" });
+  assert.deepEqual(b.split("\n"), ["F Am G                              F", "      Passed the road to your house"]);
+  assert.deepEqual(slotsOf(b, 1), ["F@lead-1", "Am@lead-1", "G@lead-1", "F@after5"]);
+});
+test("4.63.0 three chords on one word stay on it when it has room, and the line's words never change", () => {
+  let b = "F        Am\nPassed the road";
+  b = C.addChordNear(b, 1, 0, "C"); b = C.addChordNear(b, 1, 1, "G");
+  assert.deepEqual(b.split("\n"), ["F C G    Am", "Passed the road"]);
+  assert.deepEqual(slotsOf(b, 1), ["F@on0", "C@on0", "G@on0", "Am@on1"]);
+});
+test("4.63.0 chords that don't fit on a short word stand alone right after it", () => {
+  let b = "   G\nla la land";
+  b = C.addChordNear(b, 1, 0, "Am"); b = C.addChordNear(b, 1, 1, "Em");
+  assert.deepEqual(slotsOf(b, 1), ["G@on1", "Am@after1", "Em@after1"]);
+  assert.equal(b.split("\n")[1].replace(/\s+/g, " "), "la la land", "only spaces were added");
+  const line = C.parseBlocks(b).find(x => x.words);
+  const drawn = line.words.filter(w => w.parts).map(w => w.parts.map(p => (p.chord || "") + ":" + p.text.trim()).join("|"));
+  assert.deepEqual(drawn, [":la", "G:la", "Am:", "Em:", ":land"], "the page draws Am and Em over the space, not on land");
+});
+test("4.63.0 removing the middle of three chords keeps the others where they were", () => {
+  assert.equal(C.setChordNth("F C G    Am\nPassed the road", 1, 1, null), "F   G    Am\nPassed the road");
+  assert.equal(C.setChordNth(UG_VERSE, 1, 1, null), "F    G\n      Passed the road to your house");
+});
+test("4.63.0 removing every lead chord takes the indent away", () => {
+  let b = UG_VERSE;
+  for (let k = 0; k < 3; k++) b = C.setChordNth(b, 1, 0, null);
+  assert.equal(b, "Passed the road to your house");
+});
+test("4.63.0 inline [G] lines take chords next to one another too", () => {
+  assert.equal(C.addChordNear("[F]Passed the road", 0, 0, "Am"), "[F]P[Am]assed the road");
+  assert.deepEqual(slotsOf(C.addChordNear("[F]Passed the road", 0, -1, "G"), 0), ["G@lead-1", "F@on0"]);
+});
+test("4.63.0 an edit that changes nothing leaves the sheet exactly as it was", () => {
+  for (const b of [UG_VERSE, "F Am G\n      Where they turned out your lights      F", "A            D\nWalking down the river road", "[G]Walking [C]down", "G     C\nla  la land", "F                  Am\n I remember running through the wet grass"]) {
+    const ln = C.chordModel(b).find(l => l.kind === "lyric");
+    assert.equal(C.setChordNth(b, ln.i, 0, C.chordSlots(ln.text, ln.chords).list[0].chord), b);
+  }
+});
+test("4.63.0 rows of chords alone: add one, change it, remove it", () => {
+  let b = C.addChordLine("[Verse]\nla la", 1, ["F", "Am", "G"]);
+  assert.deepEqual(b.split("\n"), ["[Verse]", "la la", "F   Am   G"]);
+  assert.equal(C.chordModel(b)[2].kind, "chords");
+  b = C.setChordLine(b, 2, ["F", "C"]);
+  assert.equal(b.split("\n")[2], "F   C");
+  assert.equal(C.setChordLine(b, 2, []), "[Verse]\nla la");
+});
+test("4.63.0 a chord over a wide space between words stands alone on the page", () => {
+  const line = C.parseBlocks("        G\nla la      land").find(x => x.words);
+  const drawn = line.words.filter(w => w.parts).map(w => w.parts.map(p => (p.chord || "") + ":" + p.text.trim()).join("|"));
+  assert.deepEqual(drawn, [":la", ":la", "G:", ":land"]);
+});
+
 test("chords used are listed in order", () => {
   assert.deepEqual(C.chordsUsed("A    D\nla la\n[E]la [A]la"), ["A", "D", "E"]);
 });

@@ -34,12 +34,12 @@ Tick a task's box in this file in the same commit that does it.
 
 Where: `core.js` next to `chordModel` and `setChordAt` (near line 1052), `tests/unit` for it (find the file that tests `setChordAt`).
 
-- [ ] 1.1 Read how the sheet draws a line (`buildWords`, `parseSheet` in `core/chords.js`) and write down, in a comment, the exact rule that decides which word a chord at a column belongs to, including lead-in chords before the first word and a chord after the last. The editor must use that same rule; do not invent a second one.
-- [ ] 1.2 `chordModel` returns, for each lyric line, `chords` as before, plus `slots`: the chords in reading order, each with `{ pos, chord, word }` where `word` is the word index it sits on (`-1` before the first word, `words.length` after the last).
-- [ ] 1.3 New `addChordNear(body, i, after, chord)`: put `chord` right after the chord at `after` (or at the start of the line when `after` is null), on the same word where the word has room and otherwise nudged to the right by one column, never merging two chords into one token. A chord that goes before the first word indents the lyric text by exactly the room it needs (and moves the lyric's other chords with it). Works for chord-line-above and for inline `[G]` lines.
-- [ ] 1.4 New `setChordLine(body, i, chords)` for rows of chords alone (`kind: "chords"`), and `addChordLine(body, afterLine, chords = ["C"])` which inserts a chord-only row after a line, keeping blank lines and sections as they were.
-- [ ] 1.5 `setChordAt`: stop using "replace the chord at this position" for the new chip taps; give it a chord index (`setChordNth(body, i, n, chord)` where `n` is the chord's place in the line, `chord = null` removes it). Keep `setChordAt` working for the old callers (the Fit your melody panel).
-- [ ] 1.6 Unit tests with real text: UG's verse (`F Am G` before the words, then `Passed the road to your house`), a trailing chord, three chords on one word, a chord-only row, inline `[F][Am]word`, removing the middle of three chords, and that each result re-parses to the same chords in the same order (round trip).
+- [x] 1.1 Read how the sheet draws a line (`buildWords`, `parseSheet` in `core/chords.js`) and write down, in a comment, the exact rule that decides which word a chord at a column belongs to, including lead-in chords before the first word and a chord after the last. The editor must use that same rule; do not invent a second one.
+- [x] 1.2 `chordModel` returns, for each lyric line, `chords` as before, plus `slots`: the chords in reading order, each with `{ pos, chord, word }` where `word` is the word index it sits on (`-1` before the first word, `words.length` after the last).
+- [x] 1.3 New `addChordNear(body, i, after, chord)`: put `chord` right after the chord at `after` (or at the start of the line when `after` is null), on the same word where the word has room and otherwise nudged to the right by one column, never merging two chords into one token. A chord that goes before the first word indents the lyric text by exactly the room it needs (and moves the lyric's other chords with it). Works for chord-line-above and for inline `[G]` lines.
+- [x] 1.4 New `setChordLine(body, i, chords)` for rows of chords alone (`kind: "chords"`), and `addChordLine(body, afterLine, chords = ["C"])` which inserts a chord-only row after a line, keeping blank lines and sections as they were.
+- [x] 1.5 `setChordAt`: stop using "replace the chord at this position" for the new chip taps; give it a chord index (`setChordNth(body, i, n, chord)` where `n` is the chord's place in the line, `chord = null` removes it). Keep `setChordAt` working for the old callers (the Fit your melody panel).
+- [x] 1.6 Unit tests with real text: UG's verse (`F Am G` before the words, then `Passed the road to your house`), a trailing chord, three chords on one word, a chord-only row, inline `[F][Am]word`, removing the middle of three chords, and that each result re-parses to the same chords in the same order (round trip).
 
 ## Step 2 [Sonnet] 4.64.0: The editor you can place chords with
 
@@ -66,4 +66,5 @@ For step 3, open the song, Edit, Text, and copy the whole text into a message (o
 
 ## Surprises
 
-(none yet)
+- Step 1, the drawing rule (1.1, written in the comment above `lineSlots` in core.js): a chord before the first word is a lead when the words are indented 2 or more (LEAD_GAP); a chord inside a word cuts it; a chord over a space rides the next word, except (new in 4.63.0) over a space of 4 or more (WIDE_GAP), where it stands alone. 3 still rides: a 4.49.6 test pins "head   hangs" with C riding hangs. Without the new rule there was no way to keep a chord right after a short word without it jumping onto the next word.
+- The API differs from the plan's sketch: `chordSlots(text, chords)` (not a `slots` field on `chordModel`), `addChordNear(body, i, n, chord, at)` where `at = { word, part }` names an empty slot, `setChordNth(body, i, n, chord)`, `setChordLine`, `addChordLine`. All edits only add or remove spaces, so the words never change; an edit that changes nothing returns the sheet byte for byte (tested).

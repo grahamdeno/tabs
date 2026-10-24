@@ -176,6 +176,9 @@ function xposeToken(tok, steps, flats) {
 // more) are played before the singing starts, so they stand on their own ahead
 // of the words instead of riding on the first one, the way chord sites show it.
 export const LEAD_GAP = 2;
+/* Chords over a wide space between words (4 or more; 3 still rides, as 4.49.6 tests) stand alone over it instead of riding the next word (4.63.0):
+   that's how a chart writes chords played between two sung words, and how the editor makes room for one more chord. */
+export const WIDE_GAP = 4;
 export function buildWords(lyric, chordsAt) {
   const positions = [...chordsAt.keys()].sort((a, b) => a - b);
   const last = positions.length ? positions[positions.length - 1] : -1;
@@ -198,6 +201,12 @@ export function buildWords(lyric, chordsAt) {
     if (!m[0].trim()) {
       if (s === 0 && inside.length && e - s >= LEAD_GAP && e < text.length) {
         for (const p of inside) items.push({ lead: true, parts: [{ chord: chordsAt.get(p), text: NBSP }] }, { space: true });
+        continue;
+      }
+      if (s > 0 && inside.length && e - s >= WIDE_GAP && e < text.length) {
+        if (pending) { items.push({ parts: [{ chord: pending, text: NBSP }] }); pending = ""; }
+        items.push({ space: true });
+        for (const p of inside) items.push({ parts: [{ chord: chordsAt.get(p), text: NBSP }] }, { space: true });
         continue;
       }
       // Chords over a gap: all but the last stand alone; the last waits for the next word.

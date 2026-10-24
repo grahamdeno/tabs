@@ -2,7 +2,7 @@
 // Personal chord sheet and tab library. All data stays in localStorage.
 // Topics live in core/ (4.15.1); everything is re-exported here, so the rest of the app imports from core.js.
 import { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes } from "./core/recording.js";
-import { SECTION_RE, buildWords, chordShape, detectPaste, guessKey, isChord, isChordLine, isTabLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, secName, transposeChord, transposeKey, wrapTab } from "./core/chords.js";
+import { LEAD_GAP, WIDE_GAP, SECTION_RE, buildWords, chordShape, detectPaste, guessKey, isChord, isChordLine, isTabLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, secName, transposeChord, transposeKey, wrapTab } from "./core/chords.js";
 import { beatsOf, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, chartChord, liningDue, SPOTS_V, looksGuessed, lyricsOfSheet, mergeWords, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, sungLines, syllables, tempoPick, unpackNotes } from "./core/sketch.js";
 import { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalTime, journalTune, profileOf, streakMoment } from "./core/playing.js";
 import { DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, barHits, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset } from "./core/groove.js";
@@ -11,7 +11,7 @@ import { CHORD_FIT, HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, strumFit,
 import { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansToSpend, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigCrowd, gigDone, gigFans, gigPct, gigStart, catchScore, relativeOf, catchTargets, targetAt, catchStart, catchAt, catchOpen, catchHear, catchClose, beatsLate, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.62.1";
+export const VERSION = "4.63.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -1107,6 +1107,164 @@ export function setChordAt(body, i, pos, chord) {
   if (ln.chordLine >= 0) {
     if (row) lines[ln.chordLine] = row; else lines.splice(ln.chordLine, 1);
   } else if (row) lines.splice(i, 0, row);
+  return lines.join("\n");
+}
+/* ---- Placing chords anywhere (4.63.0, Graham, 2026-10-24: "I can't place multiple chords right next to one
+   another, and I can't put chords over spaces with no lyrics") ----
+   A lyric line's chords sit in slots, read the way the page draws them (buildWords in core/chords.js):
+     - lead: before the first word, when the words are indented 2 or more (LEAD_GAP); drawn stacked before the words
+     - on a word: inside it (cutting it into syllables) or over a narrow space just before it (it rides the word)
+     - after a word: over a wide space (4 or more, WIDE_GAP) before the next word, or after the last word
+   slots(text, chords) reads them; layoutSlots writes text and positions back, keeping every chord where it was
+   unless it has to move to make room. Room is made only by widening spaces, which the page draws as one space,
+   so the words never change. */
+const sepOf = inline => c => (inline ? 1 : c.length + 1);
+function lineSlots(text, chords) {
+  const words = [...text.matchAll(/\S+/g)].map(m => ({ s: m.index, e: m.index + m[0].length, t: m[0] }));
+  const n = words.length;
+  const out = { words, lead: [], on: words.map(() => []), after: words.map(() => []) };
+  if (!n) return out;
+  for (const c of [...chords].sort((a, b) => a.pos - b.pos)) {
+    if (c.pos < words[0].s) {
+      if (words[0].s >= LEAD_GAP) out.lead.push({ chord: c.chord, rel: c.pos });
+      else out.on[0].push({ chord: c.chord, rel: c.pos - words[0].s });
+      continue;
+    }
+    const k = words.findIndex(w => c.pos < w.e);
+    if (k < 0) { out.after[n - 1].push({ chord: c.chord, rel: c.pos - words[n - 1].e }); continue; }
+    if (c.pos >= words[k].s) { out.on[k].push({ chord: c.chord, rel: c.pos - words[k].s }); continue; }
+    if (words[k].s - words[k - 1].e >= WIDE_GAP) out.after[k - 1].push({ chord: c.chord, rel: c.pos - words[k - 1].e });
+    else out.on[k].push({ chord: c.chord, rel: c.pos - words[k].s });
+  }
+  return out;
+}
+/* Every chord of a lyric line in reading order, each with its slot: { chord, word, part } where part is "lead",
+   "on" or "after" (word -1 for lead). The editor draws chips from this. */
+export function chordSlots(text, chords) {
+  const sl = lineSlots(text, chords), list = [];
+  sl.lead.forEach(c => list.push({ chord: c.chord, word: -1, part: "lead" }));
+  sl.words.forEach((w, k) => { sl.on[k].forEach(c => list.push({ chord: c.chord, word: k, part: "on" })); sl.after[k].forEach(c => list.push({ chord: c.chord, word: k, part: "after" })); });
+  return { words: sl.words.map(w => w.t), list };
+}
+function layoutSlots(text, sl, inline, was) {
+  const sep = sepOf(inline), words = sl.words, n = words.length;
+  /* place a slot's chords from `start`: a chord keeps its place if it's clear of the one before, else it moves right */
+  const place = (list, start) => { let at = start; return list.map(c => { const rel = c.rel !== undefined && c.rel >= at ? c.rel : at; at = rel + sep(c.chord); return { ...c, rel }; }); };
+  /* lead chords take over any chord over the space before the first word */
+  if (sl.lead.length && sl.on[0].some(c => c.rel < 0)) sl.on[0] = sl.on[0].map(c => (c.rel < 0 ? { chord: c.chord } : c));
+  const lead = place(sl.lead, 0);
+  let t, out = [];
+  if (lead.length) {
+    /* the words start where the last lead chord ends (as a chart writes it), at least LEAD_GAP in */
+    const last = lead[lead.length - 1], end = last.rel + (inline ? 1 : last.chord.length);
+    t = " ".repeat(Math.max(end, LEAD_GAP, words[0].s));
+    lead.forEach(c => out.push({ pos: c.rel, chord: c.chord }));
+  } else t = was.lead ? "" : text.slice(0, words[0].s);
+  for (let k = 0; k < n; k++) {
+    if (k > 0) {
+      let gap = text.slice(words[k - 1].e, words[k].s);
+      const after = sl.after[k - 1];
+      if (after.length) {
+        /* the chords after a word need a wide space; a chord riding the next word moves onto it */
+        const pl = place(after, 1), end = pl[pl.length - 1].rel + sep(pl[pl.length - 1].chord);
+        pl.forEach(c => out.push({ pos: t.length + c.rel, chord: c.chord })); /* t ends with word k-1 here */
+        gap = " ".repeat(Math.max(gap.length, end + 1, WIDE_GAP));
+        if (sl.on[k].some(c => c.rel < 0)) sl.on[k] = sl.on[k].map(c => (c.rel < 0 ? { chord: c.chord } : c));
+      } else if (was.after[k - 1] && gap.length >= WIDE_GAP) gap = " ";
+      t += gap;
+    }
+    const s = t.length, w = words[k];
+    t += w.t;
+    /* chords on the word: those that don't fit inside it move to just after it */
+    const gapBefore = sl.on[k].filter(c => c.rel !== undefined && c.rel < 0);
+    const inside = place(sl.on[k].filter(c => !(c.rel !== undefined && c.rel < 0)), 0);
+    const fit = inside.filter(c => c.rel < w.t.length), spill = inside.filter(c => c.rel >= w.t.length);
+    gapBefore.forEach(c => out.push({ pos: s + c.rel, chord: c.chord }));
+    fit.forEach(c => out.push({ pos: s + c.rel, chord: c.chord }));
+    if (spill.length) sl.after[k] = spill.map(c => ({ chord: c.chord })).concat(sl.after[k]);
+    if (k === n - 1 && sl.after[k].length) place(sl.after[k], 1).forEach(c => out.push({ pos: t.length + c.rel, chord: c.chord }));
+  }
+  out.sort((a, b) => a.pos - b.pos);
+  return { text: t, chords: out };
+}
+/* Write a lyric line's chords back into the body, as a chord line above or inline [G]. */
+function writeLine(body, ln, text, chords) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  if (ln.inline) {
+    const padded = text.padEnd(chords.length ? chords[chords.length - 1].pos : 0, " ");
+    let s = "", idx = 0;
+    for (const c of chords) { s += padded.slice(idx, c.pos) + `[${c.chord}]`; idx = c.pos; }
+    lines[ln.i] = (s + padded.slice(idx)).replace(/\s+$/, "");
+    return lines.join("\n");
+  }
+  let row = "";
+  for (const c of chords) row = row.padEnd(Math.max(c.pos, row.length ? row.length + 1 : 0), " ") + c.chord;
+  lines[ln.i] = text.replace(/\s+$/, "");
+  if (ln.chordLine >= 0) { if (row) lines[ln.chordLine] = row; else lines.splice(ln.chordLine, 1); }
+  else if (row) lines.splice(ln.i, 0, row);
+  return lines.join("\n");
+}
+/* Change the chords of lyric line i (its line number in the body) with fn(list) on the reading-order list from
+   chordSlots, returning the new list. Each item is { chord, word, part }; keep the others as they are. */
+function editSlots(body, i, fn) {
+  const ln = chordModel(body).find(l => l.kind === "lyric" && l.i === i);
+  if (!ln) return body;
+  const sl = lineSlots(ln.text, ln.chords);
+  const old = [];
+  sl.lead.forEach(c => old.push({ ...c, word: -1, part: "lead" }));
+  sl.words.forEach((w, k) => { sl.on[k].forEach(c => old.push({ ...c, word: k, part: "on" })); sl.after[k].forEach(c => old.push({ ...c, word: k, part: "after" })); });
+  const next = fn(old.map(c => ({ ...c })));
+  const was = { lead: sl.lead.length > 0, after: sl.after.map(a => a.length > 0) };
+  const ns = { words: sl.words, lead: [], on: sl.words.map(() => []), after: sl.words.map(() => []) };
+  for (const c of next) {
+    const item = { chord: c.chord, ...(c.rel !== undefined ? { rel: c.rel } : {}) };
+    if (c.part === "lead" || c.word < 0) ns.lead.push(item);
+    else ns[c.part === "after" ? "after" : "on"][Math.min(c.word, sl.words.length - 1)].push(item);
+  }
+  const { text, chords } = layoutSlots(ln.text, ns, ln.inline, was);
+  return writeLine(body, ln, text, chords);
+}
+/* Set the n-th chord of a line (reading order) to `chord`, or remove it with null. */
+export function setChordNth(body, i, n, chord) {
+  return editSlots(body, i, list => {
+    if (n < 0 || n >= list.length) return list;
+    if (!chord) list.splice(n, 1);
+    else list[n] = { ...list[n], chord }; /* it keeps its place; the ones after it move right only if they must */
+    return list;
+  });
+}
+/* Add `chord` right after the n-th chord of a line, in the same slot (n = -1: before the words, at their start).
+   `at` instead names an empty slot: { word, part } ("lead", "on" or "after"). */
+export function addChordNear(body, i, n, chord, at = null) {
+  return editSlots(body, i, list => {
+    if (at) {
+      /* the slot's chords sit together in reading order: add after the slot's last one, or where the slot begins */
+      const order = c => (c.part === "lead" ? -1 : c.word * 2 + (c.part === "after" ? 1 : 0));
+      const key = at.part === "lead" ? -1 : at.word * 2 + (at.part === "after" ? 1 : 0);
+      let k = list.findIndex(c => order(c) > key);
+      if (k < 0) k = list.length;
+      list.splice(k, 0, { chord, word: at.part === "lead" ? -1 : at.word, part: at.part });
+      return list;
+    }
+    if (n < 0) { list.unshift({ chord, word: -1, part: "lead" }); return list; }
+    const ref = list[n];
+    if (!ref) return list;
+    list.splice(n + 1, 0, { chord, word: ref.word, part: ref.part });
+    return list;
+  });
+}
+/* A row of chords with no words (an intro, an interlude): set its chords, or remove it with an empty list. */
+export function setChordLine(body, i, chords) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  if (i < 0 || i >= lines.length) return body;
+  if (!chords.length) lines.splice(i, 1);
+  else lines[i] = chords.join("   ");
+  return lines.join("\n");
+}
+/* Add a row of chords with no words after line `after` (-1: at the top). */
+export function addChordLine(body, after, chords = ["C"]) {
+  const lines = String(body || "").replace(/\r\n?/g, "\n").split("\n");
+  lines.splice(Math.max(0, Math.min(lines.length, after + 1)), 0, chords.join("   "));
   return lines.join("\n");
 }
 // Chords used in a sheet, in order of first use.
