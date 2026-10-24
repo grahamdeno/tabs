@@ -6,7 +6,8 @@
 // The Gig (gig.js) adds the score, the crowd and its controls on top. A song played unscored (practicing, a
 // tab, Play together) gets the same stage with nothing on top (4.52.0): stagePlay and stageStop, from app.js.
 import { gelOf } from "./core.js";
-import { diag, READ_AT, musicClock, usesMusic, chordTimes, isLine, chordSVG } from "./app.js";
+import { louie } from "./louie.js";
+import { diag, READ_AT, musicClock, usesMusic, chordTimes, isLine } from "./app.js";
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -161,34 +162,42 @@ export function stageStop() {
   stageClear();
 }
 
-/* The opening card (4.55.0): at the start of a song the lines above the reading line are empty (nothing has been
-   played yet). That space holds the song, its first two chords as shapes, and the count-in's beats. It goes as
-   soon as the first line comes up to it, and the lines you've played take the space. */
+/* Louie's count-in (4.56.0): at the start of a song the lines above the reading line are empty (nothing has been
+   played yet). That space holds Louie and the count, a big number stepping 1 to 4 with him bouncing on each beat
+   and throwing horns up on the last, and one small line under it: the chord you start on and the strum. It goes
+   as soon as the first line comes up to it. Only drawn when there is a count-in. */
+const LOU = (n, beats, size) => louie("happy", { size, ...(n === beats ? { pose: "hornsUp" } : {}) });
 export function stageOpen(song, beats = 0) {
   $("st-open")?.remove();
+  if (!beats) return;
   const seq = diag.seq || [], first = seq[0]?.name;
-  if (!first) return;
-  const then = seq.find(c => c.name !== first)?.name;
-  const line = [...(diag.blocks || [])].find(b => b.el.isConnected && isLine(b.el))?.el;
-  const low = line ? line.getBoundingClientRect().top - 14 : innerHeight * READ_AT - 40;
+  const top0 = $("sheet")?.firstElementChild; /* the sheet's first row, even a note: the card sits above all of it */
+  const low = top0 ? top0.getBoundingClientRect().top - 14 : innerHeight * READ_AT - 40;
   const crowd = document.querySelector("#gig .gg-status"), top = crowd ? crowd.getBoundingClientRect().bottom + 10 : 76;
   const room = low - top;
   if (room < 96) return; /* started further down: no room, and nothing to say */
-  const tile = (name, label) => `<span class="so-ch" role="img" aria-label="${label === "FIRST" ? "First chord" : "Then"}: ${esc(name)} chord shape"><small aria-hidden="true">${label}</small><b aria-hidden="true">${esc(name)}</b>${chordSVG(name, 1) || ""}</span>`;
+  const tight = room < 200, size = tight ? 64 : 96;
+  const strum = (String(song.body || "").match(/strum:\s*([dux\- ]+)/i) || [])[1]?.trim().toUpperCase();
+  const small = [first && `First: ${first}`, strum && `Strum: ${strum}`].filter(Boolean).join(" · ");
   const el = document.createElement("div");
-  el.id = "st-open"; el.className = "st-open" + (room < 200 ? " tight" : "");
-  el.style.top = top + "px"; el.style.height = (low - top) + "px";
-  const meta = [song.key && `Key ${song.key}`, song.bpm && `${song.bpm} BPM`].filter(Boolean).join(" · ");
-  el.innerHTML = `<div class="so-in"><p class="so-t"><b>${esc(song.title || "")}</b>${meta ? `<span>${esc(meta)}</span>` : ""}</p>
-    <div class="so-chs">${tile(first, "FIRST")}${then ? tile(then, "THEN") : ""}</div>
-    ${beats ? `<div class="so-beats" aria-hidden="true">${"<i></i>".repeat(beats)}</div>` : ""}</div>`;
+  el.id = "st-open"; el.className = "st-open" + (tight ? " tight" : "");
+  el.setAttribute("role", "img"); el.setAttribute("aria-label", `Count in, ${beats} beats`);
+  el.style.top = top + "px"; el.style.height = room + "px";
+  el.dataset.beats = String(beats); el.dataset.size = String(size);
+  el.innerHTML = `<div class="so-in" aria-hidden="true"><div class="so-row"><span class="so-lou"></span><b class="so-n">${beats}</b></div>${small ? `<p class="so-s">${esc(small)}</p>` : ""}</div>`;
+  el.querySelector(".so-n").textContent = "";
   document.body.appendChild(el);
+  el.querySelector(".so-lou").innerHTML = LOU(0, beats, size);
   el.dataset.y0 = String(scrollY);
 }
-/* the count-in's beat n (1 to beats) lights */
+/* the count-in's beat n (1 to beats): the number, and Louie bounces (horns up on the last) */
 export function stageBeat(n) {
-  const marks = document.querySelectorAll("#st-open .so-beats i");
-  marks.forEach((m, i) => m.classList.toggle("on", i < n));
+  const el = $("st-open");
+  if (!el) return;
+  const beats = +el.dataset.beats, num = el.querySelector(".so-n"), lou = el.querySelector(".so-lou");
+  num.textContent = String(n);
+  lou.innerHTML = LOU(n, beats, +el.dataset.size);
+  for (const x of [num, lou]) { x.classList.remove("beat"); void x.offsetWidth; x.classList.add("beat"); }
 }
 /* the card goes once the first line starts coming up into it */
 function openFade() {

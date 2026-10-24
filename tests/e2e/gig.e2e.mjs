@@ -225,6 +225,8 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   assert.ok(size >= 14 && size <= 22, `the text is sized to fit (${size}px)`);
   const spread = await page.evaluate(() => { const r = document.querySelector("#sheet > .crow"), cs = [...r.querySelectorAll(".c")]; return cs[cs.length - 1].getBoundingClientRect().left - r.getBoundingClientRect().left > r.getBoundingClientRect().width * 0.6; });
   assert.ok(spread, "an intro's chords spread across the width");
+  const hs = await page.evaluate(() => [document.querySelector("#sheet > .crow"), document.querySelector("#sheet > .pr")].map(e => e.getBoundingClientRect().height));
+  assert.ok(Math.abs(hs[0] - hs[1]) <= 3, `4.56.0: a row of chords with no words is as tall as a sung line, paused too (${hs[0]} and ${hs[1]})`);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.ok(await oneLine(), "playing, nothing rewraps");
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
@@ -292,15 +294,25 @@ test("4.54.0 the chords row on the song page is shape tiles: name over a diagram
   await page.waitForSelector("#sheet .c.sel", { state: "attached" });
 });
 
-test("4.55.0 the opening card: the song, its first two chords as shapes and the count, until the song gets going", { skip: skip() }, async t => {
-  const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: true } }, "#/song/g", { strum: false });
+test("4.56.0 Louie's count-in: Louie and a big number stepping 1 to 4, the first chord and the strum, until the song gets going", { skip: skip() }, async t => {
+  const song = { ...LONG, body: "Strum: D-DU-UDU\n\n" + LONG.body };
+  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: true } }, "#/song/g", { strum: false });
   await page.click("#play"); await page.waitForSelector("#st-open");
-  assert.match(await page.textContent("#st-open"), /Short Road[\s\S]*FIRST[\s\S]*A[\s\S]*THEN[\s\S]*D/);
-  assert.equal(await page.locator("#st-open .so-ch svg").count(), 2, "two shapes");
-  await page.waitForSelector("#st-open .so-beats i.on");
-  const b = await page.evaluate(() => { const o = document.getElementById("st-open").getBoundingClientRect(), l = document.querySelector("#sheet .pr, #sheet .ly, #sheet .crow").getBoundingClientRect(); return [o.bottom, l.top]; });
-  assert.ok(b[0] <= b[1], "above the first line, not over it");
+  assert.equal(await page.getAttribute("#st-open", "aria-label"), "Count in, 4 beats");
+  assert.equal(await page.locator("#st-open .so-ch, #st-open .so-beats").count(), 0, "no shape tiles and no dots");
+  assert.ok(await page.locator("#st-open .so-lou svg").count() === 1, "Louie");
+  assert.match(await page.textContent("#st-open .so-s"), /First: A · Strum: D-DU-UDU/);
+  const seen = await page.evaluate(() => new Promise(res => { const got = []; const iv = setInterval(() => { const x = document.querySelector("#st-open .so-n")?.textContent; if (x && got.at(-1) !== x) got.push(x); if (got.includes("4")) { clearInterval(iv); res(got); } }, 30); setTimeout(() => { clearInterval(iv); res(got); }, 9000); }));
+  assert.deepEqual(seen.slice(0, 4), ["1", "2", "3", "4"], "the number counts the beats");
+  const b = await page.evaluate(() => { const o = document.getElementById("st-open")?.getBoundingClientRect(), l = document.querySelector("#sheet .pr, #sheet .ly:not(.note), #sheet .crow")?.getBoundingClientRect(); return o && l ? [o.bottom, l.top] : null; });
+  if (b) assert.ok(b[0] <= b[1], "above the first line, not over it");
   await page.waitForFunction(() => !document.getElementById("st-open"), null, { timeout: 30000 });
+});
+
+test("4.56.0 no count-in: no Louie card, the song just starts", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, "#/song/g", { strum: false });
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#st-open").count(), 0);
 });
 
 test("4.55.0 leaving the app pauses the song, back where the swipe began", { skip: skip() }, async t => {
@@ -317,4 +329,15 @@ test("4.55.0 leaving the app pauses the song, back where the swipe began", { ski
   await page.waitForFunction(() => !document.body.classList.contains("playing"));
   const after = await page.evaluate(() => scrollY);
   assert.ok(after < y[1] && after >= y[0] - 2, `back near where it was (${y[0]} to ${y[1]}, now ${after})`);
+});
+
+test("4.56.0 a header note (Capo, Strum) is read, not played: the band starts on the first chord line", { skip: skip() }, async t => {
+  const body = "Capo 2 · Strum: D-DU-UDU\n\n[Intro]\nG   C\n\n[Verse]\n" + Array.from({ length: 6 }, (_, i) => `G        C\nVerse line ${i + 1} goes on`).join("\n");
+  const song = { id: "n", title: "Note", artist: "A", key: "G", format: "chords", duration: 60, bpm: 100, body };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/n"; }); await page.waitForSelector("#sheet .pr"); await settled(page);
+  assert.equal(await page.locator("#sheet > .ly.note").count(), 1, "the note is marked");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#sheet > .ly.note.st-now").count(), 0, "the band is not on the note");
+  assert.ok(await page.evaluate(() => document.querySelector("#sheet > .st-now").classList.contains("crow")), "it starts on the first chord line");
 });

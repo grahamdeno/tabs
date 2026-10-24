@@ -175,6 +175,9 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .db { font: 7px var(--sans); fill: var(--muted); }
 .sheet .c { color: var(--accent-ink); font-weight: 650; font-size: 0.88em; letter-spacing: 0.01em; }
 .sheet .crow { display: flex; flex-wrap: wrap; column-gap: 1.1em; row-gap: 0.2em; margin: 0 0 0.55em; }
+/* 4.56.0: a row of chords with no words is as tall as a sung line: the chord line, then the empty lyric line (so the band on it is the same height) */
+.sheet .crow { padding-bottom: 1.45em; }
+.sheet .crow > .c { line-height: 1.25; min-height: 1.25em; }
 /* Tabs: all strings wrap together, a measure at a time */
 .sheet .tab { font-family: var(--mono); font-size: calc(var(--tab-size, 14px) * var(--wide, 1)); line-height: 1.35; white-space: pre; margin: 0 0 1em; color: var(--fg); }
 .sheet .tab + .tab { margin-top: -0.2em; }
@@ -3787,21 +3790,16 @@ body.held .sheet.focus > .cur { transform: none; -webkit-text-stroke: 0; }
 .st-open { position: fixed; left: 16px; right: 16px; z-index: 56; display: grid; place-items: center; pointer-events: none; transition: opacity .35s; }
 .st-open.go { opacity: 0; }
 .st-open .so-in { display: flex; flex-direction: column; align-items: center; gap: 12px; max-height: 100%; }
-.st-open .so-t { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
-.st-open .so-t b { font: 700 20px var(--display); color: var(--fg); }
-.st-open .so-t span { font: 700 13px var(--sans); letter-spacing: .04em; color: var(--muted); }
-.st-open .so-chs { display: flex; gap: 14px; }
-.st-open .so-ch { width: 104px; padding: 8px 8px 10px; box-sizing: border-box; border-radius: 16px; background: var(--card); box-shadow: 0 4px 0 var(--rim); display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--fg); }
-.st-open .so-ch small { font: 800 10px var(--sans); letter-spacing: .1em; color: var(--muted); }
-.st-open .so-ch b { font: 700 22px var(--display); }
-.st-open .so-ch svg { width: 74px; height: auto; display: block; }
-.st-open .so-beats { display: flex; gap: 10px; }
-.st-open .so-beats i { width: 14px; height: 14px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 18%, transparent); transition: background .1s, transform .1s; }
-.st-open .so-beats i.on { background: var(--gel, var(--accent)); transform: scale(1.15); }
-/* less room (a shorter phone, or a song that starts higher): the shapes side by side with their names, no title */
-.st-open.tight .so-in { gap: 6px; }
-.st-open.tight .so-t { display: none; }
-.st-open.tight .so-ch { width: auto; flex-direction: row; gap: 8px; padding: 6px 12px 6px 10px; }
-.st-open.tight .so-ch small { writing-mode: vertical-rl; transform: rotate(180deg); }
-.st-open.tight .so-ch svg { width: 50px; }
+.st-open .so-row { display: flex; align-items: center; gap: 18px; }
+.st-open .so-lou { display: block; line-height: 0; }
+.st-open .so-lou .beat { animation: so-bounce .32s ease-out; }
+.st-open .so-n { min-width: 1.1ch; text-align: center; font: 700 76px/1 var(--display); color: var(--fg); }
+.st-open .so-n.beat { animation: so-pop .32s ease-out; }
+.st-open .so-s { margin: 0; font: 700 14px var(--sans); letter-spacing: .03em; color: var(--muted); text-align: center; }
+@keyframes so-bounce { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-10px) scale(1.06); } 100% { transform: translateY(0) scale(1); } }
+@keyframes so-pop { 0% { transform: scale(1.4); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .st-open .so-lou .beat, .st-open .so-n.beat { animation: none; } }
+.st-open.tight .so-in { gap: 4px; }
+.st-open.tight .so-row { gap: 12px; }
+.st-open.tight .so-n { font-size: 52px; }
 body:has(#st-open:not(.go)) .gg-shape, body:has(#st-open:not(.go)) .countin { visibility: hidden; }

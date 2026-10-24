@@ -397,6 +397,8 @@ function chordLabel(text) {
   if (SUBS[name]) { text = String(text).replace(name, SUBS[name]); name = SUBS[name]; }
   return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : `<span class="c">${esc(text)}</span>`;
 }
+/* 4.56.0: a chart's header note ("Capo 2", "Strum: D-DU-UDU") is read, not played: not the line you're on */
+const NOTE = /^(capo \d+|strum: [dux\- ]+)( · (capo \d+|strum: [dux\- ]+))?$/i;
 function renderBlocks(sheet, blocks) {
   /* German practice: a German word carries its card's key and its noun gender. */
   const txt = p => p.de ? `<span class="de${p.de.g ? " g-" + p.de.g : ""}" data-de="${esc(p.de.k)}">${esc(p.text)}</span>` : esc(p.text);
@@ -407,7 +409,7 @@ function renderBlocks(sheet, blocks) {
   sheet.innerHTML = blocks.map((b, i) => {
     if (b.kind === "section") return `<div class="sec">${esc(b.text)}</div>`;
     if (b.kind === "blank") return `<div class="gap"></div>`;
-    if (b.kind === "lyric") return `<div class="ly">${b.segs ? b.segs.map(txt).join(" ") : esc(b.text)}${under(b)}</div>`;
+    if (b.kind === "lyric") return `<div class="ly${NOTE.test(String(b.text || "").trim()) && !(b.chords || []).length ? " note" : ""}">${b.segs ? b.segs.map(txt).join(" ") : esc(b.text)}${under(b)}</div>`;
     if (b.kind === "chords") return `<div class="crow">${b.items.map(chordLabel).join("")}</div>`;
     if (b.kind === "pair") return `<div class="pr">${b.words.map(word).join("")}${under(b)}</div>`;
     return `<div class="tabsys" data-i="${i}"></div>`;
@@ -574,7 +576,7 @@ function setCurrent(block) {
   diag.block2?.classList.add("cur", "cur2");
   diag.block = block;
 }
-const isLine = el => el && !el.classList.contains("sec") && !el.classList.contains("gap");
+const isLine = el => el && !el.classList.contains("sec") && !el.classList.contains("gap") && !el.classList.contains("note");
 function pausedBlock() {
   if (diag.pinned?.isConnected) return diag.pinned;
   if (window.scrollY < 40) return diag.blocks.find(b => isLine(b.el))?.el;
@@ -1711,7 +1713,7 @@ async function startScroll(song, opts = {}) {
   if (!gigHooks.on) stagePlay(song);
   /* 4.55.0: the opening card fills the empty space above the first line until the song gets going */
   const counts = (scroll.duet || data.settings.countIn !== false) && atTop;
-  if (atTop && song.format !== "tab") stageOpen(song, counts ? song.beats || 4 : 0);
+  if (counts && song.format !== "tab") stageOpen(song, song.beats || 4);
   /* Play together always counts in, so both phones start scrolling on the same beat. */
   if (counts && !(await countIn(song))) return;
   if (usesMusic(song)) startMusic(song, playFromSec(song), recRate(song)); else startMetronome(song);
