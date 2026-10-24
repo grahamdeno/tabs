@@ -2274,12 +2274,16 @@ body.cedit .sh-t { display: flex; flex-direction: column; }
 body.playing .app.viewer > .shead { opacity: .35; }
 /* the song map: tap a section to go there */
 /* the chords (4.54.0): a shape tile each, NEW for one you haven't learned */
-.app.viewer > #strip:not(:empty) { display: flex; align-items: center; gap: 8px; margin: 14px 0 8px; }
-.app.viewer > #strip .strip-h { flex: none; margin: 0; font-size: 11.5px; }
-.app.viewer > #strip .strip-h .n { display: none; }
-.app.viewer > #strip .strip { flex: 1; min-width: 0; margin: 0 -16px 0 0; padding: 2px 16px 4px 0; gap: 8px; }
-.app.viewer .strip .scard { width: 76px; min-height: 90px; padding: 7px 0 8px; border-radius: 16px; border: 2px solid var(--rim); background: var(--card); box-shadow: 0 3px 0 var(--rim); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; font: 600 16px var(--display); color: var(--fg); }
-.app.viewer .strip .scard svg { display: block; width: 58px; height: auto; }
+.app.viewer > #strip:not(:empty) { display: block; margin: 14px 0 8px; }
+.app.viewer > #strip .strip-h { display: flex; justify-content: flex-start; gap: 6px; margin: 0 2px 8px; font-size: 11.5px; }
+.app.viewer > #strip .strip-h .n::before { content: "\00b7\00a0"; }
+.app.viewer > #strip .strip { gap: 8px; margin: 0 -20px; padding: 2px 20px 8px; scroll-padding-left: 20px; scroll-snap-type: x proximity; }
+.app.viewer > #strip .strip.fits { overflow-x: visible; }
+.app.viewer > #strip .strip.fade-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
+.app.viewer > #strip .strip.fade-l { -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px); mask-image: linear-gradient(90deg, transparent, #000 44px); }
+.app.viewer > #strip .strip.fade-l.fade-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
+.app.viewer .strip .scard { width: var(--tile, 76px); scroll-snap-align: start; min-height: 90px; padding: 7px 0 8px; border-radius: 16px; border: 2px solid var(--rim); background: var(--card); box-shadow: 0 3px 0 var(--rim); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; font: 600 16px var(--display); color: var(--fg); }
+.app.viewer .strip .scard svg { display: block; width: calc(var(--tile, 76px) - 18px); height: auto; }
 .app.viewer .strip .scard.new { border-color: var(--streak); background: color-mix(in srgb, var(--streak) 12%, var(--card)); box-shadow: 0 2px 0 color-mix(in srgb, var(--streak) 40%, var(--card)); }
 .sc-new { font: 800 10px var(--sans); color: var(--streak-deep, var(--streak)); }
 .app.viewer .strip .scard.sel { border-color: var(--accent); box-shadow: 0 2px 0 var(--accent-deep); }
@@ -3884,3 +3888,11 @@ html:has(body.covered) { background: #141218; }
 body.covered .pw.glass { background: rgba(20, 18, 24, .9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
 body.covered .dock-fade { background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .82) 70%); }
 body.covered .menu .mrow .mi, body.covered .menu.tools .mrow.tl .mi, body.covered .menu.tools3 .mrow.t3 .mi { color: var(--accent-ink); }
+
+/* The title as a banner (4.62.0): the text and a copy of it a gap behind, sliding one text-and-gap to the left, so the loop has no jump */
+.song-title.banner { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent); text-overflow: clip; }
+.song-title .tt { display: inline-block; white-space: nowrap; }
+.song-title .tt::after { content: attr(data-t); padding-left: 48px; }
+.song-title .tt.go { animation: tt-scroll var(--tt-t, 6s) linear 1; }
+@keyframes tt-scroll { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--tt-d, 0px))); } }
+@media (prefers-reduced-motion: reduce) { .song-title .tt.go { animation: none; } }

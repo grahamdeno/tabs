@@ -53,20 +53,20 @@ Where: the song header in `app.js` (`<h1 class="song-title">` near line 169), `.
 
 The title:
 
-- [ ] 2.1 Fit first: when the title doesn't fit its box at 26 px, step it down to 20 px at most (measure once on draw, like `fitText`). Most titles then fit and never move.
-- [ ] 2.2 If it still doesn't fit, it becomes a banner: the title's text in a track inside the `h1`, with a second copy marked `aria-hidden="true"` after a gap of 48 px, so it loops seamlessly. The `h1` keeps the full title as its text for screen readers.
-- [ ] 2.3 The banner's cycle: wait 2 s after the page opens, scroll one full loop at about 30 px a second, rest 6 s, and stop for good after three loops. Tapping the title plays one loop again. Edges fade with a mask while it moves. It never runs while the song plays (the header is hidden then) or while the page is hidden. This keeps it within WCAG 2.2.2: moving text stops on its own within the limit after the first loops, and a tap brings it back.
-- [ ] 2.4 Reduced motion: no banner. The title shows an ellipsis, and a long press (or the About this song sheet) shows it in full.
-- [ ] 2.5 The pulled-down bar's title (`.chead .ct`) keeps a plain ellipsis: it's small and only there to say where you are.
+- [x] 2.1 Fit first: when the title doesn't fit its box at 26 px, step it down to 20 px at most (measure once on draw, like `fitText`). Most titles then fit and never move.
+- [x] 2.2 If it still doesn't fit, it becomes a banner: the title's text in a track inside the `h1`, with a second copy marked `aria-hidden="true"` after a gap of 48 px, so it loops seamlessly. The `h1` keeps the full title as its text for screen readers.
+- [x] 2.3 The banner's cycle: wait 2 s after the page opens, scroll one full loop at about 30 px a second, rest 6 s, and stop for good after three loops. Tapping the title plays one loop again. Edges fade with a mask while it moves. It never runs while the song plays (the header is hidden then) or while the page is hidden. This keeps it within WCAG 2.2.2: moving text stops on its own within the limit after the first loops, and a tap brings it back.
+- [x] 2.4 Reduced motion: no banner. The title shows an ellipsis, and a long press (or the About this song sheet) shows it in full.
+- [x] 2.5 The pulled-down bar's title (`.chead .ct`) keeps a plain ellipsis: it's small and only there to say where you are.
 
 The chord row (see the decision above):
 
-- [ ] 2.6 Move the label above the row: `CHORDS · 6` in the small caps label style (`.strip-h` already holds the count in `.n`; make it read as one label). The row then uses the full width.
-- [ ] 2.7 Fit: tile width is `clamp(52px, (row width - gaps) / count, 76px)`, height in proportion, diagram scaled to the tile. Up to the count that fits at 52 px, every tile shows and the row doesn't scroll.
-- [ ] 2.8 More than fit: tiles at 52 px, the row scrolls with `scroll-snap-type: x proximity` and `scroll-snap-align: start` on each tile (`scroll-padding-left` matching the page margin, as `.shelf` does). A mask fades the right edge while there's more to the right, and the left edge once scrolled (a class set from the scroll position, updated on scroll). The count in the label is always shown.
-- [ ] 2.9 Wide screens (`body.wide .rail .strip` wraps already) keep their layout.
-- [ ] 2.10 Tests: a 4-chord song shows 4 tiles and the row doesn't scroll (`scrollWidth <= clientWidth`); a 9-chord song scrolls, has the right-edge fade class, and loses it at the end; the label reads "Chords · 9"; a long title at 390 wide gets the banner track with one `aria-hidden` copy and stops after three loops (fake timers or a short test hook); with `reducedMotion: "reduce"` there's no track and the title has an ellipsis; a short title has neither.
-- [ ] 2.11 README and docs/ONBOARDING.md (the title replay tap is a hidden feature: taught by none, it's discovered).
+- [x] 2.6 Move the label above the row: `CHORDS · 6` in the small caps label style (`.strip-h` already holds the count in `.n`; make it read as one label). The row then uses the full width.
+- [x] 2.7 Fit: tile width is `clamp(52px, (row width - gaps) / count, 76px)`, height in proportion, diagram scaled to the tile. Up to the count that fits at 52 px, every tile shows and the row doesn't scroll.
+- [x] 2.8 More than fit: tiles at 52 px, the row scrolls with `scroll-snap-type: x proximity` and `scroll-snap-align: start` on each tile (`scroll-padding-left` matching the page margin, as `.shelf` does). A mask fades the right edge while there's more to the right, and the left edge once scrolled (a class set from the scroll position, updated on scroll). The count in the label is always shown.
+- [x] 2.9 Wide screens (`body.wide .rail .strip` wraps already) keep their layout.
+- [x] 2.10 Tests: a 4-chord song shows 4 tiles and the row doesn't scroll (`scrollWidth <= clientWidth`); a 9-chord song scrolls, has the right-edge fade class, and loses it at the end; the label reads "Chords · 9"; a long title at 390 wide gets the banner track with one `aria-hidden` copy and stops after three loops (fake timers or a short test hook); with `reducedMotion: "reduce"` there's no track and the title has an ellipsis; a short title has neither.
+- [x] 2.11 README and docs/ONBOARDING.md (the title replay tap is a hidden feature: taught by none, it's discovered).
 
 ## Surprises
 
@@ -74,4 +74,5 @@ The chord row (see the decision above):
 - 1.4 (soft title in the pulled-down bar): not reproduced. The bar fades with a 0.12 s opacity transition while the page scrolls; the screenshot was probably taken mid-fade. Left as is.
 - 1.5: `.chead::before` already has a 26 px mask fade, so no new rule.
 - Wide screens: the rail's tiles hid `.sc-n` and relied on the name inside the picture; now they show `.sc-n` and the picture has none.
+- Step 2: the banner's copy is drawn with `::after { content: attr(data-t) }` so `innerText` and the page text hold the title once. The fit measures at 50 px minimum per tile, so six chords fit on a 390 px phone and seven scroll.
 - 1.8: `sw.js` caches `mzstatic.com` images in `ART`; not tested here.

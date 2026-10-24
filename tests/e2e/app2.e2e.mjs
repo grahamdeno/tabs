@@ -578,3 +578,37 @@ test("4.45.1: a toast from a switch in Tools sits above the sheet, not at the to
   await page.click('.menu [data-m="metro"]'); await page.waitForSelector('.toast.show');
   await page.waitForFunction(() => { const t = document.getElementById("toast").getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return Math.abs(t.bottom - m.top) < 24; });
 });
+
+/* 4.62.0: the chord row fits when it can and says so when it can't; a long title scrolls as a banner and stops */
+const rowSong = (id, title, chords) => ({ id, title, artist: "A", key: "C", format: "chords", duration: 60, body: "[Verse]\n" + chords.map(c => `${c}        ${c}\nLine for ${c}`).join("\n") });
+test("The chord row fits up to what is readable, then scrolls with a fade and a count (4.62.0)", { skip: skip() }, async t => {
+  const few = rowSong("a", "Short Road", ["C", "G", "Am", "F"]), many = rowSong("b", "Short Road", ["C", "G", "Am", "F", "Dm", "Em", "D", "A", "E"]);
+  const page = await phone(t, { ...LIB, songs: [few, many] });
+  await page.goto(base + "#/song/a"); await page.reload(); await page.waitForSelector(".scard"); await settled(page);
+  assert.equal(await page.locator(".scard").count(), 4);
+  assert.ok(await page.evaluate(() => { const r = document.querySelector(".strip"); return r.classList.contains("fits") && r.scrollWidth <= r.clientWidth + 1; }), "four chords: every tile shows, the row doesn't scroll");
+  assert.match(await page.innerText(".strip-h"), /Chords\s*4/i, "the label carries the count");
+  assert.equal(await page.locator(".scard svg text.dn").count(), 0, "a tile names its chord once");
+  await page.goto(base + "#/song/b"); await page.reload(); await page.waitForSelector(".scard"); await settled(page);
+  assert.equal(await page.locator(".scard").count(), 9);
+  assert.match(await page.innerText(".strip-h"), /Chords\s*9/i);
+  await page.waitForSelector(".strip.fade-r");
+  assert.equal(await page.locator(".strip.fade-l").count(), 0, "at the start there is nothing to the left");
+  await page.evaluate(() => { const r = document.querySelector(".strip"); r.scrollLeft = r.scrollWidth; });
+  await page.waitForFunction(() => { const r = document.querySelector(".strip"); return r.classList.contains("fade-l") && !r.classList.contains("fade-r"); });
+});
+test("A long title steps down, then scrolls as a banner for three loops; a short one stays still; reduced motion keeps an ellipsis (4.62.0)", { skip: skip() }, async t => {
+  const long = rowSong("l", "Desperately Wanting Everything And More Than Anyone Could Ever Need", ["C", "G"]), short = rowSong("s", "Short Road", ["C", "G"]);
+  const page = await phone(t, { ...LIB, songs: [long, short] });
+  await page.goto(base + "#/song/s"); await page.reload(); await page.waitForSelector("h1.song-title"); await settled(page);
+  assert.equal(await page.locator("h1.song-title.banner").count(), 0, "a short title doesn't move");
+  await page.goto(base + "#/song/l"); await page.reload(); await page.waitForSelector("h1.song-title.banner"); await settled(page);
+  assert.equal(await page.evaluate(() => document.querySelector("h1.song-title").style.fontSize), "20px", "it stepped down first");
+  assert.equal(await page.getAttribute("h1.song-title", "aria-label"), long.title, "a screen reader gets the title once");
+  await page.waitForSelector(".song-title .tt.go", { timeout: 8000 }); /* real timer: it starts after 2 s */
+  assert.equal(await page.locator("h1.song-title").innerText(), long.title, "the copy is drawn, not in the text");
+  const page2 = await phone(t, { ...LIB, songs: [long] }, { reducedMotion: "reduce" });
+  await page2.goto(base + "#/song/l"); await page2.reload(); await page2.waitForSelector("h1.song-title"); await settled(page2);
+  assert.equal(await page2.locator("h1.song-title.banner").count(), 0, "reduced motion: no banner");
+  assert.ok(await page2.evaluate(() => getComputedStyle(document.querySelector("h1.song-title").parentElement).textOverflow === "ellipsis"), "reduced motion: an ellipsis");
+});

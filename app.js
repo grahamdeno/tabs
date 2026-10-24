@@ -287,6 +287,7 @@ function renderViewer(id) {
   redraw = () => { draw(); paintLoop(song); buildMap(); };
   viewing = song;
   coverOn(song); /* 4.61.0: the song's cover is the room behind the whole song screen */
+  fitTitle(song);
   paintLoop(song);
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
@@ -390,7 +391,7 @@ function renderViewer(id) {
 let redraw = null;
 let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
 let foldApi = null;
-onLeave(r => { teardownFold(); foldApi = null; stageStop(); if (r?.name !== "song") coverOff(); }); /* 4.61.1: songs in a set keep the cover between them */
+onLeave(r => { clearTimeout(ttTimer); stripRO?.disconnect(); teardownFold(); foldApi = null; stageStop(); if (r?.name !== "song") coverOff(); }); /* 4.61.1: songs in a set keep the cover between them */
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
 function chordLabel(text) {
@@ -1403,8 +1404,72 @@ function renderStrip(sheet, isChords, song) {
   const known = knownChords(data), fresh = n => known.size > 0 && !known.has(n);
   box.innerHTML = names.length ? `
     <div class="strip-h"><span>Chords</span>${easyBtn}</div>
-    <div class="strip" role="list">${names.map(n =>
+    <div class="strip" role="list" aria-label="Chords in this song, ${names.length}">${names.map(n =>
       `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)} chord shape${fresh(n) ? ", new to you" : ""}"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n, 1, { named: false })}</button>`).join("")}</div>` : "";
+  fitStrip(box, names.length);
+}
+
+/* The chord row (4.62.0, Graham, 2026-10-24): when every chord fits at a readable size they all show and the row
+   doesn't scroll, so nothing is hidden. With more, the tiles stop at 50 px, snap as you scroll, and the edge fades
+   while more are off screen. The label carries the count either way. */
+const TILE_MIN = 50, TILE_MAX = 76, TILE_GAP = 8;
+let stripRO = null;
+function fitStrip(box, n) {
+  stripRO?.disconnect(); stripRO = null;
+  const row = box.querySelector(".strip");
+  if (!row || !n) return;
+  const lay = () => {
+    const room = row.clientWidth - parseFloat(getComputedStyle(row).paddingLeft || 0) - parseFloat(getComputedStyle(row).paddingRight || 0);
+    if (room <= 0) return;
+    const w = Math.floor((room - (n - 1) * TILE_GAP) / n);
+    row.style.setProperty("--tile", Math.max(TILE_MIN, Math.min(TILE_MAX, w)) + "px");
+    row.classList.toggle("fits", w >= TILE_MIN);
+    cues();
+  };
+  const cues = () => {
+    const more = row.scrollWidth - row.clientWidth > 2;
+    row.classList.toggle("fade-r", more && row.scrollLeft < row.scrollWidth - row.clientWidth - 2);
+    row.classList.toggle("fade-l", more && row.scrollLeft > 2);
+  };
+  row.addEventListener("scroll", cues, { passive: true });
+  lay();
+  if (window.ResizeObserver) { stripRO = new window.ResizeObserver(lay); stripRO.observe(row); }
+}
+
+/* The song title (4.62.0): steps down from 26 to 20 px to fit; a title that still doesn't fit scrolls across as a banner,
+   one loop, a rest, up to three loops, then stays still. A tap plays it again. With reduced motion it keeps an ellipsis. */
+let ttTimer = 0;
+function fitTitle(song) {
+  clearTimeout(ttTimer);
+  const h = document.querySelector(".app.viewer .shead .song-title");
+  if (!h) return;
+  const box = h.parentElement;
+  const over = () => h.scrollWidth > box.clientWidth + 1;
+  h.style.fontSize = "";
+  if (!over()) return;
+  h.style.fontSize = "20px";
+  if (!over()) return;
+  h.title = song.title;
+  if (calm()) return; /* the ellipsis stays */
+  h.setAttribute("aria-label", song.title);
+  h.innerHTML = `<span class="tt" data-t="${esc(song.title)}">${esc(song.title)}</span>`;
+  h.classList.add("banner");
+  const tt = h.firstChild;
+  const dist = (tt.offsetWidth + 48) / 2; /* the text, the gap and its copy */
+  tt.style.setProperty("--tt-d", dist + "px");
+  tt.style.setProperty("--tt-t", Math.max(3, dist / 30).toFixed(1) + "s");
+  let loops = 0;
+  const run = () => {
+    if (!h.isConnected) return;
+    if (document.hidden) { ttTimer = setTimeout(run, 1000); return; }
+    tt.classList.remove("go"); void tt.offsetWidth; tt.classList.add("go");
+  };
+  tt.addEventListener("animationend", () => {
+    tt.classList.remove("go");
+    if (++loops < 3) ttTimer = setTimeout(run, 6000);
+  });
+  h.onclick = () => { loops = 0; clearTimeout(ttTimer); run(); };
+  ttTimer = setTimeout(run, 2000);
 }
 
 /* Go to a section: its label lands on the reading line. A recording playing goes with the page (releaseSoon).
