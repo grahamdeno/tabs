@@ -1,9 +1,9 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { DRUM_BEATS, addChordLine, addChordNear, chordSlots, setChordLine, setChordNth, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
+import { DRUM_BEATS, SPOTS_V, addChordLine, addChordNear, chordSlots, setChordLine, setChordNth, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
-import { READ_AT, aiError, aiKey, busy, calm, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
+import { READ_AT, aiError, aiKey, busy, calm, lazy, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
 
 // ---------- Edit (in place) ----------
 // Edit turns the song page itself into the editor: title and artist are typed in
@@ -255,6 +255,9 @@ function paintSheet(song, sheet) {
   const model = chordModel(song.body);
   const pencil = icon("edit");
   const parts = [`<p class="ed-hint">Tap a chord to change it, + to add one, a word to put a chord over it. ${pencil} retypes a line.</p>`];
+  /* 4.65.0: line the chords up from the chord sites on request, the way Get the song does */
+  if (aiKey() && song.format !== "tab" && !song.isNew && model.filter(l => l.kind === "lyric").length >= 2)
+    parts.push(`<button class="ce-add" id="ed-lineup">${icon("wand")}Line up from the chord sites</button>`);
   const addBtn = after => `<div class="ce-addrow"><button class="ce-add" data-after="${after}">${icon("plus")}Line</button><button class="ce-add" data-chords="${after}">${icon("plus")}Chords</button></div>`;
   /* A chord chip: n is the chord's place in the line (reading order). */
   const chip = (i, n, c, extra = "") => `<button class="ce-ch" data-i="${i}" data-n="${n}" data-chord="${esc(c)}" ${extra} aria-label="Chord ${esc(c)}">${esc(c)}</button>`;
@@ -376,6 +379,17 @@ function paintSheet(song, sheet) {
     /* Start typing the new section's first line right away. */
     sheet.querySelectorAll("[data-after]")[sheet.querySelectorAll("[data-after]").length - 1]?.click();
   };
+  $("ed-lineup")?.addEventListener("click", async () => {
+    const b = $("ed-lineup"), before = song.body;
+    b.disabled = true; b.lastChild.textContent = "Lining up, about 30 seconds";
+    try {
+      const body = await (await lazy("findai.js")).lineUpNow(song);
+      if (song.body !== before || chordEdit !== song) return; /* edited or left meanwhile: leave it */
+      if (!body || body === before) { toast(body ? "Already lined up the way the chord sites have it" : "The chord sites didn't say where the chords go"); paintEdit(song); return; }
+      editChange(song, "Lined up from the chord sites", () => { song.body = body; });
+      song.spots = "placed"; song.spotsV = SPOTS_V; delete song.spotsTried; Tabs.save(data);
+    } catch (err) { toast(aiError(err)); if (chordEdit === song) paintEdit(song); }
+  });
   $("ed-delete")?.addEventListener("click", () => deleteFromEdit(song)); /* a new song is dropped with Cancel instead */
 }
 // ---- Text view: the same page, the sheet as plain text ----

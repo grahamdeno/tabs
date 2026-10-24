@@ -2329,3 +2329,24 @@ test("4.49.12 the band skips the beats a stall let pass, on the same grid", () =
   assert.equal(C.beatsLate(0.5, 0.5), 1);
   assert.equal(C.beatsLate(2, 0), 0, "no tempo, no skipping");
 });
+
+test("4.65.0 lining up the UG way: the chart sent has no words or columns, stacked chords before and after the words stay stacked", () => {
+  const guess = "Key: F\n[Intro]\nF   Am   G\n\n[Verse]\nF             Am\nWalked the long road home\nG        F\nNever saw it\n\n[Chorus]\n[F]Carry me [Am]over";
+  const chart = C.chartOfSheet(guess);
+  assert.equal(chart, "Key: F\n\n[Intro]\nF Am G\n\n[Verse]\nF Am G F\n\n[Chorus]\nF Am", "sections and chords in order, nothing else");
+  assert.doesNotMatch(chart, /Walked|Never|Carry/, "no words, so a guessed sheet can't be handed back as the answer");
+  const lyr = "[Verse]\nWalked the long road home\nNever saw it\nRain on the glass\nCold again\n\n[Chorus]\nCarry me over";
+  const num = C.numberLyrics(lyr);
+  const lead = [[0, "F"], [0, "Am"], [0, "G"]];
+  const p = C.cleanPlaced({ found: true, sheet: [{ section: "Verse", stanza: 1 }, { section: "Chorus", stanza: 2 }, { section: "Outro", chords: "F Am G F Am G" }],
+    lines: [{ n: 1, c: lead }, { n: 2, c: [...lead, [4, "F"], [4, "Am"], [4, "G"]] }, { n: 3, c: [...lead, [5, "F"]] }, { n: 4, c: [[1, "Am"], [2, "G"]] }, { n: 5, c: [[1, "F"], [3, "Am"]] }] }, num, new Set(["F", "Am", "G"]));
+  assert.deepEqual(p.lines[1], lead, "three chords on word 0 keep their order");
+  const body = C.placedSheet(chart, lyr, p);
+  assert.match(body, /\[Verse\]\nF Am G\n {8}Walked the long road home\n/, "UG's F Am G before indented words");
+  const slots = n => { const l = C.chordModel(body).filter(x => x.kind === "lyric" && x.chords.length)[n]; return C.chordSlots(l.text, l.chords).list.map(c => `${c.chord}:${c.part}`).join(" "); };
+  assert.equal(slots(0), "F:lead Am:lead G:lead");
+  assert.equal(slots(1), "F:lead Am:lead G:lead F:after Am:after G:after", "a chord group after the last word stays after it");
+  assert.equal(slots(2), "F:lead Am:lead G:lead F:after");
+  assert.equal(slots(3), "Am:on G:on");
+  assert.match(body, /\[Outro\]\nF {3}Am {3}G {3}F {3}Am {3}G/);
+});

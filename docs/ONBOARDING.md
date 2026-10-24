@@ -232,6 +232,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 0b | From Apple Music (4.49.0): what you listened to lately, in a sheet, with a button to add each one | The row under Paste, Scan, Sing it, Ideas | On screen (Apple Music on) | Visible; no tip needed |
 | 1 | Paste or type, chords turn copper | The pad | Tip | Keep |
 | 2 | Tap a chord to change it, + beside it adds another (4.64.0), a word puts one over it; Chords adds a row of chords alone | Tap a chip, a +, a word, Chords | Listed (Tips & gestures) | First edit of an existing song; this is the main way to fix a chart |
+| 2b | Line up from the chord sites (4.65.0, AI key): any song, even one you edited, with Undo | Edit's button above the sheet | On screen | Visible; no tip needed |
 | 3 | Tap tempo | Tap along | Tip, Show me | Keep |
 | 4 | Sing it: hold the pad to sing a line | Hold | Listed (and the pad says it) | The pad's own text covers it |
 

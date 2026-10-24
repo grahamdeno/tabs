@@ -71,3 +71,28 @@ test("Edit: several chords on one word each get a chip, and a chord can be added
   await page.waitForFunction(() => document.querySelectorAll(".ce-line .ce-ch:not(.ce-pl)").length === 3);
   assert.deepEqual(await page.$$eval(".ce-line .ce-ch:not(.ce-pl)", els => els.map(e => e.textContent)), ["F", "G", "Am"], "a chord added after F lands beside it");
 });
+
+test("Edit: Line up from the chord sites sends the chart without the words' columns and stacks chords the UG way, with Undo (4.65.0)", { skip: skip() }, async t => {
+  const guess = "[Verse]\nF             Am\nWalked the long road home\nG        F\nNever saw it\nAm      G\nRain on the glass\nF     Am\nCold again";
+  const page = await phone(t, { ...lib(guess), songs: [{ ...lib(guess).songs[0], spots: "mine" }] });
+  const asked = [];
+  const answer = { found: true, sheet: [{ section: "Verse", stanza: 1 }], confidence: "high",
+    lines: [1, 2, 3, 4].map(n => ({ n, c: [[0, "F"], [0, "Am"], [0, "G"]] })) };
+  await page.route("https://api.anthropic.com/**", r => {
+    asked.push(r.request().postData() || "");
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(answer) }], stop_reason: "end_turn" }) });
+  });
+  await page.evaluate(() => localStorage.setItem("tabs.apikey.v1", "sk-test"));
+  await page.goto(base + "#/song/c"); await page.waitForSelector(".metarow");
+  await tool(page, "edit"); await page.waitForSelector("#ed-lineup");
+  await page.click("#ed-lineup");
+  await waitBody(page, /^\[Verse\]\nF Am G\n {8}Walked the long road home\nF Am G\n {8}Never saw it/);
+  const sent = JSON.parse(asked.find(a => /Chord chart/.test(a)));
+  const text = JSON.stringify(sent.messages);
+  assert.match(text, /Chord chart:\\n\[Verse\]\\nF Am G F Am G F Am\\n/, "the chart is sections and chords only");
+  assert.doesNotMatch(text, /F {13}Am/, "not the guessed columns");
+  assert.match(JSON.stringify(sent.system), /Ultimate Guitar/);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "c").spots), "placed");
+  await page.click("#toast .tact");
+  await waitBody(page, /^\[Verse\]\nF {13}Am\nWalked/);
+});

@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { Tabs, TUNINGS, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead, searchApple, attachRecording } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
@@ -72,20 +72,21 @@ async function findChart(title, artist, level = "easy") {
 // ---- Chords where the chord sites have them (4.41.0) ----
 // The AI gets the chart's chords and the lyrics as numbered lines with numbered words, reads the chord
 // sites, and answers with positions only; placedSheet (core) builds the sheet on the phone.
-const PLACE_SYSTEM = `You place a song's chords over its lyrics the way guitar chord sites show them: each chord written over the word where the change happens. Use web search to read chord sites for this song. You get the song's chord chart (sections and chords) and its lyrics as numbered lines, with each word numbered in brackets. Reply with JSON only, no other text:
+const PLACE_SYSTEM = `You place a song's chords over its lyrics the way guitar chord sites show them: each chord written over the word where the change happens. Use web search to read chord sites for this song. You get the song's chord chart (its sections and the chords each one plays, in order, with no positions) and its lyrics as numbered lines, with each word numbered in brackets. Reply with JSON only, no other text:
 {"found": boolean, "sheet": [{"section": string, "chords": string, "repeat": number} or {"section": string, "stanza": number, "from": number, "to": number}], "lines": [{"n": number, "c": [[number, string]]}], "confidence": "high"|"medium"|"low"}
 - Refer to the words only by line number and word number. Don't write any of the lyrics in your reply.
 - "sheet": the whole song in the order it's played, every section the chord sites show (Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro). A part with no singing is {"section", "chords", "repeat"}: the chords of one pass, space separated, and how many passes are played in a row (an intro the sites write out four times is "repeat": 4). A sung part is {"section", "stanza"} with the stanza number you were given; a stanza can appear more than once only if it's sung again. When one stanza holds two sections (a Pre-Chorus and then the Chorus), give each its own part with "from" and "to", the first and last line numbers of that part; leave them out for a whole stanza.
-- "lines": for each sung line, the chords that start on it, as [word number, chord name].
+- "lines": for each sung line, the chords played on it, as [word number, chord name], in the order they're played. Several chords can share a word number: a line the chord sites write as "F Am G" over empty space, with the words indented after it, is [[0, "F"], [0, "Am"], [0, "G"]]. Never spread such chords over the first words.
 - Timing matters, so mark where nobody is singing. Use word 0 for a chord played before the singing on that line starts (chord sites show it over empty space with the words indented, or at the start of a line that begins after a pause). Use the word number after the line's last word for a chord played after the line is sung, in the gap before the next line. Otherwise use the word the change lands on.
-- Leave out a line where the chord doesn't change.
+- A row of chords alone between two sung lines belongs to the line before it, after its last word.
+- Leave out a line only when no chord is played on it at all (the chord before keeps ringing). A line that plays the same chords as the line before still lists them.
 - Use the chord names from the chart exactly (its key and capo). Don't add, swap or respell chords.
-- Where sources disagree, follow most of them. If you can't tell where the chords fall, set "found" to false.`;
+- Where sources disagree, follow Ultimate Guitar's official or highest-rated version, then most of the others. If you can't tell where the chords fall, set "found" to false.`;
 async function placeChords(chartBody, lyricsText, { title = "", artist = "" } = {}) {
   const num = numberLyrics(lyricsText);
   if (num.lines.length < 2) return null;
   const { text } = await askClaudeSearch({ system: PLACE_SYSTEM, searches: 3, maxTokens: 8000,
-    content: `Song: ${title}${artist ? ` by ${artist}` : ""}\n\nChord chart:\n${chartBody}\n\nLyrics:\n${num.prompt}` });
+    content: `Song: ${title}${artist ? ` by ${artist}` : ""}\n\nChord chart:\n${chartOfSheet(chartBody) || chartBody}\n\nLyrics:\n${num.prompt}` });
   return cleanPlaced(parseJSON(text), num, new Set(chordsUsed(chartBody)));
 }
 /* A song whose chords were guessed (added before 4.41.0, or with pasted words), or placed before 4.49.6
@@ -108,6 +109,14 @@ export function relineSong(song) {
     toast(old ? `Lined up ${song.title} again, with the chords played before the words` : `Lined up the chords in ${song.title} from the chord sites`, null,
       { label: "Undo", fn: () => { song.body = before; song.spots = was; if (old) song.spotsV = SPOTS_V; else song.spotsTried = Date.now(); Tabs.save(data); redrawIf(song); } });
   }, () => { relining.delete(song.id); }).finally(() => relining.delete(song.id));
+}
+/* Line up any song now, on request (4.65.0): from Edit, whatever its sheet was marked (your own edits
+   too), with Undo. Resolves to the new sheet, or null when the chord sites didn't say where the chords go. */
+export async function lineUpNow(song) {
+  const lyrics = lyricsOfSheet(song.body);
+  if (numberLyrics(lyrics).lines.length < 2) return null;
+  const placed = await placeChords(song.body, lyrics, song);
+  return (placed && placedSheet(song.body, lyrics, placed)) || null;
 }
 const redrawIf = song => { if (route().name === "song" && route().id === song.id && !document.body.classList.contains("playing")) redraw?.(); };
 export function chartSheet(q, preset = {}) {

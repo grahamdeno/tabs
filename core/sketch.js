@@ -363,6 +363,23 @@ function chartSections(body) {
   }
   return { head, secs: secs.filter(s => s.chords.length) };
 }
+/* The chart of a sheet you already have, for lining it up (4.65.0): sections and the chords each plays, in
+   order, with no words and no columns. Lining up a song used to send its whole sheet as "the chord chart",
+   so a guessed sheet (two chords a line, the second over the middle word) told the AI where the chords went,
+   and it could hand the guess straight back. */
+export function chartOfSheet(body) {
+  const out = [];
+  let cur = null;
+  for (const line of String(body || "").replace(/\r\n?/g, "\n").split("\n")) {
+    const sec = line.match(SECTION_RE);
+    if (sec) { cur = { name: (sec[1] || sec[2] || "").trim(), chords: [] }; out.push(cur); continue; }
+    if (!line.trim()) continue;
+    if (!cur) { if (/^\s*(key|capo|tuning|tempo|bpm|strum)\b/i.test(line)) out.push({ head: line.trim() }); continue; }
+    if (isChordLine(line)) cur.chords.push(...line.trim().split(/\s+/).map(t => t.replace(/^\(|\)$/g, "")).filter(isChord));
+    else for (const m of line.matchAll(/\[([^\]]+)\]/g)) if (isChord(m[1])) cur.chords.push(m[1]);
+  }
+  return out.filter(x => x.head || x.chords.length).map(x => (x.head ? x.head : `[${x.name}]\n${x.chords.join(" ")}`)).join("\n\n");
+}
 export function lyricStanzas(text) {
   const out = [];
   let cur = null;
