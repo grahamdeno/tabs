@@ -60,6 +60,12 @@ Tick a task's box in this file in the same commit that does it.
   - Both open choices: a quiet band stays on the line you stopped on when paused (Step 4), and a chord-only row spreads
     its chords evenly across the width (Step 3).
 
+### Stage light (Graham, 2026-10-24)
+
+- Make the stage light (the beam and the lamp glow) quieter than in the mockup, so it never makes the words hard to
+  read or pulls the eye. Step 3: keep the brick backdrop and the lamp at the top only, fade the beam out before the
+  band, keep it under about 12% of the section colour, and test the contrast of the words over it on both looks.
+
 ## What the assessment found
 
 Engineering:
