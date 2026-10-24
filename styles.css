@@ -3896,3 +3896,5 @@ body.covered .menu .mrow .mi, body.covered .menu.tools .mrow.tl .mi, body.covere
 .song-title .tt.go { animation: tt-scroll var(--tt-t, 6s) linear 1; }
 @keyframes tt-scroll { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--tt-d, 0px))); } }
 @media (prefers-reduced-motion: reduce) { .song-title .tt.go { animation: none; } }
+/* A bought backdrop is the show's picture when the song has no cover; with a cover, the cover is the backdrop (4.62.1) */
+body.covered .gg-bd, body:has(#gg-cover) .gg-bd { display: none; }

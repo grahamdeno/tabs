@@ -385,6 +385,7 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   const look = await page.evaluate(() => ({ fg: getComputedStyle(document.querySelector("#sheet > .st-now")).color, light: getComputedStyle(document.getElementById("st-bg")).display }));
   assert.equal(look.fg, "rgb(255, 255, 255)", "the words are white on the cover");
   assert.equal(look.light, "none", "no stage light on a cover");
+  assert.equal(await page.evaluate(() => { const b = document.querySelector("#gig .gg-bd"); return b ? getComputedStyle(b).display : "none"; }), "none", "4.62.1: a bought backdrop doesn't sit on top of the cover");
   /* 4.60.1: paused, the page and Tools are dark with white text, not white on white */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   const dock = await page.evaluate(() => { const t = document.querySelector(".dock"); const b = document.querySelector(".dock .tools, .dock button:not(#play)"); const cs = getComputedStyle(b || t); return { text: cs.color, dockBg: getComputedStyle(t).backgroundColor }; });
