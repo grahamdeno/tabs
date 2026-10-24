@@ -2244,6 +2244,10 @@ test("4.49.10 the beat dots: a dot a beat between the chord you're on and the ne
   assert.equal(C.beatsBetween(4, 1), 4);
   assert.equal(C.beatsBetween(3.6, 1.2), 3);
   assert.equal(C.beatsBetween(0.2, 1), 1, "at least one");
+  assert.equal(C.beatsLate(0.01, 0.5), 0, "4.49.12: a hair late is still played");
+  assert.equal(C.beatsLate(0.6, 0.5), 2, "a stall skips the beats that passed, on the same grid");
+  assert.equal(C.beatsLate(0.5, 0.5), 1);
+  assert.equal(C.beatsLate(2, 0), 0, "no tempo, no skipping");
   assert.equal(C.runDot(4, 1, 4), 0, "the chord's first beat: the first dot");
   assert.equal(C.runDot(2.5, 1, 4), 1);
   assert.equal(C.runDot(0.5, 1, 4), 3, "its last beat: the last dot, and the change is the next beat");

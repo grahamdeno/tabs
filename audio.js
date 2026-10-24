@@ -1,5 +1,5 @@
 // The Road: the band: metronome and drums. Split from app.js (4.15.1); app.js re-exports what other files use.
-import { DRUM_SWING, Tabs, barHits, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf } from "./core.js";
+import { DRUM_SWING, Tabs, barHits, beatsLate, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf } from "./core.js";
 import { $, sound, toast } from "./ui.js";
 import { aiKey } from "./aihelp.js";
 import { READ_AT, byLength, data, findAI, gigHooks, loopFactor, paintLoop, pxPerSecond, scroll, songLength, usesMusic, viewing } from "./app.js";
@@ -44,6 +44,10 @@ export async function startMetronome(song) {
   metro.timer = setInterval(() => {
     while (metro.next < audio.currentTime + 0.12) {
       const spb = metro.spb = 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song)), beats = song.beats || 4;
+      /* 4.49.12: after a stall (the page throttled, the phone busy) the beats that already passed are skipped, on the
+         same grid, instead of all sounding at once as a fast burst. The next beat lands where it belongs. */
+      const skip = beatsLate(audio.currentTime - metro.next, spb);
+      if (skip) { metro.next += skip * spb; metro.beat += skip; continue; }
       /* Drop-out practice: every other bar is silent, so you hold the time. */
       const quiet = data.settings.metroDrop && Math.floor(metro.beat / beats) % 2 === 1, b = metro.beat % beats;
       const groove = grooveOf(song, data.settings);

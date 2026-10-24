@@ -113,7 +113,7 @@ Defaults are in `DEFAULT_SETTINGS` in `core.js`. `v` is the save format version 
 | `metroBeat` | `"auto"` (when missing), `"rock"`, `"half"`, `"ballad"` or `"four"` | The drum beat (2.44.0) |
 | `metroSwing` | `"straight"` (when missing), `"light"` or `"full"` | (2.44.0) |
 | `metroDrop` | boolean | Silences every other bar (2.44.0) |
-| `bandPlays` | boolean, on unless false | Lets Beat play the drums in gigs (4.7.0) |
+| `bandPlays` | boolean, on unless false | Lets Beat play the drums in gigs (4.7.0); the Metronome switch in a show sets it (4.49.12) |
 | `chartLevel` | `"easy"`, `"mine"` (My level, the default) or `"rec"` (As recorded) | Get the song's last pick (2.41.0) |
 | `nextLevel` | `"same"` or `"step"` | What can I play next?'s level (2.12) |
 

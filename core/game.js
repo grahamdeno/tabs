@@ -854,6 +854,8 @@ export function runDot(until, spb, beats, shown = beats) {
 }
 /* A change's time moved onto the band's beat grid, so the count lights on the clicks you hear: `t` the
    change, `next` the time of a beat the band has scheduled, `spb` its beat. */
+/* 4.49.12: how many beats a stalled scheduler has fallen behind; they are skipped, not played in a burst */
+export const beatsLate = (late, spb) => late > 0.04 && spb > 0 ? Math.ceil(late / spb) : 0;
 export function onBeat(t, next, spb) {
   return spb > 0 && Number.isFinite(next) ? next + Math.round((t - next) / spb) * spb : t;
 }

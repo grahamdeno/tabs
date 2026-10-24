@@ -92,6 +92,30 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Resume plays on; Sheet 
   assert.equal(await page.evaluate(() => location.hash), "#/song/g", "Sheet: back to the song, paused");
 });
 
+test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums go quiet when it is off, and come back when it is on", { skip: skip() }, async t => {
+  const lib = { ...LIB, songs: [LONG], journal: { v: 1, months: { "2026-01": { plays: 7 } } }, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false, metronome: false } };
+  const page = await phone(t, lib, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#gig");
+  await page.waitForFunction(() => import("/audio.js").then(m => m.metro.timer > 0), null, { timeout: 8000 });
+  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "true", "Beat is playing, so the switch says on");
+  await page.click(".menu [data-m='metro']");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.bandPlays === false);
+  assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "false");
+  assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metroOn())), false, "no drums once it is off");
+  await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
+  await page.click("#gg-resume"); await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
+  /* real timer */ await page.waitForTimeout(600);
+  assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)), 0, "Resume does not start the drums again");
+  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  await page.click(".menu [data-m='metro']");
+  await page.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("tabs-v1")).settings; return s.metronome === true && s.bandPlays === undefined; });
+  assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metroOn())), true);
+});
+
 test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped on", { skip: skip() }, async t => {
   const long = { id: "l", title: "Long", artist: "A", key: "G", format: "chords", duration: 300, body: "[Verse]\n" + Array.from({ length: 30 }, (_, i) => `G   C\nLine ${i} of the song`).join("\n") + "\n\n[Chorus]\nD   G\nThe end" };
   const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
