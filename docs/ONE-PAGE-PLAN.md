@@ -51,6 +51,15 @@ Tick a task's box in this file in the same commit that does it.
   D5: retire Now and Next. D6: retire Back a line. Sheet was explained (it leaves the Gig for the song page, which on
   one page is just pausing); it goes with the Gig layer in Step 4 unless Graham says otherwise.
 
+### Mockup review (Graham, 2026-10-24)
+
+- Approved the mockups, with three additions:
+  - Keep the stage light and the backdrop (brick wall at the top) while playing (Step 3).
+  - The default text size fits the song's longest line on one line, every line the same size, paused and playing
+    (Step 3; the Tools text size stays as an override, and nothing wraps while it fits).
+  - Both open choices: a quiet band stays on the line you stopped on when paused (Step 4), and a chord-only row spreads
+    its chords evenly across the width (Step 3).
+
 ## What the assessment found
 
 Engineering:
