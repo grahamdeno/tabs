@@ -59,7 +59,7 @@ const go = h => { location.hash = h; };
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
-const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null };
+const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null, repaint: null };
 /* Play opens the Gig (4.2.0). The Gig is words first (4.46.0). Practicing a section or slower, a tab and Play together play the plain sheet.
    plainPlay (tests only, never set by the app) keeps Play plain. */
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
@@ -1210,7 +1210,7 @@ function songMenu(song, anchor, redrawSong) {
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: !!data.settings.metronome },
       { id: "band", icon: "metro", label: "The band", sub: `${data.settings.metroSound === "click" ? "Click" : "Drums"} · ${Math.round(metroVol() * 100)}%`, go: true },
-      chords && !inGig && { id: "nn", icon: "fretboard", label: "Now and Next", sub: "Chord shapes while you play", on: data.settings.diagrams === true },
+      chords && { id: "nn", icon: "fretboard", label: "Now and Next", sub: inGig ? "Big chord cards where nobody sings" : "Chord shapes while you play", on: data.settings.diagrams === true },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
@@ -1336,6 +1336,7 @@ function toggleNN() {
   diag.nn = on && diag.seq.length > 0;
   diag.idx = null;
   updateDiagrams();
+  gigHooks.repaint?.(); /* in a gig: the big cards come or go now (4.49.9) */
   toast(on ? "Now and Next on" : "Now and Next off", toolsAnchor());
 }
 /* Tools, from the paused gig. */

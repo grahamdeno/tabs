@@ -9,7 +9,8 @@
 //             you're on lights up over its word; the next one is yellow, counted in by a dot a beat on its
 //             left (4.49.7). The line you're on sits on a band with a sweep that reaches each chord as it
 //             comes. A chord played again in a row shows once. A small shape for a chord you haven't learned.
-//             With no words (an intro, a solo), the big Now and Next cards show instead.
+//             With no words (an intro, a solo) and Now and Next on in Tools, the big Now and Next cards
+//             show instead (4.49.9; off by default, so the lines fill the screen).
 //   moments   Louie and the crowd pop in for a combo milestone or a full crowd, then go
 //   bottom    Hearing you (tap to stop or start listening for this show) and Pause, in thumb reach
 // Paused, the show dims in place: the line you stopped on, Louie, and in thumb reach Back a line,
@@ -240,8 +241,9 @@ function paintLit(w) {
   const g = gig, box = $("gg-lines");
   if (!g || !box || (w.idx === g.lit && w.next === g.lnext)) return;
   g.lit = w.idx; g.lnext = w.next;
-  /* with no words to read (an intro, a solo: a row of chords alone), the big Now and Next show */
-  g.el.classList.toggle("bigc", !!diag.seq?.[w.idx]?.el?.closest(".crow"));
+  /* with no words to read (an intro, a solo: a row of chords alone), the big Now and Next show, only when
+     Now and Next is on in Tools (4.49.9); by default the lines fill the screen */
+  g.el.classList.toggle("bigc", data.settings.diagrams === true && !!diag.seq?.[w.idx]?.el?.closest(".crow"));
   box.querySelectorAll(".gc-lit, .gc-next").forEach(e => e.classList.remove("gc-lit", "gc-next"));
   box.querySelectorAll(".gc-dots").forEach(e => e.remove());
   box.querySelectorAll(".gc-tight").forEach(e => e.classList.remove("gc-tight"));
@@ -409,6 +411,7 @@ export function openGig(song, opts = {}) {
   gigHooks.credited = () => { if (gig === g) g.credited = true; };
   gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
   gigHooks.resume = () => { if (gig === g) resume(); };
+  gigHooks.repaint = () => { if (gig !== g) return; g.lit = -2; const w = where(song); if (w) { paintLit(w); paintShape(diag.seq?.[w.idx]?.name); } };
   gigHooks.leave = () => { if (gig === g) leave(); };
   $("gg-x").onclick = () => leave();
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
@@ -479,7 +482,7 @@ export function closeGig(quiet = false) {
   document.body.classList.remove("gigging");
   clearTimeout(g.momentT); clearTimeout(g.twT);
   hideStrip();
-  gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
+  gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null; gigHooks.repaint = null;
   document.querySelector(".menu.tools")?.remove();
   if (!quiet && g.from === "road") go("#/");
 }

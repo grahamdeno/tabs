@@ -113,7 +113,7 @@ test("4.43.0 words first: the chord you're on lit in the line, the next one with
   const body = "[Intro]\nG   C   G   C\n\n[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G        G        Fmaj7\nLine ${i + 1} of the verse goes here`).join("\n");
   const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
   const journal = { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, chords: { G: { n: 9, first: "2026-01-01" }, C: { n: 9, first: "2026-01-01" } } };
-  const page = await phone(t, { ...LIB, songs: [song], journal, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, songs: [song], journal, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false, diagrams: true } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
   /* the intro has no words: the big Now and Next */
@@ -178,4 +178,20 @@ test("4.49.6 a chord before the singing stands ahead of the words on the song pa
   assert.equal(await page.locator("#sheet .w.lead .c").innerText(), "Em");
   const x = await page.evaluate(() => ({ lead: document.querySelector("#sheet .w.lead").getBoundingClientRect().right, word: [...document.querySelectorAll("#sheet .w")].find(w => /Down/.test(w.textContent)).getBoundingClientRect().left }));
   assert.ok(x.word > x.lead, "the words start after the lead chord");
+});
+
+test("4.49.9 the big chord cards are off by default: the lines fill the screen in an intro; Now and Next in Tools turns them on without leaving the show", { skip: skip() }, async t => {
+  const body = "[Intro]\n" + Array.from({ length: 6 }, () => "G   C   G   C").join("\n") + "\n\n[Verse]\nG        C\nLine one goes here";
+  const song = { id: "i", title: "Intro", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/i"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#gig #gg-lines .gl-now .c");
+  assert.equal(await page.locator("#gig.bigc").count(), 0, "no big cards by default");
+  assert.equal(await page.locator(".gg-chords").isVisible(), false);
+  await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
+  await page.click("#gg-tools"); await page.waitForSelector('.menu [data-m="nn"]');
+  await page.click('.menu [data-m="nn"]');
+  await page.waitForSelector("#gig.bigc");
+  assert.equal(await page.locator("#gig").count(), 1, "still in the show");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.diagrams === true);
 });
