@@ -35,7 +35,7 @@ test("4.40.0 Opening night: a new player gets five steps; the microphone's reaso
   /* 3: the Gig waits and says why it listens (here, that it won't) */
   await page.click("#play");
   await page.waitForSelector(".on-count");
-  assert.match(await page.innerText(".on-count"), /Strum on each change[\s\S]*microphone is off/);
+  assert.match(await page.innerText(".on-count"), /Play each chord[\s\S]*microphone is off/);
   assert.equal(await page.evaluate(() => document.body.classList.contains("playing")), false, "nothing scrolls until Count me in");
   await page.click("#on-go");
   await page.waitForFunction(() => document.body.classList.contains("playing") && !document.querySelector(".on-count"));

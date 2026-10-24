@@ -390,7 +390,7 @@ function renderViewer(id) {
 let redraw = null;
 let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
 let foldApi = null;
-onLeave(() => { teardownFold(); foldApi = null; stageStop(); coverOff(); });
+onLeave(r => { teardownFold(); foldApi = null; stageStop(); if (r?.name !== "song") coverOff(); }); /* 4.61.1: songs in a set keep the cover between them */
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
 function chordLabel(text) {
@@ -437,12 +437,12 @@ function renderBlocks(sheet, blocks) {
 const READ_AT = 0.4; // reading line, as a share of screen height
 let diag = { seq: [], blocks: [], block: null, focus: true };
 
-function chordSVG(name, scale = 1) {
+function chordSVG(name, scale = 1, { named = true } = {}) {
   const c = chordShape(name);
   if (!c) return "";
   const sx = i => 9 + i * 7.2, top = 30, fh = 10, base = c.base || 1;
   const rowY = f => top + (f - base + 0.5) * fh;
-  let g = `<text x="26" y="13" text-anchor="middle" class="dn">${esc(name)}</text>`;
+  let g = named ? `<text x="26" y="13" text-anchor="middle" class="dn">${esc(name)}</text>` : "";
   c.frets.forEach((f, i) => {
     if (f < 0) g += `<path class="dx" d="M${sx(i) - 2.4} 21.5L${sx(i) + 2.4} 26.5M${sx(i) + 2.4} 21.5L${sx(i) - 2.4} 26.5"/>`;
     else if (f === 0) g += `<circle class="do" cx="${sx(i)}" cy="24" r="2.4"/>`;
@@ -458,7 +458,8 @@ function chordSVG(name, scale = 1) {
     if (c.fingers[i]) g += `<text class="dk" x="${sx(i)}" y="${rowY(f) + 1.9}" text-anchor="middle">${c.fingers[i]}</text>`;
   });
   if (base > 1) g += `<text class="db" x="48" y="${rowY(base) + 2.4}">${base}</text>`;
-  return `<svg width="${52 * scale}" height="${76 * scale}" viewBox="0 0 52 76" role="img" aria-label="${esc(name)} chord fingering">${g}</svg>`;
+  /* 4.61.1: a tile that shows the name above the diagram leaves it out of the picture, and crops the empty top */
+  return `<svg width="${52 * scale}" height="${(named ? 76 : 56) * scale}" viewBox="0 ${named ? 0 : 20} 52 ${named ? 76 : 56}" role="img" aria-label="${esc(name)} chord fingering">${g}</svg>`;
 }
 
 /* 4.51.0 (Graham, 2026-10-24): the text size is the one that fits the song's longest line on one line, so a
@@ -1403,7 +1404,7 @@ function renderStrip(sheet, isChords, song) {
   box.innerHTML = names.length ? `
     <div class="strip-h"><span>Chords</span>${easyBtn}</div>
     <div class="strip" role="list">${names.map(n =>
-      `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)} chord shape${fresh(n) ? ", new to you" : ""}"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n)}</button>`).join("")}</div>` : "";
+      `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)} chord shape${fresh(n) ? ", new to you" : ""}"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n, 1, { named: false })}</button>`).join("")}</div>` : "";
 }
 
 /* Go to a section: its label lands on the reading line. A recording playing goes with the page (releaseSoon).

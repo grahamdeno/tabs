@@ -48,7 +48,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
       overflow: [...sheet.querySelectorAll(":scope > .pr, :scope > .ly, :scope > .crow")].some(l => [...l.children].some(c => c.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 1)) };
   });
   assert.equal(look.now, 800, "4.58.0: the line you're on is boldest");
-  assert.ok(look.next === 700 || look.next === 0, "4.58.0: the next line is bold");
+  assert.ok(look.next === 700 || look.next === 0, "4.58.0: the next line is bold, got " + look.next);
   assert.ok(look.nowCol > look.nextCol, "4.58.0: the next line's words are dimmer than the current line's");
   assert.ok(look.chordBrighter, "4.58.0: the next line's chords are brighter than its words");
   assert.equal(look.overflow, false, "4.58.0: no line runs past the edge at the boldest weight");
@@ -244,6 +244,12 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   assert.ok(Math.abs(hs[0] - hs[1]) <= 3, `4.56.0: a row of chords with no words is as tall as a sung line, paused too (${hs[0]} and ${hs[1]})`);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.ok(await oneLine(), "playing, nothing rewraps");
+  await page.evaluate(() => { /* a redraw during the show measures at the boldest weight, not the stage's */
+    const sh = document.getElementById("sheet"); sh.classList.add("measure");
+    const w = [...sh.querySelectorAll(":scope > .pr")].map(e => getComputedStyle(e).fontWeight); sh.classList.remove("measure");
+    window.__w = w;
+  });
+  assert.ok((await page.evaluate(() => window.__w)).every(x => x === "800"), "4.61.1: lines are measured at 800 even while staged");
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
   assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light ends above the reading line");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
@@ -367,7 +373,13 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   /* 4.61.0: the cover is the room behind the whole song screen, before Play too, with bold words */
   await page.reload(); await page.waitForSelector("#play"); /* the picture is routed now; the page tried it before */
   await page.waitForSelector("body.covered #gg-cover.in");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .pr, #sheet > .ly")).fontWeight), "700", "bold on the song page too");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > :is(.pr, .ly):not(.cur)")).fontWeight), "700", "bold on the song page too");
+  /* 4.61.1: the dock is real glass under a cover, a tile names its chord once, and the page's current line is bold, not grown */
+  const dockA = await page.evaluate(() => +(getComputedStyle(document.querySelector(".dock .pw")).backgroundColor.match(/[\d.]+/g)[3] ?? 1));
+  assert.ok(dockA >= 0.85, `the dock lets no words through (${dockA})`);
+  assert.equal(await page.locator(".scard svg text.dn").count(), 0, "a chord tile names its chord once");
+  assert.ok(await page.locator(".scard .sc-n").count() > 0, "the name is the tile's big letter");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".sheet > .cur") || document.querySelector("#sheet > .pr")).transform), "none", "no growing current line");
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.waitForFunction(() => getComputedStyle(document.querySelector("#sheet > .st-now")).color === "rgb(255, 255, 255)"); /* after the fade */
   const look = await page.evaluate(() => ({ fg: getComputedStyle(document.querySelector("#sheet > .st-now")).color, light: getComputedStyle(document.getElementById("st-bg")).display }));

@@ -315,10 +315,10 @@ body.loop-on .app.viewer { padding-bottom: calc(160px + var(--safe-b)); }
    transform, so nothing below moves. Lines keep 5% spare width on the right
    so a scaled line never runs off the edge. */
 .sheet > .pr, .sheet > .ly { margin-right: 5%; }
-.sheet.focus > .cur:is(.pr, .ly) { transform: scale(1.05); transform-origin: left center; -webkit-text-stroke: 0.78px currentColor; }
+body:not(.staged) .sheet.focus > .cur:is(.pr, .ly) { font-weight: 800; } /* 4.61.1: bold, not grown and outlined: no more reaching the song map */
 .sheet.focus > .cur .c { -webkit-text-stroke: 0; }
 /* The next line is in focus too, a little softer, to read ahead. */
-.sheet.focus > .cur2:is(.pr, .ly) { transform: none; -webkit-text-stroke: 0.4px currentColor; }
+.sheet.focus > .cur2:is(.pr, .ly) { transform: none; }
 body.playing .sheet.focus > .cur2:is(.pr, .ly) { opacity: .72; }
 @media (prefers-reduced-motion: reduce) { .sheet > * { transition: opacity .3s; } }
 /* Other lines dim only while playing; paused, you are reading the whole sheet (4.14.2). */
@@ -2285,7 +2285,7 @@ body.playing .app.viewer > .shead { opacity: .35; }
 .app.viewer .strip .scard.sel { border-color: var(--accent); box-shadow: 0 2px 0 var(--accent-deep); }
 body.wide .rail .strip .scard { width: 64px; height: 92px; padding: 0; border-radius: 10px; display: grid; box-shadow: none; }
 body.wide .rail .strip .scard svg { display: block; }
-body.wide .rail .strip .scard .sc-n, body.wide .rail .strip .scard .sc-new { display: none; }
+body.wide .rail .strip .scard .sc-new { display: none; }
 /* the bar: Tools, (in a set) 4 of 9, and Play */
 .app.viewer .player .tl { width: 56px; height: 58px; flex: none; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--rim); background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); display: grid; place-items: center; padding: 0; position: relative; }
 .app.viewer .player .tl svg { width: 24px; height: 24px; }
@@ -3710,16 +3710,19 @@ body.staged .sheet > * { position: relative; opacity: 1 !important; transform: n
 /* Bold words that fade by distance (4.58.0, Graham, 2026-10-24): the line you're on is white and boldest, the next
    one 65%, the ones after 45%, the ones played 30%. The words fade; chord letters stay brighter than the words
    around them, so the next change is always readable. Section names fade with opacity. */
-body.staged .sheet > :is(.pr, .ly, .crow) { font-weight: 700; color: color-mix(in srgb, var(--fg) 45%, transparent); }
-body.staged .sheet > .st-next:is(.pr, .ly, .crow) { color: color-mix(in srgb, var(--fg) 65%, transparent); }
-body.staged .sheet > .st-past:is(.pr, .ly, .crow) { color: color-mix(in srgb, var(--fg) 30%, transparent); }
+body.staged .sheet > :is(.pr, .ly, .crow) { font-weight: 700; color: color-mix(in srgb, var(--fg) var(--dim-after), transparent); }
+body.staged .sheet > .st-next:is(.pr, .ly, .crow) { color: color-mix(in srgb, var(--fg) var(--dim-next), transparent); }
+body.staged .sheet > .st-past:is(.pr, .ly, .crow) { color: color-mix(in srgb, var(--fg) var(--dim-past), transparent); }
 body.staged .sheet > .st-now:is(.pr, .ly, .crow) { font-weight: 800; color: var(--fg); }
-body.staged .sheet > .sec { opacity: .7 !important; }
-body.staged .sheet > .sec.st-past { opacity: .35 !important; }
+/* the fade is capped so every word keeps 4.5:1 (4.61.1): the light palettes can't fade as far as the dark ones */
+:root { --dim-next: 80%; --dim-after: 66%; --dim-past: 54%; }
+:root[data-theme="light"], :root[data-look="festival"], :root[data-look="green"] { --dim-next: 90%; --dim-after: 78%; --dim-past: 70%; }
+body.covered { --dim-next: 80%; --dim-after: 66%; --dim-past: 54%; }
+body.staged .sheet > .sec { opacity: 1 !important; }
 body.staged .sheet .c { font-weight: 800; transition: opacity .25s; }
-body.staged .sheet > :is(.pr, .ly, .crow) .c { opacity: .8; }
+body.staged .sheet > :is(.pr, .ly, .crow) .c { opacity: .92; }
 body.staged .sheet > :is(.st-now, .st-next) .c { opacity: 1; }
-body.staged .sheet > .st-past .c { opacity: .45; }
+body.staged .sheet > .st-past .c { opacity: .7; }
 body.staged .sheet > :is(.pr, .ly, .crow) .c:is(.st-got, .st-wait) { opacity: 1; }
 body.staged .sheet > .st-now::before { content: ""; position: absolute; z-index: -1; top: -6px; bottom: -2px; left: -50vw; right: -50vw; background: color-mix(in srgb, var(--gel) 16%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gel) 45%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--gel) 45%, transparent); pointer-events: none; transition: background-color .4s; }
 body.staged .sheet .c { color: var(--gel); }
@@ -3752,8 +3755,10 @@ body.staged .sheet .c.st-rep { visibility: hidden; }
    (Graham, 2026-10-24); its chords are timed evenly along it too. */
 .sheet .crow > * { flex: 1 1 0; min-width: max-content; }
 /* Fitting the text (4.51.0): each line measured on one line, to find the size that fits the longest */
-.sheet.measure > :is(.pr, .ly, .crow) { width: max-content; white-space: nowrap; flex-wrap: nowrap; font-weight: 800; }
-.sheet.measure .c { font-weight: 800; }
+.sheet.measure > :is(.pr, .ly, .crow) { width: max-content; white-space: nowrap; flex-wrap: nowrap; }
+/* measured at the boldest weight whatever the stage says (4.61.1: a redraw during the show measured the lines at 700) */
+body .sheet.measure > :is(.pr, .ly, .crow) { font-weight: 800 !important; }
+body .sheet.measure .c { font-weight: 800 !important; }
 .sheet.measure .crow > * { flex: none; }
 /* the new-chord card sits low on the right, in thumb reach, clear of the band at the reading line (4.51.0) */
 .gig .gg-shape { top: auto; bottom: calc(96px + var(--safe-b)); }
@@ -3874,3 +3879,8 @@ body.covered.staged .sheet > .st-now::before { background: rgba(255, 255, 255, .
 /* the page itself lets the cover through (4.61.0): on the song screen the body no longer paints over it */
 body.covered { background: transparent; }
 html:has(body.covered) { background: #141218; }
+
+/* Under a cover (4.61.1): the dock is real glass, the Tools icons are bright, the title bar fades into the glass */
+body.covered .pw.glass { background: rgba(20, 18, 24, .9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+body.covered .dock-fade { background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .82) 70%); }
+body.covered .menu .mrow .mi, body.covered .menu.tools .mrow.tl .mi, body.covered .menu.tools3 .mrow.t3 .mi { color: var(--accent-ink); }
