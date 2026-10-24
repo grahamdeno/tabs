@@ -2,7 +2,7 @@
 // "What can I play next?". Loaded the first time either is opened.
 import { Tabs, TUNINGS, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
-import { coverHead } from "./listen.js";
+import { coverHead, searchApple, attachRecording } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
 import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route, chordSVG, redraw } from "./app.js";
 import { louie } from "./louie.js";
@@ -236,8 +236,9 @@ export function paintKept() {
   if (!kept || !["road", "library"].includes(r) || open || document.body.classList.contains("searching")) { bar?.remove(); return; }
   if (!bar) { bar = document.createElement("div"); bar.id = "gs-kept"; bar.className = "gs-kept"; document.body.append(bar); }
   const ready = kept.st.view === "review" || kept.st.view === "versions", t = keptTitle(kept);
+  const kp = ready ? {} : gsProgress(kept.st, performance.now() / 1000);
   const art = /^https:\/\//.test(kept.st.art || "") ? `<img src="${esc(kept.st.art)}" alt="">` : icon("note");
-  bar.innerHTML = `<button class="gs-kept-open" id="gs-kept-open" aria-label="${esc(t)}, ${ready ? "not added yet. Open it" : "still getting it. Open it"}"><span class="gs-kept-art">${art}</span><span class="gs-kept-t"><b>${ready ? `${esc(t)} is ready` : `Getting ${esc(t)}…`}</b><small>${ready ? "Not added yet · tap to open" : "Still working · tap to open"}</small></span></button>${ready ? `<button class="btn primary gs-kept-add" id="gs-kept-add">Add</button>` : ""}`;
+  bar.innerHTML = `<button class="gs-kept-open" id="gs-kept-open" aria-label="${esc(t)}, ${ready ? "not added yet. Open it" : "still getting it. Open it"}"><span class="gs-kept-art">${art}</span><span class="gs-kept-t"><b>${ready ? `${esc(t)} is ready` : `Getting ${esc(t)}…`}</b><small id="gs-kept-say">${ready ? "Not added yet · tap to open" : `Still working · ${kp.leftText || "almost there"}`}</small></span>${ready ? "" : `<span class="gs-kept-bar" aria-hidden="true"><i id="gs-kept-fill" style="width:${(kp.frac * 100).toFixed(1)}%"></i></span>`}</button>${ready ? `<button class="btn primary gs-kept-add" id="gs-kept-add">Add</button>` : ""}`;
   const ref = document.querySelector(r === "road" ? ".rd-sbk" : ".dock.kb");
   const top = ref?.getBoundingClientRect().top;
   bar.style.bottom = top ? `${Math.max(12, innerHeight - top + 10)}px` : "";
@@ -253,17 +254,56 @@ export function restoreKept() {
   if (saved?.st?.chart) getSong(saved.q, { ...saved.preset, level: saved.level, resume: saved.st });
 }
 
+/* 4.57.0: how far along Get the song is. Each step's share comes from how long it took the last few times on
+   this phone (settings.gsTimes), starting from guesses. The chords come first; the lyrics, tempo and recording
+   run together; lining the chords up with the lyrics comes last. A running step eases toward the end of its
+   share and stops just short of it, so the bar keeps moving but never claims it is done early. */
+const GS_DEF = { chart: 12, words: 3, tempo: 3, rec: 3, merge: 22 };
+const GS_STEPS = ["chart", "words", "tempo", "rec", "merge"];
+export const gsEst = (k, times = data.settings.gsTimes) => {
+  const a = Array.isArray(times?.[k]) ? times[k].filter(x => x > 0) : [];
+  return a.length ? Math.min(120, Math.max(1, a.reduce((x, y) => x + y, 0) / a.length)) : GS_DEF[k];
+};
+/* st.t[k] = [start, end] in seconds; returns { frac 0..1, left seconds, doing, done } */
+export function gsProgress(st, now, times) {
+  const e = k => gsEst(k, times), T = st.t || {};
+  const run = k => { const t = T[k]; if (!t || t[0] == null) return 0; if (t[1] != null) return 1; return 0.95 * (1 - Math.exp(-2 * Math.max(0, now - t[0]) / e(k))); };
+  const group = ["words", ...(st.rows.tempo ? ["tempo"] : []), "rec"];
+  const ec = e("chart"), eb = Math.max(...group.map(e)), em = st.groupDone && !st.versions.length ? 0 : e("merge");
+  const a = ec * run("chart"), chartDone = T.chart?.[1] != null;
+  const b = chartDone ? eb * Math.min(...group.map(run)) : 0;
+  const c = st.groupDone ? em * run("merge") : 0;
+  const total = ec + eb + em, done = !!st.progDone;
+  st.pmax = Math.max(st.pmax || 0, Math.min(done ? total : total * 0.99, a + b + c));
+  const left = Math.max(0, total - st.pmax);
+  const names = { words: "the lyrics", tempo: "the tempo", rec: "the recording" };
+  const running = group.filter(k => run(k) < 1).map(k => names[k]);
+  const doing = done ? "Done" : !chartDone ? "Working out the chords" : !st.groupDone ? `Finding ${running.length > 1 ? running.slice(0, -1).join(", ") + " and " + running.at(-1) : running[0] || "the rest"}` : "Lining the chords up with the lyrics";
+  const over = !done && GS_STEPS.some(k => T[k]?.[0] != null && T[k][1] == null && run(k) > 0.85);
+  const leftText = done ? "" : over || left < 3 ? "almost there" : left < 8 ? "a few seconds left" : `about ${Math.round(left / 5) * 5} s left`;
+  return { frac: done ? 1 : st.pmax / total, left, doing, leftText, say: done ? "Done" : `${doing} · ${leftText}`, done };
+}
+
+/* 4.57.0 (D1): a recording is attached without asking only when title and artist both match exactly
+   (rankTracks gives 6) and its length is within 10 s of the lyrics' recording, when there is one to compare. */
+export function recClear(rec, lyricsSecs = 0) {
+  if (!rec || rec.score < 6) return false;
+  return !(lyricsSecs > 0 && rec.length > 0 && Math.abs(rec.length - lyricsSecs) > 10);
+}
+/* attached when it is a clear match and not turned down, or when you said yes */
+const recWanted = st => !!st.rec && (st.recUse === true || (st.rec.clear && st.recUse !== false));
+
 export function getSong(q, preset = {}) {
   const title0 = (preset.title || q || "").trim(), artist0 = (preset.artist || "").trim();
   const key = bpmKey();
   /* Play next's Add brings its own level and doesn't change the saved pick. */
   const level = CHART_LEVEL[preset.level] ? preset.level : chartLevel();
-  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", merge: "wait" }, chart: null, versions: [], vi: 0, pick: 0, tempo: null, beats: 4, err: "", full: false, note: { words: "Looking", tempo: "", chart: "Listening" } };
-  let alive = true, shown = false;
+  const st = { view: "work", rows: { words: "busy", tempo: key ? "wait" : "", chart: "busy", rec: "wait", merge: "wait" }, chart: null, t: {}, versions: [], vi: 0, pick: 0, tempo: null, beats: 4, err: "", full: false, note: { words: "Looking", tempo: "", chart: "Listening" } };
+  let alive = true, shown = false, raf = 0, lastTick = 0; /* raf: the progress bar's frame loop (4.57.0) */
   const me = { st, title: title0, mount: () => mount(), add: () => add(merged() || st.chart.body),
-    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, rows: st.rows, note: st.note, placed: st.placed, placedFor: st.placedFor } }) };
+    save: () => ({ q, preset: { ...preset, resume: undefined }, level, st: { view: st.view === "versions" ? "review" : st.view, chart: st.chart, versions: st.versions, vi: st.vi, pick: st.vi, tempo: st.tempo, beats: st.beats, sig: st.sig, art: st.art, preview: st.preview, rec: st.rec, recUse: st.recUse, rows: st.rows, note: st.note, placed: st.placed, placedFor: st.placedFor } }) };
   /* Let go: only Not this one (and a failed search, a new level or adding it) */
-  const close = () => { alive = false; shown = false; stopPreview(); layer.innerHTML = ""; if (kept === me) setKept(null); };
+  const close = () => { alive = false; cancelAnimationFrame(raf); shown = false; stopPreview(); layer.innerHTML = ""; if (kept === me) setKept(null); };
   /* Put aside: the sheet goes, the song stays (and a search still running carries on) */
   const aside = () => {
     if (st.view === "error") return close();
@@ -276,7 +316,7 @@ export function getSong(q, preset = {}) {
     if (kept === me) { kept = null; try { sessionStorage.removeItem(KEPT); } catch { /* none */ } }
     shown = true;
     layer.innerHTML = `<div class="scrim" id="gs-scrim"></div><div class="panel full cs gs" role="dialog" aria-label="Get the song"><div class="grab"></div>
-      <div class="ph" id="gs-ph"></div><div class="pbody" id="gs-body"></div><div class="gs-dock" id="gs-dock" hidden></div></div>`;
+      <div class="ph" id="gs-ph"></div><p class="sr-only" id="gs-live" role="status" aria-live="polite"></p><div class="pbody" id="gs-body"></div><div class="gs-dock" id="gs-dock" hidden></div></div>`;
     $("gs-scrim").onclick = aside;
     paintKept();
     paint();
@@ -291,11 +331,23 @@ export function getSong(q, preset = {}) {
   });
   /* The cover: Apple's public catalog, once the song's name and artist are known (3.23.0). Its 30-second
      preview plays from the button beside the title (4.27.0). */
+  /* 4.57.0: one catalog search per song and artist serves the cover, the preview and the recording row.
+     Off an iPhone it is the iTunes search; on an iPhone, MusicKit (needs Apple Music on, else { off: true }). */
+  const recMemo = new Map();
+  const recFind = (title, artist) => {
+    const k = `${title}|${artist}`.toLowerCase();
+    if (!recMemo.has(k)) recMemo.set(k, (async () => {
+      const term = `${title} ${artist}`.trim();
+      if (!appleBlocksSearch()) return { top: rankTracks((await itunes("search", { term, media: "music", entity: "song", limit: 8 }))?.results || [], title, artist)[0] || null };
+      const r = await searchApple(term, 8);
+      return r === null ? { off: true, top: null } : { top: rankTracks(r, title, artist)[0] || null };
+    })());
+    return recMemo.get(k);
+  };
   const head = (title, artist) => {
-    if (title && artist && st.artQ !== `${title}|${artist}` && !appleBlocksSearch()) {
+    if (title && artist && st.artQ !== `${title}|${artist}`) {
       st.artQ = `${title}|${artist}`;
-      itunes("search", { term: `${title} ${artist}`, media: "music", entity: "song", limit: 8 }).then(j => {
-        const top = rankTracks(j?.results || [], title, artist)[0];
+      recFind(title, artist).then(({ top }) => {
         if (top?.artworkUrl100 && top.score >= 4.5 && alive) { st.art = String(top.artworkUrl100).replace(/\d+x\d+bb/, "600x600bb"); if (/^https:\/\//.test(top.previewUrl || "")) st.preview = top.previewUrl; paint(); }
       }).catch(() => {});
     }
@@ -309,6 +361,21 @@ export function getSong(q, preset = {}) {
     paint();
   });
   const version = () => st.versions[st.vi] || null;
+  /* the recording found: saved by itself on a clear match, else asked (4.57.0) */
+  const recBlock = () => {
+    const r = st.rec;
+    if (!r) return "";
+    const len = r.length ? ` · ${mmssOf(r.length)}` : "";
+    const art = /^https:\/\//.test(r.art || "") ? `<img src="${esc(r.art)}" alt="">` : icon("note");
+    if (r.clear && st.recUse !== false) return `<div class="gs-rec ok"><span class="gs-rec-art">${art}</span><span class="gs-rec-t"><b>Apple Music recording found</b><small>${esc(r.title)}${len} · saved with the song</small></span><button class="tb" id="gs-rec-no">Don't use</button></div>`;
+    if (st.recUse === true) return `<div class="gs-rec ok"><span class="gs-rec-art">${art}</span><span class="gs-rec-t"><b>Using this recording</b><small>${esc(r.title)}${len}</small></span><button class="tb" id="gs-rec-no">Don't use</button></div>`;
+    if (st.recUse === false) return "";
+    return `<div class="gs-rec ask" role="group" aria-label="Use this recording?"><span class="gs-rec-art">${art}</span><span class="gs-rec-t"><b>Use this recording?</b><small>${esc(r.title)} · ${esc(r.artist)}${len}</small></span><button class="tb" id="gs-rec-yes">Yes</button><button class="tb" id="gs-rec-no">No</button></div>`;
+  };
+  const bindRec = () => {
+    $("gs-rec-yes")?.addEventListener("click", () => { st.recUse = true; paint(); });
+    $("gs-rec-no")?.addEventListener("click", () => { st.recUse = false; paint(); });
+  };
   /* 4.41.0: the chords where the chord sites have them, for the recording picked; the old guess while it's working or when it couldn't tell */
   const placedFor = v => v && st.placed && st.placedFor === v.id ? placedSheet(st.chart.body, v.plainLyrics, st.placed) : null;
   const merged = () => version() ? placedFor(version()) || mergeWords(st.chart.body, version().plainLyrics) : null;
@@ -320,7 +387,8 @@ export function getSong(q, preset = {}) {
   /* a jewel lamp per step, like a channel strip: dark while waiting,
      warming while working, lit when done. Said in a musician's words, not the
      names of the services behind them. */
-  const ROW = { ok: `<i class="gs-lamp on"></i>`, busy: `<i class="gs-lamp warm"></i>`, wait: `<i class="gs-lamp"></i>`, none: `<i class="gs-lamp"></i>` };
+  const ROW = { ok: `<i class="gs-st chk" aria-hidden="true">${icon("check")}</i>`, busy: `<i class="gs-st ring" aria-hidden="true"></i>`, wait: `<i class="gs-st hol" aria-hidden="true"></i>`, none: `<i class="gs-st dash" aria-hidden="true"></i>` };
+  const STATE_WORD = { ok: "done", busy: "working", wait: "waiting", none: "skipped" };
   const add = (body, lrc = true) => {
     const c = st.chart, v = version(), t = st.tempo, tn = TUNINGS[c.tuning] ? c.tuning : "standard";
     const len = Math.round(v?.duration || c.duration || 0);
@@ -329,6 +397,7 @@ export function getSong(q, preset = {}) {
       ...(len >= 60 ? { duration: len, recLength: len } : {}), ...(tn !== "standard" ? { tuning: tn } : {}), ai: "chart",
       ...(lrc && v && body !== c.body ? { words: { src: "lrclib", id: v.id } } : {}), ...(st.art ? { art: st.art } : {}),
       ...(body !== c.body ? body === placedFor(v) ? { spots: "placed", spotsV: SPOTS_V } : { spots: "guess" } : {}) });
+    if (recWanted(st)) attachRecording(s, st.rec); /* 4.57.0: the Apple Music recording found while it fetched */
     close(); leaveSearch();
     grooveFor(s); /* how it feels, in the background */
     /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really
@@ -377,12 +446,14 @@ export function getSong(q, preset = {}) {
     $("gs-back")?.addEventListener("click", () => { st.view = "review"; paint(); });
     if (st.view === "work") {
       const r = st.rows;
-      const row = (k, label) => r[k] ? `<div class="gs-row">${ROW[r[k]]}<span class="${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
+      const row = (k, label) => r[k] ? `<div class="gs-row ${r[k] === "busy" ? "working" : r[k]}" role="group" aria-label="${label}, ${STATE_WORD[r[k]]}">${ROW[r[k]]}<span class="gs-lb ${r[k] === "wait" ? "muted" : ""}">${label}</span><span class="gs-src">${esc(st.note[k] || "")}</span></div>` : "";
       dock("");
+      const p = gsProgress(st, performance.now() / 1000);
       body.innerHTML = `${head(c?.title || title0, c?.artist || artist0)}
         ${levelPlate()}
-        <div class="gs-rows glass">${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("chart", "Working out the chords")}${row("merge", "Lining the chords up with the lyrics")}</div>
-        <p class="foot" style="margin-top:12px">The song's name${level === "mine" ? " and the chords you play" : ""} go to the AI, then its words, to put each chord over the right one. It takes about 40 seconds and costs a few cents on your AI key. You can put it aside with the arrow and keep using the app.</p>`;
+        <div class="gs-prog"><p class="gs-say" id="gs-say">${esc(p.say)}</p><div class="gs-bar${p.done ? " done" : ""}" id="gs-bar" role="progressbar" aria-label="Getting the song" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p.frac * 100)}" aria-valuetext="${esc(p.say)}"><i id="gs-fill" style="width:${(p.frac * 100).toFixed(1)}%"></i></div></div>
+        <div class="gs-rows glass">${row("chart", "Working out the chords")}${row("words", "Finding the lyrics")}${row("tempo", "Finding the tempo")}${row("rec", "Finding the recording")}${row("merge", "Lining the chords up with the lyrics")}</div>
+        <p class="foot" style="margin-top:12px">The song's name${level === "mine" ? " and the chords you play go" : " goes"} to the AI, then its words, to put each chord over the right one, and Apple's catalog is searched for the recording. It takes about 40 seconds and costs a few cents on your AI key. You can put it aside with the arrow and keep using the app.</p>`;
       bindLevel(); bindHear();
       return;
     }
@@ -407,6 +478,7 @@ export function getSong(q, preset = {}) {
       ${levelPlate()}
       <div class="cs-meta">${[c.key && `<span>Key ${esc(c.key)}</span>`, `<span>${c.capo > 0 ? `Capo ${c.capo}` : "No capo"}</span>`, tn !== "standard" && `<span>${TUNINGS[tn].name}</span>`, tempoChip, st.sig && `<span>${esc(st.sig)}</span>`].filter(Boolean).join("")}${c.confidence ? `<span class="cs-conf ${esc(c.confidence)}">${c.confidence === "high" ? "Sources agree" : c.confidence === "medium" ? "Mostly agree" : "Rough guess"}</span>` : ""}</div>
       ${v ? `<button class="gs-pick" id="gs-pick"${more ? "" : " disabled"}><span>Recording: <b>${esc(v.albumName || "Single")} · ${mmssOf(v.duration || 0)}</b></span>${more ? `<em>Change ${icon("chev")}</em>` : ""}</button>` : `<p class="gs-pick none">No lyrics found</p>`}
+      ${recBlock()}
       <div class="gs-sheet full"><pre class="cs-chart gs-chart">${esc(m || c.body)}</pre></div>
       <p class="foot">${!m ? "Paste the words, or add the chords alone." : st.placing ? "Lining the chords up with the words from the chord sites…" : placedFor(v) ? "Each chord sits over the word the chord sites have it on." : "The chords are spread over the lines as a guess. Edit fixes any line."}</p>
       <div class="cs-src">${c.sources.slice(0, 3).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${icon("link")}${esc(x.title.slice(0, 60))}</a>`).join("")}
@@ -417,7 +489,7 @@ export function getSong(q, preset = {}) {
     $("gs-edit").onclick = () => wordsSheet(c.body, { title: c.title, ok: "Add to library", text: m ? v.plainLyrics : "" }, b => add(b, !!m), mount);
     $("gs-add").onclick = () => add(m || c.body);
     $("gs-no").onclick = close;
-    bindLevel(); bindHear();
+    bindLevel(); bindHear(); bindRec();
   };
   /* 4.49.4: the album's colour runs from the top edge, under the title bar, as on About this song */
   const washTop = () => {
@@ -437,7 +509,34 @@ export function getSong(q, preset = {}) {
     toast(`Let go of ${keptTitle(prev)}`, null, { label: "Undo", fn: () => setKept(prev) });
   }
   mount();
+  /* the bar and its line move with the clock, not with each step; only these two numbers are written per frame */
+  const reduce = !!matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const applyProg = () => {
+    const p = gsProgress(st, performance.now() / 1000), pct = (p.frac * 100).toFixed(1) + "%";
+    const bar = $("gs-bar");
+    if (bar) { $("gs-fill").style.width = pct; $("gs-say").textContent = p.say; bar.setAttribute("aria-valuenow", String(Math.round(p.frac * 100))); bar.setAttribute("aria-valuetext", p.say); bar.classList.toggle("done", p.done); }
+    const kf = $("gs-kept-fill");
+    if (kf && kept === me) { kf.style.width = pct; const ks = $("gs-kept-say"); if (ks) ks.textContent = st.view === "work" ? `Still working · ${p.leftText || "done"}` : ""; }
+  };
+  const loop = ts => {
+    raf = 0;
+    if (!alive) return;
+    if (!reduce || ts - lastTick >= 1000) { lastTick = ts; applyProg(); }
+    if (st.view === "work") raf = requestAnimationFrame(loop);
+  };
+  const say = m => { const e = $("gs-live"); if (e) e.textContent = m; };
+  const stamp = (k, i) => { (st.t[k] ||= [null, null])[i] = performance.now() / 1000; };
+  /* what each step took goes into the averages that size the bar next time */
+  const learnTimes = () => {
+    const prev = data.settings.gsTimes || {}, next = {};
+    for (const k of GS_STEPS) {
+      const t = st.t[k], old = Array.isArray(prev[k]) ? prev[k].filter(x => x > 0).slice(-4) : [];
+      next[k] = t?.[0] != null && t[1] != null ? [...old, Math.min(120, Math.max(1, Math.round((t[1] - t[0]) * 10) / 10))] : old;
+    }
+    data.settings.gsTimes = next; Tabs.save(data);
+  };
   const run = async () => {
+    stamp("chart", 0); raf = requestAnimationFrame(loop);
     const early = getJSON(`${LRC}/search?q=${encodeURIComponent(`${title0} ${artist0}`.trim())}`);
     early.then(l => { if (st.rows.words === "busy" && !(l || []).length) st.note.words = "Still looking"; paint(); }, () => {});
     try { st.chart = await findChart(title0, artist0, level); }
@@ -449,16 +548,35 @@ export function getSong(q, preset = {}) {
     }
     if (!alive) return;
     const c = st.chart;
-    st.rows.chart = "ok"; st.note.chart = c.key ? `Key ${c.key}` : "Done"; paint();
-    const words = lrcVersions(early, c).then(list => { st.versions = list; st.rows.words = list.length ? "ok" : "none"; st.note.words = list.length ? "Found" : "None found"; paint(); }, () => { st.rows.words = "none"; st.note.words = "Busy, try later"; paint(); });
+    stamp("chart", 1);
+    st.rows.chart = "ok"; st.note.chart = c.key ? `Key ${c.key}` : "Done"; say(`Chords found${c.key ? `, key ${c.key}` : ""}`); paint();
+    stamp("words", 0);
+    const words = lrcVersions(early, c).then(list => { stamp("words", 1); st.versions = list; st.rows.words = list.length ? "ok" : "none"; st.note.words = list.length ? "Found" : "None found"; say(list.length ? "Lyrics found" : "No lyrics found"); paint(); }, () => { stamp("words", 1); st.rows.words = "none"; st.note.words = "Busy, try later"; paint(); });
     let measured = null;
-    const tempo = key ? (st.rows.tempo = "busy", paint(), bpmLookup(c, key).then(r => { measured = st.mt = r; st.rows.tempo = r ? "ok" : "none"; st.note.tempo = r ? `${Math.round(r.tempo)} BPM${r.sig ? ` · ${r.sig}` : ""}` : "Not found"; }, e => { st.rows.tempo = "none"; st.note.tempo = e.status === 401 ? "Check the tempo key in Settings" : "Busy, try later"; })) : Promise.resolve();
-    await Promise.all([words, tempo]);
+    const tempo = key ? (st.rows.tempo = "busy", stamp("tempo", 0), paint(), bpmLookup(c, key).then(r => { stamp("tempo", 1); measured = st.mt = r; st.rows.tempo = r ? "ok" : "none"; st.note.tempo = r ? `${Math.round(r.tempo)} BPM${r.sig ? ` · ${r.sig}` : ""}` : "Not found"; if (r) say(`Tempo found: ${Math.round(r.tempo)} BPM`); }, e => { stamp("tempo", 1); st.rows.tempo = "none"; st.note.tempo = e.status === 401 ? "Check the tempo key in Settings" : "Busy, try later"; })) : Promise.resolve();
+    /* the recording: Apple's catalog, while the words and the tempo are looked up (4.57.0) */
+    st.rows.rec = "busy"; st.note.rec = "Searching Apple Music"; stamp("rec", 0); paint();
+    const recP = recFind(c.title, c.artist).then(({ top, off }) => {
+      stamp("rec", 1);
+      if (off) { st.rows.rec = "none"; st.note.rec = "Turn on Apple Music to find it"; }
+      else if (!top || top.score < 3) { st.rows.rec = "none"; st.note.rec = "Not found"; }
+      else {
+        const secs = top.trackTimeMillis ? Math.round(top.trackTimeMillis / 1000) : 0;
+        st.rec = { url: top.trackViewUrl, title: top.trackName || c.title, artist: top.artistName || c.artist || "", length: secs, score: top.score,
+          ...(top.artworkUrl100 ? { art: String(top.artworkUrl100).replace(/\d+x\d+bb/, "600x600bb") } : {}) };
+        st.rows.rec = "ok"; st.note.rec = secs ? mmssOf(secs) : "Found"; say(`Recording found${secs ? `, ${mmssOf(secs)}` : ""}`);
+      }
+      paint();
+    }, () => { stamp("rec", 1); st.rows.rec = "none"; st.note.rec = "Busy, try later"; paint(); });
+    await Promise.all([words, tempo, recP]);
     if (!alive) return;
+    st.groupDone = true;
+    if (st.rec) st.rec.clear = recClear(st.rec, st.versions[0]?.duration || c.duration || 0); /* a clear match is saved by itself (D1) */
     st.tempo = tempoPick(c.bpm, measured?.tempo || 0);
     if (measured?.sig) { st.sig = measured.sig; st.beats = beatsOf(measured.sig); }
-    if (st.versions.length) { st.rows.merge = "busy"; st.note.merge = "Reading the chord sites"; paint(); await place(st.versions[0]); if (!alive) return; }
+    if (st.versions.length) { st.rows.merge = "busy"; st.note.merge = "Reading the chord sites"; stamp("merge", 0); paint(); await place(st.versions[0]); if (!alive) return; stamp("merge", 1); }
     st.rows.merge = st.versions.length ? "ok" : "none"; st.note.merge = !st.versions.length ? "No lyrics to line up" : st.placed ? "Done" : "A best guess"; paint();
+    st.progDone = true; applyProg(); say("Done. Ready to add"); learnTimes();
     await wait(450);
     if (!alive) return;
     st.view = "review";

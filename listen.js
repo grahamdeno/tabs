@@ -261,11 +261,24 @@ export const onFeel = f => { feelArrived = f; };
 /* 4.49.8: searching Apple's catalog through MusicKit. An iPhone can't use the iTunes search (Apple redirects it
    into the Music app), so the search screen asks MusicKit instead: [{ title, artist, year }], or null when
    Apple Music is off. A catalog search needs the developer token only, not a sign-in. */
-export async function searchApple(term) {
+export async function searchApple(term, limit = 5) {
   if (!data.settings.appleMusic || !data.settings.appleMusicToken) return null;
   const music = await loadMusicKit();
-  const r = await music.api.music(`/v1/catalog/${music.storefrontId || "us"}/search`, { term, types: "songs", limit: 5 });
-  return (r?.data?.results?.songs?.data || []).map(x => ({ trackName: x.attributes?.name, artistName: x.attributes?.artistName, releaseDate: x.attributes?.releaseDate }));
+  const r = await music.api.music(`/v1/catalog/${music.storefrontId || "us"}/search`, { term, types: "songs", limit });
+  /* shaped like iTunes' results, so the same ranking works; 4.57.0 adds the link, length and cover */
+  return (r?.data?.results?.songs?.data || []).map(x => {
+    const a = x.attributes || {}, art = String(a.artwork?.url || "").replace("{w}x{h}", "100x100").replace("{f}", "jpg");
+    return { trackName: a.name, artistName: a.artistName, collectionName: a.albumName, releaseDate: a.releaseDate, trackId: x.id,
+      ...(/^https:\/\/music\.apple\.com\//.test(a.url || "") ? { trackViewUrl: a.url } : {}), ...(a.durationInMillis ? { trackTimeMillis: a.durationInMillis } : {}),
+      ...(/^https:\/\//.test(art) ? { artworkUrl100: art } : {}), ...(/^https:\/\//.test(a.previews?.[0]?.url || "") ? { previewUrl: a.previews[0].url } : {}) };
+  });
+}
+/* 4.57.0: a recording found while the song is fetched (Get the song) is saved with the song as if it had been
+   linked in Listen: the link and cover, and its length for song length speed. */
+export function attachRecording(song, rec) {
+  if (!rec?.url) return;
+  saveListen(song, rec.url, { ...(rec.title ? { title: rec.title } : {}), ...(rec.artist ? { artist: rec.artist } : {}), ...(rec.art ? { art: rec.art } : {}) });
+  if (rec.length > 0) useRecordingLength(song, rec.length, { quiet: true });
 }
 /* What you played lately in Apple Music: [{ title, artist }], newest first. */
 let recentCache = null; /* { at, rows }: Tonight asks each time it opens; Apple is asked at most every 2 minutes */

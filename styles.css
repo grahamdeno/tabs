@@ -3803,3 +3803,34 @@ body.held .sheet.focus > .cur { transform: none; -webkit-text-stroke: 0; }
 .st-open.tight .so-row { gap: 12px; }
 .st-open.tight .so-n { font-size: 52px; }
 body:has(#st-open:not(.go)) .gg-shape, body:has(#st-open:not(.go)) .countin { visibility: hidden; }
+
+/* Get the song: the recording found (4.57.0) */
+.gs-rec { display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 8px 10px; border-radius: 16px; background: var(--card); border: 2px solid var(--rim); }
+.gs-rec.ok { border-color: var(--got); }
+.gs-rec-art { flex: none; width: 44px; height: 44px; border-radius: 10px; overflow: hidden; background: var(--card-2); display: grid; place-items: center; color: var(--muted); }
+.gs-rec-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gs-rec-art svg { width: 22px; height: 22px; }
+.gs-rec-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.gs-rec-t b { font: 700 15px var(--display); }
+.gs-rec-t small { font: 600 13px var(--sans); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-rec .tb { min-height: 44px; min-width: 44px; }
+
+/* Get the song: one bar for the whole job, and rows you can read at a glance (4.57.0) */
+.gs-prog { margin: 14px 2px 0; }
+.gs-say { margin: 0 0 8px; font: 700 15px var(--display); color: var(--fg); }
+.gs-bar { height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 14%, transparent); overflow: hidden; }
+.gs-bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .25s linear, background .3s; }
+.gs-bar.done i { background: var(--got); }
+.gs-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 6px; min-height: 28px; }
+.gs-row .gs-lb { flex: 1; min-width: 0; }
+.gs-row.working { margin: 0 -14px; padding: 12px 20px; background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--accent) 45%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--accent) 45%, transparent); font-weight: 700; }
+.gs-st { flex: none; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box; display: grid; place-items: center; }
+.gs-st.ring { border: 3px solid color-mix(in srgb, var(--accent-ink) 30%, transparent); border-top-color: var(--accent-ink); animation: gs-spin .9s linear infinite; }
+.gs-st.chk { background: var(--got); color: var(--bg); }
+.gs-st.chk svg { width: 13px; height: 13px; stroke-width: 3.4; }
+.gs-st.hol { border: 2px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+.gs-st.dash::before { content: ""; width: 12px; height: 3px; border-radius: 2px; background: var(--muted); }
+@keyframes gs-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gs-st.ring { animation: none; } .gs-bar i { transition: none; } }
+.gs-kept-bar { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 14%, transparent); overflow: hidden; }
+.gs-kept-bar i { display: block; height: 100%; background: var(--accent); }

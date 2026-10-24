@@ -126,6 +126,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 
 | Key | Values | Notes |
 |---|---|---|
+| `gsTimes` | `{ chart, words, tempo, rec, merge }`, each up to 5 numbers (4.57.0) | How long each step of Get the song took the last few times on this phone, in seconds (1 to 120); their averages size its progress bar |
 | `gigTime` | retired (4.54.0) | Removed on load. The show scores the chord you play, never the timing |
 | `toolsTab` | `"play"`, `"practice"` or `"song"` (Play when missing) | The Tools tab last open (4.32.0) |
 | `gigScore` | boolean, on unless false | A show starts listening for your chord changes (4.2.0) |

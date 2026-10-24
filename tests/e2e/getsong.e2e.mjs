@@ -12,16 +12,17 @@ const V = (id, albumName, duration, plain) => ({ id, trackName: "Harbor Lights",
 const VERSIONS = [V(2, "Live at the Pier", 260, "pier words one\npier words two\n\npier chorus line"), V(1, "Northern Coast", 221, "grey boats lean on the harbor wall\nwaiting on a tide to call\n\nbring the lights home\nbring the long way round"), V(3, "Karaoke Hits", 221, "k one\n\nk two")];
 const cors = { "access-control-allow-origin": "*", "access-control-expose-headers": "retry-after" };
 
-async function setup(t, { bpm = true, extra = {}, placed = { found: false } } = {}) {
+const TRACK = { trackName: "Harbor Lights", artistName: "The Cape Fear", collectionName: "Northern Coast", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", trackTimeMillis: 221000, artworkUrl100: "https://is1-ssl.mzstatic.com/hl/100x100bb.jpg" };
+async function setup(t, { bpm = true, extra = {}, placed = { found: false }, results = null, aiDelay = 0 } = {}) {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false }, ...extra });
   await page.evaluate(k => { localStorage.setItem("tabs.apikey.v1", "sk-ant-test"); if (k) localStorage.setItem("tabs.bpmkey.v1", "bpm-test"); }, bpm);
   const calls = { lrc: 0, bpm: [], ai: 0 };
-  await page.route(/api\.anthropic\.com/, async r => { calls.ai++; if (process.env.SHOT) await new Promise(ok => setTimeout(ok, 2500));
+  await page.route(/api\.anthropic\.com/, async r => { calls.ai++; if (process.env.SHOT || aiDelay) await new Promise(ok => setTimeout(ok, aiDelay || 2500));
     const placing = /You place a song's chords/.test(JSON.parse(r.request().postData() || "{}").system || ""); /* 4.41.0: the second call */
     r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ content: [{ type: "text", text: JSON.stringify(placing ? placed : CHART) }], stop_reason: "end_turn" }) }); });
   await page.route(/lrclib\.net\/api\/search/, r => { calls.lrc++; calls.lrc === 1 ? r.fulfill({ status: 429, headers: { ...cors, "retry-after": "0.2" }, body: "{}" }) : r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(VERSIONS) }); });
   await page.route(/api\.getsong\.co/, r => { calls.bpm.push(r.request().url()); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ search: [{ id: "x", title: "Harbor Lights", tempo: "92", time_sig: "3/4", artist: { name: "The Cape Fear" } }] }) }); });
-  await page.route(/itunes\.apple\.com\/search/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ results: [{ trackName: "Harbor Lights", artistName: "The Cape Fear", collectionName: "Northern Coast", trackViewUrl: "https://music.apple.com/us/album/a/1?i=5", artworkUrl100: "https://is1-ssl.mzstatic.com/hl/100x100bb.jpg" }] }) }));
+  await page.route(/itunes\.apple\.com\/search/, r => r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ results: results || [{ ...TRACK, trackTimeMillis: undefined }] }) }));
   await page.route(/mzstatic\.com/, r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("89504e470d0a1a0a", "hex") }));
   await page.reload(); await page.waitForTimeout(300);
   return { page, calls };
@@ -185,4 +186,63 @@ test("4.41.0 a song whose chords were guessed is lined up once when opened, with
   assert.match(body, /G {22}D\ngrey boats lean on the harbor wall/);
   await page.click("#toast button");
   await page.waitForFunction(b => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "g").body === b, guessed);
+});
+
+const lib = page => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
+
+test("4.57.0 Get the song shows one progress bar and rows you can read at a glance", { skip: skip() }, async t => {
+  const { page } = await setup(t, { aiDelay: 2500 });
+  await search(page, "harbor lights");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-bar");
+  assert.equal(await page.getAttribute("#gs-bar", "role"), "progressbar");
+  const w1 = await page.evaluate(() => parseFloat(document.getElementById("gs-fill").style.width));
+  await page.waitForTimeout(900); /* real timer: the bar moves while the chords are worked out */
+  const w2 = await page.evaluate(() => parseFloat(document.getElementById("gs-fill").style.width));
+  assert.ok(w2 > w1, `the bar moves (${w1} to ${w2})`);
+  assert.match(await page.innerText("#gs-say"), /Working out the chords · /, "one line says what is happening and the time left");
+  assert.ok(await page.locator(".gs-row.working .gs-st.ring").count() >= 1, "a working row has its band and a ring (the lyrics search starts with the chords)");
+  assert.match(await page.locator(".gs-row.working").first().getAttribute("aria-label"), /^Working out the chords, working$/);
+  const order = await page.locator(".gs-row .gs-lb").allInnerTexts();
+  assert.deepEqual(order, ["Working out the chords", "Finding the lyrics", "Finding the tempo", "Finding the recording", "Lining the chords up with the lyrics"].slice(0, order.length), "rows in the order the job runs");
+  await page.waitForSelector(".gs-row.ok .gs-st.chk", { timeout: 8000 }); /* a check, not only a colour */
+  await page.waitForSelector("#gs-add", { timeout: 15000 });
+  assert.ok((await lib(page)).settings.gsTimes?.chart?.length >= 1, "each step's time is kept for sizing the bar next time");
+});
+
+test("4.57.0 a clear match for the recording is saved with the song, with its cover and length", { skip: skip() }, async t => {
+  const { page } = await setup(t, { results: [TRACK] });
+  await search(page, "harbor lights");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-add", { timeout: 10000 });
+  assert.match(await page.innerText(".gs-rec.ok"), /Apple Music recording found[\s\S]*3:41[\s\S]*saved with the song/);
+  await page.click("#gs-add"); await page.waitForTimeout(500);
+  const s = (await lib(page)).songs.find(x => x.title === "Harbor Lights");
+  assert.equal(s.listen.url, TRACK.trackViewUrl); assert.equal(s.listen.service, "Apple Music");
+  assert.equal(s.listen.art, "https://is1-ssl.mzstatic.com/hl/600x600bb.jpg");
+});
+
+test("4.57.0 a weaker match asks: Yes saves the recording, No leaves it out", { skip: skip() }, async t => {
+  for (const answer of ["yes", "no"]) {
+    const weak = { ...TRACK, trackName: "Harbor Lights (Live)", artistName: "The Cape Fear Band" };
+    const { page } = await setup(t, { results: [weak] });
+    await search(page, "harbor lights");
+    await page.click("#fc-ai");
+    await page.waitForSelector("#gs-add", { timeout: 10000 });
+    assert.match(await page.innerText(".gs-rec.ask"), /Use this recording\?/);
+    await page.click(answer === "yes" ? "#gs-rec-yes" : "#gs-rec-no");
+    await page.click("#gs-add"); await page.waitForTimeout(500);
+    const s = (await lib(page)).songs.find(x => x.title === "Harbor Lights");
+    if (answer === "yes") assert.equal(s.listen?.url, weak.trackViewUrl); else assert.equal(s.listen, undefined, "No: nothing saved");
+  }
+});
+
+test("4.57.0 no match says Not found and saves nothing", { skip: skip() }, async t => {
+  const { page } = await setup(t, { results: [] });
+  await search(page, "harbor lights");
+  await page.click("#fc-ai");
+  await page.waitForSelector("#gs-add", { timeout: 10000 });
+  assert.equal(await page.locator(".gs-rec").count(), 0);
+  await page.click("#gs-add"); await page.waitForTimeout(500);
+  assert.equal((await lib(page)).songs.find(x => x.title === "Harbor Lights").listen, undefined);
 });

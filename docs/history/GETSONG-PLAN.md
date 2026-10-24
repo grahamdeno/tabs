@@ -106,4 +106,18 @@ run with Sonnet. No mockup (Graham: build it).
 
 ## Surprises
 
-(none yet)
+Written at the end of the build (2026-10-24):
+
+- One catalog search (`recFind`, per title and artist) now serves the cover, the preview and the recording row;
+  `head()`'s own search was folded into it, and on an iPhone the cover now also comes through MusicKit when
+  Apple Music is on.
+- `searchApple` returns iTunes-shaped results with the link, length, cover and preview added, so `rankTracks`
+  ranks both paths the same way. The Songbook's caller is unchanged.
+- At the start, the chords and the lyrics search are both working (the lyrics search starts early), so two rows
+  can sit on the band at once.
+- A crash was found and fixed while testing: the frame loop's variable was declared after the early return for
+  a restored song, so adding a song from the "is ready" bar after a reload threw. It is now declared with
+  `alive` at the top.
+- The step 3.5 contrast script was not run; the label on the band is full ink on a 16% accent wash, and the
+  check is the caught-green token already checked for Chord Catch. The step 5.3 a11y run on the sheet was not
+  added.
