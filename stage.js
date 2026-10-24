@@ -6,9 +6,10 @@
 // The Gig (gig.js) adds the score, the crowd and its controls on top. A song played unscored (practicing, a
 // tab, Play together) gets the same stage with nothing on top (4.52.0): stagePlay and stageStop, from app.js.
 import { gelOf } from "./core.js";
-import { diag, READ_AT, musicClock, usesMusic, chordTimes, isLine } from "./app.js";
+import { diag, READ_AT, musicClock, usesMusic, chordTimes, isLine, chordSVG } from "./app.js";
 
 const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 /* the sections of the song, top to bottom, with where each starts on the page */
 export function sections() {
@@ -79,6 +80,7 @@ export function stageClear() {
   const sheet = $("sheet");
   sheet?.querySelectorAll(MARKS.map(m => "." + m).join(",")).forEach(e => e.classList.remove(...MARKS));
   $("st-bg")?.remove();
+  $("st-open")?.remove();
   document.body.classList.remove("staged");
   delete document.body.dataset.gel;
   Object.assign(st, { b: -2, on: -1, seq: null, got: new Set(), miss: new Set(), wait: -1 });
@@ -135,6 +137,7 @@ export function stagePaint(w) {
 
 /* One frame of the stage: the section's colour and the band on the line you're on */
 export function stageTick(song, w) {
+  openFade();
   if (!w) return;
   stageGel(gelOf(w.sec || "verse"));
   stagePaint(w);
@@ -157,3 +160,40 @@ export function stageStop() {
   document.body.classList.remove("staged-plain");
   stageClear();
 }
+
+/* The opening card (4.55.0): at the start of a song the lines above the reading line are empty (nothing has been
+   played yet). That space holds the song, its first two chords as shapes, and the count-in's beats. It goes as
+   soon as the first line comes up to it, and the lines you've played take the space. */
+export function stageOpen(song, beats = 0) {
+  $("st-open")?.remove();
+  const seq = diag.seq || [], first = seq[0]?.name;
+  if (!first) return;
+  const then = seq.find(c => c.name !== first)?.name;
+  const line = [...(diag.blocks || [])].find(b => b.el.isConnected && isLine(b.el))?.el;
+  const low = line ? line.getBoundingClientRect().top - 14 : innerHeight * READ_AT - 40;
+  const crowd = document.querySelector("#gig .gg-status"), top = crowd ? crowd.getBoundingClientRect().bottom + 10 : 76;
+  const room = low - top;
+  if (room < 96) return; /* started further down: no room, and nothing to say */
+  const tile = (name, label) => `<span class="so-ch" role="img" aria-label="${label === "FIRST" ? "First chord" : "Then"}: ${esc(name)} chord shape"><small aria-hidden="true">${label}</small><b aria-hidden="true">${esc(name)}</b>${chordSVG(name, 1) || ""}</span>`;
+  const el = document.createElement("div");
+  el.id = "st-open"; el.className = "st-open" + (room < 200 ? " tight" : "");
+  el.style.top = top + "px"; el.style.height = (low - top) + "px";
+  const meta = [song.key && `Key ${song.key}`, song.bpm && `${song.bpm} BPM`].filter(Boolean).join(" · ");
+  el.innerHTML = `<div class="so-in"><p class="so-t"><b>${esc(song.title || "")}</b>${meta ? `<span>${esc(meta)}</span>` : ""}</p>
+    <div class="so-chs">${tile(first, "FIRST")}${then ? tile(then, "THEN") : ""}</div>
+    ${beats ? `<div class="so-beats" aria-hidden="true">${"<i></i>".repeat(beats)}</div>` : ""}</div>`;
+  document.body.appendChild(el);
+  el.dataset.y0 = String(scrollY);
+}
+/* the count-in's beat n (1 to beats) lights */
+export function stageBeat(n) {
+  const marks = document.querySelectorAll("#st-open .so-beats i");
+  marks.forEach((m, i) => m.classList.toggle("on", i < n));
+}
+/* the card goes once the first line starts coming up into it */
+function openFade() {
+  const el = $("st-open");
+  if (!el || el.classList.contains("go") || scrollY <= +el.dataset.y0 + 24) return;
+  el.classList.add("go"); setTimeout(() => el.remove(), 400);
+}
+

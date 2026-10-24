@@ -3782,3 +3782,26 @@ body.held .sheet.focus > .cur { transform: none; -webkit-text-stroke: 0; }
 .gg-wait .gw-s svg { width: 100%; height: auto; display: block; }
 .gg-skip { flex: 1; min-height: 60px; border: 0; border-radius: 18px; background: color-mix(in srgb, var(--fg) 12%, transparent); color: var(--fg); font: 700 18px var(--display); }
 .gg-bottom:has(.gg-skip:not([hidden])) .gg-mic { display: none; }
+
+/* The opening card (4.55.0): the song, its first two chords and the count, in the empty space above the first line */
+.st-open { position: fixed; left: 16px; right: 16px; z-index: 56; display: grid; place-items: center; pointer-events: none; transition: opacity .35s; }
+.st-open.go { opacity: 0; }
+.st-open .so-in { display: flex; flex-direction: column; align-items: center; gap: 12px; max-height: 100%; }
+.st-open .so-t { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.st-open .so-t b { font: 700 20px var(--display); color: var(--fg); }
+.st-open .so-t span { font: 700 13px var(--sans); letter-spacing: .04em; color: var(--muted); }
+.st-open .so-chs { display: flex; gap: 14px; }
+.st-open .so-ch { width: 104px; padding: 8px 8px 10px; box-sizing: border-box; border-radius: 16px; background: var(--card); box-shadow: 0 4px 0 var(--rim); display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--fg); }
+.st-open .so-ch small { font: 800 10px var(--sans); letter-spacing: .1em; color: var(--muted); }
+.st-open .so-ch b { font: 700 22px var(--display); }
+.st-open .so-ch svg { width: 74px; height: auto; display: block; }
+.st-open .so-beats { display: flex; gap: 10px; }
+.st-open .so-beats i { width: 14px; height: 14px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 18%, transparent); transition: background .1s, transform .1s; }
+.st-open .so-beats i.on { background: var(--gel, var(--accent)); transform: scale(1.15); }
+/* less room (a shorter phone, or a song that starts higher): the shapes side by side with their names, no title */
+.st-open.tight .so-in { gap: 6px; }
+.st-open.tight .so-t { display: none; }
+.st-open.tight .so-ch { width: auto; flex-direction: row; gap: 8px; padding: 6px 12px 6px 10px; }
+.st-open.tight .so-ch small { writing-mode: vertical-rl; transform: rotate(180deg); }
+.st-open.tight .so-ch svg { width: 50px; }
+body:has(#st-open:not(.go)) .gg-shape, body:has(#st-open:not(.go)) .countin { visibility: hidden; }
