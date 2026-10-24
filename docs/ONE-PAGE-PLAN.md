@@ -117,7 +117,7 @@ the beat dots' timing, Tools.
 
 ### Step 1. Mockups (only if D4 says yes) [Opus], no release
 
-- [ ] 1.1 On the mockup canvas (the Design artifact), a new row "One page": paused, playing with words, playing an intro
+- [x] 1.1 Done as its own canvas, "The Road: One Page" (a Design artifact), not a row on the old board: paused, playing with words, playing an intro
       (no words), playing a practice loop, in the Neon Midnight palette, plus paused in Festival Poster. Use Harbor Lights
       (the sample song) so it matches Graham's screenshots.
 - [ ] 1.2 Stop for Graham's go. His changes go into "The page Graham will get" above before Step 2 starts.
