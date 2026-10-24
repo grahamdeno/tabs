@@ -164,8 +164,7 @@ function shell(song) {
       <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
     </div>
     <div class="gg-hold" id="gg-hold" hidden>
-      <div class="gg-here"><small>YOU STOPPED HERE</small><div class="gg-hline sheet" id="gg-hline"></div>
-        <div class="gg-say"><span id="gg-hlouie"></span><p id="gg-hsay"></p></div></div>
+      <div class="gg-say" id="gg-say" hidden><span id="gg-hlouie"></span><p id="gg-hsay"></p></div>
       <div class="gg-hacts">
         <div class="gg-hrow">
           <button class="btn gg-hb" id="gg-back">${icon("up")}Back a line</button>
@@ -327,7 +326,7 @@ function frame() {
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
   gigFrame(g, w.sec, scroll.on && !counting);
   /* the lines */
-  if (w.b !== g.b) { g.b = w.b; paintLines(w); if (g.paused) paintHold(); }
+  if (w.b !== g.b) { g.b = w.b; paintLines(w); }
   paintLit(w);
   /* chords */
   const seq = diag.seq || [];
@@ -452,16 +451,13 @@ function paused(on) {
   $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
   if (on) { g.holdSay = gigPaused(g); paintHold(); $("gg-resume").focus({ preventScroll: true }); }
 }
-/* Paused: the line you stopped on, and Louie keeping the crowd */
+/* Paused (4.49.13): the lines stay as they are, in full colour, and only the buttons come up. Louie speaks
+   only when there is something to say, like Opening night's "Tap Resume". */
 function paintHold() {
-  const g = gig, box = $("gg-hline");
+  const g = gig, box = $("gg-say");
   if (!g || !box) return;
-  const now = $("gg-lines")?.querySelector(".gl-now");
-  const c = now?.cloneNode(true);
-  c?.querySelectorAll(".gc-run").forEach(e => e.remove());
-  box.replaceChildren(...(c ? [c] : []));
-  $("gg-hlouie").innerHTML = louie("happy", { size: 64 });
-  $("gg-hsay").textContent = g.holdSay ? g.holdSay : g.score.combo >= 2 ? "Take a breath. The crowd's still with you, and your combo is held." : "Take a breath. The crowd's still here when you're ready.";
+  box.hidden = !g.holdSay;
+  if (g.holdSay) { $("gg-hlouie").innerHTML = louie("happy", { size: 64 }); $("gg-hsay").textContent = g.holdSay; }
 }
 /* Back a line: the line before the one you stopped on comes to the reading line */
 function backALine() {

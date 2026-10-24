@@ -2245,7 +2245,6 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 
 .gg-pause { flex: none; width: 66px; height: 60px; border: 0; border-radius: 18px; background: var(--fg); color: var(--bg); box-shadow: 0 5px 0 color-mix(in srgb, var(--fg) 55%, transparent); display: grid; place-items: center; }
 .gg-pause svg { width: 24px; height: 24px; fill: currentColor; }
-.gig.paused .gg-lines { opacity: .55; }
 .gig.paused .gg-pause { background: var(--accent); color: var(--on-accent); box-shadow: 0 5px 0 var(--accent-deep); }
 @media (prefers-reduced-motion: reduce) { .gg-string.wob, .gg-now.hit, .gg-now.miss { animation: none; } }
 /* Show complete */
@@ -2374,18 +2373,14 @@ body.gigging .menu.tools { z-index: 60; }
 .gg-mt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; min-width: 0; }
 .gg-mt small { font: 800 10px var(--sans); letter-spacing: .04em; opacity: .8; }
 .gg-mic:not(.off) { border-color: var(--good); background: var(--good-soft, var(--card)); box-shadow: 0 3px 0 color-mix(in srgb, var(--good) 35%, transparent); }
-.gig.paused > :not(.gg-light):not(.gg-hold) { opacity: .3; pointer-events: none; }
-.gig.paused .gg-top { opacity: 1 !important; pointer-events: auto !important; }
+/* 4.49.13: paused, nothing dims: the lines stay readable and draggable; only the buttons come up */
+.gig.paused > :not(.gg-light):not(.gg-hold):not(.gg-lines):not(.gg-top) { pointer-events: none; }
+.gig.paused .gg-shape, .gig.paused .gg-moment { visibility: hidden; }
 .gig.paused .gg-bottom { visibility: hidden; }
-.gg-hold { position: absolute !important; left: 0; right: 0; top: 30%; bottom: 0; padding: 28px 16px calc(14px + var(--safe-b)); display: flex; flex-direction: column; justify-content: space-between; gap: 14px; background: linear-gradient(180deg, transparent, var(--bg) 28px); }
-.gg-here { min-height: 0; overflow: hidden; }
+.gg-hold { position: absolute !important; left: 0; right: 0; bottom: 0; padding: 34px 16px calc(14px + var(--safe-b)); display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; background: linear-gradient(180deg, transparent, var(--bg) 34px); }
 .gg-hold[hidden] { display: none; }
-.gg-here small { display: block; margin: 0 0 6px; font: 800 11.5px var(--sans); letter-spacing: .08em; color: var(--muted); }
-.gg-hline { background: var(--card); border: 2px solid var(--gel); border-radius: 18px; box-shadow: 0 4px 0 color-mix(in srgb, var(--gel) 45%, transparent); padding: 10px 14px; --lyric-size: 21px; }
-.gg-hline > * { margin: 0 !important; }
-.gg-hline .c { color: var(--gel); font-family: var(--display); }
-:root[data-theme="light"] .gg-hline .c { color: color-mix(in srgb, var(--gel) 75%, #14213D); }
-.gg-say { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+:root[data-theme="light"] .gg-say { display: flex; align-items: center; gap: 12px; }
+.gg-say[hidden] { display: none; }
 .gg-say .louie { width: 64px; height: auto; flex: none; }
 .gg-say p { flex: 1; margin: 0; background: var(--card); border: 2px solid var(--rim); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font: 700 15px/1.35 var(--sans); color: var(--fg); }
 .gg-hacts { flex: none; display: flex; flex-direction: column; gap: 12px; }
@@ -2398,7 +2393,9 @@ body.gigging .menu.tools { z-index: 60; }
 /* Tools on a shorter phone: the sheet scrolls inside itself (4.2.1) */
 .menu.tools { max-height: calc(100dvh - 24px - var(--safe-t)); overflow-y: auto; overscroll-behavior: contain; }
 /* the Gig's lines move the song under a finger (4.2.2) */
-.gg-lines, .gg-here { touch-action: none; }
+.gg-lines, .gg-hold { touch-action: none; }
+/* the lines are redrawn as you drag, so a finger must start on the box itself: a touch that starts on a line the redraw removes stops reaching it (4.49.13) */
+.gg-lines > * { pointer-events: none; }
 /* ==========================================================================
    Full (4.4.0): Lines in a gig, Full. The song page shows whole and scrolls
    under your finger; the show is a strip at the top (the map, the section,

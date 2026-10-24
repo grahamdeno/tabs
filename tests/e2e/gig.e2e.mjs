@@ -45,7 +45,9 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
   /* Paused, the show holds the line you stopped on; Tools has only what you change mid-song */
   await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  assert.equal(await page.locator("#gg-hline > *").count(), 1, "the line you stopped on");
+  assert.equal(await page.locator("#gg-hline, .gg-here").count(), 0, "4.49.13: no focus card on pause");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-lines")).opacity), "1", "the lines are not dimmed");
+  assert.equal(await page.locator("#gg-lines .gl-now").count(), 1, "the line you stopped on stays on its band");
   await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator('.menu [data-m="edit"]').count(), 0, "from a show, only what you change mid-song");
   await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
@@ -77,11 +79,11 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Resume plays on; Sheet 
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  const held = await page.innerText("#gg-hline");
+  const held = await page.innerText("#gg-lines .gl-now");
   await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator(".menu [data-lines]").count(), 0, "no Lines in a gig");
   await page.mouse.click(200, 120); await page.waitForSelector(".menu", { state: "detached" });
-  assert.equal(await page.innerText("#gg-hline"), held, "Tools while paused keeps the line you stopped on");
+  assert.equal(await page.innerText("#gg-lines .gl-now"), held, "Tools while paused keeps the line you stopped on");
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
   const at = await page.evaluate(() => document.getElementById("gg-mark").style.left);
   await page.click("#gg-resume"); await page.waitForSelector("#gg-hold[hidden]", { state: "attached" });
@@ -123,13 +125,13 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
   assert.match(await page.getAttribute("#gg-mic", "aria-label"), /Not listening/, "Score my plays off: the show starts unscored");
-  const before = await page.evaluate(() => scrollY), line = await page.innerText("#gg-hline");
+  const before = await page.evaluate(() => scrollY), line = await page.innerText("#gg-lines .gl-now");
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 420 }] });
   for (let y = 410; y >= 200; y -= 30) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] }); await page.waitForTimeout(16); /* real timer */ }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await page.waitForFunction(b => scrollY > b + 150, before);
-  await page.waitForFunction(l => document.getElementById("gg-hline").innerText !== l, line);
+  await page.waitForFunction(l => document.querySelector("#gg-lines .gl-now").innerText !== l, line);
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
 });
 
