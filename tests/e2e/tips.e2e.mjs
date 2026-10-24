@@ -7,7 +7,7 @@ useBrowser();
 
 const EXPECT = {
   pull: /Pull down/, speed: /Tools, then the time/, setdial: /4 of 9/,
-  chord: /chord/i, line: /Tap a line/, map: /section/, nn: /Now and Next/, pause: /pause/i, search: /Search/, tap: /Tap along/, meter: /Green and centered/
+  chord: /chord/i, line: /Tap a line/, map: /section/, pause: /pause/i, search: /Search/, tap: /Tap along/, meter: /Green and centered/
 };
 test("every Show me demos on screen", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a", "b"] }], settings: { ...LIB.settings, micExplained: true } }, { isMobile: true });

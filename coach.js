@@ -3,7 +3,7 @@
 import { Tabs, openingReplay, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
 import { setSetCtx } from "./sets.js";
-import { READ_AT, aiKey, applyPaused, calm, card, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
+import { aiKey, applyPaused, calm, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
 
 // ---------- Coach: one-time help, in place and never in the way ----------
 // "Try it" on the first song (tap a chord, then Play); everything else is shown
@@ -174,24 +174,6 @@ function demoLine() {
   setTimeout(() => { if (!scroll.on && diag.block === line && $("sheet") === sheet) { setCurrent(was); applyPaused(); } }, 3400);
   return true;
 }
-// Paused, with Now and Next off: show the real panel for a moment.
-function demoNN() {
-  const nn = $("nn");
-  if (!nn || !diag.seq.length) return false;
-  const top = $("sheet").getBoundingClientRect().top, line = innerHeight * READ_AT;
-  let idx = 0;
-  for (let i = 0; i < diag.seq.length; i++) if (top + diag.seq[i].y <= line) idx = i;
-  const next = [];
-  let last = diag.seq[idx].name;
-  for (let i = idx + 1; i < diag.seq.length && next.length < 3; i++) if (diag.seq[i].name !== last) { next.push(diag.seq[i].name); last = diag.seq[i].name; }
-  const fade = [0.85, 0.5, 0.28];
-  nn.innerHTML = `<div class="nowcol"><div class="lab">NOW</div><div>${card(diag.seq[idx].name, 1.26)}</div></div><div class="vs"></div>
-    <div style="min-width:0"><div class="lab">NEXT</div><div class="cards">${next.map((n, i) => card(n, 1, fade[i])).join("")}</div></div>`;
-  document.body.classList.add("nn-demo");
-  coach(nn, "", { ms: 3800, place: "above", fixed: true, html: `<b>Now and Next</b><span>The chord you're on, and what's coming, while you play. Turn it on in Tools, on the Play tab.</span>` });
-  setTimeout(() => { document.body.classList.remove("nn-demo"); if (!scroll.on) nn.innerHTML = ""; }, 3800);
-  return true;
-}
 // Song map: show the section names, the way they appear while dragging.
 function demoMap() {
   const m = map.el;
@@ -274,7 +256,6 @@ function runDemo(name, song) {
   if (name === "chord") return demoChord(song, true);
   if (name === "pause") return demoPause();
   if (name === "line") return demoLine();
-  if (name === "nn") return demoNN();
   if (name === "map") {
     const sec = document.querySelectorAll(".sheet > .sec")[1];
     if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + scrollY - innerHeight * 0.3 });
@@ -289,10 +270,9 @@ const GESTURES = [
     ["speed", "Tools, then Song length", "\u2212 and + step it; tap the time for the dial and sweep to set it", "gauge"],
     ["setdial", "Hold \u201c4 of 9\u201d in a set", "The set dial: sweep through the set, let go to open a song", "listplus"]]],
   ["On a song", [
-    ["chord", "Tap a chord", "See how to play it; tap a chord card above the song to mark everywhere it's played", "fretboard"],
+    ["chord", "Tap a chord", "Its shape shows above Play; tap a chord chip to mark everywhere it's played", "fretboard"],
     ["line", "Tap a line", "Play starts from there", "play"],
     ["map", "Drag the song map", "Jump through the song's sections (practicing, a tab or Play together)", "sections"],
-    ["nn", "Now and Next", "The chord you're on, and what's coming", "fretboard"],
     ["", "Tap the title bar", "Back to the top", "up"],
     ["", "Change the key", "Tap the title for About this song, then the Key tile", "plus"],
     ["", "Count-in", "Plays only when you start from the top", "metro"]]],
@@ -336,4 +316,4 @@ function renderGestures() {
   };
 }
 
-export { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used };
+export { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used };

@@ -159,7 +159,7 @@ anything a person found on their own is skipped.
 
 | # | Hidden feature | How you do it | Coverage | Why here |
 |---|---|---|---|---|
-| 1 | Tap a chord to see how it's played | Tap any chord | Tip, Show me | First song, first minute. Keep as is |
+| 1 | Tap a chord to see how it's played | Tap any chord or a chord chip | Tip, Show me | First song, first minute. The shape shows in a card above Play (4.50.0) |
 | 2 | Press Play | The Play button | Tip | Right after the chord. Keep |
 | 3 | The title opens About this song (cover, preview, key, recording) | Tap the cover or "about this song" | None | Big value (key dial, recording, With the band) and it doesn't look like a button. First time a song has a cover |
 | 4 | Tap a line to start from it | Tap a line while paused | Tip, Show me (plain sheet only) | After the first pause |
@@ -177,7 +177,7 @@ anything a person found on their own is skipped.
 | 1 | The microphone hears your strums and scores the changes | Just strum on the change | On screen: "Hearing you · tap to turn off" says it listens, not why | The heart of the game. Before the first show: "Strum on each chord change. I'm listening" from Louie |
 | 2 | Tap to pause (twice on stage) | Tap the screen | None in the Gig (the tip is plain-sheet only) | First show, a few seconds in, as the pause tip already does elsewhere |
 | 3 | Drag the lines to move the song | Drag | None | First pause in a Gig |
-| 4 | Now and Next counts the beats to the change | Watch it | None | Second show, once they've seen the screen |
+| 4 | The beat dots count to the change | Watch them | None | Second show, once they've seen the screen (4.50.0: Now and Next is gone) |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
 
@@ -191,7 +191,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 2 | Tap a line to start from it | Tap while paused | Tip, Show me | Keep |
 | 3 | Drag the song map to jump sections | Drag the rail on the right | Tip, Show me | Keep (fix the stale Settings path in its text) |
 | 4 | Practice a section: tap the first and last line | Two taps | Listed | The first time Practice a section is chosen, say it there |
-| 5 | Now and Next | Tools > Play switch | Tip, Show me | Keep (fix the text) |
+| 5 | (Now and Next, retired in 4.50.0) | | | The tip, Show me and Tools switch are gone |
 | 6 | Count-in only from the top | Automatic | Listed | Leave listed |
 
 ### Tools sheet

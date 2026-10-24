@@ -196,6 +196,7 @@ The journal keeps `days` (`{ "YYYY-MM-DD": seconds }`, last 60 days) and `daysFr
 - `playMap` and `playSeen` (2.48.0): the Tour Map is always on (2.50.0) and needs no setting.
 - `tabs.heard.v1` (3.24.0, browser storage): cover requests replaced Just heard it in 4.10.0.
 - `tolex` (boolean, 2.20.0, Amp covering) and `arcSweep`: `arcSweep` is dropped from saves when they load.
+- `diagrams` (Now and Next), retired in 4.50.0: nothing reads it. Old saves and backups still carry it and still load.
 - `stage` (Stage mode), `songMap` (the section rail is always on) and `pauseDiagrams` (diagrams when paused are always on), retired in 4.15.0 and dropped from saves when they load.
 - `gigPlay` (4.2.0) and a song's `playAs` (4.3.0).
 - `bass`, `bassVol`, `bassStyle` and `bassOnly` (the bass line, 2.45.0 to 4.41.0) and a song's `groove.bass` and `groove.riff`: dropped when they load (4.42.0).

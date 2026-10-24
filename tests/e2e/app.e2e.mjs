@@ -260,8 +260,8 @@ test("first song: try a chord, then Play; tips never block and show once", { ski
   assert.equal(await cap(), "Tap a chord to see how to play it");
   // The caption doesn't block: tapping the chord works and shows its diagram.
   await page.locator(".coach-pulse").click();
-  await page.waitForSelector('.dpop');
-  assert.ok(await page.locator(".dpop").count(), "diagram shown");
+  await page.waitForSelector('.shapecard');
+  assert.ok(await page.locator(".shapecard svg").count(), "4.50.0: the shape shows in a card above Play");
   assert.equal(await cap(), "That's how it's played");
   await page.waitForFunction(() => document.querySelector('.coach')?.textContent === "Press play when you're ready", null, { timeout: 8000 });
   assert.equal(await cap(), "Press play when you're ready");

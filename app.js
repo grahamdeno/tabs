@@ -5,7 +5,7 @@ import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderSet, setCtx, setRun, setSongs, setSetCtx } from "./sets.js";
 import { copyDiagnostics, loadLibrary, noteError } from "./store.js";
-import { chordTapped, coach, coachTip, demoLine, demoMap, demoNN, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
+import { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
 import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
@@ -59,7 +59,7 @@ const go = h => { location.hash = h; };
 let playNext = null, searchNext = false, lastHome = "library"; /* where a song's Back goes: Tonight or the Library */
 const playSong = id => { playNext = id; go("#/song/" + encodeURIComponent(id)); };
 /* The Gig (4.1.0): open the song and play it as a scored show. gigHooks are set by gig.js while a show is on. */
-const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null, repaint: null };
+const gigHooks = { on: false, credited: null, stopped: null, resume: null, leave: null, band: null };
 /* Play opens the Gig (4.2.0). The Gig is words first (4.46.0). Practicing a section or slower, a tab and Play together play the plain sheet.
    plainPlay (tests only, never set by the app) keeps Play plain. */
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
@@ -156,7 +156,7 @@ function renderViewer(id) {
   /* Back goes where the song was opened from: its set, when played from one. */
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
   const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to the Songbook" };
-  diag.armed = false; diag.rowKey = null; diag.pinned = null; diag.scrolling = false; diag.block = null;
+  diag.pinned = null; diag.scrolling = false; diag.block = null;
   /* One song screen (4.2.0): the song at the top (back, title, favorite), its chips, the song map,
      the chords, the sheet, and at the bottom Tools and Play. Play opens the Gig. */
   app.innerHTML = `
@@ -194,7 +194,6 @@ function renderViewer(id) {
     <div class="dock-fade"></div>
     <div class="dock">
       <div class="pw glass float">
-      <div class="nn" id="nn"></div>
       <div class="looprow" id="looprow"></div>
       <div class="player">
         <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
@@ -429,12 +428,10 @@ function renderBlocks(sheet, blocks) {
   });
 }
 // ---------- Chord diagrams ----------
-// Paused: tap any chord for its fingering. Playing: a fixed Now and Next panel in
-// the dock shows the chord at the reading line and the ones coming up, and the
-// current line stays bright while the others dim. Nothing moves over the lyrics.
-const CARD_W = 54, CARD_H = 78;
+// Paused: tap a chord, in the song or in the chord chips, and its fingering shows in a card above Play
+// (4.50.0), so nothing is drawn over the lyrics. Playing: the current line stays bright while the others dim.
 const READ_AT = 0.4; // reading line, as a share of screen height
-let diag = { seq: [], blocks: [], idx: null, block: null, nn: true, focus: true };
+let diag = { seq: [], blocks: [], block: null, focus: true };
 
 function chordSVG(name, scale = 1) {
   const c = chordShape(name);
@@ -462,31 +459,15 @@ function chordSVG(name, scale = 1) {
 
 // Record every chord label and every line, top to bottom, for the reading line.
 function layoutDiagrams(sheet, isChords) {
-  sheet.querySelectorAll(".dpop, .prow").forEach(el => el.remove());
+  showChordPop(null);
   const top = sheet.getBoundingClientRect().top;
   diag.seq = isChords ? [...sheet.querySelectorAll(".c[data-ch]")].map(el => ({
     el, name: el.dataset.ch, y: el.getBoundingClientRect().top - top
   })) : [];
-  // Screen rows of chords, for the paused diagrams.
-  const left0 = sheet.getBoundingClientRect().left;
-  diag.rows = [];
-  for (const it of diag.seq) {
-    const r = it.el.getBoundingClientRect();
-    let row = diag.rows.find(x => Math.abs(x.top - it.y) < 6);
-    if (!row) diag.rows.push(row = { top: it.y, items: [] });
-    if (!row.items.some(x => x.name === it.name)) row.items.push({ name: it.name, x: r.left - left0 + Math.min(r.width, 40) / 2 });
-  }
-  diag.blocks = [...sheet.children].filter(el => !el.classList.contains("dpop") && !el.classList.contains("prow"))
-    .map(el => ({ el, y: el.getBoundingClientRect().top - top }));
-  diag.nn = isChords && data.settings.diagrams === true && diag.seq.length > 0;
+  diag.blocks = [...sheet.children].map(el => ({ el, y: el.getBoundingClientRect().top - top }));
   diag.focus = ["always", "playing", "off"].includes(data.settings.focus) ? data.settings.focus : "always";
-  diag.idx = null; diag.block = null; diag.rowKey = null;
+  diag.block = null;
   updateDiagrams();
-  showPausedRow();
-}
-
-function card(name, scale, opacity = 1) {
-  return `<div class="card" style="width:${(CARD_W * scale).toFixed(1)}px;height:${(CARD_H * scale).toFixed(1)}px;opacity:${opacity}">${chordSVG(name, scale)}</div>`;
 }
 
 /* Chord timing (3.22.0): each chord on a timed line gets the time of the word it sits on (the line's
@@ -533,11 +514,8 @@ function chordTimes(song) {
 function updateDiagrams() {
   const sheet = $("sheet");
   const playing = scroll.on && !!sheet;
-  document.body.classList.toggle("nn-on", playing && diag.nn);
   if (!sheet) return;
   if (!playing) {
-    sheet.querySelectorAll(".c.now").forEach(el => el.classList.remove("now"));
-    diag.idx = null;
     if (!diag.scrolling) applyPaused();
     return;
   }
@@ -552,35 +530,8 @@ function updateDiagrams() {
   for (let i = 0; i < diag.blocks.length; i++) if (sheetTop + diag.blocks[i].y <= line) b = i;
   while (b < diag.blocks.length - 1 && !isLine(diag.blocks[b].el)) b++;
   setCurrent(diag.blocks[b]?.el);
-
-  if (!diag.nn) return;
-  // Current chord: the last chord that has reached the reading line. With the recording playing and
-  // its lines timed (3.22.0), the last chord whose time has come instead, so Now changes on the beat.
-  let idx = 0;
-  const clock = viewing && usesMusic(viewing) ? musicClock(viewing) : null, ct = clock !== null ? chordTimes(viewing) : null;
-  if (ct) { for (let i = 0; i < ct.length; i++) if (ct[i] != null && ct[i] <= clock) idx = i; }
-  else for (let i = 0; i < diag.seq.length; i++) if (sheetTop + diag.seq[i].y <= line) idx = i;
-  if (idx === diag.idx) return;
-  diag.seq[diag.idx]?.el.classList.remove("now");
-  diag.idx = idx;
-  const now = diag.seq[idx];
-  now.el.classList.add("now");
-  // Next: the following chords, skipping repeats of the one before.
-  const next = [];
-  let last = now.name;
-  for (let i = idx + 1; i < diag.seq.length && next.length < 3; i++) {
-    if (diag.seq[i].name !== last) { next.push(diag.seq[i].name); last = diag.seq[i].name; }
-  }
-  const fade = [0.85, 0.5, 0.28];
-  $("nn").innerHTML = `
-    <div class="nowcol"><div class="lab">NOW</div><div class="swap">${card(now.name, 1.26)}</div></div>
-    <div class="vs"></div>
-    <div style="min-width:0"><div class="lab">NEXT</div>
-      <div class="cards swap">${next.length ? next.map((n, i) => card(n, 1, fade[i])).join("") : `<div class="none">End of song</div>`}</div>
-    </div>`;
 }
 
-// Tap a chord: show its card above it until the next tap.
 // ---------- Current line when paused ----------
 // The same line gets focus and diagrams: a tapped line, else the first line at the
 // top of the song, else the line at the reading point.
@@ -620,53 +571,8 @@ function applyPaused() {
   const on = diag.focus === "always";
   sheet.classList.toggle("focus", on);
   setCurrent(on ? block : null);
-  showPausedRow(block);
 }
 
-// Paused: the line at the reading point gets its diagrams, each over its chord.
-// Shown after pausing; follows to a new line once a paused scroll comes to rest.
-const FOCUS_SCALE = 1.05; /* matches .sheet.focus > .cur in the styles */
-function showPausedRow(block = pausedBlock()) {
-  const sheet = $("sheet");
-  if (!sheet || chordEdit) return;
-  const want = diag.armed && !scroll.on && diag.rows?.length && block;
-  const old = sheet.querySelector(".prow");
-  if (!want) { old?.remove(); diag.rowKey = null; return; }
-  // Chord rows inside the current line (a long line may wrap onto several rows).
-  const inside = diag.rows.filter(r => r.top >= block.offsetTop - 2 && r.top < block.offsetTop + block.offsetHeight);
-  if (!inside.length) { old?.remove(); diag.rowKey = null; return; }
-  // One set of cards above the line's first row: its chords in place, then any
-  // chords that only appear where the line wraps.
-  /* The focused line is drawn 5% larger from its left edge, so move the cards to match. */
-  const S = sheet.classList.contains("focus") && block.classList.contains("cur") && block.matches(".pr, .ly") ? FOCUS_SCALE : 1;
-  const cy = block.offsetTop + block.offsetHeight / 2;
-  const items = inside[0].items.map(it => ({ ...it, x: it.x * S }));
-  for (const r of inside.slice(1)) for (const it of r.items) if (!items.some(x => x.name === it.name)) items.push({ ...it, x: it.x * S });
-  const row = { top: cy + (inside[0].top - cy) * S, items };
-  if (old && diag.rowKey === row.top) return;
-  old?.remove();
-  diag.rowKey = row.top;
-  const width = sheet.clientWidth, n = row.items.length, GAP = 4;
-  const scale = Math.min(1, Math.max(0.7, (width + GAP) / (n * (CARD_W + GAP))));
-  const w = CARD_W * scale, h = CARD_H * scale;
-  // Center over each chord, push right to clear overlaps, pull back inside the edge.
-  const lefts = row.items.map(it => it.x - w / 2);
-  for (let i = 0; i < n; i++) lefts[i] = i === 0 ? Math.max(0, lefts[i]) : Math.max(lefts[i], lefts[i - 1] + w + GAP);
-  if (lefts[n - 1] + w > width) for (let i = n - 1; i >= 0; i--) lefts[i] = Math.min(lefts[i], i === n - 1 ? width - w : lefts[i + 1] - w - GAP);
-  /* over the first line the cards would cover "Chords in this song"
-     above the sheet, so there they hang below the line instead. */
-  /* Compared on screen, against the sheet's top and the chord boxes themselves. */
-  const cardsTop = block.getBoundingClientRect().top + (row.top - h - 9 - block.offsetTop);
-  const strip = $("strip")?.querySelector(".strip"), sr = strip?.offsetParent ? strip.getBoundingClientRect() : null, shr = sheet.getBoundingClientRect();
-  const stripBottom = sr && sr.left < shr.right && sr.right > shr.left && sr.bottom <= block.getBoundingClientRect().top ? sr.bottom : -Infinity; /* only when it's above the song (iPad keeps it in the side rail) */
-  const below = cardsTop < Math.max(shr.top, stripBottom + 4);
-  const el = document.createElement("div");
-  el.className = "prow" + (below ? " below" : "");
-  el.style.top = (below ? block.offsetTop + block.offsetHeight + 9 : row.top - h - 9) + "px";
-  el.innerHTML = row.items.map((it, i) =>
-    `<div class="pcard" style="left:${lefts[i].toFixed(1)}px;width:${w}px;height:${h}px">${chordSVG(it.name, scale)}<i class="dptr" style="left:${Math.min(w - 8, Math.max(8, it.x - lefts[i])).toFixed(1)}px"></i></div>`).join("");
-  sheet.appendChild(el);
-}
 let pausedTimer = 0;
 onScroll(() => {
   const sheet = $("sheet");
@@ -894,11 +800,11 @@ function bindSketchRow(song) {
 // going back. Rotating, or resizing in Split View, moves things back.
 const wideMQ = matchMedia("(min-width: 1000px)"), sideMQ = matchMedia("(min-width: 1150px)");
 function placeWide() {
-  const rail = $("rail"), strip = $("strip"), nn = $("nn");
+  const rail = $("rail"), strip = $("strip");
   document.body.classList.toggle("wide", wideMQ.matches && !!rail);
-  if (!rail || !strip || !nn) return;
-  if (wideMQ.matches) { if (strip.parentElement !== rail) rail.append(nn, strip); }
-  else if (strip.parentElement === rail) { app.querySelector(".metarow").after(strip); $("looprow").before(nn); }
+  if (!rail || !strip) return;
+  if (wideMQ.matches) { if (strip.parentElement !== rail) rail.append(strip); }
+  else if (strip.parentElement === rail) app.querySelector(".metarow").after(strip);
 }
 function paintSide(song) {
   const side = $("side");
@@ -1218,7 +1124,6 @@ function songMenu(song, anchor, redrawSong) {
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: metroOn() },
       { id: "band", icon: "metro", label: "The band", sub: `${data.settings.metroSound === "click" ? "Click" : "Drums"} · ${Math.round(metroVol() * 100)}%`, go: true },
-      chords && { id: "nn", icon: "fretboard", label: "Now and Next", sub: inGig ? "Big chord cards where nobody sings" : "Chord shapes while you play", on: data.settings.diagrams === true },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
@@ -1306,7 +1211,7 @@ function songMenu(song, anchor, redrawSong) {
       sp.value = Math.min(+sp.max, Math.max(+sp.min, +sp.value + dir * stp)); sp.oninput?.();
       paint(); return;
     }
-    const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()), nn: () => toggleNN(),
+    const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
@@ -1326,7 +1231,6 @@ function songMenu(song, anchor, redrawSong) {
        capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
        easy: () => aiKey() ? easierSheet(song) : (ez.on = !ez.on, Tabs.save(data), redrawSong()),
        tone: () => toneSheet(song), share: () => shareSong(song), duet: () => duetSheet(song), gig: () => playGig(song.id), loop: () => { setPracticing(song, true); startLoopPick(song); }, tuner: () => openTuner(songTuning(song)),
-       nn: () => toggleNN(),
        listen: () => listenSheet(song, true),
        words: () => wordsFor(song),
        de: () => songDeOpen?.(),
@@ -1336,17 +1240,6 @@ function songMenu(song, anchor, redrawSong) {
 }
 /* 4.45.1: a toast from a switch in Tools sits just above the open sheet (it floated at the top of the screen, behind the header) */
 const toolsAnchor = () => document.querySelector(".menu.tools") || moreBtn();
-/* Now and Next: the chord you're on and the next one, in the bar while the song plays. */
-function toggleNN() {
-  const on = data.settings.diagrams !== true;
-  data.settings.diagrams = on;
-  Tabs.save(data);
-  diag.nn = on && diag.seq.length > 0;
-  diag.idx = null;
-  updateDiagrams();
-  gigHooks.repaint?.(); /* in a gig: the big cards come or go now (4.49.9) */
-  toast(on ? "Now and Next on" : "Now and Next off", toolsAnchor());
-}
 /* Tools, from the paused gig. */
 function openTools(anchor) { if (viewing) songMenu(viewing, anchor, () => redraw?.()); }
 
@@ -1503,28 +1396,31 @@ function clearSel() {
   document.querySelectorAll(".sheet .c.sel, .strip .scard.sel").forEach(el => el.classList.remove("sel"));
 }
 
+/* 4.50.0: a chord's shape shows in a card just above Play, in thumb reach and clear of the words. A tap on a
+   chord in the song or on its chip opens it; the same chord again, or a tap anywhere else, closes it. */
 function showChordPop(target) {
-  const sheet = $("sheet");
-  sheet.querySelectorAll(".dpop").forEach(el => el.remove());
+  document.querySelector(".shapecard")?.remove();
   clearSel();
   if (!target) return;
-  document.querySelectorAll(".strip .scard").forEach(c => c.classList.toggle("sel", c.dataset.name === target.dataset.ch));
-  const box = sheet.getBoundingClientRect(), r = target.getBoundingClientRect();
-  const s = 1.45, w = CARD_W * s, h = CARD_H * s;
-  const cx = r.left - box.left + Math.min(r.width, 40) / 2;
-  const left = Math.max(0, Math.min(sheet.clientWidth - w, cx - w / 2));
-  const pop = document.createElement("div");
-  pop.className = "dpop";
-  pop.style.cssText = `left:${left}px;top:${r.top - box.top - h - 10}px;width:${w}px;height:${h}px`;
-  pop.innerHTML = chordSVG(target.dataset.ch, s) + `<i class="dptr" style="left:${Math.min(w - 10, Math.max(10, cx - left))}px"></i>`;
-  sheet.appendChild(pop);
+  const name = target.dataset.ch || target.dataset.name;
+  if (!name) return;
+  document.querySelectorAll(".strip .scard").forEach(c => c.classList.toggle("sel", c.dataset.name === name));
+  const dock = document.querySelector(".app.viewer .dock .pw, .app.viewer .dock"), top = dock?.getBoundingClientRect().top;
+  const el = document.createElement("div");
+  el.className = "shapecard";
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-label", `${name} shape`);
+  el.style.bottom = (top > 0 ? innerHeight - top + 12 : 96) + "px";
+  el.innerHTML = `<div class="sc-top"><b>${esc(name)}</b><button class="ib sc-x" aria-label="Close">${icon("x")}</button></div>${chordSVG(name, 1.9)}`;
+  el.querySelector(".sc-x").onclick = () => showChordPop(null);
+  document.body.appendChild(el);
   target.classList.add("sel");
 }
 document.addEventListener("click", e => {
   if (route().name !== "song" || !$("sheet") || chordEdit) return;
   if (loopPick && e.target instanceof Element) {
     const el = e.target.closest(".sheet > *");
-    if (el && !el.classList.contains("prow") && !el.classList.contains("dpop") && !el.classList.contains("gap")) { e.preventDefault(); pickLoopLine(el); }
+    if (el && !el.classList.contains("gap")) { e.preventDefault(); pickLoopLine(el); }
     return;
   }
   /* While playing, a tap anywhere on the page pauses, so there's no button to aim for. */
@@ -1544,11 +1440,8 @@ document.addEventListener("click", e => {
   const sc = e.target instanceof Element && e.target.closest(".strip .scard");
   if (sc) {
     const on = !sc.classList.contains("sel");
-    showChordPop(null);
-    if (on) {
-      sc.classList.add("sel");
-      document.querySelectorAll(".sheet .c[data-ch]").forEach(c => c.classList.toggle("sel", c.dataset.ch === sc.dataset.name));
-    }
+    showChordPop(on ? sc : null);
+    if (on) document.querySelectorAll(".sheet .c[data-ch]").forEach(c => c.classList.toggle("sel", c.dataset.ch === sc.dataset.name));
     return;
   }
   /* A German word: its card (meaning, gender, why this form). */
@@ -1561,12 +1454,11 @@ document.addEventListener("click", e => {
     if (!same) { chordTapped(chord); if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => m.onChord()); }
     return;
   }
-  if (!(e.target instanceof Element && e.target.closest(".dpop"))) showChordPop(null);
+  if (!(e.target instanceof Element && e.target.closest(".shapecard"))) showChordPop(null);
   // Tap a line while paused: it becomes the current line, and play starts from it.
   const block = e.target instanceof Element && e.target.closest(".sheet > *");
-  if (block && !scroll.on && isLine(block) && !block.classList.contains("prow") && !block.classList.contains("dpop") && diag.focus === "always") {
+  if (block && !scroll.on && isLine(block) && diag.focus === "always") {
     diag.pinned = block;
-    diag.armed = true;
     applyPaused();
     markUsed("line");
   }
@@ -1752,7 +1644,6 @@ function streakSoon(song) {
     lazy("profile.js").then(m => m.showStreak(streakMoment(playSongs(data), Date.now(), data.journal?.best)));
   }, 1400);
 }
-let playsHere = 0; /* plays since the app opened, for pacing tips */
 async function startScroll(song, opts = {}) {
   document.querySelector(".endnote")?.remove();
   /* Count in only when starting from the top: the song's first line is on screen. */
@@ -1764,7 +1655,6 @@ async function startScroll(song, opts = {}) {
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
   foldApi?.mode?.(); /* the bar folds into Play's corner */
-  playsHere++;
   setTimeout(() => {
     if (scroll.on && viewing === song && coachTip("pause")) demoPause();
   }, 2500);
@@ -1875,12 +1765,10 @@ function stopScroll() {
   const btn = $("play");
   if (btn) { btn.innerHTML = playFace(false, viewing); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
   updateDiagrams();
-  if (btn) { diag.armed = true; showPausedRow(); }
-  /* After playing: the first pause shows starting from a line; a later one, Now and Next. */
+  /* After playing: the first pause shows starting from a line. */
   if (was && btn && !chordEdit) setTimeout(() => {
     if (scroll.on || chordEdit || route().name !== "song" || layer.innerHTML || document.querySelector(".menu, .ringx, .dial")) return;
-    if (tipDue("line")) { if (coachTip("line")) demoLine(); return; }
-    if (playsHere >= 2 && !diag.nn && data.settings.diagrams !== true && coachTip("nn")) demoNN();
+    if (tipDue("line") && coachTip("line")) demoLine();
   }, 700);
 }
 
@@ -2022,4 +1910,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, card, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

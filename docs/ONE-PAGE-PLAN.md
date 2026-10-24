@@ -135,13 +135,13 @@ the beat dots' timing, Tools.
 
 Independent of the rest, and it fixes the hidden chords Graham saw.
 
-- [ ] 2.1 Paused, tapping a chord chip (the CHORDS row) shows that chord's shape in a card just above the Play bar,
+- [x] 2.1 Paused, tapping a chord chip (the CHORDS row) shows that chord's shape in a card just above the Play bar,
       in thumb reach. Tap again or tap away to close.
-- [ ] 2.2 Remove the paused shapes drawn inside the sheet (`applyPaused` and its rows under "Paused: the line at the
+- [x] 2.2 Remove the paused shapes drawn inside the sheet (`applyPaused` and its rows under "Paused: the line at the
       reading point gets its diagrams" in `app.js`), and their CSS.
-- [ ] 2.3 If D5 says retire: the Now and Next row leaves Tools; `data.settings.diagrams` is ignored (leave the field
+- [x] 2.3 If D5 says retire: the Now and Next row leaves Tools; `data.settings.diagrams` is ignored (leave the field
       alone in `cleanSong`/settings so old backups load); `bigc` in `gig.js` goes. Update `docs/DATA.md`.
-- [ ] 2.4 Tests: a chord chip opens and closes its shape; nothing overlaps the sheet while paused. README, ONBOARDING.md.
+- [x] 2.4 Tests: a chord chip opens and closes its shape; nothing overlaps the sheet while paused. README, ONBOARDING.md.
 
 ### Step 3. The stage on the song page [Opus], 4.51.0
 

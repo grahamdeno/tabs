@@ -439,7 +439,7 @@ test("3.21.0 the neck: Learning songs on top, Scales as their own track, and a s
   await page.waitForFunction(() => scrollY > 40, null, { timeout: 3000 });
 });
 
-test("3.22.0 chord timing: with the recording playing, Now changes on the chord's own beat inside a line", { skip: skip() }, async t => {
+test("3.22.0 chord timing: each chord gets the time of its own word inside a line", { skip: skip() }, async t => {
   const body = SONG + "\n" + Array.from({ length: 10 }, (_, n) => `[Verse ${n + 2}]\nG  D  Em  C\nline number ${n + 2} goes right here`).join("\n");
   const song = { ...LIB.songs[0], body, listen: { url: "https://music.apple.com/us/album/x/1?i=111", service: "Apple Music", length: 200, title: "River Road", artist: "The Wanderers" } };
   const lib = { ...LIB, songs: [song, LIB.songs[1]], settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false, diagrams: true } };
@@ -454,16 +454,12 @@ test("3.22.0 chord timing: with the recording playing, Now changes on the chord'
     document.dispatchEvent(new Event("musickitloaded"));` }));
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#about.rec");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a").timed?.at?.length >= 10, null, { timeout: 8000 });
-  await page.click("#play");
-  await page.waitForFunction(() => window.mkMusic.isPlaying, null, { timeout: 5000 });
-  const now = () => page.evaluate(() => document.querySelector("#nn .nowcol")?.textContent || "");
   /* "Walking down the river road tonight": A on Walking (10 s), D on river (about 11.5 s) */
-  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 10.4; });
-  await page.waitForFunction(() => /A/.test(document.querySelector("#nn .nowcol")?.textContent || ""), null, { timeout: 4000 });
-  assert.match(await now(), /A/, "early in the line: still A");
-  await page.evaluate(() => { window.mkMusic.currentPlaybackTime = 12.4; });
-  await page.waitForFunction(() => /D/.test(document.querySelector("#nn .nowcol")?.textContent || ""), null, { timeout: 4000 });
-  await page.click("#play");
+  const times = () => page.evaluate(async () => { const m = await import("/app.js"); return m.chordTimes(m.viewing); });
+  await page.waitForFunction(async () => { const m = await import("/app.js"); return !!m.chordTimes(m.viewing); }, null, { timeout: 4000 });
+  const ct = await times();
+  assert.ok(ct[0] != null && ct[0] <= 10.4, `the first chord is on Walking (${ct[0]})`);
+  assert.ok(ct[1] > 10.4 && ct[1] <= 12.4, `the second is inside the line, on river (${ct[1]})`);
 });
 
 test("the song length keeps a recording's exact length, to the second", { skip: skip() }, async t => {

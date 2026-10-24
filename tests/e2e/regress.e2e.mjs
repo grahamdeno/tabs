@@ -33,8 +33,9 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     /* On a short phone the chord can sit behind the song bar: bring it up first. */
     await page.evaluate(() => { const el = document.querySelector(".sheet .c[data-ch='F#m']"); if (el.getBoundingClientRect().bottom > innerHeight - 160) scrollBy(0, el.getBoundingClientRect().top - innerHeight / 3); });
     await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok))));
-    await page.click(".sheet .c[data-ch='F#m'] .ct", { force: true }); await page.waitForSelector(".dpop");
-    await is(() => !!document.querySelector(".dpop"), "tapping a chord shows its diagram");
+    await page.click(".sheet .c[data-ch='F#m'] .ct", { force: true }); await page.waitForSelector(".shapecard");
+    await is(() => { const c = document.querySelector(".shapecard"), d = document.querySelector(".dock .pw, .dock"); return !!c && !!c.querySelector("svg") && c.getBoundingClientRect().bottom <= d.getBoundingClientRect().top; }, "tapping a chord shows its shape in a card above Play");
+    await is(() => !document.querySelector(".prow, .dpop"), "nothing is drawn over the words");
     await page.evaluate(() => scrollTo(0, 0)); await page.waitForFunction(() => scrollY === 0);
 
     await page.click("#play"); await page.waitForSelector(".countin");
@@ -43,15 +44,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     const y1 = await page.evaluate(() => scrollY); await page.waitForTimeout(1200) /* real timer: auto-scroll moving */;
     assert.ok(await page.evaluate(() => scrollY) > y1, "scrolls after the count-in");
     await is(() => +getComputedStyle(document.querySelector(".shead")).opacity < 0.5, "header dims while playing");
-    await is(() => !document.querySelector(".prow"), "no diagrams over the words while playing");
-    /* 3.19.0: on a phone the bar is folded away while playing, so Now and Next is turned on while paused */
     await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("playing"));
-    await tool(page, "nn"); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" }); /* 4.32.0: switches toggle in place */ await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("nn-on"));
-    await is(() => document.body.classList.contains("nn-on") && document.querySelectorAll("#nn svg").length > 0, "Now and Next shows");
-    await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("playing"));
-    await tool(page, "nn"); await page.waitForFunction(() => !document.body.classList.contains("nn-on") && !!document.querySelector(".prow")); await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
-    await is(() => !!document.querySelector(".prow"), "diagrams when paused");
-    await is(() => [...document.querySelectorAll(".prow .pcard")].every(c => c.getBoundingClientRect().top >= Math.max(document.getElementById("sheet").getBoundingClientRect().top, (r => r && r.right > document.getElementById("sheet").getBoundingClientRect().left && r.left < document.getElementById("sheet").getBoundingClientRect().right ? r.bottom : -1e9)(document.querySelector("#strip .strip")?.getBoundingClientRect())) - 1), "2.26.2: the cards never cover Chords in this song");
     await page.click("#meta"); await page.click("#ab-key"); await page.waitForSelector(".dial.key");
     await page.mouse.click(60, 120); await page.waitForSelector(".dial.key", { state: "detached" });
 

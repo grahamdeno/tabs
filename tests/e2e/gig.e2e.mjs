@@ -135,19 +135,15 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   assert.equal(await page.locator("#gig.paused").count(), 1, "still paused");
 });
 
-test("4.43.0 words first: the chord you're on lit in the line, the next one with its beats, a repeat shown once, a shape for a new chord, big cards with no words", { skip: skip() }, async t => {
+test("4.43.0 words first: the chord you're on lit in the line, the next one with its beats, a repeat shown once, a shape for a new chord", { skip: skip() }, async t => {
   const body = "[Intro]\nG   C   G   C\n\n[Verse]\n" + Array.from({ length: 12 }, (_, i) => `G        G        Fmaj7\nLine ${i + 1} of the verse goes here`).join("\n");
   const song = { id: "w", title: "Words", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
   const journal = { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, chords: { G: { n: 9, first: "2026-01-01" }, C: { n: 9, first: "2026-01-01" } } };
-  const page = await phone(t, { ...LIB, songs: [song], journal, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false, diagrams: true } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, songs: [song], journal, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
-  /* the intro has no words: the big Now and Next */
-  await page.waitForSelector("#gig.bigc");
-  assert.ok(await page.locator(".gg-chords").isVisible(), "big cards in the intro");
-  /* into the verse: words first */
-  await page.waitForFunction(() => !document.getElementById("gig").classList.contains("bigc"), null, { timeout: 20000 });
-  assert.equal(await page.locator(".gg-chords").isVisible(), false, "no big cards over words");
+  /* words first (4.50.0: the big Now and Next cards are gone, so an intro is lines too) */
+  assert.equal(await page.locator(".gg-chords, #gig.bigc").count(), 0, "no big cards");
   assert.ok(await page.locator("#gg-lines > *").count() >= 7, "at least seven lines on screen");
   await page.waitForSelector("#gg-lines .gc-lit:not(.gc-rep) .ct"); await page.waitForSelector("#gg-lines .gc-next .ct"); await page.waitForSelector("#gg-lines .gc-run i", { state: "attached" });
   assert.ok(await page.locator("#gg-lines .gc-rep").count() > 0, "a chord played again in a row is hidden");
@@ -206,18 +202,14 @@ test("4.49.6 a chord before the singing stands ahead of the words on the song pa
   assert.ok(x.word > x.lead, "the words start after the lead chord");
 });
 
-test("4.49.9 the big chord cards are off by default: the lines fill the screen in an intro; Now and Next in Tools turns them on without leaving the show", { skip: skip() }, async t => {
+test("4.50.0 Now and Next is gone: an intro is lines like any other, and Tools has no switch for it", { skip: skip() }, async t => {
   const body = "[Intro]\n" + Array.from({ length: 6 }, () => "G   C   G   C").join("\n") + "\n\n[Verse]\nG        C\nLine one goes here";
   const song = { id: "i", title: "Intro", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
-  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false, diagrams: true } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/i"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig #gg-lines .gl-now .c");
-  assert.equal(await page.locator("#gig.bigc").count(), 0, "no big cards by default");
-  assert.equal(await page.locator(".gg-chords").isVisible(), false);
+  assert.equal(await page.locator("#gig.bigc, .gg-chords").count(), 0, "no big cards, even with the old setting on");
   await page.click("#gg-pause"); await page.waitForSelector("#gg-hold:not([hidden])");
-  await page.click("#gg-tools"); await page.waitForSelector('.menu [data-m="nn"]');
-  await page.click('.menu [data-m="nn"]');
-  await page.waitForSelector("#gig.bigc");
-  assert.equal(await page.locator("#gig").count(), 1, "still in the show");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.diagrams === true);
+  await page.click("#gg-tools"); await page.waitForSelector(".menu.tools");
+  assert.equal(await page.locator('.menu [data-m="nn"]').count(), 0, "no Now and Next row");
 });

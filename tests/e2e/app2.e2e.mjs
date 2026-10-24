@@ -393,10 +393,10 @@ test("2.1 set dial: in a set, sweep to a song and let go to open it", { skip: sk
   assert.match(await page.innerText("#setdial"), /of 4/);
 });
 
-test("2.1 glow: count-in and the chord you're on glow; gig day counts down on Up Next", { skip: skip() }, async t => {
+test("2.1 glow: the count-in glows; gig day counts down on Up Next", { skip: skip() }, async t => {
   const soon = new Date(Date.now() + 50 * 60e3), when = `${soon.getFullYear()}-${String(soon.getMonth() + 1).padStart(2, "0")}-${String(soon.getDate()).padStart(2, "0")}T${String(soon.getHours()).padStart(2, "0")}:${String(soon.getMinutes()).padStart(2, "0")}`;
   const sameDay = soon.toDateString() === new Date().toDateString();
-  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a"], when }], settings: { ...LIB.settings, diagrams: true, countIn: true } });
+  const page = await phone(t, { ...LIB, sets: [{ id: "s", name: "Gig", songIds: ["a"], when }], settings: { ...LIB.settings, countIn: true } });
   if (sameDay) {
     const a = await page.textContent("#un-cd");
     assert.match(a, /^0:[45]\d:\d\d$/, "a countdown on gig day");
@@ -407,9 +407,6 @@ test("2.1 glow: count-in and the chord you're on glow; gig day counts down on Up
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
   await page.click("#play"); await page.waitForSelector(".countin", { timeout: 3000 });
   assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".countin")).textShadow), /px/, "the count-in glows");
-  await page.waitForSelector("#nn .nowcol .dn", { timeout: 8000 });
-  assert.match(await page.evaluate(() => getComputedStyle(document.querySelector("#nn .nowcol .dn")).filter), /glow-f/, "Now glows");
-  assert.doesNotMatch(await page.evaluate(() => getComputedStyle(document.querySelector("#nn .cards .dn")).filter), /glow-f/, "Next stays plain");
 });
 
 test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner while playing, and there is no ring", { skip: skip() }, async t => {
@@ -578,6 +575,6 @@ test("4.45.1: a toast from a switch in Tools sits above the sheet, not at the to
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
   await page.click("#more"); await page.waitForSelector('.menu.tools');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length);
-  await page.click('.menu [data-m="nn"]'); await page.waitForSelector('.toast.show');
+  await page.click('.menu [data-m="metro"]'); await page.waitForSelector('.toast.show');
   await page.waitForFunction(() => { const t = document.getElementById("toast").getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return Math.abs(t.bottom - m.top) < 24; });
 });

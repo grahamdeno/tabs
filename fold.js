@@ -74,7 +74,7 @@ function restore() {
 const barPart = () => {
   const dock = document.querySelector(".app.viewer .dock");
   if (!dock) return null;
-  const rows = document.body.classList.contains("nn-on") || document.body.classList.contains("loop-on");
+  const rows = document.body.classList.contains("loop-on");
   return rows ? dock.querySelector(".player") : dock.querySelector(".pw");
 };
 function foldStart(toCorner) {

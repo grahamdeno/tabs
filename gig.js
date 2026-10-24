@@ -152,10 +152,6 @@ function shell(song) {
       <span class="gg-str" id="gg-str" aria-label="Strings">${PLUG}<b>${GIG_STRINGS}</b></span>
     </div>
     <div class="gg-status"><span class="gg-sec" id="gg-sec">Get ready</span><span class="gg-cap">CROWD</span><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
-    <div class="gg-chords" aria-hidden="true">
-      <div class="gg-now" id="gg-now"><small>NOW</small><b id="gg-nowname"></b><div id="gg-nowdg"></div></div>
-      <div class="gg-next"><small>NEXT</small><b id="gg-nextname"></b><span class="gg-beats" id="gg-beats" aria-hidden="true"></span></div>
-    </div>
     <div class="gg-lines sheet" id="gg-lines"></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
     <div class="gg-moment" id="gg-moment" hidden></div>
@@ -240,9 +236,6 @@ function paintLit(w) {
   const g = gig, box = $("gg-lines");
   if (!g || !box || (w.idx === g.lit && w.next === g.lnext)) return;
   g.lit = w.idx; g.lnext = w.next;
-  /* with no words to read (an intro, a solo: a row of chords alone), the big Now and Next show, only when
-     Now and Next is on in Tools (4.49.9); by default the lines fill the screen */
-  g.el.classList.toggle("bigc", data.settings.diagrams === true && !!diag.seq?.[w.idx]?.el?.closest(".crow"));
   box.querySelectorAll(".gc-lit, .gc-next").forEach(e => e.classList.remove("gc-lit", "gc-next"));
   box.querySelectorAll(".gc-run").forEach(e => e.remove());
   const cur = cloneOf(w.from), nx = cloneOf(w.next);
@@ -265,16 +258,13 @@ function paintLit(w) {
       g.run = { beats, shown, el: row.querySelector(".gc-run") };
     }
   }
-  /* the big Next card (with Now and Next on) carries up to the last four */
-  const big = $("gg-beats");
-  if (big) big.innerHTML = "<i></i>".repeat(Math.min(4, beats));
   g.beats = -2;
 }
 /* a small shape for a chord you haven't learned yet, beside the lines */
 function paintShape(name) {
   const g = gig, el = $("gg-shape");
   if (!g || !el) return;
-  const show = name && !g.known.has(name) && chordSVG(name, 1) && !g.el.classList.contains("bigc");
+  const show = name && !g.known.has(name) && chordSVG(name, 1);
   if (!show) { el.hidden = true; return; }
   if (el.dataset.ch !== name) { el.dataset.ch = name; el.innerHTML = `<small>NEW CHORD</small><b>${esc(name)}</b>${chordSVG(name, 1)}`; }
   el.hidden = false;
@@ -333,13 +323,10 @@ function frame() {
   if (w.idx >= 0 && w.idx !== g.idx) {
     const name = seq[w.idx].name, prev = g.idx >= 0 ? seq[g.idx]?.name : null;
     g.idx = w.idx;
-    $("gg-nowname").textContent = name;
-    $("gg-nowdg").innerHTML = chordSVG(name, 1.35);
     paintShape(name);
     /* a change on stage: graded once its window has passed */
     if (scroll.on && !counting && prev && prev !== name && g.stream && performance.now() > g.dragUntil) g.due.push({ t: g.clock(), name, pair: `${prev}>${name}` });
   }
-  $("gg-nextname").textContent = w.next >= 0 ? seq[w.next].name : seq.length ? "End" : "";
   /* the beat dots: one lit, a beat at a time toward the next chord, on the band's clicks when the band plays */
   const spb = beatOf(g), band = metro.timer && metro.spb > 0;
   const until = w.until == null ? null : band ? onBeat(g.clock() + w.until, metro.next, spb) - g.clock() : w.until;
@@ -348,8 +335,6 @@ function frame() {
     g.beats = k;
     const run = g.run?.el ? [...g.run.el.children] : [], d = k - (g.run?.beats - run.length);
     run.forEach((e, i) => e.classList.toggle("on", i === d));
-    const big = [...($("gg-beats")?.children || [])], b = k - (g.run?.beats - big.length);
-    big.forEach((e, i) => e.classList.toggle("on", i === b));
   }
   /* grade the changes whose window has passed */
   const now = g.clock();
@@ -398,7 +383,7 @@ function bindDrag(g) {
 
 /* 4.43.0: the timing bar folded into the combo: a word beside it when a change lands early or late */
 function flash(hit, off = null, star = false) {
-  for (const el of [$("gg-now"), $("gg-combo")]) { if (!el) continue; el.classList.remove("hit", "miss"); void el.offsetWidth; el.classList.add(hit ? "hit" : "miss"); }
+  for (const el of [$("gg-combo")]) { if (!el) continue; el.classList.remove("hit", "miss"); void el.offsetWidth; el.classList.add(hit ? "hit" : "miss"); }
   const tw = $("gg-tw");
   if (!tw || !gig) return;
   const word = !hit ? "" : star ? "\u2605" : off != null && off > 0 ? "LATE" : off != null && off < 0 ? "EARLY" : "";
@@ -423,7 +408,6 @@ export function openGig(song, opts = {}) {
   gigHooks.credited = () => { if (gig === g) g.credited = true; };
   gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
   gigHooks.resume = () => { if (gig === g) resume(); };
-  gigHooks.repaint = () => { if (gig !== g) return; g.lit = -2; const w = where(song); if (w) { paintLit(w); paintShape(diag.seq?.[w.idx]?.name); } };
   gigHooks.leave = () => { if (gig === g) leave(); };
   $("gg-x").onclick = () => leave();
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
@@ -491,7 +475,7 @@ export function closeGig(quiet = false) {
   document.body.classList.remove("gigging");
   clearTimeout(g.momentT); clearTimeout(g.twT);
   hideStrip();
-  gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null; gigHooks.repaint = null;
+  gigHooks.on = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
   document.querySelector(".menu.tools")?.remove();
   if (!quiet && g.from === "road") go("#/");
 }
