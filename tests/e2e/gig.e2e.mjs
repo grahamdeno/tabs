@@ -180,6 +180,8 @@ test("4.49.10 the beat dots sit between the chord you're on and the next, one li
   const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/w"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig #gg-lines .gl-now");
+  /* 4.49.14: the band and every line run the full width of the screen, so the time after the words reads as space in the line */
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll("#gg-lines > *")].map(e => { const r = e.getBoundingClientRect(); return Math.round(r.left) === 0 && Math.round(r.width) === innerWidth; }).every(Boolean)), true, "full-width lines");
   assert.equal(await page.locator(".gl-sweep").count(), 0, "no sweep");
   assert.equal(await page.locator("#gg-lines .gl-next").count(), 1, "one next line");
   assert.equal(await page.locator("#gg-fans i svg").count(), 12, "the crowd is 12 fans");

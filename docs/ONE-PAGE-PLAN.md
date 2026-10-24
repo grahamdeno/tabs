@@ -45,6 +45,12 @@ Tick a task's box in this file in the same commit that does it.
 - **D6. Back a line and Sheet** (Step 4). Both exist only because the Gig is a separate screen. On one page you drag the
   sheet or tap a section chip. Retire both? Recommended: yes.
 
+### Answers (Graham, 2026-10-24)
+
+- D1: no strip for unscored play. D2: "the Gig" stays as the name. D3: ship the band now (Step 0). D4: mockups first.
+  D5: retire Now and Next. D6: retire Back a line. Sheet was explained (it leaves the Gig for the song page, which on
+  one page is just pausing); it goes with the Gig layer in Step 4 unless Graham says otherwise.
+
 ## What the assessment found
 
 Engineering:
@@ -101,11 +107,11 @@ the beat dots' timing, Tools.
 
 ### Step 0. The full-width band in today's Gig (only if D3 says now) [Sonnet], patch 4.49.14
 
-- [ ] 0.1 In `styles.css` (the "The lines (4.49.7)" block near the end): `.gg-lines` gets `margin: 0 -16px` and
+- [x] 0.1 In `styles.css` (the "The lines (4.49.7)" block near the end): `.gg-lines` gets `margin: 0 -16px` and
       `align-items: stretch`; `.gg-lines > *` gets `padding: 4px 16px 7px 30px`, `border-radius: 0`, `align-self: stretch`,
       `box-sizing: border-box`, `text-align: left`, `justify-content: flex-start`; `.gl-now` keeps its tint and swaps the
       all-round inset border for a top and bottom line only. Text stays where it is (30px from the edge).
-- [ ] 0.2 Test in `gig.e2e.mjs`: the `.gl-now` box is the screen's width, for a line of words and for a chord-only intro row.
+- [x] 0.2 Test in `gig.e2e.mjs`: the `.gl-now` box is the screen's width, for a line of words and for a chord-only intro row.
       Graham saw a short centred box on his phone (iPhone, 2026-10-24) that a 390px test screen doesn't show: take a
       throwaway screenshot at 402px and at 430px wide to check.
 
