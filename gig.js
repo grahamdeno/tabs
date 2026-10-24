@@ -17,14 +17,14 @@
 // still plays; nothing is scored.
 // At the end: Show complete, with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropArt } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
-import { data, diag, scroll, viewing, startScroll, stopScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
+import { data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
 import { louie } from "./louie.js";
 import { callout } from "./callout.js";
 import { friend, FRIENDS } from "./friends.js";
-import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss } from "./stage.js";
+import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss, stageWait } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
 let gig = null; /* the show on stage, or null */
@@ -92,12 +92,16 @@ function shell(song) {
     <div class="gg-top">
       <button class="gg-x" id="gg-x" aria-label="Leave the gig">${icon("x")}</button>
       <span class="gg-sec" id="gg-sec">Get ready</span>
+      <span class="gg-wpill" id="gg-wpill" hidden>WAIT FOR ME</span>
       <span class="gg-combo" id="gg-combo"></span>
     </div>
     <div class="gg-status"><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
     <div class="gg-moment" id="gg-moment" hidden></div>
+    <div class="gg-wait" id="gg-wait" hidden></div>
+    <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
     <div class="gg-bottom">
+      <button class="gg-skip" id="gg-skip" hidden>Skip this chord</button>
       <button class="gg-mic" id="gg-mic" aria-label="Microphone"></button>
       <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
     </div>
@@ -154,7 +158,9 @@ function paintScore() {
   const on = new Set(CROWD_ORDER.slice(0, crowd));
   [...fans.children].forEach((e, i) => { e.className = g.stream && on.has(i) ? "on c" + (i % 4) : ""; });
   fans.setAttribute("aria-label", !g.stream ? "Crowd: listening is off" : `Crowd: ${crowd} of 12 on their feet`);
-  $("gg-combo").innerHTML = g.score.combo >= 2 ? `${icon("check")}${g.score.combo} in a row` : "";
+  const waiting = waitOn(g.song) && !!g.stream;
+  if (waiting) { const n = g.score.hits + g.score.misses + (g.holding ? 1 : 0); $("gg-combo").innerHTML = n ? `${icon("check")}${g.score.hits} of ${n}` : ""; }
+  else $("gg-combo").innerHTML = g.score.combo >= 2 ? `${icon("check")}${g.score.combo} in a row` : "";
   if (g.stream && MILESTONES.includes(g.score.combo) && g.said !== g.score.combo) { g.said = g.score.combo; moment(`${g.score.combo} in a row!`, crowd >= 12 ? "The whole crowd is up." : "Keep it going."); }
   else if (g.stream && crowd >= 12 && !g.fullSaid) { g.fullSaid = true; moment("The whole crowd is up!", ""); }
 }
@@ -185,6 +191,7 @@ function frame() {
     if (start) catchClose(g.catch); /* the chords above the reading line when the song starts aren't counted */
     paintShape();
   }
+  holdFrame(g, counting);
   /* settle the chords that went by */
   const gone = catchClose(g.catch);
   if (gone.missed.length || gone.got.length) settle(g, gone, !counting && scoring(g));
@@ -194,6 +201,31 @@ function frame() {
     const lv = Math.min(1, g.level * 40);
     bars.forEach((b, i) => b.style.height = `${Math.round(5 + lv * 16 * (0.6 + 0.4 * Math.sin(i * 1.7 + g.clock() * 9)))}px`);
   }
+}
+
+/* Wait for me (4.54.0): the song holds on the chord at the reading line until you play it (or skip it) */
+function holdFrame(g, counting) {
+  const c = g.catch, t = c.targets[c.cur];
+  const want = waitOn(g.song) && !!g.stream && scroll.on && !counting && !g.paused && g.idx >= 0 && performance.now() > g.dragUntil
+    && t && !!chordNotes(t.name) && !c.caught[c.cur] && g.skip !== c.cur;
+  const pill = waitOn(g.song) && !!g.stream;
+  if (want && !g.holding) {
+    g.holding = true; g.waited = true;
+    holdScroll(true, g.song);
+    stageWait(t.first);
+    const card = $("gg-wait");
+    card.innerHTML = `<span class="gw-t"><b>Waiting for ${esc(t.name)}</b><small>The song moves on when you play it.</small></span>${chordSVG(t.name, 1) ? `<span class="gw-s" role="img" aria-label="${esc(t.name)} chord shape">${chordSVG(t.name, 1)}</span>` : ""}`;
+    card.hidden = false; $("gg-skip").hidden = false; $("gg-shape").hidden = true;
+    $("gg-live").textContent = `Waiting for ${t.name}`;
+    paintScore();
+  } else if (!want && g.holding) {
+    g.holding = false;
+    holdScroll(false, g.song);
+    stageWait(-1);
+    $("gg-wait").hidden = true; $("gg-skip").hidden = true; $("gg-live").textContent = "";
+    paintScore(); paintShape();
+  }
+  $("gg-wpill").hidden = !pill;
 }
 
 /* Is the show counting chords right now? On with the mic, playing, past the count-in and not being dragged */
@@ -263,6 +295,7 @@ export function openGig(song, opts = {}) {
   gigHooks.leave = () => { if (gig === g) leave(); };
   $("gg-x").onclick = () => leave();
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
+  $("gg-skip").onclick = () => { if (g.catch && g.holding) g.skip = g.catch.cur; };
   $("gg-mic").onclick = () => { if (g.stream) deafen(g); else if (!g.asking) listen(g); };
   bindDrag(g);
   g.known = knownChords(data);
@@ -352,7 +385,7 @@ function showComplete() {
   g.stream?.getTracks().forEach(t => t.stop());
   if (g.catch) { g.catch.cur = g.catch.targets.length; settle(g, catchClose(g.catch), !!g.stream); } /* the chords still waiting to be judged */
   const graded = g.score.hits + g.score.misses > 0;
-  const { fans, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore);
+  const { fans, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore, Date.now(), !!g.waited);
   rehearseMisses(data, g.missed, Date.now(), g.landed); /* the changes you dropped (tomorrow's soundcheck) and landed (Your changes) */
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
@@ -378,6 +411,7 @@ function showComplete() {
     ${worst ? `<div class="gc-worst"><span><small>MISSED MOST</small><b>${esc(wa)} to ${esc(wb)}, ${worst[1]} time${worst[1] === 1 ? "" : "s"}</b></span>${drill ? `<button class="btn sm" id="gc-drill">Practice it</button>` : ""}</div>` : ""}
     <div class="gc-list">
       ${graded ? `<p><b>${g.score.hits}</b> of ${g.score.hits + g.score.misses} chords caught${g.score.best >= 3 ? `, best run <b>${g.score.best}</b>` : ""}</p>` : g.guess && !g.off ? `<p>The chords in this song are still a best guess, so a chord you missed wasn't counted. It still counts as a play.</p>` : `<p>The microphone was off, so this show wasn't scored. It still counts as a play.</p>`}
+      ${g.waited ? `<p>Wait for me: a practice show. It gives fans, but no chart points, rival battle or duel.</p>` : ""}
       ${battle ? `<p>${battle.result === "won" ? `Rival battle: you beat <b>${esc(battle.rival)}</b>, ${battle.pct}% to ${battle.target}%. <b>+30 XP, +40 fans</b>` : `Rival battle: ${esc(battle.rival)} held on, ${battle.target}% to your ${battle.pct}%`}</p>` : ""}
       ${joined.map(f => { const n = FRIENDS.find(x => x.id === f.id)?.name || f.id; return `<p><b>${esc(n)} joined your band!</b>${f.plays ? ` You'll hear drums in your gigs.` : ""}</p>`; }).join("")}
       ${duel ? `<p>Song duel: ${duel.mine.pct > duel.theirs.pct ? `<b>you beat ${esc(duel.opp)}</b>` : duel.mine.pct < duel.theirs.pct ? `${esc(duel.opp)} wins this one` : "a tie"}, ${duel.mine.pct}% to ${duel.theirs.pct}%</p>` : ""}

@@ -1013,6 +1013,15 @@ const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k =
 /* What Play starts: the Apple Music recording alone, or the band (drums or click) alone.
    A song with a linked recording defaults to the recording; "band" is remembered per song. */
 const usesMusic = song => hasMusic(song) && song.backing !== "band";
+/* Wait for me (4.54.0): the song holds on each chord until you play it. Saved per song, on for a song you are
+   learning; not with a recording, which can't wait. */
+const waitOn = song => !!song && !usesMusic(song) && (song.waitForMe ?? song.status === "learning");
+/* hold the page and the band on the chord being waited for (or let them go on) */
+function holdScroll(on, song) {
+  if (!scroll.on || !!scroll.wait === on) return;
+  scroll.wait = on;
+  if (on) stopMetronome(); else if (metroOn() && !usesMusic(song)) startMetronome(song);
+}
 function setBacking(song, mode, near, quiet) {
   if (mode === "band") song.backing = "band"; else delete song.backing;
   Tabs.save(data);
@@ -1147,6 +1156,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "play", label: "Play", head: "HOW IT PLAYS", rows: [
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: metroOn() },
+      chords && { id: "wait", icon: "mic", label: "Wait for me", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song waits for each chord you play", on: waitOn(song), off: usesMusic(song) },
       { id: "band", icon: "metro", label: "The band", sub: `${data.settings.metroSound === "click" ? "Click" : "Drums"} · ${Math.round(metroVol() * 100)}%`, go: true },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
@@ -1187,7 +1197,7 @@ function songMenu(song, anchor, redrawSong) {
     if (it.step) return `<div class="mrow t3" role="group" aria-label="${it.label}">${left}<button class="sb" role="menuitem" data-step="-1" aria-label="${byLength() ? "Shorter" : "Slower"}">${icon("minus")}</button><button class="t3v" role="menuitem" data-m="speed" id="dialbtn" aria-label="${it.label}: ${esc($("sv")?.textContent || "")}. Open the dial"><span>${esc($("sv")?.textContent || "")}</span></button><button class="sb" role="menuitem" data-step="1" aria-label="${byLength() ? "Longer" : "Faster"}">${icon("plus")}</button></div>`;
     if (it.size) return `<div class="mrow t3 size" role="group" aria-label="Text size">${left}<button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v t3v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`;
     if (it.prac) return `<button class="mrow t3" role="menuitemcheckbox" data-prac data-m="prac" aria-checked="${it.on}" aria-label="Practice mode">${left}${sw(it.on)}</button>`;
-    if (it.on !== undefined) return `<button class="mrow t3" role="menuitemcheckbox" data-m="${it.id}" aria-checked="${it.on}">${left}${sw(it.on)}</button>`;
+    if (it.on !== undefined) return `<button class="mrow t3" role="menuitemcheckbox" data-m="${it.id}" aria-checked="${it.on}"${it.off ? " disabled" : ""}>${left}${sw(it.on)}</button>`;
     return `<button class="mrow t3" role="menuitem" data-m="${it.id}">${left}${icon("chev", "t3c")}</button>`;
   };
   const paint = () => {
@@ -1237,6 +1247,7 @@ function songMenu(song, anchor, redrawSong) {
     }
     const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
+      wait: () => { song.waitForMe = !waitOn(song); Tabs.save(data); toast(song.waitForMe ? "Wait for me: the song waits for each chord you play" : "Wait for me off", toolsAnchor()); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
     if (ip && inPlace[ip.dataset.m] && inPlace[ip.dataset.m]() !== false) {
@@ -1680,7 +1691,7 @@ async function startScroll(song, opts = {}) {
   const first = $("sheet")?.querySelector(":scope > .pr, :scope > .ly, :scope > .tab, :scope > .crow");
   const fr = first?.getBoundingClientRect();
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
-  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.duet = !!opts.duet; scroll.part = opts.part || ""; /* 4.29.0: Play together's part */
+  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.wait = false; scroll.duet = !!opts.duet; scroll.part = opts.part || ""; /* 4.29.0: Play together's part */
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
@@ -1721,6 +1732,7 @@ async function startScroll(song, opts = {}) {
   if (usesMusic(song)) startMusic(song, playFromSec(song), recRate(song)); else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
+    if (scroll.wait) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; } /* Wait for me: held on a chord */
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
       scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
@@ -1780,7 +1792,7 @@ onLeave(() => stopScroll());
 function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;
-  scroll.on = false; scroll.duet = false; scroll.part = "";
+  scroll.on = false; scroll.wait = false; scroll.duet = false; scroll.part = "";
   if (scroll.ms - (scroll.saved || 0) > 1000) { (practicing(viewing) ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
@@ -1943,4 +1955,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { waitOn, holdScroll, jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

@@ -254,3 +254,28 @@ test("4.54.0 no section bar over the stage, in a show or in practice; the page's
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
   assert.equal(await page.locator(".smap").count() > 0 || await page.locator(".secbar").count() > 0, true, "paused, the chips and the rail are as they were");
 });
+
+test("4.54.0 Wait for me: the song holds on a chord nobody plays, Skip moves on and counts it missed", { skip: skip() }, async t => {
+  const song = { ...SHORT, waitForMe: true, bpm: 120 };
+  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g", { strum: false });
+  await page.click("#play"); await page.waitForSelector("#gig");
+  await page.waitForSelector("#gg-wait:not([hidden])", { timeout: 20000 });
+  assert.match(await page.innerText("#gg-wait"), /Waiting for [A-G]/);
+  assert.equal(await page.locator("#gg-wpill:not([hidden])").count(), 1, "the WAIT FOR ME pill");
+  assert.ok(await page.locator("#sheet .c.st-wait").count() === 1, "the waiting chord has a ring");
+  const y = await page.evaluate(() => scrollY); await page.waitForTimeout(1200); /* real timer */
+  assert.ok(Math.abs(await page.evaluate(() => scrollY) - y) < 3, "the page does not move while it waits");
+  await page.click("#gg-skip");
+  await page.waitForSelector("#sheet .c.st-miss", { state: "attached", timeout: 10000 });
+});
+
+test("4.54.0 Wait for me: playing the chord lets the song go on, and the show is a practice show", { skip: skip() }, async t => {
+  const song = { ...SHORT, waitForMe: true, bpm: 120 };
+  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#gig");
+  await page.waitForFunction(() => document.querySelectorAll("#sheet .c.st-got").length >= 3, null, { timeout: 30000 });
+  assert.match(await page.innerText("#gg-combo"), /\d+ of \d+/);
+  await page.waitForSelector(".gc", { timeout: 60000 });
+  assert.match(await page.innerText(".gc-list"), /practice show/);
+  assert.doesNotMatch(await page.innerText(".gc-list"), /Rival battle:/);
+});

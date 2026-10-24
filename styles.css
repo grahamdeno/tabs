@@ -3777,3 +3777,15 @@ body.held .sheet.focus > .cur { transform: none; -webkit-text-stroke: 0; }
 .gc-worst { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--fg) 8%, transparent); text-align: left; }
 .gc-worst small { display: block; font: 800 11px var(--sans); letter-spacing: .08em; color: var(--muted); }
 .gc-worst b { font: 700 18px var(--display); color: var(--fg); }
+
+/* Wait for me (4.54.0): the song holds on a chord until you play it */
+.gg-wpill { padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 12%, transparent); color: var(--fg); font: 800 12px var(--sans); letter-spacing: .06em; }
+.gg-wpill[hidden], .gg-wait[hidden], .gg-skip[hidden] { display: none; }
+.gg-wait { position: absolute; left: 16px; right: 16px; bottom: 112px; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: color-mix(in srgb, var(--fg) 10%, var(--bg)); }
+.gg-wait .gw-t { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gg-wait .gw-t b { font: 700 19px var(--display); }
+.gg-wait .gw-t small { font: 600 14px/1.35 var(--sans); opacity: .8; }
+.gg-wait .gw-s { flex: none; width: 96px; padding: 8px; border-radius: 14px; background: #F3F1FF; color: #1C1A3A; }
+.gg-wait .gw-s svg { width: 100%; height: auto; display: block; }
+.gg-skip { flex: 1; min-height: 60px; border: 0; border-radius: 18px; background: color-mix(in srgb, var(--fg) 12%, transparent); color: var(--fg); font: 700 18px var(--display); }
+.gg-bottom:has(.gg-skip:not([hidden])) .gg-mic { display: none; }

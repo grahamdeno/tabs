@@ -871,20 +871,21 @@ export function gelOf(name) {
   return "verse";
 }
 /* a show finished: keep the count, the bonus fans and each song's best */
-export function gigDone(data, songId, g, encore = false, now = Date.now()) {
+/* practice (Wait for me, 4.54.0): fans and the request line count; Charts XP, rival battles, duels and the best score do not */
+export function gigDone(data, songId, g, encore = false, now = Date.now(), practice = false) {
   const fans = gigFans(g, encore), pct = gigPct(g);
   const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {} });
   gs.shows++; gs.fans += fans;
-  if (pct !== null) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
+  if (pct !== null && !practice) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
   /* Tour quests (4.5.0): the crowd it reached, and the request line doubles its bonus fans */
   const cover = coverState(data, now)?.song?.id === songId;
   const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
   /* Charts (4.6.0): XP for the show, and today's rival battle; a Double set doubles a scored show's XP (4.14.0) */
-  const own = data.merch?.own, doubled = pct !== null && own?.double > 0;
+  const own = data.merch?.own, doubled = pct !== null && !practice && own?.double > 0;
   if (doubled) own.double--;
-  const battle = chartsShow(data, songId, g, pct, now, doubled ? 2 : 1);
+  const battle = practice ? null : chartsShow(data, songId, g, pct, now, doubled ? 2 : 1);
   /* Song duels (4.12.0): a scored show answers a friend's challenge on this song */
-  const duel = pct === null ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
+  const duel = pct === null || practice ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
   return { ...(duel ? { duel } : {}), fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
 }
 export function cleanGig(raw) {
