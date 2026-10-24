@@ -154,7 +154,7 @@ test("4.54.0 words first: a repeat shown once, a shape for a chord you haven't l
   await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#sheet .gc-run, #sheet .st-lit").count(), 0, "4.54.0: no beat dots and no lit chord");
   assert.ok(await page.locator("#sheet .c.st-rep").count() > 0, "a chord played again in a row is hidden");
-  await page.waitForFunction(() => { const s = document.getElementById("gg-shape"); return s && !s.hidden && /Fmaj7/.test(s.textContent); }, null, { timeout: 20000 });
+  await page.waitForFunction(() => { const s = document.getElementById("gg-shape"); return s && !s.hidden && /Fmaj7/.test(s.textContent); }, null, { timeout: 40000 }); /* the taller chord tiles put the first line lower, so the song takes longer to get there */
   assert.match(await page.innerText("#gg-shape"), /NOW|NEXT/, "a shape for the chord you haven't learned");
   assert.equal(await page.locator(".gg-timing, .gg-louie, .gg-crowd").count(), 0, "no timing bar, no Louie card, no crowd card");
 });
