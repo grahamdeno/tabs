@@ -190,6 +190,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 1 | Tap anywhere to pause; scroll by hand and it carries on | Tap | Tip, Show me | Keep |
 | 2 | Tap a line to start from it | Tap while paused | Tip, Show me | Keep |
 | 3 | Drag the song map to jump sections | Drag the rail on the right | Tip, Show me | Keep (fix the stale Settings path in its text) |
+| 3b | Tap a section in the bar at the top while playing | Tap a colour in the thin bar (4.53.0) | Listed | Shown in the show and in unscored play; the jump isn't graded. Could get a tip after the first show |
 | 4 | Practice a section: tap the first and last line | Two taps | Listed | The first time Practice a section is chosen, say it there |
 | 5 | (Now and Next, retired in 4.50.0) | | | The tip, Show me and Tools switch are gone |
 | 6 | Count-in only from the top | Automatic | Listed | Leave listed |

@@ -6,7 +6,7 @@
 // The Gig (gig.js) adds the score, the crowd and its controls on top. A song played unscored (practicing, a
 // tab, Play together) gets the same stage with nothing on top (4.52.0): stagePlay and stageStop, from app.js.
 import { RUN_MAX, beatsBetween, gelOf, runDot, onBeat } from "./core.js";
-import { diag, READ_AT, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, beatSecs } from "./app.js";
+import { diag, READ_AT, jumpToSection, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, beatSecs } from "./app.js";
 import { metro } from "./audio.js";
 import { sound } from "./ui.js";
 
@@ -16,8 +16,8 @@ const $ = id => document.getElementById(id);
 export function sections() {
   const out = [];
   for (const b of diag.blocks || []) {
-    if (b.el.classList.contains("sec")) out.push({ name: b.el.textContent.trim(), gel: gelOf(b.el.textContent), y: b.y });
-    else if (!out.length && isLine(b.el)) out.push({ name: "", gel: "verse", y: b.y });
+    if (b.el.classList.contains("sec")) out.push({ name: b.el.textContent.trim(), gel: gelOf(b.el.textContent), y: b.y, el: b.el });
+    else if (!out.length && isLine(b.el)) out.push({ name: "", gel: "verse", y: b.y, el: b.el });
   }
   const end = Math.max(1, ...(diag.blocks || []).map(b => b.y));
   return out.map((s, i) => ({ ...s, to: out[i + 1]?.y ?? end })).map(s => ({ ...s, share: Math.max(0.02, (s.to - s.y) / end) }));
@@ -67,6 +67,26 @@ export function where(song) {
   }
   const end = Math.max(1, diag.blocks[diag.blocks.length - 1].y);
   return { b, sec, idx, next, from, until, span, progress: Math.max(0, Math.min(1, (line - top) / end)) };
+}
+
+/* ---- the song map (4.53.0) ----
+   While a song plays, the sections are a thin bar at the top: each in its colour, as long as it is in the song,
+   with a mark at your place. Tap one to go there. The jump isn't graded: stage.js says so with "stage-jump". */
+export function stageMapHTML() {
+  const secs = sections();
+  return (secs.length ? secs : [{ gel: "verse", share: 1, name: "" }]).map((s, i) =>
+    `<button class="gl-${s.gel}" data-i="${i}" style="flex:${s.share.toFixed(3)}" aria-label="${s.name ? "Go to " + s.name.replace(/[<>&"]/g, "") : "Song"}"></button>`).join("") + '<em id="gg-mark"></em>';
+}
+export function stageMapTap(e) {
+  const b = e.target.closest?.("button[data-i]"), s = b && sections()[+b.dataset.i];
+  if (!s?.el) return;
+  e.stopPropagation();
+  document.dispatchEvent(new Event("stage-jump"));
+  jumpToSection(s.el);
+}
+export function stageMark(w) {
+  const mark = $("gg-mark");
+  if (mark) mark.style.left = (w.progress * 100).toFixed(2) + "%";
 }
 
 /* ---- drawing on the sheet ---- */
@@ -164,16 +184,24 @@ export function stagePlay(song) {
   stageStop();
   stageStart();
   document.body.classList.add("staged-plain");
+  const map = document.createElement("nav");
+  map.className = "gg-map st-map"; map.id = "st-map"; map.setAttribute("aria-label", "Song sections");
+  map.innerHTML = stageMapHTML();
+  map.onclick = stageMapTap;
+  document.body.appendChild(map);
   const loop = () => {
     plain = requestAnimationFrame(loop);
     const clock = metro.timer ? sound()?.currentTime ?? performance.now() / 1000 : performance.now() / 1000;
-    stageTick(song, where(song), !!document.querySelector(".countin"), clock);
+    const w = where(song);
+    if (w) stageMark(w);
+    stageTick(song, w, !!document.querySelector(".countin"), clock);
   };
   plain = requestAnimationFrame(loop);
 }
 export function stageStop() {
   if (!plain && !document.body.classList.contains("staged-plain")) return;
   cancelAnimationFrame(plain); plain = 0;
+  $("st-map")?.remove();
   document.body.classList.remove("staged-plain");
   stageClear();
 }

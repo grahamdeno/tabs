@@ -190,10 +190,10 @@ for now, over a see-through middle.
 
 ### Step 5. Section chips as the progress bar [Sonnet], 4.53.0
 
-- [ ] 5.1 While playing, the section chips (`.smap`) shrink into the progress bar at the top: the same sections, same
+- [x] 5.1 While playing, the section chips (`.smap`) shrink into the progress bar at the top: the same sections, same
       gels, thin, with a mark at where you are. Paused, they grow back into chips.
-- [ ] 5.2 Tapping a section in the bar mid-song jumps there (`openAtSection`), and grading skips the jump like a drag does.
-- [ ] 5.3 Tests for both. README.
+- [x] 5.2 Tapping a section in the bar mid-song jumps there (`openAtSection`), and grading skips the jump like a drag does.
+- [x] 5.3 Tests for both. README.
 
 ### Step 6. Clean-up [Sonnet], patch
 
@@ -205,6 +205,8 @@ for now, over a see-through middle.
 - [ ] 6.5 Move this file to `docs/history/`.
 
 ## Surprises
+
+- Step 5 (4.53.0): the plan's "section chips (.smap)" were really three things: the paused chips (`.secbar`), the right-edge rail (`.smap`) and the show's untappable top bar. The paused chips and the rail are unchanged. Playing, the show's top bar (`.gg-map`) is now tappable and unscored play gets the same bar (`#st-map`) from stage.js; both call `jumpToSection` in app.js. The jump is left out of grading through a `stage-jump` event that gig.js treats like a drag. The chips do not animate into the bar; they swap (the page is hidden while staged).
 
 - Step 3 (4.51.0): a regex in 4.49.13 had left `.gg-say` (Louie's line on pause) styled only in the light look;
   fixed. The Gig's new top and bottom fades first covered its own buttons (they now sit under them).

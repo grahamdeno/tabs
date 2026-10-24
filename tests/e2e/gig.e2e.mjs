@@ -37,7 +37,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gg-lines").count(), 0, "4.51.0: the lines are the song page itself, not a copy");
   assert.ok(await page.evaluate(() => document.body.classList.contains("staged")), "the page is the stage");
-  assert.equal(await page.locator(".gg-map i").count(), 2, "the song map: a gel for each section");
+  assert.equal(await page.locator(".gg-map button").count(), 2, "the song map: a button and a gel for each section");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Hearing you: a tap stops listening for this show, another starts it again */
   await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
@@ -250,4 +250,31 @@ test("4.52.0 unscored play is on the stage too: the band and the chord you're on
   await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
   assert.equal(await page.locator("#sheet .st-now, #sheet .st-lit, #st-bg").count(), 0, "paused, the page is as it was");
+});
+
+test("4.53.0 the song map while playing: a bar of sections with a mark; tapping one goes there", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  /* unscored play: the bar sits alone at the top */
+  await page.waitForSelector("#st-map button");
+  assert.equal(await page.locator("#st-map button").count(), 2, "a button for each section");
+  await page.waitForFunction(() => document.getElementById("gg-mark").style.left !== "");
+  const y0 = await page.evaluate(() => scrollY);
+  await page.click("#st-map button:last-of-type");
+  await page.waitForFunction(y => scrollY > y + 40, y0, { timeout: 5000 });
+  assert.ok(await page.evaluate(() => document.body.classList.contains("staged-plain")), "the tap did not pause the song");
+  await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
+  await page.waitForFunction(() => !document.body.classList.contains("staged"));
+  assert.equal(await page.locator("#st-map").count(), 0, "paused, the bar goes and the chips are back");
+});
+
+test("4.53.0 in a show the song map is tappable too, and the jump is not graded", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#gig"); await page.waitForSelector("#sheet > .st-now");
+  const y0 = await page.evaluate(() => scrollY);
+  await page.click("#gg-map button:last-of-type");
+  await page.waitForFunction(y => scrollY > y + 40, y0, { timeout: 5000 });
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the tap did not pause the show");
 });

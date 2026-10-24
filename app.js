@@ -1408,12 +1408,17 @@ function paintSecbar() {
     return `<button class="sbar gl-${gelOf(name)}" data-i="${i}" style="flex:${w}" aria-label="Go to ${esc(name)}"><span>${esc(name)}</span></button>`;
   }).join("");
   bar.onclick = e => {
-    const b = e.target.closest(".sbar"), el = b && secs[+b.dataset.i];
-    if (!el?.isConnected) return;
-    hold.active = true; releaseSoon(900);
-    window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + scrollY - innerHeight * READ_AT), behavior: calm() ? "auto" : "smooth" });
-    diag.pinned = null;
+    const b = e.target.closest(".sbar");
+    jumpToSection(b && secs[+b.dataset.i]);
   };
+}
+/* Go to a section: its label lands on the reading line. A recording playing goes with the page (releaseSoon).
+   The song map in a show and the bar in unscored play use this too (4.53.0). */
+function jumpToSection(el) {
+  if (!el?.isConnected) return;
+  hold.active = true; releaseSoon(900);
+  window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + scrollY - innerHeight * READ_AT), behavior: calm() ? "auto" : "smooth" });
+  diag.pinned = null;
 }
 
 function clearSel() {
@@ -1937,4 +1942,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

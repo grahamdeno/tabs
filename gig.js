@@ -24,7 +24,7 @@ import { data, diag, scroll, viewing, startScroll, stopScroll, gigHooks, go, cho
 import { louie } from "./louie.js";
 import { callout } from "./callout.js";
 import { friend, FRIENDS } from "./friends.js";
-import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
+import { where, stageStart, stageClear, stageTick, stageMapHTML, stageMapTap, stageMark } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
 let gig = null; /* the show on stage, or null */
@@ -87,7 +87,7 @@ function shell(song) {
   el.innerHTML = `${backdropArt(merchWorn(data, "backdrop"))}
     <div class="gg-top">
       <button class="gg-x" id="gg-x" aria-label="Leave the gig">${icon("x")}</button>
-      <div class="gg-map" id="gg-map" aria-hidden="true"></div>
+      <nav class="gg-map" id="gg-map" aria-label="Song sections"></nav>
       <span class="gg-combo" id="gg-combo"></span><b class="gg-tw" id="gg-tw" aria-live="polite"></b>
       <span class="gg-str" id="gg-str" aria-label="Strings">${PLUG}<b>${GIG_STRINGS}</b></span>
     </div>
@@ -119,8 +119,8 @@ function paintMic() {
 function paintMap() {
   const box = $("gg-map");
   if (!box) return;
-  const secs = sections();
-  box.innerHTML = (secs.length ? secs : [{ gel: "verse", share: 1 }]).map(s => `<i class="gl-${s.gel}" style="flex:${s.share.toFixed(3)}"></i>`).join("") + '<em id="gg-mark"></em>';
+  box.innerHTML = stageMapHTML();
+  box.onclick = stageMapTap;
 }
 
 /* a small shape for a chord you haven't learned yet, beside the lines */
@@ -170,8 +170,7 @@ function frame() {
   const w = where(song);
   if (!w) return;
   /* the song map's marker */
-  const mark = $("gg-mark");
-  if (mark) mark.style.left = (w.progress * 100).toFixed(2) + "%";
+  stageMark(w);
   /* section and Stage Gel */
   const counting = !!document.querySelector(".countin");
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
@@ -225,7 +224,8 @@ function bindDrag(g) {
   const drag = () => { g.dragUntil = performance.now() + 700; };
   addEventListener("touchmove", drag, { passive: true });
   addEventListener("wheel", drag, { passive: true });
-  g.unbind = () => { removeEventListener("touchmove", drag); removeEventListener("wheel", drag); };
+  document.addEventListener("stage-jump", drag); /* a tap on the song map (4.53.0) */
+  g.unbind = () => { removeEventListener("touchmove", drag); removeEventListener("wheel", drag); document.removeEventListener("stage-jump", drag); };
 }
 
 /* 4.43.0: the timing bar folded into the combo: a word beside it when a change lands early or late */

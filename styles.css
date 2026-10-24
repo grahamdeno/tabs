@@ -2186,8 +2186,14 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 .gg-x { width: 44px; height: 44px; flex: none; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
 .gg-x svg { width: 24px; height: 24px; }
 .gg-map { flex: 1; position: relative; display: flex; gap: 2px; height: 14px; border-radius: 7px; overflow: visible; }
-.gg-map i { display: block; height: 100%; opacity: .9; }
-.gg-map i:first-child { border-radius: 7px 0 0 7px; } .gg-map i:last-of-type { border-radius: 0 7px 7px 0; }
+.gg-map > button { display: block; position: relative; height: 100%; min-width: 0; padding: 0; border: 0; opacity: .9; }
+.gg-map > button::after { content: ""; position: absolute; left: 0; right: 0; top: -15px; bottom: -15px; } /* a finger-sized target (4.53.0) */
+.gg-map > button:first-child { border-radius: 7px 0 0 7px; } .gg-map > button:last-of-type { border-radius: 0 7px 7px 0; }
+.gg-map em { pointer-events: none; }
+/* unscored play: the same bar, alone at the top (4.53.0) */
+.st-map { position: fixed; z-index: 15; left: 16px; right: 16px; top: calc(var(--safe-t) + 12px); flex: none; height: 8px; }
+.st-map > button:first-child { border-radius: 4px 0 0 4px; } .st-map > button:last-of-type { border-radius: 0 4px 4px 0; }
+.st-map em { top: -4px; height: 16px; }
 .gl-verse { background: var(--g-verse); } .gl-chorus { background: var(--g-chorus); } .gl-bridge { background: var(--g-bridge); } .gl-solo { background: var(--g-solo); }
 .gg-map em { position: absolute; top: -5px; width: 6px; height: 24px; margin-left: -3px; border-radius: 3px; background: var(--fg); box-shadow: 0 0 0 2px var(--bg); transition: left .25s linear; }
 .gg-str { display: inline-flex; align-items: center; gap: 4px; font: 700 18px var(--display); color: var(--strings); }
