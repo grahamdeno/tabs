@@ -3706,10 +3706,21 @@ body.staged .app.viewer > :not(.sheet):not(.dock):not(.dock-fade):not(.fp), body
 body.gigging.staged .app.viewer > :is(.dock, .dock-fade), body.gigging.staged .smap { visibility: hidden; }
 body.staged .app.viewer { overflow-x: clip; }
 body.staged .sheet { overflow-x: visible; }
-body.staged .sheet > * { position: relative; opacity: .7 !important; transform: none !important; -webkit-text-stroke: 0 !important; transition: opacity .25s; }
-body.staged .sheet > .st-past { opacity: .35 !important; }
-body.staged .sheet > .st-next { opacity: .85 !important; }
-body.staged .sheet > .st-now { opacity: 1 !important; }
+body.staged .sheet > * { position: relative; opacity: 1 !important; transform: none !important; -webkit-text-stroke: 0 !important; transition: color .25s; }
+/* Bold words that fade by distance (4.58.0, Graham, 2026-10-24): the line you're on is white and boldest, the next
+   one 65%, the ones after 45%, the ones played 30%. The words fade; chord letters stay brighter than the words
+   around them, so the next change is always readable. Section names fade with opacity. */
+body.staged .sheet > :is(.pr, .ly, .crow) { font-weight: 700; color: color-mix(in srgb, var(--fg) 45%, transparent); }
+body.staged .sheet > .st-next:is(.pr, .ly, .crow) { color: color-mix(in srgb, var(--fg) 65%, transparent); }
+body.staged .sheet > .st-past:is(.pr, .ly, .crow) { color: color-mix(in srgb, var(--fg) 30%, transparent); }
+body.staged .sheet > .st-now:is(.pr, .ly, .crow) { font-weight: 800; color: var(--fg); }
+body.staged .sheet > .sec { opacity: .7 !important; }
+body.staged .sheet > .sec.st-past { opacity: .35 !important; }
+body.staged .sheet .c { font-weight: 800; transition: opacity .25s; }
+body.staged .sheet > :is(.pr, .ly, .crow) .c { opacity: .8; }
+body.staged .sheet > :is(.st-now, .st-next) .c { opacity: 1; }
+body.staged .sheet > .st-past .c { opacity: .45; }
+body.staged .sheet > :is(.pr, .ly, .crow) .c:is(.st-got, .st-wait) { opacity: 1; }
 body.staged .sheet > .st-now::before { content: ""; position: absolute; z-index: -1; top: -6px; bottom: -2px; left: -50vw; right: -50vw; background: color-mix(in srgb, var(--gel) 16%, transparent); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gel) 45%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--gel) 45%, transparent); pointer-events: none; transition: background-color .4s; }
 body.staged .sheet .c { color: var(--gel); }
 :root[data-theme="light"] body.staged .sheet .c, :root[data-look="festival"] body.staged .sheet .c { color: color-mix(in srgb, var(--gel) 72%, #14213D); }
@@ -3741,7 +3752,8 @@ body.staged .sheet .c.st-rep { visibility: hidden; }
    (Graham, 2026-10-24); its chords are timed evenly along it too. */
 .sheet .crow > * { flex: 1 1 0; min-width: max-content; }
 /* Fitting the text (4.51.0): each line measured on one line, to find the size that fits the longest */
-.sheet.measure > :is(.pr, .ly, .crow) { width: max-content; white-space: nowrap; flex-wrap: nowrap; }
+.sheet.measure > :is(.pr, .ly, .crow) { width: max-content; white-space: nowrap; flex-wrap: nowrap; font-weight: 800; }
+.sheet.measure .c { font-weight: 800; }
 .sheet.measure .crow > * { flex: none; }
 /* the new-chord card sits low on the right, in thumb reach, clear of the band at the reading line (4.51.0) */
 .gig .gg-shape { top: auto; bottom: calc(96px + var(--safe-b)); }

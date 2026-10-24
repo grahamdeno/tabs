@@ -34,15 +34,15 @@ Defaults taken by Opus (Graham can change these):
 
 Where: `styles.css` (the `body.staged .sheet` rules near line 3709 and `.sheet.measure` near 3744), `fitText` in `app.js`.
 
-- [ ] 1.1 Weight: `body.staged .sheet > :is(.pr, .ly)` gets `font-weight: 700`; `.st-now` gets `800`. Chord letters (`.sheet .c`, today 650) go to 800 while staged. Nunito is a variable font loaded for 400 to 800 (`@font-face` in styles.css), so nothing new to load.
-- [ ] 1.2 Measure at the boldest weight: in `.sheet.measure > :is(.pr, .ly, .crow)` add `font-weight: 800` (and `.c` at 800), so the size `fitText` picks fits the current line at 800 and never overflows when a line turns current. The size drops about 5%; that's expected. Keep `FIT_MIN` 14.
-- [ ] 1.3 Fade by distance, using colour for the words instead of opacity on the whole line, so chords can stay brighter:
+- [x] 1.1 Weight: `body.staged .sheet > :is(.pr, .ly)` gets `font-weight: 700`; `.st-now` gets `800`. Chord letters (`.sheet .c`, today 650) go to 800 while staged. Nunito is a variable font loaded for 400 to 800 (`@font-face` in styles.css), so nothing new to load.
+- [x] 1.2 Measure at the boldest weight: in `.sheet.measure > :is(.pr, .ly, .crow)` add `font-weight: 800` (and `.c` at 800), so the size `fitText` picks fits the current line at 800 and never overflows when a line turns current. The size drops about 5%; that's expected. Keep `FIT_MIN` 14.
+- [x] 1.3 Fade by distance, using colour for the words instead of opacity on the whole line, so chords can stay brighter:
   - Replace the opacity rules for `body.staged .sheet > *` (`.7`, past `.35`, next `.85`, now `1`) with opacity 1 on every line and a word colour per mark: now `var(--fg)`; next `color-mix(in srgb, var(--fg) 65%, transparent)`; lines after next `45%`; past `30%`.
   - Chord letters: now and next at full gel colour; after next at 75%; past at 40%. The existing `.st-got`, `.st-miss`, `.st-wait` and `.st-rep` rules keep winning (check the specificity, they start with `:root`).
   - Section names (`.sec`) and wordless rows (`.crow`) follow the same scale by their position.
   - Keep the `transition` so the fade moves smoothly (0.25 s on `color`, as today on opacity).
-- [ ] 1.4 Light palette check: `--fg` at 30% on the festival background must still be visible. Run the contrast numbers for past words and next chords in all three palettes and write them in the commit message. Past lines don't need to pass 4.5:1 (they're decoration), the next line's chords do need 3:1.
-- [ ] 1.5 Tests (`tests/e2e/gig.e2e.mjs`): on a playing song, the current line's computed weight is 800 and the next line's 700; the next line's chord colour alpha is higher than its word colour alpha; no line's `scrollWidth` is wider than the sheet at 390 wide with the current line at 800. Update any test that read the old opacities (grep `opacity` in tests/e2e for `.st-`).
+- [x] 1.4 Light palette check: `--fg` at 30% on the festival background must still be visible. Run the contrast numbers for past words and next chords in all three palettes and write them in the commit message. Past lines don't need to pass 4.5:1 (they're decoration), the next line's chords do need 3:1.
+- [x] 1.5 Tests (`tests/e2e/gig.e2e.mjs`): on a playing song, the current line's computed weight is 800 and the next line's 700; the next line's chord colour alpha is higher than its word colour alpha; no line's `scrollWidth` is wider than the sheet at 390 wide with the current line at 800. Update any test that read the old opacities (grep `opacity` in tests/e2e for `.st-`).
 
 ## Step 2 [Opus] 4.59.0: The album cover behind the show
 
@@ -71,4 +71,5 @@ Where: `gig.js`, `styles.css`. The plain player already does this (`wakeControls
 
 ## Surprises
 
-(none yet)
+- Step 1 contrast (1.4), words on the palette background: next line 7.0 (Neon), 4.9 (Festival), 4.4 (Green); lines after next 4.0, 2.7, 2.6; played lines 2.5, 1.9, 1.8. Light palettes are weak after the next line; it is bold and large, and decoration beyond the next line. Say if you want the 45% raised to 55% there.
+- Fade is in colour on the words and opacity on the chords, so a line's chords read brighter than its words (test added). Section names still use opacity.

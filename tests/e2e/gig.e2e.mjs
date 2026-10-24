@@ -38,6 +38,20 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.equal(await page.locator("#gg-lines").count(), 0, "4.51.0: the lines are the song page itself, not a copy");
   assert.ok(await page.evaluate(() => document.body.classList.contains("staged")), "the page is the stage");
   assert.equal(await page.locator(".gg-map, #st-map, #gg-str, #gg-tw").count(), 0, "4.54.0: no song map over the stage, no strings, no timing word");
+  /* 4.58.0: bold words that fade by distance; the chords stay brighter than the words; nothing runs past the edge */
+  const look = await page.evaluate(() => {
+    const now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
+    const alpha = c => { const m = c.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; };
+    const w = el => +getComputedStyle(el).fontWeight, col = el => alpha(getComputedStyle(el).color);
+    const nc = next?.querySelector(".c");
+    return { now: w(now), next: next ? w(next) : 0, nowCol: col(now), nextCol: next ? col(next) : 0, chordBrighter: nc ? +getComputedStyle(nc).opacity > col(next) : true,
+      overflow: [...sheet.querySelectorAll(":scope > .pr, :scope > .ly, :scope > .crow")].some(l => [...l.children].some(c => c.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 1)) };
+  });
+  assert.equal(look.now, 800, "4.58.0: the line you're on is boldest");
+  assert.ok(look.next === 700 || look.next === 0, "4.58.0: the next line is bold");
+  assert.ok(look.nowCol > look.nextCol, "4.58.0: the next line's words are dimmer than the current line's");
+  assert.ok(look.chordBrighter, "4.58.0: the next line's chords are brighter than its words");
+  assert.equal(look.overflow, false, "4.58.0: no line runs past the edge at the boldest weight");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Hearing you: a tap stops listening for this show, another starts it again */
   await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
