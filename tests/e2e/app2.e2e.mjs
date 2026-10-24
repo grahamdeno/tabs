@@ -405,7 +405,7 @@ test("2.1 glow: the count-in glows; gig day counts down on Up Next", { skip: ski
     assert.match(await page.evaluate(() => getComputedStyle(document.querySelector("#un-cd")).textShadow), /px/, "it glows");
   }
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
-  await page.click("#play"); await page.waitForSelector(".countin", { timeout: 3000 });
+  await page.click("#play"); await page.waitForSelector(".countin", { state: "attached", timeout: 3000 }); /* 4.55.0: hidden under the opening card, still glowing */
   assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".countin")).textShadow), /px/, "the count-in glows");
 });
 
