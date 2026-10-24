@@ -252,7 +252,7 @@ test("4.54.0 no section bar over the stage, in a show or in practice; the page's
   assert.equal(await page.locator("#st-map, .gg-map").count(), 0, "unscored play has no bar");
   await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
-  assert.equal(await page.locator(".smap").count() > 0 || await page.locator(".secbar").count() > 0, true, "paused, the chips and the rail are as they were");
+  assert.ok(await page.locator(".smap").count() > 0, "paused, the page's own rail is as it was");
 });
 
 test("4.54.0 Wait for me: the song holds on a chord nobody plays, Skip moves on and counts it missed", { skip: skip() }, async t => {

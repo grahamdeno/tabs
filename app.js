@@ -177,7 +177,6 @@ function renderViewer(id) {
     <div class="metarow"><button class="stat" id="stat" aria-label="Learning status"></button>${songTuning(song) !== "standard" ? `<button class="stat tunechip" id="tunechip" aria-label="Tuning: ${TUNINGS[songTuning(song)].name}. Open the tuner">${icon("fork")}${TUNINGS[songTuning(song)].name}</button>` : ""}</div>
     ${song.sketch?.lines?.length ? `<div class="skrow" id="skrow"><button class="stat sk-hear" id="sk-hear" hidden>${icon("play")}<span>Your recording</span></button>
       <div class="seg mini sk-style" role="group" aria-label="Chord style">${["simple", "rich"].map(st => `<button data-st="${st}" class="${(song.sketch.style || "simple") === st ? "on" : ""}" aria-pressed="${(song.sketch.style || "simple") === st}">${st === "simple" ? "Simple" : "Rich"}</button>`).join("")}</div></div>` : ""}
-    <nav class="secbar" id="secbar" aria-label="Song sections"></nav>
     <div id="strip"></div>
     <header class="chead" id="chead" aria-hidden="true">
       <div class="in">
@@ -283,7 +282,6 @@ function renderViewer(id) {
     if (isChords) fitText(sheet, song);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
-    paintSecbar();
   };
   draw();
   redraw = () => { draw(); paintLoop(song); buildMap(); };
@@ -1405,24 +1403,6 @@ function renderStrip(sheet, isChords, song) {
       `<button class="scard${fresh(n) ? " new" : ""}" role="listitem" data-name="${esc(n)}" aria-label="${esc(n)} chord shape${fresh(n) ? ", new to you" : ""}"><b class="sc-n">${esc(n)}</b>${fresh(n) ? '<small class="sc-new">NEW</small>' : ""}${chordSVG(n)}</button>`).join("")}</div>` : "";
 }
 
-/* The song map under the chips (4.2.0): each section in its Stage Gel, as long as it is in the song.
-   Tap one to go there; Play starts from where the page is. */
-function paintSecbar() {
-  const bar = $("secbar"), sheet = $("sheet");
-  if (!bar || !sheet) return;
-  const secs = [...sheet.querySelectorAll(":scope > .sec")];
-  if (secs.length < 2) { bar.hidden = true; bar.innerHTML = ""; return; }
-  bar.hidden = false;
-  const tops = secs.map(el => el.offsetTop), end = Math.max(tops[tops.length - 1] + 1, sheet.scrollHeight);
-  bar.innerHTML = secs.map((el, i) => {
-    const name = el.textContent.trim(), w = Math.max(1, (tops[i + 1] ?? end) - tops[i]);
-    return `<button class="sbar gl-${gelOf(name)}" data-i="${i}" style="flex:${w}" aria-label="Go to ${esc(name)}"><span>${esc(name)}</span></button>`;
-  }).join("");
-  bar.onclick = e => {
-    const b = e.target.closest(".sbar");
-    jumpToSection(b && secs[+b.dataset.i]);
-  };
-}
 /* Go to a section: its label lands on the reading line. A recording playing goes with the page (releaseSoon).
    The song map in a show and the bar in unscored play use this too (4.53.0). */
 function jumpToSection(el) {

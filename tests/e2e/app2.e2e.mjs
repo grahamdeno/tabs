@@ -326,7 +326,7 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   for (const sel of ["#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
   assert.equal(await page.locator(".player .fav, .player #nnbtn, .player .oh-back").count(), 0, "just Tools and Play");
   assert.ok((await box("#play")).right > 330, "Play at the right, in thumb reach");
-  assert.equal(await page.locator(".secbar .sbar").count(), 2, "the song map: one button per section");
+  assert.equal(await page.locator(".secbar").count(), 0, "4.55.0: no row of section chips on the song page");
   await page.click("#more"); await page.waitForSelector('.menu');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length); const m = await box(".menu");
   assert.ok(m.bottom > H - 40 && m.top > H * 0.1 /* 4.20.0: taller with the Practice switch */, `Tools rises from the bottom (${m.top}, ${m.bottom})`);
