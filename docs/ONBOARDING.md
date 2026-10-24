@@ -39,6 +39,7 @@ sees, and what teaches them anything.
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
 | Play (the Gig) | Count-in, "Listening is off", then "Hearing you · tap to turn off" | The mic pill says it is listening | Nothing says *why* (strum on the changes to score). On a real iPhone the microphone prompt arrives cold, with no reason given first |
+| Controls in the Gig | The X, the mic button and Pause fade after 3 s of play without a touch; a touch shows them again and that first touch only wakes them, it never pauses (4.60.0) | Found by watching | Not taught on purpose: it is what Apple Music does |
 | Tap the Gig | Pauses: the song page comes back as it always is, Play reads Resume, a quiet band on the line you stopped on (4.52.0) | Found by accident | Tap to pause and drag the lines are never taught |
 | Tools | Play, Practice and Song tabs at the foot, dots on Practice and Song | Dots | Fine |
 | Tour | October Tour, a request line asking for Harbor Lights, tonight's setlist | On screen | Good. A lot at once on day one |

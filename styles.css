@@ -3859,3 +3859,8 @@ body.covered .gig::before { background: linear-gradient(180deg, rgba(0, 0, 0, .3
 body.covered .gig::after { background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .35) 44px); }
 body.covered.staged .sheet > .st-now::before { background: rgba(255, 255, 255, .1); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .3), inset 0 -2px 0 rgba(255, 255, 255, .3); }
 :root body.covered.staged .sheet .c:not(.st-got):not(.st-miss):not(.st-wait) { color: #FFFFFF; }
+/* Controls that hide while the song plays (4.60.0): they fade after 3 s untouched and can't be pressed while hidden;
+   the crowd, the combo, the section name and Skip stay. */
+.gig :is(.gg-x, .gg-mic, .gg-pause) { transition: opacity .4s, visibility 0s; }
+.gig.idle :is(.gg-x, .gg-mic, .gg-pause) { opacity: 0; visibility: hidden; transition: opacity .4s, visibility 0s .4s; }
+@media (prefers-reduced-motion: reduce) { .gig :is(.gg-x, .gg-mic, .gg-pause), .gig.idle :is(.gg-x, .gg-mic, .gg-pause) { transition: none; } }

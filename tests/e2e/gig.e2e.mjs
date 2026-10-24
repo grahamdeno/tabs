@@ -108,6 +108,7 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; 
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   assert.equal(await page.locator("#gig.paused").count(), 0);
   await page.waitForFunction(a => scrollY > a + 20, at, { timeout: 8000 });
+  await page.keyboard.press("Shift"); /* 4.60.0: the controls may have faded; a key wakes them without pressing */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   assert.equal(await page.evaluate(() => location.hash), "#/song/g", "paused on the song page");
   assert.ok(await page.evaluate(() => { const b = getComputedStyle(document.querySelector("#sheet > .st-now"), "::before"); return b.content !== "none"; }), "a quiet band on the line you stopped on");
@@ -376,4 +377,23 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gg-cover").count(), 0, "no cover, no change");
   assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false);
+});
+
+/* 4.60.0: the X, mic and Pause fade after 3 s of play without a touch; the first touch only wakes them */
+test("Controls that hide while the song plays (4.60.0)", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false } }, "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  const box = await page.locator("#gg-pause").boundingBox();
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
+  await page.waitForFunction(() => getComputedStyle(document.getElementById("gg-pause")).visibility === "hidden");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-pause")).opacity), "0", "Pause is hidden");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-combo")).visibility), "visible", "the combo stays");
+  assert.equal(await page.getAttribute("#gg-pause", "aria-label"), "Pause", "hidden, it keeps its name");
+  /* a tap where Pause was only wakes the controls */
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForSelector("#gig:not(.idle)"); await page.waitForTimeout(300); /* real timer: the tap would have paused by now */
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the first touch only wakes the controls, it doesn't pause");
+  await page.click("#gg-pause"); await page.waitForSelector("#gig.paused", { state: "attached" });
+  await page.waitForTimeout(4500); /* real timer */
+  assert.equal(await page.locator("#gig.idle").count(), 0, "paused, the controls stay");
 });

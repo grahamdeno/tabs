@@ -62,15 +62,16 @@ Where: `gig.js` (`shell`, start and leave), `stage.js` (`stageStart`, `stageClea
 
 Where: `gig.js`, `styles.css`. The plain player already does this (`wakeControls` and `.player.idle` in `app.js`); reuse the same idea, not the same element.
 
-- [ ] 3.1 In the show, while the song plays, add `idle` to `#gig` after 3 s without a touch; any `touchstart`, `pointerdown`, `wheel` or `keydown` removes it and restarts the 3 s. Paused, counting in, Wait for me holding, the end card, or a sheet open over the show: never idle.
-- [ ] 3.2 `.gig.idle :is(.gg-x, .gg-mic, .gg-pause)`: `opacity: 0` over 0.4 s, and `pointer-events: none` only after the fade (so D5 holds: the first touch wakes them before the tap reaches them). The crowd, combo, section name, Skip this chord and the wait pill never hide. `.gg-skip` is shown only when needed, so it stays visible.
-- [ ] 3.3 Accessibility: hidden controls stay in the page and keep their labels; a keyboard focus wakes them. With VoiceOver on (no reliable signal), it's fine that a tap wakes first.
-- [ ] 3.4 Reduced motion: no fade, they just hide and show.
-- [ ] 3.5 Tests (`gig.e2e.mjs`): after 3 s of play (`/* real timer */`) `#gig` has `idle` and Pause's opacity is 0; a tap brings it back and Pause is not pressed by that tap; paused never goes idle.
-- [ ] 3.6 docs/ONBOARDING.md: add "controls hide while playing, touch to show" under the Gig, taught by: none (it's what Apple Music does). README: one line in the Gig's description.
+- [x] 3.1 In the show, while the song plays, add `idle` to `#gig` after 3 s without a touch; any `touchstart`, `pointerdown`, `wheel` or `keydown` removes it and restarts the 3 s. Paused, counting in, Wait for me holding, the end card, or a sheet open over the show: never idle.
+- [x] 3.2 `.gig.idle :is(.gg-x, .gg-mic, .gg-pause)`: `opacity: 0` over 0.4 s, and `pointer-events: none` only after the fade (so D5 holds: the first touch wakes them before the tap reaches them). The crowd, combo, section name, Skip this chord and the wait pill never hide. `.gg-skip` is shown only when needed, so it stays visible.
+- [x] 3.3 Accessibility: hidden controls stay in the page and keep their labels; a keyboard focus wakes them. With VoiceOver on (no reliable signal), it's fine that a tap wakes first.
+- [x] 3.4 Reduced motion: no fade, they just hide and show.
+- [x] 3.5 Tests (`gig.e2e.mjs`): after 3 s of play (`/* real timer */`) `#gig` has `idle` and Pause's opacity is 0; a tap brings it back and Pause is not pressed by that tap; paused never goes idle.
+- [x] 3.6 docs/ONBOARDING.md: add "controls hide while playing, touch to show" under the Gig, taught by: none (it's what Apple Music does). README: one line in the Gig's description.
 
 ## Surprises
 
 - Step 1 contrast (1.4), words on the palette background: next line 7.0 (Neon), 4.9 (Festival), 4.4 (Green); lines after next 4.0, 2.7, 2.6; played lines 2.5, 1.9, 1.8. Light palettes are weak after the next line; it is bold and large, and decoration beyond the next line. Say if you want the 45% raised to 55% there.
 - Step 2: the `a11y` cover test needs axe-core, which can't be installed here (npm is blocked), so it ran names-only; CI runs axe. The dark look turns on only once the picture has loaded, so a failed load leaves today's look. The cover test is in gig.e2e.mjs and a11y.e2e.mjs.
+- Step 3: a tap anywhere pauses while playing (app.js), so the wake swallows the next click page-wide, not just on the three controls. Hidden controls use `visibility: hidden` after the fade, so taps can't land on them, and they keep their labels in the page.
 - Fade is in colour on the words and opacity on the chords, so a line's chords read brighter than its words (test added). Section names still use opacity.

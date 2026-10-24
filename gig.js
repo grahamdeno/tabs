@@ -295,6 +295,30 @@ function coverOff() {
   document.body.classList.remove("covered");
 }
 
+/* Controls that hide (4.60.0, Graham, 2026-10-24): while the song plays, the X, the mic button and Pause fade after
+   3 seconds without a touch, as in Apple Music. A touch brings them back; that first touch only wakes them, it never
+   presses one. Paused, counting in, waiting for a chord, a sheet open, or the end card: always shown. */
+function bindIdle(g) {
+  g.touch = performance.now();
+  const wake = e => {
+    if (!g.el?.classList.contains("idle")) { g.touch = performance.now(); return; }
+    g.touch = performance.now();
+    g.el.classList.remove("idle");
+    if (e.type === "pointerdown") g.swallow = performance.now() + 600; /* the tap that wakes is not a pause or a press */
+  };
+  const evs = ["touchstart", "pointerdown", "wheel", "keydown", "focusin"];
+  evs.forEach(ev => addEventListener(ev, wake, { passive: true, capture: true }));
+  const eat = e => { if (g.swallow && performance.now() < g.swallow) { g.swallow = 0; e.stopImmediatePropagation(); e.preventDefault(); } };
+  document.addEventListener("click", eat, true);
+  g.idleT = setInterval(() => {
+    if (gig !== g) return;
+    const ok = scroll.on && !g.paused && !g.holding && !g.credited && !g.ended && !g.el.classList.contains("done") && !document.querySelector(".countin, .menu, .st-open");
+    if (!ok) g.el.classList.remove("idle");
+    else if (performance.now() - g.touch > 3000) g.el.classList.add("idle");
+  }, 400);
+  g.unbindIdle = () => { clearInterval(g.idleT); document.removeEventListener("click", eat, true); evs.forEach(ev => removeEventListener(ev, wake, { capture: true })); };
+}
+
 /* ---- open, pause, close ---- */
 export function openGig(song, opts = {}) {
   closeGig(true);
@@ -320,6 +344,7 @@ export function openGig(song, opts = {}) {
   $("gg-skip").onclick = () => { if (g.catch && g.holding) g.skip = g.catch.cur; };
   $("gg-mic").onclick = () => { if (g.stream) deafen(g); else if (!g.asking) listen(g); };
   bindDrag(g);
+  bindIdle(g);
   g.known = knownChords(data);
   paintMic(); paintScore();
   /* Score my plays (Settings > Playing) decides whether a show starts listening. */
@@ -371,7 +396,7 @@ export function closeGig(quiet = false) {
   try { g.src?.disconnect(); } catch {}
   g.stream?.getTracks().forEach(t => t.stop());
   g.el?.remove();
-  g.unbind?.();
+  g.unbind?.(); g.unbindIdle?.();
   stageClear();
   coverOff();
   document.body.classList.remove("gigging");
