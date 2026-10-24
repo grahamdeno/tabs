@@ -1,9 +1,9 @@
 // The Road: the Songbook (search, filters, the song list, swipes) and the paste card. Split from app.js (4.15.1); app.js re-exports what other files use.
 import { coachTip, demoSearch, dismissCoach, markUsed, searchOpened, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
-import { recentApple } from "./listen.js";
+import { recentApple, searchApple } from "./listen.js";
 import { guitarIcon } from "./rock.js";
-import { fullWhen, itunes, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
+import { appleBlocksSearch, fullWhen, itunes, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
 import { renderImport } from "./share.js";
 import { ago, backupNow, needsBackup } from "./store.js";
 import { $, I, app, esc, followKeyboard, icon, layer, onLeave, toast } from "./ui.js";
@@ -446,7 +446,9 @@ function catalogSearch(term) {
   if (term.length < 2 || !online) return paintCatalog(term, [], false);
   if (catCache.q === term) return paintCatalog(term, catCache.rows, false);
   paintCatalog(term, [], true);
-  catTimer = setTimeout(() => itunes("search", { term, media: "music", entity: "song", limit: 5 }).then(j => {
+  /* 4.49.8: on an iPhone Apple's own search is closed to a web page, so it goes through Apple Music (MusicKit), or is skipped */
+  const ask = () => appleBlocksSearch() ? searchApple(term).then(r => ({ results: r || [] })) : itunes("search", { term, media: "music", entity: "song", limit: 5 });
+  catTimer = setTimeout(() => ask().then(j => {
     if (me !== catSeq || query.trim() !== term) return;
     const seen = new Set();
     const rows = (j?.results || []).map(x => ({ title: String(x.trackName || "").slice(0, 100), artist: String(x.artistName || "").slice(0, 100), year: String(x.releaseDate || "").slice(0, 4) }))

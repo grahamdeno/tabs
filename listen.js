@@ -258,6 +258,15 @@ export async function listenToPreview(song) {
 }
 let feelArrived = null;
 export const onFeel = f => { feelArrived = f; };
+/* 4.49.8: searching Apple's catalog through MusicKit. An iPhone can't use the iTunes search (Apple redirects it
+   into the Music app), so the search screen asks MusicKit instead: [{ title, artist, year }], or null when
+   Apple Music is off. A catalog search needs the developer token only, not a sign-in. */
+export async function searchApple(term) {
+  if (!data.settings.appleMusic || !data.settings.appleMusicToken) return null;
+  const music = await loadMusicKit();
+  const r = await music.api.music(`/v1/catalog/${music.storefrontId || "us"}/search`, { term, types: "songs", limit: 5 });
+  return (r?.data?.results?.songs?.data || []).map(x => ({ trackName: x.attributes?.name, artistName: x.attributes?.artistName, releaseDate: x.attributes?.releaseDate }));
+}
 /* What you played lately in Apple Music: [{ title, artist }], newest first. */
 let recentCache = null; /* { at, rows }: Tonight asks each time it opens; Apple is asked at most every 2 minutes */
 export async function recentApple() {

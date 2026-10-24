@@ -596,3 +596,24 @@ test("4.49.5 Leaving search any way lets the page scroll again (Get the song fro
   assert.equal(await page.evaluate(() => document.body.classList.contains("sr-lock")), false, "the lock goes with the search");
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.body).overflow), "hidden");
 });
+
+test("4.49.8 On an iPhone the search screen finds songs through Apple Music, since Apple closes its own search to web pages", { skip: skip() }, async t => {
+  const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1";
+  const lib = { ...LIB, settings: { ...LIB.settings, appleMusic: true, appleMusicToken: "https://tabs-musickit.example.workers.dev/token", countIn: false } };
+  const page = await phone(t, lib, { userAgent: IPHONE });
+  let itunesAsked = 0;
+  await page.route(/itunes\.apple\.com/, r => { itunesAsked++; r.abort(); });
+  await page.route("https://*.workers.dev/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ token: "t.t.t", expires: 0 }) }));
+  await page.route("https://js-cdn.music.apple.com/**", r => r.fulfill({ status: 200, contentType: "text/javascript", body: `
+    window.mkMusic = { isAuthorized: false, storefrontId: "us", api: { music: async (path, p) => path.includes("/search")
+      ? { data: { results: { songs: { data: [{ attributes: { name: "Harbor Lights", artistName: "The Cape Fear", releaseDate: "2015-03-01" } }] } } } }
+      : { data: { data: [] } } } };
+    window.MusicKit = { configure: async () => {}, getInstance: () => window.mkMusic };
+    document.dispatchEvent(new Event("musickitloaded"));` }));
+  await page.goto(base + "#/library"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#q");
+  await page.fill("#q", "harbor"); await page.dispatchEvent("#q", "input");
+  await page.waitForFunction(() => /Harbor Lights/.test(document.getElementById("sr-cat")?.innerText || ""), null, { timeout: 5000 });
+  assert.match(await page.innerText("#sr-cat"), /The Cape Fear · 2015/);
+  assert.equal(itunesAsked, 0, "the closed iTunes search is not tried on an iPhone");
+});
