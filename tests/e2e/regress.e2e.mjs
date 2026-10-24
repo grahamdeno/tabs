@@ -38,7 +38,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await is(() => !document.querySelector(".prow, .dpop"), "nothing is drawn over the words");
     await page.evaluate(() => scrollTo(0, 0)); await page.waitForFunction(() => scrollY === 0);
 
-    await page.click("#play"); await page.waitForSelector(".countin");
+    await page.click("#play"); await page.waitForSelector(".countin", { state: "attached" }); /* 4.55.0: the opening card shows the count when there is room */
     await is(() => !!document.querySelector(".countin"), "count-in from the top");
     await page.waitForTimeout(3200) /* real timer: the count-in */;
     const y1 = await page.evaluate(() => scrollY); await page.waitForTimeout(1200) /* real timer: auto-scroll moving */;
