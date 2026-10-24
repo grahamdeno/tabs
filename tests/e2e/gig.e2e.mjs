@@ -355,3 +355,25 @@ test("4.56.0 a header note (Capo, Strum) is read, not played: the band starts on
   assert.equal(await page.locator("#sheet > .ly.note.st-now").count(), 0, "the band is not on the note");
   assert.ok(await page.evaluate(() => document.querySelector("#sheet > .st-now").classList.contains("crow")), "it starts on the first chord line");
 });
+
+/* 4.59.0: the album cover behind the show; gone when you leave; no cover, no change */
+test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
+  const art = "https://is1-ssl.mzstatic.com/image/thumb/x/600x600bb.jpg";
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "base64");
+  const covered = { ...SHORT, id: "c", duration: 60, listen: { url: "https://music.apple.com/us/album/x/1?i=2", art } };
+  const page = await strummingPage(t, { ...LIB, songs: [covered, { ...SHORT, duration: 60 }], settings: { ...LIB.settings, plainPlay: false } }, "#/song/c", { strum: false });
+  await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: png }));
+  await page.click("#play"); await page.waitForSelector("body.covered #gg-cover.in");
+  await page.waitForFunction(() => getComputedStyle(document.querySelector("#sheet > .st-now")).color === "rgb(255, 255, 255)"); /* after the fade */
+  const look = await page.evaluate(() => ({ fg: getComputedStyle(document.querySelector("#sheet > .st-now")).color, light: getComputedStyle(document.getElementById("st-bg")).display }));
+  assert.equal(look.fg, "rgb(255, 255, 255)", "the words are white on the cover");
+  assert.equal(look.light, "none", "no stage light on a cover");
+  await page.click("#gg-x"); await page.waitForSelector("#gig", { state: "detached" });
+  assert.equal(await page.locator("#gg-cover").count(), 0, "the cover goes when you leave");
+  assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false);
+  /* a song with no cover: the show as before */
+  await page.goto(base + "#/song/g"); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#gg-cover").count(), 0, "no cover, no change");
+  assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false);
+});

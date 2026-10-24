@@ -274,6 +274,27 @@ function bindDrag(g) {
   g.unbind = () => { removeEventListener("touchmove", drag); removeEventListener("wheel", drag); document.removeEventListener("stage-jump", drag); };
 }
 
+/* The album cover behind the show (4.59.0, Graham, 2026-10-24): the recording's cover, blown up and blurred, under
+   a dark layer so white words always read. The show then looks dark in every palette. One still layer, drawn
+   once, so it costs nothing while the words move. No cover, no change. */
+function coverOn(song) {
+  coverOff();
+  const art = song.listen?.art;
+  if (!/^https:\/\/[^\s"'()\\]+$/.test(art || "")) return;
+  const el = document.createElement("div");
+  el.className = "gg-cover"; el.id = "gg-cover"; el.setAttribute("aria-hidden", "true");
+  el.style.backgroundImage = `url("${art}")`;
+  document.body.prepend(el);
+  /* the dark look waits for the picture, so white words never sit on a light palette */
+  const img = new Image();
+  img.onload = () => { if ($("gg-cover") === el) { el.classList.add("in"); document.body.classList.add("covered"); } };
+  img.src = art;
+}
+function coverOff() {
+  $("gg-cover")?.remove();
+  document.body.classList.remove("covered");
+}
+
 /* ---- open, pause, close ---- */
 export function openGig(song, opts = {}) {
   closeGig(true);
@@ -286,6 +307,7 @@ export function openGig(song, opts = {}) {
   g.guess = liningDue(song) === "guess";
   g.el = shell(song);
   stageStart();
+  coverOn(song);
   document.body.classList.add("gigging");
   gigHooks.on = true;
   gigHooks.band = bandParts(data); /* Your band (4.7.0): drums once Beat has joined */
@@ -351,6 +373,7 @@ export function closeGig(quiet = false) {
   g.el?.remove();
   g.unbind?.();
   stageClear();
+  coverOff();
   document.body.classList.remove("gigging");
   clearTimeout(g.momentT);
   hideStrip();

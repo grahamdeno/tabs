@@ -3846,3 +3846,16 @@ body:has(#st-open:not(.go)) .gg-shape, body:has(#st-open:not(.go)) .countin { vi
 @media (prefers-reduced-motion: reduce) { .gs-st.ring { animation: none; } .gs-bar i { transition: none; } }
 .gs-kept-bar { position: absolute; left: 14px; right: 14px; bottom: 5px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 14%, transparent); overflow: hidden; }
 .gs-kept-bar i { display: block; height: 100%; background: var(--accent); }
+/* The album cover behind the show (4.59.0, Graham, 2026-10-24): blown up, blurred, under a dark layer. The show
+   then reads as dark in every palette: white words, a soft white band, no stage light. The section name keeps
+   its colour. Plain Play and the paused sheet are unchanged. */
+.gg-cover { position: fixed; inset: -10%; z-index: -1; pointer-events: none; background: #000 center / cover no-repeat; filter: blur(60px) saturate(1.4); opacity: 0; transition: opacity .6s; }
+.gg-cover::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .55); }
+.gg-cover.in { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .gg-cover { transition: none; } }
+body.covered { --fg: #FFFFFF; --fg-2: rgba(255, 255, 255, .85); --muted: rgba(255, 255, 255, .62); --rim: rgba(255, 255, 255, .18); --card: rgba(255, 255, 255, .1); --bg: #15121C; --accent-ink: var(--accent); --got: #7EE6A0; --miss-ink: rgba(255, 255, 255, .55); color-scheme: dark; }
+body.covered .st-bg { display: none; }
+body.covered .gig::before { background: linear-gradient(180deg, rgba(0, 0, 0, .35) calc(var(--safe-t) + 60px), transparent); }
+body.covered .gig::after { background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .35) 44px); }
+body.covered.staged .sheet > .st-now::before { background: rgba(255, 255, 255, .1); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .3), inset 0 -2px 0 rgba(255, 255, 255, .3); }
+:root body.covered.staged .sheet .c:not(.st-got):not(.st-miss):not(.st-wait) { color: #FFFFFF; }

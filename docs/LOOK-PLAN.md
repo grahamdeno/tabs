@@ -50,13 +50,13 @@ Opus, because it changes colour tokens across three palettes and the stage light
 
 Where: `gig.js` (`shell`, start and leave), `stage.js` (`stageStart`, `stageClear`), `styles.css` (the Gig and stage sections).
 
-- [ ] 2.1 When the show starts and `song.listen.art` is an https link, add a `<div class="gg-cover" aria-hidden="true">` as the first child of `body` (behind `.st-bg`), with the cover as a CSS background (`600x600bb`, the size `listen.js` already saves). Set `body.covered`. Remove both when the show ends, on leave and on `stageClear`.
-- [ ] 2.2 The look: the cover scaled to fill the screen (`inset: -10%`, `background-size: cover`), `filter: blur(60px) saturate(1.4)`, then a dark layer on top (`rgba(0,0,0,.45)`, tuned until white text passes 4.5:1 on a bright cover; test with a white and a yellow cover). The blur is one still layer, drawn once, so it doesn't cost frames while scrolling. Fade it in over 0.6 s once the image has loaded; until then today's background shows.
-- [ ] 2.3 Tokens under `body.covered`: the show reads as dark whatever the palette. Set `--fg` white, `--muted` white at 60%, `--rim` white at 18%, `--card` white at 10%, and make the `.gig::before` and `.gig::after` gradients go to transparent black instead of `var(--bg)`. Chunky buttons keep their lip.
-- [ ] 2.4 The stage on a cover: the band (`.st-now::before`) becomes soft white (`#fff` at 10% fill, 30% lines) instead of the section gel, and the stage light (`.st-bg`) is hidden. The section name in `.gg-sec` keeps the gel colour, so the section is still shown. Chord letters: white for now and next, with `.st-got`, `.st-miss` and `.st-wait` keeping their colours (check `--got` and `--miss-ink` still pass 3:1 on the dark layer).
-- [ ] 2.5 Plain Play and the paused sheet are untouched (decision 2).
-- [ ] 2.6 Tests: a song with `listen.art` (route the image to a small PNG with `page.route`) shows `.gg-cover` and `body.covered` in the show and both are gone after leaving; a song without art shows neither. Add the covered show to `tests/e2e/a11y.e2e.mjs` in all three palettes.
-- [ ] 2.7 docs/DATA.md: nothing new is stored. Say so in the commit.
+- [x] 2.1 When the show starts and `song.listen.art` is an https link, add a `<div class="gg-cover" aria-hidden="true">` as the first child of `body` (behind `.st-bg`), with the cover as a CSS background (`600x600bb`, the size `listen.js` already saves). Set `body.covered`. Remove both when the show ends, on leave and on `stageClear`.
+- [x] 2.2 The look: the cover scaled to fill the screen (`inset: -10%`, `background-size: cover`), `filter: blur(60px) saturate(1.4)`, then a dark layer on top (`rgba(0,0,0,.45)`, tuned until white text passes 4.5:1 on a bright cover; test with a white and a yellow cover). The blur is one still layer, drawn once, so it doesn't cost frames while scrolling. Fade it in over 0.6 s once the image has loaded; until then today's background shows.
+- [x] 2.3 Tokens under `body.covered`: the show reads as dark whatever the palette. Set `--fg` white, `--muted` white at 60%, `--rim` white at 18%, `--card` white at 10%, and make the `.gig::before` and `.gig::after` gradients go to transparent black instead of `var(--bg)`. Chunky buttons keep their lip.
+- [x] 2.4 The stage on a cover: the band (`.st-now::before`) becomes soft white (`#fff` at 10% fill, 30% lines) instead of the section gel, and the stage light (`.st-bg`) is hidden. The section name in `.gg-sec` keeps the gel colour, so the section is still shown. Chord letters: white for now and next, with `.st-got`, `.st-miss` and `.st-wait` keeping their colours (check `--got` and `--miss-ink` still pass 3:1 on the dark layer).
+- [x] 2.5 Plain Play and the paused sheet are untouched (decision 2).
+- [x] 2.6 Tests: a song with `listen.art` (route the image to a small PNG with `page.route`) shows `.gg-cover` and `body.covered` in the show and both are gone after leaving; a song without art shows neither. Add the covered show to `tests/e2e/a11y.e2e.mjs` in all three palettes.
+- [x] 2.7 docs/DATA.md: nothing new is stored. Say so in the commit.
 
 ## Step 3 [Sonnet] 4.60.0: Controls that hide in the show
 
@@ -72,4 +72,5 @@ Where: `gig.js`, `styles.css`. The plain player already does this (`wakeControls
 ## Surprises
 
 - Step 1 contrast (1.4), words on the palette background: next line 7.0 (Neon), 4.9 (Festival), 4.4 (Green); lines after next 4.0, 2.7, 2.6; played lines 2.5, 1.9, 1.8. Light palettes are weak after the next line; it is bold and large, and decoration beyond the next line. Say if you want the 45% raised to 55% there.
+- Step 2: the `a11y` cover test needs axe-core, which can't be installed here (npm is blocked), so it ran names-only; CI runs axe. The dark look turns on only once the picture has loaded, so a failed load leaves today's look. The cover test is in gig.e2e.mjs and a11y.e2e.mjs.
 - Fade is in colour on the words and opacity on the chords, so a line's chords read brighter than its words (test added). Section names still use opacity.

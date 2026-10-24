@@ -83,3 +83,27 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
     assert.deepEqual(problems, []);
   });
 }
+
+/* 4.59.0: the show over a white album cover (the hardest case) has names and passes axe in each palette */
+const WHITE_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "base64");
+for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", "green"]]) {
+  test(`the Gig over an album cover passes axe (${look})`, { skip: skip() }, async t => {
+    const song = { id: "c", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 30, bpm: 120,
+      listen: { url: "https://music.apple.com/us/album/x/1?i=2", art: "https://is1-ssl.mzstatic.com/image/thumb/x/600x600bb.jpg" },
+      body: "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand\n\n[Chorus]\nD        A\nCarry me home" };
+    const page = await phone(t, { ...lib(theme), songs: [song], settings: { ...lib(theme).settings, look, plainPlay: false } }, { colorScheme: theme, reducedMotion: "reduce" });
+    await page.route("https://is1-ssl.mzstatic.com/**", r => r.fulfill({ status: 200, contentType: "image/png", body: WHITE_PNG }));
+    await page.goto(base + "#/song/c"); await page.reload(); await page.waitForSelector("#play");
+    await page.click("#play"); await page.waitForSelector("body.covered #sheet > .st-now");
+    const problems = [];
+    for (const html of await page.evaluate(unnamed)) problems.push(`no name: ${html}`);
+    if (axePath) {
+      await page.evaluate(fs.readFileSync(axePath, "utf8"));
+      const found = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"], resultTypes: ["violations"] }))
+        .violations.filter(v => v.impact === "serious" || v.impact === "critical").map(v => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map(n => n.target.join(" ")).join(" | ")}`));
+      problems.push(...found);
+    }
+    for (const p of problems) console.log(`PROBLEM covered ${look} ${p}`);
+    assert.deepEqual(problems, []);
+  });
+}
