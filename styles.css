@@ -3701,9 +3701,9 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
 .gg-lines :is(.gl-now, .gl-next) .c { color: var(--gel); }
 :root[data-theme="light"] .gg-lines :is(.gl-now, .gl-next) .c { color: color-mix(in srgb, var(--gel) 75%, #14213D); }
 .gg-lines .c.gc-rep { visibility: hidden; }
-.gg-lines .c.gc-lit .ct, .gg-lines .c.gc-next .ct { color: #14213D; border-radius: 6px; }
+.gg-lines .c.gc-lit .ct { color: #14213D; border-radius: 6px; }
 .gg-lines .c.gc-lit .ct { background: var(--gel); box-shadow: 0 0 0 4px var(--gel), 0 6px 0 color-mix(in srgb, var(--gel) 55%, #000); }
-.gg-lines .c.gc-next .ct { background: var(--fans); box-shadow: 0 0 0 4px var(--fans), 0 6px 0 var(--fans-deep); }
+/* the next chord stays plain until the dots reach it (4.49.11): only the chord you're on is lit */
 /* The beat dots (4.49.10): a dot for each beat of the chord you're on, between it and the next chord; one
    lit, stepping toward the next chord on the beat */
 .gc-run { position: absolute; inset: 0; pointer-events: none; }

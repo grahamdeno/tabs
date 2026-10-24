@@ -166,6 +166,7 @@ test("4.49.10 the beat dots sit between the chord you're on and the next, one li
   assert.ok(geo.first > geo.chordRight, "the dots start on the right of the chord you're on");
   assert.ok(geo.n >= 2 && geo.last > geo.first, "spread out toward the next chord");
   await page.waitForFunction(() => document.querySelectorAll("#gg-lines .gc-run i.on").length === 1, null, { timeout: 20000 });
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#gg-lines .gc-next .ct")).backgroundColor), "rgba(0, 0, 0, 0)", "the next chord stays plain until the dots reach it (4.49.11)");
 });
 
 test("4.49.6 a chord before the singing stands ahead of the words on the song page", { skip: skip() }, async t => {

@@ -6,7 +6,7 @@
 //             flashes beside it when a change lands early or late), your strings
 //   status    the section you're in, in its colour, and the crowd as a row of 12 that fills up
 //   lines     words first (4.43.0): the song's lines fill the screen, the one you're on brightest. The chord
-//             you're on lights up over its word; the next one is yellow. Between them a dot for each beat of
+//             you're on lights up over its word; the next one stays plain until the dots reach it (4.49.11). Between them a dot for each beat of
 //             the chord you're on, one lit, travelling toward the next chord a beat at a time (4.49.10). The
 //             line you're on sits on a band in the section's colour. A chord played again in a row shows
 //             once. A small shape for a chord you haven't learned.
