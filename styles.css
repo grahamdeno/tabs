@@ -604,12 +604,19 @@ body.cedit .sheet { padding-bottom: 120px; }
 .cebar.glass { background: var(--solid); }
 .cebar span { flex: 1; }
 .ce-line { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; column-gap: .3em; row-gap: 4px; margin: 0 0 .7em; padding-right: 30px; }
-.ce-w { display: inline-flex; flex-direction: column; align-items: flex-start; border: 0; background: none; padding: 0 1px; font: inherit; color: var(--fg); border-radius: 6px; text-align: left; }
+.ce-wd { display: inline-flex; flex-direction: column; align-items: flex-start; }
+.ce-cs, .ce-grp { display: inline-flex; align-items: flex-end; gap: 4px; }
+.ce-cs { min-height: 1.3em; }
+.ce-ch { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid var(--rim); border-radius: 12px; background: var(--card); color: var(--accent-ink); font: 800 .82em var(--display, inherit); }
+.ce-ch.ce-pl { min-width: 44px; color: var(--muted); border-style: dashed; font-weight: 600; font-size: 1em; }
+.ce-ch.sel { background: var(--accent-soft); border-color: var(--accent); }
+.ce-cl { column-gap: 4px; }
+.ce-lead.has { flex-basis: 100%; }
+.ce-addrow { display: flex; gap: 8px; margin: 0 0 14px; }
+.ce-addrow .ce-add { margin: 0; }
+.ce-w { display: inline-flex; flex-direction: column; align-items: flex-start; border: 0; background: none; padding: 4px 1px; font: inherit; color: var(--fg); border-radius: 6px; text-align: left; min-height: 32px; }
 .ce-w .ce-t { border-bottom: 1px dashed color-mix(in srgb, var(--muted) 50%, transparent); line-height: 1.35; }
-.ce-w .ce-c { font-size: .82em; font-weight: 650; color: var(--accent-ink); min-height: 1.3em; line-height: 1.3; }
-.ce-w:not(.has) .ce-c { color: transparent; }
 .ce-w.sel { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-line); }
-.ce-w.sel:not(.has) .ce-c { color: var(--accent-ink); opacity: .6; }
 .ce-other { color: var(--muted); font-size: .85em; white-space: pre-wrap; margin: 0 0 .6em; }
 .ce-word { color: var(--accent-ink); font-weight: 500; }
 .ce-lab { margin: 10px 0 6px; }

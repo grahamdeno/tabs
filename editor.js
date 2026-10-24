@@ -1,6 +1,6 @@
 // Tabs editor: editing a song in place (Sheet and Text views), adding a new
 // song, tap tempo and the chord picker.
-import { DRUM_BEATS, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setChordAt, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
+import { DRUM_BEATS, addChordLine, addChordNear, chordSlots, setChordLine, setChordNth, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
 import { READ_AT, aiError, aiKey, busy, calm, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
@@ -254,8 +254,11 @@ function paintSheet(song, sheet) {
   /* The sheet: words for chords, a pencil per line, renamable sections, + to add. */
   const model = chordModel(song.body);
   const pencil = icon("edit");
-  const parts = [`<p class="ed-hint">Tap a word for its chord. ${pencil} retypes a line.</p>`];
-  const addBtn = after => `<button class="ce-add" data-after="${after}">${icon("plus")}Line</button>`;
+  const parts = [`<p class="ed-hint">Tap a chord to change it, + to add one, a word to put a chord over it. ${pencil} retypes a line.</p>`];
+  const addBtn = after => `<div class="ce-addrow"><button class="ce-add" data-after="${after}">${icon("plus")}Line</button><button class="ce-add" data-chords="${after}">${icon("plus")}Chords</button></div>`;
+  /* A chord chip: n is the chord's place in the line (reading order). */
+  const chip = (i, n, c, extra = "") => `<button class="ce-ch" data-i="${i}" data-n="${n}" data-chord="${esc(c)}" ${extra} aria-label="Chord ${esc(c)}">${esc(c)}</button>`;
+  const plus = (label, extra) => `<button class="ce-ch ce-pl" ${extra} aria-label="${esc(label)}">+</button>`;
   let last = -1, inSection = false;
   model.forEach((l, k) => {
     if (l.kind === "section") {
@@ -267,18 +270,29 @@ function paintSheet(song, sheet) {
     }
     if (l.kind === "blank") { parts.push(`<div class="gap"></div>`); return; }
     last = l.i;
+    if (l.kind === "chords") {
+      /* A row of chords alone: every chord a chip, + at the end. */
+      const toks = l.text.trim().split(/\s+/).filter(Boolean);
+      parts.push(`<div class="ce-line ce-cl" data-line="${l.i}">${toks.map((t, n) => chip(l.i, n, t, `data-row="1"`)).join("")}${plus("Add a chord to this row", `data-row="1" data-i="${l.i}" data-n="${toks.length}"`)}</div>`);
+      return;
+    }
     if (l.kind !== "lyric") { parts.push(`<div class="ce-other">${esc(l.text)}</div>`); return; }
+    const sl = chordSlots(l.text, l.chords), sorted = [...l.chords].sort((a, b) => a.pos - b.pos);
     const words = [...l.text.matchAll(/\S+/g)];
-    let prevEnd = 0;
-    const html = words.map(w => {
-      const start = w.index, end = start + w[0].length;
-      /* Chords over this word, or over the gap just before it. */
-      const on = l.chords.filter(c => c.pos >= prevEnd && c.pos < end);
-      prevEnd = end;
-      const pos = on.length ? on[on.length - 1].pos : start;
-      return `<button class="ce-w ${on.length ? "has" : ""}" data-i="${l.i}" data-pos="${pos}" data-word="${esc(w[0])}"><span class="ce-c">${on.length ? esc(on.map(c => c.chord).join(" ")) : "+"}</span><span class="ce-t">${esc(w[0])}</span></button>`;
-    }).join(" ");
-    parts.push(`<div class="ce-line" data-line="${l.i}">${html}<button class="ce-pen" data-edit="${l.i}" aria-label="Retype this line">${pencil}</button></div>`);
+    const group = (word, part) => sl.list.map((c, n) => ({ ...c, n })).filter(c => c.word === word && c.part === part);
+    const chips = list => list.map(c => chip(l.i, c.n, c.chord, `data-pos="${sorted[c.n]?.pos ?? ""}" data-word="${esc(words[c.word]?.[0] || "")}" data-part="${c.part}"`)).join("");
+    const lead = group(-1, "lead");
+    const html = [`<span class="ce-grp ce-lead ${lead.length ? "has" : ""}">${chips(lead)}${plus("Chord before the words", `data-i="${l.i}" data-n="${lead.length ? lead[lead.length - 1].n : -1}" data-part="lead" data-word="-1"`)}</span>`];
+    words.forEach((w, k2) => {
+      const on = group(k2, "on"), aft = group(k2, "after");
+      const lastN = on.length ? on[on.length - 1].n : -1;
+      html.push(`<span class="ce-wd"><span class="ce-cs">${chips(on)}${on.length ? plus(`Add a chord next to ${on[on.length - 1].chord}`, `data-i="${l.i}" data-n="${lastN}" data-part="on" data-word="${esc(w[0])}"`) : ""}</span><button class="ce-w ${on.length ? "has" : ""}" data-i="${l.i}" data-n="${lastN}" data-k="${k2}" data-pos="${w.index}" data-word="${esc(w[0])}" aria-label="Chord over ${esc(w[0])}"><span class="ce-t">${esc(w[0])}</span></button></span>`);
+      if (aft.length || k2 === words.length - 1) {
+        const lastA = aft.length ? aft[aft.length - 1].n : (on.length ? on[on.length - 1].n : -1);
+        html.push(`<span class="ce-grp ce-after">${chips(aft)}${plus(k2 === words.length - 1 ? "Chord after the line" : `Chord after ${w[0]}`, `data-i="${l.i}" data-n="${aft.length ? lastA : -2}" data-part="after" data-word="${esc(w[0])}" data-k="${k2}"`)}</span>`);
+      }
+    });
+    parts.push(`<div class="ce-line" data-line="${l.i}">${html.join("")}<button class="ce-pen" data-edit="${l.i}" aria-label="Retype this line">${pencil}</button></div>`);
   });
   parts.push(addBtn(last));
   parts.push(`<div class="ed-end"><button class="ce-add" id="ed-sec">${icon("plus")}Section</button></div>
@@ -289,12 +303,41 @@ function paintSheet(song, sheet) {
   /* One handler for the whole sheet instead of one per word and button. */
   sheet.onclick = e => {
     if (chordEdit !== song || edView !== "sheet") return;
-    const b = e.target.closest?.(".ce-w, [data-edit], [data-sec], [data-after]");
+    const b = e.target.closest?.(".ce-w, .ce-ch, [data-edit], [data-sec], [data-after], [data-chords]");
     if (!b || !sheet.contains(b)) return;
-    if (b.classList.contains("ce-w")) {
-      sheet.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel"));
-      b.classList.add("sel");
-      pickChord(song, +b.dataset.i, +b.dataset.pos, b.dataset.word, b.classList.contains("has") ? b.querySelector(".ce-c").textContent : "");
+    const mark = () => { sheet.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); };
+    const w = x => `<b class="ce-word">${esc(x)}</b>`;
+    if (b.classList.contains("ce-ch") || b.classList.contains("ce-w")) {
+      const i = +b.dataset.i, n = +(b.dataset.n ?? -1), isWord = b.classList.contains("ce-w"), isPlus = b.classList.contains("ce-pl") || isWord;
+      const cur = isPlus ? "" : b.dataset.chord, word = b.dataset.word || "";
+      mark();
+      if (b.dataset.row) {
+        const toks = model.find(l => l.i === i).text.trim().split(/\s+/).filter(Boolean);
+        pickChord(song, {
+          i, pos: null, current: cur, head: cur ? `Chord ${w(cur)} in this row` : "Chord at the end of this row",
+          label: c => (c ? `${c} in a chord row` : `Removed ${cur}`),
+          set: (body, c) => setChordLine(body, i, c ? (cur ? toks.map((t, x) => (x === n ? c : t)) : [...toks, c]) : toks.filter((t, x) => x !== n))
+        });
+        return;
+      }
+      const part = b.dataset.part || "on", k = +(b.dataset.k ?? -1);
+      const prev = b.previousElementSibling?.dataset.chord || "";
+      const head = cur
+        ? (part === "lead" ? `Chord ${w(cur)} before the words` : part === "after" ? `Chord ${w(cur)} after ${w(word)}` : `Chord ${w(cur)} over ${w(word)}`)
+        : part === "lead" ? (n >= 0 ? `Chord after ${w(prev)}` : "Chord before the words")
+        : part === "after" ? (b.closest(".ce-after") === sheet.querySelector(`.ce-line[data-line="${i}"] .ce-after:last-of-type`) ? "Chord after the line" : `Chord after ${w(word)}`)
+        : isWord && n < 0 ? `Chord over ${w(word)}` : `Chord after ${w(prev || "the last chord")}`;
+      const pos = cur || isWord ? +b.dataset.pos : null;
+      pickChord(song, {
+        i, pos: Number.isFinite(pos) ? pos : null, current: cur, head,
+        label: c => (c ? `${c} ${cur ? "set" : "added"}` : `Removed ${cur}`),
+        set: (body, c) => {
+          if (cur) return setChordNth(body, i, n, c);
+          if (isWord && n < 0) return addChordNear(body, i, -1, c, { word: k, part: "on" });
+          if (part === "after" && n === -2) return addChordNear(body, i, -1, c, { word: k, part: "after" });
+          return addChordNear(body, i, n, c);
+        }
+      });
     } else if (b.dataset.edit !== undefined) {
       const i = +b.dataset.edit, ln = model.find(l => l.kind === "lyric" && l.i === i);
       lineInput(b.closest(".ce-line"), ln.text, text => {
@@ -307,6 +350,12 @@ function paintSheet(song, sheet) {
         if (name === cur) return;
         editChange(song, name ? `Renamed to ${name}` : "Label removed", () => { song.body = renameSection(song.body, i, name); });
       });
+    } else if (b.dataset.chords !== undefined) {
+      const after = +b.dataset.chords;
+      pickChord(song, { i: after, pos: null, current: "", head: "A line of chords", label: c => `${c} line added`, set: (body, c) => addChordLine(body, after, [c]) });
+    } else if (b.dataset.chords !== undefined) {
+      const after = +b.dataset.chords;
+      pickChord(song, { i: after, pos: null, current: "", head: "A line of chords", label: c => `${c} line added`, set: (body, c) => addChordLine(body, after, [c]) });
     } else {
       const after = +b.dataset.after;
       const row = document.createElement("div");
@@ -546,16 +595,17 @@ function sketchHelp(song, i, pos) {
   if (h.now && !h.opts.some(o => o.label === h.now)) h.opts.unshift({ label: h.now, changes: null });
   return h;
 }
-function pickChord(song, i, pos, word, current) {
+function pickChord(song, ctx) {
+  const { i, pos, current } = ctx;
   const parsed = /^([A-G])([#b]?)(.*)$/.exec(current || "") || [];
   const st = { root: parsed[1] || "", acc: parsed[2] || "", qual: QUALS.includes(parsed[3]) ? parsed[3] : "" };
   const name = () => st.root ? st.root + st.acc + st.qual : "";
   const used = chordsUsed(song.body);
-  const sk = sketchHelp(song, i, pos);
+  const sk = pos == null ? null : sketchHelp(song, i, pos);
   const paint = () => {
     const p = $("ce-panel");
     p.innerHTML = `
-      <div class="pc-head">${icon("pick")}<span>Chord over <b class="ce-word">${esc(word)}</b></span></div>
+      <div class="pc-head">${icon("pick")}<span>${ctx.head}</span></div>
       ${sk && sk.fits.length ? `<div class="label ce-lab">Fits your melody</div><div class="ce-fit">${sk.fits.map(f => `<button class="ce-fitb ${f.chord === name() ? "on" : ""}" data-u="${esc(f.chord)}" aria-label="${esc(f.chord)}: fits ${Math.round(f.fit * 100)}%${f.holds.length ? `, holds ${esc(f.holds.join(" and "))}` : ""}"><b>${esc(f.chord)}</b><span>${f.holds.length ? `Holds ${esc(f.holds.join(" · "))}` : "Passing"}</span><i><i style="width:${Math.round(f.fit * 100)}%"></i></i></button>`).join("")}</div>` : ""}
       ${sk && sk.opts.length > 1 ? `<div class="label ce-lab">Whole line, other ways</div><div class="ce-alts">${sk.opts.map((o, j) => `<button class="ce-alt ${o.label === sk.now ? "on" : ""}" data-alt="${j}">${esc(o.label)}<small>${o.label === sk.now ? "now" : ""}</small></button>`).join("")}</div>` : ""}
       ${used.length ? `<div class="label ce-lab">In this song</div><div class="ce-chips">${used.map(c => `<button class="ce-chip ${c === name() ? "on" : ""}" data-u="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}
@@ -572,7 +622,7 @@ function pickChord(song, i, pos, word, current) {
     p.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { st.acc = st.acc === b.dataset.a ? "" : b.dataset.a; paint(); });
     p.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { st.qual = b.dataset.q; paint(); });
     $("ce-other").onclick = () => ask({
-      title: `Chord over “${word}”`, value: name(), placeholder: "Cadd9, D/F#, Asus4…", caps: "none",
+      title: ctx.head.replace(/<[^>]+>/g, ""), value: name(), placeholder: "Cadd9, D/F#, Asus4…", caps: "none",
       text: "Type any chord. Names The Road doesn't have a diagram for are placed as text.",
       preview: c => (c && chordSVG(c)) || "", okLabel: c => (c ? `Place ${c}` : "Type a chord")
     }, apply);
@@ -585,10 +635,10 @@ function pickChord(song, i, pos, word, current) {
     $("ce-rm")?.addEventListener("click", () => apply(null));
     $("ce-cancel")?.addEventListener("click", close);
   };
-  const close = () => { layer.innerHTML = ""; document.querySelectorAll(".ce-w.sel").forEach(x => x.classList.remove("sel")); };
+  const close = () => { layer.innerHTML = ""; document.querySelectorAll(".ce-w.sel, .ce-ch.sel").forEach(x => x.classList.remove("sel")); };
   const apply = chord => {
     close();
-    editChange(song, chord ? `${chord} over “${word}”` : `Removed from “${word}”`, () => { song.body = setChordAt(song.body, i, pos, chord); });
+    editChange(song, ctx.label(chord), () => { song.body = ctx.set(song.body, chord); });
   };
   layer.innerHTML = `<div class="scrim" id="ce-scrim"></div><div class="panel card" id="ce-panel" role="dialog" aria-label="Choose a chord"></div>`;
   $("ce-scrim").onclick = close;

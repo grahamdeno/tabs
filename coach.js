@@ -286,7 +286,7 @@ const GESTURES = [
     ["search", "Search", "Titles, artists, a lyric; paste a sheet or a link. Return opens the top match", "search"]]],
   ["Editing", [
     ["tap", "Tap tempo", "Tap along to set the tempo", "pick"],
-    ["", "Tap a word", "Place or change its chord; on a sung song, chords that fit your melody", "edit"],
+    ["", "Tap a chord, or a word", "Tap a chord to change or remove it, + beside it to add another, or a word to put one over it; + before the first word and after the last, Chords adds a row of chords alone", "edit"],
     ["", "Sing it, when adding a song", "Hold the pad to sing a line, let go to keep it. Then hear it back with Your recording; Rich adds the 7ths and 9ths you sang", "mic"]]],
   ["Sets", [
     ["", "Next up", "Stop stays on this song; it waits if the next needs another tuning", "fork"]]],
