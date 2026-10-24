@@ -57,7 +57,7 @@ for (const theme of ["dark", "light"]) {
 }
 
 /* 4.54.0: the show, the song it waits on, and Show complete (Chord Catch) have names and pass axe in each palette */
-import { FAKE_MIC } from "./harness.mjs";
+import { FAKE_MIC, settled } from "./harness.mjs";
 for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", "green"]]) {
   test(`the Gig, Wait for me and Show complete pass axe (${look})`, { skip: skip() }, async t => {
     const song = { id: "w", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 12, waitForMe: true, bpm: 120,
@@ -96,13 +96,20 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
     await page.goto(base + "#/song/c"); await page.reload(); await page.waitForSelector("#play");
     await page.click("#play"); await page.waitForSelector("body.covered #sheet > .st-now");
     const problems = [];
-    for (const html of await page.evaluate(unnamed)) problems.push(`no name: ${html}`);
-    if (axePath) {
+    const sweep = async screen => {
+      for (const html of await page.evaluate(unnamed)) problems.push(`${screen}: no name: ${html}`);
+      if (!axePath) return;
       await page.evaluate(fs.readFileSync(axePath, "utf8"));
       const found = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"], resultTypes: ["violations"] }))
         .violations.filter(v => v.impact === "serious" || v.impact === "critical").map(v => `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map(n => n.target.join(" ")).join(" | ")}`));
-      problems.push(...found);
-    }
+      problems.push(...found.map(f => `${screen}: ${f}`));
+    };
+    await sweep("playing");
+    /* 4.60.1: paused, the page and the Tools sheet are dark too (they were white on white in the light palettes) */
+    await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+    await sweep("paused");
+    await page.click("#more"); await page.waitForSelector(".menu.tools"); await settled(page);
+    await sweep("Tools open");
     for (const p of problems) console.log(`PROBLEM covered ${look} ${p}`);
     assert.deepEqual(problems, []);
   });

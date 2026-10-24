@@ -3853,10 +3853,14 @@ body:has(#st-open:not(.go)) .gg-shape, body:has(#st-open:not(.go)) .countin { vi
 .gg-cover::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .55); }
 .gg-cover.in { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .gg-cover { transition: none; } }
-body.covered { --fg: #FFFFFF; --fg-2: rgba(255, 255, 255, .85); --muted: rgba(255, 255, 255, .62); --rim: rgba(255, 255, 255, .18); --card: rgba(255, 255, 255, .1); --bg: #15121C; --accent-ink: var(--accent); --got: #7EE6A0; --miss-ink: rgba(255, 255, 255, .55); color-scheme: dark; }
+body.covered { --bg: #141218; --fg: #FFFFFF; --fg-2: rgba(255, 255, 255, .86); --muted: rgba(255, 255, 255, .64); --head: #FFFFFF; --card: rgba(255, 255, 255, .1); --card-2: rgba(255, 255, 255, .16); --rim: rgba(255, 255, 255, .2); --hair: rgba(255, 255, 255, .12); --rim-hi: rgba(255, 255, 255, .06); --bar: rgba(20, 18, 24, .72); --solid: #1C1A22; --scrim: rgba(0, 0, 0, .6); --shadow: 0 8px 24px rgba(0, 0, 0, .45); --accent-ink: var(--accent); --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent); --good-soft: color-mix(in srgb, var(--good) 18%, transparent); --got: #7EE6A0; --miss-ink: rgba(255, 255, 255, .55); color-scheme: dark; }
+/* glass for controls over moving words (4.60.1): a nearly solid dark surface with a blur, never see-through */
+body.covered .gg-mic { background: rgba(20, 18, 24, .82); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-color: var(--rim); }
+body.covered .gg-mic:not(.off) { border-color: var(--good); }
+body.covered .gg-pause { box-shadow: 0 5px 0 rgba(255, 255, 255, .35); }
 body.covered .st-bg { display: none; }
 body.covered .gig::before { background: linear-gradient(180deg, rgba(0, 0, 0, .35) calc(var(--safe-t) + 60px), transparent); }
-body.covered .gig::after { background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .35) 44px); }
+body.covered .gig::after { height: calc(var(--safe-b) + 150px); background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .7) 70px); }
 body.covered.staged .sheet > .st-now::before { background: rgba(255, 255, 255, .1); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .3), inset 0 -2px 0 rgba(255, 255, 255, .3); }
 :root body.covered.staged .sheet .c:not(.st-got):not(.st-miss):not(.st-wait) { color: #FFFFFF; }
 /* Controls that hide while the song plays (4.60.0): they fade after 3 s untouched and can't be pressed while hidden;

@@ -32,16 +32,16 @@ The fix is not one patch per surface: `body.covered` sets the complete dark toke
 
 Where: the 4.59.0 block at the end of `styles.css` (`body.covered { ... }`).
 
-- [ ] 1.1 Replace the `body.covered` token line with the full set. Model it on the Neon block (`:root, :root[data-look="neon"]` near line 1783), but neutral rather than purple, so the cover leads:
+- [x] 1.1 Replace the `body.covered` token line with the full set. Model it on the Neon block (`:root, :root[data-look="neon"]` near line 1783), but neutral rather than purple, so the cover leads:
   - `--bg: #141218; --fg: #FFFFFF; --fg-2: rgba(255,255,255,.86); --muted: rgba(255,255,255,.64); --head: #FFFFFF;`
   - `--card: rgba(255,255,255,.10); --card-2: rgba(255,255,255,.16); --rim: rgba(255,255,255,.20); --hair: rgba(255,255,255,.12); --rim-hi: rgba(255,255,255,.06);`
   - `--bar: rgba(20,18,24,.72); --solid: #1C1A22; --scrim: rgba(0,0,0,.6); --shadow: 0 8px 24px rgba(0,0,0,.45);`
   - `--accent-ink: var(--accent); --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent); --good-soft: color-mix(in srgb, var(--good) 18%, transparent);`
   - Keep `--got`, `--miss-ink` and `color-scheme: dark` from 4.59.0. Leave `--accent`, `--accent-deep` and `--on-accent` alone: the palette's accent stays (the coral Resume in his screenshots).
   - Grep `styles.css` for tokens defined in the palette blocks (lines ~1783 to ~1830) and add any other surface token a song-page element uses. List any you add in the commit message.
-- [ ] 1.2 Glass for controls over words (D4): under `body.covered`, `.gg-mic` gets `background: rgba(20,18,24,.82)` with `backdrop-filter: blur(18px)` (plus `-webkit-`), white text, and a 2px `--good` border while listening (off: `--rim`). The `.gig::after` bottom fade goes to `rgba(0,0,0,.7)` over the last 150 px, so the words fade out before the controls.
-- [ ] 1.3 Check by looking, in all three palettes, paused in a covered show: the pulled-down title bar, the Tools sheet (every row, the switches off and on, the Play/Practice switch at its foot), the Tools button beside Resume, the pull pill, the mic button over a line of words. Screenshot each with a throwaway `tests/e2e/zz_*.e2e.mjs` and delete it after.
-- [ ] 1.4 Tests (`tests/e2e/a11y.e2e.mjs`, the 4.59.0 cover test): extend it to pause the show, run axe on the paused page, open Tools and run axe again, in all three palettes. In `gig.e2e.mjs`'s cover test, assert the Tools button's text colour is not the same as its background colour, in Festival.
+- [x] 1.2 Glass for controls over words (D4): under `body.covered`, `.gg-mic` gets `background: rgba(20,18,24,.82)` with `backdrop-filter: blur(18px)` (plus `-webkit-`), white text, and a 2px `--good` border while listening (off: `--rim`). The `.gig::after` bottom fade goes to `rgba(0,0,0,.7)` over the last 150 px, so the words fade out before the controls.
+- [x] 1.3 Check by looking, in all three palettes, paused in a covered show: the pulled-down title bar, the Tools sheet (every row, the switches off and on, the Play/Practice switch at its foot), the Tools button beside Resume, the pull pill, the mic button over a line of words. Screenshot each with a throwaway `tests/e2e/zz_*.e2e.mjs` and delete it after.
+- [x] 1.4 Tests (`tests/e2e/a11y.e2e.mjs`, the 4.59.0 cover test): extend it to pause the show, run axe on the paused page, open Tools and run axe again, in all three palettes. In `gig.e2e.mjs`'s cover test, assert the Tools button's text colour is not the same as its background colour, in Festival.
 
 ## Step 2 [Sonnet] 4.61.0: The cover is the song's room, and bold on the page too
 
@@ -58,4 +58,4 @@ Where: `gig.js` (`coverOn`, `coverOff` from 4.59.0), `stage.js`, `app.js` (the s
 
 ## Surprises
 
-(none yet)
+- Step 1: no extra surface tokens were needed beyond the listed set; the screenshots (Festival, Green, paused, pulled down, Tools open) all read. Green looked identical to Festival in the harness because both use the light cover look. axe can't be installed here, so the contrast sweep ran names-only locally; CI runs axe.
