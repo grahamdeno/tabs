@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, gelOf, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -11,7 +11,7 @@ import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, m
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
-import { stagePlay, stageStop } from "./stage.js";
+import { stagePlay, stageStop, stageOpen, stageBeat } from "./stage.js";
 
 
 // ---------- State ----------
@@ -1622,6 +1622,7 @@ function countIn(song) {
       if (!scroll.on) { el.remove(); return resolve(false); }
       if (n === 0) { el.remove(); return resolve(true); }
       el.textContent = beats + 1 - n;
+      stageBeat(beats + 1 - n);
       el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse");
       click(n === beats);
       n--;
@@ -1671,6 +1672,7 @@ async function startScroll(song, opts = {}) {
   const first = $("sheet")?.querySelector(":scope > .pr, :scope > .ly, :scope > .tab, :scope > .crow");
   const fr = first?.getBoundingClientRect();
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
+  trail.length = 0;
   scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.wait = false; scroll.duet = !!opts.duet; scroll.part = opts.part || ""; /* 4.29.0: Play together's part */
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
@@ -1707,11 +1709,15 @@ async function startScroll(song, opts = {}) {
   }
   /* 4.52.0: unscored play (practicing, a tab, Play together) is on the stage too, with nothing on top */
   if (!gigHooks.on) stagePlay(song);
+  /* 4.55.0: the opening card fills the empty space above the first line until the song gets going */
+  const counts = (scroll.duet || data.settings.countIn !== false) && atTop;
+  if (atTop && song.format !== "tab") stageOpen(song, counts ? song.beats || 4 : 0);
   /* Play together always counts in, so both phones start scrolling on the same beat. */
-  if ((scroll.duet || data.settings.countIn !== false) && atTop && !(await countIn(song))) return;
+  if (counts && !(await countIn(song))) return;
   if (usesMusic(song)) startMusic(song, playFromSec(song), recRate(song)); else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
+    trail.push([performance.now(), scrollY]); while (trail.length > 2 && trail[0][0] < performance.now() - 2000) trail.shift();
     if (scroll.wait) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; } /* Wait for me: held on a chord */
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
@@ -1769,6 +1775,16 @@ function endRoom(more) {
   room.style.height = ((parseFloat(room.style.height) || 0) + Math.ceil(more) + 4) + "px";
 }
 onLeave(() => stopScroll());
+/* 4.55.0: leaving the app (the swipe to another app) pauses the song where the swipe began. The page can't see the
+   swipe itself, only the app going away a moment later, so the page goes back to where it was just before. */
+const trail = [];
+const SWIPE_MS = 700;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "hidden" || !scroll.on) return;
+  const at = performance.now() - SWIPE_MS, back = [...trail].reverse().find(([t]) => t <= at);
+  stopScroll();
+  if (back) window.scrollTo({ top: back[1], behavior: "auto" });
+});
 function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;

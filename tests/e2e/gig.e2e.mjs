@@ -291,3 +291,30 @@ test("4.54.0 the chords row on the song page is shape tiles: name over a diagram
   await tiles.first().click();
   await page.waitForSelector("#sheet .c.sel", { state: "attached" });
 });
+
+test("4.55.0 the opening card: the song, its first two chords as shapes and the count, until the song gets going", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: true } }, "#/song/g", { strum: false });
+  await page.click("#play"); await page.waitForSelector("#st-open");
+  assert.match(await page.textContent("#st-open"), /Short Road[\s\S]*FIRST[\s\S]*A[\s\S]*THEN[\s\S]*D/);
+  assert.equal(await page.locator("#st-open .so-ch svg").count(), 2, "two shapes");
+  await page.waitForSelector("#st-open .so-beats i.on");
+  const b = await page.evaluate(() => { const o = document.getElementById("st-open").getBoundingClientRect(), l = document.querySelector("#sheet .pr, #sheet .ly, #sheet .crow").getBoundingClientRect(); return [o.bottom, l.top]; });
+  assert.ok(b[0] <= b[1], "above the first line, not over it");
+  await page.waitForFunction(() => !document.getElementById("st-open"), null, { timeout: 30000 });
+});
+
+test("4.55.0 leaving the app pauses the song, back where the swipe began", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [{ ...LONG, duration: 40 }], settings: { ...LIB.settings, plainPlay: true, countIn: false } }, "#/song/g", { strum: false });
+  await page.click("#play");
+  await page.waitForFunction(() => scrollY > 60, null, { timeout: 20000 });
+  const y = await page.evaluate(async () => {
+    const before = scrollY; await new Promise(r => setTimeout(r, 900)); /* real timer: the page moves on during the swipe */
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    const mid = scrollY;
+    document.dispatchEvent(new Event("visibilitychange"));
+    return [before, mid];
+  });
+  await page.waitForFunction(() => !document.body.classList.contains("playing"));
+  const after = await page.evaluate(() => scrollY);
+  assert.ok(after < y[1] && after >= y[0] - 2, `back near where it was (${y[0]} to ${y[1]}, now ${after})`);
+});
