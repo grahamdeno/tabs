@@ -199,6 +199,29 @@ test("4.49.10 the beat dots sit between the chord you're on and the next, one li
   assert.ok(await page.evaluate(() => [...document.querySelectorAll("#sheet .c:not(.st-lit) .ct")].every(e => getComputedStyle(e).backgroundColor === "rgba(0, 0, 0, 0)")), "only the chord you're on is lit: the next stays plain until the dots reach it (4.49.11)");
 });
 
+test("4.53.1 the beat dots carry onto the next line when its first chord is a few beats in, faint until the band is there", { skip: skip() }, async t => {
+  const body = "[Verse]\n" + Array.from({ length: 12 }, (_, i) => `           D           C\nLine ${i + 1} of the verse goes on here`).join("\n");
+  const song = { id: "k", title: "Carry", artist: "A", key: "G", format: "chords", duration: 48, bpm: 120, body };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/k"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  /* the last chord of a line, whose next chord is on the next line */
+  const geo = await page.waitForFunction(() => {
+    const run = document.querySelector("#sheet .gc-run.carry");
+    if (!run || !run.children.length) return null;
+    const own = [...document.querySelectorAll("#sheet .gc-run:not(.carry) i")], carried = [...run.children];
+    const nextRow = run.parentElement, chord = nextRow.querySelector(".ct").getBoundingClientRect(), lit = document.querySelector("#sheet .c.st-lit .ct").getBoundingClientRect();
+    return { own: own.length, carried: carried.length, last: Math.max(...carried.map(e => e.getBoundingClientRect().right)), chordLeft: chord.left, litRow: lit.top < nextRow.getBoundingClientRect().top, opacity: getComputedStyle(carried[0]).opacity };
+  }, null, { timeout: 30000 }).then(h => h.jsonValue());
+  assert.ok(geo.own >= 1 && geo.carried >= 1, "dots on both lines: " + JSON.stringify(geo));
+  assert.ok(geo.own + geo.carried <= 8, "no more than the run's most");
+  assert.ok(geo.last < geo.chordLeft, "the carried dots end before the next chord");
+  assert.ok(geo.litRow, "the chord you're on is on the line above");
+  assert.ok(+geo.opacity < 1, "faint until the band is on that line");
+  /* the lit dot steps across into the next line before the change */
+  await page.waitForFunction(() => document.querySelectorAll("#sheet .gc-run.carry i.on").length === 1, null, { timeout: 30000 });
+});
+
 test("4.49.6 a chord before the singing stands ahead of the words on the song page", { skip: skip() }, async t => {
   const song = { id: "l", title: "Lead", artist: "A", key: "Em", format: "chords", body: "[Verse]\nEm            C\n  Down the river   slowly" };
   const page = await phone(t, { ...LIB, songs: [song] }, { isMobile: true });

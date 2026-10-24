@@ -2244,6 +2244,17 @@ test("4.49.10 the beat dots: a dot a beat between the chord you're on and the ne
   assert.equal(C.beatsBetween(4, 1), 4);
   assert.equal(C.beatsBetween(3.6, 1.2), 3);
   assert.equal(C.beatsBetween(0.2, 1), 1, "at least one");
+  /* 4.53.1: a chord's beats split over the lines the band passes before the change */
+  assert.deepEqual(C.splitBeats(8, [5], 8, 1), [5, 3], "the band moves at beat 5 of 8");
+  assert.deepEqual(C.splitBeats(8, [], 8, 1), [8], "no move");
+  assert.deepEqual(C.splitBeats(8, [3, 6], 8, 1), [3, 3, 2], "a line in between has its own beats");
+  assert.deepEqual(C.splitBeats(8, [9], 8, 1), [8], "the band moving after the change");
+  assert.deepEqual(C.splitBeats(8, [5], 8, 0), [8], "no beat length");
+  for (const [b, m, u, spb] of [[7, [2.4], 7.3, 1], [8, [0.2, 0.4], 8, 1], [3, [1], 9, 1], [6, [2.5, 4.6], 6.4, 1.1]]) {
+    const r = C.splitBeats(b, m, u, spb);
+    assert.equal(r.reduce((x, y) => x + y, 0), b, `${b} beats stay ${b}: ${r}`);
+    assert.ok(r.every(n => n >= 0));
+  }
   assert.equal(C.beatsLate(0.01, 0.5), 0, "4.49.12: a hair late is still played");
   assert.equal(C.beatsLate(0.6, 0.5), 2, "a stall skips the beats that passed, on the same grid");
   assert.equal(C.beatsLate(0.5, 0.5), 1);

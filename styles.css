@@ -3645,6 +3645,9 @@ html:has(> body.searching), body.searching { overscroll-behavior: none; }
    lit, stepping toward the next chord on the beat */
 .gc-run { position: absolute; inset: 0; pointer-events: none; }
 .gc-run i { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 24%, transparent); transition: transform .12s ease-out, background-color .12s; }
+/* beats carried onto a later line (4.53.1): faint until the band is on that line */
+.gc-run.carry i:not(.on) { opacity: .45; }
+.st-now > .gc-run.carry i { opacity: 1; }
 .gc-run i.on { background: var(--fans); transform: scale(1.6); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fans) 30%, transparent); }
 /* The crowd (4.49.10): 12 fans; the ones on their feet stand up with their hands up */
 .gg-status .gg-fans i { display: flex; align-items: flex-end; justify-content: center; background: none; color: var(--locked); }

@@ -5,7 +5,7 @@
 // Behind the words, a quiet stage light in the section's colour that fades out above the band.
 // The Gig (gig.js) adds the score, the crowd and its controls on top. A song played unscored (practicing, a
 // tab, Play together) gets the same stage with nothing on top (4.52.0): stagePlay and stageStop, from app.js.
-import { RUN_MAX, beatsBetween, gelOf, runDot, onBeat } from "./core.js";
+import { RUN_MAX, beatsBetween, splitBeats, gelOf, runDot, onBeat } from "./core.js";
 import { diag, READ_AT, jumpToSection, musicClock, usesMusic, chordTimes, pxPerSecond, isLine, beatSecs } from "./app.js";
 import { metro } from "./audio.js";
 import { sound } from "./ui.js";
@@ -90,7 +90,7 @@ export function stageMark(w) {
 }
 
 /* ---- drawing on the sheet ---- */
-const st = { b: -2, lit: -2, lnext: -2, run: null, k: -2, seq: null };
+const st = { b: -2, lit: -2, lnext: -2, run: null, k: -2, seq: null, until: null };
 const MARKS = ["st-past", "st-now", "st-next", "st-lit", "st-rep"];
 
 export function stageStart() {
@@ -108,13 +108,13 @@ export function stageClear() {
   $("st-bg")?.remove();
   document.body.classList.remove("staged");
   delete document.body.dataset.gel;
-  Object.assign(st, { b: -2, lit: -2, lnext: -2, run: null, k: -2, seq: null });
+  Object.assign(st, { b: -2, lit: -2, lnext: -2, run: null, k: -2, seq: null, until: null });
 }
 /* the section's colour, for the band, the chords and the light */
 export function stageGel(gel) { if (document.body.dataset.gel !== gel) document.body.dataset.gel = gel; }
 
 /* the band, the lines around it and the chord you're on; spb is a beat in seconds, for the dots */
-export function stagePaint(w, spb) {
+export function stagePaint(w, spb, song) {
   const sheet = $("sheet");
   if (!sheet || !w) return;
   if (st.seq !== diag.seq) { /* a new layout (a redraw, a new key): mark the repeats again and repaint */
@@ -132,28 +132,58 @@ export function stagePaint(w, spb) {
       x.el.classList.toggle("st-next", i === next);
     });
   }
-  if (w.idx !== st.lit || w.next !== st.lnext) { st.lit = w.idx; st.lnext = w.next; paintLit(sheet, w, spb); }
+  /* a drag in the middle of a chord moves where the lines turn, so the dots are worked out again */
+  const dragged = st.run && w.until != null && st.until != null && Math.abs(w.until - st.until) > Math.max(0.5, spb);
+  if (w.idx !== st.lit || w.next !== st.lnext || dragged) { st.lit = w.idx; st.lnext = w.next; paintLit(sheet, w, spb, song); }
+  st.until = w.until;
 }
-function paintLit(sheet, w, spb) {
+function paintLit(sheet, w, spb, song) {
   sheet.querySelectorAll(".st-lit").forEach(e => e.classList.remove("st-lit"));
   sheet.querySelectorAll(".gc-run").forEach(e => e.remove());
   const seq = diag.seq || [], cur = seq[w.from]?.el, nx = w.next >= 0 ? seq[w.next]?.el : null;
   cur?.classList.add("st-lit");
   /* The beat dots: on the right of the chord you're on, one for each beat it lasts, spread over the gap to
-     the next chord (or to the end of the line when the next one is further down). */
+     the next chord. When the next one is further down, the beats are split by time at the moment the band
+     moves down (4.53.1): those before it on this line, the rest on the next line up to its chord, faint
+     until the band gets there. */
   const beats = w.next >= 0 ? Math.min(RUN_MAX, beatsBetween(w.span, spb)) : 0;
-  st.run = { beats, el: null }; st.k = -2;
+  st.run = { beats, dots: [], el: null }; st.k = -2;
   const ct = cur?.querySelector(".ct"), row = cur?.closest("#sheet > *");
   if (!ct || !row || !beats) return;
   const a = ct.getBoundingClientRect(), L = row.getBoundingClientRect(), nt = nx?.querySelector(".ct")?.getBoundingClientRect();
+  const nrow = nx?.closest("#sheet > *");
   const same = nt && row.contains(nx) && Math.abs(nt.top - a.top) < 8 && nt.left > a.right;
-  const x0 = a.right + 10 - L.left, x1 = (same ? nt.left - 10 : L.right - 14) - L.left;
-  const shown = Math.min(beats, Math.floor((x1 - x0) / 16) + 1);
-  if (shown < 1 || x1 <= x0) return;
-  const y = a.top + a.height / 2 - L.top;
-  const at = j => shown === 1 ? (x0 + x1) / 2 : x0 + (x1 - x0) * j / (shown - 1);
-  row.insertAdjacentHTML("beforeend", `<span class="gc-run" aria-hidden="true">${Array.from({ length: shown }, (_, j) => `<i style="left:${at(j).toFixed(1)}px;top:${y.toFixed(1)}px"></i>`).join("")}</span>`);
-  st.run.el = row.querySelector(".gc-run");
+  /* the rows the band passes on the way to the next chord, and the seconds until it reaches each */
+  const rows = [{ row, counts: beats, x0: a.right + 10 - L.left, x1: (same ? nt.left - 10 : L.right - 14) - L.left, y: a.top + a.height / 2 - L.top }];
+  if (!same && nt && nrow && nrow !== row) {
+    const blocks = diag.blocks || [], ci = blocks.findIndex(x => x.el === row), ni = blocks.findIndex(x => x.el === nrow);
+    const pps = Math.max(0, pxPerSecond(song)), top = sheet.getBoundingClientRect().top, line = innerHeight * READ_AT;
+    if (ci >= 0 && ni > ci && pps > 0 && w.until != null) {
+      const later = blocks.slice(ci + 1, ni + 1).filter(x => isLine(x.el));
+      const counts = splitBeats(beats, later.map(x => (top + x.y - line) / pps), w.until, spb);
+      rows[0].counts = counts[0];
+      later.forEach((x, i) => {
+        if (!(counts[i + 1] > 0)) return;
+        const r = x.el.getBoundingClientRect(), last = x.el === nrow;
+        const words = [...x.el.querySelectorAll(".w, .c .ct")].map(e => e.getBoundingClientRect().left);
+        const first = x.el.querySelector(".ct")?.getBoundingClientRect();
+        rows.push({ row: x.el, carry: true, counts: counts[i + 1], x0: (words.length ? Math.min(...words) : r.left + 16) + 4 - r.left,
+          x1: (last ? nt.left - 10 : r.right - 14) - r.left, y: first ? first.top + first.height / 2 - r.top : 12 });
+      });
+    }
+  }
+  let base = 0;
+  for (const r of rows) {
+    const n = r.counts;
+    const shown = Math.min(n, Math.floor((r.x1 - r.x0) / 16) + 1);
+    if (n > 0 && shown >= 1 && r.x1 > r.x0) {
+      const at = j => shown === 1 ? (r.x0 + r.x1) / 2 : r.x0 + (r.x1 - r.x0) * j / (shown - 1);
+      r.row.insertAdjacentHTML("beforeend", `<span class="gc-run${r.carry ? " carry" : ""}" aria-hidden="true">${Array.from({ length: shown }, (_, j) => `<i style="left:${at(j).toFixed(1)}px;top:${r.y.toFixed(1)}px"></i>`).join("")}</span>`);
+      [...r.row.lastElementChild.children].forEach((e, j) => { st.run.dots[base + (n - shown) + j] = e; });
+      if (!st.run.el) st.run.el = r.row.lastElementChild;
+    }
+    base += n;
+  }
 }
 /* the dots' run for this chord: how many beats it lasts */
 export const stageRun = () => st.run;
@@ -161,8 +191,7 @@ export const stageRun = () => st.run;
 export function stageDots(k) {
   if (k === st.k) return;
   st.k = k;
-  const run = st.run?.el ? [...st.run.el.children] : [], d = k - ((st.run?.beats || 0) - run.length);
-  run.forEach((e, i) => e.classList.toggle("on", i === d));
+  (st.run?.dots || []).forEach((e, i) => e?.classList.toggle("on", i === k));
 }
 
 /* a beat, in seconds: the band's own when it's playing (so the dots move on its clicks), else the song's pace */
@@ -173,7 +202,7 @@ export function stageTick(song, w, counting, clock) {
   if (!w) return;
   stageGel(gelOf(w.sec || "verse"));
   const spb = beatOf(song);
-  stagePaint(w, spb);
+  stagePaint(w, spb, song);
   const band = metro.timer && metro.spb > 0;
   const until = w.until == null ? null : band ? onBeat(clock + w.until, metro.next, spb) - clock : w.until;
   stageDots(counting || !st.run ? -1 : runDot(until, spb, st.run.beats));

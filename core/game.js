@@ -852,6 +852,20 @@ export function runDot(until, spb, beats, shown = beats) {
   const d = k - (beats - shown);
   return d >= 0 && d < shown ? d : -1;
 }
+/* 4.53.1: a chord whose next change is on a later line has its beats on more than one line. `beats` is how many
+   it lasts, `moves` the seconds until the band reaches each later line up to the change's line (rising), `untilNext`
+   the seconds until the change. Counts per row, the chord's own line first; the later rows take the beats between
+   their move and the next move (or the change), counted back from the change, so the last dot is the one before it.
+   Never more or fewer than `beats` in all; trailing empty rows are left out. */
+export function splitBeats(beats, moves, untilNext, spb) {
+  if (!(spb > 0) || !moves?.length || !(beats > 0)) return [Math.max(0, beats | 0)];
+  const rest = moves.map((m, i) => Math.max(0, Math.round(((i + 1 < moves.length ? moves[i + 1] : untilNext) - m) / spb)));
+  let over = rest.reduce((a, b) => a + b, 0) - beats;
+  for (let i = rest.length - 1; i >= 0 && over > 0; i--) { const cut = Math.min(rest[i], over); rest[i] -= cut; over -= cut; }
+  const out = [beats - rest.reduce((a, b) => a + b, 0), ...rest];
+  while (out.length > 1 && out[out.length - 1] === 0) out.pop();
+  return out;
+}
 /* A change's time moved onto the band's beat grid, so the count lights on the clicks you hear: `t` the
    change, `next` the time of a beat the band has scheduled, `spb` its beat. */
 /* 4.49.12: how many beats a stalled scheduler has fallen behind; they are skipped, not played in a burst */
