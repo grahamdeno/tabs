@@ -604,15 +604,21 @@ body.cedit .sheet { padding-bottom: 120px; }
 .cebar.glass { background: var(--solid); }
 .cebar span { flex: 1; }
 .ce-line { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; column-gap: .3em; row-gap: 4px; margin: 0 0 .7em; padding-right: 30px; }
-.ce-wd { display: inline-flex; flex-direction: column; align-items: flex-start; }
-.ce-cs, .ce-grp { display: inline-flex; align-items: flex-end; gap: 4px; }
-.ce-cs { min-height: 1.3em; }
-.ce-sp { display: block; padding: 4px 1px; line-height: 1.35; border-bottom: 1px solid transparent; visibility: hidden; }
+/* 4.65.4: a lyric line is plain words with a chord row above each row of words; chips are placed by layoutChips */
+.ce-ly { display: block; padding-right: 48px; margin: 0 0 .4em; }
+.ce-flow { line-height: 1.35; }
+.ce-flow > .ce-w, .ce-flow > .ce-gap { vertical-align: top; margin-top: 50px; }
+.ce-flow > .ce-gap { display: inline-block; height: calc(1.35em + 9px); }
+.ce-flow > .ce-nob { margin-top: 6px; }
+.ce-ly > .ce-ch { position: absolute; left: 0; top: 0; }
+.ce-ly > .ce-pl { left: auto; right: 0; }
+.ce-ly .ce-w.sel { background: none; box-shadow: none; }
+.ce-ly .ce-w.sel .ce-t { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-line); border-radius: 4px; }
+.ce-where { margin: 4px 0 2px; }
 .ce-ch { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid var(--rim); border-radius: 12px; background: var(--card); color: var(--accent-ink); font: 800 .82em var(--display, inherit); }
 .ce-ch.ce-pl { min-width: 44px; color: var(--muted); border-style: dashed; font-weight: 600; font-size: 1em; }
 .ce-ch.sel { background: var(--accent-soft); border-color: var(--accent); }
 .ce-cl { column-gap: 4px; }
-.ce-lead.has { flex-basis: 100%; }
 .ce-addrow { display: flex; gap: 8px; margin: 0 0 14px; }
 .ce-addrow .ce-add { margin: 0; }
 .ce-w { display: inline-flex; flex-direction: column; align-items: flex-start; border: 0; background: none; padding: 4px 1px; font: inherit; color: var(--fg); border-radius: 6px; text-align: left; min-height: 32px; }

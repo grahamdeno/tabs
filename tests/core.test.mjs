@@ -2351,3 +2351,13 @@ test("4.65.0 lining up the UG way: the chart sent has no words or columns, stack
   assert.equal(slots(3), "Am:on G:on");
   assert.match(body, /\[Outro\]\nF {3}Am {3}G {3}F {3}Am {3}G/);
 });
+
+test("nameRepeats: the words sung most are the Chorus everywhere, a part sung once is not (4.65.4)", () => {
+  const ch = "F Am\nWe ran along the shore\nG C\nAlways a step behind";
+  const v = (a, b) => `F Am G\n      ${a}\nAm G\n      ${b}`;
+  const body = ["[Verse]", v("One line here", "Two line here"), "", "[Chorus]", ch, "", "[Chorus]", v("Kick it in", "Make it count"), "", "[Verse]", ch, "", "[Bridge]", v("Small and new", "Never a chance"), "", "[Verse]", ch].join("\n");
+  const out = C.nameRepeats(body);
+  assert.deepEqual(out.split("\n").filter(r => /^\[/.test(r)), ["[Verse]", "[Chorus]", "[Verse]", "[Chorus]", "[Bridge]", "[Chorus]"]);
+  assert.equal(out.replace(/\[[^\]]*\]/g, ""), body.replace(/\[[^\]]*\]/g, ""), "only the names change");
+  assert.equal(C.nameRepeats("[Verse]\nA b\nC d"), "[Verse]\nA b\nC d", "nothing repeats: left alone");
+});

@@ -15,15 +15,15 @@ test("Edit builds a chart's lead-in chords with taps, then Undo, a chord row and
   await page.goto(base + "#/song/c"); await page.waitForSelector(".metarow");
   await tool(page, "edit"); await page.waitForSelector(".ce-line[data-line='1']");
   /* F, then Am beside it, then G beside that, all before the words */
-  await page.click(".ce-line[data-line='1'] .ce-lead .ce-pl"); await page.waitForSelector("#ce-panel");
+  await page.click(".ce-ly[data-line='1'] > .ce-pl"); await page.waitForSelector("#ce-panel");
   assert.match(await page.innerText(".pc-head"), /before the words/i);
   await pick(page, "F"); await waitBody(page, /^\[Verse\]\nF\n {2,}Walking/);
   await settled(page);
-  await page.click(".ce-line[data-line='2'] .ce-lead .ce-pl"); await page.waitForSelector("#ce-panel");
+  await page.click(".ce-ly[data-line='2'] > .ce-pl"); await page.waitForSelector("#ce-panel");
   assert.match(await page.innerText(".pc-head"), /after F/i);
   await pick(page, "A", "m"); await waitBody(page, /\nF Am\n/);
   await settled(page);
-  await page.click(".ce-line[data-line='2'] .ce-lead .ce-pl"); await pick(page, "G");
+  await page.click(".ce-ly[data-line='2'] > .ce-pl"); await pick(page, "G");
   await waitBody(page, /^\[Verse\]\nF Am G\n {6}Walking down the river road$/);
   assert.equal(await saved(page), "[Verse]\nF Am G\n      Walking down the river road");
   /* Undo takes the last chord back */
@@ -31,11 +31,12 @@ test("Edit builds a chart's lead-in chords with taps, then Undo, a chord row and
   await waitBody(page, /\nF Am\n/);
   assert.doesNotMatch(await saved(page), /G/);
   await settled(page);
-  await page.click(".ce-line[data-line='2'] .ce-lead .ce-pl"); await pick(page, "G");
+  await page.click(".ce-ly[data-line='2'] > .ce-pl"); await pick(page, "G");
   await waitBody(page, /F Am G\n/);
   /* a chord after the last word */
   await settled(page);
-  await page.click(".ce-line[data-line='2'] .ce-after .ce-pl"); await page.waitForSelector("#ce-panel");
+  await page.click(".ce-ly[data-line='2'] > .ce-pl"); await page.waitForSelector("#ce-panel");
+  await page.click("#ce-panel [data-wh='after']");
   assert.match(await page.innerText(".pc-head"), /after the line/i);
   await pick(page, "F");
   await waitBody(page, /^\[Verse\]\nF Am G +F\n/);
@@ -109,4 +110,21 @@ test("Edit under an album cover: the bottom buttons are glass, not see-through (
   await page.click("[data-v='text']"); await page.waitForSelector("#ed-clean");
   const alphas = await page.evaluate(() => ["#ed-clean", "#ed-scan", "#ed-seg"].map(s => { const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(document.querySelector(s)).backgroundColor); const p = m[1].split(",").map(Number); return p.length > 3 ? p[3] : 1; }));
   assert.ok(alphas.every(a => a >= 0.85), "Clean up, Scan and Edit/Preview are nearly solid: " + alphas);
+});
+
+test("Edit: chips sit on one row above their words, the words keep their spacing (4.65.4)", { skip: skip() }, async t => {
+  const page = await phone(t, lib("[Bridge]\nAm G                    F\n      Small hands in the world\n[Verse]\nF          Am\nI remember running through the wet grass"));
+  await page.goto(base + "#/song/c"); await page.waitForSelector(".metarow");
+  await tool(page, "edit"); await page.waitForSelector(".ce-ly");
+  const r = await page.evaluate(() => [...document.querySelectorAll(".ce-ly")].map(line => {
+    const chips = [...line.querySelectorAll(":scope > .ce-ch:not(.ce-pl)")].map(c => c.getBoundingClientRect());
+    const ws = [...line.querySelectorAll(".ce-w")].map(w => w.getBoundingClientRect());
+    return { tops: [...new Set(chips.map(c => Math.round(c.top)))], wordTop: Math.round(ws[0].top), overlap: chips.some((c, j) => j && c.left < chips[j - 1].right - 1 && Math.round(c.top) === Math.round(chips[j - 1].top)) };
+  }));
+  assert.equal(r[0].tops.length, 1, "the Bridge line's chips share one row: " + JSON.stringify(r[0]));
+  assert.ok(r.every(x => !x.overlap), "no chips on top of each other");
+  const gaps = await page.evaluate(() => { const ws = [...document.querySelectorAll(".ce-ly")[1].querySelectorAll(".ce-w")].map(w => w.getBoundingClientRect()); return ws.slice(1).filter((w, j) => Math.round(w.top) === Math.round(ws[j].top)).map((w, j) => w.left - ws[j].right); });
+  assert.ok(gaps.every(g => g < 12), "words are not pushed apart by chips: " + gaps);
+  const over = await page.evaluate(() => [...document.querySelectorAll(".ce-ch")].filter(c => c.getBoundingClientRect().right > innerWidth).length);
+  assert.equal(over, 0);
 });

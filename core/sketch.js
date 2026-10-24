@@ -522,7 +522,28 @@ export function placedSheet(chartBody, lyricsText, placed) {
   }
   /* nothing is ever dropped: lines the AI left out go at the end, with their stanza's name */
   num.stanzas.forEach((_, i) => part(num.lines.filter(x => x.s === i + 1 && !used.has(x.n)), ""));
-  return out.join("\n").trim();
+  return nameRepeats(out.join("\n").trim());
+}
+/* 4.65.4: section names that agree with the words. The AI sometimes names the same words Chorus in one
+   place and Verse in the next, or calls a part sung once the Chorus. Sung parts with the same words share
+   one name; the words sung most often (at least twice) are the Chorus; a part sung once is not. */
+export function nameRepeats(body) {
+  const rows = String(body || "").split("\n"), secs = [];
+  rows.forEach((r, i) => {
+    const m = r.match(SECTION_RE);
+    if (m) secs.push({ i, name: (m[1] || m[2] || "").trim(), words: [] });
+    else if (secs.length && r.trim() && !isChordLine(r)) secs[secs.length - 1].words.push(r.toLowerCase().replace(/[^a-z0-9']+/g, " ").trim());
+  });
+  const sung = secs.filter(x => x.words.length >= 2), groups = new Map();
+  sung.forEach(x => { const k = x.words.join("|"); groups.set(k, [...(groups.get(k) || []), x]); });
+  const top = [...groups.values()].filter(g => g.length >= 2).sort((a, b) => b.length - a.length || a[0].i - b[0].i)[0];
+  if (!top) return body;
+  const isChorus = n => /^chorus\b/i.test(n);
+  for (const g of groups.values()) {
+    const name = g === top ? "Chorus" : g[0].name && !isChorus(g[0].name) ? g[0].name : (g.find(x => !isChorus(x.name))?.name || "Verse");
+    g.forEach(x => { if (x.name !== name) rows[x.i] = `[${name}]`; });
+  }
+  return rows.join("\n");
 }
 /* How the chords were placed: 2 since 4.49.6 (chords before and after the singing, parts cut from a
    stanza). A song placed the older way is lined up once more. */
