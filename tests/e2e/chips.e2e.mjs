@@ -65,8 +65,8 @@ test("Edit: several chords on one word each get a chip, and a chord can be added
   await page.goto(base + "#/song/c"); await page.waitForSelector(".metarow");
   await tool(page, "edit"); await page.waitForSelector(".ce-line");
   assert.deepEqual(await page.$$eval(".ce-line .ce-ch:not(.ce-pl)", els => els.map(e => e.textContent)), ["F", "Am"]);
-  await page.click(".ce-line .ce-wd .ce-pl"); await page.waitForSelector("#ce-panel");
-  assert.match(await page.innerText(".pc-head"), /after/i);
+  await page.click(".ce-w[data-word='Home']"); await page.waitForSelector("#ce-panel");
+  assert.match(await page.innerText(".pc-head"), /after F/i);
   await pick(page, "G");
   await page.waitForFunction(() => document.querySelectorAll(".ce-line .ce-ch:not(.ce-pl)").length === 3);
   assert.deepEqual(await page.$$eval(".ce-line .ce-ch:not(.ce-pl)", els => els.map(e => e.textContent)), ["F", "G", "Am"], "a chord added after F lands beside it");

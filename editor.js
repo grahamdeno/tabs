@@ -285,15 +285,19 @@ function paintSheet(song, sheet) {
     const group = (word, part) => sl.list.map((c, n) => ({ ...c, n })).filter(c => c.word === word && c.part === part);
     const chips = list => list.map(c => chip(l.i, c.n, c.chord, `data-pos="${sorted[c.n]?.pos ?? ""}" data-word="${esc(words[c.word]?.[0] || "")}" data-part="${c.part}"`)).join("");
     const lead = group(-1, "lead");
-    const html = [`<span class="ce-grp ce-lead ${lead.length ? "has" : ""}">${chips(lead)}${plus("Chord before the words", `data-i="${l.i}" data-n="${lead.length ? lead[lead.length - 1].n : -1}" data-part="lead" data-word="-1"`)}</span>`];
+    /* 4.65.3: every piece of a line is a column, chips on top and a word (or an empty space) below, so the
+       chips always sit on the chord row above the words, the way the page reads. */
+    const sp = `<span class="ce-sp" aria-hidden="true">&nbsp;</span>`;
+    const col = (cls, top, bottom = sp) => `<span class="ce-wd ${cls}"><span class="ce-cs">${top}</span>${bottom}</span>`;
+    const html = [lead.length
+      ? `<span class="ce-grp ce-lead has">${chips(lead)}${plus("Add a chord before the words", `data-i="${l.i}" data-n="${lead[lead.length - 1].n}" data-part="lead" data-word="-1"`)}</span>`
+      : col("ce-lead", plus("Chord before the words", `data-i="${l.i}" data-n="-1" data-part="lead" data-word="-1"`))];
     words.forEach((w, k2) => {
-      const on = group(k2, "on"), aft = group(k2, "after");
+      const on = group(k2, "on"), aft = group(k2, "after"), last = k2 === words.length - 1;
       const lastN = on.length ? on[on.length - 1].n : -1;
-      html.push(`<span class="ce-wd"><span class="ce-cs">${chips(on)}${on.length ? plus(`Add a chord next to ${on[on.length - 1].chord}`, `data-i="${l.i}" data-n="${lastN}" data-part="on" data-word="${esc(w[0])}"`) : ""}</span><button class="ce-w ${on.length ? "has" : ""}" data-i="${l.i}" data-n="${lastN}" data-k="${k2}" data-pos="${w.index}" data-word="${esc(w[0])}" aria-label="Chord over ${esc(w[0])}"><span class="ce-t">${esc(w[0])}</span></button></span>`);
-      if (aft.length || k2 === words.length - 1) {
-        const lastA = aft.length ? aft[aft.length - 1].n : (on.length ? on[on.length - 1].n : -1);
-        html.push(`<span class="ce-grp ce-after">${chips(aft)}${plus(k2 === words.length - 1 ? "Chord after the line" : `Chord after ${w[0]}`, `data-i="${l.i}" data-n="${aft.length ? lastA : -2}" data-part="after" data-word="${esc(w[0])}" data-k="${k2}"`)}</span>`);
-      }
+      html.push(col("", chips(on), `<button class="ce-w ${on.length ? "has" : ""}" data-i="${l.i}" data-n="${lastN}" data-k="${k2}" data-pos="${w.index}" data-word="${esc(w[0])}" aria-label="${on.length ? `Add a chord on ${esc(w[0])}` : `Chord over ${esc(w[0])}`}"><span class="ce-t">${esc(w[0])}</span></button>`));
+      if (aft.length || last)
+        html.push(col("ce-after", chips(aft) + (last ? plus("Chord after the line", `data-i="${l.i}" data-n="${aft.length ? aft[aft.length - 1].n : -2}" data-part="after" data-word="${esc(w[0])}" data-k="${k2}"`) : "")));
     });
     parts.push(`<div class="ce-line" data-line="${l.i}">${html.join("")}<button class="ce-pen" data-edit="${l.i}" aria-label="Retype this line">${pencil}</button></div>`);
   });
@@ -324,7 +328,7 @@ function paintSheet(song, sheet) {
         return;
       }
       const part = b.dataset.part || "on", k = +(b.dataset.k ?? -1);
-      const prev = b.previousElementSibling?.dataset.chord || "";
+      const prev = (isWord ? b.closest(".ce-wd")?.querySelector(".ce-cs .ce-ch:last-child") : b.previousElementSibling)?.dataset.chord || "";
       const head = cur
         ? (part === "lead" ? `Chord ${w(cur)} before the words` : part === "after" ? `Chord ${w(cur)} after ${w(word)}` : `Chord ${w(cur)} over ${w(word)}`)
         : part === "lead" ? (n >= 0 ? `Chord after ${w(prev)}` : "Chord before the words")

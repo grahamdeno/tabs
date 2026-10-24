@@ -607,6 +607,7 @@ body.cedit .sheet { padding-bottom: 120px; }
 .ce-wd { display: inline-flex; flex-direction: column; align-items: flex-start; }
 .ce-cs, .ce-grp { display: inline-flex; align-items: flex-end; gap: 4px; }
 .ce-cs { min-height: 1.3em; }
+.ce-sp { display: block; padding: 4px 1px; line-height: 1.35; border-bottom: 1px solid transparent; visibility: hidden; }
 .ce-ch { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid var(--rim); border-radius: 12px; background: var(--card); color: var(--accent-ink); font: 800 .82em var(--display, inherit); }
 .ce-ch.ce-pl { min-width: 44px; color: var(--muted); border-style: dashed; font-weight: 600; font-size: 1em; }
 .ce-ch.sel { background: var(--accent-soft); border-color: var(--accent); }

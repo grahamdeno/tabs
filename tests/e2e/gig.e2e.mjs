@@ -39,6 +39,8 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.ok(await page.evaluate(() => document.body.classList.contains("staged")), "the page is the stage");
   assert.equal(await page.locator(".gg-map, #st-map, #gg-str, #gg-tw").count(), 0, "4.54.0: no song map over the stage, no strings, no timing word");
   /* 4.58.0: bold words that fade by distance; the chords stay brighter than the words; nothing runs past the edge */
+  /* 4.65.3: wait out the 0.25 s colour fade, so the check doesn't read a line mid-change (it failed CI once) */
+  await page.waitForFunction(() => { const n = document.querySelector("#sheet > .st-now"), x = document.querySelector("#sheet > .st-next"); if (!n || !x) return true; const a = el => { const m = getComputedStyle(el).color.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; }; return a(n) > a(x) && !n.getAnimations().length && !x.getAnimations().length; });
   const look = await page.evaluate(() => {
     const now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
     const alpha = c => { const m = c.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; };
