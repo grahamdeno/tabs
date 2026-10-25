@@ -45,26 +45,20 @@ const unnamed = () => {
     .filter(el => shown(el) && !name(el)).map(el => el.outerHTML.slice(0, 120));
 };
 
-for (const theme of ["dark", "light", "green"]) {
-  test(`4.73.0 every page and sheet: names, and axe finds nothing serious (${theme})`, { skip: skip(), timeout: 600000 }, async t => {
+/* one test per palette and screen, so CI lists each problem on its own line */
+for (const theme of ["dark", "light", "green"]) for (const [screen, hash, act] of SCREENS) {
+  test(`4.73.0 ${screen}: names, and axe finds nothing serious (${theme})`, { skip: skip(), timeout: 120000 }, async t => {
     const page = await phone(t, lib(theme), { colorScheme: theme === "dark" ? "dark" : "light", reducedMotion: "reduce", locale: "en-US", permissions: ["clipboard-read", "clipboard-write"] });
     await page.route("https://api.open-meteo.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ current: { relative_humidity_2m: 85, temperature_2m: 60 } }) }));
-    const problems = [];
-    for (const [screen, hash, act] of SCREENS) {
-      try {
-        await page.goto(base + hash); await page.reload(); await page.waitForTimeout(500); await settled(page);
-        if (act) { await act(page); await page.waitForTimeout(500); }
-      } catch (e) { problems.push(`${screen}: couldn't open (${String(e.message || e).split("\n")[0]})`); continue; }
-      for (const html of await page.evaluate(unnamed)) problems.push(`${screen}: no name: ${html}`);
-      if (axePath) {
-        await page.evaluate(fs.readFileSync(axePath, "utf8"));
-        const found = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"], resultTypes: ["violations"] }))
-          .violations.filter(v => v.impact === "serious" || v.impact === "critical")
-          .map(v => `${v.id}: ${v.nodes.slice(0, 4).map(n => n.target.join(" ") + (n.any?.[0]?.data?.contrastRatio ? ` (${n.any[0].data.contrastRatio}:1, ${n.any[0].data.fgColor} on ${n.any[0].data.bgColor})` : "")).join(" | ")}`));
-        for (const f of found) problems.push(`${screen}: ${f}`);
-      }
+    await page.goto(base + hash); await page.reload(); await page.waitForTimeout(500); await settled(page);
+    if (act) { await act(page); await page.waitForTimeout(500); }
+    const problems = (await page.evaluate(unnamed)).map(h => `no name: ${h}`);
+    if (axePath) {
+      await page.evaluate(fs.readFileSync(axePath, "utf8"));
+      problems.push(...await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"], resultTypes: ["violations"] }))
+        .violations.filter(v => v.impact === "serious" || v.impact === "critical")
+        .flatMap(v => v.nodes.slice(0, 6).map(n => `${v.id}: ${n.target.join(" ")}${n.any?.[0]?.data?.contrastRatio ? ` ${n.any[0].data.contrastRatio}:1 ${n.any[0].data.fgColor} on ${n.any[0].data.bgColor}` : ""}`))));
     }
-    for (const p of problems) console.log(`PROBLEM ${theme} ${p}`);
-    assert.equal(problems.length, 0, `${problems.length} problems (${theme}):\n${problems.join("\n")}`);
+    assert.equal(problems.length, 0, `${screen} (${theme}): ${problems.join(" || ")}`);
   });
 }

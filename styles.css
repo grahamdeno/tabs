@@ -2052,6 +2052,9 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look] .tm-sheet-t { font-size: 24px; }
 :root[data-look] .pfoot { border-top: 2px solid var(--hair); }
 :root[data-look] .coach { background: var(--fg); color: var(--bg); border: 0; border-radius: 16px; font-weight: 700; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+/* 4.73.1: the tip's list and second line are on the tip's own colours (they were the page's, faint on the light tip) */
+:root[data-look] .coach ul, :root[data-look] .coach span { color: var(--bg); opacity: .85; font-weight: 600; }
+:root[data-look] .coach li::marker { color: var(--bg); }
 :root[data-look] .toast { border-radius: 16px; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
 /* the result cards in Play next and Get the song */
 :root[data-look] .nx .nx-row, :root[data-look] .gs .gs-rows.glass, :root[data-look] .gs-rows { background: var(--card); background-image: none; border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); border-radius: 18px; }
@@ -2550,7 +2553,9 @@ body.gigging .menu.tools { z-index: 60; }
 .upn { display: flex; gap: 10px; margin-bottom: 14px; }
 .upn-c { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 12px; border: 0; border-radius: 18px; text-align: left; color: #14213D; }
 .upn-c.one { background: var(--streak); box-shadow: 0 4px 0 var(--streak-deep, var(--streak)); }
-.upn-c.req { background: var(--strings); box-shadow: 0 4px 0 var(--strings-deep); color: #fff; }
+.upn-c.req { background: var(--strings); box-shadow: 0 4px 0 var(--strings-deep); color: #14213D; } /* 4.73.1: dark ink on the bright blue (white was 1.6:1); white on Green Room's plum */
+:root[data-look="green"] .upn-c.req { color: #fff; }
+.upn-c.req small, .upn-c.req em { opacity: 1; }
 .upn-c small { font: 800 11px var(--sans); letter-spacing: .08em; opacity: .8; }
 .upn-c b { font: 700 16px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .upn-c span { font: 700 12.5px var(--sans); }
@@ -2674,8 +2679,8 @@ body.gigging .ask { z-index: 66; }
 .mc-have { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 9px; background: var(--fg); color: var(--bg); font: 700 12px var(--display); }
 .mc-price { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 11px; background: var(--fans); box-shadow: 0 3px 0 var(--fans-deep); color: #14213D; font: 700 14px var(--display); }
 .mc-price .mc-tk { fill: #14213D; opacity: .35; } .mc-price .mc-tkd { fill: #14213D; opacity: .2; }
-.mc-price.short { background: var(--locked); box-shadow: none; color: var(--locked-ic); }
-.mc-on { display: inline-block; padding: 5px 9px; border-radius: 11px; background: var(--tabs-on); color: var(--strings); font: 800 12px var(--sans); letter-spacing: .06em; }
+.mc-price.short { background: var(--locked); box-shadow: none; color: var(--fg-2); } /* 4.73.1: readable while you save up */
+.mc-on { display: inline-block; padding: 5px 9px; border-radius: 11px; background: var(--tabs-on); color: var(--fg); font: 800 12px var(--sans); letter-spacing: .06em; }
 .mc-on.own { background: var(--card-2); color: var(--muted); }
 .mc-note { margin: 14px 2px 0; font: 700 12.5px/1.4 var(--sans); color: var(--muted); }
 /* try it on */
