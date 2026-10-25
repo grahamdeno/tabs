@@ -345,6 +345,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-node.now .rd-body")).animationName), "rd-wiggle", "the pick wiggles now and then");
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /The G chord[\s\S]*\+5 fans[\s\S]*START/, "a tap opens its card: what you'd earn, then Start (4.75.0)");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-pop.now .rd-start")).backgroundColor), "rgb(255, 255, 255)", "4.75.1: Start is white on the card");
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop", { state: "detached" });
   assert.equal(await page.locator(".rd-node .rd-pk").count() > 3, true, "the stops are picks");
   assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next pick");

@@ -4172,3 +4172,7 @@ body.playing .tuneup { display: none; }
 .rd-earn { display: flex; gap: 6px; margin: -2px 0 10px; }
 .rd-earn span { height: 24px; padding: 0 9px; border-radius: 8px; background: color-mix(in srgb, currentColor 14%, transparent); font: 800 12.5px var(--sans); display: flex; align-items: center; }
 @media (prefers-reduced-motion: reduce) { .rd-tag { animation: none; } }
+/* 4.75.1: the next stop's Start is white on its card in every palette (the palette's primary-button rule
+   was more specific and painted it in the card's own colour) */
+:root[data-look] .rd-pop.now .rd-start { background: #fff; color: var(--streak-deep); box-shadow: 0 5px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
+:root[data-look] .rd-pop.now .rd-start:active:not(:disabled) { box-shadow: 0 2px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
