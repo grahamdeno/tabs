@@ -65,7 +65,7 @@ test("All songs sorts by artist", { skip: skip() }, async t => {
   assert.deepEqual(await page.$$eval("#list .row .t", r => r.map(x => x.textContent)), ["Harbor Lights", "River Road", "Anchor"]);
 });
 
-test("sketch: sing two lines, add their words, get chords in the melody's key", { skip: skip() }, async t => {
+test("4.74.0 Sing it: one take split at a breath into two lines, words, Your song, saved with +50 fans; then hear it, Rich and the fits in Edit", { skip: skip() }, async t => {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
   const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
@@ -79,43 +79,45 @@ test("sketch: sing two lines, add their words, get chords in the melody's key", 
   // From Add: an empty new song offers Sing it.
   await page.click("#add"); await page.waitForSelector("#sr-write"); await page.click("#sr-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector('#ed-sing');
   await page.click("#ed-sing"); await page.waitForSelector('#sk-pad');
-  assert.match(await page.innerText("h1"), /New sketch/);
+  assert.match(await page.innerText("h1"), /Sing it/);
+  assert.equal(await page.locator(".skwheel, #sk-wheel").count(), 0, "4.74.0: no key wheel");
+  assert.deepEqual(await page.$$eval("[data-mode]", b => b.map(x => x.textContent.trim())), ["Voice", "Guitar", "Both"]);
   const hz = m => 440 * 2 ** ((m - 69) / 12);
-  const pad = await page.locator("#sk-pad").boundingBox(), px = pad.x + pad.width / 2, py = pad.y + pad.height - 60;
-  // Hold the pad to sing a line; let go to keep it.
-  const singLine = async melody => {
-    await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(400); /* real timer */
-    for (const m of melody) { await page.evaluate(f => { window.__hz = f; }, hz(m)); await page.waitForTimeout(420); /* real timer */ }
-    await page.evaluate(() => { window.__hz = 0; }); await page.waitForTimeout(150); /* real timer */
-    await page.mouse.up(); await page.waitForFunction(() => document.activeElement.id === 'sk-words');
-  };
-  await singLine([55, 59, 62, 59, 60, 64, 67, 64]);          // G B D B | C E G E
-  assert.equal(await page.evaluate(() => document.activeElement.id), "sk-words", "the words field is ready for dictation");
-  await page.keyboard.type("Porch light burning past the second shift");
-  await page.evaluate(() => document.activeElement.blur()); await page.waitForFunction(() => document.activeElement === document.body);
-  // Slide left while singing: that take goes, nothing is added.
-  await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(400); /* real timer */
-  await page.evaluate(f => { window.__hz = f; }, hz(50)); await page.waitForTimeout(500); /* real timer */
-  await page.mouse.move(px - 120, py, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(400); /* real timer */
-  await page.evaluate(() => { window.__hz = 0; });
-  assert.equal(await page.locator(".sknb-row").count(), 1, "the slid-away take wasn't kept");
-  await singLine([62, 66, 57, 62, 59, 55, 55, 55]);          // D F# A D | B G G G
+  const sing = async ms => { for (const m of ms) { await page.evaluate(f => { window.__hz = f; }, hz(m)); await page.waitForTimeout(420); /* real timer */ } };
+  const rest = async ms => { await page.evaluate(() => { window.__hz = 0; }); await page.waitForTimeout(ms); /* real timer */ };
+  // 4.74.0: Redo drops a take
+  await page.click("#sk-pad"); await page.waitForSelector("#sk-redo");
+  await sing([50, 52]); await page.click("#sk-redo"); await page.waitForSelector(".sk-intro");
+  // One take, two phrases with a breath between: tap to start, tap to stop; it's split into two lines
+  await page.click("#sk-pad"); await page.waitForSelector("#sk-rib");
+  assert.match(await page.innerText("#sk-pad-t"), /TAP TO STOP/, "a tap sings hands-free");
+  await sing([55, 59, 62, 59, 60, 64, 67, 64]);          // G B D B | C E G E
+  await rest(900);                                       // a breath
+  await sing([62, 66, 57, 62, 59, 55, 55, 55]);          // D F# A D | B G G G
+  await rest(200);
+  await page.click("#sk-pad"); await page.waitForFunction(() => document.activeElement.id === 'sk-words');
+  assert.equal(await page.locator(".skl").count(), 2, "split at the breath into two lines");
+  assert.equal(await page.locator(".sk-cut").count(), 1, "one marker between them");
+  await page.keyboard.type("Porch light burning past the second shift"); await page.keyboard.press("Enter");
+  await page.waitForFunction(() => document.activeElement.id === 'sk-words' && document.activeElement.dataset.i === "1");
+  assert.equal(await page.inputValue("#sk-words"), "", "Return goes on to the next line, empty");
   await page.keyboard.type("Home to you a little more");
   await page.evaluate(() => document.activeElement.blur()); await page.waitForFunction(() => document.activeElement === document.body);
-  assert.match(await page.innerText("#sk-meter"), /G major/);
-  assert.equal(await page.locator(".sknb-row").count(), 2);
+  assert.match(await page.innerText("#sk-key"), /G MAJOR/);
   assert.deepEqual(await page.$$eval(".skfam-c", b => b.map(x => x.textContent)), ["G", "C", "D", "Em", "Am", "Bm"], "the key's chords, ready to hear");
-  await page.click("#sk-done"); await page.waitForFunction(() => JSON.parse(localStorage.getItem('tabs-v1')).songs.some(s => s.sketch));
+  // Your song: hear it, name it, save it; the first song you write is worth fans
+  await page.click("#sk-done"); await page.waitForSelector("#sk-save");
+  assert.match(await page.innerText(".sks-win"), /Songwriter/);
+  await page.fill("#sk-title", "Porch Light");
+  await page.click("#sk-save"); await page.waitForFunction(() => JSON.parse(localStorage.getItem('tabs-v1')).songs.some(s => s.sketch));
   const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch);
   assert.ok(song, "a new song was made");
+  assert.equal(song.title, "Porch Light");
   assert.equal(song.key, "G");
   assert.match(song.body, /^G\s+C\nPorch light burning past the second shift\nD\s+G\nHome to you a little more$/);
-  assert.ok(await page.locator("#ce-done").isVisible(), "it opens in the editor to name it");
   assert.deepEqual(song.sketch.lines.map(l => l.n.length), [8, 6], "the melody stays with the song (the three Gs at the end are one held note)");
-
-  // Name it and save; the song page offers the recording and Simple or Rich.
-  await page.fill("#ed-title", "Porch Light"); await page.dispatchEvent("#ed-title", "change");
-  await page.click("#ce-done"); await page.waitForSelector('h1.song-title');
+  assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).quests.fans >= 50, true, "+50 fans for the first song written");
+  await page.waitForSelector('h1.song-title');
   await page.waitForSelector("#sk-hear:not([hidden])", { timeout: 4000 }); await settled(page); /* the song page has just faded in: taps wait for it */
   /* keep hold of the Undo button the moment it appears: on a busy machine a later toast can replace it before the save lands */
   await page.click("[data-st='rich']"); await page.waitForFunction(() => (window.__undo = document.querySelector("#toast .tact")) && /Rich|7ths/.test(document.getElementById("toast").textContent));
@@ -189,8 +191,8 @@ test("sketch: a quiet voice is still heard; silence says so and is logged; the p
   await page.goto(base); await page.waitForFunction(() => !!localStorage.getItem('tabs-v1'));
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), LIB);
   await page.goto(base + "#/sketch"); await page.waitForSelector('#sk-pad'); await settled(page);
-  const pad = await page.locator("#sk-pad").boundingBox(), px = pad.x + pad.width / 2, py = pad.y + pad.height - 60;
   const hold = async (hzs, gain) => {
+    const at = await page.locator("#sk-pad").boundingBox(), px = at.x + at.width / 2, py = at.y + at.height - 30;
     await page.evaluate(g => { window.__gain = g; window.__padAtStart = document.getElementById("sk-pad"); }, gain);
     await page.mouse.move(px, py); await page.mouse.down(); await page.waitForTimeout(400); /* real timer */
     const same = await page.evaluate(() => document.getElementById("sk-pad") === window.__padAtStart && document.getElementById("sk-pad").classList.contains("on"));
@@ -201,7 +203,7 @@ test("sketch: a quiet voice is still heard; silence says so and is logged; the p
   };
   // About a quarter of the old threshold: a voice at arm's length.
   assert.equal(await hold([196, 247, 294, 247, 262], 0.012), true, "the same pad, now recording, is under the finger");
-  assert.equal(await page.locator(".sknb-row").count(), 1, "a quiet line is kept");
+  assert.equal(await page.locator(".skl").count(), 1, "a quiet line is kept");
   await page.evaluate(() => document.activeElement?.blur());
   // Silence: a clear message, and the details go to the problems log.
   await hold([196, 247, 294], 0);

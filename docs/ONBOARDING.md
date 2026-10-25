@@ -234,7 +234,9 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 2 | Tap a chord to change it, a word adds one on it (after any already there), + before and after the words (4.64.0, 4.65.3); Chords adds a row of chords alone | Tap a chip, a +, a word, Chords | Listed (Tips & gestures) | First edit of an existing song; this is the main way to fix a chart |
 | 2b | Line up from the chord sites (4.65.0, AI key): any song, even one you edited, with Undo | Edit's button above the sheet | On screen | Visible; no tip needed |
 | 3 | Tap tempo | Tap along | Tip, Show me | Keep |
-| 4 | Sing it: hold the pad to sing a line | Hold | Listed (and the pad says it) | The pad's own text covers it |
+| 4 | Sing it (4.74.0): tap and sing a whole take, split into lines at your breaths; hold to sing one line | Tap or hold the pad | Listed (and Louie's steps on the screen say it) | The screen's own steps cover it |
+| 4b | Sing it: drag a split, tap the melody to split, a line's options (other ways to play it, Hear it, Sing again, Words, Join with next, Remove) | Drag, tap, the dots on a line | Listed (and the hint under the melody) | The hint under the melody covers it |
+| 4c | Your song: hear your voice with the chords strummed, Simple, Folk or Ballad; your first song gives +50 fans and the Songwriter badge | Hear the song | On screen | Visible; no tip needed |
 
 ### Rehearse and lessons
 

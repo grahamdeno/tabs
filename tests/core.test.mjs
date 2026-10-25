@@ -2006,7 +2006,7 @@ test("Levels and badges (4.17.0): XP from plays and gigs, levels that take a lit
   assert.deepEqual(C.levelOf(data), { level: 2, xp: 110, from: 100, to: 300, into: 10, need: 200 });
   assert.equal(C.cleanXP({ days: {}, life: 5000 }).life, 5000, "kept in saves after the days roll off");
   const p = C.profileOf(data, now), b = C.badgesOf(data, p);
-  assert.equal(b.all.length, 25);
+  assert.equal(b.all.length, 26, "4.74.0: Songwriter");
   assert.equal(b.got.length, 0, "nothing played yet");
   data.gig = { shows: 12, fans: 0, best: {} };
   const ids = C.badgesOf(data, p).got.map(x => x.id);
@@ -2418,4 +2418,23 @@ test("Tune up first (4.72.0): a big swing in humidity or temperature since the l
   assert.ok(C.tuneUpDue({ hum: 40, temp: 25, unit: "C" }, { hum: 40, temp: 15, unit: "C" }), "10°C");
   assert.equal(C.tuneUpDue(then, { hum: 90, temp: 20, unit: "C" }), null, "different units are never compared");
   assert.equal(C.tuneUpDue(null, { hum: 90, temp: 20, unit: "F" }), null);
+});
+
+test("Sing it (4.74.0): one take is split into lines at the breaths", () => {
+  const n = (start, dur) => ({ midi: 60, start, dur });
+  /* three phrases: 0 to 3 s, 3.8 to 6.5 s, 7.4 to 9 s (breaths of 0.8 and 0.9 s), with small gaps inside */
+  const notes = [n(0, .8), n(.85, .9), n(1.8, 1.2), n(3.8, 1), n(4.9, 1.6), n(7.4, .7), n(8.2, .8)];
+  const cuts = C.splitTake(notes, 9.2);
+  assert.deepEqual(cuts, [3.4, 6.95]);
+  const ls = C.takeLines(notes, 9.2, cuts);
+  assert.equal(ls.length, 3);
+  assert.deepEqual(ls.map(l => l.notes.length), [3, 2, 2]);
+  assert.equal(Math.round(ls[1].notes[0].start * 100) / 100, 0.4, "a line's notes are timed from its own start");
+  /* a short phrase joins the one before */
+  assert.deepEqual(C.splitTake([n(0, 2), n(2.6, .4), n(3.6, 2)], 6), [3.3]);
+  /* one long phrase with no breath stays one line */
+  assert.deepEqual(C.splitTake([n(0, 3), n(3.1, 3)], 6.2), []);
+  /* a very long line is cut at its widest gap */
+  assert.deepEqual(C.splitTake([n(0, 6), n(6.3, 6), n(12.4, 3)], 15.5), [6.15]);
+  assert.deepEqual(C.splitTake([], 4), []);
 });

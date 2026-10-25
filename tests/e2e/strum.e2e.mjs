@@ -101,9 +101,9 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
   await page.reload(); await page.waitForSelector("#add");
   await page.click("#add"); await page.waitForSelector("#sr-write"); await page.click("#sr-write"); /* 4.45.0: "What song?" first */ await page.waitForSelector("#ed-sing");
   await page.click("#ed-sing"); await page.waitForSelector("[data-mode='sing']");
-  assert.equal(await page.getAttribute("[data-mode='sing']", "aria-pressed"), "true", "Sing it stays the default");
+  assert.equal(await page.getAttribute("[data-mode='sing']", "aria-pressed"), "true", "Voice stays the default");
   await page.click("[data-mode='strum']");
-  assert.match(await page.innerText("#sk-pad-t"), /Hold to play line 1/);
+  assert.match(await page.innerText("#sk-pad-t"), /TAP TO PLAY/);
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/strum-1.png" });
   await page.waitForFunction(() => !document.querySelector(".skear"), null, { timeout: 60000 });
   const pad = await page.locator("#sk-pad").boundingBox(), px = pad.x + pad.width / 2, py = pad.y + pad.height - 60;
@@ -115,10 +115,11 @@ test("Strum it on the Sing it screen: play a line, and the chords you played go 
   await page.keyboard.type("Lantern hung by the kitchen door");
   await page.evaluate(() => document.activeElement.blur());
   await page.waitForFunction(() => !document.querySelector(".sknb-hear"), null, { timeout: 120000 });
-  const row = await page.innerText(".sknb-row");
+  const row = await page.innerText(".skl");
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/strum-2.png" });
   assert.match(row, /G[\s\S]*C/, "the played chords sit over the words");
-  await page.click("#sk-done"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.sketch));
+  await page.click("#sk-done"); await page.waitForSelector("#sk-save"); await page.click("#sk-save"); /* 4.74.0: Your song, then Save */
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.sketch));
   const song = JSON.parse(await page.evaluate(() => localStorage.getItem("tabs-v1"))).songs.find(s => s.sketch);
   assert.ok(song, "a new song was made");
   assert.match(song.body, /^G\s+C\s*\nLantern hung by the kitchen door$/);

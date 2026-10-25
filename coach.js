@@ -287,7 +287,7 @@ const GESTURES = [
   ["Editing", [
     ["tap", "Tap tempo", "Tap along to set the tempo", "pick"],
     ["", "Tap a chord, or a word", "Tap a chord to change or remove it, or a word to add one on it; + before the first word and after the last, Chords adds a row of chords alone", "edit"],
-    ["", "Sing it, when adding a song", "Hold the pad to sing a line, let go to keep it. Then hear it back with Your recording; Rich adds the 7ths and 9ths you sang", "mic"]]],
+    ["", "Sing it, when adding a song", "Tap the pad and sing the whole verse; Louie splits it into lines at your breaths. Drag a split to move it, tap the melody to add one, or tap a line for its options. Hear the song plays your voice with the chords", "mic"]]],
   ["Sets", [
     ["", "Next up", "Stop stays on this song; it waits if the next needs another tuning", "fork"]]],
   ["Tuner", [

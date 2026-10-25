@@ -38,6 +38,42 @@ export function melodyNotes(frames, { minDur = 0.09, tol = 0.7 } = {}) {
   return notes;
 }
 
+// One take, split into lines at your breaths (4.74.0, Sing it). `notes` are the take's melody notes (melodyNotes),
+// `dur` the take's length in seconds. A gap of `gap` seconds or more with no note is a breath; the cut goes in its
+// middle. A line shorter than `minLine` joins the line before; one longer than `maxLine` is cut at its widest gap.
+// Returns the cut times (seconds, rising), so lines are [0, cuts[0]], [cuts[0], cuts[1]], ... [last, dur].
+export function splitTake(notes, dur, { gap = 0.45, minLine = 1.2, maxLine = 12 } = {}) {
+  const ns = [...(notes || [])].sort((a, b) => a.start - b.start);
+  if (ns.length < 2) return [];
+  const gaps = [];
+  for (let i = 1; i < ns.length; i++) { const end = ns[i - 1].start + ns[i - 1].dur, g = ns[i].start - end; if (g > 0) gaps.push({ at: end + g / 2, g }); }
+  let cuts = gaps.filter(x => x.g >= gap).map(x => x.at);
+  /* too short: join the line before (or, for the first line, the next) */
+  const len = cs => [0, ...cs, dur].slice(1).map((t, i) => t - [0, ...cs][i]);
+  for (let k = 0; k < 50; k++) {
+    const ls = len(cuts), i = ls.findIndex(l => l < minLine);
+    if (i < 0 || !cuts.length) break;
+    cuts.splice(i === 0 ? 0 : i - 1, 1);
+  }
+  /* too long: cut at the widest gap inside it */
+  for (let k = 0; k < 50; k++) {
+    const bounds = [0, ...cuts, dur], i = len(cuts).findIndex(l => l > maxLine);
+    if (i < 0) break;
+    const inside = gaps.filter(x => x.at > bounds[i] + minLine && x.at < bounds[i + 1] - minLine).sort((a, b) => b.g - a.g)[0];
+    if (!inside) break;
+    cuts = [...cuts, inside.at].sort((a, b) => a - b);
+  }
+  return cuts.map(t => Math.round(t * 100) / 100);
+}
+/* The lines of a take at these cuts: { from, to, notes } with each line's notes timed from its own start. */
+export function takeLines(notes, dur, cuts) {
+  const b = [0, ...cuts.filter(t => t > 0 && t < dur).sort((x, y) => x - y), dur];
+  return b.slice(1).map((to, i) => {
+    const from = b[i];
+    return { from, to, notes: (notes || []).filter(n => n.start + n.dur / 2 >= from && n.start + n.dur / 2 < to).map(n => ({ ...n, start: Math.max(0, n.start - from) })) };
+  });
+}
+
 // The key that best fits the notes (Krumhansl-Kessler key profiles, weighted by
 // how long each note is held; the last note leans toward home).
 export const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];

@@ -16,7 +16,7 @@ test("Your profile: worked out from the songs you've played, with a passport, ch
   assert.equal(await page.locator(".pf-tile-streak .ri-knob").count(), 1, "the streak's knob");
   assert.match(await page.innerText(".pf-tiles"), /SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
   assert.ok(await page.locator(".pf-badge:not(.locked)").count() >= 1, "a song played through is a badge");
-  assert.match(await page.innerText(".pf-label:has-text('BADGES')"), /\d+ of 25/);
+  assert.match(await page.innerText(".pf-label:has-text('BADGES')"), /\d+ of 26/);
   /* 4.19.0: the chord passport, a page per family, Learn it opens a lesson */
   assert.match(await page.innerText(".pf-passport"), /Open chords\s*\d+ of 8[\s\S]*Barre chords[\s\S]*NEXT STAMP/);
   assert.ok(await page.locator(".pf-pstamp.on").count() >= 1, "chords played are stamped");
