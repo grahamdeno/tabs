@@ -1755,8 +1755,11 @@ test("Chord Catch (4.54.0): the targets, the two open chords, two readings in a 
   assert.equal(C.targetAt(t, 1), 0); assert.equal(C.targetAt(t, 3), 2); assert.equal(C.targetAt(t, 9), -1);
   const st = C.catchStart(t);
   assert.deepEqual(C.catchOpen(st), [0, 1], "the chord you are on and the next");
-  const quick = C.catchStart(t);
-  assert.equal(C.catchHear(quick, G, { strong: 0.75 }), 0, "4.78.1: one clear reading is enough when the show asks for it");
+  const quick = C.catchStart(C.catchTargets(["D", "G"].map(name => ({ name }))));
+  assert.equal(C.catchHear(quick, D, { strong: 0.75 }), 0, "4.78.1: one clear reading is enough when the show asks for it");
+  const close = C.catchStart(t);
+  assert.equal(C.catchHear(close, G, { strong: 0.75 }), -1, "4.80.2: but not when another chord is near it (G and its relative Em)");
+  assert.equal(C.catchHear(close, G, { strong: 0.75 }), 0, "then two in a row");
   assert.equal(C.catchHear(st, G), -1, "one reading is not enough");
   assert.equal(C.catchHear(st, G), 0, "two in a row catch it");
   assert.ok(st.caught[0]);
@@ -1827,6 +1830,17 @@ test("4.80.1 Chord Catch: one strum, one catch, so a ringing chord can't catch a
   C.catchHear(st, C_, { on: 3, since: 1.2 }); assert.equal(C.catchHear(st, C_, { on: 3, since: 1.25 }), -1, "long after its strum, a ring is not a catch");
   assert.equal(C.catchHear(st, Em, { on: 4, since: 0.1 }), -1); assert.equal(C.catchHear(st, Em, { on: 4, since: 0.15 }), -1, "the next Em is not open yet");
   C.catchHear(st, G, { on: 5, since: 0.1 }); assert.equal(C.catchHear(st, G, { on: 5, since: 0.15 }), 2, "G with its own strum");
+});
+
+test("4.80.2 Chord Catch: a chord is caught only when no other chord of the song fits as well", () => {
+  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
+  const mix = (a, b, k) => sp(a).map((v, i) => v * (1 - k) + sp(b)[i] * k);
+  const st = C.catchStart(C.catchTargets(["Em", "C", "G", "D"].map(name => ({ name }))));
+  C.catchAt(st, 1); st.caught[0] = true;
+  const near = mix("C", "G", 0.5); /* sounds as much like G as like C */
+  assert.ok(Math.abs(C.strumFit(near, "G") - C.strumFit(near, "C")) < 0.2);
+  const pick = C.strumFit(near, "G") > C.strumFit(near, "C") ? 2 : 1;
+  C.catchHear(st, near); assert.equal(C.catchHear(st, near), pick, "the one that fits best, never the other");
 });
 
 test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {

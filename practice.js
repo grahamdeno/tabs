@@ -720,7 +720,7 @@ function whatIHear() {
             st.show.reads++;
             /* the Gig's test: the chord fits, and no other chord here fits clearly better */
             const rival = HEAR_CHORDS.filter(c => c && c !== chord).map(c => [c, strumFit(cr, c) ?? 0]).sort((a, b) => b[1] - a[1])[0];
-            if (f >= CHORD_FIT && rival[1] <= f + 0.08) st.show.fit++;
+            if (f >= CHORD_FIT && rival[1] < f) st.show.fit++; /* 4.80.2: as strict as the show */
             else { const k = f >= CHORD_FIT ? rival[0] : "too little of it"; st.show.other[k] = (st.show.other[k] || 0) + 1; }
           }
         }

@@ -855,7 +855,7 @@ export function catchStart(targets) {
 export function catchAt(st, idx) { const t = targetAt(st.targets, idx); if (t >= 0) st.cur = t; return st.cur; }
 /* targets that can be caught now: the next one you haven't played (from the one you are on), then the one after it,
    up to CATCH_AHEAD past the reading line. 4.79.0: you can play ahead of the song, in order (Graham). */
-export const CATCH_AHEAD = 4, CATCH_AFTER = 0.8;
+export const CATCH_AHEAD = 4, CATCH_AFTER = 0.8, CATCH_CLEAR = 0.2;
 export function catchOpen(st) {
   let nx = st.cur;
   while (nx < st.targets.length && (st.caught[nx] || st.closed[nx])) nx++;
@@ -873,17 +873,22 @@ export function catchHear(st, chroma, opt = {}) {
   if (!chroma) { st.cand = -1; st.n = 0; st.hold = null; return -1; }
   for (const i of [st.cur, st.cur + 1]) if (i < st.targets.length) st.heard[i] = true;
   if (st.hold && (strumFit(chroma, st.hold) ?? 0) < CHORD_FIT) st.hold = null;
-  let best = -1, fit = CHORD_FIT;
+  let best = -1, fit = CHORD_FIT, margin = 0;
   for (const i of catchOpen(st)) {
     const name = st.targets[i].name;
     if (name === st.hold) continue;
     const f = strumFit(chroma, name);
-    /* a chord that shares two notes with this one (C and Am) must not fit better: the song's own chords, and its relative */
-    if (f !== null && f >= fit && st.targets.every(t => t.name === name || (strumFit(chroma, t.name) ?? 0) <= f + 0.08) && (strumFit(chroma, relativeOf(name)) ?? 0) <= f + 0.08) { best = i; fit = f; }
+    if (f === null || f < fit) continue;
+    /* 4.80.2: no other chord of the song, nor this chord's relative, may fit as well (it could fit up to 0.08 better:
+       C and Em heard as G, which shares two notes with each, in Graham's Zombie) */
+    let other = strumFit(chroma, relativeOf(name)) ?? 0;
+    for (const t of st.targets) if (t.name !== name) other = Math.max(other, strumFit(chroma, t.name) ?? 0);
+    if (other < f) { best = i; fit = f; margin = f - other; }
   }
   if (best < 0 || !fresh) { st.cand = -1; st.n = 0; return -1; }
   st.n = best === st.cand ? st.n + 1 : 1; st.cand = best;
-  if (st.n < need && fit < strong) return -1;
+  /* one reading is enough only when it is clear and well ahead of every other chord; else two in a row */
+  if (st.n < need && (fit < strong || margin < CATCH_CLEAR)) return -1;
   st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0; st.lastOn = opt.on;
   return best;
 }
