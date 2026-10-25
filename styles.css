@@ -2388,6 +2388,9 @@ body.gigging .menu.tools { z-index: 60; }
 .tq-head { position: relative; margin: 10px -20px 0; padding: 16px 20px 18px; background: var(--streak); overflow: hidden; }
 .tq-ht h1 { margin: 0; font: 700 28px var(--display); color: #14213D; }
 .tq-ht small { display: block; margin-top: 2px; font: 800 13px var(--sans); letter-spacing: .06em; color: #14213D; }
+/* 4.73.3: in the light looks the tour header is a deeper pink with white words (dark on the bright pink was 3.9:1) */
+:root[data-look="festival"] .tq-head, :root[data-look="green"] .tq-head { background: #C21B57; }
+:root[data-look="festival"] .tq-ht :is(h1, small), :root[data-look="green"] .tq-ht :is(h1, small) { color: #fff; }
 .tq-louie { position: absolute; right: 10px; top: 4px; }
 .tq-louie .louie { width: 104px; height: auto; }
 .tq-goal { position: relative; z-index: 1; margin-top: 26px; background: #14213D; border-radius: 18px; padding: 14px; color: #fff; }
@@ -2901,6 +2904,7 @@ body.gigging .ask { z-index: 66; }
 #tm-take.tm-goalrow { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 .tm-goal { display: flex; align-items: center; gap: 12px; }
 .tm-goal .tm-badge { width: 50px; height: 50px; font-size: 15px; border-width: 3px; }
+:root[data-look] .tm-badge { color: var(--fg); } /* 4.73.3: the rival's colour stays on the ring; the initials are in ink (a pale colour on white was 2.3:1) */
 .tm-goal .tm-sh-t small { font: 800 11px var(--body, Nunito, sans-serif); letter-spacing: .08em; color: var(--muted); }
 .tm-goal .tm-sh-t b { font: 700 21px/1.15 var(--display); white-space: normal; }
 .tm-prog { cursor: pointer; } .tm-prog span { font-size: 15px; font-weight: 700; } .tm-prog b { color: var(--accent-ink); }
