@@ -2256,7 +2256,8 @@ test("4.44.0 achievement callouts: a level and a badge are celebrated once; the 
 });
 
 test("4.44.0 callout looks never repeat back to back, and only joined friends celebrate", () => {
-  for (const kind of Object.keys(C.CALLOUT_LOOKS)) for (const last of C.CALLOUT_LOOKS[kind]) for (const r of [0, 0.5, 0.99]) assert.notEqual(C.pickLook(kind, last, r), last, `${kind} after ${last}`);
+  for (const kind of Object.keys(C.CALLOUT_LOOKS).filter(k => C.CALLOUT_LOOKS[k].length > 1)) for (const last of C.CALLOUT_LOOKS[kind]) for (const r of [0, 0.5, 0.99]) assert.notEqual(C.pickLook(kind, last, r), last, `${kind} after ${last}`);
+  assert.equal(C.pickLook("earn", "pow"), "pow", "4.71.0: what you earned is always a POW");
   const none = { songs: [] };
   assert.equal(C.castFor(none, "combo", null, 0), null, "no band yet: Louie alone");
   const band = { songs: [], journal: { v: 1, months: { "2026-10": { plays: 20 } } } }, joined = C.bandState(band).joined.map(b => b.id);

@@ -9,6 +9,8 @@ import { louie } from "./louie.js";
 import { friend } from "./friends.js";
 
 export const CALLOUT_MS = 1600;
+/* a 14-point comic burst, its points a little uneven so it looks hand drawn */
+const POW = (R, r) => Array.from({ length: 28 }, (_, i) => { const a = Math.PI * i / 14, k = i % 2 ? r * (0.9 + 0.2 * ((i * 7) % 5) / 4) : R * (0.86 + 0.14 * ((i * 3) % 4) / 3); return `${Math.round(Math.cos(a) * k)},${Math.round(Math.sin(a) * k)}`; }).join(" ");
 const queue = [], lastLook = {};
 let showing = false, lastCast = null, dataRef = null;
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -22,7 +24,8 @@ function say(text) {
 
 /**
  * callout(data, { kind, word, big, who })
- *   kind  combo | chord | level | badge | join | lesson (picks the look and who celebrates)
+ *   kind  combo | chord | level | badge | join | lesson | earn (picks the look and who celebrates;
+ *         earn, 4.71.0: what a show or a quest paid, in a comic-book POW with Louie's speaker pumping)
  *   word  the small line (COMBO, NEW CHORD, LEVEL UP)
  *   big   the big part (x20, F, 7)
  *   who   a friend's id who must be the one shown (a new band member)
@@ -47,7 +50,9 @@ function next() {
   el.setAttribute("aria-hidden", "true");
   el.innerHTML = `<div class="co-fx"></div>
     <div class="co-badge"><small>${esc(c.word)}</small>${c.big ? `<b>${esc(c.big)}</b>` : ""}</div>
-    <div class="co-cast">${louie("cheer", { pose: "hornsUp", size: 58 })}${cast ? `<span class="co-friend">${friend(cast, { size: 56, mood: "cheer" })}</span>` : ""}</div>`;
+    <div class="co-cast">${look === "pow" ? `<span class="co-amp">${louie("cheer", { pose: "hornsUp", size: 66 })}<i></i><i></i><i></i></span>` : louie("cheer", { pose: "hornsUp", size: 58 })}${cast ? `<span class="co-friend">${friend(cast, { size: 56, mood: "cheer" })}</span>` : ""}</div>`;
+  /* 4.71.0: POW, a jagged comic-book burst behind the badge, its word stamped on top */
+  if (look === "pow") el.querySelector(".co-fx").innerHTML = `<svg viewBox="-120 -120 240 240" aria-hidden="true"><polygon class="co-star2" points="${POW(116, 70)}"/><polygon class="co-star" points="${POW(104, 62)}"/></svg><b class="co-powt">${esc(c.pow || "POW!")}</b>`;
   if (look === "bolt") el.querySelector(".co-fx").innerHTML = `<svg viewBox="0 0 120 220"><path d="M70 0 L30 100 L62 100 L38 220 L96 82 L62 82 L88 0 Z"/></svg>`;
   if (look === "burst" && !still) el.querySelector(".co-fx").innerHTML = Array.from({ length: 12 }, (_, i) => `<i style="--a:${i * 30}deg;--d:${(i % 3) * 40}ms"></i>`).join("");
   document.body.appendChild(el);

@@ -103,6 +103,8 @@ function questToast() {
   if (!got.length) return;
   Tabs.save(data);
   toast(got.map(x => `${x.label}: +${x.fans} fans`).join(" · "));
+  /* 4.71.0: and a POW for what it paid */
+  showCallout({ kind: "earn", pow: got.length > 1 ? "WHAM!" : "POW!", word: got.length > 1 ? "SETLIST DONE" : "QUEST DONE", big: `+${got.reduce((n, x) => n + x.fans, 0)} fans` });
 }
 let songSpeed = null; /* the song page's speed dial, for the Tools sheet */
 let gigNext = null;

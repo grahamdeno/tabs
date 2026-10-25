@@ -20,9 +20,8 @@
 import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
-import { data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
 import { louie } from "./louie.js";
-import { callout } from "./callout.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss, stageWait } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
@@ -248,7 +247,7 @@ function afterScore(g) {
   paintScore();
   const flashEl = $("gg-combo"); if (flashEl) { flashEl.classList.remove("hit"); void flashEl.offsetWidth; flashEl.classList.add("hit"); }
   /* 4.44.0 (#78): a combo of 10, 25, 50 or 100 bursts over the show, once each per show */
-  if (COMBO_STEPS.includes(g.score.combo) && g.comboShown !== g.score.combo) { g.comboShown = g.score.combo; callout(data, { kind: "combo", word: "COMBO", big: `x${g.score.combo}` }); }
+  if (COMBO_STEPS.includes(g.score.combo) && g.comboShown !== g.score.combo) { g.comboShown = g.score.combo; showCallout({ kind: "combo", word: "COMBO", big: `x${g.score.combo}` }); }
 }
 
 /* A finger moves the song (4.2.2): the page itself scrolls under the see-through show (4.51.0). Changes
@@ -446,6 +445,16 @@ function showComplete() {
     </div></div>`;
   /* 4.66.0: Continue stays on the song page; its Back goes to where the show was started from */
   $("gc-go").onclick = () => { closeGig(true); if (opened) { homeHooks.openDrawer = false; go("#/"); } else redraw?.(); }; /* Opening night's end goes on to the Road */
+  /* 4.71.0: what the show paid bursts in, POW, one at a time: fans, tips, a band member, the streak. Through the
+     app's callout, so they queue with the new-chord one instead of landing on top of it */
+  const totalFans = fans + 10 + earned.reduce((n, x) => n + x.fans, 0);
+  setTimeout(() => {
+    if (gig !== g) return;
+    showCallout({ kind: "earn", pow: "POW!", word: "FANS", big: `+${totalFans}` });
+    showCallout({ kind: "earn", pow: "KA-CHING!", word: "TIPS", big: `+$${tips}` });
+    if (joined[0]) showCallout({ kind: "join", word: "JOINED YOUR BAND", big: FRIENDS.find(x => x.id === joined[0].id)?.name || joined[0].id, who: joined[0].id });
+    else if (st.days >= 2) showCallout({ kind: "earn", pow: "ROCK ON!", word: "GIG STREAK", big: `${st.days} nights` });
+  }, 500);
   $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
   /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own, and the merch table */
   $("gc-bdc").onclick = () => {

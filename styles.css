@@ -3975,3 +3975,21 @@ body.covered .cebar.plate::before { content: ""; position: absolute; z-index: -1
 .hud button > svg:not(.ri-guitar) { width: 24px; height: auto; }
 .hud .h-streak .ri-guitar { width: 30px; height: 30px; }
 .hud .h-lab { font-size: 9px; letter-spacing: .04em; }
+
+/* 4.71.0: POW, what you earned, comic-book style, with Louie's speaker pumping to the beat */
+.co-pow .co-fx svg { position: absolute; width: 280px; height: 280px; left: -140px; top: -150px; overflow: visible; animation: co-pow .5s cubic-bezier(.2,1.6,.4,1) both, co-wob 1.2s .5s ease-in-out infinite alternate; }
+.co-pow .co-star2 { fill: #14213D; }
+.co-pow .co-star { fill: #FFD23F; stroke: #14213D; stroke-width: 4; stroke-linejoin: round; }
+.co.co-pow { top: calc(var(--safe-t, 0px) + 30vh); } /* below the title, over the tiles that say the same */
+.co-pow .co-powt { position: absolute; left: -120px; top: -146px; white-space: nowrap; transform: rotate(-12deg); font: 700 34px/1 var(--display); color: #FF3D7F; -webkit-text-stroke: 4px #14213D; paint-order: stroke fill; text-shadow: 3px 3px 0 #14213D; animation: co-stampt .4s .12s cubic-bezier(.5,0,.6,1.5) both; }
+.co-pow .co-badge { background: #fff; border: 4px solid #14213D; box-shadow: 6px 6px 0 #14213D; transform: rotate(-3deg); }
+.co-pow .co-badge small { color: #14213D; }
+.co-pow .co-badge b { color: #3DDBA0; -webkit-text-stroke: 4px #14213D; text-shadow: 3px 3px 0 #14213D; }
+.co-amp { position: relative; display: block; line-height: 0; animation: co-pump .5s ease-in-out .2s 3 both; transform-origin: 50% 100%; }
+.co-amp i { position: absolute; left: 50%; top: 62%; width: 30px; height: 30px; margin: -15px; border-radius: 50%; border: 3px solid #FF3D7F; opacity: 0; animation: co-ring 1s ease-out infinite; }
+.co-amp i:nth-child(3) { animation-delay: .33s; border-color: #FFD23F; } .co-amp i:nth-child(4) { animation-delay: .66s; border-color: #3D8BFF; }
+@keyframes co-pow { from { transform: scale(.1) rotate(-30deg); } to { transform: none; } }
+@keyframes co-wob { from { transform: rotate(-4deg) scale(1); } to { transform: rotate(4deg) scale(1.04); } }
+@keyframes co-stampt { from { transform: rotate(-12deg) scale(2.4); opacity: 0; } to { transform: rotate(-12deg) scale(1); opacity: 1; } }
+@keyframes co-pump { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.1, .92); } 60% { transform: scale(.96, 1.06); } }
+@keyframes co-ring { from { transform: scale(.4); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }

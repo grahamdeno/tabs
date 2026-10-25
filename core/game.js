@@ -377,7 +377,7 @@ export function achSettle(data, p, had = null) {
   return out.slice(0, 3); /* a big night caps at three callouts; the rest are on Your profile */
 }
 /* Variations (#79): each kind has a few looks; the next one is never the one just shown. */
-export const CALLOUT_LOOKS = { combo: ["bolt", "rays", "burst"], chord: ["stamp", "burst"], level: ["light", "rays"], badge: ["flip", "burst", "rays"], join: ["burst", "light"], lesson: ["rays", "burst"] };
+export const CALLOUT_LOOKS = { earn: ["pow"], combo: ["bolt", "rays", "burst"], chord: ["stamp", "burst"], level: ["light", "rays"], badge: ["flip", "burst", "rays"], join: ["burst", "light"], lesson: ["rays", "burst"] };
 export function pickLook(kind, last, r = Math.random()) {
   const looks = CALLOUT_LOOKS[kind] || ["burst"], pool = looks.length > 1 ? looks.filter(x => x !== last) : looks;
   return pool[Math.floor(r * pool.length) % pool.length];
