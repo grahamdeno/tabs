@@ -362,7 +362,7 @@ function renderViewer(id) {
   const foldNav = () => {
     const x = fromSet, list = x ? setSongs(x) : [], nx = x && list[setCtx?.idx + 1];
     if (nx) return { html: `<span class="fn-t">${esc(nx.title)}</span><small>${setCtx.idx + 2} of ${list.length}</small>${icon("chev")}`, label: `Next song: ${nx.title}`, run: () => { stopScroll(); $("snext")?.click(); } };
-    return { html: `${icon("back")}<span class="fn-t">Songbook</span>`, label: "Back to the Songbook", run: () => { stopScroll(); go("#/library"); } };
+    return null; /* 4.73.0: no Songbook button beside Pause (left from version 3); Pause, then the page's Back */
   };
   foldApi = setupFold({ back: { label: back.label, run: () => go(back.to) }, playing: () => scroll.on, nav: foldNav, band: () => bandSheet(song) });
   refreshSpeed = () => { if (viewing !== song || !speed.isConnected) return; if (byLength()) speed.value = 540 - songLength(song); showSpeed(); };

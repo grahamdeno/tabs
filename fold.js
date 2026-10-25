@@ -22,7 +22,7 @@ export function setupFold(o) {
   const el = document.createElement("div");
   el.className = "fp";
   el.id = "fp";
-  el.innerHTML = `<div class="fp-pull" aria-hidden="true">↓ <span></span></div><button class="fp-nav" id="fp-nav"></button>${o.band ? `<button class="fp-band" id="fp-band" aria-label="The band: on or off, and how loud" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button>` : ""}`;
+  el.innerHTML = `<div class="fp-pull" aria-hidden="true">↓ <span></span></div><button class="fp-nav" id="fp-nav"></button>${o.band ? `<button class="fp-band" id="fp-band" aria-label="The beat: Off, Bass drum or Metronome, and how loud" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button>` : ""}`;
   el.querySelector(".fp-nav").onclick = () => o.nav?.().run();
   el.querySelector(".fp-band")?.addEventListener("click", () => o.band()); /* 4.43.0: the band while the song plays */
   app.appendChild(el);

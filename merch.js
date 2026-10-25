@@ -58,7 +58,7 @@ export function renderMerch() {
     <div class="mc-row three">${of("gear").map(gear).join("")}</div>
     <h2 class="mc-h"><span>Louie's finish</span><small>yours to keep</small></h2>
     <div class="mc-row scroll">${of("louie").map(fin).join("")}</div>
-    <h2 class="mc-h"><span>Stage backdrops</span><small>behind every gig</small></h2>
+    <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;

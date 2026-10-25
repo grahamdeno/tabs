@@ -423,13 +423,8 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   await page.waitForFunction(() => { const p = document.getElementById('play'), r = p.getBoundingClientRect(); return !document.getAnimations().some(a => a.playState === 'running' && (a.effect?.target === p || a.effect?.target?.contains?.(p))) && r.left + r.width / 2 > 320 && r.top + r.height / 2 > 760; });
   const c = await center();
   assert.ok(c.x > 320 && c.y > 760, `Play waits in the corner (${c.x}, ${c.y})`);
-  assert.match(await page.innerText("#fp-nav"), /Songbook/, "beside it, the way back to the Songbook");
-  await page.click("#fp-nav"); await page.waitForFunction(() => location.hash === '#/library');
-  assert.equal(await page.evaluate(() => location.hash), "#/library", "the Songbook page");
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector("#rd-tonight");
-  await page.evaluate(() => import("/app.js").then(m => m.playSong("a"))); await page.waitForSelector("#fp-nav", { state: "visible" }); /* a song opened from the Road and played */
-  await page.click("#fp-nav");
-  await page.waitForFunction(() => location.hash === "#/library", null, { timeout: 4000 }); /* 4.9.0: the Songbook is a page from the Road too */
+  assert.equal(await page.locator("#fp-nav:visible").count(), 0, "4.73.0: no Songbook button beside Pause (left from version 3); a set still offers the next song");
+  await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains('fold'));
   await page.goto(base + "#/song/a"); await page.waitForSelector('#play');
   await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
   /* a long hold is still a tap: nothing opens, and it pauses */
