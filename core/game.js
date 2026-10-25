@@ -19,7 +19,15 @@ export function roadPath(data, now = Date.now()) {
     const stops = [];
     let since = 0, allDone = true;
     for (const st of lv.steps) {
-      if (st.kind !== "check" && since === BOX_EVERY) { stops.push({ id: `b:${lv.id}-${stops.length}`, kind: "box", name: "Merch box", state: allDone ? "done" : "locked" }); since = 0; }
+      if (st.kind !== "check" && since === BOX_EVERY) {
+        /* 4.76.0: a box you've reached stays shut until you tap it open; it's then the next stop. With no
+           data.boxes (a save from before 4.76.0), every box you've reached counts as opened, as it did. */
+        const id = `b:${lv.id}-${stops.length}`, opened = !data.boxes || data.boxes.opened.includes(id);
+        const state = !allDone ? "locked" : opened ? "done" : current ? "open" : "now";
+        const box = { id, kind: "box", name: "Merch box", state };
+        if (state === "now") current = box;
+        stops.push(box); since = 0;
+      }
       const state = st.state === "now" ? (current ? "open" : "now") : st.state;
       const stop = { ...st, kind: st.kind === "check" ? "headline" : st.kind, state, leg: lv.id };
       if (state === "now") current = stop;
@@ -72,6 +80,25 @@ export function openingAdvance(data, id, now = Date.now()) {
   o.step++;
   if (!o.replay && id !== "show") o.fans = (o.fans || 0) + FANS.lesson;
   if (o.step >= OPENING.length) o.done = now;
+  return true;
+}
+/* Merch boxes (4.76.0): the ids of the boxes you've opened on the Road. */
+export function cleanBoxes(raw) {
+  if (!isObj(raw)) return null;
+  const opened = [...new Set((Array.isArray(raw.opened) ? raw.opened : []).filter(x => typeof x === "string" && /^b:[\w-]{1,40}$/.test(x)))].slice(0, 300);
+  return { opened };
+}
+/* The first time 4.76.0 shows the Road, the boxes you'd already reached are kept as opened, so no fans go missing. */
+export function boxesSeed(data, now = Date.now()) {
+  if (data.boxes) return false;
+  data.boxes = { opened: roadPath(data, now).legs.flatMap(l => l.stops).filter(s => s.kind === "box" && s.state === "done").map(s => s.id) };
+  return true;
+}
+/* Open a box: only the one that's your next stop. True when it opened (+FANS.box, counted by fansOf). */
+export function openBox(data, id, now = Date.now()) {
+  const cur = roadPath(data, now).current;
+  if (!cur || cur.kind !== "box" || cur.id !== id) return false;
+  data.boxes = { opened: [...(data.boxes?.opened || []), id] };
   return true;
 }
 export function cleanOpening(raw) {

@@ -330,6 +330,22 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.every(s => !s.playLog?.total)), true);
 });
 
+test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", { skip: skip() }, async t => {
+  const skills = { done: { "c:G": { n: 3, best: 90, at: Date.now() }, "c:C": { n: 3, best: 90, at: Date.now() }, "c:D": { n: 3, best: 90, at: Date.now() } } };
+  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
+  await page.waitForSelector(".rd-node.box.now .rd-case");
+  assert.equal(await page.innerText(".rd-stop.cur .rd-tag"), "Tap to open", "the shut box is the next stop");
+  const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
+  const before = await fans();
+  await page.click(".rd-node.box.now");
+  await page.waitForSelector(".co-powt");
+  assert.match(await page.innerText(".co-powt"), /POW/, "a POW for the box");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).boxes?.opened?.length === 1);
+  await page.waitForSelector(".rd-node.box.done .ctee");
+  await page.waitForFunction(b => +(document.querySelector("#h-fans")?.innerText || "0").replace(/\D/g, "") >= b + 25, before);
+  assert.equal(await page.locator(".rd-node.box.now").count(), 0, "opened, the road moves on");
+});
+
 test("The Road is home (4.0.0): stat bar, leg banner, the path with its current stop open, Louie, the Songbook bar and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
@@ -359,6 +375,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click(".rd-node.locked >> nth=0");
   assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
   await page.click(".rd-legmark >> nth=1"); await page.waitForSelector(".rd-pop", { state: "detached" });
+  assert.equal(await page.locator(".rd-node.box .rd-case").count(), await page.locator(".rd-node.box").count(), "4.76.0: a merch box is a road case");
   /* tonight's song plays as a gig (4.1.0) */
   await page.click("#rd-tonight");
   await page.waitForSelector("#gig");

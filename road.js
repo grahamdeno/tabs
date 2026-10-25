@@ -12,10 +12,10 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { VERSION, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { VERSION, boxesSeed, openBox, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
-import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route } from "./app.js";
+import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -87,7 +87,11 @@ const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
    carries a small tag with its name, so you can see what's next without a tap */
 const TICKET = "M-53 -34 H53 A12 12 0 0 1 65 -22 V-9 A9 9 0 0 0 65 9 V22 A12 12 0 0 1 53 34 H-53 A12 12 0 0 1 -65 22 V9 A9 9 0 0 0 -65 -9 V-22 A12 12 0 0 1 -53 -34 Z";
 const ticketSVG = now => `<svg class="rd-pk rd-tk" viewBox="-80 -60 160 120" aria-hidden="true">${now ? `<path class="rd-halo" d="${TICKET}" transform="scale(1.18)"/>` : ""}<path class="rd-lip" d="${TICKET}" transform="translate(0 7)"/><path class="rd-body" d="${TICKET}"/><path class="rd-shine" d="M-44 -24 H20" stroke-width="6" stroke-linecap="round" fill="none"/><path class="rd-tear" d="M34 -24 V24" fill="none" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
-const tagOf = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `${s.name} chord` : s.name;
+/* 4.76.0: a merch box is a road case, not a pick: shut with its latches and stickers, then tapped open with
+   the lid back, a T-shirt rising out and sparkles. Coloured by the stop's state (--pk, --pkd). */
+const CASE_SHUT = `<svg class="rd-case" viewBox="0 0 120 120" aria-hidden="true"><path class="cds" d="M44 30 v-9 a7 7 0 0 1 7 -7 h18 a7 7 0 0 1 7 7 v9" stroke-width="7" fill="none" stroke-linecap="round"/><rect class="ct" x="38" y="25" width="12" height="7" rx="2"/><rect class="ct" x="70" y="25" width="12" height="7" rx="2"/><rect class="cd" x="10" y="36" width="100" height="74" rx="13"/><rect class="cb" x="10" y="30" width="100" height="74" rx="13"/><path class="cd" opacity=".28" d="M23 30 h74 a13 13 0 0 1 13 13 v12 h-100 v-12 a13 13 0 0 1 13 -13 z"/><rect class="ct" x="10" y="54" width="100" height="5"/><path class="csh" d="M22 37 h44" stroke-width="4" stroke-linecap="round"/><circle class="ct" cx="17" cy="37" r="8"/><circle class="cd" cx="17" cy="37" r="3"/><circle class="ct" cx="103" cy="37" r="8"/><circle class="cd" cx="103" cy="37" r="3"/><circle class="ct" cx="17" cy="97" r="8"/><circle class="cd" cx="17" cy="97" r="3"/><circle class="ct" cx="103" cy="97" r="8"/><circle class="cd" cx="103" cy="97" r="3"/><rect class="ct" x="34" y="48" width="12" height="17" rx="3"/><rect class="cd" x="37" y="57" width="6" height="5" rx="1.5"/><rect class="ct" x="74" y="48" width="12" height="17" rx="3"/><rect class="cd" x="77" y="57" width="6" height="5" rx="1.5"/><circle class="cs1" cx="38" cy="83" r="10"/><polygon class="ck" points="38.0,76.5 39.7,80.6 44.2,81.0 40.8,83.9 41.8,88.3 38.0,85.9 34.2,88.3 35.2,83.9 31.8,81.0 36.3,80.6"/><g transform="rotate(-10 80 82)"><rect class="cs2" x="66" y="74" width="28" height="15" rx="4"/><path class="cks" d="M71 79 h18 M71 84 h12" stroke-width="2.6" stroke-linecap="round"/></g></svg>`;
+const CASE_OPEN = `<svg class="rd-case" viewBox="0 0 120 120" aria-hidden="true"><path class="cd" d="M14 54 L26 6 H94 L106 54 Z"/><path class="cf" d="M22 52 L31 12 H89 L98 52 Z"/><circle class="cf2" cx="38" cy="24" r="2.6"/><circle class="cf2" cx="49" cy="24" r="2.6"/><circle class="cf2" cx="60" cy="24" r="2.6"/><circle class="cf2" cx="71" cy="24" r="2.6"/><circle class="cf2" cx="82" cy="24" r="2.6"/><circle class="cf2" cx="40" cy="34" r="2.6"/><circle class="cf2" cx="51" cy="34" r="2.6"/><circle class="cf2" cx="62" cy="34" r="2.6"/><circle class="cf2" cx="73" cy="34" r="2.6"/><circle class="cf2" cx="84" cy="34" r="2.6"/><circle class="cf2" cx="42" cy="44" r="2.6"/><circle class="cf2" cx="53" cy="44" r="2.6"/><circle class="cf2" cx="64" cy="44" r="2.6"/><circle class="cf2" cx="75" cy="44" r="2.6"/><circle class="cf2" cx="86" cy="44" r="2.6"/><rect class="ct" x="26" y="4" width="68" height="5" rx="2.5"/><g class="ctee" transform="translate(60 44) scale(1.15)"><path class="ctees" d="M-22 -18 L-9 -24 Q0 -17 9 -24 L22 -18 L32 -6 L22 1 L19 -2 L19 24 L-19 24 L-19 -2 L-22 1 L-32 -6 Z" transform="translate(0 3)"/><path class="cteeb" d="M-22 -18 L-9 -24 Q0 -17 9 -24 L22 -18 L32 -6 L22 1 L19 -2 L19 24 L-19 24 L-19 -2 L-22 1 L-32 -6 Z"/></g><polygon class="ck" points="60.0,34.0 61.6,37.8 65.7,38.1 62.6,40.8 63.5,44.9 60.0,42.7 56.5,44.9 57.4,40.8 54.3,38.1 58.4,37.8"/><rect class="cd" x="10" y="58" width="100" height="56" rx="13"/><rect class="cb" x="10" y="52" width="100" height="56" rx="13"/><rect class="ct" x="10" y="52" width="100" height="6" rx="3"/><circle class="ct" cx="17" cy="101" r="8"/><circle class="cd" cx="17" cy="101" r="3"/><circle class="ct" cx="103" cy="101" r="8"/><circle class="cd" cx="103" cy="101" r="3"/><g transform="rotate(14 40 60)"><rect class="ct" x="34" y="58" width="12" height="15" rx="3"/></g><g transform="rotate(14 80 60)"><rect class="ct" x="74" y="58" width="12" height="15" rx="3"/></g><circle class="cs1" cx="38" cy="88" r="10"/><polygon class="ck" points="38.0,81.5 39.7,85.6 44.2,86.0 40.8,88.9 41.8,93.3 38.0,90.9 34.2,93.3 35.2,88.9 31.8,86.0 36.3,85.6"/><g transform="rotate(-10 80 87)"><rect class="cs2" x="66" y="79" width="28" height="15" rx="4"/><path class="cks" d="M71 84 h18 M71 89 h12" stroke-width="2.6" stroke-linecap="round"/></g><path class="cx" d="M16 13 Q17.26 18.74 23 20 Q17.26 21.26 16 27 Q14.74 21.26 9 20 Q14.74 18.74 16 13 Z"/><path class="cx" d="M104 20 Q105.08 24.92 110 26 Q105.08 27.08 104 32 Q102.92 27.08 98 26 Q102.92 24.92 104 20 Z"/><path class="cx2" d="M98 2 Q98.72 5.28 102 6 Q98.72 6.72 98 10 Q97.28 6.72 94 6 Q97.28 5.28 98 2 Z"/></svg>`;
+const tagOf = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? (s.state === "now" ? "Tap to open" : "Merch box") : s.kind === "chord" ? `${s.name} chord` : s.name;
 /* A pick's card, opened by a tap (4.35.0, like the old card but only on a tap): the next stop's is in the
    streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
 function stopCard(stop) {
@@ -102,7 +106,7 @@ function stopCard(stop) {
   const line = stop.kind === "chord" ? "Ring every string clean, one at a time."
     : stop.kind === "switch" ? "Land the change on the beat."
     : stop.kind === "scale" ? "Up and back down, one note at a time."
-    : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Opens when you reach it: +${FANS.box} fans.`) : "";
+    : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Reach it, then tap it open: +${FANS.box} fans.`) : "";
   const act = stop.kind === "box" || stop.state === "locked" ? ""
     : `${stop.state === "done" ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
   return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it." : line)}</p>${act}</div>`;
@@ -185,6 +189,7 @@ export function renderRoad() {
   if (ov) { homeHooks.openDrawer = false; return renderOpening(ov); }
   const wantDrawer = homeHooks.openDrawer; homeHooks.openDrawer = false;
   const plays = lifetimePlays(data), st = streakOf(playSongs(data)), v = venueNow(data);
+  if (boxesSeed(data)) Tabs.save(data); /* 4.76.0: boxes already reached stay opened */
   const road = roadPath(data), cur = road.current, leg = road.leg;
   const song = upNext(), say = louieLine(st, plays);
   const trip = song && plays && !st.today ? tripFor(song) : null;
@@ -204,7 +209,7 @@ export function renderRoad() {
       const x = ZIG[i++ % ZIG.length], big = s.kind === "headline";
       const ic = iconOf(s);
       const label = `${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`;
-      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px">${s === cur ? `<span class="rd-tag" aria-hidden="true">${esc(tagOf(s))}</span>` : ""}<button class="rd-node ${s.kind} ${s.state}${big ? " big tk" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${big ? ticketSVG(s.state === "now") : pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span></button></div>`;
+      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px">${s === cur ? `<span class="rd-tag" aria-hidden="true">${esc(tagOf(s))}</span>` : ""}<button class="rd-node ${s.kind} ${s.state}${big ? " big tk" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${s.kind === "box" ? (s.state === "done" ? CASE_OPEN : CASE_SHUT) : `${big ? ticketSVG(s.state === "now") : pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span>`}</button></div>`;
     }).join("")}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
@@ -256,10 +261,21 @@ export function renderRoad() {
     const node = e.target.closest("[data-stop]");
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
+    if (s?.kind === "box" && s.state === "now") return openCase(node, s);
     const open = wrap.querySelector(".rd-pop");
     closePop();
     if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); }
   });
+  /* 4.76.0: tap the next box: it pops open, the T-shirt rises out, the fans burst in, then the road moves on */
+  const openCase = (node, s) => {
+    if (node.classList.contains("opening") || !openBox(data, s.id)) return;
+    Tabs.save(data); haptic(2);
+    node.parentElement.querySelector(".rd-tag")?.remove();
+    node.classList.add("opening", "done"); node.classList.remove("now");
+    node.innerHTML = CASE_OPEN;
+    showCallout({ kind: "earn", pow: "POW!", word: "MERCH BOX", big: `+${FANS.box} fans` });
+    setTimeout(() => { if (document.contains(node)) renderRoad(); }, 1400);
+  };
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
   if (curNode) path.scrollTop = Math.max(0, curNode.parentElement.offsetTop - path.clientHeight / 3);

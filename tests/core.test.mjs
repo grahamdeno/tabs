@@ -2438,3 +2438,22 @@ test("Sing it (4.74.0): one take is split into lines at the breaths", () => {
   assert.deepEqual(C.splitTake([n(0, 6), n(6.3, 6), n(12.4, 3)], 15.5), [6.15]);
   assert.deepEqual(C.splitTake([], 4), []);
 });
+
+test("4.76.0 merch boxes: a reached box stays shut as the next stop until opened; old saves keep theirs", () => {
+  const skills = { done: { "c:G": { n: 3, best: 90 }, "c:C": { n: 3, best: 90 }, "c:D": { n: 3, best: 90 } } };
+  const old = { songs: [], settings: {}, skills };
+  const was = C.fansOf(old);
+  assert.equal(C.roadPath(old).legs[0].stops[3].state, "done", "a save from before 4.76.0: a reached box counts as opened");
+  assert.equal(C.boxesSeed(old), true); assert.equal(C.fansOf(old), was, "seeding keeps every fan");
+  assert.equal(C.boxesSeed(old), false, "seeds once");
+  const d = { songs: [], settings: {}, skills, boxes: { opened: [] } };
+  const r = C.roadPath(d), box = r.legs[0].stops[3];
+  assert.equal(box.kind, "box"); assert.equal(box.state, "now"); assert.equal(r.current, box, "the shut box is the next stop");
+  assert.equal(r.legs[0].stops[4].state, "open", "the lesson after it can still be played");
+  assert.equal(C.openBox(d, "b:nope-1"), false, "only the next box opens");
+  const before = C.fansOf(d);
+  assert.equal(C.openBox(d, box.id), true);
+  assert.equal(C.fansOf(d), before + C.FANS.box, "opening pays its fans");
+  assert.equal(C.roadPath(d).legs[0].stops[3].state, "done");
+  assert.deepEqual(C.cleanBoxes({ opened: ["b:open-3", "b:open-3", "x", 5] }), { opened: ["b:open-3"] });
+});

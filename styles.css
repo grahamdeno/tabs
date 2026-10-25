@@ -4176,3 +4176,25 @@ body.playing .tuneup { display: none; }
    was more specific and painted it in the card's own colour) */
 :root[data-look] .rd-pop.now .rd-start { background: #fff; color: var(--streak-deep); box-shadow: 0 5px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
 :root[data-look] .rd-pop.now .rd-start:active:not(:disabled) { box-shadow: 0 2px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
+
+/* ---- 4.76.0: the merch box is a road case you tap open (roll back: revert the 4.76.0 commit) ---- */
+.rd-node.box { width: 80px; height: 80px; }
+.rd-node.box.now { width: 96px; height: 96px; }
+.rd-node.box .rd-case { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.rd-case .cb { fill: var(--pk); } .rd-case .cd { fill: var(--pkd); } .rd-case .cds { stroke: var(--pkd); }
+.rd-case .ct { fill: rgba(255,255,255,.82); } .rd-case .csh { stroke: rgba(255,255,255,.4); }
+.rd-case .cs1 { fill: #3DE0FF; } .rd-case .cs2 { fill: #B8F34A; } .rd-case .ck { fill: #1D1640; } .rd-case .cks { stroke: #1D1640; }
+.rd-case .cf { fill: #1D1640; opacity: .45; } .rd-case .cf2 { fill: #1D1640; opacity: .35; }
+.rd-case .cteeb { fill: #3DE0FF; } .rd-case .ctees { fill: #1FA8C4; }
+.rd-case .cx { fill: #FFF6CC; } .rd-case .cx2 { fill: #B8F34A; }
+.rd-node.box.locked .ct { fill: var(--locked-ic); opacity: .55; } .rd-node.box.locked .csh { display: none; }
+.rd-node.box.locked .cs1, .rd-node.box.locked .cs2 { fill: var(--locked-deep); } .rd-node.box.locked .ck { fill: var(--locked-ic); } .rd-node.box.locked .cks { stroke: var(--locked-ic); }
+.rd-node.box.now::before { content: ""; position: absolute; inset: -16% -18% -10%; border-radius: 42%; background: color-mix(in srgb, var(--streak) 28%, transparent); animation: rd-boxhalo 1.8s ease-in-out infinite; }
+@keyframes rd-boxhalo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: .5; } }
+.rd-node.box.now .rd-case { animation: rd-casebob 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes rd-casebob { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px) rotate(-2deg); } 60% { transform: translateY(-5px) rotate(2deg); } }
+.rd-node.box.opening .rd-case { animation: rd-casepop .55s cubic-bezier(.3,1.6,.5,1); }
+@keyframes rd-casepop { 0% { transform: scale(.8); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.rd-node.box.opening .ctee { animation: rd-teeup .6s ease-out; transform-box: fill-box; }
+@keyframes rd-teeup { from { opacity: 0; translate: 0 22px; } }
+@media (prefers-reduced-motion: reduce) { .rd-node.box.now::before, .rd-node.box.now .rd-case, .rd-node.box.opening .rd-case, .rd-node.box.opening .ctee { animation: none; } }
