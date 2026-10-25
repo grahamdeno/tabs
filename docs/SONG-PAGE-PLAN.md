@@ -5,7 +5,7 @@ shows the count-in (Louie jumping on each beat) and the audience; the bottom but
 Pause. One Tools sheet. The drums go. Then the economy, celebrations, a better way to get songs in, a weather
 idea, and an accessibility pass.
 
-Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockups.
+Order and models agreed 2026-10-24: Graham wants as many releases as can be done well, one after another.
 
 ## Decisions (Graham, 2026-10-24)
 
@@ -18,6 +18,9 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 - D6. Weather: both ideas yes; mockups first.
 - D7. Backdrops move to the Show complete sheet: the one you wear is the banner behind Louie and the band, with Change.
 - D8. Getting songs in, inside the app: search finds the song on Apple Music and links to the chords for your level; coming back, The Road offers Paste at once and confirms what it added. Also Scan a page (camera) and Sing it (redesigned). Timed scrolling to the recording stays.
+- D11. Get the song's chord placing and Line up from the chord sites stay until paste has been used for two weeks; then Graham decides on removing them. Tempo lookup stays (GetSongBPM first, the AI only as fallback). The AI groove and drums code stays for Beat's return.
+- D12. Losing a venue is in: fans that fade can take you back a venue (Step 5).
+- D13. Reuse what exists: the Songbook's paste card is the paste flow to build on.
 - D10. Graham (2026-10-24): never remove a feature or an AI capability without asking him first. Keep the AI wherever it's needed, and make it better. Each AI feature's fate is his call (list in Step 6).
 - D9. Weather: Tune up first on the song page only (the venue ideas are out).
 
@@ -72,8 +75,9 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 
 ### Step 5 [Opus] 4.70.0: fans and tips (D4)
 - Fans are your reputation and are never spent: practice and lessons earn fans, shows earn fans.
-- Fans fade when you neither practice nor play: none for 2 days, then 1% a day, never below what your
-  current leg of the Road needs (proposed, Graham to confirm). A Rain check covers a day.
+- Fans fade when you neither practice nor play: none for 2 days, then 1% a day. Fans below a venue's line
+  take you back to the venue before, with a warning a day ahead on the Road. Bought things stay. A Rain
+  check covers a day.
 - Tips are money and only shows earn them, more with a bigger crowd and a longer run.
 - Merch costs tips. Unspent fans today convert to tips once, so nothing bought or saved is lost.
 - XP stays behind the weekly chart only.
@@ -101,3 +105,7 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 - Find and remove controls left from version 3 (a navigation button Graham has seen).
 
 ## Surprises
+- Steps 1 and 6 were built together and shipped as 4.67.0 (4.66.0 is the song page part, in the same commit): they touch the same files.
+- Step 1: the Gig was already see-through over the song page (4.51.0), so the friction was the second set of controls: its own X, Tools hiding Practice and the Song tab in a show, most Tools rows ending the show, and Continue on Show complete leaving for the Road. All four are gone; the page's Back returns to where the show started (Road, Tour, Charts). Louie's moments and the backdrop over the show are out (D1); the backdrop is the Show complete banner (D7).
+- Step 6: the paste-back sheet already existed (`pendingFind`, a small banner on the Songbook only). It is now a bottom sheet on any page but Edit or a show, and adds a chord sheet straight away. The AI names a chart page and its rating from its search results; a link that isn't on a known chord site is not opened. The catalog row's old action (Get the song, or Start a sheet without a key) is kept inside the sheet.
+- Step 2 (4.68.0): Louie had never jumped: the CSS looked for `.beat` inside `.so-lou`, but the class is on `.so-lou` itself. The recording's start delay is measured from play() to its clock moving; it starts at 300 ms until measured.

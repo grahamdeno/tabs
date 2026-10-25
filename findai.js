@@ -4,7 +4,7 @@ import { Tabs, TUNINGS, chartOfSheet, knownChords, sheetChords, buildChart, chor
 import { oneHandMQ } from "./ui.js";
 import { coverHead, searchApple, attachRecording } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
-import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route, chordSVG, redraw } from "./app.js";
+import { $, data, esc, icon, layer, toast, go, busy, AI, aiKey, askClaude, aiError, parseJSON, openLink, expectPaste, newSong, appleSearchURL, leaveSearch, bpmKey, aiLastStop, grooveFor, route, chordSVG, redraw } from "./app.js";
 import { louie } from "./louie.js";
 // Ask with web search turned on: Claude searches (up to `searches` times) and answers.
 // Returns { text, sources: [{ url, title }] }. Long searches may pause; we carry on.
@@ -856,4 +856,85 @@ export async function findDrums(song, parts = []) {
   const text = await askClaude({ model: AI.fast, system: DRUMS_SYSTEM, content: facts, maxTokens: 3000 }).catch(() => "");
   const d = cleanDrums({ ...parseJSON(text), src: "ai" });
   return d || null;
+}
+
+// ---- Get the chords (4.67.0): the best-rated chart to copy, for your level ----
+// The AI searches the chord sites and names one chart page (it reads the ratings in the search results; the
+// sites don't let it read the chart itself). You open it, copy it, come back, and The Road pastes it in.
+const LINK_SYSTEM = `You find the best chord chart page for a song on the guitar chord sites, for a player's level. Use web search. Reply with JSON only, no other text:
+{"found": boolean, "url": string, "site": string, "kind": "chords"|"tab", "rating": number, "votes": number, "difficulty": string, "why": string}
+- Prefer Ultimate Guitar: its official version, or its highest-rated chords version with the most ratings. Use another good site (Chordify, E-Chords, Songsterr, AZChords) only when Ultimate Guitar has no chart for the song.
+- Level Beginner: the highest-rated version marked beginner or novice, else the simplest common one (open chords, a capo). Intermediate: the highest-rated chords version. Advanced: the version closest to the recording (official, or the full chords as recorded).
+- Chords, not tabs, unless the song only has tabs.
+- "url": the chart's own page, exactly as it appears in your search results. Never make up or edit a URL.
+- "rating": out of 5 and "votes": how many ratings, as the site shows them; 0 when you can't see them. "difficulty": as the site labels it, or "". "why": one short sentence on why this one.
+- Never write any lyrics or any words from the song.`;
+const CHART_SITES = /^https:\/\/([a-z0-9-]+\.)*(ultimate-guitar\.com|chordify\.net|e-chords\.com|songsterr\.com|azchords\.com|cifraclub\.com|guitartabs\.cc|chordu\.com)\//i;
+const LEVEL_NAME = { easy: "Beginner", mine: "Intermediate", rec: "Advanced" };
+export async function findChartLink(title, artist, level) {
+  const { text, sources } = await askClaudeSearch({ system: LINK_SYSTEM, searches: 4, maxTokens: 1500,
+    content: `Song: ${title}${artist ? ` by ${artist}` : ""}\nLevel: ${LEVEL_NAME[level] || "Intermediate"}` });
+  const j = parseJSON(text) || {};
+  const url = String(j.url || "").trim();
+  if (!j.found || !CHART_SITES.test(url)) return null;
+  const base = u => u.split("#")[0].replace(/\/$/, "");
+  return { url, site: String(j.site || new URL(url).hostname.replace(/^www\.|^tabs\./, "")).slice(0, 40), kind: j.kind === "tab" ? "Tab" : "Chords",
+    rating: Math.max(0, Math.min(5, +j.rating || 0)), votes: Math.max(0, Math.floor(+j.votes || 0)), difficulty: String(j.difficulty || "").slice(0, 24),
+    why: String(j.why || "").slice(0, 160), seen: sources.some(s => base(s.url) === base(url)) };
+}
+const linkCache = new Map(); /* title|artist|level → the chart found, for this session */
+const ugSearch = q => `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(q)}`;
+/* The sheet: the song, your level, and the chart Louie found, with Open the chart in thumb reach.
+   `song` is { title, artist, rec } (rec: the Apple Music recording, kept with the song once it's pasted in). */
+export function chartLinkSheet(song) {
+  const ai = !!aiKey();
+  let level = ["easy", "mine", "rec"].includes(data.settings.chartLevel) ? data.settings.chartLevel : "mine", seq = 0;
+  layer.innerHTML = `<div class="scrim" id="scrim"></div>
+    <div class="panel card cl-sheet" role="dialog" aria-labelledby="cl-t"><div class="grab" aria-hidden="true"></div>
+      <div class="cl-head"><span class="cl-tt"><b id="cl-t">${esc(song.title)}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</span></div>
+      <div class="label">Chords for your level</div>
+      <div class="seg cl-lv" role="group" aria-label="Your level">${Object.entries(LEVEL_NAME).map(([k, n]) => `<button data-lv="${k}" aria-pressed="${k === level}" class="${k === level ? "on" : ""}">${n}</button>`).join("")}</div>
+      <div class="cl-found" id="cl-found" aria-live="polite"></div>
+      <div class="cl-acts" id="cl-acts"></div>
+      <p class="cl-how">Copy the chords on the site, then come back. The Road will be ready to paste them in.</p>
+    </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("scrim").onclick = close;
+  const open = url => { close(); expectPaste({ q: song.title, title: song.title, artist: song.artist || "", rec: song.rec || null }); openLink(url); };
+  const acts = r => {
+    $("cl-acts").innerHTML = `<button class="btn primary cl-open" id="cl-open">${icon("link")}${r ? "Open the chart" : "Search Ultimate Guitar"}</button>
+      ${ai ? `<button class="btn cl-louie" id="cl-louie">${icon("wand")}Let Louie write it instead</button>` : ""}
+      <button class="btn cl-self" id="cl-self">${icon("edit")}Start the sheet myself</button>
+      ${r ? `<button class="linkish cl-other" id="cl-other">Not the right one? Search Ultimate Guitar</button>` : ""}`;
+    $("cl-open").onclick = () => open(r ? r.url : ugSearch(`${song.title} ${song.artist || ""}`.trim()));
+    $("cl-other")?.addEventListener("click", () => open(ugSearch(`${song.title} ${song.artist || ""}`.trim())));
+    $("cl-louie")?.addEventListener("click", () => { close(); getSong(song.title, { title: song.title, artist: song.artist || "" }); });
+    $("cl-self").onclick = () => { close(); newSong({ title: song.title, artist: song.artist || "" }, "text"); };
+  };
+  const paint = r => {
+    const box = $("cl-found");
+    if (!box) return;
+    if (r === undefined) { box.innerHTML = `<p class="cl-busy">${busy("Louie is finding the best-rated chart")}</p>`; $("cl-acts").innerHTML = ""; return; }
+    box.innerHTML = r ? `<div class="cl-card"><span class="cl-site">${esc(r.site)} · ${esc(r.kind)}${r.difficulty ? ` · ${esc(r.difficulty)}` : ""}</span>
+        ${r.rating ? `<b class="cl-rate">${icon("star")}${r.rating.toFixed(1)}${r.votes ? ` <small>(${r.votes.toLocaleString("en-US")} ratings)</small>` : ""}</b>` : ""}
+        ${r.why ? `<span class="cl-why">${esc(r.why)}</span>` : ""}</div>`
+      : `<p class="cl-none">${ai ? "Louie couldn't pick one chart for this song. Search the site and pick the top-rated one." : "Search the site and pick the top-rated chart. With an AI key in Settings, Louie picks it for you."}</p>`;
+    acts(r);
+  };
+  const find = async () => {
+    if (!ai) return paint(null);
+    const k = `${song.title}|${song.artist}|${level}`, me = ++seq;
+    if (linkCache.has(k)) return paint(linkCache.get(k));
+    paint(undefined);
+    let r = null;
+    try { r = await findChartLink(song.title, song.artist || "", level); } catch (e) { if (me === seq && $("cl-found")) toast(aiError(e)); }
+    linkCache.set(k, r);
+    if (me === seq) paint(r);
+  };
+  layer.querySelectorAll("[data-lv]").forEach(b => b.onclick = () => {
+    level = b.dataset.lv; data.settings.chartLevel = level; Tabs.save(data);
+    layer.querySelectorAll("[data-lv]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); });
+    find();
+  });
+  find();
 }

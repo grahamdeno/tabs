@@ -1,13 +1,13 @@
 // The Gig (4.1.0): a song played as a scored show. It sits over the song page while the song plays
 // as it always does underneath (auto-scroll, the recording or the band), and reads where the song is from the page.
 //
-//   top       Close, the section you're in (in its colour), and your run of chords caught
+//   top       the section you're in (in its colour) and your run of chords caught (4.66.0: no Close; the
+//             page's own Back leaves, as everywhere else)
 //   crowd     the crowd as a row of 12 fans that fills up
 //   lines     the song page itself (4.51.0): the Gig is see-through in the middle, and stage.js draws the band
 //             and the chords on the real sheet, so you read, scroll and drag the song itself. A chord you
 //             played turns green and stays green (Chord Catch, 4.54.0). A small shape for the next chord
 //             you haven't learned.
-//   moments   Louie and the crowd pop in for a combo milestone or a full crowd, then go
 //   bottom    Hearing you (tap to stop or start listening for this show) and Pause, in thumb reach
 // Paused (4.52.0), the show steps aside and the song page is back as it always is: Tools and Play (reading
 // Resume) in thumb reach, a quiet band on the line you stopped on, and Louie's line above Play when there is
@@ -15,10 +15,10 @@
 // The microphone hears the room every 50 ms; the chord you're on and the next one are caught when two readings
 // in a row fit them (catchHear in core.js). When you played it doesn't matter. Without the microphone the show
 // still plays; nothing is scored.
-// At the end: Show complete, with the bonus fans, the crowd, the song you played (green for caught) and Encore
+// At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchWorn, merchTip, liningDue, Tabs } from "./core.js";
-import { backdropArt } from "./merch.js";
+import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
+import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, sound, onLeave } from "./ui.js";
 import { data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
 import { louie } from "./louie.js";
@@ -88,16 +88,15 @@ function deafen(g) {
 function shell(song) {
   const el = document.createElement("div");
   el.id = "gig"; el.className = "gig"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `Gig: ${song.title}`);
-  el.innerHTML = `${backdropArt(merchWorn(data, "backdrop"))}
+  /* 4.66.0: no X and no backdrop: the show is the song page itself, left with the page's own Back */
+  el.innerHTML = `
     <div class="gg-top">
-      <button class="gg-x" id="gg-x" aria-label="Leave the gig">${icon("x")}</button>
       <span class="gg-sec" id="gg-sec">Get ready</span>
       <span class="gg-wpill" id="gg-wpill" hidden>WAIT FOR ME</span>
       <span class="gg-combo" id="gg-combo"></span>
     </div>
     <div class="gg-status"><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
-    <div class="gg-moment" id="gg-moment" hidden></div>
     <div class="gg-wait" id="gg-wait" hidden></div>
     <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
     <div class="gg-bottom">
@@ -135,16 +134,6 @@ function paintShape() {
   if (el.dataset.ch !== label + t.name) { el.dataset.ch = label + t.name; el.innerHTML = `<small>${label}</small><b>${esc(t.name)}</b>${chordSVG(t.name, 1)}`; }
   el.hidden = false;
 }
-/* Louie and the crowd show up for a moment, then go */
-const MILESTONES = [5, 10, 15, 20, 30, 40, 50, 75, 100];
-function moment(text, sub) {
-  const el = $("gg-moment");
-  if (!el || !gig) return;
-  el.innerHTML = `${louie("cheer", { pose: "hornsUp", size: 54 })}<span><b>${esc(text)}</b>${sub ? esc(sub) : ""}</span>`;
-  el.hidden = false; el.classList.remove("go"); void el.offsetWidth; el.classList.add("go");
-  clearTimeout(gig.momentT); gig.momentT = setTimeout(() => { el.hidden = true; }, 2600);
-}
-
 /* a fan: head, shoulders, and arms that only show when they're up; the order fans stand in, spread along the row */
 const FAN = '<svg viewBox="0 0 20 28" aria-hidden="true"><path class="arms" d="M5 18 L1.5 6 M15 18 L18.5 6"/><circle cx="10" cy="9" r="5"/><path d="M1 28 C1 19 5 16 10 16 C15 16 19 19 19 28 Z"/></svg>';
 const CROWD_ORDER = [5, 2, 9, 0, 7, 11, 3, 6, 10, 1, 8, 4];
@@ -161,8 +150,6 @@ function paintScore() {
   const waiting = waitOn(g.song) && !!g.stream;
   if (waiting) { const n = g.score.hits + g.score.misses + (g.holding ? 1 : 0); $("gg-combo").innerHTML = n ? `${icon("check")}${g.score.hits} of ${n}` : ""; }
   else $("gg-combo").innerHTML = g.score.combo >= 2 ? `${icon("check")}${g.score.combo} in a row` : "";
-  if (g.stream && MILESTONES.includes(g.score.combo) && g.said !== g.score.combo) { g.said = g.score.combo; moment(`${g.score.combo} in a row!`, crowd >= 12 ? "The whole crowd is up." : "Keep it going."); }
-  else if (g.stream && crowd >= 12 && !g.fullSaid) { g.fullSaid = true; moment("The whole crowd is up!", ""); }
 }
 
 function frame() {
@@ -317,7 +304,6 @@ export function openGig(song, opts = {}) {
   gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
   gigHooks.resume = () => { if (gig === g) resume(); };
   gigHooks.leave = () => { if (gig === g) leave(); };
-  $("gg-x").onclick = () => leave();
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
   $("gg-skip").onclick = () => { if (g.catch && g.holding) g.skip = g.catch.cur; };
   $("gg-mic").onclick = () => { if (g.stream) deafen(g); else if (!g.asking) listen(g); };
@@ -377,7 +363,6 @@ export function closeGig(quiet = false) {
   g.unbind?.(); g.unbindIdle?.();
   stageClear();
   document.body.classList.remove("gigging");
-  clearTimeout(g.momentT);
   hideStrip();
   $("gg-say")?.remove(); document.body.classList.remove("held");
   gigHooks.on = false; gigHooks.held = false; gigHooks.band = null; gigHooks.credited = null; gigHooks.stopped = null; gigHooks.resume = null; gigHooks.leave = null;
@@ -427,8 +412,12 @@ function showComplete() {
   g.el.classList.remove("paused"); document.body.classList.remove("held"); gigHooks.held = false; $("gg-say")?.remove();
   g.el.classList.add("done");
   g.el.innerHTML = `<div class="gc">
-    <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
+    <div class="gc-hero" id="gc-hero">${backdropBanner(backdropsOwned().find(x => x.on)?.id)}
+      <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
+      <button class="gc-bdc" id="gc-bdc" aria-haspopup="true">${icon("image")}<span>${esc(backdropsOwned().find(x => x.on)?.name || "Basement")} · Change</span></button>
+    </div>
+    <div class="gc-bds" id="gc-bds" role="group" aria-label="Backdrops you own" hidden></div>
     <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
     <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
     <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("CHORDS", graded ? `${g.score.hits} of ${g.score.hits + g.score.misses}` : "–", "beat")}</div>
@@ -455,8 +444,26 @@ function showComplete() {
       ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
       <button class="btn" id="gc-go">CONTINUE</button>
     </div></div>`;
-  $("gc-go").onclick = () => { const from = g.from; closeGig(true); if (from === "road") { homeHooks.openDrawer = false; go("#/"); } else if (from === "tour" || from === "charts") go("#/" + from); else redraw?.(); };
+  /* 4.66.0: Continue stays on the song page; its Back goes to where the show was started from */
+  $("gc-go").onclick = () => { closeGig(true); if (opened) { homeHooks.openDrawer = false; go("#/"); } else redraw?.(); }; /* Opening night's end goes on to the Road */
   $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
+  /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own, and the merch table */
+  $("gc-bdc").onclick = () => {
+    const box = $("gc-bds");
+    if (!box.hidden) { box.hidden = true; return; }
+    box.innerHTML = backdropsOwned().map(x => `<button class="chip${x.on ? " on" : ""}" data-bd="${x.id}" aria-pressed="${x.on}">${esc(x.name)}</button>`).join("") + `<button class="chip" data-bd="">More at the merch table</button>`;
+    box.hidden = false;
+    box.onclick = e => {
+      const b = e.target.closest("[data-bd]");
+      if (!b) return;
+      if (!b.dataset.bd) { closeGig(true); go("#/merch"); return; }
+      wearBackdrop(b.dataset.bd);
+      const on = backdropsOwned().find(x => x.on);
+      $("gc-hero").querySelector(".gc-bd").outerHTML = backdropBanner(on?.id);
+      $("gc-bdc").querySelector("span").textContent = `${on?.name || "Basement"} · Change`;
+      box.hidden = true;
+    };
+  };
   $("gc-drill")?.addEventListener("click", () => { closeGig(true); go("#/practice/" + encodeURIComponent(`s:${wa}-${wb}`)); });
   $("gc-duel")?.addEventListener("click", e => import(`./duel.js?v=${VERSION}`).then(m => m.sendChallenge(g.song, { pct, combo: g.score.best, crowd: graded ? gigCrowd(g.score) : 0 }, e.currentTarget)));
   $("gc-reply")?.addEventListener("click", e => import(`./duel.js?v=${VERSION}`).then(m => m.sendReply(duel, e.currentTarget)));

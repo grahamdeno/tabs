@@ -397,7 +397,7 @@ function bindAddTools(list) {
 const amKey = (t, a) => `${String(t || "").toLowerCase().replace(/\s*[([].*?[)\]]/g, "").trim()}|${String(a || "").toLowerCase().trim()}`;
 const inSongbook = r => data.songs.find(x => amKey(x.title, x.artist) === amKey(r.title, r.artist));
 function appleSheet(rows) {
-  const ai = !!aiKey(), act = ai ? "Get the chords" : "Start a sheet";
+  const act = "Get the chords"; /* 4.67.0: the best-rated chart for your level, as in search */
   const sorted = [...rows].sort((a, b) => !!inSongbook(a) - !!inSongbook(b));
   layer.innerHTML = `<div class="scrim" id="am-scrim"></div>
     <div class="panel card am-sheet" role="dialog" aria-label="Recently on Apple Music"><div class="grab" aria-hidden="true"></div>
@@ -414,8 +414,7 @@ function appleSheet(rows) {
   layer.querySelectorAll("[data-amr]").forEach(b => b.onclick = () => {
     const r = rows[+b.dataset.amr];
     close(); query = "";
-    if (ai) findAI().then(m => m.getSong(r.title, { title: r.title, artist: r.artist }));
-    else newSong({ title: r.title, artist: r.artist }, "text");
+    findAI().then(m => m.chartLinkSheet({ title: r.title, artist: r.artist, rec: r.rec }));
   });
 }
 /* Typing: recordings from Apple's public catalog under your own matches, so a song you don't have is one tap away. */
@@ -423,7 +422,8 @@ let catSeq = 0, catTimer = 0, catCache = { q: "", rows: [] };
 function paintCatalog(term, rows, looking) {
   const box = $("sr-cat");
   if (!box) return;
-  const ai = !!aiKey(), act = ai ? "Get the chords" : "Start a sheet";
+  /* 4.67.0: Get the chords on every row: the best-rated chart for your level (Louie picks it with an AI key), copy, come back, paste */
+  const ai = !!aiKey(), act = "Get the chords";
   const row = (attr, t, a) => `<div class="sr-crow"><span class="sr-ctx"><b>${esc(t)}</b><small>${esc(a)}</small></span><button class="sr-act" ${attr} aria-label="${act}: ${esc(t)}${a ? ", " + esc(a) : ""}">${act}</button></div>`;
   const list = [...rows.map((r, i) => row(`data-cat="${i}"`, r.title, `${r.artist}${r.year ? " · " + r.year : ""}`)),
     ...(ai ? [row('id="fc-ai"', `“${term}”`, rows.length ? "Not listed? Louie looks it up" : "Louie finds the chords, words and tempo")] : [])];
@@ -434,8 +434,7 @@ function paintCatalog(term, rows, looking) {
   box.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
     const r = rows[+b.dataset.cat];
     query = ""; /* the search is done: coming back shows the Songbook, not the old words */
-    if (ai) findAI().then(m => m.getSong(r.title, { title: r.title, artist: r.artist }));
-    else newSong({ title: r.title, artist: r.artist }, "text");
+    findAI().then(m => m.chartLinkSheet({ title: r.title, artist: r.artist, rec: r.rec }));
   });
   bindFind(box);
   $("sr-writeq").onclick = () => { query = ""; newSong({ title: term }, "text"); };
@@ -451,7 +450,8 @@ function catalogSearch(term) {
   catTimer = setTimeout(() => ask().then(j => {
     if (me !== catSeq || query.trim() !== term) return;
     const seen = new Set();
-    const rows = (j?.results || []).map(x => ({ title: String(x.trackName || "").slice(0, 100), artist: String(x.artistName || "").slice(0, 100), year: String(x.releaseDate || "").slice(0, 4) }))
+    const rows = (j?.results || []).map(x => ({ title: String(x.trackName || "").slice(0, 100), artist: String(x.artistName || "").slice(0, 100), year: String(x.releaseDate || "").slice(0, 4),
+      rec: /^https:\/\/(music|itunes)\.apple\.com\//.test(x.trackViewUrl || "") ? { url: x.trackViewUrl, title: x.trackName, artist: x.artistName, art: x.artworkUrl100 || "", length: Math.round((x.trackTimeMillis || 0) / 1000) } : null }))
       .filter(r => { const k = (r.title + "|" + r.artist).toLowerCase(); if (!r.title || seen.has(k)) return false; seen.add(k); return true; }).slice(0, 4);
     catCache = { q: term, rows };
     paintCatalog(term, rows, false);

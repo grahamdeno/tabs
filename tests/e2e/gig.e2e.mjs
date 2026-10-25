@@ -69,7 +69,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   await page.waitForFunction(() => getComputedStyle(document.querySelector("#sheet > .st-now")).opacity === "1"); /* the line you stopped on is not dimmed */
   assert.equal(await page.locator("#sheet > .st-now").count(), 1, "the line you stopped on stays on its band");
   await page.click("#more"); await page.waitForSelector(".menu.tools");
-  assert.equal(await page.locator('.menu [data-m="edit"]').count(), 0, "from a show, only what you change mid-song");
+  assert.equal(await page.locator('.menu [data-m="edit"]').count(), 1, "4.66.0: Tools is the same sheet in a show as out of one");
   await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
   assert.equal(await page.locator("#gig.paused").count(), 1, "closing Tools, the show stays paused");
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
@@ -80,6 +80,12 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.match(await page.innerText(".gc-t"), /Show complete/);
   assert.match(await page.innerText(".gc-list"), /chords caught/, "the show was graded");
   assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the chords you caught");
+  /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own */
+  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
+  assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
+  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
+  assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
+  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds", { state: "hidden" });
   assert.match(await page.innerText(".gc-list"), /Double set: 2x XP on this show\. 1 more to go\./);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.shows === 4); /* the save lands a moment after */
   const s = await saved(page);
@@ -258,7 +264,9 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
   assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light ends above the reading line");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
-  await page.click("#gg-x"); await page.waitForFunction(() => !document.getElementById("gig"));
+  /* 4.66.0: no X: Pause, then the page's own Back leaves the show */
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click(".shead .sh-back"); await page.waitForSelector("#gig", { state: "detached" });
   assert.equal(await page.locator("#st-bg, #sheet .st-now, #sheet .st-lit").count(), 0, "leaving the show clears the stage");
 });
 
@@ -390,15 +398,15 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   const look = await page.evaluate(() => ({ fg: getComputedStyle(document.querySelector("#sheet > .st-now")).color, light: getComputedStyle(document.getElementById("st-bg")).display }));
   assert.equal(look.fg, "rgb(255, 255, 255)", "the words are white on the cover");
   assert.equal(look.light, "none", "no stage light on a cover");
-  assert.equal(await page.evaluate(() => { const b = document.querySelector("#gig .gg-bd"); return b ? getComputedStyle(b).display : "none"; }), "none", "4.62.1: a bought backdrop doesn't sit on top of the cover");
+  assert.equal(await page.locator("#gig .gg-bd").count(), 0, "4.66.0: no backdrop over the show (it's on Show complete)");
   /* 4.60.1: paused, the page and Tools are dark with white text, not white on white */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   const dock = await page.evaluate(() => { const t = document.querySelector(".dock"); const b = document.querySelector(".dock .tools, .dock button:not(#play)"); const cs = getComputedStyle(b || t); return { text: cs.color, dockBg: getComputedStyle(t).backgroundColor }; });
   assert.notEqual(dock.text, dock.dockBg, "the Tools button is readable on the dock");
   assert.ok(!/rgb\(2[0-9]{2}, 2[0-9]{2}, 2[0-9]{2}\)/.test(dock.dockBg), "the dock is dark under a cover: " + dock.dockBg);
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
-  await page.click("#gg-x"); await page.waitForSelector("#gig", { state: "detached" });
-  assert.equal(await page.locator("#gg-cover").count(), 1, "leaving the show, the cover stays behind the song page");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held");
+  assert.equal(await page.locator("#gg-cover").count(), 1, "paused, the cover stays behind the song page");
   await page.goto(base + "#/"); await page.waitForFunction(() => !document.getElementById("gg-cover"));
   assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false, "off the song page, the cover is gone");
   /* a song with no cover: the show as before */

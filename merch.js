@@ -4,7 +4,7 @@
 // The numbers (prices, what you have, buying) are MERCH and friends in core.js.
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
-//   backdropArt(id)      the drawing behind the top of a gig, or "" for the plain stage
+//   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
 import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn } from "./core.js";
 import { app, esc, layer, toast } from "./ui.js";
 import { data, go } from "./app.js";
@@ -25,7 +25,10 @@ const ART = {
   basement: () => `<rect width="100" height="64" fill="#2A3A63"/><ellipse cx="50" cy="0" rx="30" ry="44" fill="#FFF6C8" opacity=".14"/>`
 };
 const artSVG = (id, cls = "") => `<svg class="${cls}" viewBox="0 0 100 64" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${(ART[id] || ART.basement)()}</svg>`;
-export const backdropArt = id => ART[id] && id !== "basement" ? `<div class="gg-bd" aria-hidden="true">${artSVG(id)}</div>` : "";
+export const backdropBanner = id => `<div class="gc-bd" aria-hidden="true">${artSVG(ART[id] ? id : "basement")}</div>`;
+/* the backdrops you own (the Basement is everyone's), in the merch table's order */
+export const backdropsOwned = () => { const st = merchState(data); return MERCH.filter(x => x.kind === "backdrop" && st.has.has(x.id)).map(x => ({ id: x.id, name: x.name, on: st.backdrop === x.id })); };
+export function wearBackdrop(id) { if (merchWear(data, id)) Tabs.save(data); }
 export function applyWear() {
   const w = merchWorn(data);
   if (w === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = w;

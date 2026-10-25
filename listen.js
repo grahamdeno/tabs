@@ -150,11 +150,23 @@ export async function startMusic(song, at = 0, rate = 1) {
     if (readyId !== id && playingId !== id) { await music.setQueue({ song: id, startPlaying: false }); readyId = id; }
     const cur = playingId === id ? music.currentPlaybackTime || 0 : 0;
     if (Math.abs(cur - at) > 1.5) { try { await music.seekToTime(Math.max(0, at)); } catch { /* a fresh queue is already at the start */ } }
+    const t0 = performance.now(), from = music.currentPlaybackTime || 0;
     await step("play", music.play());
     playingId = id;
     setMusicRate(rate);
+    /* 4.68.0: how long the recording takes to start sounding, so the count-in can ask for it that much early */
+    const watch = () => {
+      const t = music.currentPlaybackTime || 0, ms = performance.now() - t0;
+      if (t > from + 0.02) { const lag = Math.min(1500, Math.max(0, ms - (t - from) * 1000)); musicLag = Math.round(musicLag * 0.6 + lag * 0.4); try { localStorage.setItem(LAG_KEY, String(musicLag)); } catch {} return; }
+      if (ms < 3000) requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
   } catch (e) { noteError(e, { quiet: true, where: `apple music start (${mkStep})` }); }
 }
+/* 4.68.0: the recording's start delay in ms (measured on each start, remembered on this phone) */
+const LAG_KEY = "tabs.musiclag.v1";
+let musicLag = (() => { try { return Math.min(1500, Math.max(0, +localStorage.getItem(LAG_KEY) || 300)); } catch { return 300; } })();
+export const musicLead = () => musicLag;
 /* Slowing the recording (3.14.0), for practice: Apple Music's own player setting. A build that doesn't
    offer the speed stays at full speed, and rateWorks() says so. */
 export const rateWorks = () => !inst || "playbackRate" in inst;

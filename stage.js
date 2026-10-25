@@ -190,14 +190,17 @@ export function stageOpen(song, beats = 0) {
   el.querySelector(".so-lou").innerHTML = LOU(0, beats, size);
   el.dataset.y0 = String(scrollY);
 }
-/* the count-in's beat n (1 to beats): the number, and Louie bounces (horns up on the last) */
+/* the count-in's beat n (1 to beats): the number pops, Louie jumps (horns up and a headbang on the last), the crowd bobs */
 export function stageBeat(n) {
   const el = $("st-open");
   if (!el) return;
   const beats = +el.dataset.beats, num = el.querySelector(".so-n"), lou = el.querySelector(".so-lou");
   num.textContent = String(n);
   lou.innerHTML = LOU(n, beats, +el.dataset.size);
-  for (const x of [num, lou]) { x.classList.remove("beat"); void x.offsetWidth; x.classList.add("beat"); }
+  /* 4.68.0: Louie jumps on every beat, and on the last throws the horns and bangs his head */
+  for (const x of [num, lou]) { x.classList.remove("beat", "bang"); void x.offsetWidth; x.classList.add("beat"); }
+  lou.classList.toggle("bang", n === beats);
+  document.querySelector("#gig .gg-fans")?.classList.remove("bob"); void lou.offsetWidth; document.querySelector("#gig .gg-fans")?.classList.add("bob");
 }
 /* the card goes once the first line starts coming up into it */
 function openFade() {

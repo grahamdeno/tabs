@@ -364,9 +364,9 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#rd-tonight");
   await page.waitForSelector("#gig");
   assert.ok(await page.evaluate(() => /#\/song\//.test(location.hash)));
-  await page.click("#gg-x");
-  await page.waitForFunction(() => !document.getElementById("gig"));
-  assert.match(await page.evaluate(() => location.hash), /#\/song\//, "4.2.0: leaving the show goes to the song, paused");
+  /* 4.66.0: no X; Pause, and the page's own Back leaves */
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  assert.match(await page.evaluate(() => location.hash), /#\/song\//, "paused, you're on the song page");
   await page.click(".shead .sh-back");
   await page.waitForSelector(".rd-path");
   assert.equal(await page.evaluate(() => location.hash), "#/", "and Back goes to the Road");
@@ -454,7 +454,7 @@ test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply show
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.ok(saved.songs.some(s => s.title === "Wagon Wheel"), "the song came with it");
   assert.equal(saved.duels.list[0].opp, "Mike");
-  await page.click("#gg-x"); await page.waitForFunction(() => !document.getElementById("gig"));
+  await page.click("#gg-pause"); await page.waitForSelector("body.held");
   /* a duel you sent comes back answered */
   const reply = await page.evaluate(async () => {
     const C = await import("/core.js"), app = await import("/app.js"), d = C.startDuel(app.data, app.data.songs[0], { pct: 70, combo: 5, crowd: 8 }); C.Tabs.save(app.data);
@@ -549,9 +549,12 @@ test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road
   assert.match(await page.innerText("#list"), /In your Songbook/i);
   await page.fill("#q", "wagon wh"); await page.waitForSelector("[data-cat]");
   assert.equal(await page.locator("[data-cat]").count(), 2, "the same recording twice shows once");
-  assert.match(await page.innerText("#sr-cat"), /Not in your Songbook[\s\S]*Old Crow Medicine Show · 2004[\s\S]*Start a sheet[\s\S]*Darius Rucker[\s\S]*Or look on Ultimate Guitar[\s\S]*Write “wagon wh” myself/i);
+  assert.match(await page.innerText("#sr-cat"), /Not in your Songbook[\s\S]*Old Crow Medicine Show · 2004[\s\S]*Get the chords[\s\S]*Darius Rucker[\s\S]*Or look on Ultimate Guitar[\s\S]*Write “wagon wh” myself/i);
   assert.equal(await page.locator(".findcard").count(), 0, "no second card saying the same thing");
-  await page.click("[data-cat='1']"); await page.waitForSelector("#ed-body");
+  /* 4.67.0: Get the chords opens the chart sheet; without an AI key it searches the site, or you start the sheet yourself */
+  await page.click("[data-cat='1']"); await page.waitForSelector(".cl-sheet #cl-open");
+  assert.match(await page.innerText(".cl-sheet"), /Wagon Wheel[\s\S]*Darius Rucker[\s\S]*Beginner[\s\S]*Search Ultimate Guitar[\s\S]*Start the sheet myself/);
+  await page.click("#cl-self"); await page.waitForSelector("#ed-body");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.title === "Wagon Wheel"));
   const added = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.title === "Wagon Wheel"));
   assert.equal(added?.artist, "Darius Rucker", "without an AI key the row starts a sheet with the title and artist");

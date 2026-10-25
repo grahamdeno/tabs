@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderS
 import { copyDiagnostics, loadLibrary, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, musicLead, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
@@ -106,7 +106,8 @@ function questToast() {
 }
 let songSpeed = null; /* the song page's speed dial, for the Tools sheet */
 let gigNext = null;
-const playGig = (id, opts = {}) => { gigNext = { id, ...opts }; if (route().name === "song" && route().id === id) return openGigNow(); go("#/song/" + encodeURIComponent(id)); };
+let gigFrom = null; /* 4.66.0: where the last show was started from, so the song page's Back returns there */
+const playGig = (id, opts = {}) => { gigNext = { id, ...opts }; if (opts.from) gigFrom = { id, from: opts.from }; if (route().name === "song" && route().id === id) return openGigNow(); go("#/song/" + encodeURIComponent(id)); };
 function openGigNow() { const g = gigNext; gigNext = null; if (g && viewing?.id === g.id) lazy("gig.js").then(m => { if (viewing?.id === g.id && route().name === "song" && $("sheet")) m.openGig(viewing, g); }); }
 const openSearch = (from = "") => { searchNext = true; setSearchFrom(from); go("#/library"); };
 /* The Neck's Learning list opens a song on the section you last practiced (3.24.2). */
@@ -157,7 +158,9 @@ function renderViewer(id) {
   app.classList.add("viewer");
   /* Back goes where the song was opened from: its set, when played from one. */
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
-  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : lastHome === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to the Songbook" };
+  /* 4.66.0: a show started from Tour or Charts comes back there with the page's own Back */
+  const via = gigFrom?.id === song.id ? gigFrom.from : "";
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : via === "tour" ? { to: "#/tour", label: "Back to the Tour" } : via === "charts" ? { to: "#/charts", label: "Back to the Charts" } : lastHome === "road" || via === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to the Songbook" };
   diag.pinned = null; diag.scrolling = false; diag.block = null;
   /* One song screen (4.2.0): the song at the top (back, title, favorite), its chips, the song map,
      the chords, the sheet, and at the bottom Tools and Play. Play opens the Gig. */
@@ -1143,7 +1146,9 @@ export function bandSheet(song) {
 }
 /* The Tools sheet (4.2.0): everything for the song in one sheet that rises from the bottom, from the
    paused song and from a paused gig. Text size and the Gig's lines at the top, then Play along and The song. */
-const GIG_KEEPS = ["metro", "speed"]; /* what can change without leaving a paused gig */
+/* 4.66.0: one Tools sheet, the same whether a show is on or not. A paused show carries on after anything in it,
+   except what starts something else on the page: Edit, Practice a section, Play together and a new gig. */
+const GIG_ENDS = ["edit", "loop", "duet", "gig"];
 function songMenu(song, anchor, redrawSong) {
   const old = document.querySelector(".menu");
   if (old) { old.remove(); return; }
@@ -1151,7 +1156,7 @@ function songMenu(song, anchor, redrawSong) {
   if (scroll.on) stopScroll();
   markSeen("menu");
   document.querySelectorAll(".more .newdot").forEach(d => d.remove());
-  const ez = song.easier, chords = song.format !== "tab", inGig = gigHooks.on;
+  const ez = song.easier, chords = song.format !== "tab";
   /* 4.32.0: three tabs at the bottom, in thumb reach (Play, Practice, Song), rows instead of tiles.
      Switches toggle in place; a row with a chevron opens its sheet. The last tab is remembered. */
   const capo = chords ? bodyCapo(song.body) : 0;
@@ -1164,14 +1169,14 @@ function songMenu(song, anchor, redrawSong) {
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
-      !inGig && { id: "prac", icon: "loop", label: "Practice mode", sub: practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through", on: practicing(song), prac: true },
+      { id: "prac", icon: "loop", label: "Practice mode", sub: practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through", on: practicing(song), prac: true },
       { id: "loop", icon: "loop", label: "Practice a section", sub: "Pick the part to loop", go: true },
       chords && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", sub: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "Simpler chords, or a capo", ...(aiKey() ? { go: true } : { on: !!ez?.on }) },
       capo && { id: "capo", icon: "fretboard", label: "Capo", sub: song.capoOff ? `Off: the sheet says capo ${capo}` : `On: capo ${capo}`, on: !song.capoOff },
       { id: "tuner", icon: "fork", label: "Tuner", sub: TUNINGS[songTuning(song)].name, go: true },
       { id: "duet", icon: "pick", label: "Play together", sub: "One clap starts two phones", go: true }
     ] },
-    !inGig && { id: "song", label: "Song", head: "THE SONG", rows: [
+    { id: "song", label: "Song", head: "THE SONG", rows: [
       { id: "edit", icon: "edit", label: "Edit", sub: "Words, chords and sections", go: true },
       { id: "set", icon: "listplus", label: "Add to a set", sub: (() => { const x = data.sets.find(z => (z.songs || []).some(i => (i.id || i) === song.id)); return x ? `In ${x.name}` : "Gigs and practice lists"; })(), go: true },
       { id: "share", icon: "share", label: "Share", sub: "Send the song as a link", go: true },
@@ -1257,13 +1262,13 @@ function songMenu(song, anchor, redrawSong) {
       if (NEW_IN_MENU[ip.dataset.m]) markUsed(NEW_IN_MENU[ip.dataset.m]);
       const id = ip.dataset.m; paint(); m.querySelector(`[data-m="${id}"]`)?.focus({ preventScroll: true }); return;
     }
-    if (ev.target.closest("[data-prac]")) { const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", moreBtn()); return; }
+    if (ev.target.closest("[data-prac]")) { if (gigHooks.on) gigHooks.leave?.(); const on = !practicing(song); setPracticing(song, on); paint(); toast(on ? "Practice mode: pick a section, slow it down, build it up" : "Practice mode off", moreBtn()); return; }
     const b = ev.target.closest("[data-m]");
     if (!b) return;
     const id = b.dataset.m;
     if (NEW_IN_MENU[id]) markUsed(NEW_IN_MENU[id]);
     close();
-    if (gigHooks.on && !GIG_KEEPS.includes(id)) gigHooks.leave?.(); /* the rest happens on the song page */
+    if (gigHooks.on && GIG_ENDS.includes(id)) gigHooks.leave?.(); /* the show ends quietly; you stay on the song page */
     ({ set: () => addToSet(song), edit: () => songEditor(song),
        speed: () => songSpeed?.(),
        capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
@@ -1285,7 +1290,9 @@ function openTools(anchor) { if (viewing) songMenu(viewing, anchor, () => redraw
 // No match in the library: search the web for a chord sheet, then come back and
 // paste it (Tabs offers to as soon as you return). Or, with an API key, get a
 // chord chart from AI: chords and structure only, never lyrics.
-let pendingFind = null; /* { q, at } after sending someone out to look */
+let pendingFind = null; /* { q, at, title?, artist?, rec? } after sending someone out to look */
+/* 4.67.0: Get the chords sends you to one chart; coming back, The Road offers to paste it in at once */
+export function expectPaste(ctx) { pendingFind = { ...ctx, at: Date.now() }; }
 const FIND_SITES = [
   ["web", "Search the web", q => `https://www.google.com/search?q=${encodeURIComponent(q + " chords")}`],
   ["ug", "Ultimate Guitar", q => `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(q)}`],
@@ -1308,23 +1315,39 @@ export function bindFind(list) {
   });
   $("fc-ai")?.addEventListener("click", () => getSong(query.trim()));
 }
-// Back from looking: offer to paste what was copied (reading the clipboard needs a tap).
+// Back from looking: offer to paste what was copied (reading the clipboard needs a tap, and iOS asks once more).
+// 4.67.0: a sheet in thumb reach on any page but Edit or a show; a chord sheet is added straight away, named for
+// the song you went to get, with its Apple Music recording, and the song opens with Undo. Anything else goes to
+// the paste card to check.
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || !pendingFind || Date.now() - pendingFind.at > 30 * 60e3) return;
-  if (route().name !== "library" || document.querySelector(".backpaste")) return;
-  const q = pendingFind.q;
-  const b = document.createElement("div");
-  b.className = "backpaste glass float";
-  b.innerHTML = `<span>Copied the chords for “${esc(q)}”?</span><button class="btn sm primary" id="bp-go">Paste</button><button class="sb" id="bp-x" aria-label="Dismiss">${icon("x")}</button>`;
-  document.body.appendChild(b);
-  $("bp-x").onclick = () => { b.remove(); pendingFind = null; };
-  $("bp-go").onclick = async () => {
+  if (document.querySelector(".backpaste") || document.body.classList.contains("cedit") || gigHooks.on) return;
+  const ctx = pendingFind, q = ctx.title || ctx.q;
+  layer.innerHTML = `<div class="scrim" id="bk-scrim"></div>
+    <div class="panel card backpaste" role="dialog" aria-labelledby="bk-t"><div class="grab" aria-hidden="true"></div>
+      <small class="bp-k">WELCOME BACK</small>
+      <h2 class="bp-t" id="bk-t">Paste the chords for “${esc(q)}”?</h2>
+      <p class="bp-s">Tap Paste, then Paste again when your phone asks.</p>
+      <button class="btn primary bp-go" id="bk-go">${icon("clip")}Paste</button>
+      <button class="btn bp-x" id="bk-x">Not now</button>
+    </div>`;
+  const close = () => { layer.innerHTML = ""; };
+  $("bk-scrim").onclick = close;
+  $("bk-x").onclick = () => { close(); pendingFind = null; };
+  $("bk-go").onclick = async () => {
     let text = "";
     try { text = await navigator.clipboard.readText(); } catch {}
-    if (text.trim().split("\n").filter(l => l.trim()).length < 2) return toast("Nothing to paste yet. Copy the chord sheet first, or press and hold the search bar and tap Paste.");
-    b.remove(); pendingFind = null;
+    if (text.trim().split("\n").filter(l => l.trim()).length < 2) return toast("Nothing to paste yet. Copy the chords on the site first, then tap Paste.", $("bk-go"));
+    close(); pendingFind = null;
     if (searching) document.querySelector("#qcancel")?.click();
-    showPasteCard(detectPaste(text));
+    const d = detectPaste(text), lines = parseSheet(d.body), chordRows = lines.filter(l => l.kind === "chords" || (l.chords && l.chords.length)).length;
+    const f = { ...d, title: ctx.title || d.title || ctx.q, artist: ctx.artist || d.artist || "" };
+    if (d.format !== "chords" || chordRows < 2) return showPasteCard(f);
+    const s = Tabs.addSong(data, { title: f.title, artist: f.artist, format: "chords", key: "", body: f.body });
+    if (ctx.rec) lazy("listen.js").then(m => { m.attachRecording(s, ctx.rec); Tabs.save(data); });
+    const secs = lines.filter(l => l.kind === "section").length, chords = sheetChords(f.body).length;
+    go("#/song/" + encodeURIComponent(s.id));
+    setTimeout(() => toast(`${s.title} added: ${secs ? `${secs} section${secs === 1 ? "" : "s"}, ` : ""}${chords} chord${chords === 1 ? "" : "s"}`, null, { label: "Undo", fn: () => { Tabs.deleteSong(data, s.id); go("#/library"); toast(`Took out ${s.title}`); } }), 400);
   };
 });
 
@@ -1677,7 +1700,8 @@ function click(accent) {
   if (metroDrums()) drum("hat", audio.currentTime + 0.01, accent ? 1.4 : 1);
   else clickAt(audio.currentTime + 0.01, accent);
 }
-function countIn(song) {
+/* 4.68.0: `pre` runs `lead` ms before the count ends (the recording asked for early, so it sounds on the 1) */
+function countIn(song, pre = null, lead = 0) {
   return new Promise(resolve => {
     const beat = 1000 * beatSecs(song);
     const el = document.createElement("div");
@@ -1694,6 +1718,7 @@ function countIn(song) {
       stageBeat(beats + 1 - n);
       el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse");
       click(n === beats);
+      if (n === 1 && pre) { const at = Math.max(0, beat - lead); scroll.preTimer = setTimeout(() => { if (scroll.on) pre(); }, at); }
       n--;
       /* 4.49.12: each beat is timed from the start, so a late timer doesn't push every later beat back */
       scroll.countTimer = setTimeout(tick, Math.max(0, t0 + (beats - n) * beat - performance.now()));
@@ -1782,8 +1807,11 @@ async function startScroll(song, opts = {}) {
   const counts = (scroll.duet || data.settings.countIn !== false) && atTop;
   if (counts && song.format !== "tab") stageOpen(song, song.beats || 4);
   /* Play together always counts in, so both phones start scrolling on the same beat. */
-  if (counts && !(await countIn(song))) return;
-  if (usesMusic(song)) startMusic(song, playFromSec(song), recRate(song)); else startMetronome(song);
+  /* 4.68.0: the recording is asked for early by its own start delay, so its first note lands as the count ends */
+  let early = false;
+  const music = () => { early = true; startMusic(song, playFromSec(song), recRate(song)); };
+  if (counts && !(await countIn(song, usesMusic(song) ? music : null, musicLead()))) { clearTimeout(scroll.preTimer); if (early) pauseMusic(); return; }
+  if (usesMusic(song)) { if (!early) music(); } else startMetronome(song);
   const tick = t => {
     if (!scroll.on) return;
     trail.push([performance.now(), scrollY]); while (trail.length > 2 && trail[0][0] < performance.now() - 2000) trail.shift();
@@ -1862,7 +1890,7 @@ function stopScroll() {
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
   if (was) pauseMusic();
-  clearTimeout(scroll.countTimer);
+  clearTimeout(scroll.countTimer); clearTimeout(scroll.preTimer);
   document.querySelectorAll(".countin").forEach(el => el.remove());
   document.body.classList.remove("playing");
   stageStop();
