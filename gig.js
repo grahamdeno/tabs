@@ -30,6 +30,10 @@ let gig = null; /* the show on stage, or null */
 const $ = id => document.getElementById(id);
 
 /* the guitar's strum without the beat: keep what is under 1.5 kHz (as the neck's lessons do) */
+/* 4.78.1: a clear reading (fit 0.75 and up) catches on its own; a weaker one still needs two in a row.
+   Hearing a new chord takes about a third of a second (the old chord has to leave the window), so Wait for me
+   gives the chord HOLD_GRACE before it holds: a change played on time no longer stops the song (Graham, Zombie). */
+const CATCH_EAR = { strong: 0.75 }, HOLD_GRACE = 700;
 function guitarBand(ctx, src) {
   const a = ctx.createBiquadFilter(), b = ctx.createBiquadFilter();
   for (const f of [a, b]) { f.type = "lowpass"; f.frequency.value = 1500; f.Q.value = 0.7; }
@@ -65,7 +69,7 @@ async function listen(g) {
     if (now - last < 0.05 || !g.catch) return;
     last = now;
     let hit = -1;
-    if (rms > Math.max(0.004, floor * 3)) { sp.getFloatFrequencyData(spec); hit = catchHear(g.catch, chromaOf(spec, ctx.sampleRate, sp.fftSize)); }
+    if (rms > Math.max(0.004, floor * 3)) { sp.getFloatFrequencyData(spec); hit = catchHear(g.catch, chromaOf(spec, ctx.sampleRate, sp.fftSize), CATCH_EAR); }
     else catchHear(g.catch, null);
     if (hit >= 0 && scoring(g)) caught(g, hit);
   }, 10);
@@ -174,6 +178,7 @@ function frame() {
     const start = g.idx < 0;
     g.idx = w.idx;
     catchAt(g.catch, w.idx);
+    if (g.catch.cur !== g.curT) { g.curT = g.catch.cur; g.curAt = performance.now(); }
     if (start) catchClose(g.catch); /* the chords above the reading line when the song starts aren't counted */
     paintShape();
   }
@@ -193,7 +198,7 @@ function frame() {
 function holdFrame(g, counting) {
   const c = g.catch, t = c.targets[c.cur];
   const want = waitOn(g.song) && !!g.stream && scroll.on && !counting && !g.paused && g.idx >= 0 && performance.now() > g.dragUntil
-    && t && !!chordNotes(t.name) && !c.caught[c.cur] && g.skip !== c.cur;
+    && t && !!chordNotes(t.name) && !c.caught[c.cur] && g.skip !== c.cur && (g.holding || performance.now() - (g.curAt || 0) > HOLD_GRACE);
   const pill = waitOn(g.song) && !!g.stream;
   if (want && !g.holding) {
     g.holding = true; g.waited = true;

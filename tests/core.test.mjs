@@ -1755,6 +1755,8 @@ test("Chord Catch (4.54.0): the targets, the two open chords, two readings in a 
   assert.equal(C.targetAt(t, 1), 0); assert.equal(C.targetAt(t, 3), 2); assert.equal(C.targetAt(t, 9), -1);
   const st = C.catchStart(t);
   assert.deepEqual(C.catchOpen(st), [0, 1], "the chord you are on and the next");
+  const quick = C.catchStart(t);
+  assert.equal(C.catchHear(quick, G, { strong: 0.75 }), 0, "4.78.1: one clear reading is enough when the show asks for it");
   assert.equal(C.catchHear(st, G), -1, "one reading is not enough");
   assert.equal(C.catchHear(st, G), 0, "two in a row catch it");
   assert.ok(st.caught[0]);

@@ -856,9 +856,10 @@ export function catchAt(st, idx) { const t = targetAt(st.targets, idx); if (t >=
 /* targets that can be caught now: the one you are on, then the next */
 export const catchOpen = st => [st.cur, st.cur + 1].filter(i => i < st.targets.length && !st.caught[i] && !st.closed[i]);
 /* One reading of the room (a chroma from `chromaOf`, or null for silence). Two readings in a row that fit the same
-   open target catch it. Returns the target caught, or -1. A chord just caught can't be caught again until the room
+   open target catch it, or one with a fit of `opt.strong` and up (4.78.1; `opt.need` changes the two). Returns the target caught, or -1. A chord just caught can't be caught again until the room
    stops sounding like it (a ringing chord), so A to B to A counts the second A only when you play it again. */
-export function catchHear(st, chroma) {
+export function catchHear(st, chroma, opt = {}) {
+  const need = opt.need ?? 2, strong = opt.strong ?? 2;
   if (!chroma) { st.cand = -1; st.n = 0; st.hold = null; return -1; }
   for (const i of [st.cur, st.cur + 1]) if (i < st.targets.length) st.heard[i] = true;
   if (st.hold && (strumFit(chroma, st.hold) ?? 0) < CHORD_FIT) st.hold = null;
@@ -872,7 +873,7 @@ export function catchHear(st, chroma) {
   }
   if (best < 0) { st.cand = -1; st.n = 0; return -1; }
   st.n = best === st.cand ? st.n + 1 : 1; st.cand = best;
-  if (st.n < 2) return -1;
+  if (st.n < need && fit < strong) return -1;
   st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0;
   return best;
 }

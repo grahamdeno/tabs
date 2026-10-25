@@ -305,14 +305,17 @@ test("4.54.0 Wait for me: the song holds on a chord nobody plays, Skip moves on 
   await page.waitForSelector("#sheet .c.st-miss", { state: "attached", timeout: 10000 });
 });
 
-test("4.54.0 Wait for me: playing the chord lets the song go on, and the show is a practice show", { skip: skip() }, async t => {
+test("4.54.0 Wait for me: playing the chord lets the song go on, and a show that waited is a practice show", { skip: skip() }, async t => {
   const song = { ...SHORT, waitForMe: true, bpm: 120 };
   const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g");
   await page.click("#play"); await page.waitForSelector("#gig");
+  /* 4.78.1: a chord played on time is caught inside the grace, so the song may never stop; note whether it did */
+  await page.evaluate(() => { window.__waited = false; const iv = setInterval(() => { const w = document.getElementById("gg-wait"); if (w && !w.hidden) window.__waited = true; if (document.querySelector(".gc")) clearInterval(iv); }, 50); });
   await page.waitForFunction(() => document.querySelectorAll("#sheet .c.st-got").length >= 3, null, { timeout: 30000 });
   assert.match(await page.innerText("#gg-combo"), /\d+ of \d+/);
   await page.waitForSelector(".gc", { timeout: 60000 });
-  assert.match(await page.innerText(".gc-list"), /practice show/);
+  if (await page.evaluate(() => window.__waited)) assert.match(await page.innerText(".gc-list"), /practice show/);
+  else assert.doesNotMatch(await page.innerText(".gc-list"), /practice show/, "never held, so a full show");
   assert.doesNotMatch(await page.innerText(".gc-list"), /Rival battle:/);
 });
 
