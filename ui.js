@@ -261,12 +261,38 @@ export function haptic(n = 1) {
     for (let k = 0; k < n; k++) setTimeout(() => hapLabel.click(), k * 110);
   } catch { /* no haptics here */ }
 }
-export function sound() {
+/* 4.78.3: iPhone can leave the audio engine deaf after a microphone is let go: its clock stops or it stays
+   interrupted, and every later listen hears nothing until the app is closed (Graham: leaving a song or a lesson
+   lost the mic for good). So a feature about to listen calls sound({ mic: true }) inside its tap, and gets a
+   fresh engine when a microphone was opened on the old one and is now stopped, or has gone deaf. Microphones are
+   opened with getMic, so it knows which are still live. */
+const mics = new Set();
+let clockAt = null, deaf = false, still = 0;
+setInterval(() => {
+  if (!audioCtx) return;
+  const now = performance.now() / 1000, t = audioCtx.currentTime;
+  /* stuck: running, but its clock hasn't moved for two checks in a row (a busy moment is not enough) */
+  still = audioCtx.state === "running" && clockAt && now - clockAt.now > 0.9 && t - clockAt.t < 0.05 ? still + 1 : 0;
+  if (still >= 2 || audioCtx.state === "closed") deaf = true;
+  clockAt = { now, t };
+}, 1000);
+const micLive = () => [...mics].some(s => s.getAudioTracks().some(t => t.readyState === "live"));
+export function sound(opt = {}) {
   try {
-    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx && opt.mic && !micLive() && (audioCtx.micOpened || deaf)) { try { audioCtx.close(); } catch { /* already */ } audioCtx = null; }
+    if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); deaf = false; still = 0; clockAt = null; mics.clear(); }
     if (audioCtx.state !== "running") audioCtx.resume?.()?.catch?.(() => {});
   } catch { return null; }
   return audioCtx;
+}
+/* is the audio engine stuck (its clock stopped while the page runs)? */
+export const soundDeaf = () => deaf;
+export async function getMic(audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false }) {
+  if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("none"), { name: "NotSupportedError" });
+  const stream = await navigator.mediaDevices.getUserMedia({ audio });
+  mics.add(stream);
+  if (audioCtx) audioCtx.micOpened = true;
+  return stream;
 }
 addEventListener("pointerdown", () => { if (audioCtx && audioCtx.state !== "running") audioCtx.resume?.()?.catch?.(() => {}); }, true);
 export { html, raw, $, I, SECTION_NAMES, app, ask, esc, followKeyboard, icon, layer, leaveHooks, onLeave, onScroll, showToCopy, toast };

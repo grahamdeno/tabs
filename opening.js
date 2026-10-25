@@ -7,7 +7,7 @@
 // The steps and fans live in core (`openingAdvance` and friends); this file is what you see.
 // Gig.js calls the gig* hooks; the song page calls onSong and onChord; the Road calls micSheet and songFor.
 import { OPENING, Tabs, openingAdvance, openingOn, openingStep } from "./core.js";
-import { esc, haptic, layer, onLeave, toast } from "./ui.js";
+import { esc, getMic, haptic, layer, onLeave, toast } from "./ui.js";
 import { chordNames, data } from "./app.js";
 import { louie } from "./louie.js";
 
@@ -53,8 +53,7 @@ export function micSheet(done) {
   document.getElementById("on-allow").onclick = async e => {
     e.currentTarget.disabled = true;
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("none");
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const s = await getMic(true);
       s.getTracks().forEach(t => t.stop());
       data.settings.micExplained = true;
       finish(false); toast("Thanks. I can hear you.");

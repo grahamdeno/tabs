@@ -16,7 +16,7 @@
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
 import { CHORD_FIT, HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, chromaOf, detectPitch, strumFit, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
-import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
+import { app, esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
 import { louie } from "./louie.js";
@@ -256,8 +256,8 @@ function guitarBand(ctx, src) {
   return b;
 }
 function mic() {
-  if (!navigator.mediaDevices?.getUserMedia) return Promise.reject(new Error("none"));
-  return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  sound({ mic: true }); /* 4.78.3: inside the tap, a fresh audio engine if the last microphone left it deaf */
+  return getMic();
 }
 
 /* 4.23.1: while the mic is on, Start listening reads "Listening · tap to stop". It comes back by itself

@@ -3,7 +3,7 @@
 // Redo and Done are buttons. The key is a pill and a card of its chords. Your song plays your voice back with
 // the chords strummed under it, then saves to the Songbook. Everything happens on this phone. Loads on first use.
 import { VERSION, detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, lineHint, packNotes, sungLines, unpackNotes, syllables, strumChords, riffNotes, cleanNotes, chordToneNotes, html, raw } from "./core.js";
-import { $, app, icon, layer, toast, onLeave, ask, sound } from "./ui.js";
+import { $, app, getMic, icon, layer, toast, onLeave, ask, sound } from "./ui.js";
 import { data, go, markUsed, showCallout, tick } from "./app.js";
 import { Tabs, splitTake, takeLines, lineOptions } from "./core.js";
 import { louie } from "./louie.js";
@@ -73,15 +73,14 @@ function closeMic() {
 // iPhone only lets audio run when it's started inside a touch: the audio
 // context is made (or woken) right in the pad's touch, before the microphone
 // is asked for; made later, it can stay asleep and hear only silence.
-const primeAudio = () => sound(); /* the app's one audio engine */
+const primeAudio = () => sound({ mic: true }); /* the app's one audio engine (4.78.3: fresh if the last microphone left it deaf) */
 let stuckAudio = false;
 async function openMic() {
-  primeAudio();
+  sound({ mic: true }); /* 4.78.3: a fresh engine inside the touch if the last microphone left it deaf */
   /* after a take where the audio clock stood still, wake the audio engine and take a fresh microphone */
   if (stuckAudio && mic) { stuckAudio = false; mic.stream.getTracks().forEach(t => t.stop()); try { mic.src.disconnect(); await mic.ctx.suspend?.(); } catch { /* best effort */ } mic = null; }
   if (mic && mic.stream.getAudioTracks().some(t => t.readyState === "live")) { await mic.ctx.resume?.(); return mic; }
-  if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("no mic"), { name: "NotSupportedError" });
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  const stream = await getMic();
   const ctx = sound();
   await ctx.resume?.();
   const an = ctx.createAnalyser();

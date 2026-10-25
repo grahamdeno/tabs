@@ -93,6 +93,16 @@ test("What I hear: the level, the pitch and the string it lights, and readings t
   await page.waitForFunction(async () => /Notes heard: A2/.test(await navigator.clipboard.readText()), null, { timeout: 4000 });
   assert.match(await page.evaluate(() => navigator.clipboard.readText()), /E3 on the D string: \d+ s, sounding/, "the string still awaited says what was heard instead");
   await page.click("#ph-go");
+  /* 4.78.3: leaving and coming back gives a fresh audio engine for the new microphone, and it still hears (iPhone left the old one deaf) */
+  await page.evaluate(() => { window.__ctxs = new Set(); const C = window.AudioContext; window.AudioContext = function (...a) { const c = new C(...a); window.__ctxs.add(c); return c; }; window.AudioContext.prototype = C.prototype; });
+  await page.goto(base + "#/practice/skills"); await page.click("#pk-hear"); await page.waitForSelector("#ph-lane");
+  await page.evaluate(() => { window.__hz = 0; });
+  await page.click("#ph-go");
+  await page.waitForFunction(() => /Stop/.test(document.getElementById("ph-go").textContent));
+  assert.ok(await page.evaluate(() => window.__ctxs.size) >= 1, "a new engine for the new microphone");
+  await page.evaluate(() => { window.__hz = 110; });
+  await page.waitForFunction(() => document.getElementById("ph-note").textContent === "A2", null, { timeout: 6000 });
+  await page.click("#ph-go");
   assert.deepEqual(errors, []);
 });
 

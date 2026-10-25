@@ -3,7 +3,7 @@
 // link, so it works without a server or an account.
 import { Tabs, VERSION, findSame, packShare, shareable, strumDetector, unpackShare } from "./core.js";
 import { louie } from "./louie.js";
-import { $, esc, icon, layer, onLeave, showToCopy, sound, toast } from "./ui.js";
+import { $, esc, getMic, icon, layer, onLeave, showToCopy, sound, toast } from "./ui.js";
 import { setSongs } from "./sets.js";
 import { data, go, render, scroll, songLength, startScroll, stopScroll, viewing } from "./app.js";
 
@@ -67,8 +67,8 @@ function duetSheet(song) {
     say("Listening. Clap once, loud and sharp.");
     let stream;
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("none");
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      sound({ mic: true });
+      stream = await getMic();
     } catch { idle("The microphone isn't available here, so a clap can't start it."); return; }
     const ctx = sound();
     if (!ctx || !$("pt-listen")) { stream.getTracks().forEach(t => t.stop()); return idle(); }

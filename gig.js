@@ -19,7 +19,7 @@
 // (play it again for double bonus fans).
 import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
-import { esc, icon, sound, onLeave } from "./ui.js";
+import { esc, getMic, icon, sound, soundDeaf, onLeave } from "./ui.js";
 import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
@@ -43,8 +43,7 @@ function guitarBand(ctx, src) {
 async function listen(g) {
   g.off = false; g.asking = true; paintMic();
   try {
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error("none");
-    g.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    g.stream = await getMic();
   } catch { g.stream = null; g.asking = false; g.denied = true; paintMic(); return; }
   g.asking = false;
   if (gig !== g || g.off) { g.stream.getTracks().forEach(t => t.stop()); g.stream = null; paintMic(); return; }
@@ -60,12 +59,14 @@ async function listen(g) {
   const buf = new Float32Array(an.fftSize);
   let floor = 0.002, last = 0;
   g.timer = setInterval(() => {
+    /* 4.78.3: the phone's audio engine went deaf mid-song (its clock stopped): take a fresh engine and microphone */
+    if (soundDeaf()) return relisten(g);
     an.getFloatTimeDomainData(buf);
     let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
     g.level = rms;
     /* the room's quietest level, creeping up only slowly, so a chord that rings on is never taken for the room */
     if (rms > 0.00002) floor = Math.min(rms, floor * 1.0002, 0.006);
-    const now = g.clock();
+    const now = performance.now() / 1000; /* 4.78.3: the page's clock, which never stops, not the audio engine's */
     if (now - last < 0.05 || !g.catch) return;
     last = now;
     let hit = -1;
@@ -74,6 +75,15 @@ async function listen(g) {
     if (hit >= 0 && scoring(g)) caught(g, hit);
   }, 10);
   paintMic();
+}
+
+function relisten(g) {
+  clearInterval(g.timer); g.timer = 0;
+  try { g.src?.disconnect(); } catch {}
+  g.stream?.getTracks().forEach(t => t.stop());
+  g.stream = null; g.level = null;
+  g.audio = sound({ mic: true });
+  listen(g);
 }
 
 /* Stop listening for the rest of this show (Hearing you, tapped). Changes already heard still count. */
@@ -292,10 +302,10 @@ function bindIdle(g) {
 /* ---- open, pause, close ---- */
 export function openGig(song, opts = {}) {
   closeGig(true);
-  const audio = sound();
+  const audio = sound({ mic: true });
   const g = gig = {
     song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), catch: null, seqLen: 0, got: new Set(), miss: new Set(), b: -1, idx: -1, gel: "", mood: "", dragUntil: 0, missed: {}, landed: {},
-    audio, clock: () => audio ? audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
+    audio, clock: () => g.audio ? g.audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
   };
   /* 4.41.0: chords spread over the lines as a guess are never counted as misses, only as hits */
   g.guess = liningDue(song) === "guess";

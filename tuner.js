@@ -5,7 +5,7 @@
 // few cents are easy to see.
 import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch, journalTune } from "./core.js";
 import { HEADS } from "./heads.js";
-import { haptic, sound } from "./ui.js";
+import { getMic, haptic, sound } from "./ui.js";
 import { louie } from "./louie.js";
 import { $, data, icon, layer, esc, coach, markUsed, toast } from "./app.js";
 
@@ -269,7 +269,7 @@ export function openTuner(tuning = "standard", onClose, opts = {}) {
       : "The microphone isn't available here. Tap a key to hear its note.", "warn");
   };
   if (!navigator.mediaDevices?.getUserMedia) return fail();
-  const listenNow = () => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
+  const listenNow = () => (sound({ mic: true }), getMic()).then(stream => {
     if (tunerState !== t) { stream.getTracks().forEach(tr => tr.stop()); return; }
     t.stream = stream;
     t.ctx = sound();
