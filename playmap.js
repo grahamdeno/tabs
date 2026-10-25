@@ -64,7 +64,7 @@ export async function renderPlayMap() {
   app.innerHTML = `
     <div class="tm-page">
       <div id="tm-map" class="tm-map" role="img" aria-label="Your Tour Map"></div>
-      <div class="tm-top"><button class="ib" id="back" aria-label="Back">${icon("back")}</button><h1 class="title script">Tour Map</h1><button class="ib glass tm-info" id="tm-info" aria-label="About the map">${icon("info")}</button></div>
+      <div class="tm-top"><button class="ib glass" id="back" aria-label="Back">${icon("back")}</button><h1 class="title script">Tour Map</h1><button class="ib glass tm-info" id="tm-info" aria-label="About the map">${icon("info")}</button></div>
       <div class="tm-ctl">
         <button class="ib glass" id="tm-in" aria-label="Zoom in">${icon("plus")}</button>
         <button class="ib glass" id="tm-out" aria-label="Zoom out">${icon("minus")}</button>
