@@ -64,10 +64,10 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
   await page.click("#ask-ok");
   await page.waitForSelector(".rd-banner:not(.on-night)");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).skipped > 0); /* skipped is kept */
-  assert.equal(await page.locator(".hud .h-lab").count(), 3, "VENUE, STREAK and FANS");
-  await page.click("#h-fans"); await page.waitForFunction(() => location.hash === "#/merch");
+  assert.equal(await page.locator(".hud .h-lab").count(), 4, "VENUE, STREAK, FANS and TIPS (4.70.0)");
+  await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".hud");
-  assert.deepEqual(await page.locator(".hud .h-lab").allInnerTexts(), ["VENUE", "STREAK"], "a door you've used loses its label");
+  assert.deepEqual(await page.locator(".hud .h-lab").allInnerTexts(), ["VENUE", "STREAK", "FANS"], "a door you've used loses its label");
 });
 
 test("4.40.0 Opening night: someone who already plays never sees it; Tips & gestures replays it", { skip: skip() }, async t => {

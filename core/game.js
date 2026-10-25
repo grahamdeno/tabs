@@ -873,7 +873,8 @@ export function gelOf(name) {
 /* a show finished: keep the count, the bonus fans and each song's best */
 /* practice (Wait for me, 4.54.0): fans and the request line count; Charts XP, rival battles, duels and the best score do not */
 export function gigDone(data, songId, g, encore = false, now = Date.now(), practice = false) {
-  const fans = gigFans(g, encore), pct = gigPct(g);
+  const fans = gigFans(g, encore), pct = gigPct(g), tips = gigTips(g, encore);
+  const mt = data.merch || (data.merch = {}); mt.tips = (mt.tips || 0) + tips; /* the once-only change of fans to tips adds to this, never replaces it */
   const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {} });
   gs.shows++; gs.fans += fans;
   if (pct !== null && !practice) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
@@ -886,7 +887,7 @@ export function gigDone(data, songId, g, encore = false, now = Date.now(), pract
   const battle = practice ? null : chartsShow(data, songId, g, pct, now, doubled ? 2 : 1);
   /* Song duels (4.12.0): a scored show answers a friend's challenge on this song */
   const duel = pct === null || practice ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
-  return { ...(duel ? { duel } : {}), fans: fans + request, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
+  return { ...(duel ? { duel } : {}), fans: fans + request, tips, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
 }
 export function cleanGig(raw) {
   if (!isObj(raw)) return null;
@@ -920,10 +921,85 @@ export const MERCH = [
 ];
 const merchItem = id => MERCH.find(x => x.id === id);
 /* data.merch.test: fans added from Settings > Help to try the Merch table (4.16.0); they never count toward XP or the chart */
-export const fansToSpend = (data, now = Date.now()) => Math.max(0, fansOf(data, now) + (data.merch?.test || 0) - (data.merch?.spent || 0));
+// ---------- Fans and tips (4.70.0, Graham 2026-10-24) ----------
+// Fans are your reputation: practice and shows earn them, and they are never spent. They fade when you neither
+// practice nor play: nothing for FADE.grace days, then FADE.rate of them a day (a Rain check covers a day).
+// Fall below FADE.hold of the most fans you had at a venue and the Road warns you; still below the next day and
+// you're back at the venue before. FADE.back shows there win it back (quicker than earning it the first time).
+// Tips are money: only shows earn them, more with a bigger crowd and a longer run, and the Merch table costs tips.
+// The first time this runs, the fans you had to spend become tips, so nothing saved is lost.
+export const FADE = { grace: 2, rate: 0.01, hold: 0.75, back: 3, days: 120 };
+export const fansNow = (data, now = Date.now()) => Math.max(0, fansOf(data, now) - (data.fame?.lost || 0));
+function activeDays(data) {
+  const s = new Set(playDays(playSongs(data)));
+  for (const [d, secs] of Object.entries(data.journal?.days || {})) if (secs >= 60) s.add(d);
+  return s;
+}
+const dayStart = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d, 12).getTime(); };
+/* the old fans to spend, once, as tips */
+export function tipsMigrate(data, now = Date.now()) {
+  const m = data.merch || (data.merch = {});
+  if (m.tconv) return 0;
+  const was = Math.max(0, fansOf(data, now) - (m.spent || 0));
+  m.tconv = 1; m.tips = (m.tips || 0) + was;
+  return was;
+}
+export const tipsOf = data => { const m = data.merch || {}; return Math.max(0, (m.tips || 0) + (m.test || 0) - (m.tspent || 0)); };
+/* tips for a show: 5 unscored; scored, 10 plus 3 for each fan on their feet and 1 for every two chords in your best run */
+export function gigTips(g, encore = false) {
+  const graded = g.hits + g.misses > 0, t = graded ? 10 + 3 * gigCrowd(g) + Math.floor(g.best / 2) : 5;
+  return encore ? t * 2 : t;
+}
+/* Once a day (and after plays): fans fade for the idle days since, and the venue is held, warned, lost or won
+   back. Returns what happened, for the Road to say: { kind: "fade", lost } | { kind: "warn" | "down" | "up", venue }. */
+export function fameSettle(data, now = Date.now()) {
+  tipsMigrate(data, now);
+  const f = data.fame || (data.fame = {}), today = dayKey(now), out = [];
+  if (!f.day) { f.day = today; f.base = fansNow(data, now); return out; }
+  const act = activeDays(data), rain = new Set(data.merch?.rainDays || []);
+  let lost = 0, n = 0;
+  for (let t = dayStart(f.day) + DAY; dayKey(t) < today && n < FADE.days; t += DAY, n++) {
+    const k = dayKey(t);
+    if (act.has(k) || rain.has(k)) { f.idle = 0; continue; }
+    f.idle = (f.idle || 0) + 1;
+    if (f.idle <= FADE.grace) continue;
+    const have = fansNow(data, now), loss = have > 0 ? Math.min(have, Math.max(1, Math.round(have * FADE.rate))) : 0;
+    f.lost = (f.lost || 0) + loss; lost += loss;
+  }
+  if (act.has(today)) f.idle = 0;
+  f.day = today;
+  if (lost) out.push({ kind: "fade", lost });
+  const plays = lifetimePlays(data), earned = venueOf(plays).ring, fans = fansNow(data, now);
+  f.down = Math.min(f.down || 0, earned);
+  if (f.down > 0 && plays - (f.back || 0) >= FADE.back) { f.down--; f.back = plays; f.base = fans; delete f.warn; out.push({ kind: "up", venue: venueName(earned - f.down) }); }
+  const ring = earned - f.down;
+  if (ring > 0 && f.base > 0 && fans < f.base * FADE.hold) {
+    if (!f.warn) { f.warn = today; out.push({ kind: "warn", venue: venueName(ring) }); }
+    else if (f.warn < today) { f.down++; f.back = plays; f.base = fans; delete f.warn; out.push({ kind: "down", from: venueName(ring), venue: venueName(ring - 1) }); }
+  } else if (f.warn) delete f.warn;
+  if (!(f.base >= fans)) f.base = fans; /* the most fans you've had at this venue */
+  return out;
+}
+/* the venue you're at: the one your plays earned, less the ones lost to fading fans */
+export function venueNow(data) {
+  const plays = lifetimePlays(data), v = venueOf(plays), down = Math.min(data.fame?.down || 0, v.ring);
+  if (!down) return { ...v, warn: !!data.fame?.warn };
+  const ring = v.ring - down;
+  return { ...v, ring, name: venueName(ring), next: venueName(ring + 1), down, back: Math.max(1, FADE.back - (plays - (data.fame.back || 0))), warn: !!data.fame?.warn };
+}
+export function cleanFame(raw) {
+  if (!isObj(raw)) return null;
+  const out = {}, day = /^\d{4}-\d\d-\d\d$/, int = (v, max) => Math.max(0, Math.min(max, Math.floor(+v || 0)));
+  if (day.test(raw.day)) out.day = raw.day;
+  if (day.test(raw.warn)) out.warn = raw.warn;
+  for (const [k, max] of [["lost", 1e7], ["base", 1e7], ["down", 50], ["back", 1e6], ["idle", 1e4]]) { const v = int(raw[k], max); if (v) out[k] = v; }
+  return Object.keys(out).length ? out : null;
+}
+export const fansToSpend = data => tipsOf(data); /* 4.70.0: what you spend is tips */
 export function merchState(data, now = Date.now()) {
+  tipsMigrate(data, now);
   const m = data.merch || {}, has = new Set([...MERCH.filter(x => !x.price && x.kind !== "gear").map(x => x.id), ...(m.has || [])]);
-  return { fans: fansToSpend(data, now), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement" };
+  return { tips: tipsOf(data), fans: tipsOf(data), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement" };
 }
 /* what's on, without working out fans (cheap enough for every screen) */
 export function merchWorn(data, kind = "louie") {
@@ -936,8 +1012,8 @@ export function merchBuy(data, id, now = Date.now()) {
   if (!it) return { why: "none" };
   const st = merchState(data, now), m = data.merch || (data.merch = {});
   if (it.kind === "gear" ? st.own[id] + (it.adds || 1) > it.max : st.has.has(id)) return { why: it.kind === "gear" ? "max" : "have" };
-  if (st.fans < it.price) return { why: "fans" };
-  m.spent = (m.spent || 0) + it.price;
+  if (st.tips < it.price) return { why: "tips" };
+  m.tspent = (m.tspent || 0) + it.price;
   if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
   else { (m.has || (m.has = [])).push(id); m[it.kind] = id; }
   return { ok: true };
@@ -974,7 +1050,7 @@ export function secondTake(data, now = Date.now()) {
 export function merchTip(data, now = Date.now()) {
   const st = merchState(data, now), m = data.merch || {};
   const told = new Set(m.told || []);
-  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !st.has.has(x.id) && x.price <= st.fans && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
+  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
   if (!it) return null;
   const mm = data.merch || (data.merch = {});
   (mm.told || (mm.told = [])).push(it.id);
@@ -984,6 +1060,9 @@ export function cleanMerch(raw) {
   if (!isObj(raw)) return null;
   const out = {}, day = /^\d{4}-\d\d-\d\d$/, ids = new Set(MERCH.map(x => x.id));
   const spent = Math.max(0, Math.min(1e7, Math.floor(+raw.spent || 0))); if (spent) out.spent = spent;
+  /* 4.70.0: tips earned, spent, and the once-only change of fans to tips */
+  for (const k of ["tips", "tspent"]) { const v = Math.max(0, Math.min(1e7, Math.floor(+raw[k] || 0))); if (v) out[k] = v; }
+  if (raw.tconv) out.tconv = 1;
   const test = Math.max(0, Math.min(1e6, Math.floor(+raw.test || 0))); if (test) out.test = test;
   const own = {};
   for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }

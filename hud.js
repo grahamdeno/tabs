@@ -1,9 +1,9 @@
 // The game's chrome (4.0.0): the stat bar at the top of the Road, the tab bar along the bottom of
 // the main pages, the More sheet, and the pages still to come (Tour, Charts, Band).
-//   statBar()        the venue, the gig streak and your fans, as buttons (bindStatBar wires them)
+//   statBar()        the venue, the gig streak, your fans and your tips (4.70.0), as buttons (bindStatBar wires them)
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
-//   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the fans in the stat bar (4.16.2)
-import { Tabs, fansToSpend, lifetimePlays, openingOn, playSongs, rainSettle, streakOf, venueOf } from "./core.js";
+//   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the tips in the stat bar (4.16.2)
+import { Tabs, fameSettle, fansNow, openingOn, playSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
 import { esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
 import { guitarIcon, buzz } from "./rock.js";
@@ -13,28 +13,44 @@ const n = x => x.toLocaleString("en-US");
 /* ---- the stat bar ---- */
 const BADGE = `<svg width="28" height="30" viewBox="0 0 30 32" aria-hidden="true"><path class="h-vbd" d="M15 2l12 6v10c0 7-6 11-12 13C9 29 3 25 3 18V8z"/><path class="h-vb" d="M15 1l11 5v10c0 7-5 11-11 13C9 27 4 23 4 16V6z"/><circle cx="15" cy="15" r="5" fill="#fff"/><path d="M8 8l5-2" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/></svg>`;
 const TICKET = `<svg width="32" height="26" viewBox="0 0 34 28" aria-hidden="true"><path class="h-tkd" d="M3 6h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/><path class="h-tk" d="M3 4h28v6a4 4 0 0 0 0 8v6H3v-6a4 4 0 0 0 0-8z"/><path class="h-tkd" d="M20 6h2v2h-2zM20 11h2v2h-2zM20 16h2v2h-2z"/><path d="M8 8h6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg>`;
-let rained = [];
+let rained = [], fame = [];
+/* 4.70.0: tips, a coin with a dollar sign */
+const COIN = `<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle class="h-cd" cx="14" cy="15.5" r="11.5"/><circle class="h-c" cx="14" cy="13.5" r="11.5"/><path d="M17.5 9.5c-.8-1-2-1.5-3.5-1.5-2 0-3.3 1-3.3 2.5 0 3.5 7 1.8 7 5.5 0 1.6-1.5 2.6-3.6 2.6-1.6 0-3-.6-3.8-1.7M14 6v2M14 18.6v2" fill="none" stroke="#14213D" stroke-width="2" stroke-linecap="round"/></svg>`;
 export function statBar() {
   /* 4.14.0: a Rain check covers the nights missed since your last play, before the streak is counted */
   const used = rainSettle(data);
   if (used.length) { Tabs.save(data); rained = used; }
-  const plays = lifetimePlays(data), v = venueOf(plays), st = streakOf(playSongs(data)), fans = fansToSpend(data);
+  /* 4.70.0: fans fade on idle days, and a venue can be lost and won back */
+  const said = fameSettle(data);
+  if (said.length || data.fame) Tabs.save(data);
+  if (said.length) fame = said;
+  const v = venueNow(data), st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data);
   /* 4.40.0: each one says what it is, with a ›, until you've tapped it once (not during Opening night) */
   const lab = (k, t) => openingOn(data) || data.settings.used?.["hud-" + k] ? "" : `<small class="h-lab" aria-hidden="true">${t}</small>`;
   return `<div class="hud" role="group" aria-label="Your stats">
     <button id="h-venue" aria-label="${esc(v.name)}, venue ${v.ring + 1}. Open the Tour Map">${BADGE}<span>${v.ring + 1}</span>${lab("venue", "VENUE")}</button>
     <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${guitarIcon(st.today)}<span>${st.days}</span>${lab("streak", "STREAK")}</button>
-    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans to spend. Open the Merch table">${TICKET}<span>${n(fans)}</span>${lab("fans", "FANS")}</button>
+    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open your profile">${TICKET}<span>${n(fans)}</span>${lab("fans", "FANS")}</button>
+    <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${COIN}<span>$${n(tips)}</span>${lab("tips", "TIPS")}</button>
   </div>`;
 }
 export function bindStatBar() {
   const $ = id => document.getElementById(id);
   const learned = k => { if (data.settings.used?.["hud-" + k]) return; data.settings.used = { ...(data.settings.used || {}), ["hud-" + k]: true }; Tabs.save(data); };
-  for (const k of ["venue", "streak", "fans"]) $("h-" + k)?.addEventListener("click", () => learned(k));
+  for (const k of ["venue", "streak", "fans", "tips"]) $("h-" + k)?.addEventListener("click", () => learned(k));
   $("h-venue")?.addEventListener("click", () => go("#/playmap"));
   /* 4.16.0: the guitar rocks and the phone taps before your profile opens */
   $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
-  $("h-fans")?.addEventListener("click", () => go("#/merch"));
+  $("h-fans")?.addEventListener("click", () => go("#/you"));
+  $("h-tips")?.addEventListener("click", () => go("#/merch"));
+  if (fame.length) {
+    const said = fame; fame = [];
+    const line = x => x.kind === "fade" ? `${n(x.lost)} fans drifted away while you were off the road`
+      : x.kind === "warn" ? `Your crowd is thinning at the ${x.venue}. Play tonight to keep it`
+      : x.kind === "down" ? `Back to the ${x.venue}. Play ${3} shows there to win the ${x.from} back`
+      : `You won the ${x.venue} back!`;
+    said.forEach((x, i) => setTimeout(() => toast(line(x)), 700 + i * 2600));
+  }
   if (rained.length) { const k = rained.length; rained = []; setTimeout(() => toast(`${k === 1 ? "A Rain check covered last night" : `${k} Rain checks covered the nights you missed`}. Your streak is safe.`), 600); }
 }
 

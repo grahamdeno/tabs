@@ -1785,7 +1785,7 @@ test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {
   assert.equal(C.gigFans(g), 9 + 10, "a fan a chord, and 10 for a crowd of 10 or more");
   assert.equal(C.gigFans(g, true), 38, "an encore doubles it");
   const data = { songs: [], sets: [], trash: [], settings: {} };
-  assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, pct: 90, request: null });
+  assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, tips: 10 + 3 * 11 + 4, pct: 90, request: null }, "4.70.0: tips for the show too");
   assert.deepEqual(data.gig, { shows: 1, fans: 19, best: { a: 90 } });
   assert.deepEqual(C.cleanGig({ shows: "2", fans: 5, best: { a: 120, b: 50 } }), { shows: 2, fans: 5, best: { b: 50 } });
   assert.equal(C.cleanGig({}), null);
@@ -2030,16 +2030,19 @@ test("Merch table (4.16.0): Pink and Teal are free to wear, and test fans only a
   assert.equal(C.cleanMerch({ test: 1000, spent: 600 }).test, 1000, "kept in saves");
 });
 
-test("Merch table (4.14.0): spending fans, gear, finishes and the Rain check", () => {
+test("Merch table (4.14.0; 4.70.0 tips): spending tips, gear, finishes and the Rain check", () => {
   const now = new Date(2026, 9, 21, 20).getTime();
   const data = { songs: [{ id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 120, last: 0, days: { "2026-10-17": 60, "2026-10-18": 60 } } }], sets: [], trash: [], settings: {} };
-  const f0 = C.fansToSpend(data, now);
+  const f0 = C.fansOf(data, now);
   assert.ok(f0 >= 1200 && f0 < 1500, "120 plays");
-  assert.deepEqual(C.merchBuy(data, "gold", now), f0 >= 1500 ? { ok: true } : { why: "fans" });
-  if (f0 >= 1500) { data.merch.spent = 0; data.merch.has = []; delete data.merch.louie; }
+  assert.equal(C.tipsMigrate(data, now), f0, "4.70.0: the fans you had to spend become tips, once");
+  assert.equal(C.tipsMigrate(data, now), 0, "only once");
+  assert.equal(C.tipsOf(data), f0);
+  assert.deepEqual(C.merchBuy(data, "gold", now), f0 >= 1500 ? { ok: true } : { why: "tips" });
+  if (f0 >= 1500) { data.merch.tspent = 0; data.merch.has = []; delete data.merch.louie; }
   assert.deepEqual(C.merchBuy(data, "tweed", now), { ok: true });
-  assert.equal(C.fansToSpend(data, now), f0 - 600, "spent");
-  assert.equal(C.fansOf(data, now), f0, "earned fans stay");
+  assert.equal(C.tipsOf(data), f0 - 600, "spent");
+  assert.equal(C.fansOf(data, now), f0, "fans are never spent");
   assert.equal(C.merchState(data, now).louie, "tweed", "worn once bought");
   assert.deepEqual(C.merchBuy(data, "tweed", now), { why: "have" });
   assert.equal(C.merchWear(data, "stock"), true); assert.equal(C.merchWear(data, "black"), false, "not bought");
@@ -2360,4 +2363,48 @@ test("nameRepeats: the words sung most are the Chorus everywhere, a part sung on
   assert.deepEqual(out.split("\n").filter(r => /^\[/.test(r)), ["[Verse]", "[Chorus]", "[Verse]", "[Chorus]", "[Bridge]", "[Chorus]"]);
   assert.equal(out.replace(/\[[^\]]*\]/g, ""), body.replace(/\[[^\]]*\]/g, ""), "only the names change");
   assert.equal(C.nameRepeats("[Verse]\nA b\nC d"), "[Verse]\nA b\nC d", "nothing repeats: left alone");
+});
+
+test("Fans fade and venues can be lost and won back (4.70.0)", () => {
+  const day = d => new Date(2026, 9, d, 20).getTime();
+  /* 36 plays on the 1st: venue 3 (Coffeehouse) by plays */
+  const data = { songs: [{ id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 36, last: day(1), days: { "2026-10-01": 36 } } }], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.fameSettle(data, day(1)), [], "the first time only starts the count");
+  const fans0 = C.fansNow(data, day(1)), ring0 = C.venueNow(data).ring;
+  assert.ok(fans0 > 0 && ring0 > 0);
+  /* two idle days are free */
+  assert.deepEqual(C.fameSettle(data, day(4)), [], "the 2nd and 3rd are grace days");
+  assert.equal(C.fansNow(data, day(4)), fans0);
+  /* then 1% a day */
+  const r = C.fameSettle(data, day(6));
+  assert.equal(r[0].kind, "fade"); assert.ok(r[0].lost >= 2, "the 4th and 5th each cost 1%");
+  /* a Rain check covers a day */
+  data.merch.rainDays = ["2026-10-06"];
+  const before = C.fansNow(data, day(7));
+  assert.deepEqual(C.fameSettle(data, day(7)), [], "the 6th is covered");
+  assert.equal(C.fansNow(data, day(7)), before);
+  /* a month idle: warned, then a venue down */
+  const warn = C.fameSettle(data, new Date(2026, 10, 12, 20).getTime());
+  assert.ok(warn.some(x => x.kind === "warn"), "warned first: " + JSON.stringify(warn));
+  assert.equal(C.venueNow(data).ring, ring0, "still at the venue on the day of the warning");
+  const down = C.fameSettle(data, new Date(2026, 10, 13, 20).getTime());
+  assert.ok(down.some(x => x.kind === "down"), "then back a venue: " + JSON.stringify(down));
+  assert.equal(C.venueNow(data).ring, ring0 - 1);
+  assert.equal(C.venueNow(data).back, 3, "three shows win it back");
+  /* three plays win it back */
+  const p0 = C.lifetimePlays(data);
+  for (let i = 0; i < 3; i++) C.Tabs.logPlay(data, data.songs[0]);
+  assert.equal(C.lifetimePlays(data), p0 + 3);
+  const up = C.fameSettle(data, new Date(2026, 10, 13, 21).getTime());
+  assert.ok(up.some(x => x.kind === "up")); assert.equal(C.venueNow(data).ring, ring0);
+  /* kept through a save */
+  assert.deepEqual(C.cleanFame(JSON.parse(JSON.stringify(data.fame))), Object.fromEntries(Object.entries(data.fame).filter(([, v]) => v)), "kept through a save (zeros left out)");
+  assert.equal(C.cleanFame({ down: -3, day: "x" }), null);
+});
+
+test("Tips for a show (4.70.0): more with a bigger crowd and a longer run; an encore doubles them", () => {
+  const g = C.gigStart(); for (let i = 0; i < 12; i++) C.catchScore(g, true);
+  assert.equal(C.gigTips(g), 10 + 3 * 12 + 6);
+  assert.equal(C.gigTips(g, true), 2 * (10 + 3 * 12 + 6));
+  assert.equal(C.gigTips(C.gigStart()), 5, "an unscored show still gets something");
 });

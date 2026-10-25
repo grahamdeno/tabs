@@ -479,9 +479,10 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const page = await phone(t, lib, { home: true });
   await page.waitForSelector("#h-fans");
   assert.match(await page.innerText("#h-streak > span"), /^\s*3\s*$/, "the Rain check covered yesterday");
-  const fans = +(await page.innerText("#h-fans")).replace(/\D/g, "");
-  assert.ok(fans >= 1200, "fans to spend");
-  await page.click("#h-fans"); await page.waitForSelector(".mc-head");
+  const fans = +(await page.innerText("#h-tips")).replace(/\D/g, "");
+  assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
+  assert.ok(+(await page.innerText("#h-fans")).replace(/\D/g, "") >= 1200, "and your fans stay");
+  await page.click("#h-tips"); await page.waitForSelector(".mc-head");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
   await page.click(".mc-fin[data-id=tweed]"); await page.waitForSelector(".mt-sheet");
@@ -490,10 +491,10 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.equal(await page.evaluate(() => document.body.dataset.wear), "tweed", "Louie wears it everywhere");
   assert.equal(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, ""), fans - 600);
   await page.click(".mc-fin[data-id=gold]"); await page.waitForSelector(".mt-sheet");
-  assert.match(await page.innerText(".mt-acts"), /MORE FANS TO GO/i, "can't afford Gold top yet");
+  assert.match(await page.innerText(".mt-acts"), /MORE IN TIPS TO GO/i, "can't afford Gold top yet");
   await page.click("#mt-not");
   await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-lib");
-  assert.equal(await page.locator("#m-merch").count(), 0, "4.16.2: the Merch table opens from the fans in the stat bar, not More");
+  assert.equal(await page.locator("#m-merch").count(), 0, "4.16.2: the Merch table opens from the stat bar (4.70.0: the tips), not More");
   await page.click("#more-x");
   await page.click("#tabs [data-tab=charts]"); await page.waitForSelector("#ch-take");
   await page.click("#ch-take"); await page.waitForSelector(".bt");

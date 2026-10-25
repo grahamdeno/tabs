@@ -395,7 +395,7 @@ function showComplete() {
   g.stream?.getTracks().forEach(t => t.stop());
   if (g.catch) { g.catch.cur = g.catch.targets.length; settle(g, catchClose(g.catch), !!g.stream); } /* the chords still waiting to be judged */
   const graded = g.score.hits + g.score.misses > 0;
-  const { fans, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore, Date.now(), !!g.waited);
+  const { fans, tips, pct, request, battle, cover, duel, doubled } = gigDone(data, g.song.id, g.score, g.encore, Date.now(), !!g.waited);
   rehearseMisses(data, g.missed, Date.now(), g.landed); /* the changes you dropped (tomorrow's soundcheck) and landed (Your changes) */
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
@@ -420,7 +420,7 @@ function showComplete() {
     <div class="gc-bds" id="gc-bds" role="group" aria-label="Backdrops you own" hidden></div>
     <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
     <p class="gc-s">${esc(g.song.title)}, start to finish.${crowd >= 10 ? " The crowd wants more." : ""}</p>
-    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("CHORDS", graded ? `${g.score.hits} of ${g.score.hits + g.score.misses}` : "–", "beat")}</div>
+    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("TIPS", `$${tips}`, "tips")}${tile("CROWD", crowd === null ? "–" : `${crowd}/12`, "crowd")}${tile("CHORDS", graded ? `${g.score.hits}/${g.score.hits + g.score.misses}` : "–", "beat")}</div>
     ${played}
     ${worst ? `<div class="gc-worst"><span><small>MISSED MOST</small><b>${esc(wa)} to ${esc(wb)}, ${worst[1]} time${worst[1] === 1 ? "" : "s"}</b></span>${drill ? `<button class="btn sm" id="gc-drill">Practice it</button>` : ""}</div>` : ""}
     <div class="gc-list">
@@ -437,7 +437,7 @@ function showComplete() {
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
-    ${tip ? `<button class="gc-merch" id="gc-merch">${tip.kind === "louie" ? `<span class="fin fin-${tip.id}">${louie("happy", { size: 46 })}</span>` : `<span class="gc-merch-ic" aria-hidden="true">${icon("shirt")}</span>`}<span><b>You can get ${esc(tip.kind === "louie" ? `${tip.name} Louie` : `the ${tip.name} backdrop`)}</b><small>${tip.price.toLocaleString("en-US")} fans at the merch table</small></span>${icon("chev", "chev")}</button>` : ""}
+    ${tip ? `<button class="gc-merch" id="gc-merch">${tip.kind === "louie" ? `<span class="fin fin-${tip.id}">${louie("happy", { size: 46 })}</span>` : `<span class="gc-merch-ic" aria-hidden="true">${icon("shirt")}</span>`}<span><b>You can get ${esc(tip.kind === "louie" ? `${tip.name} Louie` : `the ${tip.name} backdrop`)}</b><small>$${tip.price.toLocaleString("en-US")} in tips at the merch table</small></span>${icon("chev", "chev")}</button>` : ""}
     ${duel ? `<section class="gc-duel"><small>SONG DUEL</small><b>Send ${esc(duel.opp)} your score</b><button class="btn primary" id="gc-reply">SEND YOUR SCORE BACK</button></section>`
       : pct !== null ? `<section class="gc-duel"><small>CHALLENGE A FRIEND</small><b>"I hit ${pct}% on ${esc(g.song.title)}. Beat it."</b><button class="btn primary" id="gc-duel">SEND THE CHALLENGE</button></section>` : ""}
     <div class="gc-acts">

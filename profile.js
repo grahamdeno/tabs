@@ -74,7 +74,7 @@ export function renderProfile() {
     </section>
     <div class="pf-tiles">
       <div class="pf-tile pf-tile-streak">${knobIcon(p.streak, goal, 46)}<div><span class="pf-tn">${guitarIcon(p.streak > 0)}<b>${p.streak}</b></span><small>${p.streak >= goal ? "NIGHTS IN A ROW" : `NIGHTS · NEXT ${goal}`}</small></div></div>
-      <div class="pf-tile"><b class="pf-fans">${num(fansToSpend(data))}</b><small>FANS TO SPEND</small></div>
+      <div class="pf-tile"><b class="pf-fans">$${num(fansToSpend(data))}</b><small>TIPS TO SPEND</small></div>
       <div class="pf-tile"><b>${num(data.gig?.shows || 0)}</b><small>SHOWS PLAYED</small></div>
       <div class="pf-tile"><b>${can.now} <span>of ${can.of}</span></b><small>SONGS YOU CAN PLAY</small></div>
     </div>`;

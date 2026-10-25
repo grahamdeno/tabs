@@ -12,7 +12,7 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { VERSION, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, venueOf, FANS, OPENING, Tabs } from "./core.js";
+import { VERSION, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route } from "./app.js";
@@ -179,11 +179,14 @@ export function renderRoad() {
   const ov = openingView(data);
   if (ov) { homeHooks.openDrawer = false; return renderOpening(ov); }
   const wantDrawer = homeHooks.openDrawer; homeHooks.openDrawer = false;
-  const plays = lifetimePlays(data), st = streakOf(playSongs(data)), v = venueOf(plays);
+  const plays = lifetimePlays(data), st = streakOf(playSongs(data)), v = venueNow(data);
   const road = roadPath(data), cur = road.current, leg = road.leg;
   const song = upNext(), say = louieLine(st, plays);
   const trip = song && plays && !st.today ? tripFor(song) : null;
   if (trip && say.mood !== "sleepy") say.text = `${trip.a} to ${trip.b} is the switch to warm up for ${song.title}.`;
+  /* 4.70.0: a venue at risk, or one to win back, comes first */
+  if (v.warn) say.text = `Your crowd is thinning at the ${v.name}. Play a song tonight to keep it.`;
+  else if (v.down) say.text = `We're back at the ${v.name}. ${v.back} more show${v.back === 1 ? "" : "s"} and we win the ${v.next} back.`;
   const ps = playableSongs(data, cur?.kind === "chord" ? cur.chord : "");
   const chip = !data.songs.length ? "" : ps.more > 0 ? `The ${esc(cur.chord)} chord opens <b>${ps.more} more</b> of your ${ps.of} songs`
     : `You can play <b>${ps.now} of your ${ps.of}</b> song${ps.of === 1 ? "" : "s"}`;

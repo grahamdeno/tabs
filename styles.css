@@ -1886,6 +1886,10 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .h-vb { fill: var(--accent); } .h-vbd { fill: var(--accent-deep); }
 .h-fl1 { fill: var(--fans); } .h-fl2 { fill: var(--streak); } .h-streak.off .h-fl1, .h-streak.off .h-fl2 { fill: var(--locked-ic); }
 .h-tk { fill: var(--fans); } .h-tkd { fill: var(--fans-deep); }
+/* 4.70.0: tips */
+.h-c { fill: #3DDBA0; } .h-cd { fill: #22A877; }
+.hud .h-tips { color: var(--fg); }
+.gc-tile.tips { background: #3DDBA0; box-shadow: 0 5px 0 #22A877; }
 
 /* ---- The tab bar (4.0.0): Road, Tour, Charts, Band, Rehearse, More ---- */
 #tabs { display: none; }
@@ -2249,10 +2253,10 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 body.held .st-open { display: none; } /* 4.66.0: paused, the count-in card doesn't sit over the chord diagrams */
 .gc-t { margin: 0; font: 700 34px var(--display); color: var(--streak); }
 .gc-s { margin: -6px 0 0; font: 700 16px var(--sans); color: var(--fg-2); }
-.gc-tiles { display: flex; gap: 10px; width: 100%; }
+.gc-tiles { display: flex; gap: 8px; width: 100%; }
 .gc-tile { flex: 1; border-radius: 18px; padding: 3px; }
 .gc-tile small { display: block; padding: 5px 0 4px; font: 800 11.5px var(--sans); letter-spacing: .08em; color: #14213D; }
-.gc-tile b { display: block; padding: 10px 0; border-radius: 15px; background: var(--card); font: 700 26px var(--display); color: var(--fg); }
+.gc-tile b { display: block; padding: 10px 0; border-radius: 15px; background: var(--card); font: 700 22px var(--display); color: var(--fg); white-space: nowrap; }
 .gc-tile.fans { background: var(--fans); box-shadow: 0 5px 0 var(--fans-deep); }
 .gc-tile.crowd { background: var(--accent); box-shadow: 0 5px 0 var(--accent-deep); }
 .gc-tile.beat { background: var(--strings); box-shadow: 0 5px 0 var(--strings-deep); }
@@ -3965,3 +3969,9 @@ body.covered .cebar.plate::before { content: ""; position: absolute; z-index: -1
 .panel.backpaste .bp-go { min-height: 60px; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .panel.backpaste .bp-go svg { width: 20px; height: 20px; }
 .panel.backpaste .bp-x { min-height: 48px; }
+/* 4.70.0: four doors in the stat bar (venue, streak, fans, tips) fit a phone */
+.hud { gap: 2px; }
+.hud button { gap: 4px; padding: 0 2px; font-size: 17px; }
+.hud button > svg:not(.ri-guitar) { width: 24px; height: auto; }
+.hud .h-streak .ri-guitar { width: 30px; height: 30px; }
+.hud .h-lab { font-size: 9px; letter-spacing: .04em; }
