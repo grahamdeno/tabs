@@ -40,18 +40,19 @@ document.addEventListener("visibilitychange", () => {
 });
 // Theme: Automatic (the default) follows the phone's light or dark appearance.
 const phoneLight = () => !!window.matchMedia?.("(prefers-color-scheme: light)").matches;
-window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (data.settings.theme !== "dark" && data.settings.theme !== "light") applyTheme(); });
+window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (data.settings.theme === "auto" || !data.settings.theme) applyTheme(); });
 function applyTheme() {
   sysText = readSysText();
   const t = data.settings.theme;
-  const green = t === "green", light = green || t === "light" || (t !== "dark" && phoneLight());
+  const green = t === "green", head = t === "headliner", light = green || t === "light" || (t !== "dark" && !head && phoneLight());
   document.documentElement.dataset.theme = light ? "light" : "dark";
   /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
-  document.documentElement.dataset.look = green ? "green" : light ? "festival" : "neon";
+  /* 4.77.0: Headliner is a dark look: violet, gold and blaze orange on black */
+  document.documentElement.dataset.look = green ? "green" : head ? "headliner" : light ? "festival" : "neon";
   /* 4.14.0: the finish Louie wears, bought at the Merch table */
   const wear = merchWorn(data);
   if (wear === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = wear;
-  document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : light ? "#eaf3ff" : "#1d1640";
+  document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : head ? "#16171b" : light ? "#eaf3ff" : "#1d1640";
 }
 
 

@@ -17,7 +17,7 @@ catch { try { axePath = require.resolve(path.join(process.cwd(), "node_modules",
 const SHORT = { id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 8, body: "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand" };
 const lib = theme => ({ ...LIB, songs: [...LIB.songs, SHORT], sets: [{ id: "s", name: "Friday", songIds: ["a", "b"] }],
   merch: { has: ["brick"], backdrop: "brick", tips: 500, tconv: 1 },
-  settings: { ...LIB.settings, theme, plainPlay: false, gigScore: false, place: { name: "Wilmington", lat: 34.2, lon: -77.9 }, playAir: { hum: 30, temp: 80, unit: "F", day: "2026-10-20" } } });
+  settings: { ...LIB.settings, v: 6, theme, plainPlay: false, gigScore: false, place: { name: "Wilmington", lat: 34.2, lon: -77.9 }, playAir: { hum: 30, temp: 80, unit: "F", day: "2026-10-20" } } });
 const back = p => p.evaluate(() => { Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
 /* [name, hash, what to do there first] */
 const SCREENS = [
@@ -46,9 +46,9 @@ const unnamed = () => {
 };
 
 /* one test per palette and screen, so CI lists each problem on its own line */
-for (const theme of ["dark", "light", "green"]) for (const [screen, hash, act] of SCREENS) {
+for (const theme of ["dark", "light", "green", "headliner"]) for (const [screen, hash, act] of SCREENS) {
   test(`4.73.0 ${screen}: names, and axe finds nothing serious (${theme})`, { skip: skip(), timeout: 120000 }, async t => {
-    const page = await phone(t, lib(theme), { colorScheme: theme === "dark" ? "dark" : "light", reducedMotion: "reduce", locale: "en-US", permissions: ["clipboard-read", "clipboard-write"] });
+    const page = await phone(t, lib(theme), { colorScheme: ["dark", "headliner"].includes(theme) ? "dark" : "light", reducedMotion: "reduce", locale: "en-US", permissions: ["clipboard-read", "clipboard-write"] });
     await page.route("https://api.open-meteo.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ current: { relative_humidity_2m: 85, temperature_2m: 60 } }) }));
     await page.goto(base + hash); await page.reload(); await page.waitForTimeout(500); await settled(page);
     if (act) { await act(page); await page.waitForTimeout(500); }

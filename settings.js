@@ -67,10 +67,10 @@ function renderSettings() {
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("moon")}</span><span class="name">Theme</span>
-        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"], ["green", "Green"]].map(([k, n]) => `<button data-t="${k}" class="${(["dark", "light", "green"].includes(s.theme) ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(["dark", "light", "green"].includes(s.theme) ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
+        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"], ["green", "Green"], ["headliner", "Headliner"]].map(([k, n]) => `<button data-t="${k}" class="${(["dark", "light", "green", "headliner"].includes(s.theme) ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(["dark", "light", "green", "headliner"].includes(s.theme) ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
       </div>
     </div>
-    <p class="foot">Light is Festival Poster, Dark is Neon Midnight, and Green is Green Room. Auto follows your phone between Light and Dark.</p>
+    <p class="foot">Light is Festival Poster, Dark is Neon Midnight, Green is Green Room, and Headliner is black and gold under a blacklight. Auto follows your phone between Light and Dark.</p>
     <p class="foot">On a phone held upright, the whole bar shows while a song is paused. Press Play and it folds into Play's corner; pause and it comes back. At the top of a paused song, pull down to go back.</p>`],
     newsongs: ["New songs", `
     <div class="set-group glass">
@@ -187,7 +187,7 @@ function renderSettings() {
   } else {
     // The main menu: one row per page, each showing where it stands.
     const city = s.place?.name?.split(",")[0];
-    const theme = { dark: "Dark", light: "Light", green: "Green Room" }[s.theme] || "Auto";
+    const theme = { dark: "Dark", light: "Light", green: "Green Room", headliner: "Headliner" }[s.theme] || "Auto";
     const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
     app.innerHTML = head("Settings", "Back") + `

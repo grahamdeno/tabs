@@ -11,7 +11,7 @@ import { CHORD_FIT, HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, strumFit,
 import { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, boxesSeed, cleanBoxes, openBox, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanFame, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansNow, fansToSpend, fameSettle, venueNow, tipsOf, gigTips, tipsMigrate, FADE, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigCrowd, gigDone, gigFans, gigPct, gigStart, catchScore, relativeOf, catchTargets, targetAt, catchStart, catchAt, catchOpen, catchHear, catchClose, beatsLate, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.76.0";
+export const VERSION = "4.77.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -20,7 +20,7 @@ export const TRASH_DAYS = 30;
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
 const DEFAULT_SETTINGS = {
-  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" / "green" (Green Room, 4.0.0) */ diagrams: false, focus: "always",
+  theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" / "green" (Green Room, 4.0.0) / "headliner" (4.77.0) */ diagrams: false, focus: "always",
   speedMode: "length",   // "length" (song length, mm:ss) or "multiplier" (1x style)
   startSpeed: 45,        // 1x-style starting speed for new songs
   startLength: 210,      // song-length starting value, seconds (3:30)
@@ -366,7 +366,7 @@ export function cleanImport(parsed) {
     const d = DEFAULT_SETTINGS[k];
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
-  if (!["auto", "dark", "light", "green"].includes(settings.theme)) delete settings.theme;
+  if (!["auto", "dark", "light", "green", "headliner"].includes(settings.theme)) delete settings.theme;
   const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}), ...(cleanMerch(parsed.merch) ? { merch: cleanMerch(parsed.merch) } : {}), ...(cleanOpening(parsed.opening) ? { opening: cleanOpening(parsed.opening) } : {}), ...(cleanBoxes(parsed.boxes) ? { boxes: cleanBoxes(parsed.boxes) } : {}), ...(cleanFame(parsed.fame) ? { fame: cleanFame(parsed.fame) } : {}) });
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};

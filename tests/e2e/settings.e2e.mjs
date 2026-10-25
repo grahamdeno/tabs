@@ -31,7 +31,7 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   assert.deepEqual(errs, []);
 });
 
-test("Settings > Look: Light, Dark and Green Room, kept after a reload (4.0.0)", { skip: skip() }, async t => {
+test("Settings > Look: Light, Dark, Green Room and Headliner, kept after a reload (4.0.0, 4.77.0)", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForSelector("#s-theme");
   const look = () => page.evaluate(() => [document.documentElement.dataset.theme, document.documentElement.dataset.look, getComputedStyle(document.body).backgroundColor]);
@@ -42,8 +42,10 @@ test("Settings > Look: Light, Dark and Green Room, kept after a reload (4.0.0)",
   await page.click("#s-theme [data-t='green']"); await page.waitForFunction(() => document.documentElement.dataset.look === "green");
   assert.deepEqual(await look(), ["light", "green", "rgb(230, 239, 231)"], "Green Room is a light look");
   assert.equal(await page.locator("#s-tolex").count(), 0, "the amp covering is gone with the amp look");
+  await page.click("#s-theme [data-t='headliner']"); await page.waitForFunction(() => document.documentElement.dataset.look === "headliner");
+  assert.deepEqual(await look(), ["dark", "headliner", "rgb(22, 23, 27)"], "Headliner is a dark look");
   await page.reload(); await page.waitForSelector("#s-theme");
-  assert.equal((await look())[1], "green", "kept");
+  assert.equal((await look())[1], "headliner", "kept");
 });
 
 test("Settings > Apple Music: off by default; on, Listen plays the linked song with MusicKit", { skip: skip() }, async t => {
