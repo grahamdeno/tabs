@@ -17,7 +17,8 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 - D5. Not the Shortcut: getting songs in has to happen inside the app. Step 6 is open, see below.
 - D6. Weather: both ideas yes; mockups first.
 - D7. Backdrops move to the Show complete sheet: the one you wear is the banner behind Louie and the band, with Change.
-- D8. Getting songs in, inside the app: search finds the song on Apple Music and links to the chords for your level; coming back, The Road offers Paste at once and confirms what it added. Also Scan a page (camera) and Sing it (redesigned). Then the AI song tools come out. Timed scrolling to the recording stays.
+- D8. Getting songs in, inside the app: search finds the song on Apple Music and links to the chords for your level; coming back, The Road offers Paste at once and confirms what it added. Also Scan a page (camera) and Sing it (redesigned). Timed scrolling to the recording stays.
+- D10. Graham (2026-10-24): never remove a feature or an AI capability without asking him first. Keep the AI wherever it's needed, and make it better. Each AI feature's fate is his call (list in Step 6).
 - D9. Weather: Tune up first on the song page only (the venue ideas are out).
 
 ## The Gig's capabilities, where each goes
@@ -77,15 +78,17 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 - Merch costs tips. Unspent fans today convert to tips once, so nothing bought or saved is lost.
 - XP stays behind the weekly chart only.
 
-### Step 6 [Opus] 4.71.0: adding a song without the AI (D8)
-- Search: the Apple Music match, a level choice (Beginner, Intermediate, Advanced) and Get the chords, which
-  opens the chord site's search for that song in Safari. The Road can't read the site to pick the top-rated
-  chart itself (that needs the AI or reading the site, both out), so the link lands on the site's results.
+### Step 6 [Opus] 4.71.0: adding a song, the AI picking the chart (D8, D10)
+- Search: the Apple Music match, a level choice (Beginner, Intermediate, Advanced) and Get the chords. The
+  AI's web search (`findChart` already takes a level) picks the best-rated chart for that level and returns
+  its link, so Get the chords opens that chart, not a results page.
 - Coming back: if the last thing you did was Get the chords, a sheet offers Paste right away (iOS asks once
-  more, its own Paste button), tidies the sheet, adds the song and says what it added.
-- Scan a page (camera) stays. Sing it gets a design pass (mockups first).
-- Remove: the AI chord chart, Get the song's lining, Line up from the chord sites, Clean up's AI. LRCLIB stays
-  for timing the page to the recording.
+  more with its own Paste button). The AI's Clean up tidies what was pasted; the song is added and the sheet
+  says what it added.
+- Scan a page (camera, AI) stays. Sing it gets a design pass (mockups first).
+- Every other AI feature stays as it is unless Graham decides otherwise: the AI chord chart, Get the song's
+  chord placing, Line up from the chord sites, Play next, tempo lookup, Make it easier, Spark tone, language
+  practice. The groove and AI-written drums go with the drums only if he confirms.
 
 ### Step 7 [Sonnet] 4.72.0: Tune up first (D9)
 - On the song page, when humidity or temperature has swung a lot since your last play: Louie, the two
