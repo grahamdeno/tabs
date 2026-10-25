@@ -853,8 +853,14 @@ export function catchStart(targets) {
 }
 /* the chord you are on moved to song place `idx` */
 export function catchAt(st, idx) { const t = targetAt(st.targets, idx); if (t >= 0) st.cur = t; return st.cur; }
-/* targets that can be caught now: the one you are on, then the next */
-export const catchOpen = st => [st.cur, st.cur + 1].filter(i => i < st.targets.length && !st.caught[i] && !st.closed[i]);
+/* targets that can be caught now: the next one you haven't played (from the one you are on), then the one after it,
+   up to CATCH_AHEAD past the reading line. 4.79.0: you can play ahead of the song, in order (Graham). */
+export const CATCH_AHEAD = 4;
+export function catchOpen(st) {
+  let nx = st.cur;
+  while (nx < st.targets.length && (st.caught[nx] || st.closed[nx])) nx++;
+  return [nx, nx + 1].filter(i => i < st.targets.length && i <= st.cur + CATCH_AHEAD && !st.caught[i] && !st.closed[i]);
+}
 /* One reading of the room (a chroma from `chromaOf`, or null for silence). Two readings in a row that fit the same
    open target catch it, or one with a fit of `opt.strong` and up (4.78.1; `opt.need` changes the two). Returns the target caught, or -1. A chord just caught can't be caught again until the room
    stops sounding like it (a ringing chord), so A to B to A counts the second A only when you play it again. */

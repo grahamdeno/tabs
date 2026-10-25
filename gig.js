@@ -20,10 +20,10 @@
 import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, getMic, icon, sound, soundDeaf, onLeave } from "./ui.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw, READ_AT } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
-import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss, stageWait } from "./stage.js";
+import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss, stageWait, chordTop } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
 
 let gig = null; /* the show on stage, or null */
@@ -207,8 +207,11 @@ function frame() {
 /* Wait for me (4.54.0): the song holds on the chord at the reading line until you play it (or skip it) */
 function holdFrame(g, counting) {
   const c = g.catch, t = c.targets[c.cur];
+  /* 4.79.0: you played past the chord being waited for: the song lets it go and catches up to you */
+  const ahead = c.caught.lastIndexOf(true);
+  if (g.holding && ahead > c.cur) catchUp(g, c.targets[ahead].first);
   const want = waitOn(g.song) && !!g.stream && scroll.on && !counting && !g.paused && g.idx >= 0 && performance.now() > g.dragUntil
-    && t && !!chordNotes(t.name) && !c.caught[c.cur] && g.skip !== c.cur && (g.holding || performance.now() - (g.curAt || 0) > HOLD_GRACE);
+    && t && !!chordNotes(t.name) && !c.caught[c.cur] && ahead <= c.cur && g.skip !== c.cur && (g.holding || performance.now() - (g.curAt || 0) > HOLD_GRACE);
   const pill = waitOn(g.song) && !!g.stream;
   if (want && !g.holding) {
     g.holding = true; g.waited = true;
@@ -227,6 +230,13 @@ function holdFrame(g, counting) {
     paintScore(); paintShape();
   }
   $("gg-wpill").hidden = !pill;
+}
+
+/* bring song place `i` to the reading line, so the song is where you are */
+function catchUp(g, i) {
+  const y = chordTop(i);
+  if (y == null) return;
+  window.scrollTo({ top: Math.max(0, scrollY + y - innerHeight * READ_AT + 2), behavior: "smooth" });
 }
 
 /* Is the show counting chords right now? On with the mic, playing, past the count-in and not being dragged */

@@ -40,6 +40,12 @@ function chordYs() {
   return along.y;
 }
 
+/* 4.79.0: where chord `i` of the song sits on the page, from the top of the viewport (null before layout) */
+export function chordTop(i) {
+  const sheet = $("sheet"), y = chordYs()?.[i];
+  return sheet && y != null ? sheet.getBoundingClientRect().top + y : null;
+}
+
 /* where the song is: the current line, the current chord, the section, and how far along */
 export function where(song) {
   const sheet = $("sheet");
