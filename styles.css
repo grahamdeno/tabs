@@ -4221,3 +4221,13 @@ body.playing .tuneup { display: none; }
 .set:has(#s-theme) { flex-wrap: wrap; row-gap: 10px; }
 .set #s-theme { margin-left: 0; flex: 1 0 100%; display: flex; }
 .set #s-theme button { flex: 1 1 auto; padding: 0 6px; }
+/* 4.77.1: the road case's stickers and shirt were Neon Midnight's cyan and lime in every look;
+   in Headliner they are violet and chrome, with the black ink of the look */
+:root[data-look="headliner"] .rd-case .cs1, :root[data-look="headliner"] .rd-case .cteeb { fill: #9B5CFF; }
+:root[data-look="headliner"] .rd-case .ctees { fill: #6431C2; }
+:root[data-look="headliner"] .rd-case .cs2 { fill: #CFD4DA; }
+:root[data-look="headliner"] .rd-case .cx2 { fill: #F5C542; }
+:root[data-look="headliner"] .rd-case :is(.ck, .cf, .cf2) { fill: #16171B; }
+:root[data-look="headliner"] .rd-case .cks { stroke: #16171B; }
+/* 4.77.1: played stops are chrome in Headliner, as in the mockup (they took the success green) */
+:root[data-look="headliner"] .rd-node.done:not(.box) { --pk: #CFD4DA; --pkd: #7B8188; }
