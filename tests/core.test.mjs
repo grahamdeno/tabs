@@ -2409,3 +2409,13 @@ test("Tips for a show (4.70.0): more with a bigger crowd and a longer run; an en
   assert.equal(C.gigTips(g, true), 2 * (10 + 3 * 12 + 6));
   assert.equal(C.gigTips(C.gigStart()), 5, "an unscored show still gets something");
 });
+
+test("Tune up first (4.72.0): a big swing in humidity or temperature since the last play", () => {
+  const then = { hum: 41, temp: 78, unit: "F", day: "2026-10-22" };
+  assert.deepEqual(C.tuneUpDue(then, { hum: 84, temp: 76, unit: "F" }), { hum: [41, 84], temp: [78, 76], day: "2026-10-22", unit: "F" }, "humidity up 43 points");
+  assert.ok(C.tuneUpDue(then, { hum: 45, temp: 60, unit: "F" }), "18°F colder");
+  assert.equal(C.tuneUpDue(then, { hum: 60, temp: 70, unit: "F" }), null, "a small change");
+  assert.ok(C.tuneUpDue({ hum: 40, temp: 25, unit: "C" }, { hum: 40, temp: 15, unit: "C" }), "10°C");
+  assert.equal(C.tuneUpDue(then, { hum: 90, temp: 20, unit: "C" }), null, "different units are never compared");
+  assert.equal(C.tuneUpDue(null, { hum: 90, temp: 20, unit: "F" }), null);
+});

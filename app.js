@@ -388,6 +388,8 @@ function renderViewer(id) {
   };
   songSpeed = () => speedDial(null);
   window.scrollTo(0, 0);
+  /* 4.72.0: Tune up first, when the air has changed a lot since your last play */
+  if (!song.isNew && data.settings.place && data.settings.playAir) setTimeout(() => { if (viewing === song && !scroll.on) lazy("tuneup.js").then(m => m.tuneUpCheck(song)); }, 900);
   fab.lastY = 0; fab.reveal = 1;
 }
 
@@ -1840,7 +1842,7 @@ async function startScroll(song, opts = {}) {
       if (!activeLoop(song) && end >= 0 && scrollY >= end - 2) {
         const expectedMs = (end < 40 ? songLength(song) : end / (pxPerSecond(song) * loopFactor(song))) * 1000;
         if (!scroll.logged && playCredited({ end, cover: scroll.cover, ms: scroll.runMs, expectedMs })) {
-          scroll.logged = true; scroll.credited = true; const had = chordsHad(); Tabs.logPlay(data, song); curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); celebrate(had); if (!gigHooks.on) { questToast(); bandToast(); } if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
+          scroll.logged = true; scroll.credited = true; const had = chordsHad(); Tabs.logPlay(data, song); if (data.settings.place) lazy("tuneup.js").then(m => m.notePlayAir()); /* 4.72.0 */ curPaintStat?.(); endMoment(song); streakSoon(song); gigHooks.credited?.(song); celebrate(had); if (!gigHooks.on) { questToast(); bandToast(); } if (setRun && setCtx?.id === setRun.id) setRun.played.add(song.id); if (setCtx) nextUp();
         }
         /* A sheet that fits the screen has only the clock to go by, so it plays on until it counts. */
         if (scroll.logged || end >= 40) {

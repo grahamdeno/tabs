@@ -11,7 +11,7 @@ import { CHORD_FIT, HEAR, SCALES, SKILL_LEVELS, bleedProfile, buzzRms, strumFit,
 import { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanFame, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansNow, fansToSpend, fameSettle, venueNow, tipsOf, gigTips, tipsMigrate, FADE, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigCrowd, gigDone, gigFans, gigPct, gigStart, catchScore, relativeOf, catchTargets, targetAt, catchStart, catchAt, catchOpen, catchHear, catchClose, beatsLate, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal } from "./core/game.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.71.0";
+export const VERSION = "4.72.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -673,6 +673,15 @@ export function weatherMood(code, tmax) {
   if (!isNaN(tmax) && tmax >= 32) return "hot";
   if (code <= 1 && tmax >= 15) return "clear";
   return "";
+}
+/* Tune up first (4.72.0): the air now against the air at your last play. Strings drift when humidity or
+   temperature swing, so a big change since then (25 points of humidity, or 15°F / 8°C) is worth a tune-up.
+   wx: { hum, temp, unit: "F" | "C", day }. Returns { hum: [then, now], temp: [then, now], day } or null. */
+export function tuneUpDue(then, now) {
+  if (!then || !now || then.unit !== now.unit || !(then.hum >= 0) || !(now.hum >= 0) || !Number.isFinite(then.temp) || !Number.isFinite(now.temp)) return null;
+  const dh = Math.abs(now.hum - then.hum), dt = Math.abs(now.temp - then.temp), big = now.unit === "F" ? 15 : 8;
+  if (dh < 25 && dt < big) return null;
+  return { hum: [Math.round(then.hum), Math.round(now.hum)], temp: [Math.round(then.temp), Math.round(now.temp)], day: then.day, unit: now.unit };
 }
 // One suggestion for today, or null. Nothing on a gig day (Up next has it) or
 // once you've played today. In the evening a streak worth keeping comes first;

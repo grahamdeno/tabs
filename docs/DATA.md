@@ -146,6 +146,8 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | `tunerGuided` | boolean | |
 | `a4` | Hz | Pitch reference |
 | `lastTuned` | time | |
+| `playAir` | `{ hum, temp, unit, day }` (4.72.0) | The humidity and temperature (°F or °C by the phone's language) when you last played a song through, with a city set; Tune up first compares the air now against it |
+| `tuneShown` | date string (4.72.0) | The day Tune up first was last shown, so it shows once a day at most |
 | `deVoiceTip`, `deVoiceTip_es`, `deVoiceTip_ru` | boolean | The word card has said where to get a more natural voice in that language (2.17.1) |
 | `lang` | `"de"`, `"es"` or `"ru"` | The one language every song uses for practice (4.36.0). Missing means German if any song is translated, else not picked yet |
 | `deLevel` | 1 to 4 | The level a newly translated song starts at |

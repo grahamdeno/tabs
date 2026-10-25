@@ -3993,3 +3993,18 @@ body.covered .cebar.plate::before { content: ""; position: absolute; z-index: -1
 @keyframes co-stampt { from { transform: rotate(-12deg) scale(2.4); opacity: 0; } to { transform: rotate(-12deg) scale(1); opacity: 1; } }
 @keyframes co-pump { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.1, .92); } 60% { transform: scale(.96, 1.06); } }
 @keyframes co-ring { from { transform: scale(.4); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+/* 4.72.0: Tune up first, above Tools and Play */
+.tuneup { position: fixed; z-index: 29; left: 50%; transform: translateX(-50%); bottom: calc(118px + var(--safe-b)); width: min(496px, calc(100% - 24px)); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: var(--card); border: 2px solid var(--rim); box-shadow: 0 6px 0 var(--rim); animation: fade .25s; }
+.tu-top { display: flex; align-items: center; gap: 12px; }
+.tu-lou { flex: none; line-height: 0; }
+.tu-top h2 { margin: 0; font: 700 22px var(--display); color: var(--fg); }
+.tu-top p { margin: 2px 0 0; font: 600 15px var(--sans); color: var(--fg-2); }
+.tu-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tu-tiles > div { display: flex; flex-direction: column; padding: 10px 12px; border-radius: 14px; background: var(--card-2); border: 2px solid var(--hair); }
+.tu-tiles small { font: 800 11px var(--sans); letter-spacing: .1em; color: var(--fg-2); }
+.tu-tiles b { font: 700 19px var(--display); color: var(--fg); }
+.tu-tiles span { font: 600 13px var(--sans); color: var(--fg-2); }
+.tu-acts { display: flex; gap: 10px; }
+.tu-acts .btn { flex: 1; min-height: 52px; }
+.tu-acts .btn.primary { flex: 1.4; }
+body.playing .tuneup { display: none; }
