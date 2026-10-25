@@ -83,6 +83,11 @@ const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chord
   .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
 const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
 const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
+/* 4.75.0: a headline show is a ticket, not a pick (shows look different from lessons), and the next stop
+   carries a small tag with its name, so you can see what's next without a tap */
+const TICKET = "M-53 -34 H53 A12 12 0 0 1 65 -22 V-9 A9 9 0 0 0 65 9 V22 A12 12 0 0 1 53 34 H-53 A12 12 0 0 1 -65 22 V9 A9 9 0 0 0 -65 -9 V-22 A12 12 0 0 1 -53 -34 Z";
+const ticketSVG = now => `<svg class="rd-pk rd-tk" viewBox="-80 -60 160 120" aria-hidden="true">${now ? `<path class="rd-halo" d="${TICKET}" transform="scale(1.18)"/>` : ""}<path class="rd-lip" d="${TICKET}" transform="translate(0 7)"/><path class="rd-body" d="${TICKET}"/><path class="rd-shine" d="M-44 -24 H20" stroke-width="6" stroke-linecap="round" fill="none"/><path class="rd-tear" d="M34 -24 V24" fill="none" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
+const tagOf = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `${s.name} chord` : s.name;
 /* A pick's card, opened by a tap (4.35.0, like the old card but only on a tap): the next stop's is in the
    streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
 function stopCard(stop) {
@@ -91,7 +96,7 @@ function stopCard(stop) {
     const fits = fitsFor(stop), song = data.songs.find(x => x.id === stop.song) || fits[0];
     const line = song ? `Play ${song.title} start to finish. It uses only this leg's chords.` : `Play a song that uses only ${stop.chords.join(", ")}, start to finish.`;
     return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
-      <button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? `${stop.state === "done" ? "PLAY AGAIN" : `PLAY ${esc(song.title.toUpperCase())}`} · +${FANS.play} FANS` : "FIND A SONG THAT FITS"}</button>
+      ${song ? `<div class="rd-earn"><span>+${FANS.play} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? (stop.state === "done" ? "PLAY AGAIN" : `PLAY ${esc(song.title.toUpperCase())}`) : "FIND A SONG THAT FITS"}</button>
       ${fits.length > 1 ? `<button class="rd-other" id="rd-other">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
   }
   const line = stop.kind === "chord" ? "Ring every string clean, one at a time."
@@ -99,7 +104,7 @@ function stopCard(stop) {
     : stop.kind === "scale" ? "Up and back down, one note at a time."
     : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Opens when you reach it: +${FANS.box} fans.`) : "";
   const act = stop.kind === "box" || stop.state === "locked" ? ""
-    : `<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : `START · +${FANS.lesson} FANS`}</button>`;
+    : `${stop.state === "done" ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
   return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it." : line)}</p>${act}</div>`;
 }
 /* Other songs for a headline show: a short list, any of them starts the gig */
@@ -199,7 +204,7 @@ export function renderRoad() {
       const x = ZIG[i++ % ZIG.length], big = s.kind === "headline";
       const ic = iconOf(s);
       const label = `${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`;
-      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px"><button class="rd-node ${s.kind} ${s.state}${big ? " big" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span></button></div>`;
+      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px">${s === cur ? `<span class="rd-tag" aria-hidden="true">${esc(tagOf(s))}</span>` : ""}<button class="rd-node ${s.kind} ${s.state}${big ? " big tk" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${big ? ticketSVG(s.state === "now") : pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span></button></div>`;
     }).join("")}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 

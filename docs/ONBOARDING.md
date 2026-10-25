@@ -35,7 +35,7 @@ sees, and what teaches them anything.
 | | "You can play 0 of your 1 song" | | Starts the player on a zero |
 | | Stat bar: a shield with 1, a guitar with 0, a ticket with 0 | Nothing | No labels; nothing says what they are or that they open pages |
 | | A pink dot on More on every screen | Nothing | It means "not tuned in the last few hours", but it looks like "something new". It never clears unless you tune |
-| Tap the pick | A card: The G chord, Start +5 fans | The card | Fine |
+| Tap the pick | A tag over it already names it ("G chord", 4.75.0); the card: The G chord, a +5 fans chip, Start | The tag and the card | Fine |
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
 | Play (the Gig) | Count-in, "Listening is off", then "Hearing you · tap to turn off" | The mic pill says it is listening | Nothing says *why* (strum on the changes to score). On a real iPhone the microphone prompt arrives cold, with no reason given first |

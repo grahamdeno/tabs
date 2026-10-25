@@ -4154,3 +4154,21 @@ body.playing .tuneup { display: none; }
 .sks-badge { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; border: 2.5px solid #14213D; }
 .sks-badge svg { width: 22px; height: 22px; }
 @media (prefers-reduced-motion: reduce) { .sk2 .skpad .skpad-ring { transition: none; transform: none; } }
+
+/* ---- 4.75.0: the Road's path, plan A: shows are tickets, the next stop names itself, the card says what you'd earn.
+   All of this release's look is in this block (roll back: revert the 4.75.0 commit). ---- */
+.rd-node.tk { width: 112px; height: 76px; }
+.rd-node.tk .rd-pk { inset: -10% -14%; width: 128%; height: 120%; }
+.rd-node.tk .rd-tear { stroke: var(--pkd); opacity: .55; }
+.rd-node.tk .rd-shine { stroke: rgba(255,255,255,.35); fill: none; }
+.rd-node.tk .rd-ic { margin: -6px 26px 0 0; }
+.rd-node.tk.locked .rd-tear { opacity: .35; }
+.rd-node.now.tk .rd-halo { animation: rd-halo 1.8s ease-in-out infinite; }
+.rd-stop.cur { margin-top: 30px; }
+.rd-tag { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); z-index: 2; padding: 5px 11px; border-radius: 12px; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 800 13px var(--sans); white-space: nowrap; pointer-events: none; animation: rd-tagbob 2.4s ease-in-out infinite; }
+.rd-tag::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); }
+@keyframes rd-tagbob { 50% { transform: translate(-50%, -3px); } }
+.rd-path.has-pop .rd-tag { display: none; }
+.rd-earn { display: flex; gap: 6px; margin: -2px 0 10px; }
+.rd-earn span { height: 24px; padding: 0 9px; border-radius: 8px; background: color-mix(in srgb, currentColor 14%, transparent); font: 800 12.5px var(--sans); display: flex; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .rd-tag { animation: none; } }
