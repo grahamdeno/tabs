@@ -855,7 +855,7 @@ export function catchStart(targets) {
 export function catchAt(st, idx) { const t = targetAt(st.targets, idx); if (t >= 0) st.cur = t; return st.cur; }
 /* targets that can be caught now: the next one you haven't played (from the one you are on), then the one after it,
    up to CATCH_AHEAD past the reading line. 4.79.0: you can play ahead of the song, in order (Graham). */
-export const CATCH_AHEAD = 4;
+export const CATCH_AHEAD = 4, CATCH_AFTER = 0.8;
 export function catchOpen(st) {
   let nx = st.cur;
   while (nx < st.targets.length && (st.caught[nx] || st.closed[nx])) nx++;
@@ -866,6 +866,10 @@ export function catchOpen(st) {
    stops sounding like it (a ringing chord), so A to B to A counts the second A only when you play it again. */
 export function catchHear(st, chroma, opt = {}) {
   const need = opt.need ?? 2, strong = opt.strong ?? 2;
+  /* 4.80.1: one strum, one catch. With strums counted (opt.on, the strum's number, and opt.since, seconds since it),
+     a chord is caught only in the moment after a strum it hasn't already been caught from, so the ring of a chord
+     can't catch a later chord that shares its notes (Em's ring catching G; strumming C again catching the next Em). */
+  const fresh = opt.on == null || (opt.on !== st.lastOn && opt.since <= CATCH_AFTER);
   if (!chroma) { st.cand = -1; st.n = 0; st.hold = null; return -1; }
   for (const i of [st.cur, st.cur + 1]) if (i < st.targets.length) st.heard[i] = true;
   if (st.hold && (strumFit(chroma, st.hold) ?? 0) < CHORD_FIT) st.hold = null;
@@ -877,10 +881,10 @@ export function catchHear(st, chroma, opt = {}) {
     /* a chord that shares two notes with this one (C and Am) must not fit better: the song's own chords, and its relative */
     if (f !== null && f >= fit && st.targets.every(t => t.name === name || (strumFit(chroma, t.name) ?? 0) <= f + 0.08) && (strumFit(chroma, relativeOf(name)) ?? 0) <= f + 0.08) { best = i; fit = f; }
   }
-  if (best < 0) { st.cand = -1; st.n = 0; return -1; }
+  if (best < 0 || !fresh) { st.cand = -1; st.n = 0; return -1; }
   st.n = best === st.cand ? st.n + 1 : 1; st.cand = best;
   if (st.n < need && fit < strong) return -1;
-  st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0;
+  st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0; st.lastOn = opt.on;
   return best;
 }
 /* Follow my tempo (4.80.0): the page and the band follow the player. Between two chords caught in a row, `expected`
@@ -895,6 +899,8 @@ export function tempoStep(k, expected, actual) {
   const want = Math.min(FOLLOW.max, Math.max(FOLLOW.min, k * r));
   return +(k + Math.max(-FOLLOW.step, Math.min(FOLLOW.step, (want - k) * FOLLOW.blend))).toFixed(4);
 }
+/* you are two or more chords ahead of the page: one step faster (4.80.1) */
+export const followAhead = k => +Math.min(FOLLOW.max, k + FOLLOW.step).toFixed(4);
 /* Targets whose time has gone by, settled once each: `missed` for the ones you didn't play, `got` for a chord with
    no shape to listen for that something was heard through (a quiet room never costs a chord). A target is gone by
    once the chord after it has begun, or a later one was caught. */

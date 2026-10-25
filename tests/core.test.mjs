@@ -1813,6 +1813,20 @@ test("4.80.0 Follow my tempo: the pace moves toward yours, gently, within a quar
   assert.equal(k, C.FOLLOW.max, "never more than a quarter faster");
   assert.equal(C.tempoStep(1, 2.9, 6.5), 1, "a gap twice as long is a missed catch, not a tempo");
   assert.equal(C.tempoStep(1, 0.2, 0.3), 1, "too short to say");
+  assert.equal(C.followAhead(0.8), 0.83, "4.80.1: ahead of the page: a step faster");
+  assert.equal(C.followAhead(1.24), C.FOLLOW.max, "and no faster than a quarter over");
+});
+
+test("4.80.1 Chord Catch: one strum, one catch, so a ringing chord can't catch a later one that shares its notes", () => {
+  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
+  const [Em, C_, G] = ["Em", "C", "G"].map(sp);
+  const st = C.catchStart(C.catchTargets(["Em", "C", "G", "D", "Em", "C"].map(name => ({ name }))));
+  C.catchHear(st, Em, { on: 1, since: 0.1 }); assert.equal(C.catchHear(st, Em, { on: 1, since: 0.15 }), 0, "Em from its strum");
+  assert.equal(C.catchHear(st, G, { on: 1, since: 0.2 }), -1, "the same strum can't catch G"); assert.equal(C.catchHear(st, G, { on: 1, since: 0.25 }), -1);
+  C.catchHear(st, C_, { on: 2, since: 0.1 }); assert.equal(C.catchHear(st, C_, { on: 2, since: 0.15 }), 1, "a new strum catches C");
+  C.catchHear(st, C_, { on: 3, since: 1.2 }); assert.equal(C.catchHear(st, C_, { on: 3, since: 1.25 }), -1, "long after its strum, a ring is not a catch");
+  assert.equal(C.catchHear(st, Em, { on: 4, since: 0.1 }), -1); assert.equal(C.catchHear(st, Em, { on: 4, since: 0.15 }), -1, "the next Em is not open yet");
+  C.catchHear(st, G, { on: 5, since: 0.1 }); assert.equal(C.catchHear(st, G, { on: 5, since: 0.15 }), 2, "G with its own strum");
 });
 
 test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {

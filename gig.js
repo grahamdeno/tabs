@@ -17,7 +17,7 @@
 // still plays; nothing is scored.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, followAhead, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, getMic, icon, sound, soundDeaf, onLeave } from "./ui.js";
 import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, followOn, follow, loopFactor, pxPerSecond, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw, READ_AT } from "./app.js";
@@ -33,7 +33,7 @@ const $ = id => document.getElementById(id);
 /* 4.78.1: a clear reading (fit 0.75 and up) catches on its own; a weaker one still needs two in a row.
    Hearing a new chord takes about a third of a second (the old chord has to leave the window), so Wait for me
    gives the chord HOLD_GRACE before it holds: a change played on time no longer stops the song (Graham, Zombie). */
-const CATCH_EAR = { strong: 0.75 }, HOLD_GRACE = 700;
+const CATCH_EAR = { strong: 0.75 }, HOLD_GRACE = 700, STRUM_RISE = 1.4;
 function guitarBand(ctx, src) {
   const a = ctx.createBiquadFilter(), b = ctx.createBiquadFilter();
   for (const f of [a, b]) { f.type = "lowpass"; f.frequency.value = 1500; f.Q.value = 0.7; }
@@ -57,7 +57,8 @@ async function listen(g) {
   guitarBand(ctx, g.src).connect(sp);
   const spec = new Float32Array(sp.frequencyBinCount);
   const buf = new Float32Array(an.fftSize);
-  let floor = 0.002, last = 0;
+  let floor = 0.002, last = 0, onN = 0, onAt = -9;
+  const recent = []; /* the last 80 ms of levels, for the strum count */
   g.timer = setInterval(() => {
     /* 4.78.3: the phone's audio engine went deaf mid-song (its clock stopped): take a fresh engine and microphone */
     if (soundDeaf()) return relisten(g);
@@ -67,10 +68,15 @@ async function listen(g) {
     /* the room's quietest level, creeping up only slowly, so a chord that rings on is never taken for the room */
     if (rms > 0.00002) floor = Math.min(rms, floor * 1.0002, 0.006);
     const now = performance.now() / 1000; /* 4.78.3: the page's clock, which never stops, not the audio engine's */
+    /* 4.80.1: count strums (the level jumps), so each strum catches one chord at most */
+    while (recent.length && now - recent[0][0] > 0.08) recent.shift();
+    const low = recent.length ? Math.min(...recent.map(r => r[1])) : rms;
+    recent.push([now, rms]);
+    if (rms > Math.max(0.004, floor * 3) && rms > low * STRUM_RISE && now - onAt > 0.12) { onN++; onAt = now; }
     if (now - last < 0.05 || !g.catch) return;
     last = now;
     let hit = -1;
-    if (rms > Math.max(0.004, floor * 3)) { sp.getFloatFrequencyData(spec); hit = catchHear(g.catch, chromaOf(spec, ctx.sampleRate, sp.fftSize), CATCH_EAR); }
+    if (rms > Math.max(0.004, floor * 3)) { sp.getFloatFrequencyData(spec); hit = catchHear(g.catch, chromaOf(spec, ctx.sampleRate, sp.fftSize), { ...CATCH_EAR, on: onN, since: now - onAt }); }
     else catchHear(g.catch, null);
     if (hit >= 0 && scoring(g)) caught(g, hit);
   }, 10);
@@ -237,8 +243,12 @@ function holdFrame(g, counting) {
 function keepPace(g, i) {
   const now = performance.now() / 1000, prev = g.pace;
   g.pace = { i, at: now, holds: g.holds || 0 };
-  if (!followOn(g.song) || !scroll.on || g.holding || !prev || prev.i !== i - 1 || prev.holds !== (g.holds || 0) || !scoring(g)) return;
-  const t = g.catch.targets, y0 = chordTop(t[i - 1].first), y1 = chordTop(t[i].first), speed = pxPerSecond(g.song) * loopFactor(g.song);
+  if (!followOn(g.song) || !scroll.on || g.holding || !scoring(g)) return;
+  /* 4.80.1: where you are, as well as how fast: two or more chords ahead of the reading line, the page catches up */
+  if (i - g.catch.cur >= 2) { follow.k = followAhead(follow.k); return; }
+  /* how fast: from the last chord caught (one skipped is fine), with no hold between */
+  if (!prev || !(i > prev.i) || i - prev.i > 2 || prev.holds !== (g.holds || 0)) return;
+  const t = g.catch.targets, y0 = chordTop(t[prev.i].first), y1 = chordTop(t[i].first), speed = pxPerSecond(g.song) * loopFactor(g.song);
   if (y0 == null || y1 == null || !(y1 > y0) || !(speed > 0)) return;
   follow.k = tempoStep(follow.k, (y1 - y0) / speed, now - prev.at);
 }

@@ -98,7 +98,7 @@ export const speedText = page => page.evaluate(() => document.getElementById("sv
 export const skip = () => !chromium && "Playwright not installed";
 
 // A pretend microphone: a steady tone whose pitch the test sets with window.__hz, or a chord: window.__chord is a list
-// of pitches (Hz), each a clean sine, so what the Gig hears has the notes of that chord (4.54.0).
+// of pitches (Hz), each a clean sine, so what the Gig hears has the notes of that chord (4.54.0), strummed twice a second (4.80.1).
 export const FAKE_MIC = `
 window.__hz = 0; window.__chord = [];
 navigator.mediaDevices.getUserMedia = async () => {
@@ -107,7 +107,9 @@ navigator.mediaDevices.getUserMedia = async () => {
   const voices = Array.from({ length: 6 }, () => { const v = ctx.createOscillator(), vg = ctx.createGain(); v.type = "sine"; vg.gain.value = 0; v.connect(vg).connect(dest); v.start(); return { v, vg }; });
   setInterval(() => {
     if (window.__hz) { o.frequency.value = window.__hz; g.gain.value = window.__gain ?? 0.4; } else g.gain.value = 0;
-    voices.forEach((x, i) => { const hz = window.__chord?.[i]; if (hz) { x.v.frequency.value = hz; x.vg.gain.value = 0.12; } else x.vg.gain.value = 0; });
+    /* 4.80.1: the chord is strummed, twice a second (loud, then ringing on quieter), since the show catches a chord from a strum */
+    const ring = (performance.now() % 500) < 300 ? 0.12 : 0.03;
+    voices.forEach((x, i) => { const hz = window.__chord?.[i]; if (hz) { x.v.frequency.value = hz; x.vg.gain.value = ring; } else x.vg.gain.value = 0; });
   }, 20);
   return dest.stream;
 };`;

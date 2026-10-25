@@ -1167,7 +1167,7 @@ function songMenu(song, anchor, redrawSong) {
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "beat", icon: "metro", label: "Beat", sub: beatMode() === "off" ? "Off" : `${beatName()} · ${song.bpm || 90} BPM`, beat: true },
       chords && { id: "wait", icon: "mic", label: "Wait for me", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song waits for each chord you play", on: waitOn(song), off: usesMusic(song) },
-      chords && { id: "follow", icon: "gauge", label: "Follow my tempo", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song speeds up or slows down with you", on: followOn(song), off: usesMusic(song) },
+      chords && { id: "follow", icon: "gauge", label: "Follow my tempo", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : scroll.on && followOn(song) && follow.k !== 1 ? `Following you: ${Math.round(follow.k * 100)}% of the song's tempo` : "The song speeds up or slows down with you", on: followOn(song), off: usesMusic(song) },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
