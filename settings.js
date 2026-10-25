@@ -1,5 +1,5 @@
 // Tabs Settings and Recently deleted screens.
-import { DRUM_BEATS, LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, raw } from "./core.js";
+import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
@@ -18,8 +18,9 @@ function renderSettings() {
       <button class="ib glass" id="back" aria-label="${back}">${icon("back")}</button>
     </div>
     <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
-  const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1.5 ? s.metroVol : 0.8) * 100), metSound = s.metroSound === "click" ? "click" : "drums";
-  const beatPick = DRUM_BEATS.find(([k]) => k === s.metroBeat) || DRUM_BEATS[0], swing = ["light", "full"].includes(s.metroSwing) ? s.metroSwing : "straight";
+  const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1.5 ? s.metroVol : 0.8) * 100);
+  /* 4.69.0: the beat is Off, Bass drum or Metronome (the drum kit and its beat and swing sit out for now) */
+  const beat = !s.metronome ? "off" : s.metroSound === "click" ? "click" : "kick";
   const PAGES = {
     playing: ["Playing", `
     <div class="set-group glass">
@@ -39,22 +40,13 @@ function renderSettings() {
         <button class="toggle ${s.gigScore !== false ? "on" : ""}" id="s-score" role="switch" aria-checked="${s.gigScore !== false}" aria-label="Score my plays"></button>
       </div>
       <div class="set">
-        <span class="tile">${icon("metro")}</span><span class="name">Metronome</span>
-        <input type="range" class="s-vol" id="s-metvol" min="0" max="150" step="5" value="${metVol}" style="--fill:${Math.round(metVol / 1.5)}%" aria-label="Metronome volume">
-        <button class="toggle ${s.metronome ? "on" : ""}" id="s-metro" role="switch" aria-checked="${!!s.metronome}" aria-label="Metronome"></button>
+        <span class="tile">${icon("metro")}</span><span class="name">Beat</span>
+        <div class="seg mini" id="s-beat" role="group" aria-label="Beat">${[["off", "Off"], ["kick", "Bass drum"], ["click", "Metronome"]].map(([k, n]) => `<button data-m="${k}" class="${beat === k ? "on" : ""}" aria-pressed="${beat === k}">${n}</button>`).join("")}</div>
       </div>
       <div class="set">
-        <span class="tile">${icon("note")}</span><span class="name">Metronome sound</span>
-        <div class="seg mini" id="s-metsound" role="group" aria-label="Metronome sound">${[["click", "Click"], ["drums", "Drums"]].map(([k, n]) => `<button data-m="${k}" class="${metSound === k ? "on" : ""}" aria-pressed="${metSound === k}">${n}</button>`).join("")}</div>
+        <span class="tile">${icon("note")}</span><span class="name">Beat volume</span>
+        <input type="range" class="s-vol" id="s-metvol" min="0" max="150" step="5" value="${metVol}" style="--fill:${Math.round(metVol / 1.5)}%" aria-label="Beat volume">
       </div>
-      ${metSound === "drums" ? `<div class="set">
-        <span class="tile">${icon("note")}</span><span class="name">Drum beat</span><span class="val">${beatPick[1]}</span>${icon("chev", "chev")}
-        <select id="s-metbeat" aria-label="Drum beat">${DRUM_BEATS.map(([k, n]) => `<option value="${k}" ${beatPick[0] === k ? "selected" : ""}>${n}</option>`).join("")}</select>
-      </div>
-      <div class="set">
-        <span class="tile">${icon("note")}</span><span class="name">Swing</span>
-        <div class="seg mini" id="s-metswing" role="group" aria-label="Swing">${[["straight", "Straight"], ["light", "Light"], ["full", "Full"]].map(([k, n]) => `<button data-m="${k}" class="${swing === k ? "on" : ""}" aria-pressed="${swing === k}">${n}</button>`).join("")}</div>
-      </div>` : ""}
       <div class="set">
         <span class="tile">${icon("metro")}</span><span class="name">Drop-out practice</span>
         <button class="toggle ${s.metroDrop ? "on" : ""}" id="s-metdrop" role="switch" aria-checked="${!!s.metroDrop}" aria-label="Drop-out practice"></button>
@@ -70,7 +62,7 @@ function renderSettings() {
         </select>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The metronome plays along at the song's tempo, as a click or a drum beat, and slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Auto picks the drum beat from the song: ballad if it is fingerpicked and slow, half time when slow, four on the floor when fast, and a 6/8 feel for songs counted in 6 or 12. Swing lays the off-beat eighths later. Drop-out practice silences every other bar so you hold the time yourself. Each song can have its own drum beat and swing, found by the AI the first time it plays with the metronome on (and when you add it) and kept on the song; change it in Edit. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (in More). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (in More). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
     look: ["Look", `
     <div class="set-group glass">
       <div class="set">
@@ -232,14 +224,11 @@ function renderSettings() {
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-score").onclick = () => { s.gigScore = s.gigScore === false; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
-  $("s-metro").onclick = () => { s.metronome = !s.metronome; Tabs.save(data); renderSettings(); };
+  app.querySelectorAll("#s-beat [data-m]").forEach(b => b.onclick = () => { const m = b.dataset.m; s.metronome = m !== "off"; if (m !== "off") s.metroSound = m === "click" ? "click" : "kick"; Tabs.save(data); renderSettings(); if (m !== "off") metroPreview(); });
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", Math.round(e.target.value / 1.5) + "%"); Tabs.save(data); });
   $("s-metvol")?.addEventListener("change", () => metroPreview());
-  $("s-metbeat")?.addEventListener("change", e => { s.metroBeat = e.target.value; Tabs.save(data); renderSettings(); metroPreview(); });
-  app.querySelectorAll("#s-metswing [data-m]").forEach(b => b.onclick = () => { s.metroSwing = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
   $("s-metdrop")?.addEventListener("click", () => { s.metroDrop = !s.metroDrop; Tabs.save(data); renderSettings(); });
-  app.querySelectorAll("#s-metsound [data-m]").forEach(b => b.onclick = () => { s.metroSound = b.dataset.m; Tabs.save(data); renderSettings(); metroPreview(); });
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-apple").onclick = () => { s.appleMusic = !s.appleMusic; Tabs.save(data); renderSettings(); };
   $("s-applesave")?.addEventListener("click", () => {

@@ -12,7 +12,7 @@ import { statBar, bindStatBar } from "./hud.js";
 const LINES = {
   lola: "Lola keeps the rhythm warm. She was your first fan.",
   tilly: "Tilly checks every string before the show.",
-  beat: "Beat plays the drums in your gigs.",
+  beat: "Beat is in the band, sitting out for now. He'll be back with a part.",
   metro: "Metro never loses the beat, and never lets you lose it either.",
   bex: "Bex is the loudest one at soundcheck.",
   jax: "Jax looks grumpy. He's just concentrating.",
@@ -44,7 +44,8 @@ export function renderBand() {
   const met = bandMeet(data);
   if (met.length) Tabs.save(data);
   const st = bandState(data), n = st.joined.length, plays = data.settings.bandPlays !== false;
-  const part = m => m.plays === "drums" ? "DRUMS" : "";
+  /* 4.69.0: Beat is in the band but isn't playing for now, so no DRUMS tag, no "plays drums" and no Band plays switch */
+  const part = () => "";
   app.innerHTML = `<div class="bd">
     <div class="tq-top">${statBar()}</div>
     <section class="bd-head" aria-label="Your band">
@@ -53,10 +54,10 @@ export function renderBand() {
     </section>
     ${st.next ? `<section class="bd-next" aria-label="Next to join">
       <div class="bd-sil">${friend(st.next.id, { size: 76 })}</div>
-      <div class="bd-nt"><small>NEXT TO JOIN</small><p><b>${esc(nameOf(st.next.id))}</b> joins after ${st.next.more} more song${st.next.more === 1 ? "" : "s"} played through${st.next.plays ? `, and plays ${st.next.plays} in your gigs` : ""}.</p>
+      <div class="bd-nt"><small>NEXT TO JOIN</small><p><b>${esc(nameOf(st.next.id))}</b> joins after ${st.next.more} more song${st.next.more === 1 ? "" : "s"} played through.</p>
         <div class="tq-bar"><i style="width:${Math.round(100 * (1 - st.next.more / Math.max(1, st.next.at - (st.joined.at(-1)?.at || 0))))}%"></i></div></div>
     </section>` : `<section class="bd-next"><div class="bd-nt"><small>THE WHOLE BAND</small><p>Everyone's here. Play on!</p></div></section>`}
-    ${st.joined.some(m => m.plays) ? `<div class="set bd-set"><span class="name">Band plays in gigs<small class="sub">Beat on drums, when a song isn't playing its recording</small></span><button class="toggle ${plays ? "on" : ""}" id="bd-plays" role="switch" aria-checked="${plays}" aria-label="Band plays in gigs"></button></div>` : ""}
+    ${"" && st.joined.some(m => m.plays) ? `<div class="set bd-set"><span class="name">Band plays in gigs<small class="sub">Beat on drums, when a song isn't playing its recording</small></span><button class="toggle ${plays ? "on" : ""}" id="bd-plays" role="switch" aria-checked="${plays}" aria-label="Band plays in gigs"></button></div>` : ""}
     <h2 class="tq-h"><span>ON STAGE</span><span>${n}</span></h2>
     <div class="bd-grid">${st.members.map(m => m.joined
       ? `<button class="bd-card${met.some(x => x.id === m.id) ? " fresh" : ""}" data-id="${m.id}" aria-label="${esc(nameOf(m.id))}: ${esc(LINES[m.id] || "")}">${friend(m.id, { size: 92, mood: met.some(x => x.id === m.id) ? "cheer" : "happy" })}<b>${esc(nameOf(m.id))}</b>${part(m) ? `<small class="bd-part">${part(m)}</small>` : ""}</button>`

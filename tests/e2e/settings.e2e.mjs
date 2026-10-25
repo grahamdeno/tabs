@@ -260,7 +260,9 @@ test("Apple Music: the Recording sheet shows genre, year and composer in the alb
   await page.waitForFunction(() => /2 songs you've listened to lately/.test(document.getElementById("sr-am")?.innerText || ""), null, { timeout: 5000 });
   await page.click("#sr-am"); await page.waitForSelector("[data-amr]");
   assert.equal(await page.locator("[data-amr]").count(), 2, "the repeat is listed once");
-  await page.click("[data-amr='1']"); await page.waitForSelector("#ed-body");
+  /* 4.67.0: Get the chords opens the chart sheet; Start the sheet myself makes the song */
+  await page.click("[data-amr='1']"); await page.waitForSelector(".cl-sheet #cl-self");
+  await page.click("#cl-self"); await page.waitForSelector("#ed-body");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.some(s => s.title === "Creep" && s.artist === "Radiohead"));
 });
 

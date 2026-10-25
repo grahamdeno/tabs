@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, bandParts, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -10,7 +10,7 @@ import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.j
 import { appleSearchURL, hasMusic, musicLead, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
-import { BAND_MAX, beatTrack, clickAt, drum, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
+import { BAND_MAX, BEATS, beatAt, beatMode, beatName, setBeat, beatTrack, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
 import { stagePlay, stageStop, stageOpen, stageBeat, coverOn, coverOff } from "./stage.js";
 
 
@@ -66,7 +66,7 @@ const gigHooks = { on: false, held: false, credited: null, stopped: null, resume
 const canGig = song => song.format !== "tab" && !(practicing(song) && (song.loop || practiceRate(song) < 1)) && !scroll.duet && data.settings.plainPlay !== true;
 const gigsOn = song => canGig(song);
 /* 4.20.0: the face says what plays with you: the recording or the band (nothing when neither will) */
-const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : (data.settings.metronome || bandParts(data).drums) ? "WITH THE BAND" : "";
+const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : beatMode() === "kick" ? "WITH THE BASS DRUM" : beatMode() === "click" ? "WITH THE METRONOME" : "";
 /* 4.52.0: a show you paused is held on the song page; Play picks it up again */
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
@@ -1034,8 +1034,7 @@ function setBacking(song, mode, near, quiet) {
   if (scroll.on) { if (usesMusic(song)) { stopMetronome(); startMusic(song); } else { pauseMusic(); startMetronome(song); } }
   paintListenChip(song);
   if (quiet) return;
-  const band = data.settings.metronome;
-  toast(mode === "band" ? (band ? "Band: drums, no recording" : "Band: turn on the metronome in Tools") : "Recording: no drums", near);
+  toast(mode === "band" ? (beatMode() !== "off" ? `${beatName()}, no recording` : "No recording. Pick a beat in Tools if you want one") : "The recording, no beat", near);
 }
 /* 4.31.0: the cover beside the title (it was a button beside Play). The Apple Music art when a recording
    is linked, else the song's letter on a palette colour; it and "about this song" open About this song.
@@ -1089,10 +1088,14 @@ function openAbout(song) {
 }
 /* 4.49.12: the one switch for the band. In a gig Beat's drums play on their own once he has joined, so
    "off" there also sits him out (the Band tab brings him back); on the song page it is only the metronome. */
-function setBandOn(on) {
-  data.settings.metronome = on;
-  if (gigHooks.on) { if (on) delete data.settings.bandPlays; else data.settings.bandPlays = false; gigHooks.band = bandParts(data); }
-  Tabs.save(data);
+function setBandOn(on) { setBeat(on ? (data.settings.metroSound === "click" ? "click" : "kick") : "off"); }
+/* 4.69.0: choose the beat (Off, Bass drum, Metronome) mid-song: heard from the next beat */
+function chooseBeat(song, mode) {
+  if (mode !== "off" && usesMusic(song)) { setBeat(mode); return setBacking(song, "band", null, true); }
+  setBeat(mode);
+  if (scroll.on) mode === "off" ? stopMetronome() : startMetronome(song);
+  else if (mode !== "off") metroPreview();
+  refreshPlay?.(song);
 }
 function toggleMetronome(song, near) {
   if (usesMusic(song) && !data.settings.metronome) { data.settings.metronome = true; return setBacking(song, "band", near); }
@@ -1101,36 +1104,26 @@ function toggleMetronome(song, near) {
   if (scroll.on) on ? startMetronome(song) : stopMetronome();
   toast(on ? `Metronome on${song.bpm ? ` · ${song.bpm} BPM` : scroll.on ? "" : ". The tempo is looked up when you play"}` : "Metronome off", near);
 }
-/* The band sheet (4.43.0, #83): turn the band on or off, drums or click, and how loud, without stopping
-   the song. A short sheet at the bottom with no scrim, so the reading line stays in sight; a change is heard
-   from the next beat. The same settings as Settings > Playing, for every song. */
+/* The beat sheet (4.43.0 as The band; 4.69.0 the beat): Off, Bass drum or Metronome, and how loud, without
+   stopping the song. A short sheet at the bottom with no scrim, so the reading line stays in sight; a change is
+   heard from the next beat. The same settings as Settings > Playing, for every song. */
 export function bandSheet(song) {
   const old = document.getElementById("band-sheet");
   if (old) { old.remove(); return; }
   const s = data.settings, el = document.createElement("div");
   el.className = "panel card band-sheet"; el.id = "band-sheet";
-  el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "The band");
+  el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "The beat");
   const paint = () => {
-    const vol = Math.round(metroVol() * 100), drums = s.metroSound !== "click", rec = usesMusic(song);
-    el.innerHTML = `<div class="bs-top"><b>The band</b><button class="ib" id="bs-x" aria-label="Close">${icon("x")}</button></div>
-      ${rec ? `<p class="bs-note">This song plays its recording, so the band sits out.</p><button class="btn" id="bs-band">${icon("metro")}Play with the band instead</button>`
-      : `<div class="bs-row"><span class="bs-l">${icon("metro")}Band</span>
-          <div class="seg mini" role="group" aria-label="Sound">${[["drums", "Drums"], ["click", "Click"]].map(([k, n]) => `<button data-snd="${k}" class="${(k === "drums") === drums ? "on" : ""}" aria-pressed="${(k === "drums") === drums}">${n}</button>`).join("")}</div>
-          <button class="toggle ${metroOn() ? "on" : ""}" id="bs-on" role="switch" aria-checked="${metroOn()}" aria-label="Band"></button></div>
+    const vol = Math.round(metroVol() * 100), rec = usesMusic(song), m = beatMode();
+    el.innerHTML = `<div class="bs-top"><b>The beat</b><button class="ib" id="bs-x" aria-label="Close">${icon("x")}</button></div>
+      ${rec ? `<p class="bs-note">This song plays its recording, so there's no beat on top.</p><button class="btn" id="bs-band">${icon("metro")}Play with a beat instead</button>`
+      : `<div class="seg bs-beat" role="group" aria-label="Beat">${BEATS.map(([k, n]) => `<button data-beat="${k}" class="${k === m ? "on" : ""}" aria-pressed="${k === m}">${n}</button>`).join("")}</div>
         <label class="bs-row bs-vol"><span class="bs-l">Volume</span>
-          <input type="range" class="s-vol" id="bs-vol" min="0" max="${BAND_MAX * 100}" step="5" value="${vol}" style="--fill:${Math.round(vol / BAND_MAX)}%" aria-label="Band volume" aria-valuetext="${vol}%">
+          <input type="range" class="s-vol" id="bs-vol" min="0" max="${BAND_MAX * 100}" step="5" value="${vol}" style="--fill:${Math.round(vol / BAND_MAX)}%" aria-label="Beat volume" aria-valuetext="${vol}%">
           <output id="bs-v">${vol}%</output></label>`}`;
     el.querySelector("#bs-x").onclick = close;
-    el.querySelector("#bs-band")?.addEventListener("click", () => { s.metronome = true; setBacking(song, "band", null, true); Tabs.save(data); paint(); });
-    el.querySelector("#bs-on")?.addEventListener("click", () => {
-      setBandOn(!metroOn());
-      if (scroll.on) metroOn() ? startMetronome(song) : stopMetronome();
-      paint(); el.querySelector("#bs-on")?.focus();
-    });
-    el.querySelectorAll("[data-snd]").forEach(b => b.onclick = () => {
-      s.metroSound = b.dataset.snd; if (!s.metronome) { s.metronome = true; if (scroll.on) startMetronome(song); }
-      Tabs.save(data); if (!scroll.on) metroPreview(); paint();
-    });
+    el.querySelector("#bs-band")?.addEventListener("click", () => { if (beatMode() === "off") setBeat("kick"); setBacking(song, "band", null, true); paint(); });
+    el.querySelectorAll("[data-beat]").forEach(b => b.onclick = () => { chooseBeat(song, b.dataset.beat); paint(); el.querySelector(`[data-beat="${b.dataset.beat}"]`)?.focus(); });
     const v = el.querySelector("#bs-vol");
     if (v) {
       v.oninput = () => { s.metroVol = +v.value / 100; v.style.setProperty("--fill", Math.round(v.value / BAND_MAX) + "%"); v.setAttribute("aria-valuetext", v.value + "%"); el.querySelector("#bs-v").textContent = v.value + "%"; Tabs.save(data); };
@@ -1163,9 +1156,8 @@ function songMenu(song, anchor, redrawSong) {
   const tabsOf = () => [
     { id: "play", label: "Play", head: "HOW IT PLAYS", rows: [
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
-      { id: "metro", icon: "metro", label: "Metronome", sub: `${song.bpm || 90} BPM`, on: metroOn() },
+      { id: "beat", icon: "metro", label: "Beat", sub: beatMode() === "off" ? "Off" : `${beatName()} · ${song.bpm || 90} BPM`, beat: true },
       chords && { id: "wait", icon: "mic", label: "Wait for me", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song waits for each chord you play", on: waitOn(song), off: usesMusic(song) },
-      { id: "band", icon: "metro", label: "The band", sub: `${data.settings.metroSound === "click" ? "Click" : "Drums"} · ${Math.round(metroVol() * 100)}%`, go: true },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
@@ -1204,6 +1196,7 @@ function songMenu(song, anchor, redrawSong) {
     const left = `<span class="mi">${icon(it.icon)}</span><span class="ml"><span class="t3l">${it.label}${nd}</span>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</span>`;
     if (it.step) return `<div class="mrow t3" role="group" aria-label="${it.label}">${left}<button class="sb" role="menuitem" data-step="-1" aria-label="${byLength() ? "Shorter" : "Slower"}">${icon("minus")}</button><button class="t3v" role="menuitem" data-m="speed" id="dialbtn" aria-label="${it.label}: ${esc($("sv")?.textContent || "")}. Open the dial"><span>${esc($("sv")?.textContent || "")}</span></button><button class="sb" role="menuitem" data-step="1" aria-label="${byLength() ? "Longer" : "Faster"}">${icon("plus")}</button></div>`;
     if (it.size) return `<div class="mrow t3 size" role="group" aria-label="Text size">${left}<button class="sb" role="menuitem" data-d="-1" aria-label="Smaller text">${icon("minus")}</button><span class="v t3v">${Math.round(song.size * 100)}%</span><button class="sb" role="menuitem" data-d="1" aria-label="Larger text">${icon("plus")}</button></div>`;
+    if (it.beat) { const mo = beatMode(); return `<div class="mrow t3 beatrow" role="group" aria-label="Beat">${left}<div class="seg mini t3-beat">${BEATS.map(([k, n]) => `<button role="menuitemradio" data-beat="${k}" aria-checked="${k === mo}" class="${k === mo ? "on" : ""}">${n}</button>`).join("")}</div></div>`; }
     if (it.prac) return `<button class="mrow t3" role="menuitemcheckbox" data-prac data-m="prac" aria-checked="${it.on}" aria-label="Practice mode">${left}${sw(it.on)}</button>`;
     if (it.on !== undefined) return `<button class="mrow t3" role="menuitemcheckbox" data-m="${it.id}" aria-checked="${it.on}"${it.off ? " disabled" : ""}>${left}${sw(it.on)}</button>`;
     return `<button class="mrow t3" role="menuitem" data-m="${it.id}">${left}${icon("chev", "t3c")}</button>`;
@@ -1244,6 +1237,8 @@ function songMenu(song, anchor, redrawSong) {
       Tabs.save(data); paint(); redrawSong();
       return;
     }
+    const bt = ev.target.closest("[data-beat]");
+    if (bt) { chooseBeat(song, bt.dataset.beat); paint(); m.querySelector(`[data-beat="${bt.dataset.beat}"]`)?.focus({ preventScroll: true }); return; }
     const tb = ev.target.closest("[data-tab]");
     if (tb) { tab = data.settings.toolsTab = tb.dataset.tab; Tabs.save(data); paint(); m.querySelector(`[data-tab="${tab}"]`)?.focus({ preventScroll: true }); return; }
     const st = ev.target.closest("[data-step]");
@@ -1692,13 +1687,11 @@ function pxPerSecond(song) {
 
 // One bar of count-in before scrolling: a bar of beats (four unless the song says) at the song's tempo (90 if unset),
 // shown large and quiet over the reading point, in the metronome's sound.
-/* The count-in uses the metronome's sound: with drums, the drummer counting
-   off on the hi-hat; otherwise the click. */
+/* The count-in uses the beat's sound: the bass drum, or the click (also when the beat is off). */
 function click(accent) {
   const audio = sound();
   if (!audio) return;
-  if (metroDrums()) drum("hat", audio.currentTime + 0.01, accent ? 1.4 : 1);
-  else clickAt(audio.currentTime + 0.01, accent);
+  beatAt(audio.currentTime + 0.01, accent); /* 4.69.0: the count-in in the beat's sound (the click when the beat is off) */
 }
 /* 4.68.0: `pre` runs `lead` ms before the count ends (the recording asked for early, so it sounds on the 1) */
 function countIn(song, pre = null, lead = 0) {

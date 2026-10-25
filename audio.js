@@ -2,7 +2,7 @@
 import { DRUM_SWING, Tabs, barHits, beatsLate, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf } from "./core.js";
 import { $, sound, toast } from "./ui.js";
 import { aiKey } from "./aihelp.js";
-import { READ_AT, byLength, data, findAI, gigHooks, loopFactor, paintLoop, pxPerSecond, scroll, songLength, usesMusic, viewing } from "./app.js";
+import { READ_AT, byLength, data, findAI, loopFactor, paintLoop, pxPerSecond, scroll, songLength, usesMusic, viewing } from "./app.js";
 
 // ---------- Metronome ----------
 // While a song scrolls (on from the ring or the ••• menu), either a click or a
@@ -26,8 +26,21 @@ function bandOut(audio) {
   return l;
 }
 /* Your band (4.7.0): in a gig, Beat plays the drums once he's joined (gigHooks.band). The bass went in 4.42.0. */
-export const metroOn = () => data.settings.metronome || !!gigHooks.band?.drums;
-export const metroDrums = () => data.settings.metroSound !== "click" || (!data.settings.metronome && !!gigHooks.band?.drums);
+/* 4.69.0 (Graham, 2026-10-24): the beat is Off (the default), a Bass drum on every beat (louder on 1) or the
+   Metronome click. The drum kit and Beat's drums sit out for now; the code for them stays for when Beat comes back
+   with a part. Stored as before: settings.metronome on or off, settings.metroSound "click" or anything else (kick). */
+export const BEATS = [["off", "Off"], ["kick", "Bass drum"], ["click", "Metronome"]];
+export const beatMode = () => !data.settings.metronome ? "off" : data.settings.metroSound === "click" ? "click" : "kick";
+export const beatName = () => BEATS.find(b => b[0] === beatMode())[1];
+export function setBeat(mode) {
+  data.settings.metronome = mode !== "off";
+  if (mode !== "off") data.settings.metroSound = mode === "click" ? "click" : "kick";
+  Tabs.save(data);
+}
+export const metroOn = () => !!data.settings.metronome;
+export const metroDrums = () => false; /* the drum kit sits out (see BEATS) */
+/* one beat in the chosen sound */
+export const beatAt = (t, accent) => beatMode() === "kick" ? drum("kick", t, accent ? 1.25 : 0.85) : clickAt(t, accent);
 export async function startMetronome(song) {
   stopMetronome();
   if (!metroOn()) return;
@@ -55,7 +68,7 @@ export async function startMetronome(song) {
       if (quiet) { /* a silent bar */ }
       else if (metroDrums() && songBar(song, b, beats, spb)) for (const h of barHits(metro.bar, b, DRUM_SWING[groove.swing] || 0.5)) drum(h.k, metro.next + h.at * spb, h.v);
       else if (metroDrums()) drumBeat(metro.next, b, beats, spb, style, groove.swing);
-      else clickAt(metro.next, b === 0);
+      else beatAt(metro.next, b === 0);
       metro.next += spb; metro.beat++;
     }
   }, 25);
@@ -87,7 +100,8 @@ export function tempoFor(song) {
    from Edit and replaces what is there. */
 const grooveJobs = new Map();
 export function grooveFor(song, force = false) {
-  if (!aiKey() || (song.groove && !force)) return Promise.resolve(null);
+  /* 4.69.0: the groove only feeds the drum kit, which sits out for now, so no AI call is made for it (the code stays for Beat) */
+  if (!metroDrums() || !aiKey() || (song.groove && !force)) return Promise.resolve(null);
   if (force || !grooveJobs.has(song.id)) grooveJobs.set(song.id, findAI().then(m => m.findGroove(song)).catch(() => null).then(g => {
     if (!g || (song.groove && !force)) return null;
     song.groove = g; Tabs.save(data);
@@ -100,7 +114,7 @@ export function grooveFor(song, force = false) {
    the background, the first time the band plays the song with drums. Until then the general beat plays. */
 export const drumJobs = new Map();
 export function drumsFor(song, manual = false) {
-  if (!aiKey() || song.drums || (song.beats || 4) !== 4) return null;
+  if (!metroDrums() || !aiKey() || song.drums || (song.beats || 4) !== 4) return null; /* 4.69.0: off while the drum kit sits out */
   if (drumJobs.has(song.id)) return drumJobs.get(song.id);
   const parts = [...new Set([...($("sheet")?.querySelectorAll(":scope > .sec") || [])].map(el => partOf(el.textContent)))];
   const job = findAI().then(m => m.findDrums(song, parts)).catch(() => null).then(d => {
@@ -136,7 +150,7 @@ export function metroPreview() {
   const audio = sound();
   if (!audio) return;
   const t = audio.currentTime + 0.05, spb = 0.55, style = drumStyle(data.settings.metroBeat === "auto" || !data.settings.metroBeat ? "rock" : data.settings.metroBeat, { beats: 4 });
-  for (let b = 0; b < 4; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb, style) : clickAt(t + b * spb, b === 0);
+  for (let b = 0; b < 4; b++) metroDrums() ? drumBeat(t + b * spb, b, 4, spb, style) : beatAt(t + b * spb, b === 0);
 }
 /* A steady beat for the practice drill (practice.js): the drums, or the click if that is what Settings
    uses, or with hats only the hi-hat. onBeat(i, t) is called a little before beat i sounds at audio time t. */
@@ -147,7 +161,7 @@ export function beatTrack(bpm, onBeat, { hats = false } = {}) {
   let i = 0, t = audio.currentTime + 0.2;
   const t0 = t;
   /* hats: only a short high click (brighter on 1), far above the guitar, so the microphone can filter it out (3.8.2 to 3.8.4) */
-  const hit = (t, b) => hats ? drum("tick", t, b === 0 ? 1 : 0.6) : metroDrums() ? drumBeat(t, b, 4, spb, style) : clickAt(t, b === 0);
+  const hit = (t, b) => hats ? drum("tick", t, b === 0 ? 1 : 0.6) : metroDrums() ? drumBeat(t, b, 4, spb, style) : beatAt(t, b === 0);
   const tick = () => { while (t < audio.currentTime + 0.35) { hit(t, i % 4); onBeat?.(i, t); i++; t += spb; } };
   tick();
   const id = setInterval(tick, 40);

@@ -169,7 +169,7 @@ anything a person found on their own is skipped.
 | 5 | Tap the title bar to go back to the top | Tap the title bar | Listed | Low value; leave it listed |
 | 6 | Pull down at the top to go back to the Songbook | Pull past "Release for Songbook" | Show me (one hand) | A habit people form only after the back button; teach after a few songs |
 | 6b | Back from anywhere in a song (4.42.2) | Scroll up a little: the slim bar with Back and the title shows | None (it appears by itself) | Visible as soon as you scroll up; no tip needed |
-| 6c | The band while a song plays (4.43.0): on or off, drums or click, volume up to 150% | The band button above Play in the corner, or Tools > Play > The band | None (it shows by itself while playing) | Visible while playing; a tip the first time the band plays would help |
+| 6c | The beat while a song plays (4.43.0; 4.69.0 Off, Bass drum or Metronome), volume up to 150% | The beat button above Play in the corner, or Tools > Play > Beat | None (it shows by itself while playing) | Visible while playing; a tip the first time the band plays would help |
 | 7 | Set dial: hold "4 of 9" | Hold and sweep | Show me | Only in a set; teach on the first song opened from a set |
 | 8 | Bluetooth pedals and Space | Left plays/pauses, right goes to the next section | Listed | Only for pedal owners; leave listed, maybe a toast the first time a key or pedal press is seen |
 

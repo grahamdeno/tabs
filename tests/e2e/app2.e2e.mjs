@@ -437,9 +437,9 @@ test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner
   assert.equal(await page.locator(".ringx, .rc-track, .rc-isl").count(), 0, "no ring, arc or island");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
   assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "paused again: the bar unfolds");
-  /* More has Metronome now that the ring is gone */
+  /* Tools has the beat (4.69.0: Off, Bass drum, Metronome) now that the ring is gone */
   await page.click("#more"); await page.waitForSelector(".menu");
-  assert.equal(await page.locator(".menu [data-m='metro']").count(), 1);
+  assert.equal(await page.locator(".menu [data-beat]").count(), 3);
 });
 
 test("2.16.5 speed dial: a tap that slips a little near the corner closes it without changing the time", { skip: skip() }, async t => {
@@ -518,30 +518,31 @@ test("4.22.0 Search, focused: two big buttons and three recent cards, no Up next
   assert.equal(await page.locator("#sr-paste").count(), 0, "the buttons give way to results");
 });
 
-test("4.43.0 the band from the song screen: on or off, drums or click and up to 150%, while the song keeps playing", { skip: skip() }, async t => {
+test("4.69.0 the beat from the song screen: Off, Bass drum or Metronome and up to 150%, while the song keeps playing", { skip: skip() }, async t => {
   const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900, bpm: 100 } : s), settings: { ...LIB.settings, countIn: false, metronome: true, metroSound: "drums" } };
   const page = await phone(t, lib);
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
   await page.goto(base + "#/song/a"); await page.waitForSelector("#play");
-  assert.equal(await page.locator("#fp-band:visible").count(), 0, "paused: no band button in the corner");
+  assert.match(await page.innerText("#play"), /WITH THE BASS DRUM/, "an old drums setting is the bass drum now");
   await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("fold"));
   await page.waitForSelector("#fp-band", { state: "visible" });
   await page.click("#fp-band"); await page.waitForSelector("#band-sheet");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "the song keeps playing");
-  assert.equal(await page.getAttribute("#bs-on", "aria-checked"), "true");
-  await page.click("#bs-on"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metronome === false);
-  assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)), 0, "the band stops");
-  await page.click("#band-sheet [data-snd=click]"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroSound === "click");
-  assert.equal((await saved()).metronome, true, "picking a sound turns the band back on");
+  assert.equal(await page.getAttribute("#band-sheet [data-beat='kick']", "aria-pressed"), "true");
+  await page.click("#band-sheet [data-beat='off']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metronome === false);
+  assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)), 0, "the beat stops");
+  await page.click("#band-sheet [data-beat='click']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroSound === "click");
+  assert.equal((await saved()).metronome, true, "picking Metronome turns the beat back on");
+  assert.ok(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)) > 0, "and it plays");
   await page.locator("#bs-vol").fill("150"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metroVol === 1.5);
   assert.equal(await page.innerText("#bs-v"), "150%");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "still playing");
-  /* paused, Tools has the same sheet */
   await page.click("#bs-x"); await page.waitForSelector("#band-sheet", { state: "detached" });
   await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("fold"));
-  await settled(page); await page.click("#more"); await page.waitForSelector(".menu [data-m='band']");
-  assert.match(await page.innerText(".menu [data-m='band']"), /Click · 150%/);
-  await page.click(".menu [data-m='band']"); await page.waitForSelector("#band-sheet");
+  /* paused, Tools has the same choice and no Band row */
+  await settled(page); await page.click("#more"); await page.waitForSelector(".menu [data-beat]");
+  assert.equal(await page.locator(".menu [data-m='band']").count(), 0, "4.69.0: no Band row");
+  assert.equal(await page.getAttribute(".menu [data-beat='click']", "aria-checked"), "true");
 });
 
 test("4.44.0 an achievement callout bursts over a playing song, takes no taps, clears itself and waits its turn", { skip: skip() }, async t => {
@@ -575,7 +576,7 @@ test("4.45.1: a toast from a switch in Tools sits above the sheet, not at the to
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
   await page.click("#more"); await page.waitForSelector('.menu.tools');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length);
-  await page.click('.menu [data-m="metro"]'); await page.waitForSelector('.toast.show');
+  await page.click('.menu [data-m="wait"]'); await page.waitForSelector('.toast.show');
   await page.waitForFunction(() => { const t = document.getElementById("toast").getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return Math.abs(t.bottom - m.top) < 24; });
 });
 

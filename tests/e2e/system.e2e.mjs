@@ -64,9 +64,12 @@ test("4.32.0 Tools: three tabs at the bottom, switches toggle in place, the last
   await page.click("#more"); await page.waitForSelector(".menu .t3-tabs");
   assert.deepEqual(await page.$$eval(".menu [data-tab]", b => b.map(x => x.textContent.trim())), ["Play", "Practice", "Song"]);
   assert.equal(await page.locator(".menu .tl-grid, .menu .mrow.tl").count(), 0, "rows, not tiles");
-  await page.click(".menu [data-m='metro']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metronome === true);
+  /* 4.69.0: the beat is a three-way choice in the Play tab */
+  assert.deepEqual(await page.$$eval(".menu [data-beat]", b => b.map(x => x.textContent.trim())), ["Off", "Bass drum", "Metronome"]);
+  assert.equal(await page.getAttribute(".menu [data-beat='off']", "aria-checked"), "true", "off by default");
+  await page.click(".menu [data-beat='click']"); await page.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("tabs-v1")).settings; return s.metronome === true && s.metroSound === "click"; });
   assert.equal(await page.locator(".menu").count(), 1, "the sheet stays open");
-  assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "true");
+  assert.equal(await page.getAttribute(".menu [data-beat='click']", "aria-checked"), "true");
   await page.click(".menu [data-tab='song']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.toolsTab === "song");
   assert.ok(await page.isVisible(".menu [data-m='edit']"));
   assert.equal(await page.locator(".menu [data-m='listen']").count(), 0, "the recording moved to the title");

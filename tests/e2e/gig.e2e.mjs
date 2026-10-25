@@ -124,7 +124,7 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; 
   assert.equal(await page.evaluate(() => document.body.classList.contains("held") || document.body.classList.contains("staged")), false, "leaving ends the show and clears the stage");
 });
 
-test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums go quiet when it is off, and come back when it is on", { skip: skip() }, async t => {
+test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums go quiet when it is off, and come back when it is on", { skip: skip() || "4.69.0: Beat isn't playing for now (the beat is Off, Bass drum or Metronome)" }, async t => {
   const lib = { ...LIB, songs: [LONG], journal: { v: 1, months: { "2026-01": { plays: 7 } } }, settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false, metronome: false } };
   const page = await phone(t, lib, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);

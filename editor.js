@@ -3,6 +3,7 @@
 import { DRUM_BEATS, SPOTS_V, addChordLine, addChordNear, chordSlots, setChordLine, setChordNth, GROOVE, grooveText, TUNINGS, Tabs, chordFit, chordLine, chordModel, chordsUsed, detectTuning, guessKey, insertLines, lineOptions, looksLikeTab, notesUnder, renameSection, setLineText, setSungLine, sketchKey, sungLines, tapTempo, unpackNotes } from "./core.js";
 import { $, SECTION_NAMES, app, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { coach, coachTip, demoTap, markUsed, takeDemo, tick } from "./coach.js";
+import { metroDrums } from "./audio.js";
 import { READ_AT, aiError, aiKey, busy, calm, lazy, grooveFor, chordEdit, chordSVG, cleanSheet, data, go, readPhoto, render, setChordEdit, setOpenEdit, settleNew, stopScroll } from "./app.js";
 
 // ---------- Edit (in place) ----------
@@ -238,6 +239,7 @@ function paintDetails(song) {
    Settings (and Auto) decide. "Found" marks what the AI suggested. */
 const GROOVE_LABEL = { beat: "Drums", swing: "Swing" };
 function grooveChips(song, isTab) {
+  if (!metroDrums()) return ""; /* 4.69.0: the drum kit sits out, so its groove chips do too (the code stays for Beat) */
   const g = song.groove || {}, found = g.src === "ai";
   const opts = {
     beat: DRUM_BEATS.filter(([k]) => k !== "auto"),
