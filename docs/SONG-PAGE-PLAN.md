@@ -5,17 +5,18 @@ shows the count-in (Louie jumping on each beat) and the audience; the bottom but
 Pause. One Tools sheet. The drums go. Then the economy, celebrations, a better way to get songs in, a weather
 idea, and an accessibility pass.
 
-Nothing here is built until Graham confirms the decisions below.
+Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockups.
 
-## Decisions for Graham
+## Decisions (Graham, 2026-10-24)
 
-- D1. Each Gig capability (list below): keep on the song page, or drop.
-- D2. Beat choice: Off (default), Bass drum, Metronome. Where it lives: the Metronome row in Tools becomes
-  this three-way choice (the Band row goes). Volume moves to Settings > Playing.
-- D3. Beat the drummer still joins your band as a friend, with no drums to play. Or he leaves the roster.
-- D4. Fans and tips (see Step 5): yes or no.
-- D5. Getting songs in (see Step 6): build Add to The Road, then remove AI Line up and the AI chord chart?
-- D6. The weather idea (see Step 7): yes or no.
+- D1. Capabilities: keep 1 to 7, 9 to 12, 14 to 17. Drop 8 (Louie's moments) and 13 (the backdrop behind the
+  show). 18: the page's own Back, already there.
+- D2. The Metronome row in Tools becomes Off / Bass drum / Metronome, Off by default. The Band row goes.
+- D3. Beat stays in the band, not playing for now (he may come back with a part).
+- D4. Tips: yes. Fans fade when you neither practice nor play (rate in Step 5).
+- D5. Not the Shortcut: getting songs in has to happen inside the app. Step 6 is open, see below.
+- D6. Weather: both ideas yes; mockups first.
+- Open: the merch table sells backdrops (Brick wall, Starlight, Sunset fest) and the show no longer shows one.
 
 ## The Gig's capabilities, where each goes
 
@@ -66,21 +67,23 @@ Nothing here is built until Graham confirms the decisions below.
   pumping to the beat, at Show complete and on the Road when a reward lands. Short, skippable, respects
   Reduce motion.
 
-### Step 5 [Opus] 4.70.0: fans and tips (if D4)
+### Step 5 [Opus] 4.70.0: fans and tips (D4)
 - Fans are your reputation and are never spent: practice and lessons earn fans, shows earn fans.
+- Fans fade when you neither practice nor play: none for 2 days, then 1% a day, never below what your
+  current leg of the Road needs (proposed, Graham to confirm). A Rain check covers a day.
 - Tips are money and only shows earn them, more with a bigger crowd and a longer run.
 - Merch costs tips. Unspent fans today convert to tips once, so nothing bought or saved is lost.
 - XP stays behind the weekly chart only.
 
-### Step 6 [Opus] 4.71.0: Add to The Road (if D5)
-- A one-time Shortcut for the iPhone share sheet. In Safari on an Ultimate Guitar (or other chord site)
-  song page: Share > Copy for The Road. It reads the chart from the page you are looking at (your own
-  browser, so the site doesn't block it) and copies it clean, chords and words exactly as the site has them.
-- In The Road: one Paste button (Songbook, and Edit for a song you have) adds it. A web app on the Home
-  Screen can't be opened with data by a Shortcut, so the paste is the one extra tap.
-- Then remove AI Line up from the chord sites and the AI chord chart; LRCLIB stays for the timed words.
+### Step 6 [Opus] 4.71.0: getting songs in, inside the app (open)
+- No licensed public API gives chords for popular songs: Songsterr's public endpoints give search and links
+  to its player, Hooktheory gives progression statistics, not a song's chords.
+- Proposed: Hear it in. Play the recording out loud once; the phone listens (the chord hearing Chord Catch
+  already does), picks among the chart's chords bar by bar, and times each change against LRCLIB's timed
+  words, so each chord lands on the word sung when it changes. Edit to fix the odd miss.
+- Then remove AI Line up; the AI chart stays only to say which chords to listen for.
 
-### Step 7 [Sonnet] 4.72.0: the weather (if D6)
+### Step 7 [Sonnet] 4.72.0: the weather (D6, after mockups)
 - Tonight's venue follows your weather: a clear evening is an open-air show, rain moves it indoors to a club.
   A big swing in humidity or temperature since your last play says to tune up first.
 
