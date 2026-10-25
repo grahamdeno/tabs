@@ -42,6 +42,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `recLength` | seconds | The recording's length, kept when Get the song adds it, so the metronome can slow with the speed dial (2.41.0) |
 | `groove` | object | What the drums do for this song: `beat` (`"rock"`, `"half"`, `"ballad"` or `"four"`) and `swing` (`"straight"`, `"light"` or `"full"`), each optional (a missing part comes from Settings), and `src`: `"ai"` for what was found, `"you"` once it was changed in Edit. `{ src: "you" }` alone means keep the defaults and don't look it up again. Looked up once, in the background, the first time the song plays with the metronome on, and when Get the song or Play next adds it (2.46.0). A `bass` or `riff` from before 4.42.0 is dropped when it loads |
 | `waitForMe` | boolean | Wait for me (4.54.0): the show holds on each chord until you play it. Unset means on for a song with `status: "learning"`, off otherwise; never on with a linked recording playing |
+| `followTempo` | boolean | Follow my tempo (4.80.0): the page and the band follow the pace of the chords you play in a show. Unset means on for a song with `status: "learning"`, off otherwise; never with a linked recording playing |
 | `capoOff` | boolean | The chart's own capo is taken off: chords show in the key the song sounds in (2.41.0) |
 | `durationSet` | boolean | You moved the length slider; the recording's length is then offered, not applied |
 | `speed` | number | 1x speed style |

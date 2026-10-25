@@ -771,7 +771,7 @@ function playFromSec(song) {
 }
 /* a beat at the pace the song plays: its tempo, practice speed and the speed dial, as the metronome counts it */
 export const beatSecs = song => 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song));
-export const loopFactor = song => practiceRate(song) * (activeLoop(song)?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1);
+export const loopFactor = song => practiceRate(song) * (activeLoop(song)?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1) * (scroll.on && followOn(song) ? follow.k : 1);
 // Called each frame while playing: when the section's last line passes the reading
 // point, glide back to its first line and count a pass.
 function loopCheck(song) {
@@ -1027,6 +1027,10 @@ const usesMusic = song => hasMusic(song) && song.backing !== "band";
 /* Wait for me (4.54.0): the song holds on each chord until you play it. Saved per song, on for a song you are
    learning; not with a recording, which can't wait. */
 const waitOn = song => !!song && !usesMusic(song) && (song.waitForMe ?? song.status === "learning");
+/* Follow my tempo (4.80.0): the page and the band speed up or slow down to the chords you play. Saved per song,
+   on for a song you are learning; not with a recording, which keeps its own tempo. `follow.k` is the pace now. */
+const followOn = song => !!song && !usesMusic(song) && (song.followTempo ?? song.status === "learning");
+export const follow = { k: 1 };
 /* hold the page and the band on the chord being waited for (or let them go on) */
 function holdScroll(on, song) {
   if (!scroll.on || !!scroll.wait === on) return;
@@ -1163,6 +1167,7 @@ function songMenu(song, anchor, redrawSong) {
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "beat", icon: "metro", label: "Beat", sub: beatMode() === "off" ? "Off" : `${beatName()} · ${song.bpm || 90} BPM`, beat: true },
       chords && { id: "wait", icon: "mic", label: "Wait for me", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song waits for each chord you play", on: waitOn(song), off: usesMusic(song) },
+      chords && { id: "follow", icon: "gauge", label: "Follow my tempo", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song speeds up or slows down with you", on: followOn(song), off: usesMusic(song) },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
@@ -1256,6 +1261,7 @@ function songMenu(song, anchor, redrawSong) {
     const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
       wait: () => { song.waitForMe = !waitOn(song); Tabs.save(data); toast(song.waitForMe ? "Wait for me: the song waits for each chord you play" : "Wait for me off", toolsAnchor()); },
+      follow: () => { song.followTempo = !followOn(song); if (!song.followTempo) follow.k = 1; Tabs.save(data); toast(song.followTempo ? "Follow my tempo: the song keeps your pace" : "Follow my tempo off: the song's own tempo", toolsAnchor()); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
     if (ip && inPlace[ip.dataset.m] && inPlace[ip.dataset.m]() !== false) {
@@ -1759,6 +1765,7 @@ function streakSoon(song) {
   }, 1400);
 }
 async function startScroll(song, opts = {}) {
+  follow.k = 1; /* each play starts at the song's own tempo */
   document.querySelector(".endnote")?.remove();
   /* Count in only when starting from the top: the song's first line is on screen. */
   const first = $("sheet")?.querySelector(":scope > .pr, :scope > .ly, :scope > .tab, :scope > .crow");
@@ -2046,4 +2053,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { waitOn, holdScroll, jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { waitOn, followOn, holdScroll, jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

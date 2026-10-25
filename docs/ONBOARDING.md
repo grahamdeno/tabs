@@ -186,6 +186,7 @@ anything a person found on their own is skipped.
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
 | 8 | Wait for me (4.54.0): the song holds on each chord until you play it | Tools > Play > Wait for me; Skip this chord beside Pause | Switch, on for a learning song; the hold card says what it waits for | No tip yet; one the first time a learning song is played with the mic on would teach it. A practice show: no Charts, battles or duels |
+| 8b | Follow my tempo (4.80.0): the page and the beat speed up or slow down to the chords you play | Tools > Play > Follow my tempo | Switch, on for a learning song | None; it works without being noticed. A tip could say so the first time it moves the pace by 5% or more |
 | 9 | Louie's count-in (4.56.0): a big number with Louie on each beat, the first chord and the strum | Nothing to do | Visible | Teaches itself; no tip |
 
 Achievement callouts (4.44.0) teach themselves: they appear when something is earned and point to nothing hidden, so they need no tip.

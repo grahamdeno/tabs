@@ -883,6 +883,18 @@ export function catchHear(st, chroma, opt = {}) {
   st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0;
   return best;
 }
+/* Follow my tempo (4.80.0): the page and the band follow the player. Between two chords caught in a row, `expected`
+   is how long the page would take from one to the other at its pace now, `actual` how long you took. The pace
+   moves toward yours by half the gap, at most 3% a change, and stays within a quarter of the song's own; a gap
+   too far off (a missed or late catch) is not a tempo and is left out. `k` is the pace, 1 for the song's own. */
+export const FOLLOW = { min: 0.75, max: 1.25, step: 0.03, blend: 0.5 };
+export function tempoStep(k, expected, actual) {
+  if (!(expected > 0.4) || !(actual > 0.4)) return k;
+  const r = expected / actual;
+  if (r < 0.6 || r > 1.6) return k;
+  const want = Math.min(FOLLOW.max, Math.max(FOLLOW.min, k * r));
+  return +(k + Math.max(-FOLLOW.step, Math.min(FOLLOW.step, (want - k) * FOLLOW.blend))).toFixed(4);
+}
 /* Targets whose time has gone by, settled once each: `missed` for the ones you didn't play, `got` for a chord with
    no shape to listen for that something was heard through (a quiet room never costs a chord). A target is gone by
    once the chord after it has begun, or a later one was caught. */

@@ -17,10 +17,10 @@
 // still plays; nothing is scored.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, getMic, icon, sound, soundDeaf, onLeave } from "./ui.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw, READ_AT } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, followOn, follow, loopFactor, pxPerSecond, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw, READ_AT } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss, stageWait, chordTop } from "./stage.js";
@@ -214,7 +214,7 @@ function holdFrame(g, counting) {
     && t && !!chordNotes(t.name) && !c.caught[c.cur] && ahead <= c.cur && g.skip !== c.cur && (g.holding || performance.now() - (g.curAt || 0) > HOLD_GRACE);
   const pill = waitOn(g.song) && !!g.stream;
   if (want && !g.holding) {
-    g.holding = true; g.waited = true;
+    g.holding = true; g.waited = true; g.holds = (g.holds || 0) + 1;
     holdScroll(true, g.song);
     stageWait(t.first);
     const card = $("gg-wait");
@@ -230,6 +230,17 @@ function holdFrame(g, counting) {
     paintScore(); paintShape();
   }
   $("gg-wpill").hidden = !pill;
+}
+
+/* Follow my tempo (4.80.0): two chords caught in a row, with no hold between and the song playing on its own,
+   say how fast you are going against the page; the page and the band move toward it (tempoStep). */
+function keepPace(g, i) {
+  const now = performance.now() / 1000, prev = g.pace;
+  g.pace = { i, at: now, holds: g.holds || 0 };
+  if (!followOn(g.song) || !scroll.on || g.holding || !prev || prev.i !== i - 1 || prev.holds !== (g.holds || 0) || !scoring(g)) return;
+  const t = g.catch.targets, y0 = chordTop(t[i - 1].first), y1 = chordTop(t[i].first), speed = pxPerSecond(g.song) * loopFactor(g.song);
+  if (y0 == null || y1 == null || !(y1 > y0) || !(speed > 0)) return;
+  follow.k = tempoStep(follow.k, (y1 - y0) / speed, now - prev.at);
 }
 
 /* bring song place `i` to the reading line, so the song is where you are */
@@ -248,6 +259,7 @@ const pairOf = (g, i) => i > 0 ? `${g.catch.targets[i - 1].name}>${g.catch.targe
 /* a chord caught: it turns green and stays green */
 function caught(g, i) {
   catchScore(g.score, true);
+  keepPace(g, i);
   const pair = pairOf(g, i); if (pair) g.landed[pair] = (g.landed[pair] || 0) + 1; /* Your changes (4.23.0) */
   g.got.add(i);
   stageCatch(placesOf(g, i));

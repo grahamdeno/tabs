@@ -1803,6 +1803,18 @@ test("4.79.0 Chord Catch: play ahead of the song in order, up to four chords pas
   assert.deepEqual(C.catchClose(sk), { missed: [0], got: [] }, "and the skipped one is missed");
 });
 
+test("4.80.0 Follow my tempo: the pace moves toward yours, gently, within a quarter of the song's own", () => {
+  assert.equal(C.tempoStep(1, 2.9, 2.9), 1, "on the page's pace, no change");
+  assert.equal(C.tempoStep(1, 2.9, 3.2), 0.97, "about 10% slower: down 3% this change (the most at once)");
+  let k = 1; for (let n = 0; n < 12; n++) k = C.tempoStep(k, 2.9 / k, 3.2); /* the page takes longer as it slows */
+  assert.ok(Math.abs(k - 2.9 / 3.2) < 0.01, `settles on your pace (${k})`);
+  assert.equal(C.tempoStep(1, 2.9, 2.85), 1.0088, "a small gap: half of it");
+  k = 1; for (let n = 0; n < 40; n++) k = C.tempoStep(k, 2.2 / k, 1.6);
+  assert.equal(k, C.FOLLOW.max, "never more than a quarter faster");
+  assert.equal(C.tempoStep(1, 2.9, 6.5), 1, "a gap twice as long is a missed catch, not a tempo");
+  assert.equal(C.tempoStep(1, 0.2, 0.3), 1, "too short to say");
+});
+
 test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {
   const g = C.gigStart();
   assert.equal(C.gigCrowd(g), 6, "half the crowd before any chord");
