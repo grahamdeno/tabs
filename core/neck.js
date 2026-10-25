@@ -151,9 +151,11 @@ export function chordTargets(name, tuning = "standard", a4 = 440) {
    rise       and this many times louder than the quietest moment in the last 80 ms
    gap        seconds between two strums at the least */
 export const HEAR = { clarity: 0.4, pitchX: 2, buzzX: 10, strumX: 6, overBleed: 1.5, rise: 1.6, gap: 0.18 };
-/* The room's noise: drifts down quickly and up slowly, so a ringing string never counts as background (the tuner's rule).
+/* The room's noise: drifts down quickly and up slowly, so a ringing string never counts as background.
+   4.77.1: up at most 0.2% a reading (about a fifth a second at 10 ms), not 1%: a G string left ringing for
+   two seconds pushed the floor up nine times and doubled the strum line (Graham's readings, 0.015 to 0.131).
    Moments of digital silence (an iPhone sends some) are skipped, or the floor sinks to nothing (3.8.3). */
-export const trackFloor = (floor, lvl) => lvl < 0.00002 ? floor : floor == null ? Math.min(lvl, 0.004) : lvl < floor ? floor * 0.7 + lvl * 0.3 : floor * 0.995 + Math.min(lvl, floor * 3) * 0.005;
+export const trackFloor = (floor, lvl) => lvl < 0.00002 ? floor : floor == null ? Math.min(lvl, 0.004) : lvl < floor ? floor * 0.7 + lvl * 0.3 : floor * 0.999 + Math.min(lvl, floor * 3) * 0.001;
 /* How the beat leaks into the microphone, moment by moment after each hit (10 ms steps, half a second),
    kept apart for the 1 and the other beats. Measured during a quiet bar; the strum line rises only
    where the beat is, so between hits a strum counts as it would with no beat at all (3.8.3). */

@@ -1522,6 +1522,19 @@ test("What I hear: lines follow the room's noise, so a quiet phone microphone st
   assert.equal(C.pitchRms(0.1), 0.01);
 });
 
+test("4.77.1: a string left ringing doesn't push the room's floor (and the strum line) up", () => {
+  /* Graham's readings: a plucked G ringing for two seconds took the floor from 0.015 to 0.131 and doubled the strum line */
+  const s = C.strumDetector();
+  let t = 0;
+  for (let i = 0; i < 100; i++) s(0.00015, t += 0.01);
+  const quiet = s.floor();
+  for (let i = 0; i < 200; i++) s(0.02 * Math.exp(-i / 150), t += 0.01); /* two seconds of a ringing string */
+  assert.ok(s.floor() < quiet * 1.6, `floor ${s.floor()} stays near ${quiet}`);
+  let caught = false;
+  for (let i = 0; i < 5; i++) caught = s(i < 2 ? 0.01 : 0.004, t += 0.01) || caught;
+  assert.ok(caught, "a soft strum right after is still caught");
+});
+
 test("The beat's leak into the mic raises the strum line only just after each tick, and digital silence doesn't sink the floor", () => {
   const p = C.bleedProfile();
   for (let i = 0; i < 6; i++) p.add(i * 0.01, true, 0.0174); /* 3.8.2 readings: the beat at 1.74 */

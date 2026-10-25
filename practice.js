@@ -15,7 +15,7 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, detectPitch, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
+import { CHORD_FIT, HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, chromaOf, detectPitch, strumFit, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
 import { app, esc, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -622,7 +622,7 @@ const HEAR_CHORDS = ["", "G", "C", "D", "Em", "Am", "E", "A"];
 function whatIHear() {
   let chord = "", guide = null, running = false, measuring = false, ctxRef = null, floorRef = null, prof = null, along = null;
   const lane = [], strums = [], beats = []; /* last few seconds: [time, level] */
-  const st = { t0: 0, frames: 0, quiet: [], peak: 0, pitched: 0, buzzy: 0, strums: 0, notes: {}, lit: {}, grade: null };
+  const st = { t0: 0, frames: 0, quiet: [], peak: 0, pitched: 0, buzzy: 0, strums: 0, notes: {}, lit: {}, grade: null, show: null };
   const beatAt = [], alongLane = []; /* every beat played, audio time; the level while strumming with the beat */
   const lastBeat = now => { for (let k = beatAt.length - 1; k >= 0; k--) if (beatAt[k] <= now) return { since: now - beatAt[k], one: k % 4 === 0 }; return null; };
   const bleedNow = now => { const lb = prof && lastBeat(now); return lb ? prof.at(lb.since, lb.one) : 0; };
@@ -651,7 +651,7 @@ function whatIHear() {
     box.innerHTML = chordTargets(chord).map(t => `<span class="pk-str${t.hz ? "" : " skip"}" data-i="${t.i}"><i class="gs-lamp"></i><small>${t.hz ? esc(strName(t.i, "standard")) : "skip"}</small></span>`).join("");
   };
   app.querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
-    chord = b.dataset.c; st.lit = {};
+    chord = b.dataset.c; st.lit = {}; st.show = chord ? { reads: 0, fit: 0, other: {} } : null;
     app.querySelectorAll("[data-c]").forEach(x => x.classList.toggle("on", x === b));
     strings();
     guide = chord ? stringGuide(chordTargets(chord), $("ph-strings")) : null;
@@ -685,6 +685,9 @@ function whatIHear() {
       const fast = ctx.createAnalyser(), slow = ctx.createAnalyser();
       fast.fftSize = 1024; slow.fftSize = 4096;
       const src = ctx.createMediaStreamSource(stream); guitarBand(ctx, src).connect(fast); src.connect(slow);
+      /* 4.77.1: the chord as a show hears it, the Gig's own read (all 12 notes at once), so a strummed chord can be checked here */
+      const spec = ctx.createAnalyser(); spec.fftSize = 16384; spec.smoothingTimeConstant = 0; guitarBand(ctx, src).connect(spec);
+      const db = new Float32Array(spec.frequencyBinCount);
       const fb = new Float32Array(fast.fftSize), sb = new Float32Array(slow.fftSize), strum = strumDetector();
       let n = 0, shown = 0;
       st.t0 = ctx.currentTime; ctxRef = ctx; floorRef = strum.floor;
@@ -710,6 +713,17 @@ function whatIHear() {
           $("ph-note").textContent = nn.name + nn.octave;
           $("ph-hz").textContent = `${hz.toFixed(1)} Hz · ${nn.cents > 0 ? "+" : ""}${nn.cents}¢`;
         } else if (rms > buzzRms(strum.floor())) { st.buzzy++; $("ph-note").textContent = "?"; $("ph-hz").textContent = "no clear pitch"; }
+        if (st.show && chord && rms > Math.max(0.004, strum.floor() * 3)) {
+          spec.getFloatFrequencyData(db);
+          const cr = chromaOf(db, ctx.sampleRate, spec.fftSize), f = strumFit(cr, chord);
+          if (cr && f !== null) {
+            st.show.reads++;
+            /* the Gig's test: the chord fits, and no other chord here fits clearly better */
+            const rival = HEAR_CHORDS.filter(c => c && c !== chord).map(c => [c, strumFit(cr, c) ?? 0]).sort((a, b) => b[1] - a[1])[0];
+            if (f >= CHORD_FIT && rival[1] <= f + 0.08) st.show.fit++;
+            else { const k = f >= CHORD_FIT ? rival[0] : "too little of it"; st.show.other[k] = (st.show.other[k] || 0) + 1; }
+          }
+        }
         const ev = guide?.hear(sb, ctx.sampleRate, strum.floor(), rms);
         if (ev?.say) {
           const nm = strName(ev.t.i, "standard");
@@ -781,7 +795,8 @@ function whatIHear() {
       st.grade?.started ? "With the beat: not finished (it takes about 17 seconds)" : st.grade ? `With the beat: ${st.grade.on} of 4 on the 1, ${st.grade.late} late, ${st.grade.early} early, ${st.grade.miss} not heard` : "",
       `Strums caught ${st.strums} · pitch clear ${pct(st.pitched, reads)} of reads · buzzy ${pct(st.buzzy, reads)}`,
       `Notes heard: ${top || "none"}`,
-      chord ? `${chord}: strings lit ${st.lit[chord] || 0} of ${chordTargets(chord).filter(t => t.hz).length}` : "",
+      chord ? `${chord}: strings lit ${st.lit[chord] || 0} of ${chordTargets(chord).filter(t => t.hz).length} (one string at a time)` : "",
+      st.show ? `${chord} as a show hears it: fits ${st.show.fit} of ${st.show.reads} sounding reads${Object.keys(st.show.other).length ? " · when it didn't: " + Object.entries(st.show.other).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ") : ""}` : "",
       `Settings: ${Object.entries(HEAR).map(([k, v]) => `${k} ${v}`).join(", ")}`
     ].filter(Boolean).join("\n");
     navigator.clipboard?.writeText(text).then(() => toast("Readings copied. Paste them into a message."), () => toast("Couldn't copy here."));
