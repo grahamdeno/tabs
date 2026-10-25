@@ -44,7 +44,7 @@ export function renderCharts(view = "chart") {
     ${pane === "friends" ? `<div id="ch-friends"></div>` : `
     <section class="ch-head" aria-label="${esc(st.name)} chart">
       <div><h1>${esc(st.name)} Chart</h1><small>${st.daysLeft} DAY${st.daysLeft === 1 ? "" : "S"} LEFT</small></div>
-      <div class="ch-recs" aria-label="${st.records.length} record${st.records.length === 1 ? "" : "s"}">${st.records.slice(-4).map(r => RECORD(r.tier, r.rank)).join("") || RECORD(st.tier, 9)}</div>
+      <div class="ch-recs" role="group" aria-label="${st.records.length} record${st.records.length === 1 ? "" : "s"}">${st.records.slice(-4).map(r => RECORD(r.tier, r.rank)).join("") || RECORD(st.tier, 9)}</div>
     </section>
     <p class="ch-sub">${st.next ? `Top ${CHART_PROMOTE} move up to the ${esc(st.next)}` : "The top of the charts. Stay in the top 5 for records"}${st.tier > 0 ? ` · bottom ${CHART_DEMOTE} move down` : ""}</p>
     <ol class="ch-list">${rows.join("")}</ol>

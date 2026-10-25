@@ -18,7 +18,7 @@ const CHECK = `<svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-l
 const BOX = label => `<svg width="34" height="30" viewBox="0 0 34 30" role="img" aria-label="${esc(label)}"><rect class="tq-bxd" x="3" y="12" width="28" height="17" rx="3"/><rect class="tq-bx" x="3" y="10" width="28" height="17" rx="3"/><rect class="tq-lid" x="2" y="5" width="30" height="8" rx="3"/><rect class="tq-rib" x="14" y="5" width="6" height="22"/></svg>`;
 const PHONE = `<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle class="tq-phd" cx="20" cy="21" r="17"/><circle cx="20" cy="19" r="17" fill="#fff"/><path class="tq-ph" d="M13 13c0-2 2-3 4-2l2 4-2 2c1 3 3 5 6 6l2-2 4 2c1 2 0 4-2 4-8 0-14-6-14-14z"/></svg>`;
 
-const bar = (have, need, cls = "") => `<div class="tq-bar ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><i style="width:${Math.round(100 * have / need)}%"></i></div>`;
+const bar = (have, need, cls = "", label = "Progress") => `<div class="tq-bar ${cls}" role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${have}"><i style="width:${Math.round(100 * have / need)}%"></i></div>`;
 
 /* Apple Music on: the latest track you played becomes the request, or a cover quest (once a visit) */
 let heardAsked = 0;
@@ -48,7 +48,7 @@ export function renderTour() {
         <div class="tq-louie">${louie(t.done ? "cheer" : "happy", { pose: t.done ? "hornsUp" : "wave", size: 104 })}</div>
         <div class="tq-goal">
           <b>${t.done ? "Tour complete!" : `Play ${t.need} shows`}</b>
-          <div class="tq-big">${bar(t.shows, t.need)}<span>${t.shows} / ${t.need}</span></div>
+          <div class="tq-big">${bar(t.shows, t.need, "", "Shows played this month")}<span>${t.shows} / ${t.need}</span></div>
           <small>${t.done ? `+${QUEST.tourFans} fans earned` : `Every song you play through counts. ${QUEST.tourFans} fans when it's done`}</small>
         </div>
       </section>
@@ -65,7 +65,7 @@ export function renderTour() {
       </section>` : ""}
       <h2 class="tq-h"><span>TONIGHT'S SETLIST</span><span class="tq-hrs">${hrs} HR${hrs === 1 ? "" : "S"}</span></h2>
       <section class="tq-card" aria-label="Tonight's setlist">
-        ${st.goals.map(g => `<div class="tq-row${g.done ? " done" : ""}"><div class="tq-rg"><b>${esc(g.label)}</b>${bar(g.have, g.need, g.done ? "full" : "")}<small>${g.have} / ${g.need}${g.done ? "" : ` · ${QUEST.goalFans} fans`}</small></div>${g.done ? CHECK : BOX(`${QUEST.goalFans} fans`)}</div>`).join("")}
+        ${st.goals.map(g => `<div class="tq-row${g.done ? " done" : ""}"><div class="tq-rg"><b>${esc(g.label)}</b>${bar(g.have, g.need, g.done ? "full" : "", esc(g.label))}<small>${g.have} / ${g.need}${g.done ? "" : ` · ${QUEST.goalFans} fans`}</small></div>${g.done ? CHECK : BOX(`${QUEST.goalFans} fans`)}</div>`).join("")}
         <p class="tq-foot">${st.setDone ? `All three done: +${QUEST.setFans} fans. New goals tomorrow.` : `All three: ${QUEST.setFans} more fans.`}</p>
       </section>
       <h2 class="tq-h"><span>FRIEND QUEST</span><span>${fq ? "THIS WEEK" : ""}</span></h2>

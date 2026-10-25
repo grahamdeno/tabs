@@ -2387,7 +2387,7 @@ body.gigging .menu.tools { z-index: 60; }
 .tq-top { margin: -2px -4px 0; } /* 4.15.4: the stat bar sits where it does on the Road; 4.20.0: both 12px lower, clear of the frosted edge */
 .tq-head { position: relative; margin: 10px -20px 0; padding: 16px 20px 18px; background: var(--streak); overflow: hidden; }
 .tq-ht h1 { margin: 0; font: 700 28px var(--display); color: #14213D; }
-.tq-ht small { display: block; margin-top: 2px; font: 800 13px var(--sans); letter-spacing: .06em; color: color-mix(in srgb, #14213D 75%, var(--streak)); }
+.tq-ht small { display: block; margin-top: 2px; font: 800 13px var(--sans); letter-spacing: .06em; color: #14213D; }
 .tq-louie { position: absolute; right: 10px; top: 4px; }
 .tq-louie .louie { width: 104px; height: auto; }
 .tq-goal { position: relative; z-index: 1; margin-top: 26px; background: #14213D; border-radius: 18px; padding: 14px; color: #fff; }
@@ -2407,10 +2407,10 @@ body.gigging .menu.tools { z-index: 60; }
 .tq-rt { flex: 1; min-width: 0; }
 .tq-rt small { font: 800 12px var(--sans); letter-spacing: .08em; }
 .tq-rt p { margin: 2px 0 0; font: 700 16px/1.3 var(--sans); }
-.tq-play { flex: none; border: 0; border-radius: 12px; padding: 12px 14px; background: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 35%, #fff); font: 700 15px var(--display); color: var(--accent-deep); }
+.tq-play { flex: none; border: 0; border-radius: 12px; padding: 12px 14px; background: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 35%, #fff); font: 700 15px var(--display); color: #14213D; }
 .tq-play:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 35%, #fff); }
 .tq-h { display: flex; justify-content: space-between; margin: 20px 2px 8px; font: 800 13px var(--sans); letter-spacing: .08em; color: var(--muted); }
-.tq-hrs { color: var(--streak-deep, var(--streak)); }
+.tq-hrs { color: var(--fg-2); }
 .tq-card { background: var(--card); border: 2px solid var(--rim); border-radius: 18px; padding: 2px 14px; }
 .tq-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
 .tq-row + .tq-row { border-top: 2px solid var(--hair); }
@@ -2420,7 +2420,7 @@ body.gigging .menu.tools { z-index: 60; }
 .tq-foot { margin: 0; padding: 10px 0 12px; border-top: 2px solid var(--hair); font: 700 13.5px var(--sans); color: var(--fg-2); }
 .tq-ckd { fill: var(--fans-deep); } .tq-ck { fill: var(--fans); }
 .tq-bxd { fill: var(--streak-deep, var(--streak)); } .tq-bx { fill: var(--streak); } .tq-lid { fill: var(--fans); } .tq-rib { fill: var(--strings); }
-.tq-lock { opacity: .65; border-style: dashed; }
+.tq-lock { border-style: dashed; } /* 4.73.2: dashed says locked; no fading, so its words stay readable */
 /* ==========================================================================
    Charts (4.6.0): the weekly chart at your tier, records, rival battles
    ========================================================================== */
@@ -2428,10 +2428,11 @@ body.gigging .menu.tools { z-index: 60; }
 .ch-last { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; padding: 10px 12px; border-radius: 16px; background: var(--fans); color: #14213D; }
 .ch-last p { flex: 1; margin: 0; font: 700 14.5px/1.35 var(--sans); }
 .ch-last .sb { flex: none; padding: 8px 12px; font: 700 14px var(--display); }
-.ch-head { display: flex; align-items: center; gap: 10px; margin: 10px -20px 0; padding: 18px 20px; background: var(--strings); color: #fff; }
+.ch-head { display: flex; align-items: center; gap: 10px; margin: 10px -20px 0; padding: 18px 20px; background: var(--strings); color: #14213D; }
+:root[data-look="festival"] .ch-head, :root[data-look="green"] .ch-head { background: var(--strings-deep); color: #fff; } /* 4.73.2: readable on each look */
 .ch-head > div:first-child { flex: 1; }
 .ch-head h1 { margin: 0; font: 700 28px var(--display); }
-.ch-head small { font: 800 13px var(--sans); letter-spacing: .06em; opacity: .85; }
+.ch-head small { font: 800 13px var(--sans); letter-spacing: .06em; }
 .ch-recs { display: flex; gap: 2px; }
 .ch-vd { fill: #0B1226; } .ch-v { fill: #14213D; } .ch-lab { fill: var(--accent); } .ch-gold { fill: var(--fans); }
 .ch-sub { margin: 12px 2px 6px; font: 700 14px var(--sans); color: var(--muted); }
@@ -2445,12 +2446,12 @@ body.gigging .menu.tools { z-index: 60; }
 .ch-nm { flex: 1; min-width: 0; font: 700 17px var(--sans); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ch-xp { font: 700 16px var(--display); color: var(--fg-2); white-space: nowrap; }
 .ch-btl { flex: none; padding: 3px 8px; border-radius: 999px; background: var(--accent); color: #14213D; font: 800 10.5px var(--sans); letter-spacing: .06em; }
-.ch-zone { display: flex; align-items: center; gap: 10px; margin: 6px 0; font: 800 11.5px var(--sans); letter-spacing: .08em; color: var(--good); }
+.ch-zone { display: flex; align-items: center; gap: 10px; margin: 6px 0; font: 800 11.5px var(--sans); letter-spacing: .08em; color: var(--good-ink, var(--good)); }
 .ch-zone::before, .ch-zone::after { content: ""; flex: 1; border-top: 2px dashed currentColor; opacity: .6; }
 .ch-go { display: flex; align-items: center; gap: 12px; margin: 14px 0 0; padding: 12px 14px; border-radius: 18px; background: var(--accent); box-shadow: 0 5px 0 var(--accent-deep); color: #14213D; }
 .ch-go.done { background: var(--card); border: 2px solid var(--rim); box-shadow: 0 4px 0 var(--rim); color: var(--fg); }
 .ch-go p { flex: 1; margin: 0; font: 700 15px/1.35 var(--sans); }
-.ch-gobtn { flex: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 35%, #fff); font: 700 16px var(--display); color: var(--accent-deep); }
+.ch-gobtn { flex: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 35%, #fff); font: 700 16px var(--display); color: #14213D; }
 .ch-how { margin: 16px 2px 0; font: 700 12.5px/1.45 var(--sans); color: var(--muted); }
 /* the battle */
 .bt { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-top: 12px; }
@@ -2553,9 +2554,9 @@ body.gigging .menu.tools { z-index: 60; }
 .upn { display: flex; gap: 10px; margin-bottom: 14px; }
 .upn-c { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 12px; border: 0; border-radius: 18px; text-align: left; color: #14213D; }
 .upn-c.one { background: var(--streak); box-shadow: 0 4px 0 var(--streak-deep, var(--streak)); }
-.upn-c.req { background: var(--strings); box-shadow: 0 4px 0 var(--strings-deep); color: #14213D; } /* 4.73.1: dark ink on the bright blue (white was 1.6:1); white on Green Room's plum */
-:root[data-look="green"] .upn-c.req { color: #fff; }
-.upn-c.req small, .upn-c.req em { opacity: 1; }
+.upn-c.req { background: var(--strings); box-shadow: 0 4px 0 var(--strings-deep); color: #14213D; } /* 4.73.2: dark ink on Neon's cyan; white on the deeper blue or plum in the light looks */
+:root[data-look="festival"] .upn-c.req, :root[data-look="green"] .upn-c.req { background: var(--strings-deep); box-shadow: 0 4px 0 color-mix(in srgb, var(--strings-deep) 70%, #000); color: #fff; }
+.upn-c.req small, .upn-c.req em, .today .upn-c.req .tdy-t small, .today .upn-c.req .tdy-t em { opacity: 1; }
 .upn-c small { font: 800 11px var(--sans); letter-spacing: .08em; opacity: .8; }
 .upn-c b { font: 700 16px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .upn-c span { font: 700 12.5px var(--sans); }
@@ -2582,7 +2583,8 @@ body.is-home { --peek: calc(84px + var(--tabs)); }
 /* Charts (4.11.0): what each player did today, and the move down zone */
 .ch-nm { display: flex; flex-direction: column; line-height: 1.15; }
 .ch-note { font: 700 12px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ch-note.hot { color: var(--good); }
+.ch-note.hot { color: var(--good-ink, var(--good)); }
+:root[data-look="festival"] { --good-ink: #0B7A5C; } :root[data-look="green"] { --good-ink: #0A6F6F; } /* 4.73.2: the green as text, dark enough to read */
 .ch-zone.down { color: var(--accent-deep); }
 :root[data-look="neon"] .ch-zone.down { color: var(--accent-ink); }
 /* ==========================================================================
@@ -2713,7 +2715,7 @@ body.gigging .ask { z-index: 66; }
 .mt-acts { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
 .mt-acts .btn { flex: none; width: 100%; height: 54px; font: 700 18px var(--display); }
 .mt-acts .btn[disabled] { opacity: .7; }
-.mt-not { border: 0; background: none; padding: 10px 0 0; font: 800 15px var(--sans); color: var(--strings); }
+.mt-not { border: 0; background: none; padding: 10px 0 0; min-height: 44px; font: 800 15px var(--sans); color: var(--fg-2); }
 /* in the gig: the backdrop behind the top, fading into the stage */
 .gig > .gg-bd { position: absolute; left: 0; right: 0; top: 0; height: 260px; pointer-events: none; opacity: .7; -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent); }
 .gg-bd svg { width: 100%; height: 100%; display: block; }
