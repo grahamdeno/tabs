@@ -34,7 +34,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 ## Version 4: the gamified Road (agreed 2026-10-20)
 
 The guitar is how you play the game. Design system: four palettes (Light =
-Festival Poster, Dark = Neon Midnight, Green = Green Room, Headliner = black, gold and chrome with violet and blaze orange, a dark look that shares Neon's dark fixes, 4.77.0), flat colour with no
+Festival Poster, Dark = Neon Midnight, Green = Green Room, Headliner = black, gold and chrome with violet and blaze orange, a dark look that shares Neon's dark fixes, 4.77.0; 4.78.0: looks are on the Merch table, Light and Dark free, Green Room bought, Headliner earned by headlining a show), flat colour with no
 outlines, chunky buttons on a darker lip, Fredoka and Nunito, Louie the amp as
 the mascot (no guitar-pick mascot anywhere; 4.14.1 and 4.15.0 removed the last
 picks). Text in the accent colour uses `--accent-ink` (contrast in the light

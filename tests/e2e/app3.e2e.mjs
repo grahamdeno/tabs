@@ -637,3 +637,15 @@ test("4.49.8 On an iPhone the search screen finds songs through Apple Music, sin
   assert.match(await page.innerText("#sr-cat"), /The Cape Fear · 2015/);
   assert.equal(itunesAsked, 0, "the closed iTunes search is not tried on an iPhone");
 });
+
+test("4.78.0 the first headline show done: the Road says Headliner is yours, once, and Put it on wears it", { skip: skip() }, async t => {
+  const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A", "k:open"].map((c, i) => [c.startsWith("k:") ? c : `c:${c}`, { n: 3, best: 90, at: Date.now() - 1000 + i }]));
+  const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1 } }, { home: true });
+  await page.waitForSelector(".rd-hl");
+  assert.match(await page.innerText(".rd-hl"), /You headlined/);
+  await page.click("#hl-on");
+  await page.waitForFunction(() => document.documentElement.dataset.look === "headliner");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.hlseen === 1);
+  await page.reload(); await page.waitForSelector(".rd-node");
+  assert.equal(await page.locator(".rd-hl").count(), 0, "said once");
+});

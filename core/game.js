@@ -945,9 +945,32 @@ export const MERCH = [
   { id: "basement", kind: "backdrop", name: "Basement", price: 0, line: "The plain stage you started on." },
   { id: "brick", kind: "backdrop", name: "Brick wall", price: 300, line: "A club wall under one warm light." },
   { id: "stars", kind: "backdrop", name: "Starlight", price: 400, line: "An open-air night sky." },
-  { id: "sunset", kind: "backdrop", name: "Sunset fest", price: 500, line: "A festival field at golden hour." }
+  { id: "sunset", kind: "backdrop", name: "Sunset fest", price: 500, line: "A festival field at golden hour." },
+  /* 4.78.0: the looks. Light and Dark are everyone's, Green Room is bought, Headliner is earned by headlining a show. */
+  { id: "festival", kind: "look", theme: "light", name: "Festival Poster", price: 0, line: "The light look: sky blue, hot pink and sunshine." },
+  { id: "neon", kind: "look", theme: "dark", name: "Neon Midnight", price: 0, line: "The dark look: indigo, lime and hot pink." },
+  { id: "green", kind: "look", theme: "green", name: "Green Room", price: 400, line: "Sage, coral and mustard, calm as a dressing room." },
+  { id: "headliner", kind: "look", theme: "headliner", name: "Headliner", price: 0, earn: "headline", line: "Black, gold and chrome under a blacklight." }
 ];
 const merchItem = id => MERCH.find(x => x.id === id);
+/* free to have: no price and nothing to earn (gear is never "had") */
+const freeItem = x => !x.price && !x.earn && x.kind !== "gear";
+/* 4.78.0: you've headlined once any leg's headline show is done */
+export const headlined = (data, now = Date.now()) => roadPath(data, now).legs.some(l => l.stops.some(s => s.kind === "headline" && s.state === "done"));
+/* Once: a look you were already using before looks went on the Merch table stays yours */
+function looksMigrate(data) {
+  const m = data.merch || (data.merch = {});
+  if (m.lconv) return;
+  m.lconv = 1;
+  const it = MERCH.find(x => x.kind === "look" && x.theme === data.settings?.theme && !freeItem(x));
+  if (it && !(m.has || []).includes(it.id)) (m.has || (m.has = [])).push(it.id);
+}
+/* the looks you can use, by the settings.theme they set ("auto" is always there) */
+export function looksOwned(data, now = Date.now()) {
+  const st = merchState(data, now);
+  return new Set(["auto", ...MERCH.filter(x => x.kind === "look" && st.has.has(x.id)).map(x => x.theme)]);
+}
+export const lookOfTheme = theme => MERCH.find(x => x.kind === "look" && x.theme === theme) || null;
 /* data.merch.test: fans added from Settings > Help to try the Merch table (4.16.0); they never count toward XP or the chart */
 // ---------- Fans and tips (4.70.0, Graham 2026-10-24) ----------
 // Fans are your reputation: practice and shows earn them, and they are never spent. They fade when you neither
@@ -1025,14 +1048,18 @@ export function cleanFame(raw) {
 }
 export const fansToSpend = data => tipsOf(data); /* 4.70.0: what you spend is tips */
 export function merchState(data, now = Date.now()) {
-  tipsMigrate(data, now);
-  const m = data.merch || {}, has = new Set([...MERCH.filter(x => !x.price && x.kind !== "gear").map(x => x.id), ...(m.has || [])]);
-  return { tips: tipsOf(data), fans: tipsOf(data), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement" };
+  tipsMigrate(data, now); looksMigrate(data);
+  const m = data.merch || {}, has = new Set([...MERCH.filter(freeItem).map(x => x.id), ...(m.has || [])]);
+  /* 4.78.0: earned looks are yours once you've done the thing (worked out, so a backup keeps them) */
+  const earned = MERCH.filter(x => x.earn === "headline" && !has.has(x.id));
+  if (earned.length && headlined(data, now)) for (const x of earned) has.add(x.id);
+  const look = lookOfTheme(data.settings?.theme)?.id || null; /* null: Auto */
+  return { tips: tipsOf(data), fans: tipsOf(data), own: { rain: 0, double: 0, take: 0, ...(m.own || {}) }, has, louie: has.has(m.louie) ? m.louie : "stock", backdrop: has.has(m.backdrop) ? m.backdrop : "basement", look };
 }
 /* what's on, without working out fans (cheap enough for every screen) */
 export function merchWorn(data, kind = "louie") {
   const m = data.merch || {};
-  return (m.has || []).includes(m[kind]) || MERCH.some(x => x.id === m[kind] && x.kind === kind && !x.price) ? m[kind] : kind === "louie" ? "stock" : "basement";
+  return (m.has || []).includes(m[kind]) || MERCH.some(x => x.id === m[kind] && x.kind === kind && freeItem(x)) ? m[kind] : kind === "louie" ? "stock" : "basement";
 }
 /* buy one: { ok } or { why: "fans" | "max" | "have" } */
 export function merchBuy(data, id, now = Date.now()) {
@@ -1040,15 +1067,17 @@ export function merchBuy(data, id, now = Date.now()) {
   if (!it) return { why: "none" };
   const st = merchState(data, now), m = data.merch || (data.merch = {});
   if (it.kind === "gear" ? st.own[id] + (it.adds || 1) > it.max : st.has.has(id)) return { why: it.kind === "gear" ? "max" : "have" };
+  if (it.earn) return { why: "earn" }; /* 4.78.0: earned, never bought */
   if (st.tips < it.price) return { why: "tips" };
   m.tspent = (m.tspent || 0) + it.price;
   if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
-  else { (m.has || (m.has = [])).push(id); m[it.kind] = id; }
+  else { (m.has || (m.has = [])).push(id); if (it.kind === "look") data.settings.theme = it.theme; else m[it.kind] = id; }
   return { ok: true };
 }
 export function merchWear(data, id) {
   const it = merchItem(id), st = merchState(data);
   if (!it || it.kind === "gear" || !st.has.has(id)) return false;
+  if (it.kind === "look") { data.settings.theme = it.theme; return true; }
   (data.merch || (data.merch = {}))[it.kind] = id;
   return true;
 }
@@ -1078,7 +1107,7 @@ export function secondTake(data, now = Date.now()) {
 export function merchTip(data, now = Date.now()) {
   const st = merchState(data, now), m = data.merch || {};
   const told = new Set(m.told || []);
-  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
+  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !x.earn && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
   if (!it) return null;
   const mm = data.merch || (data.merch = {});
   (mm.told || (mm.told = [])).push(it.id);
@@ -1091,13 +1120,15 @@ export function cleanMerch(raw) {
   /* 4.70.0: tips earned, spent, and the once-only change of fans to tips */
   for (const k of ["tips", "tspent"]) { const v = Math.max(0, Math.min(1e7, Math.floor(+raw[k] || 0))); if (v) out[k] = v; }
   if (raw.tconv) out.tconv = 1;
+  if (raw.lconv) out.lconv = 1; /* 4.78.0: the look you used before is kept; the Headliner moment was shown */
+  if (raw.hlseen) out.hlseen = 1;
   const test = Math.max(0, Math.min(1e6, Math.floor(+raw.test || 0))); if (test) out.test = test;
   const own = {};
   for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }
   if (Object.keys(own).length) out.own = own;
   const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => ids.has(id) && merchItem(id).kind !== "gear"))];
   if (has.length) out.has = has;
-  const free = id => MERCH.some(x => x.id === id && !x.price && x.kind !== "gear");
+  const free = id => MERCH.some(x => x.id === id && freeItem(x));
   if (has.includes(raw.louie) || free(raw.louie)) out.louie = raw.louie;
   if (has.includes(raw.backdrop) || free(raw.backdrop)) out.backdrop = raw.backdrop;
   const rain = (Array.isArray(raw.rainDays) ? raw.rainDays : []).filter(d => day.test(d)).slice(-60);

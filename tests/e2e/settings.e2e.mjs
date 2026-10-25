@@ -32,7 +32,7 @@ test("Settings: menu rows show their state, open their page, and Back returns to
 });
 
 test("Settings > Look: Light, Dark, Green Room and Headliner, kept after a reload (4.0.0, 4.77.0)", { skip: skip() }, async t => {
-  const page = await phone(t);
+  const page = await phone(t, { ...LIB, merch: { has: ["green", "headliner"], tconv: 1, lconv: 1 } }); /* 4.78.0: owned at the Merch table */
   await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForSelector("#s-theme");
   const look = () => page.evaluate(() => [document.documentElement.dataset.theme, document.documentElement.dataset.look, getComputedStyle(document.body).backgroundColor]);
   await page.click("#s-theme [data-t='dark']"); await page.waitForFunction(() => document.documentElement.dataset.look === "neon");
@@ -502,4 +502,22 @@ test("4.16.0: test fans from Help can be spent at the Merch table, and removed",
   await page.evaluate(() => { location.hash = "#/settings/help"; }); await page.waitForSelector("#s-testfans-x");
   await page.click("#s-testfans-x");
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).merch?.test);
+});
+
+test("4.78.0 looks you don't have: locked in Settings, a tap opens the Merch table; Headliner says how to earn it", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, merch: { tips: 500, tconv: 1, lconv: 1 } });
+  await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForSelector("#s-theme");
+  assert.equal(await page.locator("#s-theme button.locked").count(), 2, "Green and Headliner are locked");
+  await page.click("#s-theme [data-t='green']");
+  await page.waitForSelector(".mc-look[data-id='green']");
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.look) !== "green", true, "not put on by the tap");
+  await page.click(".mc-look[data-id='headliner']"); await page.waitForSelector(".mt");
+  assert.match(await page.innerText(".mt-acts"), /HEADLINE A SHOW TO EARN IT/);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "headliner", "trying it on shows the app in it");
+  await page.click("#mt-not");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "headliner", "closing puts your own look back");
+  await page.click(".mc-look[data-id='green']"); await page.waitForSelector("#mt-buy");
+  await page.click("#mt-buy");
+  await page.waitForFunction(() => document.documentElement.dataset.look === "green");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme === "green");
 });

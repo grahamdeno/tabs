@@ -1,5 +1,5 @@
 // Tabs Settings and Recently deleted screens.
-import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, raw } from "./core.js";
+import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
@@ -67,10 +67,13 @@ function renderSettings() {
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("moon")}</span><span class="name">Theme</span>
-        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"], ["green", "Green"], ["headliner", "Headliner"]].map(([k, n]) => `<button data-t="${k}" class="${(["dark", "light", "green", "headliner"].includes(s.theme) ? s.theme : "auto") === k ? "on" : ""}" aria-pressed="${(["dark", "light", "green", "headliner"].includes(s.theme) ? s.theme : "auto") === k}">${n}</button>`).join("")}</div>
+        <div class="seg mini" id="s-theme" role="group" aria-label="Theme">${(() => { const own = looksOwned(data), on = own.has(s.theme) ? s.theme : "auto";
+          return [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"], ["green", "Green"], ["headliner", "Headliner"]].map(([k, n]) => own.has(k)
+            ? `<button data-t="${k}" class="${on === k ? "on" : ""}" aria-pressed="${on === k}">${n}</button>`
+            : `<button data-t="${k}" class="locked" aria-label="${n}, at the Merch table">${icon("lock")}${n}</button>`).join(""); })()}</div>
       </div>
     </div>
-    <p class="foot">Light is Festival Poster, Dark is Neon Midnight, Green is Green Room, and Headliner is black and gold under a blacklight. Auto follows your phone between Light and Dark.</p>
+    <p class="foot">Light is Festival Poster and Dark is Neon Midnight. Green Room is at the Merch table for tips, and Headliner, black and gold under a blacklight, is yours once you headline a show. Auto follows your phone between Light and Dark.</p>
     <p class="foot">On a phone held upright, the whole bar shows while a song is paused. Press Play and it folds into Play's corner; pause and it comes back. At the top of a paused song, pull down to go back.</p>`],
     newsongs: ["New songs", `
     <div class="set-group glass">
@@ -187,7 +190,7 @@ function renderSettings() {
   } else {
     // The main menu: one row per page, each showing where it stands.
     const city = s.place?.name?.split(",")[0];
-    const theme = { dark: "Dark", light: "Light", green: "Green Room", headliner: "Headliner" }[s.theme] || "Auto";
+    const theme = looksOwned(data).has(s.theme) && { dark: "Dark", light: "Light", green: "Green Room", headliner: "Headliner" }[s.theme] || "Auto";
     const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
     app.innerHTML = head("Settings", "Back") + `
@@ -261,7 +264,10 @@ function renderSettings() {
   $("s-city")?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); findCity(); } });
   $("s-cityremove")?.addEventListener("click", () => { delete s.place; Tabs.save(data); renderSettings(); toast("Weather off"); });
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
-  app.querySelectorAll("#s-theme [data-t]").forEach(b => b.onclick = () => { s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
+  app.querySelectorAll("#s-theme [data-t]").forEach(b => b.onclick = () => {
+    /* 4.78.0: a look you don't have opens it on the Merch table */
+    if (b.classList.contains("locked")) { toast(b.dataset.t === "headliner" ? "Headline a show to earn Headliner" : "Green Room is at the Merch table"); return go("#/merch"); }
+    s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {
     const k = $("s-key").value.trim();
     if (!k) { toast("Paste a key first"); return; }

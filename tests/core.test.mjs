@@ -2470,3 +2470,28 @@ test("4.76.0 merch boxes: a reached box stays shut as the next stop until opened
   assert.equal(C.roadPath(d).legs[0].stops[3].state, "done");
   assert.deepEqual(C.cleanBoxes({ opened: ["b:open-3", "b:open-3", "x", 5] }), { opened: ["b:open-3"] });
 });
+
+test("4.78.0 looks on the Merch table: Light and Dark free, Green Room bought, Headliner earned by headlining", () => {
+  const now = Date.now();
+  const lessons = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map(c => [`c:${c}`, { n: 3, best: 90, at: now }]));
+  const data = { songs: [], sets: [], trash: [], settings: { theme: "auto" }, skills: { done: { ...lessons } } };
+  assert.deepEqual([...C.looksOwned(data)].sort(), ["auto", "dark", "light"], "a new player has Auto, Light and Dark");
+  assert.deepEqual(C.merchBuy(data, "headliner", now), { why: "earn" }, "Headliner can't be bought");
+  assert.deepEqual(C.merchBuy(data, "green", now), { why: "tips" });
+  data.merch.tips = 400;
+  assert.deepEqual(C.merchBuy(data, "green", now), { ok: true });
+  assert.equal(data.settings.theme, "green", "buying a look puts it on");
+  assert.equal(C.merchState(data, now).look, "green");
+  assert.equal(C.looksOwned(data).has("headliner"), false, "lessons alone don't earn it");
+  data.skills.done["k:open"] = { n: 3, best: 90, at: now };
+  assert.equal(C.headlined(data, now), true);
+  assert.equal(C.looksOwned(data).has("headliner"), true, "the first headline show earns it");
+  assert.equal(C.merchWear(data, "headliner"), true);
+  assert.equal(data.settings.theme, "headliner");
+  assert.equal(C.merchTip({ songs: [], sets: [], trash: [], settings: {}, merch: { tips: 5000, tconv: 1, lconv: 1, told: ["tweed", "black", "mint", "gold", "brick", "stars", "sunset"] } })?.id, "green", "Show complete can point to Green Room, never to Headliner");
+  /* a look already in use before 4.78.0 stays yours, once */
+  const old = { songs: [], sets: [], trash: [], settings: { theme: "headliner" } };
+  assert.equal(C.looksOwned(old).has("headliner"), true, "kept");
+  assert.deepEqual(old.merch.has, ["headliner"]);
+  assert.deepEqual(C.cleanMerch({ has: ["green", "nope"], lconv: 1, hlseen: 1 }), { has: ["green"], lconv: 1, hlseen: 1 });
+});

@@ -6,8 +6,8 @@
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
 import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn } from "./core.js";
-import { app, esc, layer, toast } from "./ui.js";
-import { data, go } from "./app.js";
+import { app, esc, icon, layer, toast } from "./ui.js";
+import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
 
 const n = x => x.toLocaleString("en-US");
@@ -32,9 +32,19 @@ export function applyWear() {
   const w = merchWorn(data);
   if (w === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = w;
 }
+/* 4.78.0: the looks, as a strip of each palette's colours: ground first */
+const SWATCH = {
+  festival: ["#EAF3FF", "#FF3D7F", "#3A86FF", "#FFD23F"],
+  neon: ["#1D1640", "#B8F34A", "#FF4FA3", "#3DE0FF"],
+  green: ["#E6EFE7", "#FF5A4E", "#0F8B8D", "#F2B705"],
+  headliner: ["#16171B", "#9B5CFF", "#F5C542", "#FF7A1A"]
+};
+const swatch = (id, cls = "mc-sw") => `<span class="${cls}" aria-hidden="true">${(SWATCH[id] || []).map(c => `<i style="background:${c}"></i>`).join("")}</span>`;
 const lou = (id, size, mood = "happy", pose) => `<span class="fin fin-${id}">${louie(mood, { size, pose })}</span>`;
 const price = (it, st) => `<span class="mc-price${st.tips < it.price ? " short" : ""}">$${n(it.price)}</span>`;
 const tag = (it, st) => it.kind === "gear" ? price(it, st)
+  : it.kind === "look" ? st.look === it.id ? `<span class="mc-on">ON</span>` : st.has.has(it.id) ? `<span class="mc-on own">${it.price || it.earn ? "YOURS" : "FREE"}</span>`
+    : it.earn ? `<span class="mc-on earn">${icon("lock")}EARN IT</span>` : price(it, st)
   : (it.kind === "louie" ? st.louie : st.backdrop) === it.id ? `<span class="mc-on">ON</span>`
   : !it.price && it.id !== "stock" && it.id !== "basement" ? `<span class="mc-on own">FREE</span>`
   : st.has.has(it.id) ? `<span class="mc-on own">YOURS</span>` : price(it, st);
@@ -45,6 +55,7 @@ export function renderMerch() {
   const gear = it => `<button class="mc-gear" data-id="${it.id}" aria-label="${esc(it.name)}: ${esc(it.line)}. ${it.price} dollars${st.own[it.id] ? `. You have ${st.own[it.id]}` : ""}">
       ${st.own[it.id] ? `<span class="mc-have">x${st.own[it.id]}</span>` : ""}${GEAR[it.id]}<b>${esc(it.name)}</b><small>${esc(it.line)}</small>${tag(it, st)}</button>`;
   const fin = it => `<button class="mc-fin${st.louie === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} Louie">${lou(it.id, 54)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
+  const look = it => `<button class="mc-look${st.look === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} look">${swatch(it.id)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const drop = it => `<button class="mc-drop${st.backdrop === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} backdrop">${artSVG(it.id, "mc-art")}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   app.innerHTML = `<div class="mc">
     <div class="mc-head"><button class="mc-back" id="mc-back" aria-label="Back">&lsaquo;</button><h1>Merch table</h1><span class="mc-fans" aria-label="${n(st.tips)} dollars in tips to spend">$${n(st.tips)}</span></div>
@@ -60,6 +71,8 @@ export function renderMerch() {
     <div class="mc-row scroll">${of("louie").map(fin).join("")}</div>
     <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
+    <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
+    <div class="mc-row scroll">${of("look").map(look).join("")}</div>
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
   document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/");
@@ -71,13 +84,17 @@ function tryOn(id) {
   const it = MERCH.find(x => x.id === id);
   if (!it) return;
   const st = merchState(data), kin = MERCH.filter(x => x.kind === it.kind), i = kin.indexOf(it);
-  const worn = it.kind === "louie" ? st.louie : it.kind === "backdrop" ? st.backdrop : null;
+  const worn = it.kind === "louie" ? st.louie : it.kind === "backdrop" ? st.backdrop : it.kind === "look" ? st.look : null;
+  /* 4.78.0: trying on a look shows the whole app in it until you close */
+  if (it.kind === "look") { document.documentElement.dataset.look = it.id; document.documentElement.dataset.theme = it.theme === "light" || it.theme === "green" ? "light" : "dark"; }
   const have = it.kind !== "gear" && st.has.has(it.id), full = it.kind === "gear" && st.own[it.id] + (it.adds || 1) > it.max;
   const short = it.price - st.tips;
   const stage = it.kind === "louie" ? lou(it.id, 190, "cheer", "wave")
     : it.kind === "backdrop" ? lou(st.louie, 150, "happy", "hornsUp")
+    : it.kind === "look" ? `<div class="mt-look">${lou(st.louie, 150, "cheer", "hornsUp")}${swatch(it.id, "mt-sw")}</div>`
     : `<div class="mt-gear">${GEAR[it.id]}</div>`;
-  const act = it.kind !== "gear" && have
+  const act = it.earn && !have ? `<button class="btn" disabled>HEADLINE A SHOW TO EARN IT</button>`
+    : it.kind !== "gear" && have
     ? worn === it.id ? `<button class="btn" disabled>ON NOW</button>` : `<button class="btn primary" id="mt-wear">PUT IT ON</button>`
     : full ? `<button class="btn" disabled>YOU HAVE THE MOST YOU CAN HOLD</button>`
     : short > 0 ? `<button class="btn" disabled>$${n(short)} MORE IN TIPS TO GO</button>`
@@ -85,22 +102,22 @@ function tryOn(id) {
   layer.innerHTML = `<div class="mt" role="dialog" aria-label="${esc(it.name)}">
     <div class="mt-stage" data-kind="${it.kind}">${artSVG(it.kind === "backdrop" ? it.id : st.backdrop === "basement" ? "stars" : st.backdrop, "mt-art")}
       <div class="mt-top"><button class="mt-x" id="mt-x" aria-label="Close">&times;</button><span class="mc-fans">$${n(st.tips)}</span></div>
-      <div class="mt-name"><small>${it.kind === "gear" ? "GEAR" : "TRY IT ON"}</small><b>${esc(it.name)}</b></div>
+      <div class="mt-name"><small>${it.kind === "gear" ? "GEAR" : it.kind === "look" ? "TRY THE LOOK" : "TRY IT ON"}</small><b>${esc(it.name)}</b></div>
       <div class="mt-show">${kin.length > 1 ? `<button class="mt-arr" id="mt-prev" aria-label="Previous">&lsaquo;</button>` : ""}<div class="mt-it">${stage}</div>${kin.length > 1 ? `<button class="mt-arr" id="mt-next" aria-label="Next">&rsaquo;</button>` : ""}</div>
       <div class="mt-dots" aria-hidden="true">${kin.map((x, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div>
     </div>
     <div class="mt-sheet">
       <h2>${esc(it.kind === "louie" ? `${it.name} Louie` : it.name)}</h2>
-      <p>${esc(it.line)}${it.kind === "louie" ? " He wears it on the Road, in every gig and on Show complete, in all three looks." : it.kind === "backdrop" ? " It hangs behind the top of every gig." : ""}${it.kind === "gear" && st.own[it.id] ? ` You have ${st.own[it.id]}.` : ""}</p>
+      <p>${esc(it.line)}${it.kind === "louie" ? " He wears it on the Road, in every gig and on Show complete, in every look." : it.kind === "backdrop" ? " It hangs behind the top of every gig." : it.earn ? have ? " You earned it by headlining." : " It can't be bought: headline a show at the end of a leg and it's yours." : it.kind === "look" ? " The whole app wears it." : ""}${it.kind === "gear" && st.own[it.id] ? ` You have ${st.own[it.id]}.` : ""}</p>
       ${it.price && !have ? `<div class="mt-tiles"><div><small>COSTS</small><b>$${n(it.price)}</b></div><div><small>YOU'LL HAVE</small><b>$${n(Math.max(0, st.tips - it.price))}</b></div></div>` : ""}
       <div class="mt-acts">${act}<button class="mt-not" id="mt-not">Not now</button></div>
     </div></div>`;
-  const close = () => { layer.innerHTML = ""; };
+  const close = () => { layer.innerHTML = ""; if (it.kind === "look") applyTheme(); };
   const $ = x => document.getElementById(x);
   $("mt-x").onclick = close; $("mt-not").onclick = close;
   $("mt-prev")?.addEventListener("click", () => tryOn(kin[(i - 1 + kin.length) % kin.length].id));
   $("mt-next")?.addEventListener("click", () => tryOn(kin[(i + 1) % kin.length].id));
-  $("mt-wear")?.addEventListener("click", () => { merchWear(data, it.id); Tabs.save(data); applyWear(); close(); renderMerch(); toast(it.kind === "louie" ? `Louie's in ${it.name} now` : `${it.name} is up behind your gigs`); });
+  $("mt-wear")?.addEventListener("click", () => { merchWear(data, it.id); Tabs.save(data); applyWear(); close(); renderMerch(); toast(it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is on` : `${it.name} is up behind your gigs`); });
   $("mt-buy")?.addEventListener("click", () => {
     const r = merchBuy(data, it.id);
     if (!r.ok) return toast(r.why === "tips" ? "Not enough tips yet" : "You can't hold any more");
@@ -108,6 +125,6 @@ function tryOn(id) {
     toast(it.id === "rain" ? "Rain check in your pocket. It's used on its own if you miss a night."
       : it.id === "double" ? "Double set: your next 3 scored gigs earn 2x XP"
       : it.id === "take" ? "Second take ready. Use it on Charts when a rival battle goes the wrong way."
-      : it.kind === "louie" ? `Louie's in ${it.name} now` : `${it.name} is up behind your gigs`);
+      : it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is yours, and it's on` : `${it.name} is up behind your gigs`);
   });
 }

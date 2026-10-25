@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk } from "./core.js";
+import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -43,7 +43,7 @@ const phoneLight = () => !!window.matchMedia?.("(prefers-color-scheme: light)").
 window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (data.settings.theme === "auto" || !data.settings.theme) applyTheme(); });
 function applyTheme() {
   sysText = readSysText();
-  const t = data.settings.theme;
+  const t0 = data.settings.theme, t = looksOwned(data).has(t0) ? t0 : "auto"; /* 4.78.0: a look you don't have yet is Auto */
   const green = t === "green", head = t === "headliner", light = green || t === "light" || (t !== "dark" && !head && phoneLight());
   document.documentElement.dataset.theme = light ? "light" : "dark";
   /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
