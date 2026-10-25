@@ -16,7 +16,9 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 - D4. Tips: yes. Fans fade when you neither practice nor play (rate in Step 5).
 - D5. Not the Shortcut: getting songs in has to happen inside the app. Step 6 is open, see below.
 - D6. Weather: both ideas yes; mockups first.
-- Open: the merch table sells backdrops (Brick wall, Starlight, Sunset fest) and the show no longer shows one.
+- D7. Backdrops move to the Show complete sheet: the one you wear is the banner behind Louie and the band, with Change.
+- D8. Getting songs in, inside the app: search finds the song on Apple Music and links to the chords for your level; coming back, The Road offers Paste at once and confirms what it added. Also Scan a page (camera) and Sing it (redesigned). Then the AI song tools come out. Timed scrolling to the recording stays.
+- D9. Weather: Tune up first on the song page only (the venue ideas are out).
 
 ## The Gig's capabilities, where each goes
 
@@ -75,21 +77,24 @@ Step 1 can start. Steps 5 and 6 wait on the open questions, Step 7 on the mockup
 - Merch costs tips. Unspent fans today convert to tips once, so nothing bought or saved is lost.
 - XP stays behind the weekly chart only.
 
-### Step 6 [Opus] 4.71.0: getting songs in, inside the app (open)
-- No licensed public API gives chords for popular songs: Songsterr's public endpoints give search and links
-  to its player, Hooktheory gives progression statistics, not a song's chords.
-- Proposed: Hear it in. Play the recording out loud once; the phone listens (the chord hearing Chord Catch
-  already does), picks among the chart's chords bar by bar, and times each change against LRCLIB's timed
-  words, so each chord lands on the word sung when it changes. Edit to fix the odd miss.
-- Then remove AI Line up; the AI chart stays only to say which chords to listen for.
+### Step 6 [Opus] 4.71.0: adding a song without the AI (D8)
+- Search: the Apple Music match, a level choice (Beginner, Intermediate, Advanced) and Get the chords, which
+  opens the chord site's search for that song in Safari. The Road can't read the site to pick the top-rated
+  chart itself (that needs the AI or reading the site, both out), so the link lands on the site's results.
+- Coming back: if the last thing you did was Get the chords, a sheet offers Paste right away (iOS asks once
+  more, its own Paste button), tidies the sheet, adds the song and says what it added.
+- Scan a page (camera) stays. Sing it gets a design pass (mockups first).
+- Remove: the AI chord chart, Get the song's lining, Line up from the chord sites, Clean up's AI. LRCLIB stays
+  for timing the page to the recording.
 
-### Step 7 [Sonnet] 4.72.0: the weather (D6, after mockups)
-- Tonight's venue follows your weather: a clear evening is an open-air show, rain moves it indoors to a club.
-  A big swing in humidity or temperature since your last play says to tune up first.
+### Step 7 [Sonnet] 4.72.0: Tune up first (D9)
+- On the song page, when humidity or temperature has swung a lot since your last play: Louie, the two
+  changes, Not now and Tune up (opens the tuner). Once a day at most.
 
 ### Step 8 [Opus] 4.73.0: accessibility and v3 leftovers
 - axe and a manual check on every page and every sheet in all three palettes; fix what fails (first known:
-  the faint bullet text in the search tip).
+  the faint bullet text in the search tip; on Show complete the New chord card covers the title and a band
+  member covers the Crowd tile).
 - Find and remove controls left from version 3 (a navigation button Graham has seen).
 
 ## Surprises
