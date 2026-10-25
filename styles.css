@@ -4253,3 +4253,13 @@ body.playing .tuneup { display: none; }
 .rd-hl h2 { font: 700 26px var(--display); margin: 0 0 6px; }
 .rd-hl p { color: var(--fg-2); margin: 0 0 16px; }
 .rd-hl-acts { display: flex; flex-direction: column; gap: 8px; }
+/* 4.78.3: the chord you tap shows on a solid light tile in every look, like Waiting for a chord. Over an album
+   cover the card took the cover's see-through tint and its lines the look's white, so the shape was hard to read. */
+:root .shapecard, :root[data-look] .shapecard { background: #F3F1FF; box-shadow: 0 4px 0 rgba(0,0,0,.25), 0 10px 28px rgba(0,0,0,.35); -webkit-backdrop-filter: none; backdrop-filter: none;
+  --fg: #1C1A3A; --fg-2: #3A3760; --muted: #5E5A80; }
+:root .shapecard .sc-top b, :root[data-look] .shapecard .sc-top b { color: #1C1A3A; }
+.shapecard .df { stroke-opacity: .5; stroke-width: 1; } .shapecard .ds { stroke-opacity: .75; stroke-width: 1; }
+.shapecard .sc-x { background: #1C1A3A; color: #fff; border: 0; }
+/* 4.78.3: over an album cover the chords take the accent itself; Headliner's accent is the deep violet made for
+   white button text, so its chords there use the light violet instead (5.9:1 on a dark red cover, not 3:1) */
+:root[data-look="headliner"] body.covered { --accent-ink: #B98CFF; }
