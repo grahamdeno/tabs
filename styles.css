@@ -4263,3 +4263,7 @@ body.playing .tuneup { display: none; }
 /* 4.78.3: over an album cover the chords take the accent itself; Headliner's accent is the deep violet made for
    white button text, so its chords there use the light violet instead (5.9:1 on a dark red cover, not 3:1) */
 :root[data-look="headliner"] body.covered { --accent-ink: #B98CFF; }
+/* 4.80.4: iPhone enlarges long runs of text on its own ("text autosizing"). On a song with chords inside the
+   words, the plain words of a long line grew while the words under a chord kept their size, so one line mixed
+   two sizes. The app sets its own text size (from the phone's text size setting), so this is off everywhere. */
+html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
