@@ -17,11 +17,12 @@
 // still plays; nothing is scored.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, followAhead, chordNotes, chromaOf, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, followAhead, chordNotes, chromaOf, noteHear, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, getMic, icon, sound, soundDeaf, onLeave } from "./ui.js";
 import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, followOn, follow, loopFactor, pxPerSecond, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw, READ_AT } from "./app.js";
 import { louie } from "./louie.js";
+import { hornNowHTML, targetNote, tpOkFor, tpOn, valvesHTML } from "./horn.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick, stageCatch, stageMiss, stageWait, chordTop } from "./stage.js";
 import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from "./opening.js";
@@ -76,7 +77,12 @@ async function listen(g) {
     if (now - last < 0.05 || !g.catch) return;
     last = now;
     let hit = -1;
-    if (rms > Math.max(0.004, floor * 3)) { sp.getFloatFrequencyData(spec); hit = catchHear(g.catch, chromaOf(spec, ctx.sampleRate, sp.fftSize), { ...CATCH_EAR, on: onN, since: now - onAt }); }
+    if (rms > Math.max(0.004, floor * 3)) {
+      sp.getFloatFrequencyData(spec);
+      const chroma = chromaOf(spec, ctx.sampleRate, sp.fftSize);
+      /* 4.81.0: on trumpet, the note you play against the part's note (or the chord's notes for a Melody) */
+      hit = g.horn ? noteHear(g.catch, chroma, i => tpOkFor(g.catch.targets[i], g.song), { on: onN, since: now - onAt }) : catchHear(g.catch, chroma, { ...CATCH_EAR, on: onN, since: now - onAt });
+    }
     else catchHear(g.catch, null);
     if (hit >= 0 && scoring(g)) caught(g, hit);
   }, 10);
@@ -147,6 +153,14 @@ function paintShape() {
   if (!g || !el || !g.catch) return;
   /* the chord you're on if you haven't caught it and haven't learned it, else the next one you haven't learned */
   const c = g.catch, now = c.targets[c.cur], next = c.targets[c.cur + 1];
+  /* 4.81.0: on trumpet the card always shows the note to play now (or next, once this one is caught) */
+  if (g.horn) {
+    const [t, label] = !c.caught[c.cur] ? [now, "NOW"] : [next, "NEXT"];
+    const h = t && hornNowHTML(t, label, g.song);
+    if (!h) { el.hidden = true; return; }
+    if (el.dataset.ch !== label + t.first) { el.dataset.ch = label + t.first; el.innerHTML = h; el.classList.add("tp-now"); }
+    el.hidden = false; return;
+  }
   const pick = [[now, "NOW"], [next, "NEXT"]].find(([t]) => t && !g.known.has(t.name) && !c.caught[c.targets.indexOf(t)] && chordSVG(t.name, 1));
   if (!pick) { el.hidden = true; return; }
   const [t, label] = pick;
@@ -224,9 +238,11 @@ function holdFrame(g, counting) {
     holdScroll(true, g.song);
     stageWait(t.first);
     const card = $("gg-wait");
-    card.innerHTML = `<span class="gw-t"><b>Waiting for ${esc(t.name)}</b><small>The song moves on when you play it.</small></span>${chordSVG(t.name, 1) ? `<span class="gw-s" role="img" aria-label="${esc(t.name)} chord shape">${chordSVG(t.name, 1)}</span>` : ""}`;
+    const tn = g.horn && targetNote(t);
+    card.innerHTML = tn ? `<span class="gw-t"><b>Waiting for ${esc(tn.name)}</b><small>The song moves on when you play it.</small></span><span class="gw-s">${valvesHTML(tn.m)}</span>`
+      : `<span class="gw-t"><b>Waiting for ${esc(t.name)}</b><small>The song moves on when you play it.</small></span>${chordSVG(t.name, 1) ? `<span class="gw-s" role="img" aria-label="${esc(t.name)} chord shape">${chordSVG(t.name, 1)}</span>` : ""}`;
     card.hidden = false; $("gg-skip").hidden = false; $("gg-shape").hidden = true;
-    $("gg-live").textContent = `Waiting for ${t.name}`;
+    $("gg-live").textContent = `Waiting for ${tn ? tn.name : t.name}`;
     paintScore();
   } else if (!want && g.holding) {
     g.holding = false;
@@ -337,7 +353,7 @@ export function openGig(song, opts = {}) {
   const audio = sound({ mic: true });
   const g = gig = {
     song, encore: !!opts.encore, from: opts.from || "song", score: gigStart(), catch: null, seqLen: 0, got: new Set(), miss: new Set(), b: -1, idx: -1, gel: "", mood: "", dragUntil: 0, missed: {}, landed: {},
-    audio, clock: () => g.audio ? g.audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false
+    audio, clock: () => g.audio ? g.audio.currentTime : performance.now() / 1000, stream: null, ended: false, paused: false, horn: tpOn()
   };
   /* 4.41.0: chords spread over the lines as a guess are never counted as misses, only as hits */
   g.guess = liningDue(song) === "guess";

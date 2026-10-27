@@ -89,6 +89,7 @@ Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it 
 ### Listening and sharing
 - Listen searches Apple Music's public catalog, plays previews and saves a recording with its album art and length.
 - Apple Music (optional, its own Settings row): with a subscription, Play can start the recording, and the page follows it line by line (synced lyrics times from LRCLIB) and chord by chord. Its 30-second preview gives the tempo, feel and key. Needs the token Worker (`worker/README.md`).
+- **Trumpet (4.81.0):** Louie asks once what you play (Settings > Playing > Instrument changes it, with how long you've played). On trumpet every song is written for a B♭ trumpet: the chords read a whole step up, each chord carries the note to play, and the chord row is the notes with their valves. Your part is Long notes (one held note a chord, moving as little as it can and keeping off sharps and flats where it can), Hits (the same notes as short punches on 2 and 4) or Melody (the tune, once it is found). Parts stay in your range (Starting: C to C, 2 years: C to the top-line F, 4+ years: G to B flat). A recording in a key too hard for how long you've played says so once, with Long notes, Play together with a guitar (a capo that puts you in an easy key, for that song until you leave it) or try it anyway. The Gig hears the note you play against the part's note (any chord tone for a Melody), with the note and its valves in the corner. Find the tune by ear opens Sing it on the song: play (or sing) the tune, it splits at your breaths, each line takes the song's words and shows the notes with their valves, and Use as Melody part keeps it; the first tune found for a song gives 25 fans. Sing it on trumpet listens to Voice or Trumpet. Guitar shapes, Make it easier and Spark tone are hidden on trumpet.
 - Share a song or set as a link (the song travels inside it). Play together (4.29.0, clap to start): pick your part when the song has a sung melody (Chords, or Melody: the words with the notes you sang), Send song shares it to your friend, then both phones Listen for clap and one clap in the room starts the one-bar count-in on both. No server and no start time. A link opens the song and Play together on your friend's phone (an older link with a start time opens the same way).
 
 ### Help and settings
@@ -173,6 +174,7 @@ Open `index.html` through any static server (ES modules need http). Plain ES mod
 | `aitools.js` | Make it easier, Spark tone |
 | `tuner.js`, `heads.js` | Tuner and headstock drawings |
 | `sketch.js`, `strum.js` | Sing it, Strum it (`strum.js` loads `vendor/basic-pitch/`) |
+| `horn.js` | Trumpet (4.81.0): the song page on trumpet, Louie's question, the hard-key sheet, the Gig's note card (numbers in `core/trumpet.js`) |
 | `german.js` | Language practice (German, Spanish or Russian) |
 | `crop.js` | Cover photo framing |
 | `road.js`, `hud.js` | The Road (home): the path, Louie and the Songbook bar; the stat bar, tab bar and More sheet |

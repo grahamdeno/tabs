@@ -146,7 +146,7 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
   const backup = {
     songs: [{ id: "x", title: "Backup Song", body: "[Verse]\nG\nhello", format: "chords" }, { id: "y", title: "Broken" }],
     sets: [{ id: "s9", name: "Saturday", songIds: ["x"], cover: { type: "photo", tint: "#553322" } }],
-    trash: [], settings: { v: 5, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
+    trash: [], settings: { instrument: "guitar", v: 5, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" },
     covers: { s9: png }
   };
   await page.goto(base + "#/settings/library");

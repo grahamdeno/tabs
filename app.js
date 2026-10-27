@@ -12,6 +12,7 @@ import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, re
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, BEATS, beatAt, beatMode, beatName, setBeat, beatTrack, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
 import { stagePlay, stageStop, stageOpen, stageBeat, coverOn, coverOff } from "./stage.js";
+import { askInstrument, hornOpen, hornSteps, hornStrip, paintHorn, tpOn } from "./horn.js";
 
 
 // ---------- State ----------
@@ -261,6 +262,8 @@ function renderViewer(id) {
     const capo = easy ? easy.capo || 0 : 0;
     const baseKey = isChords ? (song.key || guessKey(song.body || "")) : "";
     const key = transposeKey(baseKey, steps); // the key it sounds in
+    /* 4.81.0: on trumpet the page reads a whole step up (and up by a guitar's capo playing along) */
+    const horn = isChords ? hornSteps(song) : 0;
     const capoTxt = capo ? `Capo <b>${capo}</b>` : "";
     const best = data.gig?.best?.[song.id];
     $("meta").innerHTML = [
@@ -269,7 +272,7 @@ function renderViewer(id) {
       capoTxt && `<span>${capoTxt}</span>`,
       !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>') + `<span class="sh-ab">about this song${icon("chev")}</span>`;
-    $("csub").innerHTML = [song.artist && esc(song.artist), key && `Key <b>${esc(key)}</b>`, capoTxt, !isChords && "Tab"]
+    $("csub").innerHTML = [song.artist && esc(song.artist), key && (horn ? `Trumpet in <b>${esc(transposeKey(key, horn))}</b>` : `Key <b>${esc(key)}</b>`), capoTxt, !isChords && "Tab"]
       .filter(Boolean).join(" · ");
     SUBS = easy ? easy.subs || {} : {};
     const sheet = $("sheet");
@@ -279,12 +282,14 @@ function renderViewer(id) {
     // A chart's own capo, taken off: the shapes go up to the key it sounds in.
     const off = isChords && song.capoOff ? bodyCapo(song.body) : 0;
     const body = off ? (song.body || "").replace(/\[?capo\s*(\d{1,2})\]?/i, "No capo (Capo $1 taken off)") : song.body || "";
-    let blocks = parseBlocks(body, isChords ? steps - capo + off : 0, isChords && prefersFlats(baseKey, steps - capo));
+    const flats = isChords && prefersFlats(baseKey, steps - capo + horn);
+    let blocks = parseBlocks(body, isChords ? steps - capo + off + horn : 0, flats);
     /* German practice: only while the translation matches the words on screen. */
     const lvl = song.deLevel || 0, fresh = deLangOk(song, data) && song.de.src === deSource(sungText(blocks));
     if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true, translit: langOf(data) === "ru" && data.settings.deTranslit !== false });
     paintDeChip(song, fresh, lvl);
     renderBlocks(sheet, blocks);
+    if (horn) paintHorn(sheet, song, flats);
     if (isChords) fitText(sheet, song);
     renderStrip(sheet, isChords, song);
     layoutDiagrams(sheet, isChords);
@@ -297,7 +302,9 @@ function renderViewer(id) {
   paintLoop(song);
   setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
-  else setTimeout(() => { if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
+  /* 4.81.0: Louie asks once what you play; on trumpet, a recording in a hard key says so once */
+  else if (data.settings.instrument == null && !openingOn(data)) setTimeout(() => { if (viewing === song && !layer.innerHTML.trim()) askInstrument(() => { if (viewing === song) hornOpen(song); }); }, 600);
+  else setTimeout(() => { if (viewing === song && tpOn() && !layer.innerHTML.trim() && hornOpen(song)) return; if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
   /* 4.41.0: a song whose chords were guessed is lined up from the chord sites, once, in the background */
   if (aiKey() && liningDue(song)) setTimeout(() => { if (viewing === song) lazy("findai.js").then(m => m.relineSong(song)); }, 1500);
 
@@ -1173,7 +1180,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
       { id: "prac", icon: "loop", label: "Practice mode", sub: practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through", on: practicing(song), prac: true },
       { id: "loop", icon: "loop", label: "Practice a section", sub: "Pick the part to loop", go: true },
-      chords && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", sub: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "Simpler chords, or a capo", ...(aiKey() ? { go: true } : { on: !!ez?.on }) },
+      chords && !tpOn() && (aiKey() || ez) && { id: "easy", icon: "wand", label: "Make it easier", sub: ez ? (ez.on ? `On${ez.capo ? ` · Capo ${ez.capo}` : ""}` : "Off") : "Simpler chords, or a capo", ...(aiKey() ? { go: true } : { on: !!ez?.on }) },
       capo && { id: "capo", icon: "fretboard", label: "Capo", sub: song.capoOff ? `Off: the sheet says capo ${capo}` : `On: capo ${capo}`, on: !song.capoOff },
       { id: "tuner", icon: "fork", label: "Tuner", sub: TUNINGS[songTuning(song)].name, go: true },
       { id: "duet", icon: "pick", label: "Play together", sub: "One clap starts two phones", go: true }
@@ -1184,7 +1191,7 @@ function songMenu(song, anchor, redrawSong) {
       { id: "share", icon: "share", label: "Share", sub: "Send the song as a link", go: true },
       chords && (aiKey() || song.de) && (langChosen(data) ? { id: "de", icon: "chat", label: LANGS[langOf(data)].name, sub: deHint.get(song.id) || `Practice the words in ${LANGS[langOf(data)].name}`, go: true }
         : { id: "de", icon: "chat", label: "Learn a language", sub: "German, Spanish or Russian", go: true }),
-      (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", sub: song.tone ? "Saved" : "A tone for your amp", go: true },
+      !tpOn() && (aiKey() || song.tone) && { id: "tone", icon: "amp", label: "Spark tone", sub: song.tone ? "Saved" : "A tone for your amp", go: true },
       song.ai === "chart" && !firstLyric(song.body) && { id: "words", icon: "edit", label: "Add the words", sub: "From LRCLIB", go: true }
     ] }
   ].filter(Boolean).map(t => ({ ...t, rows: t.rows.filter(Boolean) }));
@@ -1427,6 +1434,7 @@ function closeTuner() { tunerMod?.closeTuner(); }
 function renderStrip(sheet, isChords, song) {
   const box = $("strip");
   if (!box) return;
+  if (isChords && tpOn()) { hornStrip(box, sheet, song); return; } /* 4.81.0: the notes, not guitar shapes */
   const names = isChords ? [...new Set([...sheet.querySelectorAll(".c[data-ch]")].map(el => el.dataset.ch))] : [];
   const easyBtn = `<span class="n">${names.length}</span>`;
   /* A chord you haven't learned yet is marked NEW, once you know a few (4.2.0). */
@@ -1520,7 +1528,7 @@ function clearSel() {
 function showChordPop(target) {
   document.querySelector(".shapecard")?.remove();
   clearSel();
-  if (!target) return;
+  if (!target || tpOn()) return; /* a guitar shape means nothing on trumpet */
   const name = target.dataset.ch || target.dataset.name;
   if (!name) return;
   document.querySelectorAll(".strip .scard").forEach(c => c.classList.toggle("sel", c.dataset.name === name));

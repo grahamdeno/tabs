@@ -1,11 +1,12 @@
 // Tabs sharing : song and set links, opening a
 // shared link, and Play together. The song or set rides inside the
 // link, so it works without a server or an account.
-import { Tabs, VERSION, findSame, packShare, shareable, strumDetector, unpackShare } from "./core.js";
+import { Tabs, VERSION, capoFor, findSame, keyLoad, packShare, shareable, strumDetector, tpKey, tpPretty, TP_PARTS, unpackShare } from "./core.js";
+import { hasMelody as hornMelody, hornCapo, hornPart, setHornCapo, soundKey, tpOn } from "./horn.js";
 import { louie } from "./louie.js";
 import { $, esc, getMic, icon, layer, onLeave, showToCopy, sound, toast } from "./ui.js";
 import { setSongs } from "./sets.js";
-import { data, go, render, scroll, songLength, startScroll, stopScroll, viewing } from "./app.js";
+import { data, go, redraw, render, scroll, songLength, startScroll, stopScroll, viewing } from "./app.js";
 
 // ---------- Share ----------
 // The song or set rides inside the link, so it works without a server or an account.
@@ -37,24 +38,37 @@ const hasMelody = song => !!song.sketch?.lines?.some(l => l?.n?.length);
 function duetSheet(song) {
   if (scroll.on) stopScroll();
   duetCancel();
-  const parts = PARTS.filter(([k]) => k !== "melody" || hasMelody(song));
-  if (!parts.some(([k]) => k === duetPart)) duetPart = "chords";
+  /* 4.81.0: on trumpet the parts are Long notes, Hits and Melody, and a guitar playing along can put a capo on */
+  const horn = tpOn();
+  const parts = horn ? TP_PARTS.filter(([k]) => k !== "melody" || hornMelody(song)) : PARTS.filter(([k]) => k !== "melody" || hasMelody(song));
+  if (horn) duetPart = hornPart(song);
+  else if (!parts.some(([k]) => k === duetPart)) duetPart = "chords";
+  const key = horn ? soundKey(song) : "", cap = key ? capoFor(key) : 0;
   layer.innerHTML = `<div class="scrim" id="pt-scrim"></div><div class="panel card pt" role="dialog" aria-label="Play together"><div class="grab" aria-hidden="true"></div>
     <div class="pt-head">${louie("happy", { pose: "wave", size: 60 })}<div><b>Play together</b><span>Two phones, one song, one start</span></div></div>
     ${parts.length > 1 ? `<div class="pt-cap" id="pt-parth">Your part</div>
     <div class="seg pt-parts" id="pt-part" role="group" aria-labelledby="pt-parth">${parts.map(([k, n]) => `<button data-part="${k}" class="${k === duetPart ? "on" : ""}" aria-pressed="${k === duetPart}">${n}</button>`).join("")}</div>
     <p class="pt-note" id="pt-pnote"></p>` : ""}
+    ${cap ? `<button class="pt-capo${hornCapo(song) ? " on" : ""}" id="pt-capo" aria-pressed="${!!hornCapo(song)}"><span><b>Guitar on capo ${cap}</b><small>You read in ${esc(tpPretty(tpKey(key, cap)))}${keyLoad(tpKey(key, cap)) ? "" : ", no sharps or flats"}, not ${esc(tpPretty(tpKey(key)))}. Same chord shapes on the guitar</small></span><i aria-hidden="true"></i></button>` : ""}
     <div class="pt-cap">Start</div>
     <div class="pt-start" id="pt-start"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" class="pt-halo"/><path d="M13 22c0-5 3-9 7-9s7 4 7 9M8 14l3 2M32 14l-3 2M20 6v4"/></svg><span id="pt-say" role="status">Both phones listen. One clap, and both count in together.</span></div>
     <div class="pt-btns"><button class="btn" id="pt-send">${icon("share")}Send song</button><button class="btn primary" id="pt-listen">Listen for clap</button></div></div>`;
-  const note = () => { if ($("pt-pnote")) $("pt-pnote").textContent = duetPart === "melody" ? "The words with the melody notes you sang. Your friend picks theirs on their phone." : "Your friend picks theirs on their phone."; };
+  const note = () => { if (horn && $("pt-pnote")) { $("pt-pnote").textContent = duetPart === "hits" ? "Short punches on beats 2 and 4. Your friend picks theirs on their phone." : duetPart === "melody" ? "The tune, note by note. Your friend picks theirs on their phone." : "One held note for each chord. Your friend picks theirs on their phone."; return; }
+    if ($("pt-pnote")) $("pt-pnote").textContent = duetPart === "melody" ? "The words with the melody notes you sang. Your friend picks theirs on their phone." : "Your friend picks theirs on their phone."; };
   note();
   const close = () => { duetCancel(); layer.innerHTML = ""; };
   $("pt-scrim").onclick = close;
   $("pt-part")?.querySelectorAll("[data-part]").forEach(b => b.onclick = () => {
     duetPart = b.dataset.part;
     $("pt-part").querySelectorAll("[data-part]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
+    if (horn) { data.settings.tpPart = duetPart; Tabs.save(data); redraw(); }
     note();
+  });
+  $("pt-capo")?.addEventListener("click", () => {
+    const on = !hornCapo(song);
+    setHornCapo(song, on ? cap : 0); redraw();
+    $("pt-capo").classList.toggle("on", on); $("pt-capo").setAttribute("aria-pressed", on);
+    toast(on ? `Capo ${cap} on the guitar: you read in ${tpPretty(tpKey(key, cap))}` : `No capo: you read in ${tpPretty(tpKey(key))}`);
   });
   /* the song, its tempo and length; no start time any more */
   $("pt-send").onclick = () => shareLink({ song: { ...shareable(song), duration: songLength(song), bpm: song.bpm || 90 }, duet: { bpm: song.bpm || 90 } }, `Play ${song.title} with me (The Road)`, $("pt-send"));
@@ -87,8 +101,8 @@ function duetSheet(song) {
       duetCancel(); layer.innerHTML = "";
       if (viewing !== song) return;
       window.scrollTo(0, 0);
-      startScroll(song, { duet: true, part: duetPart });
-      if (duetPart === "melody") paintMelody(song);
+      startScroll(song, { duet: true, part: horn ? "chords" : duetPart });
+      if (!horn && duetPart === "melody") paintMelody(song);
     }, 10);
   }
 }

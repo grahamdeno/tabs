@@ -2553,3 +2553,31 @@ test("4.78.0 looks on the Merch table: Light and Dark free, Green Room bought, H
   assert.deepEqual(old.merch.has, ["headliner"]);
   assert.deepEqual(C.cleanMerch({ has: ["green", "nope"], lconv: 1, hlseen: 1 }), { has: ["green"], lconv: 1, hlseen: 1 });
 });
+
+test("trumpet (4.81.0): written a whole step up, a part of chord tones, valves, hard keys, the capo, hearing a note", () => {
+  assert.equal(C.tpChord("G"), "A"); assert.equal(C.tpChord("F#m"), "G#m"); assert.equal(C.tpChord("G", 3), "C");
+  assert.equal(C.tpKey("G"), "A"); assert.equal(C.keyLoad("A"), 3); assert.equal(C.keyLoad("B"), 5); assert.equal(C.keyLoad("Bb"), 2); assert.equal(C.keyLoad("F#m"), 3);
+  assert.equal(C.keyHard("G", "two"), false, "A: 3 sharps is fine after two years");
+  assert.equal(C.keyHard("A", "two"), true, "B: 5 sharps");
+  assert.equal(C.keyHard("G", "start"), true);
+  assert.equal(C.capoFor("G"), 3, "capo 3: B flat, so the trumpet reads in C");
+  assert.equal(C.capoFor("A"), 1); assert.equal(C.capoFor("F"), 0, "already easy");
+  assert.deepEqual(C.chordTones("Am7"), [9, 0, 4, 7]); assert.deepEqual(C.chordTones("Dsus4"), [2, 7, 9]); assert.deepEqual(C.chordTones("C/G"), [0, 4, 7]);
+  /* the example song: A D F#m E written; mostly one note */
+  const p = C.tpPart(["A", "D", "F#m", "E"], "two");
+  assert.deepEqual(p.map(x => x.name), ["A", "A", "A", "B"]);
+  assert.deepEqual(p.map(x => x.valves), ["12", "12", "12", "2"]);
+  assert.equal(C.partNotes(p).length, 2);
+  /* every note in range for a starting player */
+  for (const x of C.tpPart(["B", "E", "G#m", "F#", "C#m"], "start")) assert.ok(x.m >= 60 && x.m <= 72);
+  assert.equal(C.tpPart(["N.C.", "G"], "two")[0], null, "a chord it can't read gets no note");
+  assert.equal(C.valvesSay(69), "valves 1 and 2"); assert.equal(C.valvesSay(67), "open"); assert.equal(C.valvesSay(54), "valves 1, 2 and 3");
+  /* hearing: a note that sits on a target's note catches it, one target per attack */
+  const st = C.catchStart(C.catchTargets([{ name: "G" }, { name: "C" }]));
+  const chroma = pc => Array.from({ length: 12 }, (_, k) => k === pc ? 0.6 : 0.4 / 11);
+  const ok = i => [[7], [0]][i];
+  assert.equal(C.noteHear(st, chroma(2), ok, { on: 1, since: 0.1 }), -1, "D is neither note");
+  assert.equal(C.noteHear(st, chroma(7), ok, { on: 1, since: 0.1 }), 0);
+  assert.equal(C.noteHear(st, chroma(0), ok, { on: 1, since: 0.2 }), -1, "the same attack can't catch the next");
+  assert.equal(C.noteHear(st, chroma(0), ok, { on: 2, since: 0.05 }), 1);
+});

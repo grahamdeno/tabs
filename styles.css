@@ -4267,3 +4267,61 @@ body.playing .tuneup { display: none; }
    words, the plain words of a long line grew while the words under a chord kept their size, so one line mixed
    two sizes. The app sets its own text size (from the phone's text size setting), so this is off everywhere. */
 html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* ---------- Trumpet (4.81.0) ---------- */
+.tp-v { display: inline-flex; gap: 4px; align-items: center; justify-content: center; }
+.tp-v i { width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box; border: 2px solid var(--muted); }
+.tp-v i.on { background: var(--fg); border-color: var(--fg); }
+.tp-v.sm { gap: 2px; } .tp-v.sm i { width: 7px; height: 7px; border-width: 1.5px; }
+.sheet .c .tp-n { margin-left: .3em; padding: 0 .35em; border-radius: .5em; background: var(--card); box-shadow: inset 0 0 0 1.5px var(--rim); font-weight: 800; color: var(--fg); }
+.sheet .tp-mel { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tp-mn { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; min-width: 26px; padding: 3px 4px; border-radius: 8px; background: var(--card-2); }
+.tp-mn b { font: 700 14px var(--display); color: var(--fg); }
+.seg.tp-parts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 6px 0 0; }
+.seg.tp-parts.two, .seg.sk-mode.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.seg.tp-parts button { min-height: 44px; font: 700 15px var(--display); }
+.tp-say { margin: 6px 0 0; font: 700 13px var(--sans); color: var(--muted); line-height: 1.4; }
+.tp-say .linkbtn { font: inherit; color: var(--accent-ink); text-decoration: underline; padding: 0; min-height: 0; }
+.strip.tp-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; overflow: visible; }
+.scard.tp-card { width: auto; height: auto; min-height: 84px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.tp-card small { font: 800 11px var(--sans); color: var(--muted); text-align: center; }
+.tp-card b { font: 700 22px var(--display); color: var(--fg); }
+.btn.tp-ear { margin-top: 10px; width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.tp-ear svg { width: 18px; height: 18px; }
+.gg-shape.tp-now { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gg-shape.tp-now b { font: 700 34px/1 var(--display); color: var(--fg); }
+.gg-shape.tp-now small { font: 800 10px var(--sans); letter-spacing: .06em; color: var(--muted); }
+.gg-shape.tp-now .tp-v i { width: 13px; height: 13px; }
+.panel.inst .in-head, .panel.hk .hk-head { display: flex; gap: 12px; align-items: center; }
+.panel.inst .in-head p { margin: 0; font: 700 15px var(--sans); color: var(--fg); }
+.in-pick { margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.in-pick button { min-height: 96px; border-radius: 18px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 4px 0 var(--rim); }
+.in-pick button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-deep); }
+.in-pick b { font: 700 19px var(--display); }
+.in-pick small { font: 700 13px var(--sans); }
+.seg.in-lv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; }
+.seg.in-lv button { min-height: 44px; }
+.in-note { margin: 10px 0 0; font: 700 13px var(--sans); color: var(--muted); line-height: 1.4; }
+.btn.in-go { margin-top: 16px; width: 100%; min-height: 56px; font: 700 17px var(--display); letter-spacing: .03em; }
+.panel.hk h2 { margin: 0; font: 700 20px var(--display); color: var(--fg); }
+.panel.hk .hk-head span { font: 700 14px var(--sans); color: var(--muted); }
+.hk-acc { margin-top: 12px; display: flex; gap: 6px; }
+.hk-acc span { flex: 1; min-height: 38px; border-radius: 10px; background: var(--card-2); display: grid; place-items: center; font: 700 16px var(--display); color: var(--fg); }
+.hk-opt { margin-top: 10px; width: 100%; min-height: 68px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); text-align: left; box-shadow: 0 4px 0 var(--rim); }
+.hk-opt.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 5px 0 var(--accent-deep); }
+.hk-opt b { display: block; font: 700 17px var(--display); }
+.hk-opt small { font: 700 14px var(--sans); }
+.hk-opt svg { width: 26px; height: 26px; flex: none; }
+.linkbtn.hk-any { display: block; margin: 12px auto 0; min-height: 44px; font: 800 15px var(--sans); color: var(--fg-2); }
+.pt-capo { margin-top: 12px; width: 100%; min-height: 60px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 16px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); text-align: left; }
+.pt-capo b { display: block; font: 700 16px var(--display); }
+.pt-capo small { font: 700 13px var(--sans); color: var(--muted); }
+.pt-capo i { flex: none; width: 44px; height: 26px; border-radius: 13px; background: var(--rim); position: relative; }
+.pt-capo i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--card); transition: left .15s; }
+.pt-capo.on i { background: var(--accent); } .pt-capo.on i::after { left: 21px; }
+.skl-tp { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.skl-tpn { min-width: 30px; padding: 4px; border-radius: 8px; background: var(--card-2); display: inline-flex; flex-direction: column; align-items: center; color: var(--fg); }
+.skl-tpn b { font: 700 15px var(--display); }
+.skl-tpn small { font: 800 10px var(--sans); color: var(--fg-2); }
+.skl-tpn.out { outline: 2px dashed var(--accent); }
+.sk2 .sk-for { padding: 8px 12px; border-radius: 999px; border: 2px solid var(--rim); background: var(--card); font: 800 12px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--fg); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

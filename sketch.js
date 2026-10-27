@@ -5,7 +5,7 @@
 import { VERSION, detectPitch, melodyNotes, detectKey, harmonize, chordLine, chordWords, chordFit, keyConfidence, keyFamily, lineHint, packNotes, sungLines, unpackNotes, syllables, strumChords, riffNotes, cleanNotes, chordToneNotes, html, raw } from "./core.js";
 import { $, app, getMic, icon, layer, toast, onLeave, ask, sound } from "./ui.js";
 import { data, go, markUsed, showCallout, tick } from "./app.js";
-import { Tabs, splitTake, takeLines, lineOptions } from "./core.js";
+import { Tabs, splitTake, takeLines, lineOptions, isTrumpet, tpName, valvesOf, valvesSay, TRUMPET, EAR_FANS } from "./core.js";
 import { louie } from "./louie.js";
 import { noteError } from "./store.js";
 
@@ -16,8 +16,12 @@ const MAX_LINE = 180; /* seconds: a take stops itself (4.74.0: a whole idea, not
 // line offers You played / Melody fits. The choice is remembered.
 /* 4.74.0: Voice, Guitar and Both (the page itself is Sing it) */
 const MODES = [["sing", "Voice"], ["strum", "Guitar"], ["both", "Both"]];
-const mode = () => (MODES.some(m => m[0] === data.settings.sketchMode) ? data.settings.sketchMode : "sing");
-const hears = () => mode() !== "sing";
+/* 4.81.0: on trumpet, Voice and Trumpet: a trumpet plays one note at a time, so it is heard like a voice */
+const HORN_MODES = [["sing", "Voice"], ["horn", "Trumpet"]];
+const modes = () => isTrumpet(data) ? HORN_MODES : MODES;
+const mode = () => (modes().some(m => m[0] === data.settings.sketchMode) ? data.settings.sketchMode : isTrumpet(data) ? "horn" : "sing");
+const sings = () => mode() === "sing" || mode() === "horn";
+const hears = () => !sings();
 let ear = null; /* strum.js, once loaded */
 let earState = ""; /* "", "loading", "ready", "failed" */
 function loadEar() {
@@ -58,7 +62,7 @@ export function readPlaying(notes) {
 // you chose over the suggestion) }. `again` is a line being sung again.
 /* 4.74.0: a take is one recording, split into lines at your breaths: { notes, dur, cuts, blob, url }; each of its
    lines keeps { take, from, to }. view: "lines" or "song" (Your song); title and feel are for Your song. */
-const sk = { lines: [], rec: null, again: -1, editing: -1, take: null, view: "lines", title: "", feel: "folk" };
+const sk = { lines: [], rec: null, again: -1, editing: -1, take: null, view: "lines", title: "", feel: "folk", forId: "", forWords: [] };
 let mic = null; /* { stream, ctx, an, buf } once allowed */
 let ui = 0;     /* live redraw timer while singing */
 
@@ -148,12 +152,14 @@ function stopLine(how = "keep") {
   /* 4.74.0: a take with your voice is split into lines at your breaths; singing a line again, or a guitar take, stays one line */
   let made = [], take = null;
   if (keep) {
-    const split = !again && mode() === "sing" && notes.length > 1;
+    const split = !again && sings() && notes.length > 1;
     const cuts = split ? splitTake(notes, dur) : [];
     take = { notes, dur, cuts };
     made = takeLines(notes, dur, cuts).map(p => ({ words: "", notes: p.notes, dur: p.to - p.from, from: p.from, to: p.to, take, via: mode() }));
     if (again) { made[0].words = sk.lines[rec.i].words; sk.lines[rec.i] = made[0]; }
     else sk.lines.push(...made);
+    /* finding the tune of a song (4.81.0): each line takes the song's words in order */
+    if (sk.forId) sk.lines.forEach((l, k) => { if (!l.words && sk.forWords[k]) l.words = sk.forWords[k]; });
     if (cuts.length) sk.take = take;
     if (hears()) made.forEach(l => { l.hearing = true; });
   }
@@ -305,6 +311,7 @@ function lineHTML(l, i, key) {
     <div class="sknb-txt">${editing
       ? html`<input id="sk-words" data-i="${i}" class="sknb-in" value="${l.words}" placeholder="Say or type the words" autocapitalize="sentences" enterkeyhint="next" aria-label="Words for line ${i + 1}">`
       : html`<button class="sknb-line" data-edit="${i}" aria-label="Line ${i + 1}: ${l.words || "no words yet"}. Tap to change the words">${ws.length ? ws.map((w, k) => html`<span class="sknb-w">${over.has(k) && html`<b>${over.get(k)}</b>`}${w}</span> `) : html`<span class="sknb-none">${over.get(0) && html`<span class="sknb-w"><b>${over.get(0)}</b>&nbsp;</span>`}Tap to add the words</span>`}${extra && html`<span class="sknb-w"><b>${extra}</b>&nbsp;</span>`}</button>`}
+    ${isTrumpet(data) && l.notes?.length && html`<div class="skl-tp" role="list" aria-label="Notes for line ${i + 1}">${l.notes.map(n => { const w = n.midi + TRUMPET.shift, v = valvesOf(w); return html`<span class="skl-tpn${v == null ? " out" : ""}" role="listitem" aria-label="${tpName(w)}${v == null ? ", out of the trumpet's range" : `, ${valvesSay(w)}`}"><b>${tpName(w)}</b><small>${v == null ? "?" : v ? v.split("").join(" ") : "0"}</small></span>`; })}</div>`}
     ${l.hearing && html`<span class="sknb-hear"><i class="spin"></i>Hearing your chords…</span>`}
     ${l.riff && !l.hearing && html`<span class="sknb-riff">Riff: ${l.riff.join(" ")}</span>`}
     ${cmp && !editing && html`<div class="skcmp" role="group" aria-label="Chords for line ${i + 1}"><button data-pick="${i}" data-src="played" class="${l.melodyPick ? "" : "on"}" aria-pressed="${!l.melodyPick}">You played<b>${played}</b></button><button data-pick="${i}" data-src="melody" class="${l.melodyPick ? "on" : ""}" aria-pressed="${!!l.melodyPick}">Melody fits<b>${melody}</b></button></div>`}</div>
@@ -327,8 +334,16 @@ function takeHTML(take) {
     <small>Drag a marker to move a split, or tap the melody to split it there.</small></section>`;
 }
 function introHTML() {
+  if (mode() === "horn" || sk.forId) {
+    const t = forSong()?.title;
+    const say = mode() === "horn" ? "Play the tune by ear. I'll write down every note you play, with its fingering." : `Sing the tune of ${t || "the song"}. I'll write down every note.`;
+    const steps = sk.forId ? [`Tap and ${mode() === "horn" ? "play" : "sing"} the tune, the whole verse`, "Tap again. I split it at your breaths", "Check the notes, then make it your Melody part"]
+      : ["Tap and play your idea", "Tap again. I split it into lines at your breaths", "Add the words, then hear it as a song"];
+    return html`<div class="sk-intro"><div class="sk2-lou">${raw(louie("happy", { pose: "wave", size: 120 }))}<p class="sk2-say">${say}</p></div>
+    <ol class="sk-steps">${steps.map((s2, i) => html`<li><b>${i + 1}</b>${s2}</li>`)}</ol></div>`;
+  }
   const say = mode() === "strum" ? "Strum a line or two. I'll name the chords you play." : mode() === "both" ? "Sing and strum together. Your chords lead, and the melody's are one tap away." : "Sing or hum your idea. I'll find chords that fit your melody.";
-  const steps = mode() === "sing" ? ["Tap the mic and sing the whole idea", "Tap again. I split it into lines at your breaths", "Add the words, then hear it as a song"] : ["Tap the mic and play one line", "Tap again to keep it, then add its words", "Two lines or more, then hear it as a song"];
+  const steps = sings() ? ["Tap the mic and sing the whole idea", "Tap again. I split it into lines at your breaths", "Add the words, then hear it as a song"] : ["Tap the mic and play one line", "Tap again to keep it, then add its words", "Two lines or more, then hear it as a song"];
   return html`<div class="sk-intro"><div class="sk2-lou">${raw(louie("happy", { pose: "wave", size: 120 }))}<p class="sk2-say">${say}</p></div>
     <ol class="sk-steps">${steps.map((t, i) => html`<li><b>${i + 1}</b>${t}</li>`)}</ol></div>`;
 }
@@ -356,12 +371,12 @@ function paint() {
 function paintAll() {
   const rec = sk.rec, n = sk.lines.length, key = plan();
   const conf = keyConfidence(allNotes()), next = sk.again >= 0 ? sk.again : n;
-  const verb = mode() === "strum" ? "play" : mode() === "both" ? "sing and play" : "sing";
+  const verb = mode() === "strum" || mode() === "horn" ? "play" : mode() === "both" ? "sing and play" : "sing";
   const take = sk.take && lineOfTake(sk.take).length > 1 ? sk.take : null;
   app.innerHTML = html`<div class="sk2">
     <div class="sk-head"><button class="sk-x" id="sk-cancel" aria-label="${n ? "Discard this sketch" : "Close Sing it"}">${raw(icon("x"))}</button>
-      <h1 class="title">Sing it</h1><span class="sk-key" id="sk-key">${keyPill(conf)}</span></div>
-    ${!rec && html`<div class="seg sk-mode" role="group" aria-label="What The Road listens for">${MODES.map(([k, nm]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}">${nm}</button>`)}</div>`}
+      <h1 class="title">Sing it</h1>${sk.forId ? html`<span class="sk-for">${forSong()?.title || ""}</span>` : html`<span class="sk-key" id="sk-key">${keyPill(conf)}</span>`}</div>
+    ${!rec && html`<div class="seg sk-mode${modes().length === 2 ? " two" : ""}" role="group" aria-label="What The Road listens for">${modes().map(([k, nm]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}">${nm}</button>`)}</div>`}
     ${hears() && earState !== "ready" ? html`<div class="skear">${earState === "failed" ? html`Couldn't load the chord listener. Check the connection, then switch again.` : html`<i class="spin"></i>Getting the chord listener ready (about 2 MB, once)`}</div>` : ""}
     ${rec
       ? html`<div class="sk-rec"><div class="sk-reclab"><i aria-hidden="true"></i><b>${rec.i < n ? `LINE ${rec.i + 1} AGAIN` : hears() ? "LISTENING TO YOUR GUITAR" : "LISTENING"}</b><span id="sk-time">0:00</span></div>
@@ -380,17 +395,18 @@ function paintAll() {
             <b id="sk-pad-t">TAP TO ${verb.toUpperCase()}</b><span id="sk-pad-s">Tap again to stop · or hold for one line</span></div>`
         : html`<div class="sk-dock"><div class="skpad" id="sk-pad" role="button" tabindex="0" aria-label="${sk.again >= 0 ? `Sing line ${next + 1} again` : `Tap to ${verb} line ${next + 1}, or hold`}">${raw(MIC)}</div>
             <div class="sk-dockt"><b id="sk-pad-t">${sk.again >= 0 ? `Line ${next + 1} again` : `Line ${next + 1}`}</b><span id="sk-pad-s">Tap to ${verb}, or hold</span></div>
-            <button class="btn primary sk-done" id="sk-done">HEAR THE SONG</button></div>`}
+            <button class="btn primary sk-done" id="sk-done">${sk.forId ? "USE AS MELODY PART" : "HEAR THE SONG"}</button></div>`}
   </div>`.toString();
   drawRibbon(); drawLiveChords();
   bind();
 }
 function bind() {
   $("sk-cancel").onclick = () => {
-    if (!sk.lines.length) { stopLine("drop-quiet"); return go("#/"); }
-    ask({ title: "Discard this sketch?", text: "The lines you sang and their words go.", ok: "Discard", keep: "Keep singing", danger: true }, () => { stopLine("drop-quiet"); reset(); go("#/"); });
+    const back = sk.forId ? "#/song/" + encodeURIComponent(sk.forId) : "#/";
+    if (!sk.lines.length) { stopLine("drop-quiet"); reset(); return go(back); }
+    ask({ title: "Discard this sketch?", text: "The lines you sang and their words go.", ok: "Discard", keep: "Keep singing", danger: true }, () => { stopLine("drop-quiet"); reset(); go(back); });
   };
-  $("sk-done")?.addEventListener("click", showSong);
+  $("sk-done")?.addEventListener("click", () => sk.forId ? saveTune() : showSong());
   $("sk-redo")?.addEventListener("click", () => stopLine("drop"));
   $("sk-fin")?.addEventListener("click", () => { stopLine("keep"); if (sk.lines.length) showSong(); });
   const w = $("sk-words");
@@ -552,7 +568,28 @@ function bindPad() {
 function reset() {
   const urls = new Set([...sk.lines.map(lineUrl)].filter(Boolean));
   urls.forEach(u => URL.revokeObjectURL(u));
-  sk.lines = []; sk.again = -1; sk.editing = -1; sk.take = null; sk.view = "lines"; sk.title = "";
+  sk.lines = []; sk.again = -1; sk.editing = -1; sk.take = null; sk.view = "lines"; sk.title = ""; sk.forId = ""; sk.forWords = [];
+}
+/* 4.81.0: find a song's tune by ear (on trumpet, or by singing it): the lines take the song's words, and Use as
+   Melody part keeps the notes on the song as its Melody. `words` are the song's lines as the page shows them. */
+export function findTune(song, words) {
+  if (sk.forId !== song.id) { stopLine("drop-quiet"); reset(); sk.forId = song.id; sk.forWords = words || []; }
+  go("#/sketch");
+}
+const forSong = () => sk.forId ? data.songs.find(x => x.id === sk.forId) : null;
+function saveTune() {
+  const song = forSong();
+  if (!song || !sk.lines.length) return;
+  song.tpMel = { v: 1, lines: sk.lines.map(l => ({ n: packNotes(l.notes) })) };
+  /* the first tune found for a song is worth fans: ear work is harder than a show, and once per song keeps it honest */
+  const first = !song.tpEar;
+  if (first) { song.tpEar = true; const q = data.quests || (data.quests = { fans: 0 }); q.fans = (q.fans || 0) + EAR_FANS; }
+  data.settings.tpPart = "melody";
+  Tabs.save(data); markUsed("tune");
+  const id = song.id;
+  stopLine("drop-quiet"); reset();
+  go("#/song/" + encodeURIComponent(id));
+  setTimeout(() => first ? showCallout({ kind: "earn", pow: "FOUND IT!", word: "BY EAR", big: `+${EAR_FANS} fans` }) : toast("Your Melody part is updated"), 700);
 }
 
 // ---- Your song: your voice back with the chords strummed under it, a strum feel, a name, and Save ----

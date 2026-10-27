@@ -1,5 +1,5 @@
 // Tabs Settings and Recently deleted screens.
-import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, raw } from "./core.js";
+import { INSTRUMENTS, LANGS, SPEEDS, TP_LEVELS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, raw, tpLevel } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
@@ -31,6 +31,14 @@ function renderSettings() {
           <option value="multiplier" ${s.speedMode === "multiplier" ? "selected" : ""}>1x style</option>
         </select>
       </div>
+      <div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">Instrument<small class="sub">${s.instrument === "trumpet" ? "Songs are written for B♭ trumpet" : "Chords and strums"}</small></span>
+        <div class="seg mini" id="s-inst" role="group" aria-label="Instrument">${INSTRUMENTS.map(([k, n]) => `<button data-in="${k}" class="${(s.instrument || "guitar") === k ? "on" : ""}" aria-pressed="${(s.instrument || "guitar") === k}">${n}</button>`).join("")}</div>
+      </div>
+      ${s.instrument === "trumpet" ? `<div class="set">
+        <span class="tile">${icon("note")}</span><span class="name">How long you've played<small class="sub">Parts stay within your range</small></span>
+        <div class="seg mini" id="s-tplv" role="group" aria-label="How long you've played">${Object.entries(TP_LEVELS).map(([k, x]) => `<button data-lv="${k}" class="${tpLevel(data) === k ? "on" : ""}" aria-pressed="${tpLevel(data) === k}">${x.name}</button>`).join("")}</div>
+      </div>` : ""}
       <div class="set">
         <span class="tile">${icon("metro")}</span><span class="name">Count-in</span>
         <button class="toggle ${s.countIn !== false ? "on" : ""}" id="s-count" role="switch" aria-checked="${s.countIn !== false}" aria-label="Count-in"></button>
@@ -227,6 +235,8 @@ function renderSettings() {
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-score").onclick = () => { s.gigScore = s.gigScore === false; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
+  app.querySelectorAll("#s-inst [data-in]").forEach(b => b.onclick = () => { s.instrument = b.dataset.in; Tabs.save(data); renderSettings(); toast(s.instrument === "trumpet" ? "Trumpet: songs are written for B♭ trumpet" : "Guitar"); });
+  app.querySelectorAll("#s-tplv [data-lv]").forEach(b => b.onclick = () => { s.tpLevel = b.dataset.lv; Tabs.save(data); renderSettings(); });
   app.querySelectorAll("#s-beat [data-m]").forEach(b => b.onclick = () => { const m = b.dataset.m; s.metronome = m !== "off"; if (m !== "off") s.metroSound = m === "click" ? "click" : "kick"; Tabs.save(data); renderSettings(); if (m !== "off") metroPreview(); });
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", Math.round(e.target.value / 1.5) + "%"); Tabs.save(data); });

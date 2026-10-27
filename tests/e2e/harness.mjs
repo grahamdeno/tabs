@@ -44,7 +44,7 @@ export const LIB = {
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
   sets: [], trash: [], opening: { step: 5, done: 1, seen: 1 }, /* 4.40.0: Opening night already played */
-  settings: { v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, plainPlay: true }
+  settings: { instrument: "guitar", v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, plainPlay: true }
 };
 
 /* Wait for a condition that is checked on the test's side (a captured request, a flag), polling every 25 ms. */

@@ -64,6 +64,9 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `deLevel` | 0 to 4 | Off, Basic, Common, Intermediate, Fluent for this song |
 | `tone` | object | Spark tone result |
 | `sketch` | object | Made with Sing it: `{ v: 1, key, style: "simple" \| "rich", feel: "simple" \| "folk" \| "ballad" (4.74.0, how Your song strums), lines: [{ n: [[midi, start, length], ...] }] }`, the sung melody per line (seconds, to 0.01), for restyling and chord suggestions. Older sketches may hold `true` |
+| `tpMel` | object | 4.81.0: a song's tune found by ear (Find the tune by ear): `{ v: 1, lines: [{ n: [[midi, start, length], ...] }] }`, one entry per line of the sheet in order, as it sounds (the trumpet reads it a whole step up). Kept apart from `sketch`, so it never rebuilds the chords |
+| `tpEar` | `true` | 4.81.0: the first tune found for this song gave its 25 fans |
+| `tpHardSeen` | `true` | 4.81.0: the trumpet's hard-key sheet has shown for this song |
 | `status` | `"learning"` or `"got"` | Learning status |
 | `gotAt` | ISO date | When the song was marked Got it, for Repertoire on Your playing (2.42.0) |
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
@@ -111,6 +114,9 @@ Defaults are in `DEFAULT_SETTINGS` in `core.js`. `v` is the save format version 
 |---|---|---|
 | `metronome` | boolean | Plays the metronome while a song scrolls |
 | `metroSound` | `"drums"` (the default) or `"click"` | (2.40.0) |
+| `instrument` | `"guitar"` or `"trumpet"`; missing until Louie has asked (4.81.0) | On trumpet songs are written for B♭ trumpet |
+| `tpLevel` | `"start"`, `"two"` (the default) or `"four"` (4.81.0) | How long you've played the trumpet: the range of a part |
+| `tpPart` | `"long"` (the default), `"hits"` or `"melody"` (4.81.0) | Your trumpet part |
 | `metroVol` | 0 to 1 | Volume; 0.8 when missing (2.40.0) |
 | `metroBeat` | `"auto"` (when missing), `"rock"`, `"half"`, `"ballad"` or `"four"` | The drum beat (2.44.0) |
 | `metroSwing` | `"straight"` (when missing), `"light"` or `"full"` | (2.44.0) |
@@ -172,7 +178,7 @@ These sit next to `songs`, `sets` and `settings` in the saved library. Rival pla
 | `data.kept` | `{ days: { "YYYY-MM-DD": count } }` | Last 60 days: plays of songs that were deleted for good, so the weekly count and streak don't change when you tidy up; counts only, no titles |
 | `data.skills` | `{ done, last }` (3.6.0) | `done` maps a lesson id (`c:G` a chord, `s:G-C` a switch) to `{ n, best, at }` (times finished, best tempo in BPM for switches, time); `last` is when a lesson last finished. Level checks are worked out from your plays and not stored |
 | `data.gig` | `{ shows, fans, best }` (4.1.0) | Shows played as a gig, the bonus fans they earned (counted in your fans), and `best` mapping a song id to its best share of chords caught (0 to 100; since 4.54.0 the share of the song's chords you played, and not set by a Wait for me show). A show's strums are heard and graded on the phone and never kept |
-| `data.quests` | `{ fans, day, got, month, tour, crowd, req }` (4.5.0) | Fans earned from Tour quests (counted in your fans; 4.74.0 adds 50 here for your first song made with Sing it), the day `got` lists the setlist goals already credited (`two`, `crowd`, `mins`, `set`), the month whose tour was credited when `tour` is true, today's best gig crowd `{ day, n }`, and the request line `{ day, id, done }`. The request itself is worked out from the date, not stored, unless `heard` `{ day, id }` names the song you just played in Apple Music (4.10.0) |
+| `data.quests` | `{ fans, day, got, month, tour, crowd, req }` (4.5.0) | Fans earned from Tour quests (counted in your fans; 4.74.0 adds 50 here for your first song made with Sing it; 4.81.0 adds 25 for the first tune found by ear for a song), the day `got` lists the setlist goals already credited (`two`, `crowd`, `mins`, `set`), the month whose tour was credited when `tour` is true, today's best gig crowd `{ day, n }`, and the request line `{ day, id, done }`. The request itself is worked out from the date, not stored, unless `heard` `{ day, id }` names the song you just played in Apple Music (4.10.0) |
 | `cover` | `{ title, artist, url?, art?, at, id?, done? }` (4.10.0) | The cover quest: a song you listened to that wasn't in the library, its id once added, and whether its first gig was played |
 | `data.quests.fq` | `{ wk, with, claimed? }` (4.13.0) | The Friend quest |
 | `data.xp` | `{ days: { "YYYY-MM-DD": n }, life }` (4.6.0; `life` 4.17.0) | `days`: the last 60 days of XP earned outside plays (gigs, setlist goals, battles); plays give their XP from the play log. `life`: the same XP over all time, for your level on Your profile (started from `days` the first time) |

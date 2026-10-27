@@ -173,6 +173,9 @@ anything a person found on their own is skipped.
 | 6c | The beat while a song plays (4.43.0; 4.69.0 Off, Bass drum or Metronome), volume up to 150% | The beat button above Play in the corner, or Tools > Play > Beat | None (it shows by itself while playing) | Visible while playing; a tip the first time the band plays would help |
 | 7 | Set dial: hold "4 of 9" | Hold and sweep | Show me | Only in a set; teach on the first song opened from a set |
 | 8 | Bluetooth pedals and Space | Left plays/pauses, right goes to the next section | Listed | Only for pedal owners; leave listed, maybe a toast the first time a key or pedal press is seen |
+| 9 | Trumpet (4.81.0): Louie asks once what you play (Guitar or Trumpet, and on trumpet how long); Settings > Playing > Instrument changes it | The sheet on the first song opened | Louie asks (not during Opening night) | Asked once. On a fresh install, set it in Settings |
+| 9b | Trumpet: your part (Long notes, Hits, Melody), the notes with their valves, Find the tune by ear | The part row and the notes under the title | On screen | Visible; no tip needed |
+| 9c | Trumpet: a recording in a hard key says so once, with Long notes, Play together with a guitar's capo, or try it anyway; "This key is hard" opens it again | The sheet on opening such a song | Louie says it | Once per song |
 
 ### The Gig (Play)
 

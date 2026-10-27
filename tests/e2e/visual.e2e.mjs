@@ -23,7 +23,7 @@ const lib = theme => ({
   ...LIB,
   songs: [...LIB.songs, { id: "c", title: "Tab Song", artist: "X", format: "tab", body: "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|" }],
   sets: [{ id: "s", name: "Friday Gig", songIds: ["a", "b"], when: "2030-01-04T20:00", runs: [{ at: 1790000000000, secs: 1120, songs: 2 }], note: "Ran long" }],
-  settings: { v: 6, theme, controls: "bar", streakMoment: false, tipsSeen: TIPS, micExplained: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, lastTuned: 9e15 }
+  settings: { instrument: "guitar", v: 6, theme, controls: "bar", streakMoment: false, tipsSeen: TIPS, micExplained: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, lastTuned: 9e15 }
 });
 const SHOTS = [
   ["library", "#/library"], ["sketch", "#/sketch"], ["song", "#/song/a"], ["tab", "#/song/c"], ["set", "#/set/s"], ["settings", "#/settings"], ["gestures", "#/gestures"],

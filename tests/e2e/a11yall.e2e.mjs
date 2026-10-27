@@ -34,6 +34,11 @@ const SCREENS = [
   ["practice", "#/practice"], ["settings", "#/settings"], ["settings: playing", "#/settings/playing"], ["settings: look", "#/settings/look"],
   ["more", "#/", p => p.click("#tabs [data-tab=more]")],
   ["set", "#/set/s"], ["trash", "#/trash"], ["gestures", "#/gestures"],
+  /* 4.81.0: trumpet */
+  ["trumpet: ask", "#/song/b", p => p.evaluate(() => import("/horn.js").then(m => m.askInstrument()).then(() => document.querySelector("[data-in=trumpet]").click()))],
+  ["trumpet: song", "#/song/b", p => p.evaluate(() => import("/app.js").then(m => { m.data.settings.instrument = "trumpet"; m.redraw(); }))],
+  ["trumpet: hard key", "#/song/a", p => p.evaluate(() => import("/app.js").then(async m => { m.data.settings.instrument = "trumpet"; m.redraw(); (await import("/horn.js")).hardKeySheet(m.viewing); }))],
+  ["trumpet: play together", "#/song/a", p => p.evaluate(() => import("/app.js").then(async m => { m.data.settings.instrument = "trumpet"; m.redraw(); (await import("/share.js")).duetSheet(m.viewing); }))],
   ["show complete", "#/song/g", async p => { await p.click("#play"); await p.waitForSelector(".gc", { timeout: 40000 }); await p.waitForFunction(() => !document.querySelector(".co"), null, { timeout: 15000 }).catch(() => {}); }]
 ];
 
