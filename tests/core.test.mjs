@@ -1843,6 +1843,14 @@ test("4.80.2 Chord Catch: a chord is caught only when no other chord of the song
   C.catchHear(st, near); assert.equal(C.catchHear(st, near), pick, "the one that fits best, never the other");
 });
 
+test("4.81.1 a headline show counts with a chords-over-words sheet, not only an [Em] inline one", () => {
+  const body = "[Verse]\nEm          C\nAnother head hangs lowly\nG      D\nChild is slowly taken";
+  const known = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map(c => [c, { n: 9 }]));
+  const data = { songs: [{ id: "z", title: "Zombie", body, playLog: { last: Date.now() } }], skills: { done: {} }, journal: { chords: known } };
+  const k = C.skillState(data).levels[0].steps.at(-1);
+  assert.equal(k.song, "z"); assert.equal(k.state, "done");
+});
+
 test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {
   const g = C.gigStart();
   assert.equal(C.gigCrowd(g), 6, "half the crowd before any chord");

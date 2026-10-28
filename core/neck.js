@@ -2,6 +2,7 @@
 // Re-exported from core.js, so other files import it from there.
 import { TUNINGS, isObj, nearestNote, noteFreq } from "../core.js";
 import { chordShape } from "./chords.js";
+import { sheetChords } from "./game.js";
 
 // ---------- The neck: practice lessons (3.6.0) ----------
 // A ladder of lessons. Each fret is one lesson: a chord to ring clean string by
@@ -91,7 +92,9 @@ export function skillState(data, now = Date.now()) {
   const today = !!last && n.getFullYear() === l.getFullYear() && n.getMonth() === l.getMonth() && n.getDate() === l.getDate();
   return { levels, next: cur, today };
 }
-const songChordNames = body => { const out = []; for (const m of String(body || "").matchAll(/\[([A-G][#b]?[^\]\s/]*)(?:\/[^\]\s]*)?\]/g)) if (!out.includes(m[1])) out.push(m[1]); return out; };
+/* 4.81.1: the chords of a sheet in any format (chords over words too, not only [Em] inline), as the Road's card finds
+   them: a headline show played with a pasted chart wasn't counted (Graham, Zombie) */
+const songChordNames = body => sheetChords(body);
 /* A lesson finished (or a clean round): keep the count and the best tempo. */
 export function skillDone(data, id, best = 0, now = Date.now()) {
   const sk = data.skills || (data.skills = { done: {}, last: 0 }), x = sk.done[id] || (sk.done[id] = { n: 0, best: 0, at: 0 });
