@@ -2,7 +2,7 @@
 // Re-exported from core.js, so other files import it from there.
 import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, shapeSteps, songChanges } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
-import { CHORD_FIT, chordNotes, strumFit, skillState } from "./neck.js";
+import { CHORD_FIT, chordLeadOver, chordNotes, strumFit, skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
 
 // ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
@@ -925,12 +925,12 @@ export function catchHear(st, chroma, opt = {}) {
     const name = st.targets[i].name;
     if (name === st.hold) continue;
     const f = strumFit(chroma, name);
-    if (f === null || f < fit) continue;
-    /* 4.80.2: no other chord of the song, nor this chord's relative, may fit as well (it could fit up to 0.08 better:
-       C and Em heard as G, which shares two notes with each, in Graham's Zombie) */
-    let other = strumFit(chroma, relativeOf(name)) ?? 0;
-    for (const t of st.targets) if (t.name !== name) other = Math.max(other, strumFit(chroma, t.name) ?? 0);
-    if (other < f) { best = i; fit = f; margin = f - other; }
+    if (f === null || f < CHORD_FIT || (best >= 0 && f <= fit)) continue; /* a tie goes to the chord due first */
+    /* 4.80.2: no other chord of the song, nor this chord's relative, may sound as much like it.
+       4.82.1: judged on the notes that tell two chords apart (chordLead), so a chord inside another (Am in FM7)
+       or one with the same notes (G and G/B) can still be caught */
+    const { lead } = chordLeadOver(chroma, name, [relativeOf(name), ...new Set(st.targets.map(t => t.name))]);
+    if (lead > 0) { best = i; fit = f; margin = lead; }
   }
   if (best < 0 || !fresh) { st.cand = -1; st.n = 0; return -1; }
   st.n = best === st.cand ? st.n + 1 : 1; st.cand = best;

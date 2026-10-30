@@ -15,7 +15,7 @@
 // rises only there. Where listening can't help
 // (no microphone, a loud room, headphones), "I can't hear it, I got it" lets you
 // say so. Strumming, picking and fingerstyle are on the neck as "coming".
-import { CHORD_FIT, HEAR, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, chromaOf, detectPitch, strumFit, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
+import { CHORD_FIT, HEAR, chordLeadOver, relativeOf, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, chromaOf, detectPitch, strumFit, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
 import { app, esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -719,9 +719,9 @@ function whatIHear() {
           if (cr && f !== null) {
             st.show.reads++;
             /* the Gig's test: the chord fits, and no other chord here fits clearly better */
-            const rival = HEAR_CHORDS.filter(c => c && c !== chord).map(c => [c, strumFit(cr, c) ?? 0]).sort((a, b) => b[1] - a[1])[0];
-            if (f >= CHORD_FIT && rival[1] < f) st.show.fit++; /* 4.80.2: as strict as the show */
-            else { const k = f >= CHORD_FIT ? rival[0] : "too little of it"; st.show.other[k] = (st.show.other[k] || 0) + 1; }
+            const { lead, by } = chordLeadOver(cr, chord, [relativeOf(chord), ...HEAR_CHORDS]); /* 4.82.1: the show's own test */
+            if (f >= CHORD_FIT && lead > 0) st.show.fit++;
+            else { const k = f >= CHORD_FIT ? by : "too little of it"; st.show.other[k] = (st.show.other[k] || 0) + 1; }
           }
         }
         const ev = guide?.hear(sb, ctx.sampleRate, strum.floor(), rms);

@@ -130,6 +130,30 @@ export function strumFit(chroma, name) {
   for (const pc of pcs) share += chroma[pc];
   return share;
 }
+/* 4.82.1: how far chord `name` is ahead of chord `rival` in a sound, judged only on the notes that tell them apart
+   (the notes they share count the same for both). Above 0, `name` wins. Two chords made of the same notes (G and G/B)
+   are one sound: null, no contest. When one chord's notes all sit inside the other's (Am and F inside FM7, C inside
+   Cmaj7), the bigger chord wins only when its extra notes are really sounding, CHORD_EXTRA of the sound or more:
+   a note that isn't played leaks in at under 0.1 on Graham's recordings. Before this, the bigger chord always tied
+   or beat the smaller one, so Am, F, G and G/B could never be caught in a song with FM7 and G/B (Lillian). */
+export const CHORD_EXTRA = 0.12;
+export function chordLead(chroma, name, rival) {
+  const a = chordNotes(name), b = chordNotes(rival);
+  if (!a || !b || !chroma) return null;
+  let own = 0, theirs = 0, nOwn = 0, nTheirs = 0;
+  for (const p of a) if (!b.has(p)) { own += chroma[p]; nOwn++; }
+  for (const p of b) if (!a.has(p)) { theirs += chroma[p]; nTheirs++; }
+  if (!nOwn && !nTheirs) return null;
+  if (!nOwn) return CHORD_EXTRA - theirs;
+  if (!nTheirs) return own - CHORD_EXTRA;
+  return own - theirs;
+}
+/* the smallest lead of `name` over every chord in `rivals` (Infinity with none to beat), and which chord was closest */
+export function chordLeadOver(chroma, name, rivals) {
+  let lead = Infinity, by = "";
+  for (const r of rivals) { if (!r || r === name) continue; const l = chordLead(chroma, name, r); if (l !== null && l < lead) { lead = l; by = r; } }
+  return { lead, by };
+}
 
 /* What each string should sound like for a chord: a frequency, or null for a string left out. */
 export function chordTargets(name, tuning = "standard", a4 = 440) {

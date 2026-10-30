@@ -198,6 +198,15 @@ same chords marked heard both times (FM7, Dm, C) and the same ones never heard (
 and crowd differed; the Em C G D song missed G most ("C to G, 6 times"). Either the listening misses the
 same chords every time or the marks don't come from that play. That conversation owns it.
 
+Found (2026-10-29): the marks were from each play. The rule since 4.80.3 counted a chord only when no other chord of
+the song sounded as much like it. Am and F sit inside FM7 (it has all their notes), and G and G/B are the same notes,
+so those four tied every time and could never be caught; FM7, Dm and C could. Fixed on branch `hearing-shared-notes`
+(for the next release): chords are judged on the notes that tell them apart (`chordLead` in `core/neck.js`); a chord
+inside another wins unless the bigger chord's extra notes carry `CHORD_EXTRA` (0.12) of the sound; same-note chords
+are one sound. Clean chords: 634 pairs uncatchable and 163 wrong catches before, none after (164 chords). Graham's
+recordings with FM7, Cmaj7 and G/B in the song: 34 of 360 changes right before, 356 after. Still open: Em C G D
+missed G mostly after C, a separate cause; it needs a What I hear reading with G picked.
+
 ## Surprises
 
 (Write here when something doesn't match the plan.)

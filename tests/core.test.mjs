@@ -1888,6 +1888,27 @@ test("4.81.1 a headline show counts with a chords-over-words sheet, not only an 
   assert.equal(k.song, "z"); assert.equal(k.state, "done");
 });
 
+test("4.82.1 Chord Catch: any chord can be caught next to any other, and is never taken for one that isn't it", () => {
+  /* chords that share notes: one inside another (Am and F inside Fmaj7, C inside Cmaj7 and Cadd9), and the same notes
+     under two names (G and G/B). Before, the bigger chord always tied or won, so the smaller one could never be caught. */
+  const roots = ["C", "D", "E", "F", "G", "A", "Bb"], kinds = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "6"];
+  const names = roots.flatMap(r => kinds.map(k => r + k)).concat(["G/B", "C/E", "D/F#", "C/B", "Am/G"]).filter(n => C.chordShape(n) && C.chordNotes(n));
+  const sp = Object.fromEntries(names.map(n => [n, C.chromaOf(specOf(hzsOf(n)), 44100, 16384)]));
+  const same = (a, b) => [...C.chordNotes(a)].sort().join() === [...C.chordNotes(b)].sort().join();
+  const heard = (play, due, before) => { const st = C.catchStart(C.catchTargets([before, due].map(name => ({ name })))); st.caught[0] = true; C.catchAt(st, 1); C.catchHear(st, sp[play]); return C.catchHear(st, sp[play]) === 1; };
+  const missed = [], wrong = [];
+  for (const a of names) for (const b of names) if (a !== b) {
+    if (!heard(a, a, b)) missed.push(`${a} after ${b}`);
+    if (!same(a, b) && heard(b, a, b)) wrong.push(`${b} taken for ${a}`);
+  }
+  assert.ok(names.length > 50);
+  assert.deepEqual(missed, [], "every chord can be caught"); assert.deepEqual(wrong, [], "and only by itself");
+  /* the extra note decides it, at CHORD_EXTRA of the sound */
+  const am = sp.Am, fm7 = sp.Fmaj7, mix = k => am.map((v, i) => v * (1 - k) + fm7[i] * k);
+  assert.ok(C.chordLead(am, "Am", "Fmaj7") > 0, "a clean Am is Am"); assert.ok(C.chordLead(fm7, "Fmaj7", "Am") > 0, "a clean Fmaj7 is Fmaj7");
+  assert.equal(C.chordLead(sp.G, "G", "G/B"), null, "G and G/B are one sound");
+});
+
 test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {
   const g = C.gigStart();
   assert.equal(C.gigCrowd(g), 6, "half the crowd before any chord");
