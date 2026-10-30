@@ -20,7 +20,7 @@ import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
-import { guitarSVG, inlaySVG, neckHTML } from "./fretboard.js";
+import { guitarSVG, inlaySVG, neckHTML, neckBase, nanoArt, nanoArtHas } from "./fretboard.js";
 import { statBar, bindStatBar } from "./hud.js";
 
 const DAY = 86400000;
@@ -284,13 +284,25 @@ export function renderRoad() {
     const pr = path.getBoundingClientRect(), nr = curNode.getBoundingClientRect(), neck = curNode.closest(".rd-neck");
     let to = path.scrollTop + nr.top - pr.top - path.clientHeight / 3;
     /* 4.82.1: near the nut, show the headstock and its name rather than centring on the stop */
-    if (neck) { const nt = path.scrollTop + neck.getBoundingClientRect().top - pr.top; if (nr.top - neck.getBoundingClientRect().top < 260) to = Math.min(to, nt - 8); }
+    if (neck) { const nt = path.scrollTop + neck.getBoundingClientRect().top - pr.top; if (nr.top - neck.getBoundingClientRect().top < 400) to = Math.min(to, nt - 8); }
     path.scrollTop = Math.max(0, to);
   }
   if (plays) fillScene(st);
+  fillArt(road, leg, gx);
   headlinerEarned(road);
   guitarEarned(road);
   guitaristAsk();
+}
+
+/* 4.86.0: the Nano art for each leg loads after the first draw (the current leg first); a plain head and body show until it does */
+async function fillArt(road, cur, gx) {
+  const order = [...road.legs].sort((a, b) => (b === cur ? 1 : 0) - (a === cur ? 1 : 0));
+  for (const l of order) {
+    if (nanoArtHas(l.id)) continue;
+    if (!(await nanoArt(l.id)) || route().name !== "road") continue;
+    const svg = document.querySelector(`.rd-neck[data-guitar="${l.id}"] > .rd-base`), html = neckBase(l, gx);
+    if (svg && html) svg.innerHTML = html;
+  }
 }
 
 /* 4.85.0: a player who never made a guitarist (past Opening night) meets the picker once, after the other sheets. Skip keeps the default. */

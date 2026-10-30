@@ -204,3 +204,14 @@ for name in (sys.argv[1:] or list(JOBS)):
     os.makedirs(OUT, exist_ok=True)
     open(f"{OUT}/{name}.js", "w").write(js)
     print(f"{name:10s} head {len(head)/1000:5.1f}K body {len(body)/1000:5.1f}K total {len(js)/1000:5.1f}K", "OK" if len(js) <= BUDGET else "OVER")
+
+
+# the numbers of every guitar in one small file, so the Road can lay a neck out before the art arrives
+def write_nums():
+    out = {}
+    for f in sorted(os.listdir(OUT)):
+        if f.endswith(".js") and f != "nums.js":
+            out[f[:-3]] = json.loads(open(f"{OUT}/{f}").read().split("export default ", 1)[1].rstrip(";\n"))["nums"]
+    open(f"{OUT}/nums.js", "w").write("/* The numbers of each Nano guitar, from tools/guitars/build.py. Do not edit by hand. */\nexport default " + json.dumps(out, separators=(",", ":")) + ";\n")
+
+write_nums()

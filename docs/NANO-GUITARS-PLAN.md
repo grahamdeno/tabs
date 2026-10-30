@@ -78,13 +78,13 @@ full Nano guitar at its real proportions in every option.
 
 ### Step 3. The Road [Sonnet]
 
-- [ ] 3.1 `fretboard.js`: the headstock from the art, scaled so its width at the nut meets the drawn board; the
+- [x] 3.1 `fretboard.js`: the headstock from the art, scaled so its width at the nut meets the drawn board; the
       body from the art at the chosen scale, centred on the board, its bridge setting where the strings end
       (`stringLayer`); `over` parts drawn after the board so the pickups sit on top of the board's end like now.
-- [ ] 3.2 The art loads with its leg (dynamic import, like `opening.js`); until it arrives, today's drawing shows,
+- [x] 3.2 The art loads with its leg (dynamic import, like `opening.js`); until it arrives, today's drawing shows,
       so a slow phone never sees an empty neck. No layout shift: the neck's height comes from `fretLayout`, not
       the art.
-- [ ] 3.3 Keep: the stops' positions, the strings, the inlay materials, the songs badge, the new-guitar sheet's
+- [x] 3.3 Keep: the stops' positions, the strings, the inlay materials, the songs badge, the new-guitar sheet's
       timing, scroll-to-current. The body is still decoration (`aria-hidden`); the neck keeps its group label.
 - [ ] 3.4 **STOP AND SHOW**: screenshots of every leg that exists on a phone, Dark and Light, top (headstock and
       first stops) and bottom (last stops and body). List anything that needed adjusting and why. Wait.

@@ -9,7 +9,8 @@
 //
 // Woods and finishes keep the guitar's own colours in every look; only dots, rings, halos and tags take the
 // look's colours (styles.css, "The fretboard Road").
-import { fretLayout, guitarFor } from "./core.js";
+import { fretLayout, guitarFor, VERSION } from "./core.js";
+import NUMS from "./art/guitars/nums.js";
 
 const W = 390, CX = 195;
 const STR = [-90, -54, -18, 18, 54, 90]; /* string x from the middle of the board, low E to high e */
@@ -174,8 +175,8 @@ function headstock(g) {
 }
 
 /* head, body, board, binding, nut, frets and the side dots at the inlays: everything under the stops */
-function baseLayer(g, lay) {
-  if (lay.nano) return nanoBase(g, lay);
+function baseLayer(g, lay, art) {
+  if (lay.nano) return nanoBase(g, lay, art);
   const top = lay.head, endY = top + lay.neck, y0 = endY;
   const body = (BODIES[g.body] || BODIES.parlor)(g);
   let frets = "", y = top;
@@ -195,8 +196,8 @@ function baseLayer(g, lay) {
    The art is in its own units (a neck about 36 wide); the Road's neck is 212 wide so the dots are thumb-sized.
    `o`: body "A" (the whole body on the screen), "B" (about 1.6 screens wide, the bouts bleed off), "C" (true scale);
    head "H1" (100 tall like before), "H2" (taller, same shape), "H3" (taller and stretched to the neck); name (print it). */
-export function nanoLayout(stops, art, o) {
-  const n = art.nums, bw = n.br - n.bl, P = o.body === "P";
+export function nanoLayout(stops, n, o) {
+  const bw = n.br - n.bl, P = o.body === "P";
   /* P: the proportion test. P1 head: true shape, 300 wide. P2 head: 250 tall, widened to about 280. */
   let hs, hsx, hh;
   if (o.head === "P1") { hsx = hs = 300 / (n.hr - n.hl); hh = Math.round(n.nut * hs + 10); }
@@ -206,7 +207,7 @@ export function nanoLayout(stops, art, o) {
   /* the body's top sits at the last fret; the board runs on to the art's end, but no more than 70 past it */
   const endOff = Math.min((n.end - n.top) * s, 70), tail = o.body === "A" || P ? n.h - n.end + 6 : n.bridge - n.end + 80;
   const lay = fretLayout(stops, hh, Math.round(endOff + tail * s));
-  lay.nano = { art, o, s, endOff, hs, hsx };
+  lay.nano = { n, o, s, endOff, hs, hsx };
   lay.bridge = endOff + (n.bridge - n.end) * s - 4;
   if (P && n.own) { /* the art's own bridge: the strings fan out to land on its pins */
     const f0 = 100 / 106, f1 = n.pl ? (n.pr - n.pl) * s / 2 / 90 : 1.12, bot = hh + lay.neck + lay.bridge;
@@ -224,8 +225,8 @@ function nanoHardware(g, yb, ac) {
   if (g.body === "swallow") return `${humbucker(yb - 110, "#1c1a1f", gold)}${humbucker(yb - 52, "#1c1a1f", gold)}${tuneomatic(yb)}${stopbar(yb + 34)}`;
   return `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${k("#efe4c8")}`;
 }
-function nanoBase(g, lay) {
-  const { art, o, s, endOff, hs, hsx } = lay.nano, n = art.nums, top = lay.head, endY = top + lay.neck;
+function nanoBase(g, lay, art) {
+  const { n, o, s, endOff, hs, hsx } = lay.nano, top = lay.head, endY = top + lay.neck;
   const hc = (n.l0 + n.r0) / 2;
   const half = y => lay.fan ? 106 * lay.fan(y) : 106, bEnd = endY + endOff;
   let frets = "", y = top;
@@ -237,19 +238,24 @@ function nanoBase(g, lay) {
   const bt = `translate(${(CX - n.cx * s).toFixed(1)} ${(bEnd - n.end * s).toFixed(1)}) scale(${s.toFixed(4)})`;
   const ht = `translate(${(CX - hc * hsx).toFixed(1)} ${(top - n.nut * hs).toFixed(1)}) scale(${hsx.toFixed(4)} ${hs.toFixed(4)})`;
   const poly = (d, y0, y1) => `${CX - half(y0) - d},${y0} ${CX + half(y0) + d},${y0} ${CX + half(y1) + d},${y1} ${CX - half(y1) - d},${y1}`;
-  const board = lay.fan ? `<polygon points="${poly(4, top - 8, bEnd)}" fill="${g.binding}"/><polygon points="${poly(0, top, bEnd)}" fill="${g.board}"/>` : rect(89, top, 212, bEnd - top, g.board) + rect(85, top - 8, 4, bEnd - top + 8, g.binding) + rect(301, top - 8, 4, bEnd - top + 8, g.binding);
+  const bx = g.body === "solid" ? 26 : 0, board = lay.fan ? `<polygon points="${poly(4, top - 8, bEnd + bx)}" fill="${g.binding}"/><polygon points="${poly(0, top, bEnd + bx)}" fill="${g.board}"/>` : rect(89, top, 212, bEnd - top, g.board) + rect(85, top - 8, 4, bEnd - top + 8, g.binding) + rect(301, top - 8, 4, bEnd - top + 8, g.binding);
   /* P: the art has its own hardware (own), or the traced hardware is covered and the app draws its own at the width of the strings */
   let hw = "", cover = "";
-  if (lay.fan && !n.own) {
+  if (art && lay.fan && !n.own) {
     const yb = bEnd + (n.bridge - n.end) * s, ac = g.kind !== "electric";
     if (art.sil && !art.clean) { /* the body's own silhouette keeps the cover inside the edge; the binding is drawn again over it */
       const [cl, cr] = art.cov, z1 = n.bridge + 140 - n.end;
       cover = `<clipPath id="nsil"><path d="${art.sil}"/></clipPath><g clip-path="url(#nsil)"><rect x="0" y="${n.end}" width="${n.cx}" height="${z1}" fill="${cl}"/><rect x="${n.cx}" y="${n.end}" width="400" height="${z1}" fill="${cr}"/></g><path d="${art.sil}" fill="none" stroke="${art.rim}" stroke-width="${(5 / s).toFixed(1)}" clip-path="url(#nsil)"/>`;
     }
     const [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
-    hw = (art.sil || art.clean ? "" : rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)) + nanoHardware(g, yb, ac);
+    /* the beater: a scrap of the picture's old bridge sits under the app's, so it is painted over in the two halves' colours */
+    const patch = g.body === "parlor" ? `${rect(CX - 112, yb - 20, 112, 44, "#815029")}${rect(CX, yb - 20, 112, 44, "#6b4120")}` : "";
+    hw = patch + (art.sil || art.clean ? "" : rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)) + nanoHardware(g, yb, ac);
   }
-  return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}${cover}</g>${board}${frets}${dots}${hw}`
+  /* before the art arrives: a plain head and body in the guitar's own colours, in the same place, so nothing moves when it does */
+  const plain = art ? `<g transform="${ht}">${art.head}</g><g transform="${bt}"><clipPath id="nb-${g.body}"><path d="${art.sil}"/></clipPath><g clip-path="url(#nb-${g.body})">${art.body}</g>${cover}</g>`
+    : `<rect x="${CX - 130}" y="10" width="260" height="${top - 6}" rx="40" fill="${g.headc}"/><ellipse cx="${CX}" cy="${bEnd + (n.h - n.end) * s * .46}" rx="${(n.br - n.bl) * s / 2}" ry="${(n.h - n.end) * s * .46}" fill="${g.finish}"/>`;
+  return `${plain}${board}${frets}${dots}${hw}`
     + (o.name ? `<text x="${CX}" y="${top / 2 + 6}" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="600" fill="${g.ink}">${g.name}</text>` : "");
 }
 
@@ -310,10 +316,33 @@ function stopHTML(sp, g, lay, o) {
 
 /* A leg's neck: base layer, stops, strings. The wrapper keeps the drawing's proportions, so a narrower
    phone scales the whole guitar and the stops stay where they belong. */
+/* 4.86.0: every leg's guitar has Nano art (art/guitars). The numbers are in one small file so the neck is laid out at
+   once; the art itself loads a moment later (nanoArt) and takes the place of a plain head and body. */
+export const NANO_FILE = { open: "parlor", switch: "cutaway", scales: "solid", strum: "hollow", pick: "single", finger: "classical", encore: "headliner" };
+const ARTS = new Map();
+export const nanoArtHas = id => ARTS.has(NANO_FILE[id]);
+export async function nanoArt(id) {
+  const f = NANO_FILE[id];
+  if (!f) return null;
+  if (!ARTS.has(f)) { try { ARTS.set(f, (await import(`./art/guitars/${f}.js?v=${VERSION}`)).default); } catch { return null; } }
+  return ARTS.get(f);
+}
+const nanoOf = (leg, o) => {
+  const f = NANO_FILE[leg.id];
+  if (o.nano === false || !f || !NUMS[f]) return null;
+  return { body: "P", head: "P2", ...(o.nano || {}), n: NUMS[f], art: o.nano?.art || ARTS.get(f) || null };
+};
+/* the base drawing again, once the art has arrived (the stops and strings don't change) */
+export function neckBase(leg, o) {
+  const g = guitarFor(leg.id), nn = nanoOf(leg, o);
+  if (!nn) return null;
+  const lay = nanoLayout(leg.stops, nn.n, nn);
+  return baseLayer(g, lay, nn.art);
+}
 export function neckHTML(leg, o) {
-  const g = guitarFor(leg.id), lay = o.nano ? nanoLayout(leg.stops, o.nano.art, o.nano) : fretLayout(leg.stops);
+  const g = guitarFor(leg.id), nn = nanoOf(leg, o), lay = nn ? nanoLayout(leg.stops, nn.n, nn) : fretLayout(leg.stops);
   return `<div class="rd-neck" data-guitar="${leg.id}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
-    <svg class="rd-base${lay.nano ? " nano" : ""}" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${baseLayer(g, lay)}</svg>
+    <svg class="rd-base${lay.nano ? " nano" : ""}" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${baseLayer(g, lay, nn?.art)}</svg>
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}
     <svg class="rd-strings" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${stringLayer(g, lay)}</svg>
     ${leg.done ? `<span class="rd-earned">${g.name} · headlined</span>` : ""}</div>`;
