@@ -249,7 +249,7 @@ function nanoBase(g, lay, art) {
     }
     const [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
     /* the beater: a scrap of the picture's old bridge sits under the app's, so it is painted over in the two halves' colours */
-    const patch = g.body === "parlor" ? `${rect(CX - 112, yb - 20, 112, 44, "#815029")}${rect(CX, yb - 20, 112, 44, "#6b4120")}` : "";
+    const patch = g.body === "parlor" && !art.hand ? `${rect(CX - 112, yb - 20, 112, 44, "#815029")}${rect(CX, yb - 20, 112, 44, "#6b4120")}` : "";
     hw = patch + (art.sil || art.clean ? "" : rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)) + nanoHardware(g, yb, ac);
   }
   /* before the art arrives: a plain head and body in the guitar's own colours, in the same place, so nothing moves when it does */
