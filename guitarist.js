@@ -3,6 +3,7 @@
 // (tee, vest, leather, stage jacket), the guitar is the Road guitar you're on, the patches are what you've done.
 import { guitarFor, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
 import { nanoSmall } from "./fretboard.js";
+import ART from "./art/guitarist.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label }) returns an <svg> string.
 //   me: data.me (see meOf in core.js). mood: happy, cheer, worried, sleepy, proud. pose: play, hornsUp, rest.
 //   crop: "full" or "bust". look: tee, vest, leather, stage. patches: [{ kind, color, top }] (patchesOf).
@@ -15,29 +16,11 @@ export const SKIN = ["#FDE1CB", "#F3C6A0", "#DDA57A", "#BF8358", "#93603E", "#63
 export const HAIR_COL = { black: "#1f1a1c", brown: "#5a3622", blonde: "#e8c06a", red: "#c4502a", grey: "#b8b4ae", purple: "#8A47F5", blue: "#3A86FF", pink: "#ff5fa8", green: "#3fcf8e" };
 export const OUTFIT_COL = { red: "#e8336e", teal: "#20b8a4", yellow: "#f5c542", white: "#f4f1ea", black: "#26282e", green: "#2f8f5b", blue: "#3a6fd8", orange: "#ff7a1a" };
 
-/* hair: [behind the head, over the head] */
-const HAIR = {
-  shag: c => [`<path d="M46 84C44 40 70 24 100 24C130 24 156 40 154 84L160 150C144 162 128 154 126 138H74C72 154 56 162 40 150Z" fill="${c}"/>`,
-    `<path d="M50 80C52 44 76 30 100 30C126 30 150 44 150 80C138 64 122 58 106 62C92 50 66 58 50 80Z" fill="${c}"/><path d="M112 34C130 40 146 54 150 80C140 66 128 60 116 60Z" fill="${shade(c, .8)}"/>`],
-  curly: c => [Array.from({ length: 13 }, (_, i) => { const a = Math.PI * (0.92 + i * 1.16 / 12), x = 100 + 56 * Math.cos(a), y = 84 + 54 * Math.sin(a); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i % 2 ? 19 : 22}" fill="${c}"/>`; }).join("") + `<circle cx="100" cy="52" r="46" fill="${c}"/>`,
-    `<circle cx="74" cy="46" r="16" fill="${c}"/><circle cx="100" cy="38" r="17" fill="${c}"/><circle cx="126" cy="46" r="16" fill="${c}"/><circle cx="58" cy="62" r="12" fill="${c}"/><circle cx="142" cy="62" r="12" fill="${shade(c, .82)}"/><circle cx="126" cy="46" r="10" fill="${shade(c, .82)}" opacity=".6"/>`],
-  buzz: c => ["", `<path d="M54 74C54 42 76 32 100 32C124 32 146 42 146 74C134 60 118 54 100 54C82 54 66 60 54 74Z" fill="${c}"/>`],
-  mohawk: c => ["", `<path d="M56 72C58 46 78 38 100 38C122 38 142 46 144 72C132 62 116 58 100 58C84 58 68 62 56 72Z" fill="${c}" opacity=".35"/><path d="M88 60L80 18L94 30L100 6L106 30L120 18L112 60Z" fill="${c}"/><path d="M100 6L106 30L120 18L112 60H100Z" fill="${shade(c, .8)}"/>`],
-  braids: c => [`<rect x="40" y="70" width="18" height="104" rx="9" fill="${c}"/><rect x="142" y="70" width="18" height="104" rx="9" fill="${shade(c, .82)}"/>${[90, 108, 126, 144, 162].map(y => `<path d="M42 ${y}h14M144 ${y}h14" stroke="${shade(c, .6)}" stroke-width="3" stroke-linecap="round"/>`).join("")}<circle cx="49" cy="176" r="7" fill="#f5c542"/><circle cx="151" cy="176" r="7" fill="#f5c542"/>`,
-    `<path d="M50 78C52 42 76 30 100 30C124 30 148 42 150 78C142 58 120 50 100 50C80 50 58 58 50 78Z" fill="${c}"/><path d="M100 30C124 30 148 42 150 78C142 58 120 50 100 50Z" fill="${shade(c, .82)}"/><path d="M100 31V50" stroke="${shade(c, .55)}" stroke-width="3"/>`],
-  bob: c => [`<path d="M46 86C44 42 70 26 100 26C130 26 156 42 154 86L156 124C142 130 132 124 130 112H70C68 124 58 130 44 124Z" fill="${c}"/>`,
-    `<path d="M50 74C52 44 76 30 100 30C124 30 148 44 150 74C130 62 70 62 50 74Z" fill="${c}"/><path d="M100 30C124 30 148 44 150 74C136 66 118 64 100 64Z" fill="${shade(c, .82)}"/>`],
-  bun: c => [`<circle cx="100" cy="24" r="20" fill="${c}"/><circle cx="106" cy="22" r="12" fill="${shade(c, .82)}"/>`,
-    `<path d="M52 76C54 44 76 32 100 32C124 32 146 44 148 76C138 58 120 50 100 50C80 50 62 58 52 76Z" fill="${c}"/><path d="M100 32C124 32 146 44 148 76C138 58 120 50 100 50Z" fill="${shade(c, .82)}"/>`],
-  long: c => [`<path d="M44 84C42 40 70 24 100 24C130 24 158 40 156 84L162 196C146 208 130 198 128 180H72C70 198 54 208 38 196Z" fill="${c}"/><path d="M128 100L162 196C146 208 130 198 128 180Z" fill="${shade(c, .8)}"/>`,
-    `<path d="M50 80C52 42 76 30 100 30C124 30 148 42 150 80C142 62 122 50 100 50C78 50 58 62 50 80Z" fill="${c}"/><path d="M100 30C124 30 148 42 150 80C142 62 122 50 100 50Z" fill="${shade(c, .82)}"/><path d="M100 31V50" stroke="${shade(c, .55)}" stroke-width="3"/>`],
-  locs: c => [[[44, 150], [56, 172], [68, 140], [132, 140], [144, 172], [156, 150], [100, 124]].map(([x, h], i) => `<rect x="${x - 7}" y="66" width="14" height="${h - 66}" rx="7" fill="${i > 3 ? shade(c, .82) : c}"/><path d="M${x - 5} ${90 + (i % 3) * 8}h10M${x - 5} ${110 + (i % 2) * 10}h10" stroke="${shade(c, .6)}" stroke-width="2.4" stroke-linecap="round"/>`).join(""),
-    `<path d="M52 76C54 42 76 30 100 30C124 30 146 42 148 76C136 58 118 50 100 50C82 50 64 58 52 76Z" fill="${c}"/><path d="M100 30C124 30 146 42 148 76C136 58 118 50 100 50Z" fill="${shade(c, .82)}"/>${[70, 90, 110, 130].map((x, i) => `<rect x="${x - 5}" y="${40 + (i % 2) * 4}" width="10" height="22" rx="5" fill="${shade(c, i % 2 ? .9 : 1)}"/>`).join("")}`],
-  pixie: c => ["", `<path d="M52 76C50 44 74 30 98 28L106 16L114 30C136 34 150 52 148 76C138 60 122 54 100 54C80 54 62 60 52 76Z" fill="${c}"/><path d="M114 30C136 34 150 52 148 76C138 60 128 56 116 54Z" fill="${shade(c, .8)}"/><path d="M52 76C48 60 56 46 70 38C62 52 62 64 66 72Z" fill="${shade(c, .85)}"/>`],
-  ponytail: c => [`<path d="M138 48C176 42 188 92 170 134C166 114 160 98 146 86Z" fill="${shade(c, .85)}"/><circle cx="142" cy="52" r="8" fill="#ff5fa8"/>`,
-    `<path d="M50 78C52 42 76 30 100 30C124 30 148 42 150 78C140 60 122 52 100 52C78 52 60 60 50 78Z" fill="${c}"/><path d="M100 30C124 30 148 42 150 78C140 60 122 52 100 52Z" fill="${shade(c, .82)}"/>`],
-  swoop: c => ["", `<path d="M52 76C48 40 78 22 110 26C140 30 154 50 148 76C140 58 122 48 98 52C80 54 64 62 52 76Z" fill="${c}"/><path d="M52 76C46 50 60 30 84 26C70 38 64 54 66 66Z" fill="${shade(c, .8)}"/>`]
-};
+/* 4.86.0: the head and the hair are traced from Gemini's pictures (art/guitarist.js, tools/guitarist). Hair is three parts:
+   behind the head, falling over the body, and over the head; each is the hair colour with its darker tones laid on it. */
+const tone = (c, t) => t === 0 ? c : shade(c, t === 1 ? .84 : .66);
+const parts = (list, c) => (list || []).map(([t, d]) => `<path d="${d}" fill="${tone(c, t)}" fill-rule="evenodd"/>`).join("");
+const hairOf = (name, c) => { const h = ART.hair[name] || ART.hair.shag; return [parts(h[0], c), parts(h[1], c), parts(h[2], c)]; };
 /* extras over the head */
 const EXTRA = {
   none: () => "",
@@ -100,7 +83,7 @@ function patchSVG(pt, x, y) {
 }
 
 export function guitarist(me, { mood = "happy", pose = "play", crop = "full", size = 160, look = "tee", patches = [], guitar: gi = null, label = "Your guitarist" } = {}) {
-  const id = ++N, skin = SKIN[me.skin] || SKIN[2], hc = HAIR_COL[me.hairCol] || HAIR_COL.brown, [hBack, hFront] = (HAIR[me.hair] || HAIR.shag)(hc), dark = shade(skin, .88);
+  const id = ++N, skin = SKIN[me.skin] || SKIN[2], hc = HAIR_COL[me.hairCol] || HAIR_COL.brown, [hBack, hFall, hFront] = hairOf(me.hair, hc), dark = shade(skin, .88);
   const top = outfit(look === "vest" ? "denim" : look, OUTFIT_COL[me.top] || OUTFIT_COL.red, skin, id);
   const cheer = mood === "cheer" || mood === "proud", worried = mood === "worried", sleepy = mood === "sleepy";
   const eye = x => sleepy ? `<ellipse cx="${x}" cy="88" rx="10" ry="12" fill="#fff"/><circle cx="${x + 1}" cy="93" r="5.5" fill="#1c1d22"/><path d="M${x - 11} 89A11 13 0 0 1 ${x + 11} 89Z" fill="${shade(skin, .92)}"/><path d="M${x - 10} 89Q${x} 93 ${x + 10} 89" fill="none" stroke="#1c1d22" stroke-width="2.4" stroke-linecap="round"/>` : cheer ? `<path d="M${x - 9} 90Q${x} 76 ${x + 9} 90Q${x} 84 ${x - 9} 90Z" fill="#1c1d22"/>`
@@ -111,8 +94,7 @@ export function guitarist(me, { mood = "happy", pose = "play", crop = "full", si
     : worried ? `<path d="M88 116Q100 106 112 116Q100 112 88 116Z" fill="#7a1f2e"/>`
       : `<path d="M86 108Q100 124 114 108Z" fill="#7a1f2e"/><path d="M93 116Q100 120 107 116Q100 113 93 116Z" fill="#ff7a8a"/>`;
   const beard = BEARD[me.beard] ? BEARD[me.beard](hc) : "";
-  const head = `<clipPath id="h${id}"><circle cx="100" cy="88" r="48"/></clipPath><circle cx="52" cy="94" r="10" fill="${dark}"/><circle cx="148" cy="94" r="10" fill="${shade(skin, .8)}"/>
-    <circle cx="100" cy="88" r="48" fill="${dark}"/><circle cx="96" cy="87" r="45" fill="${skin}" clip-path="url(#h${id})"/>
+  const head = `<path d="${ART.head.sil}" fill="${dark}"/><path d="${ART.head.lit}" fill="${skin}"/><path d="${ART.head.line}" fill="${shade(skin, .76)}"/>
     <ellipse cx="70" cy="104" rx="7" ry="4" fill="#ff7a7a" opacity=".35"/><ellipse cx="130" cy="104" rx="7" ry="4" fill="#ff7a7a" opacity=".3"/>`;
   const g = gi || FALLBACK_GUITAR;
   const sleeve = top.sleeve;
@@ -128,7 +110,7 @@ export function guitarist(me, { mood = "happy", pose = "play", crop = "full", si
   const [, , vw, vh] = vb.split(" ").map(Number);
   const hat = me.extra && me.extra !== "none" && EXTRA[me.extra] ? EXTRA[me.extra](OUTFIT_COL[me.extraCol] || HAIR_COL[me.extraCol] || "#26282e") : "";
   const specs = me.glasses ? EXTRA.glasses() : "";
-  return `<svg viewBox="${vb}" width="${size}" height="${(size * vh / vw).toFixed(0)}" role="img" aria-label="${label.replace(/"/g, "&quot;")}" style="overflow:hidden">${hBack}${crop === "bust" ? `<rect x="88" y="128" width="24" height="28" fill="${dark}"/><g${mirror}>${top.svg}</g>${bust}` : figure}${head}${beard}${eye(81)}${eye(119)}${brows}${mouth}${specs}${hFront}${hat}</svg>`;
+  return `<svg viewBox="${vb}" width="${size}" height="${(size * vh / vw).toFixed(0)}" role="img" aria-label="${label.replace(/"/g, "&quot;")}" style="overflow:hidden">${hBack}${crop === "bust" ? `<rect x="88" y="128" width="24" height="28" fill="${dark}"/><g${mirror}>${top.svg}</g>${bust}` : figure}${head}${hFall}${beard}${eye(81)}${eye(119)}${brows}${mouth}${specs}${hFront}${hat}</svg>`;
 }
 
 /* you, as the app means you: your parts, the look of your venue, the patches you've earned, the Road guitar you're on and

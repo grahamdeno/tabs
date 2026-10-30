@@ -134,7 +134,7 @@ export function guitarNew(data, now = Date.now()) {
    data.me = { skin 0-5, hair, hairCol, beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches }.
    The big looks aren't stored: the top follows the venue you've reached (stageLook), the patches come from what
    you've done (patchesOf) and the guitar is the one you're on. Drawn in guitarist.js. */
-export const ME_HAIR = ["shag", "curly", "buzz", "mohawk", "braids", "bob", "bun", "swoop", "long", "locs", "pixie", "ponytail"];
+export const ME_HAIR = ["shag", "curly", "buzz", "mohawk", "braids", "bob", "bun", "swoop", "long", "locs", "pixie", "ponytail", "longhawk"];
 export const ME_HAIR_COL = ["black", "brown", "blonde", "red", "grey", "purple", "blue", "pink", "green"];
 export const ME_TOP_COL = ["red", "teal", "yellow", "white", "black", "green", "blue", "orange"];
 export const ME_BEARD = ["none", "stubble", "moustache", "beard"];

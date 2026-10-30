@@ -10,7 +10,7 @@ import { data } from "./app.js";
 import { HAIR_COL, OUTFIT_COL, SKIN, guitarist } from "./guitarist.js";
 import { louie } from "./louie.js";
 
-const NAME = { shag: "Shag", curly: "Curly", buzz: "Buzz", mohawk: "Mohawk", braids: "Braids", bob: "Bob", bun: "Bun", swoop: "Swoop", long: "Long", locs: "Locs", pixie: "Pixie", ponytail: "Ponytail" };
+const NAME = { shag: "Shag", curly: "Curly", buzz: "Buzz", mohawk: "Mohawk", braids: "Braids", bob: "Bob", bun: "Bun", swoop: "Swoop", long: "Long", locs: "Locs", pixie: "Pixie", ponytail: "Ponytail", longhawk: "Long mohawk" };
 const BEARD = { none: "Clean", stubble: "Stubble", moustache: "Moustache", beard: "Beard" };
 const hide = svg => svg.replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
 const same = (a, b) => ["skin", "hair", "hairCol", "beard", "glasses", "top"].every(k => (a[k] ?? ME_DEFAULT[k]) === (b[k] ?? ME_DEFAULT[k]));
