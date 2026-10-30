@@ -196,32 +196,44 @@ function baseLayer(g, lay) {
    `o`: body "A" (the whole body on the screen), "B" (about 1.6 screens wide, the bouts bleed off), "C" (true scale);
    head "H1" (100 tall like before), "H2" (taller, same shape), "H3" (taller and stretched to the neck); name (print it). */
 export function nanoLayout(stops, art, o) {
-  const n = art.nums, bw = n.br - n.bl;
-  const hh = o.head === "H1" ? 100 : o.head === "H3" ? 230 : 230;
-  const s = o.body === "C" ? 212 / (n.r1 - n.l1) : o.body === "B" ? 1.6 * W / bw : (W - 10) / bw;
+  const n = art.nums, bw = n.br - n.bl, P = o.body === "P";
+  /* P: the proportion test. P1 head: true shape, 300 wide. P2 head: 250 tall, widened to about 280. */
+  let hs, hsx, hh;
+  if (o.head === "P1") { hsx = hs = 300 / (n.hr - n.hl); hh = Math.round(n.nut * hs + 10); }
+  else if (o.head === "P2") { hs = 244 / (n.nut + 2); hsx = 280 / (n.hr - n.hl); hh = 250; }
+  else { hh = o.head === "H1" ? 100 : 230; hs = (hh - 6) / (n.nut + 2); hsx = o.head === "H3" ? hs * Math.min(1.7, 200 / (hs * 70)) : hs; }
+  const s = P ? 1.2 * W / bw : o.body === "C" ? 212 / (n.r1 - n.l1) : o.body === "B" ? 1.6 * W / bw : (W - 10) / bw;
   /* the body's top sits at the last fret; the board runs on to the art's end, but no more than 70 past it */
-  const endOff = Math.min((n.end - n.top) * s, 70), tail = o.body === "A" ? n.h - n.end + 6 : n.bridge - n.end + 80;
+  const endOff = Math.min((n.end - n.top) * s, 70), tail = o.body === "A" || P ? n.h - n.end + 6 : n.bridge - n.end + 80;
   const lay = fretLayout(stops, hh, Math.round(endOff + tail * s));
-  lay.nano = { art, o, s, endOff };
+  lay.nano = { art, o, s, endOff, hs, hsx };
   lay.bridge = endOff + (n.bridge - n.end) * s - 4;
+  if (P) lay.fan = y => (100 + 15 * (y - hh) / (lay.neck + endOff)) / 106; /* the board widens toward the body: half width 100 to about 115 */
   return lay;
 }
 function nanoBase(g, lay) {
-  const { art, o, s, endOff } = lay.nano, n = art.nums, top = lay.head, endY = top + lay.neck;
-  const hs = (top - 6) / (n.nut + 2), hsx = o.head === "H3" ? hs * Math.min(1.7, 200 / (hs * 70)) : hs;
-  const hx = (n.l0 + n.r0) / 2;
+  const { art, o, s, endOff, hs, hsx } = lay.nano, n = art.nums, top = lay.head, endY = top + lay.neck;
+  const hx = (n.hl + n.hr) / 2, hc = (n.l0 + n.r0) / 2;
+  const half = y => lay.fan ? 106 * lay.fan(y) : 106, bEnd = endY + endOff;
   let frets = "", y = top;
   for (const sp of lay.spaces) {
     y += sp.h;
-    frets += `${rect(89, y - 3, 212, 6, "#c4c8d0")}${rect(89, y - 3, 212, 2, "#f2f4f7")}${rect(89, y + 1, 212, 2, "#7d828c")}`;
+    const hw = half(y); frets += `${rect(CX - hw, y - 3, hw * 2, 6, "#c4c8d0")}${rect(CX - hw, y - 3, hw * 2, 2, "#f2f4f7")}${rect(CX - hw, y + 1, hw * 2, 2, "#7d828c")}`;
   }
-  const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="303" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
-  const bt = `translate(${(CX - n.cx * s).toFixed(1)} ${(endY + endOff - n.end * s).toFixed(1)}) scale(${s.toFixed(4)})`;
-  const ht = `translate(${(CX - hx * hsx).toFixed(1)} ${(top - n.nut * hs).toFixed(1)}) scale(${hsx.toFixed(4)} ${hs.toFixed(4)})`;
-  const boardH = lay.neck + endOff;
-  return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}</g>`
-    + rect(89, top, 212, boardH, g.board) + rect(85, top - 8, 4, boardH + 8, g.binding) + rect(301, top - 8, 4, boardH + 8, g.binding)
-    + rect(85, top - 10, 220, 10, g.binding) + rect(85, top, 220, 3, "#c9b98f") + frets + dots
+  const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="${CX + half(top + sp.y) + 2}" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
+  const bt = `translate(${(CX - n.cx * s).toFixed(1)} ${(bEnd - n.end * s).toFixed(1)}) scale(${s.toFixed(4)})`;
+  const ht = `translate(${(CX - hc * hsx).toFixed(1)} ${(top - n.nut * hs).toFixed(1)}) scale(${hsx.toFixed(4)} ${hs.toFixed(4)})`;
+  const poly = (d, y0, y1) => `${CX - half(y0) - d},${y0} ${CX + half(y0) + d},${y0} ${CX + half(y1) + d},${y1} ${CX - half(y1) - d},${y1}`;
+  const board = lay.fan ? `<polygon points="${poly(4, top - 8, bEnd)}" fill="${g.binding}"/><polygon points="${poly(0, top, bEnd)}" fill="${g.board}"/>` : rect(89, top, 212, bEnd - top, g.board) + rect(85, top - 8, 4, bEnd - top + 8, g.binding) + rect(301, top - 8, 4, bEnd - top + 8, g.binding);
+  /* P: the traced hardware is covered and our own is drawn at the width of the strings */
+  let hw = "";
+  if (lay.fan) {
+    const yb = bEnd + (n.bridge - n.end) * s, [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], ac = g.kind !== "electric";
+    const y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
+    hw = rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)
+      + (ac ? pinBridge(yb + 3, "#3a2a22") : `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}`);
+  }
+  return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}</g>${board}${frets}${dots}${hw}`
     + (o.name ? `<text x="${CX}" y="${top / 2 + 6}" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="600" fill="${g.ink}">${g.name}</text>` : "");
 }
 
@@ -230,8 +242,9 @@ function stringLayer(g, lay) {
   const top = lay.head, bot = lay.bridge ? top + lay.neck + lay.bridge : top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge - 4;
   const wd = g.kind === "classical" ? [3.2, 2.8, 2.4, 2, 1.8, 1.6] : g.kind === "electric" ? [3.2, 2.8, 2.4, 2, 1.6, 1.2] : [3.5, 3, 2.5, 2, 1.6, 1.2];
   const col = i => g.kind === "classical" ? (i < 3 ? "#c4c8d0" : "#f3ecdc") : g.kind === "electric" ? "#c4c8d0" : i < 4 ? "#c9a96e" : "#dfe2e8";
-  return STR.map((dx, i) => `<line x1="${CX + dx + 3}" y1="${top}" x2="${CX + dx + 3}" y2="${bot}" stroke="#14100d" stroke-opacity=".55" stroke-width="${wd[i]}"/>`).join("")
-    + STR.map((dx, i) => `<line x1="${CX + dx}" y1="${top}" x2="${CX + dx}" y2="${bot}" stroke="${col(i)}" stroke-width="${wd[i]}"/>`).join("");
+  const f0 = lay.fan ? lay.fan(top) : 1, f1 = lay.fan ? lay.fan(bot) : 1;
+  return STR.map((dx, i) => `<line x1="${CX + dx * f0 + 3}" y1="${top}" x2="${CX + dx * f1 + 3}" y2="${bot}" stroke="#14100d" stroke-opacity=".55" stroke-width="${wd[i]}"/>`).join("")
+    + STR.map((dx, i) => `<line x1="${CX + dx * f0}" y1="${top}" x2="${CX + dx * f1}" y2="${bot}" stroke="${col(i)}" stroke-width="${wd[i]}"/>`).join("");
 }
 
 /* ---- inlays: one shape, drawn as an empty pocket, set in pearl, or set and lit ---- */
@@ -267,7 +280,7 @@ function dotSVG(state, icon) {
 
 /* One stop, placed over the neck. `o`: cur (the current stop), icon(stop), label(stop), tag(stop). */
 function stopHTML(sp, g, lay, o) {
-  const s = sp.stop, x = CX + (sp.string >= 0 ? STR[sp.string] : 0), y = lay.head + sp.y, cur = s === o.cur;
+  const s = sp.stop, y = lay.head + sp.y, x = CX + (sp.string >= 0 ? STR[sp.string] * (lay.fan ? lay.fan(y) : 1) : 0), cur = s === o.cur;
   const left = sp.kind === "inlay" || (sp.kind === "dot" && sp.string < 3);
   const tag = cur ? `<span class="rd-tag ${left ? "l" : "r"}" style="${left ? `right:${((1 - 79 / W) * 100).toFixed(2)}%` : `left:${(311 / W * 100).toFixed(2)}%`}" aria-hidden="true">${o.tag(s)}</span>` : "";
   const inner = sp.kind === "dot" ? dotSVG(s.state, o.icon(s))

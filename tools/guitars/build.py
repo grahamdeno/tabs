@@ -148,10 +148,12 @@ for name in (sys.argv[1:] or list(JOBS)):
     # the widest the body gets, from the label image below the board end
     solid = (lbl2[end:] >= 0)
     cols = np.where(solid.any(axis=0))[0]
+    hc = np.where((lbl2[:nut + 4] >= 0).any(axis=0))[0]
     cx = (nk["l1"] + nk["r1"]) / 2
     nums = dict(top=round(top * Q), nut=round(nut * Q), end=round(end * Q), bridge=round(nk["bridge"] * Q), l0=round(nk["l0"] * Q), r0=round(nk["r0"] * Q),
                 l1=round(nk["l1"] * Q), r1=round(nk["r1"] * Q), cx=round(cx * Q), w=round(w * Q), h=round(h * Q),
-                bl=round(cols.min() * Q), br=round(cols.max() * Q))
+                bl=round(cols.min() * Q), br=round(cols.max() * Q),
+                hl=round(hc.min() * Q), hr=round(hc.max() * Q))
     art = dict(head=head, body=body, over="", nums=nums, view=[round(w * Q), round(h * Q)])
     js = "/* Traced from the Nano art by tools/guitars/build.py. Do not edit by hand. */\nexport default " + json.dumps(art, separators=(",", ":")) + ";\n"
     os.makedirs(OUT, exist_ok=True)
