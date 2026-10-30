@@ -45,67 +45,67 @@ round eyes with a highlight, mitten hands, the same moods and poses), built from
 
 ### Step 1. The data and the numbers, pure and tested [Sonnet]
 
-- [ ] 1.1 `data.me = { skin, hair, hairCol, beard, extra, extraCol, top, lefty, patches }` (skin 0-5; hair, colours
+- [x] 1.1 `data.me = { skin, hair, hairCol, beard, extra, extraCol, top, lefty, patches }` (skin 0-5; hair, colours
       and extras by id from the mock's tables; `patches` the ids chosen to wear, optional). `cleanMe(raw)` in
       core/game.js, wired into both save/load sanitizers in core.js the way `cleanGuitars` is. Into the backup.
-- [ ] 1.2 core/game.js: `ME_STARTERS` (the mock's eight, without names), `ME_DEFAULT`, `meOf(data)` (data.me or the
+- [x] 1.2 core/game.js: `ME_STARTERS` (the mock's eight, without names), `ME_DEFAULT`, `meOf(data)` (data.me or the
       default), `stageLook(data)` ("tee", "vest", "leather", "stage" from the highest ring reached, decision 1),
       `patchesOf(data)` (legs headlined from `roadPath`, then `badgesOf(...).got`, newest first; `data.me.patches`
       picks which, at most five), `meMood(data, now)` ("sleepy" when the streak ends tonight, "cheer" for the day
       after a headline, else "happy"; duels pass "worried" themselves), `rivalMe(name, tier)` (seeded).
-- [ ] 1.3 Re-export from core.js (import and export lists). docs/DATA.md: `data.me`.
-- [ ] 1.4 Unit tests: cleanMe keeps good fields and drops bad ones; looks change at the right venues and don't
+- [x] 1.3 Re-export from core.js (import and export lists). docs/DATA.md: `data.me`.
+- [x] 1.4 Unit tests: cleanMe keeps good fields and drops bad ones; looks change at the right venues and don't
       drop after a fade; patches order and the five cap; rivalMe is stable for a name; a backup keeps `data.me`.
 
 ### Step 2. Draw the guitarist [Sonnet]
 
 New file `guitarist.js` at the root (add to `SHELL` in sw.js). Start from `docs/guitarist/mock-guitarist.mjs`.
 
-- [ ] 2.1 `guitarist(me, { mood, pose, size, crop, look, patches, guitar, label })` returns an `<svg>` string,
+- [x] 2.1 `guitarist(me, { mood, pose, size, crop, look, patches, guitar, label })` returns an `<svg>` string,
       like `louie()`. Moods: happy, cheer, worried, sleepy, proud. Poses: play (holding the guitar), hornsUp,
       rest. Crops: full, bust. Unique ids for clip paths (the mock's counter).
-- [ ] 2.2 Looks: tee, vest (the mock's "denim"), leather, stage. Hair: the mock's eight plus long, locs, pixie and
+- [x] 2.2 Looks: tee, vest (the mock's "denim"), leather, stage. Hair: the mock's eight plus long, locs, pixie and
       ponytail. Facial hair: none, stubble, moustache, beard.
-- [ ] 2.3 The guitar: a small version of each Road guitar (`GUITARS` in core/game.js: its finish, its shape family:
+- [x] 2.3 The guitar: a small version of each Road guitar (`GUITARS` in core/game.js: its finish, its shape family:
       acoustic with a soundhole, offset, hollow with f-holes, single cut, the headliner with gold edge), not the
       mock's generic shape.
-- [ ] 2.4 Lefty mirrors the whole figure; the face's darker side stays on the right.
-- [ ] 2.5 Patches: the mock's leg patch, star and pin, plus one patch per badge kind (song, show, streak, chord,
+- [x] 2.4 Lefty mirrors the whole figure; the face's darker side stays on the right.
+- [x] 2.5 Patches: the mock's leg patch, star and pin, plus one patch per badge kind (song, show, streak, chord,
       venue, band, chart) in the badge colours. On the full figure only; the bust shows the newest one.
 
 ### Step 3. Where you show up [Sonnet]
 
-- [ ] 3.1 Your profile: the player card and the share card (profile.js) show your guitarist, `meMood`, hornsUp on
+- [x] 3.1 Your profile: the player card and the share card (profile.js) show your guitarist, `meMood`, hornsUp on
       the share card. An "Edit" on the card opens the maker.
-- [ ] 3.2 Charts (charts.js): your row's avatar, the rival battle's "You" side; rivals get `rivalMe` busts.
-- [ ] 3.3 Duels (duel.js): your side of a duel (worried when you lost), your row on the friends board.
-- [ ] 3.4 Leave Louie everywhere else (the Road, gig end, callouts, tips, Opening night's guide, the Band tab).
+- [x] 3.2 Charts (charts.js): your row's avatar, the rival battle's "You" side; rivals get `rivalMe` busts.
+- [x] 3.3 Duels (duel.js): your side of a duel (worried when you lost), your row on the friends board.
+- [x] 3.4 Leave Louie everywhere else (the Road, gig end, callouts, tips, Opening night's guide, the Band tab).
 
 ### Step 4. Making your guitarist [Sonnet]
 
-- [ ] 4.1 Opening night: a first step "Who's playing tonight?" (`OPENING` in core/game.js, opening.js): the preview,
+- [x] 4.1 Opening night: a first step "Who's playing tonight?" (`OPENING` in core/game.js, opening.js): the preview,
       eight starters (2 rows of 4), skin, hair colour, THAT'S ME at the bottom, the line "Hair, glasses and the rest
       are on Your profile, any time." Counts as the step done; no fans.
-- [ ] 4.2 Players past Opening night: the picker once, as a sheet on the Road (`data.me` absent), after the
+- [x] 4.2 Players past Opening night: the picker once, as a sheet on the Road (`data.me` absent), after the
       headliner and new-guitar sheets; Louie says "Who's playing tonight?". Skip leaves the default.
-- [ ] 4.3 The full maker from Your profile: starter, skin, hair, hair colour, facial hair, glasses, hats (owned
+- [x] 4.3 The full maker from Your profile: starter, skin, hair, hair colour, facial hair, glasses, hats (owned
       ones, the rest locked with their price), top colour, patches to wear (pick up to five), lefty.
 
 ### Step 5. The Merch table [Sonnet]
 
-- [ ] 5.1 `MERCH` items of a new kind "wear": beanie, cap, bandana at 150 tips (decision 3). Bought ones show in
+- [x] 5.1 `MERCH` items of a new kind "wear": beanie, cap, bandana at 150 tips (decision 3). Bought ones show in
       the maker. Try it on (the Merch table's existing preview) shows your guitarist wearing it.
 
 ### Step 6. Tests and release [Sonnet]
 
-- [ ] 6.1 e2e: Opening night's first step picks a starter and saves `data.me`; the Road sheet shows once for a
+- [x] 6.1 e2e: Opening night's first step picks a starter and saves `data.me`; the Road sheet shows once for a
       player without it; the profile card, a chart row and a duel side show the guitarist (an `svg` with
       `aria-label="Your guitarist"`), Louie still on the Road; the maker saves a change; a hat bought on the Merch
       table appears in the maker. axe must pass (the maker's choices are labelled buttons).
-- [ ] 6.2 `VERSION` 4.85.0 and `CACHE`; README (Your profile, Opening night, Merch table), docs/ONBOARDING.md (the
+- [x] 6.2 `VERSION` 4.85.0 and `CACHE`; README (Your profile, Opening night, Merch table), docs/ONBOARDING.md (the
       new Opening night step, the maker, patches), CLAUDE.md (`guitarist.js` in Where things are; Version 4: your
       guitarist where the app means you, Louie the mascot everywhere else).
-- [ ] 6.3 One commit per step, `eslint .` and `node tests/quick.mjs`, rebase. **Push only when Graham says ship.**
+- [x] 6.3 One commit per step, `eslint .` and `node tests/quick.mjs`, rebase. **Push only when Graham says ship.**
 
 ### Step 7. Feel check [Opus]
 
@@ -121,4 +121,10 @@ New file `guitarist.js` at the root (add to `SHELL` in sw.js). Start from `docs/
 
 ## Surprises
 
-(Write here when something doesn't match the plan.)
+- 1.2 `meMood`: no headline date is stored, so "cheer" is a streak milestone day (7, 30, 100, 365) played today, not the day after a headline. Sleepy is a streak of 2+ not yet played, after 8 pm. Horns up still comes from the share card and the headline Louie sheet is unchanged.
+- 1.1 Added `glasses` (a boolean) apart from the hat `extra`, and `beard` is an id (none, stubble, moustache, beard) instead of the mock's boolean. A hat shows only once bought (`meOf` checks `data.merch.has`), stored as `wear-<hat>` ids.
+- Starters have no hats (hats are bought): Mae's bandana and Kit's beanie and Sol's cap are gone from the eight. Kit keeps the beard.
+- 4.1 Opening night is six steps: `cleanOpening` moves an old save past step 0 up one (`v: 2`), a replay starts at step 1, and "who" gives no fans. The cap on opening fans is five steps' worth.
+- 4.2 The Road sheet asks any player who isn't on Opening night and has no `data.me` (not only those with plays); Skip stores the default. `harness.mjs` LIB now carries a `data.me` so other Road tests aren't covered by the sheet.
+- 5.1 Hats are in dollars on the Merch table ($150), as every price is, and `merchTip` never suggests a hat after a show. Buying one puts it on when `data.me` exists.
+- Patches sit on the guitar's body at the right-hand spots (the mock's), so on a full figure they overlap it a little; the Step 7 feel check should look at that.

@@ -39,6 +39,7 @@ outlines, chunky buttons on a darker lip, Fredoka and Nunito, Louie the amp as
 the mascot (no guitar-pick mascot anywhere; 4.14.1 and 4.15.0 removed the last
 picks). Text in the accent colour uses `--accent-ink` (contrast in the light
 palettes). The mockup canvas artifact has the screens and the Friends board. The Road path (4.82.0) is a guitar neck per leg: stops are finger dots and fret inlays (a box is one, the headline the double), picks only in Opening night.
+Your guitarist (4.85.0): wherever the app means *you* (profile card and share card, chart row, rival battle, duel, Friends board) it shows a guitarist built from parts in Louie's style; Louie stays the mascot everywhere else (the Road, gig end, callouts, tips, Opening night's guide, the Band tab). The look follows the venue, patches are earned and the guitar is the Road guitar you're on, so none of those are picked or bought; only hats are on the Merch table. `docs/GUITARIST-PLAN.md`.
 Louie's friends (Graham's art, 2026-10-21), redrawn in Louie's style: Lola
 guitar, Jax pedal, Tilly tuner, Milo mic, Bex bass amp, Pip pick (rounder,
 yellow, never rainbow), Beat bass drum, Slide brass slide, Strap guitar strap
@@ -88,6 +89,7 @@ The README describes each as it works today.
 | Rehearse (hub), the neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
 | The Road (home, 4.0.0): path, Louie, the Songbook bar (4.9.0; the Songbook page is `renderLibrary` in `app.js`) | `road.js` (path logic `roadPath`, `fansOf`, `playableSongs` in `core.js`) |
 | The guitar necks on the Road (4.82.0): body shapes, headstocks, inlays, strings, one guitar per leg | `fretboard.js` (numbers: `GUITARS`, `fretLayout`, `guitarNew` in `core/game.js`) |
+| Your guitarist (4.85.0): the drawing (`you`, `rival`; the parts and looks) and the maker sheet (Opening night, the Road, Your profile) | `guitarist.js`, `maker.js` (numbers: `meOf`, `stageLook`, `patchesOf`, `meMood`, `rivalMe` in `core/game.js`) |
 | Stat bar, tab bar, More sheet | `hud.js` |
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
 | Your band: the Band tab; Louie's friends drawn | `band.js`, `friends.js` (numbers: `bandState`, `bandParts` in `core.js`) |

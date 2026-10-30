@@ -22,6 +22,7 @@ and a release that adds a tip or Show me marks it.
 ## Built so far
 
 - 4.39.2: the four stale Tips & gestures lines, "1 SONGS".
+- 4.85.0: Opening night's first step, Who's playing tonight? (the maker sheet: a starter, skin, hair colour, THAT'S ME; Louie introduces it for a player past Opening night, once, on the Road); Edit your guitarist on the profile card; patches and looks come from the Road; hats on the Merch table. Opening night is six steps now.
 - 4.40.0: Opening night (the first five steps of the first session below: mic, chord, verse, pause, first show), Skip (asks first), Replay in Tips & gestures, and the stat bar's VENUE, STREAK and FANS labels until each is tapped once. Not now on the microphone plays Opening night unscored and says so; it never asks again by itself.
 
 ## The fresh-install walkthrough (2026-10-22, 4.39.1)
@@ -272,6 +273,9 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 4 | Merch | Try it on before buying a finish | The Try it on button | Visible; Louie explains the page | No tip |
 | 5 | Charts | Who moves up and down on Monday | Read the chart | Visible | No tip |
 | 6 | Tour Map | Rivals are simulated; Forget my spot | Info button | Visible | No tip |
+| 7 | Profile | Edit your guitarist: hair, beard, glasses, hats you own, top colour, patches to wear, left-handed | The Edit your guitarist button on the player card | Visible; the first step of Opening night (or a one-time Road sheet) shows the quick picker | No tip. The maker's first screen says the rest is on Your profile |
+| 8 | Profile | Your look follows the venue; patches are earned (a leg headlined, badges), up to five worn | Nothing to do: it changes by itself; pick the patches in the maker | None | No tip; it's a surprise when the first jacket arrives at the Coffeehouse |
+| 9 | Merch | Hats for your guitarist; try one on first | Hats row, the Try it on button | Visible | No tip |
 
 ### Language practice
 

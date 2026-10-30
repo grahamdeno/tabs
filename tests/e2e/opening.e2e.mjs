@@ -76,6 +76,8 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
   await page.click("#ask-ok");
   await page.waitForSelector(".rd-banner:not(.on-night)");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).skipped > 0); /* skipped is kept */
+  await page.waitForSelector(".gm"); await page.click("#gm-skip"); /* 4.85.0: no guitarist yet, so Louie asks once on the Road; Skip keeps the default */
+  await page.waitForSelector(".gm", { state: "detached" });
   assert.equal(await page.locator(".hud .h-lab").count(), 4, "VENUE, STREAK, FANS and TIPS (4.70.0)");
   await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".hud");
