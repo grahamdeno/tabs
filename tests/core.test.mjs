@@ -2763,3 +2763,24 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
   assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
 });
+
+test("4.86.0 every guitar has Nano art: parts parse, numbers are in range, each file is under 25 KB", async () => {
+  const { GUITARS } = await import("../core.js");
+  const shell = read("sw.js");
+  for (const [leg, g] of Object.entries(GUITARS)) {
+    const name = g.body === "swallow" ? "headliner" : g.body, file = `art/guitars/${name}.js`;
+    assert.ok(fs.existsSync(path.join(root, file)), `${leg} has ${file}`);
+    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
+    const src = read(file);
+    assert.ok(src.length <= 25000, `${file} is ${src.length} bytes`);
+    const art = (await import("../" + file)).default;
+    const n = art.nums, [w, h] = art.view;
+    for (const part of ["head", "body"]) {
+      assert.ok(art[part].length > 200, `${name} ${part} drawn`);
+      for (const m of art[part].matchAll(/ d="([^"]+)"/g)) assert.match(m[1], /^[MmCcLlZz\d\s.,-]+$/, `${name} ${part} path data`);
+    }
+    for (const k of ["nut", "end", "bridge", "l0", "r0", "l1", "r1", "cx", "bl", "br"]) assert.ok(Number.isFinite(n[k]), `${name}.${k}`);
+    assert.ok(n.nut > 0 && n.nut < n.end && n.end < n.bridge && n.bridge < h, `${name} runs nut, end, bridge top to bottom`);
+    assert.ok(n.l0 < n.r0 && n.l1 < n.r1 && n.r1 <= w && n.bl >= 0 && n.br <= w, `${name} board and body inside the view`);
+  }
+});

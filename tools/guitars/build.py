@@ -1,7 +1,19 @@
-import sys, json, numpy as np, cv2
-sys.path.insert(0, sys.argv[1]); from trace import *
-S = sys.argv[1]
-# Measured from the images (2x scale coords): nut y, board edges at the nut and where the board ends on the body, where strings end.
+"""Rebuild art/guitars/<leg>.js from the Nano images in docs/guitars/src.
+   python3 tools/guitars/build.py [leg ...]      (needs opencv, scikit-learn, scipy, pillow)
+Each guitar is split into `head` (above the nut), `body` (below where the board ends) and `over`, in the guitar's own
+units (the traced picture at half scale). The neck is not in the art: the app draws it. Numbers in `nums`:
+nut, end (where the board ends on the body), bridge (where the strings end), l0/r0 (board edges at the nut),
+l1/r1 (at the end), cx (body centre), w/h (the view), bl/br (the widest the body gets, left and right)."""
+import sys, os, json, numpy as np, cv2
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+S = os.path.join(ROOT, "docs", "guitars")
+OUT = os.path.join(ROOT, "art", "guitars")
+sys.path.insert(0, os.path.dirname(__file__))
+from guitar_trace import *
+Q = float(os.environ.get("Q", .5))          # units: the 2x trace times Q
+EPS = float(os.environ.get("EPS", 2.4))     # outline tolerance in 2x pixels
+FLOOR = int(os.environ.get("FLOOR", 160))   # smallest region kept, in 2x pixels squared
+BUDGET = 25000
 NECK = {
   "parlor":    dict(nut=257, l0=242, r0=313, end=849, l1=230, r1=325, bridge=1150, board="#4A3328", inlay="dot",   mat="#F4F1EA"),
   "cutaway":   dict(nut=285, l0=240, r0=318, end=902, l1=232, r1=326, bridge=1160, board="#4A3328", inlay="dot",   mat="#F4F1EA", big=True),
@@ -44,51 +56,6 @@ def fixes(name, lbl, cent):
             lbl[cc == k] = -1
     return lbl, cent
 
-def neck_svg(nk):
-    nut, end, br = nk["nut"], nk["end"], nk["bridge"]
-    L = br - nut  # scale length, nut to saddle
-    def edges(y):
-        t = (y - nut) / (end - nut)
-        return nk["l0"] + (nk["l1"] - nk["l0"]) * t - 6, nk["r0"] + (nk["r1"] - nk["r0"]) * t + 6
-    l0, r0 = edges(nut); l1, r1 = edges(end)
-    s = f'<path d="M{l0:.1f} {nut}L{r0:.1f} {nut}L{r1:.1f} {end}Q{(l1 + r1) / 2:.1f} {end + 4} {l1:.1f} {end}Z" fill="{nk["board"]}"/>'
-    s += f'<path d="M{r0 - (r0 - l0) * .5:.1f} {nut}L{r0:.1f} {nut}L{r1:.1f} {end}L{(l1 + r1) / 2:.1f} {end}Z" fill="#000" opacity=".12"/>'  # the right half a shade darker
-    fy = [nut + L * (1 - 2 ** (-n / 12)) for n in range(1, 30)]
-    fy = [y for y in fy if y < end - 4]
-    for y in fy:
-        l, r = edges(y); s += f'<rect x="{l + 1:.1f}" y="{y - 2:.1f}" width="{r - l - 2:.1f}" height="4" rx="1.5" fill="#C9C4BA"/>'
-    mids = {n: ((fy[n - 2] if n > 1 else nut) + fy[n - 1]) / 2 for n in (3, 5, 7, 9, 12, 15) if n <= len(fy)}
-    kind, mat = nk["inlay"], nk["mat"]
-    for n, y in mids.items():
-        l, r = edges(y); cx = (l + r) / 2; bw = r - l; hh = (fy[n - 1] - (fy[n - 2] if n > 1 else nut))
-        if kind == "dot":
-            rr = 6.5 if nk.get("big") else 5
-            xs = [cx - bw * .22, cx + bw * .22] if n == 12 else [cx]
-            s += "".join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{rr}" fill="{mat}"/>' for x in xs)
-        elif kind == "block":
-            s += f'<rect x="{cx - bw * .3:.1f}" y="{y - hh * .28:.1f}" width="{bw * .6:.1f}" height="{hh * .56:.1f}" rx="3" fill="{mat}"/>'
-        elif kind == "split":
-            ww, hh2 = bw * .62, hh * .5
-            s += f'<path d="M{cx - ww / 2:.1f} {y - hh2 / 2:.1f}H{cx + ww / 2:.1f}V{y + hh2 / 2:.1f}H{cx - ww / 2:.1f}Z M{cx - ww / 2 - 1:.1f} {y + hh2 * .15:.1f}L{cx + ww / 2 + 1:.1f} {y - hh2 * .15:.1f}L{cx + ww / 2 + 1:.1f} {y + hh2 * .06:.1f}L{cx - ww / 2 - 1:.1f} {y + hh2 * .36:.1f}Z" fill="{mat}" fill-rule="evenodd"/>'
-        elif kind == "trap":
-            tw, bw2, th = bw * .66, bw * .5, hh * .5
-            s += f'<path d="M{cx - tw / 2:.1f} {y - th / 2:.1f}H{cx + tw / 2:.1f}L{cx + bw2 / 2:.1f} {y + th / 2:.1f}H{cx - bw2 / 2:.1f}Z" fill="{mat}"/>'
-        elif kind == "diamond":
-            d = 7.5
-            s += f'<path d="M{cx:.1f} {y - d * 1.3:.1f}Q{cx + d * .2:.1f} {y - d * .2:.1f} {cx + d:.1f} {y:.1f}Q{cx + d * .2:.1f} {y + d * .2:.1f} {cx:.1f} {y + d * 1.3:.1f}Q{cx - d * .2:.1f} {y + d * .2:.1f} {cx - d:.1f} {y:.1f}Q{cx - d * .2:.1f} {y - d * .2:.1f} {cx:.1f} {y - d * 1.3:.1f}Z" fill="{mat}"/><path d="M{cx:.1f} {y - d * 1.3:.1f}Q{cx + d * .2:.1f} {y - d * .2:.1f} {cx + d:.1f} {y:.1f}L{cx:.1f} {y:.1f}Z" fill="#9AF0C8" opacity=".7"/>'
-        elif kind == "star":
-            R = 9 if n != 12 else 13
-            pts = " ".join(f"{cx + (R if i % 2 == 0 else R * .45) * np.sin(np.pi * i / 5):.1f},{y - (R if i % 2 == 0 else R * .45) * np.cos(np.pi * i / 5):.1f}" for i in range(10))
-            s += f'<polygon points="{pts}" fill="{mat}"/>'
-    s += f'<rect x="{l0:.1f}" y="{nut - 5}" width="{r0 - l0:.1f}" height="8" rx="2" fill="#EFE4C8"/>'
-    # six strings, nut to saddle, fanning slightly wider at the bridge
-    m = (r0 - l0) * .13; span0 = r0 - l0 - 2 * m
-    cxb = (l1 + r1) / 2; span1 = span0 * 1.14
-    for i in range(6):
-        x0 = l0 + m + span0 * i / 5; x1 = cxb - span1 / 2 + span1 * i / 5
-        s += f'<line x1="{x0:.1f}" y1="{nut}" x2="{x1:.1f}" y2="{br}" stroke="#ECE6DA" stroke-width="{2.6 - i * .25:.2f}" stroke-linecap="round"/>'
-    return s
-
 def headliner_body(a, lbl, nk):
     """The body from the traced silhouette (smoothed hard), violet with the right half a shade darker, a gold binding
     inset from the edge, two gold humbuckers in black surrounds and a gold bridge and tailpiece. The low-res source
@@ -116,34 +83,74 @@ def headliner_body(a, lbl, nk):
     s += f'<rect x="{cx - 58:.0f}" y="{nk["bridge"] - 70}" width="116" height="20" rx="10" fill="#F5C542"/><rect x="{cx - 70:.0f}" y="{nk["bridge"] - 6}" width="140" height="22" rx="11" fill="#F5C542"/><rect x="{cx:.0f}" y="{nk["bridge"] - 6}" width="70" height="22" rx="11" fill="#D9A92E"/>'
     return s
 
-for name in (sys.argv[2:] or list(JOBS)):
-    j = JOBS[name]
-    a = load(f"{S}/src/{j['src']}", j.get("crop"), j.get("rot", 0), j.get("scale", 2.0))
-    if name == "hollow": a = cv2.resize(a, (a.shape[1] // 2, a.shape[0] // 2), interpolation=cv2.INTER_AREA)
-    lbl, cent = quantize(a, j["k"])
-    lbl, cent = fixes(name, lbl, cent)
-    lbl2, _ = clean(lbl, j.get("thin", 3))
+
+def qp(c):
+    """One closed outline as a smooth cubic path in whole units, relative commands."""
+    pts = c.reshape(-1, 2).astype(float) * Q
+    n = len(pts)
+    if n < 3: return ""
+    t = 0.5
+    cp = []
+    for i in range(n):
+        p0, p1, p2, p3 = pts[(i - 1) % n], pts[i], pts[(i + 1) % n], pts[(i + 2) % n]
+        cp.append((p1 + (p2 - p0) * t / 3, p2 - (p3 - p1) * t / 3, p2))
+    cur = np.round(pts[0]).astype(int); d = f"M{cur[0]} {cur[1]}"
+    for c1, c2, p in cp:
+        e = np.round(p).astype(int)
+        a1 = np.round(c1).astype(int) - cur; a2 = np.round(c2).astype(int) - cur; a3 = e - cur
+        d += "c" + " ".join(map(str, (a1[0], a1[1], a2[0], a2[1], a3[0], a3[1])))
+        cur = e
+    return d + "z"
+
+def layers_of(lbl2, cent, rows):
+    """Traced colour layers for the rows kept, largest first. Returns [(hex, path)]."""
+    keep = np.zeros(lbl2.shape, bool); keep[rows[0]:rows[1]] = True
     layers = []
     for i, col in enumerate(cent):
-        m = (lbl2 == i).astype(np.uint8) * 255
+        m = ((lbl2 == i) & keep).astype(np.uint8) * 255
         m = cv2.morphologyEx(m, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
-        if m.sum() / 255 < 60: continue
+        if m.sum() / 255 < FLOOR: continue
         layers.append((int(m.sum()) // 255, col, m))
     layers.sort(key=lambda x: -x[0])
     out = []
     for _, col, m in layers:
         m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
         cs, _ = cv2.findContours(m, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-        d = "".join(smooth_path(cv2.approxPolyDP(c, 1.2, True)) for c in cs if cv2.contourArea(c) >= 60)
-        if d: out.append((f"#{col[0]:02x}{col[1]:02x}{col[2]:02x}", d))
+        d = "".join(qp(cv2.approxPolyDP(c, EPS, True)) for c in cs if cv2.contourArea(c) >= FLOOR)
+        if d: out.append(f"#{col[0]:02x}{col[1]:02x}{col[2]:02x}", ) if False else out.append((f"#{col[0]:02x}{col[1]:02x}{col[2]:02x}", d))
+    return out
+
+def shapes(layers):
+    return "".join(f'<path fill="{c}" fill-rule="evenodd" d="{d}"/>' for c, d in layers)
+
+def scale_svg(svg):
+    """The drawn headliner body is in 2x units: scale it to the art's units with a group transform."""
+    return f'<g transform="scale({Q})">{svg}</g>'
+
+built = {}
+for name in (sys.argv[1:] or list(JOBS)):
+    j = JOBS[name]; nk = NECK[name]
+    a = load(f"{S}/src/{j['src']}", j.get("crop"), j.get("rot", 0), j.get("scale", 2.0))
+    if name == "hollow": a = cv2.resize(a, (a.shape[1] // 2, a.shape[0] // 2), interpolation=cv2.INTER_AREA)
+    lbl, cent = quantize(a, j["k"])
+    lbl, cent = fixes(name, lbl, cent)
+    lbl2, _ = clean(lbl, j.get("thin", 3))
+    h, w = lbl2.shape
+    nut, end = nk["nut"], nk["end"]
+    head = shapes(layers_of(lbl2, cent, (0, nut + 4)))
     if name == "headliner":
-        # the traced headstock only (above the nut), then the drawn body, then the neck over it
-        hs = [(c, d) for c, d in out]
-        head = "".join(f'<path fill="{c}" fill-rule="evenodd" d="{d}"/>' for c, d in hs)
-        nk = NECK[name]
-        body = f'<clipPath id="hh"><rect x="0" y="0" width="{a.shape[1]}" height="{nk["nut"] + 4}"/></clipPath><g clip-path="url(#hh)">{head}</g>' + headliner_body(a, lbl, nk)
-        h, w = a.shape[:2]
-        open(f"{S}/{name}-n.svg", "w").write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}">{body}{neck_svg(nk)}</svg>')
-        print(name, "drawn"); continue
-    open(f"{S}/{name}-n.svg", "w").write(svg(a, out, neck_svg(NECK[name])))
-    print(name, "ok", len(out), "layers")
+        body = scale_svg(headliner_body(a, lbl, nk))
+    else:
+        body = shapes(layers_of(lbl2, cent, (end - 24, h)))
+    # the widest the body gets, from the label image below the board end
+    solid = (lbl2[end:] >= 0)
+    cols = np.where(solid.any(axis=0))[0]
+    cx = (nk["l1"] + nk["r1"]) / 2
+    nums = dict(nut=round(nut * Q), end=round(end * Q), bridge=round(nk["bridge"] * Q), l0=round(nk["l0"] * Q), r0=round(nk["r0"] * Q),
+                l1=round(nk["l1"] * Q), r1=round(nk["r1"] * Q), cx=round(cx * Q), w=round(w * Q), h=round(h * Q),
+                bl=round(cols.min() * Q), br=round(cols.max() * Q))
+    art = dict(head=head, body=body, over="", nums=nums, view=[round(w * Q), round(h * Q)])
+    js = "/* Traced from the Nano art by tools/guitars/build.py. Do not edit by hand. */\nexport default " + json.dumps(art, separators=(",", ":")) + ";\n"
+    os.makedirs(OUT, exist_ok=True)
+    open(f"{OUT}/{name}.js", "w").write(js)
+    print(f"{name:10s} head {len(head)/1000:5.1f}K body {len(body)/1000:5.1f}K total {len(js)/1000:5.1f}K", "OK" if len(js) <= BUDGET else "OVER")
