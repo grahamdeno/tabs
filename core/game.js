@@ -87,13 +87,13 @@ export function openingAdvance(data, id, now = Date.now()) {
    shape of the single inlays (merch boxes) and of the headline's double. Legs not built yet (strum,
    pick, finger) and the Encore guitar are data only until their legs exist. */
 export const GUITARS = {
-  open: { name: "The beater", kind: "acoustic", body: "parlor", head: "plain", headc: "#5a3d28", board: "#4a3328", binding: "#efe4c8", finish: "#8a6a4a", tuner: "#efe4c8", inlay: "small" },
-  switch: { name: "The cutaway", kind: "acoustic", body: "cutaway", head: "plain", headc: "#3a2a22", board: "#4a3328", binding: "#e9dcbc", finish: "#6b3b20", tuner: "#F5C542", inlay: "dot" },
-  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "plain", headc: "#1c1d22", board: "#2b2420", binding: "#e9dcbc", finish: "#1c1d22", tuner: "#F5C542", inlay: "block" },
-  strum: { name: "The hollow-body", kind: "electric", body: "hollow", head: "book", headc: "#1c1d22", board: "#241f1d", binding: "#e9dcbc", finish: "#a8431f", tuner: "#F5C542", inlay: "split" },
-  pick: { name: "The single-cut", kind: "electric", body: "single", head: "book", headc: "#1c1d22", board: "#241f1d", binding: "#e9dcbc", finish: "#8b1e2b", tuner: "#c4c8d0", inlay: "trap" },
-  finger: { name: "The classical", kind: "classical", body: "classical", head: "slot", headc: "#3a2418", board: "#4a3328", binding: "#efe4c8", finish: "#c98a4a", tuner: "#efe4c8", inlay: "abalone" },
-  encore: { name: "The headliner", kind: "electric", body: "swallow", head: "point", headc: "#8A47F5", board: "#1c1a1f", binding: "#F5C542", finish: "#8A47F5", tuner: "#F5C542", inlay: "star" }
+  open: { name: "The beater", kind: "acoustic", body: "parlor", head: "plain", headc: "#5a3d28", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#8a6a4a", tuner: "#efe4c8", inlay: "small" },
+  switch: { name: "The cutaway", kind: "acoustic", body: "cutaway", head: "plain", headc: "#3a2a22", ink: "#F5C542", board: "#4a3328", binding: "#e9dcbc", finish: "#6b3b20", tuner: "#F5C542", inlay: "dot" },
+  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "plain", headc: "#1c1d22", ink: "#F5C542", board: "#2b2420", binding: "#e9dcbc", finish: "#1c1d22", tuner: "#F5C542", inlay: "block" },
+  strum: { name: "The hollow-body", kind: "electric", body: "hollow", head: "book", headc: "#1c1d22", ink: "#F5C542", board: "#241f1d", binding: "#e9dcbc", finish: "#a8431f", tuner: "#F5C542", inlay: "split" },
+  pick: { name: "The single-cut", kind: "electric", body: "single", head: "book", headc: "#1c1d22", ink: "#c4c8d0", board: "#241f1d", binding: "#e9dcbc", finish: "#8b1e2b", tuner: "#c4c8d0", inlay: "trap" },
+  finger: { name: "The classical", kind: "classical", body: "classical", head: "slot", headc: "#3a2418", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#c98a4a", tuner: "#efe4c8", inlay: "abalone" },
+  encore: { name: "The headliner", kind: "electric", body: "swallow", head: "point", headc: "#8A47F5", ink: "#FFFFFF", board: "#1c1a1f", binding: "#F5C542", finish: "#8A47F5", tuner: "#F5C542", inlay: "star" }
 };
 export const guitarFor = legId => GUITARS[legId] || GUITARS.open;
 /* The fret spaces of a leg's neck, top to bottom: one per stop. Spacing narrows like a real neck (66, 62,
@@ -121,13 +121,13 @@ export function cleanGuitars(raw) {
   if (!isObj(raw)) return null;
   return { seen: [...new Set((Array.isArray(raw.seen) ? raw.seen : []).filter(x => typeof x === "string" && /^[\w-]{1,40}$/.test(x)))].slice(0, 20) };
 }
-/* The next guitar to announce: the first done leg you haven't been told about. */
+/* The next guitar to announce: the guitar after the last headlined leg, once. Showing it marks every headlined
+   leg as told, so a player arriving with several legs done hears about one guitar, not a queue. */
 export function guitarNew(data, now = Date.now()) {
-  const seen = data.guitars?.seen || [];
-  const id = guitarsEarned(data, now).find(x => !seen.includes(x));
-  if (!id) return null;
-  const legs = roadPath(data, now).legs, next = legs[legs.findIndex(l => l.id === id) + 1];
-  return next ? { leg: id, next: next.id, guitar: guitarFor(next.id) } : null;
+  const done = guitarsEarned(data, now), last = done.at(-1);
+  if (!last || (data.guitars?.seen || []).includes(last)) return null;
+  const legs = roadPath(data, now).legs, next = legs[legs.findIndex(l => l.id === last) + 1];
+  return next ? { leg: last, next: next.id, guitar: guitarFor(next.id), done } : null;
 }
 /* Merch boxes (4.76.0): the ids of the boxes you've opened on the Road. */
 export function cleanBoxes(raw) {

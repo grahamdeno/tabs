@@ -3,21 +3,23 @@
 //   stat bar    your venue, gig streak and fans (hud.js)
 //   leg banner  the leg you're on and the venue you've reached; the book opens the neck
 //   songs chip  how many of your songs you can play, and how many the next chord opens
-//   the path    every stop of every leg as a guitar pick (4.34.0): lessons, merch boxes and the headline
-//               show at the end (a level check: play a real song through). Done picks carry a check, the
-//               next one is bigger, its halo pulses and it wiggles now and then (4.35.0); later ones are
-//               locked. Nothing is open on arrival: tap a pick for its card (Start on the next one); at a
+//   the path    every leg is a guitar neck (4.82.0, fretboard.js): lessons are finger dots, merch boxes are
+//               inlays and the headline show (a level check: play a real song through) is the double inlay
+//               at the end of the neck. Done dots carry a check, the next one is bigger and its halo
+//               pulses; later ones are locked. Each leg has its own guitar, earned by headlining the leg
+//               before. Nothing is open on arrival: tap a stop for its card (Start on the next one); at a
 //               headline the card names a song that fits, with the others a tap away.
 //   Louie       beside the path, with one line that fits the moment and tonight's song to play
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { VERSION, boxesSeed, openBox, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
+import { guitarSVG, inlaySVG, neckHTML } from "./fretboard.js";
 import { statBar, bindStatBar } from "./hud.js";
 
 const DAY = 86400000;
@@ -68,29 +70,18 @@ const ICONS = {
   chord: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="4" width="22" height="24" rx="3" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M5 12h22M5 20h22M12.3 4v24M19.6 4v24" stroke="#fff" stroke-width="2"/><circle cx="12.3" cy="16" r="3.2" fill="#fff"/><circle cx="19.6" cy="8" r="3.2" fill="#fff"/></svg>`,
   switch: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 11h22l-6-6M28 21H6l6 6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   scale: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="7" cy="24" r="3.6" fill="#fff"/><circle cx="16" cy="16" r="3.6" fill="#fff"/><circle cx="25" cy="8" r="3.6" fill="#fff"/><path d="M7 24l9-8 9-8" stroke="#fff" stroke-width="2.4" stroke-dasharray="2 3"/></svg>`,
-  box: `<svg viewBox="0 0 34 30" aria-hidden="true"><path class="rd-bx" d="M4 14h26v11a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/><path class="rd-bx" d="M4 12a8 8 0 0 1 8-8h10a8 8 0 0 1 8 8v1H4z"/><rect class="rd-bxk" x="13" y="11" width="8" height="8" rx="2"/><path class="rd-bxs" d="M4 13h26" stroke-width="2.4"/></svg>`,
-  headline: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="10" r="7" fill="#fff"/><rect x="13.5" y="16" width="5" height="10" rx="2.5" fill="#fff"/><rect x="9" y="26" width="14" height="4" rx="2" fill="#fff"/></svg>`,
-  lock: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg>`,
   check: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 17l6 6 12-13" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   star: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l4 8.3 9 1.3-6.5 6.3 1.6 9L16 23.6 7.9 27.9l1.6-9L3 12.6l9-1.3z" fill="currentColor"/></svg>`
 };
 /* 4.34.0: each stop is a rounded guitar pick (flat colour on a darker lip, a shine), point down */
 const PICK = "M0 42 C-14 42 -46 14 -46 -12 C-46 -36 -26 -46 0 -46 C26 -46 46 -36 46 -12 C46 14 14 42 0 42 Z";
 const pickSVG = now => `<svg class="rd-pk" viewBox="-60 -60 120 120" aria-hidden="true">${now ? `<path class="rd-halo" d="${PICK}" transform="scale(1.3)"/>` : ""}<path class="rd-lip" d="${PICK}" transform="translate(0 7)"/><path class="rd-body" d="${PICK}"/><path class="rd-shine" d="M-30 -30 C-20 -38 -4 -40 10 -40"/></svg>`;
-const iconOf = s => s.state === "locked" && s.kind !== "box" ? ICONS.lock : s.kind === "headline" ? ICONS.star : s.kind === "box" ? ICONS.box : s.state === "done" ? ICONS.check : ICONS[s.kind] || ICONS.chord;
+const dotIcon = s => s.state === "done" ? ICONS.check : ICONS[s.kind] || ICONS.chord;
 /* the songs a headline show can be played with: only that leg's chords, the last played first */
 const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chordNames(sg.body || ""); return c.length >= 2 && c.every(n => stop.chords.includes(n)); })
   .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
 const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
 const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
-/* 4.75.0: a headline show is a ticket, not a pick (shows look different from lessons), and the next stop
-   carries a small tag with its name, so you can see what's next without a tap */
-const TICKET = "M-53 -34 H53 A12 12 0 0 1 65 -22 V-9 A9 9 0 0 0 65 9 V22 A12 12 0 0 1 53 34 H-53 A12 12 0 0 1 -65 22 V9 A9 9 0 0 0 -65 -9 V-22 A12 12 0 0 1 -53 -34 Z";
-const ticketSVG = now => `<svg class="rd-pk rd-tk" viewBox="-80 -60 160 120" aria-hidden="true">${now ? `<path class="rd-halo" d="${TICKET}" transform="scale(1.18)"/>` : ""}<path class="rd-lip" d="${TICKET}" transform="translate(0 7)"/><path class="rd-body" d="${TICKET}"/><path class="rd-shine" d="M-44 -24 H20" stroke-width="6" stroke-linecap="round" fill="none"/><path class="rd-tear" d="M34 -24 V24" fill="none" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
-/* 4.76.0: a merch box is a road case, not a pick: shut with its latches and stickers, then tapped open with
-   the lid back, a T-shirt rising out and sparkles. Coloured by the stop's state (--pk, --pkd). */
-const CASE_SHUT = `<svg class="rd-case" viewBox="0 0 120 120" aria-hidden="true"><path class="cds" d="M44 30 v-9 a7 7 0 0 1 7 -7 h18 a7 7 0 0 1 7 7 v9" stroke-width="7" fill="none" stroke-linecap="round"/><rect class="ct" x="38" y="25" width="12" height="7" rx="2"/><rect class="ct" x="70" y="25" width="12" height="7" rx="2"/><rect class="cd" x="10" y="36" width="100" height="74" rx="13"/><rect class="cb" x="10" y="30" width="100" height="74" rx="13"/><path class="cd" opacity=".28" d="M23 30 h74 a13 13 0 0 1 13 13 v12 h-100 v-12 a13 13 0 0 1 13 -13 z"/><rect class="ct" x="10" y="54" width="100" height="5"/><path class="csh" d="M22 37 h44" stroke-width="4" stroke-linecap="round"/><circle class="ct" cx="17" cy="37" r="8"/><circle class="cd" cx="17" cy="37" r="3"/><circle class="ct" cx="103" cy="37" r="8"/><circle class="cd" cx="103" cy="37" r="3"/><circle class="ct" cx="17" cy="97" r="8"/><circle class="cd" cx="17" cy="97" r="3"/><circle class="ct" cx="103" cy="97" r="8"/><circle class="cd" cx="103" cy="97" r="3"/><rect class="ct" x="34" y="48" width="12" height="17" rx="3"/><rect class="cd" x="37" y="57" width="6" height="5" rx="1.5"/><rect class="ct" x="74" y="48" width="12" height="17" rx="3"/><rect class="cd" x="77" y="57" width="6" height="5" rx="1.5"/><circle class="cs1" cx="38" cy="83" r="10"/><polygon class="ck" points="38.0,76.5 39.7,80.6 44.2,81.0 40.8,83.9 41.8,88.3 38.0,85.9 34.2,88.3 35.2,83.9 31.8,81.0 36.3,80.6"/><g transform="rotate(-10 80 82)"><rect class="cs2" x="66" y="74" width="28" height="15" rx="4"/><path class="cks" d="M71 79 h18 M71 84 h12" stroke-width="2.6" stroke-linecap="round"/></g></svg>`;
-const CASE_OPEN = `<svg class="rd-case" viewBox="0 0 120 120" aria-hidden="true"><path class="cd" d="M14 54 L26 6 H94 L106 54 Z"/><path class="cf" d="M22 52 L31 12 H89 L98 52 Z"/><circle class="cf2" cx="38" cy="24" r="2.6"/><circle class="cf2" cx="49" cy="24" r="2.6"/><circle class="cf2" cx="60" cy="24" r="2.6"/><circle class="cf2" cx="71" cy="24" r="2.6"/><circle class="cf2" cx="82" cy="24" r="2.6"/><circle class="cf2" cx="40" cy="34" r="2.6"/><circle class="cf2" cx="51" cy="34" r="2.6"/><circle class="cf2" cx="62" cy="34" r="2.6"/><circle class="cf2" cx="73" cy="34" r="2.6"/><circle class="cf2" cx="84" cy="34" r="2.6"/><circle class="cf2" cx="42" cy="44" r="2.6"/><circle class="cf2" cx="53" cy="44" r="2.6"/><circle class="cf2" cx="64" cy="44" r="2.6"/><circle class="cf2" cx="75" cy="44" r="2.6"/><circle class="cf2" cx="86" cy="44" r="2.6"/><rect class="ct" x="26" y="4" width="68" height="5" rx="2.5"/><g class="ctee" transform="translate(60 44) scale(1.15)"><path class="ctees" d="M-22 -18 L-9 -24 Q0 -17 9 -24 L22 -18 L32 -6 L22 1 L19 -2 L19 24 L-19 24 L-19 -2 L-22 1 L-32 -6 Z" transform="translate(0 3)"/><path class="cteeb" d="M-22 -18 L-9 -24 Q0 -17 9 -24 L22 -18 L32 -6 L22 1 L19 -2 L19 24 L-19 24 L-19 -2 L-22 1 L-32 -6 Z"/></g><polygon class="ck" points="60.0,34.0 61.6,37.8 65.7,38.1 62.6,40.8 63.5,44.9 60.0,42.7 56.5,44.9 57.4,40.8 54.3,38.1 58.4,37.8"/><rect class="cd" x="10" y="58" width="100" height="56" rx="13"/><rect class="cb" x="10" y="52" width="100" height="56" rx="13"/><rect class="ct" x="10" y="52" width="100" height="6" rx="3"/><circle class="ct" cx="17" cy="101" r="8"/><circle class="cd" cx="17" cy="101" r="3"/><circle class="ct" cx="103" cy="101" r="8"/><circle class="cd" cx="103" cy="101" r="3"/><g transform="rotate(14 40 60)"><rect class="ct" x="34" y="58" width="12" height="15" rx="3"/></g><g transform="rotate(14 80 60)"><rect class="ct" x="74" y="58" width="12" height="15" rx="3"/></g><circle class="cs1" cx="38" cy="88" r="10"/><polygon class="ck" points="38.0,81.5 39.7,85.6 44.2,86.0 40.8,88.9 41.8,93.3 38.0,90.9 34.2,93.3 35.2,88.9 31.8,86.0 36.3,85.6"/><g transform="rotate(-10 80 87)"><rect class="cs2" x="66" y="79" width="28" height="15" rx="4"/><path class="cks" d="M71 84 h18 M71 89 h12" stroke-width="2.6" stroke-linecap="round"/></g><path class="cx" d="M16 13 Q17.26 18.74 23 20 Q17.26 21.26 16 27 Q14.74 21.26 9 20 Q14.74 18.74 16 13 Z"/><path class="cx" d="M104 20 Q105.08 24.92 110 26 Q105.08 27.08 104 32 Q102.92 27.08 98 26 Q102.92 24.92 104 20 Z"/><path class="cx2" d="M98 2 Q98.72 5.28 102 6 Q98.72 6.72 98 10 Q97.28 6.72 94 6 Q97.28 5.28 98 2 Z"/></svg>`;
 const tagOf = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? (s.state === "now" ? "Tap to open" : "Merch box") : s.kind === "chord" ? `${s.name} chord` : s.name;
 /* A pick's card, opened by a tap (4.35.0, like the old card but only on a tap): the next stop's is in the
    streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
@@ -201,16 +192,13 @@ export function renderRoad() {
   const chip = !data.songs.length ? "" : ps.more > 0 ? `The ${esc(cur.chord)} chord opens <b>${ps.more} more</b> of your ${ps.of} songs`
     : `You can play <b>${ps.now} of your ${ps.of}</b> song${ps.of === 1 ? "" : "s"}`;
 
-  /* the path: one column of stops per leg, zigzagging, with a label where each new leg starts */
-  let i = 0;
-  const legsHTML = road.legs.map(l => `
+  /* the path: one neck per leg (fretboard.js), with a label where each new leg starts */
+  const labelOf = s => esc(`${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`);
+  const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(tagOf(s)) };
+  const legsHTML = road.legs.map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
-    ${l.stops.map(s => {
-      const x = ZIG[i++ % ZIG.length], big = s.kind === "headline";
-      const ic = iconOf(s);
-      const label = `${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`;
-      return `<div class="rd-stop${s === cur ? " cur" : ""}" style="--x:${x}px">${s === cur ? `<span class="rd-tag" aria-hidden="true">${esc(tagOf(s))}</span>` : ""}<button class="rd-node ${s.kind} ${s.state}${big ? " big tk" : ""}" data-stop="${esc(s.id)}" aria-label="${esc(label)}">${s.kind === "box" ? (s.state === "done" ? CASE_OPEN : CASE_SHUT) : `${big ? ticketSVG(s.state === "now") : pickSVG(s.state === "now")}<span class="rd-ic">${ic}</span>`}</button></div>`;
-    }).join("")}`).join("");
+    ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
+    ${neckHTML(l, gx)}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
   app.innerHTML = `
@@ -266,21 +254,22 @@ export function renderRoad() {
     closePop();
     if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); }
   });
-  /* 4.76.0: tap the next box: it pops open, the T-shirt rises out, the fans burst in, then the road moves on */
+  /* 4.76.0: tap the next box: it opens, the fans burst in, then the road moves on. 4.82.0: the pearl drops into the inlay. */
   const openCase = (node, s) => {
     if (node.classList.contains("opening") || !openBox(data, s.id)) return;
     Tabs.save(data); haptic(2);
     node.parentElement.querySelector(".rd-tag")?.remove();
     node.classList.add("opening", "done"); node.classList.remove("now");
-    node.innerHTML = CASE_OPEN;
+    node.innerHTML = inlaySVG(node.dataset.inlay, "set", false);
     showCallout({ kind: "earn", pow: "POW!", word: "MERCH BOX", big: `+${FANS.box} fans` });
     setTimeout(() => { if (document.contains(node)) renderRoad(); }, 1400);
   };
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
-  if (curNode) path.scrollTop = Math.max(0, curNode.parentElement.offsetTop - path.clientHeight / 3);
+  if (curNode) path.scrollTop = Math.max(0, path.scrollTop + curNode.getBoundingClientRect().top - path.getBoundingClientRect().top - path.clientHeight / 3);
   if (plays) fillScene(st);
   headlinerEarned(road);
+  guitarEarned(road);
 }
 
 /* 4.78.0: the first time a leg's headline show is done, Headliner is yours. Said once, on the Road. */
@@ -298,6 +287,23 @@ function headlinerEarned(road) {
   haptic(2);
 }
 
+
+/* 4.82.0: the first Road shown after a leg's headline show is done tells you the next guitar is yours. Said once;
+   if the Headliner sheet is up, it waits for the next Road. */
+function guitarEarned(road) {
+  if (layer.innerHTML) return;
+  const gn = guitarNew(data);
+  if (!gn) return;
+  data.guitars = { seen: gn.done }; Tabs.save(data);
+  const lg = road.legs.find(l => l.id === gn.next);
+  layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
+    <div class="pbody"><div class="rd-gt-row">${louie("cheer", { size: 96, pose: "hornsUp" })}<div class="rd-gt-art">${guitarSVG(gn.next)}</div></div>
+    <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
+    <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("gt-scrim").onclick = close; document.getElementById("gt-x").onclick = close;
+  haptic(2);
+}
 
 /* 4.45.2: a tapped stop's card can open below the visible path (under the tab bar); scroll the path so all of it shows, button included */
 function revealPop(path, pop) {

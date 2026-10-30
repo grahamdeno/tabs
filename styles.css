@@ -1979,8 +1979,6 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 .rd-coming svg { width: 18px; height: 18px; flex: none; }
 
 .song-title { font-family: var(--display); font-weight: 700; }
-.rd-bx { fill: #fff; } .rd-bxk { fill: var(--fans-deep); } .rd-bxs { stroke: var(--fans-deep); }
-.rd-node.box.locked .rd-bx { fill: var(--locked-ic); } .rd-node.box.locked .rd-bxk { fill: var(--locked); } .rd-node.box.locked .rd-bxs { stroke: var(--locked); }
 
 /* ==========================================================================
    Version 4 components (4.0.1)
@@ -4173,13 +4171,6 @@ body.playing .tuneup { display: none; }
 
 /* ---- 4.75.0: the Road's path, plan A: shows are tickets, the next stop names itself, the card says what you'd earn.
    All of this release's look is in this block (roll back: revert the 4.75.0 commit). ---- */
-.rd-node.tk { width: 112px; height: 76px; }
-.rd-node.tk .rd-pk { inset: -10% -14%; width: 128%; height: 120%; }
-.rd-node.tk .rd-tear { stroke: var(--pkd); opacity: .55; }
-.rd-node.tk .rd-shine { stroke: rgba(255,255,255,.35); fill: none; }
-.rd-node.tk .rd-ic { margin: -6px 26px 0 0; }
-.rd-node.tk.locked .rd-tear { opacity: .35; }
-.rd-node.now.tk .rd-halo { animation: rd-halo 1.8s ease-in-out infinite; }
 .rd-stop.cur { margin-top: 30px; }
 .rd-tag { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); z-index: 2; padding: 5px 11px; border-radius: 12px; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 800 13px var(--sans); white-space: nowrap; pointer-events: none; animation: rd-tagbob 2.4s ease-in-out infinite; }
 .rd-tag::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); }
@@ -4193,27 +4184,6 @@ body.playing .tuneup { display: none; }
 :root[data-look] .rd-pop.now .rd-start { background: #fff; color: var(--streak-deep); box-shadow: 0 5px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
 :root[data-look] .rd-pop.now .rd-start:active:not(:disabled) { box-shadow: 0 2px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
 
-/* ---- 4.76.0: the merch box is a road case you tap open (roll back: revert the 4.76.0 commit) ---- */
-.rd-node.box { width: 80px; height: 80px; }
-.rd-node.box.now { width: 96px; height: 96px; }
-.rd-node.box .rd-case { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.rd-case .cb { fill: var(--pk); } .rd-case .cd { fill: var(--pkd); } .rd-case .cds { stroke: var(--pkd); }
-.rd-case .ct { fill: rgba(255,255,255,.82); } .rd-case .csh { stroke: rgba(255,255,255,.4); }
-.rd-case .cs1 { fill: #3DE0FF; } .rd-case .cs2 { fill: #B8F34A; } .rd-case .ck { fill: #1D1640; } .rd-case .cks { stroke: #1D1640; }
-.rd-case .cf { fill: #1D1640; opacity: .45; } .rd-case .cf2 { fill: #1D1640; opacity: .35; }
-.rd-case .cteeb { fill: #3DE0FF; } .rd-case .ctees { fill: #1FA8C4; }
-.rd-case .cx { fill: #FFF6CC; } .rd-case .cx2 { fill: #B8F34A; }
-.rd-node.box.locked .ct { fill: var(--locked-ic); opacity: .55; } .rd-node.box.locked .csh { display: none; }
-.rd-node.box.locked .cs1, .rd-node.box.locked .cs2 { fill: var(--locked-deep); } .rd-node.box.locked .ck { fill: var(--locked-ic); } .rd-node.box.locked .cks { stroke: var(--locked-ic); }
-.rd-node.box.now::before { content: ""; position: absolute; inset: -16% -18% -10%; border-radius: 42%; background: color-mix(in srgb, var(--streak) 28%, transparent); animation: rd-boxhalo 1.8s ease-in-out infinite; }
-@keyframes rd-boxhalo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: .5; } }
-.rd-node.box.now .rd-case { animation: rd-casebob 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
-@keyframes rd-casebob { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px) rotate(-2deg); } 60% { transform: translateY(-5px) rotate(2deg); } }
-.rd-node.box.opening .rd-case { animation: rd-casepop .55s cubic-bezier(.3,1.6,.5,1); }
-@keyframes rd-casepop { 0% { transform: scale(.8); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
-.rd-node.box.opening .ctee { animation: rd-teeup .6s ease-out; transform-box: fill-box; }
-@keyframes rd-teeup { from { opacity: 0; translate: 0 22px; } }
-@media (prefers-reduced-motion: reduce) { .rd-node.box.now::before, .rd-node.box.now .rd-case, .rd-node.box.opening .rd-case, .rd-node.box.opening .ctee { animation: none; } }
 /* 4.77.0: Headliner (black, gold and chrome under a blacklight: violet, gold and blaze orange). It is a dark
    look and shares Neon Midnight's dark fixes above; these are the places Neon names its own colours. */
 :root[data-look="headliner"] { --g-verse: #F5C542; --g-chorus: #9B5CFF; --g-bridge: #FF7A1A; --g-solo: #CFD4DA; }
@@ -4224,14 +4194,6 @@ body.playing .tuneup { display: none; }
 .set:has(#s-theme) { flex-wrap: wrap; row-gap: 10px; }
 .set #s-theme { margin-left: 0; flex: 1 0 100%; display: flex; }
 .set #s-theme button { flex: 1 1 auto; padding: 0 6px; }
-/* 4.77.1: the road case's stickers and shirt were Neon Midnight's cyan and lime in every look;
-   in Headliner they are violet and chrome, with the black ink of the look */
-:root[data-look="headliner"] .rd-case .cs1, :root[data-look="headliner"] .rd-case .cteeb { fill: #9B5CFF; }
-:root[data-look="headliner"] .rd-case .ctees { fill: #6431C2; }
-:root[data-look="headliner"] .rd-case .cs2 { fill: #CFD4DA; }
-:root[data-look="headliner"] .rd-case .cx2 { fill: #F5C542; }
-:root[data-look="headliner"] .rd-case :is(.ck, .cf, .cf2) { fill: #16171B; }
-:root[data-look="headliner"] .rd-case .cks { stroke: #16171B; }
 /* 4.77.1: played stops are chrome in Headliner, as in the mockup (they took the success green) */
 :root[data-look="headliner"] .rd-node.done:not(.box) { --pk: #CFD4DA; --pkd: #7B8188; }
 /* 4.78.0: a look you don't have yet, in Settings > Look: a lock, and a tap opens the Merch table */
@@ -4325,3 +4287,67 @@ html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .skl-tpn small { font: 800 10px var(--sans); color: var(--fg-2); }
 .skl-tpn.out { outline: 2px dashed var(--accent); }
 .sk2 .sk-for { padding: 8px 12px; border-radius: 999px; border: 2px solid var(--rim); background: var(--card); font: 800 12px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--fg); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ==========================================================================
+   The fretboard Road (4.82.0): each leg is a guitar neck (fretboard.js). The woods and finishes keep the
+   guitar's own colours in every look; the dots, rings, halos and tags take the look's colours. Everything is
+   scoped to .rd-neck so Opening night (still picks) is untouched.
+   ========================================================================== */
+.rd-neck { position: relative; isolation: isolate; flex: none; width: min(100%, 390px); }
+.rd-neck > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.rd-neck .rd-strings { z-index: 2; pointer-events: none; }
+.rd-neck .rd-stop { position: absolute; left: 0; right: 0; height: 0; display: block; transform: none; margin: 0; z-index: 1; }
+.rd-neck .rd-stop.k-dot { z-index: 3; }
+.rd-neck .rd-stop:has(.rd-pop) { z-index: 6; }
+.rd-neck .rd-node:is(.chord, .switch, .scale, .box, .headline, .now, .open, .locked, .done, .big) {
+  position: absolute; top: 0; transform: translate(-50%, -50%); width: 48px; height: 48px; border-radius: 0; border: 0; padding: 0;
+  background: none; box-shadow: none; overflow: visible; display: block; color: #fff;
+  --pk: var(--accent); --pkd: var(--accent-deep);
+}
+.rd-neck .rd-node:is(.box, .big) { width: 60px; }
+.rd-neck .rd-node.headline { width: 112px; }
+.rd-neck .rd-node.now:not(.box, .headline) { width: 60px; height: 60px; --pk: var(--streak); --pkd: var(--streak-deep); }
+.rd-neck .rd-node.locked { --pk: var(--locked); --pkd: var(--locked-deep); }
+:root[data-look="headliner"] .rd-neck .rd-node.done { --pk: var(--accent); --pkd: var(--accent-deep); }
+.rd-neck .rd-node:is(.now, .done):active { transform: translate(-50%, -50%) scale(.94); box-shadow: none; }
+.rd-neck .rd-node::after { display: none; }
+.rd-neck .rd-node svg.rd-dot, .rd-neck .rd-node svg.rd-inlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.rd-neck .rd-node .rd-dot .rd-body { fill: var(--pk); animation: none; }
+.rd-neck .rd-node .rd-dot .rd-lip { fill: var(--pkd); animation: none; }
+.rd-neck .rd-node .rd-dot .rd-shine { fill: rgba(255, 255, 255, .4); stroke: none; animation: none; }
+.rd-neck .rd-node.locked .rd-dot .rd-shine { display: none; }
+.rd-neck .rd-node .rd-ic { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #fff; pointer-events: none; animation: none; }
+.rd-neck .rd-node .rd-ic svg { width: 22px; height: 22px; }
+.rd-neck .rd-node.now .rd-ic svg { width: 28px; height: 28px; }
+.rd-neck .rd-pin { width: 8px; height: 8px; border-radius: 50%; background: var(--locked-ic); }
+/* the halo breathes on the next stop */
+.rd-neck .rd-node .rd-halo { fill: var(--streak); opacity: .24; transform-box: fill-box; transform-origin: center; animation: rd-halof 1.8s ease-in-out infinite; }
+@keyframes rd-halof { 0%, 100% { transform: scale(1); opacity: .3; } 50% { transform: scale(1.22); opacity: .12; } }
+/* inlays: an empty pocket, set in pearl, lit when the headline show is next */
+.rd-neck .rd-pit { fill: rgba(0, 0, 0, .5); stroke: rgba(255, 255, 255, .24); stroke-width: 1.5; stroke-linejoin: round; }
+.rd-neck .rd-rec { fill: #14100d; stroke: #14100d; stroke-width: 6; stroke-linejoin: round; }
+.rd-neck .rd-pearl { fill: #f4ecdc; }
+.rd-neck .rd-pearl.abalone { fill: #7fd1c7; }
+.rd-neck .rd-pearl.star { fill: #F5C542; }
+.rd-neck .rd-sheen { fill: #fff; opacity: .9; }
+.rd-neck .rd-sheen2 { fill: #ddd0ee; opacity: .8; }
+.rd-neck .rd-ring { fill: none; stroke: var(--streak); stroke-width: 3; }
+.rd-neck .rd-ring.dash { stroke: var(--fans); stroke-width: 2.4; stroke-dasharray: 4 5; }
+.rd-neck .rd-node.opening .rd-pearl { transform-box: fill-box; transform-origin: center; animation: rd-set .5s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes rd-set { from { transform: scale(1.5); opacity: 0; } }
+/* the tag beside the next stop, in the margin */
+.rd-neck .rd-tag { top: 0; bottom: auto; transform: translateY(-50%); max-width: 78px; padding: 5px 9px; font-size: 13px; line-height: 1.15; text-align: center; white-space: normal; animation: rd-tagbobf 2.4s ease-in-out infinite; }
+.rd-neck .rd-tag.l { left: auto; }
+.rd-neck .rd-tag::after { bottom: auto; top: 50%; margin: -5px 0 0; }
+.rd-neck .rd-tag.l::after { left: auto; right: -5px; }
+.rd-neck .rd-tag.r::after { left: -5px; }
+@keyframes rd-tagbobf { 50% { transform: translateY(calc(-50% - 3px)); } }
+/* a stop's card opens over the neck, centred, its point on the stop */
+.rd-neck .rd-pop { position: absolute; left: 50%; top: 42px; margin: 0; transform: translateX(-50%); z-index: 7; animation: rd-popf .22s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes rd-popf { from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(.96); } }
+.rd-neck .rd-earned { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 3; padding: 4px 12px; border-radius: 999px; background: var(--fans); color: #3D2A00; font: 800 12px var(--sans); white-space: nowrap; pointer-events: none; }
+.rd-newg { align-self: center; margin: -6px 0 -4px; padding: 4px 12px; border-radius: 999px; background: var(--accent-deep); color: #fff; font: 800 12px var(--sans); letter-spacing: .04em; }
+/* the new-guitar sheet */
+.rd-gt-row { display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin: 4px 0 8px; }
+.rd-gt-art svg { display: block; height: 230px; width: auto; }
+@media (prefers-reduced-motion: reduce) { .rd-neck .rd-node .rd-halo, .rd-neck .rd-tag, .rd-neck .rd-pop, .rd-neck .rd-node.opening .rd-pearl { animation: none; } }
