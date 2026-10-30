@@ -2738,3 +2738,20 @@ test("4.85.0 your guitarist: patches, moods and seeded rivals", () => {
   const worn = C.cleanMe({ ...C.ME_DEFAULT, patches: ["b:nope"] });
   assert.deepEqual(C.patchesOf({ ...data, me: worn }), [], "a patch you haven't earned isn't worn");
 });
+
+test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lefty mirrors the body", async () => {
+  const { guitarist } = await import("../guitarist.js");
+  const looks = ["tee", "vest", "leather", "stage"], P = [{ kind: "leg", color: "#8a6a4a", top: "1" }, { kind: "show", color: "#ff5fa8", top: "10" }];
+  for (const hair of C.ME_HAIR) for (const pose of ["play", "hornsUp", "rest"]) for (const mood of ["happy", "cheer", "worried", "sleepy", "proud"]) {
+    const s = guitarist({ ...C.ME_DEFAULT, hair, beard: "beard", glasses: true, extra: "cap" }, { mood, pose, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
+    assert.ok(s.startsWith("<svg") && s.endsWith("</svg>") && !s.includes("undefined") && !s.includes("NaN"), `${hair} ${pose} ${mood}`);
+  }
+  for (const g of Object.values(C.GUITARS)) assert.ok(!guitarist(C.ME_DEFAULT, { guitar: g }).includes("undefined"), g.name);
+  assert.ok(guitarist(C.ME_DEFAULT, {}).includes('aria-label="Your guitarist"'));
+  assert.ok(guitarist(C.ME_DEFAULT, { label: "Neon Jen" }).includes('aria-label="Neon Jen"'));
+  assert.ok(guitarist({ ...C.ME_DEFAULT, lefty: true }, {}).includes("scale(-1 1)"), "lefty mirrors");
+  assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
+  const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
+  assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
+  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
+});
