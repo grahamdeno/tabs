@@ -9,7 +9,7 @@
 //
 // Woods and finishes keep the guitar's own colours in every look; only dots, rings, halos and tags take the
 // look's colours (styles.css, "The fretboard Road").
-import { FRET_HEAD, fretLayout, guitarFor } from "./core.js";
+import { fretLayout, guitarFor } from "./core.js";
 
 const W = 390, CX = 195;
 const STR = [-90, -54, -18, 18, 54, 90]; /* string x from the middle of the board, low E to high e */
@@ -175,7 +175,8 @@ function headstock(g) {
 
 /* head, body, board, binding, nut, frets and the side dots at the inlays: everything under the stops */
 function baseLayer(g, lay) {
-  const top = FRET_HEAD, endY = top + lay.neck, y0 = endY;
+  if (lay.nano) return nanoBase(g, lay);
+  const top = lay.head, endY = top + lay.neck, y0 = endY;
   const body = (BODIES[g.body] || BODIES.parlor)(g);
   let frets = "", y = top;
   for (const sp of lay.spaces) {
@@ -189,9 +190,44 @@ function baseLayer(g, lay) {
     + frets + dots + `<g transform="translate(0 ${y0})">${body.parts}</g>`;
 }
 
+
+/* ---- the Nano art (4.86.0): the traced head and body from art/guitars, the neck still drawn here ----
+   The art is in its own units (a neck about 36 wide); the Road's neck is 212 wide so the dots are thumb-sized.
+   `o`: body "A" (the whole body on the screen), "B" (about 1.6 screens wide, the bouts bleed off), "C" (true scale);
+   head "H1" (100 tall like before), "H2" (taller, same shape), "H3" (taller and stretched to the neck); name (print it). */
+export function nanoLayout(stops, art, o) {
+  const n = art.nums, bw = n.br - n.bl;
+  const hh = o.head === "H1" ? 100 : o.head === "H3" ? 230 : 230;
+  const s = o.body === "C" ? 212 / (n.r1 - n.l1) : o.body === "B" ? 1.6 * W / bw : (W - 10) / bw;
+  /* the body's top sits at the last fret; the board runs on to the art's end, but no more than 70 past it */
+  const endOff = Math.min((n.end - n.top) * s, 70), tail = o.body === "A" ? n.h - n.end + 6 : n.bridge - n.end + 80;
+  const lay = fretLayout(stops, hh, Math.round(endOff + tail * s));
+  lay.nano = { art, o, s, endOff };
+  lay.bridge = endOff + (n.bridge - n.end) * s - 4;
+  return lay;
+}
+function nanoBase(g, lay) {
+  const { art, o, s, endOff } = lay.nano, n = art.nums, top = lay.head, endY = top + lay.neck;
+  const hs = (top - 6) / (n.nut + 2), hsx = o.head === "H3" ? hs * Math.min(1.7, 200 / (hs * 70)) : hs;
+  const hx = (n.l0 + n.r0) / 2;
+  let frets = "", y = top;
+  for (const sp of lay.spaces) {
+    y += sp.h;
+    frets += `${rect(89, y - 3, 212, 6, "#c4c8d0")}${rect(89, y - 3, 212, 2, "#f2f4f7")}${rect(89, y + 1, 212, 2, "#7d828c")}`;
+  }
+  const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="303" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
+  const bt = `translate(${(CX - n.cx * s).toFixed(1)} ${(endY + endOff - n.end * s).toFixed(1)}) scale(${s.toFixed(4)})`;
+  const ht = `translate(${(CX - hx * hsx).toFixed(1)} ${(top - n.nut * hs).toFixed(1)}) scale(${hsx.toFixed(4)} ${hs.toFixed(4)})`;
+  const boardH = lay.neck + endOff;
+  return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}</g>`
+    + rect(89, top, 212, boardH, g.board) + rect(85, top - 8, 4, boardH + 8, g.binding) + rect(301, top - 8, 4, boardH + 8, g.binding)
+    + rect(85, top - 10, 220, 10, g.binding) + rect(85, top, 220, 3, "#c9b98f") + frets + dots
+    + (o.name ? `<text x="${CX}" y="${top / 2 + 6}" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="600" fill="${g.ink}">${g.name}</text>` : "");
+}
+
 /* the strings and their shadows, from the nut to the bridge */
 function stringLayer(g, lay) {
-  const top = FRET_HEAD, bot = top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge - 4;
+  const top = lay.head, bot = lay.bridge ? top + lay.neck + lay.bridge : top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge - 4;
   const wd = g.kind === "classical" ? [3.2, 2.8, 2.4, 2, 1.8, 1.6] : g.kind === "electric" ? [3.2, 2.8, 2.4, 2, 1.6, 1.2] : [3.5, 3, 2.5, 2, 1.6, 1.2];
   const col = i => g.kind === "classical" ? (i < 3 ? "#c4c8d0" : "#f3ecdc") : g.kind === "electric" ? "#c4c8d0" : i < 4 ? "#c9a96e" : "#dfe2e8";
   return STR.map((dx, i) => `<line x1="${CX + dx + 3}" y1="${top}" x2="${CX + dx + 3}" y2="${bot}" stroke="#14100d" stroke-opacity=".55" stroke-width="${wd[i]}"/>`).join("")
@@ -231,7 +267,7 @@ function dotSVG(state, icon) {
 
 /* One stop, placed over the neck. `o`: cur (the current stop), icon(stop), label(stop), tag(stop). */
 function stopHTML(sp, g, lay, o) {
-  const s = sp.stop, x = CX + (sp.string >= 0 ? STR[sp.string] : 0), y = FRET_HEAD + sp.y, cur = s === o.cur;
+  const s = sp.stop, x = CX + (sp.string >= 0 ? STR[sp.string] : 0), y = lay.head + sp.y, cur = s === o.cur;
   const left = sp.kind === "inlay" || (sp.kind === "dot" && sp.string < 3);
   const tag = cur ? `<span class="rd-tag ${left ? "l" : "r"}" style="${left ? `right:${((1 - 79 / W) * 100).toFixed(2)}%` : `left:${(311 / W * 100).toFixed(2)}%`}" aria-hidden="true">${o.tag(s)}</span>` : "";
   const inner = sp.kind === "dot" ? dotSVG(s.state, o.icon(s))
@@ -246,9 +282,9 @@ function stopHTML(sp, g, lay, o) {
 /* A leg's neck: base layer, stops, strings. The wrapper keeps the drawing's proportions, so a narrower
    phone scales the whole guitar and the stops stay where they belong. */
 export function neckHTML(leg, o) {
-  const g = guitarFor(leg.id), lay = fretLayout(leg.stops);
+  const g = guitarFor(leg.id), lay = o.nano ? nanoLayout(leg.stops, o.nano.art, o.nano) : fretLayout(leg.stops);
   return `<div class="rd-neck" data-guitar="${leg.id}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
-    <svg class="rd-base" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${baseLayer(g, lay)}</svg>
+    <svg class="rd-base${lay.nano ? " nano" : ""}" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${baseLayer(g, lay)}</svg>
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}
     <svg class="rd-strings" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${stringLayer(g, lay)}</svg>
     ${leg.done ? `<span class="rd-earned">${g.name} · headlined</span>` : ""}</div>`;

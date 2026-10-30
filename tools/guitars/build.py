@@ -138,15 +138,18 @@ for name in (sys.argv[1:] or list(JOBS)):
     h, w = lbl2.shape
     nut, end = nk["nut"], nk["end"]
     head = shapes(layers_of(lbl2, cent, (0, nut + 4)))
+    # the top of the body: the first row below the nut where the picture is wider than twice the board
+    wid = (lbl2 >= 0).sum(axis=1)
+    top = next(y for y in range(nut + 40, h) if wid[y] > 2.0 * (nk["r1"] - nk["l1"]))
     if name == "headliner":
         body = scale_svg(headliner_body(a, lbl, nk))
     else:
-        body = shapes(layers_of(lbl2, cent, (end - 24, h)))
+        body = shapes(layers_of(lbl2, cent, (top - 6, h)))
     # the widest the body gets, from the label image below the board end
     solid = (lbl2[end:] >= 0)
     cols = np.where(solid.any(axis=0))[0]
     cx = (nk["l1"] + nk["r1"]) / 2
-    nums = dict(nut=round(nut * Q), end=round(end * Q), bridge=round(nk["bridge"] * Q), l0=round(nk["l0"] * Q), r0=round(nk["r0"] * Q),
+    nums = dict(top=round(top * Q), nut=round(nut * Q), end=round(end * Q), bridge=round(nk["bridge"] * Q), l0=round(nk["l0"] * Q), r0=round(nk["r0"] * Q),
                 l1=round(nk["l1"] * Q), r1=round(nk["r1"] * Q), cx=round(cx * Q), w=round(w * Q), h=round(h * Q),
                 bl=round(cols.min() * Q), br=round(cols.max() * Q))
     art = dict(head=head, body=body, over="", nums=nums, view=[round(w * Q), round(h * Q)])

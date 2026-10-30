@@ -106,7 +106,7 @@ export const FRET_STEPS = [66, 62, 59, 56, 53, 50];
 export const FRET_MIN = 48;
 export const FRET_HEAD = 100;
 export const FRET_BODY = 330;
-export function fretLayout(stops) {
+export function fretLayout(stops, head = FRET_HEAD, body = FRET_BODY) {
   let y = 0, dots = 0;
   const spaces = stops.map((stop, i) => {
     const h = FRET_STEPS[i] ?? FRET_MIN, kind = stop.kind === "headline" ? "double" : stop.kind === "box" ? "inlay" : "dot";
@@ -114,7 +114,7 @@ export function fretLayout(stops) {
     y += h;
     return sp;
   });
-  return { spaces, neck: y, head: FRET_HEAD, body: FRET_BODY, height: FRET_HEAD + y + FRET_BODY };
+  return { spaces, neck: y, head, body, height: head + y + body };
 }
 /* The guitars you've earned: every leg whose headline show is done, in order, plus the first. Shown once each. */
 export const guitarsEarned = (data, now = Date.now()) => roadPath(data, now).legs.filter(l => l.done).map(l => l.id);

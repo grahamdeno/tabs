@@ -4295,6 +4295,7 @@ html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
    ========================================================================== */
 .rd-neck { position: relative; isolation: isolate; flex: none; width: min(100%, 390px); }
 .rd-neck > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.rd-neck > svg.rd-base.nano { overflow: hidden; }
 .rd-neck .rd-strings { z-index: 2; pointer-events: none; }
 .rd-neck .rd-stop { position: absolute; left: 0; right: 0; height: 0; display: block; transform: none; margin: 0; z-index: 1; }
 .rd-neck .rd-stop.k-dot { z-index: 3; }
