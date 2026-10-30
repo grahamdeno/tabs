@@ -150,17 +150,17 @@ Done by Opus, 2026-10-29. The neck reads as the canvas did: tags sit in the marg
 and "Tap to open" work, the double inlay and the body close each leg, "New guitar earned", the headstock name and
 "The beater · headlined" land where planned, and the New guitar sheet shows once. Fixes for 4.82.2 (4.82.1 went out first with the hearing fix, 2026-10-29):
 
-- [ ] 7.2 [Sonnet] Locked dots disappear in the dark looks: violet on rosewood. On the neck, give locked dots a
+- [x] 7.2 [Sonnet] Locked dots disappear in the dark looks: violet on rosewood. On the neck, give locked dots a
       lighter fill (a pale grey with the darker lip) in Dark and Headliner, as Light already has.
-- [ ] 7.3 [Sonnet] The beater's small inlays are too small next to the canvas (the pocket and the pearl read as
+- [x] 7.3 [Sonnet] The beater's small inlays are too small next to the canvas (the pocket and the pearl read as
       specks). Bring `small` up to about 80% of the `dot` inlay.
-- [ ] 7.4 [Sonnet] On a leg's first stops the headstock scrolls off and only the tuner tips peek under the songs
+- [x] 7.4 [Sonnet] On a leg's first stops the headstock scrolls off and only the tuner tips peek under the songs
       chip. When the current stop is in the first three spaces, scroll so the headstock and its name show.
-- [ ] 7.5 [Sonnet] Strings run past the bridge to the edge of the acoustic body. End them at the bridge.
-- [ ] 7.6 [Sonnet] An "open" stop (reachable while a shut box is the next stop) looks nearly like a done dot:
+- [x] 7.5 [Sonnet] Strings run past the bridge to the edge of the acoustic body. End them at the bridge.
+- [x] 7.6 [Sonnet] An "open" stop (reachable while a shut box is the next stop) looks nearly like a done dot:
       same fill, icon instead of check. Give it the accent as a ring on the board colour instead.
-- [ ] 7.7 [Sonnet] Tuner buttons float beside the headstock. Add a short post to each (small, cosmetic).
-- [ ] 7.8 Patch 4.82.2, `eslint .`, quick tests, rebase, push only after Graham says ship.
+- [x] 7.7 [Sonnet] Tuner buttons float beside the headstock. Add a short post to each (small, cosmetic).
+- [ ] 7.8 Patch 4.82.2 built and committed; goes out with 4.83.0 when Graham says ship.
 
 ## Open (not this release)
 

@@ -4316,6 +4316,11 @@ html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .rd-neck .rd-node .rd-dot .rd-lip { fill: var(--pkd); animation: none; }
 .rd-neck .rd-node .rd-dot .rd-shine { fill: rgba(255, 255, 255, .4); stroke: none; animation: none; }
 .rd-neck .rd-node.locked .rd-dot .rd-shine { display: none; }
+/* 4.82.1: locked dots read on the dark woods in the dark looks; an open stop is a ring, not a done dot */
+:root[data-theme="dark"] .rd-neck .rd-node.locked { --pk: #8d93a8; --pkd: #5d6378; }
+:root[data-theme="dark"] .rd-neck .rd-node.locked .rd-pin { background: #2c3042; }
+.rd-neck .rd-node.open { --pk: #2c1f17; --pkd: #14100d; }
+.rd-neck .rd-node.open .rd-dot .rd-body { stroke: var(--accent); stroke-width: 4; }
 .rd-neck .rd-node .rd-ic { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #fff; pointer-events: none; animation: none; }
 .rd-neck .rd-node .rd-ic svg { width: 22px; height: 22px; }
 .rd-neck .rd-node.now .rd-ic svg { width: 28px; height: 28px; }

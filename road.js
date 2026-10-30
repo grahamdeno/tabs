@@ -266,7 +266,13 @@ export function renderRoad() {
   };
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
-  if (curNode) path.scrollTop = Math.max(0, path.scrollTop + curNode.getBoundingClientRect().top - path.getBoundingClientRect().top - path.clientHeight / 3);
+  if (curNode) {
+    const pr = path.getBoundingClientRect(), nr = curNode.getBoundingClientRect(), neck = curNode.closest(".rd-neck");
+    let to = path.scrollTop + nr.top - pr.top - path.clientHeight / 3;
+    /* 4.82.1: near the nut, show the headstock and its name rather than centring on the stop */
+    if (neck) { const nt = path.scrollTop + neck.getBoundingClientRect().top - pr.top; if (nr.top - neck.getBoundingClientRect().top < 260) to = Math.min(to, nt - 8); }
+    path.scrollTop = Math.max(0, to);
+  }
   if (plays) fillScene(st);
   headlinerEarned(road);
   guitarEarned(road);

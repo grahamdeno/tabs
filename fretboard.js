@@ -74,7 +74,7 @@ function headstock(g) {
     book: "M92 90L84 26C84 14 94 8 108 12L195 22L282 12C296 8 306 14 306 26L298 90Z",
     point: "M92 90L80 30L195 4L310 30L298 90Z"
   };
-  const tuners = [28, 52, 76].map(y => `<circle cx="68" cy="${y + 2}" r="9" fill="#00000055"/><circle cx="68" cy="${y}" r="9" fill="${g.tuner}"/><circle cx="322" cy="${y + 2}" r="9" fill="#00000055"/><circle cx="322" cy="${y}" r="9" fill="${g.tuner}"/>`).join("");
+  const tuners = [28, 52, 76].map(y => `<rect x="70" y="${y - 2}" width="30" height="5" rx="2" fill="${g.tuner}" opacity=".7"/><rect x="290" y="${y - 2}" width="30" height="5" rx="2" fill="${g.tuner}" opacity=".7"/><circle cx="68" cy="${y + 2}" r="9" fill="#00000055"/><circle cx="68" cy="${y}" r="9" fill="${g.tuner}"/><circle cx="322" cy="${y + 2}" r="9" fill="#00000055"/><circle cx="322" cy="${y}" r="9" fill="${g.tuner}"/>`).join("");
   const slots = g.head === "slot" ? `${rect(120, 24, 22, 50, "#16171B", 10)}${rect(248, 24, 22, 50, "#16171B", 10)}` : "";
   return `${tuners}<path d="${shapes[g.head] || shapes.plain}" fill="${g.headc}" stroke="${g.binding}" stroke-width="2"/>${slots}<text x="${CX}" y="${g.head === "point" ? 56 : g.head === "book" ? 62 : 54}" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="600" fill="${g.ink}">${g.name}</text>`;
 }
@@ -97,7 +97,7 @@ function baseLayer(g, lay) {
 
 /* the strings and their shadows, from the nut to the bridge */
 function stringLayer(g, lay) {
-  const top = FRET_HEAD, bot = top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge;
+  const top = FRET_HEAD, bot = top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge - 4;
   const wd = g.kind === "classical" ? [3.2, 2.8, 2.4, 2, 1.8, 1.6] : g.kind === "electric" ? [3.2, 2.8, 2.4, 2, 1.6, 1.2] : [3.5, 3, 2.5, 2, 1.6, 1.2];
   const col = i => g.kind === "classical" ? (i < 3 ? "#c4c8d0" : "#f3ecdc") : g.kind === "electric" ? "#c4c8d0" : i < 4 ? "#c9a96e" : "#dfe2e8";
   return STR.map((dx, i) => `<line x1="${CX + dx + 3}" y1="${top}" x2="${CX + dx + 3}" y2="${bot}" stroke="#14100d" stroke-opacity=".55" stroke-width="${wd[i]}"/>`).join("")
@@ -108,7 +108,7 @@ function stringLayer(g, lay) {
 const STAR = c => Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? 6.5 : 15, a = -Math.PI / 2 + i * Math.PI / 5; return `${(c + r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`; }).join(" ");
 function shape(t, c, cls) {
   const a = `class="${cls}"`;
-  if (t === "small") return `<circle ${a} cx="${c}" r="7"/>`;
+  if (t === "small") return `<circle ${a} cx="${c}" r="10"/>`;
   if (t === "dot" || t === "abalone") return `<circle ${a} cx="${c}" r="13"/>`;
   if (t === "block") return `<rect ${a} x="${c - 17}" y="-11" width="34" height="22" rx="3"/>`;
   if (t === "split") return `<path ${a} d="M${c - 16} 10H${c - 2}V-6L${c - 16} -10ZM${c + 2} 10H${c + 16}V-10L${c + 2} -6Z"/>`;
