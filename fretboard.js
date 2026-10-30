@@ -213,7 +213,7 @@ export function nanoLayout(stops, art, o) {
 }
 function nanoBase(g, lay) {
   const { art, o, s, endOff, hs, hsx } = lay.nano, n = art.nums, top = lay.head, endY = top + lay.neck;
-  const hx = (n.hl + n.hr) / 2, hc = (n.l0 + n.r0) / 2;
+  const hc = (n.l0 + n.r0) / 2;
   const half = y => lay.fan ? 106 * lay.fan(y) : 106, bEnd = endY + endOff;
   let frets = "", y = top;
   for (const sp of lay.spaces) {
