@@ -1716,6 +1716,39 @@ test("The Road (4.0.0): the neck's ladder as legs of stops, merch boxes every th
   assert.equal(C.fansOf(data), 3 * C.FANS.lesson + C.FANS.box, "fans: lessons and the opened box");
 });
 
+test("The fretboard Road (4.82.0): a guitar per leg, fret spaces that narrow to a floor, dots, inlays and the double", () => {
+  assert.equal(C.guitarFor("nope").name, "The beater", "an unknown leg gets the beater");
+  assert.deepEqual(Object.keys(C.GUITARS), ["open", "switch", "scales", "strum", "pick", "finger", "encore"]);
+  assert.ok(Object.values(C.GUITARS).every(g => g.name && g.finish && g.board && g.inlay), "every guitar is fully described");
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  const open = C.roadPath(data).legs[0].stops, lay = C.fretLayout(open);
+  assert.equal(lay.spaces.length, open.length, "one space per stop");
+  const hs = lay.spaces.map(x => x.h);
+  assert.deepEqual(hs.slice(0, 6), [66, 62, 59, 56, 53, 50]);
+  assert.ok(hs.slice(6).every(h => h === C.FRET_MIN), "spacing floors at 48");
+  assert.equal(lay.neck, hs.reduce((a, b) => a + b, 0));
+  assert.equal(lay.height, C.FRET_HEAD + lay.neck + C.FRET_BODY, "heights add up");
+  assert.equal(lay.spaces[0].y, 33, "y is the centre of the space");
+  const dots = lay.spaces.filter(x => x.kind === "dot").map(x => x.string);
+  assert.deepEqual(dots.slice(0, 4), [1, 4, 1, 4], "dots alternate strings");
+  assert.deepEqual(lay.spaces.filter(x => x.kind === "inlay").map(x => x.stop.kind), ["box", "box"], "a box is a single inlay");
+  assert.equal(lay.spaces.at(-1).kind, "double", "the headline is the double inlay, and last");
+  assert.equal(lay.spaces.filter(x => x.kind === "double").length, 1);
+  for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
+  assert.equal(C.guitarNew(data), null, "no guitar to announce until the leg is headlined");
+});
+
+test("The fretboard Road (4.82.0): a new guitar is announced once per headlined leg, and kept through a backup", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.equal(C.guitarNew(data), null);
+  assert.deepEqual(C.guitarsEarned(data), []);
+  assert.equal(C.cleanGuitars(null), null);
+  assert.deepEqual(C.cleanGuitars({ seen: ["open", "open", "x y", 7, "switch"] }), { seen: ["open", "switch"] }, "ids are cleaned and de-duplicated");
+  data.guitars = { seen: ["open"] };
+  const back = JSON.parse(JSON.stringify(data));
+  assert.deepEqual(C.cleanGuitars(back.guitars), { seen: ["open"] });
+});
+
 test("Playable songs (4.0.0): songs that use only chords you know, and how many more the next chord opens", () => {
   const data = { songs: [{ id: "a", title: "A", body: "G   C\nwords\nG   D\nmore" }, { id: "b", title: "B", body: "[G]one [Em]two" }, { id: "t", title: "T", format: "tab", body: "e|--0--|" }], sets: [], trash: [], settings: {} };
   assert.deepEqual(C.sheetChords(data.songs[0].body), ["G", "C", "D"]);
