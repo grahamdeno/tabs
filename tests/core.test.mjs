@@ -2679,3 +2679,62 @@ test("4.84.0 every guitar has its own inlay material, and the solid-body is on m
   assert.equal(C.guitarFor("scales").mat, "black");
   assert.equal(C.guitarFor("scales").head, "inline", "six in line");
 });
+
+test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a backup keeps data.me", () => {
+  assert.equal(C.cleanMe(null), null);
+  const me = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1", "leg:open", "bad id!", 5] });
+  assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1"] });
+  const bad = C.cleanMe({ skin: 9, hair: "mullet", hairCol: "x", beard: 3, extra: "crown", top: "plaid", lefty: "yes", patches: new Array(9).fill(0).map((_, i) => "p" + i) });
+  assert.equal(bad.skin, C.ME_DEFAULT.skin);
+  assert.equal(bad.hair, C.ME_DEFAULT.hair);
+  assert.equal(bad.beard, "none");
+  assert.equal(bad.extra, "none");
+  assert.equal(bad.top, C.ME_DEFAULT.top);
+  assert.equal(bad.lefty, false);
+  assert.equal(bad.patches.length, C.ME_PATCHES, "at most five patches");
+  assert.equal(C.ME_STARTERS.length, 8);
+  assert.ok(C.ME_STARTERS.every(s => C.cleanMe(s).hair === s.hair && s.extra === "none" && !("name" in s)), "starters are valid, hat-free and nameless");
+  const back = C.cleanImport(JSON.parse(JSON.stringify({ songs: [], sets: [], trash: [], settings: {}, me })));
+  assert.deepEqual(back.data.me, me, "an import keeps data.me");
+  assert.equal(C.cleanImport({ songs: [], sets: [], trash: [], settings: {} }).data.me, undefined, "no me, none made up");
+});
+
+test("4.85.0 your guitarist: the look follows the venue and never drops; a hat shows only once bought", () => {
+  assert.equal(C.stageLookOf(0), "tee");
+  assert.equal(C.stageLookOf(1), "tee");
+  assert.equal(C.stageLookOf(3), "vest");
+  assert.equal(C.stageLookOf(5), "leather");
+  assert.equal(C.stageLookOf(6), "stage");
+  assert.equal(C.stageLookOf(99), "stage", "beyond the Festival headliner stays the stage jacket");
+  const data = { songs: [], sets: [], trash: [], settings: {}, fame: { down: 2 } };
+  assert.equal(C.stageLook(data), "tee", "no plays, a tee");
+  data.me = { ...C.ME_DEFAULT, extra: "cap" };
+  assert.equal(C.meOf(data).extra, "none", "a hat you haven't bought doesn't show");
+  data.merch = { has: ["wear-cap"] };
+  assert.equal(C.meOf(data).extra, "cap");
+  assert.equal(C.meOf({ songs: [] }).skin, C.ME_DEFAULT.skin, "no data.me, the default");
+  const buy = { songs: [], sets: [], trash: [], settings: {}, merch: { tips: 300 }, me: { ...C.ME_DEFAULT } };
+  assert.equal(C.merchBuy(buy, "wear-beanie").ok, true);
+  assert.equal(buy.me.extra, "beanie", "buying a hat puts it on");
+  assert.equal(C.merchBuy(buy, "wear-beanie").why, "have");
+});
+
+test("4.85.0 your guitarist: patches, moods and seeded rivals", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.patchesOf(data), [], "nothing earned, nothing worn");
+  assert.equal(C.meMood(data, Date.now()), "happy");
+  const day = new Date(2026, 9, 28, 21, 0).getTime(), yesterday = new Date(2026, 9, 27, 12, 0).getTime();
+  const key = t => C.dayKey(t);
+  const song = { id: "s", title: "S", body: "G C", playLog: { days: { [key(yesterday)]: 1, [key(yesterday - 86400000)]: 1 } } };
+  const streaky = { songs: [song], sets: [], trash: [], settings: {} };
+  assert.equal(C.meMood(streaky, day), "sleepy", "a streak to lose and not played tonight, late");
+  assert.equal(C.meMood(streaky, new Date(2026, 9, 28, 10, 0).getTime()), "happy", "in the morning there's time");
+  const a = C.rivalMe("Neon Jen", 2), b = C.rivalMe("Neon Jen", 2);
+  assert.deepEqual(a, b, "a rival looks the same every time");
+  assert.equal(a.look, "vest");
+  assert.equal(C.rivalMe("Neon Jen", 5).look, "leather");
+  assert.notDeepEqual(C.rivalMe("Basement Ray", 2), a, "different names look different");
+  assert.ok(C.cleanMe(a), "a rival is a valid guitarist");
+  const worn = C.cleanMe({ ...C.ME_DEFAULT, patches: ["b:nope"] });
+  assert.deepEqual(C.patchesOf({ ...data, me: worn }), [], "a patch you haven't earned isn't worn");
+});

@@ -1,6 +1,6 @@
 // The Road: core logic, Version 4's game: the Road, Tour quests, Charts, Your band, Rehearse, song duels, the Gig and the Merch table.
 // Re-exported from core.js, so other files import it from there.
-import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, shapeSteps, songChanges } from "../core.js";
+import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, profileOf, shapeSteps, songChanges, streakOf } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
 import { CHORD_FIT, chordLeadOver, chordNotes, strumFit, skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
@@ -128,6 +128,83 @@ export function guitarNew(data, now = Date.now()) {
   if (!last || (data.guitars?.seen || []).includes(last)) return null;
   const legs = roadPath(data, now).legs, next = legs[legs.findIndex(l => l.id === last) + 1];
   return next ? { leg: last, next: next.id, guitar: guitarFor(next.id), done } : null;
+}
+/* ---------- Your guitarist (4.85.0): the player in Louie's style, built from parts ----------
+   data.me = { skin 0-5, hair, hairCol, beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches }.
+   The big looks aren't stored: the top follows the venue you've reached (stageLook), the patches come from what
+   you've done (patchesOf) and the guitar is the one you're on. Drawn in guitarist.js. */
+export const ME_HAIR = ["shag", "curly", "buzz", "mohawk", "braids", "bob", "bun", "swoop", "long", "locs", "pixie", "ponytail"];
+export const ME_HAIR_COL = ["black", "brown", "blonde", "red", "grey", "purple", "blue", "pink", "green"];
+export const ME_TOP_COL = ["red", "teal", "yellow", "white", "black", "green", "blue", "orange"];
+export const ME_BEARD = ["none", "stubble", "moustache", "beard"];
+export const ME_HATS = ["beanie", "cap", "bandana"];
+export const ME_PATCHES = 5;
+export const ME_DEFAULT = { skin: 2, hair: "shag", hairCol: "brown", beard: "none", glasses: false, extra: "none", extraCol: "black", top: "red", lefty: false };
+/* eight quick starting points: no names, once picked it's you. Hats are on the Merch table, so none here. */
+export const ME_STARTERS = [
+  { skin: 2, hair: "shag", hairCol: "brown", top: "red" },
+  { skin: 4, hair: "curly", hairCol: "black", top: "green", glasses: true },
+  { skin: 0, hair: "bob", hairCol: "purple", top: "white" },
+  { skin: 3, hair: "mohawk", hairCol: "blue", top: "white" },
+  { skin: 5, hair: "braids", hairCol: "black", top: "yellow" },
+  { skin: 1, hair: "buzz", hairCol: "brown", beard: "beard", top: "red" },
+  { skin: 2, hair: "bun", hairCol: "pink", top: "teal" },
+  { skin: 1, hair: "swoop", hairCol: "black", top: "white" }
+].map(x => ({ ...ME_DEFAULT, ...x }));
+export function cleanMe(raw) {
+  if (!isObj(raw)) return null;
+  const pick = (v, list, d) => list.includes(v) ? v : d;
+  const out = {
+    skin: Number.isInteger(raw.skin) && raw.skin >= 0 && raw.skin <= 5 ? raw.skin : ME_DEFAULT.skin,
+    hair: pick(raw.hair, ME_HAIR, ME_DEFAULT.hair), hairCol: pick(raw.hairCol, ME_HAIR_COL, ME_DEFAULT.hairCol),
+    beard: pick(raw.beard, ME_BEARD, "none"), glasses: raw.glasses === true,
+    extra: pick(raw.extra, ME_HATS, "none"), extraCol: pick(raw.extraCol, ME_TOP_COL, ME_DEFAULT.extraCol),
+    top: pick(raw.top, ME_TOP_COL, ME_DEFAULT.top), lefty: raw.lefty === true
+  };
+  const patches = [...new Set((Array.isArray(raw.patches) ? raw.patches : []).filter(x => typeof x === "string" && /^[\w:-]{1,24}$/.test(x)))].slice(0, ME_PATCHES);
+  if (patches.length) out.patches = patches;
+  return out;
+}
+/* your guitarist: what you made, or the default. A hat you haven't bought doesn't show. */
+export function meOf(data) {
+  const me = cleanMe(data.me) || { ...ME_DEFAULT };
+  if (me.extra !== "none" && !(data.merch?.has || []).includes(`wear-${me.extra}`)) me.extra = "none";
+  return me;
+}
+/* the look follows the highest venue you've reached (your plays, not fans, so fading never takes it back) */
+export const STAGE_LOOKS = ["tee", "tee", "vest", "vest", "leather", "leather", "stage", "stage"];
+export const stageLookOf = ring => STAGE_LOOKS[Math.min(Math.max(0, ring | 0), STAGE_LOOKS.length - 1)];
+export const stageLook = data => stageLookOf(venueOf(lifetimePlays(data)).ring);
+/* patch colours, by badge kind */
+export const PATCH_COLOR = { song: "#8A47F5", show: "#ff5fa8", streak: "#ff7a1a", chord: "#3A86FF", venue: "#F5C542", band: "#3fcf8e", chart: "#20b8a4" };
+/* every patch you've earned, newest first: the legs you headlined (latest leg first, in that guitar's colour), then
+   badges in the order you earned them. { id, kind: "leg" | badge kind, lab, top, color } */
+export function patchesAll(data, now = Date.now()) {
+  const legs = roadPath(data, now).legs.filter(l => l.stops.some(s => s.kind === "headline" && s.state === "done")).reverse()
+    .map(l => ({ id: `leg:${l.id}`, kind: "leg", lab: `${l.name} headlined`, top: String(l.n), color: guitarFor(l.id).finish }));
+  const got = badgesOf(data, profileOf(data, now)).got, order = data.ach?.badges || [];
+  const rank = b => order.indexOf(b.id);
+  const badges = got.slice().sort((a, b) => rank(b) - rank(a)).map(b => ({ id: `b:${b.id}`, kind: b.kind, lab: b.lab, top: b.top, color: PATCH_COLOR[b.kind] || "#F5C542" }));
+  return [...legs, ...badges];
+}
+/* the patches worn: the ones you picked (that you've earned), else the newest five */
+export function patchesOf(data, now = Date.now()) {
+  const all = patchesAll(data, now), pick = cleanMe(data.me)?.patches || [];
+  const mine = pick.map(id => all.find(x => x.id === id)).filter(Boolean);
+  return (mine.length ? mine : all).slice(0, ME_PATCHES);
+}
+/* mood: sleepy when tonight is the last chance to keep a streak, cheering on a streak milestone, else happy.
+   A duel passes "worried" itself. */
+export function meMood(data, now = Date.now()) {
+  const st = streakOf(playSongs(data), now);
+  if (st.days >= 2 && !st.today && new Date(now).getHours() >= 20) return "sleepy";
+  if (st.today && [7, 30, 100, 365].includes(st.days)) return "cheer";
+  return "happy";
+}
+/* a computer rival's guitarist: seeded by name, at the look of its tier */
+export function rivalMe(name, tier = 0) {
+  const r = rand(hashDay(`me:${name}`)), at = list => list[Math.floor(r() * list.length) % list.length];
+  return { ...ME_DEFAULT, skin: Math.floor(r() * 6), hair: at(ME_HAIR), hairCol: at(ME_HAIR_COL), beard: r() < 0.25 ? at(ME_BEARD) : "none", glasses: r() < 0.2, top: at(ME_TOP_COL), look: stageLookOf(tier) };
 }
 /* Merch boxes (4.76.0): the ids of the boxes you've opened on the Road. */
 export function cleanBoxes(raw) {
@@ -1023,6 +1100,10 @@ export const MERCH = [
   { id: "brick", kind: "backdrop", name: "Brick wall", price: 300, line: "A club wall under one warm light." },
   { id: "stars", kind: "backdrop", name: "Starlight", price: 400, line: "An open-air night sky." },
   { id: "sunset", kind: "backdrop", name: "Sunset fest", price: 500, line: "A festival field at golden hour." },
+  /* 4.85.0: hats for your guitarist; colour is free once bought */
+  { id: "wear-beanie", kind: "wear", name: "Beanie", price: 150, line: "A knit beanie with a pom, for your guitarist." },
+  { id: "wear-cap", kind: "wear", name: "Cap", price: 150, line: "A ball cap, for your guitarist." },
+  { id: "wear-bandana", kind: "wear", name: "Bandana", price: 150, line: "A knotted bandana, for your guitarist." },
   /* 4.78.0: the looks. Light and Dark are everyone's, Green Room is bought, Headliner is earned by headlining a show. */
   { id: "festival", kind: "look", theme: "light", name: "Festival Poster", price: 0, line: "The light look: sky blue, hot pink and sunshine." },
   { id: "neon", kind: "look", theme: "dark", name: "Neon Midnight", price: 0, line: "The dark look: indigo, lime and hot pink." },
@@ -1148,13 +1229,14 @@ export function merchBuy(data, id, now = Date.now()) {
   if (st.tips < it.price) return { why: "tips" };
   m.tspent = (m.tspent || 0) + it.price;
   if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
-  else { (m.has || (m.has = [])).push(id); if (it.kind === "look") data.settings.theme = it.theme; else m[it.kind] = id; }
+  else { (m.has || (m.has = [])).push(id); if (it.kind === "look") data.settings.theme = it.theme; else if (it.kind === "wear") { if (data.me) data.me.extra = id.slice(5); } else m[it.kind] = id; }
   return { ok: true };
 }
 export function merchWear(data, id) {
   const it = merchItem(id), st = merchState(data);
   if (!it || it.kind === "gear" || !st.has.has(id)) return false;
   if (it.kind === "look") { data.settings.theme = it.theme; return true; }
+  if (it.kind === "wear") { data.me = { ...meOf(data), extra: id.slice(5) }; return true; }
   (data.merch || (data.merch = {}))[it.kind] = id;
   return true;
 }
@@ -1184,7 +1266,7 @@ export function secondTake(data, now = Date.now()) {
 export function merchTip(data, now = Date.now()) {
   const st = merchState(data, now), m = data.merch || {};
   const told = new Set(m.told || []);
-  const it = MERCH.filter(x => x.kind !== "gear" && x.price && !x.earn && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
+  const it = MERCH.filter(x => x.kind !== "gear" && x.kind !== "wear" && x.price && !x.earn && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
   if (!it) return null;
   const mm = data.merch || (data.merch = {});
   (mm.told || (mm.told = [])).push(it.id);
