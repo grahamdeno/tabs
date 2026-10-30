@@ -4,6 +4,7 @@ import sys, json, numpy as np, cv2
 from PIL import Image
 from sklearn.cluster import KMeans
 
+OFF = [0, 0]  # where the last load cropped from, in the source image
 def load(path, crop=None, rot=0, scale=2.0):
     im = Image.open(path).convert("RGB")
     if crop: im = im.crop(crop)
@@ -13,6 +14,7 @@ def load(path, crop=None, rot=0, scale=2.0):
     ys, xs = np.where(ink)
     y0, y1, x0, x1 = max(0, ys.min() - 6), min(a.shape[0], ys.max() + 7), max(0, xs.min() - 6), min(a.shape[1], xs.max() + 7)
     im = im.crop((x0, y0, x1, y1))
+    OFF[:] = [x0, y0]
     im = im.resize((int(im.width * scale), int(im.height * scale)), Image.LANCZOS)
     a = cv2.medianBlur(np.asarray(im), 5)
     return a

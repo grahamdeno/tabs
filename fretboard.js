@@ -215,6 +215,15 @@ export function nanoLayout(stops, art, o) {
   if (P) lay.fan = y => (100 + 15 * (y - hh) / (lay.neck + endOff)) / 106; /* the board widens toward the body: half width 100 to about 115 */
   return lay;
 }
+/* the hardware the app draws over a Nano body, at the width of the strings; yb is where the strings end */
+function nanoHardware(g, yb, ac) {
+  if (ac) return pinBridge(yb + 3, "#3a2a22");
+  const gold = "#F5C542", k = c => knobs([[CX + 100, yb - 70], [CX + 132, yb - 36], [CX + 92, yb - 4], [CX + 124, yb + 30]], c);
+  if (g.body === "solid") return `${singleCoil(yb - 132, "#efe4c8")}${singleCoil(yb - 88, "#efe4c8")}${singleCoil(yb - 40, "#efe4c8", -7)}${tremolo(yb - 6)}`;
+  if (g.body === "hollow") return `${humbucker(yb - 150, "#1c1d22", "#e0b44a")}${humbucker(yb - 70, "#1c1d22", "#e0b44a")}${tuneomatic(yb)}${stopbar(yb + 34)}`;
+  if (g.body === "swallow") return `${humbucker(yb - 110, "#1c1a1f", gold)}${humbucker(yb - 52, "#1c1a1f", gold)}${tuneomatic(yb)}${stopbar(yb + 34)}`;
+  return `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${k("#efe4c8")}`;
+}
 function nanoBase(g, lay) {
   const { art, o, s, endOff, hs, hsx } = lay.nano, n = art.nums, top = lay.head, endY = top + lay.neck;
   const hc = (n.l0 + n.r0) / 2;
@@ -238,8 +247,7 @@ function nanoBase(g, lay) {
       cover = `<clipPath id="nsil"><path d="${art.sil}"/></clipPath><g clip-path="url(#nsil)"><rect x="0" y="${n.end}" width="${n.cx}" height="${z1}" fill="${cl}"/><rect x="${n.cx}" y="${n.end}" width="400" height="${z1}" fill="${cr}"/></g><path d="${art.sil}" fill="none" stroke="${art.rim}" stroke-width="${(5 / s).toFixed(1)}" clip-path="url(#nsil)"/>`;
     }
     const [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
-    hw = (art.sil || art.clean ? "" : rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr))
-      + (ac ? pinBridge(yb + 3, "#3a2a22") : `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${knobs([[CX + 100, yb - 70], [CX + 132, yb - 36], [CX + 92, yb - 4], [CX + 124, yb + 30]], "#efe4c8")}`);
+    hw = (art.sil || art.clean ? "" : rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)) + nanoHardware(g, yb, ac);
   }
   return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}${cover}</g>${board}${frets}${dots}${hw}`
     + (o.name ? `<text x="${CX}" y="${top / 2 + 6}" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="600" fill="${g.ink}">${g.name}</text>` : "");

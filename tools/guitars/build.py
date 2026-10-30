@@ -25,10 +25,19 @@ NECK = {
 }
 NECK["cutaway"] = dict(nut=306, l0=235, r0=387, end=575, l1=235, r1=387, bridge=849, pl=215, pr=405, own=True)  # Nano round 3b, at 1x
 NECK["single"] = dict(nut=308, l0=231, r0=401, end=597, l1=231, r1=401, bridge=977, cov=("#852026", "#6c1b20"), rim="#f1d5a8")  # the body only: the hardware is drawn by the app  # Nano round 3b, at 1x
+# Round 3b (Nano's cleaned redraws, 768 x 1365): neck and bridge rows in SOURCE pixels (src=True); `paint` lists points
+# on hardware the app draws itself, painted out (filled from the nearest colour around) within rows y0..y1 and dx of
+# the centre.
+R3 = dict(nut=342, l0=244, r0=523, end=609, l1=226, r1=542)
+NECK["parlor"] = dict(R3, bridge=942, src=True, paint=dict(pts=[(300, 935), (384, 940), (345, 965), (420, 965)], rows=(900, 1012), dx=None))
+NECK["classical"] = dict(R3, bridge=965, src=True, own=True)
+NECK["solid"] = dict(R3, bridge=962, src=True, paint=dict(pts=[(384, 680), (384, 730), (384, 850), (384, 975), (400, 990)], rows=(609, 1000), dx=130))
+NECK["headliner"] = dict(R3, bridge=884, src=True, paint=dict(pts=[(384, 660), (330, 660), (384, 770), (384, 830), (384, 885)], rows=(609, 929), dx=170))
+NECK["hollow"] = dict(nut=343, l0=322, r0=441, end=615, l1=322, r1=441, bridge=873, src=True, paint=dict(pts=[(370, 650), (318, 650), (500, 700), (380, 873), (380, 935), (380, 805)], rows=(600, 960), dx=200))
 JOBS = {
-  "parlor": dict(src="parlor.jpg", k=12), "cutaway": dict(src="cutaway3.jpg", k=9, scale=1.0, thin=1, eps=1.0, sm=7), "solid": dict(src="solid.jpg", k=12),
-  "hollow": dict(src="hollow.jpg", k=13, rot=90), "single": dict(src="single3.jpg", k=9, scale=1.0, thin=1, eps=1.0, sm=7), "classical": dict(src="classical.jpg", k=12),
-  "headliner": dict(src="sheet2.jpg", k=10, crop=(1700, 0, 2064, 512), scale=3.0, thin=2),
+  "parlor": dict(src="parlor3.jpg", k=14, scale=1.0, thin=1, eps=1.0, sm=7), "cutaway": dict(src="cutaway3.jpg", k=9, scale=1.0, thin=1, eps=1.0, sm=7), "solid": dict(src="solid3.jpg", k=10, scale=1.0, thin=1, eps=1.0, sm=7),
+  "hollow": dict(src="hollow3.jpg", k=10, scale=1.0, thin=1, eps=1.0, sm=7), "single": dict(src="single3.jpg", k=9, scale=1.0, thin=1, eps=1.0, sm=7), "classical": dict(src="classical3.jpg", k=14, scale=1.0, thin=1, eps=1.0, sm=7),
+  "headliner": dict(src="headliner3.jpg", k=10, scale=1.0, thin=1, eps=1.0, sm=7),
 }
 def nearest_label(cent, hexcol):
     c = np.array([int(hexcol[i:i + 2], 16) for i in (1, 3, 5)])
@@ -134,12 +143,30 @@ built = {}
 for name in (sys.argv[1:] or list(JOBS)):
     j = JOBS[name]; nk = NECK[name]
     a = load(f"{S}/src/{j['src']}", j.get("crop"), j.get("rot", 0), j.get("scale", 2.0))
-    if name == "hollow": a = cv2.resize(a, (a.shape[1] // 2, a.shape[0] // 2), interpolation=cv2.INTER_AREA)
+    if name == "hollow" and not nk.get("src"): a = cv2.resize(a, (a.shape[1] // 2, a.shape[0] // 2), interpolation=cv2.INTER_AREA)
+    if nk.get("src"):  # numbers measured on the source image: move them into the cropped picture
+        ox, oy = OFF
+        nk = dict(nk, **{k: nk[k] - (ox if k[0] in "lr" else oy) for k in ("nut", "end", "bridge", "l0", "r0", "l1", "r1")})
     lbl, cent = quantize(a, j["k"])
-    lbl, cent = fixes(name, lbl, cent)
+    if not nk.get("src"): lbl, cent = fixes(name, lbl, cent)  # the round 1 fixes; round 3b art needs none
     lbl2, _ = clean(lbl, j.get("thin", 3))
     h, w = lbl2.shape
     nut, end = nk["nut"], nk["end"]
+    if nk.get("src"):  # the neck in Nano's picture is replaced by the app's: each row takes the body colour beside it
+        y0, y1, x0, x1 = nk["nut"] + 6, nk["end"] + 4, max(0, nk["l1"] - 10), nk["r1"] + 10
+        mid = (x0 + x1) // 2
+        for y in range(y0, y1):
+            lbl2[y, x0:mid] = lbl2[y, max(0, x0 - 3)]
+            lbl2[y, mid:x1] = lbl2[y, min(lbl2.shape[1] - 1, x1 + 3)]
+    if "paint" in nk:  # hardware the app draws: those colours, in the zone, take the colour nearest around them
+        p = nk["paint"]; ox, oy = OFF
+        labs = {int(lbl2[y - oy, x - ox]) for x, y in p["pts"]}
+        zone = np.zeros(lbl2.shape, bool); zone[p["rows"][0] - oy:p["rows"][1] - oy] = True
+        if p["dx"]:
+            zx = (nk["l1"] + nk["r1"]) // 2; zone[:, :max(0, zx - p["dx"])] = False; zone[:, zx + p["dx"]:] = False
+        bad = zone & np.isin(lbl2, list(labs))
+        idx = ndimage.distance_transform_edt(bad, return_distances=False, return_indices=True)
+        lbl2 = lbl2[idx[0], idx[1]]
     if "cov" in nk:  # the app draws this guitar's hardware: paint the traced hardware out with the body's two flat colours
         L, R, B = (nearest_label(cent, c) for c in (*nk["cov"], nk["rim"]))
         zx = (nk["l1"] + nk["r1"]) // 2
@@ -151,8 +178,8 @@ for name in (sys.argv[1:] or list(JOBS)):
     head = shapes(layers_of(lbl2, cent, (0, nut + 4), kk, j.get("eps", 1.0), j.get("sm", 0)))
     # the top of the body: the first row below the nut where the picture is wider than twice the board
     wid = (lbl2 >= 0).sum(axis=1)
-    top = next(y for y in range(nut + 40, h) if wid[y] > 2.0 * (nk["r1"] - nk["l1"]))
-    if name == "headliner":
+    top = next(y for y in range(nut + 40, h) if wid[y] > min(2.0 * (nk["r1"] - nk["l1"]), nk["r1"] - nk["l1"] + 24))
+    if name == "headliner" and not nk.get("src"):
         body = scale_svg(headliner_body(a, lbl, nk))
     else:
         body = shapes(layers_of(lbl2, cent, (top - 6, h), kk, j.get("eps", 1.0), j.get("sm", 0)))
@@ -172,7 +199,7 @@ for name in (sys.argv[1:] or list(JOBS)):
     sm = cv2.GaussianBlur(cv2.morphologyEx(sm * 255, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))), (9, 9), 0) > 127
     cs0, _ = cv2.findContours(sm.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     sil = qp(cv2.approxPolyDP(max(cs0, key=cv2.contourArea), EPS * kk * 2, True))
-    art = dict(head=head, body=body, over="", sil=sil, **({"cov": list(nk["cov"]), "rim": nk["rim"], "clean": 1} if "cov" in nk else {}), nums=nums, view=[round(w * Q), round(h * Q)])
+    art = dict(head=head, body=body, over="", sil=sil, **({"cov": list(nk["cov"]), "rim": nk["rim"], "clean": 1} if "cov" in nk else {"clean": 1} if "paint" in nk else {}), nums=nums, view=[round(w * Q), round(h * Q)])
     js = "/* Traced from the Nano art by tools/guitars/build.py. Do not edit by hand. */\nexport default " + json.dumps(art, separators=(",", ":")) + ";\n"
     os.makedirs(OUT, exist_ok=True)
     open(f"{OUT}/{name}.js", "w").write(js)
