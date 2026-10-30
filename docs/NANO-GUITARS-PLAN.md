@@ -91,8 +91,8 @@ full Nano guitar at its real proportions in every option.
 
 ### Step 4. Whole guitars [Sonnet]
 
-- [ ] 4.1 `guitarSVG` (the new-guitar sheet) shows the full Nano guitar.
-- [ ] 4.2 The guitarist's guitar (guitarist.js): the Nano body outline and its key parts at about 40 px tall,
+- [x] 4.1 `guitarSVG` (the new-guitar sheet) shows the full Nano guitar.
+- [x] 4.2 The guitarist's guitar (guitarist.js): the Nano body outline and its key parts at about 40 px tall,
       replacing the hand-drawn small guitars. **STOP AND SHOW** at chart and profile size: if the art turns to mush
       that small, offer keeping the current small drawings recoloured instead.
 

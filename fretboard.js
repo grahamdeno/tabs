@@ -321,11 +321,19 @@ function stopHTML(sp, g, lay, o) {
 export const NANO_FILE = { open: "parlor", switch: "cutaway", scales: "solid", strum: "hollow", pick: "single", finger: "classical", encore: "headliner" };
 const ARTS = new Map();
 export const nanoArtHas = id => ARTS.has(NANO_FILE[id]);
-export async function nanoArt(id) {
-  const f = NANO_FILE[id];
+async function loadNano(f) {
   if (!f) return null;
   if (!ARTS.has(f)) { try { ARTS.set(f, (await import(`./art/guitars/${f}.js?v=${VERSION}`)).default); } catch { return null; } }
   return ARTS.get(f);
+}
+export const nanoArt = id => loadNano(NANO_FILE[id]);
+/* the small guitar in the guitarist's hands (guitarist.js): art by body shape, if it has arrived; asking starts the load */
+const BODY_FILE = { parlor: "parlor", cutaway: "cutaway", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner" };
+export function nanoSmall(body) {
+  const f = BODY_FILE[body];
+  if (!f) return null;
+  if (!ARTS.has(f)) { loadNano(f); return null; }
+  return { art: ARTS.get(f), n: NUMS[f] };
 }
 const nanoOf = (leg, o) => {
   const f = NANO_FILE[leg.id];
@@ -350,6 +358,9 @@ export function neckHTML(leg, o) {
 
 /* a guitar on its own (the new-guitar sheet): the headstock, a short neck and the body */
 export function guitarSVG(id) {
-  const g = guitarFor(id), lay = fretLayout([{ kind: "chord", state: "locked" }, { kind: "chord", state: "locked" }]);
-  return `<svg class="rd-gsvg" viewBox="0 0 ${W} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay)}${stringLayer(g, lay)}</svg>`;
+  const g = guitarFor(id), stops = [{ kind: "chord", state: "locked" }, { kind: "chord", state: "locked" }], nn = nanoOf({ id }, {});
+  if (!nn) { const lay = fretLayout(stops); return `<svg class="rd-gsvg" viewBox="0 0 ${W} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay)}${stringLayer(g, lay)}</svg>`; }
+  /* 4.86.0: the whole Nano guitar; the body is wider than the screen on the Road, so the picture is made wider to show all of it */
+  const lay = nanoLayout(stops, nn.n, nn), half = Math.max(CX, (nn.n.br - nn.n.bl) * lay.nano.s / 2) + 6;
+  return `<svg class="rd-gsvg" viewBox="${CX - half} 0 ${half * 2} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay, nn.art)}${stringLayer(g, lay)}</svg>`;
 }

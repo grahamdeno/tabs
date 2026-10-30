@@ -340,6 +340,7 @@ function guitarEarned(road) {
     <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
     <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div></div></div>`;
   const close = () => { layer.innerHTML = ""; };
+  if (!nanoArtHas(gn.next)) nanoArt(gn.next).then(a => { const el = a && document.querySelector(".rd-gt-art"); if (el) el.innerHTML = guitarSVG(gn.next); });
   document.getElementById("gt-scrim").onclick = close; document.getElementById("gt-x").onclick = close;
   haptic(2);
 }
