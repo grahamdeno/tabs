@@ -148,7 +148,7 @@ In `road.js`:
 
 Done by Opus, 2026-10-29. The neck reads as the canvas did: tags sit in the margins, the shut box's dashed ring
 and "Tap to open" work, the double inlay and the body close each leg, "New guitar earned", the headstock name and
-"The beater · headlined" land where planned, and the New guitar sheet shows once. Fixes for 4.82.1:
+"The beater · headlined" land where planned, and the New guitar sheet shows once. Fixes for 4.82.2 (4.82.1 went out first with the hearing fix, 2026-10-29):
 
 - [ ] 7.2 [Sonnet] Locked dots disappear in the dark looks: violet on rosewood. On the neck, give locked dots a
       lighter fill (a pale grey with the darker lip) in Dark and Headliner, as Light already has.
@@ -160,7 +160,7 @@ and "Tap to open" work, the double inlay and the body close each leg, "New guita
 - [ ] 7.6 [Sonnet] An "open" stop (reachable while a shut box is the next stop) looks nearly like a done dot:
       same fill, icon instead of check. Give it the accent as a ring on the board colour instead.
 - [ ] 7.7 [Sonnet] Tuner buttons float beside the headstock. Add a short post to each (small, cosmetic).
-- [ ] 7.8 Patch 4.82.1, `eslint .`, quick tests, rebase, push only after Graham says ship.
+- [ ] 7.8 Patch 4.82.2, `eslint .`, quick tests, rebase, push only after Graham says ship.
 
 ## Open (not this release)
 
@@ -200,8 +200,7 @@ same chords every time or the marks don't come from that play. That conversation
 
 Found (2026-10-29): the marks were from each play. The rule since 4.80.3 counted a chord only when no other chord of
 the song sounded as much like it. Am and F sit inside FM7 (it has all their notes), and G and G/B are the same notes,
-so those four tied every time and could never be caught; FM7, Dm and C could. Fixed on branch `hearing-shared-notes`
-(for the next release): chords are judged on the notes that tell them apart (`chordLead` in `core/neck.js`); a chord
+so those four tied every time and could never be caught; FM7, Dm and C could. Shipped in 4.82.1: chords are judged on the notes that tell them apart (`chordLead` in `core/neck.js`); a chord
 inside another wins unless the bigger chord's extra notes carry `CHORD_EXTRA` (0.12) of the sound; same-note chords
 are one sound. Clean chords: 634 pairs uncatchable and 163 wrong catches before, none after (164 chords). Graham's
 recordings with FM7, Cmaj7 and G/B in the song: 34 of 360 changes right before, 356 after. Still open: Em C G D
