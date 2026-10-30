@@ -22,7 +22,7 @@ import { guessKey, transposeChord, transposeKey } from "./chords.js";
 //             numbers from before then are estimates
 const monthKey = t => dayKey(t).slice(0, 7);
 // The chords a song puts under your fingers, in the shapes you play.
-const shapesOf = song => {
+export const shapesOf = song => {
   const steps = shapeSteps(song);
   return chordsUsed(song.body || "").map(c => transposeChord(c, steps, /^[A-G]b/.test(c)));
 };

@@ -2647,3 +2647,27 @@ test("trumpet (4.81.0): written a whole step up, a part of chord tones, valves, 
   assert.equal(C.noteHear(st, chroma(0), ok, { on: 1, since: 0.2 }), -1, "the same attack can't catch the next");
   assert.equal(C.noteHear(st, chroma(0), ok, { on: 2, since: 0.05 }), 1);
 });
+
+test("4.83.0 a quick change written C-G is two chords, a note in brackets is read, and a song says what it did on the Road", () => {
+  assert.ok(C.isChordLine("Dm C-G F (hold)"), "a chord line with a dash change and a note");
+  assert.ok(C.isChordLine("D A-E A (let ring)"));
+  assert.ok(C.isChordLine("Cadd9(no3) G"), "a chord with its own brackets");
+  assert.ok(!C.isChordLine("A-ha said the man"), "words with a dash stay words");
+  assert.ok(!C.isChordLine("(oh) what a night"));
+  const blocks = C.parseBlocks("[Interlude]\nDm C-G F (hold)", 0);
+  assert.deepEqual(blocks.at(-1).items, ["Dm", "C", "G", "F", "(hold)"], "each chord of the change is its own, the note stays a note");
+  assert.deepEqual(C.parseBlocks("C-G", 2).at(-1).items, ["D", "A"], "transposed, both chords move");
+  assert.deepEqual(C.chordsUsed("Dm C-G F (hold)"), ["Dm", "C", "G", "F"]);
+  const song = { id: "s", title: "S", body: "[V]\nE        A\nla la la\nG        D\nla la", playLog: { total: 0, last: 0, days: {} } };
+  const data = { songs: [song], sets: [], trash: [], settings: {}, skills: { done: { "c:A": { n: 1, best: 0, at: 1 } }, last: 1 } };
+  for (let i = 0; i < 3; i++) C.journalPlay(data, song);
+  const note = C.roadNote(data, song);
+  assert.deepEqual(note.find(r => r.chord === "E"), { chord: "E", n: 3, done: false }, "E: 3 of 5 songs");
+  assert.equal(note.find(r => r.chord === "A"), undefined, "a stop done by its lesson isn't mentioned");
+  C.journalPlay(data, song); C.journalPlay(data, song);
+  assert.equal(C.roadNote(data, song).find(r => r.chord === "E").done, true, "the fifth song finishes it");
+  C.journalPlay(data, song);
+  assert.equal(C.roadNote(data, song).find(r => r.chord === "E"), undefined, "after that it isn't news");
+  assert.deepEqual(C.songsWith(data, "E").map(s => s.id), ["s"]);
+  assert.equal(C.KNOW_PLAYS, 5);
+});

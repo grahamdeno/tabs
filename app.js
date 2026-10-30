@@ -412,7 +412,8 @@ let SUBS = {};
 function chordLabel(text) {
   let name = String(text).split(/\s+/)[0].replace(/^\(|\)$/g, "");
   if (SUBS[name]) { text = String(text).replace(name, SUBS[name]); name = SUBS[name]; }
-  return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : `<span class="c">${esc(text)}</span>`;
+  /* 4.83.0: a note in brackets on a chord line ("(hold)") is read, not played */
+  return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : (/^\(.*\)$/.test(String(text)) ? `<span class="c cnote"><i>${esc(text)}</i></span>` : `<span class="c">${esc(text)}</span>`);
 }
 /* 4.56.0: a chart's header note ("Capo 2", "Strum: D-DU-UDU") is read, not played: not the line you're on */
 const NOTE = /^(capo \d+|strum: [dux\- ]+)( · (capo \d+|strum: [dux\- ]+))?$/i;

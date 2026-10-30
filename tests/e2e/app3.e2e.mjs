@@ -372,7 +372,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   assert.equal(await page.locator(".rd-node.box").count() >= 1, true, "with merch boxes along the way");
   /* another pick: a small bubble; a tap anywhere else closes it */
   await page.click(".rd-node.locked >> nth=0");
-  assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one/);
+  assert.match(await page.innerText(".rd-pop"), /Its lesson opens when you get here\.[\s\S]*Songs count already: play C in \d more songs?, start to finish \(\d of 5\)/, "4.83.0: a locked chord says songs count toward it already");
   await page.click(".rd-legmark >> nth=1"); await page.waitForSelector(".rd-pop", { state: "detached" });
   assert.equal(await page.locator(".rd-node.box .rd-inlay").count(), await page.locator(".rd-node.box").count(), "4.82.0: a merch box is a single inlay");
   /* tonight's song plays as a gig (4.1.0) */

@@ -36,6 +36,7 @@ sees, and what teaches them anything.
 | | Stat bar: a shield with 1, a guitar with 0, a ticket with 0 | Nothing | No labels; nothing says what they are or that they open pages |
 | | A pink dot on More on every screen | Nothing | It means "not tuned in the last few hours", but it looks like "something new". It never clears unless you tune |
 | Tap the pick | A tag over it already names it ("G chord", 4.75.0); the card: The G chord, a +5 fans chip, Start | The tag and the card | Fine |
+| A chord stop by playing songs | The stop's card: "Or play E in 3 more songs, start to finish (2 of 5)" and a Play button for a song with it (4.83.0); Show complete says "The Road: E chord, 3 of 5 songs" | Listed | Was none before 4.83.0: four songs without the chord moved nothing and nothing said why |
 | Reach a merch box | A fret inlay with a dashed gold ring and a "Tap to open" tag (4.82.0); a tap opens it with a POW for 25 fans | The tag | Fine |
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |

@@ -3,6 +3,7 @@
 import { TUNINGS, isObj, nearestNote, noteFreq } from "../core.js";
 import { chordShape } from "./chords.js";
 import { sheetChords } from "./game.js";
+import { shapesOf } from "./playing.js";
 
 // ---------- The neck: practice lessons (3.6.0) ----------
 // A ladder of lessons. Each fret is one lesson: a chord to ring clean string by
@@ -59,9 +60,12 @@ export const cleanSkills = raw => {
   return Object.keys(done).length || last ? { done, last } : null;
 };
 /* Where every lesson stands. A chord you have already played in songs five times counts as known. */
+/* 4.83.0: a chord's stop on the Road is also done by playing it: KNOW_PLAYS songs with it, played to the end */
+export const KNOW_PLAYS = 5;
+export const chordPlays = (data, chord) => Math.max(0, data.journal?.chords?.[chord]?.n || 0);
 export function skillState(data, now = Date.now()) {
   const done = data.skills?.done || {}, chords = data.journal?.chords || {};
-  const known = st => st.kind === "chord" && (chords[st.chord]?.n || 0) >= 5;
+  const known = st => st.kind === "chord" && (chords[st.chord]?.n || 0) >= KNOW_PLAYS;
   const songFor = st => (data.songs || []).filter(sg => { const c = songChordNames(sg.body); return c.length >= 2 && c.every(n => st.chords.includes(n)); }).sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0] || null;
   let cur = null, prevAt = 0;
   const levels = SKILL_LEVELS.map(lv => {
@@ -92,6 +96,20 @@ export function skillState(data, now = Date.now()) {
   const today = !!last && n.getFullYear() === l.getFullYear() && n.getMonth() === l.getMonth() && n.getDate() === l.getDate();
   return { levels, next: cur, today };
 }
+/* 4.83.0: what a song played to its end did on the Road: each chord stop it counts toward (not finished by its
+   lesson), with the plays so far, and "done" when this play was the one that finished it. Graham played four songs
+   and the Road didn't move: they didn't have the chord he was on, and nothing said so. */
+export function roadNote(data, song, now = Date.now()) {
+  const have = new Set(song && song.format !== "tab" ? shapesOf(song) : []), out = []; /* the shapes the play counted (journalPlay) */
+  for (const lv of skillState(data, now).levels) for (const st of lv.steps) {
+    if (st.kind !== "chord" || !have.has(st.chord) || data.skills?.done?.[st.id]) continue;
+    const n = chordPlays(data, st.chord);
+    if (n >= 1 && n <= KNOW_PLAYS) out.push({ chord: st.chord, n, done: n === KNOW_PLAYS });
+  }
+  return out;
+}
+/* 4.83.0: your songs with a chord (in the shapes you play), the one you played last first */
+export const songsWith = (data, chord) => (data.songs || []).filter(s => s.format !== "tab" && shapesOf(s).includes(chord)).sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0));
 /* 4.81.1: the chords of a sheet in any format (chords over words too, not only [Em] inline), as the Road's card finds
    them: a headline show played with a pasted chart wasn't counted (Graham, Zombie) */
 const songChordNames = body => sheetChords(body);

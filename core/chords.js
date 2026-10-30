@@ -23,13 +23,18 @@ export function isChord(token) {
   return CHORD_RE.test(token);
 }
 
+/* 4.83.0: a quick change written with a dash ("C-G", "A–E") is its chords */
+export const dashChords = tok => { const parts = tok.split(/[-–]/); return parts.length > 1 && parts.every(isChord) ? parts : null; };
+/* 4.83.0: a note in brackets on a chord line ("(hold)", "(let ring)") is read, not played; "(A)" stays a chord */
+const NOTE_RE = /(^|\s)\(([^()]*)\)/g;
+const isNoteGroup = inner => !inner.trim().split(/\s+/).every(t => isChord(t) || FILLER_RE.test(t));
 export function isChordLine(line) {
-  const tokens = line.trim().split(/\s+/).filter(Boolean);
+  const tokens = line.replace(NOTE_RE, (m, sp, inner) => isNoteGroup(inner) ? sp : m).trim().split(/\s+/).filter(Boolean);
   if (!tokens.length) return false;
   let chords = 0;
   for (const t of tokens) {
     const bare = t.replace(/^\(|\)$/g, "");
-    if (isChord(bare)) chords++;
+    if (isChord(t) || isChord(bare) || dashChords(bare)) chords++;
     else if (!FILLER_RE.test(t) && !FILLER_RE.test(bare)) return false; /* "(x2)" counts as filler too */
   }
   return chords > 0;
@@ -100,10 +105,7 @@ function transposeChordLine(line, steps, flats) {
   let m;
   while ((m = re.exec(line))) {
     const tok = m[0];
-    const lead = tok.startsWith("(") ? "(" : "";
-    const trail = tok.endsWith(")") && tok.length > 1 ? ")" : "";
-    const bare = tok.slice(lead.length, tok.length - trail.length);
-    const next = isChord(bare) ? lead + transposeChord(bare, steps, flats) + trail : tok;
+    const next = xposeToken(tok, steps, flats);
     const pad = m.index - out.length;
     out += (pad > 0 ? " ".repeat(pad) : out.length ? " " : "") + next;
   }
@@ -163,6 +165,8 @@ export function detectPaste(text) {
 export const isTabLine = l => TAB_LINE_RE.test(l) && (l.match(/-/g) || []).length >= 6;
 
 function xposeToken(tok, steps, flats) {
+  if (tok.startsWith("(") && tok.endsWith(")") && isNoteGroup(tok.slice(1, -1))) return tok;
+  const dash = dashChords(tok); if (dash) return tok.replace(/[^-–]+/g, c => transposeChord(c, steps, flats));
   const lead = tok.startsWith("(") ? "(" : "";
   const trail = tok.endsWith(")") && tok.length > 1 ? ")" : "";
   const bare = tok.slice(lead.length, tok.length - trail.length);
@@ -273,9 +277,14 @@ export function parseBlocks(text, steps = 0, flats = false) {
 
     if (isChordLine(line)) {
       const chordsAt = new Map();
-      const re = /\S+/g;
+      const re = /(?<=^|\s)\([^()]*\)|\S+/g;
       let m;
-      while ((m = re.exec(line))) chordsAt.set(m.index, xposeToken(m[0], steps, flats));
+      while ((m = re.exec(line))) {
+        const dash = dashChords(m[0]);
+        /* "C-G": each chord of a quick change at its own column, so each is shown and caught */
+        if (dash) { let at = m.index; for (const c of dash) { chordsAt.set(at, transposeChord(c, steps, flats)); at += c.length + 1; } }
+        else chordsAt.set(m.index, xposeToken(m[0], steps, flats));
+      }
       const next = lines[i + 1];
       const nextIsLyric = next && next.trim() && !isChordLine(next) && !SECTION_RE.test(next) && !isTabLine(next) &&
         !(/\[[^\]]+\]/.test(next) && [...next.matchAll(/\[([^\]]+)\]/g)].every(x => isChord(x[1])));

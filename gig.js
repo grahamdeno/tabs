@@ -17,7 +17,7 @@
 // still plays; nothing is scored.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans, the crowd, the song you played (green for caught) and Encore
 // (play it again for double bonus fans).
-import { COMBO_STEPS, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, followAhead, chordNotes, chromaOf, noteHear, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
+import { COMBO_STEPS, KNOW_PLAYS, roadNote, VERSION, gigStart, catchScore, catchTargets, catchStart, catchAt, catchHear, catchClose, tempoStep, followAhead, chordNotes, chromaOf, noteHear, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, rehearseMisses, streakOf, playSongs, playableSongs, merchTip, liningDue, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, getMic, icon, sound, soundDeaf, onLeave } from "./ui.js";
 import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, waitOn, followOn, follow, loopFactor, pxPerSecond, holdScroll, gigHooks, go, chordSVG, homeHooks, redraw, READ_AT } from "./app.js";
@@ -466,6 +466,8 @@ function showComplete() {
   if (opened) g.from = "road";
   Tabs.save(data);
   const st = streakOf(playSongs(data)), ps = playableSongs(data);
+  /* 4.83.0: what this song did on the Road: the chord stops it counts toward, and any it finished */
+  const road = g.credited ? roadNote(data, g.song) : [];
   const crowd = graded ? gigCrowd(g.score) : null;
   const tile = (lab, val, cls) => `<div class="gc-tile ${cls}"><small>${lab}</small><b>${val}</b></div>`;
   const played = graded ? songPlayed(g) : "";
@@ -496,6 +498,7 @@ function showComplete() {
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
       ${opened ? `<p><b>Opening night: done!</b> Your streak starts tonight.</p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
+      ${road.length ? `<p>The Road: ${road.map(r => r.done ? `<b>${esc(r.chord)} chord done</b>` : `${esc(r.chord)} chord, <b>${r.n} of ${KNOW_PLAYS}</b> songs`).join(", ")}</p>` : ""}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>

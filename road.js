@@ -13,7 +13,7 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
@@ -98,9 +98,16 @@ function stopCard(stop) {
     : stop.kind === "switch" ? "Land the change on the beat."
     : stop.kind === "scale" ? "Up and back down, one note at a time."
     : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Reach it, then tap it open: +${FANS.box} fans.`) : "";
+  /* 4.83.0: a chord's stop is also done by playing it in KNOW_PLAYS songs to the end; the card says how far along you are */
+  let alt = "";
+  if (stop.kind === "chord" && stop.state !== "done") {
+    const n = Math.min(chordPlays(data, stop.chord), KNOW_PLAYS - 1), left = KNOW_PLAYS - n, songs = songsWith(data, stop.chord);
+    alt = `<p class="rd-alt">${stop.state === "locked" ? "Songs count already: play" : "Or play"} ${esc(stop.chord)} in ${left} more song${left === 1 ? "" : "s"}, start to finish (${n} of ${KNOW_PLAYS}).${songs.length ? "" : ` None of your songs have ${esc(stop.chord)} yet.`}</p>`
+      + (songs.length ? `<button class="rd-other" data-song="${esc(songs[0].id)}">Play ${esc(songs[0].title)}${songs.length > 1 ? ` (or ${songs.length - 1} more with ${esc(stop.chord)})` : ""}</button>` : "");
+  }
   const act = stop.kind === "box" || stop.state === "locked" ? ""
     : `${stop.state === "done" ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
-  return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? "Finish the stops before this one to open it." : line)}</p>${act}</div>`;
+  return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? (stop.kind === "chord" ? "Its lesson opens when you get here." : "Finish the stops before this one to open it.") : line)}</p>${act}${alt}</div>`;
 }
 /* Other songs for a headline show: a short list, any of them starts the gig */
 function otherSongs(stop) {
@@ -246,6 +253,8 @@ export function renderRoad() {
     const goBtn = e.target.closest("[data-go]");
     if (goBtn) return start(goBtn.dataset.go);
     if (e.target.closest("#rd-other")) return otherSongs(cur);
+    const songBtn = e.target.closest("[data-song]");
+    if (songBtn) return playGig(songBtn.dataset.song, { from: "road" });
     const node = e.target.closest("[data-stop]");
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
@@ -315,7 +324,9 @@ function guitarEarned(road) {
 function revealPop(path, pop) {
   requestAnimationFrame(() => {
     const p = path.getBoundingClientRect(), r = pop.getBoundingClientRect();
-    const tabs = document.getElementById("tabs"), floor = Math.min(p.bottom, tabs && tabs.offsetParent !== null ? tabs.getBoundingClientRect().top : p.bottom) - 14;
+    /* 4.83.0: clear of the Songbook bar too, which floats over the bottom of the path */
+    const tabs = document.getElementById("tabs"), sbk = document.querySelector(".rd-sbk");
+    const floor = Math.min(p.bottom, tabs && tabs.offsetParent !== null ? tabs.getBoundingClientRect().top : p.bottom, sbk && sbk.offsetParent !== null ? sbk.getBoundingClientRect().top : p.bottom) - 14;
     const over = r.bottom - floor;
     if (over > 0) path.scrollTo({ top: path.scrollTop + over, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });

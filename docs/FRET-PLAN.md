@@ -160,7 +160,7 @@ and "Tap to open" work, the double inlay and the body close each leg, "New guita
 - [x] 7.6 [Sonnet] An "open" stop (reachable while a shut box is the next stop) looks nearly like a done dot:
       same fill, icon instead of check. Give it the accent as a ring on the board colour instead.
 - [x] 7.7 [Sonnet] Tuner buttons float beside the headstock. Add a short post to each (small, cosmetic).
-- [ ] 7.8 Patch 4.82.2 built and committed; goes out with 4.83.0 when Graham says ship.
+- [x] 7.8 Patch 4.82.2 shipped with 4.83.0 (Graham said ship, 2026-10-29).
 
 ## Open (not this release)
 
@@ -172,23 +172,38 @@ and "Tap to open" work, the double inlay and the body close each leg, "New guita
 
 From a night of play-alongs in Neon. Do these after Step 7's patch, as one release when Graham says.
 
-- [ ] 8.1 [Sonnet] The Gig: the crowd row draws on top of the words. The line under it can't be read and its
+- [x] 8.1 [Sonnet] The Gig: the crowd row draws on top of the words. The line under it can't be read and its
       chords are hidden. The crowd needs its own band (or to sit behind the words, faded), never over a line.
-- [ ] 8.2 [Sonnet] The Gig: a ghost copy of the section name ("CHORUS") shows behind the section chip at the top.
-- [ ] 8.3 [Opus] The Gig: a chord-only line with a note ("Dm C-G F (hold)") shows as the lit line in plain text,
+- [x] 8.2 [Sonnet] The Gig: a ghost copy of the section name ("CHORUS") shows behind the section chip at the top.
+- [x] 8.3 [Opus] The Gig: a chord-only line with a note ("Dm C-G F (hold)") shows as the lit line in plain text,
       like a lyric. Decide how instruction lines show in the Gig (chords on their beat, the note small).
-- [ ] 8.4 [Sonnet] The Gig: the bottom half of the screen was empty under the last lines. Check whether that was
+- [x] 8.4 [Sonnet] The Gig: the bottom half of the screen was empty under the last lines. Check whether that was
       the song's end; if not, the words should fill the screen (the Gig is words first).
-- [ ] 8.5 [Sonnet] After the show: the Missed most card is cut off at the bottom of the screen (all three shots).
-- [ ] 8.6 [Sonnet] After the show: the Chords tile is white on yellow, which fails contrast. Use the dark ink the
+- [x] 8.5 [Sonnet] After the show: the Missed most card is cut off at the bottom of the screen (all three shots).
+- [x] 8.6 [Sonnet] After the show: the Chords tile is white on yellow, which fails contrast. Use the dark ink the
       Fans tile uses.
-- [ ] 8.7 [Sonnet] After the show: "INTERLUDE" touches the edges of its chip and "INTERLUDE 2" wraps. Let the
+- [x] 8.7 [Sonnet] After the show: "INTERLUDE" touches the edges of its chip and "INTERLUDE 2" wraps. Let the
       chip size to its text, or shrink the text for long names.
-- [ ] 8.8 [Opus] The Road didn't move after 4+ songs. Working as built: a chord stop is done by its lesson or by
+- [x] 8.8 [Opus] The Road didn't move after 4+ songs. Working as built: a chord stop is done by its lesson or by
       playing 5 songs with that chord through to the end (counted from the sheet, not from the mic), and the
       headline by playing a song that uses only the leg's chords. Nothing says so. Proposal for Graham: the
       stop's card shows "Play it in 3 more songs" and the songs that have it, and the Gig's results say when a
       song moved you along the Road.
+
+Done in 4.83.0 (Opus, 2026-10-29), with 4.82.1 in the same push:
+- 8.1 and 8.2 had one cause: over a song's cover the band above the words was only 35% dark, so lines scrolling up
+  showed through the crowd and the section chip (the ghost CHORUS was the sheet's own section name). The band is
+  now solid past the crowd, then fades; over a cover it is the controls' dark glass, blurred.
+- 8.3: "C-G" on a chord line is two chords, each shown and caught; "(hold)" and other bracket notes are shown small
+  and never caught. Before, the whole line read as words: its chords were neither shown nor scored, and didn't
+  count on the Road. Also fixed: "Cadd9(no3)" on a chord line made it read as words.
+- 8.4: no change. It was the end of the song: the last line has nothing under it.
+- 8.5: Show complete scrolls to the screen's bottom edge; Missed most is full width.
+- 8.6: the tiles' numbers sit on a solid dark inside over a cover; the Chords label is dark ink on the light tile
+  colours in the dark looks.
+- 8.7: section chips are wider with tighter letters: INTERLUDE 2 fits on one line.
+- 8.8: built as proposed (`roadNote`, `songsWith`, `KNOW_PLAYS` in core/neck.js). The card also stops clear of
+  the Songbook bar now (it ran under it once it got taller).
 
 ## Hearing (a separate conversation)
 

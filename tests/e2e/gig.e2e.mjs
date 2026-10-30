@@ -80,6 +80,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.match(await page.innerText(".gc-t"), /Show complete/);
   assert.match(await page.innerText(".gc-list"), /chords caught/, "the show was graded");
   assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the chords you caught");
+  assert.match(await page.innerText(".gc-list"), /The Road: [\s\S]*E chord, 1 of 5 songs/, "4.83.0: what the song did on the Road");
   /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own */
   assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
   assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
