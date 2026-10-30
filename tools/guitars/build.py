@@ -31,9 +31,9 @@ NECK["single"] = dict(nut=308, l0=231, r0=401, end=597, l1=231, r1=401, bridge=9
 R3 = dict(nut=342, l0=244, r0=523, end=609, l1=226, r1=542)
 NECK["parlor"] = dict(R3, bridge=942, src=True, paint=dict(pts=[(300, 935), (384, 940), (345, 965), (420, 965)], rows=(900, 1012), dx=None))
 NECK["classical"] = dict(R3, bridge=965, src=True, own=True)
-NECK["solid"] = dict(R3, bridge=962, src=True, paint=dict(pts=[(384, 680), (384, 730), (384, 850), (384, 975), (400, 990)], rows=(609, 1000), dx=130))
-NECK["headliner"] = dict(R3, bridge=884, src=True, paint=dict(pts=[(384, 660), (330, 660), (384, 770), (384, 830), (384, 885)], rows=(609, 929), dx=170))
-NECK["hollow"] = dict(nut=343, l0=322, r0=441, end=615, l1=322, r1=441, bridge=873, src=True, paint=dict(pts=[(370, 650), (318, 650), (500, 700), (380, 873), (380, 935), (380, 805)], rows=(600, 960), dx=200))
+NECK["solid"] = dict(R3, bridge=962, src=True, clean=True)
+NECK["headliner"] = dict(R3, bridge=884, src=True, clean=True)
+NECK["hollow"] = dict(nut=343, l0=322, r0=441, end=615, l1=322, r1=441, bridge=873, src=True, narrow=True, clean=True)
 JOBS = {
   "parlor": dict(src="parlor3.jpg", k=14, scale=1.0, thin=1, eps=1.0, sm=7), "cutaway": dict(src="cutaway3.jpg", k=9, scale=1.0, thin=1, eps=1.0, sm=7), "solid": dict(src="solid3.jpg", k=10, scale=1.0, thin=1, eps=1.0, sm=7),
   "hollow": dict(src="hollow3.jpg", k=10, scale=1.0, thin=1, eps=1.0, sm=7), "single": dict(src="single3.jpg", k=9, scale=1.0, thin=1, eps=1.0, sm=7), "classical": dict(src="classical3.jpg", k=14, scale=1.0, thin=1, eps=1.0, sm=7),
@@ -152,7 +152,7 @@ for name in (sys.argv[1:] or list(JOBS)):
     lbl2, _ = clean(lbl, j.get("thin", 3))
     h, w = lbl2.shape
     nut, end = nk["nut"], nk["end"]
-    if nk.get("src"):  # the neck in Nano's picture is replaced by the app's: each row takes the body colour beside it
+    if nk.get("src") and not nk.get("narrow"):  # the neck in Nano's picture is replaced by the app's: each row takes the body colour beside it
         y0, y1, x0, x1 = nk["nut"] + 6, nk["end"] + 4, max(0, nk["l1"] - 10), nk["r1"] + 10
         mid = (x0 + x1) // 2
         for y in range(y0, y1):
@@ -199,7 +199,7 @@ for name in (sys.argv[1:] or list(JOBS)):
     sm = cv2.GaussianBlur(cv2.morphologyEx(sm * 255, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))), (9, 9), 0) > 127
     cs0, _ = cv2.findContours(sm.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     sil = qp(cv2.approxPolyDP(max(cs0, key=cv2.contourArea), EPS * kk * 2, True))
-    art = dict(head=head, body=body, over="", sil=sil, **({"cov": list(nk["cov"]), "rim": nk["rim"], "clean": 1} if "cov" in nk else {"clean": 1} if "paint" in nk else {}), nums=nums, view=[round(w * Q), round(h * Q)])
+    art = dict(head=head, body=body, over="", sil=sil, **({"cov": list(nk["cov"]), "rim": nk["rim"], "clean": 1} if "cov" in nk else {"clean": 1} if "paint" in nk or nk.get("clean") else {}), nums=nums, view=[round(w * Q), round(h * Q)])
     js = "/* Traced from the Nano art by tools/guitars/build.py. Do not edit by hand. */\nexport default " + json.dumps(art, separators=(",", ":")) + ";\n"
     os.makedirs(OUT, exist_ok=True)
     open(f"{OUT}/{name}.js", "w").write(js)
