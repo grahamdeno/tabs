@@ -89,7 +89,7 @@ export function openingAdvance(data, id, now = Date.now()) {
 export const GUITARS = {
   open: { name: "The beater", kind: "acoustic", body: "parlor", head: "plain", headc: "#5a3d28", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#8a6a4a", tuner: "#efe4c8", inlay: "small" },
   switch: { name: "The cutaway", kind: "acoustic", body: "cutaway", head: "plain", headc: "#3a2a22", ink: "#F5C542", board: "#4a3328", binding: "#e9dcbc", finish: "#6b3b20", tuner: "#F5C542", inlay: "dot" },
-  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "plain", headc: "#1c1d22", ink: "#F5C542", board: "#2b2420", binding: "#e9dcbc", finish: "#1c1d22", tuner: "#F5C542", inlay: "block" },
+  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "plain", headc: "#1c1d22", ink: "#F5C542", board: "#2b2420", binding: "#e9dcbc", finish: "#5FC4B0", tuner: "#F5C542", inlay: "block" },
   strum: { name: "The hollow-body", kind: "electric", body: "hollow", head: "book", headc: "#1c1d22", ink: "#F5C542", board: "#241f1d", binding: "#e9dcbc", finish: "#a8431f", tuner: "#F5C542", inlay: "split" },
   pick: { name: "The single-cut", kind: "electric", body: "single", head: "book", headc: "#1c1d22", ink: "#c4c8d0", board: "#241f1d", binding: "#e9dcbc", finish: "#8b1e2b", tuner: "#c4c8d0", inlay: "trap" },
   finger: { name: "The classical", kind: "classical", body: "classical", head: "slot", headc: "#3a2418", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#c98a4a", tuner: "#efe4c8", inlay: "abalone" },
@@ -104,7 +104,7 @@ export const guitarFor = legId => GUITARS[legId] || GUITARS.open;
 export const FRET_STEPS = [66, 62, 59, 56, 53, 50];
 export const FRET_MIN = 48;
 export const FRET_HEAD = 100;
-export const FRET_BODY = 230;
+export const FRET_BODY = 330;
 export function fretLayout(stops) {
   let y = 0, dots = 0;
   const spaces = stops.map((stop, i) => {

@@ -52,7 +52,7 @@ The path of picks on the Road becomes a guitar neck, one guitar per leg.
 |---|---|---|---|---|---|
 | `open` | The beater | parlor acoustic, worn | 3+3 plain, cream tuners | rosewood | small dots |
 | `switch` | The cutaway | cutaway acoustic | 3+3 plain, gold tuners | rosewood | pearl dots |
-| `scales` | The solid-body | double-horn electric, black | 3+3 black, "Louie", gold | ebony | blocks |
+| `scales` | The solid-body | offset double cut, seafoam, white guard, three single coils (4.83.1) | 3+3 black, "Louie", gold | ebony | blocks |
 | `strum` | The hollow-body | wide electric, f-holes | open book, gold diamond | ebony | split blocks |
 | `pick` | The single-cut | carved electric, cherry | open book, "Louie", nickel | ebony | trapezoids |
 | `finger` | The classical | nylon acoustic, cedar | slotted | rosewood | abalone dots |
@@ -224,3 +224,14 @@ missed G mostly after C, a separate cause; it needs a What I hear reading with G
 ## Surprises
 
 (Write here when something doesn't match the plan.)
+
+- 4.83.1 (Opus, 2026-10-29, Graham: "That's a fucked up looking guitar"): the bodies were drawn at the Lineup
+  artboard's scale (a narrow neck) but the Road's board is 220 wide, so the board covered the upper bout and only
+  a skirt showed. Redrawn at the neck's scale, as the Changeover artboard has it: nearly full width, shoulders or
+  horns beside the board, the soundhole or pickups below the board's end, a bridge as wide as the strings, pins.
+  Then a second pass (Graham: "the best looking guitars with nods to the great famous body shapes"): smooth
+  bodies through points (Catmull-Rom) with sharp corners only at horn tips and cutaways, flat colour on a darker lip,
+  the body taller (FRET_BODY 330). The beater a parlor; the cutaway a dreadnought with a Venetian cut; the solid-body
+  an offset double cut with a white guard and three single coils (seafoam: black vanished on the dark looks); the
+  hollow-body twin round horns, f-holes, a burst; the single-cut a round bass bout, one horn, a carved burst, a raised
+  guard; the classical wide with a mosaic rosette and tie block; the headliner our own, flared horns, swallowtail.

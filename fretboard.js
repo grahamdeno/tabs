@@ -14,57 +14,101 @@ import { FRET_HEAD, fretLayout, guitarFor } from "./core.js";
 const W = 390, CX = 195;
 const STR = [-90, -54, -18, 18, 54, 90]; /* string x from the middle of the board, low E to high e */
 
-/* A symmetric body from its left half: start at the top middle, cubic segments down the left side to the
-   bottom middle; the right side is the same segments mirrored and walked back up. */
-function sym(start, segs) {
-  let d = `M${start[0]} ${start[1]}`;
-  const pts = [start];
-  for (const s of segs) { d += `C${s.join(" ")}`; pts.push([s[4], s[5]]); }
-  for (let i = segs.length - 1; i >= 0; i--) { const s = segs[i], p = pts[i]; d += `C${W - s[2]} ${s[3]} ${W - s[0]} ${s[1]} ${W - p[0]} ${p[1]}`; }
-  return d + "Z";
-}
 const rect = (x, y, w, h, fill, rx = 0, extra = "") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" ${extra}/>`;
 const knob = (x, y, c) => `<circle cx="${x}" cy="${y + 2}" r="7" fill="#A87F0C"/><circle cx="${x}" cy="${y}" r="7" fill="${c}"/>`;
 
 /* The bodies, our own flat shapes, compressed. Local y: 0 is the last fret, the body runs to FRET_BODY (230).
    `shape` is drawn under the board, `parts` over it, `bridge` is where the strings end. */
+/* ---- the bodies (4.83.1): our own shapes with a nod to the classics, flat colour on a darker lip ----
+   Each body is a smooth line through points (Catmull-Rom), with sharp corners only where a guitar has them (a horn
+   tip, where a cutaway meets the board). Local x is the screen (0 to 390, the board 85 to 305); y 0 is the last
+   fret, the board runs on to y 62, the body to about 310. Horns rise above y 0, beside the last frets. */
+const shade = (hex, f) => "#" + [1, 3, 5].map(i => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f))).toString(16).padStart(2, "0")).join("");
+/* points [x, y] or [x, y, 1] for a corner; a closed smooth path through them */
+function spline(pts) {
+  const n = pts.length, P = i => pts[(i + n) % n];
+  let d = `M${P(0)[0]} ${P(0)[1]}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2), t = 1 / 6;
+    const c1 = p1[2] ? p1 : [p1[0] + (p2[0] - p0[0]) * t, p1[1] + (p2[1] - p0[1]) * t];
+    const c2 = p2[2] ? p2 : [p2[0] - (p3[0] - p1[0]) * t, p2[1] - (p3[1] - p1[1]) * t];
+    d += `C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0]} ${p2[1]}`;
+  }
+  return d + "Z";
+}
+/* a left half (from the top to the bottom middle) and its mirror */
+const mirror = left => [...left, ...left.slice(0, -1).reverse().filter(p => p[0] !== CX).map(p => [W - p[0], p[1], p[2]])];
+const pins = y => STR.map(dx => `<circle cx="${CX + dx}" cy="${y}" r="3.4" fill="#efe4c8"/>`).join("");
+const hole = (y, r, rings) => rings.map(([dr, c, w]) => `<circle cx="${CX}" cy="${y}" r="${r + dr}" fill="none" stroke="${c}" stroke-width="${w}"/>`).join("") + `<circle cx="${CX}" cy="${y}" r="${r}" fill="#120c09"/>`;
+/* a pin bridge with rounded wings, the saddle and the pins */
+const pinBridge = (y, c) => `<path d="M84 ${y + 4}C84 ${y - 8} 104 ${y - 10} 122 ${y - 10}H268C286 ${y - 10} 306 ${y - 8} 306 ${y + 4}C306 ${y + 14} 290 ${y + 16} 268 ${y + 16}H122C100 ${y + 16} 84 ${y + 14} 84 ${y + 4}Z" fill="${c}"/>${rect(104, y - 6, 182, 4, "#efe4c8", 2)}${pins(y + 6)}`;
+const single = (y, c, pole, slant = 0) => `<g transform="rotate(${slant} ${CX} ${y})">${rect(90, y - 10, 210, 20, shade(c, .72), 10)}${rect(93, y - 7, 204, 14, c, 7)}${STR.map(dx => `<circle cx="${CX + dx}" cy="${y}" r="2.6" fill="${pole}"/>`).join("")}</g>`;
+const humbucker = (y, c, frame, pole) => `${rect(92, y - 15, 206, 30, frame, 5)}${rect(100, y - 11, 190, 22, c, 3)}${STR.map(dx => `<circle cx="${CX + dx}" cy="${y - 5}" r="2.4" fill="${pole}"/><circle cx="${CX + dx}" cy="${y + 5}" r="2.4" fill="${pole}"/>`).join("")}`;
+const tuneomatic = (y, c) => `${rect(110, y - 5, 170, 10, c, 4)}${STR.map(dx => rect(CX + dx - 4, y - 3, 8, 6, shade(c, .75), 1)).join("")}`;
+const knobs = (pts, c) => pts.map(([x, y]) => knob(x, y, c)).join("");
 const BODIES = {
+  /* The beater: a parlor, small and round, worn through by the pick */
   parlor: g => ({
-    shape: `<path d="${sym([195, 30], [[150, 30, 104, 50, 102, 92], [100, 118, 116, 130, 116, 152], [118, 178, 78, 192, 78, 208], [78, 224, 128, 228, 195, 228]])}" fill="${g.finish}" stroke="#5a3d28" stroke-width="3"/>`,
-    parts: `<ellipse cx="250" cy="176" rx="26" ry="11" fill="#a5845f" transform="rotate(-20 250 176)"/><ellipse cx="136" cy="150" rx="8" ry="5" fill="#a5845f"/><circle cx="195" cy="112" r="26" fill="none" stroke="${g.binding}" stroke-width="2"/><circle cx="195" cy="112" r="21" fill="#120c09"/>${rect(152, 176, 86, 10, "#2a1a12", 3)}`,
-    bridge: 181
+    d: spline(mirror([[195, -10], [124, -9], [76, 6], [56, 42], [62, 86], [82, 124], [76, 156], [48, 196], [36, 242], [54, 284], [112, 304], [195, 308]])),
+    parts: `${hole(126, 32, [[12, g.binding, 3], [7, "#5a3d28", 2]])}<path d="M246 168C276 160 300 176 298 204C296 226 268 232 250 222C232 212 222 176 246 168Z" fill="${shade(g.finish, .8)}"/><ellipse cx="96" cy="270" rx="22" ry="9" fill="${shade(g.finish, 1.18)}" transform="rotate(-18 96 270)"/>${pinBridge(232, "#2a1a12")}`,
+    bridge: 238
   }),
-  cutaway: g => ({
-    shape: `<path d="M150 30L240 30C246 52 252 74 270 90C284 100 280 130 276 152C272 178 370 182 370 208C370 224 290 228 195 228C100 228 20 224 20 208C20 182 118 178 114 152C110 132 108 112 106 92C104 52 140 30 150 30Z" fill="${g.finish}" stroke="${g.binding}" stroke-width="3"/>`,
-    parts: `<circle cx="190" cy="124" r="30" fill="none" stroke="#F5C542" stroke-width="2"/><circle cx="190" cy="124" r="25" fill="none" stroke="${g.binding}" stroke-width="3"/><circle cx="190" cy="124" r="20" fill="#120c09"/>${rect(146, 178, 90, 12, "#2a1a12", 3)}`,
-    bridge: 184
-  }),
+  /* The cutaway: a dreadnought's square shoulders, a round cut on the treble side, a pickguard */
+  cutaway: g => {
+    const left = [[195, -12, 1], [118, -12], [54, -2], [28, 34], [30, 86], [52, 128], [44, 166], [20, 212], [14, 258], [42, 294], [118, 310], [195, 312]];
+    const right = left.slice(1, -1).reverse().map(p => [W - p[0], p[1]]).filter(p => p[1] > 120);
+    return {
+      d: spline([...left, ...right, [352, 98], [362, 64], [354, 36], [336, 26], [320, 34], [310, 52], [305, 70, 1], [305, -12, 1]]),
+      edge: g.binding,
+      parts: `${hole(128, 33, [[13, "#F5C542", 3], [8, g.binding, 3]])}<path d="M244 156C278 150 312 166 314 196C316 226 290 246 262 240C238 234 228 204 232 180C234 166 238 158 244 156Z" fill="#2a1a12"/>${pinBridge(236, "#2a1a12")}`,
+      bridge: 242
+    };
+  },
+  /* The solid-body: an offset double cut, the bass horn the longer, a white guard, three single coils */
   solid: g => ({
-    shape: `<path d="${sym([195, 52], [[170, 52, 152, 46, 138, 36], [118, 22, 92, 26, 86, 40], [80, 60, 92, 80, 92, 104], [94, 126, 52, 146, 52, 178], [52, 212, 110, 228, 195, 228]])}" fill="${g.finish}" stroke="${g.binding}" stroke-width="3"/>`,
-    parts: `${rect(160, 84, 70, 14, "#efe4c8", 3)}${rect(160, 118, 70, 14, "#efe4c8", 3)}${rect(165, 166, 60, 9, "#c4c8d0", 2)}${knob(276, 176, "#F5C542")}${knob(296, 196, "#F5C542")}`,
-    bridge: 170
+    d: spline([[85, 34, 1], [78, 4], [70, -36], [58, -78], [40, -102], [20, -96], [12, -66], [14, -24], [26, 18], [44, 62], [50, 102], [34, 148], [16, 198], [18, 250], [52, 290], [132, 308], [236, 306], [314, 288], [362, 252], [376, 206], [364, 160], [346, 126], [344, 90], [356, 50], [370, 10], [374, -30], [362, -58], [340, -66], [322, -50], [314, -16], [308, 18], [305, 44, 1]]),
+    under: `<path d="${spline([[85, 36, 1], [70, 58], [64, 96], [70, 138], [64, 170], [84, 200], [140, 218], [214, 222], [276, 210], [312, 186], [326, 152], [316, 116], [305, 90, 1]])}" fill="#f3efe6" transform="translate(0 3)" opacity=".5"/><path d="${spline([[85, 36, 1], [70, 58], [64, 96], [70, 138], [64, 170], [84, 200], [140, 218], [214, 222], [276, 210], [312, 186], [326, 152], [316, 116], [305, 90, 1]])}" fill="#f6f2e8"/>`,
+    parts: `${single(96, "#fbf8f0", "#8a8678")}${single(136, "#fbf8f0", "#8a8678")}${single(178, "#fbf8f0", "#8a8678", -8)}${rect(96, 214, 198, 24, "#c4c8d0", 4)}${STR.map(dx => rect(CX + dx - 6, 218, 12, 10, "#9aa0aa", 2)).join("")}${knobs([[322, 230], [338, 256], [330, 282]], "#f6f2e8")}${rect(300, 196, 22, 6, "#2a2d33", 3, `transform="rotate(-30 311 199)"`)}`,
+    bridge: 224
   }),
+  /* The hollow-body: two round horns, f-holes, two humbuckers, a burst to the edge */
   hollow: g => ({
-    shape: `<path d="${sym([195, 32], [[150, 32, 110, 32, 84, 52], [64, 72, 92, 104, 80, 128], [68, 152, 14, 162, 14, 196], [14, 218, 100, 228, 195, 228]])}" fill="${g.finish}" stroke="${g.binding}" stroke-width="3"/>`,
-    parts: `<path d="M112 110C104 124 120 136 112 152C108 162 116 168 114 176M278 110C286 124 270 136 278 152C282 162 274 168 276 176" fill="none" stroke="#1a0c06" stroke-width="4" stroke-linecap="round"/>${rect(165, 70, 60, 15, "#c4c8d0", 3)}${rect(165, 104, 60, 15, "#c4c8d0", 3)}${rect(168, 152, 54, 6, "#2a1a12", 2)}<path d="M170 184H220L210 222H180Z" fill="#F5C542"/>${knob(300, 176, "#F5C542")}${knob(318, 196, "#F5C542")}`,
-    bridge: 188
+    d: spline(mirror([[85, 30, 1], [74, -4], [60, -30], [40, -38], [24, -22], [18, 12], [22, 62], [32, 106], [26, 146], [12, 196], [14, 246], [48, 288], [120, 308], [195, 312]])),
+    burst: shade(g.finish, .55),
+    edge: g.binding,
+    parts: `<path d="M58 96C44 116 70 128 58 150C50 166 66 174 62 196M332 96C346 116 320 128 332 150C340 166 324 174 328 196" fill="none" stroke="#1a0c06" stroke-width="6" stroke-linecap="round"/><circle cx="58" cy="94" r="5" fill="#1a0c06"/><circle cx="62" cy="198" r="5" fill="#1a0c06"/><circle cx="332" cy="94" r="5" fill="#1a0c06"/><circle cx="328" cy="198" r="5" fill="#1a0c06"/>${humbucker(100, "#d9dce2", "#2a2d33", "#8d929c")}${humbucker(150, "#d9dce2", "#2a2d33", "#8d929c")}${tuneomatic(196, "#c4c8d0")}${rect(118, 222, 154, 12, "#c4c8d0", 6)}${knobs([[300, 246], [328, 258], [296, 274], [324, 286]], "#F5C542")}`,
+    bridge: 198
   }),
+  /* The single-cut: a round bass bout, one horn on the treble side, a carved top, a raised guard */
   single: g => ({
-    shape: `<path d="M150 40L240 40C252 54 256 74 276 92C290 104 290 126 292 150C296 176 336 186 336 208C336 224 280 228 195 228C110 228 54 224 54 208C54 186 94 176 98 150C102 120 98 92 100 72C102 48 130 40 150 40Z" fill="${g.finish}" stroke="${g.binding}" stroke-width="3"/>`,
-    parts: `${rect(162, 88, 66, 18, "#16171B", 3, `stroke="#efe4c8" stroke-width="2"`)}${rect(162, 124, 66, 18, "#16171B", 3, `stroke="#efe4c8" stroke-width="2"`)}${rect(168, 166, 54, 7, "#c4c8d0", 2)}${rect(172, 178, 46, 7, "#c4c8d0", 2)}${knob(256, 192, "#F5C542")}${knob(280, 198, "#F5C542")}${knob(252, 212, "#F5C542")}${knob(276, 216, "#F5C542")}`,
-    bridge: 172
+    d: spline([[85, 6, 1], [58, 2], [34, 16], [20, 50], [22, 90], [36, 122], [28, 152], [12, 198], [14, 248], [48, 290], [124, 308], [266, 308], [342, 290], [376, 248], [378, 198], [362, 152], [352, 116], [354, 82], [362, 50], [356, 22], [340, 10], [324, 16], [314, 36], [305, 60, 1]]),
+    burst: shade(g.finish, .7),
+    edge: g.binding,
+    parts: `<path d="M305 70C336 74 356 112 350 152C346 182 326 196 312 186C304 178 304 120 305 70Z" fill="#efe4c8"/><path d="M308 78C334 84 348 116 343 150C340 176 324 186 314 178C308 170 307 120 308 78Z" fill="#2a1a12"/>${humbucker(100, "#efe4c8", "#14100d", "#b8ad90")}${humbucker(150, "#efe4c8", "#14100d", "#b8ad90")}${tuneomatic(196, "#c4c8d0")}${rect(112, 222, 166, 12, "#c4c8d0", 6)}${knobs([[296, 248], [326, 256], [292, 278], [322, 286]], "#F5C542")}<circle cx="54" cy="58" r="11" fill="#efe4c8"/><circle cx="54" cy="58" r="4" fill="#c4c8d0"/>`,
+    bridge: 198
   }),
+  /* The classical: wide and round, a mosaic rosette, a tie block */
   classical: g => ({
-    shape: `<path d="${sym([195, 30], [[135, 30, 112, 50, 114, 92], [116, 116, 128, 128, 124, 150], [118, 178, 44, 188, 44, 208], [44, 224, 120, 228, 195, 228]])}" fill="${g.finish}" stroke="#3a2418" stroke-width="3"/>`,
-    parts: `<circle cx="195" cy="112" r="32" fill="none" stroke="#1f8f8a" stroke-width="4"/><circle cx="195" cy="112" r="27" fill="none" stroke="#b8402a" stroke-width="2"/><circle cx="195" cy="112" r="22" fill="#120c09"/>${rect(140, 176, 110, 14, "#2a1a12", 3)}${rect(148, 181, 94, 5, "#efe4c8", 2)}`,
-    bridge: 183
+    d: spline(mirror([[195, -12], [118, -11], [62, 4], [42, 42], [46, 88], [68, 128], [62, 162], [32, 206], [24, 252], [50, 290], [120, 308], [195, 312]])),
+    parts: `${hole(128, 32, [[15, "#1f8f8a", 5], [10, "#b8402a", 3], [6, "#efe4c8", 2]])}${rect(80, 228, 230, 26, "#2a1a12", 6)}${rect(92, 236, 206, 6, "#efe4c8", 2)}${STR.map(dx => rect(CX + dx - 3, 246, 6, 8, "#efe4c8", 1)).join("")}`,
+    bridge: 238
   }),
+  /* The headliner: our own, two sharp horns beside the neck, a sharp lower point each side, a swallowtail */
   swallow: g => ({
-    shape: `<path d="${sym([195, 50], [[170, 50, 152, 42, 138, 32], [118, 14, 88, 18, 76, 36], [62, 56, 74, 84, 76, 110], [78, 134, 46, 152, 52, 182], [58, 204, 86, 222, 120, 228], [150, 226, 176, 214, 195, 204]])}" fill="${g.finish}" stroke="${g.binding}" stroke-width="4"/>`,
-    parts: `${rect(162, 88, 66, 18, "#16171B", 3, `stroke="#F5C542" stroke-width="2"`)}${rect(162, 124, 66, 18, "#16171B", 3, `stroke="#F5C542" stroke-width="2"`)}${rect(168, 164, 54, 9, "#F5C542", 2)}${knob(254, 184, "#F5C542")}${knob(278, 172, "#F5C542")}`,
-    bridge: 168
+    d: spline(mirror([[85, 26, 1], [72, -12], [54, -52], [16, -96, 1], [20, -60], [28, -20], [38, 40], [36, 100], [22, 160], [12, 214, 1], [52, 252], [118, 312, 1], [158, 288], [195, 262, 1]])),
+    edge: g.binding,
+    parts: `${humbucker(100, "#16171B", "#F5C542", "#F5C542")}${humbucker(150, "#16171B", "#F5C542", "#F5C542")}${tuneomatic(196, "#F5C542")}${rect(116, 218, 158, 12, "#F5C542", 6)}${knobs([[300, 236], [322, 256]], "#F5C542")}`,
+    bridge: 198
   })
 };
+let clipN = 0;
+/* the body: its lip, the finish, a burst to the edge, the binding, and what sits under the board */
+function bodySVG(g, b) {
+  const id = `rdb${++clipN}`;
+  return `<path d="${b.d}" fill="${shade(g.finish, .62)}" transform="translate(0 8)"/><path d="${b.d}" fill="${g.finish}"/>`
+    + (b.burst ? `<clipPath id="${id}"><path d="${b.d}"/></clipPath><path d="${b.d}" fill="none" stroke="${b.burst}" stroke-width="34" stroke-opacity=".55" clip-path="url(#${id})"/><path d="${b.d}" fill="none" stroke="${b.burst}" stroke-width="16" clip-path="url(#${id})"/>` : "")
+    + (b.edge ? `<path d="${b.d}" fill="none" stroke="${b.edge}" stroke-width="4"/>` : "") + (b.under || "");
+}
 
 /* The headstock above the nut: its shape, six tuners and the guitar's name. */
 function headstock(g) {
@@ -89,7 +133,7 @@ function baseLayer(g, lay) {
     frets += `${rect(89, y - 3, 212, 6, "#c4c8d0")}${rect(89, y - 3, 212, 2, "#f2f4f7")}${rect(89, y + 1, 212, 2, "#7d828c")}`;
   }
   const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="303" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
-  return `${headstock(g)}<g transform="translate(0 ${y0})">${body.shape}</g>`
+  return `${headstock(g)}<g transform="translate(0 ${y0})">${bodySVG(g, body)}</g>`
     + rect(89, top, 212, lay.neck + 62, g.board) + rect(85, top - 8, 4, lay.neck + 70, g.binding) + rect(301, top - 8, 4, lay.neck + 70, g.binding)
     + rect(85, top - 10, 220, 10, g.binding) + rect(85, top, 220, 3, "#c9b98f")
     + frets + dots + `<g transform="translate(0 ${y0})">${body.parts}</g>`;
