@@ -8,24 +8,32 @@
 //   poses: rest, hornsUp, thumb, point, wave, peace (no arms when absent)
 //   No hand ever shows one finger standing straight up: it reads as the middle finger (Graham, 4.39.1).
 
-const cap = (x, y, w, h, cls = "lv-f") => `<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2}"/>`;
-/* hands are drawn with the wrist at 0,0 and the fingers pointing up (negative y) */
+/* hands are drawn with the wrist at 0,0 and the fingers pointing up (negative y).
+   4.86.0: each hand is one mitten: the fingers grow out of the palm, creases instead of stuck-on knuckles, a shade copy
+   under the lit one like his body, and a cuff at the wrist. */
+const mitt = (shape, creases = "", over = "") => `<g class="lv-fs" transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-f">${shape}</g>`
+  + `<g class="lv-fl" fill="none" stroke-width="1.9" stroke-linecap="round">${creases}</g>${over ? `<g class="lv-fs" transform="translate(0 1.6)">${over}</g><g class="lv-f">${over}</g>` : ""}`
+  + `<rect class="lv-cuff" x="-9.5" y="-3.2" width="19" height="6.4" rx="3.2"/>`;
+const finger = (x, len, r) => `<rect x="${x - 4.6}" y="${-22 - len}" width="9.2" height="${len + 6}" rx="4.6" transform="rotate(${r} ${x} -20)"/>`;
+const PALM = `<path d="M-13 -4C-15.5 -11 -15.5 -20 -12.5 -25C-8 -28 8 -28 12.5 -25C15.5 -20 15.5 -11 13 -4C8 1 -8 1 -13 -4Z"/>`;
+const ROLLS = "C16.5 -26.5 16 -23.5 13.5 -21.5C16.5 -19 16 -15.5 13.5 -13.5C16.5 -11 16 -7 13 -5C12 0 6 1 0 1C-6 1 -10 1 -11 -1Z";
+const THUMB_ACROSS = `<path d="M-12.5 -15C-6 -18.5 4 -18.5 8.5 -15C10.5 -13 9.5 -10 7.5 -9.5C1 -8 -6 -8.5 -12 -10Z"/>`;
 const HANDS = {
-  fist: () => `<circle class="lv-f" cx="0" cy="-9" r="12"/>${cap(-13, -13, 9, 12, "lv-fs")}`,
-  horns: () => cap(-12, -40, 10, 30) + cap(3, -36, 9, 26) + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs"),
-  /* a real thumbs up: a wide fist with the curled fingers showing, the thumb short and tipped out to the side.
+  fist: () => mitt(`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
+    `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, THUMB_ACROSS),
+  horns: () => mitt(`<path d="M-13 -3C-15.5 -9 -15.5 -17 -13.5 -22L-14.5 -38C-14.8 -43.5 -5 -44.5 -4.6 -38.5L-4 -26.5C-1.5 -28.5 2 -28.5 4.6 -26.5L5.4 -34.5C5.8 -40.5 15 -40 14.4 -34L13.4 -20C15.4 -14 15 -8 12.5 -3C8 1 -8.5 1 -13 -3Z"/>`,
+    `<path d="M-4 -24Q0 -21.5 4.6 -24"/>`, THUMB_ACROSS),
+  /* a thumbs up like the emoji: the fingers curled on the front edge, a short thumb up from the back of the fist.
      Never one finger standing straight up from the middle (that reads as the middle finger). */
-  /* a thumbs up like the emoji: a round fist, three curled knuckles on its front edge, the thumb a fat capsule up from the
-     back corner, leaning out. Never a finger straight up from the middle. */
-  thumb: () => `<g transform="rotate(4 -8 -26)">${cap(-16, -45, 13, 23)}</g>`
-    + `<rect class="lv-f" x="-15" y="-32" width="27" height="31" rx="13"/>`
-    + [-25, -16, -7].map(y => `<circle class="lv-fs" cx="12" cy="${y + 1.8}" r="6.2"/><circle class="lv-f" cx="11" cy="${y}" r="6"/>`).join(""),
-  /* pointing: the same fist with the index finger out from the front edge and the thumb tucked; the pose
-     turns it toward the speech bubble, so it never stands straight up */
-  point: () => cap(4, -50, 11, 28) + `<rect class="lv-f" x="-15" y="-31" width="31" height="29" rx="11"/>`
-    + [-17, -9].map(y => `<rect class="lv-fs" x="0" y="${y}" width="16" height="5" rx="2.5"/>`).join("") + cap(-15, -22, 14, 8, "lv-fs"),
-  wave: () => [[-12, -12], [-5, -4], [3, 4], [10, 14]].map(([x, r]) => `<g transform="rotate(${r} ${x + 4} -12)">${cap(x, -36, 8, 26)}</g>`).join("") + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + `<g transform="rotate(-55 -12 -6)">${cap(-16, -20, 9, 18, "lv-fs")}</g>`,
-  peace: () => `<g transform="rotate(-12 -5 -12)">${cap(-10, -42, 10, 32)}</g><g transform="rotate(12 5 -12)">${cap(0, -42, 10, 32)}</g><circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs")
+  thumb: () => mitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 -12 -46C-9 -50 -3 -49 -2 -44C-1.5 -40 -1.5 -36 -1 -32C4 -33.5 11 -33 13.5 -29.5${ROLLS}"/>`,
+    `<path d="M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M3 -5.5Q8 -4.8 13 -5M-1 -32Q-5 -30 -9 -31"/>`),
+  /* pointing: the index finger out from the front of the fist and the thumb tucked; the pose turns it toward the
+     speech bubble, so it never stands straight up */
+  point: () => mitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -26C-12.5 -31 -8 -33 -3 -33L3 -33L3.5 -49C3.7 -55 13.3 -55 13.5 -49L13.6 -30${ROLLS}"/>`,
+    `<path d="M3 -30.5Q8 -29.5 13.5 -30M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M-12 -20Q-5 -17 2 -20"/>`),
+  wave: () => mitt(`${PALM}${finger(-9, 17, -14)}${finger(-3, 23, -5)}${finger(3.5, 24, 4)}${finger(9.5, 20, 13)}<rect x="-21" y="-19" width="9.2" height="18" rx="4.6" transform="rotate(-38 -12 -8)"/>`,
+    `<path d="M-6 -24.5V-21M0.3 -25V-21.5M6.6 -24.5V-21"/>`),
+  peace: () => mitt(`${PALM}${finger(-4.5, 24, -12)}${finger(4.5, 25, 12)}`, `<path d="M-1 -10Q0 -16 1 -22"/>`, THUMB_ACROSS)
 };
 /* shoulder x,y → wrist x,y, the hand's turn, and the sign */
 const POSES = {
@@ -58,7 +66,7 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const limbs = layer => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
     const mx = (sx + wx) / 2 + (wx < sx ? -10 : 10), my = Math.min(sy, wy) + (wy < sy ? 8 : 14);
     return layer === "arm" ? `<path class="lv-l" d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-width="15" stroke-linecap="round"/>`
-      : `<g transform="translate(${wx} ${wy}) rotate(${rot}) scale(1.25)">${HANDS[sign]()}</g>`;
+      : `<g transform="translate(${wx} ${wy}) rotate(${rot}) scale(0.97 1.17)">${HANDS[sign]()}</g>`;
   }).join("");
   const vb = arms ? "-34 -30 268 236" : "18 0 164 200";
   const [, , vw, vh] = vb.split(" ").map(Number);

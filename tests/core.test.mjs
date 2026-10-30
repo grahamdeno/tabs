@@ -2332,8 +2332,10 @@ test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing h
   const { louie } = await import("../louie.js");
   const up = louie("cheer", { pose: "thumb" });
   /* 4.86.0: the thumb rises from the back corner of the fist (not the middle) and is short; three knuckles on the front edge */
-  assert.match(up, /<rect class="lv-f" x="-16" y="-45" width="13" height="23"/, "the thumb is on the side of the fist, not standing in the middle");
-  assert.equal((up.match(/<circle class="lv-f" cx="11"/g) || []).length, 3, "three curled knuckles show on the fist");
+  /* 4.86.0: one mitten: the thumb rises from the back of the fist (its tip left of the middle), the curled fingers are creases on the front */
+  const tip = up.match(/<g class="lv-f"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
+  assert.ok(tip && +tip[1] < -4, "the thumb is on the side of the fist, not standing in the middle");
+  assert.match(up, /M2 -21\.5Q8 -20\.5 13\.5 -21\.5M2 -13\.5/, "the curled fingers show as creases");
   assert.match(louie("happy", { pose: "point" }), /translate\(180 108\) rotate\(40\)/, "the pointing hand leans, never straight up");
 });
 

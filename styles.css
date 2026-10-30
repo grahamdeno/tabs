@@ -1884,7 +1884,7 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .louie .lv-l { stroke: var(--lv-shade); } .louie .lv-c { fill: var(--lv-cheek); opacity: .6; } .louie .lv-p { fill: var(--lv-pupil); } .louie .lv-ps { stroke: var(--lv-pupil); }
 .louie .lv-g { fill: var(--lv-grille); } .louie .lv-gs { fill: var(--lv-slat); } .louie .lv-m { fill: var(--lv-grille); } .louie .lv-ms { stroke: var(--lv-grille); }
 /* 4.86.0: knobs and plate in chrome, and chrome corner bumpers with a highlight, in every look */
-.louie .lv-k { fill: #DDE2EA; } .louie .lv-cn { stroke: #B9C0CB; } .louie .lv-cnh { stroke: #F2F4F7; }
+.louie .lv-fl { stroke: var(--lv-face-sh); } .louie .lv-cuff { fill: var(--lv-face-sh); } .louie .lv-k { fill: #DDE2EA; } .louie .lv-cn { stroke: #B9C0CB; } .louie .lv-cnh { stroke: #F2F4F7; }
 .louie .lv-t { fill: var(--lv-tongue); } .louie .lv-lamp { fill: var(--lv-lamp); } .louie .lv-shadow { fill: var(--lv-shadow); opacity: .18; } .louie .lv-z { fill: var(--muted); }
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
