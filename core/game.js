@@ -87,13 +87,13 @@ export function openingAdvance(data, id, now = Date.now()) {
    shape of the single inlays (merch boxes) and of the headline's double. Legs not built yet (strum,
    pick, finger) and the Encore guitar are data only until their legs exist. */
 export const GUITARS = {
-  open: { name: "The beater", kind: "acoustic", body: "parlor", head: "plain", headc: "#5a3d28", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#8a6a4a", tuner: "#efe4c8", inlay: "small" },
-  switch: { name: "The cutaway", kind: "acoustic", body: "cutaway", head: "plain", headc: "#3a2a22", ink: "#F5C542", board: "#4a3328", binding: "#e9dcbc", finish: "#6b3b20", tuner: "#F5C542", inlay: "dot" },
-  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "plain", headc: "#1c1d22", ink: "#F5C542", board: "#2b2420", binding: "#e9dcbc", finish: "#5FC4B0", tuner: "#F5C542", inlay: "block" },
-  strum: { name: "The hollow-body", kind: "electric", body: "hollow", head: "book", headc: "#1c1d22", ink: "#F5C542", board: "#241f1d", binding: "#e9dcbc", finish: "#a8431f", tuner: "#F5C542", inlay: "split" },
-  pick: { name: "The single-cut", kind: "electric", body: "single", head: "book", headc: "#1c1d22", ink: "#c4c8d0", board: "#241f1d", binding: "#e9dcbc", finish: "#8b1e2b", tuner: "#c4c8d0", inlay: "trap" },
-  finger: { name: "The classical", kind: "classical", body: "classical", head: "slot", headc: "#3a2418", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#c98a4a", tuner: "#efe4c8", inlay: "abalone" },
-  encore: { name: "The headliner", kind: "electric", body: "swallow", head: "point", headc: "#8A47F5", ink: "#FFFFFF", board: "#1c1a1f", binding: "#F5C542", finish: "#8A47F5", tuner: "#F5C542", inlay: "star" }
+  open: { name: "The beater", kind: "acoustic", body: "parlor", head: "plain", headc: "#5a3d28", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#8a6a4a", tuner: "#efe4c8", inlay: "small", mat: "pearl" },
+  switch: { name: "The cutaway", kind: "acoustic", body: "cutaway", head: "plain", headc: "#3a2a22", ink: "#F5C542", board: "#4a3328", binding: "#e9dcbc", finish: "#6b3b20", tuner: "#F5C542", inlay: "dot", mat: "pearl" },
+  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "inline", headc: "#5FC4B0", ink: "#1c1d22", board: "#dcb87e", binding: "#e9dcbc", finish: "#5FC4B0", tuner: "#cdd2da", inlay: "block", mat: "black" },
+  strum: { name: "The hollow-body", kind: "electric", body: "hollow", head: "book", headc: "#1c1d22", ink: "#F5C542", board: "#241f1d", binding: "#e9dcbc", finish: "#a8431f", tuner: "#F5C542", inlay: "split", mat: "mop" },
+  pick: { name: "The single-cut", kind: "electric", body: "single", head: "book", headc: "#1c1d22", ink: "#c4c8d0", board: "#241f1d", binding: "#e9dcbc", finish: "#8b1e2b", tuner: "#c4c8d0", inlay: "trap", mat: "gold" },
+  finger: { name: "The classical", kind: "classical", body: "classical", head: "slot", headc: "#3a2418", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#c98a4a", tuner: "#efe4c8", inlay: "abalone", mat: "abalone" },
+  encore: { name: "The headliner", kind: "electric", body: "swallow", head: "point", headc: "#8A47F5", ink: "#FFFFFF", board: "#1c1a1f", binding: "#F5C542", finish: "#8A47F5", tuner: "#F5C542", inlay: "star", mat: "gold" }
 };
 export const guitarFor = legId => GUITARS[legId] || GUITARS.open;
 /* The fret spaces of a leg's neck, top to bottom: one per stop. Spacing narrows like a real neck (66, 62,

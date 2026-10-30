@@ -2671,3 +2671,11 @@ test("4.83.0 a quick change written C-G is two chords, a note in brackets is rea
   assert.deepEqual(C.songsWith(data, "E").map(s => s.id), ["s"]);
   assert.equal(C.KNOW_PLAYS, 5);
 });
+
+test("4.84.0 every guitar has its own inlay material, and the solid-body is on maple", () => {
+  const mats = Object.values(C.GUITARS).map(g => g.mat);
+  assert.ok(mats.every(m => ["pearl", "black", "mop", "abalone", "gold"].includes(m)), "a known material each");
+  assert.ok(new Set(mats).size >= 5, "five different materials across the guitars");
+  assert.equal(C.guitarFor("scales").mat, "black");
+  assert.equal(C.guitarFor("scales").head, "inline", "six in line");
+});

@@ -236,3 +236,11 @@ docs/HEARING-PLAN.md.
   an offset double cut with a white guard and three single coils (seafoam: black vanished on the dark looks); the
   hollow-body twin round horns, f-holes, a burst; the single-cut a round bass bout, one horn, a carved burst, a raised
   guard; the classical wide with a mosaic rosette and tie block; the headliner our own, flared horns, swallowtail.
+
+- 4.84.0 (Opus, 2026-10-30): round 3 and round 4 of the guitars (Graham named the third pass "round 3"): a shared
+  hardware kit (chrome, top-hat knobs, real bridges, strap buttons), a light rim and hard-step bursts, rosettes,
+  f-holes, the solid-body six-in-line on maple; round 4 reshaped the solid-body's horns and offset bout and the
+  hollow-body's round horns and waist. Inlays: the guitar decides the material (`mat` in GUITARS), the stop the
+  shape: a merch box is a crate, the headline two of the guitar's inlays. A lesson that opens songs carries a badge.
+  Considered and dropped: friend-face and "new songs" inlays as stops of their own (band members don't join at
+  Road stops, and opening songs is a property of a lesson, so they'd be milestones that don't exist).

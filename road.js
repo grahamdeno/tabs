@@ -201,7 +201,9 @@ export function renderRoad() {
 
   /* the path: one neck per leg (fretboard.js), with a label where each new leg starts */
   const labelOf = s => esc(`${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked"}`);
-  const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(tagOf(s)) };
+  /* 4.84.0: how many of your songs each lesson's chord would open (with the chords you know) */
+  const opens = s => s.kind === "chord" && s.chord ? playableSongs(data, s.chord).more : 0;
+  const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(tagOf(s)), songs: opens };
   const legsHTML = road.legs.map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
@@ -269,7 +271,7 @@ export function renderRoad() {
     Tabs.save(data); haptic(2);
     node.parentElement.querySelector(".rd-tag")?.remove();
     node.classList.add("opening", "done"); node.classList.remove("now");
-    node.innerHTML = inlaySVG(node.dataset.inlay, "set", false);
+    node.innerHTML = inlaySVG(node.dataset.inlay, "set", false, node.dataset.mat);
     showCallout({ kind: "earn", pow: "POW!", word: "MERCH BOX", big: `+${FANS.box} fans` });
     setTimeout(() => { if (document.contains(node)) renderRoad(); }, 1400);
   };

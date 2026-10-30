@@ -4376,3 +4376,21 @@ body.covered .gc-tile b { background: rgba(20, 18, 24, .82); color: #FFFFFF; }
 .gc-sec > b { width: 80px; padding: 4px 3px; box-sizing: border-box; font-size: 10px; letter-spacing: .03em; overflow-wrap: anywhere; }
 /* 4.83.0: a chord stop's card says how many more songs with it finish the stop */
 .rd-pop p.rd-alt { margin: 12px 0 0; font: 700 13px var(--sans); }
+/* 4.84.0: inlay materials, one per guitar; the crate's slats; a lesson's songs badge */
+.rd-neck .rd-pearl.mat-pearl { fill: #f4ecdc; }
+.rd-neck .rd-pearl.mat-black { fill: #1c1d22; }
+.rd-neck .rd-pearl.mat-mop { fill: #eef1f4; }
+.rd-neck .rd-pearl.mat-abalone { fill: #63c7b6; }
+.rd-neck .rd-pearl.mat-gold { fill: #F5C542; }
+.rd-neck .rd-node:has(.mat-black) .rd-sheen { fill: #6a6e78; }
+.rd-neck .rd-node:has(.mat-black) .rd-sheen2 { fill: #3a3e48; }
+.rd-neck .rd-node:has(.mat-mop) .rd-sheen { fill: #f7c9df; }
+.rd-neck .rd-node:has(.mat-mop) .rd-sheen2 { fill: #bfeee6; }
+.rd-neck .rd-node:has(.mat-abalone) .rd-sheen { fill: #b7f0e2; }
+.rd-neck .rd-node:has(.mat-abalone) .rd-sheen2 { fill: #8a6fd8; }
+.rd-neck .rd-node:has(.mat-gold) .rd-sheen { fill: #fff1b8; }
+.rd-neck .rd-node:has(.mat-gold) .rd-sheen2 { fill: #d9a520; }
+.rd-neck .rd-eng { fill: none; stroke: rgba(0, 0, 0, .28); stroke-width: 2.2; }
+.rd-neck .rd-node:has(.mat-black) .rd-eng { stroke: rgba(255, 255, 255, .22); }
+.rd-neck .rd-songs { position: absolute; right: -10px; top: -8px; z-index: 2; display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px 2px 5px; border-radius: 999px; background: var(--fans); color: #3D2A00; font: 800 12px/1 var(--sans); box-shadow: 0 2px 0 var(--fans-deep); pointer-events: none; }
+.rd-neck .rd-songs svg { width: 9px; height: 11px; fill: currentColor; }

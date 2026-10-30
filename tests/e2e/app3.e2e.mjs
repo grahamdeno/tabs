@@ -664,3 +664,13 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   await page.reload(); await page.waitForSelector(".rd-neck");
   assert.equal(await page.locator("#gt-x").count(), 0, "said once");
 });
+
+test("4.84.0 a lesson that opens songs you have says how many; an opened merch box is a crate in the guitar's material", { skip: skip() }, async t => {
+  const now = Date.now(), done = Object.fromEntries(["G", "C", "D"].map((c, i) => [`c:${c}`, { n: 3, best: 90, at: now - 1000 + i }]));
+  const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] } }, { home: true });
+  await page.waitForSelector(".rd-neck");
+  assert.match(await page.innerText(".rd-node.now .rd-songs"), /1/, "Em opens one song");
+  assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
+  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on the beater");
+});
