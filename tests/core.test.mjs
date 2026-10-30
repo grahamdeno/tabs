@@ -1736,6 +1736,10 @@ test("The fretboard Road (4.82.0): a guitar per leg, fret spaces that narrow to 
   assert.equal(lay.spaces.filter(x => x.kind === "double").length, 1);
   for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
   assert.equal(C.guitarNew(data), null, "no guitar to announce until the leg is headlined");
+  C.skillDone(data, "k:open");
+  const gn = C.guitarNew(data);
+  assert.equal(gn?.leg, "open", "the headlined leg earns the next guitar");
+  assert.equal(gn.guitar.name, C.guitarFor("switch").name);
 });
 
 test("The fretboard Road (4.82.0): a new guitar is announced once per headlined leg, and kept through a backup", () => {
