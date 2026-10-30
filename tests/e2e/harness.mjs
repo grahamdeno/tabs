@@ -43,7 +43,8 @@ export const LIB = {
     { id: "a", title: "River Road", artist: "The Wanderers", key: "A", format: "chords", body: SONG, duration: 30 },
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
-  sets: [], trash: [], opening: { step: 5, done: 1, seen: 1 }, /* 4.40.0: Opening night already played */
+  sets: [], trash: [], opening: { step: 6, v: 2, done: 1, seen: 1 }, /* 4.40.0: Opening night already played */
+  me: { skin: 2, hair: "shag", hairCol: "brown", top: "red" }, /* 4.85.0: a guitarist already made, so the Road has no sheet to ask for one */
   settings: { instrument: "guitar", v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, plainPlay: true }
 };
 

@@ -13,9 +13,10 @@
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
 //   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
-import { KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
+import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
@@ -129,15 +130,16 @@ const OIC = {
   pause: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="7" height="22" rx="2.5" fill="#fff"/><rect x="18" y="5" width="7" height="22" rx="2.5" fill="#fff"/></svg>`,
   show: ICONS.star
 };
-const OSAY = ["Hi, I'm Louie. Tap the glowing pick and I'll show you around. Five steps, then your first show.",
+const OSAY = ["Hi, I'm Louie. Tap the glowing pick and make your guitarist. Then I'll show you around: six steps, ending with your first show.",
+  "Now I'll ask for the microphone. Tap the glowing pick.",
   "Now a chord. Tap the glowing pick.", "Time to play. Just the first verse.",
   "Next: pausing, and picking up where you left off.", "Last one: your first show, start to finish."];
 function openingCard(i, step) {
   const o = OPENING[i], state = i < step ? "done" : i === step ? "now" : "locked";
   const line = state === "locked" ? "Finish the steps before this one." : state === "done" ? "Done." : [
-    "I'll say why I listen, then your phone asks for the microphone.", "Open the song and tap a chord to see its shape.",
+    "Pick a starter, a skin tone and a hair colour. It's you on your card and the chart.", "I'll say why I listen, then your phone asks for the microphone.", "Open the song and tap a chord to see its shape.",
     "Play the first verse. Play each chord as it comes.", "Play, tap anywhere to pause, then Resume.", "Play a song start to finish."][i];
-  const btn = state === "now" ? `<button class="btn primary rd-start" data-ostart="${i}">${o.id === "show" ? `PLAY · +${FANS.play} FANS` : `START · +${FANS.lesson} FANS`}</button>` : "";
+  const btn = state === "now" ? `<button class="btn primary rd-start" data-ostart="${i}">${o.id === "show" ? `PLAY · +${FANS.play} FANS` : o.id === "who" ? "PICK YOURS" : `START · +${FANS.lesson} FANS`}</button>` : "";
   return `<div class="rd-pop ${state}" role="dialog" aria-label="${esc(o.name)}"><b>${esc(o.name)}</b><p>${esc(line)}</p>${btn}</div>`;
 }
 function renderOpening(view) {
@@ -169,6 +171,7 @@ function renderOpening(view) {
     const st = e.target.closest("[data-ostart]");
     if (st) {
       const id = OPENING[+st.dataset.ostart].id;
+      if (id === "who") return makerSheet({ mode: "start", done: () => { openingAdvance(data, "who"); Tabs.save(data); renderRoad(); } });
       if (id === "mic") return micSheet(() => renderRoad());
       const song = songFor();
       if (!song) { toast("Add a song with chords first; then it's your stage"); return go("#/library"); }
@@ -287,6 +290,13 @@ export function renderRoad() {
   if (plays) fillScene(st);
   headlinerEarned(road);
   guitarEarned(road);
+  guitaristAsk();
+}
+
+/* 4.85.0: a player who never made a guitarist (past Opening night) meets the picker once, after the other sheets. Skip keeps the default. */
+function guitaristAsk() {
+  if (data.me || layer.innerHTML || openingView(data)) return;
+  makerSheet({ mode: "once", done: () => renderRoad() });
 }
 
 /* 4.78.0: the first time a leg's headline show is done, Headliner is yours. Said once, on the Road. */

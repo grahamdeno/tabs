@@ -23,7 +23,9 @@ const SCREENS = [
   ["editor", "#/song/a", async p => { await tool(p, "edit"); }],
   ["question", "#/trash", p => p.click("[data-forget]")],
   ["tuner", "#/library", p => p.click("#tunerbtn")],
-  ["sketch", "#/sketch"]
+  ["sketch", "#/sketch"],
+  ["maker", "#/you", p => p.click("#pf-me")], /* 4.85.0: your guitarist's maker (labelled, pressed-state buttons) */
+  ["hats", "#/merch"]
 ];
 
 const unnamed = () => {

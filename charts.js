@@ -10,7 +10,7 @@
 import { VERSION, CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
 import { app, esc, toast } from "./ui.js";
 import { data, go, playGig } from "./app.js";
-import { louie } from "./louie.js";
+import { rival, you } from "./guitarist.js";
 import { statBar, bindStatBar } from "./hud.js";
 
 const AV = ["var(--accent)", "var(--strings)", "var(--fans)", "var(--streak)", "var(--good)"];
@@ -26,7 +26,7 @@ export function renderCharts(view = "chart") {
   const b = st.battle || battleFor(data), song = b && data.songs.find(s => s.id === b.songId);
   const row = x => `<li class="ch-row${x.you ? " you" : ""}${x.rank <= CHART_PROMOTE ? " up" : ""}">
       <span class="ch-rk">${x.rank}</span>
-      <span class="ch-av" style="background:${x.you ? "var(--fg)" : AV[x.name.length % AV.length]}">${x.you ? louie("happy", { size: 34 }) : esc(x.name[0])}</span>
+      <span class="ch-av" style="background:${x.you ? "var(--fg)" : AV[x.name.length % AV.length]}">${x.you ? you(data, { crop: "bust", size: 42 }) : rival(x.name, st.tier, { size: 42 })}</span>
       <span class="ch-nm">${esc(x.name)}<small class="ch-note${x.today > 0 ? " hot" : ""}">${x.today > 0 ? `+${x.today} today${x.kind === "weekend" && new Date().getDay() % 6 === 0 ? ", on a weekend run" : x.kind === "shadow" && !x.you ? ", right ahead of you" : ""}` : x.you ? "nothing yet today" : x.quiet ? "quiet for a couple of days" : "not yet today"}</small></span>
       ${st.rival && x.id === st.rival.id && !b?.result ? `<span class="ch-btl">BATTLE</span>` : ""}
       <span class="ch-xp">${x.xp} XP</span></li>`;
@@ -80,9 +80,9 @@ function renderBattle(st) {
     <h1>${esc(b.rival)} wants your spot</h1>
     <p class="bt-s">Same song, best score wins. Pass ${esc(b.rival)} on the ${esc(st.name)} chart.</p>
     <div class="bt-vs">
-      <div class="bt-p">${louie("cheer", { pose: "hornsUp", size: 110 })}<b>You</b><small>${mine != null ? `Best: ${mine}%` : "First time"}</small></div>
+      <div class="bt-p">${you(data, { pose: "hornsUp", mood: "cheer", size: 110 })}<b>You</b><small>${mine != null ? `Best: ${mine}%` : "First time"}</small></div>
       <span class="bt-v">VS</span>
-      <div class="bt-p"><span class="bt-av">${esc(b.rival[0])}</span><b>${esc(b.rival)}</b><small>Scored: ${b.target}%</small></div>
+      <div class="bt-p"><span class="bt-av">${rival(b.rival, st.tier, { size: 96 })}</span><b>${esc(b.rival)}</b><small>Scored: ${b.target}%</small></div>
     </div>
     <div class="bt-song"><b>${esc(song.title)}</b><small>${esc(song.artist || "")}</small></div>
     <div class="bt-tiles"><div class="bt-t win"><small>WIN</small><b>+${XP.battle} XP, +${XP.battleFans} fans</b></div><div class="bt-t lose"><small>LOSE</small><b>${esc(b.rival)} stays ahead</b></div></div>

@@ -5,10 +5,11 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn } from "./core.js";
+import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
+import { you } from "./guitarist.js";
 
 const n = x => x.toLocaleString("en-US");
 const GEAR = {
@@ -55,6 +56,8 @@ export function renderMerch() {
   const gear = it => `<button class="mc-gear" data-id="${it.id}" aria-label="${esc(it.name)}: ${esc(it.line)}. ${it.price} dollars${st.own[it.id] ? `. You have ${st.own[it.id]}` : ""}">
       ${st.own[it.id] ? `<span class="mc-have">x${st.own[it.id]}</span>` : ""}${GEAR[it.id]}<b>${esc(it.name)}</b><small>${esc(it.line)}</small>${tag(it, st)}</button>`;
   const fin = it => `<button class="mc-fin${st.louie === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} Louie">${lou(it.id, 54)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
+  const hatOn = (it, o) => you(data, { me: { ...meOf(data), extra: it.id.slice(5) }, ...o }).replace(/ role="img" aria-label="[^"]*"/, o.size < 100 ? ' aria-hidden="true"' : ` role="img" aria-label="Your guitarist in the ${it.name}"`);
+  const hat = it => `<button class="mc-fin${data.me?.extra === it.id.slice(5) ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} for your guitarist">${hatOn(it, { crop: "bust", size: 54 })}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const look = it => `<button class="mc-look${st.look === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} look">${swatch(it.id)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const drop = it => `<button class="mc-drop${st.backdrop === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} backdrop">${artSVG(it.id, "mc-art")}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   app.innerHTML = `<div class="mc">
@@ -71,6 +74,8 @@ export function renderMerch() {
     <div class="mc-row scroll">${of("louie").map(fin).join("")}</div>
     <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
+    <h2 class="mc-h"><span>Hats</span><small>for your guitarist</small></h2>
+    <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
     <div class="mc-row scroll">${of("look").map(look).join("")}</div>
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
@@ -84,13 +89,14 @@ function tryOn(id) {
   const it = MERCH.find(x => x.id === id);
   if (!it) return;
   const st = merchState(data), kin = MERCH.filter(x => x.kind === it.kind), i = kin.indexOf(it);
-  const worn = it.kind === "louie" ? st.louie : it.kind === "backdrop" ? st.backdrop : it.kind === "look" ? st.look : null;
+  const worn = it.kind === "louie" ? st.louie : it.kind === "backdrop" ? st.backdrop : it.kind === "look" ? st.look : it.kind === "wear" ? (data.me?.extra === it.id.slice(5) ? it.id : null) : null;
   /* 4.78.0: trying on a look shows the whole app in it until you close */
   if (it.kind === "look") { document.documentElement.dataset.look = it.id; document.documentElement.dataset.theme = it.theme === "light" || it.theme === "green" ? "light" : "dark"; }
   const have = it.kind !== "gear" && st.has.has(it.id), full = it.kind === "gear" && st.own[it.id] + (it.adds || 1) > it.max;
   const short = it.price - st.tips;
   const stage = it.kind === "louie" ? lou(it.id, 190, "cheer", "wave")
     : it.kind === "backdrop" ? lou(st.louie, 150, "happy", "hornsUp")
+    : it.kind === "wear" ? `<div class="mt-wear">${you(data, { me: { ...meOf(data), extra: it.id.slice(5) }, pose: "hornsUp", mood: "cheer", size: 150, label: `Your guitarist in the ${it.name}` })}</div>`
     : it.kind === "look" ? `<div class="mt-look">${lou(st.louie, 150, "cheer", "hornsUp")}${swatch(it.id, "mt-sw")}</div>`
     : `<div class="mt-gear">${GEAR[it.id]}</div>`;
   const act = it.earn && !have ? `<button class="btn" disabled>HEADLINE A SHOW TO EARN IT</button>`
@@ -102,13 +108,13 @@ function tryOn(id) {
   layer.innerHTML = `<div class="mt" role="dialog" aria-label="${esc(it.name)}">
     <div class="mt-stage" data-kind="${it.kind}">${artSVG(it.kind === "backdrop" ? it.id : st.backdrop === "basement" ? "stars" : st.backdrop, "mt-art")}
       <div class="mt-top"><button class="mt-x" id="mt-x" aria-label="Close">&times;</button><span class="mc-fans">$${n(st.tips)}</span></div>
-      <div class="mt-name"><small>${it.kind === "gear" ? "GEAR" : it.kind === "look" ? "TRY THE LOOK" : "TRY IT ON"}</small><b>${esc(it.name)}</b></div>
+      <div class="mt-name"><small>${it.kind === "gear" ? "GEAR" : it.kind === "look" ? "TRY THE LOOK" : it.kind === "wear" ? "TRY IT ON YOUR GUITARIST" : "TRY IT ON"}</small><b>${esc(it.name)}</b></div>
       <div class="mt-show">${kin.length > 1 ? `<button class="mt-arr" id="mt-prev" aria-label="Previous">&lsaquo;</button>` : ""}<div class="mt-it">${stage}</div>${kin.length > 1 ? `<button class="mt-arr" id="mt-next" aria-label="Next">&rsaquo;</button>` : ""}</div>
       <div class="mt-dots" aria-hidden="true">${kin.map((x, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div>
     </div>
     <div class="mt-sheet">
       <h2>${esc(it.kind === "louie" ? `${it.name} Louie` : it.name)}</h2>
-      <p>${esc(it.line)}${it.kind === "louie" ? " He wears it on the Road, in every gig and on Show complete, in every look." : it.kind === "backdrop" ? " It hangs behind the top of every gig." : it.earn ? have ? " You earned it by headlining." : " It can't be bought: headline a show at the end of a leg and it's yours." : it.kind === "look" ? " The whole app wears it." : ""}${it.kind === "gear" && st.own[it.id] ? ` You have ${st.own[it.id]}.` : ""}</p>
+      <p>${esc(it.line)}${it.kind === "louie" ? " He wears it on the Road, in every gig and on Show complete, in every look." : it.kind === "backdrop" ? " It hangs behind the top of every gig." : it.kind === "wear" ? " Pick its colour for free in Your guitarist, on Your profile." : it.earn ? have ? " You earned it by headlining." : " It can't be bought: headline a show at the end of a leg and it's yours." : it.kind === "look" ? " The whole app wears it." : ""}${it.kind === "gear" && st.own[it.id] ? ` You have ${st.own[it.id]}.` : ""}</p>
       ${it.price && !have ? `<div class="mt-tiles"><div><small>COSTS</small><b>$${n(it.price)}</b></div><div><small>YOU'LL HAVE</small><b>$${n(Math.max(0, st.tips - it.price))}</b></div></div>` : ""}
       <div class="mt-acts">${act}<button class="mt-not" id="mt-not">Not now</button></div>
     </div></div>`;
@@ -117,7 +123,7 @@ function tryOn(id) {
   $("mt-x").onclick = close; $("mt-not").onclick = close;
   $("mt-prev")?.addEventListener("click", () => tryOn(kin[(i - 1 + kin.length) % kin.length].id));
   $("mt-next")?.addEventListener("click", () => tryOn(kin[(i + 1) % kin.length].id));
-  $("mt-wear")?.addEventListener("click", () => { merchWear(data, it.id); Tabs.save(data); applyWear(); close(); renderMerch(); toast(it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is on` : `${it.name} is up behind your gigs`); });
+  $("mt-wear")?.addEventListener("click", () => { merchWear(data, it.id); Tabs.save(data); applyWear(); close(); renderMerch(); toast(it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is on` : it.kind === "wear" ? `Your guitarist's in the ${it.name.toLowerCase()}` : `${it.name} is up behind your gigs`); });
   $("mt-buy")?.addEventListener("click", () => {
     const r = merchBuy(data, it.id);
     if (!r.ok) return toast(r.why === "tips" ? "Not enough tips yet" : "You can't hold any more");
@@ -125,6 +131,7 @@ function tryOn(id) {
     toast(it.id === "rain" ? "Rain check in your pocket. It's used on its own if you miss a night."
       : it.id === "double" ? "Double set: your next 3 scored gigs earn 2x XP"
       : it.id === "take" ? "Second take ready. Use it on Charts when a rival battle goes the wrong way."
-      : it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is yours, and it's on` : `${it.name} is up behind your gigs`);
+      : it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is yours, and it's on`
+      : it.kind === "wear" ? (data.me ? `Your guitarist's in the ${it.name.toLowerCase()}` : `The ${it.name.toLowerCase()} is yours. Make your guitarist and it's waiting.`) : `${it.name} is up behind your gigs`);
   });
 }

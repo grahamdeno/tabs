@@ -11,6 +11,8 @@ import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansToSp
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go } from "./app.js";
 import { louie } from "./louie.js";
+import { you } from "./guitarist.js";
+import { makerSheet } from "./maker.js";
 import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
 import { friend } from "./friends.js";
 
@@ -66,10 +68,11 @@ export function renderProfile() {
   const lv = levelOf(data), ch = chartState(data), can = playableSongs(data), band = bandState(data), badges = badgesOf(data, p);
   const goal = STREAK_GOALS.find(g => g > p.streak) || p.streak, num = x => x.toLocaleString("en-US");
   const playerCard = `<section class="pf-player" aria-label="Your card">
-      <div class="pf-pc-top"><div class="pf-pc-lou">${louie("proud", { pose: "hornsUp", size: 104 })}</div>
+      <div class="pf-pc-top"><div class="pf-pc-lou">${you(data, { crop: "bust", size: 104 })}</div>
         <div class="pf-pc-who"><small>${esc(since ? since.replace(/^Since/, "On the road since").toUpperCase() : "ON THE ROAD")}</small>
           <button class="pf-pc-venue" id="pf-map" aria-label="${esc(ven.name)}, venue ${ven.ring + 1}. Open the Tour Map"><b>${esc(ven.name)}</b><span>Venue ${ven.ring + 1} · Tour Map ${icon("chev", "chev")}</span></button>
-          <span class="pf-pc-chart">${esc(ch.name.toUpperCase())} CHART · ${ch.you.rank}${["ST", "ND", "RD"][ch.you.rank - 1] || "TH"}</span></div></div>
+          <span class="pf-pc-chart">${esc(ch.name.toUpperCase())} CHART · ${ch.you.rank}${["ST", "ND", "RD"][ch.you.rank - 1] || "TH"}</span>
+          <button class="pf-pc-edit" id="pf-me" aria-label="Edit your guitarist">Edit your guitarist</button></div></div>
       <div class="pf-pc-level"><div><b>LEVEL ${lv.level}</b><span>${num(lv.into)} / ${num(lv.need)} XP</span></div><i style="--w:${Math.round(lv.into / lv.need * 100)}%"></i></div>
     </section>
     <div class="pf-tiles">
@@ -95,6 +98,7 @@ export function renderProfile() {
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
   document.getElementById("back").onclick = () => go("#/");
   document.getElementById("pf-map")?.addEventListener("click", () => go("#/playmap"));
+  document.getElementById("pf-me")?.addEventListener("click", () => makerSheet({ mode: "full", done: () => renderProfile() }));
   document.getElementById("pf-band")?.addEventListener("click", () => go("#/band"));
   document.getElementById("pf-learn")?.addEventListener("click", e => go("#/practice/" + encodeURIComponent("c:" + e.currentTarget.dataset.chord)));
   app.querySelectorAll("[data-drill]").forEach(b => b.onclick = () => go("#/practice/" + encodeURIComponent("s:" + b.dataset.drill)));
@@ -116,6 +120,12 @@ function stampSheet(c) {
 
 /* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */
 const LOUIE_CARD_CSS = ".lv-b{fill:#3A86FF}.lv-s{fill:#2C6FE0}.lv-ss{stroke:#2C6FE0}.lv-hi{fill:#6BA4FF;opacity:.9}.lv-f{fill:#FFD23F}.lv-fs{fill:#F2B705}.lv-l{stroke:#2C6FE0}.lv-c{fill:#FF3D7F;opacity:.6}.lv-p{fill:#14213D}.lv-ps{stroke:#14213D}.lv-g{fill:#14213D}.lv-gs{fill:#2A3A63}.lv-m{fill:#14213D}.lv-ms{stroke:#14213D}.lv-t{fill:#FF3D7F}.lv-lamp{fill:#FF3D7F}.lv-shadow{fill:#14213D;opacity:.18}";
+/* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
+async function meCardImage() {
+  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400 }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
+  const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
+  return im;
+}
 async function louieCardImage() {
   const svg = louie("cheer", { pose: "hornsUp", size: 400 }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/^<svg[^>]*>/, m => `${m}<style>${LOUIE_CARD_CSS}</style>`);
   const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
@@ -133,8 +143,8 @@ async function shareCard(p) {
   const text = (s, x, y, size, color, weight = 600, align = "left") => { g.font = `${weight} ${size}px -apple-system, "SF Pro Display", "Segoe UI", sans-serif`; g.fillStyle = color; g.textAlign = align; g.fillText(s, x, y); };
   text(`MY GUITAR · SINCE ${shortDay(p.since).toUpperCase()}`, 96, 150, 34, "#b8935a", 700);
   text("Played on The Road", 96, 220, 64, "#f1e3c4", 600);
-  /* Louie throwing the horns, top right */
-  try { const im = await louieCardImage(); g.drawImage(im, W - 96 - 200, 36, 200, Math.round(200 * im.naturalHeight / im.naturalWidth)); } catch {}
+  /* your guitarist throwing the horns, top right */
+  try { const im = await meCardImage(); g.drawImage(im, W - 96 - 200, 36, 200, Math.round(200 * im.naturalHeight / im.naturalWidth)); } catch {}
   /* the plate */
   const plate = g.createLinearGradient(0, 260, 0, 520); plate.addColorStop(0, "#e6cb92"); plate.addColorStop(0.42, "#cfab6a"); plate.addColorStop(1, "#b08b4f");
   g.fillStyle = plate; g.beginPath(); g.roundRect(96, 260, W - 192, 260, 36); g.fill();

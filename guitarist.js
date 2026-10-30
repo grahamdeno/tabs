@@ -1,6 +1,7 @@
 // Your guitarist: the player drawn in Louie's style (flat colour, a darker right side, round eyes with a glint,
 // mitten hands, the same moods), built from parts. The big looks come from the Road: the top follows the venue
 // (tee, vest, leather, stage jacket), the guitar is the Road guitar you're on, the patches are what you've done.
+import { guitarFor, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label }) returns an <svg> string.
 //   me: data.me (see meOf in core.js). mood: happy, cheer, worried, sleepy, proud. pose: play, hornsUp, rest.
 //   crop: "full" or "bust". look: tee, vest, leather, stage. patches: [{ kind, color, top }] (patchesOf).
@@ -119,4 +120,16 @@ export function guitarist(me, { mood = "happy", pose = "play", crop = "full", si
   const hat = me.extra && me.extra !== "none" && EXTRA[me.extra] ? EXTRA[me.extra](OUTFIT_COL[me.extraCol] || HAIR_COL[me.extraCol] || "#26282e") : "";
   const specs = me.glasses ? EXTRA.glasses() : "";
   return `<svg viewBox="${vb}" width="${size}" height="${(size * vh / vw).toFixed(0)}" role="img" aria-label="${label.replace(/"/g, "&quot;")}" style="overflow:hidden">${hBack}${crop === "bust" ? `<rect x="88" y="128" width="24" height="28" fill="${dark}"/><g${mirror}>${top.svg}</g>${bust}` : figure}${head}${beard}${eye(81)}${eye(119)}${brows}${mouth}${specs}${hFront}${hat}</svg>`;
+}
+
+/* you, as the app means you: your parts, the look of your venue, the patches you've earned, the Road guitar you're on and
+   your mood tonight. o overrides any of the options (mood, pose, crop, size, label). */
+export function you(data, o = {}) {
+  const leg = o.crop === "bust" ? null : roadPath(data).leg;
+  return guitarist(o.me || meOf(data), { mood: meMood(data), look: stageLook(data), patches: patchesOf(data), guitar: guitarFor(leg?.id), ...o, me: undefined });
+}
+/* a computer rival, seeded by name, at the look of its tier; decorative (the name is beside it) */
+export function rival(name, tier, o = {}) {
+  const r = rivalMe(name, tier);
+  return guitarist(r, { look: stageLookOf(tier), crop: "bust", ...o, label: name }).replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
 }

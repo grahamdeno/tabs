@@ -9,6 +9,7 @@ import { app, ask, esc, icon, layer } from "./ui.js";
 import { data, go, playGig } from "./app.js";
 import { duetSheet, shareLink } from "./share.js";
 import { louie } from "./louie.js";
+import { you } from "./guitarist.js";
 
 /* your name on your challenges, asked once */
 function withName(then) {
@@ -72,7 +73,7 @@ export function renderDuel(id) {
   const d = data.duels?.list?.find(x => x.id === id);
   if (!d) return go("#/charts");
   const rec = duelRecord(data, d.opp), won = duelWon(d), song = data.songs.find(s => s.id === d.songId);
-  const side = (who, sc, me) => `<div class="du-p">${me ? `<span class="du-av me">${louie(won === false ? "worried" : "happy", { size: 76 })}</span>` : `<span class="du-av">${esc((who || "?")[0].toUpperCase())}</span>`}
+  const side = (who, sc, me) => `<div class="du-p">${me ? `<span class="du-av me">${you(data, { crop: "bust", size: 92, ...(won === false ? { mood: "worried" } : {}) })}</span>` : `<span class="du-av">${esc((who || "?")[0].toUpperCase())}</span>`}
     <b>${esc(who || "Your friend")}</b><big class="${sc && (me ? won === true : won === false) ? "win" : ""}">${sc ? sc.pct + "%" : "…"}</big><small>${sc ? `combo ${sc.combo} · crowd ${sc.crowd}` : "hasn't played it yet"}</small></div>`;
   const head = won === true ? `You beat ${esc(d.opp)} on ${esc(d.title)}` : won === false ? `${esc(d.opp)} beat your ${esc(d.title)}` : won === null ? `A tie on ${esc(d.title)}` : d.started === "me" ? `Waiting for ${esc(d.opp || "your friend")}` : `${esc(d.opp)} challenged you`;
   app.innerHTML = `<div class="du">
@@ -118,7 +119,7 @@ export function friendsHTML() {
   const rows = [...fr.map(f => ({ ...f })), { name: "You", xp: mine, you: true }].sort((a, b) => b.xp - a.xp || (a.you ? -1 : 1));
   const ago = t => { const d = Math.floor((Date.now() - t) / 86400000); return d <= 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`; };
   return `<ol class="ch-list fr-list">${rows.map((f, i) => `<li><button class="ch-row fr-row${f.you ? " you" : ""}" ${f.you ? "disabled" : `data-friend="${esc(f.name)}"`}>
-      <span class="ch-rk">${i + 1}</span><span class="ch-av" style="background:${f.you ? "var(--fg)" : "var(--streak)"}">${f.you ? louie("happy", { size: 34 }) : esc(f.name[0].toUpperCase())}</span>
+      <span class="ch-rk">${i + 1}</span><span class="ch-av" style="background:${f.you ? "var(--fg)" : "var(--streak)"}">${f.you ? you(data, { crop: "bust", size: 42 }) : esc(f.name[0].toUpperCase())}</span>
       <span class="ch-nm">${esc(f.name)}<small class="ch-note">${f.you ? "this week" : `${f.w}–${f.l} in duels · heard from ${ago(f.seen)}`}</small></span>
       <span class="ch-xp">${f.xp} XP</span></button></li>`).join("")}</ol>
     <p class="ch-how">A friend's XP updates whenever they send you a duel or a score. Tap a friend for your duels and Play together.</p>`;

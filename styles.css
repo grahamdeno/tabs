@@ -4394,3 +4394,35 @@ body.covered .gc-tile b { background: rgba(20, 18, 24, .82); color: #FFFFFF; }
 .rd-neck .rd-node:has(.mat-black) .rd-eng { stroke: rgba(255, 255, 255, .22); }
 .rd-neck .rd-songs { position: absolute; right: -10px; top: -8px; z-index: 2; display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px 2px 5px; border-radius: 999px; background: var(--fans); color: #3D2A00; font: 800 12px/1 var(--sans); box-shadow: 0 2px 0 var(--fans-deep); pointer-events: none; }
 .rd-neck .rd-songs svg { width: 9px; height: 11px; fill: currentColor; }
+
+/* 4.85.0 your guitarist: the player drawn where the app means you (guitarist.js). Louie stays the mascot elsewhere. */
+.ch-av svg, .du-av svg, .bt-av svg { display: block; width: 100%; height: auto; }
+.bt-av { overflow: hidden; }
+.pf-pc-lou svg { width: 108px; height: auto; margin-top: 4px; }
+.gm .pbody h2 { font: 700 24px var(--display); margin: 0 0 4px; text-align: center; }
+.gm .pbody h3 { font: 800 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+.gm-prev { display: flex; justify-content: center; margin: 4px 0 2px; }
+.gm-prev svg { height: 190px; width: auto; }
+.gm-ask { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.gm-ask p { margin: 0; color: var(--fg-2, var(--muted)); font-weight: 700; }
+.gm-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.gm-starts { display: grid; grid-template-columns: repeat(4, 1fr); }
+.gm-c { min-width: 44px; min-height: 44px; border: 0; border-radius: 16px; background: var(--card); color: var(--fg); font: 700 14px var(--sans); padding: 4px 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 3px 0 var(--hair, rgba(0,0,0,.18)); }
+.gm-c.on { background: var(--accent); color: var(--on-accent, #fff); box-shadow: 0 3px 0 var(--accent-deep, rgba(0,0,0,.25)); }
+.gm-c svg { width: 52px; height: auto; display: block; }
+.gm-starts .gm-c { padding: 4px; }
+.gm-starts .gm-c svg { width: 100%; max-width: 64px; }
+.gm-hair .gm-c { flex-direction: column; gap: 0; padding: 4px 6px 6px; }
+.gm-hair .gm-c span { font-size: 12px; }
+.gm-c i { width: 26px; height: 26px; border-radius: 50%; display: block; }
+.gm-c[data-k="skin"], .gm-c[data-k="hairCol"], .gm-c[data-k="top"], .gm-c[data-k="extraCol"] { padding: 0; border-radius: 50%; width: 44px; height: 44px; }
+.gm-c[data-k="skin"].on, .gm-c[data-k="hairCol"].on, .gm-c[data-k="top"].on, .gm-c[data-k="extraCol"].on { background: var(--fg); }
+.gm-c.lock { opacity: .55; flex-direction: column; gap: 0; }
+.gm-c.lock small { font: 700 11px var(--sans); }
+.gm-c [style*="--pc"] { display: inline-flex; align-items: center; gap: 6px; }
+.gm-c [style*="--pc"] i { width: 14px; height: 14px; background: var(--pc); }
+.gm-note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+.gm .pfoot { display: flex; flex-direction: column; gap: 6px; }
+.pf-pc-edit { margin-top: 8px; min-height: 40px; padding: 4px 14px; border: 0; border-radius: 999px; background: rgba(255,255,255,.22); color: inherit; font: 800 12px var(--sans); letter-spacing: .04em; }
+.mt-wear svg { height: 230px; width: auto; display: block; }
+.mc-fin svg { width: 54px; height: auto; display: block; margin: 0 auto; }
