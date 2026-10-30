@@ -143,14 +143,60 @@ In `road.js`:
 
 ### Step 7. Feel check [Opus]
 
-- [ ] 7.1 Screenshots of the Road in Dark and Light, mid-leg and at a headline, next to the canvas. Judge
+- [x] 7.1 Screenshots of the Road in Dark and Light, mid-leg and at a headline, next to the canvas. Judge
       spacing, the tag placement and the inlay states; list fixes for a 4.82.x patch if any.
+
+Done by Opus, 2026-10-29. The neck reads as the canvas did: tags sit in the margins, the shut box's dashed ring
+and "Tap to open" work, the double inlay and the body close each leg, "New guitar earned", the headstock name and
+"The beater · headlined" land where planned, and the New guitar sheet shows once. Fixes for 4.82.1:
+
+- [ ] 7.2 [Sonnet] Locked dots disappear in the dark looks: violet on rosewood. On the neck, give locked dots a
+      lighter fill (a pale grey with the darker lip) in Dark and Headliner, as Light already has.
+- [ ] 7.3 [Sonnet] The beater's small inlays are too small next to the canvas (the pocket and the pearl read as
+      specks). Bring `small` up to about 80% of the `dot` inlay.
+- [ ] 7.4 [Sonnet] On a leg's first stops the headstock scrolls off and only the tuner tips peek under the songs
+      chip. When the current stop is in the first three spaces, scroll so the headstock and its name show.
+- [ ] 7.5 [Sonnet] Strings run past the bridge to the edge of the acoustic body. End them at the bridge.
+- [ ] 7.6 [Sonnet] An "open" stop (reachable while a shut box is the next stop) looks nearly like a done dot:
+      same fill, icon instead of check. Give it the accent as a ring on the board colour instead.
+- [ ] 7.7 [Sonnet] Tuner buttons float beside the headstock. Add a short post to each (small, cosmetic).
+- [ ] 7.8 Patch 4.82.1, `eslint .`, quick tests, rebase, push only after Graham says ship.
 
 ## Open (not this release)
 
 - Opening night on a short neck of its own (the beater), with its labels moved into the cards.
 - Earned guitars on the Merch table as a choice of neck.
 - The Encore guitar once every leg exists.
+
+## After the fret plan: Graham's gig screenshots (2026-10-29)
+
+From a night of play-alongs in Neon. Do these after Step 7's patch, as one release when Graham says.
+
+- [ ] 8.1 [Sonnet] The Gig: the crowd row draws on top of the words. The line under it can't be read and its
+      chords are hidden. The crowd needs its own band (or to sit behind the words, faded), never over a line.
+- [ ] 8.2 [Sonnet] The Gig: a ghost copy of the section name ("CHORUS") shows behind the section chip at the top.
+- [ ] 8.3 [Opus] The Gig: a chord-only line with a note ("Dm C-G F (hold)") shows as the lit line in plain text,
+      like a lyric. Decide how instruction lines show in the Gig (chords on their beat, the note small).
+- [ ] 8.4 [Sonnet] The Gig: the bottom half of the screen was empty under the last lines. Check whether that was
+      the song's end; if not, the words should fill the screen (the Gig is words first).
+- [ ] 8.5 [Sonnet] After the show: the Missed most card is cut off at the bottom of the screen (all three shots).
+- [ ] 8.6 [Sonnet] After the show: the Chords tile is white on yellow, which fails contrast. Use the dark ink the
+      Fans tile uses.
+- [ ] 8.7 [Sonnet] After the show: "INTERLUDE" touches the edges of its chip and "INTERLUDE 2" wraps. Let the
+      chip size to its text, or shrink the text for long names.
+- [ ] 8.8 [Opus] The Road didn't move after 4+ songs. Working as built: a chord stop is done by its lesson or by
+      playing 5 songs with that chord through to the end (counted from the sheet, not from the mic), and the
+      headline by playing a song that uses only the leg's chords. Nothing says so. Proposal for Graham: the
+      stop's card shows "Play it in 3 more songs" and the songs that have it, and the Gig's results say when a
+      song moved you along the Road.
+
+## Hearing (a separate conversation)
+
+Graham is already talking about how well the Gig hears chords in another conversation. The results screens
+from tonight are in `docs/hearing/` (no lyrics). What they show: two plays of Lillian scored 28/65 with the
+same chords marked heard both times (FM7, Dm, C) and the same ones never heard (Am, F, G, G/B), though the fans
+and crowd differed; the Em C G D song missed G most ("C to G, 6 times"). Either the listening misses the
+same chords every time or the marks don't come from that play. That conversation owns it.
 
 ## Surprises
 
