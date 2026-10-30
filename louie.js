@@ -1,6 +1,7 @@
 // Louie, The Road's mascot: a little combo amp. Version 4 draws him flat, with no outlines: a
 // darker right side for depth, a soft highlight stripe, a two-tone panel for a face, round eyes,
-// the grille for a mouth and mitten hands that can throw the horns. His colours come from the
+// a strip of four knobs, the speaker for a mouth, chrome corner bumpers, a blank plate (4.86.0, from a Gemini redesign)
+// and mitten hands that can throw the horns. His colours come from the
 // palette (the --lv-* variables in styles.css), so he matches Light, Dark and Green Room.
 // louie(mood, { pose, size }) returns an <svg> string.
 //   moods: happy, cheer, sleepy, worried, proud
@@ -14,8 +15,11 @@ const HANDS = {
   horns: () => cap(-12, -40, 10, 30) + cap(3, -36, 9, 26) + `<circle class="lv-f" cx="0" cy="-10" r="13"/>` + cap(-15, -15, 18, 9, "lv-fs"),
   /* a real thumbs up: a wide fist with the curled fingers showing, the thumb short and tipped out to the side.
      Never one finger standing straight up from the middle (that reads as the middle finger). */
-  thumb: () => `<g transform="rotate(-32 -9 -27)">${cap(-15, -50, 12, 26)}</g><rect class="lv-f" x="-15" y="-31" width="31" height="29" rx="11"/>`
-    + [-25, -17, -9].map(y => `<rect class="lv-fs" x="0" y="${y}" width="16" height="5" rx="2.5"/>`).join(""),
+  /* a thumbs up like the emoji: a round fist, three curled knuckles on its front edge, the thumb a fat capsule up from the
+     back corner, leaning out. Never a finger straight up from the middle. */
+  thumb: () => `<g transform="rotate(4 -8 -26)">${cap(-16, -45, 13, 23)}</g>`
+    + `<rect class="lv-f" x="-15" y="-32" width="27" height="31" rx="13"/>`
+    + [-25, -16, -7].map(y => `<circle class="lv-fs" cx="12" cy="${y + 1.8}" r="6.2"/><circle class="lv-f" cx="11" cy="${y}" r="6"/>`).join(""),
   /* pointing: the same fist with the index finger out from the front edge and the thumb tucked; the pose
      turns it toward the speech bubble, so it never stands straight up */
   point: () => cap(4, -50, 11, 28) + `<rect class="lv-f" x="-15" y="-31" width="31" height="29" rx="11"/>`
@@ -64,17 +68,20 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   <g class="lv-body" transform="${tilt}">
     ${limbs("arm")}
     <rect class="lv-s" x="62" y="166" width="30" height="20" rx="10"/><rect class="lv-s" x="108" y="166" width="30" height="20" rx="10"/>
-    <path class="lv-ss" d="M76 34 Q76 12 100 12 Q124 12 124 34" fill="none" stroke-width="12" stroke-linecap="round"/>
+    <path class="lv-ss" d="M73 34 Q73 10 100 10 Q127 10 127 34" fill="none" stroke-width="12" stroke-linecap="round"/>
     <rect class="lv-s" x="30" y="28" width="140" height="148" rx="38"/>
     <rect class="lv-b" x="30" y="28" width="128" height="148" rx="38"/>
     <rect class="lv-hi" x="44" y="36" width="54" height="9" rx="4.5"/>
+    <g class="lv-cn" fill="none" stroke-width="9" stroke-linecap="round"><path d="M34.5 56 A33.5 33.5 0 0 1 58 32.5"/><path d="M142 32.5 A33.5 33.5 0 0 1 165.5 56"/><path d="M34.5 148 A33.5 33.5 0 0 0 58 171.5"/><path d="M142 171.5 A33.5 33.5 0 0 0 165.5 148"/></g><g class="lv-cnh" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M37 55 A31 31 0 0 1 57 35"/><path d="M143 35 A31 31 0 0 1 163 55"/></g>
     <rect class="lv-fs" x="46" y="48" width="108" height="58" rx="20"/>
     <rect class="lv-f" x="46" y="48" width="108" height="50" rx="20"/>
     <ellipse class="lv-c" cx="60" cy="96" rx="8" ry="5"/><ellipse class="lv-c" cx="140" cy="96" rx="8" ry="5"/>
     ${proud ? "" : eye(77) + eye(123)}${brows}${shades}
-    <rect class="lv-g" x="48" y="112" width="104" height="50" rx="17"/>
-    <rect class="lv-gs" x="58" y="122" width="84" height="4" rx="2"/><rect class="lv-gs" x="58" y="134" width="84" height="4" rx="2"/><rect class="lv-gs" x="58" y="146" width="84" height="4" rx="2"/>
-    ${mouth}
+    <rect class="lv-s" x="48" y="109" width="104" height="17" rx="8.5"/>
+    <rect class="lv-g" x="48" y="128" width="104" height="34" rx="12"/>${[70, 90, 110, 130].map(x => `<circle class="lv-gs" cx="${x}" cy="118.6" r="5.6"/><circle class="lv-k" cx="${x}" cy="117.4" r="5"/><rect class="lv-gs" x="${x - .9}" y="112.6" width="1.8" height="4.4" rx=".9"/>`).join("")}
+    ${[135, 141.5, 148, 154.5].map(y => `<rect class="lv-gs" x="58" y="${y}" width="${y > 150 ? 74 : 84}" height="3.6" rx="1.8"/>`).join("")}
+    <g transform="translate(0 6)">${mouth}</g>
+    <rect class="lv-k" x="86" y="165" width="28" height="8" rx="2"/><circle class="lv-gs" cx="89" cy="169" r="1.1"/><circle class="lv-gs" cx="111" cy="169" r="1.1"/>
     <circle class="lv-lamp" cx="142" cy="153" r="4"/>
     ${limbs("hand")}
   </g>
