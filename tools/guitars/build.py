@@ -23,8 +23,9 @@ NECK = {
   "classical": dict(nut=292, l0=232, r0=342, end=902, l1=228, r1=350, bridge=1232, board="#4A3328", inlay="diamond", mat="#3FCF8E"),
   "headliner": dict(nut=290, l0=322, r0=403, end=878, l1=316, r1=412, bridge=1192, board="#1C1A1F", inlay="star",  mat="#F5C542"),
 }
+NECK["cutaway"] = dict(nut=306, l0=235, r0=387, end=575, l1=235, r1=387, bridge=849, pl=215, pr=405, own=True)  # Nano round 3b, at 1x
 JOBS = {
-  "parlor": dict(src="parlor.jpg", k=12), "cutaway": dict(src="cutaway.jpg", k=12), "solid": dict(src="solid.jpg", k=12),
+  "parlor": dict(src="parlor.jpg", k=12), "cutaway": dict(src="cutaway3.jpg", k=12, scale=1.0, thin=1), "solid": dict(src="solid.jpg", k=12),
   "hollow": dict(src="hollow.jpg", k=13, rot=90), "single": dict(src="single.jpg", k=13), "classical": dict(src="classical.jpg", k=12),
   "headliner": dict(src="sheet2.jpg", k=10, crop=(1700, 0, 2064, 512), scale=3.0, thin=2),
 }
@@ -102,21 +103,21 @@ def qp(c):
         cur = e
     return d + "z"
 
-def layers_of(lbl2, cent, rows):
+def layers_of(lbl2, cent, rows, k=1.0):
     """Traced colour layers for the rows kept, largest first. Returns [(hex, path)]."""
     keep = np.zeros(lbl2.shape, bool); keep[rows[0]:rows[1]] = True
     layers = []
     for i, col in enumerate(cent):
         m = ((lbl2 == i) & keep).astype(np.uint8) * 255
         m = cv2.morphologyEx(m, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
-        if m.sum() / 255 < FLOOR: continue
+        if m.sum() / 255 < FLOOR * k * k: continue
         layers.append((int(m.sum()) // 255, col, m))
     layers.sort(key=lambda x: -x[0])
     out = []
     for _, col, m in layers:
         m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
         cs, _ = cv2.findContours(m, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-        d = "".join(qp(cv2.approxPolyDP(c, EPS, True)) for c in cs if cv2.contourArea(c) >= FLOOR)
+        d = "".join(qp(cv2.approxPolyDP(c, EPS * k, True)) for c in cs if cv2.contourArea(c) >= FLOOR * k * k)
         if d: out.append(f"#{col[0]:02x}{col[1]:02x}{col[2]:02x}", ) if False else out.append((f"#{col[0]:02x}{col[1]:02x}{col[2]:02x}", d))
     return out
 
@@ -137,14 +138,15 @@ for name in (sys.argv[1:] or list(JOBS)):
     lbl2, _ = clean(lbl, j.get("thin", 3))
     h, w = lbl2.shape
     nut, end = nk["nut"], nk["end"]
-    head = shapes(layers_of(lbl2, cent, (0, nut + 4)))
+    kk = j.get("scale", 2.0) / 2.0
+    head = shapes(layers_of(lbl2, cent, (0, nut + 4), kk))
     # the top of the body: the first row below the nut where the picture is wider than twice the board
     wid = (lbl2 >= 0).sum(axis=1)
     top = next(y for y in range(nut + 40, h) if wid[y] > 2.0 * (nk["r1"] - nk["l1"]))
     if name == "headliner":
         body = scale_svg(headliner_body(a, lbl, nk))
     else:
-        body = shapes(layers_of(lbl2, cent, (top - 6, h)))
+        body = shapes(layers_of(lbl2, cent, (top - 6, h), kk))
     # the widest the body gets, from the label image below the board end
     solid = (lbl2[end:] >= 0)
     cols = np.where(solid.any(axis=0))[0]
@@ -154,7 +156,13 @@ for name in (sys.argv[1:] or list(JOBS)):
                 l1=round(nk["l1"] * Q), r1=round(nk["r1"] * Q), cx=round(cx * Q), w=round(w * Q), h=round(h * Q),
                 bl=round(cols.min() * Q), br=round(cols.max() * Q),
                 hl=round(hc.min() * Q), hr=round(hc.max() * Q))
-    art = dict(head=head, body=body, over="", nums=nums, view=[round(w * Q), round(h * Q)])
+    if "pl" in nk: nums.update(pl=round(nk["pl"] * Q), pr=round(nk["pr"] * Q), own=1)  # the art has its own bridge: the pins span from pl to pr
+    # the silhouette of the body (the outer edge), for covering what is drawn over it
+    sm = (lbl2 >= 0).astype(np.uint8); sm[:top - 6, :] = 0
+    sm = cv2.GaussianBlur(cv2.morphologyEx(sm * 255, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))), (9, 9), 0) > 127
+    cs0, _ = cv2.findContours(sm.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    sil = qp(cv2.approxPolyDP(max(cs0, key=cv2.contourArea), EPS * kk * 2, True))
+    art = dict(head=head, body=body, over="", sil=sil, nums=nums, view=[round(w * Q), round(h * Q)])
     js = "/* Traced from the Nano art by tools/guitars/build.py. Do not edit by hand. */\nexport default " + json.dumps(art, separators=(",", ":")) + ";\n"
     os.makedirs(OUT, exist_ok=True)
     open(f"{OUT}/{name}.js", "w").write(js)

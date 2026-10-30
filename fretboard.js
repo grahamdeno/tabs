@@ -208,6 +208,10 @@ export function nanoLayout(stops, art, o) {
   const lay = fretLayout(stops, hh, Math.round(endOff + tail * s));
   lay.nano = { art, o, s, endOff, hs, hsx };
   lay.bridge = endOff + (n.bridge - n.end) * s - 4;
+  if (P && n.own) { /* the art's own bridge: the strings fan out to land on its pins */
+    const f0 = 100 / 106, f1 = (n.pr - n.pl) * s / 2 / 90, bot = hh + lay.neck + lay.bridge;
+    lay.sfan = y => f0 + (f1 - f0) * Math.max(0, Math.min(1, (y - hh) / (bot - hh)));
+  }
   if (P) lay.fan = y => (100 + 15 * (y - hh) / (lay.neck + endOff)) / 106; /* the board widens toward the body: half width 100 to about 115 */
   return lay;
 }
@@ -227,7 +231,7 @@ function nanoBase(g, lay) {
   const board = lay.fan ? `<polygon points="${poly(4, top - 8, bEnd)}" fill="${g.binding}"/><polygon points="${poly(0, top, bEnd)}" fill="${g.board}"/>` : rect(89, top, 212, bEnd - top, g.board) + rect(85, top - 8, 4, bEnd - top + 8, g.binding) + rect(301, top - 8, 4, bEnd - top + 8, g.binding);
   /* P: the traced hardware is covered and our own is drawn at the width of the strings */
   let hw = "";
-  if (lay.fan) {
+  if (lay.fan && !n.own) {
     const yb = bEnd + (n.bridge - n.end) * s, [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], ac = g.kind !== "electric";
     const y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
     hw = rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)
@@ -242,7 +246,7 @@ function stringLayer(g, lay) {
   const top = lay.head, bot = lay.bridge ? top + lay.neck + lay.bridge : top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge - 4;
   const wd = g.kind === "classical" ? [3.2, 2.8, 2.4, 2, 1.8, 1.6] : g.kind === "electric" ? [3.2, 2.8, 2.4, 2, 1.6, 1.2] : [3.5, 3, 2.5, 2, 1.6, 1.2];
   const col = i => g.kind === "classical" ? (i < 3 ? "#c4c8d0" : "#f3ecdc") : g.kind === "electric" ? "#c4c8d0" : i < 4 ? "#c9a96e" : "#dfe2e8";
-  const f0 = lay.fan ? lay.fan(top) : 1, f1 = lay.fan ? lay.fan(bot) : 1;
+  const sf = lay.sfan || lay.fan, f0 = sf ? sf(top) : 1, f1 = sf ? sf(bot) : 1;
   return STR.map((dx, i) => `<line x1="${CX + dx * f0 + 3}" y1="${top}" x2="${CX + dx * f1 + 3}" y2="${bot}" stroke="#14100d" stroke-opacity=".55" stroke-width="${wd[i]}"/>`).join("")
     + STR.map((dx, i) => `<line x1="${CX + dx * f0}" y1="${top}" x2="${CX + dx * f1}" y2="${bot}" stroke="${col(i)}" stroke-width="${wd[i]}"/>`).join("");
 }
@@ -280,7 +284,7 @@ function dotSVG(state, icon) {
 
 /* One stop, placed over the neck. `o`: cur (the current stop), icon(stop), label(stop), tag(stop). */
 function stopHTML(sp, g, lay, o) {
-  const s = sp.stop, y = lay.head + sp.y, x = CX + (sp.string >= 0 ? STR[sp.string] * (lay.fan ? lay.fan(y) : 1) : 0), cur = s === o.cur;
+  const s = sp.stop, y = lay.head + sp.y, x = CX + (sp.string >= 0 ? STR[sp.string] * ((lay.sfan || lay.fan) ? (lay.sfan || lay.fan)(y) : 1) : 0), cur = s === o.cur;
   const left = sp.kind === "inlay" || (sp.kind === "dot" && sp.string < 3);
   const tag = cur ? `<span class="rd-tag ${left ? "l" : "r"}" style="${left ? `right:${((1 - 79 / W) * 100).toFixed(2)}%` : `left:${(311 / W * 100).toFixed(2)}%`}" aria-hidden="true">${o.tag(s)}</span>` : "";
   const inner = sp.kind === "dot" ? dotSVG(s.state, o.icon(s))
