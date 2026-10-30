@@ -209,7 +209,7 @@ export function nanoLayout(stops, art, o) {
   lay.nano = { art, o, s, endOff, hs, hsx };
   lay.bridge = endOff + (n.bridge - n.end) * s - 4;
   if (P && n.own) { /* the art's own bridge: the strings fan out to land on its pins */
-    const f0 = 100 / 106, f1 = (n.pr - n.pl) * s / 2 / 90, bot = hh + lay.neck + lay.bridge;
+    const f0 = 100 / 106, f1 = n.pl ? (n.pr - n.pl) * s / 2 / 90 : 1.12, bot = hh + lay.neck + lay.bridge;
     lay.sfan = y => f0 + (f1 - f0) * Math.max(0, Math.min(1, (y - hh) / (bot - hh)));
   }
   if (P) lay.fan = y => (100 + 15 * (y - hh) / (lay.neck + endOff)) / 106; /* the board widens toward the body: half width 100 to about 115 */
@@ -229,15 +229,19 @@ function nanoBase(g, lay) {
   const ht = `translate(${(CX - hc * hsx).toFixed(1)} ${(top - n.nut * hs).toFixed(1)}) scale(${hsx.toFixed(4)} ${hs.toFixed(4)})`;
   const poly = (d, y0, y1) => `${CX - half(y0) - d},${y0} ${CX + half(y0) + d},${y0} ${CX + half(y1) + d},${y1} ${CX - half(y1) - d},${y1}`;
   const board = lay.fan ? `<polygon points="${poly(4, top - 8, bEnd)}" fill="${g.binding}"/><polygon points="${poly(0, top, bEnd)}" fill="${g.board}"/>` : rect(89, top, 212, bEnd - top, g.board) + rect(85, top - 8, 4, bEnd - top + 8, g.binding) + rect(301, top - 8, 4, bEnd - top + 8, g.binding);
-  /* P: the traced hardware is covered and our own is drawn at the width of the strings */
-  let hw = "";
+  /* P: the art has its own hardware (own), or the traced hardware is covered and the app draws its own at the width of the strings */
+  let hw = "", cover = "";
   if (lay.fan && !n.own) {
-    const yb = bEnd + (n.bridge - n.end) * s, [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], ac = g.kind !== "electric";
-    const y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
-    hw = rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr)
-      + (ac ? pinBridge(yb + 3, "#3a2a22") : `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}`);
+    const yb = bEnd + (n.bridge - n.end) * s, ac = g.kind !== "electric";
+    if (art.sil && !art.clean) { /* the body's own silhouette keeps the cover inside the edge; the binding is drawn again over it */
+      const [cl, cr] = art.cov, z1 = n.bridge + 140 - n.end;
+      cover = `<clipPath id="nsil"><path d="${art.sil}"/></clipPath><g clip-path="url(#nsil)"><rect x="0" y="${n.end}" width="${n.cx}" height="${z1}" fill="${cl}"/><rect x="${n.cx}" y="${n.end}" width="400" height="${z1}" fill="${cr}"/></g><path d="${art.sil}" fill="none" stroke="${art.rim}" stroke-width="${(5 / s).toFixed(1)}" clip-path="url(#nsil)"/>`;
+    }
+    const [cl, cr] = o.cover || [g.finish, shade(g.finish, .84)], y0 = ac ? yb - 24 : bEnd, y1 = ac ? yb + 26 : yb + 52;
+    hw = (art.sil || art.clean ? "" : rect(CX - 175, y0, 175, y1 - y0, cl) + rect(CX, y0, 175, y1 - y0, cr))
+      + (ac ? pinBridge(yb + 3, "#3a2a22") : `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${knobs([[CX + 100, yb - 70], [CX + 132, yb - 36], [CX + 92, yb - 4], [CX + 124, yb + 30]], "#efe4c8")}`);
   }
-  return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}</g>${board}${frets}${dots}${hw}`
+  return `<g transform="${ht}">${art.head}</g><g transform="${bt}">${art.body}${cover}</g>${board}${frets}${dots}${hw}`
     + (o.name ? `<text x="${CX}" y="${top / 2 + 6}" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="600" fill="${g.ink}">${g.name}</text>` : "");
 }
 
