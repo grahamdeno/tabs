@@ -3,6 +3,7 @@
 // (tee, vest, leather, stage jacket), the guitar is the Road guitar you're on, the patches are what you've done.
 import { guitarFor, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
 import { nanoSmall } from "./fretboard.js";
+import { mittenOf } from "./louie.js";
 import ART from "./art/guitarist.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label }) returns an <svg> string.
 //   me: data.me (see meOf in core.js). mood: happy, cheer, worried, sleepy, proud. pose: play, hornsUp, rest.
@@ -64,8 +65,9 @@ function nanoGuitar({ board, body: fam }, { art, n }) {
   const parts = fam === "solid" ? pk(n.bridge - 150) + pk(n.bridge - 100) : fam === "swallow" ? pk(n.bridge - 120) + pk(n.bridge - 70) : fam === "hollow" || fam === "single" ? pk(n.bridge - 110) + pk(n.bridge - 60) : "";
   return `<g transform="translate(6 -14) rotate(48 84 196)"><g transform="translate(${(84 - n.cx * k).toFixed(2)} 64) scale(${k.toFixed(4)})">${art.head}<rect x="${n.l0}" y="${n.nut - 4}" width="${n.r0 - n.l0}" height="${n.end - n.nut + 12}" fill="${board}"/>${art.body}${parts}</g></g>`;
 }
-const hand = (x, y, skin) => `<circle cx="${x}" cy="${y + 2}" r="11" fill="${shade(skin, .78)}"/><circle cx="${x}" cy="${y}" r="11" fill="${skin}"/>`;
-const horns = (x, y, r, skin) => `<g transform="translate(${x} ${y}) rotate(${r})"><rect x="-11" y="-34" width="8" height="26" rx="4" fill="${skin}"/><rect x="3" y="-30" width="8" height="22" rx="4" fill="${skin}"/><circle cx="0" cy="-6" r="11" fill="${skin}"/><rect x="-12" y="-12" width="15" height="8" rx="4" fill="${shade(skin, .82)}"/></g>`;
+const mit = (name, x, y, r, skin, sleeve) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(.8)">${mittenOf(name, skin, shade(skin, .78), shade(skin, .6), sleeve)}</g>`;
+const hand = (x, y, skin, sleeve) => mit("fist", x, y + 10, 0, skin, sleeve);
+const horns = (x, y, r, skin, sleeve) => mit("horns", x, y + 4, r, skin, sleeve);
 
 const FALLBACK_GUITAR = { body: "parlor", finish: "#8a6a4a", board: "#4a3328", headc: "#3a2a22", binding: "#efe4c8", tuner: "#efe4c8" };
 const BEARD = {
@@ -100,9 +102,9 @@ export function guitarist(me, { mood = "happy", pose = "play", crop = "full", si
   const sleeve = top.sleeve;
   const mirror = me.lefty ? ` transform="translate(200 0) scale(-1 1)"` : "";
   let arms = "";
-  if (pose === "play") arms = `<path d="M54 178Q62 200 94 198" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(96, 196, skin)}<path d="M150 176Q166 160 160 142" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(158, 138, skin)}`;
-  else if (pose === "hornsUp") arms = `<path d="M50 172Q22 140 22 104" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${horns(22, 100, -18, skin)}<path d="M150 172Q178 140 178 104" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${horns(178, 100, 18, skin)}`;
-  else arms = `<path d="M54 178Q50 210 58 236" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(58, 240, skin)}<path d="M146 178Q150 210 142 236" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(142, 240, skin)}`;
+  if (pose === "play") arms = `<path d="M54 178Q62 200 94 198" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(96, 196, skin, sleeve)}<path d="M150 176Q166 160 160 142" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(158, 138, skin, sleeve)}`;
+  else if (pose === "hornsUp") arms = `<path d="M50 172Q22 140 22 104" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${horns(22, 100, -18, skin, sleeve)}<path d="M150 172Q178 140 178 104" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${horns(178, 100, 18, skin, sleeve)}`;
+  else arms = `<path d="M54 178Q50 210 58 236" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(58, 240, skin, sleeve)}<path d="M146 178Q150 210 142 236" stroke="${sleeve}" stroke-width="18" fill="none" stroke-linecap="round"/>${hand(142, 240, skin, sleeve)}`;
   const wear = (patches || []).slice(0, pose === "play" ? SPOTS.length : 0).map((pt, i) => { const [x, y] = SPOTS[i]; return patchSVG(pt, me.lefty ? 200 - x : x, y); }).join("");
   const figure = `<g${mirror}><rect x="88" y="128" width="24" height="28" fill="${dark}"/>${top.svg}${pose === "play" ? guitar(g) : ""}${arms}</g>${wear}`;
   const bust = (patches || [])[0] ? patchSVG(patches[0], me.lefty ? 78 : 122, 142) : "";

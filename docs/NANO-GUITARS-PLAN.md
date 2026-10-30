@@ -119,4 +119,7 @@ full Nano guitar at its real proportions in every option.
 
 ## Surprises
 
-(Write here when something doesn't match the plan.)
+- Hardware was painted out of the pictures with Gemini edits, so the `over` layer is unused.
+- Board colours are unchanged; the body is scaled to P (1.2 x width) and the head is P2 (250 tall, widened to about 280).
+- The guitarist's head and hair are traced from Gemini pictures (`tools/guitarist`), in tone layers so colours still recolour them. The ear line needed its own mask (ear boxes, L under 59.5).
+- Louie's mittens are reused in skin tone for the guitarist (`mittenOf` in `louie.js`).

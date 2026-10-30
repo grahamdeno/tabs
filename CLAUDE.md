@@ -102,6 +102,7 @@ The README describes each as it works today.
 | The Gig: the scored show over a playing song | `gig.js` (scoring: `gigChange` and friends in `core.js`) |
 | The stage (4.51.0): where the song is, the band, the lit chord and the beat dots drawn on the real sheet, the stage light | `stage.js` (used by `gig.js`) |
 | Trumpet (4.81.0): the song page on trumpet, Louie asks once, hard keys, the Gig's note | `horn.js` (numbers: `tpPart`, `noteHear`, `capoFor` in `core/trumpet.js`) |
+| Nano art (4.86.0): per-guitar drawings and the head and hair of your guitarist, generated, don't edit by hand; pipelines `tools/guitars`, `tools/guitarist` | `art/guitars/*.js`, `art/guitarist.js` |
 | Offline copy; lists every app file | `sw.js` |
 
 A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a test checks). Topic files in `core/` must not read another file's values while loading (only inside functions), since they import each other.

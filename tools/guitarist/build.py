@@ -53,7 +53,8 @@ head = holes_filled((m["skin"] | keep) & (np.arange(a.shape[0])[:, None] <= CHIN
 n, cc = cv2.connectedComponents(head.astype(np.uint8)); head = cc == cc[300, 512]
 Lh = L[..., 0]
 lit = head & (Lh >= 65)
-line = head & (Lh < 56) & ~keep
+ears = np.zeros(head.shape, bool); ears[430:545, 205:295] = True; ears[430:545, 735:825] = True
+line = head & (Lh < 59.5) & ears & ~keep
 print("head: lit L", np.median(Lh[head & (Lh > 64)]), "shade L", np.median(Lh[head & (Lh >= 56) & (Lh < 65)]), "line px", int(line.sum()))
 HEAD = {"sil": path_of(smooth(head, 2)), "lit": path_of(smooth(holes_filled(lit | keep & head), 2)), "line": path_of(line, eps=1.2, min_area=25)}
 headzone = cv2.dilate(head.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)

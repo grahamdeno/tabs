@@ -36,6 +36,11 @@ const HANDS = {
   peace: () => mitt(`${PALM}${finger(-4.5, 24, -12)}${finger(4.5, 25, 12)}`, `<path d="M-1 -10Q0 -16 1 -22"/>`, THUMB_ACROSS)
 };
 /* shoulder x,y → wrist x,y, the hand's turn, and the sign */
+/* 4.86.0: the same mittens in a skin tone for the guitarist: `sh` is the shade, `ln` the creases, `cuff` the sleeve */
+export function mittenOf(name, skin, sh, ln, cuff) {
+  return HANDS[name]().replace(/class="lv-fs"/g, `fill="${sh}"`).replace(/class="lv-f"/g, `fill="${skin}"`)
+    .replace(/class="lv-fl"/g, `stroke="${ln}"`).replace(/class="lv-cuff"/g, `fill="${cuff}"`);
+}
 const POSES = {
   rest: [[38, 128, 22, 160, 200, "fist"], [162, 128, 178, 160, 160, "fist"]],
   hornsUp: [[40, 118, 6, 54, -22, "horns"], [160, 118, 194, 54, 22, "horns"]],
