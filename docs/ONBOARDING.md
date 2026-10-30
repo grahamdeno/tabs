@@ -31,12 +31,12 @@ sees, and what teaches them anything.
 
 | Screen | What a new person sees | What teaches them | Problem |
 |---|---|---|---|
-| The Road, first launch | Leg 1 "Open chords", the pink G chord pick glowing, Louie's bubble "Let's play your first song" with a Gig: Harbor Lights button | The halo and wiggle | **Two first steps compete**: Louie says play a song, the glowing pick says learn the G chord |
+| The Road, first launch | Leg 1 "Open chords", the G chord finger dot glowing, Louie's bubble "Let's play your first song" with a Gig: Harbor Lights button | The halo | **Two first steps compete**: Louie says play a song, the glowing dot says learn the G chord |
 | | "You can play 0 of your 1 song" | | Starts the player on a zero |
 | | Stat bar: a shield with 1, a guitar with 0, a ticket with 0 | Nothing | No labels; nothing says what they are or that they open pages |
 | | A pink dot on More on every screen | Nothing | It means "not tuned in the last few hours", but it looks like "something new". It never clears unless you tune |
 | Tap the pick | A tag over it already names it ("G chord", 4.75.0); the card: The G chord, a +5 fans chip, Start | The tag and the card | Fine |
-| Reach a merch box | A road case bouncing with a "Tap to open" tag (4.76.0); a tap opens it with a POW for 25 fans | The tag | Fine |
+| Reach a merch box | A fret inlay with a dashed gold ring and a "Tap to open" tag (4.82.0); a tap opens it with a POW for 25 fans | The tag | Fine |
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
 | Play (the Gig) | Count-in, "Listening is off", then "Hearing you · tap to turn off" | The mic pill says it is listening | Nothing says *why* (strum on the changes to score). On a real iPhone the microphone prompt arrives cold, with no reason given first |
@@ -75,7 +75,7 @@ anything a person found on their own is skipped.
 
 ### First session (the tutorial leg, minutes 0 to 10)
 
-1. Tap the glowing pick (the halo already invites it).
+1. Tap the glowing dot (the halo already invites it).
 2. Tap a chord to see its shape (Harbor Lights, existing tip).
 3. The microphone, asked by Louie first.
 4. Press Play; strum on the changes (Louie, before the count-in).
@@ -111,7 +111,7 @@ anything a person found on their own is skipped.
 
 ## What stands out
 
-1. **The first screen has two first steps.** Louie says play Harbor Lights; the glowing pick says learn G.
+1. **The first screen has two first steps.** Louie says play Harbor Lights; the glowing dot says learn G.
    The tutorial leg fixes this: the first pick *is* playing the sample song.
 2. **The Gig has no tips at all.** Play opens the Gig for almost every song (4.1.0), but the pause,
    line and section tips only fire in the plain sheet (practice, tabs, Play together). (4.50.0 to 4.53.0 retired Now and
@@ -153,7 +153,7 @@ anything a person found on their own is skipped.
 
 | # | Hidden feature | How you do it | Coverage | Why here in the order |
 |---|---|---|---|---|
-| 1 | Tap a pick for its card (Start, Play again) | Tap a pick; tap again or elsewhere to close | None (the halo and wiggle invite it) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing pick" from Louie |
+| 1 | Tap a stop for its card (Start, Play again) | Tap a stop; tap again or elsewhere to close | None (the halo invites it) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing dot" from Louie |
 | 2 | The streak opens Your profile | Tap the guitar in the stat bar | None | Right after the first song played through, when the streak first lights |
 | 3 | Fans open the Merch table | Tap the fans count | None | When fans first reach the price of the cheapest thing (Rain check) |
 | 4 | The venue opens the Tour Map | Tap the venue | None | After the first few songs, when there are hexagons to see |

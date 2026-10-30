@@ -134,12 +134,12 @@ In `road.js`:
 
 ### Step 6. Release [Sonnet]
 
-- [ ] 6.1 `VERSION` 4.82.0 in `core.js` and `CACHE` in `sw.js`.
-- [ ] 6.2 README: the Road's feature text. docs/ONBOARDING.md: the rows that say "glowing pick" and "road
+- [x] 6.1 `VERSION` 4.82.0 in `core.js` and `CACHE` in `sw.js`.
+- [x] 6.2 README: the Road's feature text. docs/ONBOARDING.md: the rows that say "glowing pick" and "road
       case" (first launch, reach a merch box). CLAUDE.md: add `fretboard.js` to Where things are; in Version 4,
       say the stops are finger dots and inlays on a guitar per leg, picks only in Opening night.
-- [ ] 6.3 One commit per step, plain messages. Rebase on `origin/main`, push to `main`.
-- [ ] 6.4 Tell Graham it's live, and that the next step is Opus.
+- [x] 6.3 One commit per step, plain messages. Rebase on `origin/main`, push to `main`.
+- [x] 6.4 Tell Graham it's live, and that the next step is Opus.
 
 ### Step 7. Feel check [Opus]
 
