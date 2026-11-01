@@ -102,7 +102,7 @@ The README describes each as it works today.
 | The Gig: the scored show over a playing song | `gig.js` (scoring: `gigChange` and friends in `core.js`) |
 | The stage (4.51.0): where the song is, the band, the lit chord and the beat dots drawn on the real sheet, the stage light | `stage.js` (used by `gig.js`) |
 | Trumpet (4.81.0): the song page on trumpet, Louie asks once, hard keys, the Gig's note | `horn.js` (numbers: `tpPart`, `noteHear`, `capoFor` in `core/trumpet.js`) |
-| Nano art (4.86.0): per-guitar drawings and the head and hair of your guitarist, generated, don't edit by hand. Guitars: drawn as clean shapes in `tools/guitars/draw.mjs` (4.86.1; tracing gave wobbly edges). Hair and head: traced by `tools/guitarist`. Check any art at phone resolution (deviceScaleFactor 3) before shipping | `art/guitars/*.js`, `art/guitarist.js` |
+| Guitar pictures (4.87.0): Gemini's pictures cut out and measured by `tools/guitars/pics.py` (sources in `docs/guitars/pics/`, a close-up headstock where there is one); the Road lays them out in `picLayout`/`picBase` in `fretboard.js` with a narrow neck (`NECK`). The guitarist's head and hair: traced by `tools/guitarist`. Check any art at phone resolution (deviceScaleFactor 3) before shipping | `art/guitars/*.webp`, `art/guitars/pics.js`, `art/guitarist.js` |
 | Offline copy; lists every app file | `sw.js` |
 
 A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a test checks). Topic files in `core/` must not read another file's values while loading (only inside functions), since they import each other.

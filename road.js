@@ -20,7 +20,7 @@ import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
-import { guitarSVG, inlaySVG, neckHTML, neckBase, nanoArt, nanoArtHas } from "./fretboard.js";
+import { guitarSVG, inlaySVG, neckHTML } from "./fretboard.js";
 import { statBar, bindStatBar } from "./hud.js";
 
 const DAY = 86400000;
@@ -288,21 +288,9 @@ export function renderRoad() {
     path.scrollTop = Math.max(0, to);
   }
   if (plays) fillScene(st);
-  fillArt(road, leg, gx);
   headlinerEarned(road);
   guitarEarned(road);
   guitaristAsk();
-}
-
-/* 4.86.0: the Nano art for each leg loads after the first draw (the current leg first); a plain head and body show until it does */
-async function fillArt(road, cur, gx) {
-  const order = [...road.legs].sort((a, b) => (b === cur ? 1 : 0) - (a === cur ? 1 : 0));
-  for (const l of order) {
-    if (nanoArtHas(l.id)) continue;
-    if (!(await nanoArt(l.id)) || route().name !== "road") continue;
-    const svg = document.querySelector(`.rd-neck[data-guitar="${l.id}"] > .rd-base`), html = neckBase(l, gx);
-    if (svg && html) svg.innerHTML = html;
-  }
 }
 
 /* 4.85.0: a player who never made a guitarist (past Opening night) meets the picker once, after the other sheets. Skip keeps the default. */
@@ -340,7 +328,6 @@ function guitarEarned(road) {
     <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
     <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div></div></div>`;
   const close = () => { layer.innerHTML = ""; };
-  if (!nanoArtHas(gn.next)) nanoArt(gn.next).then(a => { const el = a && document.querySelector(".rd-gt-art"); if (el) el.innerHTML = guitarSVG(gn.next); });
   document.getElementById("gt-scrim").onclick = close; document.getElementById("gt-x").onclick = close;
   haptic(2);
 }

@@ -2,7 +2,7 @@
 // mitten hands, the same moods), built from parts. The big looks come from the Road: the top follows the venue
 // (tee, vest, leather, stage jacket), the guitar is the Road guitar you're on, the patches are what you've done.
 import { guitarFor, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
-import { nanoSmall } from "./fretboard.js";
+import { guitarPic } from "./fretboard.js";
 import { mittenOf } from "./louie.js";
 import ART from "./art/guitarist.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label }) returns an <svg> string.
@@ -45,8 +45,8 @@ function outfit(o, c, skin, id) {
 /* the Road guitar in your hands, small: its finish and shape family (acoustic with a soundhole, classical, solid-body,
    hollow with f-holes, single cut, the headliner with a gold edge) */
 function guitar(g) {
-  const sm = nanoSmall(g.body);
-  if (sm) return nanoGuitar(g, sm);
+  const pic = guitarPic(g.body);
+  if (pic) return `<g transform="translate(6 -14) rotate(48 84 196)"><image href="${pic}" x="36" y="40" width="96" height="212" preserveAspectRatio="xMidYMax meet"/></g>`;
   const body = g.finish, dk = shade(body, .6), bind = g.binding || "#e9dcbc", fam = g.body;
   const neck = `<rect x="79" y="88" width="10" height="100" rx="3" fill="${g.board}"/>${[104, 120, 136, 152].map(y => `<rect x="79" y="${y}" width="10" height="2" fill="#cdd2da"/>`).join("")}<path d="M76 82h16l2 -18h-20z" fill="${g.headc}"/><circle cx="77" cy="70" r="2" fill="${g.tuner}"/><circle cx="91" cy="70" r="2" fill="${g.tuner}"/>`;
   const round = (stroke) => `<ellipse cx="84" cy="216" rx="31" ry="26" fill="${dk}"/><ellipse cx="84" cy="190" rx="23" ry="21" fill="${dk}"/><ellipse cx="84" cy="212" rx="31" ry="26" fill="${body}"${stroke}/><ellipse cx="84" cy="186" rx="23" ry="21" fill="${body}"${stroke}/><ellipse cx="84" cy="186" rx="21.5" ry="19.5" fill="${body}"/>`;
@@ -58,12 +58,6 @@ function guitar(g) {
   else if (fam === "classical") shape = `${round("")}<circle cx="84" cy="196" r="9" fill="#120c09"/><circle cx="84" cy="196" r="11.5" fill="none" stroke="${shade(body, .7)}" stroke-width="2.2"/><rect x="72" y="218" width="24" height="5" rx="2" fill="#2a1a12"/>`;
   else shape = `${round("")}<circle cx="84" cy="196" r="9" fill="#120c09"/><rect x="70" y="216" width="28" height="5" rx="2" fill="#2a1a12"/>${fam === "cutaway" ? `<path d="M96 172Q104 176 106 184" fill="none" stroke="${bind}" stroke-width="2"/>` : ""}`;
   return `<g transform="translate(6 -14) rotate(48 84 196)">${neck}${shape}<path d="M84 188V222" stroke="#e9e3d6" stroke-width="1.2"/></g>`;
-}
-/* 4.86.0: the Nano art in miniature: the traced head and body from art/guitars with a plain neck between, held the same way */
-function nanoGuitar({ board, body: fam }, { art, n }) {
-  const k = 176 / n.h, bw = (n.br - n.bl) * .22, pk = y => `<rect x="${n.cx - bw / 2}" y="${y}" width="${bw}" height="${(16).toFixed(0)}" rx="5" fill="#1c1d22"/>`;
-  const parts = fam === "solid" ? pk(n.bridge - 150) + pk(n.bridge - 100) : fam === "swallow" ? pk(n.bridge - 120) + pk(n.bridge - 70) : fam === "hollow" || fam === "single" ? pk(n.bridge - 110) + pk(n.bridge - 60) : "";
-  return `<g transform="translate(6 -14) rotate(48 84 196)"><g transform="translate(${(84 - n.cx * k).toFixed(2)} 64) scale(${k.toFixed(4)})">${art.head}<rect x="${n.l0}" y="${n.nut - 4}" width="${n.r0 - n.l0}" height="${n.end - n.nut + 12}" fill="${board}"/>${art.body}${parts}</g></g>`;
 }
 const mit = (name, x, y, r, skin, sleeve) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(.8)">${mittenOf(name, skin, shade(skin, .78), shade(skin, .6), sleeve)}</g>`;
 const hand = (x, y, skin, sleeve) => mit("fist", x, y + 10, 0, skin, sleeve);
