@@ -4436,3 +4436,8 @@ body.covered .gg-status .gg-fans i { color: rgba(255, 255, 255, .3); }
 .menu.tools3 .mrow.t3 .ml small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
 /* the streak's Keep playing keeps dark words on its white button when the ink is white */
 :root[data-theme="light"] .sk .sk-foot #sk-ok, :root[data-look="festival"] .sk .sk-foot #sk-ok { color: var(--sk-deep); }
+/* (rule 7) Light's hot pink (#E8336E) is 3.9:1 under dark ink: the player card and the next lesson use the brighter
+   accent pink there, and the card's small line keeps full strength */
+:root[data-theme="light"] .pf-player, :root[data-look="festival"] .pf-player { background: var(--accent); box-shadow: 0 6px 0 var(--accent-deep); }
+:root[data-theme="light"] .pk-fret.now, :root[data-look="festival"] .pk-fret.now { background: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); }
+.pf-pc-who > small { opacity: 1; }

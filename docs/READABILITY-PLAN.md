@@ -29,27 +29,28 @@ on the `rename-louie` branch. Nothing ships until Graham says ship.
    one-at-a-time sheet in `layer` (dimmed page, not in Edit, not over another sheet), with plain changes
    ("18° colder", "89% → 84%, yesterday"); the POW callouts readable in Light and Green Room; the Gig's
    NOW card solid on album art. Tests for each.
-2. [Sonnet] The 12 px floor and 13 px helper lines, by selector, from the scan: Your profile badges and stat
+2. [Sonnet] (done) The 12 px floor and 13 px helper lines, by selector, from the scan: Your profile badges and stat
    labels, the Gig's NOW card and "Tap to score it", the Band tab's song counts, Charts' BATTLE and today
    lines, the Tour Map's avatars, What I hear's readouts and legend, About this song's labels, Songbook's
    Requested banner and key badges, the stat bar labels, Settings' Keys dots and "Last backup", Merch card
    lines, Tour progress lines, Rehearse's "Not tried yet" and skill lines, the Look page's theme picker.
-3. [Sonnet] Locked and disabled without fading: All lessons' locked cells and Coming cards (lock icon,
+3. [Sonnet] (done) Locked and disabled without fading: All lessons' locked cells and Coming cards (lock icon,
    full-strength text), the merch "more in tips to go" button, the disabled Save and "Pick a chord".
-4. [Sonnet] Wrap instead of cut: Tools row descriptions, Charts names (BATTLE under the name), the lesson
+4. [Sonnet] (done) Wrap instead of cut: Tools row descriptions, Charts names (BATTLE under the name), the lesson
    strips (wrap to rows), Your profile's "Nights · next 7".
-5. [Sonnet] Toasts: full width at the bottom, above the bar, in thumb reach, one or two lines.
-6. [Sonnet] The rest of the list: the Gig in Light and Green Room (current line's chord letters in
+5. [Sonnet] (done) Toasts: full width at the bottom, above the bar, in thumb reach, one or two lines.
+6. [Sonnet] (done) The rest of the list: the Gig in Light and Green Room (current line's chord letters in
    `--accent-ink`, the sung line at least `--fg-2`, the crowd darker); Show complete's title in Green Room;
    the streak celebration (dark ink and stronger day dots in Light, the number in Headliner); the chord
    pop-up's finger numbers (bigger) and place (top, off the lyrics); the paste card (no fade on the
    preview, dark chips in Light); the tuner with the mic off (one full-width message); the language
    chips DE, ES, RU (dark ink); gold prices on white in Light (dark ink); the CROWD tile label.
-7. [Sonnet] A readability test: the scan from the simulation as `tests/e2e/readable.e2e.mjs` over the main
+7. [Sonnet] (done) A readability test: the scan from the simulation as `tests/e2e/readable.e2e.mjs` over the main
    screens and pop-ups in Light and Dark and on album art; fails on text under 12 px, contrast under the rule
    on a solid background, or a see-through floating surface.
 8. [Opus] Run the full simulation again, look at every screen, fix what's left, then Graham says ship.
 
 ## Surprises
 
-(none yet)
+- Light's hot pink (#E8336E) is 3.9:1 under the dark ink, so the player card and the next lesson use the accent pink in Light (step 7's test found it).
+- Steps 2 to 7 ran on Opus in one session at Graham's word, not Sonnet.
