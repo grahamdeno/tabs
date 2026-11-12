@@ -4423,7 +4423,7 @@ body.covered .gg-status .gg-fans i { color: rgba(255, 255, 255, .3); }
 /* the Crowd tile's label on the accent */
 .gc-tile.crowd small { color: var(--on-accent); }
 /* the streak celebration in Light: a deeper pink so the words read, and stronger day dots everywhere */
-:root[data-theme="light"] .sk, :root[data-look="festival"] .sk { --sk-bg: #C2185B; --sk-deep: #8E1240; --sk-ink: #FFFFFF; }
+:root[data-theme="light"]:not([data-look="green"]) .sk, :root[data-look="festival"] .sk { --sk-bg: #C2185B; --sk-deep: #8E1240; --sk-ink: #FFFFFF; }
 .sk-week i { background: color-mix(in srgb, var(--sk-ink) 28%, transparent); }
 /* the paste card shows more of the sheet before it fades */
 .preview { height: 120px; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); }
@@ -4435,9 +4435,20 @@ body.covered .gg-status .gg-fans i { color: rgba(255, 255, 255, .3); }
 /* (rule 5) the Tools rows: the line under a name wraps instead of ending mid-word */
 .menu.tools3 .mrow.t3 .ml small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
 /* the streak's Keep playing keeps dark words on its white button when the ink is white */
-:root[data-theme="light"] .sk .sk-foot #sk-ok, :root[data-look="festival"] .sk .sk-foot #sk-ok { color: var(--sk-deep); }
+:root[data-theme="light"]:not([data-look="green"]) .sk .sk-foot #sk-ok, :root[data-look="festival"] .sk .sk-foot #sk-ok { color: var(--sk-deep); }
 /* (rule 7) Light's hot pink (#E8336E) is 3.9:1 under dark ink: the player card and the next lesson use the brighter
    accent pink there, and the card's small line keeps full strength */
-:root[data-theme="light"] .pf-player, :root[data-look="festival"] .pf-player { background: var(--accent); box-shadow: 0 6px 0 var(--accent-deep); }
-:root[data-theme="light"] .pk-fret.now, :root[data-look="festival"] .pk-fret.now { background: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); }
+:root[data-theme="light"]:not([data-look="green"]) .pf-player, :root[data-look="festival"] .pf-player { background: var(--accent); box-shadow: 0 6px 0 var(--accent-deep); }
+:root[data-theme="light"]:not([data-look="green"]) .pk-fret.now, :root[data-look="festival"] .pk-fret.now { background: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); }
 .pf-pc-who > small { opacity: 1; }
+/* Step 8: what the second simulation found */
+.gg-mt small { opacity: 1; color: var(--fg-2); }
+.gm-c.lock { opacity: 1; color: var(--fg-2); border-style: dashed; }
+.gm-c.lock small { color: var(--fg-2); }
+.gm-c.lock small::before { content: ""; display: inline-block; width: .8em; height: .8em; margin-right: 3px; vertical-align: -.08em; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1zm2 0h6V7a3 3 0 0 0-6 0v3z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1zm2 0h6V7a3 3 0 0 0-6 0v3z'/%3E%3C/svg%3E") center / contain no-repeat; }
+body.staged .sheet > .sec.st-past { color: var(--muted); }
+:root[data-look="green"] .gg-sec { color: #FFFFFF; }
+.sk-best { opacity: 1; }
+:root[data-look="headliner"] .pk-fret.now { color: #16171B; }
