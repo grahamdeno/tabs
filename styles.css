@@ -4021,20 +4021,20 @@ body.covered .cebar.plate::before { content: ""; position: absolute; z-index: -1
 @keyframes co-pump { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.1, .92); } 60% { transform: scale(.96, 1.06); } }
 @keyframes co-ring { from { transform: scale(.4); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
 /* 4.72.0: Tune up first, above Tools and Play */
-.tuneup { position: fixed; z-index: 29; left: 50%; transform: translateX(-50%); bottom: calc(118px + var(--safe-b)); width: min(496px, calc(100% - 24px)); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: var(--card); border: 2px solid var(--rim); box-shadow: 0 6px 0 var(--rim); animation: fade .25s; }
+.tuneup { display: flex; flex-direction: column; gap: 12px; }
 .tu-top { display: flex; align-items: center; gap: 12px; }
 .tu-lou { flex: none; line-height: 0; }
 .tu-top h2 { margin: 0; font: 700 22px var(--display); color: var(--fg); }
 .tu-top p { margin: 2px 0 0; font: 600 15px var(--sans); color: var(--fg-2); }
 .tu-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .tu-tiles > div { display: flex; flex-direction: column; padding: 10px 12px; border-radius: 14px; background: var(--card-2); border: 2px solid var(--hair); }
-.tu-tiles small { font: 800 11px var(--sans); letter-spacing: .1em; color: var(--fg-2); }
+.tu-tiles small { font: 800 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-2); }
 .tu-tiles b { font: 700 19px var(--display); color: var(--fg); }
-.tu-tiles span { font: 600 13px var(--sans); color: var(--fg-2); }
+.tu-tiles span { font: 700 14px var(--sans); color: var(--fg-2); }
 .tu-acts { display: flex; gap: 10px; }
 .tu-acts .btn { flex: 1; min-height: 52px; }
 .tu-acts .btn.primary { flex: 1.4; }
-body.playing .tuneup { display: none; }
+body.playing .tuneup, body.playing #tu-scrim { display: none; }
 
 /* 4.74.0: Sing it, redesigned. Louie and a mic to start, one take split at your breaths, lines as on the song page,
    real buttons in thumb reach (Redo, keep, Done), and Your song. Scoped to .sk2, so the old pad rules don't apply. */
@@ -4381,3 +4381,13 @@ body.covered .gc-tile b { background: rgba(20, 18, 24, .82); color: #FFFFFF; }
 :root[data-look="green"] .bd-head { color: #fff; }
 :root[data-look="green"] .bd-head small { opacity: 1; color: #E9D5F2; }
 :root[data-look="headliner"] .ch-btl, :root[data-look="headliner"] .ch-go:not(.done), :root[data-look="headliner"] .tq-req { color: #fff; }
+
+/* ---------- Readability (4.89.0, docs/READABILITY-PLAN.md) ---------- */
+/* Rule 1: nothing that floats is see-through. On a song with album art --card is 10% white on purpose for cards
+   that sit on the page; the Gig's NOW card and the callout badge float over the words, so they stay solid. */
+.gg-shape, .co-badge { background: var(--solid); }
+/* Rule 6: the callout's big word in Light and Green Room: dark ink with a white edge and the accent's shadow,
+   not white on a white card (the POW look has its own colours) */
+:root[data-theme="light"] .co:not(.co-pow) .co-badge b, :root[data-look="festival"] .co:not(.co-pow) .co-badge b, :root[data-look="green"] .co:not(.co-pow) .co-badge b {
+  color: var(--fg); -webkit-text-stroke: 3px var(--solid); text-shadow: 0 4px 0 var(--accent); }
+:root[data-theme="light"] body.covered .co:not(.co-pow) .co-badge b, :root[data-look="festival"] body.covered .co:not(.co-pow) .co-badge b, :root[data-look="green"] body.covered .co:not(.co-pow) .co-badge b { color: #FFFFFF; }
