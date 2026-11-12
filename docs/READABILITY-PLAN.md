@@ -48,7 +48,7 @@ on the `rename-louie` branch. Nothing ships until Graham says ship.
 7. [Sonnet] (done) A readability test: the scan from the simulation as `tests/e2e/readable.e2e.mjs` over the main
    screens and pop-ups in Light and Dark and on album art; fails on text under 12 px, contrast under the rule
    on a solid background, or a see-through floating surface.
-8. [Opus] Run the full simulation again, look at every screen, fix what's left, then Graham says ship.
+8. [Opus] (done) Run the full simulation again, look at every screen, fix what's left, then Graham says ship.
 
 ## Surprises
 

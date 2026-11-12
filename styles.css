@@ -4452,3 +4452,6 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root[data-look="green"] .gg-sec { color: #FFFFFF; }
 .sk-best { opacity: 1; }
 :root[data-look="headliner"] .pk-fret.now { color: #16171B; }
+/* Show complete's Chords tile: white words on a deeper blue in Light, white on purple in Green Room */
+:root[data-theme="light"]:not([data-look="green"]) .gc-tile.beat, :root[data-look="festival"] .gc-tile.beat { background: var(--strings-deep); box-shadow: 0 5px 0 #1F56B8; }
+:root[data-theme="light"]:not([data-look="green"]) .gc-tile.beat small, :root[data-look="festival"] .gc-tile.beat small, :root[data-look="green"] .gc-tile.beat small { color: #FFFFFF; }
