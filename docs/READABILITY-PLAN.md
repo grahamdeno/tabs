@@ -25,7 +25,7 @@ on the `rename-louie` branch. Nothing ships until Graham says ship.
 
 ## Steps
 
-1. [Opus] Rules into code: solid floating surfaces in every look and on album art; the Tune up card becomes a
+1. [Opus] (done, f2b8c8c) Rules into code: solid floating surfaces in every look and on album art; the Tune up card becomes a
    one-at-a-time sheet in `layer` (dimmed page, not in Edit, not over another sheet), with plain changes
    ("18° colder", "89% → 84%, yesterday"); the POW callouts readable in Light and Green Room; the Gig's
    NOW card solid on album art. Tests for each.
