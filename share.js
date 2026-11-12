@@ -23,7 +23,7 @@ async function shareLink(payload, title, near) {
 // The ••• button you can see: in the song bar on a phone held upright (one
 // hand), at the top on larger screens.
 const moreBtn = () => [...document.querySelectorAll("button.more")].find(b => b.offsetParent) || $("more");
-const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (The Road)`, moreBtn());
+const shareSong = song => shareLink({ song: shareable(song) }, `${song.title}${song.artist ? " · " + song.artist : ""} (Louie: Learn Guitar)`, moreBtn());
 // ---------- Play together (4.29.0: clap to start) ----------
 // No server. Send song shares the song (with its tempo and length). Each player picks a part (Chords,
 // or Melody when the song has a sung melody; the Bass line went in 4.42.0) and taps Listen for clap; both phones listen,
@@ -57,7 +57,7 @@ function duetSheet(song) {
     note();
   });
   /* the song, its tempo and length; no start time any more */
-  $("pt-send").onclick = () => shareLink({ song: { ...shareable(song), duration: songLength(song), bpm: song.bpm || 90 }, duet: { bpm: song.bpm || 90 } }, `Play ${song.title} with me (The Road)`, $("pt-send"));
+  $("pt-send").onclick = () => shareLink({ song: { ...shareable(song), duration: songLength(song), bpm: song.bpm || 90 }, duet: { bpm: song.bpm || 90 } }, `Play ${song.title} with me (Louie: Learn Guitar)`, $("pt-send"));
   $("pt-listen").onclick = () => duet ? (duetCancel(), idle("Stopped listening.")) : listen(song);
   const idle = say => { const b = $("pt-listen"); if (b) { b.textContent = "Listen for clap"; b.classList.remove("on"); } if (say && $("pt-say")) $("pt-say").textContent = say; $("pt-start")?.classList.remove("on"); };
   async function listen(song) {
@@ -131,7 +131,7 @@ function duetCancel() {
   duet = null;
 }
 onLeave(() => duetCancel());
-const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (The Road set)`, $("s-share"));
+const shareSet = set => shareLink({ set: { name: set.name, songs: setSongs(set).map(shareable) } }, `${set.name} (a set from Louie: Learn Guitar)`, $("s-share"));
 
 async function renderImport(code) {
   const got = await unpackShare(code);
@@ -153,7 +153,7 @@ async function renderImport(code) {
       <p class="imp-t">Add ${name} to your library?</p>
       ${got.set ? `<div class="list glass imp-list">${songs.map(x => `<div class="row"><div class="txt"><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist || "Unknown artist")}${findSame(data, x) ? " · already in your library" : ""}</div></div></div>`).join("")}</div>` : ""}
       ${got.song && have.length ? `<p class="foot pn">You already have a song with this name. Adding keeps both.</p>` : ""}
-      ${inBrowser ? `<p class="foot pn">Use The Road from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
+      ${inBrowser ? `<p class="foot pn">Use Louie from your Home Screen? It keeps its own library: <button class="linkbtn" id="im-copy">copy this link</button> and paste it into the search bar there.</p>` : ""}
       <div class="actions"><button class="btn" id="im-no">Not now</button><button class="btn primary" id="im-yes">${got.set ? "Add set" : "Add song"}</button></div>
     </div>`;
   const close = () => { layer.innerHTML = ""; };

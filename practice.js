@@ -787,7 +787,7 @@ function whatIHear() {
     const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "0%";
     const reads = Math.floor(st.frames / 5);
     const text = [
-      `The Road ${VERSION}, What I hear`,
+      `Louie: Learn Guitar ${VERSION}, What I hear`,
       `Listened ${Math.round((ctxRef?.currentTime || 0) - st.t0)} s · sample rate ${ctxRef?.sampleRate || "?"} · output delay ${Math.round(((ctxRef?.baseLatency || 0) + (ctxRef?.outputLatency || 0)) * 1000)} ms`,
       `Quiet floor ${(floor * 100).toFixed(3)} (tracked ${((floorRef?.() || 0) * 100).toFixed(3)}) · strum line ${(strumLine(floorRef?.() ?? null) * 100).toFixed(2)} · loudest ${(st.peak * 100).toFixed(1)} · beat in the mic ${prof ? (prof.peak() * 100).toFixed(2) : "not measured"}`,
       ...(st.bars ? ["Each 1: " + st.bars.join(" · ")] : []),

@@ -604,7 +604,7 @@ export function wordsSheet(chart, { title = "", ok = "Done", text = "" } = {}, d
   layer.innerHTML = `<div class="scrim" id="ws-scrim"></div><div class="panel full cs" role="dialog" aria-label="Add the words"><div class="grab"></div>
     <div class="ph"><button class="tb" id="ws-x">${back ? "Back" : "Cancel"}</button><h2>Add the words</h2>${oneHandMQ.matches ? '<span style="width:56px"></span>' : `<button class="tb" id="ws-ok" disabled>${esc(ok)}</button>`}</div>
     <div class="pbody">
-      <p class="foot" style="margin:0 2px 10px">Paste the lyrics${title ? ` for <b>${esc(title)}</b>` : ""}. Blank lines between verses help; names like [Chorus] help more. The Road puts the chart's chords over them, two to a line; fix any spot in Edit.</p>
+      <p class="foot" style="margin:0 2px 10px">Paste the lyrics${title ? ` for <b>${esc(title)}</b>` : ""}. Blank lines between verses help; names like [Chorus] help more. Louie puts the chart's chords over them, two to a line; fix any spot in Edit.</p>
       <button class="btn" id="ws-paste" style="width:100%;margin-bottom:10px">${icon("clip")}Paste</button>
       <textarea id="ws-text" class="ws-text" rows="9" placeholder="Paste or type the lyrics here" aria-label="Lyrics" autocapitalize="sentences"></textarea>
       <div class="label" style="margin:14px 2px 6px">With the chords</div>
@@ -792,7 +792,7 @@ export async function nextSongs() {
       else covers(list);
     } catch (e) {
       if (lv !== level()) return;
-      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form The Road couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
+      state = { busy: false, list: [], skip, err: e.status === -2 ? "No answer after 45 seconds. Check the connection and try again." : e.status === -1 ? "The reply came back in a form Louie couldn't read, twice in a row. Try again, or switch levels." : aiError(e), raw: e.raw || (e.status === -1 ? `(No text came back. The AI stopped with: ${aiLastStop() || "no reason given"}.)` : "") };
     }
     if ($("nx-body")) paint(); /* closed while loading: the list is still kept for next time */
   };
@@ -896,7 +896,7 @@ export function chartLinkSheet(song) {
       <div class="seg cl-lv" role="group" aria-label="Your level">${Object.entries(LEVEL_NAME).map(([k, n]) => `<button data-lv="${k}" aria-pressed="${k === level}" class="${k === level ? "on" : ""}">${n}</button>`).join("")}</div>
       <div class="cl-found" id="cl-found" aria-live="polite"></div>
       <div class="cl-acts" id="cl-acts"></div>
-      <p class="cl-how">Copy the chords on the site, then come back. The Road will be ready to paste them in.</p>
+      <p class="cl-how">Copy the chords on the site, then come back. Louie will be ready to paste them in.</p>
     </div>`;
   const close = () => { layer.innerHTML = ""; };
   $("scrim").onclick = close;

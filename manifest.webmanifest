@@ -1,7 +1,7 @@
 {
-  "name": "The Road",
-  "short_name": "The Road",
-  "description": "Personal chord sheets and tabs. Offline, local only.",
+  "name": "Louie: Learn Guitar",
+  "short_name": "Louie",
+  "description": "Learn guitar by playing songs. Your songs stay on this phone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

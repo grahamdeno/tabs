@@ -1008,7 +1008,7 @@ const prefetch = () => ["editor.js", "settings.js"].forEach(n => import(`./${n}?
 // If a module still can't load, a reload brings everything onto one release.
 const lazy = name => import(`./${name}?v=${VERSION}`).catch(err => {
   noteError(err, { quiet: true, where: name });
-  toast("The Road was updated. Reload to use this.", null, { label: "Reload", fn: () => location.reload() });
+  toast("Louie was updated. Reload to use this.", null, { label: "Reload", fn: () => location.reload() });
   return new Promise(() => {}); /* the feature just doesn't open */
 });
 
@@ -1309,7 +1309,7 @@ const FIND_SITES = [
 export function findCard(q, more = false) {
   return `<div class="findcard${more ? " more" : ""}">
     <div class="fc-t">${more ? `Find “${esc(q.trim())}” elsewhere` : `“${esc(q.trim())}” isn't in your library yet`}</div>
-    ${more ? "" : `<p class="fc-s">Find a chord sheet, copy it, and come back. The Road will offer to add what you copied.</p>`}
+    ${more ? "" : `<p class="fc-s">Find a chord sheet, copy it, and come back. Louie will offer to add what you copied.</p>`}
     <div class="fc-b">${FIND_SITES.map(([k, l]) => `<button class="chip" data-find="${k}">${icon(k === "web" ? "search" : "link")}${l}</button>`).join("")}</div>
     ${aiKey() ? `<button class="fc-ai" id="fc-ai">${icon("wand")}<span><b>Get the song</b>Chords, words and tempo in one go</span>${icon("chev", "chev")}</button>` : ""}
   </div>`;

@@ -28,7 +28,7 @@ const myWeek = () => ({ xp: weekXP(data), wk: weekOf() });
 export function sendChallenge(song, mine, near) {
   withName(async name => {
     const d = startDuel(data, song, mine); Tabs.save(data);
-    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...mine, ...myWeek() } }, `I hit ${mine.pct}% on ${song.title}. Beat it. (The Road)`, near);
+    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...mine, ...myWeek() } }, `I hit ${mine.pct}% on ${song.title}. Beat it. (Louie: Learn Guitar)`, near);
   });
 }
 export function sendReply(d, near) {
@@ -36,7 +36,7 @@ export function sendReply(d, near) {
   if (!song || !d.mine) return;
   withName(async name => {
     const won = duelWon(d);
-    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...d.mine, ...myWeek(), reply: true } }, `${won ? "Beat you" : won === false ? "You win this one" : "Tied"}: ${d.mine.pct}% on ${song.title}. (The Road)`, near);
+    await shareLink({ song: linkSong(song), duel: { id: d.id, from: name, ...d.mine, ...myWeek(), reply: true } }, `${won ? "Beat you" : won === false ? "You win this one" : "Tied"}: ${d.mine.pct}% on ${song.title}. (Louie: Learn Guitar)`, near);
   });
 }
 /* a duel link opened (from renderImport) */

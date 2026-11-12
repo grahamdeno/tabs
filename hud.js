@@ -84,7 +84,7 @@ export function openMore() {
       ${item("m-set", "gear", "Settings", "Look, playing and keys")}
       ${item("m-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours")}
       ${item("m-lib", "list", "Songbook", `${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, sets and search`)}
-      ${item("m-sup", "heart", "Support The Road", "If you like the app, chip in on Ko-fi")}
+      ${item("m-sup", "heart", "Support Louie", "If you like the app, chip in on Ko-fi")}
     </div>
     <div class="actions"><button class="btn" id="more-x">Close</button></div></div>`;
   const close = () => { layer.innerHTML = ""; };

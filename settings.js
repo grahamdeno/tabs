@@ -111,7 +111,7 @@ function renderSettings() {
       </div>
       <div id="s-cities"></div>` : ""}
     </div>
-    <p class="foot">Under the Songbook's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day, and when the air has changed a lot since your last play the song page says to tune up first. Only the city's position is sent, once a day; The Road asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
+    <p class="foot">Under the Songbook's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day, and when the air has changed a lot since your last play the song page says to tune up first. Only the city's position is sent, once a day; Louie asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
     keys: ["Keys", `
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>
@@ -126,7 +126,7 @@ function renderSettings() {
       </div>
     </div>
     <p class="foot" id="s-keymsg" aria-live="polite"></p>
-    <details class="foot s-why"><summary>What it's used for</summary>Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for The Road, with a low monthly spend limit.</details>
+    <details class="foot s-why"><summary>What it's used for</summary>Adds Clean up and Scan a page when adding songs, and Make it easier and Spark tone in a song's ••• menu. The key stays on this phone and is sent only to Anthropic. Cleanup and scans send the pasted text or photo; Make it easier and Spark tone send only the song's title, artist and chord names. Use a key made just for Louie, with a low monthly spend limit.</details>
     <div class="label">GetSongBPM · Tempo data</div>
     <div class="set-group glass">
       <label class="fld fld-k"><span class="tile ftile">${icon("metro")}</span>
@@ -145,7 +145,7 @@ function renderSettings() {
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("note")}</span><span class="name">Apple Music</span>
-        <button class="toggle ${s.appleMusic ? "on" : ""}" id="s-apple" role="switch" aria-checked="${!!s.appleMusic}" aria-label="Apple Music: play whole songs in The Road"></button>
+        <button class="toggle ${s.appleMusic ? "on" : ""}" id="s-apple" role="switch" aria-checked="${!!s.appleMusic}" aria-label="Apple Music: play whole songs in Louie"></button>
       </div>
       ${s.appleMusic ? `<label class="fld fld-k"><span class="tile ftile">${icon("cloud")}</span>
         <input id="s-appletoken" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Token address (https://…/token)" value="${esc(s.appleMusicToken || "")}" aria-label="Apple Music token address"></label>
@@ -154,7 +154,7 @@ function renderSettings() {
         <button class="btn sm primary" id="s-applesave">Save</button>
       </div>` : ""}
     </div>
-    <details class="foot s-why"><summary>What it's used for</summary>The recording plays here instead of opening Apple Music, and the page follows it. Songs also get their genre, year and composer, the search screen shows what you played lately, and each line is timed from LRCLIB's synced lyrics (only the times are kept). Off, nothing is loaded and nothing is sent. On, The Road loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
+    <details class="foot s-why"><summary>What it's used for</summary>The recording plays here instead of opening Apple Music, and the page follows it. Songs also get their genre, year and composer, the search screen shows what you played lately, and each line is timed from LRCLIB's synced lyrics (only the times are kept). Off, nothing is loaded and nothing is sent. On, Louie loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
     library: ["Songbook and backups", `
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
@@ -162,7 +162,7 @@ function renderSettings() {
       <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if The Road isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add The Road to your Home Screen from the Share menu to use it offline.</p>`],
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Louie isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Louie to your Home Screen from the Share menu to use it offline.</p>`],
     lang: ["Language practice", `
     <div class="label">Every song uses</div>
     <div class="lp-list s-lp" role="radiogroup" aria-label="Language">${Object.entries(LANGS).map(([k, L]) => { const on = langChosen(data) && langOf(data) === k; return `<button class="lp-row${on ? " on" : ""}" role="radio" aria-checked="${on}" data-lang="${k}"><span class="lp-em lp-${k}">${L.short}</span><span class="lp-t"><b>${L.name}</b><small>${esc(L.own)} · ${esc(L.sample)}</small></span><i></i></button>`; }).join("")}</div>
@@ -209,7 +209,7 @@ function renderSettings() {
       ${row("library", "cloud", "Songbook and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
       ${row("help", "info", "Help", problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : "Tips, diagnostics", true)}
     </div>
-    <p class="foot s-ver" id="s-ver">The Road ${VERSION}</p>
+    <p class="foot s-ver" id="s-ver">Louie: Learn Guitar ${VERSION}</p>
     <div class="s-dock"><button class="btn primary" id="s-backup">${icon("cloud")}Back up now</button><span>Last backup ${esc(ago(s.lastBackup) || "never")}</span></div>`;
   }
   document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/");

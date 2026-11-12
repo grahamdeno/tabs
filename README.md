@@ -1,8 +1,8 @@
-# The Road
+# Louie: Learn Guitar
 
 A guitar app for the phone that plays like a game: the guitar is how you play. Learn chords on a path, play your songs as scored shows, keep a streak, earn fans, climb a weekly chart and build a band. Chord sheets and tabs, offline, everything on the device, no account.
 
-Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it to the home screen to use it as an app. It was called Tabs before version 3; the repo and saved data keep that name.
+Live at `https://grahamdeno.github.io/tabs/` (GitHub Pages from `main`). Add it to the home screen to use it as an app (it shows as Louie). It was called The Road from version 3 until 4.89.0, and Tabs before that; the repo and saved data keep the name tabs. The home tab and its path of stops are still called the Road.
 
 ## What it does
 

@@ -13,8 +13,8 @@ export function renderSupport() {
   app.innerHTML = `<div class="sp">
     <div class="head"><button class="ib glass" id="back" aria-label="Back">${icon("back")}</button></div>
     <div class="sp-hero">${louie("cheer", { pose: "thumb", size: 150 })}</div>
-    <h1 class="sp-h">Support The Road</h1>
-    <p class="sp-p">The Road is free, with no ads and nothing locked, and it's made by one person. If it helps your playing, you can chip in toward the time it takes to build.</p>
+    <h1 class="sp-h">Support Louie</h1>
+    <p class="sp-p">Louie is free, with no ads and nothing locked, and it's made by one person. If it helps your playing, you can chip in toward the time it takes to build.</p>
     <p class="sp-p">It changes nothing in the app. Everything stays free either way.</p>
     <div class="sp-acts">
       <a class="btn primary sp-go" id="sp-kofi" href="${esc(SUPPORT_URL)}" target="_blank" rel="noopener">${icon("heart")}Support on Ko-fi</a>
@@ -25,8 +25,8 @@ export function renderSupport() {
   document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/");
   document.getElementById("sp-kofi").addEventListener("click", () => toast("Thank you. Louie says so too."));
   document.getElementById("sp-share").onclick = async () => {
-    const msg = { title: "The Road", text: "A guitar app that turns practice into a tour.", url: APP_URL };
+    const msg = { title: "Louie: Learn Guitar", text: "A guitar app that turns practice into a tour.", url: APP_URL };
     try { if (navigator.share) return await navigator.share(msg); } catch (e) { if (e?.name === "AbortError") return; }
-    showToCopy("Share The Road", APP_URL);
+    showToCopy("Share Louie", APP_URL);
   };
 }

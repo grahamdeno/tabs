@@ -7,7 +7,7 @@ useBrowser();
 test("4.39.0 Support The Road: More opens it, the Ko-fi link opens outside the app, Tell a friend shares the app", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { home: true });
   await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-sup");
-  assert.match(await page.innerText("#m-sup"), /Support The Road/);
+  assert.match(await page.innerText("#m-sup"), /Support Louie/);
   await page.click("#m-sup"); await page.waitForSelector("#sp-kofi"); await settled(page);
   assert.equal(await page.evaluate(() => location.hash), "#/support");
   assert.equal(await page.getAttribute("#sp-kofi", "href"), "https://ko-fi.com/theroadapp");

@@ -175,7 +175,7 @@ function stopLine(how = "keep") {
     rec.recorder.stop();
   }
   if (how === "drop-quiet") return;
-  if (keep && ln.hearing && !rec.recorder) { made.forEach(l => { l.hearing = false; }); toast("This phone can't record the take, so The Road can't hear the guitar. Your voice still works."); }
+  if (keep && ln.hearing && !rec.recorder) { made.forEach(l => { l.hearing = false; }); toast("This phone can't record the take, so Louie can't hear the guitar. Your voice still works."); }
   if (how === "keep" && !keep) {
     paint();
     const pitched = rec.frames.filter(f => f.hz > 0).length, secs = rec.frames.at(-1)?.t || 0;
@@ -361,7 +361,7 @@ function paintAll() {
   app.innerHTML = html`<div class="sk2">
     <div class="sk-head"><button class="sk-x" id="sk-cancel" aria-label="${n ? "Discard this sketch" : "Close Sing it"}">${raw(icon("x"))}</button>
       <h1 class="title">Sing it</h1><span class="sk-key" id="sk-key">${keyPill(conf)}</span></div>
-    ${!rec && html`<div class="seg sk-mode" role="group" aria-label="What The Road listens for">${MODES.map(([k, nm]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}">${nm}</button>`)}</div>`}
+    ${!rec && html`<div class="seg sk-mode" role="group" aria-label="What Louie listens for">${MODES.map(([k, nm]) => html`<button data-mode="${k}" class="${mode() === k ? "on" : ""}" aria-pressed="${mode() === k}">${nm}</button>`)}</div>`}
     ${hears() && earState !== "ready" ? html`<div class="skear">${earState === "failed" ? html`Couldn't load the chord listener. Check the connection, then switch again.` : html`<i class="spin"></i>Getting the chord listener ready (about 2 MB, once)`}</div>` : ""}
     ${rec
       ? html`<div class="sk-rec"><div class="sk-reclab"><i aria-hidden="true"></i><b>${rec.i < n ? `LINE ${rec.i + 1} AGAIN` : hears() ? "LISTENING TO YOUR GUITAR" : "LISTENING"}</b><span id="sk-time">0:00</span></div>

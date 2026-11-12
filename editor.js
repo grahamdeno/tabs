@@ -696,7 +696,7 @@ function pickChord(song, ctx) {
     p.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { st.qual = b.dataset.q; paint(); });
     $("ce-other").onclick = () => ask({
       title: ctx.head.replace(/<[^>]+>/g, ""), value: name(), placeholder: "Cadd9, D/F#, Asus4…", caps: "none",
-      text: "Type any chord. Names The Road doesn't have a diagram for are placed as text.",
+      text: "Type any chord. Names Louie doesn't have a diagram for are placed as text.",
       preview: c => (c && chordSVG(c)) || "", okLabel: c => (c ? `Place ${c}` : "Type a chord")
     }, apply);
     p.querySelectorAll("[data-alt]").forEach(b => b.onclick = () => {

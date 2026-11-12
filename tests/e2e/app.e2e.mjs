@@ -423,9 +423,9 @@ test("a problem is kept, and Copy diagnostics reports it without song words or t
   await page.reload(); await page.waitForLoadState('domcontentloaded');
   await page.goto(base + "#/settings/help"); await page.waitForSelector('#s-diag');
   assert.match(await page.innerText("#s-diag"), /1 problem/);
-  await page.click("#s-diag"); await page.waitForFunction(async () => /The Road/.test(await navigator.clipboard.readText()));
+  await page.click("#s-diag"); await page.waitForFunction(async () => /Louie: Learn Guitar/.test(await navigator.clipboard.readText()));
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  assert.match(text, /The Road \d+\.\d+\.\d+/);
+  assert.match(text, /Louie: Learn Guitar \d+\.\d+\.\d+/);
   assert.match(text, /2 songs/);
   assert.match(text, /Earlier problem/);
   assert.match(text, /Problems in \d+\.\d+\.\d+ \(0\):\n- none\nBefore \d+\.\d+\.\d+ \(1, may already be fixed/, "4.42.7: older versions' problems are marked");

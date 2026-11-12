@@ -201,7 +201,7 @@ function demoTap() {
 }
 // Search: invite a tap, then show what it can do.
 const SEARCH_LIST = () => `<b>Search does more than find</b><ul>
-  <li>Titles, artists, or a lyric you remember</li><li>Paste a chord sheet to add it</li><li>Paste a shared The Road link to open it</li>
+  <li>Titles, artists, or a lyric you remember</li><li>Paste a chord sheet to add it</li><li>Paste a shared Louie link to open it</li>
   <li>Not in your library? ${aiKey() ? "Find it online, or make a chord chart with AI" : "Find it online"}</li></ul>`;
 function demoSearch(force) {
   const bar = document.querySelector(".cmd");
