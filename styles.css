@@ -4399,3 +4399,8 @@ body.covered .gc-tile b { background: rgba(20, 18, 24, .82); color: #FFFFFF; }
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1zm2 0h6V7a3 3 0 0 0-6 0v3z'/%3E%3C/svg%3E") center / contain no-repeat; }
 .btn:disabled, .btn.primary:disabled, :root[data-look] .btn.primary:disabled, :root[data-look] .btn:disabled {
   background: var(--card-2); background-image: none; color: var(--muted); border-color: var(--hair); box-shadow: none; text-shadow: none; }
+/* Rule 5: wrap, don't cut */
+.menu.tools .mrow.tl .mh { overflow: visible; text-overflow: clip; white-space: normal; text-transform: none; font-size: 13px; font-weight: 700; line-height: 1.25; }
+.ch-nm, .ch-note { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.pk-board { flex-wrap: wrap; overflow-x: visible; row-gap: 8px; }
+.pf-goal { display: block; }
