@@ -4400,7 +4400,6 @@ body.covered .gc-tile b { background: rgba(20, 18, 24, .82); color: #FFFFFF; }
 .btn:disabled, .btn.primary:disabled, :root[data-look] .btn.primary:disabled, :root[data-look] .btn:disabled {
   background: var(--card-2); background-image: none; color: var(--muted); border-color: var(--hair); box-shadow: none; text-shadow: none; }
 /* Rule 5: wrap, don't cut */
-.menu.tools .mrow.tl .mh { overflow: visible; text-overflow: clip; white-space: normal; text-transform: none; font-size: 13px; font-weight: 700; line-height: 1.25; }
 .ch-nm, .ch-note { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 .pk-board { flex-wrap: wrap; overflow-x: visible; row-gap: 8px; }
 .pf-goal { display: block; }
@@ -4410,3 +4409,30 @@ body.covered .gc-tile b { background: rgba(20, 18, 24, .82); color: #FFFFFF; }
   padding: 12px 14px 12px 16px; font-size: 15px; line-height: 1.3; transform: translate(-50%, calc(100% + 120px + var(--safe-b))); }
 .toast:not(.near).show { transform: translate(-50%, 0); }
 .toast:not(.near) .tact { flex: none; }
+/* Step 6: the rest of the list */
+/* The Gig: the lines you've sung and the ones coming stay readable; chord letters in the light looks are dark
+   enough to read on the lit band; the idle crowd shows */
+:root[data-theme="light"], :root[data-look="festival"], :root[data-look="green"] { --dim-next: 94%; --dim-after: 86%; --dim-past: 80%; }
+body.covered { --dim-next: 86%; --dim-after: 74%; --dim-past: 66%; }
+:root[data-theme="light"] body.staged .sheet .c, :root[data-look="festival"] body.staged .sheet .c, :root[data-look="green"] body.staged .sheet .c { color: color-mix(in srgb, var(--gel) 48%, var(--fg)); }
+:root[data-theme="light"] body.covered.staged .sheet .c:not(.st-got):not(.st-miss), :root[data-look="festival"] body.covered.staged .sheet .c:not(.st-got):not(.st-miss), :root[data-look="green"] body.covered.staged .sheet .c:not(.st-got):not(.st-miss) { color: #FFFFFF; }
+.gg-status .gg-fans i { color: color-mix(in srgb, var(--fg) 22%, var(--bg)); }
+body.covered .gg-status .gg-fans i { color: rgba(255, 255, 255, .3); }
+/* Show complete in Green Room: the gold title on pale green can't be read */
+:root[data-look="green"] .gc-t { color: var(--accent-ink); }
+/* the Crowd tile's label on the accent */
+.gc-tile.crowd small { color: var(--on-accent); }
+/* the streak celebration in Light: a deeper pink so the words read, and stronger day dots everywhere */
+:root[data-theme="light"] .sk, :root[data-look="festival"] .sk { --sk-bg: #C2185B; --sk-deep: #8E1240; --sk-ink: #FFFFFF; }
+.sk-week i { background: color-mix(in srgb, var(--sk-ink) 28%, transparent); }
+/* the paste card shows more of the sheet before it fades */
+.preview { height: 120px; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); }
+/* the tuner with the microphone off: one message across the width, not squeezed beside an empty bar */
+.tn-read .tn-sayrow:has(.tn-say.warn) { grid-column: 1 / -1; justify-content: center; text-align: center; }
+.tn-say.warn { font-size: 15px; font-weight: 600; color: var(--fg-2); line-height: 1.45; }
+/* the language badges: deeper colours so white letters read */
+.lp-de { background: #1F56B8; box-shadow: 0 3px 0 #163F87; } .lp-es { background: #B34E00; box-shadow: 0 3px 0 #7F3700; } .lp-ru { background: #6D28D9; box-shadow: 0 3px 0 #4C1D95; }
+/* (rule 5) the Tools rows: the line under a name wraps instead of ending mid-word */
+.menu.tools3 .mrow.t3 .ml small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+/* the streak's Keep playing keeps dark words on its white button when the ink is white */
+:root[data-theme="light"] .sk .sk-foot #sk-ok, :root[data-look="festival"] .sk .sk-foot #sk-ok { color: var(--sk-deep); }
