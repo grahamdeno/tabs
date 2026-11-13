@@ -10,7 +10,7 @@ test("4.39.0 Support The Road: More opens it, the Ko-fi link opens outside the a
   assert.match(await page.innerText("#m-sup"), /Support Louie/);
   await page.click("#m-sup"); await page.waitForSelector("#sp-kofi"); await settled(page);
   assert.equal(await page.evaluate(() => location.hash), "#/support");
-  assert.equal(await page.getAttribute("#sp-kofi", "href"), "https://ko-fi.com/theroadapp");
+  assert.equal(await page.getAttribute("#sp-kofi", "href"), "https://ko-fi.com/louieguitar");
   assert.equal(await page.getAttribute("#sp-kofi", "target"), "_blank", "opens outside the app");
   assert.match(await page.innerText(".sp"), /Everything stays free/);
   assert.equal(await page.getAttribute("#tabs [data-tab=more]", "aria-current"), "page", "lit under More");

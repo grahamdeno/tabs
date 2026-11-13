@@ -6,7 +6,7 @@ import { app, esc, icon, showToCopy, toast } from "./ui.js";
 import { go } from "./app.js";
 import { louie } from "./louie.js";
 
-export const SUPPORT_URL = "https://ko-fi.com/theroadapp";
+export const SUPPORT_URL = "https://ko-fi.com/louieguitar";
 const APP_URL = "https://grahamdeno.github.io/tabs/";
 
 export function renderSupport() {
