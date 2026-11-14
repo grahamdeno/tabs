@@ -9,9 +9,14 @@ to score on, and too much of the game is built on that score. This plan does thr
 3. **Rebuilds the game on what the app can trust**, so it stays worth playing: song mastery, difficulty,
    streaks, and verified numbers from the two checks.
 
+The first thing built is the **Listening booth**: a page in the app where Graham records labeled chords and
+switches, sees what the engine heard, and sends the takes to the repo in one tap. Claude measures and tunes
+the engine on them, Graham tries the new version in the booth, and the checks are built on what that loop
+shows. No Voice Memos to move by hand.
+
 The microphone also stays for single notes (the tuner, string checks, scale lessons), the clap in Play
-together, and Sing it. Nothing below is built yet. Work happens on the `no-catch` branch and ships as one
-release when Graham says ship.
+together, and Sing it. Nothing below is built yet. Work happens on the `no-catch` branch. The booth ships
+first on its own so Graham can record (decision 9); everything else ships as one release when Graham says ship.
 
 ## Why keep it for one chord and for switching: the measurement
 
@@ -35,7 +40,13 @@ still ringing, a choice among every chord in the song, soft partial strums, a ca
 report at a time (`docs/HEARING-PLAN.md`).
 
 The limits, said plainly: 12 memos, one guitar, one room, strummed cleanly, and the same memos the engine was
-tuned on. Step 1 records more before anything is built on it.
+tuned on. The booth (step 1) records more before anything is built on it.
+
+**Fingerprints of your own guitar, tested 2026-11-14.** Each chord's average sound from one memo, matched
+against the other memo of the same chord: right on 96 to 97% of two-way calls, but only 85% when choosing among
+all six, and uneven by chord (D 35% one way, F 57%, others 89 to 100%). One take per chord isn't enough to beat
+the textbook shapes. So fingerprints are an experiment the booth measures (several takes per chord, blended
+with the textbook shape), adopted only if they help on Graham's takes (decision 8).
 
 ## Keeping the game worth playing
 
@@ -113,7 +124,18 @@ Each has a recommendation.
 4. **The beat-timed switch lesson** becomes the "With the beat" round of Switch check. Recommended yes.
 5. **Self-rating at the end of a show** ("Rough, Solid, Nailed it"; one tap, optional) that feeds the
    soundcheck. Recommended no for now: Switch check gives better numbers, and fewer taps mid-practice.
-6. **Release number.** Recommended 4.90.0. 5.0.0 if you'd rather mark it.
+6. **Release number.** Recommended 4.91.0, after the booth's 4.90.0 (decision 9). 5.0.0 if you'd rather
+   mark it.
+7. **How the booth sends takes.** Recommended: Send writes them to a `booth` branch of this repo, with a GitHub
+   key that can only touch this repo, kept on the phone like the AI key (never in code or a backup). Claude
+   sets nothing up on the phone; a Grok prompt walks Graham through making the key. Other option: Share makes
+   one file of the takes to attach in a chat (no key, one more step each round).
+8. **Fingerprints.** Recommended: measure them in the booth and adopt them only if they beat the textbook
+   shapes on Graham's takes. If they do, every player records each chord once in Chord check to set theirs.
+9. **Getting the booth onto the phone.** The app runs from `main`, so the booth has to ship before Graham can
+   record. Recommended: ship the booth alone as 4.90.0 (one hidden page; nothing else in the app changes),
+   then everything else as one release, 4.91.0. Other option: hold to a single release and record from a
+   preview copy of the branch on another address (a separate copy of the app, with its own empty storage).
 
 ## What listens today, and what happens to it
 
@@ -175,20 +197,52 @@ lessons of the day (passes count loop passes), Apple Music play-along, Friends a
    every lamp and count for VoiceOver. axe runs in CI.
 10. **Onboarding.** `docs/ONBOARDING.md` updated: the mic is asked before the first Chord check, with the
     reason; stars, Switch check and switch duels added; Wait for me removed.
+11. **The booth's key and audio.** The GitHub key is stored like the AI key: on the phone only, never in code,
+    a backup, a share link or the takes. Takes live in their own IndexedDB store (`tabs-booth`), not in `data`,
+    so backups stay small; a take is deleted from the phone once sent. A failed Send keeps the takes and says
+    why (no key, no signal, key refused).
+12. **The booth is out of the way.** It opens from What I hear and stays out of onboarding and tips: it's a
+    tool for tuning the engine, not a feature to teach.
 
 ## Steps
 
 Each step: one task per commit on `no-catch`, `eslint .` and `node tests/quick.mjs`, push the branch. No
-version bump until the last step. When something doesn't match the plan, stop and write it under Surprises.
+version bump except the booth's release (step 1a) and the last step. When something doesn't match the plan, stop and write it under Surprises.
 
 - [ ] 0 [Sonnet] **Branch and baseline.** Quick tests on `no-catch`; note anything already failing. Remove the
       stray `undefined/ly.png` (a screenshot saved with `$SHOT` unset).
-- [ ] 1 [Graham, then Sonnet] **More recordings, and a measuring test.** Graham records Voice Memos: Chord
-      check (hold and strum each of A, E, Dm, Cadd9 and one barre chord, phone where it sits while playing)
-      and Switch check (30 seconds back and forth on G to C, C to Am, Em to G, D to A). Sonnet turns
-      `tools/hearing/measure.mjs` into `tests/audio/checks.test.mjs`: it replays each memo through the real checks
-      and prints called-right, called-wrong and switches counted per memo, failing if any gets worse than the
-      recorded baseline. Decision 1's go or fall back is made here.
+- [ ] 1a [Sonnet] **Build the Listening booth** (`booth.js`, in `SHELL`; opens from What I hear).
+      - Pick what you'll play: **Chord** (one chord: the chords in your songs first, then any) or **Switch**
+        (two chords). Remembered between visits: the guitar (a short name) and where the phone is (stand,
+        table, hand).
+      - **Record** and **Stop** in thumb reach, 30 s at most. The mic is opened with `getMic()` as the checks
+        will open it (no echo cancelling, noise suppression or auto gain). Recorded with `MediaRecorder`, as
+        Sing it does, then decoded and saved as 16-bit mono WAV at 22,050 Hz (the engine reads nothing above
+        1.3 kHz; 30 s is about 1.3 MB).
+      - While recording, a strip shows what the engine hears every 50 ms: for a chord, its fit against
+        `CHORD_FIT`; for a switch, which of the two it calls. After Stop: the share of readings called right
+        and called wrong. A note field for anything odd ("buzzed the B string").
+      - The takes list: play back, delete, the count not yet sent. Takes live in IndexedDB `tabs-booth`.
+      - **Send** (decision 7): creates the `booth` branch from `main` if it's missing, writes each take to
+        `booth/<date>/<chord-or-pair>-<n>.wav` and adds a line per take to `booth/takes.json` (kind, chords,
+        guitar, phone place, note, sample rate, app version, the engine's call at the time). Sent takes are
+        deleted from the phone. The key field sits on the booth page, stored like the AI key; a unit test
+        checks it never reaches a backup or share link. **Share** instead hands the WAVs and `takes.json` to
+        the share sheet.
+      - Tests: the WAV writer and `takes.json` lines (unit); the booth page with a fake mic and the GitHub
+        calls mocked with `page.route` (browser).
+      - Release (decision 9): built on `no-catch` before any other step changes the app, so shipping it is
+        bumping to 4.90.0, rebasing on `origin/main` and pushing the branch to `main` as it stands. Only on
+        Graham's "ship".
+- [ ] 1b [Graham] **Record in the booth.** Chord: Am, C, D, Em, F, G, A, E, Dm, Cadd9 and one barre chord,
+      three takes each, phone on its stand and on the table. Switch: 30 seconds each of G to C, C to Am, Em to
+      G, D to A, Am to C (the closest-sounding pair). Then Send.
+- [ ] 1c [Opus] **Measure and decide.** Pull the `booth` branch; copy the takes into `tests/audio/booth/`.
+      Turn `tools/hearing/measure.mjs` into `tests/audio/checks.test.mjs`: every take through the real checks,
+      called right, called wrong and switches counted, failing if any gets worse than the recorded baseline.
+      Run the fingerprint experiment (prints from two takes, tested on the third, blended with the textbook
+      shape). Make decisions 1 and 8 with the numbers, tune the engine where a take shows a fixable fault, and
+      write the results here. Ask Graham for more takes if a chord or pair is thin.
 - [ ] 2 [Sonnet] **The Gig stops listening.** `openGig` never calls `listen`; remove the mic button, Hearing
       you, `deafen`, `relisten`, `paintMic`, the "not scored" lines, and the Score my plays row. Update
       `gig.e2e.mjs`, `app3.e2e.mjs`.
@@ -202,9 +256,11 @@ version bump until the last step. When something doesn't match the plan, stop an
 - [ ] 5 [Sonnet] **Wait for me and Follow my tempo go.** The two Tools rows and toasts, `holdFrame`,
       `keepPace`, `catchUp`, Skip this chord, the pill, `waitOn`, `followOn`, `follow`, `FOLLOW`, `tempoStep`,
       `followAhead`, `follow.k` in `loopFactor`. Practice speed and loops stay.
-- [ ] 6 [Opus, after step 1] **Chord check and Switch check.** The judging in `core/neck.js` (`chordCheck`:
+- [ ] 6 [Opus, after step 1c] **Chord check and Switch check.** The judging in `core/neck.js` (`chordCheck`:
       most readings over 1.5 s; `switchCheck`: a two-way call that waits for the sound to settle after a
-      strum), unit tested on the memos. The screens in `practice.js` or a new `checks.js`: lamps in thumb
+      strum), unit tested on the booth takes. If decision 8 adopts fingerprints: Chord check's first pass on a
+      chord also saves its print (12 numbers per chord in `data.skills.prints`, kept in backups), blended with
+      the textbook shape, with "Record it again" on the chord's page. The screens in `practice.js` or a new `checks.js`: lamps in thumb
       reach, the count, speed, personal best, "I can't hear it, I got it". The beat round from today's switch
       lesson. Passport stamps and switch bests saved (`data.skills`).
 - [ ] 7 [Sonnet] **The Road and Rehearse on the checks.** Chord and switch steps open the checks; level checks
@@ -236,8 +292,9 @@ version bump until the last step. When something doesn't match the plan, stop an
 
 ## Size
 
-About 16 commits over three or four sessions. The big ones are 3 (stars and pay), 6 (the checks) and 8
-(battles and duels). Step 1 needs Graham's recordings before step 6 can start; steps 2 to 5 don't wait on it.
+About 18 commits over four or five sessions. The big ones are 1a (the booth), 3 (stars and pay), 6 (the checks)
+and 8 (battles and duels). Step 6 waits on Graham's booth takes (1b) and the measuring (1c); steps 2 to 5
+don't wait on them and can run while he records.
 
 ## Surprises
 
