@@ -1,0 +1,23 @@
+{
+ "kind": "chord",
+ "chords": [
+  "Cadd9"
+ ],
+ "guitar": "",
+ "place": "stand",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:38:04.965Z",
+ "heard": {
+  "reads": 121,
+  "right": 62,
+  "wrong": 59,
+  "by": {
+   "C": 59
+  },
+  "fit": 0.55
+ }
+}
