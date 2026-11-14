@@ -1,6 +1,6 @@
 # Play along on YouTube (plan)
 
-Written by Opus, 2026-11-14, on 4.95.0. Graham: someone without Apple Music should still be able to play along
+Written by Opus, 2026-11-14, on 4.95.0. **Decided (Graham, 2026-11-14): 1 (a) the card, 2 Apple Music first, 3 the search server, 4 the count-in waits for the song.** Graham: someone without Apple Music should still be able to play along
 with the real recording, with nothing to sign in to. Nothing below is built yet.
 
 ## What it gives, and what it doesn't
@@ -61,8 +61,11 @@ offset. Otherwise the song page shows "Line it up": play, tap when the singing s
 Each step: one task per commit, `eslint .` and `node tests/quick.mjs`. Ships as one release (4.96.0) after step 6,
 unless Graham says otherwise.
 
-- [ ] 1 [Opus] **Mockups** of decision 1's options on the song page and in a Gig, light and dark, at phone size.
-      Graham picks; stop for a go.
+- [x] 1 [Opus] **Mockups** of decision 1's options on the song page and in a Gig, light and dark, at phone size.
+      Graham picked (a), the card. Build notes from the mockups: on the song page the card sits in the empty space
+      above the reading line (top = max(top bar, reading line - 210 px)), so the words stay full width and nothing
+      wraps; in a Gig it sits under the crowd and touches the reading line, so move the reading line down about 40 px
+      while the card shows; give the card a z-index above the Gig's layer (it looked dimmed in the dark mockup).
 - [ ] 2 [Sonnet] **The search server**, `worker/youtube.js` with `worker/youtube.toml`: `GET /find?artist=&title=`
       from the app's address only; YouTube Data API `search.list` (`type=video`, `videoCategoryId=10`, music) then
       `videos.list` for lengths; picks a "- Topic" upload first, then official artist channels, then the closest
