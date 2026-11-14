@@ -69,7 +69,14 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   });
   await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
   await page.evaluate(() => { location.hash = "#/practice/booth"; });
+  /* 4.94.0: which guitar first */
+  await page.waitForSelector(".bt-guitars"); await settled(page);
+  assert.match(await page.innerText(".bt-guitars"), /Which guitar first/i);
+  await page.click("#bt-gadd"); assert.equal(await page.locator(".bt-guitars").count(), 1, "a name is needed");
+  await page.fill("#bt-player", "Graham"); await page.fill("#bt-gnew", "Ibanez"); await page.click("#bt-gadd");
   await page.waitForSelector(".bt-change"); await settled(page);
+  assert.match(await page.innerText(".bt-gbar"), /Ibanez[\s\S]*Graham · Acoustic[\s\S]*Change guitar/);
+  assert.match(await page.innerText(".bt-lists"), /Main list · 0\/42[\s\S]*More chords · 0\/64/);
   assert.match(await page.innerText(".bt-change"), /Set up[\s\S]*Put the phone on its stand[\s\S]*Pick up your pick[\s\S]*Then: Am chord/i, "4.93.1: the setup gets its own screen first");
   await page.click("#bt-set"); await page.waitForSelector(".bt-shapes");
   assert.match(await page.innerText(".bt-card"), /Take 1 of 42[\s\S]*Am chord[\s\S]*Phone on its stand, with a pick[\s\S]*Hold Am and strum it/i);
@@ -103,4 +110,17 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   assert.match(await page.innerText(".bt-change b"), /Lay the phone flat on a table/);
   assert.equal(await page.locator(".bt-change li").count(), 1, "only what changes");
   await page.click("#bt-set"); await page.waitForSelector(".bt-setupline.table");
+  /* a second guitar starts the list from the top, with its own setup screen; the first keeps its place */
+  await page.click("#bt-gchange"); await page.waitForSelector(".bt-guitars");
+  await page.fill("#bt-gnew", "Strat"); await page.click('[data-body="electric"]'); await page.click('[data-amp="clean amp"]'); await page.click("#bt-gadd");
+  await page.waitForSelector(".bt-change");
+  assert.match(await page.innerText(".bt-change"), /Pick up your Strat[\s\S]*clean amp, no distortion/i);
+  await page.click("#bt-set"); await page.waitForFunction(() => /Take 1 of 42/i.test(document.querySelector(".bt-card")?.textContent));
+  /* More chords, with a voicing up the neck drawn from its frets */
+  await page.evaluate(async () => { const C = await import("/core.js"); const p = JSON.parse(localStorage.getItem("tabs.booth.v1")); p.list = "more"; p.done.Strat = C.BOOTH_MORE.filter(s => !s.voicing).filter(s => s.chords.length === 1).map(s => s.id); localStorage.setItem("tabs.booth.v1", JSON.stringify(p)); });
+  await page.evaluate(() => { location.hash = "#/practice/hear"; }); await page.waitForSelector("#ph-booth"); await settled(page);
+  await page.click("#ph-booth"); await page.waitForSelector(".bt-shapes svg");
+  assert.match(await page.innerText(".bt-card"), /G chord, 3rd fret[\s\S]*G up the neck/i);
+  assert.match(await page.innerText(".bt-shapes"), /3/, "the fret number beside the shape");
+  await page.click('[data-list="main"]'); await page.waitForFunction(() => /Take 1 of 42/i.test(document.querySelector(".bt-card")?.textContent));
 });

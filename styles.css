@@ -1740,6 +1740,24 @@ body.is-home .rd-song b { font-size: 26px; }
 .bt-setupline.thumb b, .bt-setupline.table b { color: var(--accent-ink); }
 .bt-todo { margin: 10px 0 12px; padding-left: 22px; text-align: left; font-size: 18px; line-height: 1.4; }
 .bt-todo li + li { margin-top: 8px; }
+/* 4.94.0: the guitar in hand, the lists, the guitar picker */
+.bt-gbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 2px 8px; }
+.bt-gname { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bt-gname > svg { flex: none; width: 18px; height: 18px; color: var(--accent-ink); }
+.bt-gname span { display: flex; flex-direction: column; min-width: 0; }
+.bt-gname b { font: 700 15px var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt-gname small { color: var(--fg-2); font-size: 12px; }
+.bt-gbar .tb { flex: none; }
+.bt-lists { width: 100%; margin: 0 0 12px; height: 34px; }
+.bt-lists button { flex: 1; height: 30px; font-size: 13px; white-space: nowrap; }
+.bt-glist { display: grid; gap: 8px; margin: 10px 0; }
+.bt-player { margin: 8px 0 4px; }
+.bt-gpick { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--recess-edge); background: var(--recess); color: var(--fg); font: inherit; text-align: left; }
+.bt-gpick.on { border-color: var(--accent-ink); }
+.bt-gpick b { font: 700 15px var(--sans); }
+.bt-gpick small { color: var(--fg-2); font-size: 12px; }
+.bt-guitars .seg.mini { height: 34px; }
+.bt-guitars .seg.mini button { height: 30px; padding: 0 12px; font-size: 13px; white-space: nowrap; }
 .bt-shapes { display: flex; justify-content: center; gap: 18px; margin: 4px 0 10px; }
 .bt-shapes svg { max-height: 120px; }
 .bt-stage { min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }

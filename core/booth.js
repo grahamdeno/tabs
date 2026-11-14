@@ -74,7 +74,7 @@ export function boothPath(take) {
 }
 /* The label that sits beside the recording, so the measuring knows what was played. No key, nothing personal. */
 export function boothLabel(take) {
-  return { kind: take.chords.length === 1 ? "chord" : "switch", chords: take.chords, guitar: take.guitar || "", place: take.place || "", strum: take.strum || "",
+  return { kind: take.chords.length === 1 ? "chord" : "switch", chords: take.chords, player: take.player || "", guitar: take.guitar || "", body: take.body || "", amp: take.amp || "", list: take.list || "", voicing: take.voicing ? `${take.voicing.frets} (${take.voicing.at})` : "", place: take.place || "", strum: take.strum || "",
     note: take.note || "", rate: take.rate, seconds: Math.round(take.seconds * 10) / 10, version: take.version, at: new Date(take.at).toISOString(), heard: take.heard || null };
 }
 
@@ -114,18 +114,18 @@ export const BOOTH_THUMB = ["Am", "C", "G"];
 export const BOOTH_STRUMS = ["pick", "thumb"];
 /* 4.93.1 (Graham): grouped by setup, so the phone moves and the pick goes down once each: everything on the stand
    with a pick, then the table, then the thumb. The ids stay the same, so takes already kept stay kept. */
-const chordStep = (c, n) => ({ id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", strum: "pick", seconds: BOOTH_SECS.chord });
+const chordStep = (c, n) => ({ list: "main", id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", strum: "pick", seconds: BOOTH_SECS.chord });
 export const BOOTH_PLAN = [
   ...BOOTH_CHORDS.flatMap(c => [chordStep(c, 1), chordStep(c, 2)]),
-  ...BOOTH_SWITCHES.map(([a, b]) => ({ id: `s:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", strum: "pick", seconds: BOOTH_SECS.switch })),
+  ...BOOTH_SWITCHES.map(([a, b]) => ({ list: "main", id: `s:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", strum: "pick", seconds: BOOTH_SECS.switch })),
   ...BOOTH_CHORDS.map(c => chordStep(c, 3)),
-  ...BOOTH_THUMB.map(c => ({ id: `t:${c}`, chords: [c], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.chord })),
-  { id: "ts:G-C", chords: ["G", "C"], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.switch }
+  ...BOOTH_THUMB.map(c => ({ list: "main", id: `t:${c}`, chords: [c], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.chord })),
+  { list: "main", id: "ts:G-C", chords: ["G", "C"], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.switch }
 ];
 /* the next step not done or skipped, and how far along you are */
-export function boothNext(done = []) {
-  const d = new Set(done), i = BOOTH_PLAN.findIndex(s => !d.has(s.id));
-  return { step: i < 0 ? null : BOOTH_PLAN[i], at: i < 0 ? BOOTH_PLAN.length : i, of: BOOTH_PLAN.length, left: BOOTH_PLAN.filter(s => !d.has(s.id)).length };
+export function boothNext(done = [], plan = BOOTH_PLAN) {
+  const d = new Set(done), i = plan.findIndex(s => !d.has(s.id));
+  return { step: i < 0 ? null : plan[i], at: i < 0 ? plan.length : i, of: plan.length, left: plan.filter(s => !d.has(s.id)).length };
 }
 /* what to tell you after a take: keep it, or try again (and why) */
 export function boothVerdict(sum, chords) {
@@ -155,6 +155,58 @@ export function boothChange(from, to) {
 }
 /* the directions for a step, in plain words */
 export function boothSteps(step) {
+  if (step.voicing) return `Play ${step.chords[0]} up the neck, at the ${step.voicing.at}, the shape shown. Strum it every second or two. I'll count you in and stop by myself after ${step.seconds} seconds.`;
   if (step.chords.length === 1) return `Hold ${step.chords[0]} and strum it every second or two, like you're playing a song. I'll count you in and stop by myself after ${step.seconds} seconds.`;
   return `Switch between ${step.chords[0]} and ${step.chords[1]}, back and forth, at your own pace: strum each one once or twice, then change. I'll count you in and stop after ${step.seconds} seconds.`;
 }
+
+/* ---- More chords (4.94.0, Graham: harder chords and chords up the neck), two takes each on the stand with a pick ---- */
+/* `voicing`: a shape up the neck, drawn from its frets; the chord's name stays what it sounds as */
+export const BOOTH_MORE_CHORDS = [
+  ["F"], ["Bm"], ["B"], ["F#m"], ["Cm"], ["Gm"], ["Bb"],
+  ["A7"], ["D7"], ["E7"], ["G7"], ["C7"], ["B7"],
+  ["Cmaj7"], ["Fmaj7"], ["Dmaj7"], ["Am7"], ["Em7"], ["Dm7"],
+  ["Dsus2"], ["Dsus4"], ["Asus2"], ["Asus4"],
+  ["G", { at: "3rd fret", frets: "355433", fingers: "134211" }],
+  ["C", { at: "3rd fret", frets: "x35553", fingers: "013331" }],
+  ["D", { at: "5th fret", frets: "x57775", fingers: "013331" }],
+  ["A", { at: "5th fret", frets: "577655", fingers: "134211" }],
+  ["Am", { at: "5th fret", frets: "577555", fingers: "134111" }],
+  ["Dm", { at: "5th fret", frets: "x57765", fingers: "013421" }],
+  ["E", { at: "7th fret", frets: "x79997", fingers: "013331" }]
+];
+export const BOOTH_MORE_SWITCHES = [["F", "C"], ["Am", "F"], ["G", "Bm"], ["E7", "A"]];
+const vid = v => v ? `@${v.frets}` : "";
+export const BOOTH_MORE = [
+  ...BOOTH_MORE_CHORDS.flatMap(([c, v]) => [1, 2].map(n => ({ list: "more", id: `m:${c}${vid(v)}:${n}`, chords: [c], take: n, of: 2, place: "stand", strum: "pick", seconds: BOOTH_SECS.chord, ...(v ? { voicing: v } : {}) }))),
+  ...BOOTH_MORE_SWITCHES.map(([a, b]) => ({ list: "more", id: `ms:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", strum: "pick", seconds: BOOTH_SECS.switch }))
+];
+export const BOOTH_LISTS = { main: { name: "Main list", plan: BOOTH_PLAN }, more: { name: "More chords", plan: BOOTH_MORE } };
+
+/* ---- guitars (4.94.0): each guitar does the lists on its own, with its own progress ---- */
+export const BOOTH_BODIES = ["acoustic", "electric"];
+export const BOOTH_AMPS = ["unplugged", "clean amp"];
+const cleanName = x => String(x || "").replace(/\s+/g, " ").trim().slice(0, 40);
+/* the booth's saved state, tidied: guitars, the one in hand, the list, and what each guitar has done.
+   Before 4.94.0 `done` was one list of ids for the one guitar named in `guitar`. */
+export function boothState(raw) {
+  const p = raw && typeof raw === "object" ? raw : {};
+  const guitars = (Array.isArray(p.guitars) ? p.guitars : []).map(g => ({ name: cleanName(g?.name), body: BOOTH_BODIES.includes(g?.body) ? g.body : "acoustic", amp: BOOTH_AMPS.includes(g?.amp) ? g.amp : "unplugged" })).filter(g => g.name);
+  const legacy = cleanName(p.guitar);
+  if (legacy && !guitars.some(g => g.name === legacy)) guitars.unshift({ name: legacy, body: "acoustic", amp: "unplugged" });
+  const ids = new Set([...BOOTH_PLAN, ...BOOTH_MORE].map(s => s.id)), done = {};
+  if (Array.isArray(p.done)) { if (legacy) done[legacy] = p.done.filter(x => ids.has(x)); }
+  else if (p.done && typeof p.done === "object") for (const [g, list] of Object.entries(p.done)) if (Array.isArray(list)) done[cleanName(g)] = [...new Set(list.filter(x => ids.has(x)))];
+  const guitar = guitars.some(g => g.name === legacy) ? legacy : guitars[0]?.name || "";
+  return { ...p, guitars, guitar, list: BOOTH_LISTS[p.list] ? p.list : "main", done, player: cleanName(p.player).slice(0, 30) };
+}
+/* add or update a guitar and make it the one in hand */
+export function boothGuitar(state, g) {
+  const name = cleanName(g.name);
+  if (!name) return state;
+  const gs = state.guitars.filter(x => x.name !== name);
+  gs.push({ name, body: BOOTH_BODIES.includes(g.body) ? g.body : "acoustic", amp: g.body === "electric" && BOOTH_AMPS.includes(g.amp) ? g.amp : "unplugged" });
+  return { ...state, guitars: gs, guitar: name, setup: "" };
+}
+/* the setup line for an electric: how it's being heard */
+export const boothAmpLine = g => g?.body === "electric" ? (g.amp === "clean amp" ? "Electric through a clean amp, no distortion, no effects." : "Electric, unplugged.") : "";

@@ -313,4 +313,8 @@ don't wait on them and can run while he records.
 - 2026-11-14, Graham's first run (4.93.0, Ibanez TCY10E-AVS): he missed the switch to thumb until the G chord, so
   the takes labelled `t:Am` and `t:C` were played with a pick; measure them as pick. He also missed the stand to table
   change a few times, so `place` on the table takes may be wrong. 4.93.1 groups the list by setup and gives each
-  change its own screen. His first sends were refused by GitHub (403); 4.93.1 shows GitHub's reason.
+  change its own screen. His first sends were refused by GitHub (403); 4.93.1 shows GitHub's reason. The cause: the
+  app held a second key with no repositories; Grok fixed its permissions (it expires 2026-12-14).
+- 4.94.0 (Graham): he'll record all 42 on each of his five guitars (acoustic and electric) and a second list, More
+  chords (64 takes: barre chords, 7ths, maj7, m7, sus, and chords up the neck). Measure by guitar and by list;
+  the labels carry `guitar`, `body`, `amp`, `list` and `voicing`.

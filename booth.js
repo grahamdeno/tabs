@@ -5,7 +5,7 @@
 // each kept take is sent in the background. It remembers where you stopped. "Record your own" is still there.
 // Opened from What I hear. Takes stay on this phone (IndexedDB "tabs-booth") until sent; never in backups.
 // The GitHub key is kept like the AI key: on this phone only.
-import { BOOTH_MAX, BOOTH_PLACES, BOOTH_PLAN, BOOTH_STRUMS, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSetup, boothSetupKey, boothChange, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
+import { BOOTH_AMPS, BOOTH_BODIES, BOOTH_LISTS, BOOTH_MAX, BOOTH_PLACES, BOOTH_STRUMS, boothAmpLine, boothGuitar, boothState, voicingShape, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSetup, boothSetupKey, boothChange, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
 import { $, app, esc, getMic, haptic, icon, onLeave, sound, toast } from "./ui.js";
 import { chordSVG, data, go } from "./app.js";
 
@@ -16,7 +16,8 @@ const COMMON = ["G", "C", "D", "Em", "Am", "E", "A", "F", "Dm", "Cadd9", "Bm"];
 const COUNT = 3; /* the count-in, in seconds */
 
 const keyOf = () => { try { return localStorage.getItem(BOOTH_KEY) || ""; } catch { return ""; } };
-const prefs = () => { try { return JSON.parse(localStorage.getItem(PREFS)) || {}; } catch { return {}; } };
+const prefs = () => { try { return boothState(JSON.parse(localStorage.getItem(PREFS))); } catch { return boothState({}); } };
+const guitarNow = () => { const p = prefs(); return p.guitars.find(g => g.name === p.guitar) || null; };
 const savePrefs = p => { try { localStorage.setItem(PREFS, JSON.stringify({ ...prefs(), ...p })); } catch { /* private mode */ } };
 
 /* ---- takes on this phone ---- */
@@ -111,7 +112,8 @@ async function keepTake(chunks, type, seconds, chords, ctx, calls, meta) {
   const rate = buf.sampleRate > BOOTH_RATE ? BOOTH_RATE : buf.sampleRate;
   const wav = new Blob([wavBytes(downsample(x, buf.sampleRate, rate), rate)], { type: "audio/wav" });
   const sum = boothSummary(calls, chords);
-  const take = { id: Math.random().toString(36).slice(2, 8), at: Date.now(), chords, guitar: prefs().guitar || "", place: meta.place || prefs().place || "", strum: meta.strum || prefs().strum || "pick", note: meta.note || "", rate, seconds, version: VERSION, heard: { ...sum, fit: CHORD_FIT }, wav };
+  const g = guitarNow();
+  const take = { id: Math.random().toString(36).slice(2, 8), at: Date.now(), chords, player: prefs().player || "", guitar: g?.name || "", body: g?.body || "", amp: g?.body === "electric" ? g.amp : "", list: meta.list || "", ...(meta.voicing ? { voicing: meta.voicing } : {}), place: meta.place || prefs().place || "", strum: meta.strum || prefs().strum || "pick", note: meta.note || "", rate, seconds, version: VERSION, heard: { ...sum, fit: CHORD_FIT }, wav };
   await putTake(take);
   return take;
 }
@@ -143,14 +145,12 @@ export function renderBooth(mode = prefs().mode || "guided") {
     <details class="bt-setup" ${keyOf() ? "" : "open"}><summary>Sending setup</summary>
       <p class="pf-since">Takes go to the app's GitHub repo, on the booth branch, as you go. It needs a GitHub key that can only change this repo. The key stays on this phone.</p>
       <label class="bt-f"><span>GitHub key</span><input id="bt-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..." value="${esc(keyOf())}" aria-label="GitHub key"></label>
-      <label class="bt-f"><span>Guitar</span><input id="bt-guitar" maxlength="30" autocomplete="off" placeholder="e.g. Martin" value="${esc(prefs().guitar || "")}"></label>
     </details>
     <div class="bt-pad" aria-hidden="true"></div>
     <div class="s-dock" id="bt-dock"></div>`;
   $("back").onclick = () => go("#/practice/hear");
   app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (!rec) renderBooth(b.dataset.mode); });
   $("bt-key").onchange = e => { try { e.target.value.trim() ? localStorage.setItem(BOOTH_KEY, e.target.value.trim()) : localStorage.removeItem(BOOTH_KEY); } catch { /* private mode */ } paintSend(true); };
-  $("bt-guitar").onchange = e => savePrefs({ guitar: e.target.value.trim() });
   sendSay = t => { const e = $("bt-sendline"); if (e) e.innerHTML = t; };
   afterSend = () => {};
   paintSend(false);
@@ -179,24 +179,76 @@ async function sendQuietly() {
 }
 
 /* ---- Guided ---- */
+const listDone = (p, list) => { const ids = new Set(BOOTH_LISTS[list].plan.map(x => x.id)); return (p.done[p.guitar] || []).filter(x => ids.has(x)).length; };
 function guided() {
   const body = $("bt-body"), dock = $("bt-dock");
-  const done = () => prefs().done || [];
-  const mark = id => savePrefs({ done: [...new Set([...done(), id])] });
+  const done = () => { const p = prefs(); return p.done[p.guitar] || []; };
+  const mark = id => { const p = prefs(); savePrefs({ done: { ...p.done, [p.guitar]: [...new Set([...(p.done[p.guitar] || []), id])] } }); };
+  /* the guitar in hand and the list, above the take: Change guitar, and Main list or More chords with how far each is */
+  const top = () => {
+    const p = prefs(), g = guitarNow();
+    return `<div class="bt-gbar"><span class="bt-gname">${icon("note")}<span><b>${esc(g.name)}</b><small>${p.player ? `${esc(p.player)} · ` : ""}${g.body === "electric" ? `Electric, ${g.amp}` : "Acoustic"}</small></span></span><button class="tb" id="bt-gchange">Change guitar</button></div>
+      <div class="seg mini bt-lists" role="group" aria-label="Which list">${Object.entries(BOOTH_LISTS).map(([k, l]) => `<button data-list="${k}" class="${p.list === k ? "on" : ""}" aria-pressed="${p.list === k}">${l.name} · ${listDone(p, k)}/${l.plan.length}</button>`).join("")}</div>`;
+  };
+  const bindTop = () => {
+    $("bt-gchange").onclick = () => { if (!rec) pickGuitar(); };
+    body.querySelectorAll("[data-list]").forEach(b => b.onclick = () => { if (!rec) { savePrefs({ list: b.dataset.list }); show(); } });
+  };
+  /* which guitar: the ones you've used, or a new one (acoustic or electric; an electric unplugged or through a clean amp) */
+  const pickGuitar = () => {
+    const p = prefs();
+    let bodyKind = "acoustic", amp = "unplugged";
+    body.innerHTML = `<section class="pf-card bt-card bt-guitars">
+      <p class="bt-big" role="heading" aria-level="2">${p.guitars.length ? "Which guitar?" : "Which guitar first?"}</p>
+      <p class="bt-dir">Each guitar goes through the lists on its own. Different guitars and players help the app hear everyone.</p>
+      <label class="bt-f bt-player"><span>Player</span><input id="bt-player" maxlength="30" autocomplete="off" autocapitalize="words" placeholder="First name or nickname" value="${esc(p.player || "")}"></label>
+      ${p.guitars.length ? `<div class="bt-glist">${p.guitars.map(g => `<button class="bt-gpick${g.name === p.guitar ? " on" : ""}" data-g="${esc(g.name)}"><b>${esc(g.name)}</b><small>${g.body === "electric" ? `Electric, ${g.amp}` : "Acoustic"} · ${listDone({ ...p, guitar: g.name }, "main")}/${BOOTH_LISTS.main.plan.length} main, ${listDone({ ...p, guitar: g.name }, "more")}/${BOOTH_LISTS.more.plan.length} more</small></button>`).join("")}</div><p class="bt-step">Or add one</p>` : ""}
+      <div class="bt-fields">
+        <label class="bt-f"><span>Name</span><input id="bt-gnew" maxlength="40" autocomplete="off" placeholder="e.g. Martin D-28"></label>
+        <div class="bt-f"><span>Kind</span><div class="seg mini" role="group" aria-label="Acoustic or electric">${BOOTH_BODIES.map(x => `<button data-body="${x}" class="${x === bodyKind ? "on" : ""}" aria-pressed="${x === bodyKind}">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>
+        <div class="bt-f" id="bt-ampf" hidden><span>Heard</span><div class="seg mini" role="group" aria-label="Unplugged or through a clean amp">${BOOTH_AMPS.map(x => `<button data-amp="${x}" class="${x === amp ? "on" : ""}" aria-pressed="${x === amp}">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>
+        <p class="bt-sub" id="bt-ampnote" hidden>Through an amp: clean only, no distortion or effects.</p>
+      </div>
+    </section>`;
+    dock.innerHTML = `<button class="btn primary" id="bt-gadd">Add this guitar</button>${p.guitars.length ? `<div class="ph-row"><button class="tb" id="bt-gback">Back</button></div>` : ""}`;
+    $("bt-player").onchange = e => savePrefs({ player: e.target.value.trim().slice(0, 30) });
+    body.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { savePrefs({ guitar: b.dataset.g, player: $("bt-player").value.trim().slice(0, 30) }); show(); });
+    body.querySelectorAll("[data-body]").forEach(b => b.onclick = () => {
+      bodyKind = b.dataset.body;
+      body.querySelectorAll("[data-body]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
+      $("bt-ampf").hidden = $("bt-ampnote").hidden = bodyKind !== "electric";
+    });
+    body.querySelectorAll("[data-amp]").forEach(b => b.onclick = () => { amp = b.dataset.amp; body.querySelectorAll("[data-amp]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); }); });
+    $("bt-gadd").onclick = () => {
+      const name = $("bt-gnew").value.trim();
+      if (!name) { $("bt-gnew").focus(); toast("Give the guitar a name first"); return; }
+      const st = boothGuitar(prefs(), { name, body: bodyKind, amp });
+      savePrefs({ guitars: st.guitars, guitar: st.guitar, player: $("bt-player").value.trim().slice(0, 30) }); /* the setup screen then says to pick it up */
+      show();
+    };
+    $("bt-gback")?.addEventListener("click", show);
+  };
   const show = () => {
-    const n = boothNext(done()), s = n.step;
+    const p = prefs();
+    if (!guitarNow()) return pickGuitar();
+    const plan = BOOTH_LISTS[p.list].plan, n = boothNext(done(), plan), s = n.step, g = guitarNow();
     if (!s) {
-      body.innerHTML = `<section class="pf-card bt-card"><div class="bt-prog"><i style="width:100%"></i></div><p class="bt-big" role="heading" aria-level="2">All done</p><p class="bt-dir">That's the whole list, ${BOOTH_PLAN.length} takes. Once the line below says everything is sent, tell Claude the takes are in.</p></section>`;
-      dock.innerHTML = `<button class="btn primary" id="bt-again">Start the list again</button>`;
-      $("bt-again").onclick = () => { savePrefs({ done: [] }); show(); };
+      const other = p.list === "main" ? "more" : "main", otherLeft = BOOTH_LISTS[other].plan.length - listDone(p, other);
+      body.innerHTML = `${top()}<section class="pf-card bt-card"><div class="bt-prog"><i style="width:100%"></i></div><p class="bt-big" role="heading" aria-level="2">All done</p><p class="bt-dir">That's the ${esc(BOOTH_LISTS[p.list].name.toLowerCase())} on ${esc(g.name)}, ${plan.length} takes.${otherLeft ? ` ${esc(BOOTH_LISTS[other].name)} has ${otherLeft} to go on this guitar.` : ""} When the line below says everything is sent, Claude can measure them.</p></section>`;
+      dock.innerHTML = `${otherLeft ? `<button class="btn primary" id="bt-other">Go to ${esc(BOOTH_LISTS[other].name)}</button>` : `<button class="btn primary" id="bt-anothe">Another guitar</button>`}<div class="ph-row">${otherLeft ? `<button class="tb" id="bt-anothe">Another guitar</button>` : ""}<button class="tb" id="bt-again">Start this list again</button></div>`;
+      $("bt-other")?.addEventListener("click", () => { savePrefs({ list: other }); show(); });
+      $("bt-anothe").onclick = pickGuitar;
+      $("bt-again").onclick = () => { const q = prefs(), ids = new Set(plan.map(x => x.id)); savePrefs({ done: { ...q.done, [q.guitar]: (q.done[q.guitar] || []).filter(x => !ids.has(x)) } }); show(); };
+      bindTop();
       return;
     }
-    const what = s.chords.length === 1 ? `${s.chords[0]} chord` : `${s.chords[0]} to ${s.chords[1]}`;
-    /* 4.93.1: a change of setup (where the phone is, pick or thumb) gets its own screen, so it can't be missed */
-    const was = prefs().setup;
-    if (was !== boothSetupKey(s)) {
-      const [place, strum] = (was || "").split(":"), steps = boothChange(was ? { place, strum } : null, s);
-      body.innerHTML = `<section class="pf-card bt-card bt-change">
+    const what = s.chords.length === 1 ? `${s.chords[0]} chord${s.voicing ? `, ${s.voicing.at}` : ""}` : `${s.chords[0]} to ${s.chords[1]}`;
+    /* 4.93.1: a change of setup (the guitar, where the phone is, pick or thumb) gets its own screen, so it can't be missed */
+    const key = `${g.name}|${boothSetupKey(s)}`, was = p.setup || "";
+    if (was !== key) {
+      const [wg, wk = ""] = was.split("|"), [place, strum] = wk.split(":");
+      const steps = [...(was && wg !== g.name ? [`Pick up your ${g.name}.`] : []), ...(boothAmpLine(g) && wg !== g.name ? [boothAmpLine(g)] : []), ...boothChange(was && wk ? { place, strum } : null, s)];
+      body.innerHTML = `${top()}<section class="pf-card bt-card bt-change">
         <div class="bt-prog"><i style="width:${Math.round(n.at / n.of * 100)}%"></i></div>
         <p class="bt-step">Before take ${n.at + 1} of ${n.of}</p>
         <p class="bt-big" role="heading" aria-level="2">${was ? "Change your setup" : "Set up"}</p>
@@ -204,21 +256,23 @@ function guided() {
         <p class="bt-sub">Then: ${esc(what)}</p>
       </section>`;
       dock.innerHTML = `<button class="btn primary" id="bt-set">${was ? "Done, I've changed it" : "I'm set up"}</button>`;
-      $("bt-set").onclick = () => { savePrefs({ setup: boothSetupKey(s) }); show(); };
+      $("bt-set").onclick = () => { savePrefs({ setup: key }); show(); };
+      bindTop();
       haptic(2);
       return;
     }
-    body.innerHTML = `<section class="pf-card bt-card">
+    body.innerHTML = `${top()}<section class="pf-card bt-card">
       <div class="bt-prog" role="progressbar" aria-label="Takes done" aria-valuemin="0" aria-valuemax="${n.of}" aria-valuenow="${n.at}"><i style="width:${Math.round(n.at / n.of * 100)}%"></i></div>
       <p class="bt-step">Take ${n.at + 1} of ${n.of}</p>
       <p class="bt-big" role="heading" aria-level="2">${esc(what)}</p>
       <p class="bt-setupline ${s.strum} ${s.place}"><b>${esc(boothSetup(s))}</b></p>
-      <div class="bt-shapes">${s.chords.map(c => chordSVG(c, 1.6) || "").join("")}</div>
+      <div class="bt-shapes">${s.chords.map(c => chordSVG(c, 1.6, s.voicing ? { shape: voicingShape(s.voicing.frets, s.voicing.fingers) } : {}) || "").join("")}</div>
       <div class="bt-stage" id="bt-stage"><p class="bt-dir" id="bt-dir">${esc(boothSteps(s))}</p></div>
       <canvas class="ph-lane bt-lane" id="bt-lane" aria-hidden="true" hidden></canvas>
     </section>`;
     dock.innerHTML = `<button class="btn primary" id="bt-start">${icon("mic")}Start</button><div class="ph-row"><button class="tb" id="bt-skip">Skip this one</button></div>`;
     $("bt-skip").onclick = () => { mark(s.id); show(); };
+    bindTop();
     $("bt-start").onclick = () => start(s);
   };
   const start = s => {
@@ -228,7 +282,7 @@ function guided() {
     $("bt-stop").onclick = () => { if (rec?.recorder?.state === "recording") stopRec(true); else { stopRec(false); show(); } };
     let calls = [];
     const draw = drawer(lane, () => calls, s.chords);
-    recordTake({ chords: s.chords, seconds: s.seconds, count: COUNT, meta: { place: s.place, strum: s.strum } }, {
+    recordTake({ chords: s.chords, seconds: s.seconds, count: COUNT, meta: { place: s.place, strum: s.strum, list: s.list, voicing: s.voicing } }, {
       count: k => { stage.innerHTML = `<p class="bt-count" aria-live="assertive"><b>${k}</b>Get ready: ${esc(s.chords[0])}</p>`; },
       tick: (c, t) => {
         calls = c;

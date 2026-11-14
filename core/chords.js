@@ -429,6 +429,8 @@ function quality(q) {
 const ROOTS = { C: 0, "B#": 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, Fb: 4, "E#": 5, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11, Cb: 11 };
 const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+/* 4.94.0: a shape from a fret pattern and fingers ("355433", "134211"), for a voicing up the neck */
+export const voicingShape = (frets, fingers) => finish(fromStrings(frets, fingers));
 function fromStrings(frets, fingers) {
   return { frets: [...frets].map(c => c === "x" ? -1 : +c), fingers: [...fingers].map(Number) };
 }

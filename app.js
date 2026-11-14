@@ -447,8 +447,8 @@ function renderBlocks(sheet, blocks) {
 const READ_AT = 0.4; // reading line, as a share of screen height
 let diag = { seq: [], blocks: [], block: null, focus: true };
 
-function chordSVG(name, scale = 1, { named = true } = {}) {
-  const c = chordShape(name);
+function chordSVG(name, scale = 1, { named = true, shape = null } = {}) {
+  const c = shape || chordShape(name); /* 4.94.0: `shape` draws a voicing up the neck */
   if (!c) return "";
   const sx = i => 9 + i * 7.2, top = 30, fh = 10, base = c.base || 1;
   const rowY = f => top + (f - base + 0.5) * fh;

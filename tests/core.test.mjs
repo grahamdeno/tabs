@@ -2717,7 +2717,7 @@ test("4.90.0 the Listening booth: calls, summary, files, and a real C and G hear
   /* file names and the label: what was played, nothing else */
   const take = { id: "ab12cd", at: Date.UTC(2026, 10, 14), chords: ["F#m", "C/G"], guitar: "Martin", place: "stand", note: "", rate: 22050, seconds: 12.34, version: C.VERSION, heard: { reads: 10 } };
   assert.equal(C.boothPath(take), "booth/2026-11-14/Fsm-to-C-G-ab12cd");
-  assert.deepEqual(Object.keys(C.boothLabel(take)).sort(), ["at", "chords", "guitar", "heard", "kind", "note", "place", "rate", "seconds", "strum", "version"]);
+  assert.deepEqual(Object.keys(C.boothLabel(take)).sort(), ["amp", "at", "body", "chords", "guitar", "heard", "kind", "list", "note", "place", "player", "rate", "seconds", "strum", "version", "voicing"]);
   assert.equal(C.boothLabel(take).kind, "switch");
   assert.ok(!/boothkey|github_pat/i.test(JSON.stringify(C.boothLabel({ ...take, key: "github_pat_x" }))), "a stray key never reaches the label");
   /* a switch summary counts a change only once the call settles */
@@ -2766,4 +2766,30 @@ test("4.92.0 the guided booth: the list, where you are, and keep or try again", 
   assert.match(C.boothSteps(C.BOOTH_PLAN[0]), /Hold Am[\s\S]*10 seconds/);
   assert.match(C.boothSteps(C.BOOTH_PLAN[22]), /Switch between G and C[\s\S]*30 seconds/);
   assert.equal(C.BOOTH_PLAN[27].place, "table");
+});
+
+test("4.94.0 the booth: More chords (harder ones and up the neck), and each guitar keeps its own progress", () => {
+  assert.equal(C.BOOTH_MORE.length, 64, "30 chords x 2 takes, and 4 switches");
+  assert.ok(C.BOOTH_MORE.every(s => s.chords.every(C.boothChord)), "every chord can be judged");
+  const ids = [...C.BOOTH_PLAN, ...C.BOOTH_MORE].map(s => s.id);
+  assert.equal(new Set(ids).size, ids.length, "no id in both lists");
+  const up = C.BOOTH_MORE.find(s => s.voicing && s.chords[0] === "G");
+  assert.match(C.boothSteps(up), /G up the neck, at the 3rd fret/);
+  const shape = C.voicingShape(up.voicing.frets, up.voicing.fingers);
+  assert.deepEqual([shape.frets.join(""), shape.base, shape.barre?.fret], ["355433", 3, 3], "drawn as a barre at the 3rd fret");
+  assert.match(C.boothLabel({ ...up, id: "x", at: 0, rate: 22050, seconds: 10, version: "v", voicing: up.voicing, list: "more", body: "electric", amp: "clean amp" }).voicing, /355433 \(3rd fret\)/);
+  /* before 4.94.0: one guitar's name and one list of ids */
+  const old = C.boothState({ guitar: "Ibenez - TCY10E-AVS", done: ["c:Am:1", "c:Am:2", "nope"], setup: "stand:pick", mode: "guided" });
+  assert.deepEqual(old.guitars, [{ name: "Ibenez - TCY10E-AVS", body: "acoustic", amp: "unplugged" }]);
+  assert.deepEqual(old.done, { "Ibenez - TCY10E-AVS": ["c:Am:1", "c:Am:2"] }, "what was done stays done, on that guitar");
+  assert.equal(old.list, "main");
+  const two = C.boothGuitar(old, { name: " Strat ", body: "electric", amp: "clean amp" });
+  assert.deepEqual([two.guitar, two.guitars.length, two.guitars[1].amp, two.setup], ["Strat", 2, "clean amp", ""], "a new guitar is the one in hand, and asks for setup again");
+  assert.equal(C.boothNext(two.done[two.guitar] || []).at, 0, "a new guitar starts at the top");
+  assert.equal(C.boothNext(two.done["Ibenez - TCY10E-AVS"]).at, 2, "the first guitar keeps its place");
+  assert.equal(C.boothGuitar(old, { name: "Taylor", body: "acoustic", amp: "clean amp" }).guitars[1].amp, "unplugged", "an acoustic has no amp");
+  assert.equal(C.boothState({ player: "  Mike   Smith " }).player, "Mike Smith", "4.94.0: the player's name rides along, tidied");
+  assert.equal(C.boothAmpLine({ body: "electric", amp: "clean amp" }), "Electric through a clean amp, no distortion, no effects.");
+  const kept = C.boothState(JSON.parse(JSON.stringify(two)));
+  assert.deepEqual([kept.guitar, kept.guitars, kept.done], [two.guitar, two.guitars, two.done], "kept through a save");
 });
