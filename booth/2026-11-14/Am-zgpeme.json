@@ -1,0 +1,24 @@
+{
+ "kind": "chord",
+ "chords": [
+  "Am"
+ ],
+ "guitar": "",
+ "place": "stand",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.92.0",
+ "at": "2026-11-14T13:57:11.300Z",
+ "heard": {
+  "reads": 82,
+  "right": 50,
+  "wrong": 32,
+  "by": {
+   "A": 27,
+   "Em": 5
+  },
+  "fit": 0.55
+ }
+}
