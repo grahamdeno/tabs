@@ -1,0 +1,21 @@
+{
+ "kind": "chord",
+ "chords": [
+  "G"
+ ],
+ "guitar": "Ibenez - TCY10E-AVS",
+ "place": "stand",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:46:34.029Z",
+ "heard": {
+  "reads": 153,
+  "right": 153,
+  "wrong": 0,
+  "by": {},
+  "fit": 0.55
+ }
+}
