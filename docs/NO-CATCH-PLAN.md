@@ -1,167 +1,243 @@
-# Retiring Chord Catch (audit and plan)
+# Chord Catch out of songs, kept where it works (audit and plan)
 
-Written by Opus, 2026-11-13, on 4.89.1. Graham: hearing which chord was played has never been reliable
-enough to score on, so it goes from every part of the app. The microphone stays for single notes (the tuner,
-the chord lesson's string check, scale lessons), for the strum and clap moment (switch lessons, Play together)
-and for Sing it. Nothing below is built yet. Work happens on the `no-catch` branch and ships as one release
-when Graham says ship (his standing preference), not a push to `main` per step.
+Written by Opus, 2026-11-13, on 4.89.1. Graham: catching chords during a song has never been reliable enough
+to score on, and too much of the game is built on that score. This plan does three things:
+
+1. **Takes chord catching out of songs**: the Gig, Wait for me, Follow my tempo.
+2. **Keeps it where it measures well**: one chord held (Chord check) and two chords taking turns at your own
+   pace (Switch check).
+3. **Rebuilds the game on what the app can trust**, so it stays worth playing: song mastery, difficulty,
+   streaks, and verified numbers from the two checks.
+
+The microphone also stays for single notes (the tuner, string checks, scale lessons), the clap in Play
+together, and Sing it. Nothing below is built yet. Work happens on the `no-catch` branch and ships as one
+release when Graham says ship.
+
+## Why keep it for one chord and for switching: the measurement
+
+Run on the 12 chord memos in `tests/audio/chords/` (Am, C, D, Em, F, G, two each), every 50 ms reading through
+the real `chromaOf`, `strumFit` and `chordLead`:
+
+| Chord | Readings | Called this chord | Called another chord |
+|---|---|---|---|
+| Am | 113 | 97% | 0% |
+| C | 89 | 91% | 0% |
+| D | 67 | 93% | 0% |
+| Em | 126 | 90% | 0% |
+| F | 96 | 96% | 0% |
+| G | 140 | 94% | 1% |
+
+As two-chord pairs (only "A or B?"), every one of the 15 pairs was called right on 90 to 97% of readings.
+
+A held chord gives about 20 readings a second, so judging on most readings over a second is far safer than
+one reading. The song case fails for reasons a check doesn't have: a clock to keep up with, the last chord
+still ringing, a choice among every chord in the song, soft partial strums, a capo, and eight gates tuned one
+report at a time (`docs/HEARING-PLAN.md`).
+
+The limits, said plainly: 12 memos, one guitar, one room, strummed cleanly, and the same memos the engine was
+tuned on. Step 1 records more before anything is built on it.
+
+## Keeping the game worth playing
+
+What gave the game its pull: a number to beat, a reason to stretch, progress you can see, and someone to race.
+Each one gets a home on a signal the app can trust.
+
+| What made it fun | Before (rested on catching in songs) | After |
+|---|---|---|
+| A number to beat | Show % | **Switch check speed**: clean changes a minute on a pair (verified by the mic). Personal best per pair |
+| Proof you can play it | Chords caught | **Chord check** stamps in the passport (whole chord heard, plus the string check that exists) |
+| Progress on a song | Best show % | **Song stars**, from play-throughs (below) |
+| Reason to stretch | Higher % | **Stretch pay**: songs with chords you don't know yet, more changes, full speed pay more |
+| The crowd in the Gig | Last 12 chords caught | Fills as the song goes; full crowd for the whole song without pausing |
+| Combo callouts | Chords caught in a row | Changes since the last pause |
+| Rival battles | Beat their % on a song | **Beat their switch speed** on a change from your songs |
+| Song duels | Beat my % on a song | **Switch duels**: "C to G, 34 a minute. Beat it." |
+| Your changes, soundcheck | Changes landed or dropped in gigs (often wrong) | **Switch check results** per pair: real numbers, better than before |
+| Charts | XP | XP, unchanged in how it works |
+
+### Song stars (replaces Best show %)
+
+Each song climbs four stars, from what the app knows for sure: played to the end, the speed, and pauses.
+
+1. **Learning**: in the Songbook.
+2. **Rehearsed**: played through 3 times at any speed.
+3. **Gig-ready**: played through at 100% without pausing.
+4. **Headliner**: Gig-ready on 3 different days.
+
+Stars show on the song page, in the Songbook, and on Show complete when one is earned (a callout). They feed
+badges, quests and the Road's level checks.
+
+### What a show pays (played through, weighted by difficulty)
+
+A chord change counts when the song carries it past the reading line while playing. The phone can't tell
+whether you strummed, so song play is on the honour system, as a play already is today. The verified numbers
+come only from the two checks, and those are the ones that race other people.
+
+- Bonus fans: 1 per change played through, times the stretch factor; +10 for the whole song without pausing.
+  Encore doubles.
+- Stretch factor: 1.0, +0.25 at 100% speed, +0.25 if the song has a chord you haven't learned yet, +0.25 for
+  the first play-through ever (the debut). Capped at 1.75.
+- Tips: 10 + 3 x crowd + changes / 4.
+- XP: as fans, so the chart rivals stay a fair race.
+- A new star pays a one-time bonus: 25 fans for Gig-ready, 50 for Headliner.
+
+Numbers are starting points. Step 3's tests keep a typical show within about 20% of a well-played scored show
+today, so Merch prices and the chart rivals stay balanced.
+
+### The two checks (in Rehearse and on the Road)
+
+- **Chord check.** Hold the chord and strum. Louie listens for about a second and a half and passes it when
+  most readings fit that chord (`strumFit`, `CHORD_FIT`). Then the string check that exists, string by string.
+  Passing both earns the chord's passport stamp and passes its Road step. No clock; take your time.
+- **Switch check.** Two chords, back and forth, at your own pace. After a strum, Louie waits until the sound
+  settles into one of the two (`chordLead` between them only), then lights the other one. 30 seconds, counted
+  in clean changes. It shows your speed a minute and your best for that pair. A target speed passes the
+  Road's switch step. The beat-timed switch lesson today becomes the "With the beat" round of the same check
+  (decision 4).
+- Both keep "I can't hear it, I got it". A pass that way earns the step but no stamp or speed, so verified
+  numbers stay honest.
+- Both use `What I hear` readings to explain a miss.
 
 ## Decisions Graham needs to make
 
-Each has a recommendation. Steps that wait on a decision say so.
+Each has a recommendation.
 
-1. **What a show pays for, now that nothing is heard.** Recommended: *played through*. A chord change counts
-   when the song carries it past the reading line while playing (not dragged past, not paused). The phone
-   can't tell whether you strummed, so this is an honour system, the same one a play already runs on today.
-   - Bonus fans: 1 per change played through, +10 for the whole song without pausing (today: 1 per chord
-     caught, +10 for a crowd of 10). Encore still doubles.
-   - Tips: 10 + 3 x crowd + changes / 4, crowd being the share of the song played, 0 to 12 (today: 10 +
-     3 x crowd + best run / 2 when scored, a flat 5 when not).
-   - XP: 1 per change played through, +10 for the whole song without pausing (today the same numbers for
-     chords landed and a crowd of 10), so the weekly chart rivals stay a fair race.
-   - The crowd row in the Gig fills as the song goes; the run is changes since the last pause, and the
-     10 / 25 / 50 / 100 combo callouts fire on that run.
-   - Other option: a flat amount per show. Simpler, but a short song pays the same as a long one and the
-     Merch prices and chart rivals would need retuning.
-2. **Rival battles.** Recommended: today's battle becomes "Play *song* start to finish today, no pausing,
-   to pass *rival*". Win is a full play-through; there is no "held on" any more. Second take has nothing to
-   do, so it leaves the Merch table and any held are refunded as tips at their price. Other option: retire
-   battles and Second take outright (the chart still runs on XP).
-3. **Your changes and the soundcheck** (fed today by changes landed and dropped in gigs). Recommended: feed
-   them from switch lessons (their clean grade) and how often the change is in your songs, which the
-   soundcheck already falls back to. Optional extra: on Show complete, tap any change that tripped you and it
-   goes to tomorrow's soundcheck. Say whether you want the extra.
-4. **Song duels** (a challenge is your % on a song). Recommended: retire duels. Friends you already have stay
-   on the Friends board and in the Friend quest (both run on weekly XP). "Add a friend" sends a plain link
-   with your name and week, the part of the duel link that still means something. A duel link from someone on
-   an older version opens the song and says challenges are retired. Other option: a duel becomes "play it
-   through more times this week than I do"; more code, and ties are common.
-5. **Switch lessons.** They hear *when* you strum (beat one of each bar), not *which* chord. Recommended: keep
-   them, with "I can't hear it, I got it" as the way out it already is. Say if you want them gone too; then the
-   switch steps on the Road are passed by playing the change in a song a few times, the way chord steps are.
-6. **Release number.** Recommended 4.90.0 (the game stays, its scoring changes). 5.0.0 if you'd rather mark it.
+1. **Keep catching for Chord check and Switch check**, out of songs. Recommended yes, after step 1's
+   recordings confirm it. If the new recordings come in under about 85% on the pairs you play, fall back to
+   the string check and beat timing only, and drop decision 3's competition to XP.
+2. **Song stars and stretch pay** as above. Recommended yes. Other option: a flat amount per show (simpler;
+   a short song pays like a long one, and Merch and chart numbers need retuning).
+3. **Competition on switch speed**: rival battles and duels race clean changes a minute on a pair. Recommended
+   yes. A duel link from an older version (a song %) opens the song and says song duels changed. Second take
+   stays and gives a lost battle another go, as now.
+4. **The beat-timed switch lesson** becomes the "With the beat" round of Switch check. Recommended yes.
+5. **Self-rating at the end of a show** ("Rough, Solid, Nailed it"; one tap, optional) that feeds the
+   soundcheck. Recommended no for now: Switch check gives better numbers, and fewer taps mid-practice.
+6. **Release number.** Recommended 4.90.0. 5.0.0 if you'd rather mark it.
 
 ## What listens today, and what happens to it
 
 | Where | What it hears | Fate |
 |---|---|---|
-| The Gig (`gig.js` `listen`, `catchHear` in `core/game.js`) | Which chord, every 50 ms, plus strum count | **Goes** |
-| Wait for me, Skip this chord (`gig.js` `holdFrame`, `catchUp`) | Holds the page until the chord is caught | **Goes** |
-| Follow my tempo (`gig.js` `keepPace`, `FOLLOW`, `tempoStep`, `followAhead`, `follow.k` in `app.js`) | Tempo from chords caught in a row | **Goes** |
-| The stage marks (`stage.js` `stageCatch`, `stageMiss`, `stageWait`) | Green for caught | **Goes**; the lit chord and beat dots stay |
-| Score my plays (Settings, `settings.gigScore`) | Turns the above on or off | **Goes** |
-| Opening night "Let me hear you" (`opening.js` `micSheet`, `OPENING[1]`) | Asks for the mic so shows can be scored | **Goes** |
-| What I hear (`practice.js` `whatIHear`, chord section) | Chord fit, the show's own test | Chord section **goes**; strum and string readings stay |
-| Hearing engine (`core/neck.js` `chromaOf`, `strumFit`, `chordLead`, `chordLeadOver`, `CHORD_FIT`, `CHORD_EXTRA`; `core/game.js` `catchHear`, `catchOpen`, `relativeOf`, `CATCH_*`) | | **Deleted** once nothing calls it |
-| Tuner (`tuner.js`), chord lesson string check, scale lessons (`judgeTarget`, `detectPitch`) | One note at a time | Stays |
-| Switch lessons (`strumDetector`, `gradeSwitches`, `bleedProfile`, `HEAR`) | When you strum | Stays (decision 5) |
-| Play together (`share.js`) | One clap | Stays |
-| Sing it (`sketch.js`), Strum it on a recording (`strum.js`) | Your voice; a recording, offline | Stays |
+| The Gig (`gig.js` `listen`; `catchHear`, `catchOpen`, `CATCH_*` in `core/game.js`) | Which chord, every 50 ms, in a song | **Goes** |
+| Wait for me, Skip this chord (`holdFrame`, `catchUp`) | Holds the page until the chord is caught | **Goes** |
+| Follow my tempo (`keepPace`, `FOLLOW`, `tempoStep`, `followAhead`, `follow.k` in `app.js`) | Tempo from chords caught | **Goes** |
+| Stage marks (`stage.js` `stageCatch`, `stageMiss`, `stageWait`) | Green for caught | **Go**; lit chord, beat dots, stage light stay |
+| Score my plays (Settings, `settings.gigScore`) | Turns the Gig's listening on or off | **Goes** |
+| Opening night "Let me hear you" (`micSheet`, `OPENING[1]`) | Asks for the mic so shows are scored | **Moves**: becomes the first Chord check in Opening night ("Play an Em for me"), with the reason first |
+| Hearing engine (`chromaOf`, `strumFit`, `chordLead`, `chordLeadOver`, `CHORD_FIT`, `CHORD_EXTRA` in `core/neck.js`) | | **Stays**, for the two checks; `relativeOf` goes if unused |
+| Chord lesson (`practice.js` `chordLesson`, string check) | One string at a time | Stays, inside Chord check |
+| Switch lesson (`switchLesson`, `strumDetector`, `gradeSwitches`) | When you strum | Becomes Switch check's "With the beat" round |
+| What I hear (`whatIHear`) | Chord fit, strums, strings | Stays; its chord section tests the checks, not the show |
+| Tuner, scale lessons, Play together's clap, Sing it, Strum it on a recording | | Stay |
 
-## What depends on the score, and what happens to it
+## What depends on the song score, and what happens to it
 
 | Feature | Uses | New behaviour |
 |---|---|---|
-| Show complete tiles and text (`gig.js` `showComplete`, `songPlayed`) | hits, misses, crowd, best run | FANS, TIPS, CROWD (n/12), CHANGES played; every chord in "the song you played" lit; no caught/missed |
-| Bonus fans, tips (`gigFans`, `gigTips`) | hits, crowd, best | Decision 1 |
-| Chart XP (`chartsShow`, `XP.landed`, `XP.crowd`) | hits, crowd | Decision 1 |
-| Rival battle (`battleFor`, `chartsShow`, `charts.js`) | % vs target | Decision 2 |
-| Second take, Double set (`MERCH`, `secondTake`) | battles; "scored gigs" | Second take per decision 2; Double set reads "your next 3 gigs" |
-| Song duels, duel badge (`duel.js`, `startDuel`, `takeDuel`, `duelsShow`, `duelWon`) | % | Decision 4; a duel badge already earned stays, an unearned one is hidden |
-| Tour quest "Get the crowd to 10 of 12" (`questState`, `questsShow`) | crowd | "Play a song start to finish without pausing" |
-| Your changes, soundcheck (`rehearseMisses`, `changesToWork`, `missedChanges`) | lands and misses from gigs | Decision 3 |
-| "Best show N%" on the song page (`app.js`, `data.gig.best`) | % | Removed; the play count already shown stays |
-| "Practice show" rule (Wait for me shows earn no chart points) | Wait for me | Gone with Wait for me |
-| Combo callout (`COMBO_STEPS`) | chords caught in a row | Run since last pause (decision 1) |
+| Show complete (`showComplete`, `songPlayed`) | hits, misses, crowd, best run | FANS, TIPS, CROWD, STARS; changes played; every chord of the song lit; a new star celebrated |
+| Bonus fans, tips (`gigFans`, `gigTips`) | hits, crowd, best | Stretch pay |
+| Chart XP (`chartsShow`, `XP.landed`, `XP.crowd`) | hits, crowd | Stretch pay |
+| Rival battle (`battleFor`, `chartsShow`, `charts.js`) | % on a song | Switch speed on a change from your songs; the target scales with the chart tier |
+| Song duels, duel badge (`duel.js`, `startDuel`, `takeDuel`, `duelsShow`, `duelWon`) | % | Switch duels; the badge keeps its rule (win a duel) |
+| Double set | "scored gigs" | "your next 3 gigs" |
+| Tour quest "crowd 10 of 12" (`questState`, `questsShow`) | crowd | "Play a song start to finish without pausing"; plus a rotating goal from a pool: earn a star, beat a switch best, pass a Chord check, play a stretch song |
+| Your changes, soundcheck (`rehearseMisses`, `changesToWork`, `missedChanges`) | gig lands and misses | Switch check speeds per pair, plus how often the change is in your songs |
+| "Best show N%" on the song page (`data.gig.best`) | % | Song stars |
+| Combo callout (`COMBO_STEPS`) | caught in a row | Run since the last pause |
+| Road level checks (`skillState`, kind `check`) | a song played after the level | A song of the level played to **Gig-ready** |
+| Road chord and switch steps | lessons, or plays of the chord | Chord check and Switch check, or plays as now (chord steps) |
 
-Not touched: plays, streaks, fans from plays, venues and fading, the Road (chord steps pass on plays of the
-chord, level checks on playing a song, both from `journal` and `playLog`, never from catches), merch boxes,
-Your band, Your guitarist, lessons of the day (passes count loop passes, not catches), Apple Music play-along.
+Not touched: plays, streaks, fans from plays, venues and fading, merch boxes, Your band, Your guitarist,
+lessons of the day (passes count loop passes), Apple Music play-along, Friends and the Friend quest (weekly XP).
 
-## Not breaking the app: the risks and how each step guards them
+## Not breaking the app
 
-1. **Order of work.** First make the app behave as if Score my plays were off for good (step 1). That path
-   already exists and is tested, so the app works after step 1 and after every step that follows. Delete
-   code only after nothing calls it (step 10).
-2. **Opening night step numbers.** `data.opening.step` is an index into `OPENING`. Taking out "mic" (index 1)
-   shifts later steps down one. Migrate once: v 2 to v 3, step 2 or more becomes step - 1. A unit test covers a
-   save stopped on each old step.
-3. **Old saves and backups.** Every `clean*` function keeps accepting the old fields (`gig.best`,
+1. **Order of work.** First the Gig stops listening (step 2). That runs the unscored path that already exists
+   and is tested, so the app works after step 2 and after every step that follows. New things are added before
+   old ones that lean on them are removed. Code is deleted only after nothing calls it.
+2. **Opening night step numbers.** `data.opening.step` is an index into `OPENING`. The "mic" step changes to a
+   Chord check in the same place, so the index doesn't move. A unit test covers a save stopped on each step.
+3. **Old saves and backups.** Every `clean*` function keeps accepting old fields (`gig.best`,
    `charts.battle.pct`, duels with `pct`, `rehearse.misses` and `lands`, `song.waitForMe`, `song.followTempo`,
-   `settings.gigScore`, `opening` v 2) so a 4.89.1 backup restores. Fields nothing reads any more are dropped
-   on the next save. A fixture backup from 4.89.1 is restored in a unit test.
-4. **Duel links in the wild** from older versions open without an error (decision 4).
-5. **The economy.** Unit tests pin fans, tips and XP for a short, a typical and a long song so a show pays
-   within about 20% of a well-played scored show today, and a typical week's XP stays inside the chart
-   rivals' range at each tier.
-6. **Exports.** `core.js` re-exports on two long lines (10 to 11 and 1524 to 1525). Remove names with exact,
-   unique edits and run `eslint .`; a missed name fails to import at load.
-7. **Topic files** in `core/` must not read another file's values while loading.
-8. **`sw.js`.** No app file is removed in this plan. If one is, take it out of `SHELL` (a test checks).
-   `VERSION` and `CACHE` bump together, once, at ship.
-9. **Accessibility.** The Gig's bottom bar loses the mic button; Pause stays in thumb reach with its name.
-   axe runs in CI.
-10. **Onboarding.** `docs/ONBOARDING.md` loses the microphone-and-Gig rows and the Wait for me row; the
-    microphone is first asked by the tuner or a lesson, which already say why (`micExplained`).
+   `settings.gigScore`) so a 4.89.1 backup restores. `gig.best` seeds song stars once (80% or more counts as
+   Gig-ready). New fields (stars, switch bests, stamps) are listed in `docs/DATA.md` and checked on restore.
+   A fixture backup from 4.89.1 is restored in a unit test.
+4. **Duel links in the wild** from older versions open without an error.
+5. **The economy.** Unit tests pin fans, tips and XP for a short, a typical and a long song.
+6. **Exports.** `core.js` re-exports on two long lines (10 to 11 and 1524 to 1525). Change names with exact,
+   unique edits; `eslint .` catches a name that's missing.
+7. **Topic files** in `core/` don't read another file's values while loading. New check logic goes in
+   `core/neck.js` (hearing) and `core/game.js` (stars, pay).
+8. **`sw.js`.** A new app file (for example `checks.js`) goes in `SHELL` (a test checks). `VERSION` and `CACHE`
+   bump together, once, at ship.
+9. **Accessibility.** The Gig's bottom bar loses the mic button; Pause stays in thumb reach. The checks name
+   every lamp and count for VoiceOver. axe runs in CI.
+10. **Onboarding.** `docs/ONBOARDING.md` updated: the mic is asked before the first Chord check, with the
+    reason; stars, Switch check and switch duels added; Wait for me removed.
 
 ## Steps
 
 Each step: one task per commit on `no-catch`, `eslint .` and `node tests/quick.mjs`, push the branch. No
-version bump until step 14 (one release). When something doesn't match the plan, stop that task and write it
-under Surprises.
+version bump until the last step. When something doesn't match the plan, stop and write it under Surprises.
 
-- [ ] 0 [Sonnet] **Branch and baseline.** Create `no-catch` from `main`, run quick tests, note any already
-      failing. Remove the stray `undefined/ly.png` (a screenshot saved with `$SHOT` unset).
-- [ ] 1 [Sonnet] **The Gig stops listening.** `openGig` never calls `listen`; remove the mic button, Hearing
-      you, `deafen`, `relisten`, `paintMic` and the "not scored" lines; remove the Score my plays row in
-      Settings. The show runs its existing unscored path. Update `gig.e2e.mjs`, `app3.e2e.mjs`.
-- [ ] 2 [Opus, after decision 1] **The played-through score.** In `core/game.js`: replace `gigStart`,
-      `catchScore`, `gigCrowd`, `gigPct`, `gigFans`, `gigTips` with a played-through tally (changes played,
-      share of the song, run since pause, whole song unpaused). Keep `catchTargets`, `catchAt`, `catchClose`
-      (renamed `songTargets`, `targetsAt`, `targetsPassed`) to count what passes the reading line while
-      playing. `gigDone` returns the same fields minus `pct`. Economy unit tests (risk 5).
-- [ ] 3 [Sonnet] **The Gig on the new score.** Crowd fills with the song, run and combo callouts from the
-      run, Show complete per the table above. If decision 3's extra is wanted: tap a change on the end card to
-      send it to tomorrow's soundcheck.
-- [ ] 4 [Sonnet] **Stage marks.** Remove `stageCatch`, `stageMiss`, `stageWait` and their styles; keep the lit
-      chord, beat dots and stage light.
-- [ ] 5 [Sonnet] **Wait for me and Follow my tempo.** Remove the two Tools rows and their toasts, `holdFrame`,
-      `keepPace`, `catchUp`, Skip this chord, the WAIT FOR ME pill, `waitOn`, `followOn`, `follow`, `FOLLOW`,
-      `tempoStep`, `followAhead`, `beatsLate` if unused, and `follow.k` in `loopFactor`. Practice speed and
-      loops stay.
-- [ ] 6 [Opus, after decisions 2 and 4] **Charts, Merch and duels.** Battle per decision 2, Second take
-      retired with refund, Double set wording, duels per decision 4 (with the old-link path and "Add a
-      friend"), badges, `charts.js` "how XP works" line.
-- [ ] 7 [Sonnet] **Tour quests.** The crowd goal becomes "Play a song start to finish without pausing";
-      `questsShow` takes the played-through tally.
-- [ ] 8 [Sonnet, after decisions 3 and 5] **Rehearse.** Your changes and the soundcheck per decision 3; What
-      I hear loses its chord section; check lesson of the day still builds from his songs.
-- [ ] 9 [Sonnet] **Opening night.** Remove the "mic" step and `micSheet`, the Road's mic icon and its lines
-      in `OSAY` and `openingCard`, the `noMic` path in `gigOpen`, and Opening night's "catch it" wording.
-      Migration and test (risk 2). Update `opening.e2e.mjs` and Tips & gestures' Opening night row.
-- [ ] 10 [Sonnet] **Delete the hearing engine.** Remove what the table marks Deleted, the export names in
-      `core.js`, their unit tests, the chord memos in `tests/audio/chords/` and the tests that read them.
-      Keep the single-string memos (the tuner's tests). `grep` for each removed name before the commit.
-- [ ] 11 [Sonnet] **Saves and backups.** Cleaners per risk 3; fixture backup test; `docs/DATA.md` updated
-      for every field that stops being written.
-- [ ] 12 [Sonnet] **Words.** Grep UI text, tips (`coach.js`), callouts, Merch notes, Charts, the Band tab,
-      README, `docs/ONBOARDING.md` and `CLAUDE.md` for catch, caught, Hearing you, scored, score my, %, land,
-      crowd, "the microphone needs to hear". Drop "mic chord check during a play-along" from CLAUDE.md's
-      Open list. Move `docs/HEARING-PLAN.md` to `docs/history/` with a line saying it was retired in this
-      release.
-- [ ] 13 [Opus] **Review.** Read the whole diff for leftovers; run the Gig main path at 390 wide in Dark and
-      Light; check the economy numbers against today's; screenshots of the Gig, Show complete, Charts and
-      Rehearse for Graham (throwaway `zz_` test, then delete it).
-- [ ] 14 [Graham, then Sonnet] **Try it, then ship.** Graham plays a few songs from the branch build. On
-      "ship": bump `VERSION` and `CACHE` (decision 6), README feature list, rebase on `origin/main`, push to
-      `main`. Remake the visual references when Graham says
-      (`gh api -X POST repos/grahamdeno/tabs/actions/workflows/screens.yml/dispatches -f ref=main`).
-      Graham deletes the `no-catch` branch on github.com.
+- [ ] 0 [Sonnet] **Branch and baseline.** Quick tests on `no-catch`; note anything already failing. Remove the
+      stray `undefined/ly.png` (a screenshot saved with `$SHOT` unset).
+- [ ] 1 [Graham, then Sonnet] **More recordings, and a measuring test.** Graham records Voice Memos: Chord
+      check (hold and strum each of A, E, Dm, Cadd9 and one barre chord, phone where it sits while playing)
+      and Switch check (30 seconds back and forth on G to C, C to Am, Em to G, D to A). Sonnet turns
+      `tools/hearing/measure.mjs` into `tests/audio/checks.test.mjs`: it replays each memo through the real checks
+      and prints called-right, called-wrong and switches counted per memo, failing if any gets worse than the
+      recorded baseline. Decision 1's go or fall back is made here.
+- [ ] 2 [Sonnet] **The Gig stops listening.** `openGig` never calls `listen`; remove the mic button, Hearing
+      you, `deafen`, `relisten`, `paintMic`, the "not scored" lines, and the Score my plays row. Update
+      `gig.e2e.mjs`, `app3.e2e.mjs`.
+- [ ] 3 [Opus] **Stars and stretch pay** in `core/game.js`: the played-through tally (changes played, share of
+      the song, run since pause, whole song unpaused, speed), song stars (`starsOf`, `starsSettle`, seeded once
+      from `gig.best`), stretch factor, new `gigFans`, `gigTips`, XP. Keep `catchTargets`, `catchAt`,
+      `catchClose` renamed `songTargets`, `targetsAt`, `targetsPassed`. Economy tests (risk 5).
+- [ ] 4 [Sonnet] **The Gig on the new score.** Crowd fills with the song, run and combo callouts, Show
+      complete with stars and the star callout, stars on the song page and in the Songbook. Remove the stage's
+      catch marks.
+- [ ] 5 [Sonnet] **Wait for me and Follow my tempo go.** The two Tools rows and toasts, `holdFrame`,
+      `keepPace`, `catchUp`, Skip this chord, the pill, `waitOn`, `followOn`, `follow`, `FOLLOW`, `tempoStep`,
+      `followAhead`, `follow.k` in `loopFactor`. Practice speed and loops stay.
+- [ ] 6 [Opus, after step 1] **Chord check and Switch check.** The judging in `core/neck.js` (`chordCheck`:
+      most readings over 1.5 s; `switchCheck`: a two-way call that waits for the sound to settle after a
+      strum), unit tested on the memos. The screens in `practice.js` or a new `checks.js`: lamps in thumb
+      reach, the count, speed, personal best, "I can't hear it, I got it". The beat round from today's switch
+      lesson. Passport stamps and switch bests saved (`data.skills`).
+- [ ] 7 [Sonnet] **The Road and Rehearse on the checks.** Chord and switch steps open the checks; level checks
+      need a level song at Gig-ready. Your changes and the soundcheck rank by switch speed and how often the
+      change is in your songs. What I hear's chord section tests the checks.
+- [ ] 8 [Opus, after decision 3] **Battles and duels on switch speed.** `battleFor` picks a change from your
+      songs and a target speed by tier; `chartsShow` becomes `battleSettle` from a Switch check. Duel links
+      carry a pair and a speed; the old-link path. Charts and duel screens, Second take, Double set wording.
+- [ ] 9 [Sonnet] **Tour quests.** The crowd goal becomes the whole song without pausing; the rotating goal pool.
+- [ ] 10 [Sonnet] **Opening night.** The "mic" step becomes "Play an Em for me": Louie gives the reason, the
+      phone asks, then a Chord check on Em. "Not now" skips it and the check waits on the Road. Opening night's
+      catch wording goes. Update `opening.e2e.mjs`, Tips & gestures.
+- [ ] 11 [Sonnet] **Delete what nothing calls.** `catchHear`, `catchOpen`, `CATCH_*`, `relativeOf` if unused,
+      `gigPct`, the old crowd and combo code, `data.gig.best` writes, their export names and unit tests.
+      `grep` each name before the commit.
+- [ ] 12 [Sonnet] **Saves and backups.** Cleaners per risk 3, fixture backup test, `docs/DATA.md`.
+- [ ] 13 [Sonnet] **Words.** Grep UI text, tips (`coach.js`), callouts, Merch, Charts, the Band tab, README,
+      `docs/ONBOARDING.md` and `CLAUDE.md` for catch, caught, Hearing you, scored, %, land, crowd, "the
+      microphone needs to hear". In `CLAUDE.md`: the Gig's description, the Rehearse row, the Open list (drop
+      "mic chord check during a play-along"). Move `docs/HEARING-PLAN.md` to `docs/history/` with a line
+      saying songs stopped listening in this release and the checks took over.
+- [ ] 14 [Opus] **Review.** Read the whole diff for leftovers; the Gig, Show complete, both checks, Charts and
+      Rehearse at 390 wide in Dark and Light; economy numbers against today's; screenshots for Graham
+      (throwaway `zz_` test, then delete it).
+- [ ] 15 [Graham, then Sonnet] **Try it, then ship.** Graham plays a few songs and runs both checks on his
+      phone from the branch. On "ship": bump `VERSION` and `CACHE` (decision 6), README feature list, rebase on
+      `origin/main`, push to `main`. Remake the visual references when Graham says. Graham deletes the
+      `no-catch` branch on github.com.
 
 ## Size
 
-About 14 commits. Steps 1, 4, 5, 7, 9 are small. Steps 2, 6 and 10 are the big ones (step 10 mostly
-deletion: `core.test.mjs` has about 110 lines on catching, `gig.e2e.mjs` about 22). Two or three sessions.
+About 16 commits over three or four sessions. The big ones are 3 (stars and pay), 6 (the checks) and 8
+(battles and duels). Step 1 needs Graham's recordings before step 6 can start; steps 2 to 5 don't wait on it.
 
 ## Surprises
 
