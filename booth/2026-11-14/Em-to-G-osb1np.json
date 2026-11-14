@@ -1,0 +1,24 @@
+{
+ "kind": "switch",
+ "chords": [
+  "Em",
+  "G"
+ ],
+ "guitar": "Ibenez - TCY10E-AVS",
+ "place": "stand",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 30,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:44:22.687Z",
+ "heard": {
+  "reads": 273,
+  "per": {
+   "Em": 123,
+   "G": 150
+  },
+  "switches": 34,
+  "fit": 0.55
+ }
+}
