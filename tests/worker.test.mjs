@@ -137,3 +137,15 @@ test("the YouTube server: only the app, a key it keeps, the artist's own audio f
   assert.equal(calls.length, 2, "no second search");
   assert.equal(ytw.isoSecs("PT1H2M3S"), 3723);
 });
+
+test("youtube rank: the artist's VEVO channel beats a fan upload, even with words run together", async () => {
+  const { rank } = await import("../worker/youtube.js");
+  const items = [
+    { id: "fan00000000", title: "Tom Petty - Free Falling - Official Music Video", channel: "Brian Kelly", secs: 256 },
+    { id: "vevo0000000", title: "Tom Petty - Free Fallin' (Official Music Video)", channel: "TomPettyVEVO", secs: 258 },
+    { id: "own00000000", title: "Free Fallin'", channel: "TomPettyOfficial", secs: 255 },
+  ];
+  const ids = rank(items, { artist: "Tom Petty", title: "Free Fallin", len: 255 }).map(v => v.id);
+  assert.equal(ids.at(-1), "fan00000000");
+  assert.ok(["vevo0000000", "own00000000"].includes(ids[0]));
+});

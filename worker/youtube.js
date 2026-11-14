@@ -23,10 +23,12 @@ export function rank(items, { artist = "", title = "", len = 0 } = {}) {
   const score = v => {
     const ch = plain(v.channel), ti = plain(v.title);
     let s = 0;
-    if (v.topic && (!a || ch.startsWith(a))) s += 100;
-    else if (a && (ch === a || ch === `${a}vevo` || ch.replace(/vevo$/, "").trim() === a)) s += 60;
+    /* channel names run words together ("TomPettyVEVO"), so compare without spaces */
+    const sq = x => x.replace(/ /g, ""), A = sq(a), C = sq(ch).replace(/(vevo|official|music|topic)+$/, "");
+    if (v.topic && (!a || sq(ch).startsWith(A))) s += 100;
+    else if (A && C === A) s += 60;
     if (/official (audio|music video|video)/.test(ti)) s += 20;
-    if (t && ti.includes(t)) s += 15;
+    if (t && sq(ti).includes(sq(t))) s += 15;
     if (/\b(live|cover|karaoke|lyrics?|instrumental|reaction|lesson|tutorial|remix|sped up|slowed)\b/.test(ti) && !(t && /\b(live|remix)\b/.test(t))) s -= 50;
     if (len && v.secs) s -= Math.min(40, Math.abs(v.secs - len));
     return s;
