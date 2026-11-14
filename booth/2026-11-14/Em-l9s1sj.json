@@ -1,0 +1,25 @@
+{
+ "kind": "chord",
+ "chords": [
+  "Em"
+ ],
+ "guitar": "",
+ "place": "table",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:32:30.835Z",
+ "heard": {
+  "reads": 83,
+  "right": 78,
+  "wrong": 5,
+  "by": {
+   "E": 2,
+   "C": 2,
+   "A": 1
+  },
+  "fit": 0.55
+ }
+}
