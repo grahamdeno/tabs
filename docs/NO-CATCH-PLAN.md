@@ -234,7 +234,7 @@ version bump except the booth's release (step 1a) and the last step. When someth
       - Release (decision 9): built on `no-catch` before any other step changes the app, so shipping it is
         bumping to 4.90.0, rebasing on `origin/main` and pushing the branch to `main` as it stands. Only on
         Graham's "ship".
-- [ ] 1b [Graham] **Record in the booth.** Chord: Am, C, D, Em, F, G, A, E, Dm, Cadd9 and one barre chord,
+- [~] 1b [Graham] **Record in the booth.** (first pass in: 44 takes on the Ibanez, 2026-11-14) Chord: Am, C, D, Em, F, G, A, E, Dm, Cadd9 and one barre chord,
       three takes each, phone on its stand and on the table. Switch: 30 seconds each of G to C, C to Am, Em to
       G, D to A, Am to C (the closest-sounding pair). Then Send.
 - [ ] 1c [Opus] **Measure and decide.** Pull the `booth` branch; copy the takes into `tests/audio/booth/`.
@@ -295,6 +295,33 @@ version bump except the booth's release (step 1a) and the last step. When someth
 About 18 commits over four or five sessions. The big ones are 1a (the booth), 3 (stars and pay), 6 (the checks)
 and 8 (battles and duels). Step 6 waits on Graham's booth takes (1b) and the measuring (1c); steps 2 to 5
 don't wait on them and can run while he records.
+
+## Results so far (step 1c, Opus, 2026-11-14)
+
+First pass: 44 takes, Graham's Ibanez TCY10E-AVS, with a pick, measured with `tools/hearing/takes.mjs` (readings
+called right, out of those with a chord in them):
+
+| Chord | Right | | Chord | Right |
+|---|---|---|---|---|
+| C, D, G, Bm | 100% | | Am | 89% (heard as A 4 to 20%) |
+| F | 98% | | E, Dm | 95% |
+| Em | 97% | | **Cadd9** | **38%** (heard as C) |
+| | | | **A** | **28%** (heard as Am) |
+
+Switches in 30 seconds, counted the same way the phone did: G to C 24 and 25, C to Am 25, Em to G 28, Am to C 38,
+**D to A 8** (A again).
+
+- **A:** the open strings are in tune (all within 10 cents), but the C# on the B string barely sounds in his A chord
+  (mean 0.05 of the sound against 0.11 for C): the B string is mostly muted, which is common with three fingers in the
+  2nd fret. Without its third, A and Am are a coin toss. That's a playing fault the check should name ("your B string
+  isn't ringing"), with the string check, not something to tune away.
+- **Cadd9:** its D is in tune but quiet (0.11 of the sound), and `CHORD_EXTRA` is 0.12, so it's called C. At 0.08 Cadd9
+  goes to 55% with no plain C (his or the old memos) heard as Cadd9. Not changed yet: wait for the other guitars and
+  the More chords list (which has maj7, add and sus chords) before tuning on one guitar.
+- **Decision 1: go.** One chord held and two chords taking turns are heard well enough to build the checks on. The
+  checks need two things the song engine never had: a "near enough" family for chords whose extra note is quiet
+  (Cadd9 as C, Fmaj7 as F), and a message that names the missing note when a chord's third is missing.
+- **Decision 8 (fingerprints): not yet.** Wait for takes from more guitars.
 
 ## Surprises
 
