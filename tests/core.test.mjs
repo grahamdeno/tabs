@@ -2765,3 +2765,38 @@ test("4.88.0: trumpet came out; what it saved is cleared on load", () => {
   const s = C.cleanSong(d.songs[0]);
   assert.equal(s.tpMel, undefined); assert.equal(s.tpEar, undefined); assert.equal(s.tpHardSeen, undefined);
 });
+
+test("4.90.0 the Listening booth: calls, summary, files, and a real C and G heard right", async () => {
+  /* a WAV the measuring can read back: header, length, samples */
+  const w = C.wavBytes(new Float32Array([0, 1, -1, 0.5]), 22050), v = new DataView(w.buffer);
+  assert.equal(String.fromCharCode(...w.slice(0, 4)), "RIFF");
+  assert.equal(v.getUint32(24, true), 22050, "sample rate");
+  assert.equal(v.getUint32(40, true), 8, "four 16-bit samples");
+  assert.equal(v.getInt16(46, true), 32767); assert.equal(v.getInt16(48, true), -32768);
+  assert.equal(C.downsample(new Float32Array(48000), 48000, 22050).length, 22050, "one second stays one second");
+  assert.equal(C.toBase64(new TextEncoder().encode("hi")), "aGk=");
+  /* file names and the label: what was played, nothing else */
+  const take = { id: "ab12cd", at: Date.UTC(2026, 10, 14), chords: ["F#m", "C/G"], guitar: "Martin", place: "stand", note: "", rate: 22050, seconds: 12.34, version: C.VERSION, heard: { reads: 10 } };
+  assert.equal(C.boothPath(take), "booth/2026-11-14/Fsm-to-C-G-ab12cd");
+  assert.deepEqual(Object.keys(C.boothLabel(take)).sort(), ["at", "chords", "guitar", "heard", "kind", "note", "place", "rate", "seconds", "version"]);
+  assert.equal(C.boothLabel(take).kind, "switch");
+  assert.ok(!/boothkey|github_pat/i.test(JSON.stringify(C.boothLabel({ ...take, key: "github_pat_x" }))), "a stray key never reaches the label");
+  /* a switch summary counts a change only once the call settles */
+  const s = C.boothSummary(["C", "C", "C", "G", "C", "G", "G", "G", null, "C", "C", "C"].map(call => ({ call })), ["C", "G"]);
+  assert.equal(s.switches, 2); assert.equal(s.reads, 11);
+  assert.match(C.boothSay(s, ["C", "G"]), /^2 changes heard/);
+  assert.match(C.boothSay({ reads: 0 }, ["C"]), /didn't hear/);
+  /* the real recordings: a C is C, and in a C and G switch the G memo is called G */
+  const { wav, frames } = await import("../tools/hearing/measure.mjs");
+  const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "audio/chords");
+  const read = f => { const { x, sr } = wav(path.join(dir, f)); return frames(x, sr); };
+  const c = C.boothSummary(read("C_iphone-memo.wav").map(cr => C.boothCall(cr, ["C"])), ["C"]);
+  assert.ok(c.right / c.reads > 0.85, `C heard as C (${c.right} of ${c.reads})`);
+  assert.ok(c.wrong / c.reads < 0.05, "and rarely as something else");
+  const g = C.boothSummary(read("G_iphone-memo.wav").map(cr => C.boothCall(cr, ["C", "G"])), ["C", "G"]);
+  assert.ok(g.per.G / g.reads > 0.85, `G called G in a C and G switch (${g.per.G} of ${g.reads})`);
+  /* the key stays out of the takes and out of the app's saved data */
+  const src = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../booth.js"), "utf8");
+  assert.ok(!/data\.(settings\.)?\w*[Kk]ey\s*=/.test(src), "the booth never saves the key in the app's data");
+  assert.ok(/localStorage\.setItem\(BOOTH_KEY/.test(src), "the key is kept like the AI key");
+});

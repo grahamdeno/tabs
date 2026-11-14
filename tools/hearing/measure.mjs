@@ -1,5 +1,6 @@
 // Measures the chord engine on the single-chord memos (tests/audio/chords): node tools/hearing/measure.mjs
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import * as C from "../../core/neck.js";
 const dir = new URL("../../tests/audio/chords/", import.meta.url).pathname;
 function wav(p) {
@@ -22,6 +23,8 @@ function frames(x, sr) {
     return C.chromaOf(db, sr, N);
   }).filter(Boolean);
 }
+export { wav, frames };
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 const names = ["Am", "C", "D", "Em", "F", "G"], memos = {};
 for (const f of fs.readdirSync(dir)) { const n = f.split("_")[0]; const { x, sr } = wav(dir + f); (memos[n] ||= []).push(...frames(x, sr)); }
 console.log("SINGLE CHORD (is it this chord?)  frames  own-fit%  falsely-accepted-as-another%");
@@ -32,3 +35,4 @@ for (let a = 0; a < names.length; a++) for (let b = a + 1; b < names.length; b++
   const call = (c, me, ot) => { const f1 = C.strumFit(c, me) ?? 0, f2 = C.strumFit(c, ot) ?? 0; if (Math.max(f1, f2) < C.CHORD_FIT) return null; const l = C.chordLead(c, me, ot); return l === null ? f1 >= f2 : l > 0; };
   const ra = memos[A].filter(c => call(c, A, B) === true).length / memos[A].length, rb = memos[B].filter(c => call(c, B, A) === true).length / memos[B].length;
   console.log(`${A}-${B}`.padEnd(6), `${Math.round(100 * ra)}% / ${Math.round(100 * rb)}%`); }
+}

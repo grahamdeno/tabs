@@ -209,9 +209,9 @@ lessons of the day (passes count loop passes), Apple Music play-along, Friends a
 Each step: one task per commit on `no-catch`, `eslint .` and `node tests/quick.mjs`, push the branch. No
 version bump except the booth's release (step 1a) and the last step. When something doesn't match the plan, stop and write it under Surprises.
 
-- [ ] 0 [Sonnet] **Branch and baseline.** Quick tests on `no-catch`; note anything already failing. Remove the
+- [x] 0 [Sonnet] **Branch and baseline.** Quick tests on `no-catch`; note anything already failing. Remove the
       stray `undefined/ly.png` (a screenshot saved with `$SHOT` unset).
-- [ ] 1a [Sonnet] **Build the Listening booth** (`booth.js`, in `SHELL`; opens from What I hear).
+- [x] 1a [Sonnet] **Build the Listening booth** (`booth.js`, in `SHELL`; opens from What I hear).
       - Pick what you'll play: **Chord** (one chord: the chords in your songs first, then any) or **Switch**
         (two chords). Remembered between visits: the guitar (a short name) and where the phone is (stand,
         table, hand).
@@ -224,12 +224,12 @@ version bump except the booth's release (step 1a) and the last step. When someth
         and called wrong. A note field for anything odd ("buzzed the B string").
       - The takes list: play back, delete, the count not yet sent. Takes live in IndexedDB `tabs-booth`.
       - **Send** (decision 7): creates the `booth` branch from `main` if it's missing, writes each take to
-        `booth/<date>/<chord-or-pair>-<n>.wav` and adds a line per take to `booth/takes.json` (kind, chords,
-        guitar, phone place, note, sample rate, app version, the engine's call at the time). Sent takes are
+        `booth/<date>/<chord-or-pair>-<id>.wav` with a `.json` label beside it (kind, chords, guitar, phone
+        place, note, sample rate, app version, the engine's call at the time). Sent takes are
         deleted from the phone. The key field sits on the booth page, stored like the AI key; a unit test
-        checks it never reaches a backup or share link. **Share** instead hands the WAVs and `takes.json` to
-        the share sheet.
-      - Tests: the WAV writer and `takes.json` lines (unit); the booth page with a fake mic and the GitHub
+        checks it never reaches a backup or share link. **Share** instead hands the WAVs and labels to the
+        share sheet.
+      - Tests: the WAV writer and the labels (unit); the booth page with a fake mic and the GitHub
         calls mocked with `page.route` (browser).
       - Release (decision 9): built on `no-catch` before any other step changes the app, so shipping it is
         bumping to 4.90.0, rebasing on `origin/main` and pushing the branch to `main` as it stands. Only on

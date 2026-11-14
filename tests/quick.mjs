@@ -26,6 +26,7 @@ const COVERS = {
   "findai.js": ["playnext", "getsong"],
   "aitools.js": ["app"],
   "tuner.js": ["app"],
+  "booth.js": ["booth"], "core/booth.js": ["booth"],
   "heads.js": ["app"],
   "fold.js": ["tips", "app", "settings", "app2"],
   "callout.js": ["app2", "gig"],

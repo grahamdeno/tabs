@@ -221,6 +221,7 @@ function learningCard() {
 export function renderSession(id) {
   stopLive();
   if (id === "hear") return whatIHear();
+  if (id === "booth") return import(`./booth.js?v=${VERSION}`).then(m => { if (location.hash === "#/practice/booth") m.renderBooth(); });
   if (id === "skills") return renderSkills();
   const hit = find(id);
   if (id === "neck") return renderNeck();
@@ -641,8 +642,9 @@ function whatIHear() {
       <div class="pk-strings" id="ph-strings" hidden></div>
       <p class="rd-bubble ph-say" id="pk-say" aria-live="polite">Tap Start, then pluck single strings, strum a chord, and stay quiet for a moment.</p>
     </section>
-    <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
+    <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button><button class="tb" id="ph-booth">Listening booth</button></div></div>`;
   $("back").onclick = () => go(backTo); bindTune();
+  $("ph-booth").onclick = () => go("#/practice/booth");
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const strings = () => {
     const box = $("ph-strings");

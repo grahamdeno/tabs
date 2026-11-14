@@ -1,6 +1,6 @@
 # Working on Tabs
 
-Louie: Learn Guitar (4.89.1; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
+Louie: Learn Guitar (4.90.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
 GitHub Pages from `main`. The README's Development section is the architecture
 map; docs/DATA.md describes every stored field. Read those before guessing.
 
@@ -84,6 +84,7 @@ The README describes each as it works today.
 | Opening night: the first leg that teaches by doing (the strip, the mic sheet, the Gig's hooks; the leg is drawn in `road.js`) | `opening.js` (steps: `OPENING`, `openingAdvance` in `core.js`) |
 | Play next, chord charts, Get the song | `findai.js` |
 | Tuner | `tuner.js` (+ `heads.js`) |
+| Listening booth (4.90.0): record labelled chords and switches, send them to the `booth` branch for tuning the hearing (`docs/NO-CATCH-PLAN.md`) | `booth.js` (numbers: `boothCall`, `boothSummary`, `wavBytes` in `core/booth.js`); measure takes with `tools/hearing/measure.mjs` |
 | Your profile (profile page, share card) | `profile.js` (numbers: `profileOf` in `core.js`) |
 | Language practice (German, Spanish, Russian) | `german.js` |
 | Rehearse (hub), the neck: lessons, chord string check, switch drill, What I hear | `practice.js` (ladder, grading and the listening numbers `HEAR` in `core.js`) |
