@@ -1783,103 +1783,6 @@ test("Chord recognition (4.46.0): a strum of the right chord fits it; another ch
   assert.equal(C.strumFit(null, "G"), null, "no notes, no verdict");
 });
 
-test("Chord Catch (4.54.0): the targets, the two open chords, two readings in a row, and a ringing chord that can't be caught twice", () => {
-  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
-  const [G, D, C_, Am] = ["G", "D", "C", "Am"].map(sp);
-  const seq = ["G", "G", "D", "C", "Am", "G"].map(name => ({ name }));
-  const t = C.catchTargets(seq);
-  assert.deepEqual(t.map(x => [x.name, x.first, x.last]), [["G", 0, 1], ["D", 2, 2], ["C", 3, 3], ["Am", 4, 4], ["G", 5, 5]], "a chord repeated in a row is one target");
-  assert.equal(C.targetAt(t, 1), 0); assert.equal(C.targetAt(t, 3), 2); assert.equal(C.targetAt(t, 9), -1);
-  const st = C.catchStart(t);
-  assert.deepEqual(C.catchOpen(st), [0, 1], "the chord you are on and the next");
-  const quick = C.catchStart(C.catchTargets(["D", "G"].map(name => ({ name }))));
-  assert.equal(C.catchHear(quick, D, { strong: 0.75 }), 0, "4.78.1: one clear reading is enough when the show asks for it");
-  const close = C.catchStart(t);
-  assert.equal(C.catchHear(close, G, { strong: 0.75 }), -1, "4.80.2: but not when another chord is near it (G and its relative Em)");
-  assert.equal(C.catchHear(close, G, { strong: 0.75 }), 0, "then two in a row");
-  assert.equal(C.catchHear(st, G), -1, "one reading is not enough");
-  assert.equal(C.catchHear(st, G), 0, "two in a row catch it");
-  assert.ok(st.caught[0]);
-  assert.equal(C.catchHear(st, G), -1, "the same chord still ringing is not caught again"); assert.equal(C.catchHear(st, G), -1);
-  assert.deepEqual(C.catchOpen(st), [1, 2], "4.79.0: G played, so the next two you haven't played: D and C");
-  C.catchAt(st, 2);
-  assert.deepEqual(C.catchOpen(st), [1, 2], "now D and C");
-  assert.equal(C.catchHear(st, Am), -1, "Am is not open"); assert.equal(C.catchHear(st, Am), -1);
-  assert.equal(C.catchHear(st, D), -1); assert.equal(C.catchHear(st, G), -1, "a reading that breaks the pair starts again");
-  assert.equal(C.catchHear(st, D), -1); assert.equal(C.catchHear(st, D), 1, "D caught");
-  /* A to B to A: the second A is caught only after the room stopped sounding like the first */
-  const st2 = C.catchStart(C.catchTargets(["G", "D", "G"].map(name => ({ name }))));
-  C.catchHear(st2, G); assert.equal(C.catchHear(st2, G), 0);
-  C.catchAt(st2, 1); C.catchHear(st2, D); assert.equal(C.catchHear(st2, D), 1);
-  assert.equal(C.catchHear(st2, null), -1, "silence clears the hold");
-  C.catchAt(st2, 2); C.catchHear(st2, G); assert.equal(C.catchHear(st2, G), 2);
-  /* playing the next chord early settles the one you were on as missed; a chord gone by is missed once */
-  const st3 = C.catchStart(C.catchTargets(["G", "D", "C"].map(name => ({ name }))));
-  C.catchHear(st3, D); assert.equal(C.catchHear(st3, D), 1, "D played while G is on is caught");
-  assert.deepEqual(C.catchClose(st3), { missed: [0], got: [] });
-  assert.deepEqual(C.catchClose(st3), { missed: [], got: [] }, "once each");
-  C.catchAt(st3, 2); assert.deepEqual(C.catchClose(st3), { missed: [], got: [] }, "D was caught");
-  C.catchAt(st3, 2);
-  const st4 = C.catchStart(C.catchTargets(["Zz", "G"].map(name => ({ name }))));
-  C.catchHear(st4, G); C.catchAt(st4, 1);
-  assert.deepEqual(C.catchClose(st4), { missed: [], got: [0] }, "a chord with no shape counts when something was heard through it");
-  const st5 = C.catchStart(C.catchTargets(["Zz", "G"].map(name => ({ name })))); C.catchAt(st5, 1);
-  assert.deepEqual(C.catchClose(st5), { missed: [0], got: [] }, "and is missed when nothing was");
-});
-
-test("4.79.0 Chord Catch: play ahead of the song in order, up to four chords past the reading line", () => {
-  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
-  const ch = Object.fromEntries(["Em", "C", "G", "D"].map(n => [n, sp(n)]));
-  const loop = ["Em", "C", "G", "D", "Em", "C", "G", "D"];
-  const st = C.catchStart(C.catchTargets(loop.map(name => ({ name }))));
-  const play = n => { C.catchHear(st, ch[n]); const r = C.catchHear(st, ch[n]); C.catchHear(st, null); return r; };
-  assert.equal(play("Em"), 0); assert.equal(play("C"), 1); assert.equal(play("G"), 2); assert.equal(play("D"), 3, "the reading line still on Em: four ahead, in order");
-  assert.equal(play("Em"), 4, "the fourth past the reading line");
-  assert.equal(play("C"), -1, "five past is too far");
-  C.catchAt(st, 1);
-  assert.equal(play("C"), 5, "the song moved on, so it opens");
-  const sk = C.catchStart(C.catchTargets(loop.map(name => ({ name }))));
-  C.catchHear(sk, ch.C); assert.equal(C.catchHear(sk, ch.C), 1, "skipping one chord catches the next");
-  assert.deepEqual(C.catchClose(sk), { missed: [0], got: [] }, "and the skipped one is missed");
-});
-
-test("4.80.0 Follow my tempo: the pace moves toward yours, gently, within a quarter of the song's own", () => {
-  assert.equal(C.tempoStep(1, 2.9, 2.9), 1, "on the page's pace, no change");
-  assert.equal(C.tempoStep(1, 2.9, 3.2), 0.97, "about 10% slower: down 3% this change (the most at once)");
-  let k = 1; for (let n = 0; n < 12; n++) k = C.tempoStep(k, 2.9 / k, 3.2); /* the page takes longer as it slows */
-  assert.ok(Math.abs(k - 2.9 / 3.2) < 0.01, `settles on your pace (${k})`);
-  assert.equal(C.tempoStep(1, 2.9, 2.85), 1.0088, "a small gap: half of it");
-  k = 1; for (let n = 0; n < 40; n++) k = C.tempoStep(k, 2.2 / k, 1.6);
-  assert.equal(k, C.FOLLOW.max, "never more than a quarter faster");
-  assert.equal(C.tempoStep(1, 2.9, 6.5), 1, "a gap twice as long is a missed catch, not a tempo");
-  assert.equal(C.tempoStep(1, 0.2, 0.3), 1, "too short to say");
-  assert.equal(C.followAhead(0.8), 0.83, "4.80.1: ahead of the page: a step faster");
-  assert.equal(C.followAhead(1.24), C.FOLLOW.max, "and no faster than a quarter over");
-});
-
-test("4.80.1 Chord Catch: one strum, one catch, so a ringing chord can't catch a later one that shares its notes", () => {
-  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
-  const [Em, C_, G] = ["Em", "C", "G"].map(sp);
-  const st = C.catchStart(C.catchTargets(["Em", "C", "G", "D", "Em", "C"].map(name => ({ name }))));
-  C.catchHear(st, Em, { on: 1, since: 0.1 }); assert.equal(C.catchHear(st, Em, { on: 1, since: 0.15 }), 0, "Em from its strum");
-  assert.equal(C.catchHear(st, G, { on: 1, since: 0.2 }), -1, "the same strum can't catch G"); assert.equal(C.catchHear(st, G, { on: 1, since: 0.25 }), -1);
-  C.catchHear(st, C_, { on: 2, since: 0.1 }); assert.equal(C.catchHear(st, C_, { on: 2, since: 0.15 }), 1, "a new strum catches C");
-  C.catchHear(st, C_, { on: 3, since: 1.2 }); assert.equal(C.catchHear(st, C_, { on: 3, since: 1.25 }), -1, "long after its strum, a ring is not a catch");
-  assert.equal(C.catchHear(st, Em, { on: 4, since: 0.1 }), -1); assert.equal(C.catchHear(st, Em, { on: 4, since: 0.15 }), -1, "the next Em is not open yet");
-  C.catchHear(st, G, { on: 5, since: 0.1 }); assert.equal(C.catchHear(st, G, { on: 5, since: 0.15 }), 2, "G with its own strum");
-});
-
-test("4.80.2 Chord Catch: a chord is caught only when no other chord of the song fits as well", () => {
-  const sp = name => C.chromaOf(specOf(hzsOf(name)), 44100, 16384);
-  const mix = (a, b, k) => sp(a).map((v, i) => v * (1 - k) + sp(b)[i] * k);
-  const st = C.catchStart(C.catchTargets(["Em", "C", "G", "D"].map(name => ({ name }))));
-  C.catchAt(st, 1); st.caught[0] = true;
-  const near = mix("C", "G", 0.5); /* sounds as much like G as like C */
-  assert.ok(Math.abs(C.strumFit(near, "G") - C.strumFit(near, "C")) < 0.2);
-  const pick = C.strumFit(near, "G") > C.strumFit(near, "C") ? 2 : 1;
-  C.catchHear(st, near); assert.equal(C.catchHear(st, near), pick, "the one that fits best, never the other");
-});
-
 test("4.81.1 a headline show counts with a chords-over-words sheet, not only an [Em] inline one", () => {
   const body = "[Verse]\nEm          C\nAnother head hangs lowly\nG      D\nChild is slowly taken";
   const known = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map(c => [c, { n: 9 }]));
@@ -1888,14 +1791,14 @@ test("4.81.1 a headline show counts with a chords-over-words sheet, not only an 
   assert.equal(k.song, "z"); assert.equal(k.state, "done");
 });
 
-test("4.82.1 Chord Catch: any chord can be caught next to any other, and is never taken for one that isn't it", () => {
+test("4.82.1 any chord is told from any other (4.91.0: the two-way call a Switch check makes), and never taken for one that isn't it", () => {
   /* chords that share notes: one inside another (Am and F inside Fmaj7, C inside Cmaj7 and Cadd9), and the same notes
      under two names (G and G/B). Before, the bigger chord always tied or won, so the smaller one could never be caught. */
   const roots = ["C", "D", "E", "F", "G", "A", "Bb"], kinds = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "add9", "6"];
   const names = roots.flatMap(r => kinds.map(k => r + k)).concat(["G/B", "C/E", "D/F#", "C/B", "Am/G"]).filter(n => C.chordShape(n) && C.chordNotes(n));
   const sp = Object.fromEntries(names.map(n => [n, C.chromaOf(specOf(hzsOf(n)), 44100, 16384)]));
   const same = (a, b) => [...C.chordNotes(a)].sort().join() === [...C.chordNotes(b)].sort().join();
-  const heard = (play, due, before) => { const st = C.catchStart(C.catchTargets([before, due].map(name => ({ name })))); st.caught[0] = true; C.catchAt(st, 1); C.catchHear(st, sp[play]); return C.catchHear(st, sp[play]) === 1; };
+  const heard = (play, due, before) => C.boothCall(sp[play], [due, before]).call === due;
   const missed = [], wrong = [];
   for (const a of names) for (const b of names) if (a !== b) {
     if (!heard(a, a, b)) missed.push(`${a} after ${b}`);
@@ -1907,6 +1810,16 @@ test("4.82.1 Chord Catch: any chord can be caught next to any other, and is neve
   const am = sp.Am, fm7 = sp.Fmaj7, mix = k => am.map((v, i) => v * (1 - k) + fm7[i] * k);
   assert.ok(C.chordLead(am, "Am", "Fmaj7") > 0, "a clean Am is Am"); assert.ok(C.chordLead(fm7, "Fmaj7", "Am") > 0, "a clean Fmaj7 is Fmaj7");
   assert.equal(C.chordLead(sp.G, "G", "G/B"), null, "G and G/B are one sound");
+});
+
+test("4.91.0 the song's changes: one per run of the same chord, each passed once as the reading line moves on", () => {
+  const st = C.catchStart(C.catchTargets(["G", "G", "C", "D", "D", "G"].map(name => ({ name }))));
+  assert.deepEqual(st.targets.map(t => [t.name, t.first, t.last]), [["G", 0, 1], ["C", 2, 2], ["D", 3, 4], ["G", 5, 5]]);
+  C.catchAt(st, 3);
+  assert.deepEqual(C.catchClose(st).missed, [0, 1], "G and C went by");
+  assert.deepEqual(C.catchClose(st).missed, [], "each once");
+  C.catchAt(st, 5);
+  assert.deepEqual(C.catchClose(st).missed, [2]);
 });
 
 test("4.91.0 the Gig without listening: changes played through, the run, the crowd, stars and stretch pay", () => {

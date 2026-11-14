@@ -220,7 +220,7 @@ inside another wins unless the bigger chord's extra notes carry `CHORD_EXTRA` (0
 are one sound. Clean chords: 634 pairs uncatchable and 163 wrong catches before, none after (164 chords). Graham's
 recordings with FM7, Cmaj7 and G/B in the song: 34 of 360 changes right before, 356 after. Still open: Em C G D
 missed G mostly after C, a separate cause. The audit and the plan for the hearing as a whole are in
-docs/HEARING-PLAN.md.
+docs/history/HEARING-PLAN.md.
 
 ## Surprises
 

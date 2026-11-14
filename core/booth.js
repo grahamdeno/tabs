@@ -27,7 +27,8 @@ export function boothCall(chroma, chords) {
   const [a, b] = chords, fa = strumFit(chroma, a) ?? 0, fb = strumFit(chroma, b) ?? 0;
   if (Math.max(fa, fb) < CHORD_FIT) return { call: null };
   const l = chordLead(chroma, a, b);
-  return { call: (l === null ? fa >= fb : l > 0) ? a : b };
+  /* the same notes under two names (C6 and Am7) are one sound: it's the first one, the chord you're asked for */
+  return { call: l === null || l > 0 ? a : b };
 }
 
 /* A take's readings, summed up. For a switch, a change counts when the call settles (3 readings in a row,

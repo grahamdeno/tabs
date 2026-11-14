@@ -4,14 +4,14 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chromium, base, phone, skip, LIB, FAKE_MIC, CHORD_PLAYER, useBrowser, settled } from "./harness.mjs";
+import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, settled } from "./harness.mjs";
 
 useBrowser();
 
 /* A page whose microphone plays the chord the song is on (4.54.0), with the library in place before the app starts.
    Seeding it before the first load (instead of replacing it after) means the app's own first
    save can't land on top of it, which is what made the scored Gig test flaky on a busy machine. */
-async function strummingPage(t, lib, hash, { strum = true } = {}) {
+async function strummingPage(t, lib, hash) {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
   const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
@@ -21,7 +21,6 @@ async function strummingPage(t, lib, hash, { strum = true } = {}) {
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   t.after(() => assert.deepEqual(errors, [], "page errors"));
   await page.goto(base + hash); await page.waitForSelector("#play"); await settled(page);
-  if (strum) await page.evaluate(CHORD_PLAYER); /* 4.54.0: plays the chord the song is waiting for */
   return page;
 }
 const SHORT = { id: "g", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 16,

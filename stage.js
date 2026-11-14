@@ -1,9 +1,9 @@
 // The stage (4.51.0): the show drawn on the song page itself, not on a copy of it. The line you're on sits on
 // a band in the section's colour, edge to edge; lines ahead stay readable and lines behind fade. The chord
-// you're on is the one you are asked to play. Chord Catch (4.54.0): a chord you played turns green and stays
-// green (stageCatch); one that went by unplayed stays plain. A chord played again in a row shows once.
+// you're on is the one you are asked to play. A chord played again in a row shows once. (4.91.0: nothing is
+// marked green or missed; songs don't listen.)
 // Behind the words, a quiet stage light in the section's colour that fades out above the band.
-// The Gig (gig.js) adds the score, the crowd and its controls on top. A song played unscored (practicing, a
+// The Gig (gig.js) adds the run, the crowd and Pause on top. A song played plain (practicing, a
 // tab, Play together) gets the same stage with nothing on top (4.52.0): stagePlay and stageStop, from app.js.
 import { gelOf } from "./core.js";
 import { louie } from "./louie.js";
@@ -72,8 +72,8 @@ export function where(song) {
 }
 
 /* ---- drawing on the sheet ---- */
-const st = { b: -2, on: -1, seq: null, got: new Set(), miss: new Set(), wait: -1 };
-const MARKS = ["st-past", "st-now", "st-next", "st-rep", "st-got", "st-pop", "st-miss", "st-wait", "st-on"];
+const st = { b: -2, on: -1, seq: null };
+const MARKS = ["st-past", "st-now", "st-next", "st-rep", "st-on"];
 
 export function stageStart() {
   stageClear();
@@ -90,32 +90,10 @@ export function stageClear() {
   $("st-open")?.remove();
   document.body.classList.remove("staged");
   delete document.body.dataset.gel;
-  Object.assign(st, { b: -2, on: -1, seq: null, got: new Set(), miss: new Set(), wait: -1 });
+  Object.assign(st, { b: -2, on: -1, seq: null });
 }
 /* the section's colour, for the band, the chords and the light */
 export function stageGel(gel) { if (document.body.dataset.gel !== gel) document.body.dataset.gel = gel; }
-
-/* Chord Catch (4.54.0): the song's chords you played stay green, the ones that went by unplayed go plain.
-   `places` are seq indices (every chord of a run, the first one pops). They are kept, so a redraw paints them again. */
-function paintMarks() {
-  const seq = diag.seq || [];
-  seq.forEach((c, i) => { c.el.classList.toggle("st-got", st.got.has(i)); c.el.classList.toggle("st-miss", st.miss.has(i) && !st.got.has(i)); });
-}
-export function stageCatch(places) {
-  const seq = diag.seq || [];
-  for (const i of places) { st.got.add(i); st.miss.delete(i); }
-  paintMarks();
-  const first = seq[places[0]]?.el;
-  if (first) { first.classList.remove("st-pop"); void first.offsetWidth; first.classList.add("st-pop"); setTimeout(() => first.classList.remove("st-pop"), 700); }
-}
-export function stageMiss(places) { for (const i of places) if (!st.got.has(i)) st.miss.add(i); paintMarks(); }
-/* Wait for me (4.54.0): the chord the song is holding on, with a soft ring (-1: none) */
-export function stageWait(place) {
-  const seq = diag.seq || [];
-  if (st.wait >= 0) seq[st.wait]?.el.classList.remove("st-wait");
-  st.wait = place;
-  if (place >= 0) seq[place]?.el.classList.add("st-wait");
-}
 
 /* the band and the lines around it */
 export function stagePaint(w) {
@@ -125,10 +103,8 @@ export function stagePaint(w) {
     st.seq = diag.seq; st.b = -2; st.on = -1;
     const seq = diag.seq || [];
     seq.forEach((c, i) => c.el.classList.toggle("st-rep", i > 0 && seq[i - 1].name === c.name));
-    paintMarks();
-    if (st.wait >= 0) seq[st.wait]?.el.classList.add("st-wait");
   }
-  /* the chord you're on: not drawn, but marked, for the catch and for tests */
+  /* the chord you're on: not drawn, but marked, for tests */
   if (w.from !== st.on) { const seq = diag.seq || []; seq[st.on]?.el.classList.remove("st-on"); st.on = w.from; seq[w.from]?.el.classList.add("st-on"); }
   if (w.b !== st.b) {
     st.b = w.b;

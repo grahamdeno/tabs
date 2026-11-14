@@ -2,7 +2,7 @@
 // Re-exported from core.js, so other files import it from there.
 import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, profileOf, shapeSteps, songChanges, streakOf } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
-import { CHORD_FIT, chordLeadOver, chordNotes, strumFit, skillState } from "./neck.js";
+import { skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
 
 // ---------- The Road (4.0.0): the neck's ladder laid out as a path ----------
@@ -993,75 +993,20 @@ export function relativeOf(name) {
   if (root < 0) return "";
   return m[2] ? SHARP[(root + 3) % 12] : SHARP[(root + 9) % 12] + "m";
 }
-/* A catch in progress. The phone only asks about the chord you are on and the next one, so a chord still ringing
-   from the last change can't be mistaken for the one two on. */
+/* The song's changes in progress: the one the reading line is on, and which have gone by */
 export function catchStart(targets) {
   return { targets, cur: 0, caught: targets.map(() => false), closed: targets.map(() => false), heard: targets.map(() => false), cand: -1, n: 0, hold: null };
 }
 /* the chord you are on moved to song place `idx` */
 export function catchAt(st, idx) { const t = targetAt(st.targets, idx); if (t >= 0) st.cur = t; return st.cur; }
-/* targets that can be caught now: the next one you haven't played (from the one you are on), then the one after it,
-   up to CATCH_AHEAD past the reading line. 4.79.0: you can play ahead of the song, in order (Graham). */
-export const CATCH_AHEAD = 4, CATCH_AFTER = 0.8, CATCH_CLEAR = 0.2;
-export function catchOpen(st) {
-  let nx = st.cur;
-  while (nx < st.targets.length && (st.caught[nx] || st.closed[nx])) nx++;
-  return [nx, nx + 1].filter(i => i < st.targets.length && i <= st.cur + CATCH_AHEAD && !st.caught[i] && !st.closed[i]);
-}
-/* One reading of the room (a chroma from `chromaOf`, or null for silence). Two readings in a row that fit the same
-   open target catch it, or one with a fit of `opt.strong` and up (4.78.1; `opt.need` changes the two). Returns the target caught, or -1. A chord just caught can't be caught again until the room
-   stops sounding like it (a ringing chord), so A to B to A counts the second A only when you play it again. */
-export function catchHear(st, chroma, opt = {}) {
-  const need = opt.need ?? 2, strong = opt.strong ?? 2;
-  /* 4.80.1: one strum, one catch. With strums counted (opt.on, the strum's number, and opt.since, seconds since it),
-     a chord is caught only in the moment after a strum it hasn't already been caught from, so the ring of a chord
-     can't catch a later chord that shares its notes (Em's ring catching G; strumming C again catching the next Em). */
-  const fresh = opt.on == null || (opt.on !== st.lastOn && opt.since <= CATCH_AFTER);
-  if (!chroma) { st.cand = -1; st.n = 0; st.hold = null; return -1; }
-  for (const i of [st.cur, st.cur + 1]) if (i < st.targets.length) st.heard[i] = true;
-  if (st.hold && (strumFit(chroma, st.hold) ?? 0) < CHORD_FIT) st.hold = null;
-  let best = -1, fit = CHORD_FIT, margin = 0;
-  for (const i of catchOpen(st)) {
-    const name = st.targets[i].name;
-    if (name === st.hold) continue;
-    const f = strumFit(chroma, name);
-    if (f === null || f < CHORD_FIT || (best >= 0 && f <= fit)) continue; /* a tie goes to the chord due first */
-    /* 4.80.2: no other chord of the song, nor this chord's relative, may sound as much like it.
-       4.82.1: judged on the notes that tell two chords apart (chordLead), so a chord inside another (Am in FM7)
-       or one with the same notes (G and G/B) can still be caught */
-    const { lead } = chordLeadOver(chroma, name, [relativeOf(name), ...new Set(st.targets.map(t => t.name))]);
-    if (lead > 0) { best = i; fit = f; margin = lead; }
-  }
-  if (best < 0 || !fresh) { st.cand = -1; st.n = 0; return -1; }
-  st.n = best === st.cand ? st.n + 1 : 1; st.cand = best;
-  /* one reading is enough only when it is clear and well ahead of every other chord; else two in a row */
-  if (st.n < need && (fit < strong || margin < CATCH_CLEAR)) return -1;
-  st.caught[best] = true; st.hold = st.targets[best].name; st.cand = -1; st.n = 0; st.lastOn = opt.on;
-  return best;
-}
-/* Follow my tempo (4.80.0): the page and the band follow the player. Between two chords caught in a row, `expected`
-   is how long the page would take from one to the other at its pace now, `actual` how long you took. The pace
-   moves toward yours by half the gap, at most 3% a change, and stays within a quarter of the song's own; a gap
-   too far off (a missed or late catch) is not a tempo and is left out. `k` is the pace, 1 for the song's own. */
-export const FOLLOW = { min: 0.75, max: 1.25, step: 0.03, blend: 0.5 };
-export function tempoStep(k, expected, actual) {
-  if (!(expected > 0.4) || !(actual > 0.4)) return k;
-  const r = expected / actual;
-  if (r < 0.6 || r > 1.6) return k;
-  const want = Math.min(FOLLOW.max, Math.max(FOLLOW.min, k * r));
-  return +(k + Math.max(-FOLLOW.step, Math.min(FOLLOW.step, (want - k) * FOLLOW.blend))).toFixed(4);
-}
-/* you are two or more chords ahead of the page: one step faster (4.80.1) */
-export const followAhead = k => +Math.min(FOLLOW.max, k + FOLLOW.step).toFixed(4);
-/* Targets whose time has gone by, settled once each: `missed` for the ones you didn't play, `got` for a chord with
-   no shape to listen for that something was heard through (a quiet room never costs a chord). A target is gone by
-   once the chord after it has begun, or a later one was caught. */
+/* Targets the song has carried past: once the chord after it has begun. Each is returned once, in `missed`
+   (the name is from Chord Catch; 4.91.0 counts them as played through when the song was playing). */
 export function catchClose(st) {
-  const limit = Math.max(st.cur, st.caught.lastIndexOf(true)), out = { missed: [], got: [] };
-  for (let i = 0; i < limit; i++) {
-    if (st.caught[i] || st.closed[i]) continue;
+  const out = { missed: [], got: [] };
+  for (let i = 0; i < st.cur; i++) {
+    if (st.closed[i]) continue;
     st.closed[i] = true;
-    if (!chordNotes(st.targets[i].name) && st.heard[i]) { st.caught[i] = true; out.got.push(i); } else out.missed.push(i);
+    out.missed.push(i);
   }
   return out;
 }

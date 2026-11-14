@@ -37,7 +37,7 @@ As two-chord pairs (only "A or B?"), every one of the 15 pairs was called right 
 A held chord gives about 20 readings a second, so judging on most readings over a second is far safer than
 one reading. The song case fails for reasons a check doesn't have: a clock to keep up with, the last chord
 still ringing, a choice among every chord in the song, soft partial strums, a capo, and eight gates tuned one
-report at a time (`docs/HEARING-PLAN.md`).
+report at a time (`docs/history/HEARING-PLAN.md`).
 
 The limits, said plainly: 12 memos, one guitar, one room, strummed cleanly, and the same memos the engine was
 tuned on. The booth (step 1) records more before anything is built on it.
@@ -273,7 +273,7 @@ version bump except the booth's release (step 1a) and the last step. When someth
 - [ ] 10 [Sonnet] **Opening night.** The "mic" step becomes "Play an Em for me": Louie gives the reason, the
       phone asks, then a Chord check on Em. "Not now" skips it and the check waits on the Road. Opening night's
       catch wording goes. Update `opening.e2e.mjs`, Tips & gestures.
-- [ ] 11 [Sonnet] **Delete what nothing calls.** `catchHear`, `catchOpen`, `CATCH_*`, `relativeOf` if unused,
+- [x] 11 [Sonnet] **Delete what nothing calls.** (on `no-catch`, ships with the next release; `relativeOf` stays for What I hear) `catchHear`, `catchOpen`, `CATCH_*`, `relativeOf` if unused,
       `gigPct`, the old crowd and combo code, `data.gig.best` writes, their export names and unit tests.
       `grep` each name before the commit.
 - [ ] 12 [Sonnet] **Saves and backups.** Cleaners per risk 3, fixture backup test, `docs/DATA.md`.

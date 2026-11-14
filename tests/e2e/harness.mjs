@@ -114,14 +114,6 @@ navigator.mediaDevices.getUserMedia = async () => {
   }, 20);
   return dest.stream;
 };`;
-/* Plays, in the page, the chord the song is on (4.54.0): the chord you're on, or the next one if it is already caught */
-export const CHORD_PLAYER = `
-setInterval(async () => {
-  const C = await import("/core.js");
-  const all = [...document.querySelectorAll("#sheet .c[data-ch]:not(.st-rep)")], i0 = Math.max(0, all.findIndex(e => e.classList.contains("st-on")));
-  const el = all.slice(i0).find(e => !/st-got|st-miss/.test(e.className));
-  window.__chord = el ? C.chordTargets(el.dataset.ch).filter(t => t.hz > 0).map(t => t.hz) : [];
-}, 100);`;
 
 
 /* After a screen change the browser's view transition (a short cross-fade) holds taps off the new screen until it ends. */

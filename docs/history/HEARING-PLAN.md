@@ -1,5 +1,7 @@
 # Hearing the chord (audit and plan)
 
+> Retired in 4.91.0: songs stopped listening for chords (catching them in a moving song never got reliable enough to score on). Listening for chords lives on only in the Listening booth and, from the plan, the Chord check and Switch check. See `docs/NO-CATCH-PLAN.md`.
+
 Written by Opus, 2026-10-29, after the hearing conversation (4.76.0 to 4.82.1). An audit of how the Gig catches
 a chord, then a plan. Nothing here is built yet; one release when Graham says ship, unless he splits it.
 
