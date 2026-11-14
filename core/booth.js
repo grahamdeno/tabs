@@ -112,9 +112,13 @@ export const BOOTH_SWITCHES = [["G", "C"], ["C", "Am"], ["Em", "G"], ["D", "A"],
 export const BOOTH_SECS = { chord: 10, switch: 30 };
 export const BOOTH_THUMB = ["Am", "C", "G"];
 export const BOOTH_STRUMS = ["pick", "thumb"];
+/* 4.93.1 (Graham): grouped by setup, so the phone moves and the pick goes down once each: everything on the stand
+   with a pick, then the table, then the thumb. The ids stay the same, so takes already kept stay kept. */
+const chordStep = (c, n) => ({ id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", strum: "pick", seconds: BOOTH_SECS.chord });
 export const BOOTH_PLAN = [
-  ...BOOTH_CHORDS.flatMap(c => [1, 2, 3].map(n => ({ id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", strum: "pick", seconds: BOOTH_SECS.chord }))),
+  ...BOOTH_CHORDS.flatMap(c => [chordStep(c, 1), chordStep(c, 2)]),
   ...BOOTH_SWITCHES.map(([a, b]) => ({ id: `s:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", strum: "pick", seconds: BOOTH_SECS.switch })),
+  ...BOOTH_CHORDS.map(c => chordStep(c, 3)),
   ...BOOTH_THUMB.map(c => ({ id: `t:${c}`, chords: [c], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.chord })),
   { id: "ts:G-C", chords: ["G", "C"], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.switch }
 ];
@@ -136,9 +140,21 @@ export function boothVerdict(sum, chords) {
   if (sum.switches < 4) return { keep: false, maybe: true, say: `I only heard ${sum.switches} change${sum.switches === 1 ? "" : "s"}. Keep going back and forth for the whole 30 seconds. Try again?` };
   return { keep: true, say: `Got it. ${sum.switches} changes heard.` };
 }
+/* the setup a step needs: where the phone is and what you strum with (4.93.1: said on its own, in bold) */
+export const boothSetupKey = step => `${step.place}:${step.strum}`;
+export function boothSetup(step) {
+  const where = step.place === "table" ? "Phone flat on the table" : "Phone on its stand";
+  return `${where}, ${step.strum === "thumb" ? "thumb, no pick" : "with a pick"}`;
+}
+/* what changes from one setup to the next, as instructions (the first step says the whole setup) */
+export function boothChange(from, to) {
+  const out = [];
+  if (!from || from.place !== to.place) out.push(to.place === "table" ? "Lay the phone flat on a table or desk near you." : "Put the phone on its stand, where it sits when you play.");
+  if (!from || from.strum !== to.strum) out.push(to.strum === "thumb" ? "Put the pick down. Strum with your thumb from here on." : "Pick up your pick. Use it for these takes.");
+  return out;
+}
 /* the directions for a step, in plain words */
 export function boothSteps(step) {
-  const where = (step.place === "table" ? "Lay the phone flat on a table or desk near you." : "Put the phone where it sits when you play, on its stand.") + (step.strum === "thumb" ? " Put the pick down and strum with your thumb." : " Use your pick.");
-  if (step.chords.length === 1) return `${where} Hold ${step.chords[0]} and strum it every second or two, like you're playing a song. I'll count you in and stop by myself after ${step.seconds} seconds.`;
-  return `${where} Switch between ${step.chords[0]} and ${step.chords[1]}, back and forth, at your own pace: strum each one once or twice, then change. I'll count you in and stop after ${step.seconds} seconds.`;
+  if (step.chords.length === 1) return `Hold ${step.chords[0]} and strum it every second or two, like you're playing a song. I'll count you in and stop by myself after ${step.seconds} seconds.`;
+  return `Switch between ${step.chords[0]} and ${step.chords[1]}, back and forth, at your own pace: strum each one once or twice, then change. I'll count you in and stop after ${step.seconds} seconds.`;
 }

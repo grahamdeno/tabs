@@ -310,3 +310,7 @@ don't wait on them and can run while he records.
 - 4.92.0 (Graham, 2026-11-14): the booth guides the recording list itself (step 1b's list is `BOOTH_PLAN` in
   `core/booth.js`), with a count-in, a timed stop, Keep or Try again, background sending and resume, so Graham
   doesn't need the chat to record.
+- 2026-11-14, Graham's first run (4.93.0, Ibanez TCY10E-AVS): he missed the switch to thumb until the G chord, so
+  the takes labelled `t:Am` and `t:C` were played with a pick; measure them as pick. He also missed the stand to table
+  change a few times, so `place` on the table takes may be wrong. 4.93.1 groups the list by setup and gives each
+  change its own screen. His first sends were refused by GitHub (403); 4.93.1 shows GitHub's reason.

@@ -1712,7 +1712,9 @@ body.is-home .rd-song b { font-size: 26px; }
 .bt-fields { display: grid; gap: 10px; margin-top: 12px; }
 .bt-f { display: flex; align-items: center; gap: 10px; font: 600 13px var(--sans); color: var(--fg-2); }
 .bt-f > span { flex: none; width: 74px; }
-.bt-f input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--recess-edge); background: var(--recess); color: var(--fg); font: 500 15px var(--sans); }
+.bt-f input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--recess-edge); background: var(--recess); color: var(--fg); font: 500 16px var(--sans); } /* 16 px: smaller makes iOS zoom in on tap and stay zoomed */
+.bt-f { min-width: 0; }
+.bt-card, .bt-setup, .bt-sendline { overflow-wrap: anywhere; max-width: 100%; }
 .bt-takes { margin-bottom: 12px; }
 .bt-take { display: flex; align-items: center; gap: 10px; padding: 8px 10px; }
 .bt-take + .bt-take { border-top: 1px solid var(--hair); }
@@ -1732,8 +1734,12 @@ body.is-home .rd-song b { font-size: 26px; }
 .bt-card .bt-big { margin: 6px 0 2px; font: 700 34px/1.1 var(--display, var(--sans)); text-transform: none; letter-spacing: 0; color: var(--fg); }
 .bt-lane[hidden] { display: none; }
 .bt-sub { margin: 0 0 8px; color: var(--fg-2); font-size: 14px; }
-.bt-strum { color: var(--fg); }
-.bt-strum.thumb { color: var(--accent-ink); }
+.bt-setupline { display: inline-block; margin: 2px 0 8px; padding: 4px 12px; border-radius: 999px; background: var(--recess); font-size: 15px; }
+.bt-setupline b { color: var(--fg); }
+.bt-setupline.thumb, .bt-setupline.table { background: color-mix(in srgb, var(--accent, #ff3d7f) 18%, transparent); }
+.bt-setupline.thumb b, .bt-setupline.table b { color: var(--accent-ink); }
+.bt-todo { margin: 10px 0 12px; padding-left: 22px; text-align: left; font-size: 18px; line-height: 1.4; }
+.bt-todo li + li { margin-top: 8px; }
 .bt-shapes { display: flex; justify-content: center; gap: 18px; margin: 4px 0 10px; }
 .bt-shapes svg { max-height: 120px; }
 .bt-stage { min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }

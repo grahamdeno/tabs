@@ -69,9 +69,14 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   });
   await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
   await page.evaluate(() => { location.hash = "#/practice/booth"; });
-  await page.waitForSelector(".bt-card"); await settled(page);
-  assert.match(await page.innerText(".bt-card"), /Take 1 of 42[\s\S]*Am chord[\s\S]*With a pick · take 1 of 3 · phone on its stand[\s\S]*Use your pick\. Hold Am and strum it/i);
+  await page.waitForSelector(".bt-change"); await settled(page);
+  assert.match(await page.innerText(".bt-change"), /Set up[\s\S]*Put the phone on its stand[\s\S]*Pick up your pick[\s\S]*Then: Am chord/i, "4.93.1: the setup gets its own screen first");
+  await page.click("#bt-set"); await page.waitForSelector(".bt-shapes");
+  assert.match(await page.innerText(".bt-card"), /Take 1 of 42[\s\S]*Am chord[\s\S]*Phone on its stand, with a pick[\s\S]*Hold Am and strum it/i);
   assert.equal(await page.locator(".bt-shapes svg").count(), 1, "the chord's shape");
+  const wide = () => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  assert.ok(await wide() <= 0, "4.93.1: nothing wider than the screen");
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll(".bt-f input")].every(i => parseFloat(getComputedStyle(i).fontSize) >= 16)), "16 px or more, so iOS doesn't zoom in on tap");
   assert.match(await page.innerText("#bt-sendline"), /Everything you've kept is sent/);
   await page.evaluate(async () => { const C = await import("/core.js"); window.__chord = C.chordTargets("Am").filter(x => x.hz > 0).map(x => x.hz); });
   await page.click("#bt-start");
@@ -82,12 +87,20 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   assert.match(await page.innerText("#bt-keep"), /Keep it · next/i);
   await page.click("#bt-keep");
   await page.waitForFunction(() => /Take 2 of 42/i.test(document.querySelector(".bt-card")?.textContent));
-  assert.match(await page.innerText(".bt-card"), /Am chord[\s\S]*take 2 of 3/i);
+  assert.match(await page.innerText(".bt-card"), /Am chord/i, "the second stand take of Am");
+  assert.equal(await page.locator(".bt-change").count(), 0, "same setup: no change screen");
   await page.waitForFunction(() => /Everything you've kept is in the repo/.test(document.getElementById("bt-sendline").textContent));
   assert.equal(puts.length, 2, "the take and its label went up in the background");
   /* Skip, then come back later: it picks up where you stopped */
   await page.click("#bt-skip"); await page.waitForFunction(() => /Take 3 of 42/i.test(document.querySelector(".bt-card")?.textContent));
   await page.evaluate(() => { location.hash = "#/practice/hear"; }); await page.waitForSelector("#ph-booth"); await settled(page);
   await page.click("#ph-booth"); await page.waitForSelector(".bt-card");
-  assert.match(await page.innerText(".bt-card"), /Take 3 of 42[\s\S]*phone on the table/i);
+  assert.match(await page.innerText(".bt-card"), /Take 3 of 42[\s\S]*C chord/i, "back where you stopped, the stand takes of every chord first");
+  /* jump to the first table take: the change gets its own screen, in bold */
+  await page.evaluate(async () => { const C = await import("/core.js"); const p = JSON.parse(localStorage.getItem("tabs.booth.v1")); p.done = C.BOOTH_PLAN.filter(s => s.place === "stand" && s.strum === "pick").map(s => s.id); localStorage.setItem("tabs.booth.v1", JSON.stringify(p)); });
+  await page.evaluate(() => { location.hash = "#/practice/hear"; }); await page.waitForSelector("#ph-booth"); await settled(page);
+  await page.click("#ph-booth"); await page.waitForSelector(".bt-change");
+  assert.match(await page.innerText(".bt-change b"), /Lay the phone flat on a table/);
+  assert.equal(await page.locator(".bt-change li").count(), 1, "only what changes");
+  await page.click("#bt-set"); await page.waitForSelector(".bt-setupline.table");
 });

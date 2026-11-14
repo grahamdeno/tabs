@@ -5,7 +5,7 @@
 // each kept take is sent in the background. It remembers where you stopped. "Record your own" is still there.
 // Opened from What I hear. Takes stay on this phone (IndexedDB "tabs-booth") until sent; never in backups.
 // The GitHub key is kept like the AI key: on this phone only.
-import { BOOTH_MAX, BOOTH_PLACES, BOOTH_PLAN, BOOTH_STRUMS, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
+import { BOOTH_MAX, BOOTH_PLACES, BOOTH_PLAN, BOOTH_STRUMS, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSetup, boothSetupKey, boothChange, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
 import { $, app, esc, getMic, haptic, icon, onLeave, sound, toast } from "./ui.js";
 import { chordSVG, data, go } from "./app.js";
 
@@ -125,7 +125,7 @@ function sendAll() {
   sending = (async () => {
     const list = await allTakes();
     if (!list.length) return { sent: 0 };
-    try { await sendTakes(list, key); return { sent: list.length }; }
+    try { await sendTakes(list, key, (i, n) => sendSay(`Sending ${i} of ${n}…`)); return { sent: list.length }; }
     catch (e) { return { sent: 0, error: e.message }; }
   })().finally(() => { sending = null; });
   return sending;
@@ -192,11 +192,27 @@ function guided() {
       return;
     }
     const what = s.chords.length === 1 ? `${s.chords[0]} chord` : `${s.chords[0]} to ${s.chords[1]}`;
+    /* 4.93.1: a change of setup (where the phone is, pick or thumb) gets its own screen, so it can't be missed */
+    const was = prefs().setup;
+    if (was !== boothSetupKey(s)) {
+      const [place, strum] = (was || "").split(":"), steps = boothChange(was ? { place, strum } : null, s);
+      body.innerHTML = `<section class="pf-card bt-card bt-change">
+        <div class="bt-prog"><i style="width:${Math.round(n.at / n.of * 100)}%"></i></div>
+        <p class="bt-step">Before take ${n.at + 1} of ${n.of}</p>
+        <p class="bt-big" role="heading" aria-level="2">${was ? "Change your setup" : "Set up"}</p>
+        <ol class="bt-todo">${steps.map(x => `<li><b>${esc(x)}</b></li>`).join("")}</ol>
+        <p class="bt-sub">Then: ${esc(what)}</p>
+      </section>`;
+      dock.innerHTML = `<button class="btn primary" id="bt-set">${was ? "Done, I've changed it" : "I'm set up"}</button>`;
+      $("bt-set").onclick = () => { savePrefs({ setup: boothSetupKey(s) }); show(); };
+      haptic(2);
+      return;
+    }
     body.innerHTML = `<section class="pf-card bt-card">
       <div class="bt-prog" role="progressbar" aria-label="Takes done" aria-valuemin="0" aria-valuemax="${n.of}" aria-valuenow="${n.at}"><i style="width:${Math.round(n.at / n.of * 100)}%"></i></div>
       <p class="bt-step">Take ${n.at + 1} of ${n.of}</p>
       <p class="bt-big" role="heading" aria-level="2">${esc(what)}</p>
-      <p class="bt-sub"><b class="bt-strum ${s.strum}">${s.strum === "thumb" ? "Thumb, no pick" : "With a pick"}</b> · ${s.chords.length === 1 && s.of > 1 ? `take ${s.take} of ${s.of} · ` : ""}phone ${s.place === "table" ? "on the table" : "on its stand"}</p>
+      <p class="bt-setupline ${s.strum} ${s.place}"><b>${esc(boothSetup(s))}</b></p>
       <div class="bt-shapes">${s.chords.map(c => chordSVG(c, 1.6) || "").join("")}</div>
       <div class="bt-stage" id="bt-stage"><p class="bt-dir" id="bt-dir">${esc(boothSteps(s))}</p></div>
       <canvas class="ph-lane bt-lane" id="bt-lane" aria-hidden="true" hidden></canvas>
@@ -367,33 +383,44 @@ function free() {
 }
 
 /* ---- sending: each take is a .wav and a .json on the booth branch; a sent take leaves the phone ---- */
-async function gh(path, key, opt = {}) {
+/* 4.93.1: when GitHub says no, say what it said and what we were doing, so the cause can be seen. A rate limit
+   (GitHub caps how fast files can be added) waits and tries again. */
+const wait = ms => new Promise(ok => setTimeout(ok, ms));
+async function gh(path, key, opt = {}, step = "talking to GitHub", tries = 2) {
   let r;
-  try { r = await fetch(`${API}${path}`, { ...opt, headers: { Authorization: `Bearer ${key}`, Accept: "application/vnd.github+json", ...(opt.body ? { "Content-Type": "application/json" } : {}) } }); }
+  try { r = await fetch(`${API}${path}`, { ...opt, headers: { Authorization: `Bearer ${key.trim()}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(opt.body ? { "Content-Type": "application/json" } : {}) } }); }
   catch { throw new Error("No connection. The takes are still here; they'll send when you're back online."); }
-  if (r.status === 401) throw new Error("GitHub refused the key. Check it under Sending setup.");
-  if (r.status === 403) throw new Error("The key can't write to the repo. It needs Contents: Read and write on grahamdeno/tabs.");
-  return r;
+  if (r.status !== 401 && r.status !== 403 && r.status !== 429) return r;
+  let msg = "";
+  try { msg = (await r.clone().json()).message || ""; } catch { /* not JSON */ }
+  const limited = r.status === 429 || /rate limit/i.test(msg) || r.headers.get("x-ratelimit-remaining") === "0";
+  if (limited && tries > 0) { await wait(Math.min(90, +(r.headers.get("retry-after") || 60)) * 1000); return gh(path, key, opt, step, tries - 1); }
+  const said = msg ? ` GitHub said: "${msg}"` : "";
+  if (r.status === 401) throw new Error(`GitHub refused the key (${step}).${said} Check the key under Sending setup.`);
+  if (limited) throw new Error(`GitHub asked to slow down (${step}).${said} The takes are still here; tap Send now in a few minutes.`);
+  throw new Error(`GitHub said no (${step}, ${r.status}).${said} The takes are still here.`);
 }
 export async function sendTakes(list, key, progress = () => {}) {
-  let r = await gh(`/git/ref/heads/${BRANCH}`, key);
+  let r = await gh(`/git/ref/heads/${BRANCH}`, key, {}, "looking for the booth branch");
   if (r.status === 404) {
-    const main = await gh("/git/ref/heads/main", key);
+    const main = await gh("/git/ref/heads/main", key, {}, "reading main");
     if (!main.ok) throw new Error("The key can't see the repo. It needs access to grahamdeno/tabs.");
     const sha = (await main.json()).object.sha;
-    r = await gh("/git/refs", key, { method: "POST", body: JSON.stringify({ ref: `refs/heads/${BRANCH}`, sha }) });
-    if (!r.ok) throw new Error("Couldn't make the booth branch. Try again.");
+    r = await gh("/git/refs", key, { method: "POST", body: JSON.stringify({ ref: `refs/heads/${BRANCH}`, sha }) }, "making the booth branch");
+    if (!r.ok) { let m = ""; try { m = (await r.json()).message || ""; } catch { /* not JSON */ } throw new Error(`Couldn't make the booth branch (${r.status}${m ? `: ${m}` : ""}). Try again.`); }
   } else if (!r.ok) throw new Error("The key can't see the repo. It needs access to grahamdeno/tabs.");
   let i = 0;
   for (const t of list) {
     progress(++i, list.length);
     const stem = boothPath(t), label = `${t.chords.join(" to ")}, ${Math.round(t.seconds)} s`;
     const wav = new Uint8Array(await t.wav.arrayBuffer());
-    const put = (path, content, what) => gh(`/contents/${path}`, key, { method: "PUT", body: JSON.stringify({ message: `Booth: ${label} (${what})`, content, branch: BRANCH }) });
+    const put = (path, content, what) => gh(`/contents/${path}`, key, { method: "PUT", body: JSON.stringify({ message: `Booth: ${label} (${what})`, content, branch: BRANCH }) }, `sending ${label}`);
+    const stopped = async x => { let m = ""; try { m = (await x.json()).message || ""; } catch { /* not JSON */ } return new Error(`Sending stopped at ${label} (${x.status}${m ? `: ${m}` : ""}). The rest are still here; try again.`); };
     const a = await put(`${stem}.wav`, toBase64(wav), "recording");
-    if (!a.ok && a.status !== 422) throw new Error(`Sending stopped at ${label}. The rest are still here; try again.`);
+    if (!a.ok && a.status !== 422) throw await stopped(a);
     const b = await put(`${stem}.json`, toBase64(new TextEncoder().encode(JSON.stringify(boothLabel(t), null, 1))), "label");
-    if (!b.ok && b.status !== 422) throw new Error(`Sending stopped at ${label}. The rest are still here; try again.`);
+    if (!b.ok && b.status !== 422) throw await stopped(b);
     await dropTake(t.id);
+    if (i < list.length) await wait(1500); /* GitHub caps how fast files can be added; a steady pace stays under it */
   }
 }

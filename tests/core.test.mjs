@@ -2743,13 +2743,17 @@ test("4.90.0 the Listening booth: calls, summary, files, and a real C and G hear
 test("4.92.0 the guided booth: the list, where you are, and keep or try again", () => {
   assert.equal(C.BOOTH_PLAN.length, 42, "with a pick: 11 chords x 3 takes and 5 switches; then 3 chords and a switch with the thumb");
   assert.deepEqual(C.BOOTH_PLAN.filter(s => s.strum === "thumb").map(s => s.id), ["t:Am", "t:C", "t:G", "ts:G-C"]);
-  assert.match(C.boothSteps(C.BOOTH_PLAN[38]), /strum with your thumb/); assert.match(C.boothSteps(C.BOOTH_PLAN[0]), /Use your pick/);
+  assert.deepEqual(C.boothChange({ place: "table", strum: "pick" }, C.BOOTH_PLAN[38]), ["Put the phone on its stand, where it sits when you play.", "Put the pick down. Strum with your thumb from here on."]);
+  assert.equal(C.boothSetup(C.BOOTH_PLAN[38]), "Phone on its stand, thumb, no pick");
+  /* 4.93.1: grouped by setup: the stand with a pick, then the table, then the thumb */
+  const keys = C.BOOTH_PLAN.map(C.boothSetupKey).filter((k, i, a) => k !== a[i - 1]);
+  assert.deepEqual(keys, ["stand:pick", "table:pick", "stand:thumb"]);
   assert.equal(new Set(C.BOOTH_PLAN.map(s => s.id)).size, 42, "every step has its own id");
   assert.ok(C.BOOTH_PLAN.every(s => s.chords.every(C.boothChord)), "the booth can judge every chord on the list");
   assert.deepEqual(C.BOOTH_PLAN.filter(s => s.chords[0] === "C" && s.chords.length === 1 && s.strum === "pick").map(s => s.place), ["stand", "stand", "table"]);
   let n = C.boothNext([]);
   assert.deepEqual([n.step.id, n.at, n.of, n.left], ["c:Am:1", 0, 42, 42]);
-  n = C.boothNext(["c:Am:1", "c:Am:3"]);
+  n = C.boothNext(["c:Am:1", "c:C:1"]);
   assert.deepEqual([n.step.id, n.left], ["c:Am:2", 40], "a skipped or missed step comes back first");
   assert.equal(C.boothNext(C.BOOTH_PLAN.map(s => s.id)).step, null, "all done");
   assert.equal(C.boothVerdict({ reads: 5, right: 5, wrong: 0, by: {} }, ["C"]).keep, false, "too quiet: try again");
@@ -2759,6 +2763,7 @@ test("4.92.0 the guided booth: the list, where you are, and keep or try again", 
   assert.match(odd.say, /I heard Am more than C/);
   assert.equal(C.boothVerdict({ reads: 300, per: { G: 150, C: 150 }, switches: 2 }, ["G", "C"]).keep, false, "a switch needs changes");
   assert.match(C.boothVerdict({ reads: 300, per: { G: 150, C: 150 }, switches: 12 }, ["G", "C"]).say, /12 changes/);
-  assert.match(C.boothSteps(C.BOOTH_PLAN[2]), /flat on a table[\s\S]*Hold Am[\s\S]*10 seconds/);
-  assert.match(C.boothSteps(C.BOOTH_PLAN[33]), /Switch between G and C[\s\S]*30 seconds/);
+  assert.match(C.boothSteps(C.BOOTH_PLAN[0]), /Hold Am[\s\S]*10 seconds/);
+  assert.match(C.boothSteps(C.BOOTH_PLAN[22]), /Switch between G and C[\s\S]*30 seconds/);
+  assert.equal(C.BOOTH_PLAN[27].place, "table");
 });
