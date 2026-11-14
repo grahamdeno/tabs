@@ -222,6 +222,7 @@ export function renderSession(id) {
   stopLive();
   if (id === "hear") return whatIHear();
   if (id === "booth") return import(`./booth.js?v=${VERSION}`).then(m => { if (location.hash === "#/practice/booth") m.renderBooth(); });
+  if (id.startsWith("join~")) return import(`./booth.js?v=${VERSION}`).then(m => m.joinBooth(id.slice(5))); /* 4.95.0: an invite link to the booth */
   if (id === "skills") return renderSkills();
   const hit = find(id);
   if (id === "neck") return renderNeck();

@@ -1772,6 +1772,9 @@ body.is-home .rd-song b { font-size: 26px; }
 .bt-verdict.redo > svg { color: #ff6b5a; }
 .bt-sendline { margin: 10px 2px; font-size: 13px; color: var(--fg-2); text-align: center; }
 .bt-sendline .tb { display: inline; padding: 0 4px; }
+.bt-srow { margin: 8px 0 2px; }
+.bt-keybox { margin-top: 10px; }
+.bt-keybox summary { font: 600 13px var(--sans); color: var(--fg-2); padding: 4px 0; }
 .pk-str { border: 0; background: none; padding: 2px 4px; border-radius: 8px; }
 .pk-str.cur small { color: var(--recess-on); }
 .pk-str.cur { box-shadow: inset 0 0 0 1px rgba(255,194,122,.45); }

@@ -2793,3 +2793,15 @@ test("4.94.0 the booth: More chords (harder ones and up the neck), and each guit
   const kept = C.boothState(JSON.parse(JSON.stringify(two)));
   assert.deepEqual([kept.guitar, kept.guitars, kept.done], [two.guitar, two.guitars, two.done], "kept through a save");
 });
+
+test("4.95.0 the booth server's invite link carries the address and code, and nothing else gets in", () => {
+  const v = { url: "https://tabs-booth.graham.workers.dev", code: "wagon wheel ü" };
+  const link = C.boothInvite(v, "https://grahamdeno.github.io/tabs/");
+  assert.match(link, /^https:\/\/grahamdeno\.github\.io\/tabs\/#\/practice\/join~[A-Za-z0-9_-]+$/);
+  assert.deepEqual(C.boothReadInvite(link.split("join~")[1]), v);
+  assert.equal(C.boothReadInvite("not-base64!!"), null);
+  assert.equal(C.boothReadInvite(btoa(JSON.stringify({ u: "https://evil.example", c: "x" }))), null, "only a workers.dev server");
+  assert.equal(C.boothReadInvite(btoa(JSON.stringify({ u: "https://a.workers.dev", c: "" }))), null, "a code is needed");
+  assert.equal(C.boothServerOk("https://tabs-booth.graham.workers.dev/"), true);
+  assert.equal(C.boothServerOk("http://evil.workers.dev"), false, "https only");
+});

@@ -25,7 +25,7 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
   assert.match(await page.innerText("#bt-send"), /Send 1/);
   /* Send without a key opens the setup (it's open already, with no key) */
   await page.click("#bt-send");
-  await page.waitForFunction(() => document.querySelector(".bt-setup")?.open && /GitHub key/.test(document.getElementById("bt-say").textContent));
+  await page.waitForFunction(() => document.querySelector(".bt-setup")?.open && /Set up sending first/.test(document.getElementById("bt-say").textContent));
   /* GitHub, pretend: no booth branch yet, so it's made from main, then the take and its label */
   const puts = [];
   let made = null;
@@ -37,6 +37,7 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
     if (m === "PUT") { puts.push({ u, auth: r.request().headers().authorization, body: JSON.parse(r.request().postData()) }); return r.fulfill({ status: 201, body: "{}" }); }
     return r.fulfill({ status: 500, body: "{}" });
   });
+  await page.click(".bt-keybox summary"); /* 4.95.0: the key is tucked under "Or send with a GitHub key" */
   await page.fill("#bt-key", "github_pat_test"); await page.dispatchEvent("#bt-key", "change"); /* a key sends what's waiting */
   await page.waitForFunction(() => /Everything you've kept is in the repo/.test(document.getElementById("bt-sendline")?.textContent));
   assert.deepEqual(made, { ref: "refs/heads/booth", sha: "abc123" });
@@ -123,4 +124,49 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   assert.match(await page.innerText(".bt-card"), /G chord, 3rd fret[\s\S]*G up the neck/i);
   assert.match(await page.innerText(".bt-shapes"), /3/, "the fret number beside the shape");
   await page.click('[data-list="main"]'); await page.waitForFunction(() => /Take 1 of 42/i.test(document.querySelector(".bt-card")?.textContent));
+});
+
+test("4.95.0 a friend opens an invite link: no key, takes go to the booth server with the code; Graham checks the server and invites", { skip: skip() }, async t => {
+  const page = await phone(t, LIB);
+  await page.addInitScript(FAKE_MIC);
+  const posts = [];
+  await page.route("https://tabs-booth.test.workers.dev/**", r => {
+    const u = r.request().url();
+    if (u.includes("/ping")) return r.fulfill({ status: u.includes("code=wagon") ? 200 : 401, contentType: "application/json", body: u.includes("code=wagon") ? '{"ok":true}' : '{"error":"That booth code isn\'t right."}' });
+    posts.push(JSON.parse(r.request().postData()));
+    return r.fulfill({ status: 201, contentType: "application/json", body: '{"ok":true}' });
+  });
+  await page.route("https://api.github.com/**", r => r.fulfill({ status: 500, body: "{}" }));
+  await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
+  const link = await page.evaluate(async () => { const C = await import("/core.js"); return C.boothInvite({ url: "https://tabs-booth.test.workers.dev", code: "wagon wheel" }, location.origin + location.pathname); });
+  await page.evaluate(l => { location.href = l; }, link);
+  await page.waitForSelector(".bt-guitars"); await settled(page);
+  assert.equal(await page.evaluate(() => location.hash), "#/practice/booth", "the invite opens the booth");
+  assert.equal(await page.evaluate(() => localStorage.getItem("tabs.boothkey.v1")), null, "no GitHub key on the friend's phone");
+  await page.fill("#bt-player", "Mike"); await page.fill("#bt-gnew", "Martin D-28"); await page.click("#bt-gadd");
+  await page.waitForSelector(".bt-change"); await page.click("#bt-set"); await page.waitForSelector("#bt-start");
+  await page.evaluate(async () => { const C = await import("/core.js"); window.__chord = C.chordTargets("Am").filter(x => x.hz > 0).map(x => x.hz); });
+  await page.click("#bt-start");
+  await page.waitForSelector(".bt-verdict", { timeout: 30000 });
+  await page.click("#bt-keep");
+  await page.waitForFunction(() => /Everything you've kept is in the repo/.test(document.getElementById("bt-sendline").textContent), null, { timeout: 15000 });
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].code, "wagon wheel");
+  assert.match(posts[0].path, /^booth\/\d{4}-\d\d-\d\d\/Am-[a-z0-9]{6}$/);
+  assert.equal(Buffer.from(posts[0].wav, "base64").toString("ascii", 0, 4), "RIFF");
+  assert.deepEqual([posts[0].label.player, posts[0].label.guitar, posts[0].label.chords[0]], ["Mike", "Martin D-28", "Am"]);
+  assert.ok(!JSON.stringify(posts[0]).includes("github_pat"), "no key in what's sent");
+  /* Graham's side: a wrong code is caught, a right one is kept, then Invite a friend */
+  await page.evaluate(() => localStorage.removeItem("tabs.boothserver.v1"));
+  await page.evaluate(() => { location.hash = "#/practice/hear"; }); await page.waitForSelector("#ph-booth"); await settled(page);
+  await page.click("#ph-booth"); await page.waitForSelector("#bt-surl");
+  assert.equal(await page.locator("#bt-invite").count(), 0, "no invite until the server is set");
+  await page.fill("#bt-surl", "https://tabs-booth.test.workers.dev"); await page.fill("#bt-scode", "nope"); await page.click("#bt-scheck");
+  await page.waitForFunction(() => /isn't right/.test(document.getElementById("bt-sstate").textContent));
+  await page.fill("#bt-scode", "wagon wheel"); await page.click("#bt-scheck");
+  await page.waitForSelector("#bt-invite");
+  await page.evaluate(() => { navigator.share = undefined; navigator.clipboard.writeText = async t => { window.__copied = t; }; });
+  await page.click("#bt-invite");
+  await page.waitForFunction(() => /#\/practice\/join~/.test(window.__copied || ""));
+  assert.match(await page.evaluate(() => window.__copied), /Help me teach my guitar app[\s\S]*#\/practice\/join~/);
 });

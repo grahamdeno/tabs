@@ -210,3 +210,16 @@ export function boothGuitar(state, g) {
 }
 /* the setup line for an electric: how it's being heard */
 export const boothAmpLine = g => g?.body === "electric" ? (g.amp === "clean amp" ? "Electric through a clean amp, no distortion, no effects." : "Electric, unplugged.") : "";
+
+/* ---- the booth server (4.95.0): its address, and the invite link that carries it and the booth code ---- */
+export const boothServerOk = u => /^https:\/\/[a-z0-9.-]+\.workers\.dev\/?$/i.test(u || "") || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(u || "");
+export function boothInvite(v, base) {
+  const t = btoa(unescape(encodeURIComponent(JSON.stringify({ u: v.url, c: v.code })))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${base}#/practice/join~${t}`;
+}
+export function boothReadInvite(t) {
+  try {
+    const v = JSON.parse(decodeURIComponent(escape(atob(String(t).replace(/-/g, "+").replace(/_/g, "/")))));
+    return boothServerOk(v.u) && typeof v.c === "string" && v.c && v.c.length <= 60 ? { url: v.u.replace(/\/$/, ""), code: v.c } : null;
+  } catch { return null; }
+}

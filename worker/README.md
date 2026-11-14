@@ -37,3 +37,23 @@ Then in The Road, open Settings, **Apple Music**, turn it on, paste `https://tab
 - **Previews (3.18.0):** `GET /preview?u=<url>` passes one of Apple's 30-second preview files to the app, so it can measure the recording's tempo, swing and key. Only `itunes.apple.com` and `mzstatic.com` addresses over https are fetched. The app tries the preview directly first; the Worker is only used if Apple's file can't be read from a web page. **Redeploy once** (`npx wrangler deploy`, or paste the file into Edit code) to add this route.
 - **Data kept:** none.
 - **Tests:** `node --test tests/worker.test.mjs` signs with a throwaway key made by the test.
+
+# The booth server (4.95.0)
+
+A second, separate Worker, `tabs-booth`, for the Listening booth. It takes a booth recording and its label from the app and writes them to the repo's `booth` branch with a GitHub key that lives only in the Worker, so friends can send takes without a key on their phone. They need the **booth code** instead, which comes inside the invite link (Listening booth, Sending setup, Invite a friend). It doesn't touch the MusicKit Worker.
+
+What it accepts: `POST /take` with `{ code, path, wav, label }` from the app's address only, with the right code, a name under `booth/` like the booth makes, a 16-bit mono WAV of 2 MB or less, and a label under 8 KB. `GET /ping?code=` answers 200 when the code is right (the app's Check button). Nothing is kept in the Worker.
+
+## Deploy (dashboard, no tools)
+
+1. A GitHub fine-grained key for the server: **only** `grahamdeno/tabs`, **Contents: Read and write**, nothing else.
+2. dash.cloudflare.com, **Workers & Pages**, **Create**, **Create Worker**, name it `tabs-booth`, **Deploy**.
+3. **Edit code**, replace everything with `booth.js`, **Deploy**.
+4. The Worker's **Settings**, **Variables and Secrets**: add secret `GITHUB_KEY` (the key from step 1) and secret `BOOTH_CODE` (a word or two to share with friends).
+5. In the app: Listening booth, Sending setup, paste the Worker's address (`https://tabs-booth.<name>.workers.dev`) and the booth code, **Check**.
+
+With Wrangler instead: `cd worker && npx wrangler deploy -c booth.toml`, then `npx wrangler secret put GITHUB_KEY -c booth.toml` and `npx wrangler secret put BOOTH_CODE -c booth.toml`.
+
+- **Changing the code:** set a new `BOOTH_CODE`; old invite links stop working (send new ones).
+- **The key expires:** make a new one and replace the `GITHUB_KEY` secret; nobody's phone changes.
+- **Tests:** `node --test tests/worker.test.mjs`.

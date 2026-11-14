@@ -1,0 +1,9 @@
+# Template for the Listening booth's upload server. Nothing is deployed from this repo automatically.
+# See worker/README.md ("The booth server").
+name = "tabs-booth"
+main = "booth.js"
+compatibility_date = "2026-10-01"
+
+# Two secrets, never in this file or in git:
+#   npx wrangler secret put GITHUB_KEY -c booth.toml    (a GitHub key that can only change grahamdeno/tabs: Contents read and write)
+#   npx wrangler secret put BOOTH_CODE -c booth.toml    (the word friends type, or get in the invite link)

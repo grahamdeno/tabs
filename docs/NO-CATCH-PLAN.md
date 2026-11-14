@@ -325,6 +325,9 @@ Switches in 30 seconds, counted the same way the phone did: G to C 24 and 25, C 
 
 ## Surprises
 
+- 4.95.0 (Graham): friends record too, through a booth server (`worker/booth.js`) that holds the GitHub key, with a
+  booth code in an invite link. Labels carry `player`. Measure by player as well as by guitar.
+
 - 2026-11-14 (Opus, running steps 0 to 5): Graham asked for the work in releases as seen best. So 4.90.0
   shipped the booth alone, and 4.91.0 ships steps 2 to 5 and the quest goal before the checks exist. Until
   step 8, a rival battle is "play the song start to finish at full speed without pausing" (won or lost on the

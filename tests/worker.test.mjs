@@ -69,3 +69,37 @@ test("the preview route passes along Apple's previews only", async () => {
   const r = await W.handle(new Request("https://w.example/preview?u=" + encodeURIComponent("https://evil.example/x"), { headers: { origin: "https://grahamdeno.github.io" } }), {});
   assert.equal(r.status, 400);
 });
+
+/* ---- the Listening booth's upload server (worker/booth.js, 4.95.0) ---- */
+const booth = await import("../worker/booth.js");
+const wavOf = (rate = 22050, n = 100) => { const b = Buffer.alloc(44 + n * 2); b.write("RIFF", 0); b.writeUInt32LE(36 + n * 2, 4); b.write("WAVE", 8); b.write("fmt ", 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write("data", 36); b.writeUInt32LE(n * 2, 40); return b; };
+const ENV = { GITHUB_KEY: "github_pat_server", BOOTH_CODE: "wagon wheel" };
+const take = (over = {}) => ({ code: "wagon wheel", path: "booth/2026-11-14/C-ab12cd", wav: wavOf().toString("base64"), label: { kind: "chord", chords: ["C"], player: "Mike" }, ...over });
+const post = (body, origin = ORIGIN) => new Request("https://booth.test/take", { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(body) });
+
+test("the booth server: only the app, only with the code, only booth recordings", async t => {
+  const calls = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (u, o = {}) => { calls.push({ u: String(u), m: o.method || "GET", auth: o.headers?.authorization, body: o.body ? JSON.parse(o.body) : null }); return new Response(JSON.stringify({ object: { sha: "s1" } }), { status: String(u).endsWith("/git/ref/heads/booth") && !calls.some(c => c.m === "POST") ? 404 : o.method === "PUT" || o.method === "POST" ? 201 : 200 }); };
+  t.after(() => { globalThis.fetch = realFetch; });
+  assert.equal((await booth.handle(post(take(), "https://evil.example"), ENV)).status, 403, "another site");
+  assert.equal((await booth.handle(post(take()), {})).status, 503, "not set up yet");
+  assert.equal((await booth.handle(post(take({ code: "wagon whee" })), ENV)).status, 401, "wrong code");
+  assert.equal((await booth.handle(post(take({ path: "app.js" })), ENV)).status, 400, "only booth/ names");
+  assert.equal((await booth.handle(post(take({ path: "booth/2026-11-14/../app-ab12cd" })), ENV)).status, 400);
+  assert.equal((await booth.handle(post(take({ wav: Buffer.from("<script>").toString("base64") })), ENV)).status, 400, "only WAVs");
+  assert.equal((await booth.handle(post(take({ wav: wavOf(96000).toString("base64") })), ENV)).status, 400, "only booth-like WAVs");
+  assert.equal(calls.length, 0, "nothing reached GitHub");
+  const pre = await booth.handle(new Request("https://booth.test/take", { method: "OPTIONS", headers: { origin: ORIGIN } }), ENV);
+  assert.equal(pre.status, 204); assert.equal(pre.headers.get("access-control-allow-origin"), ORIGIN);
+  assert.equal((await booth.handle(new Request("https://booth.test/ping?code=wagon%20wheel", { headers: { origin: ORIGIN } }), ENV)).status, 200);
+  assert.equal((await booth.handle(new Request("https://booth.test/ping?code=nope", { headers: { origin: ORIGIN } }), ENV)).status, 401);
+  const ok = await booth.handle(post(take()), ENV);
+  assert.equal(ok.status, 201);
+  assert.deepEqual(calls.map(c => `${c.m} ${c.u.replace("https://api.github.com/repos/grahamdeno/tabs", "")}`), ["GET /git/ref/heads/booth", "GET /git/ref/heads/main", "POST /git/refs", "PUT /contents/booth/2026-11-14/C-ab12cd.wav", "PUT /contents/booth/2026-11-14/C-ab12cd.json"]);
+  assert.ok(calls.every(c => c.auth === "Bearer github_pat_server"), "the server's own key");
+  assert.ok(calls.filter(c => c.m === "PUT").every(c => c.body.branch === "booth"));
+  assert.match(calls[3].body.message, /C by Mike/);
+  assert.deepEqual(JSON.parse(Buffer.from(calls[4].body.content, "base64")), { kind: "chord", chords: ["C"], player: "Mike" });
+  assert.equal(booth.sameCode("a", "a"), true); assert.equal(booth.sameCode("a", "ab"), false); assert.equal(booth.sameCode("", ""), false, "no code set means no way in");
+});

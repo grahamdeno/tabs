@@ -5,17 +5,31 @@
 // each kept take is sent in the background. It remembers where you stopped. "Record your own" is still there.
 // Opened from What I hear. Takes stay on this phone (IndexedDB "tabs-booth") until sent; never in backups.
 // The GitHub key is kept like the AI key: on this phone only.
-import { BOOTH_AMPS, BOOTH_BODIES, BOOTH_LISTS, BOOTH_MAX, BOOTH_PLACES, BOOTH_STRUMS, boothAmpLine, boothGuitar, boothState, voicingShape, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSetup, boothSetupKey, boothChange, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
+import { boothInvite, boothReadInvite, boothServerOk, BOOTH_AMPS, BOOTH_BODIES, BOOTH_LISTS, BOOTH_MAX, BOOTH_PLACES, BOOTH_STRUMS, boothAmpLine, boothGuitar, boothState, voicingShape, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSetup, boothSetupKey, boothChange, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
 import { $, app, esc, getMic, haptic, icon, onLeave, sound, toast } from "./ui.js";
 import { chordSVG, data, go } from "./app.js";
 
 export const BOOTH_KEY = "tabs.boothkey.v1"; /* the GitHub key (this repo only) */
+export const BOOTH_SERVER = "tabs.boothserver.v1"; /* 4.95.0: the booth server's address and code, from an invite link */
 const PREFS = "tabs.booth.v1"; /* the guitar's name, where the phone sits, and the guided steps done */
 const REPO = "grahamdeno/tabs", API = `https://api.github.com/repos/${REPO}`, BRANCH = "booth";
 const COMMON = ["G", "C", "D", "Em", "Am", "E", "A", "F", "Dm", "Cadd9", "Bm"];
 const COUNT = 3; /* the count-in, in seconds */
 
 const keyOf = () => { try { return localStorage.getItem(BOOTH_KEY) || ""; } catch { return ""; } };
+const serverOf = () => { try { const v = JSON.parse(localStorage.getItem(BOOTH_SERVER)); return v?.url && v?.code ? v : null; } catch { return null; } };
+const saveServer = v => { try { v ? localStorage.setItem(BOOTH_SERVER, JSON.stringify(v)) : localStorage.removeItem(BOOTH_SERVER); } catch { /* private mode */ } };
+/* a way to send: the booth server (an invite) or a GitHub key; the server comes first */
+const canSend = () => !!(serverOf() || keyOf());
+const okServer = boothServerOk, inviteLink = v => boothInvite(v, location.origin + location.pathname), readInvite = boothReadInvite;
+/* an invite link opened: keep the server and code, and open the booth */
+export function joinBooth(t) {
+  const v = readInvite(t);
+  if (v) saveServer(v);
+  history.replaceState(null, "", "#/practice/booth");
+  renderBooth("guided");
+  toast(v ? "You're set up to send takes. Thanks for helping!" : "That invite link didn't work. Ask for a new one.");
+}
 const prefs = () => { try { return boothState(JSON.parse(localStorage.getItem(PREFS))); } catch { return boothState({}); } };
 const guitarNow = () => { const p = prefs(); return p.guitars.find(g => g.name === p.guitar) || null; };
 const savePrefs = p => { try { localStorage.setItem(PREFS, JSON.stringify({ ...prefs(), ...p })); } catch { /* private mode */ } };
@@ -122,17 +136,19 @@ async function keepTake(chunks, type, seconds, chords, ctx, calls, meta) {
 let sending = null, sendSay = () => {}, afterSend = () => {};
 function sendAll() {
   if (sending) return sending;
-  const key = keyOf();
-  if (!key) return Promise.resolve({ sent: 0, error: "nokey" });
+  const key = keyOf(), server = serverOf();
+  if (!key && !server) return Promise.resolve({ sent: 0, error: "nokey" });
   sending = (async () => {
     const list = await allTakes();
     if (!list.length) return { sent: 0 };
-    try { await sendTakes(list, key, (i, n) => sendSay(`Sending ${i} of ${n}…`)); return { sent: list.length }; }
+    const progress = (i, n) => sendSay(`Sending ${i} of ${n}…`);
+    try { await (server ? sendViaServer(list, server, progress) : sendTakes(list, key, progress)); return { sent: list.length }; }
     catch (e) { return { sent: 0, error: e.message }; }
   })().finally(() => { sending = null; });
   return sending;
 }
 
+let keepSetup = false; /* reopen Sending setup after it was just changed */
 export function renderBooth(mode = prefs().mode || "guided") {
   stopRec(false);
   savePrefs({ mode });
@@ -142,14 +158,43 @@ export function renderBooth(mode = prefs().mode || "guided") {
     <div class="seg mini bt-mode" role="group" aria-label="How to record"><button data-mode="guided" class="${mode === "guided" ? "on" : ""}" aria-pressed="${mode === "guided"}">Guided</button><button data-mode="free" class="${mode === "free" ? "on" : ""}" aria-pressed="${mode === "free"}">Record your own</button></div>
     <div id="bt-body"></div>
     <p class="bt-sendline" id="bt-sendline" aria-live="polite"></p>
-    <details class="bt-setup" ${keyOf() ? "" : "open"}><summary>Sending setup</summary>
-      <p class="pf-since">Takes go to the app's GitHub repo, on the booth branch, as you go. It needs a GitHub key that can only change this repo. The key stays on this phone.</p>
-      <label class="bt-f"><span>GitHub key</span><input id="bt-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..." value="${esc(keyOf())}" aria-label="GitHub key"></label>
+    <details class="bt-setup" ${canSend() && !keepSetup ? "" : "open"}><summary>Sending setup</summary>
+      <p class="pf-since">Takes go to the app's booth server, which puts them where Claude can measure them. A friend gets set up by opening your invite link; nothing to type.</p>
+      <label class="bt-f"><span>Server</span><input id="bt-surl" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://tabs-booth….workers.dev" value="${esc(serverOf()?.url || "")}" aria-label="Booth server address"></label>
+      <label class="bt-f"><span>Booth code</span><input id="bt-scode" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="the word you were given" value="${esc(serverOf()?.code || "")}" aria-label="Booth code"></label>
+      <div class="ph-row bt-srow"><button class="tb" id="bt-scheck">Check</button>${serverOf() ? `<button class="tb" id="bt-invite">Invite a friend</button>` : ""}</div>
+      <p class="bt-sub" id="bt-sstate" aria-live="polite"></p>
+      <details class="bt-keybox"><summary>Or send with a GitHub key</summary>
+        <label class="bt-f"><span>GitHub key</span><input id="bt-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..." value="${esc(keyOf())}" aria-label="GitHub key"></label>
+      </details>
     </details>
     <div class="bt-pad" aria-hidden="true"></div>
     <div class="s-dock" id="bt-dock"></div>`;
   $("back").onclick = () => go("#/practice/hear");
   app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (!rec) renderBooth(b.dataset.mode); });
+  const setServer = async () => {
+    const url = $("bt-surl").value.trim().replace(/\/$/, ""), code = $("bt-scode").value.trim(), st = $("bt-sstate");
+    if (!url && !code) { saveServer(null); st.textContent = ""; keepSetup = true; renderBooth(mode); keepSetup = false; return; }
+    if (!okServer(url)) { st.textContent = "That address should look like https://tabs-booth.yourname.workers.dev"; return; }
+    if (!code) { st.textContent = "Add the booth code too."; return; }
+    st.textContent = "Checking…";
+    let r = null;
+    try { r = await fetch(`${url}/ping?code=${encodeURIComponent(code)}`); } catch { /* offline or wrong address */ }
+    if (!r) { st.textContent = "Couldn't reach the server. Check the address and your connection."; return; }
+    if (r.status === 401) { st.textContent = "The server says that booth code isn't right."; return; }
+    if (!r.ok) { let m = ""; try { m = (await r.json()).error || ""; } catch { /* not JSON */ } st.textContent = m || `The server answered ${r.status}.`; return; }
+    saveServer({ url, code });
+    keepSetup = true; renderBooth(mode); keepSetup = false;
+    toast("The booth server is set. Takes send there now.");
+    paintSend(true);
+  };
+  $("bt-scheck").onclick = setServer;
+  $("bt-invite")?.addEventListener("click", async () => {
+    const link = inviteLink(serverOf());
+    const text = `Help me teach my guitar app to hear chords. Open this on your phone, tap Allow for the microphone, and follow the steps. It takes about 20 minutes per guitar.\n${link}`;
+    try { if (navigator.share) { await navigator.share({ title: "Listening booth", text }); return; } } catch { return; /* cancelled */ }
+    try { await navigator.clipboard.writeText(text); toast("Invite copied. Paste it in a message to your friend."); } catch { toast(link); }
+  });
   $("bt-key").onchange = e => { try { e.target.value.trim() ? localStorage.setItem(BOOTH_KEY, e.target.value.trim()) : localStorage.removeItem(BOOTH_KEY); } catch { /* private mode */ } paintSend(true); };
   sendSay = t => { const e = $("bt-sendline"); if (e) e.innerHTML = t; };
   afterSend = () => {};
@@ -160,9 +205,9 @@ export function renderBooth(mode = prefs().mode || "guided") {
 /* the line under the session: what's sent and what's waiting, with Send now when something is stuck */
 async function paintSend(tryNow) {
   const left = (await allTakes()).length;
-  if (tryNow && left && keyOf()) { sendSay(`Sending ${left}…`); const r = await sendAll(); return paintAfter(r); }
-  if (!left) return sendSay(keyOf() ? "Everything you've kept is sent." : "Add your GitHub key under Sending setup, and takes send as you go.");
-  sendSay(keyOf() ? `${left} take${left === 1 ? "" : "s"} waiting to send. <button class="tb" id="bt-sendnow">Send now</button>` : `${left} take${left === 1 ? "" : "s"} kept on this phone. Add your GitHub key under Sending setup to send them.`);
+  if (tryNow && left && canSend()) { sendSay(`Sending ${left}…`); const r = await sendAll(); return paintAfter(r); }
+  if (!left) return sendSay(canSend() ? "Everything you've kept is sent." : "Open the invite link you were sent, or set up sending below, and takes send as you go.");
+  sendSay(canSend() ? `${left} take${left === 1 ? "" : "s"} waiting to send. <button class="tb" id="bt-sendnow">Send now</button>` : `${left} take${left === 1 ? "" : "s"} kept on this phone. Open the invite link you were sent, or set up sending below, to send them.`);
   $("bt-sendnow")?.addEventListener("click", () => paintSend(true));
 }
 async function paintAfter(r) {
@@ -173,7 +218,7 @@ async function paintAfter(r) {
   $("bt-sendnow")?.addEventListener("click", () => paintSend(true));
 }
 async function sendQuietly() {
-  if (!keyOf()) return paintSend(false);
+  if (!canSend()) return paintSend(false);
   sendSay("Sending…");
   paintAfter(await sendAll());
 }
@@ -416,7 +461,7 @@ function free() {
     if (!quiet) paintSend(false);
   }
   $("bt-send").onclick = async () => {
-    if (!keyOf()) { app.querySelector(".bt-setup")?.setAttribute("open", ""); say("Add the GitHub key under Sending setup first."); return; }
+    if (!canSend()) { app.querySelector(".bt-setup")?.setAttribute("open", ""); say("Set up sending first: open the invite link you were sent, or fill in Sending setup."); return; }
     const list = await allTakes();
     $("bt-send").disabled = true; say(`Sending ${list.length} take${list.length === 1 ? "" : "s"}…`);
     const r = await sendAll();
@@ -476,5 +521,22 @@ export async function sendTakes(list, key, progress = () => {}) {
     if (!b.ok && b.status !== 422) throw await stopped(b);
     await dropTake(t.id);
     if (i < list.length) await wait(1500); /* GitHub caps how fast files can be added; a steady pace stays under it */
+  }
+}
+
+/* 4.95.0: through the booth server, which holds the GitHub key; this phone sends only the booth code */
+export async function sendViaServer(list, server, progress = () => {}) {
+  let i = 0;
+  for (const t of list) {
+    progress(++i, list.length);
+    const label = `${t.chords.join(" to ")}, ${Math.round(t.seconds)} s`;
+    const body = JSON.stringify({ code: server.code, path: boothPath(t), wav: toBase64(new Uint8Array(await t.wav.arrayBuffer())), label: boothLabel(t) });
+    let r;
+    try { r = await fetch(`${server.url}/take`, { method: "POST", headers: { "Content-Type": "application/json" }, body }); }
+    catch { throw new Error("No connection to the booth server. The takes are still here; they'll send when you're back online."); }
+    if (r.status === 401) throw new Error("The booth server says the booth code isn't right. Open the invite link again, or check it under Sending setup.");
+    if (!r.ok) { let m = ""; try { m = (await r.json()).error || ""; } catch { /* not JSON */ } throw new Error(`Sending stopped at ${label}${m ? `: ${m}` : ` (${r.status})`}. The rest are still here; try again.`); }
+    await dropTake(t.id);
+    if (i < list.length) await new Promise(ok => setTimeout(ok, 1500));
   }
 }
