@@ -1,0 +1,21 @@
+{
+ "kind": "chord",
+ "chords": [
+  "G"
+ ],
+ "guitar": "",
+ "place": "stand",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:33:50.833Z",
+ "heard": {
+  "reads": 81,
+  "right": 81,
+  "wrong": 0,
+  "by": {},
+  "fit": 0.55
+ }
+}
