@@ -100,4 +100,9 @@ About seven commits over two sessions, plus Graham's mockup pick and Grok's depl
   recording itself, so most songs need nothing.
 - Step 6: the card is 225 px tall (the video plus its title line), and the line you're on settles after Play, so the
   card is placed again every half second while it plays.
+- 4.96.1, found on Graham's phone: no video ever started. An iPhone only lets a video start from a tap on the video
+  itself; the Play tap is in the app, not in YouTube's player, so `playVideo()` was ignored (YouTube's docs say so
+  under Mobile considerations; the stand-in player in the tests couldn't show it). Now the card shows at once on
+  Play with "Tap the video to start" under it and the page waits; the player is kept and reused for the next song
+  (`cueVideoById`), so once tapped it keeps playing from the app.
 - Not yet checked: a real song on Graham's phone (needs the search server deployed, step 7).

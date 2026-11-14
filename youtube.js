@@ -11,7 +11,7 @@ import { $, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { data } from "./app.js";
 
 const PLAYING = 1, PAUSED = 2;
-let api = null, player = null, playerId = "", state = -1, want = false, wantAt = 0, hinted = 0, card = null, readyP = null;
+let api = null, player = null, playerId = "", state = -1, want = false, wantAt = 0, hinted = 0, card = null, readyP = null, started = false, capTitle = "";
 export const ytOn = song => data.settings.youtube !== false && !!song?.yt?.id;
 export const ytActive = () => want && !!player;
 
@@ -36,8 +36,26 @@ function place() {
   const top = Math.max(fans ? 56 : 64, Math.min(fans ? fans.getBoundingClientRect().bottom + 8 : Infinity, line - (card.offsetHeight || 210) - 8));
   card.style.top = `${Math.round(top)}px`;
 }
+/* 4.96.1: an iPhone only lets a video start from a tap on the video itself (a tap on Play is in the app, not in
+   YouTube's player), so until it has played once the card says so, under the video (nothing may cover it) */
+function cap() {
+  const c = card?.querySelector(".yt-cap"); if (!c) return;
+  const tap = want && !started && state !== PLAYING;
+  c.textContent = tap ? "Tap the video to start" : capTitle;
+  card.classList.toggle("tap", tap);
+}
+function makeCard() {
+  if (card) return;
+  card = document.createElement("div");
+  card.className = "yt-card"; card.id = "yt-card";
+  card.setAttribute("aria-label", "YouTube video");
+  card.innerHTML = `<div id="yt-frame"></div><p class="yt-cap"></p>`;
+  document.body.appendChild(card);
+}
 function show(on) {
+  if (on) makeCard();
   if (!card) return;
+  cap();
   if (on) place();
   card.classList.toggle("on", on);
   document.body.classList.toggle("yt-on", on);
@@ -45,22 +63,26 @@ function show(on) {
 function ensure(song) {
   const y = song.yt;
   if (player && playerId === y.id) return readyP;
-  readyP = loadApi().then(YT => new Promise(ok => {
-    if (!card) {
-      card = document.createElement("div");
-      card.className = "yt-card"; card.id = "yt-card";
-      card.setAttribute("aria-label", "YouTube video");
-      document.body.appendChild(card);
-    }
-    card.innerHTML = `<div id="yt-frame"></div><p class="yt-cap">${esc(y.title || "YouTube")}</p>`;
+  capTitle = y.title || "YouTube"; cap();
+  /* the same player for the next song, so a phone that has let it play once keeps letting it */
+  if (player && typeof player.cueVideoById === "function" && readyP) {
+    playerId = y.id; state = -1;
+    try { player.cueVideoById(y.id); } catch { /* not ready */ }
+    return readyP;
+  }
+  readyP = loadApi().then(YT => new Promise((ok, no) => {
+    makeCard();
+    const late = setTimeout(() => no(new Error("YouTube didn't answer")), 15000);
     try { player?.destroy?.(); } catch { /* already gone */ }
+    if (!document.getElementById("yt-frame")) card.insertAdjacentHTML("afterbegin", '<div id="yt-frame"></div>');
     playerId = y.id; state = -1;
     player = new YT.Player("yt-frame", {
       host: "https://www.youtube-nocookie.com", videoId: y.id, width: 200, height: 200,
       playerVars: { playsinline: 1, rel: 0, controls: 1, fs: 0, origin: location.origin },
-      events: { onReady: () => ok(player), onStateChange: e => { state = e.data; if (state === PLAYING) hinted = 0; }, onError: e => { toast(e.data === 101 || e.data === 150 ? "That video can't be played inside other apps. Pick another in About this song." : "YouTube couldn't play that video."); ok(player); } }
+      events: { onReady: () => { clearTimeout(late); ok(player); }, onStateChange: e => { state = e.data; if (state === PLAYING) { hinted = 0; started = true; } cap(); }, onError: e => { clearTimeout(late); toast(e.data === 101 || e.data === 150 ? "That video can't be played inside other apps. Pick another in About this song." : "YouTube couldn't play that video."); ok(player); } }
     });
   }));
+  readyP.catch(() => { readyP = null; player = null; playerId = ""; });
   return readyP;
 }
 export function ytPrepare(song) { if (ytOn(song)) ensure(song).catch(() => {}); }
@@ -68,20 +90,21 @@ export function ytPrepare(song) { if (ytOn(song)) ensure(song).catch(() => {}); 
 export function ytStart(song, at = 0, rate = 1) {
   if (!ytOn(song)) return;
   want = true; wantAt = performance.now();
+  show(true); /* at once, so there's a video to tap while YouTube gets ready */
   const go = p => {
     if (!want || playerId !== song.yt.id) return;
     show(true);
     try { p.seekTo(ytAt(song.yt, at), true); p.setPlaybackRate(Math.min(2, Math.max(0.25, rate || 1))); p.playVideo(); } catch { /* not ready */ }
   };
   if (player && playerId === song.yt.id && typeof player.playVideo === "function" && state !== -1) go(player);
-  else ensure(song).then(go, () => toast("YouTube didn't load. Check your connection."));
+  else ensure(song).then(go, () => { show(false); want = false; toast("YouTube didn't load. Check your connection, then press Play again."); });
 }
 /* where the song is, from the video: null when we're not playing it, -1 while waiting (an ad, buffering, not started) */
 export function ytClock(song) {
   if (!want || !player || !ytOn(song) || playerId !== song.yt.id) return null;
   if (performance.now() - placed > 500) { placed = performance.now(); place(); } /* the line you're on settles once the page starts moving */
   if (state === PLAYING) { const t = player.getCurrentTime?.(); return Number.isFinite(t) ? ytSong(song.yt, t) : -1; }
-  if (performance.now() - wantAt > 3500 && !hinted) { hinted = 1; toast(state === PAUSED ? "The video is paused. Tap it to carry on." : "Waiting for YouTube. If it doesn't start, tap the video (an ad may be playing)."); }
+  if (performance.now() - wantAt > (started ? 3500 : 1500) && !hinted) { hinted = 1; toast(!started ? "Tap the video to start. Your phone only lets a video start from a tap on it, and the page waits for it." : state === PAUSED ? "The video is paused. Tap it to carry on." : "Waiting for YouTube. If it doesn't start, tap the video (an ad may be playing)."); }
   return -1;
 }
 export function ytSeek(song, sec) { if (player && ytOn(song) && playerId === song.yt.id) try { player.seekTo(ytAt(song.yt, sec), true); } catch { /* not ready */ } }

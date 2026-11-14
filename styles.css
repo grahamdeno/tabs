@@ -4552,3 +4552,4 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .yt-pick b { font: 700 14px var(--sans); }
 .yt-pick small { color: var(--fg-2); font-size: 12px; }
 .yt-paste { margin: 12px 0; }
+.yt-card.tap .yt-cap { background: var(--accent); color: var(--on-accent, #fff); font-weight: 800; text-align: center; }

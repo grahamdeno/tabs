@@ -6,7 +6,7 @@ useBrowser();
 
 /* window.YT with a Player that reports time; the first play has a 1.5 s "ad" (state 3) before the song plays */
 const STUB = `
-window.__yt = { calls: [], adMs: 1500 };
+window.__yt = { calls: [], adMs: 1500, iphone: false, tap() { this.iphone = false; this.player.playVideo(); } };
 window.YT = { Player: class {
   constructor(id, o) {
     const el = document.getElementById(id), f = document.createElement("iframe");
@@ -15,7 +15,8 @@ window.YT = { Player: class {
     setTimeout(() => o.events.onReady({ target: this }), 50);
   }
   set(s) { this.state = s; this.o.events.onStateChange({ data: s }); }
-  playVideo() { window.__yt.calls.push("play"); this.set(3); setTimeout(() => { this.base = performance.now(); this.set(1); }, window.__yt.adMs); window.__yt.adMs = 0; }
+  cueVideoById(id) { window.__yt.calls.push("cue " + id); this.set(5); }
+  playVideo() { window.__yt.calls.push("play"); if (window.__yt.iphone) return; /* an iPhone: only a tap on the video starts it */ this.set(3); setTimeout(() => { this.base = performance.now(); this.set(1); }, window.__yt.adMs); window.__yt.adMs = 0; }
   pauseVideo() { window.__yt.calls.push("pause"); this.t = this.getCurrentTime(); this.set(2); }
   seekTo(s) { window.__yt.calls.push("seek " + Math.round(s)); this.t = s; this.base = performance.now(); }
   setPlaybackRate(r) { window.__yt.calls.push("rate " + r); this.rate = r; }
@@ -76,4 +77,21 @@ test("4.96.0 picking a song's video: the search server's results, a pasted link,
   await page.fill("#s-ytserver", "https://evil.example"); await page.click("#s-ytsave");
   await page.waitForFunction(() => /should look like/.test(document.body.innerText));
   await page.click("#s-yt"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.youtube === false);
+});
+
+test("4.96.1 on an iPhone, Play alone can't start a video: the card shows at once and says to tap it, the page waits, and a tap on the video starts the song", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [SONG], settings: { ...LIB.settings, countIn: false } });
+  await page.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: STUB.replace("adMs: 1500", "adMs: 0").replace("iphone: false", "iphone: true") }));
+  await page.evaluate(() => { location.hash = "#/song/y"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.waitForFunction(() => !!window.__yt?.player, null, { timeout: 10000 });
+  const y0 = await page.evaluate(() => scrollY);
+  await page.click("#play");
+  await page.waitForSelector(".yt-card.on.tap");
+  assert.equal(await page.innerText(".yt-cap"), "Tap the video to start");
+  await page.waitForFunction(() => /Tap the video to start\. Your phone/.test(document.body.innerText), null, { timeout: 5000 });
+  assert.ok(Math.abs(await page.evaluate(() => scrollY) - y0) < 4, "the page waits for the video");
+  await page.evaluate(() => window.__yt.tap());
+  await page.waitForFunction(y => scrollY > y + 20, y0, { timeout: 10000 });
+  assert.equal(await page.innerText(".yt-cap"), "Old Road", "the title comes back once it plays");
+  assert.equal(await page.locator(".yt-card.tap").count(), 0);
 });
