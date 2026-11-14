@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned } from "./core.js";
+import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -262,10 +262,10 @@ function renderViewer(id) {
     const baseKey = isChords ? (song.key || guessKey(song.body || "")) : "";
     const key = transposeKey(baseKey, steps); // the key it sounds in
     const capoTxt = capo ? `Capo <b>${capo}</b>` : "";
-    const best = data.gig?.best?.[song.id];
+    const stars = isChords ? starsOf(data, song) : 0; /* 4.91.0: song stars replace the best show % */
     $("meta").innerHTML = [
       song.artist && `<span>${esc(song.artist)}</span>`,
-      best != null && `<span>Best show ${best}%</span>`,
+      stars > 0 && `<span class="sh-stars" aria-label="${stars} of 4 stars, ${STAR_NAMES[stars]}">${"★".repeat(stars)}${"☆".repeat(4 - stars)} ${STAR_NAMES[stars]}</span>`,
       capoTxt && `<span>${capoTxt}</span>`,
       !isChords && `<span>Tab</span>`
     ].filter(Boolean).join('<span class="dot"></span>') + `<span class="sh-ab">about this song${icon("chev")}</span>`;
@@ -772,7 +772,7 @@ function playFromSec(song) {
 }
 /* a beat at the pace the song plays: its tempo, practice speed and the speed dial, as the metronome counts it */
 export const beatSecs = song => 60 / ((song.bpm || 90) * loopFactor(song) * metroPace(song));
-export const loopFactor = song => practiceRate(song) * (activeLoop(song)?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1) * (scroll.on && followOn(song) ? follow.k : 1);
+export const loopFactor = song => practiceRate(song) * (activeLoop(song)?.build ? Math.min(1, 0.8 + 0.05 * loopRun.pass) : 1);
 // Called each frame while playing: when the section's last line passes the reading
 // point, glide back to its first line and count a pass.
 function loopCheck(song) {
@@ -1025,19 +1025,6 @@ const menuHasNew = () => !tipsSeen().menu && Object.values(NEW_IN_MENU).some(k =
 /* What Play starts: the Apple Music recording alone, or the band (drums or click) alone.
    A song with a linked recording defaults to the recording; "band" is remembered per song. */
 const usesMusic = song => hasMusic(song) && song.backing !== "band";
-/* Wait for me (4.54.0): the song holds on each chord until you play it. Saved per song, on for a song you are
-   learning; not with a recording, which can't wait. */
-const waitOn = song => !!song && !usesMusic(song) && (song.waitForMe ?? song.status === "learning");
-/* Follow my tempo (4.80.0): the page and the band speed up or slow down to the chords you play. Saved per song,
-   on for a song you are learning; not with a recording, which keeps its own tempo. `follow.k` is the pace now. */
-const followOn = song => !!song && !usesMusic(song) && (song.followTempo ?? song.status === "learning");
-export const follow = { k: 1 };
-/* hold the page and the band on the chord being waited for (or let them go on) */
-function holdScroll(on, song) {
-  if (!scroll.on || !!scroll.wait === on) return;
-  scroll.wait = on;
-  if (on) stopMetronome(); else if (metroOn() && !usesMusic(song)) startMetronome(song);
-}
 function setBacking(song, mode, near, quiet) {
   if (mode === "band") song.backing = "band"; else delete song.backing;
   Tabs.save(data);
@@ -1167,8 +1154,6 @@ function songMenu(song, anchor, redrawSong) {
     { id: "play", label: "Play", head: "HOW IT PLAYS", rows: [
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "beat", icon: "metro", label: "Beat", sub: beatMode() === "off" ? "Off" : `${beatName()} · ${song.bpm || 90} BPM`, beat: true },
-      chords && { id: "wait", icon: "mic", label: "Wait for me", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : "The song waits for each chord you play", on: waitOn(song), off: usesMusic(song) },
-      chords && { id: "follow", icon: "gauge", label: "Follow my tempo", sub: usesMusic(song) ? "Plays with the band or the scroll, not a recording" : scroll.on && followOn(song) && follow.k !== 1 ? `Following you: ${Math.round(follow.k * 100)}% of the song's tempo` : "The song speeds up or slows down with you", on: followOn(song), off: usesMusic(song) },
       { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
@@ -1260,9 +1245,7 @@ function songMenu(song, anchor, redrawSong) {
       paint(); return;
     }
     const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()),
-      capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`); },
-      wait: () => { song.waitForMe = !waitOn(song); Tabs.save(data); toast(song.waitForMe ? "Wait for me: the song waits for each chord you play" : "Wait for me off", toolsAnchor()); },
-      follow: () => { song.followTempo = !followOn(song); if (!song.followTempo) follow.k = 1; Tabs.save(data); toast(song.followTempo ? "Follow my tempo: the song keeps your pace" : "Follow my tempo off: the song's own tempo", toolsAnchor()); },
+      capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`, toolsAnchor()); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
     if (ip && inPlace[ip.dataset.m] && inPlace[ip.dataset.m]() !== false) {
@@ -1766,14 +1749,13 @@ function streakSoon(song) {
   }, 1400);
 }
 async function startScroll(song, opts = {}) {
-  follow.k = 1; /* each play starts at the song's own tempo */
   document.querySelector(".endnote")?.remove();
   /* Count in only when starting from the top: the song's first line is on screen. */
   const first = $("sheet")?.querySelector(":scope > .pr, :scope > .ly, :scope > .tab, :scope > .crow");
   const fr = first?.getBoundingClientRect();
   const atTop = !fr || (fr.bottom > 0 && fr.top < innerHeight);
   trail.length = 0;
-  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.wait = false; scroll.duet = !!opts.duet; scroll.part = opts.part || ""; /* 4.29.0: Play together's part */
+  scroll.on = true; scroll.last = 0; scroll.carry = 0; scroll.bottomSince = 0; scroll.logged = false; scroll.duet = !!opts.duet; scroll.part = opts.part || ""; /* 4.29.0: Play together's part */
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
@@ -1821,7 +1803,6 @@ async function startScroll(song, opts = {}) {
   const tick = t => {
     if (!scroll.on) return;
     trail.push([performance.now(), scrollY]); while (trail.length > 2 && trail[0][0] < performance.now() - 2000) trail.shift();
-    if (scroll.wait) { scroll.last = t; scroll.raf = requestAnimationFrame(tick); return; } /* Wait for me: held on a chord */
     if (scroll.last && !hold.active) {
       scroll.ms = (scroll.ms || 0) + Math.min(250, t - scroll.last); /* time on guitar, for Your playing */
       scroll.runMs = (scroll.runMs || 0) + Math.min(250, t - scroll.last);
@@ -1891,7 +1872,7 @@ document.addEventListener("visibilitychange", () => {
 function stopScroll() {
   $("endroom")?.remove();
   const was = scroll.on;
-  scroll.on = false; scroll.wait = false; scroll.duet = false; scroll.part = "";
+  scroll.on = false; scroll.duet = false; scroll.part = "";
   if (scroll.ms - (scroll.saved || 0) > 1000) { (practicing(viewing) ? journalPractice : journalTime)(data, (scroll.ms - (scroll.saved || 0)) / 1000); Tabs.save(data); }
   scroll.ms = 0; scroll.saved = 0;
   stopMetronome();
@@ -2054,4 +2035,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { waitOn, followOn, holdScroll, jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

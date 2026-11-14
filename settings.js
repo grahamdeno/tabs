@@ -36,10 +36,6 @@ function renderSettings() {
         <button class="toggle ${s.countIn !== false ? "on" : ""}" id="s-count" role="switch" aria-checked="${s.countIn !== false}" aria-label="Count-in"></button>
       </div>
       <div class="set">
-        <span class="tile">${icon("mic")}</span><span class="name">Score my plays<small class="sub">The Gig listens for the chords you play. Off, shows play unscored</small></span>
-        <button class="toggle ${s.gigScore !== false ? "on" : ""}" id="s-score" role="switch" aria-checked="${s.gigScore !== false}" aria-label="Score my plays"></button>
-      </div>
-      <div class="set">
         <span class="tile">${icon("metro")}</span><span class="name">Beat</span>
         <div class="seg mini" id="s-beat" role="group" aria-label="Beat">${[["off", "Off"], ["kick", "Bass drum"], ["click", "Metronome"]].map(([k, n]) => `<button data-m="${k}" class="${beat === k ? "on" : ""}" aria-pressed="${beat === k}">${n}</button>`).join("")}</div>
       </div>
@@ -225,7 +221,6 @@ function renderSettings() {
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
-  $("s-score").onclick = () => { s.gigScore = s.gigScore === false; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   app.querySelectorAll("#s-beat [data-m]").forEach(b => b.onclick = () => { const m = b.dataset.m; s.metronome = m !== "off"; if (m !== "off") s.metroSound = m === "click" ? "click" : "kick"; Tabs.save(data); renderSettings(); if (m !== "off") metroPreview(); });
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */

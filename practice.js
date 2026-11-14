@@ -628,6 +628,7 @@ function whatIHear() {
   const lastBeat = now => { for (let k = beatAt.length - 1; k >= 0; k--) if (beatAt[k] <= now) return { since: now - beatAt[k], one: k % 4 === 0 }; return null; };
   const bleedNow = now => { const lb = prof && lastBeat(now); return lb ? prof.at(lb.since, lb.one) : 0; };
   app.innerHTML = `${head("What I hear", "Play anything for half a minute. Nothing is recorded or sent.")}
+    <button class="ph-booth glass" id="ph-booth">${icon("mic")}<span><b>Listening booth</b><small>Record chords so the app learns to hear you</small></span>${icon("chev", "chev")}</button>
     <section class="pf-card pk-lesson">
       <div class="pf-plate" role="group" aria-label="What the microphone hears">
         <div class="pf-read"><b id="ph-lvl">–</b><span>level</span></div>
@@ -642,7 +643,7 @@ function whatIHear() {
       <div class="pk-strings" id="ph-strings" hidden></div>
       <p class="rd-bubble ph-say" id="pk-say" aria-live="polite">Tap Start, then pluck single strings, strum a chord, and stay quiet for a moment.</p>
     </section>
-    <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button><button class="tb" id="ph-booth">Listening booth</button></div></div>`;
+    <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
   $("back").onclick = () => go(backTo); bindTune();
   $("ph-booth").onclick = () => go("#/practice/booth");
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };

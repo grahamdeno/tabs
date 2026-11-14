@@ -3,11 +3,11 @@
 //                    The top 5 move up a tier on Monday and keep that tier's record; the bottom 3 move
 //                    down (not below the Garage). The players play like people (chartRivals in core.js):
 //                    each row says what they've done today, or that they've gone quiet.
-//   rival battle     once a day, the player just above you: the same song, best score wins. Played as a
-//                    scored gig; win and you take 30 XP and 40 fans.
+//   rival battle     once a day, the player just above you: play the song start to finish at full speed without pausing (4.91.0). Played as a
+//                    gig; win and you take 30 XP and 40 fans.
 //   records          one for each week you finished in the top 5
 // The numbers are worked out in core.js (chartState, chartsSettle, battleFor, XP).
-import { VERSION, CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
+import { STAR_NAMES, starsOf, VERSION, CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
 import { app, esc, toast } from "./ui.js";
 import { data, go, playGig } from "./app.js";
 import { rival, you } from "./guitarist.js";
@@ -35,7 +35,7 @@ export function renderCharts(view = "chart") {
   rows.splice(CHART_PROMOTE, 0, `<li class="ch-zone" aria-hidden="true"><span>${st.next ? "PROMOTION ZONE" : "TOP 5"}</span></li>`);
   const takes = merchState(data).own.take; /* Second take (4.14.0): another go at a lost battle */
   const battleCard = !b ? "" : b.result
-    ? `<section class="ch-go done"><p>${b.result === "won" ? `You beat ${esc(b.rival)} on ${esc(song?.title || "the song")}: ${b.pct}% to ${b.target}%. +${XP.battle} XP, +${XP.battleFans} fans.` : `${esc(b.rival)} held on: ${b.target}% to your ${b.pct}%. ${takes ? "" : "A new battle tomorrow."}`}</p>${b.result === "lost" ? takes ? `<button class="ch-gobtn" id="ch-take">SECOND TAKE · ${takes} LEFT</button>` : `<button class="ch-takeget" id="ch-takeget">Get a Second take at the merch table</button>` : ""}</section>`
+    ? `<section class="ch-go done"><p>${b.result === "won" ? `You played ${esc(song?.title || "the song")} start to finish and passed ${esc(b.rival)}. +${XP.battle} XP, +${XP.battleFans} fans.` : `${esc(b.rival)} held on: the song needs to go start to finish at full speed, no pausing. ${takes ? "" : "A new battle tomorrow."}`}</p>${b.result === "lost" ? takes ? `<button class="ch-gobtn" id="ch-take">SECOND TAKE · ${takes} LEFT</button>` : `<button class="ch-takeget" id="ch-takeget">Get a Second take at the merch table</button>` : ""}</section>`
     : `<section class="ch-go"><p>${st.you.rank === 1 ? `<b>${esc(b.rival)}</b> wants your spot. Win on ${esc(song?.title || "a song")} and take ${XP.battle} XP` : `Win the battle with <b>${esc(b.rival)}</b> on ${esc(song?.title || "a song")} and take ${XP.battle} XP`}</p><button class="ch-gobtn" id="ch-go">GO</button></section>`;
   app.innerHTML = `<div class="ch">
     <div class="tq-top">${statBar()}</div>
@@ -51,7 +51,7 @@ export function renderCharts(view = "chart") {
     ${battleCard}
     <div id="ch-duels"></div>
     `}
-    <p class="ch-how">XP: ${XP.play} for a song played through, ${XP.landed} for each chord change landed in a gig, ${XP.crowd} for a crowd of 10, ${XP.goal} for a setlist goal, ${XP.battle} for a battle won.</p>
+    <p class="ch-how">XP: ${XP.play} for a song played through, ${XP.landed} for each chord change played in a gig (more with stretch pay), ${XP.crowd} for the whole song without pausing, ${XP.goal} for a setlist goal, ${XP.battle} for a battle won.</p>
   </div>`;
   bindStatBar();
   document.getElementById("ch-go")?.addEventListener("click", () => renderCharts("battle"));
@@ -73,20 +73,20 @@ function renderBattle(st) {
   const b = battleFor(data), song = b && data.songs.find(s => s.id === b.songId);
   if (!b || !song) { toast("No battle today"); return renderCharts(); }
   const hrs = Math.max(1, Math.ceil((new Date().setHours(24, 0, 0, 0) - Date.now()) / 3600e3));
-  const mine = data.gig?.best?.[song.id];
+  const stars = starsOf(data, song);
   app.innerHTML = `<div class="bt">
     <button class="sh-btn bt-x" id="bt-x" aria-label="Back to the chart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
     <small class="bt-h">RIVAL BATTLE · ENDS IN ${hrs} H</small>
     <h1>${esc(b.rival)} wants your spot</h1>
-    <p class="bt-s">Same song, best score wins. Pass ${esc(b.rival)} on the ${esc(st.name)} chart.</p>
+    <p class="bt-s">Play the song start to finish and pass ${esc(b.rival)} on the ${esc(st.name)} chart.</p>
     <div class="bt-vs">
-      <div class="bt-p">${you(data, { pose: "hornsUp", mood: "cheer", size: 110 })}<b>You</b><small>${mine != null ? `Best: ${mine}%` : "First time"}</small></div>
+      <div class="bt-p">${you(data, { pose: "hornsUp", mood: "cheer", size: 110 })}<b>You</b><small>${STAR_NAMES[stars]}</small></div>
       <span class="bt-v">VS</span>
-      <div class="bt-p"><span class="bt-av">${rival(b.rival, st.tier, { size: 96 })}</span><b>${esc(b.rival)}</b><small>Scored: ${b.target}%</small></div>
+      <div class="bt-p"><span class="bt-av">${rival(b.rival, st.tier, { size: 96 })}</span><b>${esc(b.rival)}</b><small>Played it through</small></div>
     </div>
     <div class="bt-song"><b>${esc(song.title)}</b><small>${esc(song.artist || "")}</small></div>
     <div class="bt-tiles"><div class="bt-t win"><small>WIN</small><b>+${XP.battle} XP, +${XP.battleFans} fans</b></div><div class="bt-t lose"><small>LOSE</small><b>${esc(b.rival)} stays ahead</b></div></div>
-    <p class="bt-note">Land at least ${b.target}% of the chord changes. The microphone needs to hear you.</p>
+    <p class="bt-note">Start to finish at full speed, without pausing. Slowing it down or pausing loses the battle.</p>
     <div class="bt-acts"><button class="btn primary" id="bt-go">TAKE THE STAGE</button><button class="btn" id="bt-no">NOT TONIGHT</button></div>
   </div>`;
   document.getElementById("bt-x").onclick = document.getElementById("bt-no").onclick = () => renderCharts();

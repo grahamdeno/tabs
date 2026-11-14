@@ -18,5 +18,5 @@ test("Show complete: POW for the fans, then KA-CHING for the tips, one at a time
     if (now[0] && now[0].startsWith("pow") && !seen.includes(now[0])) seen.push(now[0]);
     await page.waitForTimeout(150); /* real timer: sampling the bursts as they play */
   }
-  assert.match(seen[0], /FANS \+\d+/); assert.match(seen[1], /TIPS \+\$5/);
+  assert.match(seen[0], /FANS \+\d+/); assert.match(seen[1], /TIPS \+\$\d+/);
 });

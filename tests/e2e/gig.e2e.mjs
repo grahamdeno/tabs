@@ -29,7 +29,7 @@ const SHORT = { id: "g", title: "Short Road", artist: "Me", key: "A", format: "c
 const LONG = { ...SHORT, duration: 200, body: "[Verse]\n" + Array.from({ length: 8 }, (_, i) => `A        D\nVerse line ${i + 1}`).join("\n") + "\n\n[Chorus]\n" + Array.from({ length: 8 }, (_, i) => `E        A\nChorus line ${i + 1}`).join("\n") };
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
 
-test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, with a Double set and the merch tip", { skip: skip() }, async t => {
+test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a Double set and the merch tip", { skip: skip() }, async t => {
   /* 400 fans from earlier shows: enough for the Brick wall backdrop (300), the cheapest thing not owned */
   const page = await strummingPage(t, { ...LIB, songs: [SHORT], gig: { shows: 3, fans: 400, best: {} }, merch: { own: { double: 2 } }, settings: { ...LIB.settings, plainPlay: false } }, "#/song/g");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Play as a gig");
@@ -55,12 +55,6 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.ok(look.chordBrighter, "4.58.0: the next line's chords are brighter than its words");
   assert.equal(look.overflow, false, "4.58.0: no line runs past the edge at the boldest weight");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
-  /* Hearing you: a tap stops listening for this show, another starts it again */
-  await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
-  await page.click("#gg-mic");
-  assert.match(await page.getAttribute("#gg-mic", "aria-label"), /Not listening/);
-  await page.click("#gg-mic");
-  await page.waitForFunction(() => /Hearing you/.test(document.getElementById("gg-mic").getAttribute("aria-label")));
   /* Paused, the show holds the line you stopped on; Tools has only what you change mid-song */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   assert.equal(await page.locator("#gg-hline, .gg-here, #gg-hold, #gg-back, #gg-sheet").count(), 0, "4.52.0: no pause screen, no Back a line, no Sheet");
@@ -78,8 +72,9 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   /* Show complete */
   await page.waitForSelector(".gc", { timeout: 40000 });
   assert.match(await page.innerText(".gc-t"), /Show complete/);
-  assert.match(await page.innerText(".gc-list"), /chords caught/, "the show was graded");
-  assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the chords you caught");
+  assert.match(await page.innerText(".gc-list"), /Played \d+ chord change/, "4.91.0: the changes played through");
+  assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the changes played");
+  assert.doesNotMatch(await page.innerText(".gc-list"), /no pausing/, "it was paused, so not the whole song");
   assert.match(await page.innerText(".gc-list"), /The Road: [\s\S]*E chord, 1 of 5 songs/, "4.83.0: what the song did on the Road");
   /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own */
   assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
@@ -90,7 +85,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   assert.match(await page.innerText(".gc-list"), /Double set: 2x XP on this show\. 1 more to go\./);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.shows === 4); /* the save lands a moment after */
   const s = await saved(page);
-  assert.ok(s.gig.best.g >= 0, "a best score for the song");
+  assert.equal(s.gig.ready?.g, undefined, "paused, so not Gig-ready");
   assert.equal(s.songs[0].playLog.total, 1, "the show counts as a play");
   assert.equal(s.merch.own.double, 1, "one Double set used");
   assert.deepEqual(s.merch.told, ["brick"], "the merch tip is said once");
@@ -99,7 +94,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a scored show from Play to Show complete, 
   await page.waitForFunction(() => location.hash === "#/merch" && !document.getElementById("gig"));
   await page.waitForSelector(".mc-head");
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector(".shead .meta");
-  assert.match(await page.innerText(".shead .meta"), /Best show \d+%/, "the song shows its best show");
+  assert.match(await page.innerText(".shead .meta"), /★☆☆☆ Learning/, "4.91.0: the song shows its stars");
 });
 
 test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; the page's Back ends it", { skip: skip() }, async t => {
@@ -155,7 +150,7 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
-  assert.match(await page.getAttribute("#gg-mic", "aria-label"), /Not listening/, "Score my plays off: the show starts unscored");
+  assert.equal(await page.locator("#gg-mic").count(), 0, "4.91.0: no microphone in a show");
   const before = await page.evaluate(() => scrollY), line = await page.innerText("#sheet > .st-now");
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 420 }] });
@@ -183,38 +178,27 @@ test("4.54.0 words first: a repeat shown once, a shape for a chord you haven't l
   assert.equal(await page.locator(".gg-timing, .gg-louie, .gg-crowd").count(), 0, "no timing bar, no Louie card, no crowd card");
 });
 
-test("4.41.0 a sheet whose chords are a guess: a chord you don't play is never a miss", { skip: skip() }, async t => {
-  const page = await strummingPage(t, { ...LIB, songs: [{ ...SHORT, spots: "guess" }], settings: { ...LIB.settings, plainPlay: false } }, "#/song/g", { strum: false });
-  await page.click("#play"); await page.waitForSelector("#gig");
-  await page.waitForSelector(".gc", { timeout: 40000 });
-  assert.match(await page.innerText(".gc-list"), /still a best guess, so a chord you missed wasn't counted/);
-});
-
-test("4.54.0 Chord Catch: a chord you play turns green and stays green, the combo counts the run, and the crowd is bigger", { skip: skip() }, async t => {
+test("4.91.0 the show counts what you play through: the crowd fills, the run, no microphone, and a whole song makes it Gig-ready", { skip: skip() }, async t => {
   const body = "[Verse]\n" + Array.from({ length: 6 }, (_, i) => `G        C\nLine ${i + 1} of the verse goes on here`).join("\n");
-  const song = { id: "k", title: "Catch", artist: "A", key: "G", format: "chords", duration: 40, bpm: 120, body };
-  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/k");
+  const song = { id: "k", title: "Through", artist: "A", key: "G", format: "chords", duration: 30, bpm: 120, body, playLog: { total: 3, last: 0, days: {} } };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } });
+  await page.evaluate(() => { location.hash = "#/song/k"; }); await page.waitForSelector("#play"); await settled(page);
+  assert.match(await page.innerText(".shead .meta"), /Rehearsed/, "three plays: two stars");
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  assert.equal(await page.locator("#gg-mic, #gg-skip, #gg-wpill").count(), 0, "no microphone button, no Skip, no Wait for me");
   assert.equal(await page.locator("#gg-fans svg").count(), 12, "the crowd is 12 fans");
   assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "a bigger crowd, on its own row");
-  await page.waitForSelector("#sheet .c.st-got", { state: "attached", timeout: 25000 });
-  const first = await page.evaluate(() => [...document.querySelectorAll("#sheet .c[data-ch]")].findIndex(e => e.classList.contains("st-got")));
-  await page.waitForFunction(() => document.querySelectorAll("#sheet .c.st-got").length >= 3, null, { timeout: 25000 });
-  assert.ok(await page.evaluate(i => document.querySelectorAll("#sheet .c[data-ch]")[i].classList.contains("st-got"), first), "once green, it stays green");
-  assert.ok(await page.evaluate(() => { const e = document.querySelector("#sheet .c.st-got .ct"); return getComputedStyle(e).textDecorationLine === "underline"; }), "caught is marked by a bar as well as the colour");
   await page.waitForFunction(() => /in a row/.test(document.getElementById("gg-combo").textContent), null, { timeout: 25000 });
-  assert.equal(await page.locator("#sheet .gc-run, #sheet .st-lit").count(), 0, "no beat dots and no lit chord");
-});
-
-test("4.54.0 Chord Catch: a chord that goes by unplayed stays plain, with no snapped string; Show complete lists it outlined", { skip: skip() }, async t => {
-  const page = await strummingPage(t, { ...LIB, songs: [SHORT], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g", { strum: false });
-  await page.click("#play"); await page.waitForSelector("#gig");
-  await page.waitForSelector("#sheet .c.st-miss", { state: "attached", timeout: 25000 });
-  assert.equal(await page.locator("#sheet .c.st-got").count(), 0, "nothing caught in a silent room");
+  await page.waitForFunction(() => document.querySelectorAll("#gg-fans .on").length > 0, null, { timeout: 25000 });
+  assert.equal(await page.locator("#sheet .c.st-got, #sheet .c.st-miss").count(), 0, "no green or missed marks: nothing is judged");
   await page.waitForSelector(".gc", { timeout: 40000 });
-  assert.match(await page.innerText(".gc-list"), /0 of \d+ chords caught/);
-  assert.ok(await page.locator(".gc-song .gc-ch.miss").count() > 0, "the song you played shows the chords that went by");
-  assert.match(await page.innerText(".gc-worst"), /MISSED MOST[\s\S]*to/);
+  assert.match(await page.innerText(".gc-list"), /Played \d+ chord changes[\s\S]*no pausing/);
+  assert.match(await page.innerText(".gc-list"), /New star: Gig-ready!/);
+  assert.equal(await page.locator(".gc-tiles .gc-stars i.on").count(), 3, "three stars on the card");
+  assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the changes played");
+  assert.equal(await page.locator(".gc-duel, #gc-duel").count(), 0, "no % to challenge a friend with");
+  assert.doesNotMatch(await page.innerText(".gc"), /caught|microphone|scored/i);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.ready?.k?.length === 1);
 });
 
 test("4.49.6 a chord before the singing stands ahead of the words on the song page", { skip: skip() }, async t => {
@@ -290,34 +274,6 @@ test("4.54.0 no section bar over the stage, in a show or in practice; the page's
   await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
   assert.ok(await page.locator(".smap").count() > 0, "paused, the page's own rail is as it was");
-});
-
-test("4.54.0 Wait for me: the song holds on a chord nobody plays, Skip moves on and counts it missed", { skip: skip() }, async t => {
-  const song = { ...SHORT, waitForMe: true, bpm: 120 };
-  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g", { strum: false });
-  await page.click("#play"); await page.waitForSelector("#gig");
-  await page.waitForSelector("#gg-wait:not([hidden])", { timeout: 20000 });
-  assert.match(await page.innerText("#gg-wait"), /Waiting for [A-G]/);
-  assert.equal(await page.locator("#gg-wpill:not([hidden])").count(), 1, "the WAIT FOR ME pill");
-  assert.ok(await page.locator("#sheet .c.st-wait").count() === 1, "the waiting chord has a ring");
-  const y = await page.evaluate(() => scrollY); await page.waitForTimeout(1200); /* real timer */
-  assert.ok(Math.abs(await page.evaluate(() => scrollY) - y) < 3, "the page does not move while it waits");
-  await page.click("#gg-skip");
-  await page.waitForSelector("#sheet .c.st-miss", { state: "attached", timeout: 10000 });
-});
-
-test("4.54.0 Wait for me: playing the chord lets the song go on, and a show that waited is a practice show", { skip: skip() }, async t => {
-  const song = { ...SHORT, waitForMe: true, bpm: 120 };
-  const page = await strummingPage(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, countIn: false } }, "#/song/g");
-  await page.click("#play"); await page.waitForSelector("#gig");
-  /* 4.78.1: a chord played on time is caught inside the grace, so the song may never stop; note whether it did */
-  await page.evaluate(() => { window.__waited = false; const iv = setInterval(() => { const w = document.getElementById("gg-wait"); if (w && !w.hidden) window.__waited = true; if (document.querySelector(".gc")) clearInterval(iv); }, 50); });
-  await page.waitForFunction(() => document.querySelectorAll("#sheet .c.st-got").length >= 3, null, { timeout: 30000 });
-  assert.match(await page.innerText("#gg-combo"), /\d+ of \d+/);
-  await page.waitForSelector(".gc", { timeout: 60000 });
-  if (await page.evaluate(() => window.__waited)) assert.match(await page.innerText(".gc-list"), /practice show/);
-  else assert.doesNotMatch(await page.innerText(".gc-list"), /practice show/, "never held, so a full show");
-  assert.doesNotMatch(await page.innerText(".gc-list"), /Rival battle:/);
 });
 
 test("4.54.0 the chords row on the song page is shape tiles: name over a diagram, 44 px or taller, tap marks the chord", { skip: skip() }, async t => {

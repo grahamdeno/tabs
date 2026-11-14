@@ -276,7 +276,7 @@ export function questState(data, now = Date.now()) {
   const got = q.day === today ? q.got || [] : [];
   const goals = [
     { id: "two", label: "Play 2 songs through", have: Math.min(2, todayPlays), need: 2 },
-    { id: "crowd", label: "Get the crowd to 10 of 12 in a gig", have: Math.min(10, crowd), need: 10 },
+    { id: "crowd", label: "Play a song start to finish without pausing", have: crowd >= 12 ? 1 : 0, need: 1 },
     { id: "mins", label: "Play for 5 minutes", have: Math.min(5, mins), need: 5 }
   ].map(g => ({ ...g, done: g.have >= g.need, claimed: got.includes(g.id) }));
   const req = requestSong(data, now);
@@ -329,9 +329,9 @@ export function coverState(data, now = Date.now()) {
   return { ...c, song, missing, step: !song ? 1 : missing.length ? 2 : 3 };
 }
 /* a gig finished: the crowd it reached today, and the request line (its bonus fans double, once a day) */
-function questsShow(data, songId, crowd, fans, now) {
+function questsShow(data, songId, whole, fans, now) {
   const q = data.quests || (data.quests = { fans: 0 }), today = dayKey(now);
-  if (crowd != null) q.crowd = { day: today, n: Math.max(q.crowd?.day === today ? q.crowd.n : 0, crowd) };
+  if (whole) q.crowd = { day: today, n: 12 }; /* 4.91.0: the crowd goal is the whole song without pausing */
   /* the cover quest: your first gig of the song you went and learned pays 3x */
   const cv = coverState(data, now);
   if (cv?.song?.id === songId) { q.cover.done = true; q.cover.id = songId; const extra = fans * (COVER_MULT - 1); q.fans = (q.fans || 0) + extra; return extra; }
@@ -443,8 +443,9 @@ export function battleFor(data, now = Date.now()) {
   if (!st.rival) return null;
   const songs = (data.songs || []).filter(s => s.format !== "tab" && /\S/.test(s.body || "") && sheetChords(s.body).length);
   if (!songs.length) return null;
-  const best = data.gig?.best || {}, r = rand(hashDay(`${dayKey(now)}:${st.rival.name}`));
-  const pool = songs.slice().sort((a, b) => (best[b.id] ?? -1) - (best[a.id] ?? -1) || String(a.id).localeCompare(String(b.id))).slice(0, 5);
+  const r = rand(hashDay(`${dayKey(now)}:${st.rival.name}`));
+  /* 4.91.0: a song you're close to Gig-ready on first */
+  const pool = songs.slice().sort((a, b) => Math.abs(starsOf(data, a) - 2.5) - Math.abs(starsOf(data, b) - 2.5) || String(a.id).localeCompare(String(b.id))).slice(0, 5);
   const song = pool[Math.floor(r() * pool.length)];
   return { day: dayKey(now), rival: st.rival.name, songId: song.id, target: Math.min(95, 55 + st.tier * 4 + Math.floor(r() * 18)) };
 }
@@ -471,12 +472,14 @@ export function chartsSettle(data, now = Date.now()) {
   return c.last;
 }
 /* a gig finished: XP for it, and the battle if it was today's battle song */
-function chartsShow(data, songId, g, pct, now, mult = 1) {
-  addXP(data, mult * (g.hits * XP.landed + (g.last.length >= 6 && gigCrowd(g) >= 10 ? XP.crowd : 0)), now);
+function chartsShow(data, songId, g, k, full, now, mult = 1) {
+  addXP(data, mult * (Math.round(g.played * k) * XP.landed + (showWhole(g) ? XP.crowd : 0)), now);
   const b = data.charts?.battle;
-  if (!b || b.day !== dayKey(now) || b.songId !== songId || b.result || pct === null) return null;
-  b.result = pct >= b.target ? "won" : "lost"; b.pct = pct;
-  if (b.result === "won") { addXP(data, mult * XP.battle, now); data.charts.fans = (data.charts.fans || 0) + XP.battleFans; }
+  if (!b || b.day !== dayKey(now) || b.songId !== songId || b.result) return null;
+  /* 4.91.0: a battle is the whole song at full speed without pausing */
+  const won = full && showWhole(g);
+  b.result = won ? "won" : "lost"; b.pct = g.total ? Math.round(100 * g.played / g.total) : 0;
+  if (won) { addXP(data, mult * XP.battle, now); data.charts.fans = (data.charts.fans || 0) + XP.battleFans; }
   return { ...b };
 }
 export function cleanCharts(raw) {
@@ -851,14 +854,6 @@ export function takeDuel(data, link, song, now = Date.now()) {
   ds.list.unshift(d); ds.list = ds.list.slice(0, 100);
   return d;
 }
-/* a scored gig answers the oldest open challenge on that song */
-function duelsShow(data, songId, sc) {
-  if (!sc || !data.duels?.list) return null;
-  const d = data.duels.list.filter(x => x.songId === songId && x.started === "them" && !x.mine && x.theirs).pop();
-  if (!d) return null;
-  d.mine = sc;
-  return { ...d };
-}
 export const duelWon = d => d?.mine && d?.theirs ? (d.mine.pct > d.theirs.pct ? true : d.mine.pct < d.theirs.pct ? false : null) : undefined;
 /* Friends (4.13.0): everyone you've dueled, with your record and their XP this week (as of their last link) */
 export function friendsOf(data, now = Date.now()) {
@@ -933,28 +928,52 @@ export function sheetChords(body) {
   return out;
 }
 
-// ---------- The Gig (4.1.0): a song played as a scored show ----------
-// Chord Catch (4.54.0): the show asks one question, did you play the chord? Not when. The chords of the song are
-// the targets, one for each run of the same chord. The phone listens for the one you are on and the one after
-// it (a yes or no against one or two shapes), and a target is caught when two readings in a row fit it.
-// A caught chord stays caught. Nothing snaps and nothing fails; a chord that went by is simply plain.
-export function gigStart() { return { hits: 0, misses: 0, combo: 0, best: 0, last: [] }; }
-/* one chord scored: the bookkeeping the show and the crowd share */
-export function catchScore(g, hit) {
-  if (hit) { g.hits++; g.combo++; g.best = Math.max(g.best, g.combo); }
-  else { g.misses++; g.combo = 0; }
-  g.last.push(!!hit); if (g.last.length > 12) g.last.shift();
-  return !!hit;
+// ---------- The Gig (4.1.0): a song played as a show ----------
+// 4.91.0: songs no longer listen for chords (catching them in a moving song was never reliable enough to
+// score on; docs/NO-CATCH-PLAN.md). A show counts what you played through: a chord change counts when the
+// song carries it past the reading line while playing (not dragged past, not paused). The phone can't tell
+// whether you strummed, so it's the honour system a play already runs on.
+//   played   changes played through         total   changes in the song (from the reading line at the start)
+//   run      changes since the last pause   best    the longest run      pauses   times paused after the start
+export function gigStart(total = 0) { return { played: 0, total: Math.max(0, total | 0), run: 0, best: 0, pauses: 0 }; }
+export function showPlayed(g, n = 1) { g.played += n; g.run += n; g.best = Math.max(g.best, g.run); }
+export function showPaused(g) { g.run = 0; g.pauses++; }
+/* the crowd: 12 fans that get on their feet as the song goes */
+export const gigCrowd = g => g.total ? Math.min(12, Math.round(12 * g.played / g.total)) : 0;
+/* the whole song without pausing (9 in 10 changes, so a chord above the line at the start doesn't cost it) */
+export const showWhole = g => g.total > 0 && !g.pauses && g.played >= Math.ceil(g.total * 0.9);
+/* Stretch pay: full speed, a chord you haven't learned yet, and the first time through each add a quarter */
+export const STRETCH = { speed: 0.25, newChord: 0.25, debut: 0.25, max: 1.75 };
+export function stretchOf(data, song, { full = true, now = Date.now() } = {}) {
+  const known = knownChords(data, now), chords = sheetChords(song?.body || "");
+  const parts = { speed: full, newChord: chords.some(c => !known.has(c)), debut: (song?.playLog?.total || 0) <= 1 };
+  const k = 1 + Object.entries(parts).reduce((n, [k2, on]) => n + (on ? STRETCH[k2] : 0), 0);
+  return { k: Math.min(STRETCH.max, k), ...parts };
 }
-/* how many of the 12 in the crowd are cheering: your last 12 chords (half the crowd before any) */
-export const gigCrowd = g => g.last.length ? Math.round(12 * g.last.filter(Boolean).length / g.last.length) : 6;
-/* the share of chords caught, 0 to 100 (null with nothing scored) */
-export const gigPct = g => g.hits + g.misses ? Math.round(100 * g.hits / (g.hits + g.misses)) : null;
-/* the show's bonus fans, on top of the play's own: 1 for every chord caught, 5 for every 10 in the best run,
-   and 10 for a crowd of 10 or more at the end. An encore doubles it. */
-export function gigFans(g, encore = false) {
-  const n = g.hits + 5 * Math.floor(g.best / 10) + (g.last.length >= 6 && gigCrowd(g) >= 10 ? 10 : 0);
+/* the show's bonus fans, on top of the play's own: the changes played times the stretch, and 10 for the whole
+   song without pausing. An encore doubles it. */
+export function gigFans(g, encore = false, k = 1) {
+  const n = Math.round(g.played * k) + (showWhole(g) ? 10 : 0);
   return encore ? n * 2 : n;
+}
+/* Song stars (4.91.0), from what the app knows for sure: 1 in the Songbook, 2 played through 3 times, 3 Gig-ready
+   (the whole song at full speed without pausing), 4 Headliner (Gig-ready on 3 different days). */
+export const STAR_NAMES = ["", "Learning", "Rehearsed", "Gig-ready", "Headliner"];
+export const STAR_FANS = { 3: 25, 4: 50 };
+export function starsOf(data, song) {
+  if (!song) return 0;
+  const days = data.gig?.ready?.[song.id]?.length || 0;
+  return days >= 3 ? 4 : days >= 1 ? 3 : (song.playLog?.total || 0) >= 3 ? 2 : 1;
+}
+/* a show at full speed, whole and unpaused, marks the day; returns the stars before and after */
+export function starsSettle(data, song, g, full, now = Date.now()) {
+  const before = starsOf(data, song);
+  if (full && showWhole(g)) {
+    const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {}, ready: {}, seeded: true }), r = gs.ready || (gs.ready = {}), day = dayKey(now);
+    const list = r[song.id] || (r[song.id] = []);
+    if (!list.includes(day) && list.length < 3) list.push(day);
+  }
+  return { before, after: starsOf(data, song) };
 }
 /* The targets: one for each run of the same chord in the song's order (a chord played again in a row shows once),
    with the first and last place in `seq` it covers. `seq` is the song's chords, each with a name. */
@@ -1056,31 +1075,38 @@ export function gelOf(name) {
   if (/solo|instrumental|interlude|riff|break/.test(n)) return "solo";
   return "verse";
 }
-/* a show finished: keep the count, the bonus fans and each song's best */
-/* practice (Wait for me, 4.54.0): fans and the request line count; Charts XP, rival battles, duels and the best score do not */
-export function gigDone(data, songId, g, encore = false, now = Date.now(), practice = false) {
-  const fans = gigFans(g, encore), pct = gigPct(g), tips = gigTips(g, encore);
+/* a show finished: the count, the bonus fans, tips, stars, the quests and the chart.
+   `opt.full`: played at full speed. `opt.song`: the song (for stars and stretch pay). */
+export function gigDone(data, songId, g, encore = false, now = Date.now(), opt = {}) {
+  const song = opt.song || (data.songs || []).find(x => x.id === songId), full = opt.full !== false;
+  const stretch = stretchOf(data, song, { full, now });
+  const stars = song ? starsSettle(data, song, g, full, now) : { before: 0, after: 0 };
+  const starFans = stars.after > stars.before ? STAR_FANS[stars.after] || 0 : 0;
+  const fans = gigFans(g, encore, stretch.k) + starFans, tips = gigTips(g, encore);
   const mt = data.merch || (data.merch = {}); mt.tips = (mt.tips || 0) + tips; /* the once-only change of fans to tips adds to this, never replaces it */
-  const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {} });
+  const gs = data.gig || (data.gig = { shows: 0, fans: 0, best: {}, ready: {}, seeded: true });
   gs.shows++; gs.fans += fans;
-  if (pct !== null && !practice) gs.best[songId] = Math.max(gs.best[songId] || 0, pct);
-  /* Tour quests (4.5.0): the crowd it reached, and the request line doubles its bonus fans */
+  /* Tour quests (4.5.0): the whole song without pausing, and the request line doubles its bonus fans */
   const cover = coverState(data, now)?.song?.id === songId;
-  const request = questsShow(data, songId, g.hits + g.misses > 0 ? gigCrowd(g) : null, fans, now);
-  /* Charts (4.6.0): XP for the show, and today's rival battle; a Double set doubles a scored show's XP (4.14.0) */
-  const own = data.merch?.own, doubled = pct !== null && !practice && own?.double > 0;
+  const request = questsShow(data, songId, showWhole(g), fans, now);
+  /* Charts (4.6.0): XP for the show, and today's rival battle; a Double set doubles a show's XP (4.14.0) */
+  const own = data.merch?.own, doubled = g.played > 0 && own?.double > 0;
   if (doubled) own.double--;
-  const battle = practice ? null : chartsShow(data, songId, g, pct, now, doubled ? 2 : 1);
-  /* Song duels (4.12.0): a scored show answers a friend's challenge on this song */
-  const duel = pct === null || practice ? null : duelsShow(data, songId, { pct, combo: g.best, crowd: g.last.length ? gigCrowd(g) : 0 });
-  return { ...(duel ? { duel } : {}), fans: fans + request, tips, pct, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
+  const battle = chartsShow(data, songId, g, stretch.k, full, now, doubled ? 2 : 1);
+  return { fans: fans + request, tips, stretch, stars, starFans, request: (!cover && request > 0) || null, ...(cover ? { cover: true } : {}), ...(battle ? { battle } : {}), ...(doubled ? { doubled: own.double } : {}) };
 }
 export function cleanGig(raw) {
   if (!isObj(raw)) return null;
-  const best = {};
+  const best = {}, ready = {}, day = /^\d{4}-\d\d-\d\d$/;
   for (const [id, v] of Object.entries(isObj(raw.best) ? raw.best : {}).slice(0, 2000)) if (typeof id === "string" && id.length <= 40 && v >= 0 && v <= 100) best[id] = Math.round(v);
+  for (const [id, v] of Object.entries(isObj(raw.ready) ? raw.ready : {}).slice(0, 2000)) {
+    const days = (Array.isArray(v) ? v : []).filter(d => typeof d === "string" && day.test(d)).slice(0, 3);
+    if (typeof id === "string" && id.length <= 40 && days.length) ready[id] = [...new Set(days)];
+  }
+  /* 4.91.0: a song you scored 80% or more on before is Gig-ready, once */
+  if (!raw.seeded) for (const [id, v] of Object.entries(best)) if (v >= 80 && !ready[id]) ready[id] = ["2026-11-14"];
   const shows = Math.max(0, Math.min(1e6, Math.floor(+raw.shows || 0))), fans = Math.max(0, Math.min(1e7, Math.floor(+raw.fans || 0)));
-  return shows || fans || Object.keys(best).length ? { shows, fans, best } : null;
+  return shows || fans || Object.keys(best).length || Object.keys(ready).length ? { shows, fans, best, ready, seeded: true } : null;
 }
 
 // ---------- The Merch table (4.14.0) ----------
@@ -1158,9 +1184,10 @@ export function tipsMigrate(data, now = Date.now()) {
   return was;
 }
 export const tipsOf = data => { const m = data.merch || {}; return Math.max(0, (m.tips || 0) + (m.test || 0) - (m.tspent || 0)); };
-/* tips for a show: 5 unscored; scored, 10 plus 3 for each fan on their feet and 1 for every two chords in your best run */
+/* tips for a show: 10, plus 3 for each fan on their feet and 1 for every four changes played (5 with no changes);
+   an encore doubles them */
 export function gigTips(g, encore = false) {
-  const graded = g.hits + g.misses > 0, t = graded ? 10 + 3 * gigCrowd(g) + Math.floor(g.best / 2) : 5;
+  const t = g.played > 0 ? 10 + 3 * gigCrowd(g) + Math.floor(g.played / 4) : 5;
   return encore ? t * 2 : t;
 }
 /* Once a day (and after plays): fans fade for the idle days since, and the venue is held, warned, lost or won

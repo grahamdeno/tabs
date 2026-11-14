@@ -1,6 +1,6 @@
 # Working on Tabs
 
-Louie: Learn Guitar (4.90.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
+Louie: Learn Guitar (4.91.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
 GitHub Pages from `main`. The README's Development section is the architecture
 map; docs/DATA.md describes every stored field. Read those before guessing.
 
@@ -22,6 +22,9 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - He uses the phone one-handed, mostly right hand: put actions people reach
   for mid-song in thumb reach (bottom of sheets, `pfoot`, the bar).
 - The Gig is words first (4.46.0): no Lines in a gig and no Full; the words fill the screen.
+- Songs don't listen (Graham, 2026-11-13, 4.91.0): no chord catching during a song, a gig, Wait for me or
+  Follow my tempo. Listening for chords is only for one chord held or a switch between two, at your own pace
+  (the Chord check and Switch check in `docs/NO-CATCH-PLAN.md`), plus single notes (tuner, string checks).
 - No ring controls (Graham, 3.19.0): on a phone the rectangular bar is out
   while paused and folds into Play's corner while playing. Don't bring back
   the hold-Play ring, the arc, the island or Play following the hand.
@@ -62,9 +65,9 @@ The README describes each as it works today.
 - Apple Music ideas not built yet (Apple Music features only work with Apple
   Music turned on): playlists both ways; heavy rotation against the chords he
   knows; other versions and music videos in the Recording sheet; Play together
-  on the recording; mic chord check during a play-along ("Chorus, 3rd chord
-  sounds like Em"), which also brings "learn from your playing"; small touches
-  (about this song, more from this artist, listened vs played).
+  on the recording; small touches (about this song, more from this artist,
+  listened vs played). (A mic chord check during a play-along was dropped with
+  song listening in 4.91.0.)
 
 ## Where things are
 
@@ -100,7 +103,7 @@ The README describes each as it works today.
 | Charts: weekly chart, records, rival battles | `charts.js` (numbers: `chartState`, `chartsSettle`, `battleFor`, `XP` in `core.js`) |
 | Version 4 look: palettes and materials | the "Version 4 look" section at the end of `styles.css` |
 | Pull-up drawers: the Tour Map's scene sheet | `drawer.js` (used by `playmap.js`) |
-| The Gig: the scored show over a playing song | `gig.js` (scoring: `gigChange` and friends in `core.js`) |
+| The Gig: the show over a playing song; since 4.91.0 it doesn't listen and counts the changes played through | `gig.js` (numbers: `gigStart`, `showPlayed`, `gigFans`, `gigTips`, `starsOf`, `stretchOf` in `core/game.js`) |
 | The stage (4.51.0): where the song is, the band, the lit chord and the beat dots drawn on the real sheet, the stage light | `stage.js` (used by `gig.js`) |
 | Guitar pictures (4.87.0): Gemini's pictures cut out and measured by `tools/guitars/pics.py` (sources in `docs/guitars/pics/`, a close-up headstock where there is one); the Road lays them out in `picLayout`/`picBase` in `fretboard.js` with a narrow neck (`NECK`). The guitarist's head and hair: traced by `tools/guitarist`. Check any art at phone resolution (deviceScaleFactor 3) before shipping | `art/guitars/*.webp`, `art/guitars/pics.js`, `art/guitarist.js` |
 | Offline copy; lists every app file | `sw.js` |

@@ -129,7 +129,7 @@ function tryOn(id) {
     if (!r.ok) return toast(r.why === "tips" ? "Not enough tips yet" : "You can't hold any more");
     Tabs.save(data); applyWear(); close(); renderMerch();
     toast(it.id === "rain" ? "Rain check in your pocket. It's used on its own if you miss a night."
-      : it.id === "double" ? "Double set: your next 3 scored gigs earn 2x XP"
+      : it.id === "double" ? "Double set: your next 3 gigs earn 2x XP"
       : it.id === "take" ? "Second take ready. Use it on Charts when a rival battle goes the wrong way."
       : it.kind === "louie" ? `Louie's in ${it.name} now` : it.kind === "look" ? `${it.name} is yours, and it's on`
       : it.kind === "wear" ? (data.me ? `Your guitarist's in the ${it.name.toLowerCase()}` : `The ${it.name.toLowerCase()} is yours. Make your guitarist and it's waiting.`) : `${it.name} is up behind your gigs`);

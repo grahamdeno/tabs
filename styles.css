@@ -1698,6 +1698,12 @@ body.is-home .rd-song b { font-size: 26px; }
 .ph-row { display: flex; justify-content: center; gap: 8px; }
 .ph-row { flex-wrap: wrap; }
 /* 4.90.0: the Listening booth */
+.ph-booth { display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0; padding: 12px 14px; border-radius: 16px; text-align: left; color: var(--fg); font: inherit; }
+.ph-booth > svg:first-child { flex: none; width: 22px; height: 22px; color: var(--accent-ink); }
+.ph-booth span { flex: 1; display: flex; flex-direction: column; }
+.ph-booth b { font: 700 16px var(--sans); }
+.ph-booth small { color: var(--fg-2); font-size: 13px; }
+.ph-booth .chev { flex: none; width: 18px; height: 18px; color: var(--fg-2); }
 .bt-kind { margin: 0 0 12px; height: 34px; }
 .bt-kind button { height: 30px; font-size: 13px; padding: 0 12px; }
 .bt-chords { margin-bottom: 6px; }
@@ -4476,3 +4482,9 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 /* Show complete's Chords tile: white words on a deeper blue in Light, white on purple in Green Room */
 :root[data-theme="light"]:not([data-look="green"]) .gc-tile.beat, :root[data-look="festival"] .gc-tile.beat { background: var(--strings-deep); box-shadow: 0 5px 0 #1F56B8; }
 :root[data-theme="light"]:not([data-look="green"]) .gc-tile.beat small, :root[data-look="festival"] .gc-tile.beat small, :root[data-look="green"] .gc-tile.beat small { color: #FFFFFF; }
+
+/* 4.91.0: song stars (Show complete, the song page) */
+.gc-stars { display: inline-flex; gap: 1px; font-size: 19px; line-height: 1; }
+.gc-stars i { font-style: normal; color: rgba(127,127,127,.28); }
+.gc-stars i.on { color: #f2a900; text-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.sh-stars { color: var(--accent-ink, inherit); letter-spacing: .5px; }

@@ -35,7 +35,7 @@ test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? 
   assert.match(await page.innerText(".on-mic"), /Nothing is recorded or sent anywhere/);
   await page.click("#on-not");
   await stepIs(page, 2);
-  assert.equal((await saved(page)).micOff, true, "Not now: shows aren't scored");
+  assert.equal((await saved(page)).micOff, true, "Not now is remembered");
   /* 2: the song, a strip above Play, the chord pulses */
   await page.waitForSelector(".on-stop .rd-node.now"); await settled(page);
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
@@ -47,7 +47,7 @@ test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? 
   /* 3: the Gig waits and says why it listens (here, that it won't) */
   await page.click("#play");
   await page.waitForSelector(".on-count");
-  assert.match(await page.innerText(".on-count"), /Play each chord[\s\S]*microphone is off/);
+  assert.match(await page.innerText(".on-count"), /Play each chord[\s\S]*crowd gets on its feet/, "4.91.0: shows don't listen");
   assert.equal(await page.evaluate(() => document.body.classList.contains("playing")), false, "nothing scrolls until Count me in");
   await page.click("#on-go");
   await page.waitForFunction(() => document.body.classList.contains("playing") && !document.querySelector(".on-count"));

@@ -243,17 +243,17 @@ version bump except the booth's release (step 1a) and the last step. When someth
       Run the fingerprint experiment (prints from two takes, tested on the third, blended with the textbook
       shape). Make decisions 1 and 8 with the numbers, tune the engine where a take shows a fixable fault, and
       write the results here. Ask Graham for more takes if a chord or pair is thin.
-- [ ] 2 [Sonnet] **The Gig stops listening.** `openGig` never calls `listen`; remove the mic button, Hearing
+- [x] 2 [Sonnet] **The Gig stops listening.** (4.91.0) `openGig` never calls `listen`; remove the mic button, Hearing
       you, `deafen`, `relisten`, `paintMic`, the "not scored" lines, and the Score my plays row. Update
       `gig.e2e.mjs`, `app3.e2e.mjs`.
-- [ ] 3 [Opus] **Stars and stretch pay** in `core/game.js`: the played-through tally (changes played, share of
+- [x] 3 [Opus] **Stars and stretch pay** (4.91.0) in `core/game.js`: the played-through tally (changes played, share of
       the song, run since pause, whole song unpaused, speed), song stars (`starsOf`, `starsSettle`, seeded once
       from `gig.best`), stretch factor, new `gigFans`, `gigTips`, XP. Keep `catchTargets`, `catchAt`,
       `catchClose` renamed `songTargets`, `targetsAt`, `targetsPassed`. Economy tests (risk 5).
-- [ ] 4 [Sonnet] **The Gig on the new score.** Crowd fills with the song, run and combo callouts, Show
+- [x] 4 [Sonnet] **The Gig on the new score.** (4.91.0) Crowd fills with the song, run and combo callouts, Show
       complete with stars and the star callout, stars on the song page and in the Songbook. Remove the stage's
       catch marks.
-- [ ] 5 [Sonnet] **Wait for me and Follow my tempo go.** The two Tools rows and toasts, `holdFrame`,
+- [x] 5 [Sonnet] **Wait for me and Follow my tempo go.** (4.91.0) The two Tools rows and toasts, `holdFrame`,
       `keepPace`, `catchUp`, Skip this chord, the pill, `waitOn`, `followOn`, `follow`, `FOLLOW`, `tempoStep`,
       `followAhead`, `follow.k` in `loopFactor`. Practice speed and loops stay.
 - [ ] 6 [Opus, after step 1c] **Chord check and Switch check.** The judging in `core/neck.js` (`chordCheck`:
@@ -269,7 +269,7 @@ version bump except the booth's release (step 1a) and the last step. When someth
 - [ ] 8 [Opus, after decision 3] **Battles and duels on switch speed.** `battleFor` picks a change from your
       songs and a target speed by tier; `chartsShow` becomes `battleSettle` from a Switch check. Duel links
       carry a pair and a speed; the old-link path. Charts and duel screens, Second take, Double set wording.
-- [ ] 9 [Sonnet] **Tour quests.** The crowd goal becomes the whole song without pausing; the rotating goal pool.
+- [x] 9 [Sonnet] **Tour quests.** (crowd goal done in 4.91.0; the rotating pool waits for the checks) The crowd goal becomes the whole song without pausing; the rotating goal pool.
 - [ ] 10 [Sonnet] **Opening night.** The "mic" step becomes "Play an Em for me": Louie gives the reason, the
       phone asks, then a Chord check on Em. "Not now" skips it and the check waits on the Road. Opening night's
       catch wording goes. Update `opening.e2e.mjs`, Tips & gestures.
@@ -298,4 +298,12 @@ don't wait on them and can run while he records.
 
 ## Surprises
 
-(Write here when something doesn't match the plan.)
+- 2026-11-14 (Opus, running steps 0 to 5): Graham asked for the work in releases as seen best. So 4.90.0
+  shipped the booth alone, and 4.91.0 ships steps 2 to 5 and the quest goal before the checks exist. Until
+  step 8, a rival battle is "play the song start to finish at full speed without pausing" (won or lost on the
+  first show of that song that day; Second take still gives another go), and song duels are paused: a show no
+  longer makes or answers one, Charts says they're changing, and old challenges stay. Your changes and the
+  soundcheck aren't fed by shows any more; they wait for step 7 (Switch check speeds).
+- The booth's labels are one `.json` beside each `.wav`, not a shared `takes.json`, so sending never has to
+  read and rewrite a file.
+- Opening night's mic step stays where it is until step 10, with new words: the tuner and lessons listen.

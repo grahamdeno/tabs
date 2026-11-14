@@ -104,7 +104,7 @@ export function renderDuel(id) {
 /* Charts: the duels list */
 export function duelsHTML() {
   const list = (data.duels?.list || []).slice(0, 5);
-  if (!list.length) return `<h2 class="tq-h"><span>SONG DUELS</span></h2><p class="ch-how" style="margin-top:0">After a scored gig, challenge a friend to beat your score. They get the song in the link.</p>`;
+  if (!list.length) return `<h2 class="tq-h"><span>SONG DUELS</span></h2><p class="ch-how" style="margin-top:0">Song duels are changing: soon you'll race a friend on a chord switch. Challenges you have stay here.</p>`;
   return `<h2 class="tq-h"><span>SONG DUELS</span></h2><div class="du-list">${list.map(d => {
     const won = duelWon(d);
     const st = won === true ? "You won" : won === false ? `${esc(d.opp)} won` : won === null ? "Tied" : d.started === "me" ? "Waiting for a reply" : d.mine ? "Send your score back" : "Your turn";

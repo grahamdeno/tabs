@@ -569,11 +569,14 @@ test("4.44.0 with Reduce Motion a callout is still, and a play-through with a ne
 });
 
 test("4.45.1: a toast from a switch in Tools sits above the sheet, not at the top of the screen", { skip: skip() }, async t => {
-  const page = await phone(t);
-  await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
+  /* 4.91.0: Wait for me went; the Capo switch toasts above the sheet too */
+  const capo = { id: "cp", title: "Capo Song", artist: "A", key: "G", format: "chords", duration: 60, body: "Capo 2\n[Verse]\nG        C\nla la" };
+  const page = await phone(t, { ...LIB, songs: [capo] });
+  await page.goto(base + "#/song/cp"); await page.waitForSelector('.metarow');
   await page.click("#more"); await page.waitForSelector('.menu.tools');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length);
-  await page.click('.menu [data-m="wait"]'); await page.waitForSelector('.toast.show');
+  if (!(await page.locator('.menu [data-m="capo"]').isVisible())) await page.click('.menu [data-tab="practice"]');
+  await page.click('.menu [data-m="capo"]'); await page.waitForSelector('.toast.show');
   await page.waitForFunction(() => { const t = document.getElementById("toast").getBoundingClientRect(), m = document.querySelector(".menu").getBoundingClientRect(); return Math.abs(t.bottom - m.top) < 24; });
 });
 

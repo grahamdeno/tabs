@@ -42,7 +42,7 @@ sees, and what teaches them anything.
 | Reach a merch box | A fret inlay with a dashed gold ring and a "Tap to open" tag (4.82.0); a tap opens it with a POW for 25 fans | The tag | Fine |
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
-| Play (the Gig) | Count-in, "Listening is off", then "Hearing you · tap to turn off" | The mic pill says it is listening | Nothing says *why* (strum on the changes to score). On a real iPhone the microphone prompt arrives cold, with no reason given first |
+| Play (the Gig) | Count-in, then the song with the crowd and the run on top (4.91.0: no microphone in a show) | The crowd fills as the song goes | Nothing to explain about the mic any more |
 | Controls in the Gig | The X, the mic button and Pause fade after 3 s of play without a touch; a touch shows them again and that first touch only wakes them, it never pauses (4.60.0) | Found by watching | Not taught on purpose: it is what Apple Music does |
 | Song title and chord row | A title too long to fit scrolls as a banner for three loops; tap it to replay. More chords than fit scroll with a faded edge (4.62.0) | Seen, not taught | Replaying the banner by a tap is never taught |
 | Tap the Gig | Pauses: the song page comes back as it always is, Play reads Resume, a quiet band on the line you stopped on (4.52.0) | Found by accident | Tap to pause and drag the lines are never taught |
@@ -102,7 +102,7 @@ anything a person found on their own is skipped.
 
 1. The venue opens the Tour Map (after about 5 songs played through).
 2. Tour's request line and tonight's setlist (first visit to Tour after the tutorial leg).
-3. Charts and the rival battle (after the first scored Gig).
+3. Charts and the rival battle (after the first Gig).
 4. Song duels (the Challenge button after a good show; Charts' Friends list).
 5. Practice mode, Practice a section, Build up (when a song is first marked Learning).
 6. Sets and Play set (when there are 8 songs).
@@ -110,7 +110,7 @@ anything a person found on their own is skipped.
 8. The pedal and Space (the first key or pedal press).
 9. The pull down to go back, the set dial, the letter index (Show me only).
 10. Language practice, Spark tone, Make it easier (their dots in Tools).
-11. Wait for me (4.54.0: on by default for a song you are learning; the hold card explains itself). Score the timing is retired.
+11. (Wait for me went with the listening in 4.91.0.)
 
 ## What stands out
 
@@ -181,15 +181,13 @@ anything a person found on their own is skipped.
 
 | # | Hidden feature | How you do it | Coverage | Why here |
 |---|---|---|---|---|
-| 1 | The microphone hears the chord you play and scores it (Chord Catch, 4.54.0) | Play each chord | On screen: "Hearing you · tap to turn off" says it listens, not why | The heart of the game. Before the first show: "Play each chord. I'm listening" from Louie |
+| 1 | The show counts the changes you play through (4.91.0: no listening) and the crowd gets up as the song goes | Play the song | Visible: the crowd and the run | Before the first show Louie says "The crowd gets on its feet as you play through the song" |
 | 2 | Tap to pause (twice on stage) | Tap the screen | None in the Gig (the tip is plain-sheet only) | First show, a few seconds in, as the pause tip already does elsewhere |
 | 3 | Drag the song to move it (4.51.0: the song page itself scrolls under the show) | Drag | None | First pause in a Gig |
-| 4 | A chord you play turns green and stays green (4.54.0, replaces the beat dots) | Play the chord | None | Seen on screen; no tip yet |
-| 5 | Tap a section on the page's rail to go there (4.53.0; the thin bar over the stage went in 4.54.0) | Tap the rail | None | The jump isn't graded; a tip after the first show would do |
+| 4 | Song stars (4.91.0): the whole song at full speed without pausing makes it Gig-ready | Play it through, no pausing | Show complete says what the next star needs; the song page shows the stars | No tip needed |
+| 5 | Tap a section on the page's rail to go there (4.53.0; the thin bar over the stage went in 4.54.0) | Tap the rail | None | The changes it jumps over don't count; a tip after the first show would do |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
-| 7 | Challenge a friend (a duel) | The button at the end | Visible | No tip needed; Charts explains the record |
-| 8 | Wait for me (4.54.0): the song holds on each chord until you play it | Tools > Play > Wait for me; Skip this chord beside Pause | Switch, on for a learning song; the hold card says what it waits for | No tip yet; one the first time a learning song is played with the mic on would teach it. A practice show: no Charts, battles or duels |
-| 8b | Follow my tempo (4.80.0): the page and the beat speed up or slow down to the chords you play | Tools > Play > Follow my tempo | Switch, on for a learning song | None; it works without being noticed. A tip could say so the first time it moves the pace by 5% or more |
+| 7 | Song duels (retired from the Gig in 4.91.0; coming back as switch duels) | Charts | Charts says so | None |
 | 9 | Louie's count-in (4.56.0): a big number with Louie on each beat, the first chord and the strum | Nothing to do | Visible | Teaches itself; no tip |
 
 Achievement callouts (4.44.0) teach themselves: they appear when something is earned and point to nothing hidden, so they need no tip.

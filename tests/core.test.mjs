@@ -1909,24 +1909,51 @@ test("4.82.1 Chord Catch: any chord can be caught next to any other, and is neve
   assert.equal(C.chordLead(sp.G, "G", "G/B"), null, "G and G/B are one sound");
 });
 
-test("The Gig (Chord Catch): the combo, crowd and bonus fans", () => {
-  const g = C.gigStart();
-  assert.equal(C.gigCrowd(g), 6, "half the crowd before any chord");
-  assert.equal(C.gigPct(g), null);
-  C.catchScore(g, true); C.catchScore(g, false);
-  assert.deepEqual([g.hits, g.misses, g.combo, g.best], [1, 1, 0, 1], "a miss ends the combo and nothing else snaps");
-  for (let i = 0; i < 8; i++) C.catchScore(g, true);
-  assert.equal(g.best, 8); assert.equal(g.combo, 8);
-  assert.equal(C.gigCrowd(g), 11, "9 of the last 10 chords");
-  assert.equal(C.gigPct(g), 90);
-  assert.equal(C.gigFans(g), 9 + 10, "a fan a chord, and 10 for a crowd of 10 or more");
-  assert.equal(C.gigFans(g, true), 38, "an encore doubles it");
-  const data = { songs: [], sets: [], trash: [], settings: {} };
-  assert.deepEqual(C.gigDone(data, "a", g), { fans: 19, tips: 10 + 3 * 11 + 4, pct: 90, request: null }, "4.70.0: tips for the show too");
-  assert.deepEqual(data.gig, { shows: 1, fans: 19, best: { a: 90 } });
-  assert.deepEqual(C.cleanGig({ shows: "2", fans: 5, best: { a: 120, b: 50 } }), { shows: 2, fans: 5, best: { b: 50 } });
+test("4.91.0 the Gig without listening: changes played through, the run, the crowd, stars and stretch pay", () => {
+  const g = C.gigStart(20);
+  assert.equal(C.gigCrowd(g), 0, "an empty room before the song starts");
+  C.showPlayed(g, 8); C.showPaused(g); C.showPlayed(g, 3);
+  assert.deepEqual([g.played, g.run, g.best, g.pauses], [11, 3, 8, 1], "a pause ends the run");
+  assert.equal(C.gigCrowd(g), 7, "the crowd fills as the song goes");
+  assert.equal(C.showWhole(g), false, "paused, so not the whole song");
+  assert.equal(C.gigFans(g), 11, "a fan a change");
+  assert.equal(C.gigFans(g, false, 1.5), 17, "times the stretch");
+  const w = C.gigStart(20); C.showPlayed(w, 18);
+  assert.equal(C.showWhole(w), true, "9 in 10 changes and no pause is the whole song");
+  assert.equal(C.gigFans(w), 28, "+10 for the whole song"); assert.equal(C.gigFans(w, true), 56, "an encore doubles it");
+  /* stretch pay: full speed, a chord you're still learning, the first time through */
+  const song = { id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 1, days: {} } };
+  const data = { songs: [song], sets: [], trash: [], settings: {}, journal: { chords: { G: { n: 9 }, C: { n: 9 } } } };
+  assert.deepEqual(C.stretchOf(data, song), { k: 1.5, speed: true, newChord: false, debut: true });
+  assert.equal(C.stretchOf(data, song, { full: false }).k, 1.25);
+  data.journal.chords.C.n = 0; song.playLog.total = 5;
+  assert.equal(C.stretchOf(data, song).k, 1.5, "a chord you haven't learned pays more");
+  /* stars: in the Songbook, played 3 times, Gig-ready, Headliner on three days */
+  song.playLog.total = 1;
+  assert.equal(C.starsOf(data, song), 1);
+  song.playLog.total = 3; assert.equal(C.starsOf(data, song), 2);
+  const now = new Date(2026, 10, 14, 20).getTime();
+  const r = C.gigDone(data, "a", w, false, now, { song, full: true });
+  assert.deepEqual([r.stars.before, r.stars.after, r.starFans], [2, 3, 25], "the whole song at full speed makes it Gig-ready");
+  assert.equal(r.fans, (C.gigFans(w, false, r.stretch.k) + 25) * (r.request ? 2 : 1), "the request line doubles it");
+  assert.equal(r.tips, 10 + 3 * 11 + 4, "tips: the crowd and the changes");
+  assert.equal(C.gigDone(data, "a", w, false, now, { song, full: false }).stars.after, 3, "a slowed play doesn't add a day");
+  C.gigDone(data, "a", w, false, now + 86400e3, { song, full: true });
+  const r3 = C.gigDone(data, "a", w, false, now + 2 * 86400e3, { song, full: true });
+  assert.deepEqual([r3.stars.after, r3.starFans], [4, 50], "Headliner: Gig-ready on three different days");
+  assert.equal(C.gigDone(data, "a", w, false, now + 3 * 86400e3, { song, full: true }).starFans, 0, "each star pays once");
+  assert.equal(data.gig.ready.a.length, 3);
+  /* saves: old scores stay readable, and 80% or more before is Gig-ready once */
+  assert.deepEqual(C.cleanGig({ shows: "2", fans: 5, best: { a: 120, b: 50, c: 85 } }), { shows: 2, fans: 5, best: { b: 50, c: 85 }, ready: { c: ["2026-11-14"] }, seeded: true });
+  assert.deepEqual(C.cleanGig({ shows: 1, best: { c: 85 }, ready: {}, seeded: true }).ready, {}, "seeded only once");
+  assert.deepEqual(C.cleanGig(JSON.parse(JSON.stringify(data.gig))), data.gig, "kept through a save");
   assert.equal(C.cleanGig({}), null);
-  assert.equal(C.fansOf(data), 19, "bonus fans count toward your fans");
+  assert.ok(C.fansOf(data) >= r.fans, "bonus fans count toward your fans");
+  /* the economy: a typical 40-change song played through pays about what a well-played scored show did */
+  const typ = C.gigStart(40); C.showPlayed(typ, 40);
+  const oldFans = 34 + 15 + 10, oldTips = 10 + 3 * 11 + 8; /* 85% caught, best run 16, crowd 11 */
+  assert.ok(Math.abs(C.gigFans(typ, false, 1.25) - oldFans) / oldFans < 0.2, `fans ${C.gigFans(typ, false, 1.25)} near ${oldFans}`);
+  assert.ok(Math.abs(C.gigTips(typ) - oldTips) / oldTips < 0.2, `tips ${C.gigTips(typ)} near ${oldTips}`);
 });
 
 test("Tour quests (4.5.0): the month's tour, tonight's setlist and the request line", () => {
@@ -1944,15 +1971,15 @@ test("Tour quests (4.5.0): the month's tour, tonight's setlist and the request l
   const got = C.questsSettle(data, now);
   assert.deepEqual(got.map(x => x.fans), [10, 10], "two goals done");
   assert.deepEqual(C.questsSettle(data, now), [], "credited once");
-  /* a gig of the requested song with a crowd of 12: bonus fans double, the crowd goal and the full setlist */
-  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.catchScore(g, true);
-  const fans = C.gigFans(g), r = C.gigDone(data, req.id, g, false, now);
+  /* a gig of the requested song, whole and unpaused: bonus fans double, the no-pausing goal and the full setlist */
+  const g = C.gigStart(10); C.showPlayed(g, 10);
+  const r = C.gigDone(data, req.id, g, false, now), fans = C.gigFans(g, false, r.stretch.k) + r.starFans;
   assert.equal(r.fans, fans * 2); assert.equal(r.request, true);
   assert.equal(C.gigDone(data, req.id, g, false, now).request, null, "once a day");
-  assert.deepEqual(C.questsSettle(data, now).map(x => x.fans), [10, 25], "the crowd goal, then the whole setlist");
+  assert.deepEqual(C.questsSettle(data, now).map(x => x.fans), [10, 25], "the no-pausing goal, then the whole setlist");
   assert.equal(C.questState(data, now).request.done, true);
   assert.equal(data.quests.fans, 55 + fans, "20 + 10 + 25 from the setlist, and the doubled bonus");
-  assert.ok(C.fansOf(data, now) >= 55 + fans * 3, "quest fans count toward your fans");
+  assert.ok(C.fansOf(data, now) >= 55 + fans * 3 - r.starFans, "quest fans count toward your fans (the new star pays once)");
   /* a new day starts a new setlist */
   assert.deepEqual(C.questState(data, now + 86400e3).goals.map(x => x.claimed), [false, false, false]);
   /* 20 shows finish the tour */
@@ -1999,11 +2026,13 @@ test("Charts (4.6.0): weekly XP, the chart, promotion and records, rival battles
   const now = wed + 14 * 86400e3, b = C.startBattle(data, now);
   assert.equal(b.songId, "a"); assert.ok(b.target >= 55 && b.target <= 95);
   assert.equal(b.rival, C.chartState(data, now).rival.name);
-  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.catchScore(g, true);
+  const g = C.gigStart(10); C.showPlayed(g, 10);
   const fans0 = C.fansOf(data, now), xp0 = C.weekXP(data, C.weekOf(now));
+  const slow = JSON.parse(JSON.stringify(data));
+  assert.equal(C.gigDone(slow, "a", g, false, now, { full: false }).battle.result, "lost", "4.91.0: slowed down loses the battle");
   const r = C.gigDone(data, "a", g, false, now);
   assert.equal(r.battle.result, "won"); assert.equal(r.battle.pct, 100);
-  assert.equal(C.weekXP(data, C.weekOf(now)) - xp0, 10 + 10 + 30, "landed changes, the crowd and the battle");
+  assert.equal(C.weekXP(data, C.weekOf(now)) - xp0, Math.round(10 * r.stretch.k) + 10 + 30, "changes played, the whole song and the battle");
   assert.ok(C.fansOf(data, now) - fans0 >= 40, "40 fans for the win");
   assert.equal(C.gigDone(data, "a", g, false, now).battle, undefined, "one battle a day");
   const kept = C.cleanCharts(JSON.parse(JSON.stringify(data.charts)));
@@ -2063,14 +2092,14 @@ test("Cover requests (4.10.0): your listening becomes the request or a cover que
   assert.deepEqual([cv.song.id, cv.step], ["w", 2], "added: learn its chords");
   data.journal = { chords: { G: { n: 9 }, D: { n: 9 }, Em: { n: 9 }, C: { n: 9 } } };
   assert.equal(C.coverState(data, now).step, 3, "then play the gig");
-  const g = C.gigStart(); for (let i = 0; i < 6; i++) C.catchScore(g, true);
-  const base = C.gigFans(g), r = C.gigDone(data, "w", g, false, now);
+  const g = C.gigStart(6); C.showPlayed(g, 6);
+  const r = C.gigDone(data, "w", g, false, now), base = C.gigFans(g, false, r.stretch.k) + r.starFans;
   assert.equal(r.cover, true); assert.equal(r.fans, base * 3, "3x bonus fans");
   assert.equal(C.coverState(data, now), null, "done");
   assert.deepEqual(C.cleanQuests(JSON.parse(JSON.stringify(data.quests))), data.quests, "kept through a save");
 });
 
-test("Song duels (4.12.0): a challenge by link, answered by a gig, and the record between you", async () => {
+test("Song duels (4.12.0): a challenge by link, and the record between you", async () => {
   const now = Date.now(), me = { songs: [{ id: "a", title: "River Road", artist: "W", format: "chords", body: "[Verse]\nG C\nla" }], sets: [], trash: [], settings: {} };
   const d = C.startDuel(me, me.songs[0], { pct: 88, combo: 14, crowd: 11 }, now);
   const code = await C.packShare({ song: C.shareable(me.songs[0]), duel: { id: d.id, from: "Graham", pct: 88, combo: 14, crowd: 11 } });
@@ -2079,10 +2108,7 @@ test("Song duels (4.12.0): a challenge by link, answered by a gig, and the recor
   /* the friend takes it and plays it */
   const friend = { songs: [{ id: "x", title: "River Road", artist: "W", format: "chords", body: "[Verse]\nG C\nla" }], sets: [], trash: [], settings: {} };
   C.takeDuel(friend, got.duel, friend.songs[0], now);
-  const g = C.gigStart(); for (let i = 0; i < 10; i++) C.catchScore(g, true);
-  const r = C.gigDone(friend, "x", g, false, now);
-  assert.equal(r.duel.opp, "Graham"); assert.equal(r.duel.mine.pct, 100); assert.equal(C.duelWon(r.duel), true);
-  assert.equal(C.gigDone(friend, "x", g, false, now).duel, undefined, "answered once");
+  assert.equal(friend.duels.list[0].opp, "Graham", "4.91.0: a challenge you get is kept; a gig no longer answers it");
   /* their score comes back */
   const back = await C.unpackShare(await C.packShare({ song: C.shareable(friend.songs[0]), duel: { id: d.id, from: "Mike", pct: 100, combo: 10, crowd: 12, reply: true } }));
   const mine = C.takeDuel(me, back.duel, null, now);
@@ -2552,10 +2578,10 @@ test("Fans fade and venues can be lost and won back (4.70.0)", () => {
 });
 
 test("Tips for a show (4.70.0): more with a bigger crowd and a longer run; an encore doubles them", () => {
-  const g = C.gigStart(); for (let i = 0; i < 12; i++) C.catchScore(g, true);
+  const g = C.gigStart(24); C.showPlayed(g, 24);
   assert.equal(C.gigTips(g), 10 + 3 * 12 + 6);
   assert.equal(C.gigTips(g, true), 2 * (10 + 3 * 12 + 6));
-  assert.equal(C.gigTips(C.gigStart()), 5, "an unscored show still gets something");
+  assert.equal(C.gigTips(C.gigStart()), 5, "a show with no changes still gets something");
 });
 
 test("Tune up first (4.72.0): a big swing in humidity or temperature since the last play", () => {

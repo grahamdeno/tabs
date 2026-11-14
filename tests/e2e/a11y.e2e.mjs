@@ -58,11 +58,11 @@ for (const theme of ["dark", "light"]) {
   });
 }
 
-/* 4.54.0: the show, the song it waits on, and Show complete (Chord Catch) have names and pass axe in each palette */
+/* 4.54.0: the show and Show complete have names and pass axe in each palette (4.91.0: no Wait for me) */
 import { FAKE_MIC, settled } from "./harness.mjs";
 for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", "green"], ["headliner", "headliner"]]) {
-  test(`the Gig, Wait for me and Show complete pass axe (${look})`, { skip: skip() }, async t => {
-    const song = { id: "w", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 12, waitForMe: true, bpm: 120,
+  test(`the Gig and Show complete pass axe (${look})`, { skip: skip() }, async t => {
+    const song = { id: "w", title: "Short Road", artist: "Me", key: "A", format: "chords", duration: 12, bpm: 120,
       body: "[Verse]\nA        D\nWalking down the road\nE        A\nLantern in my hand" };
     const page = await phone(t, { ...lib(theme), songs: [song], settings: { ...lib(theme).settings, look, plainPlay: false } }, { colorScheme: theme === "light" ? "light" : "dark", reducedMotion: "reduce" });
     await page.context().addInitScript(FAKE_MIC);
@@ -77,9 +77,9 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
       for (const f of found) problems.push(`${screen}: ${f}`);
     };
     await check("paused song with shape tiles");
-    await page.click("#play"); await page.waitForSelector("#gg-wait:not([hidden])", { timeout: 20000 });
-    await check("waiting for a chord");
-    await page.waitForFunction(() => { const b = document.getElementById("gg-skip"); if (b && !b.hidden) b.click(); return !!document.querySelector(".gc"); }, null, { timeout: 60000, polling: 300 }); /* skip each chord it waits on until the show ends */
+    await page.click("#play"); await page.waitForFunction(() => document.querySelectorAll("#gg-fans .on").length > 0, null, { timeout: 20000 });
+    await check("playing, the crowd getting up");
+    await page.waitForSelector(".gc", { timeout: 60000 });
     await check("show complete");
     for (const p of problems) console.log(`PROBLEM ${look} ${p}`);
     assert.deepEqual(problems, []);

@@ -39,9 +39,9 @@ export function micSheet(done) {
     <div class="on-mic-lv">${louie("happy", { pose: "wave", size: 120 })}</div>
     <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k === 0 ? "on" : ""}"></i>`).join("")}</div>
     <h2>Let me hear you</h2>
-    <p>I listen for your strums to score your shows, tune your guitar and check your chords. Nothing is recorded or sent anywhere.</p>
+    <p>I listen when you tune and when a lesson checks your chords. Nothing is recorded or sent anywhere.</p>
     <button class="btn primary" id="on-allow">Turn on the microphone</button>
-    <button class="tb on-not" id="on-not">Not now (play without scoring)</button></div>`;
+    <button class="tb on-not" id="on-not">Not now</button></div>`;
   const close = () => { layer.innerHTML = ""; done?.(); };
   const finish = off => {
     advance("mic");
@@ -49,7 +49,7 @@ export function micSheet(done) {
     close();
   };
   document.getElementById("on-scrim").onclick = () => { layer.innerHTML = ""; };
-  document.getElementById("on-not").onclick = () => { finish(true); toast("No problem. Shows aren't scored until you turn the microphone on."); };
+  document.getElementById("on-not").onclick = () => { finish(true); toast("No problem. The tuner and lessons ask when they need it."); };
   document.getElementById("on-allow").onclick = async e => {
     e.currentTarget.disabled = true;
     try {
@@ -58,7 +58,7 @@ export function micSheet(done) {
       data.settings.micExplained = true;
       finish(false); toast("Thanks. I can hear you.");
     } catch {
-      finish(true); toast("The microphone is off. Shows aren't scored until it's on (Settings on your phone).");
+      finish(true); toast("The microphone is off. The tuner and lessons need it (Settings on your phone).");
     }
   };
 }
@@ -98,16 +98,14 @@ export function gigOpen(g, el, start) {
   const id = stepId();
   if (!["verse", "pause", "show"].includes(id)) return false;
   g.opening = true; g.from = "road";
-  if (data.opening?.micOff) g.noMic = true;
   hideStrip();
   if (id !== "verse") { strip(id === "pause" ? "Tap anywhere to pause." : "Play it through to the end. That's your first show.", undefined, id === "show" ? 7000 : 0); return false; }
-  const off = !!data.opening?.micOff;
   const card = document.createElement("div");
   card.className = "on-count";
   card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("happy", { pose: "point", size: 104 })}</div>
     <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k < 2 ? "done" : k === 2 ? "on" : ""}"></i>`).join("")}</div>
     <h2>Play each chord</h2>
-    <p>${off ? "The words scroll and the chords are in the song. Your microphone is off, so I won't score this one; the mic button at the bottom turns it on." : "Play the chord you see. Catch it and it turns green and the crowd gets up. Miss one and the song keeps going; nothing fails."} Just the first verse for now.</p>
+    <p>Play the chord you see as the words go by. The crowd gets on its feet as you play through the song. Miss one and the song keeps going; nothing fails. Just the first verse for now.</p>
     <button class="btn primary" id="on-go">Count me in</button></div>`;
   el.appendChild(card);
   card.querySelector("#on-go").onclick = () => { card.remove(); start(); };
