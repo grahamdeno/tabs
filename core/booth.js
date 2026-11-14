@@ -74,7 +74,7 @@ export function boothPath(take) {
 }
 /* The label that sits beside the recording, so the measuring knows what was played. No key, nothing personal. */
 export function boothLabel(take) {
-  return { kind: take.chords.length === 1 ? "chord" : "switch", chords: take.chords, guitar: take.guitar || "", place: take.place || "",
+  return { kind: take.chords.length === 1 ? "chord" : "switch", chords: take.chords, guitar: take.guitar || "", place: take.place || "", strum: take.strum || "",
     note: take.note || "", rate: take.rate, seconds: Math.round(take.seconds * 10) / 10, version: take.version, at: new Date(take.at).toISOString(), heard: take.heard || null };
 }
 
@@ -104,13 +104,19 @@ export function toBase64(bytes) {
 }
 
 /* ---- the guided session (4.92.0): the list Graham records, one take at a time ---- */
-/* 11 chords, three takes each (two with the phone on its stand, one on the table), then five switches */
+/* With a pick (4.92.1, Graham: a pick reads lower than a thumb, and most people strum with one): 11 chords, three
+   takes each (two with the phone on its stand, one on the table), then five switches. Then a few with the thumb,
+   no pick, to measure the difference. */
 export const BOOTH_CHORDS = ["Am", "C", "D", "Em", "F", "G", "A", "E", "Dm", "Cadd9", "Bm"];
 export const BOOTH_SWITCHES = [["G", "C"], ["C", "Am"], ["Em", "G"], ["D", "A"], ["Am", "C"]];
 export const BOOTH_SECS = { chord: 10, switch: 30 };
+export const BOOTH_THUMB = ["Am", "C", "G"];
+export const BOOTH_STRUMS = ["pick", "thumb"];
 export const BOOTH_PLAN = [
-  ...BOOTH_CHORDS.flatMap(c => [1, 2, 3].map(n => ({ id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", seconds: BOOTH_SECS.chord }))),
-  ...BOOTH_SWITCHES.map(([a, b]) => ({ id: `s:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", seconds: BOOTH_SECS.switch }))
+  ...BOOTH_CHORDS.flatMap(c => [1, 2, 3].map(n => ({ id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", strum: "pick", seconds: BOOTH_SECS.chord }))),
+  ...BOOTH_SWITCHES.map(([a, b]) => ({ id: `s:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", strum: "pick", seconds: BOOTH_SECS.switch })),
+  ...BOOTH_THUMB.map(c => ({ id: `t:${c}`, chords: [c], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.chord })),
+  { id: "ts:G-C", chords: ["G", "C"], take: 1, of: 1, place: "stand", strum: "thumb", seconds: BOOTH_SECS.switch }
 ];
 /* the next step not done or skipped, and how far along you are */
 export function boothNext(done = []) {
@@ -132,7 +138,7 @@ export function boothVerdict(sum, chords) {
 }
 /* the directions for a step, in plain words */
 export function boothSteps(step) {
-  const where = step.place === "table" ? "Lay the phone flat on a table or desk near you." : "Put the phone where it sits when you play, on its stand.";
+  const where = (step.place === "table" ? "Lay the phone flat on a table or desk near you." : "Put the phone where it sits when you play, on its stand.") + (step.strum === "thumb" ? " Put the pick down and strum with your thumb." : " Use your pick.");
   if (step.chords.length === 1) return `${where} Hold ${step.chords[0]} and strum it every second or two, like you're playing a song. I'll count you in and stop by myself after ${step.seconds} seconds.`;
   return `${where} Switch between ${step.chords[0]} and ${step.chords[1]}, back and forth, at your own pace: strum each one once or twice, then change. I'll count you in and stop after ${step.seconds} seconds.`;
 }

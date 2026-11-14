@@ -1732,6 +1732,8 @@ body.is-home .rd-song b { font-size: 26px; }
 .bt-card .bt-big { margin: 6px 0 2px; font: 700 34px/1.1 var(--display, var(--sans)); text-transform: none; letter-spacing: 0; color: var(--fg); }
 .bt-lane[hidden] { display: none; }
 .bt-sub { margin: 0 0 8px; color: var(--fg-2); font-size: 14px; }
+.bt-strum { color: var(--fg); }
+.bt-strum.thumb { color: var(--accent-ink); }
 .bt-shapes { display: flex; justify-content: center; gap: 18px; margin: 4px 0 10px; }
 .bt-shapes svg { max-height: 120px; }
 .bt-stage { min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }

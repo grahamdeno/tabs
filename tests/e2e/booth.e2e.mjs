@@ -21,7 +21,7 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
   await page.waitForTimeout(2500); /* real timer: a take must be a few seconds long */
   await page.click("#bt-rec");
   await page.waitForSelector(".bt-take");
-  assert.match(await page.innerText(".bt-take"), /^C\n\d+ s · C on \d+%/);
+  assert.match(await page.innerText(".bt-take"), /^C\nPick · \d+ s · C on \d+%/);
   assert.match(await page.innerText("#bt-send"), /Send 1/);
   /* Send without a key opens the setup (it's open already, with no key) */
   await page.click("#bt-send");
@@ -48,7 +48,7 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
   assert.equal(wavHead.toString("ascii", 0, 4), "RIFF");
   assert.equal(wavHead.readUInt32LE(24), 22050, "saved at 22,050 a second");
   const label = JSON.parse(Buffer.from(puts[1].body.content, "base64").toString());
-  assert.deepEqual(label.chords, ["C"]); assert.equal(label.kind, "chord");
+  assert.deepEqual(label.chords, ["C"]); assert.equal(label.kind, "chord"); assert.equal(label.strum, "pick", "4.92.1: pick or thumb rides along");
   assert.ok(label.heard.reads > 0, "what the engine heard goes with it");
   assert.ok(!JSON.stringify(label).includes("github_pat"), "the key is not in the label");
   await page.waitForSelector(".bt-none");
@@ -70,7 +70,7 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
   await page.evaluate(() => { location.hash = "#/practice/booth"; });
   await page.waitForSelector(".bt-card"); await settled(page);
-  assert.match(await page.innerText(".bt-card"), /Take 1 of 38[\s\S]*Am chord[\s\S]*Take 1 of 3 · phone on its stand[\s\S]*Hold Am and strum it/i);
+  assert.match(await page.innerText(".bt-card"), /Take 1 of 42[\s\S]*Am chord[\s\S]*With a pick · take 1 of 3 · phone on its stand[\s\S]*Use your pick\. Hold Am and strum it/i);
   assert.equal(await page.locator(".bt-shapes svg").count(), 1, "the chord's shape");
   assert.match(await page.innerText("#bt-sendline"), /Everything you've kept is sent/);
   await page.evaluate(async () => { const C = await import("/core.js"); window.__chord = C.chordTargets("Am").filter(x => x.hz > 0).map(x => x.hz); });
@@ -81,13 +81,13 @@ test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Kee
   assert.match(await page.innerText(".bt-verdict"), /Got it\. I heard Am on \d+%/);
   assert.match(await page.innerText("#bt-keep"), /Keep it · next/i);
   await page.click("#bt-keep");
-  await page.waitForFunction(() => /Take 2 of 38/i.test(document.querySelector(".bt-card")?.textContent));
-  assert.match(await page.innerText(".bt-card"), /Am chord[\s\S]*Take 2 of 3/i);
+  await page.waitForFunction(() => /Take 2 of 42/i.test(document.querySelector(".bt-card")?.textContent));
+  assert.match(await page.innerText(".bt-card"), /Am chord[\s\S]*take 2 of 3/i);
   await page.waitForFunction(() => /Everything you've kept is in the repo/.test(document.getElementById("bt-sendline").textContent));
   assert.equal(puts.length, 2, "the take and its label went up in the background");
   /* Skip, then come back later: it picks up where you stopped */
-  await page.click("#bt-skip"); await page.waitForFunction(() => /Take 3 of 38/i.test(document.querySelector(".bt-card")?.textContent));
+  await page.click("#bt-skip"); await page.waitForFunction(() => /Take 3 of 42/i.test(document.querySelector(".bt-card")?.textContent));
   await page.evaluate(() => { location.hash = "#/practice/hear"; }); await page.waitForSelector("#ph-booth"); await settled(page);
   await page.click("#ph-booth"); await page.waitForSelector(".bt-card");
-  assert.match(await page.innerText(".bt-card"), /Take 3 of 38[\s\S]*phone on the table/i);
+  assert.match(await page.innerText(".bt-card"), /Take 3 of 42[\s\S]*phone on the table/i);
 });

@@ -2717,7 +2717,7 @@ test("4.90.0 the Listening booth: calls, summary, files, and a real C and G hear
   /* file names and the label: what was played, nothing else */
   const take = { id: "ab12cd", at: Date.UTC(2026, 10, 14), chords: ["F#m", "C/G"], guitar: "Martin", place: "stand", note: "", rate: 22050, seconds: 12.34, version: C.VERSION, heard: { reads: 10 } };
   assert.equal(C.boothPath(take), "booth/2026-11-14/Fsm-to-C-G-ab12cd");
-  assert.deepEqual(Object.keys(C.boothLabel(take)).sort(), ["at", "chords", "guitar", "heard", "kind", "note", "place", "rate", "seconds", "version"]);
+  assert.deepEqual(Object.keys(C.boothLabel(take)).sort(), ["at", "chords", "guitar", "heard", "kind", "note", "place", "rate", "seconds", "strum", "version"]);
   assert.equal(C.boothLabel(take).kind, "switch");
   assert.ok(!/boothkey|github_pat/i.test(JSON.stringify(C.boothLabel({ ...take, key: "github_pat_x" }))), "a stray key never reaches the label");
   /* a switch summary counts a change only once the call settles */
@@ -2741,14 +2741,16 @@ test("4.90.0 the Listening booth: calls, summary, files, and a real C and G hear
 });
 
 test("4.92.0 the guided booth: the list, where you are, and keep or try again", () => {
-  assert.equal(C.BOOTH_PLAN.length, 38, "11 chords x 3 takes, and 5 switches");
-  assert.equal(new Set(C.BOOTH_PLAN.map(s => s.id)).size, 38, "every step has its own id");
+  assert.equal(C.BOOTH_PLAN.length, 42, "with a pick: 11 chords x 3 takes and 5 switches; then 3 chords and a switch with the thumb");
+  assert.deepEqual(C.BOOTH_PLAN.filter(s => s.strum === "thumb").map(s => s.id), ["t:Am", "t:C", "t:G", "ts:G-C"]);
+  assert.match(C.boothSteps(C.BOOTH_PLAN[38]), /strum with your thumb/); assert.match(C.boothSteps(C.BOOTH_PLAN[0]), /Use your pick/);
+  assert.equal(new Set(C.BOOTH_PLAN.map(s => s.id)).size, 42, "every step has its own id");
   assert.ok(C.BOOTH_PLAN.every(s => s.chords.every(C.boothChord)), "the booth can judge every chord on the list");
-  assert.deepEqual(C.BOOTH_PLAN.filter(s => s.chords[0] === "C" && s.chords.length === 1).map(s => s.place), ["stand", "stand", "table"]);
+  assert.deepEqual(C.BOOTH_PLAN.filter(s => s.chords[0] === "C" && s.chords.length === 1 && s.strum === "pick").map(s => s.place), ["stand", "stand", "table"]);
   let n = C.boothNext([]);
-  assert.deepEqual([n.step.id, n.at, n.of, n.left], ["c:Am:1", 0, 38, 38]);
+  assert.deepEqual([n.step.id, n.at, n.of, n.left], ["c:Am:1", 0, 42, 42]);
   n = C.boothNext(["c:Am:1", "c:Am:3"]);
-  assert.deepEqual([n.step.id, n.left], ["c:Am:2", 36], "a skipped or missed step comes back first");
+  assert.deepEqual([n.step.id, n.left], ["c:Am:2", 40], "a skipped or missed step comes back first");
   assert.equal(C.boothNext(C.BOOTH_PLAN.map(s => s.id)).step, null, "all done");
   assert.equal(C.boothVerdict({ reads: 5, right: 5, wrong: 0, by: {} }, ["C"]).keep, false, "too quiet: try again");
   assert.match(C.boothVerdict({ reads: 100, right: 90, wrong: 2, by: { G: 2 } }, ["C"]).say, /^Got it. I heard C on 90%/);

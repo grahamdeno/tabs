@@ -5,7 +5,7 @@
 // each kept take is sent in the background. It remembers where you stopped. "Record your own" is still there.
 // Opened from What I hear. Takes stay on this phone (IndexedDB "tabs-booth") until sent; never in backups.
 // The GitHub key is kept like the AI key: on this phone only.
-import { BOOTH_MAX, BOOTH_PLACES, BOOTH_PLAN, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
+import { BOOTH_MAX, BOOTH_PLACES, BOOTH_PLAN, BOOTH_STRUMS, BOOTH_RATE, CHORD_FIT, VERSION, boothCall, boothChord, boothLabel, boothNext, boothPath, boothSay, boothSteps, boothSummary, boothVerdict, chromaOf, downsample, sheetChords, toBase64, wavBytes } from "./core.js";
 import { $, app, esc, getMic, haptic, icon, onLeave, sound, toast } from "./ui.js";
 import { chordSVG, data, go } from "./app.js";
 
@@ -111,7 +111,7 @@ async function keepTake(chunks, type, seconds, chords, ctx, calls, meta) {
   const rate = buf.sampleRate > BOOTH_RATE ? BOOTH_RATE : buf.sampleRate;
   const wav = new Blob([wavBytes(downsample(x, buf.sampleRate, rate), rate)], { type: "audio/wav" });
   const sum = boothSummary(calls, chords);
-  const take = { id: Math.random().toString(36).slice(2, 8), at: Date.now(), chords, guitar: prefs().guitar || "", place: meta.place || prefs().place || "", note: meta.note || "", rate, seconds, version: VERSION, heard: { ...sum, fit: CHORD_FIT }, wav };
+  const take = { id: Math.random().toString(36).slice(2, 8), at: Date.now(), chords, guitar: prefs().guitar || "", place: meta.place || prefs().place || "", strum: meta.strum || prefs().strum || "pick", note: meta.note || "", rate, seconds, version: VERSION, heard: { ...sum, fit: CHORD_FIT }, wav };
   await putTake(take);
   return take;
 }
@@ -196,7 +196,7 @@ function guided() {
       <div class="bt-prog" role="progressbar" aria-label="Takes done" aria-valuemin="0" aria-valuemax="${n.of}" aria-valuenow="${n.at}"><i style="width:${Math.round(n.at / n.of * 100)}%"></i></div>
       <p class="bt-step">Take ${n.at + 1} of ${n.of}</p>
       <p class="bt-big" role="heading" aria-level="2">${esc(what)}</p>
-      <p class="bt-sub">${s.chords.length === 1 ? `Take ${s.take} of ${s.of} · ` : ""}phone ${s.place === "table" ? "on the table" : "on its stand"}</p>
+      <p class="bt-sub"><b class="bt-strum ${s.strum}">${s.strum === "thumb" ? "Thumb, no pick" : "With a pick"}</b> · ${s.chords.length === 1 && s.of > 1 ? `take ${s.take} of ${s.of} · ` : ""}phone ${s.place === "table" ? "on the table" : "on its stand"}</p>
       <div class="bt-shapes">${s.chords.map(c => chordSVG(c, 1.6) || "").join("")}</div>
       <div class="bt-stage" id="bt-stage"><p class="bt-dir" id="bt-dir">${esc(boothSteps(s))}</p></div>
       <canvas class="ph-lane bt-lane" id="bt-lane" aria-hidden="true" hidden></canvas>
@@ -212,7 +212,7 @@ function guided() {
     $("bt-stop").onclick = () => { if (rec?.recorder?.state === "recording") stopRec(true); else { stopRec(false); show(); } };
     let calls = [];
     const draw = drawer(lane, () => calls, s.chords);
-    recordTake({ chords: s.chords, seconds: s.seconds, count: COUNT, meta: { place: s.place } }, {
+    recordTake({ chords: s.chords, seconds: s.seconds, count: COUNT, meta: { place: s.place, strum: s.strum } }, {
       count: k => { stage.innerHTML = `<p class="bt-count" aria-live="assertive"><b>${k}</b>Get ready: ${esc(s.chords[0])}</p>`; },
       tick: (c, t) => {
         calls = c;
@@ -273,6 +273,7 @@ function free() {
       <p class="rd-bubble ph-say" id="bt-say" aria-live="polite">Hold the chord and strum it every second or two, about 10 seconds. For a switch, go back and forth at your own pace.</p>
       <div class="bt-fields">
         <div class="bt-f"><span>Phone</span><div class="seg mini" id="bt-place" role="group" aria-label="Where the phone is">${BOOTH_PLACES.map(x => `<button data-p="${x}" class="${(p.place || "stand") === x ? "on" : ""}" aria-pressed="${(p.place || "stand") === x}">${x[0].toUpperCase() + x.slice(1)}</button>`).join("")}</div></div>
+        <div class="bt-f"><span>Strum</span><div class="seg mini" id="bt-strum" role="group" aria-label="What you strum with">${BOOTH_STRUMS.map(x => `<button data-st="${x}" class="${(p.strum || "pick") === x ? "on" : ""}" aria-pressed="${(p.strum || "pick") === x}">${x === "pick" ? "Pick" : "Thumb"}</button>`).join("")}</div></div>
         <label class="bt-f"><span>Note</span><input id="bt-note" maxlength="80" autocomplete="off" placeholder="anything odd, e.g. buzzed the B string"></label>
       </div>
     </section>
@@ -298,6 +299,10 @@ function free() {
     picked = kind === "chord" ? [c] : picked.includes(c) ? picked.filter(x => x !== c) : [...picked, c].slice(-2);
     what();
   });
+  body.querySelectorAll("[data-st]").forEach(b => b.onclick = () => {
+    savePrefs({ strum: b.dataset.st });
+    body.querySelectorAll("[data-st]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
+  });
   body.querySelectorAll("[data-p]").forEach(b => b.onclick = () => {
     savePrefs({ place: b.dataset.p });
     body.querySelectorAll("[data-p]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
@@ -310,7 +315,7 @@ function free() {
     $("bt-rec").disabled = true; say("Starting the microphone…");
     const draw = drawer(lane, () => calls, chordsNow);
     let first = true;
-    recordTake({ chords: chordsNow, seconds: BOOTH_MAX, meta: { place: body.querySelector("[data-p].on")?.dataset.p || "", note: $("bt-note")?.value.trim() || "" } }, {
+    recordTake({ chords: chordsNow, seconds: BOOTH_MAX, meta: { place: body.querySelector("[data-p].on")?.dataset.p || "", strum: body.querySelector("[data-st].on")?.dataset.st || "pick", note: $("bt-note")?.value.trim() || "" } }, {
       tick: c => {
         calls = c;
         if (first) { first = false; $("bt-rec").disabled = false; $("bt-rec").classList.add("on"); $("bt-rec").innerHTML = `<i class="pk-rec" aria-hidden="true"></i>Stop`; draw(); say(chordsNow.length === 1 ? `Listening for ${chordsNow[0]}. Strum it every second or two.` : `Listening. ${chordsNow[0]}, then ${chordsNow[1]}, back and forth.`); }
@@ -327,7 +332,7 @@ function free() {
     if (!box) return;
     box.innerHTML = list.length ? list.map(t => `<div class="bt-take" data-id="${esc(t.id)}">
         <button class="ib bt-play" data-play="${esc(t.id)}" aria-label="Play ${esc(t.chords.join(" to "))}">${icon("play")}</button>
-        <span class="bt-tx"><b>${esc(t.chords.join(" to "))}</b><small>${Math.round(t.seconds)} s · ${esc(boothSay(t.heard || { reads: 0 }, t.chords))}</small></span>
+        <span class="bt-tx"><b>${esc(t.chords.join(" to "))}</b><small>${t.strum === "thumb" ? "Thumb · " : t.strum === "pick" ? "Pick · " : ""}${Math.round(t.seconds)} s · ${esc(boothSay(t.heard || { reads: 0 }, t.chords))}</small></span>
         <button class="ib bt-del" data-del="${esc(t.id)}" aria-label="Delete ${esc(t.chords.join(" to "))} take">${icon("trash")}</button></div>`).join("")
       : `<p class="bt-none">No takes yet.</p>`;
     $("bt-send").disabled = !list.length; $("bt-send").textContent = list.length ? `Send ${list.length}` : "Send";
