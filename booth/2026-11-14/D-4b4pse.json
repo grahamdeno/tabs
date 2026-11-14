@@ -1,0 +1,21 @@
+{
+ "kind": "chord",
+ "chords": [
+  "D"
+ ],
+ "guitar": "",
+ "place": "table",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10.1,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:31:19.259Z",
+ "heard": {
+  "reads": 114,
+  "right": 114,
+  "wrong": 0,
+  "by": {},
+  "fit": 0.55
+ }
+}
