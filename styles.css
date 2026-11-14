@@ -4528,3 +4528,27 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .gc-stars i { font-style: normal; color: rgba(127,127,127,.28); }
 .gc-stars i.on { color: #f2a900; text-shadow: 0 1px 0 rgba(0,0,0,.25); }
 .sh-stars { color: var(--accent-ink, inherit); letter-spacing: .5px; }
+
+/* 4.96.0: Play along on YouTube: the player card (200 px square, visible while the recording plays; YouTube's rules) */
+.yt-card { position: fixed; right: 12px; top: 72px; z-index: 60; width: 200px; border-radius: 14px; overflow: hidden; background: #0f0f0f; box-shadow: 0 6px 18px rgba(0,0,0,.35); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .2s, transform .2s, visibility 0s .2s; }
+.yt-card.on { opacity: 1; visibility: visible; transform: none; transition: opacity .2s, transform .2s; }
+.yt-card iframe { display: block; width: 200px; height: 200px; border: 0; }
+.yt-cap { margin: 0; padding: 5px 8px; font: 600 11px var(--sans); color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { .yt-card, .yt-card.on { transition: none; transform: none; } }
+.ytsheet { padding-bottom: calc(14px + var(--safe-b)); }
+.yt-h { margin: 6px 0 4px; font: 700 22px var(--display, var(--sans)); }
+.yt-h3 { margin: 14px 0 6px; font: 700 13px var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--fg-2); }
+.yt-p { margin: 0 0 8px; font-size: 14px; line-height: 1.4; color: var(--fg-2); }
+.yt-p.sm { font-size: 12px; }
+.yt-now { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--recess); }
+.yt-ic svg { width: 20px; height: 20px; color: #f00; }
+.yt-nt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.yt-nt b { font: 700 15px var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yt-nt small { color: var(--fg-2); font-size: 12px; }
+.yt-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 2px 4px; font-size: 14px; }
+.yt-step { display: flex; align-items: center; gap: 8px; }
+.yt-step b { min-width: 52px; text-align: center; font: 700 15px var(--sans); }
+.yt-pick { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin: 0 0 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--recess-edge); background: var(--recess); color: var(--fg); font: inherit; text-align: left; }
+.yt-pick b { font: 700 14px var(--sans); }
+.yt-pick small { color: var(--fg-2); font-size: 12px; }
+.yt-paste { margin: 12px 0; }

@@ -103,3 +103,37 @@ test("the booth server: only the app, only with the code, only booth recordings"
   assert.deepEqual(JSON.parse(Buffer.from(calls[4].body.content, "base64")), { kind: "chord", chords: ["C"], player: "Mike" });
   assert.equal(booth.sameCode("a", "a"), true); assert.equal(booth.sameCode("a", "ab"), false); assert.equal(booth.sameCode("", ""), false, "no code set means no way in");
 });
+
+/* ---- the YouTube search server (worker/youtube.js, 4.96.0) ---- */
+const ytw = await import("../worker/youtube.js");
+test("the YouTube server: only the app, a key it keeps, the artist's own audio first, and each song searched once", async t => {
+  const calls = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async u => {
+    const url = new URL(String(u)); calls.push(url.pathname.split("/").pop());
+    assert.equal(url.searchParams.get("key"), "yt-key", "the server's own key");
+    if (url.pathname.endsWith("/search")) return new Response(JSON.stringify({ items: ["live1234567", "topic123456", "cover123456", "offic123456"].map(id => ({ id: { videoId: id } })) }));
+    return new Response(JSON.stringify({ items: [
+      { id: "live1234567", snippet: { title: "Old Road (Live at the Ryman)", channelTitle: "The Pines" }, contentDetails: { duration: "PT4M10S" }, status: { embeddable: true } },
+      { id: "topic123456", snippet: { title: "Old Road", channelTitle: "The Pines - Topic" }, contentDetails: { duration: "PT3M32S" }, status: { embeddable: true } },
+      { id: "cover123456", snippet: { title: "Old Road - guitar cover", channelTitle: "Bob" }, contentDetails: { duration: "PT3M30S" }, status: { embeddable: true } },
+      { id: "offic123456", snippet: { title: "The Pines - Old Road (Official Music Video)", channelTitle: "ThePinesVEVO" }, contentDetails: { duration: "PT4M01S" }, status: { embeddable: false } }
+    ] }));
+  };
+  t.after(() => { globalThis.fetch = realFetch; });
+  const store = new Map(), cache = { match: async k => store.get(k.url)?.clone(), put: async (k, r) => { store.set(k.url, r); } };
+  const get = (q, origin = ORIGIN, env = { YOUTUBE_KEY: "yt-key" }) => ytw.handle(new Request(`https://yt.test/find?${q}`, { headers: { origin } }), env, cache);
+  assert.equal((await get("artist=The%20Pines&title=Old%20Road", "https://evil.example")).status, 403);
+  assert.equal((await get("artist=The%20Pines&title=Old%20Road", ORIGIN, {})).status, 503, "no key yet");
+  assert.equal((await get("artist=The%20Pines&title=")).status, 400);
+  const r = await (await get("artist=The%20Pines&title=Old%20Road&len=212")).json();
+  assert.equal(r.items[0].id, "topic123456", "the artist's Topic upload first");
+  assert.ok(!r.items.some(v => v.id === "offic123456"), "a video that can't be embedded is left out");
+  assert.deepEqual(r.items.slice(1).map(v => v.id).sort(), ["cover123456", "live1234567"], "live versions and covers after it");
+  assert.deepEqual(r.items[0], { id: "topic123456", title: "Old Road", channel: "The Pines - Topic", secs: 212, topic: true });
+  assert.deepEqual(calls, ["search", "videos"]);
+  const again = await (await get("artist=the%20pines&title=OLD%20ROAD")).json();
+  assert.equal(again.cached, true, "the same song again comes from the cache");
+  assert.equal(calls.length, 2, "no second search");
+  assert.equal(ytw.isoSecs("PT1H2M3S"), 3723);
+});

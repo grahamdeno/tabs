@@ -151,6 +151,21 @@ function renderSettings() {
       </div>` : ""}
     </div>
     <details class="foot s-why"><summary>What it's used for</summary>The recording plays here instead of opening Apple Music, and the page follows it. Songs also get their genre, year and composer, the search screen shows what you played lately, and each line is timed from LRCLIB's synced lyrics (only the times are kept). Off, nothing is loaded and nothing is sent. On, Louie loads Apple's MusicKit, asks your token address for a developer token (see worker/README.md), and Apple asks you to sign in once.</details>`],
+    youtube: ["YouTube", `
+    <p class="foot" style="margin:0 4px 14px">Without Apple Music, a song can play along with its YouTube video: Play starts it and the page follows it. Pick the video in About this song. The video shows while it plays.</p>
+    <div class="set-group glass">
+      <div class="set">
+        <span class="tile">${icon("play")}</span><span class="name">Play along on YouTube<small class="sub">When Apple Music isn't on or doesn't have the song</small></span>
+        <button class="toggle ${s.youtube !== false ? "on" : ""}" id="s-yt" role="switch" aria-checked="${s.youtube !== false}" aria-label="Play along on YouTube"></button>
+      </div>
+      <label class="fld fld-k"><span class="tile ftile">${icon("cloud")}</span>
+        <input id="s-ytserver" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search server (https://tabs-youtube….workers.dev)" value="${esc(s.youtubeServer || "")}" aria-label="YouTube search server address"></label>
+      <div class="key-row">
+        <span class="ai-status"><i class="dot ${s.youtubeServer ? "on" : ""}"></i>${s.youtubeServer ? "Search is on" : "No search server: paste links"}</span>
+        <button class="btn sm primary" id="s-ytsave">Save</button>
+      </div>
+    </div>
+    <details class="foot s-why"><summary>What the search server is</summary>A small server that finds a song's video on YouTube, so no key is needed on this phone. Without it, About this song opens YouTube to search, and you paste the link.</details>`],
     library: ["Songbook and backups", `
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
@@ -198,6 +213,7 @@ function renderSettings() {
     <div class="set-group glass s-gap">
       ${row("today", "flame", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
       ${row("apple", "note", "Apple Music", s.appleMusic ? (s.appleMusicToken ? "On" : "On · no token") : "Off")}
+      ${row("youtube", "play", "YouTube", s.youtube === false ? "Off" : s.youtubeServer ? "On" : "On · paste links")}
       ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
       ${row("lang", "chat", "Language practice", langChosen(data) ? LANGS[langOf(data)].name : "Not picked")}
     </div>
@@ -228,6 +244,13 @@ function renderSettings() {
   $("s-metvol")?.addEventListener("change", () => metroPreview());
   $("s-metdrop")?.addEventListener("click", () => { s.metroDrop = !s.metroDrop; Tabs.save(data); renderSettings(); });
   $("s-transpose")?.addEventListener("change", e => { s.transpose = +e.target.value; Tabs.save(data); renderSettings(); });
+  $("s-yt")?.addEventListener("click", () => { s.youtube = s.youtube === false; Tabs.save(data); renderSettings(); });
+  $("s-ytsave")?.addEventListener("click", () => {
+    const u = $("s-ytserver").value.trim().replace(/\/$/, "");
+    if (u && !/^https:\/\/[a-z0-9.-]+\.workers\.dev$/i.test(u)) { toast("The address should look like https://tabs-youtube.yourname.workers.dev"); return; }
+    if (u) s.youtubeServer = u; else delete s.youtubeServer;
+    Tabs.save(data); renderSettings(); toast(u ? "Search server saved" : "Search server removed");
+  });
   $("s-apple").onclick = () => { s.appleMusic = !s.appleMusic; Tabs.save(data); renderSettings(); };
   $("s-applesave")?.addEventListener("click", () => {
     const u = $("s-appletoken").value.trim();

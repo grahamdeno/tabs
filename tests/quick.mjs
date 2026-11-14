@@ -27,6 +27,7 @@ const COVERS = {
   "aitools.js": ["app"],
   "tuner.js": ["app"],
   "booth.js": ["booth"], "core/booth.js": ["booth"],
+  "youtube.js": ["youtube"], "core/youtube.js": ["youtube"], "listen.js": ["youtube", "app"],
   "heads.js": ["app"],
   "fold.js": ["tips", "app", "settings", "app2"],
   "callout.js": ["app2", "gig"],

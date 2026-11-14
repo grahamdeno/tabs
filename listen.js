@@ -4,6 +4,7 @@ import { Tabs, VERSION, appleTrackId, bodyKey, cleanFeel, cleanTimed, feelOf, fi
 import { $, ask, esc, icon, layer, onLeave, toast } from "./ui.js";
 import { appleBlocksSearch, catalogBlocked, itunes } from "./sets.js";
 import { noteError } from "./store.js";
+import { youtubeSheet, ytActive, ytClock, ytOn, ytPause, ytPlaying, ytPrepare, ytRate, ytSeek, ytStart } from "./youtube.js";
 import { busy, byLength, data, mmss, refreshSpeed, songLength, viewing } from "./app.js";
 
 // ---------- Listen ----------
@@ -126,8 +127,12 @@ function signInPrompt(music, song) {
   toast("Sign in to Apple Music to play the recording with the page", null, { label: "Sign in", fn: () => step("sign-in", music.authorize()).then(() => { readyId = ""; prepareMusic(song); }, e => noteError(e, { quiet: true, where: "apple music sign-in" })) });
 }
 const wanted = song => !!(data.settings.appleMusic && song?.listen && appleTrackId(song.listen.url));
-export const hasMusic = wanted;
+/* 4.96.0: Apple Music first when it's on and has the track; otherwise the song's YouTube video (youtube.js) */
+const viaYT = song => !wanted(song) && ytOn(song);
+export const recordingOn = song => wanted(song) ? "apple" : viaYT(song) ? "youtube" : "";
+export const hasMusic = song => wanted(song) || viaYT(song);
 export function prepareMusic(song) {
+  if (viaYT(song)) return ytPrepare(song);
   if (!wanted(song)) return;
   fetchDetails(song);
   listenToPreview(song);
@@ -142,6 +147,7 @@ export function prepareMusic(song) {
 /* `at` is where in the recording to start, in seconds: the scroll's place, so Play from the middle of
    the sheet starts the music there. A resume from a pause that is already about right is left alone. */
 export async function startMusic(song, at = 0, rate = 1) {
+  if (viaYT(song)) return ytStart(song, at, rate);
   if (!wanted(song)) return;
   const id = appleTrackId(song.listen.url);
   try {
@@ -166,11 +172,12 @@ export async function startMusic(song, at = 0, rate = 1) {
 /* 4.68.0: the recording's start delay in ms (measured on each start, remembered on this phone) */
 const LAG_KEY = "tabs.musiclag.v1";
 let musicLag = (() => { try { return Math.min(1500, Math.max(0, +localStorage.getItem(LAG_KEY) || 300)); } catch { return 300; } })();
-export const musicLead = () => musicLag;
+export const musicLead = () => ytActive() ? 0 : musicLag;
 /* Slowing the recording (3.14.0), for practice: Apple Music's own player setting. A build that doesn't
    offer the speed stays at full speed, and rateWorks() says so. */
-export const rateWorks = () => !inst || "playbackRate" in inst;
+export const rateWorks = () => ytActive() || !inst || "playbackRate" in inst;
 export function setMusicRate(rate) {
+  if (ytActive()) return ytRate(rate);
   if (!inst || !("playbackRate" in inst)) return false;
   try { inst.playbackRate = Math.min(1, Math.max(0.5, rate || 1)); return true; } catch (e) { noteError(e, { quiet: true, where: "apple music speed" }); return false; }
 }
@@ -320,7 +327,7 @@ async function recentFetch() {
   }
 }
 /* The recording's own clock, in seconds, while it is playing; null otherwise. Play scrolls by it (3.12.0). */
-export const musicPlaying = song => !!(inst && playingId && song?.listen && playingId === appleTrackId(song.listen.url) && inst.isPlaying);
+export const musicPlaying = song => ytPlaying(song) || !!(inst && playingId && song?.listen && playingId === appleTrackId(song.listen.url) && inst.isPlaying);
 // ---- The Recording sheet (3.16.0; 4.20.0 redone) ----
 // Tap the recording button beside Play: the cover and the song's details, the recording's facts as chips,
 // what Play starts as two big choices (a tap saves and closes), Listen first (the recording without the
@@ -342,11 +349,13 @@ export function aboutSheet(song, o) {
     const f = music && l.feel && !l.feel.none ? l.feel : null, look = f ? o.notes?.() || {} : {};
     const keyNote = look.key ? `<div class="rs-look"><span>The recording sounds ${Math.abs(look.key)} half step${Math.abs(look.key) === 1 ? "" : "s"} ${look.key > 0 ? "higher" : "lower"} than your sheet.</span><button class="btn sm" id="rs-key">Match it</button></div>` : "";
     const bpmNote = look.bpm ? `<div class="rs-look"><span>Your tempo is ${song.bpm}. The recording is ${f.bpm}.</span><button class="btn sm" id="rs-bpm">Use ${f.bpm}</button></div>` : "";
-    const details = [l.genre, l.year, music ? "Apple Music" : l.service, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
+    const src = recordingOn(song);
+    const details = [l.genre, l.year, src === "apple" ? "Apple Music" : src === "youtube" ? "YouTube" : l.service, l.composer && `Written by ${l.composer}`].filter(Boolean).join(" · ");
     const bpm = song.bpm || f?.bpm || 0, swing = f?.swing && f.swing !== "straight" ? ({ light: "Light swing", full: "Swung" })[f.swing] : "";
     const len = o.length?.() || 0, key = o.key?.() || "";
     const tile = (cap, val, sub, id) => `<${id ? `button id="${id}" aria-label="${cap} ${esc(val)}. Change it"` : "div"} class="ab-tile"><span class="ab-cap">${cap}</span><b>${val ? esc(val) : "–"}${sub ? ` <small>${sub}</small>` : ""}</b></${id ? "button" : "div"}>`;
     const row = (id, ic, t, sub) => `<button class="ab-row" id="${id}"><span class="ab-ic">${icon(ic)}</span><span class="ab-rt"><b>${t}</b>${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "ab-chev")}</button>`;
+    const ytRow = data.settings.youtube !== false && src !== "apple" ? row("ab-yt", "play", "YouTube video", song.yt ? esc(song.yt.title || "Picked") : "Play along without Apple Music") : "";
     const timing = timed ? `${timed} lines timed to the recording${marks.length ? ` · ${marks.length} fixed` : ""}` : marks.length ? `${marks.length} spot${marks.length === 1 ? "" : "s"} learned` : "Nothing learned yet";
     const sync = `<div class="rs-row"><div class="rs-l">Sync<b>${timing}${marks.length ? `<button class="rs-reset" id="rs-reset">Start over</button>` : ""}</b></div>
         <div class="rs-track" aria-hidden="true">${spots.auto.map(w => `<b style="left:${(w * 100).toFixed(1)}%"></b>`).join("")}${spots.mine.map(w => `<i style="left:${(w * 100).toFixed(1)}%"></i>`).join("")}</div>
@@ -354,9 +363,9 @@ export function aboutSheet(song, o) {
     const recRows = music
       ? `<div class="rs-h">WHEN YOU PRESS PLAY</div>
         <div class="seg ab-mode" role="group" aria-label="When you press Play">${[["music", "With the recording"], ["band", "With the band"]].map(([m, t]) => `<button data-mode="${m}" class="${(m === "band") === band ? "on" : ""}" aria-pressed="${(m === "band") === band}">${t}</button>`).join("")}</div>
-        <div class="ab-rows">${band ? "" : row("ab-timing", "metro", "Timing", timing)}${band || !showTiming ? "" : sync}${row("rs-change", "note", "Change recording", "Pick another version")}</div>`
-      : `<div class="ab-rows">${song.listen ? row("ab-open", "play", `Listen on ${esc(l.service || "the web")}`, "Opens the recording") : ""}${row("ab-find", "note", song.listen ? "Change recording" : "Find a recording", "Pick the recording you play along with")}</div>`;
-    const side = music ? `<button class="ab-pv" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button>` : "";
+        <div class="ab-rows">${band ? "" : row("ab-timing", "metro", "Timing", timing)}${band || !showTiming ? "" : sync}${src === "youtube" ? ytRow : row("rs-change", "note", "Change recording", "Pick another version")}</div>`
+      : `<div class="ab-rows">${song.listen ? row("ab-open", "play", `Listen on ${esc(l.service || "the web")}`, "Opens the recording") : ""}${row("ab-find", "note", song.listen ? "Change recording" : "Find a recording", "Pick the recording you play along with")}${ytRow}</div>`;
+    const side = src === "apple" ? `<button class="ab-pv" id="rs-listen" aria-label="${on ? "Pause the recording" : "Listen without the page moving"}">${icon(on ? "pause" : "play")}</button>` : "";
     layer.innerHTML = `<div class="scrim" id="rs-scrim"></div><div class="panel card rs ab" id="rs" role="dialog" aria-label="About this song">
       <div class="grab" aria-hidden="true"></div>
       ${coverHead({ art: l.art, title: song.title, artist: song.artist || l.artist, details, tint: l.tint, side, tile: o.tile?.() })}
@@ -377,6 +386,7 @@ export function aboutSheet(song, o) {
     $("rs-bpm")?.addEventListener("click", () => { o.matchBpm?.(); paint(); });
     $("rs-change")?.addEventListener("click", () => { close(); listenSheet(song, true); });
     $("ab-find")?.addEventListener("click", () => { close(); listenSheet(song, true); });
+    $("ab-yt")?.addEventListener("click", () => { close(); youtubeSheet(song, { length: o.length?.() || 0, done: () => aboutSheet(song, o) }); });
     $("ab-open")?.addEventListener("click", () => openLink(l.url));
   };
   detailsArrived = s2 => { if (s2 === song && $("rs")) paint(); };
@@ -384,16 +394,18 @@ export function aboutSheet(song, o) {
   paint();
 }
 export function musicClock(song) {
+  if (viaYT(song)) return ytClock(song);
   if (!inst || !playingId || !song?.listen || playingId !== appleTrackId(song.listen.url) || !inst.isPlaying) return null;
   const t = inst.currentPlaybackTime;
   return Number.isFinite(t) ? t : null;
 }
 /* Jump the recording to a place in it, after a hand moved the page. */
 export function seekMusic(song, sec) {
+  if (viaYT(song)) return ytSeek(song, sec);
   if (!inst || !playingId || !song?.listen || playingId !== appleTrackId(song.listen.url)) return;
   Promise.resolve(inst.seekToTime(Math.max(0, sec))).catch(e => noteError(e, { quiet: true, where: "apple music seek" }));
 }
-export function pauseMusic() { if (playingId) musicKit?.then(m => m.pause(), () => {}); }
+export function pauseMusic() { ytPause(); if (playingId) musicKit?.then(m => m.pause(), () => {}); }
 function listenSheet(song, force) {
   if (song.listen && !force) return data.settings.appleMusic && appleTrackId(song.listen.url) ? playApple(song) : openLink(song.listen.url);
   if (appleBlocksSearch()) return listenApple(song);

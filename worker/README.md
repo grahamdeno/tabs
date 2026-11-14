@@ -57,3 +57,23 @@ With Wrangler instead: `cd worker && npx wrangler deploy -c booth.toml`, then `n
 - **Changing the code:** set a new `BOOTH_CODE`; old invite links stop working (send new ones).
 - **The key expires:** make a new one and replace the `GITHUB_KEY` secret; nobody's phone changes.
 - **Tests:** `node --test tests/worker.test.mjs`.
+
+# The YouTube search server (4.96.0)
+
+A third, separate Worker, `tabs-youtube`, for Play along on YouTube. It finds a song's video with a YouTube Data API key that lives only in the Worker, so no key is on anyone's phone. It doesn't touch the MusicKit or booth Workers.
+
+What it answers: `GET /find?artist=&title=&len=` from the app's address only, with up to five videos, best first (the artist's "Topic" upload, then the artist's channel, then the closest length to `len`; videos that can't be embedded are left out). A search costs 100 of YouTube's 10,000 free daily units, so each answer is kept for 30 days in Cloudflare's cache. Nothing else is kept.
+
+## Deploy (dashboard, no tools)
+
+1. console.cloud.google.com: a new project (`louie-youtube`), **APIs & Services**, **Library**, turn on **YouTube Data API v3**.
+2. **Credentials**, **Create credentials**, **API key**. Edit it: **API restrictions**, **Restrict key**, only YouTube Data API v3. Leave Application restrictions at None (the Worker calls it, not a browser).
+3. dash.cloudflare.com, **Workers & Pages**, **Create**, **Create Worker**, name it `tabs-youtube`, **Deploy**.
+4. **Edit code**, replace everything with `youtube.js`, **Deploy**.
+5. The Worker's **Settings**, **Variables and Secrets**: add secret `YOUTUBE_KEY` (the key from step 2).
+6. In the app: Settings, YouTube, paste the Worker's address (`https://tabs-youtube.<name>.workers.dev`), **Save**.
+
+With Wrangler instead: `cd worker && npx wrangler deploy -c youtube.toml`, then `npx wrangler secret put YOUTUBE_KEY -c youtube.toml`.
+
+- **Quota:** about 100 new songs a day before YouTube says no until midnight Pacific; songs already looked up come from the cache. Pasting a link always works.
+- **Tests:** `node --test tests/worker.test.mjs`.

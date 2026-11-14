@@ -1,0 +1,8 @@
+# Template for the YouTube search server (Play along on YouTube). Nothing is deployed from this repo automatically.
+# See worker/README.md ("The YouTube search server").
+name = "tabs-youtube"
+main = "youtube.js"
+compatibility_date = "2026-10-01"
+
+# One secret, never in this file or in git:
+#   npx wrangler secret put YOUTUBE_KEY -c youtube.toml    (a Google Cloud API key with YouTube Data API v3 on)

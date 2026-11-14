@@ -59,7 +59,7 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await page.goto(base + "#/set/s"); await page.waitForFunction(() => /#\/set\/s/.test(location.hash) && !document.querySelector("#ed-title"));
     await fits("set");
     await page.goto(base + "#/settings"); await page.waitForSelector("[data-page]");
-    await is(() => document.querySelectorAll("[data-page]").length === 9, "settings menu renders"); /* 4.36.0: Language practice */
+    await is(() => document.querySelectorAll("[data-page]").length === 10, "settings menu renders"); /* 4.36.0: Language practice; 4.96.0: YouTube */
     await fits("settings");
     for (const pg of ["playing", "look", "newsongs", "today", "keys", "library", "help"]) {
       await page.goto(base + "#/settings/" + pg); await page.waitForSelector(".set, .fld");

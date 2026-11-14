@@ -1,6 +1,6 @@
 # Working on Tabs
 
-Louie: Learn Guitar (4.95.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
+Louie: Learn Guitar (4.96.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
 GitHub Pages from `main`. The README's Development section is the architecture
 map; docs/DATA.md describes every stored field. Read those before guessing.
 
@@ -81,6 +81,7 @@ The README describes each as it works today.
 | AI help: the request to Anthropic, errors, limits | `aihelp.js` |
 | Share links, opening a shared link, Play together | `share.js` |
 | Listen: recordings, previews, length from the recording | `listen.js` |
+| YouTube play-along (4.96.0): the player card, the clock, About this song's YouTube video sheet; hands off from `listen.js` when Apple Music is off | `youtube.js` (numbers: `ytId`, `ytAt`, `ytSong`, `ytMatches` in `core/youtube.js`); the search server is `worker/youtube.js`, deployed by hand (`worker/README.md`) |
 | The bar folding into Play's corner while playing, pull down to go back | `fold.js` |
 | Settings menu and pages, Recently deleted | `settings.js` |
 | Tips, Show me demos, Tips & gestures | `coach.js` |

@@ -2805,3 +2805,16 @@ test("4.95.0 the booth server's invite link carries the address and code, and no
   assert.equal(C.boothServerOk("https://tabs-booth.graham.workers.dev/"), true);
   assert.equal(C.boothServerOk("http://evil.workers.dev"), false, "https only");
 });
+
+test("4.96.0 YouTube: a video id from any link, a tidy save, and where the song is in the video", () => {
+  for (const s of ["dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ?t=3", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=x", "https://m.youtube.com/watch?v=dQw4w9WgXcQ", "https://music.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"])
+    assert.equal(C.ytId(s), "dQw4w9WgXcQ", s);
+  for (const s of ["", "hello", "https://evil.example/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=short", "javascript:alert(1)"]) assert.equal(C.ytId(s), "", s);
+  assert.deepEqual(C.cleanYt({ id: "dQw4w9WgXcQ", title: " Song ", channel: "Artist - Topic", secs: 212.4, start: 3.24, junk: 1 }), { id: "dQw4w9WgXcQ", title: "Song", channel: "Artist - Topic", secs: 212, start: 3.2 });
+  assert.equal(C.cleanYt({ id: "<script>" }), null);
+  const song = C.cleanSong({ id: "a", title: "A", body: "x", yt: { id: "dQw4w9WgXcQ" } });
+  assert.deepEqual(song.yt, { id: "dQw4w9WgXcQ" }, "kept through a save");
+  assert.equal(C.cleanSong({ id: "a", title: "A", body: "x", yt: { id: "bad" } }).yt, undefined);
+  assert.equal(C.ytAt({ start: 4 }, 10), 14); assert.equal(C.ytSong({ start: 4 }, 14), 10); assert.equal(C.ytAt({}, -3), 0);
+  assert.equal(C.ytMatches({ secs: 213 }, 212), true); assert.equal(C.ytMatches({ secs: 230 }, 212), false); assert.equal(C.ytMatches({}, 212), false);
+});

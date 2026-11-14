@@ -7,7 +7,7 @@ import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderS
 import { copyDiagnostics, loadLibrary, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
-import { appleSearchURL, hasMusic, musicLead, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
+import { appleSearchURL, hasMusic, recordingOn, musicLead, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
 import { AI, BPM_STORE, aiError, aiKey, aiLastStop, askClaude, bpmKey, busy, cleanSheet, parseJSON, readPhoto } from "./aihelp.js";
 import { BAND_MAX, BEATS, beatAt, beatMode, beatName, setBeat, beatTrack, drumJobs, drumsFor, grooveFor, metro, metroDrums, metroOn, metroPace, metroPreview, metroVol, recLength, startMetronome, stopMetronome, tempoFor } from "./audio.js";
@@ -1798,6 +1798,9 @@ async function startScroll(song, opts = {}) {
   /* 4.68.0: the recording is asked for early by its own start delay, so its first note lands as the count ends */
   let early = false;
   const music = () => { early = true; startMusic(song, playFromSec(song), recRate(song)); };
+  /* 4.96.0: a YouTube video starts on the Play tap itself, since the phone only lets a video play from a tap; the page
+     holds until the song (not an ad) is playing, so the count-in runs over the video's start */
+  if (usesMusic(song) && recordingOn(song) === "youtube") music();
   if (counts && !(await countIn(song, usesMusic(song) ? music : null, musicLead()))) { clearTimeout(scroll.preTimer); if (early) pauseMusic(); return; }
   if (usesMusic(song)) { if (!early) music(); } else startMetronome(song);
   const tick = t => {

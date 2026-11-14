@@ -66,19 +66,19 @@ unless Graham says otherwise.
       above the reading line (top = max(top bar, reading line - 210 px)), so the words stay full width and nothing
       wraps; in a Gig it sits under the crowd and touches the reading line, so move the reading line down about 40 px
       while the card shows; give the card a z-index above the Gig's layer (it looked dimmed in the dark mockup).
-- [ ] 2 [Sonnet] **The search server**, `worker/youtube.js` with `worker/youtube.toml`: `GET /find?artist=&title=`
+- [x] 2 [Sonnet] **The search server**, `worker/youtube.js` with `worker/youtube.toml`: `GET /find?artist=&title=`
       from the app's address only; YouTube Data API `search.list` (`type=video`, `videoCategoryId=10`, music) then
       `videos.list` for lengths; picks a "- Topic" upload first, then official artist channels, then the closest
       length to `len` when given; caches each answer for 30 days in the Cache API. Secret `YOUTUBE_KEY`. Tests in
       `tests/worker.test.mjs` with `fetch` mocked. Deploy steps in `worker/README.md`.
-- [ ] 3 [Sonnet] **`youtube.js`**: loads the IFrame API on first use, the player in decision 1's card
+- [x] 3 [Sonnet] **`youtube.js`**: loads the IFrame API on first use, the player in decision 1's card
       (`youtube-nocookie.com`, `playsinline`, no autoplay before a tap), and the seven functions. The clock is
       `getCurrentTime()` minus `start`; "playing" is the player's PLAYING state, so an ad doesn't count.
-- [ ] 4 [Sonnet] **`listen.js` hands off** to Apple Music or YouTube by the Settings row (decision 2). Settings:
+- [x] 4 [Sonnet] **`listen.js` hands off** to Apple Music or YouTube by the Settings row (decision 2). Settings:
       Play along with. Song page: the video found (title and channel), Change (another result, or paste a link),
       and Line it up when needed.
-- [ ] 5 [Sonnet] **The count-in waits for the song**, not an ad (decision 4); the Gig's card placement.
-- [ ] 6 [Opus] **Check it**: browser tests with the IFrame API mocked (`page.route` serving a stub player that
+- [x] 5 [Sonnet] **The count-in waits for the song**, not an ad (decision 4); the Gig's card placement.
+- [x] 6 [Opus] **Check it**: browser tests with the IFrame API mocked (`page.route` serving a stub player that
       reports time); a real song played on Graham's phone; the content policy; YouTube's rules checked against the
       screens (size, nothing over the player, no background play: pausing when the app goes away already happens).
       README, `docs/DATA.md`, `docs/ONBOARDING.md` (the Settings row and Line it up), then ship.
@@ -92,4 +92,12 @@ About seven commits over two sessions, plus Graham's mockup pick and Grok's depl
 
 ## Surprises
 
-(Write here when something doesn't match the plan.)
+- Step 5, the Gig: the card sits under the crowd and above the line you're on, and may cover the right end of the
+  crowd, instead of moving the reading line down 40 px. Moving the line changed how much of the song shows and
+  touched the stage's drawing; covering a few crowd heads for the length of a song is the smaller cost.
+- Step 4, Line it up: a "Starts late by" stepper in half seconds rather than tap-to-sync. A tap while listening
+  lands late by a reaction time; a stepper you nudge while playing gets closer. The Topic upload is usually the
+  recording itself, so most songs need nothing.
+- Step 6: the card is 225 px tall (the video plus its title line), and the line you're on settles after Play, so the
+  card is placed again every half second while it plays.
+- Not yet checked: a real song on Graham's phone (needs the search server deployed, step 7).

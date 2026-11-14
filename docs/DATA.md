@@ -59,6 +59,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `recRate` | number | The linked recording's speed for this song, 0.5 to 1; absent means full speed |
 | `timed` | `{ h, id?, at?: [[line, seconds], ...], w?: { line: [seconds, ...] }, none? }` | Line times from LRCLIB's synced lyrics for the linked recording: `line` is the sheet line's index, `w` the word times of lines whose lyrics carry them (3.22.0), `h` a fingerprint of the words (looked up again after an edit), `none` when no timing was found. No lyric text is kept |
 | `syncs` | `[[where, seconds], ...]` | Marks tying a place on the sheet (0 to 1 down it) to a time in the linked recording, saved when you nudge the page while it plays; up to 12, rising together |
+| `yt` | `{ id, title?, channel?, secs?, start? }` (4.96.0) | The song's YouTube video: `id` is the 11-character video id; `secs` is its length; `start` (seconds, 0 to 60, half-second steps) is how late the song starts in the video, from Starts late by |
 | `listen` | `{ url, service, title?, artist?, art?, length?, genre?, year?, composer?, tint?, det? }` | `url` and `art` are https only; `length` is the recording's, in seconds; `genre`, `year`, `composer` and `tint` (the album's color, six hex digits) come from Apple Music when it is on, and `det` marks that they were asked for; `feel` = `{ bpm?, swing?, key?, sure?, keySure? }` is measured from the recording's preview (3.18.0) |
 | `loop` | `{ a, b, build, name? }` | Practice a section, line numbers; `name` is the section's name for the neck's Learning list (3.21.0) |
 | `drums` | `{ intro?, verse?, prechorus?, chorus?, bridge?, solo?, outro?, fill?, level?, src }` | Drums that fit the song (3.23.0): written once by the AI. Each part is one bar of 4/4, `{ kick, snare, hat }`, 16 characters each (`.` rest, `x` hit, `X` accent, `o` ghost note, `O` open hi-hat). `level` is -1 simpler or 1 busier, missing for as written. `src` is `"ai"` |
@@ -165,6 +166,13 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 |---|---|---|
 | `appleMusic` | boolean, off when missing | Plays a song's Apple Music link in the app with MusicKit |
 | `appleMusicToken` | https address | The token Worker it asks for a developer token; no MusicKit key or token is stored |
+
+#### YouTube (4.96.0)
+
+| Key | Values | Notes |
+|---|---|---|
+| `youtube` | boolean, on when missing | `false` stops Play using a song's YouTube video. Apple Music, when on, comes first either way |
+| `youtubeServer` | https `*.workers.dev` address | The YouTube search server (`worker/youtube.js`) that finds a song's video; the YouTube key lives only there |
 
 ### Data beside the library
 

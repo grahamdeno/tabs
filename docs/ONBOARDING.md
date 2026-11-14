@@ -69,6 +69,7 @@ These come before any feature, and they matter more than any gesture.
 | 3 | Backups | Everything is on the phone only | A Songbook card from day one | Wait until there are a few songs of your own or a week of play, then ask once with the reason |
 | 4 | The AI key | About a third of the app is hidden without it (Get the song, Play next, Make it easier, Scan a page, language practice, Spark tone) | Nothing outside Settings > Keys | One line where the gap shows: "Nothing found" in search, and an empty Play next: "With an AI key, The Road can find songs and chords for you. Settings > Keys" |
 | 5 | Apple Music | Play with the recording, follow along line by line, cover requests | Settings row | Mention once on About this song when a recording is linked |
+| 5b | YouTube play-along (4.96.0) | Play with the song's video without Apple Music | Listed: About this song's YouTube video row ("Play along without Apple Music"); Settings > YouTube | Fine as is: the row says what it does where you'd look |
 
 ## Across the app: first session, first week, first month
 
