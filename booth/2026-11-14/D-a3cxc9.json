@@ -1,0 +1,24 @@
+{
+ "kind": "chord",
+ "chords": [
+  "D"
+ ],
+ "guitar": "",
+ "place": "stand",
+ "strum": "",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.92.0",
+ "at": "2026-11-14T14:30:49.943Z",
+ "heard": {
+  "reads": 117,
+  "right": 114,
+  "wrong": 3,
+  "by": {
+   "G": 1,
+   "Dm": 2
+  },
+  "fit": 0.55
+ }
+}
