@@ -82,7 +82,7 @@ unless Graham says otherwise.
       reports time); a real song played on Graham's phone; the content policy; YouTube's rules checked against the
       screens (size, nothing over the player, no background play: pausing when the app goes away already happens).
       README, `docs/DATA.md`, `docs/ONBOARDING.md` (the Settings row and Line it up), then ship.
-- [ ] 7 [Graham, Grok] **Deploy the search server**: a Google Cloud project with the YouTube Data API v3 on, an API
+- [x] 7 [Graham, Grok] **Deploy the search server**: a Google Cloud project with the YouTube Data API v3 on, an API
       key, the Worker `tabs-youtube` with secret `YOUTUBE_KEY`. A Grok prompt comes with step 2.
 
 ## Size
@@ -105,4 +105,4 @@ About seven commits over two sessions, plus Graham's mockup pick and Grok's depl
   under Mobile considerations; the stand-in player in the tests couldn't show it). Now the card shows at once on
   Play with "Tap the video to start" under it and the page waits; the player is kept and reused for the next song
   (`cueVideoById`), so once tapped it keeps playing from the app.
-- Not yet checked: a real song on Graham's phone (needs the search server deployed, step 7).
+- Checked on Graham's phone (2026-11-14, 4.96.1): a video plays after the tap and the page follows it.
