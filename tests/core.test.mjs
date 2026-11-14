@@ -2739,3 +2739,24 @@ test("4.90.0 the Listening booth: calls, summary, files, and a real C and G hear
   assert.ok(!/data\.(settings\.)?\w*[Kk]ey\s*=/.test(src), "the booth never saves the key in the app's data");
   assert.ok(/localStorage\.setItem\(BOOTH_KEY/.test(src), "the key is kept like the AI key");
 });
+
+test("4.92.0 the guided booth: the list, where you are, and keep or try again", () => {
+  assert.equal(C.BOOTH_PLAN.length, 38, "11 chords x 3 takes, and 5 switches");
+  assert.equal(new Set(C.BOOTH_PLAN.map(s => s.id)).size, 38, "every step has its own id");
+  assert.ok(C.BOOTH_PLAN.every(s => s.chords.every(C.boothChord)), "the booth can judge every chord on the list");
+  assert.deepEqual(C.BOOTH_PLAN.filter(s => s.chords[0] === "C" && s.chords.length === 1).map(s => s.place), ["stand", "stand", "table"]);
+  let n = C.boothNext([]);
+  assert.deepEqual([n.step.id, n.at, n.of, n.left], ["c:Am:1", 0, 38, 38]);
+  n = C.boothNext(["c:Am:1", "c:Am:3"]);
+  assert.deepEqual([n.step.id, n.left], ["c:Am:2", 36], "a skipped or missed step comes back first");
+  assert.equal(C.boothNext(C.BOOTH_PLAN.map(s => s.id)).step, null, "all done");
+  assert.equal(C.boothVerdict({ reads: 5, right: 5, wrong: 0, by: {} }, ["C"]).keep, false, "too quiet: try again");
+  assert.match(C.boothVerdict({ reads: 100, right: 90, wrong: 2, by: { G: 2 } }, ["C"]).say, /^Got it. I heard C on 90%/);
+  const odd = C.boothVerdict({ reads: 100, right: 20, wrong: 60, by: { Am: 60 } }, ["C"]);
+  assert.deepEqual([odd.keep, odd.maybe], [true, true], "heard as something else: kept, since that's what needs fixing");
+  assert.match(odd.say, /I heard Am more than C/);
+  assert.equal(C.boothVerdict({ reads: 300, per: { G: 150, C: 150 }, switches: 2 }, ["G", "C"]).keep, false, "a switch needs changes");
+  assert.match(C.boothVerdict({ reads: 300, per: { G: 150, C: 150 }, switches: 12 }, ["G", "C"]).say, /12 changes/);
+  assert.match(C.boothSteps(C.BOOTH_PLAN[2]), /flat on a table[\s\S]*Hold Am[\s\S]*10 seconds/);
+  assert.match(C.boothSteps(C.BOOTH_PLAN[33]), /Switch between G and C[\s\S]*30 seconds/);
+});

@@ -10,7 +10,8 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
   await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
   await page.evaluate(() => { location.hash = "#/practice/hear"; });
   await page.waitForSelector("#ph-booth"); await settled(page);
-  await page.click("#ph-booth"); await page.waitForSelector(".bt-chords"); await settled(page);
+  await page.click("#ph-booth"); await page.waitForSelector(".bt-card"); await settled(page);
+  await page.click('[data-mode="free"]'); await page.waitForSelector(".bt-chords"); await settled(page);
   assert.ok(await page.locator("#bt-rec").isDisabled(), "nothing to record until a chord is picked");
   await page.click('.bt-chords [data-c="C"]');
   assert.match(await page.innerText("#bt-what"), /Recording C/);
@@ -22,9 +23,9 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
   await page.waitForSelector(".bt-take");
   assert.match(await page.innerText(".bt-take"), /^C\n\d+ s · C on \d+%/);
   assert.match(await page.innerText("#bt-send"), /Send 1/);
-  /* Send without a key opens the setup */
+  /* Send without a key opens the setup (it's open already, with no key) */
   await page.click("#bt-send");
-  await page.waitForFunction(() => document.querySelector(".bt-setup")?.open);
+  await page.waitForFunction(() => document.querySelector(".bt-setup")?.open && /GitHub key/.test(document.getElementById("bt-say").textContent));
   /* GitHub, pretend: no booth branch yet, so it's made from main, then the take and its label */
   const puts = [];
   let made = null;
@@ -36,9 +37,8 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
     if (m === "PUT") { puts.push({ u, auth: r.request().headers().authorization, body: JSON.parse(r.request().postData()) }); return r.fulfill({ status: 201, body: "{}" }); }
     return r.fulfill({ status: 500, body: "{}" });
   });
-  await page.fill("#bt-key", "github_pat_test"); await page.dispatchEvent("#bt-key", "change");
-  await page.click("#bt-send");
-  await page.waitForFunction(() => /^Sent 1/.test(document.getElementById("bt-say")?.textContent));
+  await page.fill("#bt-key", "github_pat_test"); await page.dispatchEvent("#bt-key", "change"); /* a key sends what's waiting */
+  await page.waitForFunction(() => /Everything you've kept is in the repo/.test(document.getElementById("bt-sendline")?.textContent));
   assert.deepEqual(made, { ref: "refs/heads/booth", sha: "abc123" });
   assert.equal(puts.length, 2);
   assert.match(puts[0].u, /\/contents\/booth\/\d{4}-\d\d-\d\d\/C-\w+\.wav$/);
@@ -54,4 +54,40 @@ test("4.90.0 the booth records a C, says what it heard, and sends the take and i
   await page.waitForSelector(".bt-none");
   /* the key stays on the phone, outside the app's saved library */
   assert.ok(!(await page.evaluate(() => localStorage.getItem("tabs-v1"))).includes("github_pat"));
+});
+
+test("4.92.0 the guided booth: what to play, a count-in, it stops by itself, Keep sends it and moves on, and it remembers where you are", { skip: skip() }, async t => {
+  const page = await phone(t, LIB);
+  await page.addInitScript(FAKE_MIC);
+  await page.addInitScript(() => { try { localStorage.setItem("tabs.boothkey.v1", "github_pat_test"); } catch { /* blocked */ } });
+  const puts = [];
+  await page.route("https://api.github.com/**", r => {
+    const m = r.request().method(), u = r.request().url();
+    if (m === "GET" && u.endsWith("/git/ref/heads/booth")) return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ object: { sha: "b1" } }) });
+    if (m === "PUT") { puts.push(u); return r.fulfill({ status: 201, body: "{}" }); }
+    return r.fulfill({ status: 500, body: "{}" });
+  });
+  await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
+  await page.evaluate(() => { location.hash = "#/practice/booth"; });
+  await page.waitForSelector(".bt-card"); await settled(page);
+  assert.match(await page.innerText(".bt-card"), /Take 1 of 38[\s\S]*Am chord[\s\S]*Take 1 of 3 · phone on its stand[\s\S]*Hold Am and strum it/i);
+  assert.equal(await page.locator(".bt-shapes svg").count(), 1, "the chord's shape");
+  assert.match(await page.innerText("#bt-sendline"), /Everything you've kept is sent/);
+  await page.evaluate(async () => { const C = await import("/core.js"); window.__chord = C.chordTargets("Am").filter(x => x.hz > 0).map(x => x.hz); });
+  await page.click("#bt-start");
+  await page.waitForFunction(() => /Get ready: Am/.test(document.getElementById("bt-stage").textContent), null, { timeout: 15000 });
+  await page.waitForFunction(() => /Strum Am/.test(document.getElementById("bt-stage").textContent), null, { timeout: 15000 });
+  await page.waitForSelector(".bt-verdict", { timeout: 30000 }); /* it stops by itself after 10 seconds */
+  assert.match(await page.innerText(".bt-verdict"), /Got it\. I heard Am on \d+%/);
+  assert.match(await page.innerText("#bt-keep"), /Keep it · next/i);
+  await page.click("#bt-keep");
+  await page.waitForFunction(() => /Take 2 of 38/i.test(document.querySelector(".bt-card")?.textContent));
+  assert.match(await page.innerText(".bt-card"), /Am chord[\s\S]*Take 2 of 3/i);
+  await page.waitForFunction(() => /Everything you've kept is in the repo/.test(document.getElementById("bt-sendline").textContent));
+  assert.equal(puts.length, 2, "the take and its label went up in the background");
+  /* Skip, then come back later: it picks up where you stopped */
+  await page.click("#bt-skip"); await page.waitForFunction(() => /Take 3 of 38/i.test(document.querySelector(".bt-card")?.textContent));
+  await page.evaluate(() => { location.hash = "#/practice/hear"; }); await page.waitForSelector("#ph-booth"); await settled(page);
+  await page.click("#ph-booth"); await page.waitForSelector(".bt-card");
+  assert.match(await page.innerText(".bt-card"), /Take 3 of 38[\s\S]*phone on the table/i);
 });

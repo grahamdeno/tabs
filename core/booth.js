@@ -102,3 +102,37 @@ export function toBase64(bytes) {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
+
+/* ---- the guided session (4.92.0): the list Graham records, one take at a time ---- */
+/* 11 chords, three takes each (two with the phone on its stand, one on the table), then five switches */
+export const BOOTH_CHORDS = ["Am", "C", "D", "Em", "F", "G", "A", "E", "Dm", "Cadd9", "Bm"];
+export const BOOTH_SWITCHES = [["G", "C"], ["C", "Am"], ["Em", "G"], ["D", "A"], ["Am", "C"]];
+export const BOOTH_SECS = { chord: 10, switch: 30 };
+export const BOOTH_PLAN = [
+  ...BOOTH_CHORDS.flatMap(c => [1, 2, 3].map(n => ({ id: `c:${c}:${n}`, chords: [c], take: n, of: 3, place: n === 3 ? "table" : "stand", seconds: BOOTH_SECS.chord }))),
+  ...BOOTH_SWITCHES.map(([a, b]) => ({ id: `s:${a}-${b}`, chords: [a, b], take: 1, of: 1, place: "stand", seconds: BOOTH_SECS.switch }))
+];
+/* the next step not done or skipped, and how far along you are */
+export function boothNext(done = []) {
+  const d = new Set(done), i = BOOTH_PLAN.findIndex(s => !d.has(s.id));
+  return { step: i < 0 ? null : BOOTH_PLAN[i], at: i < 0 ? BOOTH_PLAN.length : i, of: BOOTH_PLAN.length, left: BOOTH_PLAN.filter(s => !d.has(s.id)).length };
+}
+/* what to tell you after a take: keep it, or try again (and why) */
+export function boothVerdict(sum, chords) {
+  if (!sum || sum.reads < 20) return { keep: false, say: "I barely heard anything. Try again a little louder, or with the phone closer." };
+  const pc = n => Math.round(n / sum.reads * 100);
+  if (chords.length === 1) {
+    const [c] = chords, top = Object.entries(sum.by || {}).sort((x, y) => y[1] - x[1])[0];
+    if (sum.right / sum.reads >= 0.6) return { keep: true, say: `Got it. I heard ${c} on ${pc(sum.right)}% of it.` };
+    if (top && top[1] > sum.right) return { keep: true, maybe: true, say: `I heard ${top[0]} more than ${c} (${c} on ${pc(sum.right)}%). That's exactly what I need to see, so I'll keep it. If you played something else by mistake, try again.` };
+    return { keep: true, maybe: true, say: `I only heard ${c} on ${pc(sum.right)}% of it. I'll keep it; that helps too. Try again if the strums were soft or muted.` };
+  }
+  if (sum.switches < 4) return { keep: false, maybe: true, say: `I only heard ${sum.switches} change${sum.switches === 1 ? "" : "s"}. Keep going back and forth for the whole 30 seconds. Try again?` };
+  return { keep: true, say: `Got it. ${sum.switches} changes heard.` };
+}
+/* the directions for a step, in plain words */
+export function boothSteps(step) {
+  const where = step.place === "table" ? "Lay the phone flat on a table or desk near you." : "Put the phone where it sits when you play, on its stand.";
+  if (step.chords.length === 1) return `${where} Hold ${step.chords[0]} and strum it every second or two, like you're playing a song. I'll count you in and stop by myself after ${step.seconds} seconds.`;
+  return `${where} Switch between ${step.chords[0]} and ${step.chords[1]}, back and forth, at your own pace: strum each one once or twice, then change. I'll count you in and stop after ${step.seconds} seconds.`;
+}

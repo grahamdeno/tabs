@@ -307,3 +307,6 @@ don't wait on them and can run while he records.
 - The booth's labels are one `.json` beside each `.wav`, not a shared `takes.json`, so sending never has to
   read and rewrite a file.
 - Opening night's mic step stays where it is until step 10, with new words: the tuner and lessons listen.
+- 4.92.0 (Graham, 2026-11-14): the booth guides the recording list itself (step 1b's list is `BOOTH_PLAN` in
+  `core/booth.js`), with a count-in, a timed stop, Keep or Try again, background sending and resume, so Graham
+  doesn't need the chat to record.

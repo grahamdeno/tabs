@@ -1723,6 +1723,29 @@ body.is-home .rd-song b { font-size: 26px; }
 .bt-setup { margin: 0 2px 12px; }
 .bt-setup summary { font: 700 14px var(--sans); color: var(--fg-2); padding: 6px 0; }
 .bt-pad { height: 120px; }
+.bt-mode { margin: 10px 0 12px; height: 34px; }
+.bt-mode button { height: 30px; font-size: 13px; padding: 0 14px; }
+.bt-card { text-align: center; }
+.bt-prog { height: 8px; border-radius: 4px; background: var(--recess); overflow: hidden; margin-bottom: 10px; }
+.bt-prog i, .bt-bar i { display: block; height: 100%; background: var(--accent, #ff3d7f); border-radius: inherit; transition: width .3s; }
+.bt-step { margin: 0; font: 700 12px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--fg-2); }
+.bt-card .bt-big { margin: 6px 0 2px; font: 700 34px/1.1 var(--display, var(--sans)); text-transform: none; letter-spacing: 0; color: var(--fg); }
+.bt-lane[hidden] { display: none; }
+.bt-sub { margin: 0 0 8px; color: var(--fg-2); font-size: 14px; }
+.bt-shapes { display: flex; justify-content: center; gap: 18px; margin: 4px 0 10px; }
+.bt-shapes svg { max-height: 120px; }
+.bt-stage { min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.bt-dir { margin: 0; font-size: 15px; line-height: 1.45; color: var(--fg); }
+.bt-count { margin: 0; display: flex; flex-direction: column; align-items: center; font: 700 15px var(--sans); color: var(--fg-2); }
+.bt-count b { font: 700 56px/1 var(--display, var(--sans)); color: var(--accent-ink); }
+.bt-count.rec b { font-size: 40px; }
+.bt-bar { width: 100%; height: 6px; border-radius: 3px; background: var(--recess); overflow: hidden; }
+.bt-verdict { margin: 0; display: flex; gap: 10px; align-items: flex-start; text-align: left; font-size: 15px; line-height: 1.45; padding: 10px 12px; border-radius: 12px; background: var(--recess); }
+.bt-verdict > svg { flex: none; width: 22px; height: 22px; margin-top: 1px; }
+.bt-verdict.ok > svg { color: #2fbf6f; }
+.bt-verdict.redo > svg { color: #ff6b5a; }
+.bt-sendline { margin: 10px 2px; font-size: 13px; color: var(--fg-2); text-align: center; }
+.bt-sendline .tb { display: inline; padding: 0 4px; }
 .pk-str { border: 0; background: none; padding: 2px 4px; border-radius: 8px; }
 .pk-str.cur small { color: var(--recess-on); }
 .pk-str.cur { box-shadow: inset 0 0 0 1px rgba(255,194,122,.45); }

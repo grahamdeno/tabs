@@ -14,7 +14,7 @@ Everything lives on the phone. Backups are the same data as one JSON file.
 | IndexedDB `tabs-sketch` | store `clips`, key = song id | The Sing it recording: one audio clip per sung line, or from 4.74.0 `{ blob, from, to }`: the whole take with where that line starts and ends in it (seconds). Not in backups; removed once the song is deleted for good |
 | IndexedDB `tabs-booth` | store `takes`, key `id` | Listening booth takes (4.90.0): `{ id, at, chords, guitar, place, note, rate, seconds, version, heard, wav }`, `wav` a 16-bit mono WAV blob at 22,050 Hz. Not in backups; deleted once sent |
 | localStorage | `tabs.boothkey.v1` | The booth's GitHub key (this repo only). On this phone only, like the AI key: never in a backup, share link or take |
-| localStorage | `tabs.booth.v1` | The booth's remembered `{ guitar, place }` |
+| localStorage | `tabs.booth.v1` | The booth's remembered `{ guitar, place, mode, done }`: `mode` is "guided" or "free", `done` the guided steps kept or skipped (ids from `BOOTH_PLAN`) |
 | Cache Storage | `tabs-vX.Y.Z`, `tabs-art` | The offline app, and album art from Apple |
 
 Saves are batched (150 ms) and written at once when the app goes to the background. At start the newer readable of the two is used (`pickLibrary` in `core.js`); a copy without `_savedAt` (from an older Tabs, which kept the library in localStorage) counts as newest, so it moves into the database once. Without IndexedDB, localStorage alone is used. Tabs also asks the browser to keep its storage permanently (`navigator.storage.persist()`); Settings shows whether it did and whether the safety copy is on.
