@@ -1,0 +1,29 @@
+{
+ "kind": "chord",
+ "chords": [
+  "Cadd9"
+ ],
+ "player": "Graham",
+ "guitar": "Yamaha C40M",
+ "body": "acoustic",
+ "amp": "",
+ "list": "main",
+ "voicing": "",
+ "place": "stand",
+ "strum": "pick",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10.1,
+ "version": "4.96.1",
+ "at": "2026-11-15T21:19:24.895Z",
+ "heard": {
+  "reads": 64,
+  "right": 1,
+  "wrong": 63,
+  "by": {
+   "C": 62,
+   "Am": 1
+  },
+  "fit": 0.55
+ }
+}
