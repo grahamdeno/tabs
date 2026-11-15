@@ -1,0 +1,30 @@
+{
+ "kind": "chord",
+ "chords": [
+  "Dm"
+ ],
+ "player": "Graham",
+ "guitar": "Yamaha C40M",
+ "body": "acoustic",
+ "amp": "",
+ "list": "main",
+ "voicing": "",
+ "place": "stand",
+ "strum": "pick",
+ "note": "",
+ "rate": 22050,
+ "seconds": 10,
+ "version": "4.96.1",
+ "at": "2026-11-15T21:19:05.557Z",
+ "heard": {
+  "reads": 77,
+  "right": 63,
+  "wrong": 14,
+  "by": {
+   "D": 6,
+   "F": 7,
+   "A": 1
+  },
+  "fit": 0.55
+ }
+}
