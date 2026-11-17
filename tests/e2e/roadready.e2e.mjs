@@ -123,6 +123,9 @@ test("Road Ready: the Merch table and Settings use the new names, and no screen 
   assert.match(text, /Road Ready light/); assert.match(text, /Road Ready dark/);
   assert.doesNotMatch(text, /Festival Poster|Neon Midnight/);
   assert.equal(await page.locator(".mc-look b", { hasText: "Road Ready dark" }).count(), 1);
+  const first = id => page.evaluate(i => getComputedStyle(document.querySelector(`.mc-look[data-id="${i}"] .mc-sw i`)).backgroundColor, id);
+  assert.equal(await first("festival"), "rgb(246, 239, 226)", "the light swatch starts with #F6EFE2");
+  assert.equal(await first("neon"), "rgb(20, 18, 16)", "the dark swatch starts with #141210");
   await page.click('.mc-look[data-id="festival"]'); /* Try it on opens the sheet; its line describes the look */
   await page.waitForFunction(() => document.documentElement.dataset.look === "festival");
   assert.match(await page.innerText("body"), /cream tolex, chrome piping and warm amber/);

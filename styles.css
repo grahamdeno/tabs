@@ -1958,6 +1958,7 @@ body { background: var(--bg); font-family: var(--sans); }
 @font-face { font-family: "IBM Plex Mono"; src: url("vendor/fonts/ibmplexmono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 /* Road Ready dark */
 :root[data-look="neon"] {
+  --muted: #ABA294; /* between text-2 and lyric-sung, plain so the readable test can parse it; AA on cards and wells */
   --rr-base: #141210; --rr-card: #1A1918; --rr-mesh: #2A2724; --rr-hairline: #46423C;
   --rr-text: #F6EEE0; --rr-text-2: #BEB4A4;
   --rr-lyric-now: #F6EEE0; --rr-lyric-next: #C9C0B2; --rr-lyric-sung: #8F877C;
@@ -1975,6 +1976,7 @@ body { background: var(--bg); font-family: var(--sans); }
 }
 /* Road Ready light: amber is for fills only; amber text on cream is always #763A00. The status colours are darkened to pass AA on cream, a card and a well. */
 :root[data-look="festival"] {
+  --muted: #635A50; /* same, for the light look */
   --rr-base: #F6EFE2; --rr-card: #FBF7EF; --rr-mesh: #E7E0D4; --rr-hairline: #D3C8B6;
   --rr-text: #1E1914; --rr-text-2: #5C5248;
   --rr-lyric-now: #1E1914; --rr-lyric-next: #3A332C; --rr-lyric-sung: #6E655B;
@@ -1996,7 +1998,6 @@ body { background: var(--bg); font-family: var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) {
   /* the semantic colours every existing screen reads, pointed at the Road Ready tokens */
   --bg: var(--rr-base); --fg: var(--rr-text); --fg-2: var(--rr-text-2);
-  --muted: color-mix(in srgb, var(--rr-text-2) 60%, var(--rr-lyric-sung)); /* between the two, so it stays AA on cards and wells */
   --card: var(--rr-card); --card-2: var(--rr-mesh); --rim: var(--rr-hairline); --hair: var(--rr-hairline);
   --bar: var(--rr-card); --solid: var(--rr-card); --head: var(--rr-text);
   --accent: var(--rr-amber); --accent-ink: var(--rr-amber-text); --on-accent: var(--rr-on-amber);
