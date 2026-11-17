@@ -2,7 +2,7 @@
 // and proof that Green Room and Headliner are untouched.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { phone, LIB, skip, useBrowser, browser, base, tool } from "./harness.mjs";
+import { phone, LIB, skip, useBrowser, browser, base, tool, settled } from "./harness.mjs";
 
 useBrowser();
 
@@ -215,4 +215,181 @@ test("the Tap tempo chip stays put while its label grows, so a thumb can keep ta
   await page.waitForFunction(() => /more/.test(document.getElementById("ed-tap").textContent));
   const after = await page.locator("#ed-tap").boundingBox();
   assert.deepEqual([after.x, after.y, after.width], [before.x, before.y, before.width]);
+});
+
+/* ---------- Road Ready, step 02: the Road ---------- */
+const AT = Date.now();
+const doneOf = ids => ({ done: Object.fromEntries(ids.map((id, i) => [id, { n: 3, best: 90, at: AT - 1000 + i }])), last: AT });
+const OPEN = ["G", "C", "D", "Em", "Am", "E", "A"].map(c => "c:" + c);
+/* part of the first leg done: G, C, D (a merch box after them, opened on arrival) and Em; Am is the current stop */
+const MID = doneOf(OPEN.slice(0, 4));
+/* the whole first leg done, its headline show too: the second leg starts fresh */
+const LEG1 = doneOf([...OPEN, "k:open"]);
+const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), ...extra, settings: { ...LIB.settings, v: 6, theme } });
+async function road(t, theme, skills, opts = {}, extra) {
+  const page = await phone(t, roadLib(theme, skills, extra), { home: true, ...opts });
+  await page.waitForSelector(".rr-hdr .rr-plate"); await settled(page);
+  return page;
+}
+/* the end of each connector step, and the centre of each stop's button, both in screen pixels */
+const connectorEnds = page => page.evaluate(() => [...document.querySelectorAll(".rd-neck")].map(neck => {
+  const ends = [...neck.querySelectorAll(".rd-conn .rr-cc")].map(p => { const m = p.getScreenCTM(), q = p.getPointAtLength(p.getTotalLength()); return [q.x * m.a + m.e, q.y * m.d + m.f]; });
+  const stops = [...neck.querySelectorAll(".rd-node")].map(b => { const r = b.getBoundingClientRect(); return { id: b.dataset.stop, state: [...b.classList].find(c => ["done", "now", "open", "locked"].includes(c)), x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  return { ends, stops };
+}));
+
+for (const [label, theme, file] of [["dark", "dark", "louie-peek-dark.webp"], ["light", "light", "louie-peek-light.webp"]]) {
+  test(`Road Ready 02 (${label}): header strip, pearl inlays, the connector up to the current stop, the callout and Louie peeking`, { skip: skip() }, async t => {
+    const page = await road(t, theme, MID);
+    /* the header: plate, tips, Tonight, fans; nothing of the old Road */
+    for (const sel of ["#h-venue.rr-plate", "#h-tips.rr-pill", "#h-fans.rr-pill", "#rd-tonight.rr-tonight", "#rd-bubble.rr-say"]) assert.equal(await page.locator(sel).count(), 1, sel);
+    for (const sel of [".hud", ".rd-banner", "#rd-book", ".rd-chip", ".rd-say", "#rd-tune", "#h-streak"]) assert.equal(await page.locator(sel).count(), 0, `${sel} is gone from the Road`);
+    assert.match(await page.innerText("#h-venue"), /GARAGE[\s\S]*Show 6 of 10[\s\S]*Open mic next/i);
+    assert.equal(await page.locator("#h-venue .rr-pips i").count(), 10, "a pip per stop in the leg");
+    assert.equal(await page.locator("#h-venue .rr-pips i.done").count(), 5, "five done (four lessons and the box)");
+    assert.equal(await page.locator("#h-venue .rr-pips i.now").count(), 1);
+    assert.equal(await page.getAttribute("#h-venue", "aria-label"), "Garage, show 6 of 10, Open mic next. Open the Tour Map");
+    assert.match(await page.innerText("#h-tips"), /\$\d[\s\S]*Tips/); assert.match(await page.innerText("#h-fans"), /\d[\s\S]*Fans/);
+    assert.match(await page.getAttribute("#rd-tonight", "aria-label"), /^Tonight: .+\. Play$/);
+    /* the strip is tolex inside chrome piping, 8 px from the screen edges */
+    const strip = await page.evaluate(() => { const h = document.querySelector(".rr-hdr"), r = h.getBoundingClientRect(), c = getComputedStyle(h), p = getComputedStyle(h, "::before"); return { l: r.left, r: innerWidth - r.right, bg: c.backgroundImage, radius: c.borderTopLeftRadius, pipe: p.backgroundImage }; });
+    assert.equal(Math.round(strip.l), 8); assert.equal(Math.round(strip.r), 8); assert.equal(strip.radius, "18px");
+    assert.match(strip.bg, /data:image\/svg\+xml/, "tolex"); assert.match(strip.pipe, /linear-gradient/, "chrome piping");
+
+    /* the stops: done ones carry a check, the current one is the trapezoid with its number, the ones ahead are numbered */
+    const cur = await page.evaluate(() => { const b = document.querySelector(".rd-node.cur"), a = b.querySelector(".rr-art").getBoundingClientRect(); return { n: b.querySelector(".rr-eng text")?.textContent, w: a.width, h: a.height, glow: !!b.querySelector(".rr-glow"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill }; });
+    assert.deepEqual([cur.n, Math.round(cur.w), Math.round(cur.h), cur.glow], ["6", 52, 38, true], "the current stop: show 6, a 52 by 38 trapezoid, lit");
+    assert.equal(cur.fill, "rgb(255, 214, 140)", "#FFD68C pearl");
+    const done = await page.$$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box)", bs => bs.map(b => ({ check: !!b.querySelector(".rr-eng path"), w: b.querySelector(".rr-art").getBoundingClientRect().width, halo: !!b.querySelector(".rr-halo") })));
+    assert.equal(done.length, 4); assert.ok(done.every(d => d.check && Math.round(d.w) === 26 && d.halo), "done: 26 px with a check and a faint halo");
+    const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.slice(0, 3).map(b => b.querySelector(".rr-eng text")?.textContent));
+    assert.deepEqual(ahead, ["7", "9", "1"], "numbered ahead (8 is a merch box; the next leg starts at 1)");
+    assert.equal(await page.locator(".rd-neck >> nth=0 >> .rd-node.headline .rr-art").count(), 1, "the leg ends in the double inlay");
+    assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
+
+    /* the connector: one step per pair from the first stop to the current one, each ending on its stop; nothing ahead */
+    const [n1, n2] = await connectorEnds(page);
+    const curAt = n1.stops.findIndex(s => s.state === "now");
+    assert.equal(n1.ends.length, curAt, `${curAt} steps up to the current stop`);
+    n1.ends.forEach(([x, y], i) => { const s = n1.stops[i + 1]; assert.ok(Math.abs(x - s.x) < 1.5 && Math.abs(y - s.y) < 1.5, `step ${i + 1} ends on stop ${i + 2} (${x},${y} vs ${s.x},${s.y})`); });
+    assert.equal(n2.ends.length, 0, "no line on the leg ahead");
+    const glow = await page.evaluate(() => { const g = document.querySelector(".rr-cg"), c = document.querySelector(".rr-cc"), f = document.querySelector(".rd-conn feGaussianBlur"); return { gw: getComputedStyle(g).strokeWidth, cw: getComputedStyle(c).strokeWidth, blur: f?.getAttribute("stdDeviation") }; });
+    assert.deepEqual(glow, { gw: "12px", cw: "2.2px", blur: "7" }, "a 12 px glow blurred 7, a 2.2 px core");
+
+    /* the callout beside the current stop, inside the screen and clear of the stop */
+    const tag = await page.evaluate(() => { const t = document.querySelector(".rd-stop.cur .rr-callout"), b = document.querySelector(".rd-node.cur"), r = t.getBoundingClientRect(), s = b.getBoundingClientRect(); return { text: t.textContent, hidden: t.getAttribute("aria-hidden"), left: r.left, right: r.right, stopRight: s.right }; });
+    assert.equal(tag.hidden, "true"); assert.ok(tag.left > tag.stopRight && tag.right <= 390, `the callout sits right of the stop, on the screen (${tag.left}-${tag.right})`);
+    assert.match(tag.text, /Am/);
+
+    /* Louie peeks in: the picture for this look, partly past the left edge, hidden from screen readers, not a button */
+    const peek = await page.evaluate(() => { const p = document.querySelector(".rd-peek"), r = p.getBoundingClientRect(), c = getComputedStyle(p); return { img: c.backgroundImage, left: r.left, h: r.height, hidden: p.getAttribute("aria-hidden"), pe: c.pointerEvents, disp: c.display }; });
+    assert.ok(peek.img.includes(file), peek.img); assert.ok(peek.left < 0, "partly past the left edge"); assert.equal(Math.round(peek.h), 150);
+    assert.deepEqual([peek.hidden, peek.pe, peek.disp], ["true", "none", "block"]);
+    if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
+  });
+}
+
+test("Road Ready 02: a fresh leg has no connector; a finished leg's runs to its double inlay", { skip: skip() }, async t => {
+  const page = await road(t, "dark", LEG1, {}, { merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] } }); /* the headline and new-guitar sheets already seen */
+  const [n1, n2] = await connectorEnds(page);
+  assert.equal(n1.ends.length, n1.stops.length - 1, "the whole first leg is joined up");
+  const last = n1.ends.at(-1), dbl = await page.evaluate(() => { const r = document.querySelector('.rd-neck .rd-node[data-kind="double"]').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+  assert.ok(Math.abs(last[0] - dbl[0]) < 1.5 && Math.abs(last[1] - dbl[1]) < 1.5, "ending at the double inlay");
+  assert.equal(await page.locator('.rd-neck >> nth=0 >> .rd-node[data-kind="double"].done .rr-eng path').count(), 2, "both dots done, each with a check");
+  assert.equal(n2.ends.length, 0, "the new leg's first stop is current: no line yet");
+  assert.match(await page.innerText("#h-venue"), /Show 1 of 11/);
+});
+
+test("Road Ready 02: every stop and header control does what it did, and each is at least 44 by 44", { skip: skip() }, async t => {
+  const page = await road(t, "dark", MID);
+  const small = await page.evaluate(() => [...document.querySelectorAll("#app button")].map(b => { const r = b.getBoundingClientRect(); return { id: b.id || b.dataset.stop || b.className, w: r.width, h: r.height }; }).filter(r => r.w < 44 || r.h < 44));
+  assert.deepEqual(small, [], "every control on the Road is at least 44 by 44");
+  const back = async () => { await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rr-hdr .rr-plate"); await settled(page); };
+  await page.click("#h-venue"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
+  await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch"); await back();
+  await page.click("#h-fans"); await page.waitForFunction(() => location.hash === "#/you"); await back();
+  await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop.now");
+  assert.match(await page.innerText(".rd-pop.now"), /The Am chord[\s\S]*START/, "the stop card, as before");
+  assert.equal(await page.locator(".rd-stop.cur .rr-callout").isVisible(), false, "the callout steps aside for the card");
+  await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop", { state: "detached" });
+  await page.click("#rd-tonight"); await page.waitForSelector("#gig");
+});
+
+test("Road Ready 02: a screen reader meets the plate, fans, tips, Tonight, Louie's line, then the leg and its stops", { skip: skip() }, async t => {
+  const page = await road(t, "light", MID);
+  const order = await page.evaluate(() => {
+    const els = [...document.querySelectorAll("#app button, #app #rd-bubble, #app .rd-legmark, #app .rd-peek")];
+    return els.filter(e => !e.closest("[aria-hidden=true]") && !e.closest(".rd-sbk")).map(e => e.id || (e.classList.contains("rd-legmark") ? "leg" : e.classList.contains("rd-node") ? "stop" : e.className)).slice(0, 8);
+  });
+  assert.deepEqual(order, ["h-venue", "h-fans", "h-tips", "rd-tonight", "rd-bubble", "leg", "stop", "stop"]);
+  assert.equal(await page.getAttribute(".rd-peek", "aria-hidden"), "true", "Louie's picture is hidden from screen readers");
+  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1, Open chords/i);
+});
+
+test("Road Ready 02: large text stacks the header with nothing cut off; the largest sizes hide Louie and the pips", { skip: skip() }, async t => {
+  const page = await road(t, "dark", MID);
+  await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".rr-hdr")).gridTemplateAreas.includes("fans tips"));
+  const box = await page.evaluate(() => {
+    const r = id => document.getElementById(id).getBoundingClientRect();
+    const cut = [...document.querySelectorAll(".rr-hdr *, .rr-say")].filter(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow !== "visible").map(e => e.className);
+    const over = [...document.querySelectorAll(".rr-hdr b, .rr-hdr small, .rr-say")].filter(e => { const p = e.getBoundingClientRect(), h = e.closest("button, p").getBoundingClientRect(); return p.right > h.right + 1 || p.left < h.left - 1; }).map(e => e.textContent);
+    return { plate: r("h-venue"), tonight: r("rd-tonight"), fans: r("h-fans"), tips: r("h-tips"), cut, over };
+  });
+  assert.ok(box.tonight.top >= box.plate.bottom, "Tonight under the plate");
+  assert.ok(box.fans.top >= box.tonight.bottom && Math.abs(box.fans.top - box.tips.top) < 1 && box.tips.left >= box.fans.right, "fans and tips side by side under Tonight");
+  assert.ok(box.plate.width > 340, "the plate takes the full width");
+  assert.deepEqual(box.cut, [], "nothing truncates"); assert.deepEqual(box.over, [], "no text runs out of its control");
+  await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "40px"); document.documentElement.dataset.ax = "3"; });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".rd-peek")).display === "none");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rr-pips")).display), "none", "the pips go; the plate says the same in words");
+});
+
+test("Road Ready 02: the current stop breathes and a new step of the line draws itself on; with Reduce Motion nothing moves", { skip: skip() }, async t => {
+  const BOX = doneOf(OPEN.slice(0, 3));
+  for (const reduce of [false, true]) {
+    const page = await road(t, "dark", BOX, { reducedMotion: reduce ? "reduce" : "no-preference" }, { boxes: { opened: [] } });
+    await page.waitForSelector(".rd-node.box.now");
+    await page.click(".rd-node.box.now");
+    await page.waitForSelector(".rd-node.cur:not(.box) .rr-glow", { timeout: 6000 }); /* the Road is drawn again with the next stop current */
+    const m = await page.evaluate(() => ({ glow: getComputedStyle(document.querySelector(".rd-node.cur .rr-glow")).animationName, draw: [...document.querySelectorAll(".rr-draw")].map(p => getComputedStyle(p).animationName), off: [...document.querySelectorAll(".rr-cc.rr-draw")].map(p => getComputedStyle(p).strokeDashoffset) }));
+    assert.equal(m.draw.length, 2, "the newest step (glow and core) is the one that draws");
+    if (reduce) { assert.equal(m.glow, "none"); assert.deepEqual(m.draw, ["none", "none"]); assert.deepEqual(m.off, ["0px"], "the line is there at once"); }
+    else { assert.equal(m.glow, "rr-breathe"); assert.deepEqual(m.draw, ["rr-draw", "rr-draw"]); }
+  }
+});
+
+test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await road(t, theme, MID);
+    const pairs = await page.evaluate(() => {
+      const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+      const ratio = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+      const v = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+      const hex = h => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)})`;
+      const col = sel => getComputedStyle(document.querySelector(sel)).color;
+      return {
+        callout: ratio(col(".rr-callout"), getComputedStyle(document.querySelector(".rr-callout")).backgroundColor),
+        plate: ratio(col(".rr-venue"), hex(v("--rr-plate-bottom"))),
+        tonight: ratio(col(".rr-tn-t b"), getComputedStyle(document.querySelector(".rr-tonight")).backgroundColor),
+        tonightLabel: ratio(col(".rr-tn-t small"), getComputedStyle(document.querySelector(".rr-tonight")).backgroundColor),
+        leg: ratio(col(".rd-legmark"), hex(v("--rr-base"))),
+        say: ratio(col(".rr-say"), getComputedStyle(document.querySelector(".rr-say")).backgroundColor),
+        numNow: ratio(getComputedStyle(document.querySelector(".rd-node.cur .rr-eng")).fill, hex(v("--rr-pearl-now"))),
+        numAhead: ratio(getComputedStyle(document.querySelector(".rd-node.locked:not(.box, .headline) .rr-eng")).fill, hex(v("--rr-pearl-locked"))),
+        check: ratio(getComputedStyle(document.querySelector(".rd-node.done:not(.box) .rr-eng")).stroke, hex(v("--rr-pearl-done")))
+      };
+    });
+    for (const [k, r] of Object.entries(pairs)) assert.ok(r >= 4.5, `${theme}: ${k} is ${r.toFixed(2)}:1`);
+  }
+});
+
+test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg banner, finger dots, Louie beside the path)", { skip: skip() }, async t => {
+  for (const look of ["green", "headliner"]) {
+    const page = await phone(t, roadLib(look, MID), { home: true });
+    await page.waitForSelector(".rd-path"); await settled(page);
+    assert.equal(await page.locator(".rr-hdr, .rd-peek, .rr-say, .rd-conn, .rd-node.rr").count(), 0, `${look}: none of Road Ready`);
+    for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say svg.louie", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
+  }
 });

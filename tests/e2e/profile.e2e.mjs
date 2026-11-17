@@ -1,4 +1,4 @@
-// Your profile (4.16.0; Your playing before): the profile page, opened from the streak in the stat bar.
+// Your profile (4.16.0; Your playing before): the profile page, opened from your fans and streak in the Road's header.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser, settled } from "./harness.mjs";
@@ -7,8 +7,8 @@ useBrowser();
 test("Your profile: worked out from the songs you've played, with a passport, changes and a way back to a song", { skip: skip() }, async t => {
   const songs = LIB.songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } }));
   const page = await phone(t, { ...LIB, songs }, { home: true });
-  await page.waitForSelector("#h-streak"); await settled(page);
-  await page.click("#h-streak");
+  await page.waitForSelector("#h-fans"); await settled(page);
+  await page.click("#h-fans");
   await page.waitForSelector(".pf-player");
   assert.match(await page.innerText("h1"), /Your profile/);
   /* 4.17.0: the player card, its tiles, badges and band */

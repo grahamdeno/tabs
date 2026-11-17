@@ -67,8 +67,9 @@ test("4.40.0 Opening night: pause and pick up in the Gig: the step says what to 
   assert.match(await page.innerText("#on-strip"), /STEP 6 OF 6[\s\S]*through to the end/);
 });
 
-test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its three doors until each is tapped", { skip: skip() }, async t => {
-  const page = await phone(t, FRESH, { home: true });
+/* the stat bar's labels belong to the Road Green Room and Headliner keep; Road Ready's header always says what each door is */
+test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its three doors until each is tapped (Green Room)", { skip: skip() }, async t => {
+  const page = await phone(t, { ...FRESH, settings: { ...FRESH.settings, v: 6, theme: "green" } }, { home: true });
   await page.waitForSelector("#on-skip"); await settled(page);
   await page.click("#on-skip");
   await page.waitForSelector("#ask-ok");
@@ -86,7 +87,7 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
 
 test("4.40.0 Opening night: someone who already plays never sees it; Tips & gestures replays it", { skip: skip() }, async t => {
   const page = await phone(t, { ...BASE, songs: LIB.songs.map(s => ({ ...s, playLog: { total: 2, last: Date.now(), days: { "2026-10-01": 2 } } })) }, { home: true });
-  await page.waitForSelector(".rd-banner");
+  await page.waitForSelector(".rd-path:not(.on-path)");
   assert.equal(await page.locator(".on-night").count(), 0);
   await page.evaluate(() => { location.hash = "#/gestures"; }); await page.waitForSelector("#gs-opening"); await settled(page);
   await page.click("#gs-opening");
