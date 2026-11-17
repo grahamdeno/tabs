@@ -61,8 +61,10 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     await page.evaluate(() => document.documentElement.style.removeProperty("--sys-px"));
 
     /* fonts */
-    const fam = await page.evaluate(() => { const c = getComputedStyle(document.body); const h = document.createElement("h2"); document.body.appendChild(h); const d = getComputedStyle(h).fontFamily; h.remove(); return [c.fontFamily, d, getComputedStyle(document.documentElement).getPropertyValue("--mono")]; });
-    assert.match(fam[0], /^Inter\b|^"Inter"/, "text is Inter"); assert.match(fam[1], /Space Grotesk/, "titles are Space Grotesk"); assert.match(fam[2], /IBM Plex Mono/, "tuner and tempo numbers are IBM Plex Mono");
+    const fam = await page.evaluate(() => { const c = getComputedStyle(document.body); const h = document.createElement("h2"); document.body.appendChild(h); const d = getComputedStyle(h).fontFamily; h.remove(); return [c.fontFamily, d, getComputedStyle(document.documentElement).getPropertyValue("--readout")]; });
+    assert.match(fam[0], /^Inter\b|^"Inter"/, "text is Inter"); assert.match(fam[1], /Space Grotesk/, "titles are Space Grotesk"); assert.match(fam[2], /IBM Plex Mono/, "--readout (tuner and tempo numbers) is IBM Plex Mono");
+    const tabFam = await page.evaluate(() => { const s = document.createElement("div"); s.className = "sheet"; const e = document.createElement("div"); e.className = "tab"; e.textContent = "e|--0--"; s.appendChild(e); document.body.appendChild(s); const f = getComputedStyle(e).fontFamily; s.remove(); return f; });
+    assert.doesNotMatch(tabFam, /IBM Plex Mono/, "tab blocks keep the system monospace");
 
     /* tolex ground: the grain is there, and the average stays the base colour */
     const bg = await page.evaluate(() => { const c = getComputedStyle(document.body); return { img: c.backgroundImage, col: c.backgroundColor }; });

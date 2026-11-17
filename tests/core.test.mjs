@@ -2892,7 +2892,7 @@ test("Road Ready: its tokens exist for both looks and for no other look", () => 
   /* Green Room and Headliner (and plain :root) never get a Road Ready value */
   const outside = rrCss.replace(rrDark, "").replace(rrLight, "");
   assert.equal([...outside.matchAll(/--rr-[a-z0-9-]+\s*:/g)].length, 0, "no --rr token is defined outside the two Road Ready looks");
-  for (const once of ["--type-body:", "--sp-1:", "--r-plate:", '--mono: "IBM Plex Mono"']) assert.equal(rrCss.split(once).length - 1, 1, `${once} is set once, in the shared Road Ready block`);
+  for (const once of ["--type-body:", "--sp-1:", "--r-plate:", '--readout: "IBM Plex Mono"']) assert.equal(rrCss.split(once).length - 1, 1, `${once} is set once, in the shared Road Ready block`);
 });
 
 test("Road Ready: the fonts are bundled as woff2 with their licences", () => {

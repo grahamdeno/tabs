@@ -2007,7 +2007,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --display: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --serif: var(--display);
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --readout: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* tuner and tempo readouts (later steps) */
   /* sizes follow the iPhone text size: app.js sets --sys-px (17 px at the default) from readSysText() */
   --type-display: calc(var(--sys-px, 17px) * 2);       --type-display-w: 700;   /* Space Grotesk */
   --type-title: calc(var(--sys-px, 17px) * 1.647);     --type-title-w: 700;     /* Space Grotesk */
