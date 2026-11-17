@@ -155,12 +155,18 @@ anything a person found on their own is skipped.
 
 ### The Road (home) and the stat bar
 
+Road Ready (step 02, 2026-11-17): in the Light and Dark looks the stat bar is a header strip. Its controls say what
+they are in words (the venue plate with "Show 4 of 6" and the next venue, "Fans" or "5-day streak", "Tips",
+"TONIGHT"), so rows 2 to 4 are only hidden in Green Room and Headliner, which keep the stat bar. The book button
+(Rehearse) is gone from the Road Ready header: Rehearse is a tab. The tuner is not on the Road: you find it in More
+and on the song screen, where you play.
+
 | # | Hidden feature | How you do it | Coverage | Why here in the order |
 |---|---|---|---|---|
-| 1 | Tap a stop for its card (Start, Play again) | Tap a stop; tap again or elsewhere to close | None (the halo invites it) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing dot" from Louie |
-| 2 | The streak opens Your profile | Tap the guitar in the stat bar | None | Right after the first song played through, when the streak first lights |
-| 3 | Fans open the Merch table | Tap the fans count | None | When fans first reach the price of the cheapest thing (Rain check) |
-| 4 | The venue opens the Tour Map | Tap the venue | None | After the first few songs, when there are hexagons to see |
+| 1 | Tap a stop for its card (Start, Play again) | Tap a stop; tap again or elsewhere to close | None (the halo invites it; Road Ready: the glowing trapezoid and its callout) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing dot" from Louie |
+| 2 | The streak opens Your profile | Tap the guitar in the stat bar (Road Ready: the Fans pill, which shows the streak) | None (Road Ready: labelled) | Right after the first song played through, when the streak first lights |
+| 3 | Tips open the Merch table | Tap the tips (Road Ready: the Tips pill) | None (Road Ready: labelled) | When tips first reach the price of the cheapest thing (Rain check) |
+| 4 | The venue opens the Tour Map | Tap the venue (Road Ready: the venue plate) | None | After the first few songs, when there are hexagons to see |
 | 5 | Other songs that fit (headline) | Tap a headline pick, then Other songs that fit | None (it's on the card) | Visible once the card is open; no tip needed |
 
 ### Song page (paused)
