@@ -4664,3 +4664,135 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .yt-pick small { color: var(--fg-2); font-size: 12px; }
 .yt-paste { margin: 12px 0; }
 .yt-card.tap .yt-cap { background: var(--accent); color: var(--on-accent, #fff); font-weight: 800; text-align: center; }
+
+/* ==========================================================================
+   Road Ready, step 02 (Graham, 2026-11-17): the Road. Only the Dark and Light looks draw this markup (road.js
+   checks data-look); Green Room and Headliner keep the Road above. Every rule is keyed on the two looks, and the
+   ones that restyle shared Road parts (.rd-node, .rd-tag, .rd-legmark) are written to outrank the older rules.
+   Header strip (spec 5.5), pearl inlays (5.3), the amber connector (5.4), Louie peeking (9), motion (7).
+   ========================================================================== */
+:root[data-look="neon"] { --louie-peek: url("art/louie/louie-peek-dark.webp"); }
+:root[data-look="festival"] { --louie-peek: url("art/louie/louie-peek-light.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) body.is-home .app:has(> .rr-hdr) { padding: calc(8px + var(--safe-t)) 8px calc(var(--peek) - var(--tabs) + 6px); gap: 8px; }
+
+/* ---- the header strip: a piece of the amp, tolex inside chrome piping. Two rows: the plate and tips; Tonight and
+   fans. In the page the order is plate, fans, tips, Tonight, which is the order a screen reader reads. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hdr {
+  flex: none; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "plate tips" "tonight fans"; gap: 8px;
+  padding: calc(10px + var(--chrome-pipe-w)); border-radius: var(--r-strip); background: var(--tolex); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+/* the chrome piping: a ring cut out of a chrome fill, so the strip's own corners stay round */
+.rr-hdr::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--chrome-pipe-w); background: var(--chrome-pipe); pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.rr-hdr button { -webkit-tap-highlight-color: transparent; font: inherit; color: inherit; margin: 0; }
+/* the venue plate: cream, engraved, two tiny screws */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-plate {
+  grid-area: plate; min-width: 0; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; padding: 7px 12px; box-sizing: border-box;
+  border: 1.5px solid var(--rr-plate-edge); border-radius: var(--r-plate); color: var(--rr-plate-text); text-align: left;
+  background:
+    radial-gradient(circle at 7px 7px, var(--rr-plate-edge) 0 1.5px, transparent 2px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), var(--rr-plate-edge) 0 1.5px, transparent 2px),
+    linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom));
+}
+.rr-plate:active, .rr-pill:active, .rr-tonight:active { transform: translateY(1px); filter: brightness(.94); }
+.rr-pl-main, .rr-pl-side { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rr-pl-side { align-items: flex-end; margin-left: auto; }
+.rr-venue { font: 700 var(--type-headline) / 1.15 "Space Grotesk", var(--display); text-transform: uppercase; letter-spacing: .02em; overflow-wrap: break-word; }
+.rr-plate small { font: var(--type-footnote-w) var(--type-footnote) / 1.2 "Inter", var(--sans); color: var(--rr-plate-text); }
+.rr-pl-main small { font-size: var(--type-subhead); }
+.rr-pips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
+.rr-pips i { width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid var(--rr-engrave); }
+.rr-pips i.done { background: var(--rr-engrave); }
+.rr-pips i.now { border-width: 2.5px; }
+/* fans and tips: cream capsules, the number with its label under it; the two share a column, so they line up */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-pill {
+  min-width: 72px; min-height: 44px; padding: 5px 12px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border: 1.5px solid var(--rr-plate-edge); border-radius: 22px; color: var(--rr-plate-text);
+  background: linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom));
+}
+.rr-pill.rr-fans { grid-area: fans; } .rr-pill.rr-tips { grid-area: tips; }
+.rr-pv { display: flex; align-items: center; gap: 4px; }
+.rr-pv svg { width: 18px; height: 18px; flex: none; }
+.rr-pv b { font: 700 var(--type-headline) / 1.1 "Space Grotesk", var(--display); white-space: nowrap; }
+.rr-pill small { font: var(--type-footnote-w) var(--type-footnote) / 1.15 "Inter", var(--sans); white-space: nowrap; }
+.rr-coin { fill: #E9A93A; } .rr-coin-ring { stroke: #A8701E; stroke-width: 1.2; } .rr-coin-ink { stroke: #3A2408; }
+/* Tonight: a dark inset bar, the title and an amber play button; the whole row is one button */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tonight {
+  grid-area: tonight; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 12px; box-sizing: border-box; text-align: left;
+  border: 0; border-radius: var(--r-control); background: var(--rr-card); color: var(--rr-text); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35);
+}
+.rr-tn-t { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+.rr-tn-t small { font: var(--type-caption-w) var(--type-caption) / 1.2 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); color: var(--rr-amber-text); }
+.rr-tn-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: break-word; min-width: 0; }
+.rr-play { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); }
+.rr-play svg { width: 22px; height: 22px; }
+/* Louie's line, under the strip */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-say {
+  flex: none; position: relative; align-self: flex-start; max-width: calc(100% - 24px); margin: 0 0 0 4px; padding: 8px 12px; box-sizing: border-box;
+  border-radius: 14px 14px 14px 4px; background: var(--rr-plate-top); color: var(--rr-plate-text); border: 1px solid var(--rr-plate-edge);
+  font: var(--type-callout-w) var(--type-callout) / 1.3 "Inter", var(--sans); box-shadow: none;
+}
+
+/* ---- the stage: the path scrolls inside it, Louie stays put at its left edge ---- */
+.rr-stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 0 -8px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr { margin: 0; padding: 4px 0 30px; gap: 18px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark { display: flex; justify-content: center; margin: 2px 0 -6px; color: var(--rr-text-2); font: var(--type-caption-w) var(--type-caption) / 1.3 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); text-transform: uppercase; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark::before, :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark::after { background: var(--rr-hairline); }
+.rd-peek { position: absolute; z-index: 8; left: -54px; top: 55%; width: 136px; height: 150px; transform: translateY(-50%); pointer-events: none; background: var(--louie-peek) center / contain no-repeat; }
+:root[data-look="neon"] .rd-peek { filter: drop-shadow(0 0 3px var(--rr-louie-rim)); }
+:root[data-ax="3"] .rd-peek { display: none; }
+@media (max-width: 359px) { .rd-peek { display: none; } }
+
+/* ---- the connector: a blurred amber glow under a thin light core ---- */
+.rd-neck > svg.rd-conn { z-index: 1; pointer-events: none; overflow: visible; }
+.rr-cg { fill: none; stroke: var(--rr-glow); stroke-opacity: .6; stroke-width: 12; stroke-linecap: round; }
+.rr-cc { fill: none; stroke: var(--rr-glow-core); stroke-width: 2.2; stroke-linecap: round; }
+.rr-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rr-draw .6s ease-out forwards; }
+@keyframes rr-draw { to { stroke-dashoffset: 0; } }
+
+/* ---- the stops: a 44 px button, the pearl centred in it ---- */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-stop.rr { z-index: 3; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-stop.rr:has(.rd-pop) { z-index: 6; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr {
+  width: 44px; height: 44px; display: grid; place-items: center; color: inherit; overflow: visible; -webkit-tap-highlight-color: transparent;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.cur:not(.box, .headline) { width: 56px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.headline { width: 72px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr:active { transform: translate(-50%, -50%) translateY(1px); }
+.rd-node.rr .rr-art { position: relative; z-index: 1; overflow: visible; }
+.rr-pearl.done { fill: var(--rr-pearl-done); } .rr-pearl.now { fill: var(--rr-pearl-now); } .rr-pearl.ahead { fill: var(--rr-pearl-locked); }
+.rr-cut { fill: none; stroke: #000; stroke-opacity: .45; stroke-width: 1; }
+.rr-sheen { fill: #fff; opacity: .55; }
+.rr-eng { fill: var(--rr-engrave); stroke: var(--rr-engrave); }
+.rr-eng.locked { fill: var(--rr-engrave-locked); stroke: var(--rr-engrave-locked); }
+.rr-eng path[fill="none"] { fill: none; }
+.rr-eng-hi { fill: rgba(255, 255, 255, .35); stroke: rgba(255, 255, 255, .35); }
+.rr-eng-hi path[fill="none"] { fill: none; }
+.rr-eng text, .rr-eng-hi text { stroke: none; font-family: "Space Grotesk", var(--display); font-weight: 700; }
+/* the current stop glows from within; a done stop has a faint halo */
+.rr-glow, .rr-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
+.rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
+.rr-halo { width: 40px; height: 40px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 20%, transparent) 0, transparent 70%); }
+@keyframes rr-breathe { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
+/* the callout: cream, pointing at the current stop, always on the right of the neck */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-tag.rr-callout {
+  position: absolute; top: 0; right: auto; bottom: auto; transform: translateY(-50%); z-index: 4; width: max-content; padding: 6px 10px; box-sizing: border-box;
+  border-radius: var(--r-control); background: var(--rr-plate-top); color: var(--rr-plate-text); box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+  font: var(--type-callout-w) var(--type-callout) / 1.25 "Inter", var(--sans); text-align: left; white-space: normal; animation: none;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-tag.rr-callout::after { left: -5px; right: auto; top: 50%; bottom: auto; margin: -5px 0 0; width: 10px; height: 10px; }
+/* how many songs a stop ahead opens: a tiny cream chip on the other side */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-songs.rr-chip {
+  position: absolute; top: 0; left: auto; transform: translateY(-50%); padding: 2px 7px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+  background: var(--rr-plate-top); color: var(--rr-plate-text); font: var(--type-caption-w) var(--type-caption) / 1.3 "Inter", var(--sans); box-shadow: none;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-earned { background: var(--rr-plate-top); color: var(--rr-plate-text); font: var(--type-caption-w) var(--type-caption) "Inter", var(--sans); }
+
+/* ---- large text: the strip stacks (plate; Tonight; fans and tips side by side), nothing truncates ---- */
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-hdr { grid-template-columns: 1fr 1fr; grid-template-areas: "plate plate" "tonight tonight" "fans tips"; }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pill small, :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pv b { white-space: normal; text-align: center; }
+:root[data-ax="3"] .rr-pips { display: none; }
+
+@media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }

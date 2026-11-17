@@ -1,6 +1,7 @@
 // The game's chrome (4.0.0): the stat bar at the top of the Road, the tab bar along the bottom of
 // the main pages, the More sheet, and the pages still to come (Tour, Charts, Band).
 //   statBar()        the venue, the gig streak, your fans and your tips (4.70.0), as buttons (bindStatBar wires them)
+//   settleStats()    Rain checks and fading fans, settled before any stats show; statNotices() says what happened
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the tips in the stat bar (4.16.2)
 import { Tabs, fameSettle, fansNow, openingOn, playSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
@@ -16,7 +17,9 @@ const TICKET = `<svg width="32" height="26" viewBox="0 0 34 28" aria-hidden="tru
 let rained = [], fame = [];
 /* 4.70.0: tips, a coin with a dollar sign */
 const COIN = `<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle class="h-cd" cx="14" cy="15.5" r="11.5"/><circle class="h-c" cx="14" cy="13.5" r="11.5"/><path d="M17.5 9.5c-.8-1-2-1.5-3.5-1.5-2 0-3.3 1-3.3 2.5 0 3.5 7 1.8 7 5.5 0 1.6-1.5 2.6-3.6 2.6-1.6 0-3-.6-3.8-1.7M14 6v2M14 18.6v2" fill="none" stroke="#14213D" stroke-width="2" stroke-linecap="round"/></svg>`;
-export function statBar() {
+/* Before the stats are shown: Rain checks and fading fans are settled (statBar and the Road Ready header both call
+   this), and statNotices() says what happened once the screen is up. */
+export function settleStats() {
   /* 4.14.0: a Rain check covers the nights missed since your last play, before the streak is counted */
   const used = rainSettle(data);
   if (used.length) { Tabs.save(data); rained = used; }
@@ -24,6 +27,9 @@ export function statBar() {
   const said = fameSettle(data);
   if (said.length || data.fame) Tabs.save(data);
   if (said.length) fame = said;
+}
+export function statBar() {
+  settleStats();
   const v = venueNow(data), st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data);
   /* 4.40.0: each one says what it is, with a ›, until you've tapped it once (not during Opening night) */
   const lab = (k, t) => openingOn(data) || data.settings.used?.["hud-" + k] ? "" : `<small class="h-lab" aria-hidden="true">${t}</small>`;
@@ -43,6 +49,9 @@ export function bindStatBar() {
   $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
   $("h-fans")?.addEventListener("click", () => go("#/you"));
   $("h-tips")?.addEventListener("click", () => go("#/merch"));
+  statNotices();
+}
+export function statNotices() {
   if (fame.length) {
     const said = fame; fame = [];
     const line = x => x.kind === "fade" ? `${n(x.lost)} fans drifted away while you were off the road`

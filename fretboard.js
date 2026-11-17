@@ -276,9 +276,98 @@ function dotSVG(state, icon) {
   return `<svg class="rd-dot" viewBox="-30 -30 60 60" aria-hidden="true">${state === "now" ? `<circle class="rd-halo" r="29"/>` : ""}<circle class="rd-lip" cy="6" r="22"/><circle class="rd-body" r="22"/><ellipse class="rd-shine" cx="-7" cy="-11" rx="9" ry="4" transform="rotate(-25 -7 -11)"/></svg><span class="rd-ic">${state === "locked" ? `<i class="rd-pin"></i>` : icon}</span>`;
 }
 
+/* Where a stop sits on the neck, in the drawing's units (390 wide). The stops and the Road Ready connector both use
+   this, so the line always ends on the stop. */
+export function stopXY(sp, lay) {
+  const y = lay.head + sp.y, f = lay.sfan || lay.fan;
+  return { x: CX + (sp.string >= 0 ? STR[sp.string] * (f ? f(y) : 1) : 0), y };
+}
+
+/* ---- Road Ready (step 02): stops are pearl inlays set flush in the wood, in four states ----
+   done: a 26 px amber pearl with an engraved check and a faint glow. now: a 52 by 38 trapezoid, lit from within, with
+   the show number. ahead (open or locked): a 26 px matte pearl with the number. The headline show is two 24 px dots
+   (the number and a lock), a merch box the crate. Every one sits in a 44 px button. Colours are the --rr-* tokens. */
+const RR_SIZE = { dot: [26, 26], now: [52, 38], box: [30, 22], double: [60, 24] };
+const rrPhase = st => st === "done" ? "done" : st === "now" ? "now" : "ahead";
+let rrN = 0;
+/* an engraved mark: the mark, with a lighter copy 1 px below it where the cut catches the light */
+const engrave = (svg, cls) => `<g class="rr-eng-hi" transform="translate(0 1)">${svg}</g><g class="rr-eng ${cls}">${svg}</g>`;
+const ENG = {
+  check: r => `<path d="M${-r * .42} ${r * .02}l${r * .3} ${r * .3} ${r * .56} ${-r * .62}" fill="none" stroke-width="${(r * .2).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`,
+  num: (n, size) => `<text y="${(size * .36).toFixed(1)}" text-anchor="middle" font-size="${size}">${n}</text>`,
+  lock: r => `<rect x="${-r * .4}" y="${-r * .06}" width="${r * .8}" height="${r * .6}" rx="${r * .12}"/><path d="M${-r * .24} ${-r * .06}v${-r * .16}a${r * .24} ${r * .24} 0 0 1 ${r * .48} 0v${r * .16}" fill="none" stroke-width="${(r * .14).toFixed(1)}"/>`,
+  star: r => `<polygon points="${STAR(0).split(" ").map(p => p.split(",").map(v => (v * r / 15).toFixed(1)).join(",")).join(" ")}"/>`
+};
+/* one pearl: the cut edge, the pearl (a soft radial light), the inner top shadow, the shimmer, the mark */
+function pearl(d, ph, mark, shimmer, w, h) {
+  const id = `rrp${++rrN}`;
+  const grad = `<radialGradient id="${id}" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity="${ph === "ahead" ? .18 : .45}"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+  const clip = `<clipPath id="${id}c"><path d="${d}"/></clipPath>`;
+  const shade = `<g clip-path="url(#${id}c)"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="5" transform="translate(0 2.5)"/></g>`;
+  const sheen = shimmer ? `<ellipse class="rr-sheen" cx="${(-w * .18).toFixed(1)}" cy="${(-h * .2).toFixed(1)}" rx="${(w * .16).toFixed(1)}" ry="${(h * .07).toFixed(1)}" transform="rotate(-25 ${(-w * .18).toFixed(1)} ${(-h * .2).toFixed(1)})"/><ellipse class="rr-sheen" cx="${(w * .2).toFixed(1)}" cy="${(h * .22).toFixed(1)}" rx="${(w * .1).toFixed(1)}" ry="${(h * .05).toFixed(1)}" transform="rotate(-25 ${(w * .2).toFixed(1)} ${(h * .22).toFixed(1)})"/>` : "";
+  return `<defs>${grad}${clip}</defs><path class="rr-pearl ${ph}" d="${d}"/><path d="${d}" fill="url(#${id})"/>${shade}${sheen}${mark}<path class="rr-cut" d="${d}"/>`;
+}
+const circle = (cx, r) => `M${cx - r} 0a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`;
+/* The art for one Road Ready stop. kind: the space's kind (dot, inlay = merch box, double = headline). n: the show number. */
+export function rrStopArt(kind, state, n) {
+  const ph = rrPhase(state), cur = ph === "now";
+  const [w, h] = kind === "double" ? RR_SIZE.double : kind === "inlay" ? RR_SIZE.box : cur ? RR_SIZE.now : RR_SIZE.dot;
+  const lock = ph === "done" ? "done" : ph === "now" ? "" : "locked";
+  let body;
+  if (kind === "double") {
+    body = [-18, 18].map((cx, i) => {
+      const mark = ph === "done" ? ENG.check(12) : i === 0 ? ENG.num(n, 12) : ph === "now" ? ENG.star(9) : ENG.lock(12);
+      return `<g transform="translate(${cx} 0)">${pearl(circle(0, 12), ph, engrave(mark, lock), ph !== "ahead", 24, 24)}</g>`;
+    }).join("");
+  } else if (kind === "inlay") {
+    const d = `M-15 -11H15V11H-15Z`, lines = `<path d="M-6 -11V11M5 -11V11M-15 -1H15" fill="none" stroke-width="1.6"/>`;
+    body = pearl(d, ph, engrave(lines, lock), ph !== "ahead", w, h);
+  } else if (cur) {
+    body = pearl("M-26 19H26L20 -19H-20Z", ph, engrave(ENG.num(n, 20), ""), true, w, h);
+  } else {
+    body = pearl(circle(0, 13), ph, engrave(ph === "done" ? ENG.check(13) : ENG.num(n, 13), lock), ph === "done", w, h);
+  }
+  const glow = cur ? `<span class="rr-glow" aria-hidden="true"></span>` : ph === "done" ? `<span class="rr-halo" aria-hidden="true"></span>` : "";
+  return `${glow}<svg class="rr-art" width="${w}" height="${h}" style="width:${w}px;height:${h}px" viewBox="${-w / 2} ${-h / 2} ${w} ${h}" aria-hidden="true">${body}</svg>`;
+}
+
+/* The amber line from done stop to done stop, ending at the current one (or the headline show when the leg is done).
+   Each step is a cubic curve with vertical tangents: it leaves along one string and bends onto the next. `o.fresh`
+   is the id of a stop the line has only just reached: that last step draws itself on. */
+export function connectorSVG(lay, spaces, o) {
+  const segs = [];
+  for (let i = 0; i + 1 < spaces.length; i++) {
+    const a = spaces[i].stop, b = spaces[i + 1].stop;
+    if (a.state !== "done" || !(b.state === "done" || b === o.cur)) break;
+    const p = stopXY(spaces[i], lay), q = stopXY(spaces[i + 1], lay), ym = ((p.y + q.y) / 2).toFixed(1);
+    segs.push({ d: `M${p.x.toFixed(1)} ${p.y.toFixed(1)}C${p.x.toFixed(1)} ${ym} ${q.x.toFixed(1)} ${ym} ${q.x.toFixed(1)} ${q.y.toFixed(1)}`, fresh: o.fresh && b.id === o.fresh });
+  }
+  if (!segs.length) return "";
+  const id = `rrc${++rrN}`;
+  const path = (s, cls) => `<path class="${cls}${s.fresh ? " rr-draw" : ""}" d="${s.d}"${s.fresh ? ` pathLength="1"` : ""}/>`;
+  return `<svg class="rd-conn" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+    <g class="rr-conn-glow" filter="url(#${id})">${segs.map(s => path(s, "rr-cg")).join("")}</g>${segs.map(s => path(s, "rr-cc")).join("")}</svg>`;
+}
+
+/* A Road Ready stop: the pearl in its 44 px button, the callout beside the current one, the songs chip beside the
+   ones ahead. The callout always sits on the right of the neck: the neck is narrow, so there is room on that side
+   for every stop, and the left side is where Louie peeks in. */
+function rrStopHTML(sp, g, lay, o) {
+  const s = sp.stop, { x, y } = stopXY(sp, lay), cur = s === o.cur, ph = rrPhase(s.state);
+  const [w] = sp.kind === "double" ? RR_SIZE.double : sp.kind === "inlay" ? RR_SIZE.box : cur ? RR_SIZE.now : RR_SIZE.dot;
+  const half = Math.max(22, w / 2), px = (x / W * 100).toFixed(3);
+  const tag = cur ? `<span class="rd-tag rr-callout" style="left:calc(${px}% + ${half + 8}px);max-width:calc(${(100 - x / W * 100).toFixed(3)}% - ${half + 16}px)" aria-hidden="true">${o.tag(s)}</span>` : "";
+  /* the label says how many songs a lesson opens; the chip shows it only on the stops ahead (the callout says it on the current one) */
+  const songs = sp.kind === "dot" && ph !== "done" && o.songs ? o.songs(s) : 0;
+  const badge = songs > 0 && ph === "ahead" ? `<span class="rd-songs rr-chip" style="right:calc(${(100 - x / W * 100).toFixed(3)}% + ${half + 4}px)" aria-hidden="true">${songs} song${songs === 1 ? "" : "s"}</span>` : "";
+  const cls = `rd-node rr ${s.kind} ${s.state}${sp.kind === "double" ? " big" : ""}${cur ? " cur" : ""}`;
+  return `<div class="rd-stop rr k-${sp.kind}${cur ? " cur" : ""}" style="top:${(y / lay.height * 100).toFixed(3)}%">${tag}${badge}<button class="${cls}" data-stop="${o.id(s)}" data-kind="${sp.kind}" data-n="${o.num(s)}" style="left:${px}%" aria-label="${o.label(s)}${songs > 0 ? `, opens ${songs} of your songs` : ""}${cur ? ". Double tap to open." : ""}">${rrStopArt(sp.kind, s.state, o.num(s))}</button></div>`;
+}
+
 /* One stop, placed over the neck. `o`: cur (the current stop), icon(stop), label(stop), tag(stop). */
 function stopHTML(sp, g, lay, o) {
-  const s = sp.stop, y = lay.head + sp.y, x = CX + (sp.string >= 0 ? STR[sp.string] * ((lay.sfan || lay.fan) ? (lay.sfan || lay.fan)(y) : 1) : 0), cur = s === o.cur;
+  if (o.rr) return rrStopHTML(sp, g, lay, o);
+  const s = sp.stop, { x, y } = stopXY(sp, lay), cur = s === o.cur;
   const left = sp.kind === "inlay" || (sp.kind === "dot" && sp.string < 3);
   const tag = cur ? `<span class="rd-tag ${left ? "l" : "r"}" style="${left ? `right:${((1 - (lay.pic ? CX - NECK / 2 - 30 : 79) / W) * 100).toFixed(2)}%` : `left:${((lay.pic ? CX + NECK / 2 + 30 : 311) / W * 100).toFixed(2)}%`}" aria-hidden="true">${o.tag(s)}</span>` : "";
   const inner = sp.kind === "dot" ? dotSVG(s.state, o.icon(s))
@@ -303,6 +392,7 @@ export function neckHTML(leg, o) {
   const g = guitarFor(leg.id), pc = picOf(leg.id, o), lay = pc ? picLayout(leg.stops, pc.p) : fretLayout(leg.stops);
   return `<div class="rd-neck" data-guitar="${leg.id}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
     <svg class="rd-base${lay.pic ? " nano" : ""}" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${baseLayer(g, lay, pc?.f)}</svg>
+    ${o.rr ? connectorSVG(lay, lay.spaces, o) : ""}
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}
     <svg class="rd-strings" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${stringLayer(g, lay)}</svg>
     ${leg.done ? `<span class="rd-earned">${g.name} · headlined</span>` : ""}</div>`;
