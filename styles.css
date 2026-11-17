@@ -580,7 +580,7 @@ body.searching #list > .label:first-child { margin-top: 8px; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .ed-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 14px; }
 .ed-chip b { font-weight: 600; }
-.ed-tap { color: var(--accent-ink); font: inherit; font-size: 14px; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.ed-tap { min-width: 9.5em; justify-content: center; color: var(--accent-ink); font: inherit; font-size: 14px; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 .ed-tap svg { width: 15px; height: 15px; }
 .ed-tap.beat { animation: tapbeat .18s ease-out; }
 @keyframes tapbeat { from { background: var(--accent-soft); border-color: var(--accent); } }
@@ -1865,7 +1865,7 @@ body.is-home .rd-song b { font-size: 26px; }
    Version 4 look (4.0.0)
    Three palettes, one style: flat colour with no outlines, chunky buttons that
    sit on a darker lip, a soft gloss stripe, Fredoka for titles and Nunito for
-   text. Light is Festival Poster, Dark is Neon Midnight, Green is Green Room.
+   text. Light is Road Ready light (data-look festival), Dark is Road Ready dark (data-look neon), Green is Green Room.
    The amp materials above (copper, plate, recess, chrome, lamps, tolex, glass)
    are redrawn here from the palette, so every screen follows without its own
    colours. Game colours: --streak (the flame), --fans (the ticket), --strings.
@@ -1941,6 +1941,98 @@ body.is-home .rd-song b { font-size: 26px; }
   --tabs: calc(66px + var(--safe-b));
 }
 body { background: var(--bg); font-family: var(--sans); }
+
+/* ==========================================================================
+   Road Ready, step 01 (Graham, 2026-11-17): the foundation.
+   Dark tolex, grille cloth, chrome piping, cream engraved plates, warm amber;
+   Space Grotesk, Inter and IBM Plex Mono. Road Ready replaces the two free
+   looks: Dark (data-look="neon") is Road Ready dark, Light (data-look="festival")
+   is Road Ready light. The data-look values stay, so no stored setting changes.
+   Green Room and Headliner keep their own palettes and fonts: every rule here
+   is keyed on those two data-look values, never on plain :root, data-theme or
+   :root[data-look] (Green Room is also data-theme="light", Headliner "dark").
+   Screens are restyled in later steps; this only recolours today's layout.
+   ========================================================================== */
+@font-face { font-family: "Space Grotesk"; src: url("vendor/fonts/spacegrotesk.woff2") format("woff2"); font-weight: 500 700; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("vendor/fonts/inter.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("vendor/fonts/ibmplexmono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+/* Road Ready dark */
+:root[data-look="neon"] {
+  --rr-base: #141210; --rr-card: #1A1918; --rr-mesh: #2A2724; --rr-hairline: #46423C;
+  --rr-text: #F6EEE0; --rr-text-2: #BEB4A4;
+  --rr-lyric-now: #F6EEE0; --rr-lyric-next: #C9C0B2; --rr-lyric-sung: #8F877C;
+  --rr-chord: #FFC46B; --rr-amber: #FFB547; --rr-amber-text: #FFB547; --rr-on-amber: #1E160C;
+  --rr-plate-top: #F6EAD2; --rr-plate-bottom: #D6C4A4; --rr-plate-edge: #8C7858; --rr-plate-text: #281E14;
+  --rr-tab-off: #D6CCBC; --rr-outline: #8C847A;
+  --rr-pearl-done: #FCCE80; --rr-pearl-now: #FFD68C; --rr-pearl-locked: #D6D0C4;
+  --rr-engrave: #5C3A16; --rr-engrave-locked: #46423C;
+  --rr-glow: #FFAA3C; --rr-glow-core: #FFDCA0; --rr-louie-rim: rgba(255, 226, 180, .35);
+  --rim-hi: rgba(255,255,255,.06); --scrim: rgba(8,6,4,.66); --shadow: 0 8px 24px rgba(0,0,0,.45);
+  --accent-deep: #B97B1C; --accent-soft: rgba(255,181,71,.14); --accent-line: rgba(255,181,71,.5);
+  --tabs-on: rgba(255,181,71,.14); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #2A2724;
+  /* grain over --rr-base, then a 45 percent black wash. The tile is drawn brighter (base / .55) so the wash lands the average on #141210. */
+  --tolex: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.2 0 0 0 0.0426  0.2 0 0 0 0.0283  0.2 0 0 0 0.0141  0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 128px 128px repeat, var(--rr-base);
+}
+/* Road Ready light: amber is for fills only; amber text on cream is always #763A00. The status colours are darkened to pass AA on cream, a card and a well. */
+:root[data-look="festival"] {
+  --rr-base: #F6EFE2; --rr-card: #FBF7EF; --rr-mesh: #E7E0D4; --rr-hairline: #D3C8B6;
+  --rr-text: #1E1914; --rr-text-2: #5C5248;
+  --rr-lyric-now: #1E1914; --rr-lyric-next: #3A332C; --rr-lyric-sung: #6E655B;
+  --rr-chord: #763A00; --rr-amber: #FFB547; --rr-amber-text: #763A00; --rr-on-amber: #1E160C;
+  --rr-plate-top: #F6EAD2; --rr-plate-bottom: #D6C4A4; --rr-plate-edge: #8C7858; --rr-plate-text: #281E14;
+  --rr-tab-off: #4A4239; --rr-outline: #8C847A;
+  --rr-pearl-done: #FCCE80; --rr-pearl-now: #FFD68C; --rr-pearl-locked: #D6D0C4;
+  --rr-engrave: #5C3A16; --rr-engrave-locked: #46423C;
+  --rr-glow: #FFAA3C; --rr-glow-core: #FFDCA0; --rr-louie-rim: transparent;
+  --rim-hi: rgba(255,255,255,.7); --scrim: rgba(30,25,20,.38); --shadow: 0 8px 24px rgba(30,25,20,.14);
+  --accent-deep: var(--rr-amber-text); --accent-soft: rgba(255,181,71,.25); --accent-line: rgba(118,58,0,.55);
+  --tabs-on: rgba(255,181,71,.28); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #B9AD98;
+  --bad: #BE1F35; --bad-line: rgba(190,31,53,.4); --good: #0E7054; --good-soft: rgba(14,112,84,.12); --tune: #0E7054;
+  --streak: #B72857; --fans-text: #7B5E00; --strings: #2A60B8; --strings-deep: #1E4A8F;
+  /* the same grain, much fainter, over --rr-base */
+  --tolex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.05 0 0 0 0.9397  0.05 0 0 0 0.9123  0.05 0 0 0 0.8613  0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 128px 128px repeat, var(--rr-base);
+}
+/* both Road Ready looks */
+:root:is([data-look="neon"], [data-look="festival"]) {
+  /* the semantic colours every existing screen reads, pointed at the Road Ready tokens */
+  --bg: var(--rr-base); --fg: var(--rr-text); --fg-2: var(--rr-text-2);
+  --muted: color-mix(in srgb, var(--rr-text-2) 60%, var(--rr-lyric-sung)); /* between the two, so it stays AA on cards and wells */
+  --card: var(--rr-card); --card-2: var(--rr-mesh); --rim: var(--rr-hairline); --hair: var(--rr-hairline);
+  --bar: var(--rr-card); --solid: var(--rr-card); --head: var(--rr-text);
+  --accent: var(--rr-amber); --accent-ink: var(--rr-amber-text); --on-accent: var(--rr-on-amber);
+  --tabs-ring: var(--rr-amber-text); --banner: var(--rr-amber); --on-banner: var(--rr-on-amber);
+  --locked: var(--rr-hairline); --locked-ic: var(--rr-text-2);
+  /* type: Space Grotesk for titles, Inter for text, IBM Plex Mono for the tuner and tempo */
+  --display: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --serif: var(--display);
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* sizes follow the iPhone text size: app.js sets --sys-px (17 px at the default) from readSysText() */
+  --type-display: calc(var(--sys-px, 17px) * 2);       --type-display-w: 700;   /* Space Grotesk */
+  --type-title: calc(var(--sys-px, 17px) * 1.647);     --type-title-w: 700;     /* Space Grotesk */
+  --type-title2: calc(var(--sys-px, 17px) * 1.294);    --type-title2-w: 700;    /* Space Grotesk */
+  --type-headline: calc(var(--sys-px, 17px) * 1);      --type-headline-w: 600;  /* Inter */
+  --type-body: calc(var(--sys-px, 17px) * 1);          --type-body-w: 450;      /* Inter */
+  --type-callout: calc(var(--sys-px, 17px) * .941);    --type-callout-w: 500;   /* Inter */
+  --type-subhead: calc(var(--sys-px, 17px) * .882);    --type-subhead-w: 500;   /* Inter */
+  --type-footnote: calc(var(--sys-px, 17px) * .765);   --type-footnote-w: 500;  /* Inter: footnotes and tab labels */
+  --type-caption: calc(var(--sys-px, 17px) * .706);    --type-caption-w: 600; --type-caption-ls: .06em; /* Inter: captions and overlines */
+  --type-lyric-now: calc(var(--sys-px, 17px) * 2);     --type-lyric-now-w: 700;  /* Inter */
+  --type-lyric-next: calc(var(--sys-px, 17px) * 1.529); --type-lyric-next-w: 600; /* Inter */
+  --type-lyric-sung: calc(var(--sys-px, 17px) * 1.294); --type-lyric-sung-w: 600; /* Inter */
+  --type-chord: calc(var(--sys-px, 17px) * 1);         --type-chord-w: 700;     /* Inter */
+  --type-mono: calc(var(--sys-px, 17px) * 1.176);      --type-mono-w: 600;      /* IBM Plex Mono: tuner and tempo */
+  /* spacing and radii */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
+  --r-chip: 999px; --r-control: 10px; --r-card: 16px; --r-strip: 18px; --r-sheet: 24px; --r-plate: 12px;
+  --r: 16px; --r-bar: 18px; --margin: 16px;
+  /* surfaces, drawn in code. Each can be swapped for a 512 px bitmap tile (art/surfaces/tolex-dark.webp and friends) later by changing only these values. */
+  --mesh: repeating-linear-gradient(45deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px), var(--rr-mesh); /* grille cloth, for the tab bar (step 04) */
+  --tolex-card: linear-gradient(180deg, rgba(255,255,255,.08) 0 1px, transparent 1px calc(100% - 1px), rgba(0,0,0,.3) calc(100% - 1px)), var(--rr-card); /* a raised panel: 1 px highlight on top, 1 px shadow below */
+  --chrome-pipe: linear-gradient(180deg, #E8EBEF, #7E858F 50%, #E8EBEF); --chrome-pipe-w: 3px; /* a chrome edge for the header strip and tab bar (later steps): border-image or a padded gradient */
+}
+@media (min-width: 600px) { :root:is([data-look="neon"], [data-look="festival"]) { --margin: 20px; } }
+:root:is([data-look="neon"], [data-look="festival"]) body { background: var(--tolex); }
 :root[data-theme] .title, :root[data-theme] .title.script, :root[data-theme] .tm-page .tm-top .title.script { font-family: var(--display); font-weight: 700; letter-spacing: -.005em; color: var(--fg); text-shadow: none; }
 :root[data-theme] .title.script { font-size: 34px; }
 h2, .label, .sheet .sec { font-family: var(--display); }
@@ -2082,6 +2174,24 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look] .btn.primary:active:not(:disabled) { box-shadow: 0 2px 0 var(--accent-deep); }
 :root[data-look] .gs-show, :root[data-look] .ce-add, :root[data-look] .btn.sm { height: 34px; padding: 0 12px; border-radius: 12px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); box-shadow: 0 3px 0 var(--rim); font: 600 13.5px var(--display); }
 :root[data-look] .btn.sm.primary { border: 0; background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+/* Road Ready (step 01, spec 5.6): the main button is a cream engraved plate with four screws, the other button an outlined capsule.
+   Only on Road Ready dark and light; Green Room and Headliner keep the chunky buttons above. Pressing is 1 px down and 6 percent darker, with no bounce. */
+:root:is([data-look="neon"], [data-look="festival"]) .btn, :root:is([data-look="neon"], [data-look="festival"]) .btn.sm { border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; border-radius: var(--r-chip); font-family: var(--display); font-weight: 600; transition: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.bad, :root:is([data-look="neon"], [data-look="festival"]) .btn.danger, :root:is([data-look="neon"], [data-look="festival"]) button.danger { box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary, :root:is([data-look="neon"], [data-look="festival"]) .btn.sm.primary {
+  border: 2px solid var(--rr-plate-edge); border-radius: var(--r-plate); color: var(--rr-plate-text); font-family: var(--display); font-weight: 700; letter-spacing: .02em;
+  background: linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 2px 4px rgba(0,0,0,.35); }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary {
+  background:
+    radial-gradient(circle at 7px 7px, var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at calc(100% - 7px) 7px, var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 7px calc(100% - 7px), var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom)); } /* the four screws are decorative */
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary::before { content: none; } /* no gloss stripe on a plate */
+:root:is([data-look="neon"], [data-look="festival"]) .btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; filter: brightness(.94); }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary:active:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 1px 2px rgba(0,0,0,.35); }
 :root[data-look] .linkish { color: var(--accent-deep); font-weight: 700; }
 :root:is([data-look="neon"], [data-look="headliner"]) .linkish { color: var(--accent-ink); }
 /* the round Play in the song bar and the add button: go colour on its lip */
@@ -4254,7 +4364,7 @@ body.playing .tuneup, body.playing #tu-scrim { display: none; }
 :root[data-look] .rd-pop.now .rd-start:active:not(:disabled) { box-shadow: 0 2px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
 
 /* 4.77.0: Headliner (black, gold and chrome under a blacklight: violet, gold and blaze orange). It is a dark
-   look and shares Neon Midnight's dark fixes above; these are the places Neon names its own colours. */
+   look and shares the dark look's fixes above (data-look neon, Road Ready dark); these are the places the dark look names its own colours. */
 :root[data-look="headliner"] { --g-verse: #F5C542; --g-chorus: #9B5CFF; --g-bridge: #FF7A1A; --g-solo: #CFD4DA; }
 :root[data-look="headliner"] .sk { --sk-bg: #F5C542; --sk-deep: #A87F0C; --sk-ink: #3D2A00; }
 :root[data-look="headliner"] .rd-node.done, :root[data-look="headliner"] .rd-node.box.done, :root[data-look="headliner"] .rd-node.headline:not(.locked) { color: #16171B; }

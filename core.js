@@ -1516,6 +1516,11 @@ export function playCredited({ end = 0, cover = 0, ms = 0, expectedMs = 0 } = {}
   return end < 40 ? true : cover >= PLAY_COVER * end; /* a sheet that fits one screen has only the time to go by */
 }
 
+// ---------- Large text (Road Ready) ----------
+// The phone's text size in px (17 at the default) picks the accessibility size
+// the stylesheet reads from data-ax: "3" from 40 px, "1" from 28 px, "" below.
+export const axOf = px => px >= 40 ? "3" : px >= 28 ? "1" : "";
+
 // ---------- Re-exported topics (core/) ----------
 export { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes };
 export { buildWords, chordShape, dashChords, detectPaste, guessKey, isChord, isChordLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, transposeChord, transposeKey, wrapTab, voicingShape };

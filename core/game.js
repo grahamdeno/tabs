@@ -1080,8 +1080,8 @@ export const MERCH = [
   { id: "wear-cap", kind: "wear", name: "Cap", price: 150, line: "A ball cap, for your guitarist." },
   { id: "wear-bandana", kind: "wear", name: "Bandana", price: 150, line: "A knotted bandana, for your guitarist." },
   /* 4.78.0: the looks. Light and Dark are everyone's, Green Room is bought, Headliner is earned by headlining a show. */
-  { id: "festival", kind: "look", theme: "light", name: "Festival Poster", price: 0, line: "The light look: sky blue, hot pink and sunshine." },
-  { id: "neon", kind: "look", theme: "dark", name: "Neon Midnight", price: 0, line: "The dark look: indigo, lime and hot pink." },
+  { id: "festival", kind: "look", theme: "light", name: "Road Ready light", price: 0, line: "The light look: cream tolex, chrome piping and warm amber." },
+  { id: "neon", kind: "look", theme: "dark", name: "Road Ready dark", price: 0, line: "The dark look: black tolex, chrome piping and warm amber." },
   { id: "green", kind: "look", theme: "green", name: "Green Room", price: 400, line: "Sage, coral and mustard, calm as a dressing room." },
   { id: "headliner", kind: "look", theme: "headliner", name: "Headliner", price: 0, earn: "headline", line: "Black, gold and chrome under a blacklight." }
 ];
