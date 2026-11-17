@@ -315,6 +315,16 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   await page.click("#rd-tonight"); await page.waitForSelector("#gig");
 });
 
+test("Road Ready 02: with no song, Tonight asks for one and opens search; with no streak, Fans shows no streak at all", { skip: skip() }, async t => {
+  const page = await road(t, "dark", MID, {}, { songs: [], opening: { skipped: true } });
+  assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*Add a song to play tonight/);
+  assert.equal(await page.getAttribute("#rd-tonight", "aria-label"), "Add a song to play tonight");
+  assert.equal((await page.innerText("#h-fans small")).trim(), "Fans", "no streak: the label is Fans, never a 0");
+  assert.doesNotMatch(await page.getAttribute("#h-fans", "aria-label"), /streak/i, "and a screen reader hears no streak");
+  await page.click("#rd-tonight");
+  await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
+});
+
 test("Road Ready 02: a screen reader meets the plate, fans, tips, Tonight, Louie's line, then the leg and its stops", { skip: skip() }, async t => {
   const page = await road(t, "light", MID);
   const order = await page.evaluate(() => {
