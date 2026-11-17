@@ -35,8 +35,8 @@ export function applyWear() {
 }
 /* 4.78.0: the looks, as a strip of each palette's colours: ground first */
 const SWATCH = {
-  festival: ["#EAF3FF", "#FF3D7F", "#3A86FF", "#FFD23F"],
-  neon: ["#1D1640", "#B8F34A", "#FF4FA3", "#3DE0FF"],
+  festival: ["#F6EFE2", "#763A00", "#FFB547", "#23406A"],
+  neon: ["#141210", "#FFB547", "#F6EAD2", "#23406A"],
   green: ["#E6EFE7", "#FF5A4E", "#0F8B8D", "#F2B705"],
   headliner: ["#16171B", "#9B5CFF", "#F5C542", "#FF7A1A"]
 };

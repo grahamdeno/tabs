@@ -36,9 +36,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 
 ## Version 4: the gamified Road (agreed 2026-10-20)
 
-The guitar is how you play the game. Design system: four palettes (Light =
-Festival Poster, Dark = Neon Midnight, Green = Green Room, Headliner = black, gold and chrome with violet and blaze orange, a dark look that shares Neon's dark fixes, 4.77.0; 4.78.0: looks are on the Merch table, Light and Dark free, Green Room bought, Headliner earned by headlining a show), flat colour with no
-outlines, chunky buttons on a darker lip, Fredoka and Nunito, Louie the amp as
+The guitar is how you play the game. Version 4 look: four palettes. Light and Dark are Road Ready (Graham, 2026-11-17; docs/ROAD-READY-PLAN.md): dark or cream tolex, grille cloth, chrome piping, cream engraved plate buttons and warm amber, in Space Grotesk, Inter and IBM Plex Mono. Its colours are --rr-* tokens set only on data-look neon (dark) and festival (light); its text sizes are --type-* tokens that follow the iPhone text size. Green Room and Headliner keep the earlier style: flat colour, chunky buttons on a darker lip, Fredoka and Nunito. Light and Dark are free; Green Room is bought and Headliner earned at the Merch table. Headliner (black, gold and chrome with violet and blaze orange, 4.77.0) is a dark look that shares 23 rules with Road Ready dark through :root:is([data-look="neon"], [data-look="headliner"]); a Road Ready change to one of those rules splits the selector so Headliner stays as it is. Louie the amp is
 the mascot (no guitar-pick mascot anywhere; 4.14.1 and 4.15.0 removed the last
 picks). Text in the accent colour uses `--accent-ink` (contrast in the light
 palettes). The mockup canvas artifact has the screens and the Friends board. The Road path (4.82.0) is a guitar neck per leg: stops are finger dots and fret inlays (a box is one, the headline the double), picks only in Opening night.

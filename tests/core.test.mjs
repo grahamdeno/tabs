@@ -2818,3 +2818,89 @@ test("4.96.0 YouTube: a video id from any link, a tidy save, and where the song 
   assert.equal(C.ytAt({ start: 4 }, 10), 14); assert.equal(C.ytSong({ start: 4 }, 14), 10); assert.equal(C.ytAt({}, -3), 0);
   assert.equal(C.ytMatches({ secs: 213 }, 212), true); assert.equal(C.ytMatches({ secs: 230 }, 212), false); assert.equal(C.ytMatches({}, 212), false);
 });
+
+// ---------- Road Ready, step 01: tokens and large text ----------
+
+test("Road Ready: axOf picks the large-text size from the phone's text size", () => {
+  assert.equal(C.axOf(17), "", "the default size");
+  assert.equal(C.axOf(27.9), "", "just under the first large size");
+  assert.equal(C.axOf(28), "1"); assert.equal(C.axOf(33), "1"); assert.equal(C.axOf(39.9), "1");
+  assert.equal(C.axOf(40), "3"); assert.equal(C.axOf(53), "3");
+});
+
+/* The Road Ready colours are read from styles.css, so the test and the CSS can't drift apart. */
+const rrCss = read("styles.css");
+const rrBlock = look => {
+  const m = rrCss.match(new RegExp(`:root\\[data-look="${look}"\\] \\{([^}]*--rr-base:[^}]*)\\}`));
+  assert.ok(m, `the Road Ready ${look} block is in styles.css`);
+  return m[1];
+};
+const rrDark = rrBlock("neon"), rrLight = rrBlock("festival");
+const rrHex = (block, name) => {
+  const m = block.match(new RegExp(`(?<![\\w-])${name}:\\s*(#[0-9A-Fa-f]{6})\\b`));
+  assert.ok(m, `${name} is a hex colour in its block`);
+  return m[1];
+};
+const rrLum = hex => {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
+  return .2126 * r + .7152 * g + .0722 * b;
+};
+const rrRatio = (a, b) => { const x = rrLum(a), y = rrLum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+
+test("Road Ready dark: the text, chord, plate and tab colours meet their contrast numbers", () => {
+  const t = n => rrHex(rrDark, "--rr-" + n);
+  const pairs = [
+    ["text on base", t("text"), t("base"), 15], ["text on card", t("text"), t("card"), 14], ["text-2 on card", t("text-2"), t("card"), 7],
+    ["lyric-sung on base", t("lyric-sung"), t("base"), 4.5], ["chord on base", t("chord"), t("base"), 7], ["on-amber on amber", t("on-amber"), t("amber"), 7],
+    ["plate-text on plate-bottom", t("plate-text"), t("plate-bottom"), 7], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5], ["engrave on pearl-done", t("engrave"), t("pearl-done"), 4.5]
+  ];
+  for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
+});
+
+test("Road Ready light: the text, amber text and tab colours meet their contrast numbers", () => {
+  const t = n => rrHex(rrLight, "--rr-" + n);
+  const pairs = [
+    ["text on base", t("text"), t("base"), 12], ["text-2 on base", t("text-2"), t("base"), 4.5], ["amber-text on base", t("amber-text"), t("base"), 4.5],
+    ["lyric-sung on card", t("lyric-sung"), t("card"), 4.5], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5]
+  ];
+  for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
+  assert.equal(t("amber-text").toLowerCase(), "#763a00", "amber text on cream is always #763A00");
+});
+
+test("Road Ready: the status colours stay readable on the base, a card and a well in both looks", () => {
+  const darkOld = rrCss.match(/:root, :root\[data-look="neon"\] \{([^}]*)\}/)[1]; /* the dark look's earlier block still holds the status colours */
+  for (const [label, block, from] of [["dark", rrDark, darkOld], ["light", rrLight, rrLight]]) {
+    const surfaces = ["base", "card", "mesh"].map(n => rrHex(block, "--rr-" + n));
+    for (const name of ["--bad", "--good", "--streak", "--fans-text", "--strings"]) {
+      const c = rrHex(from, name);
+      for (const s of surfaces) assert.ok(rrRatio(c, s) >= 4.5, `${label} ${name} ${c} on ${s}: ${rrRatio(c, s).toFixed(2)}`);
+    }
+  }
+});
+
+test("Road Ready: its tokens exist for both looks and for no other look", () => {
+  const names = b => [...b.matchAll(/(--rr-[a-z0-9-]+)\s*:/g)].map(m => m[1]).sort();
+  assert.deepEqual(names(rrDark), names(rrLight), "dark and light define the same --rr tokens");
+  assert.deepEqual(names(rrDark).map(n => n.slice(5)), ("amber amber-text base card chord engrave engrave-locked glow glow-core hairline louie-rim lyric-next lyric-now lyric-sung mesh on-amber outline "
+    + "pearl-done pearl-locked pearl-now plate-bottom plate-edge plate-text plate-top tab-off text text-2").split(" ").sort(), "all 27 colour tokens are there");
+  const shared = rrCss.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\]\) \{([^}]*)\}/)[1];
+  for (const n of "display title title2 headline body callout subhead footnote caption lyric-now lyric-next lyric-sung chord mono".split(" "))
+    assert.match(shared, new RegExp(`--type-${n}: calc\\(var\\(--sys-px, 17px\\) \\* [\\d.]+\\)`), `--type-${n} scales with --sys-px`);
+  for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) assert.match(shared, new RegExp(`--sp-${n}: \\d+px`));
+  for (const n of ["chip", "control", "card", "strip", "sheet", "plate"]) assert.match(shared, new RegExp(`--r-${n}: `));
+  assert.match(shared, /--margin: 16px/); assert.match(shared, /--r: 16px; --r-bar: 18px/);
+  /* Green Room and Headliner (and plain :root) never get a Road Ready value */
+  const outside = rrCss.replace(rrDark, "").replace(rrLight, "");
+  assert.equal([...outside.matchAll(/--rr-[a-z0-9-]+\s*:/g)].length, 0, "no --rr token is defined outside the two Road Ready looks");
+  for (const once of ["--type-body:", "--sp-1:", "--r-plate:", '--readout: "IBM Plex Mono"']) assert.equal(rrCss.split(once).length - 1, 1, `${once} is set once, in the shared Road Ready block`);
+});
+
+test("Road Ready: the fonts are bundled as woff2 with their licences", () => {
+  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
+    const b = fs.readFileSync(path.join(root, "vendor/fonts", f));
+    assert.equal(b.subarray(0, 4).toString("latin1"), "wOF2", `${f} is a woff2 file`);
+    assert.ok(b.length < 120 * 1024, `${f} is under 120 KB (${b.length})`);
+  }
+  for (const f of ["OFL-SpaceGrotesk.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
+  assert.doesNotMatch(read("styles.css"), /fonts\.googleapis|fonts\.gstatic|cdn\./i, "no font comes from a network address");
+});
