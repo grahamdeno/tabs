@@ -2063,6 +2063,8 @@ h2, .label, .sheet .sec { font-family: var(--display); }
    --rr-louie-rim (#FFE2B4 at 35 percent) drawn solid and faded as one layer, so overlapping parts don't double up. */
 .louie .lv-rim { opacity: 0; }
 :root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
+/* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }

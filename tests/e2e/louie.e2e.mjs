@@ -142,3 +142,15 @@ test("Road Ready 03: on real screens Louie is the new drawing, with one mouth ea
     await page.context().close();
   }
 });
+
+test("Road Ready 03 review: the warm rim shows on dark surfaces only, not on the bright Band and Tour headers of a dark look", { skip: skip() }, async t => {
+  for (const look of ["dark", "headliner"]) {
+    const page = await phone(t, libWith(look));
+    for (const [h, sel, rim] of [["#/band", ".bd-head", "0"], ["#/tour", ".tq-head", "0"], ["#/support", ".sp-hero", "0.35"]]) {
+      await page.evaluate(h => { location.hash = h; }, h);
+      await page.waitForSelector(`${sel} svg.louie`);
+      assert.equal(await page.evaluate(sel => getComputedStyle(document.querySelector(`${sel} svg.louie .lv-rim`)).opacity, sel), rim, `${look} ${h}: rim ${rim}`);
+    }
+    await page.context().close();
+  }
+});

@@ -2332,7 +2332,8 @@ test("Road Ready 03: the locked palette is written on the drawing and set once i
   assert.match(svg, /<g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="4"/, "the rim is hidden unless a dark look shows it, and is 3 px a side at this size");
   assert.match(louie("happy", { size: 44 }), /class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="22.4"/, "still 3 px a side when he is 44 px");
   assert.match(css, /\n\.louie \.lv-rim \{ opacity: 0; \}\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) \.louie \.lv-rim \{ opacity: \.35; \}\n/);
-  assert.equal((css.match(/lv-rim/g) || []).length, 2, "no other rule shows the rim");
+  assert.equal((css.match(/lv-rim/g) || []).length, 3, "no other rule shows the rim");
+  assert.match(css, /\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) :is\(\.bd-head, \.tq-head\) \.louie \.lv-rim \{ opacity: 0; \}\n/, "review: no rim on the bright Band and Tour headers");
   assert.match(css, /--rr-louie-rim: rgba\(255, 226, 180, \.35\)/, "the rim's colour and strength match the token");
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.louie \.lv-body, \.louie \.lv-eye \{ animation: none !important; \} \}/, "Reduce Motion still stops the hop and the blink");
   assert.ok(!/\.louie \.lv-c \{|fill: var\(--lv-cheek\)|fill: var\(--lv-tongue\)|fill: var\(--lv-lamp\)/.test(css), "nothing draws a cheek, a tongue or a lamp");
