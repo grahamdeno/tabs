@@ -178,7 +178,7 @@ function headstock(g) {
 function baseLayer(g, lay, art) {
   if (lay.pic) return picBase(g, lay, art);
   const top = lay.head, endY = top + lay.neck, y0 = endY;
-  const body = (BODIES[g.body] || BODIES.parlor)(g);
+  const body = (BODIES[g.shape || g.body] || BODIES.parlor)(g);
   let frets = "", y = top;
   for (const sp of lay.spaces) {
     y += sp.h;
@@ -229,7 +229,7 @@ function picBase(g, lay, f) {
   const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="${CX + hw - 5}" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
   /* the neck in the picture's own two colours, over the picture's neck from the nut to where it ends on the body */
   const board = rect(CX - hw, top - 1, hw + .5, end - top + 1, p.lit) + rect(CX, top - 1, hw, end - top + 1, p.shade);
-  const hard = `<g transform="translate(${CX} ${yb.toFixed(1)}) scale(${k.toFixed(3)}) translate(${-CX} ${(-yb).toFixed(1)})">${nanoHardware(g, yb, g.kind !== "electric")}</g>`;
+  const hard = p.str ? "" : `<g transform="translate(${CX} ${yb.toFixed(1)}) scale(${k.toFixed(3)}) translate(${-CX} ${(-yb).toFixed(1)})">${nanoHardware(g, yb, g.kind !== "electric")}</g>`;
   return img("body", CX - p.body.cx * sb, y0, p.body.w * sb, p.body.h * sb) + board
     + img("head", CX - p.head.cx * sh, top - p.head.h * sh, p.head.w * sh, p.head.h * sh) + frets + dots + hard;
 }
@@ -237,7 +237,8 @@ function picBase(g, lay, f) {
 
 /* the strings and their shadows, from the nut to the bridge */
 function stringLayer(g, lay) {
-  const top = lay.head, bot = lay.bridge ? top + lay.neck + lay.bridge : top + lay.neck + (BODIES[g.body] || BODIES.parlor)(g).bridge - 4;
+  /* Road Ready 9a: a picture with painted strings (lay.pic.p.str) keeps them below the neck; the drawn ones run only over the neck, from the nut to where the body picture starts */
+  const top = lay.head, bot = lay.pic?.p.str ? top + lay.neck : lay.bridge ? top + lay.neck + lay.bridge : top + lay.neck + (BODIES[g.shape || g.body] || BODIES.parlor)(g).bridge - 4;
   const wd = g.kind === "classical" ? [3.2, 2.8, 2.4, 2, 1.8, 1.6] : g.kind === "electric" ? [3.2, 2.8, 2.4, 2, 1.6, 1.2] : [3.5, 3, 2.5, 2, 1.6, 1.2];
   const col = i => g.kind === "classical" ? (i < 3 ? "#c4c8d0" : "#f3ecdc") : g.kind === "electric" ? "#c4c8d0" : i < 4 ? "#c9a96e" : "#dfe2e8";
   const sf = lay.sfan || lay.fan, f0 = sf ? sf(top) : 1, f1 = sf ? sf(bot) : 1;
@@ -383,13 +384,16 @@ function stopHTML(sp, g, lay, o) {
    phone scales the whole guitar and the stops stay where they belong. */
 /* 4.87.0: every leg's guitar is a picture; its numbers are in one small file, so the neck is laid out at once and the
    pictures load like any image */
-export const NANO_FILE = { open: "parlor", switch: "cutaway-sunburst", scales: "solid", strum: "hollow", pick: "single", finger: "classical", encore: "headliner" };
+/* Road Ready 9a: the seven Road guitars are Grok's pictures (Porch ... Comet), named by their GUITARS body; the older
+   pictures (parlor ... headliner) are still built by tools/guitars/pics.py but no leg uses them */
+export const NANO_FILE = { open: "porch", switch: "cornerstone", scales: "clubslab", strum: "hollowhill", pick: "swing", finger: "koaarc", encore: "comet" };
 /* the small guitar in the guitarist's hands (guitarist.js): the whole picture, by body shape */
-const BODY_FILE = { parlor: "parlor", cutaway: "cutaway-sunburst", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner" };
+const BODY_FILE = { parlor: "parlor", cutaway: "cutaway-sunburst", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner", ...Object.fromEntries(Object.keys(PICS).map(k => [k, k])) };
 export const guitarPic = body => BODY_FILE[body] ? `art/guitars/${BODY_FILE[body]}-small.webp?v=${VERSION}` : null;
-const picOf = (id, o = {}) => o.nano === false || !PICS[NANO_FILE[id]] ? null : { f: NANO_FILE[id], p: PICS[NANO_FILE[id]] };
+/* the picture of a leg's guitar, or of the shop guitar you chose (o.shown is guitarShown(data, leg id) from core/game.js) */
+const picOf = (id, o = {}) => { const f = o.shown?.body || NANO_FILE[id]; return o.nano === false || !PICS[f] ? null : { f, p: PICS[f] }; };
 export function neckHTML(leg, o) {
-  const g = guitarFor(leg.id), pc = picOf(leg.id, o), lay = pc ? picLayout(leg.stops, pc.p) : fretLayout(leg.stops);
+  const g = o.shown || guitarFor(leg.id), pc = picOf(leg.id, o), lay = pc ? picLayout(leg.stops, pc.p) : fretLayout(leg.stops);
   return `<div class="rd-neck" data-guitar="${leg.id}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
     <svg class="rd-base${lay.pic ? " nano" : ""}" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${baseLayer(g, lay, pc?.f)}</svg>
     ${o.rr ? connectorSVG(lay, lay.spaces, o) : ""}

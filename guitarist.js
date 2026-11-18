@@ -1,7 +1,7 @@
 // Your guitarist: the player drawn in Louie's style (flat colour, a darker right side, round eyes with a glint,
 // mitten hands, the same moods), built from parts. The big looks come from the Road: the top follows the venue
 // (tee, vest, leather, stage jacket), the guitar is the Road guitar you're on, the patches are what you've done.
-import { guitarFor, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
+import { guitarShown, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
 import { guitarPic } from "./fretboard.js";
 import { mittenOf } from "./louie.js";
 import ART from "./art/guitarist.js";
@@ -47,7 +47,7 @@ function outfit(o, c, skin, id) {
 function guitar(g) {
   const pic = guitarPic(g.body);
   if (pic) return `<g transform="translate(6 -14) rotate(48 84 196)"><image href="${pic}" x="36" y="40" width="96" height="212" preserveAspectRatio="xMidYMax meet"/></g>`;
-  const body = g.finish, dk = shade(body, .6), bind = g.binding || "#e9dcbc", fam = g.body;
+  const body = g.finish, dk = shade(body, .6), bind = g.binding || "#e9dcbc", fam = g.shape || g.body;
   const neck = `<rect x="79" y="88" width="10" height="100" rx="3" fill="${g.board}"/>${[104, 120, 136, 152].map(y => `<rect x="79" y="${y}" width="10" height="2" fill="#cdd2da"/>`).join("")}<path d="M76 82h16l2 -18h-20z" fill="${g.headc}"/><circle cx="77" cy="70" r="2" fill="${g.tuner}"/><circle cx="91" cy="70" r="2" fill="${g.tuner}"/>`;
   const round = (stroke) => `<ellipse cx="84" cy="216" rx="31" ry="26" fill="${dk}"/><ellipse cx="84" cy="190" rx="23" ry="21" fill="${dk}"/><ellipse cx="84" cy="212" rx="31" ry="26" fill="${body}"${stroke}/><ellipse cx="84" cy="186" rx="23" ry="21" fill="${body}"${stroke}/><ellipse cx="84" cy="186" rx="21.5" ry="19.5" fill="${body}"/>`;
   const cut = "M62 192C62 176 70 168 75 172C78 158 90 158 93 172C98 168 106 176 106 192C112 202 108 220 98 228C92 238 76 238 70 228C60 220 56 202 62 192Z";
@@ -113,7 +113,7 @@ export function guitarist(me, { mood = "happy", pose = "play", crop = "full", si
    your mood tonight. o overrides any of the options (mood, pose, crop, size, label). */
 export function you(data, o = {}) {
   const leg = o.crop === "bust" ? null : roadPath(data).leg;
-  return guitarist(o.me || meOf(data), { mood: meMood(data), look: stageLook(data), patches: patchesOf(data), guitar: guitarFor(leg?.id), ...o, me: undefined });
+  return guitarist(o.me || meOf(data), { mood: meMood(data), look: stageLook(data), patches: patchesOf(data), guitar: guitarShown(data, leg?.id), ...o, me: undefined });
 }
 /* a computer rival, seeded by name, at the look of its tier; decorative (the name is beside it) */
 export function rival(name, tier, o = {}) {

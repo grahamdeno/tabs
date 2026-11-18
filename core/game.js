@@ -83,18 +83,20 @@ export function openingAdvance(data, id, now = Date.now()) {
   if (o.step >= OPENING.length) o.done = now;
   return true;
 }
+/* Road Ready 9a: each leg's guitar is one of Grok's pictures (art/guitars/<body>-*.webp). `body` is the picture's name;
+   `shape` is the older drawn body (BODIES in fretboard.js) that the drawn fallback and the guitarist's small drawing still use. */
 /* The fretboard Road (4.82.0): each leg is its own guitar, earned by headlining the leg before it.
    Drawn in fretboard.js; the woods and finishes keep their own colours in every look. `inlay` is the
    shape of the single inlays (merch boxes) and of the headline's double. Legs not built yet (strum,
    pick, finger) and the Encore guitar are data only until their legs exist. */
 export const GUITARS = {
-  open: { name: "The beater", kind: "acoustic", body: "parlor", head: "plain", headc: "#5a3d28", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#8a6a4a", tuner: "#efe4c8", inlay: "small", mat: "pearl" },
-  switch: { name: "The cutaway", kind: "acoustic", body: "cutaway", head: "plain", headc: "#3a2a22", ink: "#F5C542", board: "#4a3328", binding: "#e9dcbc", finish: "#6b3b20", tuner: "#F5C542", inlay: "dot", mat: "pearl" },
-  scales: { name: "The solid-body", kind: "electric", body: "solid", head: "inline", headc: "#5FC4B0", ink: "#1c1d22", board: "#dcb87e", binding: "#e9dcbc", finish: "#5FC4B0", tuner: "#cdd2da", inlay: "block", mat: "black" },
-  strum: { name: "The hollow-body", kind: "electric", body: "hollow", head: "book", headc: "#1c1d22", ink: "#F5C542", board: "#241f1d", binding: "#e9dcbc", finish: "#a8431f", tuner: "#F5C542", inlay: "split", mat: "mop" },
-  pick: { name: "The single-cut", kind: "electric", body: "single", head: "book", headc: "#1c1d22", ink: "#c4c8d0", board: "#241f1d", binding: "#e9dcbc", finish: "#8b1e2b", tuner: "#c4c8d0", inlay: "trap", mat: "gold" },
-  finger: { name: "The classical", kind: "classical", body: "classical", head: "slot", headc: "#3a2418", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#c98a4a", tuner: "#efe4c8", inlay: "abalone", mat: "abalone" },
-  encore: { name: "The headliner", kind: "electric", body: "swallow", head: "point", headc: "#8A47F5", ink: "#FFFFFF", board: "#1c1a1f", binding: "#F5C542", finish: "#8A47F5", tuner: "#F5C542", inlay: "star", mat: "gold" }
+  open: { name: "Porch", kind: "acoustic", body: "porch", shape: "parlor", head: "plain", headc: "#5a3d28", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#d9a867", tuner: "#efe4c8", inlay: "small", mat: "pearl" },
+  switch: { name: "Cornerstone", kind: "acoustic", body: "cornerstone", shape: "cutaway", head: "plain", headc: "#3a2a22", ink: "#F5C542", board: "#4a3328", binding: "#e9dcbc", finish: "#7a2e1a", tuner: "#F5C542", inlay: "dot", mat: "pearl" },
+  scales: { name: "Club Slab", kind: "electric", body: "clubslab", shape: "solid", head: "plain", headc: "#5FC4B0", ink: "#1c1d22", board: "#dcb87e", binding: "#e9dcbc", finish: "#4a4d55", tuner: "#cdd2da", inlay: "block", mat: "black" },
+  strum: { name: "Hollow Hill", kind: "electric", body: "hollowhill", shape: "hollow", head: "plain", headc: "#1c1d22", ink: "#F5C542", board: "#241f1d", binding: "#e9dcbc", finish: "#c98a3a", tuner: "#F5C542", inlay: "split", mat: "mop" },
+  pick: { name: "Swing", kind: "electric", body: "swing", shape: "single", head: "plain", headc: "#1c1d22", ink: "#c4c8d0", board: "#241f1d", binding: "#e9dcbc", finish: "#1f3a6a", tuner: "#c4c8d0", inlay: "trap", mat: "gold" },
+  finger: { name: "Koa Arc", kind: "acoustic", body: "koaarc", shape: "classical", head: "plain", headc: "#3a2418", ink: "#efe4c8", board: "#4a3328", binding: "#efe4c8", finish: "#9a5a2a", tuner: "#efe4c8", inlay: "abalone", mat: "abalone" },
+  encore: { name: "Comet", kind: "electric", body: "comet", shape: "swallow", head: "plain", headc: "#8A47F5", ink: "#FFFFFF", board: "#1c1a1f", binding: "#F5C542", finish: "#b01e2b", tuner: "#F5C542", inlay: "star", mat: "gold" }
 };
 export const guitarFor = legId => GUITARS[legId] || GUITARS.open;
 /* The fret spaces of a leg's neck, top to bottom: one per stop. Spacing narrows like a real neck (66, 62,
@@ -1257,6 +1259,59 @@ export function merchTip(data, now = Date.now()) {
   (mm.told || (mm.told = [])).push(it.id);
   return it;
 }
+
+/* ---- The Guitar shop (Road Ready 9a): 16 more guitars on the Merch table, opened and priced by venue ----
+   One constant: [slug, name, group, the venue it opens at (an index of VENUES in core/turf.js), tips]. Change a price or a
+   venue here and nowhere else. Bought ones go in data.merch.has as `g-<slug>`; the chosen one is data.merch.guitar (a
+   slug, or missing for the guitar of the leg you're on). Looks only: nothing here touches fans, tips earned, scores or
+   what a leg earns. */
+export const GUITAR_SHOP = [
+  ["stickerriot", "Sticker Riot", "punk", 1, 90], ["tartanpin", "Tartan Pin", "punk", 1, 90],
+  ["spraycancrack", "Spraycan Crack", "punk", 2, 120], ["barebones", "Bare Bones", "punk", 2, 120],
+  ["toxicchecker", "Toxic Checker", "punk", 3, 150], ["flyerwall", "Flyer Wall", "punk", 3, 150],
+  ["highline", "Highline", "custom", 3, 180], ["ghostspalt", "Ghost Spalt", "custom", 3, 180], ["walnuthall", "Walnut Hall", "custom", 3, 180],
+  ["velvetcrown", "Velvet Crown", "custom", 4, 220], ["redwoodhollow", "Redwood Hollow", "custom", 4, 220], ["ziricotegrand", "Ziricote Grand", "custom", 4, 220],
+  ["islander", "Islander", "custom", 5, 260], ["arrowhead", "Arrowhead", "custom", 5, 260],
+  ["nova", "Nova", "custom", 6, 300], ["razorwing", "Razorwing", "custom", 6, 300]
+].map(([id, name, group, at, price]) => ({ id, name, group, at, price, venue: VENUES[at], kind: id === "ziricotegrand" || id === "walnuthall" ? "acoustic" : "electric" }));
+const shopItem = id => GUITAR_SHOP.find(x => x.id === id);
+/* the highest venue your plays have earned: a guitar's lock never closes again, even if fans fade */
+const shopRing = data => venueOf(lifetimePlays(data)).ring;
+export function shopState(data) {
+  const m = data.merch || {}, has = new Set(m.has || []), ring = shopRing(data), tips = tipsOf(data);
+  const rows = GUITAR_SHOP.map(g => ({ ...g, owned: has.has(`g-${g.id}`), open: ring >= g.at }));
+  /* Next up: the cheapest guitar you don't own that is open now or opens at the next venue; never more than one */
+  const next = rows.filter(g => !g.owned && g.at <= ring + 1).sort((a, b) => a.price - b.price || a.at - b.at)[0]?.id || null;
+  for (const g of rows) { g.more = !g.owned && g.open && tips < g.price ? g.price - tips : 0; g.next = g.id === next; }
+  const chosen = rows.find(g => g.owned && g.id === m.guitar)?.id || null;
+  return { rows, tips, ring, next, chosen };
+}
+/* buy one: { ok } or { why: "none" | "have" | "locked" | "tips" }; a bought guitar is put on at once, like the other kinds */
+export function shopBuy(data, id) {
+  const g = shopItem(id);
+  if (!g) return { why: "none" };
+  const st = shopState(data), row = st.rows.find(x => x.id === id), m = data.merch || (data.merch = {});
+  if (row.owned) return { why: "have" };
+  if (!row.open) return { why: "locked" };
+  if (st.tips < g.price) return { why: "tips" };
+  m.tspent = (m.tspent || 0) + g.price;
+  (m.has || (m.has = [])).push(`g-${id}`);
+  m.guitar = id;
+  return { ok: true };
+}
+/* choose an owned guitar, or null for the guitar of the leg you're on */
+export function shopChoose(data, id) {
+  const m = data.merch || (data.merch = {});
+  if (id === null) { delete m.guitar; return true; }
+  if (!shopItem(id) || !(m.has || []).includes(`g-${id}`)) return false;
+  m.guitar = id;
+  return true;
+}
+/* the guitar to show: the chosen one from the shop, else the leg's own (a leg id; the Road, Show complete, the guitarist) */
+export function guitarShown(data, legId) {
+  const base = guitarFor(legId), id = data?.merch?.guitar, g = (data?.merch?.has || []).includes(`g-${id}`) && shopItem(id);
+  return g ? { ...base, name: g.name, kind: g.kind, body: g.id, shape: base.shape, shop: true } : base;
+}
 export function cleanMerch(raw) {
   if (!isObj(raw)) return null;
   const out = {}, day = /^\d{4}-\d\d-\d\d$/, ids = new Set(MERCH.map(x => x.id));
@@ -1270,11 +1325,13 @@ export function cleanMerch(raw) {
   const own = {};
   for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }
   if (Object.keys(own).length) out.own = own;
-  const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => ids.has(id) && merchItem(id).kind !== "gear"))];
+  const shopIds = new Set(GUITAR_SHOP.map(x => `g-${x.id}`));
+  const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => shopIds.has(id) || (ids.has(id) && merchItem(id).kind !== "gear")))];
   if (has.length) out.has = has;
   const free = id => MERCH.some(x => x.id === id && freeItem(x));
   if (has.includes(raw.louie) || free(raw.louie)) out.louie = raw.louie;
   if (has.includes(raw.backdrop) || free(raw.backdrop)) out.backdrop = raw.backdrop;
+  if (typeof raw.guitar === "string" && has.includes(`g-${raw.guitar}`)) out.guitar = raw.guitar; /* Road Ready 9a: the chosen shop guitar, only if owned */
   const rain = (Array.isArray(raw.rainDays) ? raw.rainDays : []).filter(d => day.test(d)).slice(-60);
   if (rain.length) out.rainDays = rain;
   const told = [...new Set((Array.isArray(raw.told) ? raw.told : []).filter(id => ids.has(id)))];

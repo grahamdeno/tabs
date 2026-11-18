@@ -3,16 +3,39 @@
 # ends on it, then write the headstock and the body as WebP (art/guitars/<name>-head.webp, -body.webp), a small whole
 # guitar for the guitarist's hands (-small.webp) and the numbers the Road lays them out by (art/guitars/pics.js).
 # Sources: docs/guitars/pics/<name>.jpg (whole guitar, 9:16) and, where Gemini made one, <name>-head.jpg (a close-up).
+# Road Ready 9a: the 23 guitars of docs/guitars/HANDOFF.md are added (SOURCES names the files of each by slug). Their pictures
+# have painted strings and hardware, so pics.js marks them `str: 1`; the Road then skips the strings and hardware it draws itself.
 import json, os, numpy as np
 from scipy import ndimage
 from PIL import Image
 
 SRC, OUT = "docs/guitars/pics", "art/guitars"
-NAMES = ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]
-CLOSEUP = {"cutaway-sunburst": 800, "hollow": 700, "classical": 920, "headliner": 920}  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
+OLD = ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]
+P, C = "docs/guitars/pics", "docs/guitars/concepts"
+# slug: (whole picture, headstock close-up), the files HANDOFF.md names (a -v2 where one exists)
+SOURCES = {
+    "porch": (f"{P}/porch.jpg", f"{P}/porch-head.jpg"), "cornerstone": (f"{P}/cornerstone.jpg", f"{P}/cornerstone-head.jpg"),
+    "clubslab": (f"{P}/clubslab.jpg", f"{P}/clubslab-head.jpg"), "hollowhill": (f"{P}/hollowhill.jpg", f"{P}/hollowhill-head.jpg"),
+    "swing": (f"{P}/swing.jpg", f"{P}/swing-head.jpg"), "koaarc": (f"{P}/koaarc-v2.jpg", f"{P}/koaarc-head.jpg"),
+    "comet": (f"{P}/comet.jpg", f"{P}/comet-head.jpg"),
+    "highline": (f"{C}/highline.jpg", f"{C}/highline-head.jpg"), "velvetcrown": (f"{C}/velvetcrown.jpg", f"{C}/velvetcrown-head.jpg"),
+    "ghostspalt": (f"{C}/ghostspalt.jpg", f"{C}/ghostspalt-head.jpg"), "redwoodhollow": (f"{C}/redwoodhollow-v2.jpg", f"{C}/redwoodhollow-head.jpg"),
+    "razorwing": (f"{C}/razorwing.jpg", f"{C}/razorwing-head.jpg"), "nova": (f"{C}/nova.jpg", f"{C}/nova-head.jpg"),
+    "arrowhead": (f"{C}/arrowhead.jpg", f"{C}/arrowhead-head.jpg"), "ziricotegrand": (f"{C}/ziricotegrand-v2.jpg", f"{C}/ziricotegrand-head.jpg"),
+    "walnuthall": (f"{C}/walnuthall.jpg", f"{C}/walnuthall-head.jpg"), "islander": (f"{C}/islander-v2.jpg", f"{C}/islander-v2-head.jpg"),
+    "stickerriot": (f"{C}/stickerriot-v2.jpg", f"{C}/stickerriot-head.jpg"), "spraycancrack": (f"{C}/spraycancrack-v2.jpg", f"{C}/spraycancrack-head.jpg"),
+    "tartanpin": (f"{C}/tartanpin.jpg", f"{C}/tartanpin-head.jpg"), "toxicchecker": (f"{C}/toxicchecker.jpg", f"{C}/toxicchecker-head.jpg"),
+    "barebones": (f"{C}/barebones.jpg", f"{C}/barebones-head.jpg"), "flyerwall": (f"{C}/flyerwall-v2.jpg", f"{C}/flyerwall-head.jpg"),
+}
+# the nut in each new close-up (HANDOFF.md): painted frets and strings fool the measuring, so it is set
+NUT = {**{n: 590 for n in SOURCES}, "razorwing": 700, "toxicchecker": 620}
+ACOUSTIC = {"porch", "cornerstone", "koaarc", "ziricotegrand", "walnuthall"}
+NAMES = OLD + list(SOURCES)
+CLOSEUP = {"cutaway-sunburst": 800, "hollow": 700, "classical": 920, "headliner": 920}
+for _n in SOURCES: CLOSEUP[_n] = 820  # a row below the nut (near y 590; Razorwing 700, Toxic Checker 620) that crosses the neck  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
 # where the strings end, as a share of the body from the end of the neck to the bottom (acoustics: the bridge;
 # electrics: the bridge pickup's saddles)
-BRIDGE = {"parlor": .52, "cutaway": .55, "cutaway-sunburst": .49, "solid": .55, "hollow": .56, "single": .56, "classical": .50, "headliner": .40}
+BRIDGE = {**{n: (.5 if n in ACOUSTIC else .55) for n in SOURCES}, "parlor": .52, "cutaway": .55, "cutaway-sunburst": .49, "solid": .55, "hollow": .56, "single": .56, "classical": .50, "headliner": .40}
 
 def cutout(path):
     a = np.asarray(Image.open(path).convert("RGB")).astype(np.float32)
@@ -96,7 +119,9 @@ def defringe(rgb, al):
 
 nums = {}
 for name in NAMES:
-    rgb, al = cutout(f"{SRC}/{name}.jpg")
+    whole, closeup = SOURCES.get(name, (f"{SRC}/{name}.jpg", f"{SRC}/{name}-head.jpg"))
+    rgb, al = cutout(whole)
+    if name in SOURCES: rgb, al = defringe(rgb, al)
     if name == "cutaway-sunburst":
         rgb, al = defringe(rgb, al)
     if name == "cutaway":  # the picture kept a bridge; paint it in the top's colours (the app draws its own)
@@ -122,8 +147,10 @@ for name in NAMES:
     body = dict(w=bsize[0], h=bsize[1], cx=m["cx"] - bx0, nw=m["nw"], end=m["end"] - by0 + 1, bridge=round(m["end"] - by0 + BRIDGE[name] * (m["bot"] - m["end"]), 1))
     # the head: the close-up if there is one, else the whole picture's, from its top to the nut
     if name in CLOSEUP:
-        hr, ha = cutout(f"{SRC}/{name}-head.jpg")
+        hr, ha = cutout(closeup)
+        if name in SOURCES: hr, ha = defringe(hr, ha)
         hm = measure(ha, hr, CLOSEUP[name])
+        if name in NUT: hm["nut"] = NUT[name]
     else:
         hr, ha, hm = rgb, al, m
     hys = np.flatnonzero((ha[:hm["nut"]] > .5).any(1)); hxs = np.flatnonzero((ha[:hm["nut"]] > .5).any(0))
@@ -131,6 +158,7 @@ for name in NAMES:
     hsize = save(hr, ha, (hx0, max(0, hys[0] - 3), hx1, hm["nut"] + 1), f"{OUT}/{name}-head.webp")
     head = dict(w=hsize[0], h=hsize[1], cx=hm["cx"] - hx0, nw=hm["nw"])
     nums[name] = dict(head=head, body=body, lit=hexc(m["lit"]), shade=hexc(m["sh"]))
+    if name in SOURCES: nums[name]["str"] = 1
     print(name, "neck", round(m["nw"]), "nut", m["nut"], "body", m["body"], "end", m["end"], "bot", m["bot"], "| head", hsize, "body", bsize,
           "| KB", *(os.path.getsize(f"{OUT}/{name}-{p}.webp") // 1024 for p in ("head", "body", "small")))
 with open(f"{OUT}/pics.js", "w") as f:

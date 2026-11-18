@@ -22,7 +22,7 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, fansNow, tipsOf, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { guitarShown, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, fansNow, tipsOf, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
@@ -38,7 +38,10 @@ const nf = x => x.toLocaleString("en-US");
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 /* Grok's paintings of each earned guitar in its own open case (art/show, 720 by 900, dark and light), by body shape. A
    guitar without one is drawn over the empty case. */
-const CASE_ART = { parlor: "beater", cutaway: "cutaway", solid: "solid" };
+/* Grok's case paintings (art/show/case-*.webp) are of the three guitars the Road had before Road Ready 9a (the beater, the cutaway,
+   the solid-body). The legs have new guitars now, so no painting fits them: the sheet shows the guitar's own picture in the case until new
+   paintings are made (Surprises in docs/ROAD-READY-PLAN.md). Add a body name here to bring a painting back. */
+const CASE_ART = {};
 /* the current stop when the Road was last drawn: when a show moves it on, the connector's newest step draws itself on */
 let lastCur = null;
 
@@ -279,7 +282,7 @@ export function renderRoad() {
   const legsHTML = road.legs.map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>${rr ? `Leg ${l.n}, ${esc(l.name)}` : `Leg ${l.n} · ${esc(l.name)}`}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
-    ${neckHTML(l, gx)}`).join("");
+    ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id) } : gx)}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
   const songbookBar = `

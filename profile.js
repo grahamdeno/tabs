@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
+import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, shopState, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie } from "./louie.js";
@@ -111,6 +111,10 @@ export function renderProfile() {
   const legs = roadPath(data).legs, earned = guitarsEarned(data);
   const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
     return `<li class="rr-gtr" role="img" aria-label="${esc(g.name)}${esc(at)}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : `<span class="rr-gtr-ph" aria-hidden="true"></span>`}</li>`; }).join("");
+  /* Road Ready 9a: the guitars bought in the Guitar shop sit in the case too; the one you chose says so */
+  const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => { const pic = guitarPic(r.id);
+    return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");
+  const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
   const mer = fansToSpend(data);
   const rrHTML = `
     <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
@@ -126,8 +130,8 @@ export function renderProfile() {
       <div class="rr-tile"><b>${num(p.chords.length)}</b><small>chords</small></div>
       <div class="rr-tile"><b>${num(p.plays)}</b><small>plays</small></div>
     </div>
-    <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${earned.length} ${earned.length === 1 ? "guitar" : "guitars"}</span></div>
-      <div class="rr-case"><ul class="rr-case-in" role="list" tabindex="0" aria-label="Guitars you have earned">${caseGuitars || `<li class="rr-case-empty">Headline a leg to earn your first guitar.</li>`}</ul></div>
+    <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
+      <div class="rr-case"><ul class="rr-case-in" role="list" tabindex="0" aria-label="Guitars you have earned">${caseGuitars + bought || `<li class="rr-case-empty">Headline a leg to earn your first guitar.</li>`}</ul></div>
       <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="Spend your game tips: $${num(mer)} at the Merch table"><span class="rr-coinic">${COIN}</span><span>Spend your game tips: $${num(mer)} at the Merch table</span>${icon("chev", "chev")}</a>
     </section>
     <section class="rr-card rr-miles"><div class="pf-label"><span>MILESTONES</span><span>${badges.got.length} of ${badges.all.length}</span></div>

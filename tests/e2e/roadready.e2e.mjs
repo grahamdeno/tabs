@@ -453,8 +453,8 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
     assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.match(await page.getAttribute(".sc-show.case img.sc-case-pic", "src"), theme === "dark" ? /art\/show\/case-cutaway-dark\.webp$/ : /art\/show\/case-cutaway-light\.webp$/, "Grok's painting of the cutaway in its case, for the look");
-    assert.equal(await page.innerText(".rr-case .sc-label"), "The cutaway");
+    assert.match(await page.getAttribute(".sc-show.case .sc-guitar img", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar's own picture in the case (the older case paintings are of the guitars the legs had before Road Ready 9a)");
+    assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
     const c = await page.evaluate(() => {
@@ -476,5 +476,5 @@ test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: s
   const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true });
   await page.waitForSelector(".rd-gt #gt-x");
   assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
-  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*The cutaway is yours for Leg 2/);
+  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*Cornerstone is yours for Leg 2/);
 });

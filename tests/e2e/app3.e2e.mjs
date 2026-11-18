@@ -657,11 +657,11 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
   await page.waitForSelector(".rd-neck");
   assert.ok(await page.locator(".rd-neck").count() >= 2, "a neck for each leg");
-  assert.match(await page.locator(".rd-neck").first().innerHTML(), /The beater/, "the first guitar is named on its headstock");
+  assert.match(await page.locator(".rd-neck").first().innerHTML(), /Porch/, "the first guitar is named on its headstock");
   assert.equal(await page.locator(".rd-tag").count(), 1, "one tag, on the next stop");
   assert.equal(await page.locator(".rd-node.headline .rr-art").count() >= 1, true, "the headline is an inlay");
   await page.waitForSelector("#gt-x");
-  assert.match(await page.innerText(".rd-gt"), /The cutaway/, "the sheet names the new guitar");
+  assert.match(await page.innerText(".rd-gt"), /Cornerstone/, "the sheet names the new guitar");
   await page.click("#gt-x");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).guitars?.seen?.includes("open"));
   await page.reload(); await page.waitForSelector(".rd-neck");
@@ -676,5 +676,97 @@ test("4.84.0 a lesson that opens songs you have says how many; an opened merch b
   await page.waitForSelector(".rd-neck");
   assert.match(await page.innerText(".rd-node.now .rd-songs"), /1/, "Em opens one song");
   assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
-  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on the beater");
+  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on Porch");
+});
+
+/* ---- Road Ready 9a: the Guitar shop on the Merch table, and the chosen guitar on the Road, Me and Show complete ---- */
+const shopLib = (ring, merch, theme = "dark") => ({ ...LIB, journal: { v: 1, months: { "2026-11": { plays: 4 * ring * ring } } }, merch: { tconv: 1, lconv: 1, hlseen: 1, ...merch }, settings: { ...LIB.settings, v: 6, theme } });
+const openShop = async (t, ring, merch, theme) => {
+  const page = await phone(t, shopLib(ring, merch, theme), { home: true });
+  await page.waitForSelector("#h-fans"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-gts"); await settled(page);
+  return page;
+};
+
+for (const theme of ["dark", "light"]) {
+  test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
+    const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
+    const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
+    assert.deepEqual(heads, ["Gear", "Louie's finish", "Stage backdrops", "Hats", "Looks", "Guitar shop"], "nothing existing moved; the shop is last");
+    assert.equal(await page.locator(".mc-gt").count(), 16);
+    const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
+    /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */
+    assert.equal((await row("velvetcrown").innerText()).includes("Opens at Theater"), true);
+    assert.match(await row("velvetcrown").getAttribute("aria-label"), /Locked, opens at Theater/);
+    assert.equal(await row("velvetcrown").locator("svg").count(), 1, "a small lock");
+    /* an open guitar you can't afford: "$40 more" (tips 160, Highline $180: $20 more; Sticker Riot $90 can be bought) */
+    assert.match(await row("highline").innerText(), /\$20 more/); assert.match(await row("highline").getAttribute("aria-label"), /\$180, \$20 more/);
+    assert.doesNotMatch(await row("stickerriot").innerText(), /more/, "an affordable guitar shows only its price");
+    /* Next up: exactly one, the cheapest in reach */
+    assert.equal(await page.locator(".mc-next").count(), 1); assert.match(await row("stickerriot").innerText(), /NEXT UP/); assert.match(await row("stickerriot").getAttribute("aria-label"), /Next up/);
+    /* progress in plain words: no "about N shows" (nothing stored gives an honest average), no clocks, no guilt */
+    const words = await page.innerText(".mc-gts") + await page.innerText(".mc-sub");
+    assert.doesNotMatch(words, /about \d+ shows?|\bshows?\b.*\baway\b|hurry|limited|expires?|ends? (in|soon)|countdown|last chance|you missed|don't miss|only \d+ left/i);
+    /* every row is a 44 px target with a name */
+    for (const b of await page.$$(".mc-gt")) { const r = await b.boundingBox(); assert.ok(r.height >= 44 && r.width >= 44, "a target of at least 44 px"); assert.ok((await b.getAttribute("aria-label")).length > 8); }
+  });
+}
+
+test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<slug>, puts it on and shows it on the Road, in the case on Me and in the guitarist's hands", { skip: skip() }, async t => {
+  const page = await openShop(t, 1, { tips: 250 });
+  await page.click('.mc-gt[data-gt="stickerriot"]');
+  await page.waitForSelector(".mt[aria-label='Sticker Riot'] #gs-buy");
+  assert.equal(await page.innerText("#gs-buy"), "BUY FOR $90");
+  assert.equal(await page.locator("#mt-x").count(), 1);
+  await page.click("#gs-buy");
+  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).merch; return m.guitar === "stickerriot" && m.has?.includes("g-stickerriot"); });
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch);
+  assert.equal(saved.tspent, 90); assert.deepEqual(saved.has, ["g-stickerriot"]);
+  await page.waitForSelector('.mc-gt[data-gt="stickerriot"].on'); assert.match(await page.locator('.mc-gt[data-gt="stickerriot"]').innerText(), /ON NOW/);
+  assert.equal(await page.locator(".mc-gt-leg").count(), 1, "a way back to the leg's guitar");
+  /* the Road neck of the leg you're on draws it */
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-neck"); await settled(page);
+  const cur = await page.locator(".rd-legmark.cur ~ .rd-neck, .rd-neck").first().innerHTML();
+  assert.match(cur, /art\/guitars\/stickerriot-body\.webp/, "the body picture on the neck"); assert.match(cur, /art\/guitars\/stickerriot-head\.webp/, "and its headstock");
+  assert.match(await page.locator(".rd-neck").first().getAttribute("aria-label"), /Sticker Riot/);
+  /* Me's case has it, and says it is the one you play */
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+  assert.ok((await page.$$eval(".rr-gtr", els => els.map(e => e.getAttribute("aria-label")))).includes("Sticker Riot, from the Guitar shop, the one you play"));
+  assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
+  /* the guitarist holds it (the small picture in his hands) */
+  const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
+  assert.match(hands, /art\/guitars\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  /* back to the leg's guitar, and the saved choice is gone */
+  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
+  await page.click("#mc-gt-leg");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.guitar === undefined);
+  assert.equal(await page.locator(".mc-gt-leg").count(), 0);
+  /* put it on again from the sheet: owned, no second charge */
+  await page.click('.mc-gt[data-gt="stickerriot"]'); await page.waitForSelector("#gs-wear");
+  assert.equal(await page.locator("#gs-buy").count(), 0); await page.click("#gs-wear");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.guitar === "stickerriot");
+  assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch)).tspent, 90, "charged once");
+});
+
+test("Road Ready 9a: a locked guitar and one you can't afford open a sheet whose button is off, and nothing is spent", { skip: skip() }, async t => {
+  const page = await openShop(t, 1, { tips: 40 });
+  await page.click('.mc-gt[data-gt="barebones"]'); await page.waitForSelector(".mt");
+  assert.equal(await page.innerText(".mt-acts .btn"), "OPENS AT COFFEEHOUSE"); assert.equal(await page.isDisabled(".mt-acts .btn"), true);
+  await page.click("#mt-not");
+  await page.click('.mc-gt[data-gt="tartanpin"]'); await page.waitForSelector(".mt");
+  assert.equal(await page.innerText(".mt-acts .btn"), "$50 MORE IN TIPS TO GO"); assert.equal(await page.isDisabled(".mt-acts .btn"), true);
+  assert.doesNotMatch(await page.innerText(".mt-sheet"), /about \d+ shows?|hurry|limited|expires?|last chance|you missed/i);
+  await page.click("#mt-not");
+  assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch)).tspent, undefined);
+});
+
+test("Road Ready 9a: the Road neck of each leg is its new guitar's picture, with its strings painted once (the Road draws none over the body)", { skip: skip() }, async t => {
+  const page = await phone(t, shopLib(0, {}), { home: true });
+  await page.waitForSelector(".rd-neck"); await settled(page);
+  const html = await page.locator(".rd-neck").first().innerHTML();
+  assert.match(html, /art\/guitars\/porch-body\.webp/); assert.match(html, /art\/guitars\/porch-head\.webp/);
+  assert.equal(await page.locator(".rd-neck").first().getAttribute("aria-label"), "Porch");
+  /* the drawn strings stop where the body picture starts: no line is longer than the neck */
+  const r = await page.evaluate(() => { const n = document.querySelector(".rd-neck"), vb = n.querySelector(".rd-strings").viewBox.baseVal, ls = [...n.querySelectorAll(".rd-strings line")]; return { h: vb.height, max: Math.max(...ls.map(l => +l.getAttribute("y2"))), body: [...n.querySelectorAll(".rd-base image")].find(i => /body/.test(i.getAttribute("href"))).y.baseVal.value }; });
+  assert.ok(r.max <= r.body + 1, `strings end at ${r.max}, the body starts at ${r.body}`);
 });
