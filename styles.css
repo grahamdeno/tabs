@@ -4919,6 +4919,9 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
   :root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-head, .gg-pause) { transform: none; transition-property: opacity, visibility; transition-duration: .2s, 0s !important; transition-delay: 0s, 0s; transition-timing-function: ease; }
   :root:is([data-look="neon"], [data-look="festival"]) .gig.idle :is(.gg-head, .gg-pause) { transform: none; transition-property: opacity, visibility; transition-duration: .2s, 0s !important; transition-delay: 0s, .2s; }
 }
+/* Graham, 2026-11-18: no crowd row and no section pill in the Road Ready looks, so the words fill the screen. The run
+   counter and the NOW chord card stay. The crowd still counts for fans; only the drawing goes. */
+:root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-status, .gg-sec) { display: none; }
 /* large text (AX1 and up): only the line you're on and the next one or two */
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-past,
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-next ~ :is(.pr, .ly, .crow) ~ * { visibility: hidden; }

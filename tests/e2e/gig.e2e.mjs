@@ -198,7 +198,11 @@ test("4.91.0 the show counts what you play through: the crowd fills, the run, no
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gg-mic, #gg-skip, #gg-wpill").count(), 0, "no microphone button, no Skip, no Wait for me");
   assert.equal(await page.locator("#gg-fans svg").count(), 12, "the crowd is 12 fans");
-  assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "a bigger crowd, on its own row");
+  /* Graham, 2026-11-18: Road Ready (this test's look) doesn't draw the crowd row, so the words fill the screen; the crowd
+     still fills behind the scenes. Green Room's row is checked in "Green Room keeps the show as it was". */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".gg-status")).display), "none", "no crowd row in Road Ready");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-sec")).display), "none", "no section pill either");
+  assert.ok(await page.locator("#gg-combo").count() === 1, "the run counter stays");
   await page.waitForFunction(() => /in a row/.test(document.getElementById("gg-combo").textContent), null, { timeout: 25000 });
   await page.waitForFunction(() => document.querySelectorAll("#gg-fans .on").length > 0, null, { timeout: 25000 });
   assert.equal(await page.locator("#sheet .c.st-got, #sheet .c.st-miss").count(), 0, "no green or missed marks: nothing is judged");
@@ -561,6 +565,8 @@ test("Road Ready 05: Green Room keeps the show as it was (no title, no progress 
   const r = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById("gg-head")).display, prog: getComputedStyle(document.querySelector(".gg-prog")).display, pause: document.getElementById("gg-pause").getBoundingClientRect().left }));
   assert.equal(r.head, "none"); assert.equal(r.prog, "none");
   assert.ok(r.pause < 60, "Pause stays at the left");
+  assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "the crowd keeps its own row");
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.getElementById("gg-sec")).display), "none", "and the section pill");
   /* review fix: no first-run hint in Green Room, and the one-time hint is still unused for the Road Ready looks */
   await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
   await page.waitForTimeout(500); /* real timer: the hint would show on the same tick as idle */
