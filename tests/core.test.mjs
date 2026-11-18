@@ -1716,6 +1716,17 @@ test("The Road (4.0.0): the neck's ladder as legs of stops, merch boxes every th
   assert.equal(C.fansOf(data), 3 * C.FANS.lesson + C.FANS.box, "fans: lessons and the opened box");
 });
 
+test("Road Ready 06: a guitar shown on its own has a neck about 0.7 of its body, like a real guitar", async () => {
+  const PICS = (await import(path.join(root, "art/guitars/pics.js"))).default;
+  const bodies = [C.FRET_BODY, ...Object.values(PICS).map(p => Math.round(p.body.h * (1.25 * 390 / p.body.w) + 8))];
+  assert.ok(bodies.length > 5, "every guitar picture, plus the drawn guitar");
+  for (const body of bodies) {
+    const neck = C.fretLayout(Array.from({ length: C.neckStops(body) }, () => ({ kind: "chord" }))).neck;
+    assert.ok(neck >= C.FULL_NECK * body && neck < C.FULL_NECK * body + 66, `body ${body}: neck ${neck}`);
+    assert.ok(C.neckStops(body) > 2, "longer than the two-space neck that looked stubby");
+  }
+});
+
 test("The fretboard Road (4.82.0): a guitar per leg, fret spaces that narrow to a floor, dots, inlays and the double", () => {
   assert.equal(C.guitarFor("nope").name, "The beater", "an unknown leg gets the beater");
   assert.deepEqual(Object.keys(C.GUITARS), ["open", "switch", "scales", "strum", "pick", "finger", "encore"]);

@@ -412,7 +412,7 @@ function guitarEarned(road) {
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
         <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
-        <span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next)}</span></span>
+        <span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next, { full: true })}</span></span>
         <span class="sc-label">${esc(gn.guitar.name)}</span>
         <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
       </div>

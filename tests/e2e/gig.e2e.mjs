@@ -612,6 +612,8 @@ test("Road Ready 06: Show complete has the overline, the song, the glowing guita
   assert.equal(await page.innerText(".sc-title"), "Short Road");
   assert.equal(await page.locator(".sc-show.glow .sc-guitar svg.rd-gsvg").count(), 1, "the guitar you played on");
   assert.equal(await page.innerText(".sc-label"), "The beater", "named after the leg you're on");
+  const vb = (await page.getAttribute(".sc-guitar svg", "viewBox")).split(" ").map(Number);
+  assert.ok(vb[3] / vb[2] >= 2.5, `a full-length neck, not a stubby one (${(vb[3] / vb[2]).toFixed(2)})`);
   assert.equal(await page.getAttribute(".sc-show", "aria-hidden"), "true", "the picture, label and Louie are hidden from screen readers");
   assert.ok(await page.locator(".sc-show .sc-louie .louie").count() === 1, "the cheering Louie");
   /* the tiles: "+N fans" and "+$N tips", read as one sentence */

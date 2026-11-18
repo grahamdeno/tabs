@@ -367,7 +367,7 @@ function showComplete() {
     <p class="gc-s sc-sub">Start to finish.${whole ? " The crowd wants more." : ""}</p>
     <div class="sc-show glow" aria-hidden="true">
       <span class="sc-sparks">${sparks}</span>
-      <div class="sc-guitar">${guitarSVG(leg?.id || "open")}</div>
+      <div class="sc-guitar">${guitarSVG(leg?.id || "open", { full: true })}</div>
       <span class="sc-label">${esc(gname)}</span>
       <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
     </div>
