@@ -2334,6 +2334,15 @@ test("Road Ready 03b: hands with fingers in navy, the same shapes as the guitari
   assert.match(louie("happy", { label: "Louie says hi" }), /role="img" aria-label="Louie says hi"/);
   assert.match(louie(), /^<svg class="louie happy" width="120"/, "happy and 120 by default");
 });
+test("Road Ready 03b: the spec and the later step prompts say hands with fingers, not mittens", () => {
+  const spec = read("docs/road-ready/louie-design-spec.md");
+  assert.match(spec, /Hands with fingers, navy like his arms \(Graham, 2026-11-17\)\. No hand ever shows one finger standing straight up/);
+  assert.ok(!/mitten/i.test(spec), "the spec no longer asks for mittens");
+  for (const n of ["04-tab-bar", "05-playing", "06-show-complete", "07-songbook", "08-me", "09-merch-builder"]) {
+    const doc = read(`docs/road-ready/claude-prompt-${n}.md`);
+    assert.ok(doc.includes("Hands with fingers, navy like his arms; never one finger standing straight up") && !/mitten/i.test(doc), `prompt ${n}`);
+  }
+});
 test("Road Ready 03b: each mood and pose shows its painted picture, light and dark, filling the same frame, with the code drawing kept as the fallback", async () => {
   const { louie, louieArt } = await import("../louie.js");
   const want = { happy: { undefined: "idle", rest: "idle", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" },

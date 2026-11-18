@@ -234,7 +234,7 @@ Louie is **Road Ready**: a blue 1x12 combo amp with a yellow control-panel face 
 
 - **Exactly one mouth, always on the yellow panel**, between the eyes and the four cream knobs.
 - **The grille is never a face.** It's plain navy woven cloth with at most a faint speaker circle. No mouth, smile line or features on the grille, in any pose, size or frame.
-- Mitten hands with no fingers, short navy legs, brown leather handle, nickel corners.
+- Hands with fingers, navy like his arms (Graham, 2026-11-17). No hand ever shows one finger standing straight up: it reads as the middle finger. Short navy legs, brown leather handle, nickel corners.
 - **Locked palette:**
 
 | Part | Hex |
@@ -253,7 +253,7 @@ Louie is **Road Ready**: a blue 1x12 combo amp with a yellow control-panel face 
 - **Expressions:** idle, cheering, listening, proud, oops, sleepy, nervous, celebrating. No tears, frowns or guilt faces. Oops is sheepish, never sad.
 - **On dark surfaces,** add a 3 px warm rim (#FFE2B4 at 35 percent) so the navy reads. Navy on #141210 is only 1.3:1 without it. On light surfaces, no rim is needed (12:1).
 - **Placement:**
-  - Road: peeking from the left edge, one mitten on the guitar body, away from inlays.
+  - Road: peeking from the left edge, one hand on the guitar body, away from inlays.
   - Show Complete: cheering beside the guitar.
   - Lists: only as a fixed badge (Songbook hint banner, Me tip jar row). Never over rows.
   - Playing: only in the first-run hint.
