@@ -1,17 +1,11 @@
 name: bump version
 
-# When app files change on main without a version bump, bump the patch version
-# in core.js and sw.js so installed apps see the release (see README, Releases).
+# Off by default: runs only by hand (Actions > bump version > Run workflow) and
+# refuses to run on main. It commits to the branch it runs on. Nothing bumps
+# the version automatically; the bump happens on next before Graham tests.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - index.html
-      - '*.js'
-      - '*.css'
-      - manifest.webmanifest
-      - icons/**
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,6 +16,7 @@ concurrency:
 
 jobs:
   bump:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +38,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Release $VERSION: bump version so installed apps update"
           for i in 1 2 3; do
-            git push origin HEAD:main && exit 0
-            git pull --rebase origin main
+            git push origin HEAD:${{ github.ref_name }} && exit 0
+            git pull --rebase origin ${{ github.ref_name }}
           done
           exit 1
