@@ -2053,7 +2053,7 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 /* Louie's colours (Road Ready): locked, the same in every look. They are set on Louie himself, so the looks' own
    --lv-* values (which the electric tuner head also reads) stay as they were. A finish from the Merch table
    (.fin-*, body[data-wear]) still recolours him. Nothing draws --lv-cheek, --lv-lamp, --lv-tongue or --lv-hi on him now. */
-.louie { overflow: visible; --lv-body: #23406A; --lv-shade: #1A3152; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; }
+.louie { overflow: visible; --lv-body: #23406A; --lv-shade: #1A3152; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; }
 .louie .lv-mit-o, .louie .lv-arm-o { stroke: var(--lv-pupil); } .louie .lv-tolex, .louie .lv-mit { fill: var(--lv-body); } .louie .lv-side, .louie .lv-mit-s, .louie .lv-cuff { fill: var(--lv-shade); } .louie .lv-arm { stroke: var(--lv-body); }
 .louie .lv-panel { fill: var(--lv-face); } .louie .lv-panel-sh { fill: var(--lv-face-sh); } .louie .lv-ink { fill: var(--lv-pupil); } .louie .lv-inks { stroke: var(--lv-pupil); }
 .louie .lv-cloth { fill: var(--lv-grille); } .louie .lv-weave { stroke: var(--lv-slat); } .louie .lv-knob { fill: var(--lv-knob); }

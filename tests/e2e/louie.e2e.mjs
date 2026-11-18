@@ -87,7 +87,7 @@ test("Road Ready 03: Louie has the same colours in all four looks, the locked pa
       const host = document.createElement("div"); document.body.append(host);
       host.innerHTML = louie("cheer", { pose: "wave", size: 120 }) + louie("sleepy", { size: 60 });
       const hex = c => { if (c.startsWith("url(")) return "url"; const m = c.match(/\d+(\.\d+)?/g); return !m ? c : m.length > 3 && +m[3] === 0 ? "none" : "#" + m.slice(0, 3).map(n => (+n).toString(16).padStart(2, "0")).join("").toUpperCase(); };
-      const parts = [...host.querySelectorAll("svg.louie *")].filter(el => !["g", "text", "defs", "stop", "linearGradient", "radialGradient", "pattern"].includes(el.tagName) && !el.closest(".lv-rim, defs") && !el.classList.contains("lv-shadow"))
+      const parts = [...host.querySelectorAll("svg.louie *")].filter(el => !["g", "text", "defs", "stop", "linearGradient", "radialGradient", "pattern"].includes(el.tagName) && !el.closest(".lv-rim, defs"))
         .map(el => { const s = getComputedStyle(el); return `${el.getAttribute("class") || el.parentElement.getAttribute("class") || el.tagName}:${hex(s.fill)}/${hex(s.stroke)}`; });
       const by = cls => hex(getComputedStyle(host.querySelector("." + cls)).fill), line = cls => hex(getComputedStyle(host.querySelector("." + cls)).stroke);
       return { look: document.documentElement.dataset.look, parts, rim: getComputedStyle(host.querySelector(".lv-rim")).opacity, rimStroke: hex(getComputedStyle(host.querySelector(".lv-rim")).stroke),

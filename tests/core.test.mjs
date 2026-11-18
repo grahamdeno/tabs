@@ -2328,7 +2328,7 @@ test("Road Ready 03: the locked palette is written on the drawing and set once i
   for (const hex of ["#23406A", "#1A3152", "#F0B23A", "#D9982A", "#182D47", "#2A4466", "#948573", "#55331B", "#E8D5B3", "#0B0F14"]) {
     assert.ok(svg.includes(hex), `${hex} is in the drawing (the share card draws the SVG with no stylesheet)`);
   }
-  assert.match(css, /\.louie \{ overflow: visible; --lv-body: #23406A; --lv-shade: #1A3152; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; \}/);
+  assert.match(css, /\.louie \{ overflow: visible; --lv-body: #23406A; --lv-shade: #1A3152; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; \}/);
   assert.match(svg, /<g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="4"/, "the rim is hidden unless a dark look shows it, and is 3 px a side at this size");
   assert.match(louie("happy", { size: 44 }), /class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="22.4"/, "still 3 px a side when he is 44 px");
   assert.match(css, /\n\.louie \.lv-rim \{ opacity: 0; \}\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) \.louie \.lv-rim \{ opacity: \.35; \}\n/);
