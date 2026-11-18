@@ -108,6 +108,30 @@ test("Road Ready 04: the not-tuned dot is on the Me tab and the Tuner row, and g
   assert.equal(await fresh.locator("#pf-r-tune .dotmark").count(), 0);
 });
 
+for (const [w, h] of [[320, 568], [375, 667], [390, 844]]) {
+  for (const [look, lib] of [["Road Ready dark", libWith("dark")], ["Green Room", { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"] } }]]) {
+    test(`Road Ready 04 (${look}, ${w} by ${h}): the five labels never overlap and each fits inside its tab, at normal and large text`, { skip: skip() }, async t => {
+      const page = await phone(t, lib, { home: true, viewport: { width: w, height: h } });
+      await page.waitForSelector("#tabs a");
+      const measure = () => page.$$eval("#tabs a", as => as.map(a => { const l = a.querySelector(".tb-l").getBoundingClientRect(), r = a.getBoundingClientRect();
+        return { name: a.getAttribute("aria-label"), l: l.left, r: l.right, tl: r.left, tr: r.right, size: parseFloat(getComputedStyle(a.querySelector(".tb-l")).fontSize) }; }));
+      for (const large of [false, true]) {
+        if (large) {
+          await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
+          await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
+        }
+        const m = await measure(), mode = large ? "large text" : "normal text";
+        assert.equal(m.length, 5, "five tabs");
+        for (let i = 0; i < m.length; i++) {
+          assert.ok(m[i].l >= m[i].tl - 0.5 && m[i].r <= m[i].tr + 0.5, `${mode}: ${m[i].name} fits inside its tab (${m[i].l.toFixed(1)} to ${m[i].r.toFixed(1)} in ${m[i].tl.toFixed(1)} to ${m[i].tr.toFixed(1)})`);
+          if (i) assert.ok(m[i - 1].r <= m[i].l, `${mode}: ${m[i - 1].name} does not touch ${m[i].name}`);
+          if (w >= 375 && !large) assert.ok(m[i].size >= 13, `${mode}: ${m[i].name} is ${m[i].size} px, at least 13`);
+        }
+      }
+    });
+  }
+}
+
 test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every tab keeps its name", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"), { home: true });
   await page.waitForSelector("#tabs a");

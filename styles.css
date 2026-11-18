@@ -2099,10 +2099,10 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 /* ---- The tab bar (4.0.0): Road, Tour, Charts, Band, Rehearse, More ---- */
 #tabs { display: none; }
 body.tabbed #tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--tabs); box-sizing: border-box; padding: 6px max(10px, var(--safe-l)) var(--safe-b) max(10px, var(--safe-r)); background: var(--bg); border-top: 2px solid var(--rim); justify-content: space-around; align-items: center; }
-#tabs a { position: relative; flex: 1 1 0; min-width: 44px; max-width: 84px; min-height: 50px; box-sizing: border-box; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 2px solid transparent; color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+#tabs a { position: relative; flex: 1 1 0; min-width: 0; max-width: 84px; min-height: 50px; box-sizing: border-box; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 2px solid transparent; color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent; }
 #tabs a[aria-current="page"] { border-color: var(--tabs-ring); background: var(--tabs-on); color: var(--accent-ink); }
 #tabs .tb-ic { width: 28px; height: 28px; flex: none; }
-#tabs .tb-l { font: 500 clamp(13px, var(--type-footnote, 13px), 16px) / 1.15 var(--sans); white-space: nowrap; }
+#tabs .tb-l { font: 500 min(clamp(13px, var(--type-footnote, 13px), 16px), calc((100vw - 32px) / 25)) / 1.15 var(--sans); white-space: nowrap; }
 #tabs .dotmark { position: absolute; top: 5px; left: calc(50% + 7px); width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--bg); }
 .tb-a { fill: var(--accent); } .tb-ad { fill: var(--accent-deep); } .tb-s { fill: var(--streak); } .tb-sd { fill: var(--streak-deep); }
 .tb-f { fill: var(--fans); } .tb-fd { fill: var(--fans-deep); } .tb-b { fill: var(--strings); } .tb-bd { fill: var(--strings-deep); }
@@ -4839,7 +4839,7 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
 :root:is([data-look="neon"], [data-look="festival"]) #tabs a {
-  height: 100%; max-width: none; min-height: 44px; padding: 0 0 7px; border: 0; border-radius: 12px; background: none; color: var(--rr-tab-off);
+  height: 100%; max-width: none; min-width: 0; min-height: 44px; padding: 0 0 7px; border: 0; border-radius: 12px; background: none; color: var(--rr-tab-off);
 }
 /* current: amber (the darker amber text colour in the light look), the icon tinted in, and a 3 by 24 px underline, so colour is never the only signal */
 :root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] { background: none; color: var(--rr-amber-text); }
