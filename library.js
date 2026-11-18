@@ -322,7 +322,7 @@ function rrRow(s, hit, stat) {
   const label = [s.title || "Untitled", s.artist || "Unknown artist", STATUS[s.status], s.favorite && "Favorite", f.can && "Can play", needs && `needs ${needs}`,
     hit ? unHTML(hit) : stat, keyOf(s) && `key of ${keyOf(s)}`].filter(Boolean).map(esc).join(", ");
   return `<button class="row rr-row" data-id="${esc(s.id)}" aria-label="${label}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
-    <span class="rr-tile" aria-hidden="true" style="--tile:${tileOf(s.title)}">${art ? `<img src="${esc(art)}" alt="" loading="lazy">` : `<b>${esc(initials(s.title))}</b>`}</span>
+    <span class="rr-tile" aria-hidden="true" style="--tile:${tileOf(s.title)}"><b>${esc(initials(s.title))}</b>${art ? `<img src="${esc(art)}" alt="" loading="lazy">` : ""}</span>
     <span class="txt"><span class="t">${esc(s.title)}</span><span class="a">${sub}</span>${chords.length || needs ? `<span class="rr-cc" aria-hidden="true">${chords.map(c => `<i>${esc(c)}</i>`).join("")}${needs ? `<i class="rr-needs">needs ${esc(needs)}</i>` : ""}</span>` : ""}</span>
     <span class="rr-side" aria-hidden="true">${lv ? `<span class="rr-dots">${[1, 2, 3].map(k => `<i${k <= lv ? ' class="on"' : ""}></i>`).join("")}</span>` : ""}${s.favorite ? `<svg class="heart" viewBox="0 0 24 24">${I.heart}</svg>` : ""}${keyOf(s) ? `<span class="k">${esc(keyOf(s))}</span>` : ""}</span>
     ${icon("chev", "chev")}

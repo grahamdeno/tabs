@@ -147,6 +147,25 @@ for (const theme of ["dark", "light"]) test(`Road Ready 07 (${theme}): the Songb
   assert.match(tile, /^#[0-9A-F]{6}$/i, "a row with no art gets its initials on a colour");
 });
 
+test("Road Ready 07: a row shows its album art over the initials, and the initials when the art can't load", { skip: skip() }, async t => {
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const art = n => `https://is1-ssl.mzstatic.com/image/thumb/made-up/${n}.png`;
+  const songs = [{ ...SONGS[0], art: art("ok") }, { ...SONGS[1], art: art("gone") }];
+  const ctxPage = await phone(t, libWith("dark", { songs, skills: KNOWN }));
+  await ctxPage.context().route("https://is1-ssl.mzstatic.com/**", r => r.request().url().includes("gone") ? r.abort() : r.fulfill({ contentType: "image/png", body: PNG }));
+  /* draw the Songbook again, so both pictures are asked for with the made-up answers in place */
+  await ctxPage.evaluate(() => { location.hash = "#/you"; }); await ctxPage.waitForSelector("#pf-r-tune");
+  await ctxPage.evaluate(() => { location.hash = "#/library"; }); await ctxPage.waitForSelector("#list .row"); await settled(ctxPage);
+  await ctxPage.waitForFunction(() => [...document.querySelectorAll("#list .rr-tile img")].every(i => i.complete));
+  const tile = id => ctxPage.evaluate(i => {
+    const t = document.querySelector(`#list .row[data-id="${i}"] .rr-tile`), img = t.querySelector("img"), b = t.querySelector("b"), r = b.getBoundingClientRect();
+    return { loaded: img.naturalWidth > 0, initials: b.textContent, top: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.tagName };
+  }, id);
+  assert.deepEqual(await tile("k"), { loaded: true, initials: "KH", top: "IMG" }, "the art covers the initials");
+  assert.equal((await tile("p")).loaded, false);
+  assert.equal((await tile("p")).initials, "PM", "art that can't load leaves the initials on the tile");
+});
+
 test("Road Ready 07: an empty Songbook still draws (the ways to add), and Sets is there when sets exist with no songs", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark", { songs: [] }));
   await page.waitForSelector("#list .empty"); await settled(page);
