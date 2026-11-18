@@ -44,6 +44,10 @@ Built on `rr-02-road` (Opus): the header strip, pearl inlays in four states, the
 
 Built on `rr-03-louie` (Opus): Louie redrawn as Road Ready in `louie.js`, with the same `louie(mood, { pose, size })`. One mouth on the yellow panel, a plain grille, mittens, no cheeks, a locked palette in every look and a warm rim on the dark looks. The guitarist keeps the old hands through `GUITARIST_HANDS`. Surprises 30 to 39 below.
 
+### Step 04 status
+
+Built on `rr-04-tabs` (Opus, with Sonnet's fixes): five tabs, Road, Songbook, Rehearse, Tour and Me, in a grille-cloth bar; the More sheet's places are rows on Me. Surprises 49 to 59 below.
+
 ## Surprises
 
 Found while building step 01. Each needs a decision or a look from Opus or Graham.
@@ -133,3 +137,12 @@ Found while building step 03b (2026-11-17, Claude Opus 5.5).
 65. **Louie is bigger in the same frame.** The art fills the frame that the code drawing used, so the size, viewBox and layout are unchanged, but the posed Louies (whose frame was wide to fit the old arms) are drawn much larger. Checked on Road, Band, Tour, Rehearse, Merch, Support and Show complete in Dark and Light at 3x: nothing clipped and no new overlaps.
 66. **Each Louie carries both pictures.** The SVG holds the light and the dark picture and CSS shows one, so the first time a pose is drawn both are fetched (about 100 KB a pose), then they are cached. The offline copy grows by about 0.95 MB (18 pictures).
 67. **Changed tests:** `core.test.mjs` "4.39.1 Louie's hands" is back to the checks it had before step 03 (the thumb on the side of the fist, the curled-finger creases) on Louie's own hand, plus the same on the guitarist; "every mood and pose has exactly one mouth" allows the new crease class `lv-mit-l` on the hands; "mittens with no fingers" is replaced by "hands with fingers in navy, the same shapes as the guitarist's" (same no-cheek and signature checks); the Reduce Motion rule check now includes the art. `louie.e2e.mjs` shows the code drawing before measuring it, and the per-hand count is now exact for each pose (it was "a mitten and a thumb lobe"). No check of the hard rules (one mouth, plain grille, no cheeks, locked palette, rim) was removed or loosened.
+
+Found in the review of step 04 (2026-11-18, a separate conversation, Claude Opus 5.5).
+
+68. **CI's a11y pass still opened More.** Fixed in review: it checks the tuner from Me.
+69. **Tab labels overlapped at 320 px and at large text.** Fixed in review: the label size fits five tabs, with a test.
+70. **The Road icon read as a barcode at 28 px.** Fixed in review: redrawn as r8-15's fretboard with stops.
+71. **The Me rows did not grow with text size.** Fixed in review.
+72. **fdf933f's CLAUDE.md sentence was missing.** Fixed in review: added.
+73. **The Songbook's title and Sets button touch at 320 px.** This is not from step 04; left for step 07.
