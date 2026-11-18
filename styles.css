@@ -1564,10 +1564,11 @@ body.tm-open .app { padding: 0; }
 .rd-first .pf-line { margin-top: 6px; color: var(--fg-2); }
 .louie .lv-body { transform-box: view-box; }
 @keyframes lv-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 30% { transform: translateY(-10px) scale(.96, 1.05); } 60% { transform: translateY(0) scale(1.06, .94); } }
-.louie.cheer .lv-body, .louie.hornsUp .lv-body { animation: lv-hop .7s cubic-bezier(.3,1.4,.5,1) 2; transform-origin: 100px 180px; }
+.louie .lv-art-wrap { transform-box: view-box; }
+.louie.cheer .lv-body, .louie.hornsUp .lv-body, .louie.cheer .lv-art-wrap, .louie.hornsUp .lv-art-wrap { animation: lv-hop .7s cubic-bezier(.3,1.4,.5,1) 2; transform-origin: 100px 180px; }
 @keyframes lv-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 .louie.happy .lv-eye { animation: lv-blink 5s infinite; transform-box: fill-box; transform-origin: center; }
-@media (prefers-reduced-motion: reduce) { .louie .lv-body, .louie .lv-eye { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .louie .lv-body, .louie .lv-eye, .louie .lv-art-wrap { animation: none !important; } }
 /* Tour Map: rival players and pressure */
 .tm-rival { display: grid; place-items: center; }
 .tm-rival b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #17181b; border: 2.5px solid var(--c); color: var(--c); font: 700 12px var(--sans); box-shadow: 0 3px 8px rgba(0,0,0,.6); }
@@ -2065,6 +2066,16 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 :root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
 /* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
 :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
+/* Step 03b: Louie is the painted art (art/louie/v2). The light picture by default, the dark one (with its warm rim) on the
+   dark looks, and the light one again on the bright headers there. The code drawing (.lv-code) is the fallback: it shows
+   when he wears a finish from the Merch table (until Graham decides, Surprise 30), and in pictures made from the SVG. */
+.louie .lv-code, .louie .lv-art-d { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-d { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-l { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-l { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-d { display: none; }
+.fin:not(.fin-stock) .louie .lv-code, body[data-wear] .louie:not(.fin .louie) .lv-code { display: inline; }
+.fin:not(.fin-stock) .louie .lv-art-wrap, body[data-wear] .louie:not(.fin .louie) .lv-art-wrap { display: none; }
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }

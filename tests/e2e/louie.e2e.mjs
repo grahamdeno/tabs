@@ -12,6 +12,8 @@ const MOODS = ["happy", "cheer", "sleepy", "worried", "proud"], POSES = [null, "
 /* Draw every mood with every pose at each size on a bare page, and measure each on screen. */
 const measure = (page, sizes) => page.evaluate(async ({ MOODS, POSES, sizes }) => {
   const { louie } = await import("/louie.js");
+  /* 03b: the painted art is what shows; these checks measure the code drawing kept as the fallback, so show it */
+  document.head.insertAdjacentHTML("beforeend", "<style>#zz-louies .louie .lv-code { display: inline !important; }</style>");
   const host = document.createElement("div"); host.id = "zz-louies"; host.style.cssText = "position:fixed;inset:0;overflow:auto;background:var(--bg);z-index:99999";
   document.body.append(host);
   const out = [];
@@ -43,7 +45,7 @@ const measure = (page, sizes) => page.evaluate(async ({ MOODS, POSES, sizes }) =
   return out;
 }, { MOODS, POSES, sizes });
 
-test("Road Ready 03: every mood with every pose at every size has one mouth on the panel, a plain grille, mittens and no cheeks", { skip: skip() }, async t => {
+test("Road Ready 03: every mood with every pose at every size has one mouth on the panel, a plain grille, hands and no cheeks", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
   const all = await measure(page, SIZES);
   assert.equal(all.length, MOODS.length * POSES.length * SIZES.length);
@@ -58,7 +60,8 @@ test("Road Ready 03: every mood with every pose at every size has one mouth on t
     assert.deepEqual(l.onGrille, [], `${l.at}: nothing on the grille but cloth, weave and its frame`);
     assert.deepEqual(l.cloth3, ["lv-cloth:rgb(24, 45, 71)/none/1px", "lv-weave:none/rgb(42, 68, 102)/0.9px", "lv-weave:none/rgb(42, 68, 102)/1.3px", "lv-cloth-sh:none/rgb(0, 0, 0)/3px"], `${l.at}: the cloth, the weave, the faint circle and the inner shadow, and nothing else in their classes`);
     assert.equal(l.cheeks, 0, `${l.at}: no cheeks, lamp or tongue`);
-    assert.equal(l.fingers, l.pose ? 4 : 0, `${l.at}: each hand is one mitten and one thumb lobe`);
+    /* each hand is one lit shape, plus a lit thumb laid across it for the fist, horns and peace (the guitarist's shapes) */
+    assert.equal(l.fingers, { none: 0, rest: 4, hornsUp: 4, thumb: 3, point: 3, wave: 3, peace: 4 }[l.pose || "none"], `${l.at}: two hands, each a lit hand and its thumb`);
     assert.equal(l.cuffs, l.pose ? 2 : 0, `${l.at}: cuffs stay`);
     assert.equal(Math.round(l.width), l.size, `${l.at}: drawn at the size asked for`);
     assert.deepEqual([l.role, l.label], ["img", "Louie"]);
@@ -156,4 +159,72 @@ test("Road Ready 03 review: the warm rim shows on dark surfaces only, not on the
     }
     await page.context().close();
   }
+});
+
+/* Road Ready 03b: the painted art */
+const shown = (page, sel) => page.evaluate(sel => {
+  const svg = document.querySelector(`${sel} svg.louie`);
+  const vis = el => el && getComputedStyle(el).display !== "none" && getComputedStyle(el.parentElement).display !== "none";
+  return { art: [...svg.querySelectorAll(".lv-art")].filter(vis).map(i => i.getAttribute("href").split("/").pop()), code: vis(svg.querySelector(".lv-code")) };
+}, sel);
+
+test("Road Ready 03b: the painted art shows, dark on the dark looks, light on the light looks and on the bright headers, and every picture loads", { skip: skip() }, async t => {
+  for (const [look, kind] of [["dark", "dark"], ["headliner", "dark"], ["light", "light"], ["green", "light"]]) {
+    const page = await phone(t, libWith(look));
+    for (const [h, sel, want] of [["#/support", ".sp-hero", kind], ["#/band", ".bd-head", "light"], ["#/tour", ".tq-head", "light"]]) {
+      await page.evaluate(h => { location.hash = h; }, h);
+      await page.waitForSelector(`${sel} svg.louie`);
+      const l = await shown(page, sel);
+      const expect = look === "light" || look === "green" ? "light" : want;
+      assert.equal(l.art.length, 1, `${look} ${h}: one picture shows`);
+      assert.match(l.art[0], new RegExp(`-${expect}\\.webp$`), `${look} ${h}: the ${expect} picture (${l.art[0]})`);
+      assert.equal(l.code, false, `${look} ${h}: the code drawing is hidden`);
+    }
+    await page.context().close();
+  }
+  const page = await phone(t, libWith("dark"));
+  const bad = await page.evaluate(async () => {
+    const names = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud"], out = [];
+    for (const n of names) for (const k of ["light", "dark"]) {
+      const r = await fetch(`art/louie/v2/louie-${n}-${k}.webp`); const b = await r.blob();
+      const im = await createImageBitmap(b).catch(() => null);
+      if (!r.ok || !im || im.height < 590) out.push(`${n}-${k}`);
+    }
+    return out;
+  });
+  assert.deepEqual(bad, [], "all 18 pictures load and are full size");
+});
+
+test("Road Ready 03b: a worn finish shows the code drawing (finishes still recolour him); Stock shows the art", { skip: skip() }, async t => {
+  const page = await phone(t, libWith("dark"));
+  const r = await page.evaluate(async () => {
+    const { louie } = await import("/louie.js");
+    const host = document.createElement("div"); host.id = "zzf"; document.body.append(host);
+    host.innerHTML = `<span class="fin fin-stock">${louie("happy", { size: 60 })}</span><span class="fin fin-tweed">${louie("happy", { size: 60 })}</span>`;
+    const vis = el => getComputedStyle(el).display !== "none";
+    const [a, b] = host.querySelectorAll("svg.louie");
+    const one = [vis(a.querySelector(".lv-art-wrap")), vis(a.querySelector(".lv-code")), vis(b.querySelector(".lv-art-wrap")), vis(b.querySelector(".lv-code"))];
+    document.body.dataset.wear = "pink";
+    host.insertAdjacentHTML("beforeend", louie("cheer", { size: 60 }));
+    const c = host.querySelectorAll("svg.louie")[2];
+    const two = [vis(c.querySelector(".lv-art-wrap")), vis(c.querySelector(".lv-code")), vis(a.querySelector(".lv-art-wrap"))];
+    delete document.body.dataset.wear;
+    return { one, two };
+  });
+  assert.deepEqual(r.one, [true, false, false, true], "Stock: the art; Tweed: the code drawing in tweed");
+  assert.deepEqual(r.two, [false, true, true], "wearing Pink: Louie on the page is the code drawing; the Stock preview on the Merch table keeps the art");
+});
+
+test("Road Ready 03b: the art hops when he cheers, and Reduce Motion stops it", { skip: skip() }, async t => {
+  const hop = async reducedMotion => {
+    const page = await phone(t, libWith("dark"), { reducedMotion });
+    return page.evaluate(async () => {
+      const { louie } = await import("/louie.js");
+      const host = document.createElement("div"); document.body.append(host);
+      host.innerHTML = louie("cheer", { size: 120 }) + louie("happy", { pose: "hornsUp", size: 120 }) + louie("happy", { size: 120 });
+      return [...host.querySelectorAll(".lv-art-wrap")].map(g => getComputedStyle(g).animationName);
+    });
+  };
+  assert.deepEqual(await hop("no-preference"), ["lv-hop", "lv-hop", "none"], "cheer and horns hop; idle doesn't");
+  assert.deepEqual(await hop("reduce"), ["none", "none", "none"], "Reduce Motion: no hop");
 });

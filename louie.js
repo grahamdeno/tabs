@@ -1,11 +1,15 @@
 // Louie, the mascot: a blue 1x12 combo amp (Road Ready; docs/road-ready/louie-design-spec.md, section 9).
-// Blue Tolex with a darker right side, nickel corner caps, a brown leather handle, a yellow control panel for a
-// face (two eyes, one mouth, a row of four cream knobs), a plain navy grille, mitten hands and two short legs.
+// Since step 03b he is Grok's painted art (art/louie/v2, a light and a dark picture per pose; the page's CSS shows the
+// one for the look). The code drawing below is kept in the same SVG as a fallback: it shows when he wears a finish
+// from the Merch table, and in pictures made from the SVG alone (the share card), which can't load the art.
+// The code drawing: blue Tolex with a darker right side, nickel corner caps, a brown leather handle, a yellow control
+// panel for a face (two eyes, one mouth, a row of four cream knobs), a plain navy grille, hands and two short legs.
 // The hard rule: exactly one mouth (class lv-mouth), always on the yellow panel between the eyes and the knobs.
 // The grille is plain cloth: never a mouth, a smile line or any feature on it, in any mood, pose or size.
-// Mittens have no fingers. No cheeks, no blush, no lamp.
+// Hands have fingers, navy like his arms (Graham, 2026-11-17), and no hand ever shows one finger standing straight up
+// from the middle: it reads as the middle finger (4.39.1). No cheeks, no blush, no lamp.
 // His colours are locked: the --lv-* variables on .louie in styles.css, and the same values written on each
-// shape, so a picture made from the SVG alone (the share card) shows the same Louie.
+// shape, so a picture made from the SVG alone shows the same Louie.
 // louie(mood, { pose, size }) returns an <svg> string.
 //   moods: happy, cheer, sleepy, worried (drawn as nervous, never sad), proud
 //   poses: rest, hornsUp, thumb, point, wave, peace (no arms when absent)
@@ -22,46 +26,53 @@ const guitaristFinger = (x, len, r) => `<rect x="${x - 4.6}" y="${-22 - len}" wi
 const G_PALM = `<path d="M-13 -4C-15.5 -11 -15.5 -20 -12.5 -25C-8 -28 8 -28 12.5 -25C15.5 -20 15.5 -11 13 -4C8 1 -8 1 -13 -4Z"/>`;
 const G_ROLLS = "C16.5 -26.5 16 -23.5 13.5 -21.5C16.5 -19 16 -15.5 13.5 -13.5C16.5 -11 16 -7 13 -5C12 0 6 1 0 1C-6 1 -10 1 -11 -1Z";
 const G_THUMB_ACROSS = `<path d="M-12.5 -15C-6 -18.5 4 -18.5 8.5 -15C10.5 -13 9.5 -10 7.5 -9.5C1 -8 -6 -8.5 -12 -10Z"/>`;
-const GUITARIST_HANDS = {
-  fist: () => guitaristMitt(`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
-    `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, G_THUMB_ACROSS),
-  horns: () => guitaristMitt(`<path d="M-13 -3C-15.5 -9 -15.5 -17 -13.5 -22L-14.5 -38C-14.8 -43.5 -5 -44.5 -4.6 -38.5L-4 -26.5C-1.5 -28.5 2 -28.5 4.6 -26.5L5.4 -34.5C5.8 -40.5 15 -40 14.4 -34L13.4 -20C15.4 -14 15 -8 12.5 -3C8 1 -8.5 1 -13 -3Z"/>`,
-    `<path d="M-4 -24Q0 -21.5 4.6 -24"/>`, G_THUMB_ACROSS),
+/* each hand as [shape, creases, over]: the guitarist draws them in skin, Louie (since 03b) in navy */
+const HAND_PARTS = {
+  fist: [`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
+    `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, G_THUMB_ACROSS],
+  horns: [`<path d="M-13 -3C-15.5 -9 -15.5 -17 -13.5 -22L-14.5 -38C-14.8 -43.5 -5 -44.5 -4.6 -38.5L-4 -26.5C-1.5 -28.5 2 -28.5 4.6 -26.5L5.4 -34.5C5.8 -40.5 15 -40 14.4 -34L13.4 -20C15.4 -14 15 -8 12.5 -3C8 1 -8.5 1 -13 -3Z"/>`,
+    `<path d="M-4 -24Q0 -21.5 4.6 -24"/>`, G_THUMB_ACROSS],
   /* a thumbs up like the emoji: the fingers curled on the front edge, a short thumb up from the back of the fist.
      Never one finger standing straight up from the middle (that reads as the middle finger). */
-  thumb: () => guitaristMitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 -12 -46C-9 -50 -3 -49 -2 -44C-1.5 -40 -1.5 -36 -1 -32C4 -33.5 11 -33 13.5 -29.5${G_ROLLS}"/>`,
-    `<path d="M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M3 -5.5Q8 -4.8 13 -5M-1 -32Q-5 -30 -9 -31"/>`),
+  thumb: [`<path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 -12 -46C-9 -50 -3 -49 -2 -44C-1.5 -40 -1.5 -36 -1 -32C4 -33.5 11 -33 13.5 -29.5${G_ROLLS}"/>`,
+    `<path d="M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M3 -5.5Q8 -4.8 13 -5M-1 -32Q-5 -30 -9 -31"/>`, ""],
   /* pointing: the index finger out from the front of the fist and the thumb tucked; the pose turns it toward the
      speech bubble, so it never stands straight up */
-  point: () => guitaristMitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -26C-12.5 -31 -8 -33 -3 -33L3 -33L3.5 -49C3.7 -55 13.3 -55 13.5 -49L13.6 -30${G_ROLLS}"/>`,
-    `<path d="M3 -30.5Q8 -29.5 13.5 -30M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M-12 -20Q-5 -17 2 -20"/>`),
-  wave: () => guitaristMitt(`${G_PALM}${guitaristFinger(-9, 17, -14)}${guitaristFinger(-3, 23, -5)}${guitaristFinger(3.5, 24, 4)}${guitaristFinger(9.5, 20, 13)}<rect x="-21" y="-19" width="9.2" height="18" rx="4.6" transform="rotate(-38 -12 -8)"/>`,
-    `<path d="M-6 -24.5V-21M0.3 -25V-21.5M6.6 -24.5V-21"/>`),
-  peace: () => guitaristMitt(`${G_PALM}${guitaristFinger(-4.5, 24, -12)}${guitaristFinger(4.5, 25, 12)}`, `<path d="M-1 -10Q0 -16 1 -22"/>`, G_THUMB_ACROSS)
+  point: [`<path d="M-11 -1C-13 -8 -14 -18 -13 -26C-12.5 -31 -8 -33 -3 -33L3 -33L3.5 -49C3.7 -55 13.3 -55 13.5 -49L13.6 -30${G_ROLLS}"/>`,
+    `<path d="M3 -30.5Q8 -29.5 13.5 -30M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M-12 -20Q-5 -17 2 -20"/>`, ""],
+  wave: [`${G_PALM}${guitaristFinger(-9, 17, -14)}${guitaristFinger(-3, 23, -5)}${guitaristFinger(3.5, 24, 4)}${guitaristFinger(9.5, 20, 13)}<rect x="-21" y="-19" width="9.2" height="18" rx="4.6" transform="rotate(-38 -12 -8)"/>`,
+    `<path d="M-6 -24.5V-21M0.3 -25V-21.5M6.6 -24.5V-21"/>`, ""],
+  peace: [`${G_PALM}${guitaristFinger(-4.5, 24, -12)}${guitaristFinger(4.5, 25, 12)}`, `<path d="M-1 -10Q0 -16 1 -22"/>`, G_THUMB_ACROSS]
 };
+const GUITARIST_HANDS = Object.fromEntries(Object.entries(HAND_PARTS).map(([name, parts]) => [name, () => guitaristMitt(...parts)]));
 /* 4.86.0: the guitarist's hands in a skin tone: `sh` is the shade, `ln` the creases, `cuff` the sleeve */
 export function mittenOf(name, skin, sh, ln, cuff) {
   return GUITARIST_HANDS[name]().replace(/class="lv-fs"/g, `fill="${sh}"`).replace(/class="lv-f"/g, `fill="${skin}"`)
     .replace(/class="lv-fl"/g, `stroke="${ln}"`).replace(/class="lv-cuff"/g, `fill="${cuff}"`);
 }
 
-/* Louie's mittens: the wrist at 0,0 and the mitten pointing up (negative y). A mitten is one rounded shape with at
-   most a thumb lobe: an ink outline behind, a shade copy under it like his body, a soft highlight, and a cuff at the
-   wrist. No fingers, ever. */
+/* Louie's hands (03b): the same fingered shapes as the guitarist's, in navy like his arms: an ink outline behind, the
+   Tolex shadow under the lit Tolex blue, ink creases, and a navy cuff. The wrist is at 0,0, the fingers point up. */
 const INK = "#0B0F14";
 const BLUE = 'fill="#23406A"', NAVY = 'fill="#1A3152"';
-const mitt = (shape, lobe = "") => `<g class="lv-mit-o" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round">${shape}${lobe}</g>`
-  + `<g class="lv-mit-s" ${NAVY} transform="translate(1.2 1.8)">${shape}${lobe}</g><g class="lv-mit" ${BLUE}>${shape}<path d="M-8 -9C-10 -15 -9 -21 -5 -24" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2.4" stroke-linecap="round"/></g>`
-  + (lobe ? `<g class="lv-mit-s" ${NAVY} transform="translate(0 1.5)">${lobe}</g><g class="lv-mit" ${BLUE}>${lobe}</g>` : "")
+const louieHand = (shape, creases = "", over = "") => `<g class="lv-mit-o" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round">${shape}${over}</g>`
+  + `<g class="lv-mit-s" ${NAVY} transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-mit" ${BLUE}>${shape}</g>`
+  + `<g class="lv-mit-l" fill="none" stroke="${INK}" stroke-opacity=".55" stroke-width="1.9" stroke-linecap="round">${creases}</g>`
+  + (over ? `<g class="lv-mit-s" ${NAVY} transform="translate(0 1.6)">${over}</g><g class="lv-mit" ${BLUE}>${over}</g>` : "")
   + `<rect class="lv-cuff" ${NAVY} x="-9.5" y="-3.4" width="19" height="6.8" rx="3.4" stroke="${INK}" stroke-width="1.6"/>`;
-const CLOSED = `<path d="M-11 -2C-14.5 -9 -14.5 -20 -10.5 -25.5C-6 -30.5 6 -30.5 10.5 -25.5C14.5 -20 14.5 -9 11 -2C7 1.5 -7 1.5 -11 -2Z"/>`;
-const OPEN = `<path d="M-11.5 -2C-14.5 -10 -15.5 -25 -12 -33C-8 -40.5 8 -40.5 12 -33C15.5 -25 14.5 -10 11.5 -2C7 1.5 -7 1.5 -11.5 -2Z"/>`;
-const TUCKED = `<ellipse cx="-12.5" cy="-13" rx="4.8" ry="7.5" transform="rotate(-18 -12.5 -13)"/>`; /* the thumb lobe, against the mitten */
-const OUT = `<ellipse cx="-15.5" cy="-15" rx="5" ry="9.5" transform="rotate(-32 -15.5 -15)"/>`; /* the thumb lobe, held out */
-const UP = `<rect x="-13.5" y="-43" width="10" height="24" rx="5"/>`; /* the thumb lobe up, on the side of the mitten, never in the middle */
-/* the old pose names still work: each is a mitten now */
-const SHAPES = { fist: [CLOSED, TUCKED], horns: [CLOSED, TUCKED], thumb: [CLOSED, UP], point: [CLOSED, TUCKED], wave: [OPEN, OUT], peace: [OPEN, OUT] };
-const HANDS = Object.fromEntries(Object.entries(SHAPES).map(([name, [shape, lobe]]) => [name, () => mitt(shape, lobe)]));
+const HANDS = Object.fromEntries(Object.entries(HAND_PARTS).map(([name, parts]) => [name, () => louieHand(...parts)]));
+/* the outline of a hand alone, for the warm rim */
+const handShape = name => HAND_PARTS[name][0] + HAND_PARTS[name][2];
+
+/* The painted art (03b): one picture per mood or pose, light and dark. Mood first, then the pose. */
+const ART_POSE = { hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" };
+export function louieArt(mood = "happy", pose) {
+  if (mood === "sleepy") return "sleepy";
+  if (mood === "worried") return "nervous";
+  if (mood === "proud") return "proud";
+  return ART_POSE[pose] || (mood === "cheer" ? "cheer" : "idle");
+}
+
 /* shoulder x,y (on the cabinet's side), wrist x,y, the hand's turn, and the mitten. The arms come out of the sides. */
 const POSES = {
   rest: [[50, 78, 36, 112, 184, "fist"], [150, 78, 164, 112, 176, "fist"]],
@@ -92,7 +103,8 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const arms = pose && POSES[pose];
   const sleepy = mood === "sleepy", proud = mood === "proud", worried = mood === "worried", cheer = mood === "cheer";
   const vb = arms ? "-34 -30 268 236" : "18 0 164 200";
-  const [, , vw, vh] = vb.split(" ").map(Number);
+  const [vx, vy, vw, vh] = vb.split(" ").map(Number);
+  const art = louieArt(mood, pose);
   const id = "lv" + (++seq).toString(36);
   /* how many drawing units one screen pixel covers: lines get heavier and eyes a little bigger when he is drawn small,
      so his eyes, mouth and knobs still read at 44 px */
@@ -118,7 +130,7 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
     const arm = `d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-linecap="round"`, at = `transform="translate(${wx} ${wy}) rotate(${rot}) scale(0.86 1.02)"`;
     return layer === "arm" ? `<path class="lv-arm-o" stroke="${INK}" stroke-width="${r1(15 + 2 * ol)}" ${arm}/><path class="lv-arm" stroke="#23406A" stroke-width="15" ${arm}/><path stroke="#fff" stroke-opacity=".12" stroke-width="4" ${arm} transform="translate(-2 -2)"/>`
       : layer === "hand" ? `<g ${at}>${HANDS[sign]()}</g>`
-      : `<path stroke-width="${r1(15 + 2 * rim)}" ${arm}/><g ${at}>${SHAPES[sign].join("")}</g>`;
+      : `<path stroke-width="${r1(15 + 2 * rim)}" ${arm}/><g ${at}>${handShape(sign)}</g>`;
   }).join("");
   const HANDLE = `d="M78 19 C78 1 122 1 122 19" fill="none" stroke-linecap="round"`;
   const leg = x => `<rect x="${x}" y="144" width="18" height="30" rx="4"/>`;
@@ -126,7 +138,8 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const LEGS = leg(69) + leg(113), BOOTS = boot(80, -1) + boot(120, 1);
   const cap = ([x, y]) => `<rect x="${x}" y="${y}" width="16" height="16" rx="3.5"/>`;
   return `<svg class="louie ${mood}${pose ? " " + pose : ""}" width="${size}" height="${Math.round(size * vh / vw)}" viewBox="${vb}" role="img" aria-label="${label}">
-  <defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
+  <g class="lv-art-wrap">${["light", "dark"].map(k => `<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${art}-${k}.webp" x="${vx}" y="${vy}" width="${vw}" height="${vh}" preserveAspectRatio="xMidYMax meet"/>`).join("")}</g>
+  <g class="lv-code"><defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
   <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
   <radialGradient id="${id}k" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient>
   <linearGradient id="${id}n" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
@@ -158,6 +171,6 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
     <rect class="lv-inks" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3" fill="none" stroke="${INK}" stroke-width="${ol}"/>
     <g class="lv-nickel" fill="#948573" ${edge}>${CAPS.map(cap).join("")}</g><g fill="url(#${id}n)">${CAPS.map(cap).join("")}</g><g fill="${INK}" opacity=".45">${CAPS.map(([x, y]) => `<circle cx="${x + 8}" cy="${y + 8}" r="1.5"/>`).join("")}</g>
     ${limbs("hand")}
-  </g>
+  </g></g>
 </svg>`;
 }
