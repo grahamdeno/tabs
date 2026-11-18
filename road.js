@@ -11,13 +11,13 @@
 //               headline the card names a song that fits, with the others a tap away.
 //   Louie       beside the path, with one line that fits the moment and tonight's song to play
 //   Songbook    a bar along the bottom (4.9.0): the Songbook page, and search, a tap away
-//   tab bar     Road, Tour, Charts, Band, Rehearse, More (hud.js)
+//   tab bar     Road, Songbook, Rehearse, Tour, Me (hud.js)
 // The screen itself never scrolls; the path scrolls inside it.
 //
 // Road Ready (step 02, the Dark and Light looks only; Green Room and Headliner keep the layout above):
 //   header strip  two rows: the venue plate (show N of the leg, a pip per stop, the next venue: the Tour Map) and
 //                 your tips (the Merch table); Tonight and its play button, and your fans and streak (your profile).
-//                 No tuner here (Graham, 2026-11-17): you tune where you play, from More or the song screen.
+//                 No tuner here (Graham, 2026-11-17): you tune where you play, from the song screen, or from the Tuner row on Me.
 //   Louie's line  a cream bubble under the strip
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one

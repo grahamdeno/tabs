@@ -2099,9 +2099,11 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 /* ---- The tab bar (4.0.0): Road, Tour, Charts, Band, Rehearse, More ---- */
 #tabs { display: none; }
 body.tabbed #tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--tabs); box-sizing: border-box; padding: 6px max(10px, var(--safe-l)) var(--safe-b) max(10px, var(--safe-r)); background: var(--bg); border-top: 2px solid var(--rim); justify-content: space-around; align-items: center; }
-#tabs a { position: relative; width: 54px; height: 50px; border-radius: 14px; display: grid; place-items: center; border: 2px solid transparent; -webkit-tap-highlight-color: transparent; }
-#tabs a[aria-current="page"] { border-color: var(--tabs-ring); background: var(--tabs-on); }
-#tabs .dotmark { position: absolute; top: 4px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--bg); }
+#tabs a { position: relative; flex: 1 1 0; min-width: 0; max-width: 84px; min-height: 50px; box-sizing: border-box; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 2px solid transparent; color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+#tabs a[aria-current="page"] { border-color: var(--tabs-ring); background: var(--tabs-on); color: var(--accent-ink); }
+#tabs .tb-ic { width: 28px; height: 28px; flex: none; }
+#tabs .tb-l { font: 500 min(clamp(13px, var(--type-footnote, 13px), 16px), calc((100vw - 32px) / 25)) / 1.15 var(--sans); white-space: nowrap; }
+#tabs .dotmark { position: absolute; top: 5px; left: calc(50% + 7px); width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--bg); }
 .tb-a { fill: var(--accent); } .tb-ad { fill: var(--accent-deep); } .tb-s { fill: var(--streak); } .tb-sd { fill: var(--streak-deep); }
 .tb-f { fill: var(--fans); } .tb-fd { fill: var(--fans-deep); } .tb-b { fill: var(--strings); } .tb-bd { fill: var(--strings-deep); }
 .tb-ink { fill: var(--fg); }  .tb-w { fill: #fff; } .tb-k { fill: #14213D; } .tb-kk { fill: #000; }
@@ -2110,9 +2112,14 @@ body.tabbed .s-dock { bottom: var(--tabs); }
 
 /* ---- More: a sheet of the other places ---- */
 .more-list { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 6px; }
-.more-list button { display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; min-height: 60px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); font: 700 17px var(--display); text-align: left; }
-.more-list button small { display: block; font: 600 13px var(--sans); color: var(--muted); margin-top: 1px; }
-.more-ic { width: 40px; height: 40px; display: grid; place-items: center; flex: none; }
+.more-list button, .more-list a { display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; min-height: 60px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); font: 700 17px var(--display); text-align: left; }
+.more-list button small, .more-list a small { display: block; font: 600 13px var(--sans); color: var(--muted); margin-top: 1px; }
+.more-list a { text-decoration: none; }
+/* the rows on Me (Road Ready 04) grow with the iPhone text size; the More sheet's own list does not use these */
+.pf-rows .pf-row { font-size: var(--type-body, 17px); }
+.pf-rows .pf-row small { font-size: var(--type-footnote, 13px); }
+.more-ic { width: 40px; height: 40px; display: grid; place-items: center; flex: none; position: relative; }
+.more-ic .dotmark { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--card); }
 .more-ic svg { width: 22px; height: 22px; }
 
 /* ---- Coming soon (Tour, Charts, Band) ---- */
@@ -4814,3 +4821,44 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root[data-ax="3"] .rr-pips { display: none; }
 
 @media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }
+
+/* ---- Road Ready 04: the tab bar. Five tabs in a floating grille-cloth bar with a chrome edge (spec 5.2). Only the two Road Ready looks;
+   Green Room and Headliner keep their flat bar, with the same five tabs, icons and labels. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) {
+  --tab-h: 64px; --tabs: calc(var(--tab-h) + var(--safe-b) + 16px); /* the page's bottom inset: the bar, the safe area and 16 px */
+}
+:root:is([data-look="neon"], [data-look="festival"])[data-ax="1"] { --tab-h: 74px; }
+/* the light bar's weave is finer and paler than the dark one (the shared --mesh is tuned for dark; its average tone stays --rr-mesh) */
+:root[data-look="festival"] { --mesh: repeating-linear-gradient(45deg, rgba(70, 52, 30, .13) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, .45) 0 1px, transparent 1px 3px), var(--rr-mesh); }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax="3"] { --tab-h: 60px; }
+:root:is([data-look="neon"], [data-look="festival"]) body.tabbed #tabs {
+  left: max(8px, var(--safe-l)); right: max(8px, var(--safe-r)); bottom: calc(8px + var(--safe-b)); height: var(--tab-h);
+  padding: var(--chrome-pipe-w); gap: 0; justify-content: space-between; border: 0; border-radius: var(--r-strip);
+  background: var(--mesh); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+/* the chrome piping: a ring cut out of a chrome fill, the same as the header strip */
+:root:is([data-look="neon"], [data-look="festival"]) #tabs::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--chrome-pipe-w); background: var(--chrome-pipe); pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a {
+  height: 100%; max-width: none; min-width: 0; min-height: 44px; padding: 0 0 7px; border: 0; border-radius: 12px; background: none; color: var(--rr-tab-off);
+}
+/* current: amber (the darker amber text colour in the light look), the icon tinted in, and a 3 by 24 px underline, so colour is never the only signal */
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] { background: none; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-fill { fill: currentColor; fill-opacity: .28; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"]::after {
+  content: ""; position: absolute; left: 50%; bottom: 4px; width: 24px; height: 3px; margin-left: -12px; border-radius: 2px; background: currentColor;
+}
+:root:is([data-look="neon"], [data-look="festival"]) #tabs .dotmark { top: 5px; box-shadow: 0 0 0 2px var(--rr-mesh); }
+/* large text: the labels grow with the text size (capped at 16 px so five fit), and from AX3 they hide and the icons grow; each tab keeps its name for a screen reader */
+:root[data-ax="3"] #tabs .tb-l { display: none; }
+:root[data-ax="3"] #tabs .tb-ic { width: 32px; height: 32px; }
+:root[data-ax="3"] #tabs a { padding-bottom: 6px; }
+
+/* Road Ready 04: the Songbook is a tab, so its search and Add bar rides above the tab bar, and the list scrolls clear of both (while searching the bar is at the top, as before) */
+body.tabbed:not(.searching):not(.is-home) .dock { bottom: calc(var(--tabs) + 6px); }
+body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) + 6px + 52px + 24px); }
+
+/* Road Ready 04: the Settings gear on Me is a full 44 px target in every look */
+:root[data-look] .ib.pf-gear { width: 44px; height: 44px; }

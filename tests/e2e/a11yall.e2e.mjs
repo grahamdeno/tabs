@@ -32,7 +32,7 @@ const SCREENS = [
   ["merch", "#/merch"], ["merch item", "#/merch", p => p.click(".mc-fin[data-id=tweed]")],
   ["charts", "#/charts"], ["tour", "#/tour"], ["band", "#/band"], ["profile", "#/you"], ["map", "#/playmap"],
   ["practice", "#/practice"], ["settings", "#/settings"], ["settings: playing", "#/settings/playing"], ["settings: look", "#/settings/look"],
-  ["more", "#/", p => p.click("#tabs [data-tab=more]")],
+  ["tuner from me", "#/you", p => p.click("#pf-r-tune")],
   ["set", "#/set/s"], ["trash", "#/trash"], ["gestures", "#/gestures"],
   ["show complete", "#/song/g", async p => { await p.click("#play"); await p.waitForSelector(".gc", { timeout: 40000 }); await p.waitForFunction(() => !document.querySelector(".co"), null, { timeout: 15000 }).catch(() => {}); }]
 ];

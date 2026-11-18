@@ -7,6 +7,8 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 - 2026-11-17: **Road Ready replaces the two free looks.** Dark (data-look `neon`) becomes Road Ready dark. Light (data-look `festival`) becomes Road Ready light. Green Room and Headliner stay on the Merch table as they are. Look ids, prices and kinds are unchanged; only the names and the look change.
 - 2026-11-17, step 02 (the Road): **fans and streak stay on the Road**, as an incentive: a Fans pill in the header that shows the streak while there is one (never a 0 or a lost streak). **No tuner on the Road**: you tune where you play (More and the song screen). **Louie's one line stays.** **The book button (Rehearse) goes**, since Rehearse is a tab.
 - 2026-11-17, after the step 03 review: **Louie has hands with fingers, navy like his arms**, not mittens (replaces the mitten rule). No hand ever shows one finger standing straight up, since it reads as the middle finger (4.39.1). **Louie is Grok's painted art at every size**; the code drawing stays as a fallback. **Sleepy is redrawn by Grok** (it read as bored).
+- 2026-11-17, step 04 (the tab bar): **Option A, five tabs** in this order: Road (`#/`), Songbook (`#/library`), Rehearse (`#/practice`), Tour (`#/tour`), Me (`#/you`). The More sheet goes away from the tab bar. Charts, Your band, the Merch table, the Tuner and Support Louie become plain rows at the top of Me's list, and Settings becomes a gear button at the top right of Me. `#/band`, `#/charts`, `#/merch`, `#/support` and `#/settings` stay as pages with a back button.
+- 2026-11-17, step 04 (the tuner): **the tuner stays on the song screen, and there is a Tuner row on Me.** There is no Tune button on the Road. The Road header from step 02 stays as it is. The "not tuned lately" dot moves from the More tab to the Me tab and to the Tuner row.
 
 ## Branches
 
@@ -41,6 +43,10 @@ Built on `rr-02-road` (Opus): the header strip, pearl inlays in four states, the
 ### Step 03 status
 
 Built on `rr-03-louie` (Opus): Louie redrawn as Road Ready in `louie.js`, with the same `louie(mood, { pose, size })`. One mouth on the yellow panel, a plain grille, mittens, no cheeks, a locked palette in every look and a warm rim on the dark looks. The guitarist keeps the old hands through `GUITARIST_HANDS`. Surprises 30 to 39 below.
+
+### Step 04 status
+
+Built on `rr-04-tabs` (Opus, with Sonnet's fixes): five tabs, Road, Songbook, Rehearse, Tour and Me, in a grille-cloth bar; the More sheet's places are rows on Me. Surprises 49 to 59 below.
 
 ## Surprises
 
@@ -107,6 +113,20 @@ Found in the review of step 03 (2026-11-17, a separate conversation, Claude Opus
 47. **The existing cheer art (`louie-cheer-*.webp`) has fists with knuckle lines.** Not fingers, but closer to them than a mitten. Worth redrawing with plain mittens in the same Grok pass.
 48. **Checked, nothing to fix:** `mittenOf()` output is byte-identical to `road-ready` for all six hands in two skin sets (12 of 12); the profile avatar and a sheet of guitarists in every pose are pixel-identical at 3x; Green Room and Headliner match `road-ready` on eight screens each with Louie hidden (the only differences are the per-run rival numbers and a timing dot); the tuner's electric head reads the looks' own `--lv-*`, which this step leaves alone; the gradient and pattern ids from the counter can't collide, on a page or in one picture (each id is the unique counter plus a fixed last letter); two Louies decoded as pictures side by side draw correctly; `overflow: visible` put nothing over a neighbour on six screens in Dark and Light.
 
+Found while building step 04.
+
+49. **`openMore()` has no caller now.** The More sheet's function stays in `hud.js` as asked, unused. A later clean-up can remove it.
+50. **The Songbook's search bar sat under the new tab bar.** As a tab, the Songbook shows the bar, and its fixed search and Add bar was covered (eight existing tests caught it). **Fixed:** on tab pages other than the Road, that bar rides above the tab bar and the list has room under both. A new test checks it.
+51. **Charts and Band had no back button.** They were tabs. Each now has a back button that returns to Me (or to the page you came from). Settings, Merch and Support go back to Me when there is no history, where they went to the Road before.
+52. **Me still has "Back to the Road" at the top left.** Me is a tab now, so that button is redundant. Left for step 08, which restyles Me.
+53. **The Settings gear needed its own size rule.** The look's `.ib.glass` rule made it 40 px. It is 44 by 44 in every look.
+54. **The light grille cloth is paler than the dark one.** The shared `--mesh` was tuned for dark and looked heavy on cream next to r10-02. The light look gets a finer, paler weave over the same `--rr-mesh` tone. Only the tab bar uses `--mesh`.
+55. **Tests moved to the new path, same checks.** `app3.e2e.mjs` "The Road is home (4.0.0, Green Room)": Charts and Your band are reached from Me, and Settings from the gear on Me, in place of the tabs and More. `app3.e2e.mjs` "4.14.0 the Merch table": opens Me in place of More; the check that the Merch table was not in More (More is gone) became a check that it is a row on Me; Charts is reached from Me. `support.e2e.mjs` "4.39.0 Support The Road": opens from Me, and is lit under Me in place of More.
+56. **Copy that said More.** Settings ("your Tour Map (in More)") now says "open it from your venue on Me". Comments in `road.js`, `merch.js` and `support.js`, the README and `docs/ONBOARDING.md` say where things are now.
+57. **Against r10.** The r10 bar is a little taller and its labels look smaller than the spec's 13 px minimum; the labels here are 13 px (they grow to 16 px at large text). The Road icon's bending road reads less clearly than on r8-15. Worth a look on the phone.
+58. **Louie.** Not moved in this step, so the warm-rim rule did not come up. Graham's answer that Louie has navy hands with fingers is for step 03b; `louie.js` is untouched here.
+59. **Another session's commit is on this branch.** `fdf933f` ("Move the Louie small-size check sheet out of art", from the step 03b session) was pushed to `rr-04-tabs` before this step's first push. It only moves `art/louie/v2/louie-v2-small-check.png` to `docs/road-ready/images/`. Step 04 was rebased on top of it rather than force-pushed over it, so it comes into `road-ready` with this PR. Its message also mentions a CLAUDE.md change that isn't in the commit.
+
 Found while building step 03b (2026-11-17, Claude Opus 5.5).
 
 60. **Sleepy was redrawn during the build.** Grok's new sleepy (rr-03-louie-art commit `1bec4c2`: eyes closed in soft arcs, a small yawn) landed while this step was being built, and it is the one used.
@@ -117,3 +137,12 @@ Found while building step 03b (2026-11-17, Claude Opus 5.5).
 65. **Louie is bigger in the same frame.** The art fills the frame that the code drawing used, so the size, viewBox and layout are unchanged, but the posed Louies (whose frame was wide to fit the old arms) are drawn much larger. Checked on Road, Band, Tour, Rehearse, Merch, Support and Show complete in Dark and Light at 3x: nothing clipped and no new overlaps.
 66. **Each Louie carries both pictures.** The SVG holds the light and the dark picture and CSS shows one, so the first time a pose is drawn both are fetched (about 100 KB a pose), then they are cached. The offline copy grows by about 0.95 MB (18 pictures).
 67. **Changed tests:** `core.test.mjs` "4.39.1 Louie's hands" is back to the checks it had before step 03 (the thumb on the side of the fist, the curled-finger creases) on Louie's own hand, plus the same on the guitarist; "every mood and pose has exactly one mouth" allows the new crease class `lv-mit-l` on the hands; "mittens with no fingers" is replaced by "hands with fingers in navy, the same shapes as the guitarist's" (same no-cheek and signature checks); the Reduce Motion rule check now includes the art. `louie.e2e.mjs` shows the code drawing before measuring it, and the per-hand count is now exact for each pose (it was "a mitten and a thumb lobe"). No check of the hard rules (one mouth, plain grille, no cheeks, locked palette, rim) was removed or loosened.
+
+Found in the review of step 04 (2026-11-18, a separate conversation, Claude Opus 5.5).
+
+68. **CI's a11y pass still opened More.** Fixed in review: it checks the tuner from Me.
+69. **Tab labels overlapped at 320 px and at large text.** Fixed in review: the label size fits five tabs, with a test.
+70. **The Road icon read as a barcode at 28 px.** Fixed in review: redrawn as r8-15's fretboard with stops.
+71. **The Me rows did not grow with text size.** Fixed in review.
+72. **fdf933f's CLAUDE.md sentence was missing.** Fixed in review: added.
+73. **The Songbook's title and Sets button touch at 320 px.** This is not from step 04; left for step 07.

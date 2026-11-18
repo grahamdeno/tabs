@@ -58,7 +58,7 @@ function renderSettings() {
         </select>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (in More). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (open it from your venue on Me). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
     look: ["Look", `
     <div class="set-group glass">
       <div class="set">
@@ -224,7 +224,7 @@ function renderSettings() {
     <p class="foot s-ver" id="s-ver">Louie: Learn Guitar ${VERSION}</p>
     <div class="s-dock"><button class="btn primary" id="s-backup">${icon("cloud")}Back up now</button><span>Last backup ${esc(ago(s.lastBackup) || "never")}</span></div>`;
   }
-  document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/");
+  document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/you");
   app.querySelectorAll("[data-page]").forEach(b => b.onclick = () => go("#/settings/" + b.dataset.page));
   /* 4.36.0: one language for every song; switching asks first (german.js) */
   app.querySelectorAll(".s-lp [data-lang]").forEach(b => b.onclick = () => import(`./german.js?v=${VERSION}`).then(m => m.switchLang(b.dataset.lang, renderSettings)));
