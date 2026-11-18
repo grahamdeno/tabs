@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   update:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-24.04   # pinned: a new runner image changes fonts, and the references with it
     steps:
       - uses: actions/checkout@v4
