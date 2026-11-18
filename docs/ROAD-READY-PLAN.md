@@ -211,4 +211,5 @@ Found in the review of step 06 (2026-11-18, a separate conversation, Claude Opus
 
 109. **Two Surprises were numbered 100.** `rr-05-polish`'s note took 100 before step 06 was built. Fixed in review: step 06's are now 101 to 108.
 110. **The light picture in `rr-06/show-complete.png` was out of date.** It showed the Stars tile in the old blue, which the code no longer draws (the Road Ready card wins). Fixed in review: the light panel is remade from the branch as it is.
+111. **Not from step 06, found in review: a page error can end "Road Ready 02: every stop and header control ...".** Under load, once in two `quick.mjs` runs, the page threw `getComputedStyle ... parameter 1 is not of type 'Element'` after the test visited the Tour Map and went back. Most likely `fit()` in `playmap.js` (line 220) running after the map page is gone, so `.tm-page` is null. It passes alone. Not fixed here; add to the flaky list in 95. "Sing it" (95) also failed once in the same run and passed alone.
 
