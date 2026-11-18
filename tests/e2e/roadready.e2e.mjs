@@ -68,7 +68,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
 
     /* tolex ground: the grain is there, and the average stays the base colour */
     const bg = await page.evaluate(() => { const c = getComputedStyle(document.body); return { img: c.backgroundImage, col: c.backgroundColor }; });
-    assert.match(bg.img, /data:image\/svg\+xml/, "the tolex grain is on the body");
+    assert.match(bg.img, /art\/surfaces\/tolex-(dark|cream)\.webp/, "the tolex bitmap tile is on the body");
     assert.equal(bg.col, `rgb(${rgb.join(", ")})`, "under the grain is the base colour");
     const mean = await meanColour(page);
     for (let i = 0; i < 3; i++) assert.ok(Math.abs(mean[i] - rgb[i]) <= (label === "Dark" ? 4 : 5), `average ${["red", "green", "blue"][i]} ${mean[i].toFixed(1)} should stay near ${rgb[i]}`);
@@ -254,7 +254,7 @@ for (const [label, theme, file] of [["dark", "dark", "louie-peek-dark.webp"], ["
     /* the strip is tolex inside chrome piping, 8 px from the screen edges */
     const strip = await page.evaluate(() => { const h = document.querySelector(".rr-hdr"), r = h.getBoundingClientRect(), c = getComputedStyle(h), p = getComputedStyle(h, "::before"); return { l: r.left, r: innerWidth - r.right, bg: c.backgroundImage, radius: c.borderTopLeftRadius, pipe: p.backgroundImage }; });
     assert.equal(Math.round(strip.l), 8); assert.equal(Math.round(strip.r), 8); assert.equal(strip.radius, "18px");
-    assert.match(strip.bg, /data:image\/svg\+xml/, "tolex"); assert.match(strip.pipe, /linear-gradient/, "chrome piping");
+    assert.match(strip.bg, /art\/surfaces\/tolex-(dark|cream)\.webp/, "tolex"); assert.match(strip.pipe, /linear-gradient/, "chrome piping");
 
     /* the stops: done ones carry a check, the current one is the trapezoid with its number, the ones ahead are numbered */
     const cur = await page.evaluate(() => { const b = document.querySelector(".rd-node.cur"), a = b.querySelector(".rr-art").getBoundingClientRect(); return { n: b.querySelector(".rr-eng text")?.textContent, w: a.width, h: a.height, glow: !!b.querySelector(".rr-glow"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill }; });

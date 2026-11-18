@@ -2831,6 +2831,16 @@ test("4.87.0 every guitar is a picture: head, body and small picture saved for o
   }
 });
 
+test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes from bitmap tiles, all saved for offline", async () => {
+  const shell = read("sw.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  const fb = read("fretboard.js");
+  assert.match(fb, /switch: "cutaway-sunburst"/); assert.match(fb, /cutaway: "cutaway-sunburst"/);
+  assert.ok(PICS["cutaway-sunburst"], "the sunburst has numbers");
+  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-cream.webp"])) {
+    assert.ok(fs.existsSync(path.join(root, f)), f); assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`); assert.ok(fs.statSync(path.join(root, f)).size <= 60000, `${f} is small`);
+  }
+});
+
 test("4.88.0: trumpet came out; what it saved is cleared on load", () => {
   const d = C.migrate({ songs: [{ id: "a", body: "G", tpMel: { v: 1, lines: [] }, tpEar: true, tpHardSeen: true }], settings: { v: 6, instrument: "trumpet", tpLevel: "two", tpPart: "hits" } });
   assert.equal(d.settings.instrument, undefined); assert.equal(d.settings.tpLevel, undefined); assert.equal(d.settings.tpPart, undefined);
