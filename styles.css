@@ -4922,6 +4922,15 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* Graham, 2026-11-18: no crowd row and no section pill in the Road Ready looks, so the words fill the screen. The run
    counter and the NOW chord card stay. The crowd still counts for fans; only the drawing goes. */
 :root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-status, .gg-sec) { display: none; }
+/* Road Ready 05 polish (Surprise 83, Graham 2026-11-18): the amber bar marks the line you're on, so while playing there
+   is no section-coloured band behind it and no stage light. Paused keeps its quiet band on the line you stopped on.
+   The run chip and the NOW card take the Road Ready colours instead of the old pink and yellow. */
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.held) .sheet > .st-now::before { content: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .st-bg { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-top .gg-combo { color: var(--rr-amber-text); background: var(--rr-card); border: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-shape { background: var(--rr-card); border: 1px solid var(--rr-hairline); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-shape small { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-shape b { color: var(--rr-text); }
 /* large text (AX1 and up): only the line you're on and the next one or two */
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-past,
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-next ~ :is(.pr, .ly, .crow) ~ * { visibility: hidden; }

@@ -262,7 +262,9 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   });
   assert.ok((await page.evaluate(() => window.__w)).every(x => x === "800"), "4.61.1: lines are measured at 800 even while staged");
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
-  assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light ends above the reading line");
+  /* Road Ready 05 polish: this test's look is Road Ready, where the amber bar marks the line and there is no stage light;
+     Green Room's stage light is checked in "Green Room keeps the show as it was" */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("st-bg")).display), "none", "no stage light in Road Ready");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
   /* 4.66.0: no X: Pause, then the page's own Back leaves the show */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
@@ -567,9 +569,34 @@ test("Road Ready 05: Green Room keeps the show as it was (no title, no progress 
   assert.ok(r.pause < 60, "Pause stays at the left");
   assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "the crowd keeps its own row");
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.getElementById("gg-sec")).display), "none", "and the section pill");
+  assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && getComputedStyle(b.parentElement).display !== "none" && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light, ending above the reading line");
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "and the section band behind the line");
   /* review fix: no first-run hint in Green Room, and the one-time hint is still unused for the Road Ready looks */
   await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
   await page.waitForTimeout(500); /* real timer: the hint would show on the same tick as idle */
   assert.equal(await page.locator("#gg-hint").count(), 0, "no hint in Green Room");
   assert.notEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.playHint), true, "the hint isn't used up");
+});
+
+for (const theme of ["dark", "light"]) test(`Road Ready 05 polish (${theme}): no band behind the line or stage light while playing, and the run chip and NOW card in Road Ready colours`, { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr(theme), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("body.staged:not(.held) #sheet > .st-now");
+  const r = await page.evaluate(() => {
+    const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), probe = document.createElement("i");
+    document.body.append(probe); const rgb = v => { probe.style.color = v; return getComputedStyle(probe).color; };
+    const out = { band: getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content, light: getComputedStyle(document.getElementById("st-bg")).display,
+      amber: rgb(css("--rr-amber-text")), card: rgb(css("--rr-card")), hair: rgb(css("--rr-hairline")) };
+    const combo = document.getElementById("gg-combo"); combo.textContent = "3 in a row";
+    const shape = document.getElementById("gg-shape"); shape.hidden = false; shape.innerHTML = "<small>NOW</small><b>F</b>";
+    const c = getComputedStyle(combo), s = getComputedStyle(shape);
+    Object.assign(out, { comboInk: c.color, comboBg: c.backgroundColor, shapeBg: s.backgroundColor, shapeEdge: s.borderTopColor, shapeLabel: getComputedStyle(shape.querySelector("small")).color });
+    probe.remove(); return out;
+  });
+  assert.equal(r.band, "none", "no section-coloured band behind the line you're on (the amber bar marks it)");
+  assert.equal(r.light, "none", "no stage light");
+  assert.equal(r.comboInk, r.amber, "the run chip's text is amber"); assert.equal(r.comboBg, r.card, "on the Road Ready card");
+  assert.equal(r.shapeBg, r.card, "the NOW card is the Road Ready card"); assert.equal(r.shapeEdge, r.hair, "with a hairline edge");
+  assert.equal(r.shapeLabel, r.amber, "and an amber NOW");
+  await page.keyboard.press("Shift"); await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "paused keeps the quiet band on the line you stopped on");
 });
