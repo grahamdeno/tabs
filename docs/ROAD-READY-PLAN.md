@@ -67,7 +67,7 @@ Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the
 
 ### Step 08 status
 
-Built on `rr-08-me` (Sonnet): Me in Road Ready dark and light (player header with the level bar, three tiles, the guitar case with the Merch row, Milestones as plates, five rows, then Support the app on its own). Green Room and Headliner keep the earlier page. Waiting for Opus's review. Surprises 133 to 144.
+Built on `rr-08-me` (Sonnet): Me in Road Ready dark and light (player header with the level bar, three tiles, the guitar case with the Merch row, Milestones as plates, five rows, then Support the app on its own). Green Room and Headliner keep the earlier page. Surprises 133 to 144. Reviewed (Claude Opus 5.5, Louie Product, 2026-11-18): pass, no fixes; decisions on 136 to 144 and two small notes below (145, 146). Waiting for Graham's merge go.
 
 Merged into `road-ready` on Graham's go, 2026-11-18: PR #97 at `a90fb77` (CI test and browser passed), merge commit `15cfd87`. Reviewed by Claude Fable 5.2 (pass with fixes).
 
@@ -265,3 +265,15 @@ Found in the independent review of step 07 (2026-11-18, Claude Fable 5.2). The f
 142. **A Back to the Road button is shown, which r10-06 does not have.** Kept so the page still has its way back; it is now 44 px (Surprise 52).
 143. **The 44 px Back button rule applies in every look**, so Green Room and Headliner grow it from 36 to 44 px. Tested in Green Room.
 144. **The road-ready branch's CLAUDE.md lacks the step 0 block** and still says to push to main. It will come in when road-ready takes `next`; nothing in this step relies on it.
+
+Found in the review of step 08 (2026-11-18, Claude Opus 5.5, Louie Product). Decided in review:
+
+- **136:** keep "Your profile". A player name is a new stored field, so it is its own item if Graham wants one.
+- **137, 139, 140:** accepted as built (leg names, "N of 26", Help opens Settings, Help).
+- **138:** accepted. Every number is still on Me, and the streak no longer sits in a tile of its own, which suits the no-guilt rule.
+- **141:** accepted for now. Painted case-rack art, if wanted, goes to Grok with step 09's guitar art.
+- **142, 143:** keep the Back button, and keep 44 px in every look (the inclusive design rule).
+- **144:** `road-ready` takes `next` (which has the step 0 block) in its own PR before step 09, on Graham's merge go. It deploys nothing.
+
+145. **The Milestones card is a grid of eight plates with "All 26 milestones", where r10-06 has one compact row.** Kept: it shows more and nothing clips. Revisit with Graham at the preview if Me feels long.
+146. **Two small notes, not fixed:** each guitar in the case is an `li` with `role="img"`, which replaces the list item for screen readers (the names still read); the coin on the Merch row stays 16 px at large text while the words grow. Neither blocks the merge.
