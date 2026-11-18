@@ -73,6 +73,42 @@ Merged into `road-ready` on Graham's go, 2026-11-18: PR #99 at `0d374f4` (CI tes
 
 Merged into `road-ready` on Graham's go, 2026-11-18: PR #97 at `a90fb77` (CI test and browser passed), merge commit `15cfd87`. Reviewed by Claude Fable 5.2 (pass with fixes).
 
+### Step 09 sub-plan (Opus, Louie Product, 2026-11-18; waiting for Graham's go)
+
+Graham's answer, 2026-11-18: **keep every Merch item as it works today** (gear, Louie's finishes, backdrops, hats, looks); the builder is a new section of the Merch table. Nothing is removed, hidden or repriced.
+
+**How guitars are earned does not change.** Each leg of the Road still earns one guitar when its headline show is done (`guitarsEarned`, `data.guitars.seen`). Only the guitar each leg gives changes, to the spec's bodies (r10-11), every one with our rounded 3+3 headstock and no logos.
+
+| Leg guitar (id) | Today | Becomes (spec body) | Why this one |
+|---|---|---|---|
+| `open` | The beater (parlor) | **Porch** (parlor) | Same shape |
+| `switch` | The cutaway (acoustic cutaway) | **Cornerstone** (dreadnought) | The spec's second acoustic |
+| `scales` | The solid-body | **Club Slab** | The spec's first electric |
+| `strum` | The hollow-body | **Hollow Hill** (semi-hollow) | Same family |
+| `pick` | The single-cut | **Swing** (offset) | The next electric in the spec's order |
+| `finger` | The classical (slotted, sideways tuners) | **Koa Arc** (acoustic with sound ports) | Fingerstyle acoustic; the classical's slotted head breaks the 3+3 rule |
+| `encore` | The headliner (swallow) | **Comet** | The spec's headline guitar |
+
+The other five spec bodies (Big Sky, Tin Roof, Low Road, Pocket, Wingtip) are extra bodies bought in the builder. They are 9c, after this release.
+
+**Unlocks by venue.** The spec names a Corner Pub, which the game doesn't have (`VENUES`: Garage, Open mic, Coffeehouse, Club, Theater, Arena, Stadium, Festival headliner). Mapped in order: Stock is free with every guitar; **Shop opens at Coffeehouse**; **Custom and Print guards at Club**; **Flame tops at Theater** (Figured koa only on the Koa Arc). Prices are the spec's (section 8): Shop $25 to $45, Custom $60 to $90, Print guards $35, Flame tops $120. A show pays about $10 to $40 in tips today, close to the spec's $30.
+
+**Stored data (new, nothing converted).**
+- `data.builds`: one entry per guitar you've earned, by leg id: `{ paint, flame, guard, wear, metal, long }`. Missing means the guitar's stock build, so old saves and backups load unchanged. `cleanBuilds()` keeps only known ids and values.
+- A part is bought once and is then free on every guitar. Bought parts go in `data.merch.has` with ids prefixed `b-` (for example `b-leopard`), next to the looks already there. Tips are charged with the existing `merchBuy` path.
+- `docs/DATA.md` gets both. Unit tests: an old save with no `builds` loads; a bad entry is dropped; a locked part can't be bought; a bought part costs nothing the second time.
+
+**Art (Grok paints, Claude cuts and wires).**
+- 9a: seven whole guitars in their stock finish, upright on flat magenta (#FF00FF), in the same format as `docs/guitars/pics/cutaway-sunburst.jpg`, plus a headstock close-up each. `tools/guitars/pics.py` makes the head, body and small pictures as today.
+- 9b: for the builder, per body, three cut-out layers that line up exactly with the whole picture: the paint area, the pickguard shape and the hardware. Code tints the paint and hardware, fills the guard with the swatch, and lays the flame and wear textures inside the paint area. Plus the swatch textures (pearloid, tortoise, mirror, marble, five prints, four flames, two wear levels) and coiled string ends.
+
+**Steps.**
+- **9a [Opus]: new guitars.** The seven bodies and the rounded headstock on the Road neck, Show complete, the case and Me. Names change on screen (Porch, Cornerstone, Club Slab, Hollow Hill, Swing, Koa Arc, Comet); ids and saves don't.
+- **9b [Opus]: the builder.** A Build your guitar section on the Merch table, as r10-19: case showcase, chips, swatches, wear, metal, Leave strings long, Save to case with the running total. The guitar on the Road and in the case shows its build.
+- **9c (next release): the five extra bodies.**
+
+Each of 9a and 9b is its own PR into `road-ready`, reviewed by Louie Review (Fable), on Graham's merge go.
+
 ## Surprises
 
 Found while building step 01. Each needs a decision or a look from Opus or Graham.
