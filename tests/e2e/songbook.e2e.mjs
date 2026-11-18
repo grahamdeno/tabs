@@ -70,6 +70,8 @@ test("Road Ready 07: Green Room and Headliner keep the earlier Songbook (no Road
     const page = await songbook(t, theme);
     const got = await page.evaluate(() => ({ rr: document.querySelectorAll("#app [class*='rr-']").length, sets: !!document.querySelector(".head #setsbtn.sets-btn"), add: !!document.querySelector(".dock .cmd #add.cmd-add"), badge: !!document.querySelector(".rr-badge"), tuner: !!document.querySelector(".head #tunerbtn"), st: document.querySelector('#list .row[data-id="k"] .st')?.textContent }));
     assert.deepEqual(got, { rr: 0, sets: true, add: true, badge: false, tuner: true, st: "Nailed it" }, theme);
+    /* and its Tuner button still opens the tuner */
+    await page.click("#tunerbtn"); await page.waitForSelector("#tn-say", { state: "attached" });
   }
 });
 
