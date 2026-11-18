@@ -69,8 +69,8 @@ export function statNotices() {
    marked tb-fill are tinted in when the tab is current (the icon sheet's "active = fill + amber"). No lamps, gauges or picks. */
 const ICON = body => `<svg class="tb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 const TABS = [
-  /* Road: a short fretboard (two frets, three strings) with a road bending through it */
-  ["road", "#/", "Road", ICON(`<path class="tb-fill" d="M7.5 2.5h9l1.5 19H6z"/><path d="M6.9 8.5h10.2M6.4 15h11.2"/><path stroke-width="1.1" d="M10.2 3v18M12 3v18M13.8 3v18"/><path d="M12 4.5c-3 3 3 5.5 0 8.5s2.5 4.5 0 7"/><circle cx="12" cy="13" r="1.1" fill="currentColor" stroke="none"/>`)],
+  /* Road: a short fretboard (two frets) with a zigzag road joining three stops, as in the icon sheet's "Fretboard + stops" */
+  ["road", "#/", "Road", ICON(`<path class="tb-fill" d="M7.5 2.5h9l1.5 19H6z"/><path d="M6.9 8.5h10.2M6.4 15h11.2"/><path d="M14.2 5.6L9.8 11.8l4.4 6.6"/><circle cx="14.2" cy="5.6" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.2" cy="18.4" r="1.3" fill="currentColor" stroke="none"/>`)],
   /* Songbook: an open book with a music note on the right page */
   ["songbook", "#/library", "Songbook", ICON(`<path class="tb-fill" d="M12 6.6C9.8 5 6.8 4.6 3.4 5v13.2c3.4-.4 6.4 0 8.6 1.6 2.2-1.6 5.2-2 8.6-1.6V5c-3.4-.4-6.4 0-8.6 1.6z"/><path d="M12 6.6v13.2"/><circle cx="15.2" cy="14.2" r="1.5" fill="currentColor" stroke="none"/><path d="M16.7 14.2V9.2l2.3.7"/>`)],
   /* Rehearse: a metronome, a trapezoid body with the arm leaning */
