@@ -5078,3 +5078,61 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd input::placeholder { color: var(--rr-text-2); opacity: 1; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd > svg { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-can { white-space: nowrap; }
+
+/* ---- Road Ready 08: Me (spec 5.8, r10-06). Dark and Light only; Green Room and Headliner keep the earlier page. ---- */
+/* the way back to the Road is a full 44 px target in every look (Surprise 52) */
+:root[data-look] .ib.pf-back { width: 44px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me { display: flex; flex-direction: column; gap: 12px; padding: 0 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-avatar { flex: none; width: 80px; height: 80px; padding: 0; border-radius: 50%; border: 3px solid #D9CBB0; background: var(--rr-card); box-shadow: 0 0 0 2px var(--rr-outline); overflow: hidden; display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-avatar svg { width: 100%; height: 100%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-who { min-width: 0; flex: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-name { margin: 0; font: var(--type-title-w) var(--type-title) / 1.15 "Space Grotesk", var(--display); color: var(--rr-text); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-venue { display: block; min-height: 44px; padding: 0; margin: 0; background: none; border: 0; text-align: left; font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level { margin-top: -6px; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rr-outline); overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 14px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b { font: 700 var(--type-title) / 1.1 "Space Grotesk", var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b span { font: var(--type-footnote-w) var(--type-footnote) var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 var(--sans); color: var(--rr-text-2); }
+:root[data-ax="1"]:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { grid-template-columns: 1fr; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 16px; padding: 14px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h h2 { margin: 0; font: 700 var(--type-headline) / 1.2 "Space Grotesk", var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h span { font: var(--type-subhead-w) var(--type-subhead) var(--sans); color: var(--rr-text-2); }
+/* the open case: a dark shell, orange plush with a soft glow inside; the guitars stand upright, headstocks up, at one height */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case { padding: 8px; border-radius: 10px; background: #2A1810; border: 2px solid #0E0806; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-in { list-style: none; margin: 0; padding: 12px 10px 10px; display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; overflow-x: auto; border-radius: 6px; min-height: 150px; background: radial-gradient(rgba(255, 205, 130, .2) 1px, transparent 1.3px) 0 0 / 6px 6px, radial-gradient(120% 90% at 50% 10%, #E27A2A 0%, #B9531B 55%, #7A300E 100%); box-shadow: inset 0 0 28px rgba(255, 150, 60, .4); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gtr { flex: none; min-width: 44px; min-height: 44px; display: flex; align-items: flex-end; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gtr img { display: block; height: 176px; width: auto; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-empty { align-self: center; margin: 12px auto; padding: 10px 12px; border-radius: 8px; background: #1E1008; text-align: center; color: #FFF3E0; font: var(--type-callout-w) var(--type-callout) / 1.35 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid var(--rr-amber-text); border-radius: 12px; color: var(--rr-amber-text); text-decoration: none; font: 600 var(--type-callout) / 1.3 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { flex: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-coinic svg { width: 24px; height: 24px; display: block; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch .chev, :root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { width: 20px; height: 20px; flex: none; }
+/* Milestones: small engraved plates */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles { padding-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-label { margin: 8px 2px; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-label span + span { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge { background: linear-gradient(#F6EAD2, #D6C4A4); border: 1.5px solid #8C7858; box-shadow: none; color: #281E14; border-radius: 10px; min-height: 56px; padding: 8px 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge b { font: 700 var(--type-callout) / 1.1 "Space Grotesk", var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge small { font: 600 var(--type-caption) / 1.2 var(--sans); letter-spacing: .04em; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge.locked { background: transparent; border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); }
+/* the list of rows: 52 px or taller, icon, label, chevron */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-rows { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; min-height: 52px; padding: 6px 14px; background: none; border: 0; border-radius: 0; box-shadow: none; text-align: left; text-decoration: none; color: var(--rr-text); font: var(--type-body-w) var(--type-body) / 1.3 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row + .rr-row { border-top: 1px solid var(--rr-outline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .more-ic { background: none; color: var(--rr-text-2); width: 32px; height: 32px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row-t { flex: 1; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row-t small { display: block; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-badge { width: 32px; height: 32px; border-radius: 50%; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-support-h { margin: 12px 2px 0; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-facts { margin: 8px 2px; font: var(--type-subhead-w) var(--type-subhead) var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-facts b { color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badges { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-miles .pf-badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge { min-width: 0; }

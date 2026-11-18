@@ -35,8 +35,8 @@ test("4.85.0 Skip keeps the default and doesn't ask again", { skip: skip() }, as
 
 test("4.85.0 your profile card shows your guitarist; the maker changes it and saves as you tap", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: { skin: 4, hair: "locs", hairCol: "purple", top: "teal" } }, { home: true });
-  await page.waitForSelector("#rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".pf-player");
-  assert.equal(await page.locator('.pf-pc-lou svg[aria-label="Your guitarist"]').count(), 1);
+  await page.waitForSelector("#rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".rr-me");
+  assert.equal(await page.locator('.rr-avatar svg[aria-label="Your guitarist"]').count(), 1); /* Road Ready 08: the avatar in the header */
   await page.click("#pf-me"); await page.waitForSelector(".gm");
   assert.equal(await page.locator(".gm button[aria-pressed]").count() > 20, true, "every choice is a pressed-state button");
   await page.click('.gm [data-k="hair"][data-v="pixie"]');
@@ -46,7 +46,7 @@ test("4.85.0 your profile card shows your guitarist; the maker changes it and sa
   await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.lefty && m.beard === "stubble"; });
   assert.equal(await page.locator(".gm .gm-prev svg").getAttribute("aria-label"), "Your guitarist");
   assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 3, "the three hats are locked until bought");
-  await page.click("#gm-ok"); await page.waitForSelector(".pf-player");
+  await page.click("#gm-ok"); await page.waitForSelector(".rr-me");
   assert.equal(await page.locator(".gm").count(), 0);
 });
 

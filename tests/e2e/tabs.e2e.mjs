@@ -74,15 +74,17 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
   }
   /* the rows grow with the text size: no clipping and at least 44 tall at --sys-px 33px, and the sizes come from the tokens */
   await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-band"); await settled(page);
-  const size = () => page.$$eval(".pf-rows .pf-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: parseFloat(getComputedStyle(r).fontSize), small: parseFloat(getComputedStyle(r.querySelector("small")).fontSize),
+  /* Road Ready 08: Me's rows are in two cards (the list and Support the app); a row has a small line only when it has something to add */
+  const size = () => page.$$eval(".rr-me .rr-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: parseFloat(getComputedStyle(r).fontSize), small: r.querySelector("small") ? parseFloat(getComputedStyle(r.querySelector("small")).fontSize) : 0,
     clip: r.scrollWidth > r.clientWidth + 1 || r.scrollHeight > r.clientHeight + 1 })));
   const normal = await size();
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
   await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
   const large = await size();
-  assert.equal(large.length, 5, "five rows");
+  assert.deepEqual(large.map(r => r.id).filter(id => id !== "pf-share"), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-r-help", "pf-r-support"], "band, charts, tuner, help and support (and Share only once something is played)");
   for (let i = 0; i < large.length; i++) {
-    assert.ok(large[i].name > normal[i].name && large[i].small > normal[i].small, `${large[i].id}: the text grows (${normal[i].name}/${normal[i].small} to ${large[i].name}/${large[i].small})`);
+    assert.ok(large[i].name > normal[i].name && large[i].small >= normal[i].small, `${large[i].id}: the text grows (${normal[i].name}/${normal[i].small} to ${large[i].name}/${large[i].small})`);
+    if (normal[i].small) assert.ok(large[i].small > normal[i].small, `${large[i].id}: the small line grows too`);
     assert.ok(large[i].h >= 44 && !large[i].clip, `${large[i].id}: ${Math.round(large[i].h)} tall and nothing clips at large text`);
   }
 });
