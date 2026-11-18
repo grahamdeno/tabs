@@ -593,6 +593,14 @@ test("importing a backup: a real export comes back the same", () => {
   assert.equal(out.data.settings.theme, "light");
 });
 
+test("Road Ready 07: a backup holding all three mastery levels comes back the same, and old values are not converted", () => {
+  const data = C.migrate({ songs: ["learning", "solid", "got"].map((status, i) => ({ id: "m" + i, title: "Tune " + i, artist: "Made Up Band", format: "chords", body: "[Verse]\nG C", status })), sets: [], trash: [], settings: {} });
+  const out = C.cleanImport(JSON.parse(C.Tabs.export(data)));
+  assert.equal(out.skipped, 0);
+  assert.deepEqual(out.data.songs.map(s => s.status), ["learning", "solid", "got"]);
+  assert.deepEqual(out.data.songs, data.songs);
+});
+
 test("importing a backup: rejects files that aren't backups", () => {
   for (const x of [null, 3, "x", [], {}, { songs: "no" }]) assert.equal(C.cleanImport(x), null);
   assert.equal(C.Tabs.import("not json"), null);

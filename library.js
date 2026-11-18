@@ -266,7 +266,7 @@ export function bindShelf() {
   app.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => go("#/set/" + encodeURIComponent(b.dataset.sh)));
 }
 
-export const STATUS = { learning: "Learning", got: "Got it" };
+export const STATUS = { learning: "Learning", solid: "Solid", got: "Nailed it" };
 const SORTS = { title: "A–Z", artist: "Artist", recent: "Recently played", most: "Most played" };
 // A lyric that matched the search, with the matching words marked.
 function lyricHit(line, q) {

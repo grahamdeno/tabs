@@ -173,7 +173,7 @@ async function shareCard(p) {
   let y = 610;
   const lines = [
     p.streak > 1 && [`${p.streak}-day streak`, p.best > p.streak ? `best ${p.best}` : ""],
-    p.firsts[0] && [p.firsts[0].kind === "chord" ? `First ${p.firsts[0].name}` : `Got it: ${p.firsts[0].name}`, shortDay(p.firsts[0].at)],
+    p.firsts[0] && [p.firsts[0].kind === "chord" ? `First ${p.firsts[0].name}` : `Nailed it: ${p.firsts[0].name}`, shortDay(p.firsts[0].at)],
     p.changes[0] && [`${p.changes[0].a} to ${p.changes[0].b}`, `my most played change`],
     p.keys[0] && [`Mostly in ${p.keys[0].key}`, p.tempo.avg ? `${Math.round(p.tempo.avg)} BPM on average` : ""]
   ].filter(Boolean).slice(0, 3);

@@ -234,7 +234,7 @@ function renderViewer(id) {
   });
   // One menu for everything about this song: text size, sets, edit, AI help, share, practice.
   app.querySelectorAll(".more").forEach(btn => btn.onclick = e => { e.stopPropagation(); songMenu(song, btn, draw); });
-  // Learning status: tap to cycle none → Learning → Got it.
+  // Mastery: tap to cycle none, Learning, Solid, Nailed it (stored "got"), then none again.
   const paintStat = () => {
     const st = $("stat");
     const wk = playsThisWeek(song);
@@ -246,11 +246,11 @@ function renderViewer(id) {
   $("meta").onclick = () => openAbout(song);
   bindCover(song);
   $("stat").onclick = () => {
-    song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
+    song.status = { undefined: "learning", learning: "solid", solid: "got" }[song.status];
     if (!song.status) delete song.status;
     if (song.status === "got") journalGot(data, song);
     Tabs.save(data); paintStat(); paintLoop(song);
-    toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
+    toast(STATUS[song.status] || "Status cleared", $("stat"));
   };
   curPaintStat = paintStat;
   const step2 = d => { const x = data.sets.find(z => z.id === setCtx.id), list = setSongs(x), n = list[setCtx.idx + d]; if (!n) return; setSetCtx({ id: x.id, idx: setCtx.idx + d }); go("#/song/" + encodeURIComponent(n.id)); };

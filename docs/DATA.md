@@ -69,8 +69,8 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `deLevel` | 0 to 4 | Off, Basic, Common, Intermediate, Fluent for this song |
 | `tone` | object | Spark tone result |
 | `sketch` | object | Made with Sing it: `{ v: 1, key, style: "simple" \| "rich", feel: "simple" \| "folk" \| "ballad" (4.74.0, how Your song strums), lines: [{ n: [[midi, start, length], ...] }] }`, the sung melody per line (seconds, to 0.01), for restyling and chord suggestions. Older sketches may hold `true` |
-| `status` | `"learning"` or `"got"` | Learning status |
-| `gotAt` | ISO date | When the song was marked Got it, for Repertoire on Your playing (2.42.0) |
+| `status` | `"learning"`, `"solid"` or `"got"` | Mastery (Road Ready 07): Learning, Solid, Nailed it. `"got"` is shown as Nailed it; the stored values never change, so older saves and backups read the same. Solid (new) counts as neither Learning nor Nailed it wherever the app looks at status |
+| `gotAt` | ISO date | When the song was marked Nailed it (stored `"got"`), for Repertoire on Your playing (2.42.0) |
 | `playLog` | `{ total, last, days: { "YYYY-MM-DD": n } }` | Last 60 days of counts |
 | `spots` | `"placed"`, `"guess"` or `"mine"` (4.41.0) | How the chords got over the words: `placed` where the chord sites have them (the AI answered with line and word positions); `guess` spread over the lines by the phone (two a line), which is lined up once from the chord sites when the song is next opened with an AI key, and whose changes the Gig never counts as misses; `mine` after you edit the sheet, never lined up again. Missing on older songs: one added by Get the song (`ai: "chart"`) whose sheet looks like the guess counts as `guess` |
 | `spotsTried` | time | The last time lining it up didn't work; it's tried again a week later |
