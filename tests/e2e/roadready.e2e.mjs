@@ -70,7 +70,10 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     const bg = await page.evaluate(() => { const c = getComputedStyle(document.body); return { img: c.backgroundImage, col: c.backgroundColor }; });
     assert.match(bg.img, /art\/surfaces\/tolex-(dark|cream)\.webp/, "the tolex bitmap tile is on the body");
     assert.equal(bg.col, `rgb(${rgb.join(", ")})`, "under the grain is the base colour");
+    /* the page's own cards are hidden while the ground is measured (the Songbook's cards filled this band from step 07) */
+    await page.evaluate(() => { document.getElementById("app").style.visibility = "hidden"; });
     const mean = await meanColour(page);
+    await page.evaluate(() => { document.getElementById("app").style.visibility = ""; });
     for (let i = 0; i < 3; i++) assert.ok(Math.abs(mean[i] - rgb[i]) <= (label === "Dark" ? 4 : 5), `average ${["red", "green", "blue"][i]} ${mean[i].toFixed(1)} should stay near ${rgb[i]}`);
 
     /* the plate button (primary) and the capsule (secondary) */

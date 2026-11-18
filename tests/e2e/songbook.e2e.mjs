@@ -140,3 +140,13 @@ for (const theme of ["dark", "light"]) test(`Road Ready 07 (${theme}): the Songb
   const tile = await page.evaluate(() => getComputedStyle(document.querySelector('#list .row[data-id="b"] .rr-tile')).getPropertyValue("--tile"));
   assert.match(tile, /^#[0-9A-F]{6}$/i, "a row with no art gets its initials on a colour");
 });
+
+test("Road Ready 07: an empty Songbook still draws (the ways to add), and Sets is there when sets exist with no songs", { skip: skip() }, async t => {
+  const page = await phone(t, libWith("dark", { songs: [] }));
+  await page.waitForSelector("#list .empty"); await settled(page);
+  assert.equal(await page.$("#setsbtn"), null, "no songs and no sets: no Sets chip");
+  const withSet = await phone(t, libWith("dark", { songs: [], sets: [{ id: "s1", name: "Friday", songIds: [] }] }));
+  await withSet.waitForSelector("#setsbtn"); await settled(withSet);
+  await withSet.click("#setsbtn");
+  await withSet.waitForSelector("#setsbtn.on[aria-pressed='true']"); /* with no songs the list still asks for one, as in the earlier Songbook */
+});
