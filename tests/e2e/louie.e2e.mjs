@@ -60,7 +60,8 @@ test("Road Ready 03: every mood with every pose at every size has one mouth on t
     assert.deepEqual(l.onGrille, [], `${l.at}: nothing on the grille but cloth, weave and its frame`);
     assert.deepEqual(l.cloth3, ["lv-cloth:rgb(24, 45, 71)/none/1px", "lv-weave:none/rgb(42, 68, 102)/0.9px", "lv-weave:none/rgb(42, 68, 102)/1.3px", "lv-cloth-sh:none/rgb(0, 0, 0)/3px"], `${l.at}: the cloth, the weave, the faint circle and the inner shadow, and nothing else in their classes`);
     assert.equal(l.cheeks, 0, `${l.at}: no cheeks, lamp or tongue`);
-    assert.ok(l.pose ? l.fingers >= 2 && l.fingers <= 4 : l.fingers === 0, `${l.at}: two hands, each a lit hand and at most one lit thumb`);
+    /* each hand is one lit shape, plus a lit thumb laid across it for the fist, horns and peace (the guitarist's shapes) */
+    assert.equal(l.fingers, { none: 0, rest: 4, hornsUp: 4, thumb: 3, point: 3, wave: 3, peace: 4 }[l.pose || "none"], `${l.at}: two hands, each a lit hand and its thumb`);
     assert.equal(l.cuffs, l.pose ? 2 : 0, `${l.at}: cuffs stay`);
     assert.equal(Math.round(l.width), l.size, `${l.at}: drawn at the size asked for`);
     assert.deepEqual([l.role, l.label], ["img", "Louie"]);
