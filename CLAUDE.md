@@ -2,7 +2,7 @@
 
 ## Playbook
 
-This repo follows Graham's product playbook: **grahamdeno/playbook, version 1.2.0**. Read it before product work:
+This repo follows Graham's product playbook: **grahamdeno/playbook, version 1.3.0**. Read it before product work:
 process.md (stages, gates, the three go-aheads), roles.md, rules.md, items.md, and the standard for the stage you're
 in. If the playbook isn't attached to this session, attach it (add_repo grahamdeno/playbook); don't work from memory.
 The roadmap (docs/roadmap.md) and the Sonnet log (docs/sonnet-log.md) arrive with the full playbook move.
@@ -27,7 +27,7 @@ Anything below changes something live. Check this list before every merge, push 
 | Trigger | What it does | Go-ahead needed |
 |---|---|---|
 | Any merge or push to `main` | GitHub Pages deploys the live app | Ship |
-| Running `screens.yml` or `vendor-bp.yml` | Commits to the branch it runs on; both refuse to run on `main` | Merge go for the branch it commits to |
+| Running `screens.yml` or `vendor-bp.yml`, or a push to a `strum-*` branch that edits `vendor-bp.yml` | Commits to the branch it runs on; both refuse to run on `main` | Merge go for the branch it commits to |
 | Deploying `worker/musickit-token.js`, `worker/booth.js` or `worker/youtube.js` (Wrangler or the Cloudflare dashboard) | Changes a live Worker | Ship |
 | Setting or changing a Worker secret (MusicKit key, GitHub key, booth code, YouTube key) | Changes what the live Workers use | Graham's go; Grok does it |
 | The live booth Worker | Writes recordings to the public `booth` branch | Changing it needs Graham's go |
@@ -228,7 +228,7 @@ Branch deletions go to Grok.
 For a clean-up or a multi-release job, Opus writes a plan file (like
 docs/history/AUDIT-PLAN.md) with numbered steps, each marked [Sonnet] or [Opus] and
 any decisions Graham needs to make listed up top. Whoever runs a step: one
-task per commit, `eslint .` and `node tests/quick.mjs`, bump the patch at the
-end of a step that changes app files, push the step's branch and open a PR. When something doesn't
+task per commit, `eslint .` and `node tests/quick.mjs`, then push the step's branch
+and open a PR. Steps don't bump the version; the one bump happens on `next` before Graham tests. When something doesn't
 match the plan, stop that task and write it under "Surprises" in the plan
 file. Tell Graham which model the next step wants. Don't use Haiku.
