@@ -9,12 +9,13 @@
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
 import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
-import { chordSVG, data, go } from "./app.js";
+import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie } from "./louie.js";
 import { you } from "./guitarist.js";
 import { makerSheet } from "./maker.js";
 import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
 import { friend } from "./friends.js";
+import { paintTabs, tabFor } from "./hud.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const shortDay = d => { const [y, m, dd] = String(d).split("-"); return y && m ? `${MONTHS[+m - 1]} ${+dd || ""}${y !== String(new Date().getFullYear()) ? `, ${y}` : ""}`.replace(" ,", ",") : ""; };
@@ -90,13 +91,27 @@ export function renderProfile() {
     <button class="pf-band" id="pf-band" aria-label="Your band: ${band.joined.length} of ${band.members.length} joined. Open the Band tab">${band.joined.slice(-4).map(f => friend(f.id, { size: 52 })).join("")}${band.joined.length < band.members.length ? `<span class="pf-band-more">+${band.members.length - band.joined.length}</span>` : ""}</button>`;
   const fr = friendsOf(data).filter(f => f.w + f.l > 0).slice(0, 3);
   const duelCard = fr.length ? `<div class="pf-label"><span>SONG DUELS</span></div>${fr.map(f => `<div class="pf-duel"><div><b>You and ${esc(f.name)}</b>${f.last ? `<small>Last: ${esc(f.last.title)}</small>` : ""}</div><span><b class="${f.w >= f.l ? "up" : ""}">${f.w}</b> – <b class="${f.l > f.w ? "up" : ""}">${f.l}</b></span></div>`).join("")}` : "";
+  /* Road Ready 04: the places that were on the More sheet and the Charts and Band tabs. Plain rows for now (the Me page is restyled in step 08). */
+  const row = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span>${name}<small>${sub}</small></span></${href ? "a" : "button"}>`;
+  const meRows = `<nav class="more-list pf-rows" aria-label="Your places">
+      ${row("pf-r-band", "amp", "Your band", `${band.joined.length} of ${band.members.length} joined`, "#/band")}
+      ${row("pf-r-charts", "star", "Charts and duets", "The weekly chart, rivals and song duels", "#/charts")}
+      ${row("pf-r-merch", "shirt", "Merch table", "Gear, finishes and backdrops", "#/merch")}
+      ${row("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
+      ${row("pf-r-support", "heart", "Support Louie", "If you like the app, chip in on Ko-fi", "#/support")}
+    </nav>`;
   app.innerHTML = `
-    <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button></div>
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
     <h1 class="title" style="margin:14px 2px 2px">Your profile</h1>
-    ${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
+    ${meRows}${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
   document.getElementById("back").onclick = () => go("#/");
+  document.getElementById("pf-r-tune").onclick = () => openTuner("standard", () => {
+    if (route().name !== "you") return;
+    renderProfile(); /* the dot on the Tuner row and on the Me tab clears */
+    paintTabs(tabFor("you"));
+  });
   document.getElementById("pf-map")?.addEventListener("click", () => go("#/playmap"));
   document.getElementById("pf-me")?.addEventListener("click", () => makerSheet({ mode: "full", done: () => renderProfile() }));
   document.getElementById("pf-band")?.addEventListener("click", () => go("#/band"));

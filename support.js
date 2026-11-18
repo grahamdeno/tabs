@@ -1,4 +1,4 @@
-// Support The Road (4.39.0, #/support, from More): a thank-you from Louie and a way to chip in on Ko-fi.
+// Support The Road (4.39.0, #/support, from the Support Louie row on Me): a thank-you from Louie and a way to chip in on Ko-fi.
 // Nothing in the app depends on it: everything stays free and nothing unlocks. Payments happen on Ko-fi,
 // never in the app. At App Store launch the Ko-fi link gives way to an in-app tip jar (Apple asks for
 // in-app purchase for tips), so the link lives in one place: SUPPORT_URL.
@@ -22,7 +22,7 @@ export function renderSupport() {
     </div>
     <p class="foot sp-foot">Ko-fi takes a card, Apple Pay or PayPal, with no account needed. The payment happens on Ko-fi, never in the app.</p>
   </div>`;
-  document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/");
+  document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/you");
   document.getElementById("sp-kofi").addEventListener("click", () => toast("Thank you. Louie says so too."));
   document.getElementById("sp-share").onclick = async () => {
     const msg = { title: "Louie: Learn Guitar", text: "A guitar app that turns practice into a tour.", url: APP_URL };

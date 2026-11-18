@@ -398,20 +398,22 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.click("#libback"); await page.waitForSelector(".rd-path");
   await page.click("#rd-search"); await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
-  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0); Your band (4.7.0); More reaches Settings; the current stop's Start opens its lesson */
+  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0) and Your band (4.7.0), from Me since Road Ready 04; the gear on Me reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
   await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
   assert.match(await page.innerText(".tq-req"), /REQUEST LINE[\s\S]*asked for/);
   assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the Friend quest");
-  await page.click("#tabs [data-tab=charts]"); await page.waitForSelector(".ch-head");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-charts"); await settled(page);
+  await page.click("#pf-r-charts"); await page.waitForSelector(".ch-head");
   assert.match(await page.innerText(".ch-head"), /Garage Chart/, "4.6.0: Charts start at the Garage");
   assert.equal(await page.locator(".ch-row").count(), 10);
   assert.match(await page.innerText(".ch-row.you"), /You[\s\S]*\d+ XP/, "your XP this week (4.11.0: with what you did today)");
   await page.click("#ch-go"); await page.waitForSelector(".bt");
   assert.match(await page.innerText(".bt"), /wants your spot[\s\S]*TAKE THE STAGE/);
   await page.click("#bt-no"); await page.waitForSelector(".ch-head");
-  await page.click("#tabs [data-tab=band]"); await page.waitForSelector(".bd-head");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-band"); await settled(page);
+  await page.click("#pf-r-band"); await page.waitForSelector(".bd-head");
   const joined = +(await page.innerText(".bd-head")).match(/(\d+) OF 27 JOINED/)[1];
   assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
   assert.equal(await page.locator(".bd-card.locked").count(), 27 - joined);
@@ -419,7 +421,8 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-node.now");
   await page.click(".rd-node.now"); await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
-  await page.click("#tabs [data-tab=more]"); await page.click("#m-set"); await page.waitForFunction(() => location.hash === "#/settings");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-set"); await settled(page);
+  await page.click("#pf-set"); await page.waitForFunction(() => location.hash === "#/settings");
   await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
 });
 
@@ -514,10 +517,9 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   await page.click(".mc-fin[data-id=gold]"); await page.waitForSelector(".mt-sheet");
   assert.match(await page.innerText(".mt-acts"), /MORE IN TIPS TO GO/i, "can't afford Gold top yet");
   await page.click("#mt-not");
-  await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-lib");
-  assert.equal(await page.locator("#m-merch").count(), 0, "4.16.2: the Merch table opens from the stat bar (4.70.0: the tips), not More");
-  await page.click("#more-x");
-  await page.click("#tabs [data-tab=charts]"); await page.waitForSelector("#ch-take");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-charts"); await settled(page);
+  assert.equal(await page.getAttribute("#pf-r-merch", "href"), "#/merch", "Road Ready 04: the Merch table is a row on Me (More is gone; 4.16.2's stat bar way in stays)");
+  await page.click("#pf-r-charts"); await page.waitForSelector("#ch-take");
   await page.click("#ch-take"); await page.waitForSelector(".bt");
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).charts.battle.result, null, { timeout: 3000 });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));

@@ -1,6 +1,6 @@
 // The Merch table (4.14.0; 4.70.0 paid in tips): spend the tips your shows earned. Gear is used up (Rain check, Double set,
 // Second take); Louie's finishes and stage backdrops are kept and you pick which is on. Opened by
-// tapping your tips in the stat bar, from More, and from Show complete when you can afford something.
+// tapping your tips in the stat bar, from the Merch table row on Me, and from Show complete when you can afford something.
 // The numbers (prices, what you have, buying) are MERCH and friends in core.js.
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
@@ -80,7 +80,7 @@ export function renderMerch() {
     <div class="mc-row scroll">${of("look").map(look).join("")}</div>
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
-  document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/");
+  document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/you");
   app.querySelectorAll(".mc [data-id]").forEach(b => b.onclick = () => tryOn(b.dataset.id));
 }
 

@@ -109,6 +109,20 @@ Found in the review of step 03 (2026-11-17, a separate conversation, Claude Opus
 47. **The existing cheer art (`louie-cheer-*.webp`) has fists with knuckle lines.** Not fingers, but closer to them than a mitten. Worth redrawing with plain mittens in the same Grok pass.
 48. **Checked, nothing to fix:** `mittenOf()` output is byte-identical to `road-ready` for all six hands in two skin sets (12 of 12); the profile avatar and a sheet of guitarists in every pose are pixel-identical at 3x; Green Room and Headliner match `road-ready` on eight screens each with Louie hidden (the only differences are the per-run rival numbers and a timing dot); the tuner's electric head reads the looks' own `--lv-*`, which this step leaves alone; the gradient and pattern ids from the counter can't collide, on a page or in one picture (each id is the unique counter plus a fixed last letter); two Louies decoded as pictures side by side draw correctly; `overflow: visible` put nothing over a neighbour on six screens in Dark and Light.
 
+Found while building step 04.
+
+49. **`openMore()` has no caller now.** The More sheet's function stays in `hud.js` as asked, unused. A later clean-up can remove it.
+50. **The Songbook's search bar sat under the new tab bar.** As a tab, the Songbook shows the bar, and its fixed search and Add bar was covered (eight existing tests caught it). **Fixed:** on tab pages other than the Road, that bar rides above the tab bar and the list has room under both. A new test checks it.
+51. **Charts and Band had no back button.** They were tabs. Each now has a back button that returns to Me (or to the page you came from). Settings, Merch and Support go back to Me when there is no history, where they went to the Road before.
+52. **Me still has "Back to the Road" at the top left.** Me is a tab now, so that button is redundant. Left for step 08, which restyles Me.
+53. **The Settings gear needed its own size rule.** The look's `.ib.glass` rule made it 40 px. It is 44 by 44 in every look.
+54. **The light grille cloth is paler than the dark one.** The shared `--mesh` was tuned for dark and looked heavy on cream next to r10-02. The light look gets a finer, paler weave over the same `--rr-mesh` tone. Only the tab bar uses `--mesh`.
+55. **Tests moved to the new path, same checks.** `app3.e2e.mjs` "The Road is home (4.0.0, Green Room)": Charts and Your band are reached from Me, and Settings from the gear on Me, in place of the tabs and More. `app3.e2e.mjs` "4.14.0 the Merch table": opens Me in place of More; the check that the Merch table was not in More (More is gone) became a check that it is a row on Me; Charts is reached from Me. `support.e2e.mjs` "4.39.0 Support The Road": opens from Me, and is lit under Me in place of More.
+56. **Copy that said More.** Settings ("your Tour Map (in More)") now says "open it from your venue on Me". Comments in `road.js`, `merch.js` and `support.js`, the README and `docs/ONBOARDING.md` say where things are now.
+57. **Against r10.** The r10 bar is a little taller and its labels look smaller than the spec's 13 px minimum; the labels here are 13 px (they grow to 16 px at large text). The Road icon's bending road reads less clearly than on r8-15. Worth a look on the phone.
+58. **Louie.** Not moved in this step, so the warm-rim rule did not come up. Graham's answer that Louie has navy hands with fingers is for step 03b; `louie.js` is untouched here.
+59. **Another session's commit is on this branch.** `fdf933f` ("Move the Louie small-size check sheet out of art", from the step 03b session) was pushed to `rr-04-tabs` before this step's first push. It only moves `art/louie/v2/louie-v2-small-check.png` to `docs/road-ready/images/`. Step 04 was rebased on top of it rather than force-pushed over it, so it comes into `road-ready` with this PR. Its message also mentions a CLAUDE.md change that isn't in the commit.
+
 Found while building step 03b (2026-11-17, Claude Opus 5.5).
 
 60. **Sleepy was redrawn during the build.** Grok's new sleepy (rr-03-louie-art commit `1bec4c2`: eyes closed in soft arcs, a small yawn) landed while this step was being built, and it is the one used.
