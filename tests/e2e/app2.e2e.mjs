@@ -318,9 +318,14 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right, left: r.left } : null; }, sel);
   const H = 844;
   assert.ok((await box("#chips")).top < H * 0.3, "filters at the top (2.6: moved back)");
-  assert.ok((await box("#tunerbtn")).top < 100, "tuner in the header (2.6: moved back)");
-  assert.ok(await page.evaluate(() => { const b = document.querySelector("#tunerbtn"), r = b.getBoundingClientRect(), i = b.querySelector("svg").getBoundingClientRect(); return Math.abs((i.top + i.bottom) / 2 - (r.top + r.bottom) / 2) < 2 && Math.abs((i.left + i.right) / 2 - (r.left + r.right) / 2) < 2; }), "the tuner icon is centered");
-  const dot = await page.evaluate(() => { const d = document.querySelector("#tunerbtn .dotmark"); return d && getComputedStyle(d).position; });
+  assert.ok((await box("#add")).top < 100, "Road Ready 07: Add in the header; the tuner is on Me and the song screen");
+  assert.equal(await page.locator("#tunerbtn").count(), 0, "Road Ready 07: no tuner in the Road Ready Songbook");
+  /* the earlier Songbook (Green Room, Headliner) keeps the tuner in its header */
+  const green = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } });
+  await green.waitForSelector("#tunerbtn");
+  assert.ok(await green.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "Green Room: tuner in the header (2.6: moved back)");
+  assert.ok(await green.evaluate(() => { const b = document.querySelector("#tunerbtn"), r = b.getBoundingClientRect(), i = b.querySelector("svg").getBoundingClientRect(); return Math.abs((i.top + i.bottom) / 2 - (r.top + r.bottom) / 2) < 2 && Math.abs((i.left + i.right) / 2 - (r.left + r.right) / 2) < 2; }), "the tuner icon is centered");
+  const dot = await green.evaluate(() => { const d = document.querySelector("#tunerbtn .dotmark"); return d && getComputedStyle(d).position; });
   if (dot) assert.equal(dot, "absolute", "the not-tuned dot sits in the corner");
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
   /* 4.2.0: one song screen. Back, the title and the heart at the top; Tools and a big Play at the bottom. */
@@ -340,8 +345,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const pad = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForSelector(".shead [data-go]");
   assert.ok(await pad.evaluate(() => document.querySelector(".shead [data-go]").getBoundingClientRect().top < 100), "iPad: back at the top");
-  await pad.goto(base + "#/library"); await pad.waitForSelector("#tunerbtn");
-  assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: tuner at the top");
+  await pad.goto(base + "#/library"); await pad.waitForSelector("#add");
+  assert.ok(await pad.evaluate(() => document.querySelector("#add").getBoundingClientRect().top < 100), "iPad: Add at the top (Road Ready 07; the tuner is on Me)");
 });
 
 test("2.1, 2.6.5 speed dial (4.2.0: Tools, then Speed): a wobble changes nothing; a sweep sets the length, saves, and Undo puts it back", { skip: skip() }, async t => {

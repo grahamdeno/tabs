@@ -11,6 +11,8 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 - 2026-11-17, step 04 (the tuner): **the tuner stays on the song screen, and there is a Tuner row on Me.** There is no Tune button on the Road. The Road header from step 02 stays as it is. The "not tuned lately" dot moves from the More tab to the Me tab and to the Tuner row.
 - 2026-11-18, step 05 (playing): **Pause only** on the show, no Speed or Loop (79). **The three line sizes (80) and lyrics snapping by line under Reduce Motion (81) wait for a later step of their own**, since both touch how the show reads where the song is. **No crowd row and no section pill** in the Road Ready looks, so the words fill the screen; **the NOW chord card and the run counter stay** (83).
 - 2026-11-18, step 06 (Show complete): **no backdrop on Show complete in Dark and Light.** Graham left the choice to Claude and noted that no one else has bought a backdrop yet. Green Room and Headliner keep the backdrop and Change; backdrop items and stored data are unchanged. Step 09 decides what backdrops become.
+- 2026-11-18, step 07 (the Songbook): **three mastery levels now**, Learning, Solid and Nailed it, while there are no users and it costs least. Solid is stored as a new value, `solid`; `learning` and `got` stay as they are, so nothing is converted and old backups load. Got it is called Nailed it everywhere it shows.
+- 2026-11-18, step 07 (Graham left these to Claude's judgement): **search stays at the bottom** of the Songbook, in thumb reach and where the Road's search sits (114). **No Tuner in the Road Ready Songbook**: you tune on the song screen and Me, as decided in step 04 (115). **Solid keeps the literal meanings**: Solid means you can play it through, so it plays at full speed and isn't in the Learning filter, set or Rehearse's Learning card (118). **"Nailed it" on Your profile stays** (119).
 
 ## Branches
 
@@ -57,6 +59,10 @@ Built on `rr-05-playing` (Opus): the playing screen in Road Ready dark and light
 ### Step 06 status
 
 Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and light (the guitar of the leg you are on with an amber glow and sparks, the cheering Louie, reward tiles, the next venue, Continue and Play it again, then the crowd, stars, the song you played and the list), and the new-guitar sheet as the guitar in an open case with chrome L corners. Green Room and Headliner keep both screens. Surprises 101 to 108.
+
+### Step 07 status
+
+Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the third mastery level and the Songbook in Road Ready dark and light (title with a round Add and no Tuner, capsule filters with Sets last, the Today strip in a banner with Louie's face badge, a card per song with an art tile, chord chips, a needs tag and mastery dots). Green Room and Headliner draw the earlier Songbook (pixel-identical with motion off). Reviewed (Claude Fable 5.2, 2026-11-18): pass with three small fixes, Surprises 126 to 132. Waiting for Graham's merge go.
 
 ## Surprises
 
@@ -215,3 +221,27 @@ Found in the review of step 06 (2026-11-18, a separate conversation, Claude Opus
 112. **The guitar on Show complete looked stubby.** `guitarSVG()` builds the neck from two fret spaces, which was fine for the small picture on the earlier new-guitar sheet but at full size gave a full body on half a neck. Fixed in review on Graham's go: `guitarSVG(id, { full: true })` gives a neck about 0.7 of the body, as on a real guitar (`neckStops` and `FULL_NECK` in `core/game.js`), used on Show complete and as the case's fallback when a guitar has no whole-guitar picture (the case itself now shows the whole-guitar picture, 105). The Road's necks and Green Room's sheet are unchanged. Tests: a unit test for the proportion on every guitar picture, and Show complete checks its guitar is at least 2.5 times as tall as wide. Show complete screenshots remade.
 113. **Show complete now shows the guitar's whole picture too** (Graham, 2026-11-18), the same `guitarPic()` picture the case sheet draws for a guitar without its own painted case (the beater, the cutaway and the solid have Grok's guitar-in-case paintings, `a7fc54a`); the full-neck drawing (112) is only the fallback for a guitar with no picture. The whole pictures have no strings or frets drawn, and at 642 px tall they are upscaled about 1.6 times on a 3x iPhone, so they may look a little soft; a larger export from Grok would fix that.
 
+Found while building step 07 (2026-11-18, Claude Opus 5.5).
+
+114. **Search stays at the bottom, not under the title as in r10-05.** The prompt asked that the search bar keep riding above the tab bar (Surprise 50), so it stays there, restyled. Add moved to the header as a round "+ Add" (as in r10-05), and the + inside the search bar is gone in Dark and Light. **Decided (Claude, on Graham's say-so): it stays at the bottom.**
+115. **The Tuner button stays in the Songbook header.** It is an existing control and the prompt says to keep every control, but Graham's step 04 answer puts the tuner on the song screen and Me. **Decided: it goes from the Road Ready Songbook** (Green Room and Headliner keep it in their earlier header). The tuner tests now open it from Me's Tuner row.
+116. **r10-05 shows an "Almost" filter and a "New" tag that the app doesn't have.** Neither was added (filter logic is out of scope). A song with no level shows no dots.
+117. **At 390 px the filters wrap to a second row** when Learning, Favorites and Sets all show (Sets alone on row two). Nothing is squeezed or hidden.
+118. **Where Solid lands.** Every place that reads status keeps its meaning, so Solid is neither Learning nor Nailed it: it leaves the Learning filter, the Learning set (`sets.js`), Rehearse's song picks (`practice.js`), the nudges (`core.js`), the Learning flags on changes (`core/game.js`) and the "learning" chords on Your playing (`core.js`); it counts as not yet Nailed it for "worth another try" (`library.js`, `core/playing.js`). **Practice mode is on by default only for Learning** (`practicing` in `core/neck.js`, `setPracticing` in `app.js`), so a song moved to Solid plays at full speed unless Practice mode was turned on for it. **Decided: keep it.** Solid means you can play it through.
+119. **"Got it" also showed on Your profile** ("Got it: song", the latest milestone). Changed to "Nailed it:" since Graham's answer said everywhere, though `profile.js` wasn't on the touch list. The listening booth's "Got it." means "heard you" and was left; a code comment in `core/playing.js` still says Got it. **Decided: keep "Nailed it:".**
+120. **The row tags changed shape.** CAN PLAY became "Can play" in the artist line, LEARNING became the dots, "+ F" became a "needs F" chip, and the key is plain text under the dots. The back button stays (r10-05 has none), since Sets and tests use it.
+121. **An empty Songbook stopped drawing** in Dark and Light (no songs meant no Sets capsule to bind). **Fixed** in this step, with a test.
+122. **The Road Ready 01 tolex test sampled a band of the Songbook** that now holds song cards. It now hides the page while it measures, so it reads only the ground.
+123. **At large text the search field's placeholder is cut off** ("Search or add a sor..."). Typed text scrolls as before. Not changed.
+124. **`docs/sonnet-log.md` isn't created.** Opus built this step, and the log is for Sonnet-built work.
+125. **"Add opens a blank song in the editor" timed out once in two `quick.mjs` runs** (it also timed out once in the step 02 review). It passes alone every time. Load in the sandbox, not this step.
+
+Found in the independent review of step 07 (2026-11-18, Claude Fable 5.2). The four decisions (114, 115, 118, 119) were carried out and the review agrees with each.
+
+126. **Only Sets said whether it was chosen.** The other Road Ready filters showed the chosen one by its fill alone, so a screen reader couldn't tell. **Fixed** (`d91e4fb`): each Dark and Light filter carries `aria-pressed`, with a test. Green Room and Headliner are unchanged (their filters never said it; not part of this step).
+127. **A tile was blank when album art couldn't load** (offline, an expired link, or a link the page's image rule blocks: only Apple's art host is allowed). **Fixed** (`55e5d08`): the art sits over the initials, so the initials show when it fails, with a test.
+128. **Nothing pressed the Songbook's Tuner button any more.** The tuner tests moved to Me, and the button's wiring changed in this step. **Fixed** (`093bbd6`): the Green Room and Headliner test presses it and the tuner opens.
+129. **Step 07 status still said the title has a Tuner.** It was written before decision 115. **Fixed** in this commit.
+130. **The tolex test is a little narrower.** With the page hidden it checks the ground itself, with the same tolerance, but it would no longer notice a page layer painted over the ground. Accepted: the test is about the ground, and the Songbook's cards now fill that band on purpose.
+131. **The iPad check no longer looks at the Tuner.** It checks Add at the top in Dark; the tuner's place in the Green Room header is checked on a phone only. Accepted.
+132. **Two tests failed once under load in the review's `quick.mjs` run** ("Sing it: one take split at a breath" and "Play together: a link"). Neither touches the Songbook, and both pass alone. The same kind of sandbox load as 125.

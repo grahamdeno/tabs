@@ -593,6 +593,14 @@ test("importing a backup: a real export comes back the same", () => {
   assert.equal(out.data.settings.theme, "light");
 });
 
+test("Road Ready 07: a backup holding all three mastery levels comes back the same, and old values are not converted", () => {
+  const data = C.migrate({ songs: ["learning", "solid", "got"].map((status, i) => ({ id: "m" + i, title: "Tune " + i, artist: "Made Up Band", format: "chords", body: "[Verse]\nG C", status })), sets: [], trash: [], settings: {} });
+  const out = C.cleanImport(JSON.parse(C.Tabs.export(data)));
+  assert.equal(out.skipped, 0);
+  assert.deepEqual(out.data.songs.map(s => s.status), ["learning", "solid", "got"]);
+  assert.deepEqual(out.data.songs, data.songs);
+});
+
 test("importing a backup: rejects files that aren't backups", () => {
   for (const x of [null, 3, "x", [], {}, { songs: "no" }]) assert.equal(C.cleanImport(x), null);
   assert.equal(C.Tabs.import("not json"), null);
@@ -2798,6 +2806,14 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
   assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
   assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
+});
+
+test("Road Ready 07: Louie's face badge is saved for offline, is the picture the Songbook shows, and is small", () => {
+  const file = "art/louie/louie-face-badge.webp";
+  assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
+  assert.ok(read("sw.js").includes(`"${file}"`), `${file} is saved for offline`);
+  assert.ok(read("library.js").includes(`src="${file}"`), `${file} is the picture the hint banner shows`);
+  assert.ok(fs.statSync(path.join(root, file)).size <= 20000, `${file} is small`);
 });
 
 test("Road Ready 02: Louie's two peeking pictures are saved for offline, and each is under 60 KB", () => {

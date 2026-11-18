@@ -292,8 +292,8 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   await page.evaluate(d => localStorage.setItem("tabs-v1", JSON.stringify(d)), { ...LIB, settings: { ...LIB.settings, tipsSeen: { ...LIB.settings.tipsSeen, tuner: true }, micExplained: true } });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await page.goto(base + "#/library"); await page.waitForSelector("#tunerbtn"); /* 4.0.0: the Road has no header; the Library does */
-  await page.click("#tunerbtn");
+  await page.goto(base + "#/you"); await page.waitForSelector("#pf-r-tune"); /* Road Ready 07: the tuner is on Me (and the song screen), not in the Songbook */
+  await page.click("#pf-r-tune");
   await page.waitForSelector('#tn-say');
   const read = () => page.evaluate(() => ({ note: document.getElementById("tn-n").textContent, say: document.getElementById("tn-say").textContent, tag: document.getElementById("tn-tag").textContent }));
   assert.equal((await read()).say, "Play the E string");
@@ -382,8 +382,8 @@ test("Tips & gestures (2.6.4): opens from Help, one-hand group first, no button-
 test("tuner: says why it needs the microphone before the phone asks", { skip: skip() }, async t => {
   const page = await phone(t);
   await page.evaluate(() => { navigator.mediaDevices.getUserMedia = () => new Promise(() => {}); });
-  await page.goto(base + "#/library"); await page.waitForSelector("#tunerbtn"); /* 4.0.0: the Road has no header; the Library does */
-  await page.click("#tunerbtn");
+  await page.goto(base + "#/you"); await page.waitForSelector("#pf-r-tune"); /* Road Ready 07: the tuner is on Me (and the song screen), not in the Songbook */
+  await page.click("#pf-r-tune");
   await page.waitForSelector('.tn-mic');
   assert.match(await page.locator(".tn-mic").innerText(), /Nothing is recorded or sent/);
   await page.click("#tn-allow");

@@ -2229,7 +2229,7 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
   border: 2px solid var(--rim); background: var(--card); color: var(--fg-2); box-shadow: 0 2px 0 var(--rim); font-family: var(--display); font-weight: 600; border-radius: 999px; }
 :root[data-look] .stat, :root[data-look] .keybtn { height: 30px; padding: 0 12px; font-size: 13.5px; }
 :root[data-look] .ed-chip { height: 36px; }
-:root[data-look] .chip.on, :root[data-look] #chips .chip.on, :root[data-look] .stat.learning, :root[data-look] .stat.on, :root[data-look] .stat.rec.on, :root[data-look] .pchip.on, :root[data-look] .keybtn, :root[data-look] .pf-first.big {
+:root[data-look] .chip.on, :root[data-look] #chips .chip.on, :root[data-look] .stat.learning, :root[data-look] .stat.solid, :root[data-look] .stat.on, :root[data-look] .stat.rec.on, :root[data-look] .pchip.on, :root[data-look] .keybtn, :root[data-look] .pf-first.big {
   border-color: var(--accent); background: var(--accent-soft); color: var(--fg); box-shadow: 0 2px 0 var(--accent-line); }
 :root[data-look] .keybtn b, :root[data-look] .ed-chip b, :root[data-look] .stat b { color: var(--fg); }
 :root[data-look] .stat.got { border-color: var(--good); background: var(--good-soft); color: var(--fg); box-shadow: 0 2px 0 var(--good-soft); }
@@ -5011,3 +5011,70 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-new { color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-title { color: var(--rr-text); font: 700 var(--type-title, 26px) / 1.15 "Space Grotesk", var(--display); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody :is(.sc-got, .sc-next) { color: var(--rr-text-2); }
+
+/* Road Ready 07: the Songbook (r10-05). Only the Dark and Light looks draw this markup (rrLook() in library.js), and
+   every rule is limited to those two looks, so Green Room and Headliner keep the earlier Songbook. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head { flex-wrap: wrap; gap: var(--sp-2); min-height: 52px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .head-l { gap: var(--sp-1); flex: 1 1 auto; }
+:root:is([data-look="neon"], [data-look="festival"]) .app:not(.viewer) .rr-sb-head .head-l .sh-btn { margin-right: 0; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .title { font: var(--type-title-w) min(var(--type-title), 8.2vw) / 1.15 var(--display); color: var(--rr-text); letter-spacing: -.01em; padding: 0; margin: 0; white-space: nowrap; text-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .row-btns { gap: var(--sp-2); margin-left: auto; align-items: flex-start; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-add { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 44px; padding: 0; border: 0; background: none; color: var(--rr-text); font: 600 var(--type-caption) / 1.2 var(--sans); cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-plus { width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--rr-text); display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-plus svg { width: 22px; height: 22px; stroke-width: 2.2; }
+
+/* the filter chips: capsules that wrap to a second row rather than squeeze; the chosen one filled amber */
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips { flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; background: none; border: 0; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; height: auto; padding: 6px 14px; border-radius: var(--r-chip); border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; font: var(--type-subhead-w) var(--type-subhead) / 1.2 var(--sans); text-transform: none; letter-spacing: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip::before { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip small { font: inherit; background: none; padding: 0; margin: 0; color: inherit; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip svg { width: 18px; height: 18px; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip.on { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
+
+/* the hint banner: Louie's face badge (the only Louie on this page) and the Today line */
+:root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { flex-direction: row; align-items: center; gap: var(--sp-3); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-control); border: 1px solid var(--accent-line); background: color-mix(in srgb, var(--rr-amber) 9%, var(--rr-card)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-badge { width: 44px; height: 44px; flex: none; border-radius: 50%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-hint-in { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-hint-chev { width: 16px; height: 16px; flex: none; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-i { height: auto; min-height: 44px; margin: 0; padding: 2px 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-i :is(.tdy-ic, .ng-ic) { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t :is(small, b, em) { opacity: 1; white-space: normal; overflow: visible; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-open { padding: 0 52px 0 0; gap: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t small { font: var(--type-caption-w) var(--type-caption) / 1.2 var(--sans); letter-spacing: var(--type-caption-ls); text-transform: uppercase; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 var(--sans); color: var(--rr-amber-text); white-space: normal; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t em { font: var(--type-subhead-w) var(--type-subhead) / 1.25 var(--sans); font-style: normal; color: var(--rr-text-2); white-space: normal; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-dots { justify-content: flex-start; margin: -10px 0 -12px -13px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-dot { width: 44px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .app:not(.viewer) .rr-sb-head .head-l .sh-btn { width: 44px; height: 44px; }
+
+/* the song rows: one card each */
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-row) { background: none; border: 0; box-shadow: none; border-radius: 0; overflow: visible; display: flex; flex-direction: column; gap: var(--sp-2); padding: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-row) .sw { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) .list .row.rr-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 16px; grid-template-areas: "tile txt side chev"; align-items: center; column-gap: var(--sp-3); min-height: 56px; box-sizing: border-box; padding: var(--sp-3); border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-tile { grid-area: tile; align-self: start; position: relative; width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: radial-gradient(circle at 78% 78%, #111 0 30%, transparent 31%), radial-gradient(circle at 78% 78%, rgba(0,0,0,.25) 0 46%, transparent 47%), var(--tile); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-tile b { position: absolute; left: 6px; top: 4px; font: 700 15px / 1.2 var(--display); color: #F6EEE0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-tile img { position: relative; width: 100%; height: 100%; object-fit: cover; display: block; } /* over the initials, which show if the art can't load */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .txt { grid-area: txt; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .t { font: var(--type-headline-w) var(--type-headline) / 1.25 var(--sans); color: var(--rr-text); white-space: normal; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .a { font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); margin: 0; white-space: normal; overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-cc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-cc i { font: 600 var(--type-footnote) / 1 var(--sans); font-style: normal; min-width: 28px; min-height: 28px; box-sizing: border-box; padding: 0 8px; border-radius: var(--r-chip); display: inline-grid; place-items: center; background: var(--rr-plate-top); border: 1px solid var(--rr-plate-edge); color: var(--rr-plate-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-cc i.rr-needs { background: var(--rr-amber); border-color: var(--rr-amber-text); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-side { grid-area: side; align-self: start; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots { display: flex; gap: 5px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots i { width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots i.on { background: var(--rr-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .heart { width: 16px; height: 16px; color: var(--rr-amber-text); fill: currentColor; margin: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .k { padding: 0; border: 0; background: none; min-width: 0; font: var(--type-footnote-w) var(--type-footnote) / 1.2 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { grid-area: chev; width: 16px; height: 16px; color: var(--rr-text-2); }
+/* large text: the dots and key move under the title, and the title wraps */
+:root[data-ax]:is([data-look="neon"], [data-look="festival"]) .list .row.rr-row { grid-template-columns: 44px minmax(0, 1fr) 16px; grid-template-areas: "tile txt chev" "tile side chev"; row-gap: var(--sp-2); }
+:root[data-ax]:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-side { flex-direction: row; align-items: center; justify-content: flex-start; padding-top: 0; }
+:root[data-ax]:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots i { width: 16px; height: 16px; }
+
+/* the search bar (it still rides above the tab bar, Surprise 50) */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd { background: var(--rr-card); border: 1.5px solid var(--rr-outline); border-radius: var(--r-control); box-shadow: none; color: var(--rr-text); min-height: 48px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd input { font: var(--type-body-w) var(--type-body) / 1.2 var(--sans); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd input::placeholder { color: var(--rr-text-2); opacity: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd > svg { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-can { white-space: nowrap; }
