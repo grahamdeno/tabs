@@ -18,7 +18,7 @@
 import { roadPath, venueNow, guitarFor, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave, haptic } from "./ui.js";
-import { guitarSVG } from "./fretboard.js";
+import { guitarSVG, guitarPic } from "./fretboard.js";
 import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
@@ -355,11 +355,12 @@ function showComplete() {
     ${tip ? `<button class="gc-merch" id="gc-merch">${tip.kind === "louie" ? `<span class="fin fin-${tip.id}">${louie("happy", { size: 46 })}</span>` : `<span class="gc-merch-ic" aria-hidden="true">${icon("shirt")}</span>`}<span><b>You can get ${esc(tip.kind === "louie" ? `${tip.name} Louie` : `the ${tip.name} backdrop`)}</b><small>$${tip.price.toLocaleString("en-US")} in tips at the merch table</small></span>${icon("chev", "chev")}</button>` : ""}
 `;
   if (rrLook()) {
-    /* Road Ready 06 (spec 5.6 to 5.8, r10-04): the guitar you played on stands alone with an amber glow and sparks, the
+    /* Road Ready 06 (spec 5.6 to 5.8, r10-04): the guitar you played on (its whole picture, as in the case on the Road;
+       the drawn guitar with a full-length neck if it has none) stands alone with an amber glow and sparks, the
        cheering Louie beside it, then the reward tiles, the next venue and the buttons; the details follow. No backdrop
        in these two looks (Graham, 2026-11-18); Green Room and Headliner keep the backdrop and Change below. */
     const legs = roadPath(data).legs, leg = legs.find(l => l.stops.some(x => x.state === "now")) || legs.filter(l => l.done).at(-1) || legs[0];
-    const gname = guitarFor(leg?.id).name, v = venueNow(data);
+    const gtr = guitarFor(leg?.id), gname = gtr.name, gpic = guitarPic(gtr.body), v = venueNow(data);
     const sparks = [[18, 62], [28, 30], [34, 78], [70, 24], [76, 58], [64, 82], [22, 44], [80, 38], [40, 18]].map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join("");
     g.el.innerHTML = `<div class="gc rr-sc">
     <p class="sc-over">${g.encore ? "ENCORE COMPLETE" : "SHOW COMPLETE"}</p>
@@ -367,7 +368,7 @@ function showComplete() {
     <p class="gc-s sc-sub">Start to finish.${whole ? " The crowd wants more." : ""}</p>
     <div class="sc-show glow" aria-hidden="true">
       <span class="sc-sparks">${sparks}</span>
-      <div class="sc-guitar">${guitarSVG(leg?.id || "open", { full: true })}</div>
+      <div class="sc-guitar">${gpic ? `<img src="${gpic}" alt="">` : guitarSVG(leg?.id || "open", { full: true })}</div>
       <span class="sc-label">${esc(gname)}</span>
       <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
     </div>

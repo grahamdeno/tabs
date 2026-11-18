@@ -610,10 +610,12 @@ test("Road Ready 06: Show complete has the overline, the song, the glowing guita
   assert.equal(await page.locator(".gc.rr-sc").count(), 1);
   assert.equal(await page.innerText(".sc-over"), "SHOW COMPLETE");
   assert.equal(await page.innerText(".sc-title"), "Short Road");
-  assert.equal(await page.locator(".sc-show.glow .sc-guitar svg.rd-gsvg").count(), 1, "the guitar you played on");
+  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/parlor-small\.webp/, "the guitar you played on, its whole picture as in the case");
   assert.equal(await page.innerText(".sc-label"), "The beater", "named after the leg you're on");
-  const vb = (await page.getAttribute(".sc-guitar svg", "viewBox")).split(" ").map(Number);
-  assert.ok(vb[3] / vb[2] >= 2.5, `a full-length neck, not a stubby one (${(vb[3] / vb[2]).toFixed(2)})`);
+  await page.waitForFunction(() => { const i = document.querySelector(".sc-guitar img"); return i.complete && i.naturalWidth > 0; });
+  const gr = await page.$eval(".sc-guitar img", i => i.complete && i.naturalWidth ? [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width, i.getBoundingClientRect().height] : null);
+  assert.ok(gr && gr[1] / gr[0] >= 2.5, "a whole guitar in its own proportions, not a stubby one");
+  assert.ok(Math.abs(gr[3] / gr[2] - gr[1] / gr[0]) < 0.05, "drawn without stretching");
   assert.equal(await page.getAttribute(".sc-show", "aria-hidden"), "true", "the picture, label and Louie are hidden from screen readers");
   assert.ok(await page.locator(".sc-show .sc-louie .louie").count() === 1, "the cheering Louie");
   /* the tiles: "+N fans" and "+$N tips", read as one sentence */
