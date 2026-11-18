@@ -10,6 +10,7 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 - 2026-11-17, step 04 (the tab bar): **Option A, five tabs** in this order: Road (`#/`), Songbook (`#/library`), Rehearse (`#/practice`), Tour (`#/tour`), Me (`#/you`). The More sheet goes away from the tab bar. Charts, Your band, the Merch table, the Tuner and Support Louie become plain rows at the top of Me's list, and Settings becomes a gear button at the top right of Me. `#/band`, `#/charts`, `#/merch`, `#/support` and `#/settings` stay as pages with a back button.
 - 2026-11-17, step 04 (the tuner): **the tuner stays on the song screen, and there is a Tuner row on Me.** There is no Tune button on the Road. The Road header from step 02 stays as it is. The "not tuned lately" dot moves from the More tab to the Me tab and to the Tuner row.
 - 2026-11-18, step 05 (playing): **Pause only** on the show, no Speed or Loop (79). **The three line sizes (80) and lyrics snapping by line under Reduce Motion (81) wait for a later step of their own**, since both touch how the show reads where the song is. **No crowd row and no section pill** in the Road Ready looks, so the words fill the screen; **the NOW chord card and the run counter stay** (83).
+- 2026-11-18, step 06 (Show complete): **no backdrop on Show complete in Dark and Light.** Graham left the choice to Claude and noted that no one else has bought a backdrop yet. Green Room and Headliner keep the backdrop and Change; backdrop items and stored data are unchanged. Step 09 decides what backdrops become.
 
 ## Branches
 
@@ -52,6 +53,10 @@ Built on `rr-04-tabs` (Opus, with Sonnet's fixes): five tabs, Road, Songbook, Re
 ### Step 05 status
 
 Built on `rr-05-playing` (Opus): the playing screen in Road Ready dark and light. The words on the plain base in the lyric colours, amber chords, the amber bar beside the line you're on, a 2 px progress line, the song's title at the top, Pause as a big amber button, the hiding made safe for keyboards, screen readers and switches, "Keep playing controls on screen" in Settings, and the first-run hint. Surprises 79 to 90 below; 79, 80, 81 and 83 need Graham.
+
+### Step 06 status
+
+Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and light (the guitar of the leg you are on with an amber glow and sparks, the cheering Louie, reward tiles, the next venue, Continue and Play it again, then the crowd, stars, the song you played and the list), and the new-guitar sheet as the guitar in an open case with chrome L corners. Green Room and Headliner keep both screens. Surprises 100 to 107.
 
 ## Surprises
 
@@ -190,3 +195,15 @@ Carried over from `rr-05-followup` (PR #94; renumbered from 91 and 92 when road-
 98. **Fixed in review: the first-run hint showed in Green Room and Headliner too,** and used up the one-time hint there. It now shows only in the Road Ready looks, in the plate tokens. The 5 s test allows for the test seeing the hint a moment after it shows (it failed once at 4961 ms under load).
 99. **After PR #90 merged** (before the review fix reached it), the fix and Graham's 2026-11-18 answers went on `rr-05-followup`. The crowd row and section pill are hidden with CSS only, so the crowd still counts and the tests that read it still work.
 100. **The rest of 83, on `rr-05-polish`** (built by Claude Opus 5.5 in the step 05 review conversation, so it needs another reviewer). In the Road Ready looks, while playing: no section-coloured band behind the line you're on (the amber bar marks it) and no stage light; paused keeps its quiet band. The run chip is amber text on the Road Ready card, and the NOW card is the Road Ready card with a hairline edge and an amber NOW, replacing the old pink, green and yellow. Green Room and Headliner are unchanged. Changed test: "4.51.0 one page" now checks there is no stage light in Road Ready; the stage light and band moved to "Green Room keeps the show as it was".
+
+Found while building step 06.
+
+100. **Step 06 was built by Opus in this chat**, not Sonnet as the plan says: Graham said go here.
+101. **A guitar is never earned on Show complete.** The headline show is a skill check in Rehearse, not a song, so `showComplete()` always shows the glow version, and the case is the new-guitar sheet on the Road (`guitarEarned()`), as the prompt splits them. The case sheet has no reward tiles: it doesn't know what the headline check paid. Its title is the leg ("Open chords, all 10 shows").
+102. **The primary button says Continue, not "Head to the Club".** Continue keeps its action (it stays on the song page), so naming the next venue on it would say something it doesn't do. The next venue is the "Next stop" line above it. Play it again is the Encore, with "2x bonus fans" kept in its words.
+103. **The guitar is the one of the leg you're on** (`guitarSVG()` of the leg with the current stop), named on the cream label.
+104. **The case is CSS** (a dark brown shell with radial orange plush), since `art/case/case-open.webp` doesn't exist. It is a stand-in; a painted case from Grok would match r10-03 better.
+105. **The headline Louie is `louie("cheer")`**, which picks the painted cheer art for the look, as everywhere else.
+106. **No tolex panel behind the tiles and buttons**, which r10-04 has. The screen scrolls instead, with the crowd, stars and the list below the buttons.
+107. **`headlinerEarned()` is unchanged**: its buttons already take step 01's plate and capsule styles.
+

@@ -4943,3 +4943,68 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gg-hint-i { width: 20px; height: 20px; flex: none; fill: currentColor; stroke: currentColor; }
 .gg-hint-l { flex: none; order: -1; }
 .gg-hint-l .louie { display: block; width: 44px; height: auto; }
+
+/* ---- Road Ready 06: Show complete and the new-guitar sheet (spec 5.6 to 5.8, 7; r10-03, r10-04). Only the two Road
+   Ready looks draw this markup (gig.js and road.js check the look); Green Room and Headliner keep the screens above. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) .gig.done:has(.rr-sc) { background: var(--rr-base); justify-content: flex-start; }
+.rr-sc { gap: 10px; padding: calc(16px + var(--safe-t)) 16px calc(24px + var(--safe-b)); overflow-y: auto; height: 100%; }
+.rr-sc, .rr-case .pbody { text-align: center; }
+.sc-over { margin: 0; font: var(--type-caption-w, 600) var(--type-caption, 12px) / 1.3 "Inter", var(--sans); letter-spacing: var(--type-caption-ls, .08em); color: var(--rr-text-2); }
+.sc-title { margin: 0; font: 700 var(--type-display, 32px) / 1.1 "Space Grotesk", var(--display); color: var(--rr-text); overflow-wrap: break-word; }
+.rr-sc .sc-sub { margin: 0; font: var(--type-subhead-w, 500) var(--type-subhead, 15px) / 1.3 "Inter", var(--sans); color: var(--rr-text-2); }
+.sc-new { margin: 0; font: var(--type-headline-w, 600) var(--type-headline, 17px) / 1.25 "Inter", var(--sans); color: var(--rr-amber-text); }
+/* the showcase: the guitar, its cream label, the cheering Louie at the bottom right */
+.sc-show { position: relative; flex: none; width: 100%; max-width: 360px; height: min(46vh, 380px); margin: 4px auto; }
+.sc-guitar { position: absolute; left: 50%; top: 4%; bottom: 4%; transform: translateX(-50%); width: 62%; display: flex; justify-content: center; }
+.sc-guitar .rd-gsvg { height: 100%; width: auto; max-width: 100%; }
+.sc-show.glow .sc-guitar { filter: drop-shadow(0 0 2px var(--rr-glow-core)) drop-shadow(0 0 10px color-mix(in srgb, var(--rr-glow) 70%, transparent)) drop-shadow(0 0 24px color-mix(in srgb, var(--rr-glow) 40%, transparent)); animation: sc-pulse 1.2s ease-out 1; }
+@keyframes sc-pulse { 40% { filter: drop-shadow(0 0 3px var(--rr-glow-core)) drop-shadow(0 0 16px var(--rr-glow)) drop-shadow(0 0 40px color-mix(in srgb, var(--rr-glow) 60%, transparent)); } }
+.sc-label { position: absolute; right: 2%; top: 30%; padding: 4px 10px; border-radius: 8px; background: var(--rr-plate-top); color: var(--rr-plate-text); border: 1px solid var(--rr-plate-edge); font: 600 var(--type-footnote, 13px) / 1.2 "Inter", var(--sans); max-width: 34%; }
+.sc-label::before { content: ""; position: absolute; right: 100%; top: 50%; width: 22px; height: 1px; background: var(--rr-plate-top); }
+.sc-louie { position: absolute; right: -2%; bottom: -2%; width: 96px; animation: sc-hop .4s ease-out .3s 1; }
+.sc-louie .louie { width: 96px; height: auto; display: block; }
+@keyframes sc-hop { 50% { transform: translateY(-14px); } }
+/* sparks: a few amber dots drifting up from the guitar */
+.sc-sparks { position: absolute; inset: 0; pointer-events: none; }
+.sc-sparks i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--rr-glow-core); box-shadow: 0 0 6px var(--rr-glow); opacity: .85; animation: sc-drift calc(2.4s + var(--i) * .25s) ease-in-out calc(var(--i) * -.4s) infinite; }
+.sc-sparks i:nth-child(3n) { width: 3px; height: 3px; }
+@keyframes sc-drift { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translate(8px, -60px); opacity: 0; } }
+/* reward tiles (spec 5.7): two equal outlined tiles on Show complete */
+.sc-reward { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 360px; margin: 0 auto; }
+.sc-tile { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; box-sizing: border-box; border-radius: var(--r-control, 12px); border: 1.5px solid var(--rr-outline); color: var(--rr-text); }
+.sc-tile svg { width: 20px; height: 20px; flex: none; color: var(--rr-amber-text); }
+.sc-tile b { font: 600 var(--type-headline, 17px) / 1.2 "Inter", var(--sans); }
+.sc-next, .sc-got { margin: 0; font: var(--type-subhead-w, 500) var(--type-subhead, 15px) / 1.3 "Inter", var(--sans); color: var(--rr-text-2); }
+.sc-acts { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 360px; margin: 4px auto 0; }
+.sc-acts .btn { width: 100%; min-height: 52px; height: auto; padding: 10px 16px; font-size: var(--type-headline, 17px); white-space: normal; }
+.sc-acts .btn:not(.primary) { width: auto; min-width: 60%; min-height: 44px; border-radius: 999px; font-family: "Inter", var(--sans); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.sc-acts .btn.primary { text-transform: none; }
+/* the details below: crowd and stars as two quiet tiles, then the list, in the Road Ready colours */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tiles.sc-more { grid-template-columns: 1fr 1fr; display: grid; gap: 10px; width: 100%; max-width: 360px; margin: 10px auto 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile:is(.crowd, .beat), :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile { background: var(--rr-card); box-shadow: none; border: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile:is(.crowd, .beat) small, :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile small { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile b { color: var(--rr-text); background: transparent; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list { background: var(--rr-card); border-color: var(--rr-hairline); color: var(--rr-text-2); text-align: left; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list b { color: var(--rr-text); }
+
+/* the case (r10-03): a dark brown shell with glowing orange plush, framed by chrome L corners */
+.sc-show.case { height: min(44vh, 360px); }
+.sc-corner { position: absolute; width: 22px; height: 22px; border: 3px solid transparent; z-index: 2; }
+.sc-corner { border-image: linear-gradient(135deg, #f4f4f2, #9a9ea6 50%, #e6e7ea) 1; }
+.sc-corner.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; } .sc-corner.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.sc-corner.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; } .sc-corner.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.sc-shell { position: absolute; left: 50%; top: 3%; bottom: 3%; width: 58%; transform: translateX(-50%); border-radius: 46% 46% 40% 40% / 22% 22% 30% 30%; background: linear-gradient(180deg, #3a2618, #24160d); box-shadow: inset 0 0 0 3px #1a0f08, 0 8px 18px rgba(0, 0, 0, .45); }
+.sc-plush { position: absolute; inset: 8px; border-radius: inherit; background: radial-gradient(ellipse at 50% 55%, #ffb25a 0, #e0701e 45%, #8a3a10 85%); box-shadow: inset 0 0 18px rgba(0, 0, 0, .55); }
+.sc-show.case .sc-guitar { z-index: 1; top: 7%; bottom: 7%; width: 52%; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+.sc-show.case .sc-louie { z-index: 3; }
+.sc-show.case .sc-label { z-index: 3; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case .pbody { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-show.glow .sc-guitar, .sc-louie, .sc-sparks i { animation: none; }
+  .sc-sparks i { opacity: .7; }
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-new { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-title { color: var(--rr-text); font: 700 var(--type-title, 26px) / 1.15 "Space Grotesk", var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody :is(.sc-got, .sc-next) { color: var(--rr-text-2); }
