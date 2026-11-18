@@ -4997,6 +4997,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="neon"] { --show-case: url("art/show/case-open-dark.webp"); }
 :root[data-look="festival"] { --show-case: url("art/show/case-open-light.webp"); }
 .sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
+.sc-case-pic { position: absolute; left: 50%; top: 2%; bottom: 2%; height: 96%; aspect-ratio: 720 / 900; transform: translateX(-50%); }
 .sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
 .sc-show.case .sc-louie { z-index: 3; }
 .sc-show.case .sc-label { z-index: 3; }

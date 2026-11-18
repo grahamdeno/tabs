@@ -36,6 +36,9 @@ const DAY = 86400000;
 const nf = x => x.toLocaleString("en-US");
 /* Road Ready is the Dark and Light looks (data-look neon and festival); Green Room and Headliner keep the old Road */
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* Grok's paintings of each earned guitar in its own open case (art/show, 720 by 900, dark and light), by body shape. A
+   guitar without one is drawn over the empty case. */
+const CASE_ART = { parlor: "beater", cutaway: "cutaway", solid: "solid" };
 /* the current stop when the Road was last drawn: when a show moves it on, the connector's newest step draws itself on */
 let lastCur = null;
 
@@ -412,7 +415,8 @@ function guitarEarned(road) {
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
         <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
-        <span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next, { full: true })}</span></span>
+        ${CASE_ART[gn.guitar.body] ? `<img class="sc-case-pic" src="art/show/case-${CASE_ART[gn.guitar.body]}-${document.documentElement.dataset.look === "festival" ? "light" : "dark"}.webp" alt="">`
+          : `<span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next, { full: true })}</span></span>`}
         <span class="sc-label">${esc(gn.guitar.name)}</span>
         <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
       </div>
