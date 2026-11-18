@@ -8,11 +8,11 @@ from scipy import ndimage
 from PIL import Image
 
 SRC, OUT = "docs/guitars/pics", "art/guitars"
-NAMES = ["parlor", "cutaway", "solid", "hollow", "single", "classical", "headliner"]
-CLOSEUP = {"hollow": 700, "classical": 920, "headliner": 920}  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
+NAMES = ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]
+CLOSEUP = {"cutaway-sunburst": 800, "hollow": 700, "classical": 920, "headliner": 920}  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
 # where the strings end, as a share of the body from the end of the neck to the bottom (acoustics: the bridge;
 # electrics: the bridge pickup's saddles)
-BRIDGE = {"parlor": .52, "cutaway": .55, "solid": .55, "hollow": .56, "single": .56, "classical": .50, "headliner": .40}
+BRIDGE = {"parlor": .52, "cutaway": .55, "cutaway-sunburst": .49, "solid": .55, "hollow": .56, "single": .56, "classical": .50, "headliner": .40}
 
 def cutout(path):
     a = np.asarray(Image.open(path).convert("RGB")).astype(np.float32)
@@ -81,9 +81,24 @@ def save(rgb, al, box, path, scale=1):
     return im.size
 
 hexc = lambda c: "#%02x%02x%02x" % tuple(int(v) for v in c)
+def defringe(rgb, al):
+    # the sunburst's edge kept a trace of the magenta background (pink specks, a pink halo on a cream page). On the
+    # outer 3 px, take the magenta out (red and blue both above green) and pull the half-see-through edge in a little.
+    ring = (al > 0) & ~ndimage.binary_erosion(al > .5, iterations=3)
+    ex = np.clip(np.minimum(rgb[..., 0], rgb[..., 2]) - rgb[..., 1], 0, None) * ring
+    rgb = rgb.copy(); rgb[..., 0] -= ex; rgb[..., 2] -= ex
+    # a half-see-through edge pixel takes the colour of the nearest solid pixel inside, so no pale pink fringe is left
+    solid = ndimage.binary_erosion(al > .98, iterations=2)
+    _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
+    soft = ring & (al < .98)
+    rgb[soft] = rgb[iy, ix][soft]
+    return rgb, np.clip((al - .3) / .7, 0, 1)
+
 nums = {}
 for name in NAMES:
     rgb, al = cutout(f"{SRC}/{name}.jpg")
+    if name == "cutaway-sunburst":
+        rgb, al = defringe(rgb, al)
     if name == "cutaway":  # the picture kept a bridge; paint it in the top's colours (the app draws its own)
         m = measure(al, rgb)
         cx = int(m["cx"])

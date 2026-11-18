@@ -383,9 +383,9 @@ function stopHTML(sp, g, lay, o) {
    phone scales the whole guitar and the stops stay where they belong. */
 /* 4.87.0: every leg's guitar is a picture; its numbers are in one small file, so the neck is laid out at once and the
    pictures load like any image */
-export const NANO_FILE = { open: "parlor", switch: "cutaway", scales: "solid", strum: "hollow", pick: "single", finger: "classical", encore: "headliner" };
+export const NANO_FILE = { open: "parlor", switch: "cutaway-sunburst", scales: "solid", strum: "hollow", pick: "single", finger: "classical", encore: "headliner" };
 /* the small guitar in the guitarist's hands (guitarist.js): the whole picture, by body shape */
-const BODY_FILE = { parlor: "parlor", cutaway: "cutaway", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner" };
+const BODY_FILE = { parlor: "parlor", cutaway: "cutaway-sunburst", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner" };
 export const guitarPic = body => BODY_FILE[body] ? `art/guitars/${BODY_FILE[body]}-small.webp?v=${VERSION}` : null;
 const picOf = (id, o = {}) => o.nano === false || !PICS[NANO_FILE[id]] ? null : { f: NANO_FILE[id], p: PICS[NANO_FILE[id]] };
 export function neckHTML(leg, o) {
