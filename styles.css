@@ -4885,3 +4885,49 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 
 /* Road Ready 04: the Settings gear on Me is a full 44 px target in every look */
 :root[data-look] .ib.pf-gear { width: 44px; height: 44px; }
+
+/* ---- Road Ready 05: the playing screen (spec 6 and 7). The words fill the screen on the plain base, coloured by where
+   they are in the song (never dimmed with opacity), chords in amber, a 3 px amber bar beside the line you're on and a
+   2 px amber line along the bottom edge for how far along the song is. Only the two Road Ready looks; Green Room and
+   Headliner keep the show as it was. The song's title and the progress line are drawn in every look and shown in these two. ---- */
+.gg-pod { display: contents; }
+.gg-head, .gg-prog { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) { background: var(--rr-base); }
+:root:is([data-look="neon"], [data-look="festival"]) body:not(.covered) .gig::before { background: linear-gradient(180deg, var(--rr-base) calc(var(--safe-t) + 96px), transparent); }
+:root:is([data-look="neon"], [data-look="festival"]) body:not(.covered) .gig::after { background: linear-gradient(180deg, transparent, var(--rr-base) 44px); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) { color: var(--rr-lyric-next); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .st-past:is(.pr, .ly, .crow) { color: var(--rr-lyric-sung); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .st-now:is(.pr, .ly, .crow) { color: var(--rr-lyric-now); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) .c { color: var(--rr-chord); opacity: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet > .st-now:is(.pr, .ly, .crow)::after { content: ""; position: absolute; left: -12px; top: 2px; bottom: 4px; width: 3px; border-radius: 2px; background: var(--rr-amber-text); pointer-events: none; }
+/* the song's title at the top, centred; Pause a big amber button at the bottom in thumb reach */
+:root:is([data-look="neon"], [data-look="festival"]) .gig > .gg-head { display: flex; order: -1; flex-direction: column; align-items: center; gap: 1px; margin: 0 52px; text-align: center; pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-head b { font: var(--type-headline-w) var(--type-headline) / 1.2 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-head small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 "Inter", var(--sans); color: var(--rr-text-2); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bottom { justify-content: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-pause { width: 64px; height: 64px; border-radius: 50%; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-pause svg { width: 26px; height: 26px; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig > .gg-prog { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--rr-lyric-sung) 45%, transparent); pointer-events: none; }
+.gg-prog > i { display: block; height: 100%; width: 0; background: var(--rr-amber-text); }
+/* hiding (4.60.0's 3 s): a 0.25 s ease-out fade with an 8 px slide; Reduce Motion: a plain 0.2 s fade */
+:root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-head, .gg-pause) { transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig.idle :is(.gg-head, .gg-pause) { opacity: 0; visibility: hidden; transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s .25s; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig.idle .gg-head { transform: translateY(-8px); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig.idle .gg-pause { transform: translateY(8px); }
+@media (prefers-reduced-motion: reduce) {
+  /* the app's Reduce Motion rule zeroes every transition with !important; this one keeps the spec's plain fade */
+  :root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-head, .gg-pause) { transform: none; transition-property: opacity, visibility; transition-duration: .2s, 0s !important; transition-delay: 0s, 0s; transition-timing-function: ease; }
+  :root:is([data-look="neon"], [data-look="festival"]) .gig.idle :is(.gg-head, .gg-pause) { transform: none; transition-property: opacity, visibility; transition-duration: .2s, 0s !important; transition-delay: 0s, .2s; }
+}
+/* large text (AX1 and up): only the line you're on and the next one or two */
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-past,
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-next ~ :is(.pr, .ly, .crow) ~ * { visibility: hidden; }
+/* the first-run hint: a cream frame at the bottom, in the space Pause leaves when the controls hide (above the 2 px
+   progress line, inside the safe area, in thumb reach), so it never covers the words; Louie beside it. Taps go through
+   it to the page. It fades on its own after 5 s (gig.js): 0.25 s, or gone at once with Reduce Motion. */
+.gig > .gg-hint { position: absolute; left: 50%; top: auto; bottom: calc(12px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; flex-direction: row; align-items: center; gap: 6px; pointer-events: none; z-index: 4; transition: opacity .25s ease-out; }
+.gig > .gg-hint.fading { opacity: 0; }
+.gg-hint p { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; background: #F6EEE0; color: #1E1914; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); font: 500 var(--type-callout, 16px) / 1.25 "Inter", var(--sans); }
+.gg-hint-i { width: 20px; height: 20px; flex: none; fill: currentColor; stroke: currentColor; }
+.gg-hint-l { flex: none; order: -1; }
+.gg-hint-l .louie { display: block; width: 44px; height: auto; }

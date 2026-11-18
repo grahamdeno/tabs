@@ -6,7 +6,8 @@
 //   lines     the song page itself (4.51.0): the Gig is see-through in the middle, and stage.js draws the band
 //             and the chords on the real sheet, so you read, scroll and drag the song itself. A small shape for
 //             the next chord you haven't learned.
-//   bottom    Pause, in thumb reach
+//   bottom    Pause, in thumb reach (Road Ready 05: in a capsule, with the song's title at the top and a 2 px amber
+//             progress line along the bottom edge; those two show only in the Road Ready looks)
 // Paused (4.52.0), the show steps aside and the song page is back as it always is: Tools and Play (reading
 // Resume) in thumb reach, a quiet band on the line you stopped on, and Louie's line above Play when there is
 // one to say. Play picks the show up again; the page's Back, or Tools for anything but the switches, ends it.
@@ -17,7 +18,7 @@
 import { COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave } from "./ui.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
@@ -40,9 +41,11 @@ function shell(song) {
     <div class="gg-status"><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
     <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
+    <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
-      <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
+      <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>
     </div>
+    <div class="gg-prog" aria-hidden="true"><i id="gg-prog"></i></div>
 `;
   document.body.appendChild(el);
   return el;
@@ -87,6 +90,9 @@ function frame() {
   const counting = !!document.querySelector(".countin");
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
   gigFrame(g, w.sec, scroll.on && !counting);
+  /* Road Ready 05: how far along the song is, as a hairline along the bottom edge */
+  const prog = $("gg-prog"), pct = (w.progress * 100).toFixed(1) + "%";
+  if (prog && prog.style.width !== pct) prog.style.width = pct;
   /* the lines: the band on the line you're on, on the sheet itself */
   g.b = w.b;
   stageTick(song, w);
@@ -137,10 +143,20 @@ function bindDrag(g) {
 
 /* Controls that hide (4.60.0, Graham, 2026-10-24): while the song plays, the X and Pause fade after
    3 seconds without a touch, as in Apple Music. A touch brings them back; that first touch only wakes them, it never
-   presses one. Paused, counting in, waiting for a chord, a sheet open, or the end card: always shown. */
+   presses one. Paused, counting in, waiting for a chord, a sheet open, or the end card: always shown.
+   Road Ready 05: any key brings them back too (Space also plays and pauses, through the page's own keys), and they
+   never hide while keyboard focus is on one of them, with "Keep playing controls on screen" on, or once a control
+   has had focus with no touch or click before it (a screen reader or a switch; the web can't ask whether VoiceOver
+   or Switch Control is on), until the song is paused or ends. The first time they hide, a hint says how to get
+   them back, once. */
 function bindIdle(g) {
   g.touch = performance.now();
+  g.pointerAt = 0;
   const wake = e => {
+    if (e.type === "pointerdown" || e.type === "touchstart") g.pointerAt = performance.now();
+    /* focus that no touch or click brought: a screen reader or a switch is moving through the controls */
+    if (e.type === "focusin" && g.el?.contains(e.target) && performance.now() - g.pointerAt > 800) g.keep = true;
+    if (e.type === "pointerdown" || e.type === "keydown") hintGone(g);
     if (!g.el?.classList.contains("idle")) { g.touch = performance.now(); return; }
     g.touch = performance.now();
     g.el.classList.remove("idle");
@@ -153,10 +169,38 @@ function bindIdle(g) {
   g.idleT = setInterval(() => {
     if (gig !== g) return;
     const ok = scroll.on && !g.paused && !g.credited && !g.ended && !g.el.classList.contains("done") && !document.querySelector(".countin, .menu, .st-open");
-    if (!ok) g.el.classList.remove("idle");
-    else if (performance.now() - g.touch > 3000) g.el.classList.add("idle");
+    if (g.paused || g.ended || g.credited) g.keep = false; /* kept on until the song is paused or ends */
+    const focused = g.el.contains(document.activeElement) && document.activeElement.matches(":focus-visible");
+    if (!ok || g.keep || focused || data.settings.keepControls === true) g.el.classList.remove("idle");
+    else if (performance.now() - g.touch > 3000) { g.el.classList.add("idle"); hintShow(g); }
   }, 400);
   g.unbindIdle = () => { clearInterval(g.idleT); document.removeEventListener("click", eat, true); evs.forEach(ev => removeEventListener(ev, wake, { capture: true })); };
+}
+/* The first-run hint (Road Ready 05): the first time the controls hide, a cream frame at the bottom, where Pause was,
+   says how to get them back, with Louie listening beside it. The first tap or key takes it away at once; otherwise it
+   fades on its own 5 s after it shows (0.25 s, or gone at once with Reduce Motion). Either way it never shows again. */
+const HINT_MS = 5000, HINT_FADE = 250;
+function hintShow(g) {
+  if (g.hint || data.settings.used?.playHint) return;
+  markUsed("playHint");
+  const el = document.createElement("div");
+  el.className = "gg-hint"; el.id = "gg-hint";
+  el.innerHTML = `<span class="gg-hint-l" aria-hidden="true">${louie("happy", { pose: "wave", size: 44 })}</span><p><svg class="gg-hint-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5" fill="none" stroke-width="1.6"/></svg>Tap anywhere for controls</p>`;
+  g.el.appendChild(el);
+  g.hint = el;
+  g.hintT = setTimeout(() => {
+    if (g.hint !== el) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return hintGone(g);
+    el.classList.add("fading");
+    g.hintT = setTimeout(() => { if (g.hint === el) hintGone(g); }, HINT_FADE);
+  }, HINT_MS);
+}
+function hintGone(g) {
+  if (!g.hint) return;
+  clearTimeout(g.hintT);
+  g.hint.remove();
+  g.hint = null;
+  g.hintDone = true;
 }
 
 /* ---- open, pause, close ---- */
@@ -191,6 +235,7 @@ function paused(on) {
   if (!g) return;
   if (on && !g.paused && g.idx >= 0 && !g.ended) { showPaused(g.score); g.comboShown = 0; paintScore(); } /* a pause ends the run */
   g.paused = on;
+  if (on) g.keep = false; /* Road Ready 05: kept-on controls go back to hiding once the song is paused */
   gigHooks.held = on;
   g.el.classList.toggle("paused", on);
   document.body.classList.toggle("held", on);
@@ -226,6 +271,7 @@ export function closeGig(quiet = false) {
   gig = null;
   cancelAnimationFrame(g.raf);
   clearInterval(g.speedT);
+  clearTimeout(g.hintT);
   g.el?.remove();
   g.unbind?.(); g.unbindIdle?.();
   stageClear();
