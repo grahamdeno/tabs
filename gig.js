@@ -15,9 +15,10 @@
 // playing (not dragged past, not paused); see gigStart in core/game.js and docs/NO-CATCH-PLAN.md.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans,
 // tips, the crowd, the song's stars, the song you played and Encore (play it again for double bonus fans).
-import { COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
+import { roadPath, venueNow, guitarFor, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
-import { esc, icon, onLeave } from "./ui.js";
+import { esc, icon, onLeave, haptic } from "./ui.js";
+import { guitarSVG, guitarPic } from "./fretboard.js";
 import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
@@ -26,6 +27,12 @@ import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from
 
 let gig = null; /* the show on stage, or null */
 const $ = id => document.getElementById(id);
+
+/* Road Ready is the Dark and Light looks; Green Room and Headliner keep the earlier screens */
+const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* the reward tiles' icons (spec 5.7): a fan and a coin */
+const FANS_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c.6-3.3 2.8-5 5.5-5s4.9 1.7 5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.5" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.5 13.6c2.6-.2 4.5 1.3 5 4.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const COIN_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 
 /* ---- the screen ---- */
 
@@ -326,16 +333,9 @@ function showComplete() {
   const why = [stretch.speed && "full speed", stretch.newChord && "a chord you're still learning", stretch.debut && "your first time through"].filter(Boolean);
   g.el.classList.remove("paused"); document.body.classList.remove("held"); gigHooks.held = false; $("gg-say")?.remove();
   g.el.classList.add("done");
-  g.el.innerHTML = `<div class="gc">
-    <div class="gc-hero" id="gc-hero">${backdropBanner(backdropsOwned().find(x => x.on)?.id)}
-      <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
-      <button class="gc-bdc" id="gc-bdc" aria-haspopup="true">${icon("image")}<span>${esc(backdropsOwned().find(x => x.on)?.name || "Basement")} · Change</span></button>
-    </div>
-    <div class="gc-bds" id="gc-bds" role="group" aria-label="Backdrops you own" hidden></div>
-    <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
-    <p class="gc-s">${esc(g.song.title)}, start to finish.${whole ? " The crowd wants more." : ""}</p>
-    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("TIPS", `$${tips}`, "tips")}${tile("CROWD", `${crowd}/12`, "crowd")}${tile("STARS", starRow(stars.after), "beat")}</div>
+  const totalFans = fans + 10 + earned.reduce((n, x) => n + x.fans, 0);
+  /* the details every show complete lists: the song you played, what the show did, and the merch you can now get */
+  const details = `
     ${played}
     <div class="gc-list">
       ${stars.after > stars.before && stars.after >= 3 ? `<p><b>New star: ${STAR_NAMES[stars.after]}!</b> ${stars.after === 4 ? "Gig-ready on three different days." : "The whole song at full speed, no pausing."} <b>+${starFans} fans</b></p>` : stars.after === 2 && stars.before < 3 && !full ? `<p>Play it at full speed without pausing to make it <b>Gig-ready</b>.</p>` : stars.after === 2 && stars.before < 3 ? `<p>Play it through without pausing to make it <b>Gig-ready</b>.</p>` : ""}
@@ -353,6 +353,48 @@ function showComplete() {
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
     ${tip ? `<button class="gc-merch" id="gc-merch">${tip.kind === "louie" ? `<span class="fin fin-${tip.id}">${louie("happy", { size: 46 })}</span>` : `<span class="gc-merch-ic" aria-hidden="true">${icon("shirt")}</span>`}<span><b>You can get ${esc(tip.kind === "louie" ? `${tip.name} Louie` : `the ${tip.name} backdrop`)}</b><small>$${tip.price.toLocaleString("en-US")} in tips at the merch table</small></span>${icon("chev", "chev")}</button>` : ""}
+`;
+  if (rrLook()) {
+    /* Road Ready 06 (spec 5.6 to 5.8, r10-04): the guitar you played on (its whole picture, as in the case on the Road;
+       the drawn guitar with a full-length neck if it has none) stands alone with an amber glow and sparks, the
+       cheering Louie beside it, then the reward tiles, the next venue and the buttons; the details follow. No backdrop
+       in these two looks (Graham, 2026-11-18); Green Room and Headliner keep the backdrop and Change below. */
+    const legs = roadPath(data).legs, leg = legs.find(l => l.stops.some(x => x.state === "now")) || legs.filter(l => l.done).at(-1) || legs[0];
+    const gtr = guitarFor(leg?.id), gname = gtr.name, gpic = guitarPic(gtr.body), v = venueNow(data);
+    const sparks = [[18, 62], [28, 30], [34, 78], [70, 24], [76, 58], [64, 82], [22, 44], [80, 38], [40, 18]].map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join("");
+    g.el.innerHTML = `<div class="gc rr-sc">
+    <p class="sc-over">${g.encore ? "ENCORE COMPLETE" : "SHOW COMPLETE"}</p>
+    <h2 class="gc-t sc-title">${esc(g.song.title)}</h2>
+    <p class="gc-s sc-sub">Start to finish.${whole ? " The crowd wants more." : ""}</p>
+    <div class="sc-show glow" aria-hidden="true">
+      <span class="sc-sparks">${sparks}</span>
+      <div class="sc-guitar">${gpic ? `<img src="${gpic}" alt="">` : guitarSVG(leg?.id || "open", { full: true })}</div>
+      <span class="sc-label">${esc(gname)}</span>
+      <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
+    </div>
+    <div class="sc-reward" role="img" aria-label="Reward: ${totalFans} fans and ${tips} dollars in tips.">
+      <span class="sc-tile">${FANS_IC}<b>+${totalFans} fans</b></span><span class="sc-tile">${COIN_IC}<b>+$${tips} tips</b></span>
+    </div>
+    ${v.next ? `<p class="sc-next">Next stop: ${esc(v.next)}</p>` : ""}
+    <div class="gc-acts sc-acts">
+      <button class="btn primary" id="gc-go">Continue</button>
+      ${g.encore ? "" : `<button class="btn" id="gc-encore">Play it again, 2x bonus fans</button>`}
+    </div>
+    <div class="gc-tiles sc-more">${tile("CROWD", `${crowd}/12`, "crowd")}${tile("STARS", starRow(stars.after), "beat")}</div>
+    ${details}
+  </div>`;
+    haptic(1); /* a light tap on show complete */
+  } else g.el.innerHTML = `<div class="gc">
+    <div class="gc-hero" id="gc-hero">${backdropBanner(backdropsOwned().find(x => x.on)?.id)}
+      <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
+      <button class="gc-bdc" id="gc-bdc" aria-haspopup="true">${icon("image")}<span>${esc(backdropsOwned().find(x => x.on)?.name || "Basement")} · Change</span></button>
+    </div>
+    <div class="gc-bds" id="gc-bds" role="group" aria-label="Backdrops you own" hidden></div>
+    <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
+    <p class="gc-s">${esc(g.song.title)}, start to finish.${whole ? " The crowd wants more." : ""}</p>
+    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("TIPS", `$${tips}`, "tips")}${tile("CROWD", `${crowd}/12`, "crowd")}${tile("STARS", starRow(stars.after), "beat")}</div>
+${details}
     <div class="gc-acts">
       ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
       <button class="btn" id="gc-go">CONTINUE</button>
@@ -361,7 +403,6 @@ function showComplete() {
   $("gc-go").onclick = () => { closeGig(true); if (opened) { homeHooks.openDrawer = false; go("#/"); } else redraw?.(); }; /* Opening night's end goes on to the Road */
   /* 4.71.0: what the show paid bursts in, POW, one at a time: fans, tips, a band member, the streak. Through the
      app's callout, so they queue with the new-chord one instead of landing on top of it */
-  const totalFans = fans + 10 + earned.reduce((n, x) => n + x.fans, 0);
   setTimeout(() => {
     if (gig !== g) return;
     showCallout({ kind: "earn", pow: "POW!", word: "FANS", big: `+${totalFans}` });
@@ -371,7 +412,7 @@ function showComplete() {
   }, 500);
   $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
   /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own, and the merch table */
-  $("gc-bdc").onclick = () => {
+  if ($("gc-bdc")) $("gc-bdc").onclick = () => {
     const box = $("gc-bds");
     if (!box.hidden) { box.hidden = true; return; }
     box.innerHTML = backdropsOwned().map(x => `<button class="chip${x.on ? " on" : ""}" data-bd="${x.id}" aria-pressed="${x.on}">${esc(x.name)}</button>`).join("") + `<button class="chip" data-bd="">More at the merch table</button>`;

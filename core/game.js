@@ -116,6 +116,15 @@ export function fretLayout(stops, head = FRET_HEAD, body = FRET_BODY) {
   });
   return { spaces, neck: y, head, body, height: head + y + body };
 }
+/* A guitar shown on its own (Show complete, the new-guitar case, Road Ready 06) gets a neck in a real guitar's
+   proportion: on a real guitar the neck from the nut to the body is about 0.7 of the body's length (14 inches to 20).
+   neckStops is how many fret spaces reach that; a leg's neck on the Road keeps one space per stop. */
+export const FULL_NECK = 0.7;
+export function neckStops(body) {
+  let n = 0, y = 0;
+  while (y < FULL_NECK * body) y += FRET_STEPS[n++] ?? FRET_MIN;
+  return n;
+}
 /* The guitars you've earned: every leg whose headline show is done, in order, plus the first. Shown once each. */
 export const guitarsEarned = (data, now = Date.now()) => roadPath(data, now).legs.filter(l => l.done).map(l => l.id);
 export function cleanGuitars(raw) {

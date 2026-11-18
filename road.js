@@ -29,13 +29,16 @@ import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
-import { guitarSVG, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
+import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
 import { statBar, bindStatBar, settleStats, statNotices } from "./hud.js";
 
 const DAY = 86400000;
 const nf = x => x.toLocaleString("en-US");
 /* Road Ready is the Dark and Light looks (data-look neon and festival); Green Room and Headliner keep the old Road */
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* Grok's paintings of each earned guitar in its own open case (art/show, 720 by 900, dark and light), by body shape. A
+   guitar without one is drawn over the empty case. */
+const CASE_ART = { parlor: "beater", cutaway: "cutaway", solid: "solid" };
 /* the current stop when the Road was last drawn: when a show moves it on, the connector's newest step draws itself on */
 let lastCur = null;
 
@@ -402,8 +405,26 @@ function guitarEarned(road) {
   const gn = guitarNew(data);
   if (!gn) return;
   data.guitars = { seen: gn.done }; Tabs.save(data);
-  const lg = road.legs.find(l => l.id === gn.next);
-  layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
+  const lg = road.legs.find(l => l.id === gn.next), was = road.legs.find(l => l.id === gn.leg);
+  /* Road Ready 06 (spec 5.8, r10-03): the new guitar in Grok's painted open case (art/show), chrome L corners, the
+     cheering Louie beside it; the leg you finished as the title and the next leg as the next stop */
+  if (rrLook()) layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt rr-case" role="dialog" aria-label="New guitar earned"><div class="grab"></div>
+    <div class="pbody">
+      <p class="sc-over">HEADLINE SHOW</p>
+      <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Leg done"}</h2>
+      <p class="sc-new">New guitar earned</p>
+      <div class="sc-show case" aria-hidden="true">
+        <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
+        ${CASE_ART[gn.guitar.body] ? `<img class="sc-case-pic" src="art/show/case-${CASE_ART[gn.guitar.body]}-${document.documentElement.dataset.look === "festival" ? "light" : "dark"}.webp" alt="">`
+          : `<span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next, { full: true })}</span></span>`}
+        <span class="sc-label">${esc(gn.guitar.name)}</span>
+        <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
+      </div>
+      <p class="sc-got">${esc(gn.guitar.name)} is yours.</p>
+      ${lg ? `<p class="sc-next">Next stop: Leg ${lg.n}, ${esc(lg.name)}</p>` : ""}
+      <div class="sc-acts"><button class="btn primary" id="gt-x">Rock on</button></div>
+    </div></div>`;
+  else layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
     <div class="pbody"><div class="rd-gt-row">${louie("cheer", { size: 96, pose: "hornsUp" })}<div class="rd-gt-art">${guitarSVG(gn.next)}</div></div>
     <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
     <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div></div></div>`;

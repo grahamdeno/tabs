@@ -9,7 +9,7 @@
 //
 // Woods and finishes keep the guitar's own colours in every look; only dots, rings, halos and tags take the
 // look's colours (styles.css, "The fretboard Road").
-import { fretLayout, guitarFor, VERSION } from "./core.js";
+import { fretLayout, guitarFor, neckStops, FRET_BODY, VERSION } from "./core.js";
 import PICS from "./art/guitars/pics.js";
 
 const W = 390, CX = 195;
@@ -399,10 +399,12 @@ export function neckHTML(leg, o) {
 }
 
 /* a guitar on its own (the new-guitar sheet): the headstock, a short neck and the body */
-export function guitarSVG(id) {
-  const g = guitarFor(id), stops = [{ kind: "chord", state: "locked" }, { kind: "chord", state: "locked" }], pc = picOf(id);
-  if (!pc) { const lay = fretLayout(stops); return `<svg class="rd-gsvg" viewBox="0 0 ${W} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay)}${stringLayer(g, lay)}</svg>`; }
+/* full (Road Ready 06): a neck in a real guitar's proportion, for a guitar shown on its own (neckStops in core/game.js);
+   without it the neck is two spaces long, as the small picture on the earlier new-guitar sheet always was */
+export function guitarSVG(id, { full = false } = {}) {
+  const g = guitarFor(id), pc = picOf(id), spaces = n => Array.from({ length: n }, () => ({ kind: "chord", state: "locked" }));
+  if (!pc) { const lay = fretLayout(spaces(full ? neckStops(FRET_BODY) : 2)); return `<svg class="rd-gsvg" viewBox="0 0 ${W} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay)}${stringLayer(g, lay)}</svg>`; }
   /* the body is wider than the screen on the Road, so the whole guitar is drawn wider to show all of it */
-  const lay = picLayout(stops, pc.p), half = 1.25 * W / 2 + 6;
+  const lay = picLayout(spaces(full ? neckStops(picLayout(spaces(2), pc.p).body) : 2), pc.p), half = 1.25 * W / 2 + 6;
   return `<svg class="rd-gsvg" viewBox="${CX - half} 0 ${half * 2} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay, pc.f)}${stringLayer(g, lay)}</svg>`;
 }

@@ -11,10 +11,10 @@ useBrowser();
 /* A page whose microphone plays the chord the song is on (4.54.0), with the library in place before the app starts.
    Seeding it before the first load (instead of replacing it after) means the app's own first
    save can't land on top of it, which is what made the scored Gig test flaky on a busy machine. */
-async function strummingPage(t, lib, hash) {
+async function strummingPage(t, lib, hash, opts = {}) {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
-  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block", ...(opts.reducedMotion ? { reducedMotion: opts.reducedMotion } : {}) });
   await ctx.addInitScript(FAKE_MIC);
   await ctx.addInitScript(json => { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); } }, JSON.stringify(lib));
   const page = await ctx.newPage();
@@ -82,17 +82,13 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   assert.equal(await page.evaluate(() => document.body.dataset.gel), "chorus", "the stage washes into the chorus gel");
   /* Show complete */
   await page.waitForSelector(".gc", { timeout: 40000 });
-  assert.match(await page.innerText(".gc-t"), /Show complete/);
+  assert.match(await page.innerText(".gc"), /SHOW COMPLETE/, "Road Ready 06: the overline says it; the title is the song");
   assert.match(await page.innerText(".gc-list"), /Played \d+ chord change/, "4.91.0: the changes played through");
   assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the changes played");
   assert.doesNotMatch(await page.innerText(".gc-list"), /no pausing/, "it was paused, so not the whole song");
   assert.match(await page.innerText(".gc-list"), /The Road: [\s\S]*E chord, 1 of 5 songs/, "4.83.0: what the song did on the Road");
-  /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own */
-  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
-  assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
-  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
-  assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
-  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds", { state: "hidden" });
+  /* Road Ready 06 (Graham, 2026-11-18): no backdrop on Show complete in Dark and Light; Green Room keeps it (its own test below) */
+  assert.equal(await page.locator(".gc-hero, #gc-bdc").count(), 0, "no backdrop or Change in Road Ready");
   assert.match(await page.innerText(".gc-list"), /Double set: 2x XP on this show\. 1 more to go\./);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.shows === 4); /* the save lands a moment after */
   const s = await saved(page);
@@ -600,3 +596,90 @@ for (const theme of ["dark", "light"]) test(`Road Ready 05 polish (${theme}): no
   await page.keyboard.press("Shift"); await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "paused keeps the quiet band on the line you stopped on");
 });
+
+/* ---- Road Ready 06: Show complete ---- */
+const scLib = (theme, extra = {}) => ({ ...LIB, songs: [SHORT], merch: { tconv: 1, lconv: 1, has: ["green"] }, ...extra, settings: { ...LIB.settings, v: 6, theme, plainPlay: false, countIn: false } });
+async function toComplete(t, theme, opts) {
+  const page = await strummingPage(t, scLib(theme), "#/song/g", opts);
+  await page.click("#play"); await page.waitForSelector(".gc", { timeout: 40000 });
+  return page;
+}
+
+test("Road Ready 06: Show complete has the overline, the song, the glowing guitar with its name, Louie, one-sentence reward tiles, the next stop and the two buttons", { skip: skip() }, async t => {
+  const page = await toComplete(t, "dark");
+  assert.equal(await page.locator(".gc.rr-sc").count(), 1);
+  assert.equal(await page.innerText(".sc-over"), "SHOW COMPLETE");
+  assert.equal(await page.innerText(".sc-title"), "Short Road");
+  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/parlor-small\.webp/, "the guitar you played on, its whole picture as in the case");
+  assert.equal(await page.innerText(".sc-label"), "The beater", "named after the leg you're on");
+  await page.waitForFunction(() => { const i = document.querySelector(".sc-guitar img"); return i.complete && i.naturalWidth > 0; });
+  const gr = await page.$eval(".sc-guitar img", i => i.complete && i.naturalWidth ? [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width, i.getBoundingClientRect().height] : null);
+  assert.ok(gr && gr[1] / gr[0] >= 2.5, "a whole guitar in its own proportions, not a stubby one");
+  assert.ok(Math.abs(gr[3] / gr[2] - gr[1] / gr[0]) < 0.05, "drawn without stretching");
+  assert.equal(await page.getAttribute(".sc-show", "aria-hidden"), "true", "the picture, label and Louie are hidden from screen readers");
+  assert.ok(await page.locator(".sc-show .sc-louie .louie").count() === 1, "the cheering Louie");
+  /* the tiles: "+N fans" and "+$N tips", read as one sentence */
+  const tiles = await page.$$eval(".sc-tile b", bs => bs.map(b => b.textContent));
+  assert.match(tiles[0], /^\+\d+ fans$/); assert.match(tiles[1], /^\+\$\d+ tips$/);
+  const [f, d] = [tiles[0].match(/\d+/)[0], tiles[1].match(/\d+/)[0]];
+  assert.equal(await page.getAttribute(".sc-reward", "aria-label"), `Reward: ${f} fans and ${d} dollars in tips.`);
+  assert.equal(await page.getAttribute(".sc-reward", "role"), "img", "one thing to a screen reader");
+  assert.match(await page.innerText(".sc-next"), /^Next stop: \S/);
+  /* everything Show complete showed before is still here, below */
+  for (const sel of [".gc-tile.crowd", ".gc-tile.beat .gc-stars", ".gc-song", ".gc-list"]) assert.equal(await page.locator(sel).count(), 1, sel);
+  assert.equal(await page.locator(".gc-hero, #gc-bdc").count(), 0, "no backdrop in Road Ready");
+  assert.doesNotMatch(await page.innerText(".gc"), /missed|lost|sorry|too bad|try harder/i, "nothing that makes you feel bad");
+  /* buttons: 44 px or more, Play it again starts the Encore */
+  const small = await page.evaluate(() => [...document.querySelectorAll(".gc button")].map(b => { const r = b.getBoundingClientRect(); return [b.id || b.textContent.trim(), r.width, r.height]; }).filter(([, w, h]) => w < 44 || h < 44));
+  assert.deepEqual(small, []);
+  assert.equal(await page.innerText("#gc-go"), "Continue");
+  assert.match(await page.innerText("#gc-encore"), /Play it again, 2x bonus fans/);
+  await page.click("#gc-encore"); await page.waitForSelector("#gig:not(.done)");
+});
+
+test("Road Ready 06: Continue keeps its action, and the text on Show complete meets AA in both looks", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await toComplete(t, theme);
+    const r = await page.evaluate(() => {
+      const rgb = c => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = c => { const [a, b, d] = rgb(c).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * a + .7152 * b + .0722 * d; };
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+      const bg = getComputedStyle(document.querySelector(".gig.done")).backgroundColor, col = s => getComputedStyle(document.querySelector(s)).color;
+      return { over: ratio(col(".sc-over"), bg), title: ratio(col(".sc-title"), bg), sub: ratio(col(".sc-sub"), bg), tile: ratio(col(".sc-tile b"), bg), next: ratio(col(".sc-next"), bg),
+        label: ratio(col(".sc-label"), getComputedStyle(document.querySelector(".sc-label")).backgroundColor) };
+    });
+    for (const [k, v] of Object.entries(r)) assert.ok(v >= 4.5, `${theme} ${k}: ${v.toFixed(2)}:1`);
+    await page.click("#gc-go"); await page.waitForSelector("#gig", { state: "detached" });
+    assert.ok(await page.locator(".shead").isVisible(), "Continue stays on the song page, as before");
+  }
+});
+
+test("Road Ready 06: Show complete moves (sparks, one pulse, one hop) and stays still with Reduce Motion", { skip: skip() }, async t => {
+  for (const reduce of [false, true]) {
+    const page = await toComplete(t, "dark", { reducedMotion: reduce ? "reduce" : "no-preference" });
+    const a = await page.evaluate(() => ["glow .sc-guitar", "sc-louie", "sc-sparks i"].map(s => getComputedStyle(document.querySelector(s.startsWith("glow") ? ".sc-show.glow .sc-guitar" : "." + s)).animationName));
+    assert.deepEqual(a, reduce ? ["none", "none", "none"] : ["sc-pulse", "sc-hop", "sc-drift"]);
+  }
+});
+
+test("Road Ready 06: Green Room keeps Show complete as it was, with the backdrop you wear and Change", { skip: skip() }, async t => {
+  const page = await toComplete(t, "green");
+  assert.equal(await page.locator(".rr-sc, .sc-show").count(), 0);
+  assert.match(await page.innerText(".gc-t"), /Show complete/);
+  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
+  assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
+  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
+  assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
+  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds", { state: "hidden" });
+  assert.match(await page.innerText("#gc-encore"), /ENCORE/);
+});
+
+test("Road Ready 06: at large text Show complete scrolls, with nothing running off the side", { skip: skip() }, async t => {
+  const page = await toComplete(t, "dark");
+  await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
+  await page.waitForTimeout(200); /* the layout settles */
+  const over = await page.evaluate(() => [...document.querySelectorAll(".rr-sc *")].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > innerWidth + 1 || r.left < -1) && !e.closest(".sc-show"); }).map(e => e.className || e.tagName));
+  assert.deepEqual(over, []);
+  assert.ok(await page.evaluate(() => { const g = document.querySelector(".rr-sc"); return g.scrollHeight > g.clientHeight; }), "it scrolls");
+});
+

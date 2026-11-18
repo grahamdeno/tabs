@@ -439,3 +439,39 @@ test("Road Ready design fixes: the side fret dots sit on the board, and the sele
   const ring = await page.evaluate(() => { const e = document.querySelector(".mc-fin.on, .mc-look.on"), probe = document.createElement("i"); probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--rr-amber-text"); document.body.appendChild(probe); const amber = getComputedStyle(probe).color; probe.remove(); return { ring: getComputedStyle(e).borderTopColor, amber }; });
   assert.equal(ring.ring, ring.amber, "the selected finish is ringed in amber, not cyan");
 });
+
+/* ---------- Road Ready, step 06: the new-guitar sheet, the guitar in its case ---------- */
+const HEADLINED = doneOf([...OPEN, "k:open"]);
+test("Road Ready 06: a headlined leg shows the new guitar in its case, with the leg's name, chrome corners, Louie and Rock on", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await phone(t, roadLib(theme, HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1 } }), { home: true });
+    await page.waitForSelector(".rd-gt.rr-case #gt-x");
+    assert.equal(await page.innerText(".rr-case .sc-over"), "HEADLINE SHOW");
+    assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
+    assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
+    assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
+    assert.match(await page.getAttribute(".sc-show.case img.sc-case-pic", "src"), theme === "dark" ? /art\/show\/case-cutaway-dark\.webp$/ : /art\/show\/case-cutaway-light\.webp$/, "Grok's painting of the cutaway in its case, for the look");
+    assert.equal(await page.innerText(".rr-case .sc-label"), "The cutaway");
+    assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
+    assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
+    const c = await page.evaluate(() => {
+      const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = s => { const [a, b, d] = rgb(s).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * a + .7152 * b + .0722 * d; };
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+      const bg = getComputedStyle(document.querySelector(".rd-gt.rr-case")).backgroundColor, col = s => getComputedStyle(document.querySelector(s)).color;
+      return { title: ratio(col(".rr-case .sc-title"), bg), amber: ratio(col(".rr-case .sc-new"), bg), next: ratio(col(".rr-case .sc-next"), bg) };
+    });
+    for (const [k, v] of Object.entries(c)) assert.ok(v >= 4.5, `${theme} ${k}: ${v.toFixed(2)}:1`);
+    const b = await page.locator("#gt-x").boundingBox(); assert.ok(b.height >= 44 && b.width >= 44);
+    await page.click("#gt-x");
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).guitars?.seen?.includes("open"));
+    assert.equal(await page.locator(".rd-gt").count(), 0, "Rock on closes it, as before");
+  }
+});
+
+test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: skip() }, async t => {
+  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true });
+  await page.waitForSelector(".rd-gt #gt-x");
+  assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
+  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*The cutaway is yours for Leg 2/);
+});
