@@ -64,7 +64,7 @@ def spans(al):
         rows.append((xs[0], xs[-1]) if len(xs) else None)
     return rows
 
-def measure(al, rgb, sample=None):
+def measure(al, rgb, sample=None, wood=False):
     rows = spans(al)
     ys = [y for y, r in enumerate(rows) if r]
     top, bot = ys[0], ys[-1]
@@ -94,6 +94,13 @@ def measure(al, rgb, sample=None):
     # the neck carries on over the body: down while both halves still look like the neck
     end = body_top
     while end < bot - 6 and sum(neckish(y) for y in range(end + 1, end + 7)) >= 3: end += 1
+    if wood:
+        # the new pictures have painted strings and frets, and a single pixel can land on one. Take the median colour of each
+        # half of the fretboard over the rows from the nut to the end of the neck run: strings, fret wires and inlays are
+        # thin or few, so the median is the wood itself. (The eight older pictures keep their single-pixel numbers.)
+        r0 = max(a, nut + 4)
+        lit = np.median(rgb[r0:b + 1, int(cx - .45 * nw):int(cx - .05 * nw)].reshape(-1, 3), axis=0)
+        sh = np.median(rgb[r0:b + 1, int(cx + .05 * nw):int(cx + .45 * nw) + 1].reshape(-1, 3), axis=0)
     return dict(top=top, bot=bot, nw=nw, cx=cx, nut=nut, body=body_top, end=end, lit=lit, sh=sh)
 
 def save(rgb, al, box, path, scale=1):
@@ -135,7 +142,7 @@ for name in NAMES:
         off = ndimage.binary_dilation(off, iterations=4) & (al > .5)
         off[:y0 - 4] = False
         rgb[off] = want[off]
-    m = measure(al, rgb)
+    m = measure(al, rgb, wood=name in SOURCES)
     W = al.shape[1]
     ys = np.flatnonzero((al > .5).any(1)); xs = np.flatnonzero((al > .5).any(0))
     # the body: from where it starts to widen to the bottom, full width of the guitar

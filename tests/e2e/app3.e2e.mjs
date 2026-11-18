@@ -770,3 +770,28 @@ test("Road Ready 9a: the Road neck of each leg is its new guitar's picture, with
   const r = await page.evaluate(() => { const n = document.querySelector(".rd-neck"), vb = n.querySelector(".rd-strings").viewBox.baseVal, ls = [...n.querySelectorAll(".rd-strings line")]; return { h: vb.height, max: Math.max(...ls.map(l => +l.getAttribute("y2"))), body: [...n.querySelectorAll(".rd-base image")].find(i => /body/.test(i.getAttribute("href"))).y.baseVal.value }; });
   assert.ok(r.max <= r.body + 1, `strings end at ${r.max}, the body starts at ${r.body}`);
 });
+
+test("Road Ready 9a fix: for each of the 23 new pictures, lit and shade match the picture's own fretboard", { skip: skip() }, async t => {
+  const PICS = (await import("../../art/guitars/pics.js")).default;
+  const news = Object.entries(PICS).filter(([, p]) => p.str).map(([slug, p]) => ({ slug, lit: p.lit, shade: p.shade, cx: p.body.cx, nw: p.body.nw, end: p.body.end }));
+  const page = await phone(t, LIB, { home: true });
+  await page.waitForSelector("#h-fans");
+  const out = await page.evaluate(async list => {
+    const med = a => { a = a.slice().sort((x, y) => x - y); return a[a.length >> 1]; };
+    const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const res = [];
+    for (const g of list) {
+      const im = new Image(); im.src = `/art/guitars/${g.slug}-body.webp`; await im.decode();
+      const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d"); x.drawImage(im, 0, 0);
+      /* the wood: of the pixels over the neck, the darker half (strings, fret wires and inlays are the bright ones), then the median of each channel */
+      const half = (x0, x1) => { const px = []; const y0 = 0, y1 = 36; const w = Math.max(1, Math.round(x1 - x0)); const d = x.getImageData(Math.round(x0), y0, w, y1 - y0).data; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 250) px.push([d[i], d[i + 1], d[i + 2]]); px.sort((p, q) => p[0] + p[1] + p[2] - q[0] - q[1] - q[2]); const dark = px.slice(0, Math.ceil(px.length / 2)); return [0, 1, 2].map(k => med(dark.map(p => p[k]))); };
+      const L = half(g.cx - .35 * g.nw, g.cx - .05 * g.nw), R = half(g.cx + .05 * g.nw, g.cx + .35 * g.nw);
+      const d = (u, v) => u.reduce((s, q, i) => s + Math.abs(q - v[i]), 0);
+      res.push({ slug: g.slug, l: d(L, hex(g.lit)), r: d(R, hex(g.shade)) });
+    }
+    return res;
+  }, news);
+  assert.equal(out.length, 23);
+  if (process.env.DBG) console.log(JSON.stringify(out.map(o => [o.slug, o.l, o.r])));
+  for (const o of out) { assert.ok(o.l <= 70 && o.r <= 70, `${o.slug}: lit is ${o.l} and shade ${o.r} away from the picture's own fretboard`); }
+});

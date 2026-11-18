@@ -3181,3 +3181,16 @@ test("Road Ready 9a: old saves load unchanged, and a backup keeps bought and cho
   const back = C.migrate(JSON.parse(JSON.stringify(C.migrate({ songs: [], settings: { v: 6 }, merch: { has: ["g-highline"], guitar: "highline" } }))));
   assert.equal(back.merch.guitar, "highline"); assert.deepEqual(back.merch.has, ["g-highline"]);
 });
+
+test("Road Ready 9a fix: the neck colours of the 23 new pictures are the fretboard wood, so lit and shade sit close together (not a string, fret or inlay)", async () => {
+  const PICS = (await import("../art/guitars/pics.js")).default;
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const news = Object.entries(PICS).filter(([, p]) => p.str);
+  assert.equal(news.length, 23);
+  for (const [name, p] of news) {
+    const a = rgb(p.lit), b = rgb(p.shade);
+    const gap = a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
+    assert.ok(gap <= 40, `${name}: lit ${p.lit} and shade ${p.shade} are ${gap} apart (a painted string or fret was sampled)`);
+    assert.ok(Math.max(...a, ...b) <= 150, `${name}: a fretboard is not a pale string colour (${p.lit}, ${p.shade})`);
+  }
+});
