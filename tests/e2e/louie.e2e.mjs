@@ -117,7 +117,7 @@ test("Road Ready 03: a finish from the Merch table still recolours him (kept unt
     host.innerHTML = `<span class="fin fin-stock">${louie("happy", { size: 60 })}</span><span class="fin fin-tweed">${louie("happy", { size: 60 })}</span>`;
     return [...host.querySelectorAll("rect.lv-tolex")].map(el => getComputedStyle(el).fill);
   });
-  assert.deepEqual(fills, ["rgb(35, 64, 106)", "rgb(216, 181, 113)"], "Stock is the locked blue; Tweed is still tweed");
+  assert.deepEqual(fills, ["rgb(58, 134, 255)", "rgb(216, 181, 113)"], "Stock is the locked bright blue (#3A86FF); Tweed is still tweed");
 });
 
 test("Road Ready 03: Louie hops and blinks, and Reduce Motion stops both", { skip: skip() }, async t => {
