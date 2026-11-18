@@ -72,6 +72,19 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
     const back = hash === "#/merch" ? "#mc-back" : "#back";
     await page.click(back); await page.waitForFunction(() => location.hash === "#/you"); await page.waitForSelector("#pf-r-band");
   }
+  /* the rows grow with the text size: no clipping and at least 44 tall at --sys-px 33px, and the sizes come from the tokens */
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-band"); await settled(page);
+  const size = () => page.$$eval(".pf-rows .pf-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: parseFloat(getComputedStyle(r).fontSize), small: parseFloat(getComputedStyle(r.querySelector("small")).fontSize),
+    clip: r.scrollWidth > r.clientWidth + 1 || r.scrollHeight > r.clientHeight + 1 })));
+  const normal = await size();
+  await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
+  await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
+  const large = await size();
+  assert.equal(large.length, 5, "five rows");
+  for (let i = 0; i < large.length; i++) {
+    assert.ok(large[i].name > normal[i].name && large[i].small > normal[i].small, `${large[i].id}: the text grows (${normal[i].name}/${normal[i].small} to ${large[i].name}/${large[i].small})`);
+    assert.ok(large[i].h >= 44 && !large[i].clip, `${large[i].id}: ${Math.round(large[i].h)} tall and nothing clips at large text`);
+  }
 });
 
 test("Road Ready 04: deep links to the pages that left the bar still open them; Songbook is a tab and Me stays lit under its pages", { skip: skip() }, async t => {

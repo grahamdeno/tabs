@@ -2115,6 +2115,9 @@ body.tabbed .s-dock { bottom: var(--tabs); }
 .more-list button, .more-list a { display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; min-height: 60px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); font: 700 17px var(--display); text-align: left; }
 .more-list button small, .more-list a small { display: block; font: 600 13px var(--sans); color: var(--muted); margin-top: 1px; }
 .more-list a { text-decoration: none; }
+/* the rows on Me (Road Ready 04) grow with the iPhone text size; the More sheet's own list does not use these */
+.pf-rows .pf-row { font-size: var(--type-body, 17px); }
+.pf-rows .pf-row small { font-size: var(--type-footnote, 13px); }
 .more-ic { width: 40px; height: 40px; display: grid; place-items: center; flex: none; position: relative; }
 .more-ic .dotmark { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--card); }
 .more-ic svg { width: 22px; height: 22px; }
