@@ -1973,7 +1973,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --accent-deep: #B97B1C; --accent-soft: rgba(255,181,71,.14); --accent-line: rgba(255,181,71,.5);
   --tabs-on: rgba(255,181,71,.14); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #2A2724;
   /* grain over --rr-base, then a 45 percent black wash. The tile is drawn brighter (base / .55) so the wash lands the average on #141210. */
-  --tolex: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.2 0 0 0 0.0426  0.2 0 0 0 0.0283  0.2 0 0 0 0.0141  0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 128px 128px repeat, var(--rr-base);
+  --tolex: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("art/surfaces/tolex-dark.webp") 0 0 / 256px 256px repeat, var(--rr-base);
 }
 /* Road Ready light: amber is for fills only; amber text on cream is always #763A00. The status colours are darkened to pass AA on cream, a card and a well. */
 :root[data-look="festival"] {
@@ -1993,7 +1993,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --bad: #BE1F35; --bad-line: rgba(190,31,53,.4); --good: #0E7054; --good-soft: rgba(14,112,84,.12); --tune: #0E7054;
   --streak: #B72857; --fans-text: #7B5E00; --strings: #2A60B8; --strings-deep: #1E4A8F;
   /* the same grain, much fainter, over --rr-base */
-  --tolex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.05 0 0 0 0.9397  0.05 0 0 0 0.9123  0.05 0 0 0 0.8613  0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 128px 128px repeat, var(--rr-base);
+  --tolex: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px repeat, var(--rr-base);
 }
 /* both Road Ready looks */
 :root:is([data-look="neon"], [data-look="festival"]) {
@@ -2028,7 +2028,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
   --r-chip: 999px; --r-control: 10px; --r-card: 16px; --r-strip: 18px; --r-sheet: 24px; --r-plate: 12px;
   --r: 16px; --r-bar: 18px; --margin: 16px;
-  /* surfaces, drawn in code. Each can be swapped for a 512 px bitmap tile (art/surfaces/tolex-dark.webp and friends) later by changing only these values. */
+  /* surfaces. The tolex is a 512 px bitmap tile (art/surfaces/, shown at 256 px); the grille cloth and raised panels are still drawn in code. */
   --mesh: repeating-linear-gradient(45deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px), var(--rr-mesh); /* grille cloth, for the tab bar (step 04) */
   --tolex-card: linear-gradient(180deg, rgba(255,255,255,.08) 0 1px, transparent 1px calc(100% - 1px), rgba(0,0,0,.3) calc(100% - 1px)), var(--rr-card); /* a raised panel: 1 px highlight on top, 1 px shadow below */
   --chrome-pipe: linear-gradient(180deg, #E8EBEF, #7E858F 50%, #E8EBEF); --chrome-pipe-w: 3px; /* a chrome edge for the header strip and tab bar (later steps): border-image or a padded gradient */

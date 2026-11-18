@@ -8,11 +8,11 @@ from scipy import ndimage
 from PIL import Image
 
 SRC, OUT = "docs/guitars/pics", "art/guitars"
-NAMES = ["parlor", "cutaway", "solid", "hollow", "single", "classical", "headliner"]
-CLOSEUP = {"hollow": 700, "classical": 920, "headliner": 920}  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
+NAMES = ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]
+CLOSEUP = {"cutaway-sunburst": 800, "hollow": 700, "classical": 920, "headliner": 920}  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
 # where the strings end, as a share of the body from the end of the neck to the bottom (acoustics: the bridge;
 # electrics: the bridge pickup's saddles)
-BRIDGE = {"parlor": .52, "cutaway": .55, "solid": .55, "hollow": .56, "single": .56, "classical": .50, "headliner": .40}
+BRIDGE = {"parlor": .52, "cutaway": .55, "cutaway-sunburst": .49, "solid": .55, "hollow": .56, "single": .56, "classical": .50, "headliner": .40}
 
 def cutout(path):
     a = np.asarray(Image.open(path).convert("RGB")).astype(np.float32)
