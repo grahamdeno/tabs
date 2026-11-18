@@ -450,7 +450,7 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
     assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.equal(await page.locator(".sc-show.case .sc-plush").count(), 1, "the glowing plush");
+    assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".sc-show.case .sc-case")).backgroundImage), theme === "dark" ? /case-open-dark\.webp/ : /case-open-light\.webp/, "Grok's painted case for the look");
     assert.equal(await page.innerText(".rr-case .sc-label"), "The cutaway");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");

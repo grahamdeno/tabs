@@ -29,7 +29,7 @@ import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
-import { guitarSVG, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
+import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
 import { statBar, bindStatBar, settleStats, statNotices } from "./hud.js";
 
 const DAY = 86400000;
@@ -403,7 +403,7 @@ function guitarEarned(road) {
   if (!gn) return;
   data.guitars = { seen: gn.done }; Tabs.save(data);
   const lg = road.legs.find(l => l.id === gn.next), was = road.legs.find(l => l.id === gn.leg);
-  /* Road Ready 06 (spec 5.8, r10-03): the new guitar in an open hard case with glowing plush, chrome L corners, the
+  /* Road Ready 06 (spec 5.8, r10-03): the new guitar in Grok's painted open case (art/show), chrome L corners, the
      cheering Louie beside it; the leg you finished as the title and the next leg as the next stop */
   if (rrLook()) layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt rr-case" role="dialog" aria-label="New guitar earned"><div class="grab"></div>
     <div class="pbody">
@@ -412,8 +412,7 @@ function guitarEarned(road) {
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
         <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
-        <span class="sc-shell"><span class="sc-plush"></span></span>
-        <div class="sc-guitar">${guitarSVG(gn.next)}</div>
+        <span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next)}</span></span>
         <span class="sc-label">${esc(gn.guitar.name)}</span>
         <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
       </div>

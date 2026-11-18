@@ -4956,7 +4956,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* the showcase: the guitar, its cream label, the cheering Louie at the bottom right */
 .sc-show { position: relative; flex: none; width: 100%; max-width: 360px; height: min(46vh, 380px); margin: 4px auto; }
 .sc-guitar { position: absolute; left: 50%; top: 4%; bottom: 4%; transform: translateX(-50%); width: 62%; display: flex; justify-content: center; }
-.sc-guitar .rd-gsvg { height: 100%; width: auto; max-width: 100%; }
+.sc-guitar :is(.rd-gsvg, img) { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
 .sc-show.glow .sc-guitar { filter: drop-shadow(0 0 2px var(--rr-glow-core)) drop-shadow(0 0 10px color-mix(in srgb, var(--rr-glow) 70%, transparent)) drop-shadow(0 0 24px color-mix(in srgb, var(--rr-glow) 40%, transparent)); animation: sc-pulse 1.2s ease-out 1; }
 @keyframes sc-pulse { 40% { filter: drop-shadow(0 0 3px var(--rr-glow-core)) drop-shadow(0 0 16px var(--rr-glow)) drop-shadow(0 0 40px color-mix(in srgb, var(--rr-glow) 60%, transparent)); } }
 .sc-label { position: absolute; right: 2%; top: 30%; padding: 4px 10px; border-radius: 8px; background: var(--rr-plate-top); color: var(--rr-plate-text); border: 1px solid var(--rr-plate-edge); font: 600 var(--type-footnote, 13px) / 1.2 "Inter", var(--sans); max-width: 34%; }
@@ -4993,9 +4993,11 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .sc-corner { border-image: linear-gradient(135deg, #f4f4f2, #9a9ea6 50%, #e6e7ea) 1; }
 .sc-corner.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; } .sc-corner.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
 .sc-corner.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; } .sc-corner.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
-.sc-shell { position: absolute; left: 50%; top: 3%; bottom: 3%; width: 58%; transform: translateX(-50%); border-radius: 46% 46% 40% 40% / 22% 22% 30% 30%; background: linear-gradient(180deg, #3a2618, #24160d); box-shadow: inset 0 0 0 3px #1a0f08, 0 8px 18px rgba(0, 0, 0, .45); }
-.sc-plush { position: absolute; inset: 8px; border-radius: inherit; background: radial-gradient(ellipse at 50% 55%, #ffb25a 0, #e0701e 45%, #8a3a10 85%); box-shadow: inset 0 0 18px rgba(0, 0, 0, .55); }
-.sc-show.case .sc-guitar { z-index: 1; top: 7%; bottom: 7%; width: 52%; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+/* the case is Grok's painting (art/show, 720 by 900, lid on the left, the cavity on the right); the guitar sits in the cavity */
+:root[data-look="neon"] { --show-case: url("art/show/case-open-dark.webp"); }
+:root[data-look="festival"] { --show-case: url("art/show/case-open-light.webp"); }
+.sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
+.sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
 .sc-show.case .sc-louie { z-index: 3; }
 .sc-show.case .sc-label { z-index: 3; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }
