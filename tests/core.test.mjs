@@ -2678,6 +2678,17 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
 });
 
+test("Road Ready 02: Louie's two peeking pictures are saved for offline, and each is under 60 KB", () => {
+  const shell = read("sw.js"), css = read("styles.css");
+  for (const look of ["dark", "light"]) {
+    const file = `art/louie/louie-peek-${look}.webp`;
+    assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
+    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
+    assert.ok(css.includes(`url("${file}")`), `${file} is the picture the Road shows`);
+    assert.ok(fs.statSync(path.join(root, file)).size <= 60000, `${file} is small`);
+  }
+});
+
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
   const { GUITARS } = await import("../core.js");
   const PICS = (await import("../art/guitars/pics.js")).default;

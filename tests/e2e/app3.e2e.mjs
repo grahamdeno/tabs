@@ -333,7 +333,7 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
 test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", { skip: skip() }, async t => {
   const skills = { done: { "c:G": { n: 3, best: 90, at: Date.now() }, "c:C": { n: 3, best: 90, at: Date.now() }, "c:D": { n: 3, best: 90, at: Date.now() } } };
   const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
-  await page.waitForSelector(".rd-node.box.now .rd-ring");
+  await page.waitForSelector(".rd-node.box.now");
   assert.equal(await page.innerText(".rd-stop.cur .rd-tag"), "Tap to open", "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
   const before = await fans();
@@ -341,15 +341,16 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   await page.waitForSelector(".co-powt");
   assert.match(await page.innerText(".co-powt"), /POW/, "a POW for the box");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).boxes?.opened?.length === 1);
-  await page.waitForSelector(".rd-node.box.done .rd-pearl");
+  await page.waitForSelector(".rd-node.box.done :is(.rd-pearl, .rr-pearl.done)");
   await page.waitForFunction(b => +(document.querySelector("#h-fans")?.innerText || "0").replace(/\D/g, "") >= b + 25, before);
   assert.equal(await page.locator(".rd-node.box.now").count(), 0, "opened, the road moves on");
 });
 
-test("The Road is home (4.0.0): stat bar, leg banner, the path with its current stop open, Louie, the Songbook bar and the tab bar", { skip: skip() }, async t => {
+/* Road Ready (step 02) draws the Road anew in the Light and Dark looks (roadready.e2e.mjs); Green Room and Headliner keep this one */
+test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with its current stop open, Louie, the Songbook bar and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
-  const page = await phone(t, { ...LIB, songs }, { home: true });
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/road.png" });
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator(".hud #h-streak").count(), 1, "the stat bar has the streak");
@@ -426,7 +427,7 @@ test("The Road on a new library: Louie waves and the first song is ready to play
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
   await page.waitForSelector(".rd-path");
   assert.match(await page.innerText("#rd-bubble"), /first song/i);
-  assert.match(await page.innerText("#rd-tonight"), /Gig: /);
+  assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*River Road/, "Road Ready: Tonight names the song");
 });
 
 test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -498,10 +499,10 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const lib = { ...LIB, songs, merch: { own: { rain: 1, take: 1 } }, charts: { tier: 0, battle: { day: dk(0), rival: "Neon Jen", songId: "a", target: 70, result: "lost", pct: 50 } } };
   const page = await phone(t, lib, { home: true });
   await page.waitForSelector("#h-fans");
-  assert.match(await page.innerText("#h-streak > span"), /^\s*3\s*$/, "the Rain check covered yesterday");
+  assert.match(await page.innerText("#h-fans small"), /^\s*3-day streak\s*$/, "the Rain check covered yesterday (Road Ready: the streak is under your fans)");
   const fans = +(await page.innerText("#h-tips")).replace(/\D/g, "");
   assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
-  assert.ok(+(await page.innerText("#h-fans")).replace(/\D/g, "") >= 1200, "and your fans stay");
+  assert.ok(+(await page.innerText("#h-fans b")).replace(/\D/g, "") >= 1200, "and your fans stay");
   await page.click("#h-tips"); await page.waitForSelector(".mc-head");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
@@ -530,8 +531,8 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
     { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d", playLog: { total: 1, last: Date.now() - 5 * 864e5, days: {} } }];
   const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
   await page.waitForSelector(".rd-node.now.headline");
-  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rd-inlay").getBoundingClientRect().width);
-  assert.ok(w > 80, `4.34.1: the headline keeps its size (${w})`);
+  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rr-art").getBoundingClientRect().width);
+  assert.ok(w >= 60, `4.34.1: the headline keeps its size (Road Ready: two 24 px pearls, ${w})`);
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /Headline show[\s\S]*Low Tide[\s\S]*PLAY LOW TIDE/, "the last played song that fits");
   assert.match(await page.innerText("#rd-other"), /Other songs that fit \(1\)/);
@@ -656,7 +657,7 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   assert.ok(await page.locator(".rd-neck").count() >= 2, "a neck for each leg");
   assert.match(await page.locator(".rd-neck").first().innerHTML(), /The beater/, "the first guitar is named on its headstock");
   assert.equal(await page.locator(".rd-tag").count(), 1, "one tag, on the next stop");
-  assert.equal(await page.locator(".rd-node.headline .rd-inlay").count() >= 1, true, "the headline is an inlay");
+  assert.equal(await page.locator(".rd-node.headline .rr-art").count() >= 1, true, "the headline is an inlay");
   await page.waitForSelector("#gt-x");
   assert.match(await page.innerText(".rd-gt"), /The cutaway/, "the sheet names the new guitar");
   await page.click("#gt-x");
@@ -668,7 +669,8 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
 test("4.84.0 a lesson that opens songs you have says how many; an opened merch box is a crate in the guitar's material", { skip: skip() }, async t => {
   const now = Date.now(), done = Object.fromEntries(["G", "C", "D"].map((c, i) => [`c:${c}`, { n: 3, best: 90, at: now - 1000 + i }]));
   const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] } }, { home: true });
+  /* Green Room: the old Road draws the box in the guitar's material; Road Ready's pearls are tested in roadready.e2e.mjs */
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   await page.waitForSelector(".rd-neck");
   assert.match(await page.innerText(".rd-node.now .rd-songs"), /1/, "Em opens one song");
   assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
