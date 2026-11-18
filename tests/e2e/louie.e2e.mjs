@@ -35,7 +35,9 @@ const measure = (page, sizes) => page.evaluate(async ({ MOODS, POSES, sizes }) =
       mouthLine: parseFloat(getComputedStyle(one(".lv-mouth")).strokeWidth) * box(svg).w / svg.viewBox.baseVal.width,
       fingers: svg.querySelectorAll(".lv-mit").length, cuffs: svg.querySelectorAll(".lv-cuff").length,
       cheeks: svg.querySelectorAll(".lv-c, .lv-lamp, .lv-t, [class*=cheek], [class*=blush]").length,
-      label: svg.getAttribute("aria-label"), role: svg.getAttribute("role") });
+      label: svg.getAttribute("aria-label"), role: svg.getAttribute("role"),
+      /* review: what the cloth's own classes draw, so a smile can't hide in the weave's class */
+      cloth3: [...svg.querySelectorAll(".lv-cloth, .lv-weave, .lv-cloth-sh")].map(el => { const s = getComputedStyle(el); return `${el.getAttribute("class")}:${s.fill}/${s.stroke}/${s.strokeWidth}`; }) });
   }
   host.remove();
   return out;
@@ -54,6 +56,7 @@ test("Road Ready 03: every mood with every pose at every size has one mouth on t
     assert.ok(l.eyes.length === 2 && l.eyes.every(e => e.b <= m.y + 1 && inside(e, l.panel)), `${l.at}: two eyes, on the panel, above the mouth`);
     assert.ok(l.knobs.every(k => k.y >= m.y - 1), `${l.at}: the mouth is above the knobs' feet`);
     assert.deepEqual(l.onGrille, [], `${l.at}: nothing on the grille but cloth, weave and its frame`);
+    assert.deepEqual(l.cloth3, ["lv-cloth:rgb(24, 45, 71)/none/1px", "lv-weave:none/rgb(42, 68, 102)/0.9px", "lv-weave:none/rgb(42, 68, 102)/1.3px", "lv-cloth-sh:none/rgb(0, 0, 0)/3px"], `${l.at}: the cloth, the weave, the faint circle and the inner shadow, and nothing else in their classes`);
     assert.equal(l.cheeks, 0, `${l.at}: no cheeks, lamp or tongue`);
     assert.equal(l.fingers, l.pose ? 4 : 0, `${l.at}: each hand is one mitten and one thumb lobe`);
     assert.equal(l.cuffs, l.pose ? 2 : 0, `${l.at}: cuffs stay`);

@@ -2299,6 +2299,11 @@ test("Road Ready 03: every mood and pose has exactly one mouth, drawn before the
     const after = svg.slice(svg.indexOf('class="lv-cloth"'));
     assert.deepEqual([...new Set((after.match(/class="([^"]+)"/g) || []).map(c => c.slice(7, -1)))].filter(c => !["lv-cloth", "lv-weave", "lv-cloth-sh", "lv-inks", "lv-nickel", "lv-mit-o", "lv-mit", "lv-mit-s", "lv-cuff"].includes(c)), [], `${where}: nothing else on the grille`);
     assert.equal((after.match(/class="lv-inks"/g) || []).length, 1, `${where}: the only ink line on the grille is its frame`);
+    /* review: the cloth's own parts can't carry a drawing either: one cloth, one inner shadow, and two weave shapes (the weave and the faint circle), both thin weave-blue lines */
+    const weave = after.match(/<[a-z]+ class="lv-weave"[^>]*>/g) || [];
+    assert.equal(weave.length, 2, `${where}: the weave and the speaker circle, nothing else in the weave's class`);
+    assert.ok(weave.every(w => /stroke="#2A4466"/.test(w) && /fill="none"/.test(w) && +w.match(/stroke-width="([\d.]+)"/)[1] <= 1.3), `${where}: weave lines are thin and weave-blue`);
+    assert.deepEqual([(after.match(/class="lv-cloth"/g) || []).length, (after.match(/class="lv-cloth-sh"/g) || []).length], [1, 1], `${where}: one cloth, one inner shadow`);
     /* after the frame come only the corner caps (on the cabinet's corners, outside the grille) and the mittens */
     const afterFrame = after.slice(after.indexOf('class="lv-inks"'));
     assert.ok(!/lv-mouth|lv-ink"|lv-eye/.test(afterFrame), `${where}: no face part is drawn over the grille`);
