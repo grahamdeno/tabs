@@ -80,6 +80,9 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
     await page.click("#play"); await page.waitForFunction(() => document.querySelectorAll("#gg-fans .on").length > 0, null, { timeout: 20000 });
     await check("playing, the crowd getting up");
     await page.waitForSelector(".gc", { timeout: 60000 });
+    /* Show complete can queue a few callouts, each fading in and out over the page; axe measures their text mid-fade
+       as faint. They are decoration (aria-hidden), so check the screen once they have all gone. */
+    await page.waitForFunction(() => !document.querySelector(".co"), null, { timeout: 20000 });
     await check("show complete");
     for (const p of problems) console.log(`PROBLEM ${look} ${p}`);
     assert.deepEqual(problems, []);

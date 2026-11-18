@@ -1,101 +1,162 @@
-// Louie, The Road's mascot: a little combo amp. Version 4 draws him flat, with no outlines: a
-// darker right side for depth, a soft highlight stripe, a two-tone panel for a face, round eyes,
-// a strip of four knobs, the speaker for a mouth, chrome corner bumpers, a blank plate (4.86.0, from a Gemini redesign)
-// and mitten hands that can throw the horns. His colours come from the
-// palette (the --lv-* variables in styles.css), so he matches Light, Dark and Green Room.
+// Louie, the mascot: a blue 1x12 combo amp (Road Ready; docs/road-ready/louie-design-spec.md, section 9).
+// Blue Tolex with a darker right side, nickel corner caps, a brown leather handle, a yellow control panel for a
+// face (two eyes, one mouth, a row of four cream knobs), a plain navy grille, mitten hands and two short legs.
+// The hard rule: exactly one mouth (class lv-mouth), always on the yellow panel between the eyes and the knobs.
+// The grille is plain cloth: never a mouth, a smile line or any feature on it, in any mood, pose or size.
+// Mittens have no fingers. No cheeks, no blush, no lamp.
+// His colours are locked: the --lv-* variables on .louie in styles.css, and the same values written on each
+// shape, so a picture made from the SVG alone (the share card) shows the same Louie.
 // louie(mood, { pose, size }) returns an <svg> string.
-//   moods: happy, cheer, sleepy, worried, proud
+//   moods: happy, cheer, sleepy, worried (drawn as nervous, never sad), proud
 //   poses: rest, hornsUp, thumb, point, wave, peace (no arms when absent)
-//   No hand ever shows one finger standing straight up: it reads as the middle finger (Graham, 4.39.1).
 
-/* hands are drawn with the wrist at 0,0 and the fingers pointing up (negative y).
+/* The guitarist's hands (guitarist.js draws them through mittenOf). These are the shapes Louie had before Road Ready,
+   kept exactly as they were so your guitarist doesn't change. Louie's own mittens are HANDS, below.
+   Hands are drawn with the wrist at 0,0 and the fingers pointing up (negative y).
    4.86.0: each hand is one mitten: the fingers grow out of the palm, creases instead of stuck-on knuckles, a shade copy
    under the lit one like his body, and a cuff at the wrist. */
-const mitt = (shape, creases = "", over = "") => `<g class="lv-fs" transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-f">${shape}</g>`
+const guitaristMitt = (shape, creases = "", over = "") => `<g class="lv-fs" transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-f">${shape}</g>`
   + `<g class="lv-fl" fill="none" stroke-width="1.9" stroke-linecap="round">${creases}</g>${over ? `<g class="lv-fs" transform="translate(0 1.6)">${over}</g><g class="lv-f">${over}</g>` : ""}`
   + `<rect class="lv-cuff" x="-9.5" y="-3.2" width="19" height="6.4" rx="3.2"/>`;
-const finger = (x, len, r) => `<rect x="${x - 4.6}" y="${-22 - len}" width="9.2" height="${len + 6}" rx="4.6" transform="rotate(${r} ${x} -20)"/>`;
-const PALM = `<path d="M-13 -4C-15.5 -11 -15.5 -20 -12.5 -25C-8 -28 8 -28 12.5 -25C15.5 -20 15.5 -11 13 -4C8 1 -8 1 -13 -4Z"/>`;
-const ROLLS = "C16.5 -26.5 16 -23.5 13.5 -21.5C16.5 -19 16 -15.5 13.5 -13.5C16.5 -11 16 -7 13 -5C12 0 6 1 0 1C-6 1 -10 1 -11 -1Z";
-const THUMB_ACROSS = `<path d="M-12.5 -15C-6 -18.5 4 -18.5 8.5 -15C10.5 -13 9.5 -10 7.5 -9.5C1 -8 -6 -8.5 -12 -10Z"/>`;
-const HANDS = {
-  fist: () => mitt(`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
-    `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, THUMB_ACROSS),
-  horns: () => mitt(`<path d="M-13 -3C-15.5 -9 -15.5 -17 -13.5 -22L-14.5 -38C-14.8 -43.5 -5 -44.5 -4.6 -38.5L-4 -26.5C-1.5 -28.5 2 -28.5 4.6 -26.5L5.4 -34.5C5.8 -40.5 15 -40 14.4 -34L13.4 -20C15.4 -14 15 -8 12.5 -3C8 1 -8.5 1 -13 -3Z"/>`,
-    `<path d="M-4 -24Q0 -21.5 4.6 -24"/>`, THUMB_ACROSS),
+const guitaristFinger = (x, len, r) => `<rect x="${x - 4.6}" y="${-22 - len}" width="9.2" height="${len + 6}" rx="4.6" transform="rotate(${r} ${x} -20)"/>`;
+const G_PALM = `<path d="M-13 -4C-15.5 -11 -15.5 -20 -12.5 -25C-8 -28 8 -28 12.5 -25C15.5 -20 15.5 -11 13 -4C8 1 -8 1 -13 -4Z"/>`;
+const G_ROLLS = "C16.5 -26.5 16 -23.5 13.5 -21.5C16.5 -19 16 -15.5 13.5 -13.5C16.5 -11 16 -7 13 -5C12 0 6 1 0 1C-6 1 -10 1 -11 -1Z";
+const G_THUMB_ACROSS = `<path d="M-12.5 -15C-6 -18.5 4 -18.5 8.5 -15C10.5 -13 9.5 -10 7.5 -9.5C1 -8 -6 -8.5 -12 -10Z"/>`;
+const GUITARIST_HANDS = {
+  fist: () => guitaristMitt(`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
+    `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, G_THUMB_ACROSS),
+  horns: () => guitaristMitt(`<path d="M-13 -3C-15.5 -9 -15.5 -17 -13.5 -22L-14.5 -38C-14.8 -43.5 -5 -44.5 -4.6 -38.5L-4 -26.5C-1.5 -28.5 2 -28.5 4.6 -26.5L5.4 -34.5C5.8 -40.5 15 -40 14.4 -34L13.4 -20C15.4 -14 15 -8 12.5 -3C8 1 -8.5 1 -13 -3Z"/>`,
+    `<path d="M-4 -24Q0 -21.5 4.6 -24"/>`, G_THUMB_ACROSS),
   /* a thumbs up like the emoji: the fingers curled on the front edge, a short thumb up from the back of the fist.
      Never one finger standing straight up from the middle (that reads as the middle finger). */
-  thumb: () => mitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 -12 -46C-9 -50 -3 -49 -2 -44C-1.5 -40 -1.5 -36 -1 -32C4 -33.5 11 -33 13.5 -29.5${ROLLS}"/>`,
+  thumb: () => guitaristMitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 -12 -46C-9 -50 -3 -49 -2 -44C-1.5 -40 -1.5 -36 -1 -32C4 -33.5 11 -33 13.5 -29.5${G_ROLLS}"/>`,
     `<path d="M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M3 -5.5Q8 -4.8 13 -5M-1 -32Q-5 -30 -9 -31"/>`),
   /* pointing: the index finger out from the front of the fist and the thumb tucked; the pose turns it toward the
      speech bubble, so it never stands straight up */
-  point: () => mitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -26C-12.5 -31 -8 -33 -3 -33L3 -33L3.5 -49C3.7 -55 13.3 -55 13.5 -49L13.6 -30${ROLLS}"/>`,
+  point: () => guitaristMitt(`<path d="M-11 -1C-13 -8 -14 -18 -13 -26C-12.5 -31 -8 -33 -3 -33L3 -33L3.5 -49C3.7 -55 13.3 -55 13.5 -49L13.6 -30${G_ROLLS}"/>`,
     `<path d="M3 -30.5Q8 -29.5 13.5 -30M2 -21.5Q8 -20.5 13.5 -21.5M2 -13.5Q8 -12.5 13.5 -13.5M-12 -20Q-5 -17 2 -20"/>`),
-  wave: () => mitt(`${PALM}${finger(-9, 17, -14)}${finger(-3, 23, -5)}${finger(3.5, 24, 4)}${finger(9.5, 20, 13)}<rect x="-21" y="-19" width="9.2" height="18" rx="4.6" transform="rotate(-38 -12 -8)"/>`,
+  wave: () => guitaristMitt(`${G_PALM}${guitaristFinger(-9, 17, -14)}${guitaristFinger(-3, 23, -5)}${guitaristFinger(3.5, 24, 4)}${guitaristFinger(9.5, 20, 13)}<rect x="-21" y="-19" width="9.2" height="18" rx="4.6" transform="rotate(-38 -12 -8)"/>`,
     `<path d="M-6 -24.5V-21M0.3 -25V-21.5M6.6 -24.5V-21"/>`),
-  peace: () => mitt(`${PALM}${finger(-4.5, 24, -12)}${finger(4.5, 25, 12)}`, `<path d="M-1 -10Q0 -16 1 -22"/>`, THUMB_ACROSS)
+  peace: () => guitaristMitt(`${G_PALM}${guitaristFinger(-4.5, 24, -12)}${guitaristFinger(4.5, 25, 12)}`, `<path d="M-1 -10Q0 -16 1 -22"/>`, G_THUMB_ACROSS)
 };
-/* shoulder x,y → wrist x,y, the hand's turn, and the sign */
-/* 4.86.0: the same mittens in a skin tone for the guitarist: `sh` is the shade, `ln` the creases, `cuff` the sleeve */
+/* 4.86.0: the guitarist's hands in a skin tone: `sh` is the shade, `ln` the creases, `cuff` the sleeve */
 export function mittenOf(name, skin, sh, ln, cuff) {
-  return HANDS[name]().replace(/class="lv-fs"/g, `fill="${sh}"`).replace(/class="lv-f"/g, `fill="${skin}"`)
+  return GUITARIST_HANDS[name]().replace(/class="lv-fs"/g, `fill="${sh}"`).replace(/class="lv-f"/g, `fill="${skin}"`)
     .replace(/class="lv-fl"/g, `stroke="${ln}"`).replace(/class="lv-cuff"/g, `fill="${cuff}"`);
 }
+
+/* Louie's mittens: the wrist at 0,0 and the mitten pointing up (negative y). A mitten is one rounded shape with at
+   most a thumb lobe: an ink outline behind, a shade copy under it like his body, a soft highlight, and a cuff at the
+   wrist. No fingers, ever. */
+const INK = "#0B0F14";
+const BLUE = 'fill="#23406A"', NAVY = 'fill="#1A3152"';
+const mitt = (shape, lobe = "") => `<g class="lv-mit-o" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round">${shape}${lobe}</g>`
+  + `<g class="lv-mit-s" ${NAVY} transform="translate(1.2 1.8)">${shape}${lobe}</g><g class="lv-mit" ${BLUE}>${shape}<path d="M-8 -9C-10 -15 -9 -21 -5 -24" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2.4" stroke-linecap="round"/></g>`
+  + (lobe ? `<g class="lv-mit-s" ${NAVY} transform="translate(0 1.5)">${lobe}</g><g class="lv-mit" ${BLUE}>${lobe}</g>` : "")
+  + `<rect class="lv-cuff" ${NAVY} x="-9.5" y="-3.4" width="19" height="6.8" rx="3.4" stroke="${INK}" stroke-width="1.6"/>`;
+const CLOSED = `<path d="M-11 -2C-14.5 -9 -14.5 -20 -10.5 -25.5C-6 -30.5 6 -30.5 10.5 -25.5C14.5 -20 14.5 -9 11 -2C7 1.5 -7 1.5 -11 -2Z"/>`;
+const OPEN = `<path d="M-11.5 -2C-14.5 -10 -15.5 -25 -12 -33C-8 -40.5 8 -40.5 12 -33C15.5 -25 14.5 -10 11.5 -2C7 1.5 -7 1.5 -11.5 -2Z"/>`;
+const TUCKED = `<ellipse cx="-12.5" cy="-13" rx="4.8" ry="7.5" transform="rotate(-18 -12.5 -13)"/>`; /* the thumb lobe, against the mitten */
+const OUT = `<ellipse cx="-15.5" cy="-15" rx="5" ry="9.5" transform="rotate(-32 -15.5 -15)"/>`; /* the thumb lobe, held out */
+const UP = `<rect x="-13.5" y="-43" width="10" height="24" rx="5"/>`; /* the thumb lobe up, on the side of the mitten, never in the middle */
+/* the old pose names still work: each is a mitten now */
+const SHAPES = { fist: [CLOSED, TUCKED], horns: [CLOSED, TUCKED], thumb: [CLOSED, UP], point: [CLOSED, TUCKED], wave: [OPEN, OUT], peace: [OPEN, OUT] };
+const HANDS = Object.fromEntries(Object.entries(SHAPES).map(([name, [shape, lobe]]) => [name, () => mitt(shape, lobe)]));
+/* shoulder x,y (on the cabinet's side), wrist x,y, the hand's turn, and the mitten. The arms come out of the sides. */
 const POSES = {
-  rest: [[38, 128, 22, 160, 200, "fist"], [162, 128, 178, 160, 160, "fist"]],
-  hornsUp: [[40, 118, 6, 54, -22, "horns"], [160, 118, 194, 54, 22, "horns"]],
-  thumb: [[38, 128, 22, 160, 200, "fist"], [160, 118, 198, 92, 14, "thumb"]],
-  point: [[38, 128, 22, 160, 200, "fist"], [160, 122, 180, 108, 40, "point"]],
-  wave: [[38, 128, 22, 160, 200, "fist"], [160, 116, 196, 50, 18, "wave"]],
-  peace: [[38, 128, 22, 160, 200, "fist"], [160, 116, 194, 52, 16, "peace"]]
+  rest: [[50, 78, 36, 112, 184, "fist"], [150, 78, 164, 112, 176, "fist"]],
+  hornsUp: [[50, 80, 22, 50, -16, "horns"], [150, 80, 178, 50, 16, "horns"]],
+  thumb: [[50, 78, 36, 112, 184, "fist"], [150, 80, 182, 80, 12, "thumb"]],
+  point: [[50, 78, 36, 112, 184, "fist"], [150, 84, 180, 108, 40, "point"]],
+  wave: [[50, 78, 36, 112, 184, "fist"], [150, 78, 184, 48, 16, "wave"]],
+  peace: [[50, 78, 36, 112, 184, "fist"], [150, 78, 183, 50, 14, "peace"]]
 };
+
+/* The cabinet: taller than wide. The panel is the top of the front, the grille the rest. */
+const CAB = { x: 48, y: 20, w: 104, h: 128 }, P = { x: 57, y: 29, w: 86, h: 51 }, G = { x: 57, y: 86, w: 86, h: 54 };
+/* The grille: plain navy cloth with a fine weave and a faint speaker circle. Nothing else is ever drawn on it. */
+const WEAVE = (() => {
+  let d = "";
+  for (let k = -G.h + 3; k < G.w; k += 5.5) {
+    const x = Math.max(k, 0), y = G.y + Math.max(-k, 0), n = Math.min(G.w - x, G.y + G.h - y);
+    d += `M${G.x + x} ${y}l${n} ${n}M${G.x + G.w - x} ${y}l${-n} ${n}`;
+  }
+  return d;
+})();
+const KNOBS = [[68, -32], [89.3, 12], [110.7, -12], [132, 34]];
+const CAPS = [[45, 17], [139, 17], [45, 135], [139, 135]];
+const r1 = n => Math.round(n * 10) / 10;
+let seq = 0; /* gradient and pattern ids, unique on the page */
 
 export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}) {
   const arms = pose && POSES[pose];
   const sleepy = mood === "sleepy", proud = mood === "proud", worried = mood === "worried", cheer = mood === "cheer";
-  const dx = worried ? -2 : 3, py = worried ? 78 : 76;
-  const eye = x => cheer ? `<path class="lv-p" d="M${x - 15} 80 Q${x} 60 ${x + 15} 80 Q${x} 70 ${x - 15} 80Z"/>`
-    : sleepy ? `<ellipse cx="${x}" cy="74" rx="17" ry="19" fill="#fff"/><circle class="lv-p" cx="${x + 2}" cy="80" r="8"/><path class="lv-fs" d="M${x - 18} 74 A18 19 0 0 1 ${x + 18} 74 Z"/><path class="lv-ps" d="M${x - 14} 75 Q${x} 81 ${x + 14} 75" fill="none" stroke-width="3.4" stroke-linecap="round"/>`
-    : `<g class="lv-eye"><ellipse cx="${x}" cy="74" rx="17" ry="19" fill="#fff"/><circle class="lv-p" cx="${x + dx}" cy="${py}" r="9.5"/><circle cx="${x + dx + 3}" cy="${py - 4}" r="3.4" fill="#fff"/></g>`;
-  const brows = worried ? `<path class="lv-p" d="M64 50 L88 56 L86 60 L62 54Z"/><path class="lv-p" d="M136 50 L112 56 L114 60 L138 54Z"/>`
-    : cheer || sleepy || proud ? "" : `<rect class="lv-p" x="64" y="46" width="24" height="6" rx="3" transform="rotate(-6 76 49)"/><rect class="lv-p" x="112" y="46" width="24" height="6" rx="3" transform="rotate(6 124 49)"/>`;
-  const shades = proud ? `<path class="lv-p" d="M56 62 h40 v8 q0 18 -20 18 q-20 0 -20 -18z"/><path class="lv-p" d="M104 62 h40 v8 q0 18 -20 18 q-20 0 -20 -18z"/><rect class="lv-p" x="94" y="64" width="12" height="5" rx="2.5"/><path d="M64 68 l10 -3 M112 68 l10 -3" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".7"/>` : "";
-  const mouth = {
-    happy: `<path class="lv-m" d="M80 124 Q100 146 120 124Z"/><path class="lv-t" d="M90 135 Q100 141 110 135 Q100 131 90 135Z"/>`,
-    cheer: `<path class="lv-m" d="M74 120 Q100 160 126 120Z"/><ellipse class="lv-t" cx="100" cy="141" rx="12" ry="6"/>`,
-    sleepy: `<path class="lv-ms" d="M88 134 Q100 139 112 134" fill="none" stroke-width="5" stroke-linecap="round"/>`,
-    worried: `<path class="lv-m" d="M84 138 Q100 124 116 138 Q100 132 84 138Z"/>`,
-    proud: `<path class="lv-ms" d="M80 128 Q104 146 124 124" fill="none" stroke-width="6" stroke-linecap="round"/>`
-  }[mood] || "";
-  const tilt = cheer ? "rotate(-5 100 110)" : proud ? "rotate(4 100 110)" : "";
-  const limbs = layer => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
-    const mx = (sx + wx) / 2 + (wx < sx ? -10 : 10), my = Math.min(sy, wy) + (wy < sy ? 8 : 14);
-    return layer === "arm" ? `<path class="lv-l" d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-width="15" stroke-linecap="round"/>`
-      : `<g transform="translate(${wx} ${wy}) rotate(${rot}) scale(0.97 1.17)">${HANDS[sign]()}</g>`;
-  }).join("");
   const vb = arms ? "-34 -30 268 236" : "18 0 164 200";
   const [, , vw, vh] = vb.split(" ").map(Number);
+  const id = "lv" + (++seq).toString(36);
+  /* how many drawing units one screen pixel covers: lines get heavier and eyes a little bigger when he is drawn small,
+     so his eyes, mouth and knobs still read at 44 px */
+  const u = vw / (size || 120);
+  const line = r1(Math.max(3, 0.85 * u)), brow = r1(Math.max(2.6, 0.75 * u)), big = r1(Math.min(1.3, Math.max(1, u / 3)));
+  const ol = r1(Math.max(1.8, 0.55 * u)); /* the ink outline round every part */
+  const rim = r1(3 * u); /* the warm rim on dark looks is 3 px on screen */
+  const stroke = w => `fill="none" stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+  const edge = `stroke="${INK}" stroke-width="${ol}" stroke-linejoin="round"`;
+  const sized = (x, inner) => `<g class="lv-eyes"${big > 1 ? ` transform="translate(${x} 47) scale(${big}) translate(${-x} -47)"` : ""}>${inner}</g>`;
+  const eye = x => sized(x, cheer || proud ? `<path class="lv-inks" d="M${x - 7.5} 50 Q${x} 40 ${x + 7.5} 50" ${stroke(brow)}/>`
+    : sleepy ? `<path class="lv-ink" fill="${INK}" d="M${x - 4.6} 48 A4.6 5 0 0 0 ${x + 4.6} 48Z"/><path class="lv-inks" d="M${x - 7} 47.5 Q${x} 46 ${x + 7} 47.5" ${stroke(r1(brow * 0.8))}/>`
+    : `<g class="lv-eye"><ellipse class="lv-ink" fill="${INK}" cx="${x}" cy="47" rx="4.6" ry="5.9"/><circle cx="${x + 1.5}" cy="44.6" r="1.6" fill="#fff"/></g>`);
+  const brows = cheer || sleepy ? ""
+    : worried ? `<path class="lv-inks" d="M75 39.5 Q80 33.5 89 34" ${stroke(brow)}/><path class="lv-inks" d="M125 39.5 Q120 33.5 111 34" ${stroke(brow)}/>`
+    : `<path class="lv-inks" d="M74 ${proud ? 36 : 37.5} Q81 ${proud ? 32 : 33.5} 88 ${proud ? 35.5 : 37}" ${stroke(brow)}/><path class="lv-inks" d="M126 ${proud ? 36 : 37.5} Q119 ${proud ? 32 : 33.5} 112 ${proud ? 35.5 : 37}" ${stroke(brow)}/>`;
+  /* The one mouth. Every mood has exactly one lv-mouth, and it sits on the yellow panel between the eyes and the knobs. */
+  const mouth = cheer ? `<path class="lv-mouth lv-ink lv-inks" d="M89 54.5 H111 Q111 64.5 100 64.5 Q89 64.5 89 54.5Z" fill="${INK}" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/><ellipse class="lv-mouth-in" fill="#B9503A" cx="100" cy="61.6" rx="6" ry="2.6"/>`
+    : `<path class="lv-mouth lv-inks" d="${sleepy ? "M93 58.5 Q100 61 107 58.5" : worried ? "M89 58.5 q2.75 -3 5.5 0 t5.5 0 t5.5 0 t5.5 0" : proud ? "M89 55 Q101 63.5 111 54.5" : "M90 55.5 Q100 63 110 55.5"}" ${stroke(line)}/>`;
+  const tilt = cheer ? "rotate(-5 100 110)" : proud ? "rotate(4 100 110)" : "";
+  const limbs = layer => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
+    const mx = (sx + wx) / 2 + (wx < sx ? -8 : 8), my = Math.min(sy, wy) + (wy < sy ? 6 : 12);
+    const arm = `d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-linecap="round"`, at = `transform="translate(${wx} ${wy}) rotate(${rot}) scale(0.86 1.02)"`;
+    return layer === "arm" ? `<path class="lv-arm-o" stroke="${INK}" stroke-width="${r1(15 + 2 * ol)}" ${arm}/><path class="lv-arm" stroke="#23406A" stroke-width="15" ${arm}/><path stroke="#fff" stroke-opacity=".12" stroke-width="4" ${arm} transform="translate(-2 -2)"/>`
+      : layer === "hand" ? `<g ${at}>${HANDS[sign]()}</g>`
+      : `<path stroke-width="${r1(15 + 2 * rim)}" ${arm}/><g ${at}>${SHAPES[sign].join("")}</g>`;
+  }).join("");
+  const HANDLE = `d="M78 19 C78 1 122 1 122 19" fill="none" stroke-linecap="round"`;
+  const leg = x => `<rect x="${x}" y="144" width="18" height="30" rx="4"/>`;
+  const boot = (x, f) => `<path d="M${x - 12 * f} 191 Q${x - 14 * f} 175 ${x - 2 * f} 170 H${x + 8 * f} Q${x + 19 * f} 173 ${x + 19 * f} 184 Q${x + 19 * f} 191 ${x + 12 * f} 191Z"/>`;
+  const LEGS = leg(69) + leg(113), BOOTS = boot(80, -1) + boot(120, 1);
+  const cap = ([x, y]) => `<rect x="${x}" y="${y}" width="16" height="16" rx="3.5"/>`;
   return `<svg class="louie ${mood}${pose ? " " + pose : ""}" width="${size}" height="${Math.round(size * vh / vw)}" viewBox="${vb}" role="img" aria-label="${label}">
-  ${sleepy ? `<text class="lv-z" x="160" y="24" font-family="Fredoka,system-ui,sans-serif" font-size="22" font-weight="700">z</text><text class="lv-z" x="176" y="8" font-family="Fredoka,system-ui,sans-serif" font-size="15" font-weight="700" opacity=".7">z</text>` : ""}
-  <ellipse class="lv-shadow" cx="100" cy="190" rx="54" ry="6"/>
+  <defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
+  <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
+  <radialGradient id="${id}k" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient>
+  <linearGradient id="${id}n" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+  <pattern id="${id}t" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx=".7" cy=".7" r=".45" fill="#000" opacity=".18"/><circle cx="2" cy="1.9" r=".35" fill="#fff" opacity=".07"/></pattern></defs>
+  ${sleepy ? `<text class="lv-z" fill="#8A8F98" x="160" y="22" font-family="system-ui,sans-serif" font-size="22" font-weight="700">z</text><text class="lv-z" fill="#8A8F98" x="176" y="7" font-family="system-ui,sans-serif" font-size="15" font-weight="700" opacity=".7">z</text>` : ""}
+  <ellipse class="lv-shadow" fill="#000" opacity=".18" cx="100" cy="193" rx="50" ry="4.5"/>
   <g class="lv-body" transform="${tilt}">
+    <g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="${r1(2 * rim)}" stroke-linejoin="round">${limbs("rim")}<path stroke-width="${r1(8 + 2 * rim)}" ${HANDLE}/><rect x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>${CAPS.map(cap).join("")}${LEGS}${BOOTS}</g>
     ${limbs("arm")}
-    <rect class="lv-s" x="62" y="166" width="30" height="20" rx="10"/><rect class="lv-s" x="108" y="166" width="30" height="20" rx="10"/>
-    <path class="lv-ss" d="M73 34 Q73 10 100 10 Q127 10 127 34" fill="none" stroke-width="12" stroke-linecap="round"/>
-    <rect class="lv-s" x="30" y="28" width="140" height="148" rx="38"/>
-    <rect class="lv-b" x="30" y="28" width="128" height="148" rx="38"/>
-    <rect class="lv-hi" x="44" y="36" width="54" height="9" rx="4.5"/>
-    <g class="lv-cn" fill="none" stroke-width="9" stroke-linecap="round"><path d="M34.5 56 A33.5 33.5 0 0 1 58 32.5"/><path d="M142 32.5 A33.5 33.5 0 0 1 165.5 56"/><path d="M34.5 148 A33.5 33.5 0 0 0 58 171.5"/><path d="M142 171.5 A33.5 33.5 0 0 0 165.5 148"/></g><g class="lv-cnh" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M37 55 A31 31 0 0 1 57 35"/><path d="M143 35 A31 31 0 0 1 163 55"/></g>
-    <rect class="lv-fs" x="46" y="48" width="108" height="58" rx="20"/>
-    <rect class="lv-f" x="46" y="48" width="108" height="50" rx="20"/>
-    <ellipse class="lv-c" cx="60" cy="96" rx="8" ry="5"/><ellipse class="lv-c" cx="140" cy="96" rx="8" ry="5"/>
-    ${proud ? "" : eye(77) + eye(123)}${brows}${shades}
-    <rect class="lv-s" x="48" y="109" width="104" height="17" rx="8.5"/>
-    <rect class="lv-g" x="48" y="128" width="104" height="34" rx="12"/>${[70, 90, 110, 130].map(x => `<circle class="lv-gs" cx="${x}" cy="118.6" r="5.6"/><circle class="lv-k" cx="${x}" cy="117.4" r="5"/><rect class="lv-gs" x="${x - .9}" y="112.6" width="1.8" height="4.4" rx=".9"/>`).join("")}
-    ${[135, 141.5, 148, 154.5].map(y => `<rect class="lv-gs" x="58" y="${y}" width="${y > 150 ? 74 : 84}" height="3.6" rx="1.8"/>`).join("")}
-    <g transform="translate(0 6)">${mouth}</g>
-    <rect class="lv-k" x="86" y="165" width="28" height="8" rx="2"/><circle class="lv-gs" cx="89" cy="169" r="1.1"/><circle class="lv-gs" cx="111" cy="169" r="1.1"/>
-    <circle class="lv-lamp" cx="142" cy="153" r="4"/>
+    <g class="lv-tolex" fill="#23406A" ${edge}>${LEGS}</g><g fill="url(#${id}t)">${LEGS}</g>
+    <g class="lv-side" fill="#1A3152" ${edge}>${BOOTS}</g><g fill="url(#${id}b)">${BOOTS}</g>
+    <path stroke="${INK}" stroke-width="${r1(8 + 2 * ol)}" ${HANDLE}/><path class="lv-leather" stroke="#55331B" stroke-width="8" ${HANDLE}/><path stroke="#fff" stroke-opacity=".22" stroke-width="2" d="M81 15 C82 5 118 5 119 15" fill="none" stroke-linecap="round"/>
+    <g class="lv-nickel" fill="#948573" ${edge}><rect x="71" y="14" width="13" height="8" rx="2"/><rect x="116" y="14" width="13" height="8" rx="2"/></g>
+    <rect class="lv-side" fill="#1A3152" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
+    <rect class="lv-tolex" fill="#23406A" x="${CAB.x}" y="${CAB.y}" width="${CAB.w - 9}" height="${CAB.h}" rx="7"/>
+    <rect fill="url(#${id}t)" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/><rect fill="url(#${id}b)" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
+    <rect x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7" fill="none" ${edge}/>
+    <rect x="${P.x - 3}" y="${P.y - 3}" width="${P.w + 6}" height="${G.y + G.h - P.y + 6}" rx="5" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/>
+    <rect class="lv-panel-sh" fill="#D9982A" x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" rx="4"/>
+    <rect class="lv-panel" fill="#F0B23A" x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h - 4}" rx="4"/>
+    <rect fill="url(#${id}s)" x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" rx="4"/>
+    <rect class="lv-inks" x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" rx="4" fill="none" stroke="${INK}" stroke-width="${ol}"/>
+    ${eye(82)}${eye(118)}${brows}
+    ${mouth}
+    ${KNOBS.map(([x, a]) => `<circle fill="${INK}" opacity=".35" cx="${x + .6}" cy="72.8" r="6"/><circle class="lv-knob" fill="#E8D5B3" cx="${x}" cy="71.5" r="5.8"/><circle fill="url(#${id}k)" cx="${x}" cy="71.5" r="5.8" stroke="${INK}" stroke-width="${r1(ol * .75)}"/><path class="lv-inks" d="M${x} 71.5 V66.4" ${stroke(1.7)} transform="rotate(${a} ${x} 71.5)"/>`).join("")}
+    <rect class="lv-cloth" fill="#182D47" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3"/>
+    <path class="lv-weave" d="${WEAVE}" fill="none" stroke="#2A4466" stroke-width=".9" opacity=".95"/><circle class="lv-weave" cx="100" cy="113" r="20" fill="none" stroke="#2A4466" stroke-width="1.3" opacity=".4"/>
+    <rect class="lv-cloth-sh" x="${G.x + 1.5}" y="${G.y + 1.5}" width="${G.w - 3}" height="${G.h - 3}" rx="2" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="3"/>
+    <rect class="lv-inks" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3" fill="none" stroke="${INK}" stroke-width="${ol}"/>
+    <g class="lv-nickel" fill="#948573" ${edge}>${CAPS.map(cap).join("")}</g><g fill="url(#${id}n)">${CAPS.map(cap).join("")}</g><g fill="${INK}" opacity=".45">${CAPS.map(([x, y]) => `<circle cx="${x + 8}" cy="${y + 8}" r="1.5"/>`).join("")}</g>
     ${limbs("hand")}
   </g>
 </svg>`;

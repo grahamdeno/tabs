@@ -2050,14 +2050,21 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .add .add-bdg { background: var(--card); color: var(--fg); box-shadow: 0 0 0 2px var(--accent); }
 .toast { background: var(--fg); color: var(--bg); font-family: var(--display); font-weight: 600; }
 
-/* Louie's colours */
-.louie .lv-b { fill: var(--lv-body); } .louie .lv-s { fill: var(--lv-shade); } .louie .lv-ss { stroke: var(--lv-shade); }
-.louie .lv-hi { fill: var(--lv-hi); opacity: .9; } .louie .lv-f { fill: var(--lv-face); } .louie .lv-fs { fill: var(--lv-face-sh); }
-.louie .lv-l { stroke: var(--lv-shade); } .louie .lv-c { fill: var(--lv-cheek); opacity: .6; } .louie .lv-p { fill: var(--lv-pupil); } .louie .lv-ps { stroke: var(--lv-pupil); }
-.louie .lv-g { fill: var(--lv-grille); } .louie .lv-gs { fill: var(--lv-slat); } .louie .lv-m { fill: var(--lv-grille); } .louie .lv-ms { stroke: var(--lv-grille); }
-/* 4.86.0: knobs and plate in chrome, and chrome corner bumpers with a highlight, in every look */
-.louie .lv-fl { stroke: var(--lv-face-sh); } .louie .lv-cuff { fill: var(--lv-face-sh); } .louie .lv-k { fill: #DDE2EA; } .louie .lv-cn { stroke: #B9C0CB; } .louie .lv-cnh { stroke: #F2F4F7; }
-.louie .lv-t { fill: var(--lv-tongue); } .louie .lv-lamp { fill: var(--lv-lamp); } .louie .lv-shadow { fill: var(--lv-shadow); opacity: .18; } .louie .lv-z { fill: var(--muted); }
+/* Louie's colours (Road Ready): locked, the same in every look. They are set on Louie himself, so the looks' own
+   --lv-* values (which the electric tuner head also reads) stay as they were. A finish from the Merch table
+   (.fin-*, body[data-wear]) still recolours him. Nothing draws --lv-cheek, --lv-lamp, --lv-tongue or --lv-hi on him now. */
+.louie { overflow: visible; --lv-body: #23406A; --lv-shade: #1A3152; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; }
+.louie .lv-mit-o, .louie .lv-arm-o { stroke: var(--lv-pupil); } .louie .lv-tolex, .louie .lv-mit { fill: var(--lv-body); } .louie .lv-side, .louie .lv-mit-s, .louie .lv-cuff { fill: var(--lv-shade); } .louie .lv-arm { stroke: var(--lv-body); }
+.louie .lv-panel { fill: var(--lv-face); } .louie .lv-panel-sh { fill: var(--lv-face-sh); } .louie .lv-ink { fill: var(--lv-pupil); } .louie .lv-inks { stroke: var(--lv-pupil); }
+.louie .lv-cloth { fill: var(--lv-grille); } .louie .lv-weave { stroke: var(--lv-slat); } .louie .lv-knob { fill: var(--lv-knob); }
+.louie .lv-nickel { fill: var(--lv-nickel); } .louie .lv-leather { stroke: var(--lv-leather); }
+.louie .lv-shadow { fill: var(--lv-shadow); opacity: .18; } .louie .lv-z { fill: var(--muted); }
+/* The warm rim, on dark looks only: a 3 px outline of his silhouette so navy reads on a dark screen. The colour is
+   --rr-louie-rim (#FFE2B4 at 35 percent) drawn solid and faded as one layer, so overlapping parts don't double up. */
+.louie .lv-rim { opacity: 0; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
+/* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }
