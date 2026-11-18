@@ -64,6 +64,8 @@ Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and ligh
 
 Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the third mastery level and the Songbook in Road Ready dark and light (title with a round Add and no Tuner, capsule filters with Sets last, the Today strip in a banner with Louie's face badge, a card per song with an art tile, chord chips, a needs tag and mastery dots). Green Room and Headliner draw the earlier Songbook (pixel-identical with motion off). Reviewed (Claude Fable 5.2, 2026-11-18): pass with three small fixes, Surprises 126 to 132. Waiting for Graham's merge go.
 
+Merged into `road-ready` on Graham's go, 2026-11-18: PR #97 at `a90fb77` (CI test and browser passed), merge commit `15cfd87`. Reviewed by Claude Fable 5.2 (pass with fixes).
+
 ## Surprises
 
 Found while building step 01. Each needs a decision or a look from Opus or Graham.
