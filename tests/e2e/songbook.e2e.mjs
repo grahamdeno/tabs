@@ -63,8 +63,8 @@ for (const theme of ["dark", "light"]) test(`Road Ready 07 (${theme}): each row 
 test("Road Ready 07: Green Room and Headliner keep the earlier Songbook (no Road Ready markup, Sets in the header, + in the search bar)", { skip: skip() }, async t => {
   for (const theme of ["green", "headliner"]) {
     const page = await songbook(t, theme);
-    const got = await page.evaluate(() => ({ rr: document.querySelectorAll("#app [class*='rr-']").length, sets: !!document.querySelector(".head #setsbtn.sets-btn"), add: !!document.querySelector(".dock .cmd #add.cmd-add"), badge: !!document.querySelector(".rr-badge"), st: document.querySelector('#list .row[data-id="k"] .st')?.textContent }));
-    assert.deepEqual(got, { rr: 0, sets: true, add: true, badge: false, st: "Nailed it" }, theme);
+    const got = await page.evaluate(() => ({ rr: document.querySelectorAll("#app [class*='rr-']").length, sets: !!document.querySelector(".head #setsbtn.sets-btn"), add: !!document.querySelector(".dock .cmd #add.cmd-add"), badge: !!document.querySelector(".rr-badge"), tuner: !!document.querySelector(".head #tunerbtn"), st: document.querySelector('#list .row[data-id="k"] .st')?.textContent }));
+    assert.deepEqual(got, { rr: 0, sets: true, add: true, badge: false, tuner: true, st: "Nailed it" }, theme);
   }
 });
 
@@ -73,13 +73,14 @@ for (const width of [320, 390]) test(`Road Ready 07 at ${width} px: rows at leas
   const m = await page.evaluate(() => {
     const r = e => e.getBoundingClientRect();
     const ctl = [...document.querySelectorAll("#app .head button, #chips button, #list .row, .rr-hint button.tdy-i, .rr-hint .tdy-dot")].map(e => ({ n: e.id || e.className, w: r(e).width, h: r(e).height }));
+    if (document.querySelector("#tunerbtn")) return { small: [{ n: "the Road Ready Songbook has no tuner (Graham, step 04: you tune on the song screen and Me)" }] };
     const title = r(document.querySelector(".rr-sb-head .title")), btns = r(document.querySelector(".rr-sb-head .row-btns"));
     const sameRow = btns.top < title.bottom;
     return { small: ctl.filter(c => c.w < 44 || c.h < 44), rows: [...document.querySelectorAll("#list .row")].map(e => r(e).height), clear: !sameRow || title.right <= btns.left - 4, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   assert.deepEqual(m.small, [], "every control is at least 44 by 44");
   assert.ok(m.rows.every(h => h >= 56), `rows: ${m.rows}`);
-  assert.ok(m.clear, "the title and the Tuner and Add buttons don't touch (Surprise 73)");
+  assert.ok(m.clear, "the title and the Add button don't touch (Surprise 73)");
   assert.equal(m.overflow, false, "nothing runs off the side");
 });
 
