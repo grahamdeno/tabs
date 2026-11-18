@@ -62,7 +62,7 @@ Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and ligh
 
 ### Step 07 status
 
-Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the third mastery level and the Songbook in Road Ready dark and light (title with Tuner and a round Add, capsule filters with Sets last, the Today strip in a banner with Louie's face badge, a card per song with an art tile, chord chips, a needs tag and mastery dots). Green Room and Headliner draw the earlier Songbook (pixel-identical with motion off). Waiting for review.
+Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the third mastery level and the Songbook in Road Ready dark and light (title with a round Add and no Tuner, capsule filters with Sets last, the Today strip in a banner with Louie's face badge, a card per song with an art tile, chord chips, a needs tag and mastery dots). Green Room and Headliner draw the earlier Songbook (pixel-identical with motion off). Reviewed (Claude Fable 5.2, 2026-11-18): pass with three small fixes, Surprises 126 to 132. Waiting for Graham's merge go.
 
 ## Surprises
 
@@ -235,3 +235,13 @@ Found while building step 07 (2026-11-18, Claude Opus 5.5).
 123. **At large text the search field's placeholder is cut off** ("Search or add a sor..."). Typed text scrolls as before. Not changed.
 124. **`docs/sonnet-log.md` isn't created.** Opus built this step, and the log is for Sonnet-built work.
 125. **"Add opens a blank song in the editor" timed out once in two `quick.mjs` runs** (it also timed out once in the step 02 review). It passes alone every time. Load in the sandbox, not this step.
+
+Found in the independent review of step 07 (2026-11-18, Claude Fable 5.2). The four decisions (114, 115, 118, 119) were carried out and the review agrees with each.
+
+126. **Only Sets said whether it was chosen.** The other Road Ready filters showed the chosen one by its fill alone, so a screen reader couldn't tell. **Fixed** (`d91e4fb`): each Dark and Light filter carries `aria-pressed`, with a test. Green Room and Headliner are unchanged (their filters never said it; not part of this step).
+127. **A tile was blank when album art couldn't load** (offline, an expired link, or a link the page's image rule blocks: only Apple's art host is allowed). **Fixed** (`55e5d08`): the art sits over the initials, so the initials show when it fails, with a test.
+128. **Nothing pressed the Songbook's Tuner button any more.** The tuner tests moved to Me, and the button's wiring changed in this step. **Fixed** (`093bbd6`): the Green Room and Headliner test presses it and the tuner opens.
+129. **Step 07 status still said the title has a Tuner.** It was written before decision 115. **Fixed** in this commit.
+130. **The tolex test is a little narrower.** With the page hidden it checks the ground itself, with the same tolerance, but it would no longer notice a page layer painted over the ground. Accepted: the test is about the ground, and the Songbook's cards now fill that band on purpose.
+131. **The iPad check no longer looks at the Tuner.** It checks Add at the top in Dark; the tuner's place in the Green Room header is checked on a phone only. Accepted.
+132. **Two tests failed once under load in the review's `quick.mjs` run** ("Sing it: one take split at a breath" and "Play together: a link"). Neither touches the Songbook, and both pass alone. The same kind of sandbox load as 125.
