@@ -4709,6 +4709,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
   padding: calc(10px + var(--chrome-pipe-w)); border-radius: var(--r-strip); background: var(--tolex); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
 }
 /* the chrome piping: a ring cut out of a chrome fill, so the strip's own corners stay round */
+/* the header's piping (design review): 2 px, and a darker chrome that turns at an angle, not the tab bar's flat light-to-dark ring */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hdr { --chrome-pipe-w: 2px; --chrome-pipe: linear-gradient(135deg, #C4C8CE 0%, #6A707A 28%, #2E3238 52%, #8B919B 76%, #BFC3C9 100%); }
 .rr-hdr::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--chrome-pipe-w); background: var(--chrome-pipe); pointer-events: none;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -4751,6 +4753,10 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
   border: 0; border-radius: var(--r-control); background: var(--rr-card); color: var(--rr-text); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35);
 }
 .rr-tn-t { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+/* light look (design review): Tonight is a dark bar on the cream header, with cream and amber text */
+:root[data-look="festival"] .rr-tonight { background: #1E1914; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+:root[data-look="festival"] .rr-tn-t b { color: #F5EBDC; }
+:root[data-look="festival"] .rr-tn-t small { color: #FFB547; }
 .rr-tn-t small { font: var(--type-caption-w) var(--type-caption) / 1.2 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); color: var(--rr-amber-text); }
 .rr-tn-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: break-word; min-width: 0; }
 .rr-play { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); }
@@ -4804,6 +4810,11 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-glow, .rr-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
 .rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
 .rr-halo { width: 40px; height: 40px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 20%, transparent) 0, transparent 70%); }
+/* light look (design review): the amber glow vanished on cream, so it is deeper and stronger there */
+:root[data-look="festival"] .rr-glow { width: 96px; height: 96px; background: radial-gradient(circle, rgba(232, 128, 20, .8) 0, rgba(240, 150, 40, .5) 38%, transparent 72%); }
+:root[data-look="festival"] .rr-halo { background: radial-gradient(circle, rgba(232, 128, 20, .35) 0, transparent 70%); }
+/* dark look: a soft amber glow behind the neck, as in the design */
+:root[data-look="neon"] .rr-stage { background: radial-gradient(ellipse 70% 42% at 50% 38%, rgba(255, 170, 60, .16), transparent 72%); }
 @keyframes rr-breathe { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
 /* the callout: cream, pointing at the current stop, always on the right of the neck */
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-tag.rr-callout {
