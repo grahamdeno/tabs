@@ -2267,18 +2267,18 @@ test("4.36.0 languages: Spanish and Russian genders, the sound of Russian kept, 
   assert.ok(C.germanBlocks(blocks, { lines: [ru[0]] }, 4).every(b => !b.tr), "only when asked");
 });
 
-test("4.39.1 Louie's hands: the thumbs up keeps the thumb on the side, and the pointing hand leans toward the bubble", async () => {
+test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing hand leans toward the bubble", async () => {
   const { louie, mittenOf } = await import("../louie.js");
-  /* Road Ready 03: Louie's hands are mittens now, so this reads the thumb lobe instead of the old fist. The rule is the
-     same: nothing stands straight up from the middle of the hand (it reads as the middle finger). */
+  /* Road Ready 03b: Louie has fingered hands again (Graham, 2026-11-17), the same shapes as the guitarist's, in navy.
+     These are the 4.86.0 checks on Louie's own hand, as they were before step 03, plus the same checks on the guitarist. */
   const up = louie("cheer", { pose: "thumb" });
-  const lobe = up.match(/<g class="lv-mit" fill="#23406A"><rect x="(-?[\d.]+)" y="-43" width="([\d.]+)" height="24" rx="5"\/><\/g>/);
-  assert.ok(lobe && +lobe[1] + +lobe[2] / 2 < -4, "the thumb is on the side of the mitten, not standing in the middle");
+  const tip = up.match(/<g class="lv-mit" fill="#23406A"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
+  assert.ok(tip && +tip[1] < -4, "the thumb is on the side of the fist, not standing in the middle");
+  assert.match(up, /M2 -21\.5Q8 -20\.5 13\.5 -21\.5M2 -13\.5/, "the curled fingers show as creases");
   assert.match(louie("happy", { pose: "point" }), /translate\(180 108\) rotate\(40\)/, "the pointing hand leans, never straight up");
-  /* the old fist with its thumb and curled fingers is still what the guitarist wears (these are the 4.86.0 checks, unchanged) */
   const fist = mittenOf("thumb", "#DDA57A", "#AA8060", "#80604A", "#e8336e");
-  const tip = fist.match(/<g fill="#DDA57A"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
-  assert.ok(tip && +tip[1] < -4, "the guitarist's thumb is on the side of the fist, not standing in the middle");
+  const gtip = fist.match(/<g fill="#DDA57A"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
+  assert.ok(gtip && +gtip[1] < -4, "the guitarist's thumb is on the side of the fist, not standing in the middle");
   assert.match(fist, /M2 -21\.5Q8 -20\.5 13\.5 -21\.5M2 -13\.5/, "the guitarist's curled fingers show as creases");
 });
 
@@ -2297,7 +2297,7 @@ test("Road Ready 03: every mood and pose has exactly one mouth, drawn before the
     assert.ok(svg.indexOf("lv-mouth") < svg.indexOf("lv-cloth"), `${where}: the mouth is drawn with the panel, before the grille`);
     /* after the cloth there is only the weave, the faint speaker circle, the grille's frame and the mittens */
     const after = svg.slice(svg.indexOf('class="lv-cloth"'));
-    assert.deepEqual([...new Set((after.match(/class="([^"]+)"/g) || []).map(c => c.slice(7, -1)))].filter(c => !["lv-cloth", "lv-weave", "lv-cloth-sh", "lv-inks", "lv-nickel", "lv-mit-o", "lv-mit", "lv-mit-s", "lv-cuff"].includes(c)), [], `${where}: nothing else on the grille`);
+    assert.deepEqual([...new Set((after.match(/class="([^"]+)"/g) || []).map(c => c.slice(7, -1)))].filter(c => !["lv-cloth", "lv-weave", "lv-cloth-sh", "lv-inks", "lv-nickel", "lv-mit-o", "lv-mit", "lv-mit-s", "lv-mit-l", "lv-cuff"].includes(c)), [], `${where}: nothing else on the grille`);
     assert.equal((after.match(/class="lv-inks"/g) || []).length, 1, `${where}: the only ink line on the grille is its frame`);
     /* review: the cloth's own parts can't carry a drawing either: one cloth, one inner shadow, and two weave shapes (the weave and the faint circle), both thin weave-blue lines */
     const weave = after.match(/<[a-z]+ class="lv-weave"[^>]*>/g) || [];
@@ -2309,22 +2309,44 @@ test("Road Ready 03: every mood and pose has exactly one mouth, drawn before the
     assert.ok(!/lv-mouth|lv-ink"|lv-eye/.test(afterFrame), `${where}: no face part is drawn over the grille`);
   }
 });
-test("Road Ready 03: mittens with no fingers, no cheeks, no lamp, no tongue, and the same signature as before", async () => {
-  const { louie } = await import("../louie.js");
+test("Road Ready 03b: hands with fingers in navy, the same shapes as the guitarist's; no cheeks, no lamp, no tongue, and the same signature as before", async () => {
+  const { louie, mittenOf } = await import("../louie.js");
   const src = fs.readFileSync(new URL("../louie.js", import.meta.url), "utf8");
-  const mine = src.slice(src.indexOf("/* Louie's mittens"), src.indexOf("const POSES"));
-  assert.ok(mine.length > 400 && !/finger\(|Finger\(/.test(mine), "no finger( shape in Louie's HANDS");
-  assert.match(mine, /const SHAPES = \{ fist: \[CLOSED, TUCKED\], horns: \[CLOSED, TUCKED\], thumb: \[CLOSED, UP\], point: \[CLOSED, TUCKED\], wave: \[OPEN, OUT\], peace: \[OPEN, OUT\] \}/, "each hand is one mitten shape and one thumb lobe");
+  assert.match(src, /const HANDS = Object\.fromEntries\(Object\.entries\(HAND_PARTS\)\.map\(\(\[name, parts\]\) => \[name, \(\) => louieHand\(\.\.\.parts\)\]\)\);/, "Louie's hands are built from the shared hand shapes");
+  assert.match(src, /const GUITARIST_HANDS = Object\.fromEntries\(Object\.entries\(HAND_PARTS\)\.map\(\(\[name, parts\]\) => \[name, \(\) => guitaristMitt\(\.\.\.parts\)\]\)\);/, "and so are the guitarist's");
+  const paths = h => (h.match(/ d="[^"]+"/g) || []).join("");
+  for (const sign of ["fist", "horns", "thumb", "point", "wave", "peace"]) {
+    /* the hand Louie draws for each sign has exactly the guitarist's outlines (shape, creases), in navy */
+    const pose = { fist: "rest", horns: "hornsUp", thumb: "thumb", point: "point", wave: "wave", peace: "peace" }[sign];
+    const drawn = louie("happy", { pose }), lit = drawn.slice(drawn.indexOf('class="lv-cloth"')); /* the hands drawn last, over the cabinet (not the rim's copies) */
+    const hands = lit.split('scale(0.86 1.02)">').slice(1);
+    const mine = hands.find(h => paths(h).includes(paths(mittenOf(sign, "a", "b", "c", "d")).slice(0, 60)));
+    assert.ok(mine, `${sign}: Louie's ${pose} pose draws the fingered ${sign} hand`);
+    assert.match(mine, /class="lv-mit" fill="#23406A"/, `${sign}: lit in Tolex blue`);
+    assert.match(mine, /class="lv-cuff" fill="#1A3152"/, `${sign}: a navy cuff`);
+  }
   for (const mood of LOUIE_MOODS) for (const pose of LOUIE_POSES) {
     const svg = louie(mood, { pose, size: 120 });
     for (const gone of ["lv-c\"", "lv-lamp", "lv-t\"", "lv-m\"", "lv-ms\"", "lv-gs", "lv-g\"", "lv-hi", "lv-fl"]) assert.ok(!svg.includes(`class="${gone}`), `${mood}/${pose}: no ${gone}`);
     assert.ok(!/cheek|blush|tongue/i.test(svg), "no cheek, blush or tongue");
-    /* a mitten: under each wrist, two lit shapes at most (the mitten and its thumb lobe) */
-    for (const hand of svg.split('scale(0.86 1.02)">').slice(1).filter(h => h.includes("lv-cuff"))) assert.equal((hand.split("lv-cuff")[0].match(/class="lv-mit"/g) || []).length, 2, "a mitten and a thumb lobe, nothing more");
     assert.match(svg, new RegExp(`^<svg class="louie ${mood}${pose ? " " + pose : ""}" width="120" height="${pose ? 106 : 146}" viewBox="${pose ? "-34 -30 268 236" : "18 0 164 200"}" role="img" aria-label="Louie">`), "the same class, size, viewBox, role and label as before");
   }
   assert.match(louie("happy", { label: "Louie says hi" }), /role="img" aria-label="Louie says hi"/);
   assert.match(louie(), /^<svg class="louie happy" width="120"/, "happy and 120 by default");
+});
+test("Road Ready 03b: each mood and pose shows its painted picture, light and dark, filling the same frame, with the code drawing kept as the fallback", async () => {
+  const { louie, louieArt } = await import("../louie.js");
+  const want = { happy: { undefined: "idle", rest: "idle", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" },
+    cheer: { undefined: "cheer", rest: "cheer", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" } };
+  for (const mood of LOUIE_MOODS) for (const pose of LOUIE_POSES) {
+    const art = { sleepy: "sleepy", worried: "nervous", proud: "proud" }[mood] || want[mood][pose];
+    assert.equal(louieArt(mood, pose), art, `${mood}/${pose}`);
+    const svg = louie(mood, { pose, size: 96 }), vb = pose ? "-34 -30 268 236" : "18 0 164 200", [x, y, w, h] = vb.split(" ");
+    for (const k of ["light", "dark"]) assert.ok(svg.includes(`<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${art}-${k}.webp" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMax meet"/>`), `${mood}/${pose}: the ${k} ${art} picture fills the frame`);
+    assert.equal((svg.match(/<image /g) || []).length, 2, "two pictures, light and dark");
+    assert.ok(svg.indexOf('class="lv-art-wrap"') < svg.indexOf('class="lv-code"') && svg.indexOf('class="lv-code"') < svg.indexOf("lv-mouth"), "the art, then the code drawing with the face in it");
+  }
+  assert.equal(louieArt("no-such-mood"), "idle");
 });
 test("Road Ready 03: the locked palette is written on the drawing and set once in styles.css; the rim shows on dark looks only", async () => {
   const { louie } = await import("../louie.js");
@@ -2340,7 +2362,7 @@ test("Road Ready 03: the locked palette is written on the drawing and set once i
   assert.equal((css.match(/lv-rim/g) || []).length, 3, "no other rule shows the rim");
   assert.match(css, /\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) :is\(\.bd-head, \.tq-head\) \.louie \.lv-rim \{ opacity: 0; \}\n/, "review: no rim on the bright Band and Tour headers");
   assert.match(css, /--rr-louie-rim: rgba\(255, 226, 180, \.35\)/, "the rim's colour and strength match the token");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.louie \.lv-body, \.louie \.lv-eye \{ animation: none !important; \} \}/, "Reduce Motion still stops the hop and the blink");
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.louie \.lv-body, \.louie \.lv-eye, \.louie \.lv-art-wrap \{ animation: none !important; \} \}/, "Reduce Motion still stops the hop and the blink, and the hop on the art");
   assert.ok(!/\.louie \.lv-c \{|fill: var\(--lv-cheek\)|fill: var\(--lv-tongue\)|fill: var\(--lv-lamp\)/.test(css), "nothing draws a cheek, a tongue or a lamp");
   for (const fin of ["pink", "teal", "tweed", "black", "mint", "gold"]) assert.ok(css.includes(`.fin-${fin} .louie, body[data-wear="${fin}"] .louie:not(.fin .louie) {`), `the ${fin} finish is still there`);
 });
