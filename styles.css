@@ -4819,6 +4819,15 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-hdr { grid-template-columns: 1fr 1fr; grid-template-areas: "plate plate" "tonight tonight" "fans tips"; }
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pill small, :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pv b { white-space: normal; text-align: center; }
 :root[data-ax="3"] .rr-pips { display: none; }
+/* at large text the header and Louie's line would take over the screen and the Songbook dock would cover Louie, so: Louie's line is
+   smaller and cut to two lines (the whole line is still in the page for a screen reader), and the peek and the "N songs" chips
+   (which would land on him) are hidden; the callout beside the current stop stays. */
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-say {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; padding: 6px 12px; font-size: var(--type-subhead);
+}
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-peek, :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip { display: none; }
+:root[data-ax="3"] .rr-say { -webkit-line-clamp: 1; line-clamp: 1; }
+
 
 @media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }
 
