@@ -142,7 +142,6 @@ export function renderLibrary() {
     ${rr ? `<div class="head rr-sb-head">
       <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title">Songbook</h1></div>
       <div class="row-btns">
-        ${tunerBtn("ib rr-sb-tune")}
         <button class="rr-sb-add" id="add"><span class="rr-sb-plus">${icon("plus")}</span><span class="rr-sb-addl">Add</span></button>
       </div>
     </div>` : `<div class="head">
@@ -173,7 +172,7 @@ export function renderLibrary() {
   bindToday();
   $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
   $("setsbtn")?.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
-  $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
+  $("tunerbtn")?.addEventListener("click", () => openTuner("standard", () => route().name === "library" && renderLibrary()));
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });

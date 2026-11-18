@@ -5019,8 +5019,6 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .app:not(.viewer) .rr-sb-head .head-l .sh-btn { margin-right: 0; flex: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .title { font: var(--type-title-w) min(var(--type-title), 8.2vw) / 1.15 var(--display); color: var(--rr-text); letter-spacing: -.01em; padding: 0; margin: 0; white-space: nowrap; text-shadow: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .row-btns { gap: var(--sp-2); margin-left: auto; align-items: flex-start; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .rr-sb-tune { width: 44px; height: 44px; border-radius: 50%; background: transparent; border: 2px solid var(--rr-outline); color: var(--rr-text); box-shadow: none; position: relative; display: grid; place-items: center; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .rr-sb-tune svg { width: 20px; height: 20px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-add { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 44px; padding: 0; border: 0; background: none; color: var(--rr-text); font: 600 var(--type-caption) / 1.2 var(--sans); cursor: pointer; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-plus { width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--rr-text); display: grid; place-items: center; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sb-plus svg { width: 22px; height: 22px; stroke-width: 2.2; }
