@@ -43,7 +43,7 @@ sees, and what teaches them anything.
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
 | Play (the Gig) | Count-in, then the song with the crowd and the run on top (4.91.0: no microphone in a show) | The crowd fills as the song goes | Nothing to explain about the mic any more |
-| Controls in the Gig | The X, the mic button and Pause fade after 3 s of play without a touch; a touch shows them again and that first touch only wakes them, it never pauses (4.60.0) | Found by watching | Not taught on purpose: it is what Apple Music does |
+| Controls in the Gig | Pause (and in the Road Ready looks the song's title) fade after 3 s of play without a touch; a touch or any key shows them again and that first touch only wakes them, it never pauses (4.60.0) | Road Ready 05: a tip, "Tap anywhere for controls", the first time they hide | Taught once now; Settings > Playing has Keep playing controls on screen for anyone who wants them to stay |
 | Song title and chord row | A title too long to fit scrolls as a banner for three loops; tap it to replay. More chords than fit scroll with a faded edge (4.62.0) | Seen, not taught | Replaying the banner by a tap is never taught |
 | Tap the Gig | Pauses: the song page comes back as it always is, Play reads Resume, a quiet band on the line you stopped on (4.52.0) | Found by accident | Tap to pause and drag the lines are never taught |
 | Tools | Play, Practice and Song tabs at the foot, dots on Practice and Song | Dots | Fine |
@@ -194,6 +194,7 @@ and on the song screen, where you play.
 | 5 | Tap a section on the page's rail to go there (4.53.0; the thin bar over the stage went in 4.54.0) | Tap the rail | None | The changes it jumps over don't count; a tip after the first show would do |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Song duels (retired from the Gig in 4.91.0; coming back as switch duels) | Charts | Charts says so | None |
+| 8 | Get the controls back once they hide (Road Ready 05) | Tap anywhere, or press any key (Space plays and pauses) | Tip: a cream frame with Louie beside it, "Tap anywhere for controls" (`used.playHint`) | The first time the controls hide in a show; it goes on the first tap or key and never shows again. Keep playing controls on screen (Settings > Playing) stops them hiding at all |
 | 9 | Louie's count-in (4.56.0): a big number with Louie on each beat, the first chord and the strum | Nothing to do | Visible | Teaches itself; no tip |
 
 Achievement callouts (4.44.0) teach themselves: they appear when something is earned and point to nothing hidden, so they need no tip.

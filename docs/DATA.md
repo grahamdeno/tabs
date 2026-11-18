@@ -138,6 +138,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | `gigScore` | boolean | Retired in 4.91.0 (shows no longer listen, so there's nothing to turn off). Ignored if present |
 | `streakMoment` | boolean, on unless false | Shows the streak celebration once a day (2.43.0) |
 | `streakShown` | day | The day the streak celebration last showed (2.43.0) |
+| `keepControls` | boolean, off unless true | Keep playing controls on screen (Road Ready 05): the Gig's controls never hide while a song plays. For VoiceOver, Switch Control, or anyone who likes seeing them |
 
 `plainPlay` is for the tests only and keeps Play plain.
 
@@ -146,7 +147,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | Key | Values | Notes |
 |---|---|---|
 | `theme` | `"auto"` (follow the phone, the default), `"dark"` or `"light"`; may also be `"green"` | Green Room (4.0.0) |
-| `tipsSeen`, `used` | objects | Which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `used["hud-venue"]`, `["hud-streak"]`, `["hud-fans"]` (4.40.0): the stat bar item was tapped once, so its label goes |
+| `tipsSeen`, `used` | objects | Which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `used["hud-venue"]`, `["hud-streak"]`, `["hud-fans"]` (4.40.0): the stat bar item was tapped once, so its label goes. `used.playHint` (Road Ready 05): the Gig's "Tap anywhere for controls" hint has shown, so it never shows again |
 | `micExplained` | boolean | The tuner has explained the microphone |
 | `tunerMode` | `"acoustic"`, `"electric"` or `"chromatic"` | |
 | `tunerGuided` | boolean | |

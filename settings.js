@@ -52,13 +52,17 @@ function renderSettings() {
         <button class="toggle ${s.streakMoment !== false ? "on" : ""}" id="s-streak" role="switch" aria-checked="${s.streakMoment !== false}" aria-label="Streak celebration"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("sliders")}</span><span class="name">Keep playing controls on screen<small class="sub">For VoiceOver, Switch Control or if you like seeing them.</small></span>
+        <button class="toggle ${s.keepControls === true ? "on" : ""}" id="s-keepctl" role="switch" aria-checked="${s.keepControls === true}" aria-label="Keep playing controls on screen"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span><span class="val">${{ always: "Always", playing: "While playing", off: "Off" }[s.focus] || "Always"}</span>${icon("chev", "chev")}
         <select id="s-focus" aria-label="Focus current line">
           ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
         </select>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (open it from your venue on Me). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. Keep playing controls on screen stops the controls fading after 3 seconds while a song plays. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (open it from your venue on Me). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
     look: ["Look", `
     <div class="set-group glass">
       <div class="set">
@@ -238,6 +242,8 @@ function renderSettings() {
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
+  /* Road Ready 05: the playing controls stay on screen instead of hiding after 3 s */
+  $("s-keepctl").onclick = () => { s.keepControls = s.keepControls !== true; Tabs.save(data); renderSettings(); };
   app.querySelectorAll("#s-beat [data-m]").forEach(b => b.onclick = () => { const m = b.dataset.m; s.metronome = m !== "off"; if (m !== "off") s.metroSound = m === "click" ? "click" : "kick"; Tabs.save(data); renderSettings(); if (m !== "off") metroPreview(); });
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", Math.round(e.target.value / 1.5) + "%"); Tabs.save(data); });

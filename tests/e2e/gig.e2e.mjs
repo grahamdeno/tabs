@@ -39,19 +39,31 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   assert.equal(await page.locator(".gg-map, #st-map, #gg-str, #gg-tw").count(), 0, "4.54.0: no song map over the stage, no strings, no timing word");
   /* 4.58.0: bold words that fade by distance; the chords stay brighter than the words; nothing runs past the edge */
   /* 4.65.3: wait out the 0.25 s colour fade, so the check doesn't read a line mid-change (it failed CI once) */
-  await page.waitForFunction(() => { const n = document.querySelector("#sheet > .st-now"), x = document.querySelector("#sheet > .st-next"); if (!n || !x) return true; const a = el => { const m = getComputedStyle(el).color.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; }; return a(n) > a(x) && !n.getAnimations().length && !x.getAnimations().length; });
+  /* Road Ready 05: "dimmer" is how strongly a colour stands out from the page, its alpha times its contrast with the
+     background, so it holds both for the earlier looks (which fade with alpha) and Road Ready (solid lyric colours) */
+  await page.evaluate(() => {
+    window.__strength = el => {
+      const n = c => c.match(/[\d.]+/g).map(Number), L = c => { const [r, g, b] = n(c).slice(0, 3).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+      const bg = getComputedStyle(document.body).backgroundColor, solid = n(bg).length < 4 || n(bg)[3] > 0 ? bg : "rgb(0, 0, 0)";
+      const c = getComputedStyle(el).color, m = n(c), a = m.length > 3 ? m[3] : 1, x = L(c), y = L(solid);
+      return a * (Math.max(x, y) + .05) / (Math.min(x, y) + .05);
+    };
+  });
+  await page.waitForFunction(() => { const strength = window.__strength, n = document.querySelector("#sheet > .st-now"), x = document.querySelector("#sheet > .st-next"); if (!n || !x) return true; return strength(n) > strength(x) && !n.getAnimations().length && !x.getAnimations().length; });
   const look = await page.evaluate(() => {
-    const now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
-    const alpha = c => { const m = c.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; };
-    const w = el => +getComputedStyle(el).fontWeight, col = el => alpha(getComputedStyle(el).color);
+    /* Road Ready 05: in the Road Ready looks the chords stand out by colour (amber, or amber-brown on cream) at 4.5:1 or
+       more, as the spec's tokens set them; the earlier looks keep 4.58.0's "brighter than the words" */
+    const rr = ["neon", "festival"].includes(document.documentElement.dataset.look);
+    const strength = window.__strength, now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
+    const w = el => +getComputedStyle(el).fontWeight, col = el => strength(el);
     const nc = next?.querySelector(".c");
-    return { now: w(now), next: next ? w(next) : 0, nowCol: col(now), nextCol: next ? col(next) : 0, chordBrighter: nc ? +getComputedStyle(nc).opacity > col(next) : true,
+    return { now: w(now), next: next ? w(next) : 0, nowCol: col(now), nextCol: next ? col(next) : 0, chordBrighter: !nc ? true : rr ? strength(nc) >= 4.5 : strength(nc) * +getComputedStyle(nc).opacity > col(next),
       overflow: [...sheet.querySelectorAll(":scope > .pr, :scope > .ly, :scope > .crow")].some(l => [...l.children].some(c => c.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 1)) };
   });
   assert.equal(look.now, 800, "4.58.0: the line you're on is boldest");
   assert.ok(look.next === 700 || look.next === 0, "4.58.0: the next line is bold, got " + look.next);
   assert.ok(look.nowCol > look.nextCol, "4.58.0: the next line's words are dimmer than the current line's");
-  assert.ok(look.chordBrighter, "4.58.0: the next line's chords are brighter than its words");
+  assert.ok(look.chordBrighter, "4.58.0: the next line's chords stand out from its words");
   assert.equal(look.overflow, false, "4.58.0: no line runs past the edge at the boldest weight");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Paused, the show holds the line you stopped on; Tools has only what you change mid-song */
@@ -393,4 +405,160 @@ test("Controls that hide while the song plays (4.60.0)", { skip: skip() }, async
   await page.click("#gg-pause"); await page.waitForSelector("#gig.paused", { state: "attached" });
   await page.waitForTimeout(4500); /* real timer */
   assert.equal(await page.locator("#gig.idle").count(), 0, "paused, the controls stay");
+});
+
+/* ---- Road Ready 05: the playing screen ---- */
+const rr = (theme, settings = {}) => ({ ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme, plainPlay: false, countIn: false, ...settings } });
+const idleNow = page => page.evaluate(() => document.getElementById("gig")?.classList.contains("idle"));
+const lum = c => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+
+test("Road Ready 05: with Keep playing controls on screen on, or keyboard focus on a control, the controls never hide", { skip: skip() }, async t => {
+  const kept = await strummingPage(t, rr("dark", { keepControls: true }), "#/song/g");
+  await kept.click("#play"); await kept.waitForSelector("#sheet > .st-now");
+  await kept.waitForTimeout(4500); /* real timer: they would have hidden by now */
+  assert.equal(await idleNow(kept), false, "the setting keeps them on screen");
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForTimeout(1000); /* real timer: no touch just before the focus */
+  await page.keyboard.press("Shift"); await page.focus("#gg-pause");
+  await page.waitForTimeout(4500); /* real timer */
+  assert.equal(await idleNow(page), false, "focus on Pause keeps them on screen");
+  /* focus that came with no touch (a screen reader or a switch) keeps them until the song is paused */
+  await page.evaluate(() => document.activeElement.blur());
+  await page.waitForTimeout(4500); /* real timer */
+  assert.equal(await idleNow(page), false, "still kept after focus moves on, while the song plays");
+  await page.keyboard.press("Space"); await page.waitForSelector("body.held");
+  await page.keyboard.press("Space"); await page.waitForSelector("body.staged:not(.held)");
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer: paused once, they hide again */
+});
+
+test("Road Ready 05: any key brings the controls back, and Space plays and pauses", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark", { used: { playHint: true } }), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
+  await page.keyboard.press("Shift"); await page.waitForSelector("#gig:not(.idle)");
+  assert.equal(await page.locator("body.held").count(), 0, "a key that isn't Space only shows them");
+  await page.keyboard.press("Space"); await page.waitForSelector("body.held");
+  assert.equal(await page.locator("#gig.paused").count(), 1, "Space pauses the show");
+  await page.keyboard.press("Space"); await page.waitForSelector("#gig:not(.paused)");
+  assert.equal(await page.locator("body.held").count(), 0, "and plays it again");
+});
+
+test("Road Ready 05: the first-run hint shows once, goes on the first tap, and never comes back", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gg-hint", { timeout: 15000 }); /* real timer: the first time the controls hide */
+  assert.match(await page.innerText("#gg-hint"), /Tap anywhere for controls/);
+  assert.equal(await page.getAttribute("#gg-hint .gg-hint-l", "aria-hidden"), "true", "Louie beside it is decoration");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.playHint === true);
+  await page.mouse.click(200, 300); await page.waitForSelector("#gg-hint", { state: "detached" });
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the tap only took the hint away");
+  await page.reload(); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); await page.waitForTimeout(800); /* real timer */
+  assert.equal(await page.locator("#gg-hint").count(), 0, "never again");
+});
+
+test("Road Ready 05: the first-run hint sits below the words, above the progress line, and fades on its own after 5 s", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gg-hint", { timeout: 15000 }); /* real timer: the first time the controls hide */
+  const shown = Date.now();
+  const r = await page.evaluate(() => {
+    const gig = document.getElementById("gig"), hint = document.getElementById("gg-hint").getBoundingClientRect();
+    /* the bottom fade (.gig::after) is solid from 44 px down, so words below that line can't be seen */
+    const solid = innerHeight - (parseFloat(getComputedStyle(gig, "::after").height) - 44);
+    const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly, .crow)")].filter(el => getComputedStyle(el).visibility !== "hidden")
+      .map(el => el.getBoundingClientRect()).filter(b => b.height && b.top < solid && b.bottom > 0);
+    return { top: hint.top, bottom: hint.bottom, left: hint.left, right: hint.right, words: Math.max(...lines.map(b => Math.min(b.bottom, solid))), n: lines.length,
+      prog: document.getElementById("gg-prog").parentElement.getBoundingClientRect().top, w: innerWidth };
+  });
+  assert.ok(r.n > 3, "words fill the screen behind it");
+  assert.ok(r.top >= r.words - 0.5, `the hint (top ${r.top}) is below the last visible lyric line (${r.words})`);
+  assert.ok(r.bottom <= r.prog, "above the progress line");
+  assert.ok(r.left >= 0 && r.right <= r.w, "inside the screen");
+  await page.waitForTimeout(4000); /* real timer */
+  assert.equal(await page.locator("#gg-hint").count(), 1, "still there before 5 s");
+  await page.waitForSelector("#gg-hint", { state: "detached", timeout: 3000 });
+  const gone = Date.now() - shown;
+  assert.ok(gone >= 5000 && gone < 6500, `gone 5 s after it shows (${gone} ms)`);
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the song plays on");
+  assert.equal((await saved(page)).settings.used?.playHint, true, "it still counts as shown");
+});
+
+for (const theme of ["dark", "light"]) test(`Road Ready 05 (${theme}): words in the lyric colours on the plain base, amber chords, the bar and the progress line, all readable`, { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr(theme), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-past:is(.pr, .ly)");
+  await page.waitForFunction(() => !document.querySelector("#sheet > .st-now")?.getAnimations().length);
+  const r = await page.evaluate(() => {
+    const css = (el, pseudo) => getComputedStyle(el, pseudo), q = s => document.querySelector(s), root = css(document.documentElement);
+    const probe = document.createElement("i"); document.body.appendChild(probe);
+    const tok = n => { probe.style.color = root.getPropertyValue(n); return getComputedStyle(probe).color; };
+    const out = { base: tok("--rr-base"), card: tok("--rr-card"), sung: tok("--rr-lyric-sung"), next: tok("--rr-lyric-next"), now: tok("--rr-lyric-now"), chordTok: tok("--rr-chord") };
+    probe.remove();
+    const now = q("#sheet > .st-now"), past = q("#sheet > .st-past:is(.pr, .ly)"), next = q("#sheet > .st-next");
+    return { ...out, body: css(document.body).backgroundColor, bodyImg: css(document.body).backgroundImage, cNow: css(now).color, cPast: css(past).color, cNext: css(next).color,
+      opPast: css(past).opacity, chord: css(past.querySelector(".c")).color, chordOp: css(past.querySelector(".c")).opacity,
+      bar: css(now, "::after").width, barBg: css(now, "::after").backgroundColor, prog: css(q(".gg-prog")).height, progHidden: q(".gg-prog").getAttribute("aria-hidden"),
+      title: q("#gg-head")?.textContent };
+  });
+  assert.equal(r.body, r.base, "the plain base behind the words");
+  assert.equal(r.bodyImg, "none", "no tolex grain behind the words");
+  assert.deepEqual([r.cPast, r.cNext, r.cNow], [r.sung, r.next, r.now], "sung, next and current lines in their own colours");
+  assert.equal(r.opPast, "1", "never dimmed with opacity");
+  assert.equal(r.chord, r.chordTok, "chords in amber"); assert.equal(r.chordOp, "1");
+  assert.ok(ratio(r.sung, r.base) >= 4.5 && ratio(r.sung, r.card) >= 4.5, `sung lines ${ratio(r.sung, r.base).toFixed(1)}:1`);
+  assert.ok(ratio(r.chordTok, r.base) >= 4.5, `chords ${ratio(r.chordTok, r.base).toFixed(1)}:1`);
+  assert.equal(r.bar, "3px", "a 3 px bar beside the line you're on");
+  assert.equal(r.prog, "2px", "a 2 px progress line"); assert.equal(r.progHidden, "true");
+  assert.match(r.title, /Short Road[\s\S]*Me/, "the song's title and artist at the top");
+  const box = await page.locator("#gg-pause").boundingBox();
+  assert.ok(box.width >= 44 && box.height >= 44, "Pause is at least 44 px");
+});
+
+for (const motion of ["no-preference", "reduce"]) test(`Road Ready 05: the controls hide with ${motion === "reduce" ? "a plain 0.2 s fade (Reduce Motion)" : "a 0.25 s fade and an 8 px slide"}`, { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark", { used: { playHint: true } }), "#/song/g");
+  await page.emulateMedia({ reducedMotion: motion });
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); await page.waitForTimeout(500); /* real timer: the fade is done */
+  const r = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("gg-pause")); return { tr: c.transitionDuration, prop: c.transitionProperty, tf: c.transform }; });
+  if (motion === "reduce") { assert.match(r.tr, /^0\.2s/); assert.equal(r.tf, "none", "no slide"); assert.doesNotMatch(r.prop, /transform/); }
+  else { assert.match(r.tr, /^0\.25s/); assert.equal(r.tf, "matrix(1, 0, 0, 1, 0, 8)", "an 8 px slide"); }
+});
+
+test("Road Ready 05: at large text only the line you're on and the next ones show, nothing runs off the edge or sits under Pause", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark", { keepControls: true }), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-past");
+  await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
+  const r = await page.evaluate(() => {
+    const p = document.getElementById("gg-pause").getBoundingClientRect(), sheet = document.getElementById("sheet").getBoundingClientRect();
+    const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly, .crow)")].filter(l => getComputedStyle(l).visibility !== "hidden" && l.getBoundingClientRect().bottom > 0 && l.getBoundingClientRect().top < innerHeight);
+    return { n: lines.length, past: [...document.querySelectorAll("#sheet > .st-past")].some(l => getComputedStyle(l).visibility !== "hidden"),
+      off: lines.some(l => [...l.querySelectorAll("*")].some(c => c.getBoundingClientRect().right > sheet.right + 1)),
+      under: lines.some(l => { const b = l.getBoundingClientRect(); return b.bottom > p.top && b.top < p.bottom && b.right > p.left && b.left < p.right; }) };
+  });
+  assert.equal(r.past, false, "lines already sung step aside");
+  assert.ok(r.n >= 2 && r.n <= 3, `the line you're on and the next one or two (${r.n})`);
+  assert.equal(r.off, false, "nothing runs off the edge");
+  assert.equal(r.under, false, "nothing sits under Pause");
+});
+
+test("Road Ready 05: Settings has Keep playing controls on screen, off until turned on", { skip: skip() }, async t => {
+  const page = await phone(t, rr("dark"));
+  await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-keepctl");
+  assert.equal(await page.getAttribute("#s-keepctl", "aria-checked"), "false");
+  assert.match(await page.innerText(".set:has(#s-keepctl)"), /For VoiceOver, Switch Control or if you like seeing them\./);
+  await page.click("#s-keepctl");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.keepControls === true);
+});
+
+test("Road Ready 05: Green Room keeps the show as it was (no title, no progress line, Pause where it was)", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...rr("green"), merch: { has: ["green"] } }, "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  const r = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById("gg-head")).display, prog: getComputedStyle(document.querySelector(".gg-prog")).display, pause: document.getElementById("gg-pause").getBoundingClientRect().left }));
+  assert.equal(r.head, "none"); assert.equal(r.prog, "none");
+  assert.ok(r.pause < 60, "Pause stays at the left");
 });
