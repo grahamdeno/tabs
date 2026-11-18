@@ -234,13 +234,15 @@ Louie is **Road Ready**: a blue 1x12 combo amp with a yellow control-panel face 
 
 - **Exactly one mouth, always on the yellow panel**, between the eyes and the four cream knobs.
 - **The grille is never a face.** It's plain navy woven cloth with at most a faint speaker circle. No mouth, smile line or features on the grille, in any pose, size or frame.
-- Hands with fingers, navy like his arms (Graham, 2026-11-17). No hand ever shows one finger standing straight up: it reads as the middle finger. Short navy legs, brown leather handle, nickel corners.
+- Hands with fingers, blue Tolex like his arms (Graham, 2026-11-17). No hand ever shows one finger standing straight up: it reads as the middle finger. Short blue Tolex legs, brown leather handle, nickel corners.
+- **Stock Louie is bright-blue Tolex (Graham chose bright B on Nov 18, 2026).** Body #3A86FF, shade #2C6FE0, highlight #6BA4FF, with a visible pebble grain and light wear. The hands are the same blue Tolex as the arms (not yellow), with fingers and bold ink outlines. The panel, grille, knobs, corners and handle keep their colours. Grok's painted art in art/louie/v2 is the source of truth; don't redraw him.
 - **Locked palette:**
 
 | Part | Hex |
 |---|---|
-| Tolex blue | #23406A |
-| Tolex shadow | #1A3152 |
+| Tolex blue | #3A86FF |
+| Tolex shadow | #2C6FE0 |
+| Tolex highlight | #6BA4FF |
 | Panel yellow | #F0B23A |
 | Panel shade | #D9982A |
 | Grille navy | #182D47 |
@@ -251,9 +253,9 @@ Louie is **Road Ready**: a blue 1x12 combo amp with a yellow control-panel face 
 | Ink line | #0B0F14 |
 
 - **Expressions:** idle, cheering, listening, proud, oops, sleepy, nervous, celebrating. No tears, frowns or guilt faces. Oops is sheepish, never sad.
-- **On dark surfaces,** add a 3 px warm rim (#FFE2B4 at 35 percent) so the navy reads. Navy on #141210 is only 1.3:1 without it. On light surfaces, no rim is needed (12:1).
+- **On dark surfaces,** add a 3 px warm rim (#FFE2B4 at 35 percent) so his outline reads. The painted dark pictures (`-dark.webp`) bake in a wider, stronger rim (Nov 18, 2026): #FFE2B4 at 60 percent, 12 px on the 600 px art (solid for 9 px, fading over the last 3), so it is about 3 px at 120 pt and still 1.5 px at 60 pt on #141210. The dark files are 12 px bigger on each side than the light ones. The blue on #141210 is 5.4:1, but the dark ink outline melts into the ground without the rim. On light surfaces, no rim is needed (3.0:1 for the blue on #F6EFE2, with the ink outline carrying the edge).
 - **Placement:**
-  - Road: peeking from the left edge, one hand on the guitar body, away from inlays.
+  - Road: peeking from the left edge, one hand on the guitar body, away from inlays. The peek art (art/louie/louie-peek-*.webp) is bright B with his right hand resting on a maple guitar body, both eyes and the mouth visible.
   - Show Complete: cheering beside the guitar.
   - Lists: only as a fixed badge (Songbook hint banner, Me tip jar row). Never over rows.
   - Playing: only in the first-run hint.

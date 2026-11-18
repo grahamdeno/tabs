@@ -6,7 +6,7 @@
 // panel for a face (two eyes, one mouth, a row of four cream knobs), a plain navy grille, hands and two short legs.
 // The hard rule: exactly one mouth (class lv-mouth), always on the yellow panel between the eyes and the knobs.
 // The grille is plain cloth: never a mouth, a smile line or any feature on it, in any mood, pose or size.
-// Hands have fingers, navy like his arms (Graham, 2026-11-17), and no hand ever shows one finger standing straight up
+// Hands have fingers, blue Tolex like his arms (Graham, 2026-11-17), and no hand ever shows one finger standing straight up
 // from the middle: it reads as the middle finger (4.39.1). No cheeks, no blush, no lamp.
 // His colours are locked: the --lv-* variables on .louie in styles.css, and the same values written on each
 // shape, so a picture made from the SVG alone shows the same Louie.
@@ -26,7 +26,7 @@ const guitaristFinger = (x, len, r) => `<rect x="${x - 4.6}" y="${-22 - len}" wi
 const G_PALM = `<path d="M-13 -4C-15.5 -11 -15.5 -20 -12.5 -25C-8 -28 8 -28 12.5 -25C15.5 -20 15.5 -11 13 -4C8 1 -8 1 -13 -4Z"/>`;
 const G_ROLLS = "C16.5 -26.5 16 -23.5 13.5 -21.5C16.5 -19 16 -15.5 13.5 -13.5C16.5 -11 16 -7 13 -5C12 0 6 1 0 1C-6 1 -10 1 -11 -1Z";
 const G_THUMB_ACROSS = `<path d="M-12.5 -15C-6 -18.5 4 -18.5 8.5 -15C10.5 -13 9.5 -10 7.5 -9.5C1 -8 -6 -8.5 -12 -10Z"/>`;
-/* each hand as [shape, creases, over]: the guitarist draws them in skin, Louie (since 03b) in navy */
+/* each hand as [shape, creases, over]: the guitarist draws them in skin, Louie (since 03b) in blue Tolex like his arms */
 const HAND_PARTS = {
   fist: [`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
     `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, G_THUMB_ACROSS],
@@ -51,10 +51,10 @@ export function mittenOf(name, skin, sh, ln, cuff) {
     .replace(/class="lv-fl"/g, `stroke="${ln}"`).replace(/class="lv-cuff"/g, `fill="${cuff}"`);
 }
 
-/* Louie's hands (03b): the same fingered shapes as the guitarist's, in navy like his arms: an ink outline behind, the
-   Tolex shadow under the lit Tolex blue, ink creases, and a navy cuff. The wrist is at 0,0, the fingers point up. */
+/* Louie's hands (03b): the same fingered shapes as the guitarist's, in blue Tolex like his arms: an ink outline behind, the
+   Tolex shadow under the lit Tolex blue, ink creases, and a Tolex-shadow cuff. The wrist is at 0,0, the fingers point up. */
 const INK = "#0B0F14";
-const BLUE = 'fill="#23406A"', NAVY = 'fill="#1A3152"';
+const BLUE = 'fill="#3A86FF"', NAVY = 'fill="#2C6FE0"';
 const louieHand = (shape, creases = "", over = "") => `<g class="lv-mit-o" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round">${shape}${over}</g>`
   + `<g class="lv-mit-s" ${NAVY} transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-mit" ${BLUE}>${shape}</g>`
   + `<g class="lv-mit-l" fill="none" stroke="${INK}" stroke-opacity=".55" stroke-width="1.9" stroke-linecap="round">${creases}</g>`
@@ -128,7 +128,7 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const limbs = layer => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
     const mx = (sx + wx) / 2 + (wx < sx ? -8 : 8), my = Math.min(sy, wy) + (wy < sy ? 6 : 12);
     const arm = `d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-linecap="round"`, at = `transform="translate(${wx} ${wy}) rotate(${rot}) scale(0.86 1.02)"`;
-    return layer === "arm" ? `<path class="lv-arm-o" stroke="${INK}" stroke-width="${r1(15 + 2 * ol)}" ${arm}/><path class="lv-arm" stroke="#23406A" stroke-width="15" ${arm}/><path stroke="#fff" stroke-opacity=".12" stroke-width="4" ${arm} transform="translate(-2 -2)"/>`
+    return layer === "arm" ? `<path class="lv-arm-o" stroke="${INK}" stroke-width="${r1(15 + 2 * ol)}" ${arm}/><path class="lv-arm" stroke="#3A86FF" stroke-width="15" ${arm}/><path stroke="#fff" stroke-opacity=".12" stroke-width="4" ${arm} transform="translate(-2 -2)"/>`
       : layer === "hand" ? `<g ${at}>${HANDS[sign]()}</g>`
       : `<path stroke-width="${r1(15 + 2 * rim)}" ${arm}/><g ${at}>${handShape(sign)}</g>`;
   }).join("");
@@ -149,12 +149,12 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   <g class="lv-body" transform="${tilt}">
     <g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="${r1(2 * rim)}" stroke-linejoin="round">${limbs("rim")}<path stroke-width="${r1(8 + 2 * rim)}" ${HANDLE}/><rect x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>${CAPS.map(cap).join("")}${LEGS}${BOOTS}</g>
     ${limbs("arm")}
-    <g class="lv-tolex" fill="#23406A" ${edge}>${LEGS}</g><g fill="url(#${id}t)">${LEGS}</g>
-    <g class="lv-side" fill="#1A3152" ${edge}>${BOOTS}</g><g fill="url(#${id}b)">${BOOTS}</g>
+    <g class="lv-tolex" fill="#3A86FF" ${edge}>${LEGS}</g><g fill="url(#${id}t)">${LEGS}</g>
+    <g class="lv-side" fill="#2C6FE0" ${edge}>${BOOTS}</g><g fill="url(#${id}b)">${BOOTS}</g>
     <path stroke="${INK}" stroke-width="${r1(8 + 2 * ol)}" ${HANDLE}/><path class="lv-leather" stroke="#55331B" stroke-width="8" ${HANDLE}/><path stroke="#fff" stroke-opacity=".22" stroke-width="2" d="M81 15 C82 5 118 5 119 15" fill="none" stroke-linecap="round"/>
     <g class="lv-nickel" fill="#948573" ${edge}><rect x="71" y="14" width="13" height="8" rx="2"/><rect x="116" y="14" width="13" height="8" rx="2"/></g>
-    <rect class="lv-side" fill="#1A3152" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
-    <rect class="lv-tolex" fill="#23406A" x="${CAB.x}" y="${CAB.y}" width="${CAB.w - 9}" height="${CAB.h}" rx="7"/>
+    <rect class="lv-side" fill="#2C6FE0" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
+    <rect class="lv-tolex" fill="#3A86FF" x="${CAB.x}" y="${CAB.y}" width="${CAB.w - 9}" height="${CAB.h}" rx="7"/>
     <rect fill="url(#${id}t)" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/><rect fill="url(#${id}b)" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
     <rect x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7" fill="none" ${edge}/>
     <rect x="${P.x - 3}" y="${P.y - 3}" width="${P.w + 6}" height="${G.y + G.h - P.y + 6}" rx="5" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/>
