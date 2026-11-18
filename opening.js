@@ -102,7 +102,7 @@ export function gigOpen(g, el, start) {
   if (id !== "verse") { strip(id === "pause" ? "Tap anywhere to pause." : "Play it through to the end. That's your first show.", undefined, id === "show" ? 7000 : 0); return false; }
   const card = document.createElement("div");
   card.className = "on-count";
-  card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("listen", { pose: "point", size: 104 })}</div>
+  card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("happy", { pose: "point", size: 104 })}</div>
     <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k < 2 ? "done" : k === 2 ? "on" : ""}"></i>`).join("")}</div>
     <h2>Play each chord</h2>
     <p>Play the chord you see as the words go by. The crowd gets on its feet as you play through the song. Miss one and the song keeps going; nothing fails. Just the first verse for now.</p>
