@@ -6,7 +6,8 @@ useBrowser();
 
 test("Your profile: worked out from the songs you've played, with a passport, changes and a way back to a song", { skip: skip() }, async t => {
   const songs = LIB.songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } }));
-  const page = await phone(t, { ...LIB, songs }, { home: true });
+  /* Road Ready 08: Dark and Light draw Me as r10-06 (tested below); this test keeps the earlier page, which Green Room and Headliner still draw */
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   await page.waitForSelector("#h-fans"); await settled(page);
   await page.click("#h-fans");
   await page.waitForSelector(".pf-player");
@@ -73,3 +74,118 @@ test("4.19.0: a song tried once and left three weeks ago shows in the Songbook a
   await page.waitForSelector(".upn-c.again");
   assert.match(await page.innerText(".upn-c.again"), /WORTH ANOTHER TRY\s*(Wagon Wheel|Rock Me)\s*You left it 4 weeks ago/);
 });
+
+/* ---- Road Ready 08: Me and the guitar case (spec 5.8, r10-06) ---- */
+import { roadPath } from "../../core.js";
+const AT8 = Date.now();
+/* the first n legs done, headline shows too: n guitars earned */
+const legsDone = n => {
+  const done = {}, data = { ...JSON.parse(JSON.stringify(LIB)), skills: { done, last: AT8 } };
+  for (let i = 0; i < n; i++) { const leg = roadPath(data).legs.find(l => !l.done); for (const st of leg.stops) if (st.kind !== "box") done[st.id] = { n: 3, best: 90, at: AT8 - 1000 + i }; }
+  return { done, last: AT8 };
+};
+const PLAYED8 = songs => songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } }));
+const meLib = (theme, extra = {}) => ({ ...LIB, songs: PLAYED8(LIB.songs), skills: legsDone(3), merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open", "switch", "scales"] }, settings: { ...LIB.settings, v: 6, theme }, ...extra });
+const openMe = async (t, theme, extra) => {
+  const page = await phone(t, meLib(theme, extra), { home: true });
+  await page.waitForSelector("#h-fans"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+  return page;
+};
+const frame = page => page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
+
+for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
+  test(`Road Ready 08 (${label}): Me has the player header, three tiles, the guitar case with the Merch row, Milestones and the rows; every number is the one it was`, { skip: skip() }, async t => {
+    const page = await openMe(t, theme);
+    const n = await page.evaluate(async () => { const m = await import("./core.js"), d = JSON.parse(localStorage.getItem("tabs-v1")), p = m.profileOf(d), c = m.playableSongs(d);
+      return { now: c.now, of: c.of, chords: p.chords.length, plays: p.plays, fans: m.fansNow(d), tips: m.fansToSpend(d), venue: m.venueOf(m.lifetimePlays(d)).name, lvl: m.levelOf(d).level }; });
+    const fmt = x => x.toLocaleString("en-US");
+    /* criterion 2: the numbers are the ones profileOf, playableSongs, fansNow and fansToSpend give */
+    assert.equal(await page.innerText(".rr-me-name"), "Your profile");
+    assert.equal((await page.innerText(".rr-me-venue")).trim(), `${n.venue} · ${fmt(n.fans)} fans`);
+    assert.match(await page.innerText(".rr-me-level"), new RegExp(`Level ${n.lvl} ·`));
+    const tiles = await page.$$eval(".rr-tile", ts => ts.map(x => ({ n: x.querySelector("b").textContent.replace(/\s+/g, " ").trim(), l: x.querySelector("small").textContent.trim() })));
+    assert.deepEqual(tiles.map(x => x.l), ["songs you can play", "chords", "plays"], "three tiles");
+    assert.equal(tiles[0].n, `${n.now} of ${n.of}`); assert.equal(tiles[1].n, fmt(n.chords)); assert.equal(tiles[2].n, fmt(n.plays));
+    assert.ok(n.plays >= 1 && n.chords >= 1, "the fixture has something to count");
+    /* the guitar case: the guitars of the legs you finished, upright, one height, each with a spoken name and where it was earned */
+    assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitar case\n3 guitars");
+    const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf: getComputedStyle(im).transform, hidden: im.getAttribute("aria-hidden") }; }));
+    assert.equal(gs.length, 3);
+    assert.deepEqual(gs.map(g => g.label), ["The beater, earned on Leg 1, Open chords", "The cutaway, earned on Leg 2, Chord switches", "The solid-body, earned on Leg 3, Scales"]);
+    for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.equal(g.tf, "none", `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.equal(g.h, gs[0].h, "one height for every guitar"); }
+    /* criterion 3: game money and real money are apart */
+    const merch = page.locator("#pf-r-merch");
+    assert.equal(await merch.getAttribute("href"), "#/merch");
+    assert.equal(await merch.getAttribute("aria-label"), `Spend your game tips: $${fmt(n.tips)} at the Merch table`);
+    assert.equal((await merch.innerText()).trim(), `Spend your game tips: $${fmt(n.tips)} at the Merch table`);
+    assert.equal(await page.locator("#pf-r-merch .rr-coin").count(), 1, "the coin is on the Merch row");
+    assert.equal(await page.locator(".rr-me .rr-coin").count(), 1, "and nowhere else on Me");
+    const dollars = await page.evaluate(() => [...document.querySelectorAll(".rr-me *")].filter(e => [...e.childNodes].some(c => c.nodeType === 3 && /\$/.test(c.textContent)) || /\$/.test(e.getAttribute("aria-label") || "")).map(e => e.closest("#pf-r-merch") ? "merch" : e.tagName + "." + e.className));
+    assert.ok(dollars.length >= 1 && dollars.every(d => d === "merch"), `a $ amount only on the Merch row (${dollars.join(", ")})`);
+    const sup = page.locator("#pf-r-support");
+    assert.equal(await sup.getAttribute("href"), "#/support");
+    assert.equal((await sup.innerText()).trim(), "Support Louie on Ko-fi (real money, optional)");
+    const supText = (await page.innerText(".rr-support-h")) + " " + (await page.locator(".rr-support").evaluate(el => el.innerText + " " + [...el.querySelectorAll("[aria-label],[title],img")].map(e => (e.getAttribute("aria-label") || "") + (e.getAttribute("title") || "") + (e.getAttribute("alt") || "")).join(" ")));
+    assert.doesNotMatch(supText, /tips?\b/i, "the word tips is never on the real-money section"); assert.doesNotMatch(supText, /\$|\d/, "no amount");
+    assert.equal(await page.locator("#pf-r-support svg:not(.chev)").count(), 1, "a heart"); assert.equal(await page.locator("#pf-r-support .rr-coin").count(), 0, "no coin");
+    assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/louie-face-badge.webp", "the face badge");
+    assert.equal(await page.locator(".rr-me >> text=SUPPORT THE APP").count(), 1);
+    /* the order: header, tiles, case (Merch inside), Milestones, rows, Support the app last */
+    const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
+    assert.deepEqual([order[0], order[1], order[2], order[3], order[4], order.at(-2), order.at(-1)], ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-rows", "rr-support-h", "rr-support"]);
+    /* Milestones as plates; the same badges as before */
+    assert.match(await page.innerText(".rr-miles .pf-label"), /MILESTONES\s*\d+ of 26/);
+    assert.ok(await page.locator(".rr-miles .pf-badge:not(.locked)").count() >= 1);
+    /* the rows and their destinations, each 52 px or taller, with a name; no streak or "you missed" copy */
+    for (const [id, href] of [["#pf-r-band", "#/band"], ["#pf-r-charts", "#/charts"], ["#pf-r-help", "#/settings/help"], ["#pf-r-support", "#/support"]]) assert.equal(await page.getAttribute(id, "href"), href, id);
+    const rows = await page.$$eval(".rr-me .rr-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: (r.getAttribute("aria-label") || r.innerText).trim(), chev: !!r.querySelector(".chev"), ic: !!r.querySelector(".more-ic svg") })));
+    assert.deepEqual(rows.map(r => r.id), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-share", "pf-r-help", "pf-r-support"]);
+    for (const r of rows) { assert.ok(r.h >= 52, `${r.id} is ${r.h} tall`); assert.ok(r.name && r.chev && r.ic, `${r.id}: a name, an icon and a chevron`); }
+    assert.doesNotMatch(await page.innerText(".rr-me"), /you missed|missed a day|lost your streak|streak (lost|broken)/i);
+    /* criterion 5: every control is a 44 px target (the way back, the gear, the avatar, the venue, the Merch row, the case), and the Back button no longer a 36 */
+    for (const sel of ["#back", "#pf-set", "#pf-me", "#pf-map", "#pf-r-merch", ".rr-case-in"]) { const b = await page.locator(sel).boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `${sel} is ${Math.round(b.width)} by ${Math.round(b.height)}`); }
+    assert.equal(await page.getAttribute("#pf-set", "aria-label"), "Settings");
+    /* the destinations work: Help opens Settings > Help, and the way back opens the Road */
+    await page.click("#pf-r-help"); await page.waitForFunction(() => location.hash === "#/settings/help");
+    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+    await page.click("#back"); await page.waitForSelector(".rd-path");
+  });
+}
+
+test("Road Ready 08: at large text the tiles stack, the rows grow and the case scrolls sideways with each guitar a 44 px target; nothing runs off the screen", { skip: skip() }, async t => {
+  const page = await openMe(t, "dark");
+  const cols = () => page.$eval(".rr-me-tiles", el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+  assert.equal(await cols(), 3);
+  await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
+  await frame(page);
+  assert.equal(await cols(), 1, "one column at large text");
+  const m = await page.evaluate(() => ({ ox: getComputedStyle(document.querySelector(".rr-case-in")).overflowX, sw: document.scrollingElement.scrollWidth, iw: innerWidth,
+    gs: [...document.querySelectorAll(".rr-gtr")].map(g => { const r = g.getBoundingClientRect(); return [r.width, r.height]; }),
+    rows: [...document.querySelectorAll(".rr-me .rr-row")].map(r => [r.getBoundingClientRect().height, r.scrollWidth > r.clientWidth + 1]) }));
+  assert.equal(m.ox, "auto", "the case scrolls sideways when the guitars don't fit");
+  assert.ok(m.sw <= m.iw, "the page doesn't scroll sideways");
+  for (const [w, h] of m.gs) assert.ok(w >= 44 && h >= 44, "each guitar is at least 44 px");
+  for (const [h, clip] of m.rows) assert.ok(h >= 52 && !clip, "a row is 52 tall or more and doesn't clip");
+});
+
+test("Road Ready 08: with no guitar earned the case says how to earn one; a library with no plays has no share row and no Milestones gap", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })), settings: { ...LIB.settings, v: 6, theme: "dark" } }, { home: true });
+  await page.waitForSelector("#h-fans"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+  assert.match(await page.innerText(".rr-case-card"), /0 guitars[\s\S]*Headline a leg to earn your first guitar\./);
+  assert.equal(await page.locator("#pf-share").count(), 0, "no share row until there is something to share");
+  assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
+});
+
+for (const theme of ["green", "headliner"]) {
+  test(`Road Ready 08 (${theme}): Me is the earlier page (the player card, four tiles, Tips to spend) and Back to the Road is a 44 px target`, { skip: skip() }, async t => {
+    const page = await phone(t, meLib(theme, { merch: { ...LIB.merch } }), { home: true });
+    await settled(page);
+    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
+    assert.equal(await page.locator(".rr-me").count(), 0);
+    assert.match(await page.innerText(".pf-tiles"), /TIPS TO SPEND[\s\S]*SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
+    assert.equal(await page.locator("#pf-r-merch.pf-row").count(), 1, "the earlier rows are as they were");
+    const b = await page.locator("#back").boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `Back to the Road is ${Math.round(b.width)} by ${Math.round(b.height)}`);
+  });
+}

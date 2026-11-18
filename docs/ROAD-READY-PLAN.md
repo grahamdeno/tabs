@@ -13,6 +13,7 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 - 2026-11-18, step 06 (Show complete): **no backdrop on Show complete in Dark and Light.** Graham left the choice to Claude and noted that no one else has bought a backdrop yet. Green Room and Headliner keep the backdrop and Change; backdrop items and stored data are unchanged. Step 09 decides what backdrops become.
 - 2026-11-18, step 07 (the Songbook): **three mastery levels now**, Learning, Solid and Nailed it, while there are no users and it costs least. Solid is stored as a new value, `solid`; `learning` and `got` stay as they are, so nothing is converted and old backups load. Got it is called Nailed it everywhere it shows.
 - 2026-11-18, step 07 (Graham left these to Claude's judgement): **search stays at the bottom** of the Songbook, in thumb reach and where the Road's search sits (114). **No Tuner in the Road Ready Songbook**: you tune on the song screen and Me, as decided in step 04 (115). **Solid keeps the literal meanings**: Solid means you can play it through, so it plays at full speed and isn't in the Learning filter, set or Rehearse's Learning card (118). **"Nailed it" on Your profile stays** (119).
+- 2026-11-18, step 08 (Me): game money and real money stay apart. Graham left the choice to Claude. The Merch row is the only place on Me with the coin and a $ amount ("Spend your game tips: $411 at the Merch table"); real money is a separate "Support the app" section with one row, "Support Louie on Ko-fi (real money, optional)", a heart, no coin and no amount; the word "tips" is never on the real-money row.
 
 ## Branches
 
@@ -63,6 +64,10 @@ Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and ligh
 ### Step 07 status
 
 Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the third mastery level and the Songbook in Road Ready dark and light (title with a round Add and no Tuner, capsule filters with Sets last, the Today strip in a banner with Louie's face badge, a card per song with an art tile, chord chips, a needs tag and mastery dots). Green Room and Headliner draw the earlier Songbook (pixel-identical with motion off). Reviewed (Claude Fable 5.2, 2026-11-18): pass with three small fixes, Surprises 126 to 132. Waiting for Graham's merge go.
+
+### Step 08 status
+
+Built on `rr-08-me` (Sonnet): Me in Road Ready dark and light (player header with the level bar, three tiles, the guitar case with the Merch row, Milestones as plates, five rows, then Support the app on its own). Green Room and Headliner keep the earlier page. Surprises 133 to 144. Reviewed (Claude Opus 5.5, Louie Product, 2026-11-18): pass, no fixes; decisions on 136 to 144 and two small notes below (145, 146). Waiting for Graham's merge go.
 
 Merged into `road-ready` on Graham's go, 2026-11-18: PR #97 at `a90fb77` (CI test and browser passed), merge commit `15cfd87`. Reviewed by Claude Fable 5.2 (pass with fixes).
 
@@ -247,3 +252,28 @@ Found in the independent review of step 07 (2026-11-18, Claude Fable 5.2). The f
 130. **The tolex test is a little narrower.** With the page hidden it checks the ground itself, with the same tolerance, but it would no longer notice a page layer painted over the ground. Accepted: the test is about the ground, and the Songbook's cards now fill that band on purpose.
 131. **The iPad check no longer looks at the Tuner.** It checks Add at the top in Dark; the tuner's place in the Green Room header is checked on a phone only. Accepted.
 132. **Two tests failed once under load in the review's `quick.mjs` run** ("Sing it: one take split at a breath" and "Play together: a link"). Neither touches the Songbook, and both pass alone. The same kind of sandbox load as 125.
+
+133. **Light Show complete: the lower section, "The song you played", still shows the old blue and pink section pills** (found in the step 06 review, shown to Graham in chat, not yet fixed).
+134. **At large text the new-guitar case sheet puts Rock on below the fold, so it needs a scroll** (step 06 review; noted in PR #96 only).
+135. **Phone check for the Road Ready release:** open the Songbook search with the keyboard up and confirm the last result scrolls clear of the tab bar (from the step 04 review; not yet checked).
+136. **Me has no player name to show.** No name is stored, so the title is "Your profile" where r10-06 shows a name. Needs a decision before a name field is added.
+137. **The guitar labels say "earned on Leg N, <leg name>", not "earned at the Club".** Legs are named by topic ("Open chords", "Chord switches", "Scales"), not by venue, so the prompt's example does not match the code.
+138. **Three things left the tiles.** The streak, shows played and tips to spend are no longer tiles. Nights in a row and shows played are one line inside "Your stats"; tips to spend is the Merch row. Every number is still shown and unchanged.
+139. **Milestones show "N of 26", not "2 new".** They use the existing badges and their order. r10-06's "new" count has nothing behind it in the data.
+140. **The Help and feedback row opens Settings, Help (`#/settings/help`).** There is no other help page.
+141. **The guitar case is drawn in CSS, with no case-rack art, and every guitar at one height.** The pictures have no stored relative scale. Upright, headstocks up, as required; the case-rack art is optional in the prompt and was not made.
+142. **A Back to the Road button is shown, which r10-06 does not have.** Kept so the page still has its way back; it is now 44 px (Surprise 52).
+143. **The 44 px Back button rule applies in every look**, so Green Room and Headliner grow it from 36 to 44 px. Tested in Green Room.
+144. **The road-ready branch's CLAUDE.md lacks the step 0 block** and still says to push to main. It will come in when road-ready takes `next`; nothing in this step relies on it.
+
+Found in the review of step 08 (2026-11-18, Claude Opus 5.5, Louie Product). Decided in review:
+
+- **136:** keep "Your profile". A player name is a new stored field, so it is its own item if Graham wants one.
+- **137, 139, 140:** accepted as built (leg names, "N of 26", Help opens Settings, Help).
+- **138:** accepted. Every number is still on Me, and the streak no longer sits in a tile of its own, which suits the no-guilt rule.
+- **141:** accepted for now. Painted case-rack art, if wanted, goes to Grok with step 09's guitar art.
+- **142, 143:** keep the Back button, and keep 44 px in every look (the inclusive design rule).
+- **144:** `road-ready` takes `next` (which has the step 0 block) in its own PR before step 09, on Graham's merge go. It deploys nothing.
+
+145. **The Milestones card is a grid of eight plates with "All 26 milestones", where r10-06 has one compact row.** Kept: it shows more and nothing clips. Revisit with Graham at the preview if Me feels long.
+146. **Two small notes, not fixed:** each guitar in the case is an `li` with `role="img"`, which replaces the list item for screen readers (the names still read); the coin on the Merch row stays 16 px at large text while the words grow. Neither blocks the merge.
