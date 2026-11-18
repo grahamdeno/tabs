@@ -102,7 +102,7 @@ test("Road Ready 03: Louie has the same colours in all four looks, the locked pa
     await page.context().close();
   }
   assert.deepEqual(Object.values(paints).map(p => p.look), ["neon", "festival", "green", "headliner"]);
-  assert.deepEqual(paints.dark.locked, { tolex: "#23406A", side: "#1A3152", panel: "#F0B23A", panelShade: "#D9982A", cloth: "#182D47", weave: "#2A4466", nickel: "#948573", leather: "#55331B", knob: "#E8D5B3", ink: "#0B0F14", mitten: "#23406A", arm: "#23406A" });
+  assert.deepEqual(paints.dark.locked, { tolex: "#3A86FF", side: "#2C6FE0", panel: "#F0B23A", panelShade: "#D9982A", cloth: "#182D47", weave: "#2A4466", nickel: "#948573", leather: "#55331B", knob: "#E8D5B3", ink: "#0B0F14", mitten: "#3A86FF", arm: "#3A86FF" });
   assert.ok(paints.dark.parts.length > 60);
   for (const look of ["light", "green", "headliner"]) assert.deepEqual(paints[look].parts, paints.dark.parts, `${look}: every part has the same fill and line as in Dark`);
   assert.deepEqual(Object.fromEntries(Object.entries(paints).map(([k, p]) => [k, p.rim])), { dark: "0.35", light: "0", green: "0", headliner: "0.35" }, "the rim shows on the dark looks only");
@@ -117,7 +117,7 @@ test("Road Ready 03: a finish from the Merch table still recolours him (kept unt
     host.innerHTML = `<span class="fin fin-stock">${louie("happy", { size: 60 })}</span><span class="fin fin-tweed">${louie("happy", { size: 60 })}</span>`;
     return [...host.querySelectorAll("rect.lv-tolex")].map(el => getComputedStyle(el).fill);
   });
-  assert.deepEqual(fills, ["rgb(35, 64, 106)", "rgb(216, 181, 113)"], "Stock is the locked blue; Tweed is still tweed");
+  assert.deepEqual(fills, ["rgb(58, 134, 255)", "rgb(216, 181, 113)"], "Stock is the locked bright blue (#3A86FF); Tweed is still tweed");
 });
 
 test("Road Ready 03: Louie hops and blinks, and Reduce Motion stops both", { skip: skip() }, async t => {

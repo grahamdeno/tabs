@@ -283,7 +283,7 @@ for (const [label, theme, file] of [["dark", "dark", "louie-peek-dark.webp"], ["
 
     /* Louie peeks in: the picture for this look, partly past the left edge, hidden from screen readers, not a button */
     const peek = await page.evaluate(() => { const p = document.querySelector(".rd-peek"), r = p.getBoundingClientRect(), c = getComputedStyle(p); return { img: c.backgroundImage, left: r.left, h: r.height, hidden: p.getAttribute("aria-hidden"), pe: c.pointerEvents, disp: c.display }; });
-    assert.ok(peek.img.includes(file), peek.img); assert.ok(peek.left < 0, "partly past the left edge"); assert.equal(Math.round(peek.h), 150);
+    assert.ok(peek.img.includes(file), peek.img); assert.ok(peek.left < 0, "partly past the left edge"); assert.equal(Math.round(peek.h), theme === "dark" ? 156 : 150, "the dark picture has its rim painted in a margin, so its box is 6 px taller and Louie is the same size");
     assert.deepEqual([peek.hidden, peek.pe, peek.disp], ["true", "none", "block"]);
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
   });
@@ -402,4 +402,40 @@ test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg b
     assert.equal(await page.locator(".rr-hdr, .rd-peek, .rr-say, .rd-conn, .rd-node.rr").count(), 0, `${look}: none of Road Ready`);
     for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say svg.louie", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
   }
+});
+
+/* Road Ready design fixes (Grok's review of the Road, 2026-11-18) */
+for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light", "festival"]]) {
+  test(`Road Ready design fixes (${label}): the peek has no extra shadow and shows his face, the header piping is thin and angled, large text keeps Louie clear of the dock`, { skip: skip() }, async t => {
+    const page = await road(t, theme, MID);
+    const n = await page.evaluate(() => { const p = document.querySelector(".rd-peek"), r = p.getBoundingClientRect(), c = getComputedStyle(p), h = document.querySelector(".rr-hdr"), b = getComputedStyle(h, "::before");
+      return { filter: c.filter, left: r.left, pipeW: b.paddingTop, pipe: b.backgroundImage, tonight: getComputedStyle(document.querySelector(".rr-tonight")).backgroundColor,
+        glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rr-stage")).backgroundImage }; });
+    assert.equal(n.filter, "none", "no CSS shadow on the peek (the dark picture has its rim painted in)");
+    assert.equal(Math.round(n.left), look === "neon" ? -33 : -30, "the peek is about 30 px past the left edge, so both eyes and the mouth show");
+    assert.equal(n.pipeW, "2px", "the header piping is 2 px"); assert.match(n.pipe, /135deg/, "an angled chrome gradient");
+    if (look === "festival") { assert.equal(n.tonight, "rgb(30, 25, 20)", "Tonight is a dark #1E1914 bar on the cream header"); assert.equal(Math.round(n.glowW), 96, "the current-stop glow is stronger on cream"); }
+    else assert.match(n.stage, /radial-gradient/, "a soft amber glow behind the neck in the dark look");
+    /* large text: Louie's line is cut to two lines, the peek and the "songs" chips are gone, and the header and line leave room for the neck */
+    await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
+    await page.waitForFunction(() => getComputedStyle(document.querySelector(".rd-peek")).display === "none");
+    const ax = await page.evaluate(() => { const say = document.querySelector(".rr-say"), s = getComputedStyle(say), chips = [...document.querySelectorAll(".rr-chip")];
+      return { clamp: s.webkitLineClamp, say: say.getBoundingClientRect().bottom, vh: innerHeight, chips: chips.map(c => getComputedStyle(c).display), full: say.textContent.length > 0 }; });
+    assert.equal(ax.clamp, "2", "Louie's line is cut to two lines"); assert.ok(ax.full, "the whole line is still in the page for a screen reader");
+    assert.ok(ax.chips.every(d => d === "none"), "the songs chips are hidden at large text");
+    const probe = await page.evaluate(() => { const c = document.createElement("span"); c.className = "rd-songs rr-chip"; document.querySelector(".rd-neck .rd-stop").appendChild(c); const d = getComputedStyle(c).display; c.remove(); return d; });
+    assert.equal(probe, "none", "a songs chip drawn at large text is hidden (a lesson that opens songs shows one on the road ahead)");
+    assert.ok(ax.say <= ax.vh * 0.55, `the header and Louie's line take ${Math.round(ax.say / ax.vh * 100)} percent of the screen, at most 55`);
+    await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "17px"); delete document.documentElement.dataset.ax; });
+    await page.waitForFunction(() => getComputedStyle(document.querySelector(".rd-peek")).display !== "none");
+  });
+}
+
+test("Road Ready design fixes: the side fret dots sit on the board, and the selected Merch finish has an amber ring", { skip: skip() }, async t => {
+  const page = await road(t, "dark", MID);
+  const dots = await page.evaluate(() => [...document.querySelectorAll(".rd-base.nano circle[r='2.6']")].filter(c => ["#2b1d16", "#9b8f78"].includes(c.getAttribute("fill"))).map(c => +c.getAttribute("cx")));
+  assert.ok(dots.length > 0 && dots.every(x => x <= 195 + 42 - 2.6), `every side dot is on the board (${dots.join(", ")})`);
+  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-fin.on, .mc-look.on"); await settled(page);
+  const ring = await page.evaluate(() => { const e = document.querySelector(".mc-fin.on, .mc-look.on"), probe = document.createElement("i"); probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--rr-amber-text"); document.body.appendChild(probe); const amber = getComputedStyle(probe).color; probe.remove(); return { ring: getComputedStyle(e).borderTopColor, amber }; });
+  assert.equal(ring.ring, ring.amber, "the selected finish is ringed in amber, not cyan");
 });

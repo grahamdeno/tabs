@@ -226,7 +226,7 @@ function picBase(g, lay, f) {
     y += sp.h;
     frets += `${rect(CX - hw, y - 2.5, NECK, 5, "#c4c8d0")}${rect(CX - hw, y - 2.5, NECK, 1.6, "#f2f4f7")}${rect(CX - hw, y + 1, NECK, 1.6, "#7d828c")}`;
   }
-  const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="${CX + hw + 6}" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
+  const dots = lay.spaces.filter(sp => sp.kind !== "dot").map(sp => `<circle cx="${CX + hw - 5}" cy="${top + sp.y}" r="2.6" fill="${sp.stop.state === "done" ? "#2b1d16" : "#9b8f78"}"/>`).join("");
   /* the neck in the picture's own two colours, over the picture's neck from the nut to where it ends on the body */
   const board = rect(CX - hw, top - 1, hw + .5, end - top + 1, p.lit) + rect(CX, top - 1, hw, end - top + 1, p.shade);
   const hard = `<g transform="translate(${CX} ${yb.toFixed(1)}) scale(${k.toFixed(3)}) translate(${-CX} ${(-yb).toFixed(1)})">${nanoHardware(g, yb, g.kind !== "electric")}</g>`;

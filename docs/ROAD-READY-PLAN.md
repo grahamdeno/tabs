@@ -6,7 +6,7 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 
 - 2026-11-17: **Road Ready replaces the two free looks.** Dark (data-look `neon`) becomes Road Ready dark. Light (data-look `festival`) becomes Road Ready light. Green Room and Headliner stay on the Merch table as they are. Look ids, prices and kinds are unchanged; only the names and the look change.
 - 2026-11-17, step 02 (the Road): **fans and streak stay on the Road**, as an incentive: a Fans pill in the header that shows the streak while there is one (never a 0 or a lost streak). **No tuner on the Road**: you tune where you play (More and the song screen). **Louie's one line stays.** **The book button (Rehearse) goes**, since Rehearse is a tab.
-- 2026-11-17, after the step 03 review: **Louie has hands with fingers, navy like his arms**, not mittens (replaces the mitten rule). No hand ever shows one finger standing straight up, since it reads as the middle finger (4.39.1). **Louie is Grok's painted art at every size**; the code drawing stays as a fallback. **Sleepy is redrawn by Grok** (it read as bored).
+- 2026-11-17, after the step 03 review: **Louie has hands with fingers, blue Tolex like his arms**, not mittens (replaces the mitten rule). No hand ever shows one finger standing straight up, since it reads as the middle finger (4.39.1). **Louie is Grok's painted art at every size**; the code drawing stays as a fallback. **Sleepy is redrawn by Grok** (it read as bored).
 - 2026-11-17, step 04 (the tab bar): **Option A, five tabs** in this order: Road (`#/`), Songbook (`#/library`), Rehearse (`#/practice`), Tour (`#/tour`), Me (`#/you`). The More sheet goes away from the tab bar. Charts, Your band, the Merch table, the Tuner and Support Louie become plain rows at the top of Me's list, and Settings becomes a gear button at the top right of Me. `#/band`, `#/charts`, `#/merch`, `#/support` and `#/settings` stay as pages with a back button.
 - 2026-11-17, step 04 (the tuner): **the tuner stays on the song screen, and there is a Tuner row on Me.** There is no Tune button on the Road. The Road header from step 02 stays as it is. The "not tuned lately" dot moves from the More tab to the Me tab and to the Tuner row.
 
@@ -146,3 +146,11 @@ Found in the review of step 04 (2026-11-18, a separate conversation, Claude Opus
 71. **The Me rows did not grow with text size.** Fixed in review.
 72. **fdf933f's CLAUDE.md sentence was missing.** Fixed in review: added.
 73. **The Songbook's title and Sets button touch at 320 px.** This is not from step 04; left for step 07.
+
+Found while making the design fixes from Grok's review (2026-11-18, branch `rr-05-design-fixes`, Claude Sonnet 5.5).
+
+74. **There is no 512 px tolex bitmap tile in the repo** (design review item 7). Spec 5.1 names `tolex-dark`, but only the code-drawn tolex exists. Not built. Grok supplies the tile; then `--tolex` swaps to it. The soft amber glow behind the neck in the dark look is done.
+75. **There is no rendered sunburst guitar body in the repo** (item 8). The Road bodies are the flat pictures in `art/guitars/`; r10-01's photographic cutaway is not among them. The body art and raising the neck are not done; they wait for the art.
+76. **Louie's line is cut to two lines at large text**, which bends the "nothing truncates" rule for that one line (Graham's review asked for it to be shortened). The whole line stays in the page for a screen reader. At large text the header and line take about 51 percent of the screen (they took 62).
+77. **Changed tests:** the 03b art test now covers the `listen` mood, the thumb-below-100 rule and the dark picture's 2 percent padding; the Road peek test expects a 156 px box in the dark look (150 px in light). The Opening night "Play each chord" card keeps the happy pose because the show doesn't listen.
+78. **The dark Louie art is not the same canvas size as the light.** Each dark picture has a 12 px margin for the baked-in warm rim, so Louie drew about 4 percent smaller in dark. `louie()` and the peek now draw the dark pictures 2 percent bigger on each side.
