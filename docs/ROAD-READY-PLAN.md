@@ -56,7 +56,7 @@ Built on `rr-05-playing` (Opus): the playing screen in Road Ready dark and light
 
 ### Step 06 status
 
-Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and light (the guitar of the leg you are on with an amber glow and sparks, the cheering Louie, reward tiles, the next venue, Continue and Play it again, then the crowd, stars, the song you played and the list), and the new-guitar sheet as the guitar in an open case with chrome L corners. Green Room and Headliner keep both screens. Surprises 100 to 107.
+Built on `rr-06-show-complete` (Opus): Show complete in Road Ready dark and light (the guitar of the leg you are on with an amber glow and sparks, the cheering Louie, reward tiles, the next venue, Continue and Play it again, then the crowd, stars, the song you played and the list), and the new-guitar sheet as the guitar in an open case with chrome L corners. Green Room and Headliner keep both screens. Surprises 101 to 108.
 
 ## Surprises
 
@@ -198,12 +198,16 @@ Carried over from `rr-05-followup` (PR #94; renumbered from 91 and 92 when road-
 
 Found while building step 06.
 
-100. **Step 06 was built by Opus in this chat**, not Sonnet as the plan says: Graham said go here.
-101. **A guitar is never earned on Show complete.** The headline show is a skill check in Rehearse, not a song, so `showComplete()` always shows the glow version, and the case is the new-guitar sheet on the Road (`guitarEarned()`), as the prompt splits them. The case sheet has no reward tiles: it doesn't know what the headline check paid. Its title is the leg ("Open chords, all 10 shows").
-102. **The primary button says Continue, not "Head to the Club".** Continue keeps its action (it stays on the song page), so naming the next venue on it would say something it doesn't do. The next venue is the "Next stop" line above it. Play it again is the Encore, with "2x bonus fans" kept in its words.
-103. **The guitar is the one of the leg you're on** (`guitarSVG()` of the leg with the current stop), named on the cream label.
-104. **The case is CSS** (a dark brown shell with radial orange plush), since `art/case/case-open.webp` doesn't exist. It is a stand-in; a painted case from Grok would match r10-03 better.
-105. **The headline Louie is `louie("cheer")`**, which picks the painted cheer art for the look, as everywhere else.
-106. **No tolex panel behind the tiles and buttons**, which r10-04 has. The screen scrolls instead, with the crowd, stars and the list below the buttons.
-107. **`headlinerEarned()` is unchanged**: its buttons already take step 01's plate and capsule styles.
+101. **Step 06 was built by Opus in this chat**, not Sonnet as the plan says: Graham said go here.
+102. **A guitar is never earned on Show complete.** The headline show is a skill check in Rehearse, not a song, so `showComplete()` always shows the glow version, and the case is the new-guitar sheet on the Road (`guitarEarned()`), as the prompt splits them. The case sheet has no reward tiles: it doesn't know what the headline check paid. Its title is the leg ("Open chords, all 10 shows").
+103. **The primary button says Continue, not "Head to the Club".** Continue keeps its action (it stays on the song page), so naming the next venue on it would say something it doesn't do. The next venue is the "Next stop" line above it. Play it again is the Encore, with "2x bonus fans" kept in its words.
+104. **The guitar is the one of the leg you're on** (`guitarSVG()` of the leg with the current stop), named on the cream label.
+105. **The case is CSS** (a dark brown shell with radial orange plush), since `art/case/case-open.webp` doesn't exist. It is a stand-in; a painted case from Grok would match r10-03 better.
+106. **The headline Louie is `louie("cheer")`**, which picks the painted cheer art for the look, as everywhere else.
+107. **No tolex panel behind the tiles and buttons**, which r10-04 has. The screen scrolls instead, with the crowd, stars and the list below the buttons.
+108. **`headlinerEarned()` is unchanged**: its buttons already take step 01's plate and capsule styles.
+
+Found in the review of step 06 (2026-11-18, a separate conversation, Claude Opus 5.5).
+
+109. **Two Surprises were numbered 100.** `rr-05-polish`'s note took 100 before step 06 was built. Fixed in review: step 06's are now 101 to 108.
 
