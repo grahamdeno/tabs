@@ -461,6 +461,33 @@ test("Road Ready 05: the first-run hint shows once, goes on the first tap, and n
   assert.equal(await page.locator("#gg-hint").count(), 0, "never again");
 });
 
+test("Road Ready 05: the first-run hint sits below the words, above the progress line, and fades on its own after 5 s", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gg-hint", { timeout: 15000 }); /* real timer: the first time the controls hide */
+  const shown = Date.now();
+  const r = await page.evaluate(() => {
+    const gig = document.getElementById("gig"), hint = document.getElementById("gg-hint").getBoundingClientRect();
+    /* the bottom fade (.gig::after) is solid from 44 px down, so words below that line can't be seen */
+    const solid = innerHeight - (parseFloat(getComputedStyle(gig, "::after").height) - 44);
+    const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly, .crow)")].filter(el => getComputedStyle(el).visibility !== "hidden")
+      .map(el => el.getBoundingClientRect()).filter(b => b.height && b.top < solid && b.bottom > 0);
+    return { top: hint.top, bottom: hint.bottom, left: hint.left, right: hint.right, words: Math.max(...lines.map(b => Math.min(b.bottom, solid))), n: lines.length,
+      prog: document.getElementById("gg-prog").parentElement.getBoundingClientRect().top, w: innerWidth };
+  });
+  assert.ok(r.n > 3, "words fill the screen behind it");
+  assert.ok(r.top >= r.words - 0.5, `the hint (top ${r.top}) is below the last visible lyric line (${r.words})`);
+  assert.ok(r.bottom <= r.prog, "above the progress line");
+  assert.ok(r.left >= 0 && r.right <= r.w, "inside the screen");
+  await page.waitForTimeout(4000); /* real timer */
+  assert.equal(await page.locator("#gg-hint").count(), 1, "still there before 5 s");
+  await page.waitForSelector("#gg-hint", { state: "detached", timeout: 3000 });
+  const gone = Date.now() - shown;
+  assert.ok(gone >= 5000 && gone < 6500, `gone 5 s after it shows (${gone} ms)`);
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the song plays on");
+  assert.equal((await saved(page)).settings.used?.playHint, true, "it still counts as shown");
+});
+
 for (const theme of ["dark", "light"]) test(`Road Ready 05 (${theme}): words in the lyric colours on the plain base, amber chords, the bar and the progress line, all readable`, { skip: skip() }, async t => {
   const page = await strummingPage(t, rr(theme), "#/song/g");
   await page.click("#play"); await page.waitForSelector("#sheet > .st-past:is(.pr, .ly)");

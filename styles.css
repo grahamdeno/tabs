@@ -4922,9 +4922,12 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* large text (AX1 and up): only the line you're on and the next one or two */
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-past,
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-next ~ :is(.pr, .ly, .crow) ~ * { visibility: hidden; }
-/* the first-run hint: a cream frame near the bottom with Louie beside it; taps go through it to the page */
-.gig > .gg-hint { position: absolute; left: 50%; top: 54%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 4; }
+/* the first-run hint: a cream frame at the bottom, in the space Pause leaves when the controls hide (above the 2 px
+   progress line, inside the safe area, in thumb reach), so it never covers the words; Louie beside it. Taps go through
+   it to the page. It fades on its own after 5 s (gig.js): 0.25 s, or gone at once with Reduce Motion. */
+.gig > .gg-hint { position: absolute; left: 50%; top: auto; bottom: calc(12px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; flex-direction: row; align-items: center; gap: 6px; pointer-events: none; z-index: 4; transition: opacity .25s ease-out; }
+.gig > .gg-hint.fading { opacity: 0; }
 .gg-hint p { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; background: #F6EEE0; color: #1E1914; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); font: 500 var(--type-callout, 16px) / 1.25 "Inter", var(--sans); }
 .gg-hint-i { width: 20px; height: 20px; flex: none; fill: currentColor; stroke: currentColor; }
-.gg-hint-l { flex: none; order: -1; align-self: flex-end; margin: 0 6px -6px 0; }
-.gg-hint-l .louie { display: block; width: 60px; height: auto; }
+.gg-hint-l { flex: none; order: -1; }
+.gg-hint-l .louie { display: block; width: 44px; height: auto; }

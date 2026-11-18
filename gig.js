@@ -176,19 +176,28 @@ function bindIdle(g) {
   }, 400);
   g.unbindIdle = () => { clearInterval(g.idleT); document.removeEventListener("click", eat, true); evs.forEach(ev => removeEventListener(ev, wake, { capture: true })); };
 }
-/* The first-run hint (Road Ready 05): the first time the controls hide, a cream frame near the bottom says how to get
-   them back, with Louie listening beside it. The first tap or key takes it away, and it never shows again. */
+/* The first-run hint (Road Ready 05): the first time the controls hide, a cream frame at the bottom, where Pause was,
+   says how to get them back, with Louie listening beside it. The first tap or key takes it away at once; otherwise it
+   fades on its own 5 s after it shows (0.25 s, or gone at once with Reduce Motion). Either way it never shows again. */
+const HINT_MS = 5000, HINT_FADE = 250;
 function hintShow(g) {
   if (g.hint || data.settings.used?.playHint) return;
   markUsed("playHint");
   const el = document.createElement("div");
   el.className = "gg-hint"; el.id = "gg-hint";
-  el.innerHTML = `<span class="gg-hint-l" aria-hidden="true">${louie("happy", { pose: "wave", size: 60 })}</span><p><svg class="gg-hint-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5" fill="none" stroke-width="1.6"/></svg>Tap anywhere for controls</p>`;
+  el.innerHTML = `<span class="gg-hint-l" aria-hidden="true">${louie("happy", { pose: "wave", size: 44 })}</span><p><svg class="gg-hint-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5" fill="none" stroke-width="1.6"/></svg>Tap anywhere for controls</p>`;
   g.el.appendChild(el);
   g.hint = el;
+  g.hintT = setTimeout(() => {
+    if (g.hint !== el) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return hintGone(g);
+    el.classList.add("fading");
+    g.hintT = setTimeout(() => { if (g.hint === el) hintGone(g); }, HINT_FADE);
+  }, HINT_MS);
 }
 function hintGone(g) {
   if (!g.hint) return;
+  clearTimeout(g.hintT);
   g.hint.remove();
   g.hint = null;
   g.hintDone = true;
@@ -262,6 +271,7 @@ export function closeGig(quiet = false) {
   gig = null;
   cancelAnimationFrame(g.raf);
   clearInterval(g.speedT);
+  clearTimeout(g.hintT);
   g.el?.remove();
   g.unbind?.(); g.unbindIdle?.();
   stageClear();
