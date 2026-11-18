@@ -6,6 +6,7 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 
 - 2026-11-17: **Road Ready replaces the two free looks.** Dark (data-look `neon`) becomes Road Ready dark. Light (data-look `festival`) becomes Road Ready light. Green Room and Headliner stay on the Merch table as they are. Look ids, prices and kinds are unchanged; only the names and the look change.
 - 2026-11-17, step 02 (the Road): **fans and streak stay on the Road**, as an incentive: a Fans pill in the header that shows the streak while there is one (never a 0 or a lost streak). **No tuner on the Road**: you tune where you play (More and the song screen). **Louie's one line stays.** **The book button (Rehearse) goes**, since Rehearse is a tab.
+- 2026-11-17, after the step 03 review: **Louie has hands with fingers, navy like his arms**, not mittens (replaces the mitten rule). No hand ever shows one finger standing straight up, since it reads as the middle finger (4.39.1). **Louie is Grok's painted art at every size**; the code drawing stays as a fallback. **Sleepy is redrawn by Grok** (it read as bored).
 
 ## Branches
 

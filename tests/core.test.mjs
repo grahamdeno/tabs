@@ -2764,6 +2764,17 @@ test("Road Ready 02: Louie's two peeking pictures are saved for offline, and eac
   }
 });
 
+test("Road Ready 03b: Louie's nine painted poses, light and dark, are in the repo, saved for offline, and each under 60 KB", () => {
+  const shell = read("sw.js"), LOUIE_ART = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud"];
+  for (const pose of LOUIE_ART) for (const look of ["dark", "light"]) {
+    const file = `art/louie/v2/louie-${pose}-${look}.webp`;
+    assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
+    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
+    assert.ok(fs.statSync(path.join(root, file)).size <= 60000, `${file} is small`);
+  }
+  assert.ok(!shell.includes("louie-v2-small-check"), "the check sheet is not part of the app");
+});
+
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
   const { GUITARS } = await import("../core.js");
   const PICS = (await import("../art/guitars/pics.js")).default;
