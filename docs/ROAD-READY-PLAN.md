@@ -173,4 +173,5 @@ Found while building step 05 (2026-11-18, Claude Opus 5.5).
 88. **Space was already play and pause** (the page's pedal keys, 4.x), so the Gig adds nothing for it: no double handling. Any key shows the controls through the existing wake.
 89. **Large text hides lines with `visibility`,** so nothing moves under the reading line: lines sung step aside, and lines after the next two do too. The test browser can't report an iPhone text size, so the lyric size there stays the fitted one; on a phone 4.51.0's fit already grows with the text size.
 90. **Changed test:** `gig.e2e.mjs` "The Gig (4.1.0 ...)": its 4.58.0 checks measured dimming by alpha. They now measure alpha times contrast with the page, which holds for the earlier looks (alpha) and Road Ready (solid colours); the chords check is per look (85). No other check changed.
+91. **Fixed in review: the first-run hint showed in Green Room and Headliner too,** and used up the one-time hint there. It now shows only in the Road Ready looks, in the plate tokens. The 5 s test allows for the test seeing the hint a moment after it shows (it failed once at 4961 ms under load).
 

@@ -6,8 +6,8 @@
 //   lines     the song page itself (4.51.0): the Gig is see-through in the middle, and stage.js draws the band
 //             and the chords on the real sheet, so you read, scroll and drag the song itself. A small shape for
 //             the next chord you haven't learned.
-//   bottom    Pause, in thumb reach (Road Ready 05: in a capsule, with the song's title at the top and a 2 px amber
-//             progress line along the bottom edge; those two show only in the Road Ready looks)
+//   bottom    Pause, in thumb reach (Road Ready 05: a big amber button, with the song's title at the top and a 2 px
+//             amber progress line along the bottom edge; those two show only in the Road Ready looks)
 // Paused (4.52.0), the show steps aside and the song page is back as it always is: Tools and Play (reading
 // Resume) in thumb reach, a quiet band on the line you stopped on, and Louie's line above Play when there is
 // one to say. Play picks the show up again; the page's Back, or Tools for anything but the switches, ends it.
@@ -181,7 +181,8 @@ function bindIdle(g) {
    fades on its own 5 s after it shows (0.25 s, or gone at once with Reduce Motion). Either way it never shows again. */
 const HINT_MS = 5000, HINT_FADE = 250;
 function hintShow(g) {
-  if (g.hint || data.settings.used?.playHint) return;
+  /* Road Ready looks only: Green Room and Headliner keep the show as it was, and don't use up the one-time hint */
+  if (g.hint || data.settings.used?.playHint || !["neon", "festival"].includes(document.documentElement.dataset.look)) return;
   markUsed("playHint");
   const el = document.createElement("div");
   el.className = "gg-hint"; el.id = "gg-hint";

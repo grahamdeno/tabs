@@ -483,7 +483,7 @@ test("Road Ready 05: the first-run hint sits below the words, above the progress
   assert.equal(await page.locator("#gg-hint").count(), 1, "still there before 5 s");
   await page.waitForSelector("#gg-hint", { state: "detached", timeout: 3000 });
   const gone = Date.now() - shown;
-  assert.ok(gone >= 5000 && gone < 6500, `gone 5 s after it shows (${gone} ms)`);
+  assert.ok(gone >= 4500 && gone < 6500, `gone 5 s after it shows (${gone} ms; the test sees the hint a little after it shows)`);
   assert.equal(await page.locator("#gig.paused").count(), 0, "the song plays on");
   assert.equal((await saved(page)).settings.used?.playHint, true, "it still counts as shown");
 });
@@ -561,4 +561,9 @@ test("Road Ready 05: Green Room keeps the show as it was (no title, no progress 
   const r = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById("gg-head")).display, prog: getComputedStyle(document.querySelector(".gg-prog")).display, pause: document.getElementById("gg-pause").getBoundingClientRect().left }));
   assert.equal(r.head, "none"); assert.equal(r.prog, "none");
   assert.ok(r.pause < 60, "Pause stays at the left");
+  /* review fix: no first-run hint in Green Room, and the one-time hint is still unused for the Road Ready looks */
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
+  await page.waitForTimeout(500); /* real timer: the hint would show on the same tick as idle */
+  assert.equal(await page.locator("#gg-hint").count(), 0, "no hint in Green Room");
+  assert.notEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.playHint), true, "the hint isn't used up");
 });
