@@ -11,7 +11,7 @@
 // His colours are locked: the --lv-* variables on .louie in styles.css, and the same values written on each
 // shape, so a picture made from the SVG alone shows the same Louie.
 // louie(mood, { pose, size }) returns an <svg> string.
-//   moods: happy, cheer, sleepy, worried (drawn as nervous, never sad), proud
+//   moods: happy, cheer, sleepy, worried (drawn as nervous, never sad), proud, listen (a hand to his ear, for when the app is listening)
 //   poses: rest, hornsUp, thumb, point, wave, peace (no arms when absent)
 
 /* The guitarist's hands (guitarist.js draws them through mittenOf). These are the shapes Louie had before Road Ready,
@@ -66,10 +66,14 @@ const handShape = name => HAND_PARTS[name][0] + HAND_PARTS[name][2];
 
 /* The painted art (03b): one picture per mood or pose, light and dark. Mood first, then the pose. */
 const ART_POSE = { hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" };
-export function louieArt(mood = "happy", pose) {
+/* The thumbs-up hand is too small to read below THUMB_MIN px, so a smaller Louie cheers instead (no size given: full size). */
+const THUMB_MIN = 100;
+export function louieArt(mood = "happy", pose, size = Infinity) {
   if (mood === "sleepy") return "sleepy";
   if (mood === "worried") return "nervous";
   if (mood === "proud") return "proud";
+  if (mood === "listen") return "listen"; /* while the app is listening: a hand to his ear */
+  if (pose === "thumb" && size < THUMB_MIN) return "cheer";
   return ART_POSE[pose] || (mood === "cheer" ? "cheer" : "idle");
 }
 
@@ -104,7 +108,7 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const sleepy = mood === "sleepy", proud = mood === "proud", worried = mood === "worried", cheer = mood === "cheer";
   const vb = arms ? "-34 -30 268 236" : "18 0 164 200";
   const [vx, vy, vw, vh] = vb.split(" ").map(Number);
-  const art = louieArt(mood, pose);
+  const art = louieArt(mood, pose, size);
   const id = "lv" + (++seq).toString(36);
   /* how many drawing units one screen pixel covers: lines get heavier and eyes a little bigger when he is drawn small,
      so his eyes, mouth and knobs still read at 44 px */
@@ -138,7 +142,8 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const LEGS = leg(69) + leg(113), BOOTS = boot(80, -1) + boot(120, 1);
   const cap = ([x, y]) => `<rect x="${x}" y="${y}" width="16" height="16" rx="3.5"/>`;
   return `<svg class="louie ${mood}${pose ? " " + pose : ""}" width="${size}" height="${Math.round(size * vh / vw)}" viewBox="${vb}" role="img" aria-label="${label}">
-  <g class="lv-art-wrap">${["light", "dark"].map(k => `<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${art}-${k}.webp" x="${vx}" y="${vy}" width="${vw}" height="${vh}" preserveAspectRatio="xMidYMax meet"/>`).join("")}</g>
+  <g class="lv-art-wrap">${["light", "dark"].map(k => { const pd = k === "dark" ? r1(vh * 0.02) : 0; /* the dark pictures carry the warm rim in a 12 px margin on a 600 px frame: draw them 2 percent bigger each side so Louie is the same size in both looks */
+    return `<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${art}-${k}.webp" x="${r1(vx - pd)}" y="${r1(vy - pd)}" width="${r1(vw + 2 * pd)}" height="${r1(vh + 2 * pd)}" preserveAspectRatio="xMidYMax meet"/>`; }).join("")}</g>
   <g class="lv-code"><defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
   <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
   <radialGradient id="${id}k" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient>

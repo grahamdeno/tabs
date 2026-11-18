@@ -347,7 +347,7 @@ function chordLesson(st) {
     <section class="pf-card pk-lesson">
       <div class="pk-chord">${chordSVG(st.chord, 2.2)}</div>
       <div class="pk-strings" role="group" aria-label="Strings">${targets.map(t => `<span class="pk-str${t.hz ? "" : " skip"}" data-i="${t.i}"><i class="gs-lamp"></i><small>${t.hz ? esc(strName(t.i, tuning)) : "skip"}</small></span>`).join("")}</div>
-      <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Finger the chord. I'll ask for one string at a time; pluck it and let it ring.</p></div>
+      <div class="rd-say pk-say">${louie("listen", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Finger the chord. I'll ask for one string at a time; pluck it and let it ring.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
   $("back").onclick = () => go(backTo); bindTune();
@@ -497,7 +497,7 @@ function switchLesson(st) {
       <section class="pf-card pk-lesson">
         <div class="pk-pair"><div class="pk-now" id="pk-now"><b id="pk-name">${esc(st.a)}</b><small id="pk-then">then ${esc(st.b)}</small></div><div class="pk-diag" id="pk-diag">${chordSVG(st.b, 1.4)}</div></div>
         <div class="pk-beats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the beat.</p></div>
+        <div class="rd-say pk-say">${louie("listen", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the beat.</p></div>
       </section>
       <div class="s-dock"><button class="btn primary" id="pk-start">${icon("play")}Start round</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
     $("back").onclick = () => go(backTo); bindTune();

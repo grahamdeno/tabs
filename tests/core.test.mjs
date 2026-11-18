@@ -2283,7 +2283,7 @@ test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing h
 });
 
 /* Road Ready 03: Louie in code. The hard rule is one mouth, on the yellow panel; the grille is plain cloth. */
-const LOUIE_MOODS = ["happy", "cheer", "sleepy", "worried", "proud"], LOUIE_POSES = [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"];
+const LOUIE_MOODS = ["happy", "cheer", "sleepy", "worried", "proud", "listen"], LOUIE_POSES = [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"];
 test("Road Ready 03: every mood and pose has exactly one mouth, drawn before the grille and inside the panel", async () => {
   const { louie } = await import("../louie.js");
   const nums = d => (d.match(/-?\d+(\.\d+)?/g) || []).map(Number);
@@ -2343,19 +2343,24 @@ test("Road Ready 03b: the spec and the later step prompts say hands with fingers
     assert.ok(doc.includes("Hands with fingers, blue Tolex like his arms; never one finger standing straight up") && !/mitten/i.test(doc), `prompt ${n}`);
   }
 });
-test("Road Ready 03b: each mood and pose shows its painted picture, light and dark, filling the same frame, with the code drawing kept as the fallback", async () => {
+test("Road Ready 03b: each mood and pose shows its painted picture, light and dark, in the same frame, with the code drawing kept as the fallback", async () => {
   const { louie, louieArt } = await import("../louie.js");
   const want = { happy: { undefined: "idle", rest: "idle", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" },
     cheer: { undefined: "cheer", rest: "cheer", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" } };
+  /* the painted pictures: light fills the frame; dark carries its warm rim in a 12 px margin on a 600 px frame, so it is drawn 2 percent of the height bigger on each side and Louie is the same size */
+  const frame = (x, y, w, h, k) => { const pd = k === "dark" ? Math.round(h * 0.02 * 10) / 10 : 0, r = n => Math.round(n * 10) / 10; return `x="${r(x - pd)}" y="${r(y - pd)}" width="${r(w + 2 * pd)}" height="${r(h + 2 * pd)}"`; };
   for (const mood of LOUIE_MOODS) for (const pose of LOUIE_POSES) {
-    const art = { sleepy: "sleepy", worried: "nervous", proud: "proud" }[mood] || want[mood][pose];
+    const art = { sleepy: "sleepy", worried: "nervous", proud: "proud", listen: "listen" }[mood] || want[mood][pose];
     assert.equal(louieArt(mood, pose), art, `${mood}/${pose}`);
-    const svg = louie(mood, { pose, size: 96 }), vb = pose ? "-34 -30 268 236" : "18 0 164 200", [x, y, w, h] = vb.split(" ");
-    for (const k of ["light", "dark"]) assert.ok(svg.includes(`<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${art}-${k}.webp" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMax meet"/>`), `${mood}/${pose}: the ${k} ${art} picture fills the frame`);
+    /* the thumbs-up hand is only used at 100 px or larger; smaller, he cheers */
+    const shown = art === "thumb" ? "cheer" : art, svg = louie(mood, { pose, size: 96 }), vb = pose ? "-34 -30 268 236" : "18 0 164 200", [x, y, w, h] = vb.split(" ").map(Number);
+    for (const k of ["light", "dark"]) assert.ok(svg.includes(`<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${shown}-${k}.webp" ${frame(x, y, w, h, k)} preserveAspectRatio="xMidYMax meet"/>`), `${mood}/${pose}: the ${k} ${shown} picture fills the frame`);
     assert.equal((svg.match(/<image /g) || []).length, 2, "two pictures, light and dark");
     assert.ok(svg.indexOf('class="lv-art-wrap"') < svg.indexOf('class="lv-code"') && svg.indexOf('class="lv-code"') < svg.indexOf("lv-mouth"), "the art, then the code drawing with the face in it");
+    if (art === "thumb") assert.ok(louie(mood, { pose, size: 100 }).includes("louie-thumb-light.webp") && louie(mood, { pose, size: 99 }).includes("louie-cheer-light.webp"), "thumb from 100 px, cheer below");
   }
   assert.equal(louieArt("no-such-mood"), "idle");
+  assert.equal(louieArt("happy", "thumb", 99), "cheer"); assert.equal(louieArt("happy", "thumb", 100), "thumb"); assert.equal(louieArt("cheer", "point", 40), "point", "only the thumb is swapped");
 });
 test("Road Ready 03: the locked palette is written on the drawing and set once in styles.css; the rim shows on dark looks only", async () => {
   const { louie } = await import("../louie.js");
@@ -2796,7 +2801,7 @@ test("Road Ready 02: Louie's two peeking pictures are saved for offline, and eac
 });
 
 test("Road Ready 03b: Louie's nine painted poses, light and dark, are in the repo, saved for offline, and each under 60 KB", () => {
-  const shell = read("sw.js"), LOUIE_ART = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud"];
+  const shell = read("sw.js"), LOUIE_ART = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud", "listen"];
   for (const pose of LOUIE_ART) for (const look of ["dark", "light"]) {
     const file = `art/louie/v2/louie-${pose}-${look}.webp`;
     assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);

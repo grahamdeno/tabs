@@ -36,7 +36,7 @@ const advance = id => { const ok = openingAdvance(data, id); if (ok) { Tabs.save
 /* ---- 1 Let me hear you: the reason before the phone's own question ---- */
 export function micSheet(done) {
   layer.innerHTML = `<div class="scrim" id="on-scrim"></div><div class="panel de-sheet on-mic" role="dialog" aria-label="Let me hear you"><div class="grab"></div>
-    <div class="on-mic-lv">${louie("happy", { pose: "wave", size: 120 })}</div>
+    <div class="on-mic-lv">${louie("listen", { pose: "wave", size: 120 })}</div>
     <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k === 0 ? "on" : ""}"></i>`).join("")}</div>
     <h2>Let me hear you</h2>
     <p>I listen when you tune and when a lesson checks your chords. Nothing is recorded or sent anywhere.</p>
@@ -102,7 +102,7 @@ export function gigOpen(g, el, start) {
   if (id !== "verse") { strip(id === "pause" ? "Tap anywhere to pause." : "Play it through to the end. That's your first show.", undefined, id === "show" ? 7000 : 0); return false; }
   const card = document.createElement("div");
   card.className = "on-count";
-  card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("happy", { pose: "point", size: 104 })}</div>
+  card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("listen", { pose: "point", size: 104 })}</div>
     <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k < 2 ? "done" : k === 2 ? "on" : ""}"></i>`).join("")}</div>
     <h2>Play each chord</h2>
     <p>Play the chord you see as the words go by. The crowd gets on its feet as you play through the song. Miss one and the song keeps going; nothing fails. Just the first verse for now.</p>
