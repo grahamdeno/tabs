@@ -67,7 +67,9 @@ Built on `rr-07-songbook` (Opus, from the Sonnet prompt on Graham's say-so): the
 
 ### Step 08 status
 
-Built on `rr-08-me` (Sonnet): Me in Road Ready dark and light (player header with the level bar, three tiles, the guitar case with the Merch row, Milestones as plates, five rows, then Support the app on its own). Green Room and Headliner keep the earlier page. Surprises 133 to 144. Reviewed (Claude Opus 5.5, Louie Product, 2026-11-18): pass, no fixes; decisions on 136 to 144 and two small notes below (145, 146). Waiting for Graham's merge go.
+Built on `rr-08-me` (Sonnet): Me in Road Ready dark and light (player header with the level bar, three tiles, the guitar case with the Merch row, Milestones as plates, five rows, then Support the app on its own). Green Room and Headliner keep the earlier page. Surprises 133 to 144. Reviewed (Claude Opus 5.5, Louie Product, 2026-11-18): pass, no fixes; decisions on 136 to 144 and two small notes below (145, 146).
+
+Merged into `road-ready` on Graham's go, 2026-11-18: PR #99 at `0d374f4` (CI test and browser passed), merge commit `069728e`.
 
 Merged into `road-ready` on Graham's go, 2026-11-18: PR #97 at `a90fb77` (CI test and browser passed), merge commit `15cfd87`. Reviewed by Claude Fable 5.2 (pass with fixes).
 
