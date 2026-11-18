@@ -5149,7 +5149,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .mc-gt-t { display: grid; gap: 2px; justify-items: start; min-width: 0; }
 .mc-gt-t b { font: 700 16px var(--display); overflow-wrap: anywhere; }
 .mc-gt-t small { font: 700 12.5px var(--sans); color: var(--muted); }
-.mc-next { font: 800 11px var(--sans); font-style: normal; letter-spacing: .08em; padding: 3px 8px; border-radius: 9px; background: var(--tabs-on); color: var(--fg); }
+.mc-next { font: 800 12px var(--sans); font-style: normal; letter-spacing: .08em; padding: 3px 8px; border-radius: 9px; background: var(--tabs-on); color: var(--fg); }
 .mc-gt-s { display: grid; justify-items: end; gap: 4px; }
 .mc-more { font: 700 12.5px var(--sans); color: var(--fg-2); }
 .mc-gt-leg { margin: 0 0 10px; min-height: 44px; padding: 8px 14px; border: 2px solid var(--rim); border-radius: 14px; background: transparent; color: var(--fg); font: 700 14px var(--sans); }
