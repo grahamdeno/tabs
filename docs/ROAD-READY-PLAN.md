@@ -146,3 +146,11 @@ Found in the review of step 04 (2026-11-18, a separate conversation, Claude Opus
 71. **The Me rows did not grow with text size.** Fixed in review.
 72. **fdf933f's CLAUDE.md sentence was missing.** Fixed in review: added.
 73. **The Songbook's title and Sets button touch at 320 px.** This is not from step 04; left for step 07.
+
+Found while making the design fixes from Grok's review (2026-11-18, branch `rr-05-design-fixes`, Claude Sonnet 5.5).
+
+74. **There is no 512 px tolex bitmap tile in the repo** (design review item 7). Spec 5.1 names `tolex-dark`, but only the code-drawn tolex exists. Not built. Grok supplies the tile; then `--tolex` swaps to it. The soft amber glow behind the neck in the dark look is done.
+75. **There is no rendered sunburst guitar body in the repo** (item 8). The Road bodies are the flat pictures in `art/guitars/`; r10-01's photographic cutaway is not among them. The body art and raising the neck are not done; they wait for the art.
+76. **Louie's line is cut to two lines at large text**, which bends the "nothing truncates" rule for that one line (Graham's review asked for it to be shortened). The whole line stays in the page for a screen reader. At large text the header and line take about 51 percent of the screen (they took 62).
+77. **Changed tests:** the 03b art test now covers the `listen` mood, the thumb-below-100 rule and the dark picture's 2 percent padding; the Road peek test expects a 156 px box in the dark look (150 px in light).
+78. **The dark Louie art is not the same canvas size as the light.** Each dark picture has a 12 px margin for the baked-in warm rim, so Louie drew about 4 percent smaller in dark. `louie()` and the peek now draw the dark pictures 2 percent bigger on each side.
