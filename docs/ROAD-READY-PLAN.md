@@ -210,4 +210,5 @@ Found while building step 06.
 Found in the review of step 06 (2026-11-18, a separate conversation, Claude Opus 5.5).
 
 109. **Two Surprises were numbered 100.** `rr-05-polish`'s note took 100 before step 06 was built. Fixed in review: step 06's are now 101 to 108.
+110. **The light picture in `rr-06/show-complete.png` was out of date.** It showed the Stars tile in the old blue, which the code no longer draws (the Road Ready card wins). Fixed in review: the light panel is remade from the branch as it is.
 
