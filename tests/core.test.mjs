@@ -2808,6 +2808,14 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
 });
 
+test("Road Ready 07: Louie's face badge is saved for offline, is the picture the Songbook shows, and is small", () => {
+  const file = "art/louie/louie-face-badge.webp";
+  assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
+  assert.ok(read("sw.js").includes(`"${file}"`), `${file} is saved for offline`);
+  assert.ok(read("library.js").includes(`src="${file}"`), `${file} is the picture the hint banner shows`);
+  assert.ok(fs.statSync(path.join(root, file)).size <= 20000, `${file} is small`);
+});
+
 test("Road Ready 02: Louie's two peeking pictures are saved for offline, and each is under 60 KB", () => {
   const shell = read("sw.js"), css = read("styles.css");
   for (const look of ["dark", "light"]) {
