@@ -127,7 +127,9 @@ export function chipsHTML() {
   /* 4.20.1: one row that always fits. Sets is a button in the header and Tabs is a choice in the sort menu. */
   const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
   /* Road Ready 07: capsules that wrap rather than squeeze, All with its count, and Sets as the last chip (it keeps its own button id and toggle) */
-  if (rrLook()) return `<div class="chips rr-chips" id="chips">${chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`)}${can ? chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}${setsChip()}</div>`;
+  /* each filter says whether it is the chosen one (aria-pressed), as Sets does, so the fill isn't the only signal */
+  const pressed = h => h.replace(/data-f="(\w+)"/, (m, f) => `${m} aria-pressed="${filter === f}"`);
+  if (rrLook()) return `<div class="chips rr-chips" id="chips">${pressed(chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`))}${can ? pressed(chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`)) : ""}${hasLearn ? pressed(chip("learn", "Learning")) : ""}${hasFav ? pressed(chip("fav", icon("heart"), "Favorites")) : ""}${setsChip()}</div>`;
   return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play<small>${can}</small>`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */

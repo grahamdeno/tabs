@@ -58,6 +58,11 @@ for (const theme of ["dark", "light"]) test(`Road Ready 07 (${theme}): each row 
   assert.deepEqual([k.all, p.all, l.all, b.all], [3, 3, 3, 0]);
   for (const r of [k, p, l, b]) assert.equal(r.hidden, "true", "the dots and key are hidden from screen readers");
   assert.match(b.text, /needs F/, "the one missing chord shows as a tag");
+  /* the chosen filter is said, not only filled */
+  const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f || c.id, c.getAttribute("aria-pressed")])));
+  assert.deepEqual(await pressed(), { all: "true", can: "false", learn: "false", fav: "false", setsbtn: "false" });
+  await page.click('#chips [data-f="learn"]'); await page.waitForSelector('#chips [data-f="learn"].on');
+  assert.deepEqual(await pressed(), { all: "false", can: "false", learn: "true", fav: "false", setsbtn: "false" });
 });
 
 test("Road Ready 07: Green Room and Headliner keep the earlier Songbook (no Road Ready markup, Sets in the header, + in the search bar)", { skip: skip() }, async t => {
