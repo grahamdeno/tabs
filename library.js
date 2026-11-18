@@ -119,14 +119,15 @@ function bindToday() {
 }
 /* The filter chips, on the Library page and in Tonight's drawer. */
 export function chipsHTML() {
-  if (!data.songs.length) return "";
+  const setsChip = () => `<button class="chip${filter === "sets" ? " on" : ""}" id="setsbtn" aria-pressed="${filter === "sets"}">Sets</button>`;
+  if (!data.songs.length) return rrLook() && data.sets.length ? `<div class="chips rr-chips" id="chips">${setsChip()}</div>` : "";
   const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
   const can = canPlayCount();
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can)) filter = "all";
   /* 4.20.1: one row that always fits. Sets is a button in the header and Tabs is a choice in the sort menu. */
   const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
   /* Road Ready 07: capsules that wrap rather than squeeze, All with its count, and Sets as the last chip (it keeps its own button id and toggle) */
-  if (rrLook()) return `<div class="chips rr-chips" id="chips">${chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`)}${can ? chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}<button class="chip${filter === "sets" ? " on" : ""}" id="setsbtn" aria-pressed="${filter === "sets"}">Sets</button></div>`;
+  if (rrLook()) return `<div class="chips rr-chips" id="chips">${chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`)}${can ? chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}${setsChip()}</div>`;
   return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play<small>${can}</small>`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
@@ -171,7 +172,7 @@ export function renderLibrary() {
     </div>`;
   bindToday();
   $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
-  $("setsbtn").onclick = () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); };
+  $("setsbtn")?.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
   $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
