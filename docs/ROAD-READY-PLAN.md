@@ -110,7 +110,7 @@ The other five spec bodies (Big Sky, Tin Roof, Low Road, Pocket, Wingtip) are ex
 
 **9a, painted necks (Sonnet, `rr-09-road`, PR into `rr-09-neck`, 2026-11-18).** The Road shows each leg's whole painted guitar (`-road.webp`, 1.2 units per painting pixel) with the stops in the painting's own fret spaces on its own strings, from `docs/guitars/frets.json` (NECK-DESIGN.md; taps from TAP-AREAS.md and the handoff). Stops still open their card first. The 23 `-head` and `-body` files are no longer used by the Road and are a clean-up item for a later step (they are still in `SHELL` and on disk; a search of the app's `.js` files finds no other user of them, and `picBase` now only draws the eight older pictures).
 
-Merged into `rr-09-merch` on Graham's go, 2026-11-19: PR #103 (`954fefa`, into `rr-09-wire`) and PR #102 at `0910420` (Louie Review, Fable, passed the re-check; CI test and browser passed), merge commit `f9f76fc`. 9a is complete on `rr-09-merch`.
+Merged into `rr-09-merch` on Graham's go, 2026-11-19: PR #103 (`954fefa`, into `rr-09-wire`) and PR #102 at `0910420` (Louie Review, Fable, passed the re-check; CI test and browser passed), merge commit `f9f76fc`. 9a is complete on `rr-09-merch`. Merged into `road-ready` on Graham's go, 2026-11-19: PR #105, merge commit `6124799`.
 
 **Road Ready preview phone checklist (decisions Graham makes in hand):** (d) the crowded pair on Chord switches (Surprise 169); the three lookalike shop guitars (170); the unused offline pictures (172); the Songbook search with the keyboard up clears the tab bar; the Milestones card on Me (145).
 
