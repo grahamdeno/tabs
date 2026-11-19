@@ -646,6 +646,32 @@ test("importing a backup: only https links, and only image data for covers of se
   assert.equal(out.data.settings.lastTuned, 5);
 });
 
+test("importing a backup: Headliner does not come back on; the default Road Ready look stays", () => {
+  const hl = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "G\nla" }],
+    settings: { theme: "headliner", v: 6 },
+    merch: { has: ["headliner"], lconv: 1, hlseen: 1 }
+  });
+  assert.equal(hl.data.settings.theme, "auto", "Headliner becomes Auto");
+  assert.ok(hl.data.merch.has.includes("headliner"), "Headliner stays owned");
+
+  const dark = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "dark", v: 6 } });
+  assert.equal(dark.data.settings.theme, "dark", "Road Ready dark stays");
+
+  const light = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "light", v: 6 } });
+  assert.equal(light.data.settings.theme, "light", "Road Ready light stays");
+
+  const owned = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "G\nla" }],
+    settings: { theme: "green", v: 6 },
+    merch: { has: ["green"], lconv: 1, tspent: 400 }
+  });
+  assert.equal(owned.data.settings.theme, "green", "Green Room stays when owned and chosen");
+
+  const unowned = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "green", v: 6 } });
+  assert.equal(unowned.data.settings.theme, "auto", "Green Room without ownership becomes Auto");
+});
+
 test("importing a backup: old saves still migrate", () => {
   const out = C.cleanImport({ songs: [{ id: "a", title: "Old", tab: "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|", plays: [Date.now()] }], settings: { v: 1 } });
   const s = out.data.songs[0];
