@@ -4814,8 +4814,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-pearl.ahead.rr-ring { stroke: var(--rr-outline); stroke-width: 2.4; }
 .rd-node.rr.done .rr-eng { fill: var(--rr-on-amber); stroke: var(--rr-on-amber); }
 .rd-node.rr.done .rr-eng-hi { fill: none; stroke: none; }
-.rd-node.rr.locked:not(.box, .headline) .rr-eng.locked { fill: var(--rr-text-2); stroke: var(--rr-text-2); }
-.rd-node.rr.locked:not(.box, .headline) .rr-eng-hi { opacity: .2; }
+.rd-node.rr.locked .rr-eng.locked { fill: var(--rr-text-2); stroke: var(--rr-text-2); }
+.rd-node.rr.locked .rr-eng-hi { opacity: .2; }
 /* The painted guitar sits quiet behind the path: lower brightness, contrast and saturation. Art files are unchanged. */
 :root[data-look="neon"] .rd-neck.road > svg.rr-quiet { filter: brightness(.62) contrast(.86) saturate(.38); }
 :root[data-look="festival"] .rd-neck.road > svg.rr-quiet { filter: brightness(.88) contrast(.9) saturate(.42); }
