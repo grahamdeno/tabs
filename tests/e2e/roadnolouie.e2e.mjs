@@ -50,9 +50,9 @@ for (const ax of [1, 2, 3]) {
 test("Road Ready 10b (Opening night): no Louie in the strip, in progress or done; the message stays", { skip: skip() }, async t => {
   for (const [what, opening] of [["in progress", undefined], ["done", { step: 6, v: 2, done: 1 }]]) {
     const page = await phone(t, opening ? { ...FRESH, opening } : FRESH, { home: true });
-    await page.waitForSelector(".rd-banner.on-night"); await settled(page);
+    await page.waitForSelector(".on-night"); await settled(page);
     await noLouie(page, `Opening night ${what}`);
-    assert.equal(await page.locator(".on-night ~ .on-path #rd-bubble, .on-path #rd-bubble").count(), 1, `Opening night ${what}: the message is there`);
+    assert.equal(await page.locator("#rd-bubble").count(), 1, `Opening night ${what}: the message is there`);
   }
 });
 

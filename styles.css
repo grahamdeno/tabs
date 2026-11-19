@@ -4767,6 +4767,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-tn-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: break-word; min-width: 0; }
 .rr-play { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); }
 .rr-play svg { width: 22px; height: 22px; }
+/* Opening night (2026-11-19): the strip where Tonight sits says the step, with Skip (or On to Leg 1) as a cream plate button */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-on-btn { opacity: 1; flex: none; min-width: 72px; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--rr-plate-edge); background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text); font: 700 var(--type-subhead) / 1 "Space Grotesk", var(--sans); }
 /* Louie's line, under the strip */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-say {
   flex: none; position: relative; align-self: flex-start; max-width: calc(100% - 24px); margin: 0 0 0 4px; padding: 8px 12px; box-sizing: border-box;
@@ -5260,3 +5262,23 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gm .gm-later { text-align: center; margin: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .gm .gm-ok { background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text); border: 1px solid var(--rr-plate-edge); letter-spacing: .08em; }
 @media (prefers-reduced-motion: reduce) { .gm-thumbs { scroll-snap-type: none; } }
+
+/* Road Ready stop cards (2026-11-19): the card a stop opens is a cream engraved plate like the callout, not a pink tile on a darker
+   lip; the main button is the amber fill. The same card for Opening night's steps and every stop on the Road. */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop,
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now {
+  background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text);
+  border: 1.5px solid var(--rr-plate-edge); border-radius: 14px; box-shadow: 0 10px 24px rgba(0, 0, 0, .38);
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop::before,
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now::before { background: var(--rr-plate-top); border-left: 1.5px solid var(--rr-plate-edge); border-top: 1.5px solid var(--rr-plate-edge); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop b { font: 700 var(--type-headline) / 1.2 "Space Grotesk", var(--sans); color: var(--rr-plate-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop :is(p, .rd-pt p, .rd-pt small),
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now p { color: var(--rr-plate-text); opacity: .85; font: 500 var(--type-subhead) / 1.35 "Inter", var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop .rd-start,
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now .rd-start,
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now .rd-start:active:not(:disabled) {
+  background: var(--rr-amber); color: var(--rr-on-amber); border: 0; border-radius: 12px; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18);
+  font: 700 var(--type-body) / 1 "Space Grotesk", var(--sans); letter-spacing: .02em;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop .rd-other { color: var(--rr-plate-text); }
