@@ -5773,3 +5773,18 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .strip .scard { border: 1px solid var(--rr-hairline); border-radius: var(--r-control); background: var(--rr-card); }
 :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .strip .scard.new { border: 1px solid var(--accent-line); background: var(--rr-card); box-shadow: var(--rr-lift); }
 :root:is([data-look="neon"], [data-look="festival"]) .sc-new { padding: 1px 6px; border-radius: var(--r-chip); background: var(--rr-amber); color: var(--rr-on-amber); font: 700 var(--type-caption) / 1.3 var(--sans); letter-spacing: var(--type-caption-ls); }
+
+/* ===== Road Ready design pass: Merch table ===== the title row and the tips as a quiet capsule; Louie says his line beside him,
+   with no shirts on a line, no orange tablecloth and no speech bubble */
+:root:is([data-look="neon"], [data-look="festival"]) .mc-head h1 { font: var(--type-title-w) var(--type-title) / 1.15 var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-back { width: 44px; height: 44px; border-radius: var(--r-chip); background: var(--rr-card); border: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-fans { min-height: 36px; box-sizing: border-box; padding: 0 var(--sp-3); border: 1.5px solid var(--rr-outline); border-radius: var(--r-chip); background: none; box-shadow: none; color: var(--rr-text); font: 600 var(--type-headline) / 1 var(--display); font-variant-numeric: tabular-nums; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-table { display: flex; align-items: center; gap: var(--sp-3); height: auto; margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); box-shadow: var(--rr-lift); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.mc-line, .mc-cloth) { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-lou { position: static; margin: 0; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-lou .louie { width: 64px; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-say { position: static; order: 2; width: auto; flex: 1; padding: 0; background: none; color: var(--rr-text); font: var(--type-callout-w) var(--type-callout) / 1.4 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-h { margin: var(--sp-6) var(--sp-1) var(--sp-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-h span { font: var(--type-title2-w) var(--type-title2) / 1.2 var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-h small { font: 500 var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.mc-gear, .mc-fin, .mc-drop) { border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); }
