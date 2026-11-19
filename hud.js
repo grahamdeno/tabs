@@ -5,7 +5,7 @@
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   (Road Ready 04: five tabs, Road, Songbook, Rehearse, Tour and Me; the places that were on the More sheet are rows on Me)
 //   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the tips in the stat bar (4.16.2)
-import { Tabs, fameSettle, fansNow, openingOn, playSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
+import { Tabs, fameSettle, fansNow, openingOn, playSongs, playableSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
 import { esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
 import { guitarIcon, buzz } from "./rock.js";
@@ -41,6 +41,30 @@ export function statBar() {
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${COIN}<span>$${n(tips)}</span>${lab("tips", "TIPS")}</button>
   </div>`;
 }
+/* ---- the one-row Road header (Grok, 2026-11-19): four stats, each a line icon then a number, spread across one 44 pt row with
+   no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); songs you can play opens the Songbook;
+   the venue is the sign at the start of the leg, which opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
+const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+const ST_ICON = {
+  /* a guitar: the streak */
+  streak: LINE(`<path d="M14.5 9.5l5-5M18 3l3 3"/><path d="M13.2 10.8c-1.6-1.6-4.3-1.1-5 .9-.3.8-1 1.3-1.9 1.4-2.4.3-3.5 3.3-1.8 5.1l1.2 1.2c1.8 1.8 4.8.6 5.1-1.8.1-.9.6-1.6 1.4-1.9 2-.7 2.5-3.4.9-5z"/><circle cx="10" cy="14" r="1.4"/>`),
+  /* a music note: songs you can play */
+  songs: LINE(`<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>`),
+  /* a ticket: fans */
+  fans: LINE(`<path d="M3 7.5h18v3a2 2 0 0 0 0 3v3H3v-3a2 2 0 0 0 0-3z"/><path d="M15 7.5v9" stroke-dasharray="1.6 2"/>`),
+  /* a coin with a dollar sign: tips */
+  tips: LINE(`<circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.7.8-2.7 2 0 2.8 5.6 1.4 5.6 4.4 0 1.3-1.2 2.1-2.9 2.1-1.3 0-2.4-.5-3-1.4M12 6.5v1.5M12 16.5V18"/>`)
+};
+export function rrStats() {
+  settleStats();
+  const st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data), can = playableSongs(data).now;
+  return `<div class="hud rr-stats" role="group" aria-label="Your stats">
+    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${ST_ICON.streak}<span>${st.days}</span></button>
+    <button id="h-songs" class="h-songs" aria-label="${n(can)} song${can === 1 ? "" : "s"} you can play. Open the Songbook">${ST_ICON.songs}<span>${n(can)}</span></button>
+    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open your profile">${ST_ICON.fans}<span>${n(fans)}</span></button>
+    <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${ST_ICON.tips}<span>$${n(tips)}</span></button>
+  </div>`;
+}
 export function bindStatBar() {
   const $ = id => document.getElementById(id);
   const learned = k => { if (data.settings.used?.["hud-" + k]) return; data.settings.used = { ...(data.settings.used || {}), ["hud-" + k]: true }; Tabs.save(data); };
@@ -50,6 +74,7 @@ export function bindStatBar() {
   $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
   $("h-fans")?.addEventListener("click", () => go("#/you"));
   $("h-tips")?.addEventListener("click", () => go("#/merch"));
+  $("h-songs")?.addEventListener("click", () => go("#/library"));
   statNotices();
 }
 export function statNotices() {

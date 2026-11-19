@@ -133,7 +133,7 @@ export function renderProfile() {
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <div class="rr-case"><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
+      <div class="rr-gcase"><span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
       <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="Spend your game tips: $${num(mer)} at the Merch table"><span class="rr-coinic">${COIN}</span><span>Spend your game tips: $${num(mer)} at the Merch table</span>${icon("chev", "chev")}</a>
     </section>
     <section class="rr-card rr-miles"><div class="pf-label"><span>MILESTONES</span><span>${badges.got.length} of ${badges.all.length}</span></div>

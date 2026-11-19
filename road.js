@@ -31,7 +31,7 @@ import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { buildPic } from "./buildart.js";
 import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
-import { statBar, bindStatBar, settleStats } from "./hud.js";
+import { statBar, rrStats, bindStatBar, settleStats } from "./hud.js";
 
 const DAY = 86400000;
 /* Road Ready is the Dark and Light looks (data-look neon and festival); Green Room and Headliner keep the old Road */
@@ -183,6 +183,7 @@ function renderOpening(view) {
     </div>`;
   const $ = id => document.getElementById(id);
   bindStatBar();
+  $("rd-sign")?.addEventListener("click", () => go("#/playmap"));
   homeHooks.refresh = null;
   $("on-next")?.addEventListener("click", () => renderRoad());
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
@@ -208,12 +209,7 @@ function rrOpening(done, step) {
   const said = s => s.state === "now" ? "your next step" : s.state;
   const gx = { cur, id: s => esc(s.id), icon: () => "", rr: true, num: s => stops.indexOf(s) + 1, fresh: null, songs: null,
     label: s => esc(`Step ${stops.indexOf(s) + 1} of ${stops.length}, ${s.name}, ${said(s)}`), tag: s => esc(s.name) };
-  const v = venueNow(data), st = streakOf(playSongs(data));
-  const strip = `<div class="rr-tonight rr-on on-night" role="group" aria-label="Opening night">
-      <span class="rr-tn-t"><small>${done ? "DONE" : `${step + 1} OF ${stops.length}`}</small><b>${esc(done ? "Your first night" : cur.name)}</b></span>
-      ${done ? `<button class="rr-on-btn" id="on-next">On to Leg 1</button>` : `<button class="rr-on-btn rr-text" id="on-skip">Skip</button>`}
-    </div>`;
-  void strip; void st;
+  const v = venueNow(data);
   app.innerHTML = `
     ${rrRow()}
     <div class="rr-stage">
@@ -223,6 +219,7 @@ function rrOpening(done, step) {
     </div>`;
   const $ = id => document.getElementById(id);
   bindStatBar();
+  $("rd-sign")?.addEventListener("click", () => go("#/playmap"));
   homeHooks.refresh = null;
   $("on-next")?.addEventListener("click", () => renderRoad());
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
@@ -241,7 +238,7 @@ function rrOpening(done, step) {
   });
 }
 /* the venue's name as a small sign at the start of the leg you're on (one-row Road) */
-const venueSign = v => `<span class="rr-sign" aria-hidden="true">${esc(v.name.toUpperCase())}</span>`;
+const venueSign = v => `<button class="rr-sign" id="rd-sign" aria-label="${esc(`${v.name}, venue ${v.ring + 1}. Open the Tour Map`)}">${esc(v.name.toUpperCase())}</button>`;
 /* Opening night plays on its own guitar, so the Leg 1 guitar below it reads as the next one (4.99.0) */
 const OPEN_GUITAR = () => ({ ...guitarShown(data, "open"), name: "Barebones", body: "barebones", shop: true });
 /* the next leg, locked (4.99.0, Grok's review): its guitar's headstock and top of the neck in grey, fading out, no stops, and one
@@ -267,7 +264,7 @@ function openingStart(i) {
 /* ---- One-row Road header (2026-11-19): four stats, icon then number, no labels, cards or outlines, 44 pt tall; each opens
    what it opened before (the stat bar's own buttons and bindings) ---- */
 function rrRow() {
-  return `<header class="rr-row" aria-label="Your stats">${statBar().replace(/<small class="h-lab"[^>]*>[^<]*<\/small>/g, "")}</header>`;
+  return `<header class="rr-row">${rrStats()}</header>`;
 }
 /* the callout beside the current stop: a chord says the chord you know that leads into it and what it opens */
 function rrTag(s, all) {
@@ -360,6 +357,7 @@ export function renderRoad() {
     </div>${songbookBar}`;
   const $ = id => document.getElementById(id);
   bindStatBar();
+  $("rd-sign")?.addEventListener("click", () => go("#/playmap"));
   homeHooks.refresh = null;
   if (wantDrawer) return go("#/library"); /* asked for the songs (4.9.0: the Songbook page, not a drawer) */
   $("rd-songbook")?.addEventListener("click", () => go("#/library"));

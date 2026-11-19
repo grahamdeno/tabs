@@ -428,7 +428,7 @@ function rrStopHTML(sp, g, lay, o) {
   const e = road ? (pill ? { l: x - w / 2, r: x + w / 2 } : lay.road.edge(y)) : null;
   const tagAt = road ? `left:${((e.r + 10) / W * 100).toFixed(3)}%;max-width:calc(${(100 - (e.r + 10) / W * 100).toFixed(3)}% - 8px)` : `left:calc(${px}% + ${half + 8}px);max-width:calc(${(100 - x / W * 100).toFixed(3)}% - ${half + 16}px)`;
   /* one-row Road (2026-11-19): Tonight lives on the current stop, a small amber play button and the song's title, both one button */
-  const tag = cur && o.tonight ? `<button class="rr-tn-stop" data-tonight style="${tagAt}" aria-label="Tonight: ${o.tonight}. Play"><span class="rr-tn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 5.5v13l10-6.5z" fill="currentColor"/></svg></span><b>${o.tonight}</b></button>`
+  const tag = cur && o.tonight ? `<button class="rr-tn-stop" data-tonight style="${tagAt}" aria-label="Tonight: ${o.tonight}. Play"><span class="rr-tn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 5.5v13l10-6.5z" fill="currentColor"/></svg></span><span class="rr-tn-tx"><small>TONIGHT</small><b>${o.tonight}</b></span></button>`
     : cur ? `<span class="rd-tag rr-callout" style="${tagAt}" aria-hidden="true">${o.tag(s)}</span>` : "";
   /* the label says how many songs a lesson opens; the chip shows it only on the stops ahead (the callout says it on the current one) */
   const songs = sp.kind === "dot" && ph !== "done" && o.songs ? o.songs(s) : 0;
