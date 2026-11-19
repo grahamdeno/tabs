@@ -240,6 +240,40 @@ export function cleanMe(raw) {
   if (patches.length) out.patches = patches;
   return out;
 }
+/* Start from a selfie (Gig poster, 2026-11-19): colours sampled from a photo snap to the guitarist's own inks. The photo
+   only picks starting parts; nothing new is stored and nothing leaves the phone. Colours are [r, g, b], 0 to 255. */
+const hexRgb = h => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+export function rgbLab([r, g, b]) {
+  const lin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const [R, G, B] = [lin(r), lin(g), lin(b)];
+  const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  const x = f((R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047), y = f(R * 0.2126 + G * 0.7152 + B * 0.0722), z = f((R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+const labDist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+/* the closest ink: an array of hex colours gives its index, an object of name: hex gives the name */
+export function nearestInk(rgb, inks) {
+  const at = rgbLab(rgb), keys = Array.isArray(inks) ? inks.map((_, i) => i) : Object.keys(inks);
+  let best = keys[0], d = Infinity;
+  for (const k of keys) { const e = labDist(at, rgbLab(hexRgb(inks[k]))); if (e < d) { d = e; best = k; } }
+  return best;
+}
+/* a beard shows as a chin darker than the cheeks; stubble as a little darker */
+export function beardGuess(chin, cheek) {
+  if (!chin || !cheek) return "none";
+  const drop = rgbLab(cheek)[0] - rgbLab(chin)[0];
+  return drop >= 14 ? "beard" : drop >= 8 ? "stubble" : "none";
+}
+const meanRgb = list => { const ok = (list || []).filter(c => Array.isArray(c) && c.length === 3 && c.every(Number.isFinite)); return ok.length ? [0, 1, 2].map(i => ok.reduce((a, c) => a + c[i], 0) / ok.length) : null; };
+/* samples: { skin: [rgb...] (cheeks and forehead), hair: [rgb...], chin: rgb, cheek: rgb }; inks: { skin: [hex x6], hair: { name: hex } }.
+   Only skin, hair colour and beard are guessed; anything it can't read is left as it was. */
+export function selfieGuess(samples, inks) {
+  const out = {}, skin = meanRgb(samples?.skin), hair = meanRgb(samples?.hair);
+  if (skin) out.skin = nearestInk(skin, inks.skin);
+  if (hair) out.hairCol = nearestInk(hair, inks.hair);
+  out.beard = beardGuess(samples?.chin, samples?.cheek);
+  return out;
+}
 /* your guitarist: what you made, or the default. A hat you haven't bought doesn't show. */
 export function meOf(data) {
   const me = cleanMe(data.me) || { ...ME_DEFAULT };

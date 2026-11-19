@@ -187,7 +187,7 @@ function stampSheet(c) {
 const LOUIE_CARD_CSS = ".lv-b{fill:#3A86FF}.lv-s{fill:#2C6FE0}.lv-ss{stroke:#2C6FE0}.lv-hi{fill:#6BA4FF;opacity:.9}.lv-f{fill:#FFD23F}.lv-fs{fill:#F2B705}.lv-l{stroke:#2C6FE0}.lv-c{fill:#FF3D7F;opacity:.6}.lv-p{fill:#14213D}.lv-ps{stroke:#14213D}.lv-g{fill:#14213D}.lv-gs{fill:#2A3A63}.lv-m{fill:#14213D}.lv-ms{stroke:#14213D}.lv-t{fill:#FF3D7F}.lv-lamp{fill:#FF3D7F}.lv-shadow{fill:#14213D;opacity:.18}";
 /* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
 async function meCardImage() {
-  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400 }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
+  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
   const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
   return im;
 }

@@ -38,13 +38,16 @@ test("4.85.0 your profile card shows your guitarist; the maker changes it and sa
   await page.waitForSelector("#rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".rr-me");
   assert.equal(await page.locator('.rr-avatar svg[aria-label="Your guitarist"]').count(), 1); /* Road Ready 08: the avatar in the header */
   await page.click("#pf-me"); await page.waitForSelector(".gm");
-  assert.equal(await page.locator(".gm button[aria-pressed]").count() > 20, true, "every choice is a pressed-state button");
-  await page.click('.gm [data-k="hair"][data-v="pixie"]');
+  assert.equal(await page.locator(".gm button[aria-pressed]").count() > 15, true, "every choice on the Face tab is a pressed-state button");
+  /* the Gig poster maker (2026-11-19): Face is the first tab, Hair the second; Lefty is the flip on the poster */
   await page.click('.gm [data-k="glasses"][data-v="true"]');
   await page.click('.gm [data-k="lefty"][data-v="true"]');
   await page.click('.gm [data-k="beard"][data-v="stubble"]');
+  await page.click("#gm-t-hair");
+  await page.click('.gm [data-k="hair"][data-v="pixie"]');
   await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.lefty && m.beard === "stubble"; });
   assert.equal(await page.locator(".gm .gm-prev svg").getAttribute("aria-label"), "Your guitarist");
+  await page.click("#gm-t-fit");
   assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 3, "the three hats are locked until bought");
   await page.click("#gm-ok"); await page.waitForSelector(".rr-me");
   assert.equal(await page.locator(".gm").count(), 0);
@@ -68,7 +71,12 @@ test("4.85.0 a duel shows your guitarist, worried when you lost", { skip: skip()
   await page.waitForFunction(id => location.hash === "#/duel/" + id, id);
   await page.waitForSelector(".du-av.me");
   assert.equal(await page.locator('.du-av.me svg[aria-label="Your guitarist"]').count(), 1);
-  assert.match(await page.innerHTML(".du-av.me"), /M\d+ 70l20 5/, "worried brows after a loss");
+  /* the Gig poster face for the mood (2026-11-19): the worried face's ink line is drawn, the happy one's isn't */
+  const ART = (await import("../../art/guitarist-poster.js")).default;
+  const ds = m => ART.faces[m].map(([, , d]) => d);
+  const only = (a, b) => ds(a).find(d => !ds(b).includes(d));
+  const html = await page.innerHTML(".du-av.me");
+  assert.ok(html.includes(only("worried", "happy")) && !html.includes(only("happy", "worried")), "the worried face after a loss");
 });
 
 test("4.85.0 a hat bought on the Merch table goes on your guitarist and shows in the maker", { skip: skip() }, async t => {
@@ -82,6 +90,7 @@ test("4.85.0 a hat bought on the Merch table goes on your guitarist and shows in
   const s = await stored(page);
   assert.equal(s.merch.tspent, 150, "paid in tips");
   await hash(page, "#/you"); await page.waitForSelector("#pf-me"); await page.click("#pf-me"); await page.waitForSelector(".gm");
+  await page.click("#gm-t-fit");
   assert.equal(await page.locator('.gm [data-k="extra"][data-v="beanie"][aria-pressed="true"]').count(), 1, "wearing it");
   assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 2, "cap and bandana still locked");
 });

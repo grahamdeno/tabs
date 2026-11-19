@@ -15,7 +15,7 @@ try { ({ chromium } = require("playwright")); }
 catch { try { ({ chromium } = require(path.join(process.execPath, "..", "..", "lib", "node_modules", "playwright"))); } catch {} }
 
 // A tiny static server for the repo.
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png", ".wasm": "application/wasm" };
 function serve() {
   const server = http.createServer((req, res) => {
     const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
