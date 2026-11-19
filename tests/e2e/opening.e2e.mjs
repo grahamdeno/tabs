@@ -85,7 +85,7 @@ test("4.40.0 Opening night: pause and pick up in the Gig: the step says what to 
   await page.waitForSelector("body.held");
   assert.match(await page.innerText("#gg-hsay"), /Tap Resume/);
   await page.click("#play");
-  await stepIs(page, 5);
+  await stepIs(page, 8);
   assert.equal((await saved(page)).step, 8, "a v2 save on pause lands on pause, then moves to the first show");
   assert.match(await page.innerText("#on-strip"), /STEP 9 OF 9[\s\S]*through to the end/);
 });
