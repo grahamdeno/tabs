@@ -107,10 +107,10 @@ test("Road Ready 04: the Songbook's search bar sits above the tab bar, so both c
   await page.tap("#q"); await page.waitForFunction(() => document.body.classList.contains("searching"));
 });
 
-test("Road Ready 04: the not-tuned dot is on the Me tab and the Tuner row, and goes once you've tuned; the Tuner row opens the tuner", { skip: skip() }, async t => {
+test("Road Ready 04: the not-tuned dot is on the Tuner row (no dot on a tab since 2026-11-19), and goes once you've tuned; the Tuner row opens the tuner", { skip: skip() }, async t => {
   const stale = await phone(t, libWith("dark", { lastTuned: 0 }), { home: true });
-  await stale.waitForSelector("#tabs [data-tab=me] .dotmark");
-  assert.equal(await stale.locator("#tabs .dotmark").count(), 1, "one dot, on Me");
+  await stale.waitForSelector("#tabs [data-tab=me]");
+  assert.equal(await stale.locator("#tabs .dotmark").count(), 0, "no dot on a tab");
   await stale.click("#tabs [data-tab=me]"); await stale.waitForSelector("#pf-r-tune"); await settled(stale);
   assert.equal(await stale.locator("#pf-r-tune .dotmark").count(), 1, "the Tuner row has the dot");
   assert.match(await stale.innerText("#pf-r-tune"), /Tuner\s*Not tuned in the last few hours/);

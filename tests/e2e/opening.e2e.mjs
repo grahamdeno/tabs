@@ -11,9 +11,10 @@ const stepIs = (page, n) => page.waitForFunction(n => (JSON.parse(localStorage.g
 
 test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? comes first, then the microphone's reason, then a chord, then the verse waits for Count me in", { skip: skip() }, async t => {
   const page = await phone(t, FRESH, { home: true });
-  await page.waitForSelector(".rd-banner.on-night");
-  assert.match(await page.innerText(".rd-banner"), /OPENING NIGHT/);
-  assert.equal(await page.locator(".on-stop").count(), 6, "six picks");
+  await page.waitForSelector(".on-night");
+  assert.match(await page.innerText(".on-night"), /OPENING NIGHT/);
+  assert.equal(await page.locator('.on-path [data-stop^="o:"]').count(), 6, "six steps on the guitar neck (2026-11-19)");
+  assert.equal(await page.locator(".on-path .rd-neck").count(), 1, "Opening night is a guitar neck");
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
@@ -29,7 +30,7 @@ test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? 
   assert.equal(me.hair, "mohawk", "the starter you picked is you");
   assert.equal((await saved(page)).fans || 0, 0, "no fans for choosing a guitarist");
   /* 2: the reason, then Not now plays unscored */
-  await page.waitForSelector(".on-stop .rd-node.now"); await settled(page);
+  await page.waitForSelector(".on-path .rd-node.now"); await settled(page);
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector(".on-mic");
   assert.match(await page.innerText(".on-mic"), /Nothing is recorded or sent anywhere/);
@@ -37,7 +38,7 @@ test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? 
   await stepIs(page, 2);
   assert.equal((await saved(page)).micOff, true, "Not now is remembered");
   /* 2: the song, a strip above Play, the chord pulses */
-  await page.waitForSelector(".on-stop .rd-node.now"); await settled(page);
+  await page.waitForSelector(".on-path .rd-node.now"); await settled(page);
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector("#on-strip"); await page.waitForSelector(".sheet .c.on-pulse .ct");
   assert.match(await page.innerText("#on-strip"), /STEP 3 OF 6[\s\S]*Tap the A/);
@@ -75,7 +76,7 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
   await page.waitForSelector("#ask-ok");
   assert.match(await page.innerText(".ask .panel"), /Skip opening night\?[\s\S]*replay it/);
   await page.click("#ask-ok");
-  await page.waitForSelector(".rd-banner:not(.on-night)");
+  await page.waitForSelector("#rd-tonight");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).skipped > 0); /* skipped is kept */
   await page.waitForSelector(".gm"); await page.click("#gm-skip"); /* 4.85.0: no guitarist yet, so Louie asks once on the Road; Skip keeps the default */
   await page.waitForSelector(".gm", { state: "detached" });
@@ -91,13 +92,13 @@ test("4.40.0 Opening night: someone who already plays never sees it; Tips & gest
   assert.equal(await page.locator(".on-night").count(), 0);
   await page.evaluate(() => { location.hash = "#/gestures"; }); await page.waitForSelector("#gs-opening"); await settled(page);
   await page.click("#gs-opening");
-  await page.waitForSelector(".rd-banner.on-night");
+  await page.waitForSelector(".on-night");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).replay === true);
 });
 
 test("4.45.2 Opening night: tapping the last pick scrolls its card and button above the tab bar", { skip: skip() }, async t => {
   const page = await phone(t, { ...FRESH, opening: { step: 5, v: 2, fans: 20 } }, { home: true });
-  await page.waitForSelector('[data-ostep="5"]');
-  await page.click('[data-ostep="5"]'); await page.waitForSelector(".rd-pop");
+  await page.waitForSelector('[data-stop="o:5"]');
+  await page.click('[data-stop="o:5"]'); await page.waitForSelector(".rd-pop");
   await page.waitForFunction(() => { const r = document.querySelector(".rd-pop").getBoundingClientRect(), b = document.getElementById("tabs").getBoundingClientRect(); return r.bottom <= b.top; }, null, { timeout: 4000 });
 });

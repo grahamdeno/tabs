@@ -16,7 +16,7 @@ test("first launch adds the sample song and opens on the Road at Opening night (
   const errors = []; page.on("pageerror", e => errors.push(String(e)));
   await page.goto(base); await page.waitForSelector(".rd-path");
   assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
-  assert.equal(await page.locator(".rd-banner.on-night").count(), 1, "4.40.0: a new player starts on Opening night");
+  assert.equal(await page.locator(".on-night").count(), 1, "4.40.0: a new player starts on Opening night");
   await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#list .row");
   assert.equal(await page.locator("#list .row").count(), 1, "the sample song is there");
   assert.deepEqual(errors, []);
