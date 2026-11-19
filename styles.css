@@ -1976,6 +1976,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --tolex: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("art/surfaces/tolex-dark.webp") 0 0 / 256px 256px repeat, var(--rr-base);
   /* raised and pressed surfaces: a soft shadow, never a darker lip (design pass) */
   --rr-lift: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 8px rgba(0,0,0,.38); --rr-press: 0 1px 2px rgba(0,0,0,.4);
+  --rr-motion: .25s ease-out; /* show and hide; Reduce Motion turns it into a plain fade or nothing */
 }
 /* Road Ready light: amber is for fills only; amber text on cream is always #763A00. The status colours are darkened to pass AA on cream, a card and a well. */
 :root[data-look="festival"] {
@@ -1996,7 +1997,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --streak: #B72857; --fans-text: #7B5E00; --strings: #2A60B8; --strings-deep: #1E4A8F;
   /* the same grain, much fainter, over --rr-base */
   --tolex: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px repeat, var(--rr-base);
-  --rr-lift: 0 1px 2px rgba(30,25,20,.10), 0 4px 12px rgba(30,25,20,.07); --rr-press: 0 1px 2px rgba(30,25,20,.14);
+  --rr-lift: 0 1px 2px rgba(30,25,20,.10), 0 4px 12px rgba(30,25,20,.07); --rr-press: 0 1px 2px rgba(30,25,20,.14); --rr-motion: .25s ease-out;
 }
 /* both Road Ready looks */
 :root:is([data-look="neon"], [data-look="festival"]) {
@@ -2029,7 +2030,6 @@ body { background: var(--bg); font-family: var(--sans); }
   --type-mono: calc(var(--sys-px, 17px) * 1.176);      --type-mono-w: 600;      /* IBM Plex Mono: tuner and tempo */
   /* spacing and radii */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
-  --rr-motion: .25s ease-out; /* show and hide; Reduce Motion turns it into a plain fade or nothing */
   --r-chip: 999px; --r-control: 10px; --r-card: 16px; --r-strip: 18px; --r-sheet: 24px; --r-plate: 12px;
   --r: 16px; --r-bar: 18px; --margin: 16px;
   /* surfaces. The tolex is a 512 px bitmap tile (art/surfaces/, shown at 256 px); the grille cloth and raised panels are still drawn in code. */
@@ -5763,7 +5763,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 
 /* ===== Road Ready design pass: Me (chord passport) ===== stamps are amber ink on the card, not five candy colours; the family
    still shows in the page heading. The tilt stays: a stamp is pressed by hand. */
-:root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp { border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); opacity: 1; font: 600 var(--type-subhead) / 1 var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp { border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); opacity: 1; font: 600 min(var(--type-subhead), 18px) / 1 var(--display); min-width: 0; } /* the grid sets the stamp size, so the name stays at 18 px or less at large text */
 :root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.on,
 :root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.on:is(.k-open, .k-seventh, .k-color, .k-barre, .k-other) {
   border: 2px solid var(--rr-amber-text); background: var(--accent-soft); color: var(--rr-amber-text); box-shadow: inset 0 0 0 3px var(--rr-card), inset 0 0 0 4px var(--accent-line); font-weight: 700; }

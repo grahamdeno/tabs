@@ -14,7 +14,7 @@ test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? 
   await page.waitForSelector(".on-night");
   assert.match(await page.innerText(".on-night"), /1 OF 6/); assert.equal(await page.getAttribute(".on-night", "aria-label"), "Opening night");
   assert.equal(await page.locator('.on-path [data-stop^="o:"]').count(), 6, "six steps on the guitar neck (2026-11-19)");
-  assert.equal(await page.locator(".on-path .rd-neck").count(), 1, "Opening night is a guitar neck (with its venue sign beside it since 2026-11-19)"); assert.equal(await page.locator(".on-path .rr-peek").count(), 1, "with Leg 1 locked below it (4.99.0)");
+  assert.equal(await page.locator(".on-path > .rr-legwrap > .rd-neck").count(), 1, "Opening night is a guitar neck (with its venue sign beside it since 2026-11-19)"); assert.equal(await page.locator(".on-path .rr-peek").count(), 1, "with Leg 1 locked below it (4.99.0)");
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
