@@ -54,6 +54,7 @@ test("Selfie: a face sets skin, hair colour and beard in the preview; nothing is
   await page.waitForSelector(".gm .gm-selfie-msg");
   assert.match(await page.innerText(".gm .gm-selfie-msg"), /Here's a start from your photo/);
   assert.equal(await page.getAttribute('.gm [data-k="skin"][data-v="4"]', "aria-pressed"), "true", "skin tone 5 of 6");
+  await page.click("#gm-t-hair");
   assert.equal(await page.getAttribute('.gm [data-k="hairCol"][data-v="black"]', "aria-pressed"), "true", "black hair");
   assert.equal((await stored(page)).me.skin, 0, "not saved yet");
   await page.click("#gm-ok");

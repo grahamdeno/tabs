@@ -2811,7 +2811,13 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
   const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
   assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
-  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
+  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], "ids are unique (Gig poster, 2026-11-19)");
+  /* the Gig poster print: halftone and grain at full size; flat at 48 px and under; a cream poster card when asked */
+  const big = guitarist(C.ME_DEFAULT, { size: 160 }), small = guitarist(C.ME_DEFAULT, { crop: "bust", size: 32 });
+  assert.ok(big.includes("guitarist-poster/grain.webp") && /<mask id="gp\d+h"/.test(big), "halftone and grain at full size");
+  assert.ok(!small.includes("grain.webp") && !/<mask id="gp\d+h"/.test(small) && small.includes('stroke-width="0.8"'), "flat with a heavier line at 32 px");
+  assert.ok(!guitarist(C.ME_DEFAULT, { size: 400, grain: false }).includes("grain.webp"), "no grain for a canvas picture");
+  assert.ok(guitarist(C.ME_DEFAULT, { card: true }).includes('rx="7" fill="#F6EEE0"'), "the cream poster card");
 });
 
 test("Road Ready 07 (10a: black): Louie's face badge is saved for offline, is the picture the Songbook and Me show, and is small", () => {
@@ -3439,4 +3445,9 @@ test("Selfie: the face finder is loaded on first use, never in the up-front list
   assert.ok(!/vendor\/mediapipe/.test(shell.match(/const SHELL = \[[^\]]*\]/)[0]), "no MediaPipe file in SHELL");
   assert.match(html, /script-src 'self' 'wasm-unsafe-eval'/);
   assert.ok(!/localStorage|indexedDB|caches\.|fetch\(/.test(read("selfie.js").replace(/\/\/.*$/gm, "")), "selfie.js stores nothing and sends nothing");
+});
+
+test("Opening night: every step's pick has an icon, so no pick says undefined (fixed 2026-11-19)", () => {
+  const src = read("road.js"), block = src.slice(src.indexOf("const OIC = {"), src.indexOf("};", src.indexOf("const OIC = {")));
+  for (const o of C.OPENING) assert.ok(new RegExp(`\\b${o.id}:`).test(block), `an icon for ${o.id}`);
 });
