@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, shopState, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
+import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, shopState, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie, louiePic } from "./louie.js";
@@ -117,12 +117,13 @@ export function renderProfile() {
     return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");
   const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
   const mer = fansToSpend(data);
+  const name = cleanName(data.settings.playerName);
   const rrHTML = `
-    <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
+    <div class="head rr-me-top"><a class="pf-gear rr-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}<small>Settings</small></a></div>
     <div class="rr-me">
     <section class="rr-me-head" aria-label="Your card">
       <button class="rr-avatar" id="pf-me" aria-label="Edit your guitarist">${you(data, { crop: "bust", size: 72 })}</button>
-      <div class="rr-me-who"><h1 class="rr-me-name">Your profile</h1>
+      <div class="rr-me-who"><h1 class="rr-me-name"><button id="pf-name" class="rr-name${name ? "" : " empty"}" aria-label="${name ? `${esc(name)}. Change your name` : "Add your name"}">${name ? esc(name) : "Add your name"}</button></h1>
         <button class="rr-me-venue" id="pf-map" aria-label="${esc(ven.name)}, ${num(fansNow(data))} fans. Open the Tour Map">${esc(ven.name)} · ${num(fansNow(data))} fans</button>
         <div class="rr-me-level"><span>Level ${lv.level} · ${num(lv.into)} / ${num(lv.need)} XP</span><i style="--w:${Math.round(lv.into / lv.need * 100)}%"></i></div></div>
     </section>
@@ -134,20 +135,19 @@ export function renderProfile() {
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
       <div class="rr-gcase"><span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
-      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="Spend your game tips: $${num(mer)} at the Merch table"><span class="rr-coinic">${COIN}</span><span>Spend your game tips: $${num(mer)} at the Merch table</span>${icon("chev", "chev")}</a>
+      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="Merch: spend $${num(mer)} tips on new looks"><span class="rr-coinic">${COIN}</span><span>Merch: spend $${num(mer)} tips on new looks</span>${icon("chev", "chev")}</a>
     </section>
-    <section class="rr-card rr-miles"><div class="pf-label"><span>MILESTONES</span><span>${badges.got.length} of ${badges.all.length}</span></div>
-      <div class="pf-badges">${order.slice(0, 8).map(badge).join("")}</div>
-      ${order.length > 8 ? `<details class="pf-allbadges"><summary>All ${badges.all.length} milestones</summary><div class="pf-badges">${order.slice(8).map(badge).join("")}</div></details>` : ""}</section>
+    <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
     <nav class="rr-card rr-rows" aria-label="Your places">
-      ${rrRow("pf-r-band", "amp", "Your band", `${band.joined.length} of ${band.members.length} joined`, "#/band")}
-      ${rrRow("pf-r-charts", "star", "Charts and duets", "The weekly chart, rivals and song duels", "#/charts")}
+      ${rrRow("pf-r-band", "amp", "Your band", "", "#/band")}
+      ${rrRow("pf-r-charts", "star", "Charts and duels", "", "#/charts")}
       ${rrRow("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
       ${nothing ? "" : rrRow("pf-share", "share", "Share your player card", "", "")}
       ${rrRow("pf-r-help", "info", "Help and feedback", "", "#/settings/help")}
     </nav>
     ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary><p class="rr-facts">Nights in a row: <b>${p.streak}</b> · Shows played: <b>${num(data.gig?.shows || 0)}</b></p>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
+
     <div class="pf-label rr-support-h"><span>SUPPORT THE APP</span></div>
     <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v4/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
     </div>`;
@@ -157,7 +157,9 @@ export function renderProfile() {
     ${meRows}${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
-  document.getElementById("back").onclick = () => go("#/");
+  document.getElementById("back")?.addEventListener("click", () => go("#/"));
+  document.getElementById("pf-name")?.addEventListener("click", () => nameSheet());
+  document.getElementById("pf-miles")?.addEventListener("click", () => milesSheet(order.map(badge).join(""), badges));
   document.getElementById("pf-r-tune").onclick = () => openTuner("standard", () => {
     if (route().name !== "you") return;
     renderProfile(); /* the dot on the Tuner row and on the Me tab clears */
@@ -322,4 +324,28 @@ async function shareStreak(m) {
   try { if (navigator.canShare?.({ files: [file] })) return await navigator.share({ files: [file], title: `${m.n} day streak` }); } catch (e) { if (e?.name === "AbortError") return; }
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-streak.png"; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* 4.103.0: your name on Me. Kept in settings.playerName (and so in backups), at most 30 characters. */
+function nameSheet() {
+  const now = cleanName(data.settings.playerName);
+  layer.innerHTML = `<div class="scrim" id="nm-scrim"></div><div class="panel card nm-card" role="dialog" aria-label="Your name">
+    <h2>Your name</h2><p class="tm-line">It shows at the top of Me. It stays on this phone and in your backups.</p>
+    <input id="nm-in" type="text" maxlength="30" autocomplete="nickname" autocapitalize="words" enterkeyhint="done" value="${esc(now)}" placeholder="Your name" aria-label="Your name">
+    <div class="actions"><button class="btn" id="nm-x">Cancel</button><button class="btn primary" id="nm-ok">Save</button></div></div>`;
+  const $ = id => document.getElementById(id), close = () => { layer.innerHTML = ""; };
+  const save = () => { data.settings.playerName = cleanName($("nm-in").value); Tabs.save(data); close(); renderProfile(); };
+  $("nm-scrim").onclick = close; $("nm-x").onclick = close; $("nm-ok").onclick = save;
+  $("nm-in").addEventListener("keydown", e => { if (e.key === "Enter") save(); });
+  $("nm-in").focus();
+}
+/* 4.103.0 (agreed r10-06): Milestones is one row on Me; every milestone opens in a sheet */
+function milesSheet(html, badges) {
+  layer.innerHTML = `<div class="scrim" id="ms-scrim"></div><div class="panel card ms-card" role="dialog" aria-label="Milestones">
+    <h2>Milestones</h2><p class="tm-line">${badges.got.length} of ${badges.all.length} reached.</p>
+    <div class="pf-badges ms-grid">${html}</div>
+    <div class="actions"><button class="btn primary" id="ms-x">Done</button></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("ms-scrim").onclick = close; document.getElementById("ms-x").onclick = close;
+  document.getElementById("ms-x").focus();
 }

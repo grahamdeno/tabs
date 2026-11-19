@@ -3446,3 +3446,14 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
 });
+
+test("4.103.0 the player's name: plain text on one line, at most 30 characters, kept through a backup and cleaned on import", () => {
+  assert.equal(C.cleanName("  Graham   DeNoyer \n"), "Graham DeNoyer");
+  assert.equal(C.cleanName("<script>x</script>"), "scriptx/script");
+  assert.equal(C.cleanName("a".repeat(40)).length, 30);
+  assert.equal(C.cleanName(undefined), "");
+  const out = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: "  Graham <b>  " } });
+  assert.equal(out.data.settings.playerName, "Graham b");
+  const bad = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: 42 } });
+  assert.notEqual(bad.data.settings.playerName, 42, "a name that is not text is dropped");
+});
