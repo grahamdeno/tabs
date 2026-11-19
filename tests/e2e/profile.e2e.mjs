@@ -112,7 +112,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitar case\n3 guitars");
     const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf: getComputedStyle(im).transform, hidden: im.getAttribute("aria-hidden") }; }));
     assert.equal(gs.length, 3);
-    assert.deepEqual(gs.map(g => g.label), ["The beater, earned on Leg 1, Open chords", "The cutaway, earned on Leg 2, Chord switches", "The solid-body, earned on Leg 3, Scales"]);
+    assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 2, Chord switches", "Club Slab, earned on Leg 3, Scales"]);
     for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.equal(g.tf, "none", `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.equal(g.h, gs[0].h, "one height for every guitar"); }
     /* criterion 3: game money and real money are apart */
     const merch = page.locator("#pf-r-merch");

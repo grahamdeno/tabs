@@ -5,11 +5,12 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf } from "./core.js";
+import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf, shopBuy, shopChoose, shopState } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
 import { you } from "./guitarist.js";
+import { guitarPic } from "./fretboard.js";
 
 const n = x => x.toLocaleString("en-US");
 const GEAR = {
@@ -78,10 +79,60 @@ export function renderMerch() {
     <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
     <div class="mc-row scroll">${of("look").map(look).join("")}</div>
+    ${shopHTML()}
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
   document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/you");
   app.querySelectorAll(".mc [data-id]").forEach(b => b.onclick = () => tryOn(b.dataset.id));
+  app.querySelectorAll(".mc [data-gt]").forEach(b => b.onclick = () => shopSheet(b.dataset.gt));
+  document.getElementById("mc-gt-leg")?.addEventListener("click", () => { shopChoose(data, null); Tabs.save(data); renderMerch(); toast("Back to the guitar of the leg you're on"); });
+}
+
+/* ---- The Guitar shop (Road Ready 9a): 16 more guitars, opened and priced by venue (GUITAR_SHOP in core/game.js). Looks only. ----
+   Progress in plain words: a lock and "Opens at Club" while a guitar is out of reach, "$40 more" while it is open but not
+   yet affordable, and one "Next up". No time limits and nothing that runs out. */
+const GROUPS = { punk: "Punk", custom: "Custom" };
+/* what a row says about itself, for the eye and for a screen reader */
+function shopSay(g, st) {
+  if (g.owned) return g.id === st.chosen ? { tag: `<span class="mc-on">ON NOW</span>`, say: "yours, on now" } : { tag: `<span class="mc-on own">YOURS</span>`, say: "yours" };
+  if (!g.open) return { tag: `<span class="mc-on earn">${icon("lock")}Opens at ${esc(g.venue)}</span>`, say: `Locked, opens at ${g.venue}` };
+  if (g.more) return { tag: `<span class="mc-price short">$${n(g.price)}</span><small class="mc-more">$${n(g.more)} more</small>`, say: `$${n(g.price)}, $${n(g.more)} more` };
+  return { tag: `<span class="mc-price">$${n(g.price)}</span>`, say: `$${n(g.price)}, you can buy it` };
+}
+function shopHTML() {
+  const st = shopState(data), pic = id => guitarPic(id) ? `<img src="${guitarPic(id)}" alt="" aria-hidden="true" loading="lazy">` : "";
+  const row = g => { const sy = shopSay(g, st);
+    return `<button class="mc-gt${g.owned ? " own" : ""}${g.id === st.chosen ? " on" : ""}${g.open || g.owned ? "" : " locked"}" data-gt="${g.id}" aria-label="${esc(g.name)}, ${GROUPS[g.group]}. ${esc(sy.say)}${g.next ? ". Next up" : ""}">
+      <span class="mc-gt-pic">${pic(g.id)}</span><span class="mc-gt-t"><b>${esc(g.name)}</b><small>${GROUPS[g.group]}</small>${g.next ? `<i class="mc-next">NEXT UP</i>` : ""}</span><span class="mc-gt-s">${sy.tag}</span></button>`; };
+  return `<h2 class="mc-h"><span>Guitar shop</span><small>looks only, yours to keep</small></h2>
+    <p class="mc-sub">Each new venue opens more guitars. A guitar changes how your guitar looks, nothing else.</p>
+    ${st.chosen ? `<button class="mc-gt-leg" id="mc-gt-leg">Use the guitar of the leg I'm on</button>` : ""}
+    <div class="mc-gts" role="list">${st.rows.map(g => `<div role="listitem">${row(g)}</div>`).join("")}</div>`;
+}
+function shopSheet(id) {
+  const st = shopState(data), g = st.rows.find(x => x.id === id);
+  if (!g) return;
+  const act = g.owned ? (g.id === st.chosen ? `<button class="btn" disabled>ON NOW</button>` : `<button class="btn primary" id="gs-wear">PUT IT ON</button>`)
+    : !g.open ? `<button class="btn" disabled>OPENS AT ${esc(g.venue.toUpperCase())}</button>`
+    : g.more ? `<button class="btn" disabled>$${n(g.more)} MORE IN TIPS TO GO</button>`
+    : `<button class="btn primary" id="gs-buy">BUY FOR $${n(g.price)}</button>`;
+  layer.innerHTML = `<div class="mt" role="dialog" aria-label="${esc(g.name)}">
+    <div class="mt-stage" data-kind="guitar"><div class="mt-top"><button class="mt-x" id="mt-x" aria-label="Close">&times;</button><span class="mc-fans">$${n(st.tips)}</span></div>
+      <div class="mt-name"><small>GUITAR SHOP, ${esc(GROUPS[g.group].toUpperCase())}</small><b>${esc(g.name)}</b></div>
+      <div class="mt-show"><div class="mt-it mt-gtr">${guitarPic(g.id) ? `<img src="${guitarPic(g.id)}" alt="${esc(g.name)}">` : ""}</div></div></div>
+    <div class="mt-sheet"><h2>${esc(g.name)}</h2>
+      <p>${g.owned ? "Yours to keep." : g.open ? `Opened at ${esc(g.venue)}.` : `Opens when you reach ${esc(g.venue)}.`} It changes how your guitar looks on the Road, on Show complete and in your guitarist's hands. Nothing else changes.${g.next ? " This is the next one up." : ""}</p>
+      ${!g.owned ? `<div class="mt-tiles"><div><small>COSTS</small><b>$${n(g.price)}</b></div><div><small>OPENS AT</small><b>${esc(g.venue)}</b></div></div>` : ""}
+      <div class="mt-acts">${act}<button class="mt-not" id="mt-not">Not now</button></div></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  const $ = x => document.getElementById(x);
+  $("mt-x").onclick = close; $("mt-not").onclick = close;
+  $("gs-wear")?.addEventListener("click", () => { shopChoose(data, g.id); Tabs.save(data); close(); renderMerch(); toast(`${g.name} is on`); });
+  $("gs-buy")?.addEventListener("click", () => {
+    const r = shopBuy(data, g.id);
+    if (!r.ok) return toast(r.why === "tips" ? "Not enough tips yet" : r.why === "locked" ? `Opens at ${g.venue}` : "You have it");
+    Tabs.save(data); close(); renderMerch(); toast(`${g.name} is yours, and it's on`);
+  });
 }
 
 /* Try it on: the item big on a stage, flip through its kind, buy or put it on at the bottom (thumb reach) */

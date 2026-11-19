@@ -15,7 +15,7 @@
 // playing (not dragged past, not paused); see gigStart in core/game.js and docs/NO-CATCH-PLAN.md.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans,
 // tips, the crowd, the song's stars, the song you played and Encore (play it again for double bonus fans).
-import { roadPath, venueNow, guitarFor, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
+import { roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave, haptic } from "./ui.js";
 import { guitarSVG, guitarPic } from "./fretboard.js";
@@ -360,7 +360,7 @@ function showComplete() {
        cheering Louie beside it, then the reward tiles, the next venue and the buttons; the details follow. No backdrop
        in these two looks (Graham, 2026-11-18); Green Room and Headliner keep the backdrop and Change below. */
     const legs = roadPath(data).legs, leg = legs.find(l => l.stops.some(x => x.state === "now")) || legs.filter(l => l.done).at(-1) || legs[0];
-    const gtr = guitarFor(leg?.id), gname = gtr.name, gpic = guitarPic(gtr.body), v = venueNow(data);
+    const gtr = guitarShown(data, leg?.id), gname = gtr.name, gpic = guitarPic(gtr.body), v = venueNow(data);
     const sparks = [[18, 62], [28, 30], [34, 78], [70, 24], [76, 58], [64, 82], [22, 44], [80, 38], [40, 18]].map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join("");
     g.el.innerHTML = `<div class="gc rr-sc">
     <p class="sc-over">${g.encore ? "ENCORE COMPLETE" : "SHOW COMPLETE"}</p>

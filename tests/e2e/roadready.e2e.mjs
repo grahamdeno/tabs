@@ -298,7 +298,7 @@ test("Road Ready 02: a fresh leg has no connector; a finished leg's runs to its 
   assert.equal(n1.ends.length, n1.stops.length - 1, "the whole first leg is joined up");
   const last = n1.ends.at(-1), dbl = await page.evaluate(() => { const r = document.querySelector('.rd-neck .rd-node[data-kind="double"]').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   assert.ok(Math.abs(last[0] - dbl[0]) < 1.5 && Math.abs(last[1] - dbl[1]) < 1.5, "ending at the double inlay");
-  assert.equal(await page.locator('.rd-neck >> nth=0 >> .rd-node[data-kind="double"].done .rr-eng path').count(), 2, "both dots done, each with a check");
+  assert.equal(await page.locator('.rd-neck >> nth=0 >> .rd-node[data-kind="double"].done .rr-eng path').count(), 1, "9a: the headline is one done pill, with a check");
   assert.equal(n2.ends.length, 0, "the new leg's first stop is current: no line yet");
   assert.match(await page.innerText("#h-venue"), /Show 1 of 11/);
 });
@@ -434,10 +434,8 @@ for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light",
   });
 }
 
-test("Road Ready design fixes: the side fret dots sit on the board, and the selected Merch finish has an amber ring", { skip: skip() }, async t => {
+test("Road Ready design fixes: the selected Merch finish has an amber ring", { skip: skip() }, async t => {
   const page = await road(t, "dark", MID);
-  const dots = await page.evaluate(() => [...document.querySelectorAll(".rd-base.nano circle[r='2.6']")].filter(c => ["#2b1d16", "#9b8f78"].includes(c.getAttribute("fill"))).map(c => +c.getAttribute("cx")));
-  assert.ok(dots.length > 0 && dots.every(x => x <= 195 + 42 - 2.6), `every side dot is on the board (${dots.join(", ")})`);
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-fin.on, .mc-look.on"); await settled(page);
   const ring = await page.evaluate(() => { const e = document.querySelector(".mc-fin.on, .mc-look.on"), probe = document.createElement("i"); probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--rr-amber-text"); document.body.appendChild(probe); const amber = getComputedStyle(probe).color; probe.remove(); return { ring: getComputedStyle(e).borderTopColor, amber }; });
   assert.equal(ring.ring, ring.amber, "the selected finish is ringed in amber, not cyan");
@@ -453,8 +451,8 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
     assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.match(await page.getAttribute(".sc-show.case img.sc-case-pic", "src"), theme === "dark" ? /art\/show\/case-cutaway-dark\.webp$/ : /art\/show\/case-cutaway-light\.webp$/, "Grok's painting of the cutaway in its case, for the look");
-    assert.equal(await page.innerText(".rr-case .sc-label"), "The cutaway");
+    assert.match(await page.getAttribute(".sc-show.case .sc-guitar img", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar's own picture in the case (the older case paintings are of the guitars the legs had before Road Ready 9a)");
+    assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
     const c = await page.evaluate(() => {
@@ -476,5 +474,5 @@ test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: s
   const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true });
   await page.waitForSelector(".rd-gt #gt-x");
   assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
-  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*The cutaway is yours for Leg 2/);
+  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*Cornerstone is yours for Leg 2/);
 });

@@ -22,7 +22,7 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, fansNow, tipsOf, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, fansNow, tipsOf, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
@@ -38,7 +38,10 @@ const nf = x => x.toLocaleString("en-US");
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 /* Grok's paintings of each earned guitar in its own open case (art/show, 720 by 900, dark and light), by body shape. A
    guitar without one is drawn over the empty case. */
-const CASE_ART = { parlor: "beater", cutaway: "cutaway", solid: "solid" };
+/* Grok's case paintings (art/show/case-*.webp) are of the three guitars the Road had before Road Ready 9a (the beater, the cutaway,
+   the solid-body). The legs have new guitars now, so no painting fits them: the sheet shows the guitar's own picture in the case until new
+   paintings are made (Surprises in docs/ROAD-READY-PLAN.md). Add a body name here to bring a painting back. */
+const CASE_ART = {};
 /* the current stop when the Road was last drawn: when a show moves it on, the connector's newest step draws itself on */
 let lastCur = null;
 
@@ -240,6 +243,13 @@ function rrTag(s, all) {
   return tagOf(s);
 }
 
+/* Escape closes an open stop card even when focus has moved off the Road's own buttons. renderRoad sets escapeCard; a sheet or dialog
+   that is open takes the Escape first. */
+let escapeCard = null;
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || e.defaultPrevented || !escapeCard || document.querySelector("[role=dialog]:not(.rd-pop), .sheet, .modal")) return;
+  if (escapeCard()) e.preventDefault();
+});
 export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
   const ov = openingView(data);
@@ -279,7 +289,7 @@ export function renderRoad() {
   const legsHTML = road.legs.map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>${rr ? `Leg ${l.n}, ${esc(l.name)}` : `Leg ${l.n} · ${esc(l.name)}`}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
-    ${neckHTML(l, gx)}`).join("");
+    ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id) } : gx)}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
   const songbookBar = `
@@ -343,14 +353,39 @@ export function renderRoad() {
     if (e.target.closest("#rd-other")) return otherSongs(cur);
     const songBtn = e.target.closest("[data-song]");
     if (songBtn) return playGig(songBtn.dataset.song, { from: "road" });
-    const node = e.target.closest("[data-stop]");
+    let node = e.target.closest("[data-stop]");
+    /* Road Ready 9a: on a painted neck a pointer tap goes through one hit layer (roadHit): the current stop has a zone 32 units above
+       and below its row across the whole Road, anything else goes to the nearest stop. A keyboard or VoiceOver activation (detail 0)
+       is the stop's own button. */
+    const pn = e.target.closest(".rd-neck.road");
+    const painted = pn && pn.querySelector("[data-hx]");
+    if (painted && e.detail > 0 && !e.target.closest(".rd-pop")) node = (node || e.target.closest(".rr-hit")) ? roadTapNode(pn, e) : null;
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
     if (s?.kind === "box" && s.state === "now") return openCase(node, s);
     const open = wrap.querySelector(".rd-pop");
     closePop();
-    if (!open && s) { wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); }
+    if (!open && s) {
+      wrap.insertAdjacentHTML("beforeend", stopCard(s)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop"));
+      if (!e.detail) wrap.querySelector(".rd-start")?.focus(); /* from the keyboard: on to the card's button */
+    }
   });
+  /* the stop a pointer tap on a painted neck selects */
+  const roadTapNode = (neck, e) => {
+    const r = neck.getBoundingClientRect(), lh = +neck.dataset.lh || 1, tap = { x: (e.clientX - r.left) / r.width * 390, y: (e.clientY - r.top) / r.height * lh };
+    const btns = [...neck.querySelectorAll("[data-stop][data-hx]")];
+    const pts = btns.map(b => { const art = b.querySelector(".rr-art"); return { x: +b.dataset.hx, y: +b.dataset.hy, w: +art?.getAttribute("width") || 0, h: +art?.getAttribute("height") || 0, done: b.classList.contains("done"), badge: b.dataset.kind === "double" }; });
+    const at = roadHit(pts, tap, cur ? btns.findIndex(b => b.dataset.stop === cur.id) : -1);
+    return btns[at] || null;
+  };
+  /* Escape closes the card and puts focus back on its stop, wherever focus is (one listener for the page, see escapeCard) */
+  escapeCard = () => {
+    const pop = document.contains(path) && path.querySelector(".rd-pop");
+    if (!pop) return false;
+    const stop = pop.parentElement.querySelector("[data-stop]");
+    closePop(); stop?.focus();
+    return true;
+  };
   /* 4.76.0: tap the next box: it opens, the fans burst in, then the road moves on. 4.82.0: the pearl drops into the inlay. */
   const openCase = (node, s) => {
     if (node.classList.contains("opening") || !openBox(data, s.id)) return;
