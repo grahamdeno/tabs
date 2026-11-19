@@ -17,6 +17,7 @@ import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
 import { friend } from "./friends.js";
 import { paintTabs, tabFor } from "./hud.js";
 import { guitarPic } from "./fretboard.js";
+import { buildPic } from "./buildart.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const shortDay = d => { const [y, m, dd] = String(d).split("-"); return y && m ? `${MONTHS[+m - 1]} ${+dd || ""}${y !== String(new Date().getFullYear()) ? `, ${y}` : ""}`.replace(" ,", ",") : ""; };
@@ -109,8 +110,8 @@ export function renderProfile() {
   const rr = rrLook();
   const rrRow = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row rr-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span class="rr-row-t">${name}${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "chev")}</${href ? "a" : "button"}>`;
   const legs = roadPath(data).legs, earned = guitarsEarned(data);
-  const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
-    return `<li class="rr-gtr" role="img" aria-label="${esc(g.name)}${esc(at)}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : `<span class="rr-gtr-ph" aria-hidden="true"></span>`}</li>`; }).join("");
+  const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
+    return `<li class="rr-gtr" role="img" aria-label="${esc(g.name)}${esc(at)}">${pic ? `<img src="${bp.src}"${bp.attr} alt="" aria-hidden="true">` : `<span class="rr-gtr-ph" aria-hidden="true"></span>`}</li>`; }).join("");
   /* Road Ready 9a: the guitars bought in the Guitar shop sit in the case too; the one you chose says so */
   const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => { const pic = guitarPic(r.id);
     return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");

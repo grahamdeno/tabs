@@ -29,6 +29,7 @@ import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
+import { buildPic } from "./buildart.js";
 import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
 import { statBar, bindStatBar, settleStats, statNotices } from "./hud.js";
 
@@ -289,7 +290,7 @@ export function renderRoad() {
   const legsHTML = road.legs.map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>${rr ? `Leg ${l.n}, ${esc(l.name)}` : `Leg ${l.n} · ${esc(l.name)}`}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
-    ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id) } : gx)}`).join("");
+    ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id), build: data.builds?.[l.id] } : { ...gx, build: data.builds?.[l.id] })}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
   const songbookBar = `
@@ -450,7 +451,7 @@ function guitarEarned(road) {
       <div class="sc-show case" aria-hidden="true">
         <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
         ${CASE_ART[gn.guitar.body] ? `<img class="sc-case-pic" src="art/show/case-${CASE_ART[gn.guitar.body]}-${document.documentElement.dataset.look === "festival" ? "light" : "dark"}.webp" alt="">`
-          : `<span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? `<img src="${guitarPic(gn.guitar.body)}" alt="">` : guitarSVG(gn.next, { full: true })}</span></span>`}
+          : `<span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? (bp => `<img src="${bp.src}"${bp.attr} alt="">`)(buildPic(gn.next, data.builds?.[gn.next], guitarPic(gn.guitar.body))) : guitarSVG(gn.next, { full: true })}</span></span>`}
         <span class="sc-label">${esc(gn.guitar.name)}</span>
         <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
       </div>

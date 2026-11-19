@@ -11,6 +11,7 @@
 // look's colours (styles.css, "The fretboard Road").
 import { fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace } from "./core.js";
 import PICS from "./art/guitars/pics.js";
+import { buildPic } from "./buildart.js";
 
 const W = 390, CX = 195;
 const STR = [-90, -54, -18, 18, 54, 90]; /* string x from the middle of the board, low E to high e */
@@ -267,9 +268,12 @@ export function roadLayout(stops, p) {
   return { spaces, head: 0, neck: 0, body: 0, height: Math.round(top + S * r.h + ROAD.margin), road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
 }
 /* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware */
-function roadBase(g, lay, f) {
-  const { r, S, X, Y } = lay.road;
-  return `<image href="art/guitars/${f}-road.webp?v=${VERSION}" x="${X(0).toFixed(1)}" y="${Y(0).toFixed(1)}" width="${(r.w * S).toFixed(1)}" height="${(r.h * S).toFixed(1)}"/>`;
+function roadBase(g, lay, f, build, legId) {
+  const { r, S, X, Y } = lay.road, painted = `art/guitars/${f}-road.webp?v=${VERSION}`;
+  /* Road Ready 9b: a guitar you restyled is put together once (buildart.js) and drawn at the same size, so the stops line up;
+     the painting shows until it is ready, and for a guitar with no build */
+  const bp = build && legId ? buildPic(legId, build, painted) : { src: painted, attr: "" };
+  return `<image href="${bp.src}"${bp.attr} x="${X(0).toFixed(1)}" y="${Y(0).toFixed(1)}" width="${(r.w * S).toFixed(1)}" height="${(r.h * S).toFixed(1)}"/>`;
 }
 
 /* the strings and their shadows, from the nut to the bridge */
@@ -468,7 +472,7 @@ export function neckHTML(leg, o) {
        drawing's units (data-hx, data-hy) so road.js can decide which stop a tap selects (roadHit in core/game.js) */
     const [h0, h1] = lay.hit;
     return `<div class="rd-neck road" data-guitar="${leg.id}" data-lh="${lay.height}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
-    <svg class="rd-base nano road" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f)}</svg>
+    <svg class="rd-base nano road" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
     ${o.rr ? connectorSVG(lay, lay.spaces, o) : ""}
     <div class="rr-hit" aria-hidden="true" style="top:${(h0 / lay.height * 100).toFixed(3)}%;height:${((h1 - h0) / lay.height * 100).toFixed(3)}%"></div>
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}
