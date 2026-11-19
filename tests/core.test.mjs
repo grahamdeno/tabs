@@ -3493,3 +3493,65 @@ test("4.99.0 selfie: a light wall beside dark hair doesn't make it grey; photos 
   const g = C.selfieGuess({ hair: [[230, 200, 120]], chin: [70, 44, 28], cheek: [200, 160, 130] }, { skin: SKIN, hair: HAIR_COL });
   assert.equal(g.hairCol, "blonde"); assert.equal(g.beard, "beard"); assert.equal(g.beardCol, "brown", "a brown beard under blonde hair");
 });
+
+// ---------- App icon, launch screens and theme colour (black Louie) ----------
+
+const pngInfo = buf => {
+  assert.equal(buf.subarray(0, 8).toString("binary"), "\x89PNG\r\n\x1a\n", "PNG signature");
+  assert.equal(buf.toString("ascii", 12, 16), "IHDR", "IHDR comes first");
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20), bitDepth: buf[24], colorType: buf[25] };
+};
+const pngFile = rel => {
+  const buf = fs.readFileSync(path.join(root, rel));
+  return { buf, ...pngInfo(buf) };
+};
+
+test("the manifest theme colour is the Road Ready dark ground, and every listed icon is the size it claims", () => {
+  const base = rrHex(rrDark, "--rr-base");
+  const manifest = JSON.parse(read("manifest.webmanifest"));
+  assert.equal(manifest.theme_color.toLowerCase(), base.toLowerCase(), "theme_color matches --rr-base");
+  assert.equal(manifest.background_color.toLowerCase(), base.toLowerCase(), "background_color matches --rr-base");
+  assert.match(read("index.html"), new RegExp(`<meta name="theme-color" content="${base}"`, "i"), "the document theme-color starts on the same ground");
+  assert.ok(manifest.icons.length >= 3, "192, 512 and a maskable 512");
+  for (const icon of manifest.icons) {
+    const [w, h] = icon.sizes.split("x").map(Number);
+    const png = pngFile(icon.src);
+    assert.equal(png.w, w, `${icon.src} width`);
+    assert.equal(png.h, h, `${icon.src} height`);
+    assert.equal(png.bitDepth, 8, `${icon.src} is 8-bit`);
+    assert.equal(png.colorType, 2, `${icon.src} is opaque RGB, no transparency`);
+  }
+});
+
+test("the favicon, apple-touch icon and every iPhone launch screen exist at the size index.html names", () => {
+  const html = read("index.html");
+  assert.match(html, /rel="icon"[^>]*sizes="32x32"[^>]*href="icons\/favicon-32\.png"/);
+  const favicon = pngFile("icons/favicon-32.png");
+  assert.equal(favicon.w, 32); assert.equal(favicon.h, 32); assert.equal(favicon.colorType, 2);
+  const apple = pngFile("icons/apple-touch-icon.png");
+  assert.equal(apple.w, 180); assert.equal(apple.h, 180); assert.equal(apple.colorType, 2, "apple-touch-icon is opaque");
+  const master = pngFile("icons/icon-1024.png");
+  assert.equal(master.w, 1024); assert.equal(master.h, 1024); assert.equal(master.colorType, 2, "the 1024 master is opaque RGB");
+  assert.match(html, /rel="apple-touch-icon"[^>]*href="icons\/apple-touch-icon\.png"/);
+  const launches = [...html.matchAll(/rel="apple-touch-startup-image"[^>]*href="(icons\/splash\/launch-(\d+)x(\d+)\.png)"/g)];
+  assert.ok(launches.length >= 9, `every launch screen is linked, got ${launches.length}`);
+  for (const [, href, w, h] of launches) {
+    const png = pngFile(href);
+    assert.equal(png.w, Number(w), href);
+    assert.equal(png.h, Number(h), href);
+    assert.equal(png.colorType, 2, `${href} is opaque`);
+  }
+});
+
+test("the loading screen shows black Louie on the Dark ground, then hides once the app draws", () => {
+  const html = read("index.html"), css = read("styles.css");
+  assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
+  assert.match(html, /src="art\/louie\/v3\/louie-idle-dark\.webp"/, "it uses the black default Louie");
+  assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
+  assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
+  const shell = read("sw.js");
+  assert.match(shell, /"art\/louie\/v3\/louie-idle-dark\.webp"/, "the boot picture is saved for offline");
+  for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+});
