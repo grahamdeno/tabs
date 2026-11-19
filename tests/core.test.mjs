@@ -3451,3 +3451,10 @@ test("Opening night: every step's pick has an icon, so no pick says undefined (f
   const src = read("road.js"), block = src.slice(src.indexOf("const OIC = {"), src.indexOf("};", src.indexOf("const OIC = {")));
   for (const o of C.OPENING) assert.ok(new RegExp(`\\b${o.id}:`).test(block), `an icon for ${o.id}`);
 });
+
+test("4.98.1 the beard's own colour: optional, absent means the hair colour, unknown values dropped; the renderer reads it", () => {
+  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beard: "beard" }).beardCol, undefined, "a saved guitarist without one stays without one");
+  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beard: "beard", beardCol: "black" }).beardCol, "black");
+  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "brown" }).beardCol, undefined, "the same as the hair is not stored");
+  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "<x>" }).beardCol, undefined, "unknown colours are dropped");
+});

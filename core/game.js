@@ -205,7 +205,7 @@ export function guitarNew(data, now = Date.now()) {
   return next ? { leg: last, next: next.id, guitar: guitarFor(next.id), done } : null;
 }
 /* ---------- Your guitarist (4.85.0): the player in Louie's style, built from parts ----------
-   data.me = { skin 0-5, hair, hairCol, beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches }.
+   data.me = { skin 0-5, hair, hairCol, beardCol? (absent: the hair colour), beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches }.
    The big looks aren't stored: the top follows the venue you've reached (stageLook), the patches come from what
    you've done (patchesOf) and the guitar is the one you're on. Drawn in guitarist.js. */
 export const ME_HAIR = ["shag", "curly", "buzz", "mohawk", "braids", "bob", "bun", "swoop", "long", "locs", "pixie", "ponytail", "longhawk"];
@@ -238,6 +238,8 @@ export function cleanMe(raw) {
   };
   const patches = [...new Set((Array.isArray(raw.patches) ? raw.patches : []).filter(x => typeof x === "string" && /^[\w:-]{1,24}$/.test(x)))].slice(0, ME_PATCHES);
   if (patches.length) out.patches = patches;
+  /* the beard's own colour (2026-11-19), optional: absent means the hair colour, so a saved guitarist looks the same */
+  if (ME_HAIR_COL.includes(raw.beardCol) && raw.beardCol !== out.hairCol) out.beardCol = raw.beardCol;
   return out;
 }
 /* Start from a selfie (Gig poster, 2026-11-19): colours sampled from a photo snap to the guitarist's own inks. The photo
