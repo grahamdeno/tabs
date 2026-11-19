@@ -2076,25 +2076,8 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 :root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
 /* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
 :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
-/* Step 03b (10a: now art/louie/v3): Louie is the painted art. The light picture by default, the dark one (with its warm rim) on the
-   dark looks, and the light one again on the bright headers there. The code drawing (.lv-code) is the fallback: it shows
-   when he wears a finish from the Merch table (until Graham decides, Surprise 30), and in pictures made from the SVG. */
-.louie .lv-code, .louie .lv-art-d { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-d.lv-v3 { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-l.lv-v3 { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-l.lv-v3 { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-d.lv-v3 { display: none; }
-.fin:not(.fin-stock, .fin-black) .louie .lv-code, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-code { display: inline; }
-.fin:not(.fin-stock, .fin-black) .louie .lv-art-wrap, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-art-wrap { display: none; }
-/* 10a: the painted pictures are art/louie/v3 (black). The Blue finish (id black, the blue he wore first) shows art/louie/v2 instead,
-   with the same light, dark and bright-header rules. */
-.louie .lv-v2 { display: none; }
-:root .fin-black .louie .lv-v3, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v3 { display: none; }
-:root .fin-black .louie .lv-v2.lv-art-l, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: none; }
+/* Louie is one picture (art/louie/v4, the tweed Louie; Graham, 2026-11-19) in every look and on every surface. The earlier
+   rules that chose between light, dark, blue and drawn Louies went with them. */
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }
