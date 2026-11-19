@@ -5760,3 +5760,11 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .bd-card.locked { border: 1px solid var(--rr-hairline); background: transparent; box-shadow: inset 0 1px 3px rgba(0,0,0,.25); } /* an engraved, empty slot */
 :root:is([data-look="neon"], [data-look="festival"]) .bd-card.fresh { border-color: var(--rr-amber-text); box-shadow: 0 0 0 1px var(--rr-amber-text), var(--rr-lift); }
 :root:is([data-look="neon"], [data-look="festival"]) .bd-card small { font: var(--type-caption-w) var(--type-caption) / 1.3 var(--sans); letter-spacing: var(--type-caption-ls); color: var(--rr-text-2); }
+
+/* ===== Road Ready design pass: Me (chord passport) ===== stamps are amber ink on the card, not five candy colours; the family
+   still shows in the page heading. The tilt stays: a stamp is pressed by hand. */
+:root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp { border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); opacity: 1; font: 600 var(--type-subhead) / 1 var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.on,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.on:is(.k-open, .k-seventh, .k-color, .k-barre, .k-other) {
+  border: 2px solid var(--rr-amber-text); background: var(--accent-soft); color: var(--rr-amber-text); box-shadow: inset 0 0 0 3px var(--rr-card), inset 0 0 0 4px var(--accent-line); font-weight: 700; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.next { border: 1.5px solid var(--rr-amber-text); color: var(--rr-amber-text); }
