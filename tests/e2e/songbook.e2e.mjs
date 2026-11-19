@@ -60,9 +60,9 @@ for (const theme of ["dark", "light"]) test(`Road Ready 07 (${theme}): each row 
   assert.match(b.text, /needs F/, "the one missing chord shows as a tag");
   /* the chosen filter is said, not only filled */
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f || c.id, c.getAttribute("aria-pressed")])));
-  assert.deepEqual(await pressed(), { all: "true", can: "false", learn: "false", fav: "false", setsbtn: "false" });
+  assert.deepEqual(await pressed(), { all: "true", can: "false", near: "false", learn: "false", fav: "false", setsbtn: "false" }); /* 4.105.0: Almost, songs one chord away */
   await page.click('#chips [data-f="learn"]'); await page.waitForSelector('#chips [data-f="learn"].on');
-  assert.deepEqual(await pressed(), { all: "false", can: "false", learn: "true", fav: "false", setsbtn: "false" });
+  assert.deepEqual(await pressed(), { all: "false", can: "false", near: "false", learn: "true", fav: "false", setsbtn: "false" });
 });
 
 test("Road Ready 07: Green Room and Headliner keep the earlier Songbook (no Road Ready markup, Sets in the header, + in the search bar)", { skip: skip() }, async t => {
@@ -91,14 +91,14 @@ for (const width of [320, 390]) test(`Road Ready 07 at ${width} px: rows at leas
   assert.equal(m.overflow, false, "nothing runs off the side");
 });
 
-test("Road Ready 07: Louie appears only as the 44 px face badge in the hint banner, hidden from screen readers", { skip: skip() }, async t => {
+test("Road Ready 07: Louie appears only as the face badge in the slim hint strip (34 px since 4.105.0), hidden from screen readers", { skip: skip() }, async t => {
   const page = await songbook(t, "dark");
   const b = await page.evaluate(() => {
     const imgs = [...document.querySelectorAll("#app img")].filter(i => /louie/.test(i.src));
     const one = imgs[0], r = one?.getBoundingClientRect();
     return { n: imgs.length, inHint: !!one?.closest(".rr-hint"), hidden: one?.getAttribute("aria-hidden"), alt: one?.getAttribute("alt"), w: r?.width, h: r?.height, inRows: document.querySelectorAll("#list .louie, #list img[src*='louie']").length, loaded: one?.complete && one?.naturalWidth > 0 };
   });
-  assert.deepEqual(b, { n: 1, inHint: true, hidden: "true", alt: "", w: 44, h: 44, inRows: 0, loaded: true });
+  assert.deepEqual(b, { n: 1, inHint: true, hidden: "true", alt: "", w: 34, h: 34, inRows: 0, loaded: true });
 });
 
 test("Road Ready 07: at large text the dots and key move under the title, and a long title wraps to two lines with the full title in the label", { skip: skip() }, async t => {
@@ -176,4 +176,21 @@ test("Road Ready 07: an empty Songbook still draws (the ways to add), and Sets i
   await withSet.waitForSelector("#setsbtn"); await settled(withSet);
   await withSet.click("#setsbtn");
   await withSet.waitForSelector("#setsbtn.on[aria-pressed='true']"); /* with no songs the list still asks for one, as in the earlier Songbook */
+});
+
+test("4.105.0 Songbook (agreed screen): no Back button on the tab, the filters then the hint, and Almost lists the songs one chord away", { skip: skip() }, async t => {
+  const songs = [...LIB.songs, { id: "z", title: "Borrowed Tune", artist: "Mara Vale", format: "chords", body: "[Verse]\nC G Am F\nla" }];
+  const skills = { done: Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map((c, i) => ["c:" + c, { n: 3, best: 90, at: Date.now() - 1000 + i }])), last: Date.now() };
+  const page = await phone(t, { ...LIB, songs, skills, settings: { ...LIB.settings, v: 6, theme: "dark" } });
+  await page.waitForSelector("#chips.rr-chips");
+  assert.equal(await page.locator("#libback").count(), 0, "Songbook is a tab, so no Back button");
+  const order = await page.$$eval("#app > *", els => els.map(e => e.id || e.className.split(" ")[0]).filter(x => ["chips", "today"].includes(x)));
+  assert.deepEqual(order.slice(0, 1), ["chips"], "the filters come first");
+  const near = page.locator("[data-f=near]");
+  assert.equal(await near.count(), 1); assert.match(await near.getAttribute("aria-label"), /^Almost, \d+ songs? one chord away$/);
+  await near.click(); await page.waitForFunction(() => document.querySelector("[data-f=near]")?.getAttribute("aria-pressed") === "true");
+  const titles = await page.$$eval("#list .row", rs => rs.map(r => r.getAttribute("aria-label") || r.innerText));
+  assert.ok(titles.length >= 1 && titles.every(x => /needs [A-G]/.test(x)), `every song listed needs one chord: ${titles.join(" / ")}`);
+  await page.click("#setsbtn"); await page.waitForSelector("#libback");
+  assert.equal(await page.innerText(".rr-sb-head .title"), "Sets"); await page.click("#libback"); await page.waitForFunction(() => !document.getElementById("libback"));
 });
