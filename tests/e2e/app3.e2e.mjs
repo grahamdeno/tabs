@@ -347,7 +347,7 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
 });
 
 /* Road Ready (step 02) draws the Road anew in the Light and Dark looks (roadready.e2e.mjs); Green Room and Headliner keep this one */
-test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with its current stop open, Louie, the Songbook bar and the tab bar", { skip: skip() }, async t => {
+test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with its current stop open, the message, the Songbook bar and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
@@ -365,7 +365,7 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop", { state: "detached" });
   assert.equal(await page.locator(".rd-node .rd-dot").count() > 3, true, "the lessons are finger dots");
   assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next dot");
-  assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie beside the path");
+  assert.ok(await page.locator(".rd-say svg.louie").count() === 0 && await page.locator(".rd-say #rd-bubble").count() === 1, "the message stays beside the path, without Louie (10b)");
   assert.equal(await page.locator(".rd-node.headline").count() >= 1, true, "each leg ends in a headline show");
   assert.equal(await page.locator(".rd-node.headline .rd-inlay").count(), await page.locator(".rd-node.headline").count(), "4.82.0: a show is the double inlay");
   assert.equal(await page.locator(".rd-tag").count(), 1, "4.75.0: one tag, on the next stop");

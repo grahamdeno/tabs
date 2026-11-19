@@ -15,6 +15,7 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 - 2026-11-18, step 07 (Graham left these to Claude's judgement): **search stays at the bottom** of the Songbook, in thumb reach and where the Road's search sits (114). **No Tuner in the Road Ready Songbook**: you tune on the song screen and Me, as decided in step 04 (115). **Solid keeps the literal meanings**: Solid means you can play it through, so it plays at full speed and isn't in the Learning filter, set or Rehearse's Learning card (118). **"Nailed it" on Your profile stays** (119).
 - 2026-11-18, step 08 (Me): game money and real money stay apart. Graham left the choice to Claude. The Merch row is the only place on Me with the coin and a $ amount ("Spend your game tips: $411 at the Merch table"); real money is a separate "Support the app" section with one row, "Support Louie on Ko-fi (real money, optional)", a heart, no coin and no amount; the word "tips" is never on the real-money row.
 - 2026-11-18, step 09: the sub-plan is approved (Graham: go with Claude's suggestions). Grok's 16 guitars are added as a Guitar shop on the Merch table, priced and opened by venue so a new guitar is always a few shows away: Open mic $90 to Stadium $300; a 'Next up' tag on the next one; progress in plain words, with no time limits or guilt; looks only. 9c (Big Sky, Tin Roof, Low Road, Pocket, Wingtip) stays, in the release after Road Ready. The builder works on the seven Road guitars.
+- 2026-11-18, step 10: Louie is black by default (Grok paints it; today's blue becomes the 'Blue' finish in place of Studio black, same $800) and Louie leaves the Road (his message and the Gig button stay as a plain card; sheets over the Road keep him). This replaces the 2026-11-17 answer that Louie stays on the Road.
 
 ## Branches
 
@@ -35,6 +36,7 @@ Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, c
 | 07 | Songbook | [Sonnet] |
 | 08 | Me and the guitar case | [Sonnet] |
 | 09 | Merch builder and guitar art | [Opus] |
+| 10 | Louie in black, and off the Road | [Grok] paints, [Sonnet] builds |
 
 Rules for whoever runs a step: one task per commit, `eslint .` and `node tests/quick.mjs`, push only the step's branch. When something doesn't match the plan, stop that part and write it under Surprises.
 
@@ -117,6 +119,40 @@ Merged into `rr-09-merch` on Graham's go, 2026-11-19: PR #103 (`954fefa`, into `
 Merged into `rr-09-neck` on Graham's go, 2026-11-19: PR #104 at `6b3865c` (Louie Review, Fable, passed the re-check; CI test and browser passed), merge commit `818bf0e`.
 
 Each of 9a and 9b is its own PR into `road-ready`, reviewed by Louie Review (Fable), on Graham's merge go.
+
+## Step 10: Louie in black, and off the Road (Opus, Louie Product, 2026-11-18)
+
+Graham's answer, 2026-11-18: Louie is black by default and leaves the Road. Approved by Graham as read back in Louie Product.
+
+### Story 10a: Louie in black
+
+As a player, I want Louie in black so that he fits the Road Ready look.
+
+Criteria:
+- Louie is black in every look, pose and size.
+- He stands clear of the black Dark look.
+- His locked rules hold (one mouth on the yellow panel, hands with fingers, never one finger standing straight up).
+- Today's blue becomes the "Blue" finish in place of "Studio black", at the same price. Other finishes are unchanged.
+
+Out of scope: Louie Lite. Grok paints the new pictures.
+
+### Story 10b: Louie off the Road
+
+As a player, I want the Road to show the path and my next step, without Louie, so that the screen is about my tour.
+
+Criteria:
+1. The Road shows no Louie in any state: not in the message row, not in Opening night's strip, and not as the peeking picture.
+2. The message text and the Gig button stay where they are, as a plain card, in Dark and Light and at large text.
+3. Sheets opened from the Road keep Louie: the Headliner sheet, the new-guitar sheet and Show complete.
+4. Louie's pictures stay in `sw.js`, since other screens use them.
+
+Built on `rr-10-road-louie` (Sonnet), one PR into `road-ready`. `tests/e2e/roadnolouie.e2e.mjs` checks criteria 1 to 3 in every look and state; the pictures stay in the repo and in `sw.js` (criterion 4).
+
+### Step 10 status
+
+- 2026-11-19: Grok's black Louie art (`art/louie/v3/`), PR #106, merged into `road-ready` on Graham's go after he approved the look, merge commit `4760d48`. The app still shows v2 until 10a is built.
+- 2026-11-19: Story 10b, PR #107 at `dba8ffc` (reviewed by Claude Opus 5.5; CI test and browser passed), merged into `road-ready` on Graham's go, merge commit `8d82372`.
+- 2026-11-19: Grok's builder art for 9b (`art/guitars/builder/`), PR #108, merged into `road-ready` on Graham's go, merge commit `c8513b4`.
 
 ## Surprises
 

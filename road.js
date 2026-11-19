@@ -176,7 +176,7 @@ function renderOpening(view) {
       ${done ? `<button class="on-skip" id="on-next">On to Leg 1</button>` : `<button class="on-skip" id="on-skip">Skip</button>`}
     </section>
     <div class="rd-path on-path" id="rd-path">
-      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[step])}</p></div>${louie(done ? "cheer" : "happy", { pose: done ? "thumb" : "wave", size: 112 })}</div>
+      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[step])}</p></div></div>
       ${stops}
     </div>`;
   const $ = id => document.getElementById(id);
@@ -306,7 +306,6 @@ export function renderRoad() {
     <p class="rr-say" id="rd-bubble">${esc(say.text)}</p>
     <div class="rr-stage">
       <div class="rd-path rr" id="rd-path">${legsHTML}${coming}</div>
-      <span class="rd-peek" aria-hidden="true"></span>
     </div>${songbookBar}`;
   } else app.innerHTML = `
     <div class="rd-top">${statBar()}</div>
@@ -316,7 +315,7 @@ export function renderRoad() {
     </section>` : ""}
     ${chip ? `<div class="rd-chip">${chip}</div>` : ""}
     <div class="rd-path" id="rd-path">
-      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(say.text)}</p>${song ? `<button class="rd-tonight" id="rd-tonight">${icon("play")}<span>Gig: ${esc(song.title)}</span></button>` : ""}</div>${louie(say.mood, { pose: say.pose, size: 112 })}</div>
+      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(say.text)}</p>${song ? `<button class="rd-tonight" id="rd-tonight">${icon("play")}<span>Gig: ${esc(song.title)}</span></button>` : ""}</div></div>
       ${legsHTML}${coming}
     </div>${songbookBar}`;
   const $ = id => document.getElementById(id);
