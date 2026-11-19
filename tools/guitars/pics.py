@@ -3,6 +3,9 @@
 # ends on it, then write the headstock and the body as WebP (art/guitars/<name>-head.webp, -body.webp), a small whole
 # guitar for the guitarist's hands (-small.webp) and the numbers the Road lays them out by (art/guitars/pics.js).
 # Sources: docs/guitars/pics/<name>.jpg (whole guitar, 9:16) and, where Gemini made one, <name>-head.jpg (a close-up).
+# Road Ready 9a (painted necks): for the 23 new guitars the tool also writes art/guitars/<name>-road.webp (the whole cut-out guitar at
+# the painting's own size, painted strings kept) and a `road` entry in pics.js from Grok's measurements, docs/guitars/frets.json
+# (read only), in the crop's own pixels: the nut, the frets, the lanes of each fret space, the badge spot and the capacity.
 # Road Ready 9a: the 23 guitars of docs/guitars/HANDOFF.md are added (SOURCES names the files of each by slug). Their pictures
 # have painted strings and hardware, so pics.js marks them `str: 1`; the Road then skips the strings and hardware it draws itself.
 import json, os, numpy as np
@@ -31,6 +34,26 @@ SOURCES = {
 NUT = {**{n: 590 for n in SOURCES}, "razorwing": 700, "toxicchecker": 620}
 ACOUSTIC = {"porch", "cornerstone", "koaarc", "ziricotegrand", "walnuthall"}
 NAMES = OLD + list(SOURCES)
+FRETS = json.load(open("docs/guitars/frets.json"))
+r1 = lambda v: round(float(v), 1)
+
+def road_entry(name, x0, y0, size):
+    # frets.json measures the whole painting; the road picture is that painting cropped at (x0, y0), so subtract the crop.
+    d = FRETS[name]
+    assert os.path.basename(d["source"]) == os.path.basename(SOURCES[name][0]), f"{name}: frets.json measured {d['source']}, not {SOURCES[name][0]}"
+    f = d["frets"]
+    # per fret (0 is the nut, 12 frets): y, the board's centre and half width, the six strings' x (low E first)
+    frets = [[r1(t["y"] - y0), r1(t["centre_x"] - x0), r1(t["half_width"])] + [r1(v - x0) for v in t["strings_x"]] for t in f[:13]]
+    # per fret space 1 to 11: y (the middle), height, then x and clear (1 or 0) of the left, right and box lanes, pair ok (1 or 0),
+    # the pair's left and right x, and 1 where the space uses the over-inlay style (all in painting pixels)
+    spaces = []
+    for t in d["spaces"][:11]:
+        pr = t["pair"]
+        spaces.append([r1(t["y"] - y0), r1(t["height_px"]), r1(t["left"]["x"] - x0), int(t["left"]["clear"]), r1(t["right"]["x"] - x0), int(t["right"]["clear"]),
+                       r1(t["box"]["x"] - x0), int(t["box"]["clear"]), int(pr["ok"]), r1(pr.get("left", t["left"]["x"]) - x0), r1(pr.get("right", t["right"]["x"]) - x0),
+                       int(t["style"] == "over-inlay")])
+    return dict(w=size[0], h=size[1], cx=r1(f[0]["centre_x"] - x0), nut=r1(d["nut_y"] - y0), join=r1(d["join_y"] - y0), cap=d["capacity"]["max_stops"],
+                badge=[r1(d["badge"]["x"] - x0), r1(d["badge"]["y"] - y0)], f=frets, sp=spaces)
 CLOSEUP = {"cutaway-sunburst": 800, "hollow": 700, "classical": 920, "headliner": 920}
 for _n in SOURCES: CLOSEUP[_n] = 820  # a row below the nut (near y 590; Razorwing 700, Toxic Checker 620) that crosses the neck  # with a row that crosses the neck  # the solid's close-up is shaded and strung, unlike the rest
 # where the strings end, as a share of the body from the end of the neck to the bottom (acoustics: the bridge;
@@ -149,6 +172,11 @@ for name in NAMES:
     bx0, bx1 = max(0, xs[0] - 4), min(W, xs[-1] + 5)
     by0, by1 = m["body"] - 2, m["bot"] + 3
     bsize = save(rgb, al, (bx0, by0, bx1, by1), f"{OUT}/{name}-body.webp")
+    if name in SOURCES:
+        # the whole guitar for the Road (Road Ready 9a painted necks): the painting's own size, a few pixels of margin
+        ry0, ry1 = max(0, ys[0] - 4), min(al.shape[0], ys[-1] + 5)
+        rsize = save(rgb, al, (bx0, ry0, bx1, ry1), f"{OUT}/{name}-road.webp")
+        road = road_entry(name, bx0, ry0, rsize)
     # a small whole guitar for the guitarist's hands
     save(rgb, al, (bx0, max(0, m["top"] - 3), bx1, by1), f"{OUT}/{name}-small.webp", 640 / (by1 - m["top"]))
     body = dict(w=bsize[0], h=bsize[1], cx=m["cx"] - bx0, nw=m["nw"], end=m["end"] - by0 + 1, bridge=round(m["end"] - by0 + BRIDGE[name] * (m["bot"] - m["end"]), 1))
@@ -165,11 +193,14 @@ for name in NAMES:
     hsize = save(hr, ha, (hx0, max(0, hys[0] - 3), hx1, hm["nut"] + 1), f"{OUT}/{name}-head.webp")
     head = dict(w=hsize[0], h=hsize[1], cx=hm["cx"] - hx0, nw=hm["nw"])
     nums[name] = dict(head=head, body=body, lit=hexc(m["lit"]), shade=hexc(m["sh"]))
-    if name in SOURCES: nums[name]["str"] = 1
+    if name in SOURCES: nums[name]["str"] = 1; nums[name]["road"] = road
     print(name, "neck", round(m["nw"]), "nut", m["nut"], "body", m["body"], "end", m["end"], "bot", m["bot"], "| head", hsize, "body", bsize,
-          "| KB", *(os.path.getsize(f"{OUT}/{name}-{p}.webp") // 1024 for p in ("head", "body", "small")))
+          "| KB", *(os.path.getsize(f"{OUT}/{name}-{p}.webp") // 1024 for p in ("head", "body", "small") + (("road",) if name in SOURCES else ())))
 with open(f"{OUT}/pics.js", "w") as f:
     f.write("/* The numbers of each guitar picture, from tools/guitars/pics.py (4.87.0). Do not edit by hand.\n"
             "   head and body: picture size, the neck's centre (cx) and width (nw) in its pixels; body.end: where the neck ends on\n"
-            "   the body; body.bridge: where the strings end; lit and shade: the neck's two halves. */\n")
+            "   the body; body.bridge: where the strings end; lit and shade: the neck's two halves.\n"
+            "   road (the 23 new guitars): the -road.webp picture's w and h, cx (the nut's centre), nut and join (rows), cap (most stops),\n"
+            "   badge [x, y], f (frets 0 to 12: [y, centre x, half width, six string x]) and sp (fret spaces 1 to 11: [y, height, left x,\n"
+            "   left clear, right x, right clear, box x, box clear, pair ok, pair left x, pair right x, over-inlay]), all in the picture's pixels. */\n")
     f.write("export default " + json.dumps(nums) + ";\n")
