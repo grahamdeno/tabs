@@ -19,7 +19,7 @@ test("4.85.0 a player who never made a guitarist is asked once on the Road, and 
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).me?.hair === "braids");
   await page.waitForSelector("#rd-bubble");
   assert.equal(await page.locator(".gm").count(), 0, "the sheet closes");
-  assert.ok(await page.locator(".rd-peek").count() === 1 && await page.locator("#rd-bubble").count() === 1, "Louie still talks on the Road (Road Ready: he peeks in, his line under the header)");
+  assert.ok(await page.locator(".rd-peek").count() === 0 && await page.locator("#rd-bubble").count() === 1, "the message stays on the Road, without Louie (Road Ready 10b)");
   await page.reload(); await page.waitForSelector("#rd-bubble"); await settled(page);
   assert.equal(await page.locator(".gm").count(), 0, "asked once");
 });

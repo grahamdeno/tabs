@@ -2817,13 +2817,13 @@ test("Road Ready 07: Louie's face badge is saved for offline, is the picture the
   assert.ok(fs.statSync(path.join(root, file)).size <= 20000, `${file} is small`);
 });
 
-test("Road Ready 02: Louie's two peeking pictures are saved for offline, and each is under 60 KB", () => {
+test("Road Ready 02: Louie's two peeking pictures stay in the repo and saved for offline (other screens use them), each under 60 KB; the Road no longer shows them (10b)", () => {
   const shell = read("sw.js"), css = read("styles.css");
   for (const look of ["dark", "light"]) {
     const file = `art/louie/louie-peek-${look}.webp`;
     assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
     assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
-    assert.ok(css.includes(`url("${file}")`), `${file} is the picture the Road shows`);
+    assert.ok(!css.includes(`url("${file}")`), `${file} is not drawn on the Road any more`);
     assert.ok(fs.statSync(path.join(root, file)).size <= 60000, `${file} is small`);
   }
 });

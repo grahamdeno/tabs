@@ -4698,8 +4698,6 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
    ones that restyle shared Road parts (.rd-node, .rd-tag, .rd-legmark) are written to outrank the older rules.
    Header strip (spec 5.5), pearl inlays (5.3), the amber connector (5.4), Louie peeking (9), motion (7).
    ========================================================================== */
-:root[data-look="neon"] { --louie-peek: url("art/louie/louie-peek-dark.webp"); }
-:root[data-look="festival"] { --louie-peek: url("art/louie/louie-peek-light.webp"); }
 :root:is([data-look="neon"], [data-look="festival"]) body.is-home .app:has(> .rr-hdr) { padding: calc(8px + var(--safe-t)) 8px calc(var(--peek) - var(--tabs) + 6px); gap: 8px; }
 
 /* ---- the header strip: a piece of the amp, tolex inside chrome piping. Two rows: the plate and tips; Tonight and
@@ -4768,17 +4766,11 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
   font: var(--type-callout-w) var(--type-callout) / 1.3 "Inter", var(--sans); box-shadow: none;
 }
 
-/* ---- the stage: the path scrolls inside it, Louie stays put at its left edge ---- */
+/* ---- the stage: the path scrolls inside it ---- */
 .rr-stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 0 -8px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr { margin: 0; padding: 4px 0 30px; gap: 18px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark { display: flex; justify-content: center; margin: 2px 0 -6px; color: var(--rr-text-2); font: var(--type-caption-w) var(--type-caption) / 1.3 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); text-transform: uppercase; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark::before, :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark::after { background: var(--rr-hairline); }
-.rd-peek { position: absolute; z-index: 8; left: -30px; top: 55%; width: 136px; height: 150px; transform: translateY(-50%); pointer-events: none; background: var(--louie-peek) center / contain no-repeat; }
-/* the dark picture has its warm rim painted in, in a 12 px margin on a 600 px frame (a 4 percent bigger canvas, 3 px a side at this size), so the box grows by that much
-   and Louie is the same size as in the light look. No CSS shadow on top: that would double the rim. */
-:root[data-look="neon"] .rd-peek { left: -33px; width: 142px; height: 156px; }
-:root[data-ax="3"] .rd-peek { display: none; }
-@media (max-width: 359px) { .rd-peek { display: none; } }
 
 /* ---- the connector: a blurred amber glow under a thin light core ---- */
 .rd-neck > svg.rd-conn { z-index: 1; pointer-events: none; overflow: visible; }
@@ -4835,12 +4827,12 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pill small, :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pv b { white-space: normal; text-align: center; }
 :root[data-ax="3"] .rr-pips { display: none; }
 /* at large text the header and Louie's line would take over the screen and the Songbook dock would cover Louie, so: Louie's line is
-   smaller and cut to two lines (the whole line is still in the page for a screen reader), and the peek and the "N songs" chips
-   (which would land on him) are hidden; the callout beside the current stop stays. */
+   smaller and cut to two lines (the whole line is still in the page for a screen reader), and the "N songs" chips
+   are hidden; the callout beside the current stop stays. */
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-say {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; padding: 6px 12px; font-size: var(--type-subhead);
 }
-:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-peek, :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip { display: none; }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip { display: none; }
 :root[data-ax="3"] .rr-say { -webkit-line-clamp: 1; line-clamp: 1; }
 
 @media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }
