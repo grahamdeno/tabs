@@ -164,13 +164,26 @@ export function builtURL(legId, build) {
   if (ready.has(key)) return ready.get(key);
   if (!pending.has(key)) {
     pending.set(key, composeBuild(legId, sh, BUILD_TAKES[legId].slug).then(r => blobOf(r.canvas)).then(blob => {
-      const u = URL.createObjectURL(blob); ready.set(key, u); pending.delete(key);
+      const u = URL.createObjectURL(blob); ready.set(key, u); pending.delete(key); trim();
       for (const el of document.querySelectorAll("[data-bk]")) if (el.dataset.bk === key) put(el, u);
       return u;
     }).catch(() => { pending.delete(key); return null; }));
   }
   return null;
 }
+/* trying parts in the builder makes a picture per try; keep the newest KEEP and let go of older ones no picture on the page
+   is showing, so a long session doesn't hold them all in memory (each is a full-size PNG) */
+const KEEP = 12;
+function trim() {
+  if (ready.size <= KEEP) return;
+  const shown = new Set([...document.querySelectorAll("[data-bk]")].map(el => el.dataset.bk));
+  for (const [key, u] of ready) {
+    if (ready.size <= KEEP) break;
+    if (shown.has(key)) continue;
+    ready.delete(key); URL.revokeObjectURL(u);
+  }
+}
+export const builtCount = () => ready.size;
 const put = (el, u) => { if (el.tagName.toLowerCase() === "img") el.src = u; else el.setAttribute("href", u); };
 /* what a template writes for a guitar picture: the address (the build if it is ready, else the painting) and the marker
    that swaps the build in when it is done */

@@ -140,3 +140,15 @@ test("Builder: the built guitar is the one picture in the case on Me", { skip: s
   await page.waitForFunction(() => /^blob:/.test(document.querySelector(".rr-gtr img")?.getAttribute("src") || ""), null, { timeout: 15000 });
   assert.equal(await page.$$eval(".rr-gtr img", els => els.filter(e => e.src.startsWith("blob:")).length), 1, "only the built guitar changes");
 });
+
+test("Builder: trying many builds keeps only the newest pictures in memory", { skip: skip() }, async t => {
+  const page = await builder(t, "dark", { ring: 4 });
+  const kept = await page.evaluate(async () => {
+    const m = await import("./buildart.js");
+    const paints = ["amber", "black", "seafoam", "burgundy", "tobacco", "honey", "candy", "silverflake"], builds = [];
+    for (const paint of paints) for (const long of [0, 1]) builds.push(long ? { paint, long: 1 } : { paint });
+    for (const b of builds) await m.builtWait("open", b);
+    return { made: builds.length, kept: m.builtCount(), lastReady: m.builtReady("open", builds[builds.length - 1]) };
+  });
+  assert.equal(kept.made, 16); assert.ok(kept.kept <= 13, `at most 12 kept, plus one on the page (${kept.kept})`); assert.ok(kept.lastReady, "the newest is kept");
+});

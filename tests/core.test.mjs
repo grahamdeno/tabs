@@ -3355,6 +3355,9 @@ test("Road Ready 9b: prices and unlocks are the spec's, in one constant", () => 
   for (const id of ["leopard", "tiger", "cow", "checker", "paisley"]) { assert.equal(by("guard", id).price, 35); assert.equal(by("guard", id).venue, "Club"); }
   for (const id of ["teal", "violet", "purple", "koa"]) { assert.equal(by("top", id).price, 120); assert.equal(by("top", id).venue, "Theater"); }
   assert.ok(by("guard", "sunflower").hidden && by("guard", "sunflower").price === 0);
+  /* a bought part is saved as b-<id> with no category, so no two priced parts may share an id */
+  const paid = C.BUILD_PARTS.filter(p => p.price).map(p => p.id);
+  assert.equal(new Set(paid).size, paid.length, "priced part ids are unique across categories");
   assert.ok(!/\$(25|35|45|60|70|75|80|90|120)\b|price: (25|35|45|60|70|75|80|90|120)\b/.test(read("builder.js")), "no part price is written anywhere but the constant");
 });
 
