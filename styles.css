@@ -5806,3 +5806,6 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list p { margin: 0; padding: var(--sp-3) 0; font: 450 var(--type-subhead) / 1.45 var(--sans); color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list p + p { border-top: 1px solid var(--rr-hairline); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list b { font-weight: 650; }
+
+/* The chord editor (Edit) reads the words at the size where the widest line fits on one row (--lyric-fit, as before), not the 34 pt playing size, so its chips stay on one row */
+:root:is([data-look="neon"], [data-look="festival"]) body.cedit .sheet.rr-slots { font-size: calc(var(--lyric-fit, 17px) * var(--wide, 1)); }
