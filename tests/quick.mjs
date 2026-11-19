@@ -37,7 +37,7 @@ const COVERS = {
   "editor.js": ["app", "regress", "strum"],
   "sketch.js": ["strum"], "strum.js": ["strum"],
   "store.js": ["app"],
-  "styles.css": ["regress", "a11y"],
+  "styles.css": ["regress", "a11y", "readable"],
   "index.html": ["app", "a11y"],
   "sw.js": ["app"],
   "profile.js": ["profile"],
