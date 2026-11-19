@@ -264,7 +264,7 @@ function openingStart(i) {
 /* ---- One-row Road header (2026-11-19): four stats, icon then number, no labels, cards or outlines, 44 pt tall; each opens
    what it opened before (the stat bar's own buttons and bindings) ---- */
 function rrRow() {
-  return `<header class="rr-row">${rrStats()}</header>`;
+  return `<header class="rr-head">${rrStats()}</header>`;
 }
 /* the callout beside the current stop: a chord says the chord you know that leads into it and what it opens */
 function rrTag(s, all) {

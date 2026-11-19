@@ -7,7 +7,7 @@ import { app, esc, icon, toast } from "./ui.js";
 import { data, go } from "./app.js";
 import { friend, FRIENDS } from "./friends.js";
 import { louie } from "./louie.js";
-import { statBar, bindStatBar } from "./hud.js";
+import { bindStatBar, pageStats } from "./hud.js";
 
 const LINES = {
   lola: "Lola keeps the rhythm warm. She was your first fan.",
@@ -48,7 +48,7 @@ export function renderBand() {
   const part = () => "";
   app.innerHTML = `<div class="bd">
     <div class="head"><button class="ib glass" id="back" aria-label="Back to Me">${icon("back")}</button></div>
-    <div class="tq-top">${statBar()}</div>
+    <div class="tq-top">${pageStats()}</div>
     <section class="bd-head" aria-label="Your band">
       <div><h1>Your band</h1><small>${n} OF ${st.members.length} JOINED</small></div>
       ${louie(n ? "cheer" : "happy", { pose: n ? "hornsUp" : "wave", size: 92 })}

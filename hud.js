@@ -65,6 +65,9 @@ export function rrStats() {
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${ST_ICON.tips}<span>$${n(tips)}</span></button>
   </div>`;
 }
+/* the stats at the top of Rehearse, Tour, Charts and Your band: the Road's one-row header in Dark and Light (design pass,
+   2026-11-19), the labelled stat bar in Green Room and Headliner. bindStatBar binds either. */
+export const pageStats = () => ["neon", "festival"].includes(document.documentElement.dataset.look) ? rrStats() : statBar();
 export function bindStatBar() {
   const $ = id => document.getElementById(id);
   const learned = k => { if (data.settings.used?.["hud-" + k]) return; data.settings.used = { ...(data.settings.used || {}), ["hud-" + k]: true }; Tabs.save(data); };

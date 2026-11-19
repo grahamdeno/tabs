@@ -38,7 +38,7 @@ for (const ax of [1, 2, 3]) {
   test(`Road Ready 10b (large text ${ax}): no Louie on the Road in either look, and the message and Gig button stay`, { skip: skip() }, async t => {
     for (const theme of ["dark", "light"]) {
       const page = await phone(t, lib(theme, { skills: MID }), { home: true });
-      await page.waitForSelector(".rr-row .rr-stats"); await settled(page);
+      await page.waitForSelector(".rr-head .rr-stats"); await settled(page);
       await page.evaluate(a => { document.documentElement.style.setProperty("--sys-px", ["", "27px", "33px", "40px"][a]); document.documentElement.dataset.ax = String(a); }, ax);
       await settled(page);
       await noLouie(page, `${theme}, large text ${ax}`);

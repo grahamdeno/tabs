@@ -231,7 +231,7 @@ const LEG1 = doneOf([...OPEN, "k:open"]);
 const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), ...extra, settings: { ...LIB.settings, v: 6, theme } });
 async function road(t, theme, skills, opts = {}, extra) {
   const page = await phone(t, roadLib(theme, skills, extra), { home: true, ...opts });
-  await page.waitForSelector(".rr-row .rr-stats"); await settled(page);
+  await page.waitForSelector(".rr-head .rr-stats"); await settled(page);
   return page;
 }
 /* the end of each connector step, and the centre of each stop's button, both in screen pixels */
@@ -245,7 +245,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
   test(`Road Ready 02 (${label}): one-row header, venue sign, pearl inlays, the connector up to the current stop, Tonight beside it, and no Louie`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
     /* the one-row header (Grok, 2026-11-19): streak, songs you can play, fans and tips, each an icon then a number; nothing else */
-    for (const sel of ["header.rr-row .rr-stats", "#h-streak", "#h-songs", "#h-fans", "#h-tips", ".rd-stop.cur #rd-tonight.rr-tn-stop", "#rd-sign.rr-sign"]) assert.equal(await page.locator(sel).count(), 1, sel);
+    for (const sel of ["header.rr-head .rr-stats", "#h-streak", "#h-songs", "#h-fans", "#h-tips", ".rd-stop.cur #rd-tonight.rr-tn-stop", "#rd-sign.rr-sign"]) assert.equal(await page.locator(sel).count(), 1, sel);
     for (const sel of [".hud:not(.rr-stats)", ".rr-hdr", ".rr-plate", ".rr-pips", "#h-venue", "#rd-bubble", ".rr-say", ".rr-tonight", ".rd-banner", "#rd-book", ".rd-chip", ".rd-say", "#rd-tune", ".h-lab"]) assert.equal(await page.locator(sel).count(), 0, `${sel} is gone from the Road`);
     assert.equal(await page.innerText("#rd-sign"), "GARAGE", "the venue is a small sign at the start of the leg");
     assert.equal(await page.getAttribute("#rd-sign", "aria-label"), "Garage, venue 1. Open the Tour Map");
@@ -253,7 +253,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.match(await page.getAttribute("#rd-tonight", "aria-label"), /^Tonight: .+\. Play$/);
     assert.match(await page.innerText("#rd-tonight"), /^TONIGHT\s+River Road$/);
     /* 44 px or less, below the safe area, with no card, pill, outline or background on the row or a stat */
-    const row = await page.evaluate(() => { const h = document.querySelector("header.rr-row"), r = h.getBoundingClientRect(), bare = e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, img: c.backgroundImage, border: c.borderTopWidth, shadow: c.boxShadow }; };
+    const row = await page.evaluate(() => { const h = document.querySelector("header.rr-head"), r = h.getBoundingClientRect(), bare = e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, img: c.backgroundImage, border: c.borderTopWidth, shadow: c.boxShadow }; };
       return { top: r.top, h: r.height, row: bare(h), stats: [...h.querySelectorAll("button")].map(b => ({ ...bare(b), w: b.getBoundingClientRect().width, hh: b.getBoundingClientRect().height, icon: !!b.querySelector("svg.rr-st-ic") })), neck: document.querySelector(".rd-neck").getBoundingClientRect().top + scrollY }; });
     assert.ok(row.h <= 44, `the header is ${row.h} px tall`); assert.equal(Math.round(row.top), 0, "right under the safe area");
     for (const x of [row.row, ...row.stats]) assert.deepEqual([x.bg, x.img, x.border, x.shadow], ["rgba(0, 0, 0, 0)", "none", "0px", "none"], "bare: no card, pill, outline or background");
@@ -306,7 +306,7 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   const page = await road(t, "dark", MID);
   const small = await page.evaluate(() => [...document.querySelectorAll("#app button")].map(b => { const r = b.getBoundingClientRect(); return { id: b.id || b.dataset.stop || b.className, w: r.width, h: r.height }; }).filter(r => r.w < 44 || r.h < 44));
   assert.deepEqual(small, [], "every control on the Road is at least 44 by 44");
-  const back = async () => { await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rr-row .rr-stats"); await settled(page); };
+  const back = async () => { await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rr-head .rr-stats"); await settled(page); };
   await page.click("#rd-sign"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
   await page.click("#h-songs"); await page.waitForFunction(() => location.hash === "#/library"); await back();
   await page.click("#h-streak"); await page.waitForFunction(() => location.hash === "#/you"); await back();
@@ -348,8 +348,8 @@ test("Road Ready 02: large text keeps the header to one row, with nothing cut of
     await settled(page);
     const box = await page.evaluate(() => {
       const rs = ["h-streak", "h-songs", "h-fans", "h-tips"].map(id => document.getElementById(id).getBoundingClientRect());
-      const cut = [...document.querySelectorAll(".rr-row *")].filter(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow !== "visible").map(e => e.className);
-      return { tops: rs.map(r => Math.round(r.top)), left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), h: document.querySelector("header.rr-row").getBoundingClientRect().height, cut };
+      const cut = [...document.querySelectorAll(".rr-head *")].filter(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow !== "visible").map(e => e.className);
+      return { tops: rs.map(r => Math.round(r.top)), left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), h: document.querySelector("header.rr-head").getBoundingClientRect().height, cut };
     });
     assert.equal(new Set(box.tops).size, 1, `${px}: one row`); assert.ok(box.left >= 0 && box.right <= 390, `${px}: every stat on the screen`);
     assert.deepEqual(box.cut, [], `${px}: nothing truncates`); assert.ok(box.h <= 64, `${px}: the row stays short (${box.h} px)`);
@@ -409,13 +409,13 @@ test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg b
 for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light", "festival"]]) {
   test(`Road Ready design fixes (${label}): the header has no piping or strip, the current stop glows, large text keeps the neck clear of the header`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
-    const n = await page.evaluate(() => ({ strip: getComputedStyle(document.querySelector("header.rr-row"), "::before").content, glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rr-stage")).backgroundImage }));
+    const n = await page.evaluate(() => ({ strip: getComputedStyle(document.querySelector("header.rr-head"), "::before").content, glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rr-stage")).backgroundImage }));
     assert.ok(["none", "normal"].includes(n.strip), "no piping on the header (one bare row, 2026-11-19)");
     if (look === "festival") assert.equal(Math.round(n.glowW), 96, "the current-stop glow is stronger on cream");
     else assert.match(n.stage, /radial-gradient/, "a soft amber glow behind the neck in the dark look");
     /* large text: the "songs" chips are gone, and the header leaves the screen to the neck */
     await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
-    const ax = await page.evaluate(() => ({ chips: [...document.querySelectorAll(".rr-chip")].map(c => getComputedStyle(c).display), hdr: document.querySelector("header.rr-row").getBoundingClientRect().bottom, vh: innerHeight }));
+    const ax = await page.evaluate(() => ({ chips: [...document.querySelectorAll(".rr-chip")].map(c => getComputedStyle(c).display), hdr: document.querySelector("header.rr-head").getBoundingClientRect().bottom, vh: innerHeight }));
     assert.ok(ax.chips.every(d => d === "none"), "the songs chips are hidden at large text");
     const probe = await page.evaluate(() => { const c = document.createElement("span"); c.className = "rd-songs rr-chip"; document.querySelector(".rd-neck .rd-stop").appendChild(c); const d = getComputedStyle(c).display; c.remove(); return d; });
     assert.equal(probe, "none", "a songs chip drawn at large text is hidden (a lesson that opens songs shows one on the road ahead)");

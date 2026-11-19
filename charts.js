@@ -11,7 +11,7 @@ import { STAR_NAMES, starsOf, VERSION, CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, 
 import { app, esc, icon, toast } from "./ui.js";
 import { data, go, playGig } from "./app.js";
 import { rival, you } from "./guitarist.js";
-import { statBar, bindStatBar } from "./hud.js";
+import { bindStatBar, pageStats } from "./hud.js";
 
 const AV = ["var(--accent)", "var(--strings)", "var(--fans)", "var(--streak)", "var(--good)"];
 const ord = n => n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th");
@@ -39,7 +39,7 @@ export function renderCharts(view = "chart") {
     : `<section class="ch-go"><p>${st.you.rank === 1 ? `<b>${esc(b.rival)}</b> wants your spot. Win on ${esc(song?.title || "a song")} and take ${XP.battle} XP` : `Win the battle with <b>${esc(b.rival)}</b> on ${esc(song?.title || "a song")} and take ${XP.battle} XP`}</p><button class="ch-gobtn" id="ch-go">GO</button></section>`;
   app.innerHTML = `<div class="ch">
     <div class="head"><button class="ib glass" id="back" aria-label="Back to Me">${icon("back")}</button></div>
-    <div class="tq-top">${statBar()}</div>
+    <div class="tq-top">${pageStats()}</div>
     ${st.last ? `<section class="ch-last"><p>${st.last.xp ? `Last week: <b>${ord(st.last.rank)}</b> on the ${esc(VENUES[st.last.tier])} chart${st.last.up ? `. Up to the <b>${esc(VENUES[st.last.tier + 1])}</b>!` : st.last.down ? `. Back down to the <b>${esc(VENUES[st.last.tier - 1])}</b>. Win it back this week.` : st.last.rank <= CHART_PROMOTE ? ". A record for the shelf." : ". Top 5 moves you up."}` : st.last.down ? `Last week went by without a play, so you're back at the <b>${esc(VENUES[st.last.tier - 1])}</b>.` : `Last week went by without a play. This week is a fresh chart.`}</p><button class="sb" id="ch-lastx" aria-label="Got it">OK</button></section>` : ""}
     <div class="seg ch-pane" role="group" aria-label="Charts">${[["league", "League"], ["friends", "Friends"]].map(([k, n]) => `<button data-pane="${k}" class="${pane === k ? "on" : ""}" aria-pressed="${pane === k}">${n}</button>`).join("")}</div>
     ${pane === "friends" ? `<div id="ch-friends"></div>` : `
