@@ -12,7 +12,9 @@ const MID = doneOf(OPEN.slice(0, 4)); /* G, C, D and Em done: Am is the current 
 const lib = (theme, skills, extra = {}) => ({ ...LIB, skills, merch: { tconv: 1, lconv: 1, hlseen: 1, ...(extra.merch || {}) }, guitars: { seen: ["open"] }, journal: extra.journal, settings: { ...LIB.settings, v: 6, theme } });
 async function road(t, theme = "dark", skills = MID, extra = {}, opts = {}) {
   const page = await phone(t, lib(theme, skills, extra), { home: true, ...opts });
-  await page.waitForSelector(".rd-neck.road .rr-hit"); await settled(page); await page.waitForTimeout(350); /* real timer: the path scrolls to the current stop */
+  await page.waitForSelector(".rd-neck.road .rr-hit"); await settled(page);
+  /* the path scrolls to the current stop: wait until the stop has stopped moving */
+  await page.evaluate(() => new Promise(res => { const el = document.querySelector(".rd-node.cur"); let last = -1, n = 0; const f = () => { const y = el.getBoundingClientRect().top; n = y === last ? n + 1 : 0; last = y; n >= 8 ? res() : requestAnimationFrame(f); }; f(); }));
   return page;
 }
 const rect = (page, sel) => page.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; }, sel);
