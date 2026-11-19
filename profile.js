@@ -187,7 +187,7 @@ function stampSheet(c) {
 const LOUIE_CARD_CSS = ".lv-b{fill:#3A86FF}.lv-s{fill:#2C6FE0}.lv-ss{stroke:#2C6FE0}.lv-hi{fill:#6BA4FF;opacity:.9}.lv-f{fill:#FFD23F}.lv-fs{fill:#F2B705}.lv-l{stroke:#2C6FE0}.lv-c{fill:#FF3D7F;opacity:.6}.lv-p{fill:#14213D}.lv-ps{stroke:#14213D}.lv-g{fill:#14213D}.lv-gs{fill:#2A3A63}.lv-m{fill:#14213D}.lv-ms{stroke:#14213D}.lv-t{fill:#FF3D7F}.lv-lamp{fill:#FF3D7F}.lv-shadow{fill:#14213D;opacity:.18}";
 /* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
 async function meCardImage() {
-  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
+  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false, portrait: true }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
   const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
   return im;
 }
@@ -209,7 +209,7 @@ async function shareCard(p) {
   text(`MY GUITAR · SINCE ${shortDay(p.since).toUpperCase()}`, 96, 150, 34, "#b8935a", 700);
   text("Played with Louie", 96, 220, 64, "#f1e3c4", 600);
   /* your guitarist throwing the horns, top right */
-  try { const im = await meCardImage(); g.drawImage(im, W - 96 - 200, 36, 200, Math.round(200 * im.naturalHeight / im.naturalWidth)); } catch {}
+  try { const im = await meCardImage(), w = im.naturalHeight > im.naturalWidth * 1.4 ? 150 : 200; g.drawImage(im, W - 96 - w, 36, w, Math.round(w * im.naturalHeight / im.naturalWidth)); } catch {} /* a portrait (2:3) is drawn narrower so it clears the plate */
   /* the plate */
   const plate = g.createLinearGradient(0, 260, 0, 520); plate.addColorStop(0, "#e6cb92"); plate.addColorStop(0.42, "#cfab6a"); plate.addColorStop(1, "#b08b4f");
   g.fillStyle = plate; g.beginPath(); g.roundRect(96, 260, W - 192, 260, 36); g.fill();

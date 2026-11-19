@@ -6,6 +6,7 @@
 import { guitarShown, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
 import { guitarPic } from "./fretboard.js";
 import ART from "./art/guitarist-poster.js";
+import { portraitNow, portraitSVG } from "./portrait.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label, card, flat, grain }) returns an <svg> string.
 //   me: data.me (see meOf in core.js). mood: happy, cheer, worried, sleepy, proud. pose: play, hornsUp, rest.
 //   crop: "full" or "bust". look: tee, flannel, vest, leather, stage. patches: [{ kind, color, top }] (patchesOf).
@@ -38,7 +39,7 @@ function patchSVG(pt, x, y) {
   return `<rect x="${x - w / 2}" y="${y - 6.5}" width="${w}" height="14" rx="7" fill="#00000055"/><rect x="${x - w / 2}" y="${y - 8}" width="${w}" height="14" rx="7" fill="${pt.color}"/><text x="${x}" y="${y + 2.4}" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="9.5" fill="#1c1d22">${t.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`;
 }
 
-export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "full", size = 160, look: look0 = "tee", patches = [], guitar: gi = null, label = "Your guitarist", card = false, flat: flat0, grain = true, spot: spot0 } = {}) {
+export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "full", size = 160, look: look0 = "tee", patches = [], guitar: gi = null, label = "Your guitarist", card = false, flat: flat0, grain = true, spot: spot0, headline = "" } = {}) {
   const id = "gp" + (++N), bust = crop === "bust", pose = bust ? "rest" : (ART.arms[pose0] ? pose0 : "play");
   const look = ART.looks[look0] ? look0 : look0 === "denim" ? "vest" : "tee";
   const flat = flat0 ?? size <= 48, useGrain = grain && !flat;
@@ -88,12 +89,15 @@ export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "fu
     const pin = (patches || [])[0] ? patchSVG(patches[0], me.lefty ? 78 : 122, 142) : "";
     body = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${INK.paper}"/><g clip-path="url(#${id}c)"><g transform="${ART.bust.transform}"><g${mirror}>${figure}</g></g></g><circle cx="${cx}" cy="${cy}" r="${r - .5}" fill="none" stroke="${INK.line}" stroke-opacity=".3" stroke-width="1"/>${flat ? "" : pin}`;
   } else {
-    vb = ART.frame[pose === "hornsUp" ? "hornsUp" : "full"];
+    /* three (4.99.0): the poster crop, head to mid-thigh with room for a headline, so the face reads big on the maker's card */
+    vb = crop === "three" ? "24 -34 152 210" : ART.frame[pose === "hornsUp" ? "hornsUp" : "full"];
     const [x, y, w, h] = vb.split(" ").map(Number);
     const burst = ink.spot === INK.line || luma(ink.spot) < 70 ? INK.amber : ink.spot;
     const paper = card ? `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="7" fill="${INK.paper}"/><path d="${ART.card.burst}" fill="${burst}" opacity=".9"${mirror}/>${useGrain ? `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="7" fill="url(#${id}g)" opacity=".55" style="mix-blend-mode:multiply"/>` : ""}<rect x="${x + 1.5}" y="${y + 1.5}" width="${w - 3}" height="${h - 3}" rx="6.5" fill="none" stroke="${INK.line}" stroke-opacity=".22"/>` : "";
     const wear = (patches || []).slice(0, pose === "play" ? SPOTS.length : 0).map((pt, i) => { const [px, py] = SPOTS[i]; const x = me.lefty ? 200 - px : px; return `<g transform="translate(${x} ${py}) scale(${PATCH_SCALE}) translate(${-x} ${-py})">${patchSVG(pt, x, py)}</g>`; }).join("");
-    body = `${paper}<g${mirror}>${figure}</g>${wear}`;
+    const head = card && headline ? `<text x="100" y="-6" text-anchor="middle" font-family="'Space Grotesk', Impact, sans-serif" font-weight="700" font-size="29" letter-spacing="1.5" fill="${INK.line}">${headline.replace(/[<&]/g, "")}</text>` : "";
+    const clip = crop === "three" ? `<clipPath id="${id}v"><rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="7"/></clipPath>` : "";
+    body = crop === "three" ? `${clip}${paper}${head}<g clip-path="url(#${id}v)"><g${mirror}>${figure}</g>${wear}</g>` : `${paper}${head}<g${mirror}>${figure}</g>${wear}`;
   }
   const [, , vw, vh] = vb.split(" ").map(Number);
   return `<svg viewBox="${vb}" width="${size}" height="${Math.round(size * vh / vw)}" role="img" aria-label="${label.replace(/"/g, "&quot;")}" style="overflow:hidden">${defs}${body}</svg>`;
@@ -102,6 +106,9 @@ export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "fu
 /* you, as the app means you: your parts, the look of your venue, the patches you've earned, the Road guitar you're on and
    your mood tonight. o overrides any of the options (mood, pose, crop, size, label). */
 export function you(data, o = {}) {
+  /* 4.99.0: a portrait made from your selfie stands in for the round portrait and the poster card; the game's poses keep the drawing */
+  const p = !o.me && !o.drawn && portraitNow();
+  if (p && (o.crop === "bust" || o.portrait)) return portraitSVG(p, { crop: o.crop === "bust" ? "bust" : "full", size: o.size, label: o.label || "Your portrait", headline: o.headline });
   const leg = o.crop === "bust" ? null : roadPath(data).leg;
   return guitarist(o.me || meOf(data), { mood: meMood(data), look: stageLook(data), patches: patchesOf(data), guitar: guitarShown(data, leg?.id), ...o, me: undefined });
 }

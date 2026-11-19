@@ -269,11 +269,22 @@ export function beardGuess(chin, cheek) {
 const meanRgb = list => { const ok = (list || []).filter(c => Array.isArray(c) && c.length === 3 && c.every(Number.isFinite)); return ok.length ? [0, 1, 2].map(i => ok.reduce((a, c) => a + c[i], 0) / ok.length) : null; };
 /* samples: { skin: [rgb...] (cheeks and forehead), hair: [rgb...], chin: rgb, cheek: rgb }; inks: { skin: [hex x6], hair: { name: hex } }.
    Only skin, hair colour and beard are guessed; anything it can't read is left as it was. */
+/* 4.99.0 (Grok's review: black hair read as grey): a hair sample beside the head can be the wall behind it, so the darker two
+   of the three are used, and a photo only guesses the natural colours; the beard gets its own colour from the chin */
+const NATURAL = ["black", "brown", "blonde", "red", "grey"];
+const lumaOf = c => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
 export function selfieGuess(samples, inks) {
-  const out = {}, skin = meanRgb(samples?.skin), hair = meanRgb(samples?.hair);
+  const out = {}, skin = meanRgb(samples?.skin);
+  const hs = (samples?.hair || []).filter(c => Array.isArray(c) && c.length === 3).sort((a, b) => lumaOf(a) - lumaOf(b));
+  const hair = meanRgb(hs.slice(0, Math.max(1, Math.min(2, hs.length))));
+  const natural = Array.isArray(inks.hair) ? inks.hair : Object.fromEntries(Object.entries(inks.hair).filter(([k]) => NATURAL.includes(k)));
   if (skin) out.skin = nearestInk(skin, inks.skin);
-  if (hair) out.hairCol = nearestInk(hair, inks.hair);
+  if (hair) out.hairCol = nearestInk(hair, natural);
   out.beard = beardGuess(samples?.chin, samples?.cheek);
+  if ((out.beard === "beard" || out.beard === "moustache") && Array.isArray(samples?.chin)) {
+    const bc = nearestInk(samples.chin, natural);
+    if (bc !== out.hairCol) out.beardCol = bc;
+  }
   return out;
 }
 /* your guitarist: what you made, or the default. A hat you haven't bought doesn't show. */

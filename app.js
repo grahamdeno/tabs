@@ -1,4 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
+import { loadPortrait } from "./portrait.js";
 import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
@@ -16,6 +17,7 @@ import { stagePlay, stageStop, stageOpen, stageBeat, coverOn, coverOff } from ".
 
 // ---------- State ----------
 let data = await loadLibrary(); /* see store.js */
+await loadPortrait(); /* 4.99.0: the selfie portrait, if one was made (portrait.js) */
 /* Replacing the whole library (a restored backup or the safety copy) goes through here. */
 const setData = d => { data = d; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") Tabs.flush(); });

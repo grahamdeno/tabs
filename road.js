@@ -22,7 +22,7 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, fansNow, tipsOf, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, fansNow, tipsOf, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
@@ -187,7 +187,7 @@ function renderOpening(view) {
   homeHooks.refresh = null;
   $("on-next")?.addEventListener("click", () => renderRoad());
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
-    () => { openingSkip(data); Tabs.save(data); renderRoad(); }));
+    () => { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); /* 4.99.0: skipping means no sheets; change it on Your profile */ Tabs.save(data); renderRoad(); }));
   const path = $("rd-path");
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); };
   path.addEventListener("click", e => {
@@ -211,14 +211,14 @@ function rrOpening(done, step) {
     label: s => esc(`Step ${stops.indexOf(s) + 1} of ${stops.length}, ${s.name}, ${said(s)}`), tag: s => esc(s.name) };
   const v = venueNow(data), st = streakOf(playSongs(data));
   const strip = `<div class="rr-tonight rr-on on-night" role="group" aria-label="Opening night">
-      <span class="rr-tn-t"><small>OPENING NIGHT · ${done ? "DONE" : `STEP ${step + 1} OF ${stops.length}`}</small><b>${esc(done ? "Your first night" : cur.name)}</b></span>
-      ${done ? `<button class="rr-on-btn" id="on-next">On to Leg 1</button>` : `<button class="rr-on-btn" id="on-skip">Skip</button>`}
+      <span class="rr-tn-t"><small>${done ? "DONE" : `${step + 1} OF ${stops.length}`}</small><b>${esc(done ? "Your first night" : cur.name)}</b></span>
+      ${done ? `<button class="rr-on-btn" id="on-next">On to Leg 1</button>` : `<button class="rr-on-btn rr-text" id="on-skip">Skip</button>`}
     </div>`;
   app.innerHTML = `
     ${rrHeader({ v, leg, cur, song: null, st, strip })}
     <p class="rr-say" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[step])}</p>
     <div class="rr-stage">
-      <div class="rd-path rr on-path" id="rd-path">${neckHTML(leg, gx)}</div>
+      <div class="rd-path rr on-path" id="rd-path">${neckHTML(leg, { ...gx, shown: OPEN_GUITAR() })}${lockedPeek(roadPath(data).legs[0], "Starts after your first show.")}</div>
     </div>`;
   const $ = id => document.getElementById(id);
   $("h-venue").onclick = () => go("#/playmap");
@@ -227,7 +227,7 @@ function rrOpening(done, step) {
   homeHooks.refresh = null;
   $("on-next")?.addEventListener("click", () => renderRoad());
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
-    () => { openingSkip(data); Tabs.save(data); renderRoad(); }));
+    () => { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); /* 4.99.0: skipping means no sheets; change it on Your profile */ Tabs.save(data); renderRoad(); }));
   const path = $("rd-path");
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   path.addEventListener("click", e => {
@@ -240,6 +240,17 @@ function rrOpening(done, step) {
     closePop();
     if (!open) { wrap.insertAdjacentHTML("beforeend", openingCard(+node.dataset.stop.slice(2), step)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); if (!e.detail) wrap.querySelector(".rd-start")?.focus(); }
   });
+}
+/* Opening night plays on its own guitar, so the Leg 1 guitar below it reads as the next one (4.99.0) */
+const OPEN_GUITAR = () => ({ ...guitarShown(data, "open"), name: "Barebones", body: "barebones", shop: true });
+/* the next leg, locked (4.99.0, Grok's review): its guitar's headstock and top of the neck in grey, fading out, no stops, and one
+   cream plate that says what opens it */
+function lockedPeek(l, why) {
+  if (!l) return "";
+  return `<div class="rr-peek" role="group" aria-label="${esc(`Leg ${l.n}, ${l.name}. Locked. ${why}`)}">
+    <div class="rr-peek-neck" aria-hidden="true">${neckHTML({ ...l, stops: l.stops.map(s => ({ ...s, state: "locked" })) }, { cur: null, id: s => esc(s.id), icon: () => "", rr: true, num: () => 0, label: () => "", tag: () => "", songs: null })}</div>
+    <p class="rr-peek-plate" aria-hidden="true"><b>LEG ${l.n} · ${esc(l.name.toUpperCase())}</b><small>Locked. ${esc(why)}</small></p>
+  </div>`;
 }
 /* what an Opening night step's button starts */
 function openingStart(i) {
@@ -264,11 +275,11 @@ function rrHeader({ v, leg, cur, song, st, strip }) {
   const plate = [v.name, show && show.toLowerCase(), next].filter(Boolean).join(", ");
   return `<header class="rr-hdr" aria-label="Your tour">
     <button class="rr-plate" id="h-venue" aria-label="${esc(plate)}. Open the Tour Map">
-      <span class="rr-pl-main"><b class="rr-venue">${esc(v.name)}</b>${show ? `<small>${esc(show)}</small>` : ""}</span>
-      <span class="rr-pl-side" aria-hidden="true">${of ? `<span class="rr-pips">${pips}</span>` : ""}${next ? `<small>${esc(next)}</small>` : ""}</span>
+      <span class="rr-pl-main" aria-hidden="true"><b class="rr-venue">${esc(v.name)}</b>${show ? `<small>${esc(show)}</small>` : ""}</span>
+      ${of ? `<span class="rr-pips" aria-hidden="true">${pips}</span>` : ""}
     </button>
-    <button class="rr-pill rr-fans" id="h-fans" aria-label="${nf(fans)} fans${days ? `, ${days}-day gig streak` : ""}. Open your profile"><span class="rr-pv">${TICKET_IC}<b>${nf(fans)}</b></span><small>${days ? `${days}-day streak` : "Fans"}</small></button>
-    <button class="rr-pill rr-tips" id="h-tips" aria-label="${nf(tips)} dollars in tips. Open the Merch table"><span class="rr-pv">${COIN_IC}<b>$${nf(tips)}</b></span><small>Tips</small></button>
+    <button class="rr-pill rr-fans" id="h-fans" aria-label="${nf(fans)} fans${days ? `, ${days}-day gig streak` : ""}. Open your profile"><span class="rr-pv">${TICKET_IC}<b>${nf(fans)}</b>${days ? `<small aria-hidden="true">${days}d</small>` : ""}</span></button>
+    <button class="rr-pill rr-tips" id="h-tips" aria-label="${nf(tips)} dollars in tips. Open the Merch table"><span class="rr-pv">${COIN_IC}<b>$${nf(tips)}</b></span></button>
     ${strip || `<button class="rr-tonight" id="rd-tonight" aria-label="${song ? esc(`Tonight: ${song.title}. Play`) : "Add a song to play tonight"}">
       <span class="rr-tn-t"><small>TONIGHT</small><b>${song ? esc(song.title) : "Add a song to play tonight"}</b></span>
       <span class="rr-play" aria-hidden="true">${song ? PLAY_IC : icon("search")}</span>
@@ -333,7 +344,8 @@ export function renderRoad() {
   const fresh = rr && lastCur && cur && lastCur !== cur.id ? cur.id : null;
   lastCur = cur?.id || null;
   const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh };
-  const legsHTML = road.legs.map((l, n) => `
+  const curAt = road.legs.indexOf(leg);
+  const legsHTML = (rr ? road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length) : road.legs).map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>${rr ? `Leg ${l.n}, ${esc(l.name)}` : `Leg ${l.n} · ${esc(l.name)}`}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
     ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id), build: data.builds?.[l.id] } : { ...gx, build: data.builds?.[l.id] })}`).join("");
@@ -352,8 +364,8 @@ export function renderRoad() {
     ${rrHeader({ v, leg, cur, song, st })}
     <p class="rr-say" id="rd-bubble">${esc(say.text)}</p>
     <div class="rr-stage">
-      <div class="rd-path rr" id="rd-path">${legsHTML}${coming}</div>
-    </div>${songbookBar}`;
+      <div class="rd-path rr" id="rd-path">${legsHTML}${curAt >= 0 && road.legs[curAt + 1] ? lockedPeek(road.legs[curAt + 1], `Headline ${leg.name} to open it.`) : coming}</div>
+    </div>`;
   } else app.innerHTML = `
     <div class="rd-top">${statBar()}</div>
     ${leg ? `<section class="rd-banner" aria-label="The leg you're on">
@@ -374,10 +386,10 @@ export function renderRoad() {
   } else bindStatBar();
   homeHooks.refresh = null;
   if (wantDrawer) return go("#/library"); /* asked for the songs (4.9.0: the Songbook page, not a drawer) */
-  $("rd-songbook").onclick = () => go("#/library");
+  $("rd-songbook")?.addEventListener("click", () => go("#/library"));
   $("rd-book")?.addEventListener("click", () => go("#/practice"));
   $("rd-tonight")?.addEventListener("click", () => song ? playGig(song.id, { from: "road" }) : openSearch("road")); /* 4.1.0: tonight's song is a gig */
-  $("rd-search").onclick = () => openSearch("road"); /* 4.48.0: opens with "Open your Songbook" on top */
+  $("rd-search")?.addEventListener("click", () => openSearch("road")); /* 4.48.0: opens with "Open your Songbook" on top */
 
   /* a stop: tap it for its card (the current stop's is open already); Start opens the lesson or the song */
   const path = $("rd-path");
