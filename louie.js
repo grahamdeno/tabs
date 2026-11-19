@@ -1,12 +1,13 @@
-// Louie, the mascot: a blue 1x12 combo amp (Road Ready; docs/road-ready/louie-design-spec.md, section 9).
-// Since step 03b he is Grok's painted art (art/louie/v2, a light and a dark picture per pose; the page's CSS shows the
-// one for the look). The code drawing below is kept in the same SVG as a fallback: it shows when he wears a finish
-// from the Merch table, and in pictures made from the SVG alone (the share card), which can't load the art.
-// The code drawing: blue Tolex with a darker right side, nickel corner caps, a brown leather handle, a yellow control
-// panel for a face (two eyes, one mouth, a row of four cream knobs), a plain navy grille, hands and two short legs.
+// Louie, the mascot: a black 1x12 combo amp with a silver grille (Road Ready; docs/road-ready/louie-design-spec.md, section 9).
+// Since 10a he is black by default: Grok's painted art in art/louie/v3 (a light and a dark picture per pose; the page's CSS
+// shows the one for the look). The blue Louie he wore first is the Blue finish on the Merch table, which shows art/louie/v2.
+// The code drawing below is kept in the same SVG as a fallback: it shows when he wears a colour finish from the Merch
+// table, and in pictures made from the SVG alone (the share card), which can't load the art.
+// The code drawing: black Tolex with a darker right side, nickel corner caps, a brown leather handle, a yellow control
+// panel for a face (two eyes, one mouth, a row of four cream knobs), a plain silver-grey grille, hands and two short legs.
 // The hard rule: exactly one mouth (class lv-mouth), always on the yellow panel between the eyes and the knobs.
 // The grille is plain cloth: never a mouth, a smile line or any feature on it, in any mood, pose or size.
-// Hands have fingers, blue Tolex like his arms (Graham, 2026-11-17), and no hand ever shows one finger standing straight up
+// Hands have fingers, black Tolex like his arms (Graham, 2026-11-17), and no hand ever shows one finger standing straight up
 // from the middle: it reads as the middle finger (4.39.1). No cheeks, no blush, no lamp.
 // His colours are locked: the --lv-* variables on .louie in styles.css, and the same values written on each
 // shape, so a picture made from the SVG alone shows the same Louie.
@@ -26,7 +27,7 @@ const guitaristFinger = (x, len, r) => `<rect x="${x - 4.6}" y="${-22 - len}" wi
 const G_PALM = `<path d="M-13 -4C-15.5 -11 -15.5 -20 -12.5 -25C-8 -28 8 -28 12.5 -25C15.5 -20 15.5 -11 13 -4C8 1 -8 1 -13 -4Z"/>`;
 const G_ROLLS = "C16.5 -26.5 16 -23.5 13.5 -21.5C16.5 -19 16 -15.5 13.5 -13.5C16.5 -11 16 -7 13 -5C12 0 6 1 0 1C-6 1 -10 1 -11 -1Z";
 const G_THUMB_ACROSS = `<path d="M-12.5 -15C-6 -18.5 4 -18.5 8.5 -15C10.5 -13 9.5 -10 7.5 -9.5C1 -8 -6 -8.5 -12 -10Z"/>`;
-/* each hand as [shape, creases, over]: the guitarist draws them in skin, Louie (since 03b) in blue Tolex like his arms */
+/* each hand as [shape, creases, over]: the guitarist draws them in skin, Louie (since 03b) in black Tolex like his arms */
 const HAND_PARTS = {
   fist: [`<path d="M-13 -3C-16 -9 -16 -20 -12 -25Q-9 -29 -5.5 -26.5Q-2 -29.5 1.5 -26.5Q5 -29.5 8.5 -26.5Q12.5 -28 14 -23C16 -17 15.5 -9 13 -3C8 1 -8 1 -13 -3Z"/>`,
     `<path d="M-5.5 -26V-21M1.5 -26V-21M8.5 -26V-21"/>`, G_THUMB_ACROSS],
@@ -51,15 +52,15 @@ export function mittenOf(name, skin, sh, ln, cuff) {
     .replace(/class="lv-fl"/g, `stroke="${ln}"`).replace(/class="lv-cuff"/g, `fill="${cuff}"`);
 }
 
-/* Louie's hands (03b): the same fingered shapes as the guitarist's, in blue Tolex like his arms: an ink outline behind, the
-   Tolex shadow under the lit Tolex blue, ink creases, and a Tolex-shadow cuff. The wrist is at 0,0, the fingers point up. */
+/* Louie's hands (03b): the same fingered shapes as the guitarist's, in black Tolex like his arms: an ink outline behind, the
+   Tolex shadow under the lit Tolex, ink creases, and a Tolex-shadow cuff. The wrist is at 0,0, the fingers point up. */
 const INK = "#0B0F14";
-const BLUE = 'fill="#3A86FF"', NAVY = 'fill="#2C6FE0"';
+const TOLEX = 'fill="#292929"', TOLEX_SH = 'fill="#1B1B1B"';
 const louieHand = (shape, creases = "", over = "") => `<g class="lv-mit-o" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round">${shape}${over}</g>`
-  + `<g class="lv-mit-s" ${NAVY} transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-mit" ${BLUE}>${shape}</g>`
+  + `<g class="lv-mit-s" ${TOLEX_SH} transform="translate(1.25 1.9)">${shape}${over}</g><g class="lv-mit" ${TOLEX}>${shape}</g>`
   + `<g class="lv-mit-l" fill="none" stroke="${INK}" stroke-opacity=".55" stroke-width="1.9" stroke-linecap="round">${creases}</g>`
-  + (over ? `<g class="lv-mit-s" ${NAVY} transform="translate(0 1.6)">${over}</g><g class="lv-mit" ${BLUE}>${over}</g>` : "")
-  + `<rect class="lv-cuff" ${NAVY} x="-9.5" y="-3.4" width="19" height="6.8" rx="3.4" stroke="${INK}" stroke-width="1.6"/>`;
+  + (over ? `<g class="lv-mit-s" ${TOLEX_SH} transform="translate(0 1.6)">${over}</g><g class="lv-mit" ${TOLEX}>${over}</g>` : "")
+  + `<rect class="lv-cuff" ${TOLEX_SH} x="-9.5" y="-3.4" width="19" height="6.8" rx="3.4" stroke="${INK}" stroke-width="1.6"/>`;
 const HANDS = Object.fromEntries(Object.entries(HAND_PARTS).map(([name, parts]) => [name, () => louieHand(...parts)]));
 /* the outline of a hand alone, for the warm rim */
 const handShape = name => HAND_PARTS[name][0] + HAND_PARTS[name][2];
@@ -89,7 +90,7 @@ const POSES = {
 
 /* The cabinet: taller than wide. The panel is the top of the front, the grille the rest. */
 const CAB = { x: 48, y: 20, w: 104, h: 128 }, P = { x: 57, y: 29, w: 86, h: 51 }, G = { x: 57, y: 86, w: 86, h: 54 };
-/* The grille: plain navy cloth with a fine weave and a faint speaker circle. Nothing else is ever drawn on it. */
+/* The grille: plain silver-grey cloth with a fine weave and a faint speaker circle. Nothing else is ever drawn on it. */
 const WEAVE = (() => {
   let d = "";
   for (let k = -G.h + 3; k < G.w; k += 5.5) {
@@ -132,7 +133,7 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const limbs = layer => !arms ? "" : arms.map(([sx, sy, wx, wy, rot, sign]) => {
     const mx = (sx + wx) / 2 + (wx < sx ? -8 : 8), my = Math.min(sy, wy) + (wy < sy ? 6 : 12);
     const arm = `d="M${sx} ${sy} Q${mx} ${my} ${wx} ${wy}" fill="none" stroke-linecap="round"`, at = `transform="translate(${wx} ${wy}) rotate(${rot}) scale(0.86 1.02)"`;
-    return layer === "arm" ? `<path class="lv-arm-o" stroke="${INK}" stroke-width="${r1(15 + 2 * ol)}" ${arm}/><path class="lv-arm" stroke="#3A86FF" stroke-width="15" ${arm}/><path stroke="#fff" stroke-opacity=".12" stroke-width="4" ${arm} transform="translate(-2 -2)"/>`
+    return layer === "arm" ? `<path class="lv-arm-o" stroke="${INK}" stroke-width="${r1(15 + 2 * ol)}" ${arm}/><path class="lv-arm" stroke="#292929" stroke-width="15" ${arm}/><path stroke="#fff" stroke-opacity=".12" stroke-width="4" ${arm} transform="translate(-2 -2)"/>`
       : layer === "hand" ? `<g ${at}>${HANDS[sign]()}</g>`
       : `<path stroke-width="${r1(15 + 2 * rim)}" ${arm}/><g ${at}>${handShape(sign)}</g>`;
   }).join("");
@@ -142,8 +143,8 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   const LEGS = leg(69) + leg(113), BOOTS = boot(80, -1) + boot(120, 1);
   const cap = ([x, y]) => `<rect x="${x}" y="${y}" width="16" height="16" rx="3.5"/>`;
   return `<svg class="louie ${mood}${pose ? " " + pose : ""}" width="${size}" height="${Math.round(size * vh / vw)}" viewBox="${vb}" role="img" aria-label="${label}">
-  <g class="lv-art-wrap">${["light", "dark"].map(k => { const pd = k === "dark" ? r1(vh * 0.02) : 0; /* the dark pictures carry the warm rim in a 12 px margin on a 600 px frame: draw them 2 percent bigger each side so Louie is the same size in both looks */
-    return `<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${art}-${k}.webp" x="${r1(vx - pd)}" y="${r1(vy - pd)}" width="${r1(vw + 2 * pd)}" height="${r1(vh + 2 * pd)}" preserveAspectRatio="xMidYMax meet"/>`; }).join("")}</g>
+  <g class="lv-art-wrap">${["v3", "v2"].flatMap(v => ["light", "dark"].map(k => { const pd = k === "dark" ? r1(vh * 0.02) : 0; /* the dark pictures carry the warm rim in a 12 px margin on a 600 px frame: draw them 2 percent bigger each side so Louie is the same size in both looks */
+    return `<image class="lv-art lv-art-${k[0]} lv-${v}" href="art/louie/${v}/louie-${art}-${k}.webp" x="${r1(vx - pd)}" y="${r1(vy - pd)}" width="${r1(vw + 2 * pd)}" height="${r1(vh + 2 * pd)}" preserveAspectRatio="xMidYMax meet"/>`; })).join("")}</g>
   <g class="lv-code"><defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
   <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
   <radialGradient id="${id}k" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient>
@@ -154,12 +155,12 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
   <g class="lv-body" transform="${tilt}">
     <g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="${r1(2 * rim)}" stroke-linejoin="round">${limbs("rim")}<path stroke-width="${r1(8 + 2 * rim)}" ${HANDLE}/><rect x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>${CAPS.map(cap).join("")}${LEGS}${BOOTS}</g>
     ${limbs("arm")}
-    <g class="lv-tolex" fill="#3A86FF" ${edge}>${LEGS}</g><g fill="url(#${id}t)">${LEGS}</g>
-    <g class="lv-side" fill="#2C6FE0" ${edge}>${BOOTS}</g><g fill="url(#${id}b)">${BOOTS}</g>
+    <g class="lv-tolex" fill="#292929" ${edge}>${LEGS}</g><g fill="url(#${id}t)">${LEGS}</g>
+    <g class="lv-side" fill="#1B1B1B" ${edge}>${BOOTS}</g><g fill="url(#${id}b)">${BOOTS}</g>
     <path stroke="${INK}" stroke-width="${r1(8 + 2 * ol)}" ${HANDLE}/><path class="lv-leather" stroke="#55331B" stroke-width="8" ${HANDLE}/><path stroke="#fff" stroke-opacity=".22" stroke-width="2" d="M81 15 C82 5 118 5 119 15" fill="none" stroke-linecap="round"/>
     <g class="lv-nickel" fill="#948573" ${edge}><rect x="71" y="14" width="13" height="8" rx="2"/><rect x="116" y="14" width="13" height="8" rx="2"/></g>
-    <rect class="lv-side" fill="#2C6FE0" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
-    <rect class="lv-tolex" fill="#3A86FF" x="${CAB.x}" y="${CAB.y}" width="${CAB.w - 9}" height="${CAB.h}" rx="7"/>
+    <rect class="lv-side" fill="#1B1B1B" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
+    <rect class="lv-tolex" fill="#292929" x="${CAB.x}" y="${CAB.y}" width="${CAB.w - 9}" height="${CAB.h}" rx="7"/>
     <rect fill="url(#${id}t)" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/><rect fill="url(#${id}b)" x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7"/>
     <rect x="${CAB.x}" y="${CAB.y}" width="${CAB.w}" height="${CAB.h}" rx="7" fill="none" ${edge}/>
     <rect x="${P.x - 3}" y="${P.y - 3}" width="${P.w + 6}" height="${G.y + G.h - P.y + 6}" rx="5" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/>
@@ -170,8 +171,8 @@ export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}
     ${eye(82)}${eye(118)}${brows}
     ${mouth}
     ${KNOBS.map(([x, a]) => `<circle fill="${INK}" opacity=".35" cx="${x + .6}" cy="72.8" r="6"/><circle class="lv-knob" fill="#E8D5B3" cx="${x}" cy="71.5" r="5.8"/><circle fill="url(#${id}k)" cx="${x}" cy="71.5" r="5.8" stroke="${INK}" stroke-width="${r1(ol * .75)}"/><path class="lv-inks" d="M${x} 71.5 V66.4" ${stroke(1.7)} transform="rotate(${a} ${x} 71.5)"/>`).join("")}
-    <rect class="lv-cloth" fill="#182D47" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3"/>
-    <path class="lv-weave" d="${WEAVE}" fill="none" stroke="#2A4466" stroke-width=".9" opacity=".95"/><circle class="lv-weave" cx="100" cy="113" r="20" fill="none" stroke="#2A4466" stroke-width="1.3" opacity=".4"/>
+    <rect class="lv-cloth" fill="#767572" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3"/>
+    <path class="lv-weave" d="${WEAVE}" fill="none" stroke="#5A5956" stroke-width=".9" opacity=".95"/><circle class="lv-weave" cx="100" cy="113" r="20" fill="none" stroke="#5A5956" stroke-width="1.3" opacity=".4"/>
     <rect class="lv-cloth-sh" x="${G.x + 1.5}" y="${G.y + 1.5}" width="${G.w - 3}" height="${G.h - 3}" rx="2" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="3"/>
     <rect class="lv-inks" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3" fill="none" stroke="${INK}" stroke-width="${ol}"/>
     <g class="lv-nickel" fill="#948573" ${edge}>${CAPS.map(cap).join("")}</g><g fill="url(#${id}n)">${CAPS.map(cap).join("")}</g><g fill="${INK}" opacity=".45">${CAPS.map(([x, y]) => `<circle cx="${x + 8}" cy="${y + 8}" r="1.5"/>`).join("")}</g>
