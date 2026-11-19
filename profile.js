@@ -10,7 +10,7 @@
 import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, shopState, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
-import { louie } from "./louie.js";
+import { louie, louiePic } from "./louie.js";
 import { you } from "./guitarist.js";
 import { makerSheet } from "./maker.js";
 import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
@@ -149,7 +149,7 @@ export function renderProfile() {
     ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary><p class="rr-facts">Nights in a row: <b>${p.streak}</b> · Shows played: <b>${num(data.gig?.shows || 0)}</b></p>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     <div class="pf-label rr-support-h"><span>SUPPORT THE APP</span></div>
-    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v3/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
+    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v4/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
     </div>`;
   app.innerHTML = rr ? rrHTML : `
     <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
@@ -185,7 +185,6 @@ function stampSheet(c) {
 }
 
 /* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */
-const LOUIE_CARD_CSS = ".lv-b{fill:#3A86FF}.lv-s{fill:#2C6FE0}.lv-ss{stroke:#2C6FE0}.lv-hi{fill:#6BA4FF;opacity:.9}.lv-f{fill:#FFD23F}.lv-fs{fill:#F2B705}.lv-l{stroke:#2C6FE0}.lv-c{fill:#FF3D7F;opacity:.6}.lv-p{fill:#14213D}.lv-ps{stroke:#14213D}.lv-g{fill:#14213D}.lv-gs{fill:#2A3A63}.lv-m{fill:#14213D}.lv-ms{stroke:#14213D}.lv-t{fill:#FF3D7F}.lv-lamp{fill:#FF3D7F}.lv-shadow{fill:#14213D;opacity:.18}";
 /* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
 async function meCardImage() {
   const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false, portrait: true }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
@@ -193,8 +192,7 @@ async function meCardImage() {
   return im;
 }
 async function louieCardImage() {
-  const svg = louie("cheer", { pose: "hornsUp", size: 400 }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/^<svg[^>]*>/, m => `${m}<style>${LOUIE_CARD_CSS}</style>`);
-  const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
+  const im = new Image(); im.src = louiePic("horns"); await im.decode();
   return im;
 }
 // The share card: a picture of the headline numbers, the newest milestone and

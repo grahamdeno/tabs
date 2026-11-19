@@ -11,13 +11,14 @@ black. The agreed pictures set the look and materials; these later decisions set
 |---|---|---|---|---|---|
 | 1 | Me, the guitar case | `art/case/velvet-slot.webp`, `art/case/latch.webp` | Flat brown padded squares that read as chocolate bars. Empty until a guitar is earned. | The open case lined in deep orange crushed velvet, lit from above, with the guitars lying in it and real depth. | `agreed-me.jpg` |
 | 2 | Every guitar (Road, Merch, case, Show complete) | `art/guitars/*.webp` (Look A, PR #133) | Flat, evenly lit guitars with little shadow or sheen. | Guitars with elevation: soft shadow under the body, gloss on the top, binding that catches light, as in every agreed picture. | `agreed-guitar-lineup.jpg`, `agreed-merch-dark.jpg`, `agreed-road-dark.jpg` |
-| 3 | Merch, Louie's finishes | drawn in code and `art/louie/` | Small flat cartoon Louies (Stock, Tweed, Pink, Teal) in the style from before Road Ready. | Each finish as painted Louie in the Road Ready style. | `agreed-louie-v3-black.jpg` |
+| 3 | Merch, Louie's finishes | hidden since 4.102.0 | The old finishes went with the old Louie. | The tweed Louie in his other colours (item 10). | none |
 | 4 | Merch, stage backdrops | drawn in code | Flat colour thumbnails (Basement, Brick wall, Starlight). | Painted thumbnails that sit with the tolex and chrome. | `agreed-merch-dark.jpg` for the materials |
 | 5 | Show complete, the case | `art/show/case-*.webp` | Painted for the three guitars the Road had before 9a; newer guitars sit on a generic open case. | A case painting, or one case that fits every guitar, for the 23 guitars. | `agreed-show-complete-case.jpg` |
 | 6 | Loading screen | `index.html` boot picture, `icons/splash/*` | On a Light phone the loading screen is dark, then the app turns cream. | A Light loading screen, or one ground that suits both. | none |
 | 7 | Road, first leg (PR #137, parked) | `grok-road-leg1` | The guitar is greyed out (flat dark grey in Light); the locked HEADLINE plate is almost unreadable in Dark; a cut-off piece of body shows at the right edge; the next leg's headstock is a black shape in Light; one test fails (`paintedroad.e2e.mjs` line 123, contrast 1.49). | A rich guitar as in the agreed Road, and the test passing. | `agreed-road-dark.jpg`, `agreed-road-light.jpg` |
 | 8 | Tab bar, if Graham chooses knobs | none yet | The app has line icons. | Five amp knob faces, off and lit, if the knob bar from the Merch screen becomes the app's tab bar. Waits for Graham's choice. | `agreed-merch-dark.jpg` |
 | 9 | Green Room and Headliner | whole look | Both still draw the screens from before the redesign. | Bring both into the new design, or retire them. Until then nothing may switch a player into them without their asking. | none |
+| 10 | Louie, everywhere | `art/louie/v4/*.webp`, `docs/louie-tweed/` | The tweed Louie, cut out by Claude from four white-background pictures. Six poses are missing and borrow another. | Clean cut-outs, the six missing poses, his other colours, and a face-only picture for the icon. See `docs/louie-tweed/README.md`. | `docs/louie-tweed/source/pose-sheet.jpg` |
 
 ## Ideas, not yet items
 

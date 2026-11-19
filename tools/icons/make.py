@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Build the app icons and iPhone launch screens from the black Louie v3 art.
+# Build the app icons and iPhone launch screens from the tweed Louie (docs/louie-tweed/cutouts).
 # Run from the repo root: python3 -I tools/icons/make.py
 #
 # The icon is a close crop of Louie's face (handle, yellow panel, knobs) on the
@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-LOUIE = ROOT / "art/louie/v3/louie-idle-dark.webp"
+LOUIE = ROOT / "docs/louie-tweed/cutouts/louie-idle.png"
 ICONS = ROOT / "icons"
 SPLASH = ICONS / "splash"
 
@@ -20,7 +20,7 @@ BASE = (0x14, 0x12, 0x10)
 # Square crop in louie-idle-dark.webp: handle through the knobs, face centred.
 # Source is 517 x 624. Chosen so the face stays large at 29 pt and the handle
 # clears the iOS rounded mask.
-CROP = (85, 2, 431, 348)
+CROP = (45, 15, 615, 585)
 # Maskable safe zone is a centred circle 80 percent of the side. 15 percent
 # padding keeps the handle and the nickel corners inside that circle.
 MASKABLE_PAD = 0.15

@@ -57,7 +57,6 @@ export function renderMerch() {
   const of = k => MERCH.filter(x => x.kind === k);
   const gear = it => `<button class="mc-gear" data-id="${it.id}" aria-label="${esc(it.name)}: ${esc(it.line)}. ${it.price} dollars${st.own[it.id] ? `. You have ${st.own[it.id]}` : ""}">
       ${st.own[it.id] ? `<span class="mc-have">x${st.own[it.id]}</span>` : ""}${GEAR[it.id]}<b>${esc(it.name)}</b><small>${esc(it.line)}</small>${tag(it, st)}</button>`;
-  const fin = it => `<button class="mc-fin${st.louie === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} Louie">${lou(it.id, 54)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const hatOn = (it, o) => you(data, { me: { ...meOf(data), extra: it.id.slice(5) }, ...o }).replace(/ role="img" aria-label="[^"]*"/, o.size < 100 ? ' aria-hidden="true"' : ` role="img" aria-label="Your guitarist in the ${it.name}"`);
   const hat = it => `<button class="mc-fin${data.me?.extra === it.id.slice(5) ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} for your guitarist">${hatOn(it, { crop: "bust", size: 54 })}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const look = it => `<button class="mc-look${st.look === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} look">${swatch(it.id)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
@@ -72,8 +71,7 @@ export function renderMerch() {
     </div>
     <h2 class="mc-h"><span>Gear</span><small>used up when you use it</small></h2>
     <div class="mc-row three">${of("gear").map(gear).join("")}</div>
-    <h2 class="mc-h"><span>Louie's finish</span><small>yours to keep</small></h2>
-    <div class="mc-row scroll">${of("louie").map(fin).join("")}</div>
+    ${/* Louie's finishes are off the table (Graham, 2026-11-19): the tweed Louie has one colour so far. Finishes already bought stay saved (merch.has) and come back with his new colours. */""}
     <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
     <h2 class="mc-h"><span>Hats</span><small>for your guitarist</small></h2>
