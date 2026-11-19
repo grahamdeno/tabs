@@ -5772,7 +5772,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* ===== Road Ready design pass: Song page ===== a new chord is the card with an amber edge and a small amber NEW plate, no pink */
 :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .strip .scard { border: 1px solid var(--rr-hairline); border-radius: var(--r-control); background: var(--rr-card); }
 :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .strip .scard.new { border: 1px solid var(--accent-line); background: var(--rr-card); box-shadow: var(--rr-lift); }
-:root:is([data-look="neon"], [data-look="festival"]) .sc-new { padding: 1px 6px; border-radius: var(--r-chip); background: var(--rr-amber); color: var(--rr-on-amber); font: 700 var(--type-caption) / 1.3 var(--sans); letter-spacing: var(--type-caption-ls); }
+:root:is([data-look="neon"], [data-look="festival"]) .scard .sc-new { padding: 1px 6px; border-radius: var(--r-chip); background: var(--rr-amber); color: var(--rr-on-amber); font: 700 var(--type-caption) / 1.3 var(--sans); letter-spacing: var(--type-caption-ls); }
 
 /* ===== Road Ready design pass: Merch table ===== the title row and the tips as a quiet capsule; Louie says his line beside him,
    with no shirts on a line, no orange tablecloth and no speech bubble */
