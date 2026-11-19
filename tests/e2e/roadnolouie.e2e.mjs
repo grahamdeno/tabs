@@ -1,4 +1,5 @@
-// Road Ready 10b: Louie is not on the Road in any state. His message stays as a plain card, and the Gig button stays.
+// Road Ready 10b: Louie is not on the Road in any state. Green Room and Headliner keep his message as a plain card; Light and Dark
+// have no message on the Road since the one-row header (Grok, 2026-11-19; his first-song line shows in the playing screen). The Gig button stays.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { phone, LIB, SONG, skip, settled, useBrowser } from "./harness.mjs";
@@ -26,8 +27,8 @@ for (const [look, theme] of [["Dark", "dark"], ["Light", "light"], ["Green Room"
     const page = await phone(t, lib(theme, { skills: MID }), { home: true });
     await page.waitForSelector(".rd-path"); await settled(page);
     await noLouie(page, look);
-    assert.equal(await page.locator("#rd-bubble").count(), 1, `${look}: the message is there`);
-    assert.ok((await page.innerText("#rd-bubble")).trim().length > 0, `${look}: the message has words`);
+    if (["dark", "light"].includes(theme)) assert.equal(await page.locator("#rd-bubble, .rr-say").count(), 0, `${look}: no message on the Road (one-row header)`);
+    else { assert.equal(await page.locator("#rd-bubble").count(), 1, `${look}: the message is there`); assert.ok((await page.innerText("#rd-bubble")).trim().length > 0, `${look}: the message has words`); }
     assert.equal(await page.locator("#rd-tonight, .rd-tonight").count(), 1, `${look}: the Gig button is there`);
     assert.ok(await page.locator("#rd-tonight, .rd-tonight").first().isVisible(), `${look}: the Gig button shows`);
   });
@@ -37,22 +38,22 @@ for (const ax of [1, 2, 3]) {
   test(`Road Ready 10b (large text ${ax}): no Louie on the Road in either look, and the message and Gig button stay`, { skip: skip() }, async t => {
     for (const theme of ["dark", "light"]) {
       const page = await phone(t, lib(theme, { skills: MID }), { home: true });
-      await page.waitForSelector(".rr-hdr .rr-plate"); await settled(page);
+      await page.waitForSelector(".rr-row .rr-stats"); await settled(page);
       await page.evaluate(a => { document.documentElement.style.setProperty("--sys-px", ["", "27px", "33px", "40px"][a]); document.documentElement.dataset.ax = String(a); }, ax);
       await settled(page);
       await noLouie(page, `${theme}, large text ${ax}`);
-      assert.equal(await page.locator("#rd-bubble").count(), 1, `${theme} ${ax}: the message is there`);
+      assert.equal(await page.locator("#rd-bubble").count(), 0, `${theme} ${ax}: no message on the Road (one-row header)`);
       assert.equal(await page.locator("#rd-tonight").count(), 1, `${theme} ${ax}: the Gig button is there`);
     }
   });
 }
 
-test("Road Ready 10b (Opening night): no Louie in the strip, in progress or done; the message stays", { skip: skip() }, async t => {
+test("Road Ready 10b (Opening night): no Louie on the Road, in progress or done, and no message there either", { skip: skip() }, async t => {
   for (const [what, opening] of [["in progress", undefined], ["done", { step: 6, v: 2, done: 1 }]]) {
     const page = await phone(t, opening ? { ...FRESH, opening } : FRESH, { home: true });
     await page.waitForSelector(".on-night"); await settled(page);
     await noLouie(page, `Opening night ${what}`);
-    assert.equal(await page.locator("#rd-bubble").count(), 1, `Opening night ${what}: the message is there`);
+    assert.equal(await page.locator("#rd-bubble").count(), 0, `Opening night ${what}: no message on the Road (one-row header)`);
   }
 });
 

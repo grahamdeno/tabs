@@ -322,7 +322,7 @@ export function renderRoad() {
   const opens = s => s.kind === "chord" && s.chord ? playableSongs(data, s.chord).more : 0;
   const fresh = rr && lastCur && cur && lastCur !== cur.id ? cur.id : null;
   lastCur = cur?.id || null;
-  const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "" };
+  const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "", tonightAdd: rr && !song };
   const curAt = road.legs.indexOf(leg);
   const legsHTML = (rr ? road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length) : road.legs).map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>${rr ? `Leg ${l.n}, ${esc(l.name)}` : `Leg ${l.n} · ${esc(l.name)}`}</span></div>
@@ -380,7 +380,7 @@ export function renderRoad() {
   };
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   path.addEventListener("click", e => {
-    if (e.target.closest("[data-tonight]")) return song ? playGig(song.id, { from: "road" }) : openSearch("road"); /* Tonight, on the current stop */
+    if (e.target.closest("[data-tonight]")) return; /* Tonight, on the current stop: #rd-tonight has its own handler above */
     const goBtn = e.target.closest("[data-go]");
     if (goBtn) return start(goBtn.dataset.go);
     if (e.target.closest("#rd-other")) return otherSongs(cur);

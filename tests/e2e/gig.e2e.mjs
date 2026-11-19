@@ -690,3 +690,38 @@ test("Road Ready 06: at large text Show complete scrolls, with nothing running o
   assert.ok(await page.evaluate(() => { const g = document.querySelector(".rr-sc"); return g.scrollHeight > g.clientHeight; }), "it scrolls");
 });
 
+
+/* Bigger playing lyrics (Grok, 2026-11-19): the size is fixed before Play, nothing reflows or rewraps when play starts, and the
+   line you're on grows by a transform only as far as it fits the width */
+test("Road Ready: the line you're on grows (up to 1.3x, inside the width) while every line stays where it was and on one line", { skip: skip() }, async t => {
+  const body = "[Verse]\n" + ["Short one", "A longer line that fills the width", "Mid length line here", "Short two"].map(l => `A       D\n${l}`).join("\n");
+  const song = { id: "z", title: "Grow", artist: "A", key: "A", format: "chords", duration: 60, bpm: 80, body };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/z"; }); await page.waitForSelector("#sheet .pr"); await page.evaluate(() => document.fonts.ready); await settled(page);
+  const read = () => page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].map(e => ({ top: Math.round(e.offsetTop), h: e.offsetHeight, fs: +getComputedStyle(e).getPropertyValue("--fs"), rows: new Set([...e.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size })));
+  const size0 = await page.evaluate(() => getComputedStyle(document.getElementById("sheet")).fontSize);
+  const before = await read();
+  assert.ok(before.every(l => l.fs >= 1 && l.fs <= 1.3), "every line knows how far it may grow, before Play");
+  assert.ok(before[0].fs > before[1].fs, "a short line may grow more than a long one");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now"); await page.waitForTimeout(400); /* real timer: the 0.25 s transform */
+  const after = await read();
+  assert.deepEqual(after.map(l => [l.top, l.h]), before.map(l => [l.top, l.h]), "nothing reflows when play starts");
+  assert.deepEqual(before.map(l => l.rows), [1, 1, 1, 1], "one line each, paused"); assert.deepEqual(after.map(l => l.rows), [1, 1, 1, 1], "and nothing rewraps");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("sheet")).fontSize), size0, "the same size playing as paused");
+  const now = await page.evaluate(() => { const e = document.querySelector("#sheet > .st-now"), r = e.getBoundingClientRect(), s = document.getElementById("sheet").getBoundingClientRect(), ws = [...e.querySelectorAll(".w")].map(w => w.getBoundingClientRect().right); return { tf: getComputedStyle(e).transform, right: Math.max(...ws), sheetRight: s.right, fs: +getComputedStyle(e).getPropertyValue("--fs") }; });
+  assert.notEqual(now.tf, "none", "the line you're on is scaled"); assert.ok(now.fs > 1, "and grows");
+  assert.ok(now.right <= now.sheetRight + 1, `inside the width (${now.right} of ${now.sheetRight})`);
+});
+
+test("Road Ready: Louie's first-song line shows once inside the playing screen, away from the controls hint", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector(".gg-first");
+  assert.match(await page.innerText(".gg-first"), /first song/i);
+  const box = await page.evaluate(() => { const r = document.querySelector(".gg-first").getBoundingClientRect(); return { top: r.top, bottom: r.bottom, vh: innerHeight }; });
+  assert.ok(box.bottom < box.vh / 2, "near the top, so it never sits on the hint or Pause at the bottom");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.firstLine === true);
+  await page.reload(); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now"); await page.waitForTimeout(600); /* real timer */
+  assert.equal(await page.locator(".gg-first").count(), 0, "never again");
+});

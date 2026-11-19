@@ -11,7 +11,7 @@ const START = { skin: 0, hair: "locs", hairCol: "purple", top: "teal" };
 
 async function openMaker(t) {
   const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: START }, { home: true });
-  await page.waitForSelector("#rd-bubble");
+  await page.waitForSelector("#rd-bubble, .rr-stats");
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me");
   await page.click("#pf-me"); await page.waitForSelector(".gm #gm-selfie");
   return page;
