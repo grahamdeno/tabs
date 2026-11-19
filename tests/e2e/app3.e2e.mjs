@@ -727,7 +727,7 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   /* the Road neck of the leg you're on draws it */
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-neck"); await settled(page);
   const cur = await page.locator(".rd-legmark.cur ~ .rd-neck, .rd-neck").first().innerHTML();
-  assert.match(cur, /art\/guitars\/stickerriot-body\.webp/, "the body picture on the neck"); assert.match(cur, /art\/guitars\/stickerriot-head\.webp/, "and its headstock");
+  assert.match(cur, /art\/guitars\/stickerriot-road\.webp/, "the whole painted guitar on the neck (9a, painted necks)");
   assert.match(await page.locator(".rd-neck").first().getAttribute("aria-label"), /Sticker Riot/);
   /* Me's case has it, and says it is the one you play */
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
@@ -764,11 +764,10 @@ test("Road Ready 9a: the Road neck of each leg is its new guitar's picture, with
   const page = await phone(t, shopLib(0, {}), { home: true });
   await page.waitForSelector(".rd-neck"); await settled(page);
   const html = await page.locator(".rd-neck").first().innerHTML();
-  assert.match(html, /art\/guitars\/porch-body\.webp/); assert.match(html, /art\/guitars\/porch-head\.webp/);
+  assert.match(html, /art\/guitars\/porch-road\.webp/); assert.doesNotMatch(html, /porch-(body|head)\.webp/, "one picture, the whole guitar");
   assert.equal(await page.locator(".rd-neck").first().getAttribute("aria-label"), "Porch");
-  /* the drawn strings stop where the body picture starts: no line is longer than the neck */
-  const r = await page.evaluate(() => { const n = document.querySelector(".rd-neck"), vb = n.querySelector(".rd-strings").viewBox.baseVal, ls = [...n.querySelectorAll(".rd-strings line")]; return { h: vb.height, max: Math.max(...ls.map(l => +l.getAttribute("y2"))), body: [...n.querySelectorAll(".rd-base image")].find(i => /body/.test(i.getAttribute("href"))).y.baseVal.value }; });
-  assert.ok(r.max <= r.body + 1, `strings end at ${r.max}, the body starts at ${r.body}`);
+  /* the strings are in the painting: the Road draws none over it */
+  assert.equal(await page.locator(".rd-neck").first().locator(".rd-strings").count(), 0, "the painted strings are the only strings");
 });
 
 test("Road Ready 9a fix: for each of the 23 new pictures, lit and shade match the picture's own fretboard", { skip: skip() }, async t => {

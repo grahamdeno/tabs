@@ -5167,3 +5167,5 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .rd-node.rr.rr-over .rr-art { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
 /* the headline show: a pill badge on the body */
 .rr-glow.rr-glow-pill { width: 200px; height: 86px; border-radius: 43px; }
+/* the card of a stop near the end of a leg runs past its own neck: lift that neck above the next one (each neck isolates its layers) */
+.rd-path .rd-neck:has(.rd-pop) { z-index: 8; }

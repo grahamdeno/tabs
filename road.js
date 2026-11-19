@@ -351,7 +351,8 @@ export function renderRoad() {
        and below its row across the whole Road, anything else goes to the nearest stop. A keyboard or VoiceOver activation (detail 0)
        is the stop's own button. */
     const pn = e.target.closest(".rd-neck.road");
-    if (pn && e.detail > 0 && !e.target.closest(".rd-pop")) node = (node || e.target.closest(".rr-hit")) ? roadTapNode(pn, e) : null;
+    const painted = pn && pn.querySelector("[data-hx]");
+    if (painted && e.detail > 0 && !e.target.closest(".rd-pop")) node = (node || e.target.closest(".rr-hit")) ? roadTapNode(pn, e) : null;
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
     const s = all.find(x => x.id === node.dataset.stop), wrap = node.parentElement;
     if (s?.kind === "box" && s.state === "now") return openCase(node, s);
