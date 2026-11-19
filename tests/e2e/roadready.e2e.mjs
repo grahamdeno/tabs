@@ -241,8 +241,8 @@ const connectorEnds = page => page.evaluate(() => [...document.querySelectorAll(
   return { ends, stops };
 }));
 
-for (const [label, theme, file] of [["dark", "dark", "louie-peek-dark.webp"], ["light", "light", "louie-peek-light.webp"]]) {
-  test(`Road Ready 02 (${label}): header strip, pearl inlays, the connector up to the current stop, the callout and Louie peeking`, { skip: skip() }, async t => {
+for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
+  test(`Road Ready 02 (${label}): header strip, pearl inlays, the connector up to the current stop, the callout, and no Louie`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
     /* the header: plate, tips, Tonight, fans; nothing of the old Road */
     for (const sel of ["#h-venue.rr-plate", "#h-tips.rr-pill", "#h-fans.rr-pill", "#rd-tonight.rr-tonight", "#rd-bubble.rr-say"]) assert.equal(await page.locator(sel).count(), 1, sel);
@@ -284,10 +284,8 @@ for (const [label, theme, file] of [["dark", "dark", "louie-peek-dark.webp"], ["
     assert.equal(tag.hidden, "true"); assert.ok(tag.left > tag.stopRight && tag.right <= 390, `the callout sits right of the stop, on the screen (${tag.left}-${tag.right})`);
     assert.match(tag.text, /Am/);
 
-    /* Louie peeks in: the picture for this look, partly past the left edge, hidden from screen readers, not a button */
-    const peek = await page.evaluate(() => { const p = document.querySelector(".rd-peek"), r = p.getBoundingClientRect(), c = getComputedStyle(p); return { img: c.backgroundImage, left: r.left, h: r.height, hidden: p.getAttribute("aria-hidden"), pe: c.pointerEvents, disp: c.display }; });
-    assert.ok(peek.img.includes(file), peek.img); assert.ok(peek.left < 0, "partly past the left edge"); assert.equal(Math.round(peek.h), theme === "dark" ? 156 : 150, "the dark picture has its rim painted in a margin, so its box is 6 px taller and Louie is the same size");
-    assert.deepEqual([peek.hidden, peek.pe, peek.disp], ["true", "none", "block"]);
+    /* Road Ready 10b: Louie is not on the Road; his line stays as a plain card */
+    assert.equal(await page.locator(".rd-peek, #app svg.louie, #app .louie").count(), 0, "no Louie on the Road");
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
   });
 }
@@ -328,18 +326,17 @@ test("Road Ready 02: with no song, Tonight asks for one and opens search; with n
   await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
 });
 
-test("Road Ready 02: a screen reader meets the plate, fans, tips, Tonight, Louie's line, then the leg and its stops", { skip: skip() }, async t => {
+test("Road Ready 02: a screen reader meets the plate, fans, tips, Tonight, the message, then the leg and its stops", { skip: skip() }, async t => {
   const page = await road(t, "light", MID);
   const order = await page.evaluate(() => {
-    const els = [...document.querySelectorAll("#app button, #app #rd-bubble, #app .rd-legmark, #app .rd-peek")];
+    const els = [...document.querySelectorAll("#app button, #app #rd-bubble, #app .rd-legmark")];
     return els.filter(e => !e.closest("[aria-hidden=true]") && !e.closest(".rd-sbk")).map(e => e.id || (e.classList.contains("rd-legmark") ? "leg" : e.classList.contains("rd-node") ? "stop" : e.className)).slice(0, 8);
   });
   assert.deepEqual(order, ["h-venue", "h-fans", "h-tips", "rd-tonight", "rd-bubble", "leg", "stop", "stop"]);
-  assert.equal(await page.getAttribute(".rd-peek", "aria-hidden"), "true", "Louie's picture is hidden from screen readers");
   assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1, Open chords/i);
 });
 
-test("Road Ready 02: large text stacks the header with nothing cut off; the largest sizes hide Louie and the pips", { skip: skip() }, async t => {
+test("Road Ready 02: large text stacks the header with nothing cut off; the largest sizes hide the pips", { skip: skip() }, async t => {
   const page = await road(t, "dark", MID);
   await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
   await page.waitForFunction(() => getComputedStyle(document.querySelector(".rr-hdr")).gridTemplateAreas.includes("fans tips"));
@@ -354,7 +351,7 @@ test("Road Ready 02: large text stacks the header with nothing cut off; the larg
   assert.ok(box.plate.width > 340, "the plate takes the full width");
   assert.deepEqual(box.cut, [], "nothing truncates"); assert.deepEqual(box.over, [], "no text runs out of its control");
   await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "40px"); document.documentElement.dataset.ax = "3"; });
-  await page.waitForFunction(() => getComputedStyle(document.querySelector(".rd-peek")).display === "none");
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".rr-pips")).display === "none");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rr-pips")).display), "none", "the pips go; the plate says the same in words");
 });
 
@@ -398,39 +395,35 @@ test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: 
   }
 });
 
-test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg banner, finger dots, Louie beside the path)", { skip: skip() }, async t => {
+test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg banner, finger dots, the message card without Louie)", { skip: skip() }, async t => {
   for (const look of ["green", "headliner"]) {
     const page = await phone(t, roadLib(look, MID), { home: true });
     await page.waitForSelector(".rd-path"); await settled(page);
     assert.equal(await page.locator(".rr-hdr, .rd-peek, .rr-say, .rd-conn, .rd-node.rr").count(), 0, `${look}: none of Road Ready`);
-    for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say svg.louie", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
+    assert.equal(await page.locator(".rd-say svg.louie, .rd-say .louie").count(), 0, `${look}: no Louie on the Road`);
+    for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say #rd-bubble", ".rd-say .rd-tonight", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
   }
 });
 
 /* Road Ready design fixes (Grok's review of the Road, 2026-11-18) */
 for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light", "festival"]]) {
-  test(`Road Ready design fixes (${label}): the peek has no extra shadow and shows his face, the header piping is thin and angled, large text keeps Louie clear of the dock`, { skip: skip() }, async t => {
+  test(`Road Ready design fixes (${label}): the header piping is thin and angled, large text keeps the line clear of the dock`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
-    const n = await page.evaluate(() => { const p = document.querySelector(".rd-peek"), r = p.getBoundingClientRect(), c = getComputedStyle(p), h = document.querySelector(".rr-hdr"), b = getComputedStyle(h, "::before");
-      return { filter: c.filter, left: r.left, pipeW: b.paddingTop, pipe: b.backgroundImage, tonight: getComputedStyle(document.querySelector(".rr-tonight")).backgroundColor,
+    const n = await page.evaluate(() => { const h = document.querySelector(".rr-hdr"), b = getComputedStyle(h, "::before");
+      return { pipeW: b.paddingTop, pipe: b.backgroundImage, tonight: getComputedStyle(document.querySelector(".rr-tonight")).backgroundColor,
         glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rr-stage")).backgroundImage }; });
-    assert.equal(n.filter, "none", "no CSS shadow on the peek (the dark picture has its rim painted in)");
-    assert.equal(Math.round(n.left), look === "neon" ? -33 : -30, "the peek is about 30 px past the left edge, so both eyes and the mouth show");
     assert.equal(n.pipeW, "2px", "the header piping is 2 px"); assert.match(n.pipe, /135deg/, "an angled chrome gradient");
     if (look === "festival") { assert.equal(n.tonight, "rgb(30, 25, 20)", "Tonight is a dark #1E1914 bar on the cream header"); assert.equal(Math.round(n.glowW), 96, "the current-stop glow is stronger on cream"); }
     else assert.match(n.stage, /radial-gradient/, "a soft amber glow behind the neck in the dark look");
-    /* large text: Louie's line is cut to two lines, the peek and the "songs" chips are gone, and the header and line leave room for the neck */
+    /* large text: the line is cut to two lines, the "songs" chips are gone, and the header and line leave room for the neck */
     await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
-    await page.waitForFunction(() => getComputedStyle(document.querySelector(".rd-peek")).display === "none");
     const ax = await page.evaluate(() => { const say = document.querySelector(".rr-say"), s = getComputedStyle(say), chips = [...document.querySelectorAll(".rr-chip")];
       return { clamp: s.webkitLineClamp, say: say.getBoundingClientRect().bottom, vh: innerHeight, chips: chips.map(c => getComputedStyle(c).display), full: say.textContent.length > 0 }; });
-    assert.equal(ax.clamp, "2", "Louie's line is cut to two lines"); assert.ok(ax.full, "the whole line is still in the page for a screen reader");
+    assert.equal(ax.clamp, "2", "the line is cut to two lines"); assert.ok(ax.full, "the whole line is still in the page for a screen reader");
     assert.ok(ax.chips.every(d => d === "none"), "the songs chips are hidden at large text");
     const probe = await page.evaluate(() => { const c = document.createElement("span"); c.className = "rd-songs rr-chip"; document.querySelector(".rd-neck .rd-stop").appendChild(c); const d = getComputedStyle(c).display; c.remove(); return d; });
     assert.equal(probe, "none", "a songs chip drawn at large text is hidden (a lesson that opens songs shows one on the road ahead)");
-    assert.ok(ax.say <= ax.vh * 0.55, `the header and Louie's line take ${Math.round(ax.say / ax.vh * 100)} percent of the screen, at most 55`);
-    await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "17px"); delete document.documentElement.dataset.ax; });
-    await page.waitForFunction(() => getComputedStyle(document.querySelector(".rd-peek")).display !== "none");
+    assert.ok(ax.say <= ax.vh * 0.55, `the header and the line take ${Math.round(ax.say / ax.vh * 100)} percent of the screen, at most 55`);
   });
 }
 
