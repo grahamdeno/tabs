@@ -302,7 +302,7 @@ function renderSettings() {
   $("s-focus").onchange = e => { s.focus = e.target.value; Tabs.save(data); renderSettings(); };
   app.querySelectorAll("#s-theme [data-t]").forEach(b => b.onclick = () => {
     /* 4.78.0: a look you don't have opens it on the Merch table */
-    if (b.classList.contains("locked")) { toast(b.dataset.t === "headliner" ? "Headline a show to earn Headliner" : "Green Room is at the Merch table"); return go("#/merch"); }
+    if (b.classList.contains("locked")) { toast(b.dataset.t === "headliner" ? "Headline a show to earn Headliner" : "Green Room is at the Merch table"); return go("#/merch/looks"); }
     s.theme = b.dataset.t; Tabs.save(data); applyTheme(); renderSettings(); });
   $("s-savekey").onclick = () => {
     const k = $("s-key").value.trim();

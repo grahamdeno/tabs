@@ -5846,3 +5846,23 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* the case lies open on its side (r10-06): wide and low, three compartments, each guitar standing in its slot */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { aspect-ratio: 116 / 168; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 92%; margin-bottom: 3%; }
+
+/* Merch, 4.104.0 (agreed Merch screen): the title in the middle between a round back button and the tips pill, then a
+   bronze-edged bar of three tabs. Dark and Light only. */
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-head { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 8px; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-head h1 { text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-back { width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid #8A6A44; background: radial-gradient(circle at 50% 35%, #3A332C, #1A1714); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 2px 6px rgba(0, 0, 0, .5); color: #F1E3C8; }
+:root[data-look="festival"] .mc-rr .mc-back { background: radial-gradient(circle at 50% 35%, #FFF9EE, #E9DCC4); color: #3A2A1A; border-color: #A88A5E; box-shadow: inset 0 1px 0 #fff, 0 2px 5px rgba(80, 50, 20, .25); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-head .mc-fans { gap: 8px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; border: 1.5px solid #8A6A44; background: linear-gradient(#E9D6B6, #C9AE86); color: #2A1E12; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 2px 6px rgba(0, 0, 0, .35); font: 700 var(--type-headline) / 1 var(--display); }
+.mc-coin { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #C88A4A, #7A4A22 70%); box-shadow: inset 0 0 0 2px #5A3416, inset 0 0 0 4px #B07A42; }
+.mc-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 14px 0 6px; padding: 4px; border-radius: 14px; background: linear-gradient(#1C1916, #120F0D); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8A6A44, inset 0 0 0 3.5px #2A2017, 0 3px 8px rgba(0, 0, 0, .4); }
+.mc-seg button { min-height: 44px; border: 0; border-left: 1px solid rgba(255, 255, 255, .08); background: none; color: var(--rr-text, var(--fg)); font: 600 var(--type-body, 16px) / 1 var(--sans); cursor: pointer; border-radius: 10px; }
+.mc-seg button:first-child { border-left: 0; }
+.mc-seg button[aria-selected="true"] { background: linear-gradient(#3A332C, #24201C); box-shadow: inset 0 0 0 1px #8A6A44, inset 0 1px 0 rgba(255, 255, 255, .15); border-left-color: transparent; }
+.mc-seg button[aria-selected="true"] + button { border-left-color: transparent; }
+.mc-seg button:focus-visible { outline: 2px solid var(--rr-amber, var(--accent)); outline-offset: -3px; }
+:root[data-look="festival"] .mc-seg { background: linear-gradient(#F3EADB, #E6D9C3); box-shadow: inset 0 0 0 1px #6A5236, inset 0 0 0 2.5px #B89A6E, 0 2px 6px rgba(80, 50, 20, .2); }
+:root[data-look="festival"] .mc-seg button { border-left-color: rgba(60, 40, 20, .15); }
+:root[data-look="festival"] .mc-seg button[aria-selected="true"] { background: linear-gradient(#FFFDF8, #F1E6D2); box-shadow: inset 0 0 0 1px #A88A5E, 0 1px 2px rgba(60, 40, 20, .25); }
+.mc-table[hidden] { display: none !important; }
+.mc-rr .mc-back svg { width: 22px; height: 22px; }

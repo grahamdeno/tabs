@@ -122,7 +122,7 @@ test("Green Room and Headliner get no Road Ready tokens and keep their own colou
 
 test("Road Ready: the Merch table and Settings use the new names, and no screen has the old ones", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
-  await page.evaluate(() => { location.hash = "#/merch"; });
+  await page.evaluate(() => { location.hash = "#/merch/looks"; });
   await page.waitForSelector(".mc-look");
   const text = await page.innerText("body");
   assert.match(text, /Road Ready light/); assert.match(text, /Road Ready dark/);
@@ -431,7 +431,7 @@ for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light",
 
 test("Road Ready design fixes: the selected Merch finish has an amber ring", { skip: skip() }, async t => {
   const page = await road(t, "dark", MID);
-  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-fin.on, .mc-look.on"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/merch/looks"; }); await page.waitForSelector(".mc-fin.on, .mc-look.on"); await settled(page);
   const ring = await page.evaluate(() => { const e = document.querySelector(".mc-fin.on, .mc-look.on"), probe = document.createElement("i"); probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--rr-amber-text"); document.body.appendChild(probe); const amber = getComputedStyle(probe).color; probe.remove(); return { ring: getComputedStyle(e).borderTopColor, amber }; });
   assert.equal(ring.ring, ring.amber, "the selected finish is ringed in amber, not cyan");
 });

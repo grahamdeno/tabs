@@ -81,7 +81,7 @@ test("4.85.0 a duel shows your guitarist, worried when you lost", { skip: skip()
 
 test("4.85.0 a hat bought on the Merch table goes on your guitarist and shows in the maker", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, merch: { tips: 400 }, songs: PLAYED(LIB.songs) }, { home: true });
-  await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/merch"); await page.waitForSelector(".mc");
+  await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/merch/looks"); await page.waitForSelector(".mc"); /* 4.104.0: hats are on the Looks tab */
   assert.equal(await page.locator(".mc-fin[aria-label$='for your guitarist']").count(), 3, "three hats");
   await page.click('[data-id="wear-beanie"]'); await page.waitForSelector(".mt");
   assert.match(await page.innerText(".mt"), /TRY IT ON YOUR GUITARIST[\s\S]*Beanie[\s\S]*BUY FOR \$150/);

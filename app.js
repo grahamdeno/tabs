@@ -2048,7 +2048,7 @@ function renderRoute() {
   else if (r.name === "tour") lazy("tour.js").then(m => { if (route().name === "tour") { m.renderTour(); window.scrollTo(0, 0); } });
   else if (r.name === "duel") lazy("duel.js").then(m => { if (route().name === "duel") { m.renderDuel(r.id); window.scrollTo(0, 0); } });
   else if (r.name === "charts") lazy("charts.js").then(m => { if (route().name === "charts") { m.renderCharts(); window.scrollTo(0, 0); } });
-  else if (r.name === "merch") lazy("merch.js").then(m => { if (route().name === "merch") { m.renderMerch(); window.scrollTo(0, 0); } });
+  else if (r.name === "merch") lazy("merch.js").then(m => { if (route().name === "merch") { if (r.id) m.merchTab(r.id); m.renderMerch(); window.scrollTo(0, 0); } }); /* 4.104.0: #/merch/looks opens a tab */
   else if (r.name === "support") lazy("support.js").then(m => { if (route().name === "support") { m.renderSupport(); window.scrollTo(0, 0); } });
   else if (r.name === "band") lazy("band.js").then(m => { if (route().name === "band") { m.renderBand(); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
