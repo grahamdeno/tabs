@@ -5,11 +5,12 @@
 // The look, the patches and the guitar aren't picked here: the Road decides them (stageLook, patchesAll, guitarFor).
 // The preview is your guitarist on the cream "TONIGHT" poster; each option is a small poster bust of you with it.
 import { ME_BEARD, ME_DEFAULT, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_PATCHES, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
-import { esc, haptic, layer } from "./ui.js";
-import { data } from "./app.js";
+import { ask, esc, haptic, layer, toast } from "./ui.js";
+import { data, go } from "./app.js";
 import { HAIR_COL, OUTFIT_COL, SKIN, guitarist } from "./guitarist.js";
 import { guitarPic } from "./fretboard.js";
 import { selfieStart } from "./selfie.js";
+import { imgKey, makePortrait, portraitError, portraitNow, portraitSVG, removePortrait } from "./portrait.js";
 
 const NAME = { shag: "Shag", curly: "Curly", buzz: "Buzz", mohawk: "Mohawk", braids: "Braids", bob: "Bob", bun: "Bun", swoop: "Swoop", long: "Long", locs: "Locs", pixie: "Pixie", ponytail: "Ponytail", longhawk: "Long mohawk" };
 const BEARD = { none: "Clean", stubble: "Stubble", moustache: "Moustache", beard: "Beard" };
@@ -21,13 +22,13 @@ const FLIP = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"
 const pickOf = list => list[Math.floor(Math.random() * list.length)];
 
 export function makerSheet({ mode = "full", done } = {}) {
-  let me = { ...meOf(data) }, selfieMsg = "", busy = false, tab = "face";
+  let me = { ...meOf(data) }, selfieMsg = "", busy = false, tab = "face", drawing = false, portMsg = "";
   const full = mode === "full", look = stageLook(data), guitar = guitarShown(data, roadPath(data).leg?.id);
   const tabs = full ? ["face", "hair", "fit", "guitar"] : ["face", "hair"];
   const owned = new Set(merchState(data).has);
   const keep = () => { if (full) { data.me = cleanMe(me); Tabs.save(data); } };
   const set = (k, v) => { me = { ...me, [k]: v }; keep(); paint(); haptic(1); };
-  const prev = () => guitarist(me, { look, guitar, patches: patchesOf({ ...data, me: full ? me : data.me }), size: 190, mood: "happy", card: true });
+  const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : guitarist(me, { look, guitar, patches: patchesOf({ ...data, me: full ? me : data.me }), size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT" });
   const bust = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "bust", size: 56, look, flat: true }));
   const chip = (key, v, label, on, inner, cls = "") => `<button class="gm-c${cls}${on ? " on" : ""}" data-k="${key}" data-v="${esc(String(v))}" aria-pressed="${on}" aria-label="${esc(label)}">${inner}</button>`;
   const blots = (key, list, col, name) => `<div class="gm-row gm-blots" role="group" aria-label="${esc(name)}">${list.map((v, i) => { const c = key === "skin" ? SKIN[i] : col[v]; const val = key === "skin" ? i : v; return chip(key, val, `${name}: ${key === "skin" ? SKIN_NAME[i] : v}`, me[key] === val, `<i class="gm-blot" style="--ink:${c}"></i>`); }).join("")}</div>`;
@@ -57,14 +58,17 @@ export function makerSheet({ mode = "full", done } = {}) {
         ${mode === "start" ? `<div class="gm-top"><span class="gm-over">OPENING NIGHT · ${step} OF ${OPENING.length}</span><button class="mt-not" id="gm-skip">Skip</button></div>` : mode === "once" ? `<div class="gm-top"><span class="gm-over">TONIGHT</span><button class="mt-not" id="gm-skip">Skip</button></div>` : ""}
         <h2>${title}</h2>
         <div class="gm-stage">
-          <div class="gm-prev" aria-live="polite">${prev()}</div>
+          <div class="gm-card"><div class="gm-prev" aria-live="polite">${prev()}</div>
           <button class="ib gm-rand" id="gm-rand" aria-label="Random guitarist">${DICE}</button>
-          ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}
+          ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}</div>
           <div class="gm-lou"><img src="art/louie/v3/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
         </div>
         <div class="gm-row gm-starts" role="group" aria-label="Start from">${ME_STARTERS.slice(0, 6).map((s, i) => chip("starter", i, `Starter ${i + 1}`, same(me, s), bust(s))).join("")}</div>
         <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? ' disabled aria-busy="true"' : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
           <p class="gm-note">Your photo stays on this phone and is never saved.</p>${selfieMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(selfieMsg)}</p>` : ""}</div>
+        <div class="gm-selfie gm-port"><button class="btn gm-selfie-b" id="gm-port"${drawing ? ' disabled aria-busy="true"' : ""}>${drawing ? "Drawing your portrait..." : portraitNow() ? "Make a new portrait" : "Make my portrait"}</button>
+          <p class="gm-note">Optional. A poster portrait that looks like you, drawn by OpenAI from one photo with your own OpenAI key.</p>
+          ${portraitNow() ? `<button class="mt-not gm-port-off" id="gm-port-off">Use the drawn guitarist instead</button>` : ""}${portMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(portMsg)}</p>` : ""}</div>
         <div class="gm-tabs" role="tablist" aria-label="Parts">${tabs.map(t => `<button role="tab" class="gm-tab${t === tab ? " on" : ""}" data-tab="${t}" aria-selected="${t === tab}" id="gm-t-${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join("")}</div>
         <div class="gm-panel" role="tabpanel" aria-labelledby="gm-t-${tab}">${panel()}</div>
       </div>
@@ -91,9 +95,21 @@ export function makerSheet({ mode = "full", done } = {}) {
       if (g?.cancelled) return;
       if (!g) { selfieMsg = "Couldn't read that one. Pick a starter instead."; paint(); return; }
       /* the guesses only set the preview: nothing is saved until THAT'S ME (or Done) */
-      me = { ...me, ...g }; selfieMsg = "Here's a start from your photo. Fix anything below."; tab = "face"; paint(); haptic(1);
+      me = { ...me, beardCol: undefined, ...g }; selfieMsg = "Here's a start from your photo. Fix anything below."; tab = "face"; paint(); haptic(1);
       layer.querySelector(".gm-tabs")?.scrollIntoView({ block: "start" });
     });
+    /* Make my portrait (4.99.0): a key first, then plain consent, then one photo to OpenAI; only the picture is kept, on this phone */
+    document.getElementById("gm-port")?.addEventListener("click", () => {
+      portMsg = "";
+      if (!imgKey()) { toast("Add your OpenAI key in Settings > Keys first", null, { label: "Keys", fn: () => { layer.innerHTML = ""; go("#/settings/keys"); } }); return; }
+      ask({ title: "Make a poster portrait?", text: "You pick one photo. It goes straight from this phone to OpenAI, with your key, to draw the portrait, and Louie keeps only the finished picture, on this phone. OpenAI's API terms say it doesn't train on what you send and may keep it up to 30 days for abuse checks. Each portrait costs a few cents on your OpenAI bill.", ok: "Pick a photo", keep: "Not now" }, async () => {
+        drawing = true; paint();
+        try { const p = await makePortrait({ onBusy: b => { drawing = b; paint(); } }); if (!p?.cancelled) { portMsg = "Here's your portrait. It's your card and your round picture; the game's poses stay drawn."; haptic(2); } }
+        catch (e) { portMsg = portraitError(e); }
+        drawing = false; paint();
+      });
+    });
+    document.getElementById("gm-port-off")?.addEventListener("click", async () => { await removePortrait(); portMsg = "Portrait removed from this phone."; paint(); });
     const close = () => { layer.innerHTML = ""; done?.(); };
     document.getElementById("gm-scrim").onclick = full ? close : () => { layer.innerHTML = ""; };
     document.getElementById("gm-ok").onclick = () => { data.me = cleanMe(me); Tabs.save(data); close(); };

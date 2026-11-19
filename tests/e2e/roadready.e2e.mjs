@@ -247,12 +247,12 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     /* the header: plate, tips, Tonight, fans; nothing of the old Road */
     for (const sel of ["#h-venue.rr-plate", "#h-tips.rr-pill", "#h-fans.rr-pill", "#rd-tonight.rr-tonight", "#rd-bubble.rr-say"]) assert.equal(await page.locator(sel).count(), 1, sel);
     for (const sel of [".hud", ".rd-banner", "#rd-book", ".rd-chip", ".rd-say", "#rd-tune", "#h-streak"]) assert.equal(await page.locator(sel).count(), 0, `${sel} is gone from the Road`);
-    assert.match(await page.innerText("#h-venue"), /GARAGE[\s\S]*Show 6 of 10[\s\S]*Open mic next/i);
+    assert.match(await page.innerText("#h-venue"), /GARAGE[\s\S]*Show 6 of 10/i); /* 4.99.0: the next venue is in the name only (lean header) */
     assert.equal(await page.locator("#h-venue .rr-pips i").count(), 10, "a pip per stop in the leg");
     assert.equal(await page.locator("#h-venue .rr-pips i.done").count(), 5, "five done (four lessons and the box)");
     assert.equal(await page.locator("#h-venue .rr-pips i.now").count(), 1);
     assert.equal(await page.getAttribute("#h-venue", "aria-label"), "Garage, show 6 of 10, Open mic next. Open the Tour Map");
-    assert.match(await page.innerText("#h-tips"), /\$\d[\s\S]*Tips/); assert.match(await page.innerText("#h-fans"), /\d[\s\S]*Fans/);
+    assert.match(await page.innerText("#h-tips"), /\$\d/); assert.match(await page.innerText("#h-fans"), /\d/); /* 4.99.0: number only, the label in the name */
     assert.match(await page.getAttribute("#rd-tonight", "aria-label"), /^Tonight: .+\. Play$/);
     /* the strip is tolex inside chrome piping, 8 px from the screen edges */
     const strip = await page.evaluate(() => { const h = document.querySelector(".rr-hdr"), r = h.getBoundingClientRect(), c = getComputedStyle(h), p = getComputedStyle(h, "::before"); return { l: r.left, r: innerWidth - r.right, bg: c.backgroundImage, radius: c.borderTopLeftRadius, pipe: p.backgroundImage }; });
@@ -265,8 +265,8 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal(cur.fill, "rgb(255, 214, 140)", "#FFD68C pearl");
     const done = await page.$$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box)", bs => bs.map(b => ({ check: !!b.querySelector(".rr-eng path"), w: b.querySelector(".rr-art").getBoundingClientRect().width, halo: !!b.querySelector(".rr-halo") })));
     assert.equal(done.length, 4); assert.ok(done.every(d => d.check && Math.round(d.w) === 26 && d.halo), "done: 26 px with a check and a faint halo");
-    const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.slice(0, 3).map(b => b.querySelector(".rr-eng text")?.textContent));
-    assert.deepEqual(ahead, ["7", "9", "1"], "numbered ahead (8 is a merch box; the next leg starts at 1)");
+    const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.filter(b => !b.closest(".rr-peek")).slice(0, 3).map(b => b.querySelector(".rr-eng text")?.textContent));
+    assert.deepEqual(ahead, ["7", "9"], "numbered ahead (8 is a merch box); the next leg is a locked peek with no stops (4.99.0)");
     assert.equal(await page.locator(".rd-neck >> nth=0 >> .rd-node.headline .rr-art").count(), 1, "the leg ends in the double inlay");
     assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
 
@@ -320,7 +320,7 @@ test("Road Ready 02: with no song, Tonight asks for one and opens search; with n
   const page = await road(t, "dark", MID, {}, { songs: [], opening: { skipped: true } });
   assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*Add a song to play tonight/);
   assert.equal(await page.getAttribute("#rd-tonight", "aria-label"), "Add a song to play tonight");
-  assert.equal((await page.innerText("#h-fans small")).trim(), "Fans", "no streak: the label is Fans, never a 0");
+  assert.equal(await page.locator("#h-fans small").count(), 0, "no streak: nothing beside the number, never a 0 (4.99.0)");
   assert.doesNotMatch(await page.getAttribute("#h-fans", "aria-label"), /streak/i, "and a screen reader hears no streak");
   await page.click("#rd-tonight");
   await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
