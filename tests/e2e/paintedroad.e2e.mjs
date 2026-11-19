@@ -49,7 +49,8 @@ test("Painted necks: tapping another stop moves the card; tapping empty space cl
   await page.waitForFunction(() => document.querySelector(".rd-pop")?.parentElement.querySelector("[data-stop]").dataset.stop === "c:D");
   assert.equal(await page.locator(".rd-pop").count(), 1, "one card at a time");
   /* empty space: the painted headstock, above the hit layer */
-  await page.evaluate(() => { document.getElementById("rd-path").scrollTop = 0; }); await page.waitForTimeout(200); /* real timer: the scroll lands */
+  await page.evaluate(() => { const p = document.getElementById("rd-path"); p.style.scrollBehavior = "auto"; p.scrollTo(0, 0); });
+  await page.waitForFunction(() => document.getElementById("rd-path").scrollTop === 0); await settled(page);
   const head = await page.evaluate(() => { const r = document.querySelector(".rd-neck").getBoundingClientRect(); return { x: r.left + 30, y: r.top + 60 }; });
   await page.mouse.click(head.x, head.y);
   await page.waitForSelector(".rd-pop", { state: "detached" });
