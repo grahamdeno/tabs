@@ -29,7 +29,7 @@ for (const [name, hash] of [["Songbook", "#/library"], ["Settings", "#/settings"
     assert.equal(r.mainBorder, "2px", "main button is a plate with a 2 px edge");
     assert.equal(r.mainRadius, "12px", "main button has 12 px corners");
     assert.equal(r.lip, "none", "the plain button has no box shadow");
-    assert.match(r.segOn, /0px 2px 0px/, "the chosen segment has a lip");
+    assert.equal(r.segOn, "none", "the chosen segment has no raised edge in Light and Dark (design pass, 2026-11-19)");
   });
 
   test(`System: buttons keep their lip on Green Room (${name})`, { skip: skip() }, async t => {

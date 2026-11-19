@@ -5788,3 +5788,6 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .mc-h span { font: var(--type-title2-w) var(--type-title2) / 1.2 var(--display); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-h small { font: 500 var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) :is(.mc-gear, .mc-fin, .mc-drop) { border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); }
+
+/* Segmented controls (review fix, 2026-11-19): the chosen segment is the amber fill alone, with no raised edge, in Light and Dark */
+:root:is([data-look="neon"], [data-look="festival"]) .seg > button.on, :root:is([data-look="neon"], [data-look="festival"]) .seg > .on, :root:is([data-look="neon"], [data-look="festival"]) .seg.skmode button.on { box-shadow: none; }
