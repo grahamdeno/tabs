@@ -245,11 +245,11 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
   test(`Road Ready 02 (${label}): one-row header, venue sign, pearl inlays, the connector up to the current stop, Tonight beside it, and no Louie`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
     /* the one-row header (Grok, 2026-11-19): streak, songs you can play, fans and tips, each an icon then a number; nothing else */
-    for (const sel of ["header.rr-head .rr-stats", "#h-streak", "#h-songs", "#h-fans", "#h-tips", ".rd-stop.cur #rd-tonight.rr-tn-stop", "#rd-sign.rr-sign"]) assert.equal(await page.locator(sel).count(), 1, sel);
+    for (const sel of ["header.rr-head .rr-stats", "#h-streak", "#h-fans", "#h-tips", ".rd-stop.cur #rd-tonight.rr-tn-stop", "#rd-sign.rr-sign"]) assert.equal(await page.locator(sel).count(), 1, sel);
     for (const sel of [".hud:not(.rr-stats)", ".rr-hdr", ".rr-plate", ".rr-pips", "#h-venue", "#rd-bubble", ".rr-say", ".rr-tonight", ".rd-banner", "#rd-book", ".rd-chip", ".rd-say", "#rd-tune", ".h-lab"]) assert.equal(await page.locator(sel).count(), 0, `${sel} is gone from the Road`);
     assert.equal(await page.innerText("#rd-sign"), "GARAGE", "the venue is a small sign at the start of the leg");
     assert.equal(await page.getAttribute("#rd-sign", "aria-label"), "Garage, venue 1. Open the Tour Map");
-    assert.match(await page.innerText("#h-tips"), /^\$\d/); for (const id of ["h-streak", "h-songs", "h-fans"]) assert.match(await page.innerText("#" + id), /^\d[\d,]*$/, `${id} is a number only`);
+    assert.match(await page.innerText("#h-tips"), /^\$\d/); for (const id of ["h-streak", "h-fans"]) assert.match(await page.innerText("#" + id), /^\d[\d,]*$/, `${id} is a number only`);
     assert.match(await page.getAttribute("#rd-tonight", "aria-label"), /^Tonight: .+\. Play$/);
     assert.match(await page.innerText("#rd-tonight"), /^TONIGHT\s+River Road$/);
     /* 44 px or less, below the safe area, with no card, pill, outline or background on the row or a stat */
@@ -257,7 +257,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
       return { top: r.top, h: r.height, row: bare(h), stats: [...h.querySelectorAll("button")].map(b => ({ ...bare(b), w: b.getBoundingClientRect().width, hh: b.getBoundingClientRect().height, icon: !!b.querySelector("svg.rr-st-ic") })), neck: document.querySelector(".rd-neck").getBoundingClientRect().top + scrollY }; });
     assert.ok(row.h <= 44, `the header is ${row.h} px tall`); assert.equal(Math.round(row.top), 0, "right under the safe area");
     for (const x of [row.row, ...row.stats]) assert.deepEqual([x.bg, x.img, x.border, x.shadow], ["rgba(0, 0, 0, 0)", "none", "0px", "none"], "bare: no card, pill, outline or background");
-    assert.equal(row.stats.length, 4); assert.ok(row.stats.every(x => x.icon && x.w >= 44 && x.hh >= 44), "four stats, each a line icon, each at least 44 by 44");
+    assert.equal(row.stats.length, 3); assert.equal(await page.locator("#h-songs").count(), 0, "the songs number is out of the header (Graham, 2026-11-19)"); assert.ok(row.stats.every(x => x.icon && x.w >= 44 && x.hh >= 44), "three stats, each a line icon, each at least 44 by 44");
     assert.ok(row.neck <= 60, `the neck starts right under the header (${row.neck} px)`);
 
     /* the stops: done ones carry a check, the current one is the trapezoid with its number, the ones ahead are numbered */
@@ -308,10 +308,16 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   assert.deepEqual(small, [], "every control on the Road is at least 44 by 44");
   const back = async () => { await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rr-head .rr-stats"); await settled(page); };
   await page.click("#rd-sign"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
-  await page.click("#h-songs"); await page.waitForFunction(() => location.hash === "#/library"); await back();
-  await page.click("#h-streak"); await page.waitForFunction(() => location.hash === "#/you"); await back();
+  /* Graham, 2026-11-19: the streak shows a small card and fans open the Tour Map; neither opens your profile. Tips still open Merch. */
+  assert.equal(await page.getAttribute("#h-streak", "aria-label"), "Gig streak 0 days. Show your streak");
+  await page.click("#h-streak"); await page.waitForSelector(".sk-card");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "the streak stays on the Road");
+  assert.equal(await page.innerText(".sk-card h2"), "No streak yet"); assert.equal(await page.locator(".sk-card .sk-day").count(), 7, "the last seven days");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "sk-x", "focus is on Done");
+  await page.click("#sk-x"); await page.waitForSelector(".sk-card", { state: "detached" });
   await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch"); await back();
-  await page.click("#h-fans"); await page.waitForFunction(() => location.hash === "#/you"); await back();
+  assert.match(await page.getAttribute("#h-fans", "aria-label"), /fans\. Open the Tour Map$/);
+  await page.click("#h-fans"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
   await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /The Am chord[\s\S]*START/, "the stop card, as before");
   assert.equal(await page.locator("#rd-tonight").isVisible(), false, "Tonight steps aside for the card");
@@ -329,13 +335,13 @@ test("Road Ready 02: with no song, Tonight asks for one and opens search; with n
   await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
 });
 
-test("Road Ready 02: a screen reader meets the four stats, then the leg, its sign, and its stops with Tonight beside the current one", { skip: skip() }, async t => {
+test("Road Ready 02: a screen reader meets the three stats, then the leg, its sign, and its stops with Tonight beside the current one", { skip: skip() }, async t => {
   const page = await road(t, "light", MID);
   const order = await page.evaluate(() => {
     const els = [...document.querySelectorAll("#app button, #app .rd-legmark")];
-    return els.filter(e => !e.closest("[aria-hidden=true]")).map(e => e.id || (e.classList.contains("rd-legmark") ? "leg" : e.classList.contains("rd-node") ? "stop" : e.className)).slice(0, 8);
+    return els.filter(e => !e.closest("[aria-hidden=true]")).map(e => e.id || (e.classList.contains("rd-legmark") ? "leg" : e.classList.contains("rd-node") ? "stop" : e.className)).slice(0, 7);
   });
-  assert.deepEqual(order, ["h-streak", "h-songs", "h-fans", "h-tips", "leg", "rd-sign", "stop", "stop"]);
+  assert.deepEqual(order, ["h-streak", "h-fans", "h-tips", "leg", "rd-sign", "stop", "stop"]);
   assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1, Open chords/i);
   const cur = await page.evaluate(() => { const b = [...document.querySelectorAll("#app button")].filter(e => !e.closest("[aria-hidden=true]")); const i = b.findIndex(x => x.matches(".rd-node.cur")); return b.slice(i + 1).find(x => !x.matches(".rr-hit"))?.id; });
   assert.equal(cur, "rd-tonight", "Tonight comes right after the current stop");
@@ -347,7 +353,7 @@ test("Road Ready 02: large text keeps the header to one row, with nothing cut of
     await page.evaluate(([px, ax]) => { document.documentElement.style.setProperty("--sys-px", px); document.documentElement.dataset.ax = ax; }, [px, ax]);
     await settled(page);
     const box = await page.evaluate(() => {
-      const rs = ["h-streak", "h-songs", "h-fans", "h-tips"].map(id => document.getElementById(id).getBoundingClientRect());
+      const rs = ["h-streak", "h-fans", "h-tips"].map(id => document.getElementById(id).getBoundingClientRect());
       const cut = [...document.querySelectorAll(".rr-head *")].filter(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow !== "visible").map(e => e.className);
       return { tops: rs.map(r => Math.round(r.top)), left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), h: document.querySelector("header.rr-head").getBoundingClientRect().height, cut };
     });

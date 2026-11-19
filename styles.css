@@ -5819,3 +5819,18 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* The Road, Road Ready (design r10-01 and r10-02): a warm glow on the tolex from under the guitar. It stays put while the neck scrolls over it. */
 :root[data-look="neon"] .rd-path { background: radial-gradient(ellipse 64% 44% at 46% 50%, rgba(255, 160, 60, .34) 0, rgba(255, 140, 40, .17) 42%, transparent 72%); }
 :root[data-look="festival"] .rd-path { background: radial-gradient(ellipse 64% 44% at 46% 50%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .13) 42%, transparent 72%); }
+
+/* The streak card (from the Road header's streak, Dark and Light): the last seven days as dots. */
+.sk-week { display: flex; justify-content: space-between; gap: 6px; margin: 14px 0 4px; }
+.sk-day { display: grid; justify-items: center; gap: 6px; flex: 1; font: 600 12px var(--sans); color: var(--muted); }
+.sk-day i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rim); }
+.sk-day.on i { background: var(--rr-amber, var(--accent)); border-color: var(--rr-amber, var(--accent)); }
+.sk-day.now { color: var(--fg); }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-day { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-day.now { color: var(--rr-text); }
+.sk-week { margin-bottom: 16px; }
+
+/* The Road guitar sits up off the tolex (the agreed Road and guitar pictures): a close contact shadow and a soft wide one.
+   No picture is changed; the shadow is drawn under the painting. */
+:root[data-look="neon"] .rd-neck.road > svg.rd-base { filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .6)) drop-shadow(0 16px 26px rgba(0, 0, 0, .55)); }
+:root[data-look="festival"] .rd-neck.road > svg.rd-base { filter: drop-shadow(0 3px 4px rgba(60, 34, 10, .38)) drop-shadow(0 16px 26px rgba(60, 34, 10, .30)); }
