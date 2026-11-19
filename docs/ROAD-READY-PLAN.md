@@ -110,6 +110,8 @@ The other five spec bodies (Big Sky, Tin Roof, Low Road, Pocket, Wingtip) are ex
 
 **9a, painted necks (Sonnet, `rr-09-road`, PR into `rr-09-neck`, 2026-11-18).** The Road shows each leg's whole painted guitar (`-road.webp`, 1.2 units per painting pixel) with the stops in the painting's own fret spaces on its own strings, from `docs/guitars/frets.json` (NECK-DESIGN.md; taps from TAP-AREAS.md and the handoff). Stops still open their card first. The 23 `-head` and `-body` files are no longer used by the Road and are a clean-up item for a later step (they are still in `SHELL` and on disk; a search of the app's `.js` files finds no other user of them, and `picBase` now only draws the eight older pictures).
 
+Merged into `rr-09-neck` on Graham's go, 2026-11-19: PR #104 at `6b3865c` (Louie Review, Fable, passed the re-check; CI test and browser passed), merge commit `818bf0e`.
+
 Each of 9a and 9b is its own PR into `road-ready`, reviewed by Louie Review (Fable), on Graham's merge go.
 
 ## Surprises
