@@ -152,9 +152,9 @@ const OIC = {
   pause: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="7" height="22" rx="2.5" fill="#fff"/><rect x="18" y="5" width="7" height="22" rx="2.5" fill="#fff"/></svg>`,
   show: ICONS.star
 };
-const OSAY = ["Hi, I'm Louie. Tap the glowing pick and make your guitarist. Then I'll show you around: six steps, ending with your first show.",
-  "Now I'll ask for the microphone. Tap the glowing pick.",
-  "Now a chord. Tap the glowing pick.", "Time to play. Just the first verse.",
+const OSAY = ["Hi, I'm Louie. Tap the glowing stop and make your guitarist. Then I'll show you around: six steps, ending with your first show.",
+  "Now I'll ask for the microphone. Tap the glowing stop.",
+  "Now a chord. Tap the glowing stop.", "Time to play. Just the first verse.",
   "Next: pausing, and picking up where you left off.", "Last one: your first show, start to finish."];
 function openingCard(i, step) {
   const o = OPENING[i], state = i < step ? "done" : i === step ? "now" : "locked";
@@ -167,6 +167,7 @@ function openingCard(i, step) {
 function renderOpening(view) {
   const done = view === "done", step = done ? OPENING.length : openingStep(data);
   if (done && !data.opening.seen) { data.opening.seen = Date.now(); Tabs.save(data); }
+  if (rrLook()) return rrOpening(done, step);
   const stops = OPENING.map((o, i) => {
     const state = i < step ? "done" : i === step ? "now" : "locked", x = ZIG[i % ZIG.length], big = o.id === "show";
     return `<div class="rd-stop on-stop" style="--x:${x}px"><button class="rd-node ${big ? "headline big" : "chord"} ${state}" data-ostep="${i}" aria-label="${esc(`${o.name}, ${state === "now" ? "your next step" : state}`)}">${pickSVG(state === "now")}<span class="rd-ic">${state === "done" ? ICONS.check : OIC[o.id] || ""}</span></button><span class="on-lab ${x > 0 ? "l" : "r"}${state === "locked" ? " dim" : ""}"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></span></div>`;
@@ -191,14 +192,7 @@ function renderOpening(view) {
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); };
   path.addEventListener("click", e => {
     const st = e.target.closest("[data-ostart]");
-    if (st) {
-      const id = OPENING[+st.dataset.ostart].id;
-      if (id === "who") return makerSheet({ mode: "start", done: () => { openingAdvance(data, "who"); Tabs.save(data); renderRoad(); } });
-      if (id === "mic") return micSheet(() => renderRoad());
-      const song = songFor();
-      if (!song) { toast("Add a song with chords first; then it's your stage"); return go("#/library"); }
-      return id === "chord" ? go("#/song/" + encodeURIComponent(song.id)) : playGig(song.id, { from: "road" });
-    }
+    if (st) return openingStart(+st.dataset.ostart);
     const node = e.target.closest("[data-ostep]");
     const open = node?.parentElement.querySelector(".rd-pop");
     closePop();
@@ -206,11 +200,62 @@ function renderOpening(view) {
   });
 }
 
+/* Road Ready (2026-11-19): Opening night is the Road too. Its six steps are stops on the first leg's guitar neck (pearl inlays,
+   the amber connector, a callout on the current step, the first show as the double inlay), under the same header strip, with
+   Opening night and Skip where Tonight sits. The steps, their cards and what they start are as before. */
+function rrOpening(done, step) {
+  const stops = OPENING.map((o, i) => ({ id: "o:" + i, kind: o.id === "show" ? "headline" : "chord", state: i < step ? "done" : i === step ? "now" : "locked", name: o.name, sub: o.sub }));
+  const leg = { id: "open", n: 0, name: "Opening night", stops, done }, cur = stops[step] || null;
+  const said = s => s.state === "now" ? "your next step" : s.state;
+  const gx = { cur, id: s => esc(s.id), icon: () => "", rr: true, num: s => stops.indexOf(s) + 1, fresh: null, songs: null,
+    label: s => esc(`Step ${stops.indexOf(s) + 1} of ${stops.length}, ${s.name}, ${said(s)}`), tag: s => esc(s.name) };
+  const v = venueNow(data), st = streakOf(playSongs(data));
+  const strip = `<div class="rr-tonight rr-on on-night" role="group" aria-label="Opening night">
+      <span class="rr-tn-t"><small>OPENING NIGHT · ${done ? "DONE" : `STEP ${step + 1} OF ${stops.length}`}</small><b>${esc(done ? "Your first night" : cur.name)}</b></span>
+      ${done ? `<button class="rr-on-btn" id="on-next">On to Leg 1</button>` : `<button class="rr-on-btn" id="on-skip">Skip</button>`}
+    </div>`;
+  app.innerHTML = `
+    ${rrHeader({ v, leg, cur, song: null, st, strip })}
+    <p class="rr-say" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[step])}</p>
+    <div class="rr-stage">
+      <div class="rd-path rr on-path" id="rd-path">${neckHTML(leg, gx)}</div>
+    </div>`;
+  const $ = id => document.getElementById(id);
+  $("h-venue").onclick = () => go("#/playmap");
+  $("h-fans").onclick = () => go("#/you");
+  $("h-tips").onclick = () => go("#/merch");
+  homeHooks.refresh = null;
+  $("on-next")?.addEventListener("click", () => renderRoad());
+  $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
+    () => { openingSkip(data); Tabs.save(data); renderRoad(); }));
+  const path = $("rd-path");
+  const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
+  path.addEventListener("click", e => {
+    const st = e.target.closest("[data-ostart]");
+    if (st) return openingStart(+st.dataset.ostart);
+    /* a tap on the neck between stops opens the current step, as on the Road */
+    const node = e.target.closest("[data-stop]") || (e.target.closest(".rr-hit") && cur ? path.querySelector(`[data-stop="o:${step}"]`) : null);
+    if (!node) return closePop();
+    const wrap = node.parentElement, open = wrap.querySelector(".rd-pop");
+    closePop();
+    if (!open) { wrap.insertAdjacentHTML("beforeend", openingCard(+node.dataset.stop.slice(2), step)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); if (!e.detail) wrap.querySelector(".rd-start")?.focus(); }
+  });
+}
+/* what an Opening night step's button starts */
+function openingStart(i) {
+  const id = OPENING[i].id;
+  if (id === "who") return makerSheet({ mode: "start", done: () => { openingAdvance(data, "who"); Tabs.save(data); renderRoad(); } });
+  if (id === "mic") return micSheet(() => renderRoad());
+  const song = songFor();
+  if (!song) { toast("Add a song with chords first; then it's your stage"); return go("#/library"); }
+  return id === "chord" ? go("#/song/" + encodeURIComponent(song.id)) : playGig(song.id, { from: "road" });
+}
+
 /* ---- Road Ready: the header strip ---- */
 const TICKET_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M15 7v10" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2"/></svg>`;
 const COIN_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" class="rr-coin"/><circle cx="12" cy="12" r="7.4" fill="none" class="rr-coin-ring"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" class="rr-coin-ink" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 const PLAY_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13l10-6.5z" fill="currentColor"/></svg>`;
-function rrHeader({ v, leg, cur, song, st }) {
+function rrHeader({ v, leg, cur, song, st, strip }) {
   const stops = leg ? leg.stops : [], at = cur ? stops.indexOf(cur) : -1;
   const n = at >= 0 ? at + 1 : stops.filter(s => s.state === "done").length, of = stops.length;
   const pips = stops.map(s => `<i class="${s === cur ? "now" : s.state === "done" ? "done" : ""}"></i>`).join("");
@@ -224,10 +269,10 @@ function rrHeader({ v, leg, cur, song, st }) {
     </button>
     <button class="rr-pill rr-fans" id="h-fans" aria-label="${nf(fans)} fans${days ? `, ${days}-day gig streak` : ""}. Open your profile"><span class="rr-pv">${TICKET_IC}<b>${nf(fans)}</b></span><small>${days ? `${days}-day streak` : "Fans"}</small></button>
     <button class="rr-pill rr-tips" id="h-tips" aria-label="${nf(tips)} dollars in tips. Open the Merch table"><span class="rr-pv">${COIN_IC}<b>$${nf(tips)}</b></span><small>Tips</small></button>
-    <button class="rr-tonight" id="rd-tonight" aria-label="${song ? esc(`Tonight: ${song.title}. Play`) : "Add a song to play tonight"}">
+    ${strip || `<button class="rr-tonight" id="rd-tonight" aria-label="${song ? esc(`Tonight: ${song.title}. Play`) : "Add a song to play tonight"}">
       <span class="rr-tn-t"><small>TONIGHT</small><b>${song ? esc(song.title) : "Add a song to play tonight"}</b></span>
       <span class="rr-play" aria-hidden="true">${song ? PLAY_IC : icon("search")}</span>
-    </button>
+    </button>`}
   </header>`;
 }
 

@@ -330,7 +330,9 @@ export function stopXY(sp, lay) {
    done: a 26 px amber pearl with an engraved check and a faint glow. now: a 52 by 38 trapezoid, lit from within, with
    the show number. ahead (open or locked): a 26 px matte pearl with the number. The headline show is two 24 px dots
    (the number and a lock), a merch box the crate. Every one sits in a 44 px button. Colours are the --rr-* tokens. */
-const RR_SIZE = { dot: [26, 26], now: [52, 38], box: [30, 22], double: [60, 24] };
+/* nowPair (Graham's decision, 2026-11-19, Surprise 169): the current stop is drawn smaller while it shares a fret space with
+   its partner, so the two never overlap */
+const RR_SIZE = { dot: [26, 26], now: [52, 38], nowPair: [42, 31], box: [30, 22], double: [60, 24] };
 const rrPhase = st => st === "done" ? "done" : st === "now" ? "now" : "ahead";
 let rrN = 0;
 /* an engraved mark: the mark, with a lighter copy 1 px below it where the cut catches the light */
@@ -360,10 +362,10 @@ function rrBadgeArt(ph, cur) {
   return `${glow}<svg class="rr-art" width="${w}" height="${h}" style="width:${w}px;height:${h}px" viewBox="${-w / 2} ${-h / 2} ${w} ${h}" aria-hidden="true">${pearl(d, ph, engrave(mark, lock), ph !== "ahead", w, h)}</svg>`;
 }
 /* The art for one Road Ready stop. kind: the space's kind (dot, inlay = merch box, double = headline). n: the show number. */
-export function rrStopArt(kind, state, n, pill = false) {
+export function rrStopArt(kind, state, n, pill = false, paired = false) {
   const ph = rrPhase(state), cur = ph === "now";
   if (kind === "double" && pill) return rrBadgeArt(ph, cur);
-  const [w, h] = kind === "double" ? RR_SIZE.double : kind === "inlay" ? RR_SIZE.box : cur ? RR_SIZE.now : RR_SIZE.dot;
+  const [w, h] = kind === "double" ? RR_SIZE.double : kind === "inlay" ? RR_SIZE.box : cur ? (paired ? RR_SIZE.nowPair : RR_SIZE.now) : RR_SIZE.dot;
   const lock = ph === "done" ? "done" : ph === "now" ? "" : "locked";
   let body;
   if (kind === "double") {
@@ -375,7 +377,7 @@ export function rrStopArt(kind, state, n, pill = false) {
     const d = `M-15 -11H15V11H-15Z`, lines = `<path d="M-6 -11V11M5 -11V11M-15 -1H15" fill="none" stroke-width="1.6"/>`;
     body = pearl(d, ph, engrave(lines, lock), ph !== "ahead", w, h);
   } else if (cur) {
-    body = pearl("M-26 19H26L20 -19H-20Z", ph, engrave(ENG.num(n, 20), ""), true, w, h);
+    body = pearl(`M${-w / 2} ${h / 2}H${w / 2}L${w * .385} ${-h / 2}H${-w * .385}Z`, ph, engrave(ENG.num(n, Math.round(h * .53)), ""), true, w, h);
   } else {
     body = pearl(circle(0, 13), ph, engrave(ph === "done" ? ENG.check(13) : ENG.num(n, 13), lock), ph === "done", w, h);
   }
@@ -419,7 +421,7 @@ export function connectorSVG(lay, spaces, o) {
    for every stop, and the left side is where Louie peeks in. */
 function rrStopHTML(sp, g, lay, o) {
   const s = sp.stop, { x, y } = stopXY(sp, lay), cur = s === o.cur, ph = rrPhase(s.state), road = !!lay.road, pill = road && sp.kind === "double";
-  const [w] = pill ? ROAD.badge : sp.kind === "double" ? RR_SIZE.double : sp.kind === "inlay" ? RR_SIZE.box : cur ? RR_SIZE.now : RR_SIZE.dot;
+  const [w] = pill ? ROAD.badge : sp.kind === "double" ? RR_SIZE.double : sp.kind === "inlay" ? RR_SIZE.box : cur ? (sp.paired ? RR_SIZE.nowPair : RR_SIZE.now) : RR_SIZE.dot;
   const half = Math.max(22, w / 2), px = (x / W * 100).toFixed(3);
   /* on a painted neck the callout sits just off the right edge of the board at the stop's row (the badge: off its own end), the
      songs chip off the left edge, never over the strings */
@@ -434,7 +436,7 @@ function rrStopHTML(sp, g, lay, o) {
   /* the badge's button is the badge plus 8 units all round */
   const size = pill ? `;width:${ROAD.badge[0] + 2 * ROAD.pad}px;height:${ROAD.badge[1] + 2 * ROAD.pad}px` : "";
   const at = road ? ` data-hx="${x.toFixed(1)}" data-hy="${y.toFixed(1)}"` : "";
-  return `<div class="rd-stop rr k-${sp.kind}${cur ? " cur" : ""}" style="top:${(y / lay.height * 100).toFixed(3)}%">${tag}${badge}<button class="${cls}" data-stop="${o.id(s)}" data-kind="${sp.kind}" data-n="${o.num(s)}"${at} style="left:${px}%${size}" aria-label="${o.label(s)}${songs > 0 ? `, opens ${songs} of your songs` : ""}${cur ? ". Double tap to open." : ""}">${rrStopArt(sp.kind, s.state, o.num(s), pill)}</button></div>`;
+  return `<div class="rd-stop rr k-${sp.kind}${cur ? " cur" : ""}" style="top:${(y / lay.height * 100).toFixed(3)}%">${tag}${badge}<button class="${cls}" data-stop="${o.id(s)}" data-kind="${sp.kind}" data-n="${o.num(s)}"${at} style="left:${px}%${size}" aria-label="${o.label(s)}${songs > 0 ? `, opens ${songs} of your songs` : ""}${cur ? ". Double tap to open." : ""}">${rrStopArt(sp.kind, s.state, o.num(s), pill, sp.paired)}</button></div>`;
 }
 
 /* One stop, placed over the neck. `o`: cur (the current stop), icon(stop), label(stop), tag(stop). */
@@ -467,6 +469,7 @@ const picOf = (id, o = {}) => { const f = o.shown?.body || NANO_FILE[id]; return
 export function neckHTML(leg, o) {
   const g = o.shown || guitarFor(leg.id), pc = picOf(leg.id, o), lay = pc ? (pc.p.road ? roadLayout(leg.stops, pc.p) : picLayout(leg.stops, pc.p)) : fretLayout(leg.stops);
   const earned = leg.done ? `<span class="rd-earned">${g.name} · headlined</span>` : "";
+  lay.spaces.forEach(sp => { sp.paired = !!sp.space && lay.spaces.filter(x => x.space === sp.space).length > 1; });
   if (lay.road) {
     /* Road Ready 9a: the painted guitar, no drawn strings; one invisible hit layer over the neck, and every stop's x and y in the
        drawing's units (data-hx, data-hy) so road.js can decide which stop a tap selects (roadHit in core/game.js) */

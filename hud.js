@@ -87,8 +87,9 @@ function tabsEl() {
 }
 export function paintTabs(active) {
   const el = tabsEl();
-  /* the little dot on Me says the tuner hasn't been used lately (it was on More); the Tuner row on Me shows it too */
-  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${svg}<span class="tb-l">${esc(label)}</span>${k === "me" && !tunedRecently() ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</a>`).join("");
+  /* no dot on a tab (Grok's design list, 2026-11-19: a notification-style dot reads as Duolingo); the Tuner row on Me shows when
+     the tuner hasn't been used lately */
+  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${svg}<span class="tb-l">${esc(label)}</span></a>`).join("");
   document.body.classList.add("tabbed");
 }
 export function hideTabs() { document.body.classList.remove("tabbed"); }
