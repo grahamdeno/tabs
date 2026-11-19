@@ -5815,3 +5815,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 
 /* The chord editor (Edit) reads the words at the size where the widest line fits on one row (--lyric-fit, as before), not the 34 pt playing size, so its chips stay on one row */
 :root:is([data-look="neon"], [data-look="festival"]) body.cedit .sheet.rr-slots { font-size: calc(var(--lyric-fit, 17px) * var(--wide, 1)); }
+
+/* The Road, Road Ready (design r10-01 and r10-02): a warm glow on the tolex from under the guitar. It stays put while the neck scrolls over it. */
+:root[data-look="neon"] .rd-path { background: radial-gradient(ellipse 64% 44% at 46% 50%, rgba(255, 160, 60, .34) 0, rgba(255, 140, 40, .17) 42%, transparent 72%); }
+:root[data-look="festival"] .rd-path { background: radial-gradient(ellipse 64% 44% at 46% 50%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .13) 42%, transparent 72%); }
