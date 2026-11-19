@@ -146,6 +146,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 
 | Key | Values | Notes |
 |---|---|---|
+| `playerName` | string, at most 30 characters | Your name at the top of Me (4.103.0); set by tapping it there. Cleaned to one line of plain text on load and import |
 | `theme` | `"auto"` (follow the phone, the default), `"dark"` or `"light"`; may also be `"green"` (Green Room, 4.0.0) or `"headliner"` (4.77.0) | On import, Headliner and any theme other than Auto, Dark, Light, or an owned Green Room become Auto, so a backup cannot switch the app off the default Road Ready look. Green Room stays only when the file chose it and `merch.has` includes `green`. Headliner stays owned and can be put back on from Settings or the Merch table. |
 | `tipsSeen`, `used` | objects | Which one-time tips have shown and which features you've used, so tips and menu dots appear only when they help. `used["hud-venue"]`, `["hud-streak"]`, `["hud-fans"]` (4.40.0): the stat bar item was tapped once, so its label goes. `used.playHint` (Road Ready 05): the Gig's "Tap anywhere for controls" hint has shown, so it never shows again |
 | `micExplained` | boolean | The tuner has explained the microphone |

@@ -22,6 +22,7 @@ export const TRASH_DAYS = 30;
 export const SPEEDS = { slow: 20, medium: 45, fast: 75 };
 
 const DEFAULT_SETTINGS = {
+  playerName: "", /* 4.103.0: your name on Me, set by tapping it there; at most 30 characters */
   theme: "auto", transpose: 0, /* theme: "auto" follows the phone, or "dark" / "light" / "green" (Green Room, 4.0.0) / "headliner" (4.77.0) */ diagrams: false, focus: "always",
   speedMode: "length",   // "length" (song length, mm:ss) or "multiplier" (1x style)
   startSpeed: 45,        // 1x-style starting speed for new songs
@@ -347,6 +348,8 @@ export function cleanSet(raw) {
 }
 const COVER_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 const COVER_MAX = 4e6; // characters, about 3 MB of photo
+/* 4.103.0: the player's name: plain text, one line, no angle brackets, at most 30 characters */
+export const cleanName = v => String(v || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
 export function cleanImport(parsed) {
   if (!isObj(parsed) || !Array.isArray(parsed.songs)) return null;
   let skipped = 0;
@@ -371,6 +374,7 @@ export function cleanImport(parsed) {
     if (d === undefined || d === null || typeof d === typeof v) settings[k] = v;
   }
   if (!["auto", "dark", "light", "green", "headliner"].includes(settings.theme)) delete settings.theme;
+  if (typeof settings.playerName === "string") settings.playerName = cleanName(settings.playerName);
   const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}), ...(cleanMerch(parsed.merch) ? { merch: cleanMerch(parsed.merch) } : {}), ...(cleanBuilds(parsed.builds) ? { builds: cleanBuilds(parsed.builds) } : {}), ...(cleanOpening(parsed.opening) ? { opening: cleanOpening(parsed.opening) } : {}), ...(cleanBoxes(parsed.boxes) ? { boxes: cleanBoxes(parsed.boxes) } : {}), ...(cleanGuitars(parsed.guitars) ? { guitars: cleanGuitars(parsed.guitars) } : {}), ...(cleanFame(parsed.fame) ? { fame: cleanFame(parsed.fame) } : {}), ...(cleanMe(parsed.me) ? { me: cleanMe(parsed.me) } : {}) });
   /* A restored backup must not switch the app off the default Road Ready look.
      Green Room stays only when the file chose it and already owns it. Headliner
