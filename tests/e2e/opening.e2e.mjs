@@ -20,7 +20,7 @@ test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? 
   /* 1: your guitarist (4.85.0): a starter, then THAT'S ME. No fans, and the Road keeps it as data.me */
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector(".gm");
-  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Hair, glasses and the rest are on Your profile/);
+  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Start from a selfie[\s\S]*Change anything later on Your profile/);
   assert.equal(await page.locator('.gm svg[aria-label="Your guitarist"]').count(), 1, "the preview");
   await page.click('.gm [data-k="starter"][data-v="3"]');
   await page.click("#gm-ok");

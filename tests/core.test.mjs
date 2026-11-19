@@ -1579,7 +1579,8 @@ test("The security policy lets MusicKit fetch Apple's certificate bundle and str
   const part = name => csp.split(";").map(x => x.trim()).find(x => x.startsWith(name + " "));
   for (const h of ["https://*.mzstatic.com", "https://*.cdn-apple.com", "https://*.aaplimg.com"]) assert.ok(part("connect-src").includes(h), "connect-src " + h);
   assert.ok(part("media-src").includes("https://*.mzstatic.com"));
-  assert.ok(!/unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
+  /* 'wasm-unsafe-eval' only lets the page compile WebAssembly (the selfie face finder); plain 'unsafe-eval' stays banned */
+  assert.ok(!/(?<!wasm-)unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
 });
 
 test("recording sync: marks bend the line between sheet and recording, both ways", () => {
@@ -2810,7 +2811,13 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
   const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
   assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
-  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
+  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], "ids are unique (Gig poster, 2026-11-19)");
+  /* the Gig poster print: halftone and grain at full size; flat at 48 px and under; a cream poster card when asked */
+  const big = guitarist(C.ME_DEFAULT, { size: 160 }), small = guitarist(C.ME_DEFAULT, { crop: "bust", size: 32 });
+  assert.ok(big.includes("guitarist-poster/grain.webp") && /<mask id="gp\d+h"/.test(big), "halftone and grain at full size");
+  assert.ok(!small.includes("grain.webp") && !/<mask id="gp\d+h"/.test(small) && small.includes('stroke-width="0.8"'), "flat with a heavier line at 32 px");
+  assert.ok(!guitarist(C.ME_DEFAULT, { size: 400, grain: false }).includes("grain.webp"), "no grain for a canvas picture");
+  assert.ok(guitarist(C.ME_DEFAULT, { card: true }).includes('rx="7" fill="#F6EEE0"'), "the cream poster card");
 });
 
 test("Road Ready 07 (10a: black): Louie's face badge is saved for offline, is the picture the Songbook and Me show, and is small", () => {
@@ -3417,4 +3424,30 @@ test("Road Ready 9b: the offline copy has the builder's code and art, and the te
   for (const f of ["buildart.js", "builder.js", "art/guitars/builder/manifest.json"]) assert.ok(shell.includes(f), f);
   for (const t of Object.values(C.BUILD_TAKES)) for (const f of fs.readdirSync(path.join(root, "art/guitars/builder", t.slug))) assert.ok(shell.includes(`art/guitars/builder/${t.slug}/${f}`), `${t.slug}/${f}`);
   assert.ok(!shell.some(f => f.includes("builder/tex/")), "the 13 textures are cached when first used, not at install");
+});
+
+test("Selfie: colours snap to the guitarist's own inks; a darker chin is a beard; only skin, hair colour and beard are guessed", async () => {
+  const { SKIN, HAIR_COL } = await import("../guitarist.js");
+  const rgb = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  SKIN.forEach((h, i) => assert.equal(C.nearestInk(rgb(h), SKIN), i, `skin ${i}`));
+  for (const [k, h] of Object.entries(HAIR_COL)) assert.equal(C.nearestInk(rgb(h), HAIR_COL), k, k);
+  assert.equal(C.beardGuess([60, 45, 35], [150, 100, 70]), "beard");
+  assert.equal(C.beardGuess([140, 95, 66], [150, 100, 70]), "none");
+  assert.equal(C.beardGuess(null, [150, 100, 70]), "none");
+  const g = C.selfieGuess({ skin: [rgb(SKIN[4]), [150, 98, 64]], hair: [[30, 26, 27]], chin: [58, 42, 32], cheek: rgb(SKIN[4]) }, { skin: SKIN, hair: HAIR_COL });
+  assert.deepEqual(g, { skin: 4, hairCol: "black", beard: "beard" });
+  assert.deepEqual(C.selfieGuess({}, { skin: SKIN, hair: HAIR_COL }), { beard: "none" }, "nothing read, nothing guessed");
+});
+
+test("Selfie: the face finder is loaded on first use, never in the up-front list, and the page may run its WebAssembly", () => {
+  const shell = read("sw.js"), html = read("index.html");
+  assert.ok(shell.includes('"selfie.js"'), "selfie.js is saved for offline");
+  assert.ok(!/vendor\/mediapipe/.test(shell.match(/const SHELL = \[[^\]]*\]/)[0]), "no MediaPipe file in SHELL");
+  assert.match(html, /script-src 'self' 'wasm-unsafe-eval'/);
+  assert.ok(!/localStorage|indexedDB|caches\.|fetch\(/.test(read("selfie.js").replace(/\/\/.*$/gm, "")), "selfie.js stores nothing and sends nothing");
+});
+
+test("Opening night: every step's pick has an icon, so no pick says undefined (fixed 2026-11-19)", () => {
+  const src = read("road.js"), block = src.slice(src.indexOf("const OIC = {"), src.indexOf("};", src.indexOf("const OIC = {")));
+  for (const o of C.OPENING) assert.ok(new RegExp(`\\b${o.id}:`).test(block), `an icon for ${o.id}`);
 });
