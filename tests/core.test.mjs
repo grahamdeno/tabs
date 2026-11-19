@@ -3194,3 +3194,67 @@ test("Road Ready 9a fix: the neck colours of the 23 new pictures are the fretboa
     assert.ok(Math.max(...a, ...b) <= 150, `${name}: a fretboard is not a pale string colour (${p.lit}, ${p.shade})`);
   }
 });
+
+/* ---- Road Ready 9a, painted necks (rr-09-road): stops in the painting's own fret spaces ---- */
+const FRETS = JSON.parse(fs.readFileSync(new URL("../docs/guitars/frets.json", import.meta.url)));
+const EXAMPLES = [["example_9", [..."LLLBLLLBL"]], ["example_12", [..."LLLBLLLBLLLL"]]];
+test("Painted necks: roadPlace puts the stops where Grok's example layouts in frets.json put them, for all 23 guitars (space, lane, x and y within 1 unit)", async () => {
+  const { roadPlace, ROAD } = await import("../core.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  assert.equal(Object.keys(FRETS).length, 23);
+  for (const [name, g] of Object.entries(FRETS)) {
+    const road = PICS[name].road; assert.ok(road, `${name} has a road entry`);
+    /* positions relative to the nut, in units (the painting's offset to the crop cancels out) */
+    const x0 = g.frets[0].centre_x - road.cx, y0 = g.frets[0].y - road.nut;
+    for (const [ex, kinds] of EXAMPLES) {
+      const got = roadPlace(kinds, road), want = g[ex];
+      assert.equal(got.full, true, `${name} ${ex} fits`);
+      assert.equal(got.spaces.length, want.length, `${name} ${ex}: stop count`);
+      got.spaces.forEach((c, i) => {
+        const w = want[i], at = `${name} ${ex} stop ${i + 1}`;
+        assert.equal(c.space, w.space, `${at}: space`);
+        assert.equal(c.lane[0], w.lane[0], `${at}: lane`);
+        assert.ok(Math.abs((c.x - road.cx) * ROAD.scale - (w.x - g.frets[0].centre_x) * ROAD.scale) <= 1, `${at}: x`);
+        assert.ok(Math.abs((c.y - road.nut) * ROAD.scale - (w.y - g.frets[0].y) * ROAD.scale) <= 1, `${at}: y`);
+        assert.equal(c.clear, w.clear, `${at}: clear`);
+      });
+      void x0; void y0;
+    }
+  }
+});
+test("Painted necks: a pair is two lessons in a row, the earlier one on the left, never a merch box; nine stops or fewer make no pair", async () => {
+  const { roadPlace } = await import("../core.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  for (const [name, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
+    for (const kinds of [[..."LLLLL"], [..."LLLBLLLBL"], [..."LLLBLLLBLL"], [..."LLLBLLLBLLLL"], [..."LLBLLLLBLLLLLB"]]) {
+      const r = roadPlace(kinds, p.road), by = {};
+      r.spaces.forEach(c => (by[c.space] ||= []).push(c));
+      const pairs = Object.values(by).filter(a => a.length === 2);
+      if (kinds.length <= 9) assert.equal(pairs.length, 0, `${name} ${kinds.join("")}: no pairs up to nine stops`);
+      for (const [a, b] of pairs) {
+        assert.equal(b.i, a.i + 1, `${name}: a pair is consecutive stops`);
+        assert.ok(kinds[a.i] === "L" && kinds[b.i] === "L", `${name}: a pair is two lessons`);
+        assert.equal(a.lane, "left"); assert.equal(b.lane, "right");
+      }
+      assert.ok(Object.values(by).every(a => a.length <= 2));
+      assert.deepEqual(r.spaces.map(c => c.i), kinds.map((_, i) => i).slice(0, r.spaces.length), `${name}: stops stay in order`);
+    }
+  }
+});
+test("Painted necks: roadHit gives the current stop a zone 32 units above and below its y across the whole Road; a tap on a stop's centre selects that stop", async () => {
+  const { roadPlace, roadHit, ROAD } = await import("../core.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  for (const [name, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
+    for (const [, kinds] of EXAMPLES) {
+      const pts = roadPlace(kinds, p.road).spaces.map(c => ({ x: 195 + ROAD.scale * (c.x - p.road.cx), y: 12 + ROAD.scale * c.y }));
+      pts.forEach((c, cur) => {
+        for (const dy of [-31.9, -20, 0, 20, 31.9]) for (const x of [0, 40, 120, 195, 270, 350, 390])
+          assert.equal(roadHit(pts, { x, y: c.y + dy }, cur), cur, `${name}: a tap ${dy} units from stop ${cur + 1}'s row at x ${x} selects it`);
+        assert.equal(roadHit(pts, { x: c.x, y: c.y }, -1), cur, `${name}: a tap at stop ${cur + 1}'s centre selects it`);
+      });
+    }
+  }
+  /* outside the zone the nearest stop wins; the badge takes a tap inside its rectangle plus 8 units all round */
+  const pts = [{ x: 150, y: 100 }, { x: 240, y: 160 }, { x: 195, y: 500, w: 150, h: 42 }, { x: 290, y: 500 }];
+  assert.equal(roadHit(pts, { x: 245, y: 135 }, 0), 1, "beyond 32 units of the current stop's row, the nearest stop wins");
+  assert.equal(roadHit(pts, { x: 195 + 75 + 8, y: 500 + 21 + 8 }, 0), 2, "the badge's padded corner");
+  assert.equal(roadHit(pts, { x: 195 + 75 + 9, y: 500 }, 1), 3, "just outside the padded badge, the nearest stop wins");
+  assert.equal(roadHit([], { x: 1, y: 1 }, -1), -1);
+});
