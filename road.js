@@ -22,7 +22,7 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow,  lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
