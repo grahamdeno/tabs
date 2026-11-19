@@ -2054,28 +2054,37 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 /* Louie's colours (Road Ready): locked, the same in every look. They are set on Louie himself, so the looks' own
    --lv-* values (which the electric tuner head also reads) stay as they were. A finish from the Merch table
    (.fin-*, body[data-wear]) still recolours him. Nothing draws --lv-cheek, --lv-lamp, --lv-tongue or --lv-hi on him now. */
-.louie { overflow: visible; --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; }
+.louie { overflow: visible; --lv-body: #292929; --lv-shade: #1B1B1B; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #767572; --lv-slat: #5A5956; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; }
 .louie .lv-mit-o, .louie .lv-arm-o { stroke: var(--lv-pupil); } .louie .lv-tolex, .louie .lv-mit { fill: var(--lv-body); } .louie .lv-side, .louie .lv-mit-s, .louie .lv-cuff { fill: var(--lv-shade); } .louie .lv-arm { stroke: var(--lv-body); }
 .louie .lv-panel { fill: var(--lv-face); } .louie .lv-panel-sh { fill: var(--lv-face-sh); } .louie .lv-ink { fill: var(--lv-pupil); } .louie .lv-inks { stroke: var(--lv-pupil); }
 .louie .lv-cloth { fill: var(--lv-grille); } .louie .lv-weave { stroke: var(--lv-slat); } .louie .lv-knob { fill: var(--lv-knob); }
 .louie .lv-nickel { fill: var(--lv-nickel); } .louie .lv-leather { stroke: var(--lv-leather); }
 .louie .lv-shadow { fill: var(--lv-shadow); opacity: .18; } .louie .lv-z { fill: var(--muted); }
-/* The warm rim, on dark looks only: a 3 px outline of his silhouette so his blue reads on a dark screen. The colour is
+/* The warm rim, on dark looks only: a 3 px outline of his silhouette so his body reads on a dark screen. The colour is
    --rr-louie-rim (#FFE2B4 at 35 percent) drawn solid and faded as one layer, so overlapping parts don't double up. */
 .louie .lv-rim { opacity: 0; }
 :root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
 /* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
 :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
-/* Step 03b: Louie is the painted art (art/louie/v2). The light picture by default, the dark one (with its warm rim) on the
+/* Step 03b (10a: now art/louie/v3): Louie is the painted art. The light picture by default, the dark one (with its warm rim) on the
    dark looks, and the light one again on the bright headers there. The code drawing (.lv-code) is the fallback: it shows
    when he wears a finish from the Merch table (until Graham decides, Surprise 30), and in pictures made from the SVG. */
 .louie .lv-code, .louie .lv-art-d { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-d { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-l { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-l { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-d { display: none; }
-.fin:not(.fin-stock) .louie .lv-code, body[data-wear] .louie:not(.fin .louie) .lv-code { display: inline; }
-.fin:not(.fin-stock) .louie .lv-art-wrap, body[data-wear] .louie:not(.fin .louie) .lv-art-wrap { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-d.lv-v3 { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-l.lv-v3 { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-l.lv-v3 { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-d.lv-v3 { display: none; }
+.fin:not(.fin-stock, .fin-black) .louie .lv-code, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-code { display: inline; }
+.fin:not(.fin-stock, .fin-black) .louie .lv-art-wrap, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-art-wrap { display: none; }
+/* 10a: the painted pictures are art/louie/v3 (black). The Blue finish (id black, the blue he wore first) shows art/louie/v2 instead,
+   with the same light, dark and bright-header rules. */
+.louie .lv-v2 { display: none; }
+:root .fin-black .louie .lv-v3, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v3 { display: none; }
+:root .fin-black .louie .lv-v2.lv-art-l, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: none; }
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }
@@ -2878,7 +2887,6 @@ body.gigging .ask { z-index: 66; }
 .fin-pink .louie, body[data-wear="pink"] .louie:not(.fin .louie) { --lv-body: #FF4FA3; --lv-shade: #D93A8A; --lv-hi: #FF84C0; --lv-cheek: #FFD84D; --lv-lamp: #3DE0FF; --lv-tongue: #3DE0FF; }
 .fin-teal .louie, body[data-wear="teal"] .louie:not(.fin .louie) { --lv-body: #0F8B8D; --lv-shade: #0B6F71; --lv-hi: #3BA7A9; --lv-cheek: #FF5A4E; --lv-lamp: #FF5A4E; --lv-tongue: #FF5A4E; }
 .fin-tweed .louie, body[data-wear="tweed"] .louie:not(.fin .louie) { --lv-body: #D8B571; --lv-shade: #B08A48; --lv-hi: #EBD39C; --lv-face: #F4EBD6; --lv-face-sh: #DCCDA8; --lv-grille: #5A3A22; --lv-slat: #7A5434; --lv-pupil: #3A2414; --lv-cheek: #E07A5F; --lv-lamp: #E63946; --lv-tongue: #E07A5F; --lv-shadow: #3A2414; }
-.fin-black .louie, body[data-wear="black"] .louie:not(.fin .louie) { --lv-body: #2A2B33; --lv-shade: #16171C; --lv-hi: #474956; --lv-face: #D5D8E0; --lv-face-sh: #A9AEBB; --lv-grille: #14151A; --lv-slat: #3A3D48; --lv-pupil: #14151A; --lv-cheek: #FF3D7F; --lv-lamp: #3A86FF; --lv-tongue: #FF3D7F; --lv-shadow: #000; }
 .fin-mint .louie, body[data-wear="mint"] .louie:not(.fin .louie) { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; --lv-face: #FFF4E2; --lv-face-sh: #F0DDBD; --lv-grille: #1E3A34; --lv-slat: #33584F; --lv-pupil: #1E3A34; --lv-cheek: #FF7A9C; --lv-lamp: #FF3D7F; --lv-tongue: #FF7A9C; --lv-shadow: #1E3A34; }
 .fin-gold .louie, body[data-wear="gold"] .louie:not(.fin .louie) { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; --lv-face: #FFF3C4; --lv-face-sh: #F2DD8C; --lv-grille: #3A2A10; --lv-slat: #5C4420; --lv-pupil: #3A2A10; --lv-cheek: #FF3D7F; --lv-lamp: #FF3D7F; --lv-tongue: #FF3D7F; --lv-shadow: #3A2A10; }
 .fin { display: inline-block; line-height: 0; }
@@ -3341,7 +3349,7 @@ body.gigging .ask { z-index: 66; }
 body[data-wear="pink"] .tuner2 { --lv-body: #FF4FA3; --lv-shade: #D93A8A; --lv-hi: #FF84C0; }
 body[data-wear="teal"] .tuner2 { --lv-body: #0F8B8D; --lv-shade: #0B6F71; --lv-hi: #3BA7A9; }
 body[data-wear="tweed"] .tuner2 { --lv-body: #D8B571; --lv-shade: #B08A48; --lv-hi: #EBD39C; }
-body[data-wear="black"] .tuner2 { --lv-body: #2A2B33; --lv-shade: #16171C; --lv-hi: #474956; }
+body[data-wear="black"] .tuner2 { --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-hi: #6BA4FF; }
 body[data-wear="mint"] .tuner2 { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; }
 body[data-wear="gold"] .tuner2 { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; }
 

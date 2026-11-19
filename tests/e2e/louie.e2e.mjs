@@ -58,7 +58,7 @@ test("Road Ready 03: every mood with every pose at every size has one mouth on t
     assert.ok(l.eyes.length === 2 && l.eyes.every(e => e.b <= m.y + 1 && inside(e, l.panel)), `${l.at}: two eyes, on the panel, above the mouth`);
     assert.ok(l.knobs.every(k => k.y >= m.y - 1), `${l.at}: the mouth is above the knobs' feet`);
     assert.deepEqual(l.onGrille, [], `${l.at}: nothing on the grille but cloth, weave and its frame`);
-    assert.deepEqual(l.cloth3, ["lv-cloth:rgb(24, 45, 71)/none/1px", "lv-weave:none/rgb(42, 68, 102)/0.9px", "lv-weave:none/rgb(42, 68, 102)/1.3px", "lv-cloth-sh:none/rgb(0, 0, 0)/3px"], `${l.at}: the cloth, the weave, the faint circle and the inner shadow, and nothing else in their classes`);
+    assert.deepEqual(l.cloth3, ["lv-cloth:rgb(118, 117, 114)/none/1px", "lv-weave:none/rgb(90, 89, 86)/0.9px", "lv-weave:none/rgb(90, 89, 86)/1.3px", "lv-cloth-sh:none/rgb(0, 0, 0)/3px"], `${l.at}: the cloth, the weave, the faint circle and the inner shadow, and nothing else in their classes`);
     assert.equal(l.cheeks, 0, `${l.at}: no cheeks, lamp or tongue`);
     /* each hand is one lit shape, plus a lit thumb laid across it for the fist, horns and peace (the guitarist's shapes) */
     assert.equal(l.fingers, { none: 0, rest: 4, hornsUp: 4, thumb: 3, point: 3, wave: 3, peace: 4 }[l.pose || "none"], `${l.at}: two hands, each a lit hand and its thumb`);
@@ -102,7 +102,7 @@ test("Road Ready 03: Louie has the same colours in all four looks, the locked pa
     await page.context().close();
   }
   assert.deepEqual(Object.values(paints).map(p => p.look), ["neon", "festival", "green", "headliner"]);
-  assert.deepEqual(paints.dark.locked, { tolex: "#3A86FF", side: "#2C6FE0", panel: "#F0B23A", panelShade: "#D9982A", cloth: "#182D47", weave: "#2A4466", nickel: "#948573", leather: "#55331B", knob: "#E8D5B3", ink: "#0B0F14", mitten: "#3A86FF", arm: "#3A86FF" });
+  assert.deepEqual(paints.dark.locked, { tolex: "#292929", side: "#1B1B1B", panel: "#F0B23A", panelShade: "#D9982A", cloth: "#767572", weave: "#5A5956", nickel: "#948573", leather: "#55331B", knob: "#E8D5B3", ink: "#0B0F14", mitten: "#292929", arm: "#292929" });
   assert.ok(paints.dark.parts.length > 60);
   for (const look of ["light", "green", "headliner"]) assert.deepEqual(paints[look].parts, paints.dark.parts, `${look}: every part has the same fill and line as in Dark`);
   assert.deepEqual(Object.fromEntries(Object.entries(paints).map(([k, p]) => [k, p.rim])), { dark: "0.35", light: "0", green: "0", headliner: "0.35" }, "the rim shows on the dark looks only");
@@ -117,7 +117,7 @@ test("Road Ready 03: a finish from the Merch table still recolours him (kept unt
     host.innerHTML = `<span class="fin fin-stock">${louie("happy", { size: 60 })}</span><span class="fin fin-tweed">${louie("happy", { size: 60 })}</span>`;
     return [...host.querySelectorAll("rect.lv-tolex")].map(el => getComputedStyle(el).fill);
   });
-  assert.deepEqual(fills, ["rgb(58, 134, 255)", "rgb(216, 181, 113)"], "Stock is the locked bright blue (#3A86FF); Tweed is still tweed");
+  assert.deepEqual(fills, ["rgb(41, 41, 41)", "rgb(216, 181, 113)"], "Stock is the locked black tolex (#292929); Tweed is still tweed");
 });
 
 test("Road Ready 03: Louie hops and blinks, and Reduce Motion stops both", { skip: skip() }, async t => {
@@ -185,14 +185,14 @@ test("Road Ready 03b: the painted art shows, dark on the dark looks, light on th
   const page = await phone(t, libWith("dark"));
   const bad = await page.evaluate(async () => {
     const names = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud"], out = [];
-    for (const n of names) for (const k of ["light", "dark"]) {
-      const r = await fetch(`art/louie/v2/louie-${n}-${k}.webp`); const b = await r.blob();
+    for (const v of ["v3", "v2"]) for (const n of names) for (const k of ["light", "dark"]) {
+      const r = await fetch(`art/louie/${v}/louie-${n}-${k}.webp`); const b = await r.blob();
       const im = await createImageBitmap(b).catch(() => null);
-      if (!r.ok || !im || im.height < 590) out.push(`${n}-${k}`);
+      if (!r.ok || !im || im.height < 590) out.push(`${v}-${n}-${k}`);
     }
     return out;
   });
-  assert.deepEqual(bad, [], "all 18 pictures load and are full size");
+  assert.deepEqual(bad, [], "all 36 pictures (black v3 and blue v2) load and are full size");
 });
 
 test("Road Ready 03b: a worn finish shows the code drawing (finishes still recolour him); Stock shows the art", { skip: skip() }, async t => {
@@ -228,3 +228,27 @@ test("Road Ready 03b: the art hops when he cheers, and Reduce Motion stops it", 
   assert.deepEqual(await hop("no-preference"), ["lv-hop", "lv-hop", "none"], "cheer and horns hop; idle doesn't");
   assert.deepEqual(await hop("reduce"), ["none", "none", "none"], "Reduce Motion: no hop");
 });
+
+/* 10a: stock Louie is the black v3 picture in both looks; the Blue finish (id black) is the v2 picture */
+for (const [label, theme, k] of [["Dark", "dark", "dark"], ["Light", "light", "light"]]) {
+  test(`Road Ready 10a (${label}): stock Louie shows a v3 picture and Blue shows the v2 one; the code drawing is black with a silver grille`, { skip: skip() }, async t => {
+    const shown = page => page.evaluate(() => {
+      const host = document.createElement("div"); host.id = "l10a"; host.innerHTML = window.__louieHtml; document.body.appendChild(host);
+      const vis = [...host.querySelectorAll("image.lv-art")].filter(e => getComputedStyle(e).display !== "none").map(e => e.getAttribute("href"));
+      const cs = c => getComputedStyle(host.querySelector(c)), wrap = cs(".lv-art-wrap").display, code = cs(".lv-code").display;
+      const out = { vis: wrap === "none" ? [] : vis, code, body: cs(".lv-tolex").fill, grille: cs(".lv-cloth").fill, panel: cs(".lv-panel").fill };
+      host.remove(); return out;
+    });
+    const page = await phone(t, libWith(theme));
+    await page.evaluate(async () => { const m = await import("./louie.js"); window.__louieHtml = m.louie("happy", { size: 120 }); });
+    const stock = await shown(page);
+    assert.deepEqual(stock.vis, [`art/louie/v3/louie-idle-${k}.webp`], "stock: only the v3 picture for this look");
+    assert.equal(stock.body, "rgb(41, 41, 41)", "the fallback body is black tolex"); assert.equal(stock.grille, "rgb(118, 117, 114)", "and the grille silver-grey cloth"); assert.equal(stock.panel, "rgb(240, 178, 58)", "the yellow panel is as it was");
+    await page.evaluate(() => document.body.classList.add("fin-host") || document.body.setAttribute("data-wear", "black"));
+    const blue = await shown(page);
+    assert.deepEqual(blue.vis, [`art/louie/v2/louie-idle-${k}.webp`], "Blue: only the v2 picture for this look");
+    await page.evaluate(() => document.body.setAttribute("data-wear", "pink"));
+    const pink = await shown(page);
+    assert.deepEqual([pink.vis, pink.code], [[], "inline"], "a colour finish shows the code drawing, no picture");
+  });
+}
