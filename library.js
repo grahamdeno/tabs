@@ -91,7 +91,7 @@ function todayItems() {
 function todayHTML() {
   const items = todayItems();
   if (!items.length) return "";
-  if (rrLook()) return `<div class="today rr-hint" id="today"><img class="rr-badge" src="art/louie/louie-face-badge.webp" alt="" aria-hidden="true" width="44" height="44"><div class="rr-hint-in"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>${icon("chev", "chev rr-hint-chev")}</div>`;
+  if (rrLook()) return `<div class="today rr-hint" id="today"><img class="rr-badge" src="art/louie/v3/louie-face-badge.webp" alt="" aria-hidden="true" width="44" height="44"><div class="rr-hint-in"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>${icon("chev", "chev rr-hint-chev")}</div>`;
   return `<div class="today" id="today"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>`;
 }
 // An empty, hidden #today keeps a place for the line when there's nothing to

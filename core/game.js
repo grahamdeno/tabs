@@ -1142,7 +1142,7 @@ export const MERCH = [
   { id: "tweed", kind: "louie", name: "Tweed", price: 600, line: "A fifties cabinet with a cream grille." },
   { id: "pink", kind: "louie", name: "Pink", price: 0, line: "Hot pink, free to wear." },
   { id: "teal", kind: "louie", name: "Teal", price: 0, line: "Deep teal, free to wear." },
-  { id: "black", kind: "louie", name: "Studio black", price: 800, line: "Black tolex and a silver face, the studio classic." },
+  { id: "black", kind: "louie", name: "Blue", price: 800, line: "The blue cabinet and yellow face he wore first." },
   { id: "mint", kind: "louie", name: "Mint", price: 1000, line: "Surf green with a cream face." },
   { id: "gold", kind: "louie", name: "Gold top", price: 1500, line: "Gold all over, for the headliner." },
   { id: "basement", kind: "backdrop", name: "Basement", price: 0, line: "The plain stage you started on." },

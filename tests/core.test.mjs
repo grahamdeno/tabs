@@ -2116,7 +2116,9 @@ test("Merch table (4.16.0): Pink and Teal are free to wear, and test fans only a
   assert.equal(C.merchState(data, now).louie, "pink");
   assert.equal(C.cleanMerch({ louie: "teal" }).louie, "teal", "a free finish survives a backup");
   assert.equal(C.cleanMerch({ louie: "gold" }), null, "a bought one needs owning");
-  assert.equal(C.MERCH.find(x => x.id === "black").name, "Studio black");
+  assert.deepEqual([C.MERCH.find(x => x.id === "black").name, C.MERCH.find(x => x.id === "black").price, C.MERCH.find(x => x.id === "black").kind], ["Blue", 800, "louie"], "10a: the finish keeps its id and price and is named Blue");
+  assert.equal(C.MERCH.find(x => x.id === "black").line, "The blue cabinet and yellow face he wore first.");
+  assert.deepEqual(C.MERCH.filter(x => x.kind === "louie").map(x => [x.id, x.price]), [["stock", 0], ["tweed", 600], ["pink", 0], ["teal", 0], ["black", 800], ["mint", 1000], ["gold", 1500]], "10a: every other finish is as it was");
   const f0 = C.fansToSpend(data, now), xp = C.fansOf(data, now);
   data.merch.test = 1000;
   assert.equal(C.fansToSpend(data, now), f0 + 1000);
@@ -2291,7 +2293,7 @@ test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing h
   /* Road Ready 03b: Louie has fingered hands again (Graham, 2026-11-17), the same shapes as the guitarist's, in blue Tolex like his arms.
      These are the 4.86.0 checks on Louie's own hand, as they were before step 03, plus the same checks on the guitarist. */
   const up = louie("cheer", { pose: "thumb" });
-  const tip = up.match(/<g class="lv-mit" fill="#3A86FF"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
+  const tip = up.match(/<g class="lv-mit" fill="#292929"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
   assert.ok(tip && +tip[1] < -4, "the thumb is on the side of the fist, not standing in the middle");
   assert.match(up, /M2 -21\.5Q8 -20\.5 13\.5 -21\.5M2 -13\.5/, "the curled fingers show as creases");
   assert.match(louie("happy", { pose: "point" }), /translate\(180 108\) rotate\(40\)/, "the pointing hand leans, never straight up");
@@ -2318,17 +2320,17 @@ test("Road Ready 03: every mood and pose has exactly one mouth, drawn before the
     const after = svg.slice(svg.indexOf('class="lv-cloth"'));
     assert.deepEqual([...new Set((after.match(/class="([^"]+)"/g) || []).map(c => c.slice(7, -1)))].filter(c => !["lv-cloth", "lv-weave", "lv-cloth-sh", "lv-inks", "lv-nickel", "lv-mit-o", "lv-mit", "lv-mit-s", "lv-mit-l", "lv-cuff"].includes(c)), [], `${where}: nothing else on the grille`);
     assert.equal((after.match(/class="lv-inks"/g) || []).length, 1, `${where}: the only ink line on the grille is its frame`);
-    /* review: the cloth's own parts can't carry a drawing either: one cloth, one inner shadow, and two weave shapes (the weave and the faint circle), both thin weave-blue lines */
+    /* review: the cloth's own parts can't carry a drawing either: one cloth, one inner shadow, and two weave shapes (the weave and the faint circle), both thin weave-grey lines */
     const weave = after.match(/<[a-z]+ class="lv-weave"[^>]*>/g) || [];
     assert.equal(weave.length, 2, `${where}: the weave and the speaker circle, nothing else in the weave's class`);
-    assert.ok(weave.every(w => /stroke="#2A4466"/.test(w) && /fill="none"/.test(w) && +w.match(/stroke-width="([\d.]+)"/)[1] <= 1.3), `${where}: weave lines are thin and weave-blue`);
+    assert.ok(weave.every(w => /stroke="#5A5956"/.test(w) && /fill="none"/.test(w) && +w.match(/stroke-width="([\d.]+)"/)[1] <= 1.3), `${where}: weave lines are thin and weave-grey`);
     assert.deepEqual([(after.match(/class="lv-cloth"/g) || []).length, (after.match(/class="lv-cloth-sh"/g) || []).length], [1, 1], `${where}: one cloth, one inner shadow`);
     /* after the frame come only the corner caps (on the cabinet's corners, outside the grille) and the mittens */
     const afterFrame = after.slice(after.indexOf('class="lv-inks"'));
     assert.ok(!/lv-mouth|lv-ink"|lv-eye/.test(afterFrame), `${where}: no face part is drawn over the grille`);
   }
 });
-test("Road Ready 03b: hands with fingers in blue Tolex, the same shapes as the guitarist's; no cheeks, no lamp, no tongue, and the same signature as before", async () => {
+test("Road Ready 03b: hands with fingers in black Tolex, the same shapes as the guitarist's; no cheeks, no lamp, no tongue, and the same signature as before", async () => {
   const { louie, mittenOf } = await import("../louie.js");
   const src = fs.readFileSync(new URL("../louie.js", import.meta.url), "utf8");
   assert.match(src, /const HANDS = Object\.fromEntries\(Object\.entries\(HAND_PARTS\)\.map\(\(\[name, parts\]\) => \[name, \(\) => louieHand\(\.\.\.parts\)\]\)\);/, "Louie's hands are built from the shared hand shapes");
@@ -2341,8 +2343,8 @@ test("Road Ready 03b: hands with fingers in blue Tolex, the same shapes as the g
     const hands = lit.split('scale(0.86 1.02)">').slice(1);
     const mine = hands.find(h => paths(h).includes(paths(mittenOf(sign, "a", "b", "c", "d")).slice(0, 60)));
     assert.ok(mine, `${sign}: Louie's ${pose} pose draws the fingered ${sign} hand`);
-    assert.match(mine, /class="lv-mit" fill="#3A86FF"/, `${sign}: lit in Tolex blue`);
-    assert.match(mine, /class="lv-cuff" fill="#2C6FE0"/, `${sign}: a Tolex-shadow cuff`);
+    assert.match(mine, /class="lv-mit" fill="#292929"/, `${sign}: lit in black Tolex`);
+    assert.match(mine, /class="lv-cuff" fill="#1B1B1B"/, `${sign}: a Tolex-shadow cuff`);
   }
   for (const mood of LOUIE_MOODS) for (const pose of LOUIE_POSES) {
     const svg = louie(mood, { pose, size: 120 });
@@ -2373,8 +2375,8 @@ test("Road Ready 03b: each mood and pose shows its painted picture, light and da
     assert.equal(louieArt(mood, pose), art, `${mood}/${pose}`);
     /* the thumbs-up hand is only used at 100 px or larger; smaller, he cheers */
     const shown = art === "thumb" ? "cheer" : art, svg = louie(mood, { pose, size: 96 }), vb = pose ? "-34 -30 268 236" : "18 0 164 200", [x, y, w, h] = vb.split(" ").map(Number);
-    for (const k of ["light", "dark"]) assert.ok(svg.includes(`<image class="lv-art lv-art-${k[0]}" href="art/louie/v2/louie-${shown}-${k}.webp" ${frame(x, y, w, h, k)} preserveAspectRatio="xMidYMax meet"/>`), `${mood}/${pose}: the ${k} ${shown} picture fills the frame`);
-    assert.equal((svg.match(/<image /g) || []).length, 2, "two pictures, light and dark");
+    for (const v of ["v3", "v2"]) for (const k of ["light", "dark"]) assert.ok(svg.includes(`<image class="lv-art lv-art-${k[0]} lv-${v}" href="art/louie/${v}/louie-${shown}-${k}.webp" ${frame(x, y, w, h, k)} preserveAspectRatio="xMidYMax meet"/>`), `${mood}/${pose}: the ${k} ${shown} picture fills the frame`);
+    assert.equal((svg.match(/<image /g) || []).length, 4, "four pictures: black (v3) and blue (v2), each light and dark");
     assert.ok(svg.indexOf('class="lv-art-wrap"') < svg.indexOf('class="lv-code"') && svg.indexOf('class="lv-code"') < svg.indexOf("lv-mouth"), "the art, then the code drawing with the face in it");
     if (art === "thumb") assert.ok(louie(mood, { pose, size: 100 }).includes("louie-thumb-light.webp") && louie(mood, { pose, size: 99 }).includes("louie-cheer-light.webp"), "thumb from 100 px, cheer below");
   }
@@ -2385,10 +2387,10 @@ test("Road Ready 03: the locked palette is written on the drawing and set once i
   const { louie } = await import("../louie.js");
   const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
   const svg = louie("cheer", { pose: "hornsUp", size: 400 });
-  for (const hex of ["#3A86FF", "#2C6FE0", "#F0B23A", "#D9982A", "#182D47", "#2A4466", "#948573", "#55331B", "#E8D5B3", "#0B0F14"]) {
+  for (const hex of ["#292929", "#1B1B1B", "#F0B23A", "#D9982A", "#767572", "#5A5956", "#948573", "#55331B", "#E8D5B3", "#0B0F14"]) {
     assert.ok(svg.includes(hex), `${hex} is in the drawing (the share card draws the SVG with no stylesheet)`);
   }
-  assert.match(css, /\.louie \{ overflow: visible; --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #182D47; --lv-slat: #2A4466; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; \}/);
+  assert.match(css, /\.louie \{ overflow: visible; --lv-body: #292929; --lv-shade: #1B1B1B; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #767572; --lv-slat: #5A5956; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; \}/);
   assert.match(svg, /<g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="4"/, "the rim is hidden unless a dark look shows it, and is 3 px a side at this size");
   assert.match(louie("happy", { size: 44 }), /class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="22.4"/, "still 3 px a side when he is 44 px");
   assert.match(css, /\n\.louie \.lv-rim \{ opacity: 0; \}\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) \.louie \.lv-rim \{ opacity: \.35; \}\n/);
@@ -2397,7 +2399,9 @@ test("Road Ready 03: the locked palette is written on the drawing and set once i
   assert.match(css, /--rr-louie-rim: rgba\(255, 226, 180, \.35\)/, "the rim's colour and strength match the token");
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.louie \.lv-body, \.louie \.lv-eye, \.louie \.lv-art-wrap \{ animation: none !important; \} \}/, "Reduce Motion still stops the hop and the blink, and the hop on the art");
   assert.ok(!/\.louie \.lv-c \{|fill: var\(--lv-cheek\)|fill: var\(--lv-tongue\)|fill: var\(--lv-lamp\)/.test(css), "nothing draws a cheek, a tongue or a lamp");
-  for (const fin of ["pink", "teal", "tweed", "black", "mint", "gold"]) assert.ok(css.includes(`.fin-${fin} .louie, body[data-wear="${fin}"] .louie:not(.fin .louie) {`), `the ${fin} finish is still there`);
+  for (const fin of ["pink", "teal", "tweed", "mint", "gold"]) assert.ok(css.includes(`.fin-${fin} .louie, body[data-wear="${fin}"] .louie:not(.fin .louie) {`), `the ${fin} finish is still there`);
+  assert.ok(!css.includes(`.fin-black .louie, body[data-wear="black"] .louie:not(.fin .louie) {`), "10a: Blue (id black) is not a recolour any more");
+  assert.ok(css.includes(`.fin-black .louie .lv-v2.lv-art-l`) && css.includes(`body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d`), "10a: Blue shows the v2 pictures, on the Merch table and when worn");
 });
 test("Road Ready 03: the guitarist's hands are the shapes Louie had before, unchanged", async () => {
   const { mittenOf } = await import("../louie.js");
@@ -2809,11 +2813,12 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="t\d+"/)[0], "clip ids are unique");
 });
 
-test("Road Ready 07: Louie's face badge is saved for offline, is the picture the Songbook shows, and is small", () => {
-  const file = "art/louie/louie-face-badge.webp";
+test("Road Ready 07 (10a: black): Louie's face badge is saved for offline, is the picture the Songbook and Me show, and is small", () => {
+  const file = "art/louie/v3/louie-face-badge.webp";
   assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
   assert.ok(read("sw.js").includes(`"${file}"`), `${file} is saved for offline`);
   assert.ok(read("library.js").includes(`src="${file}"`), `${file} is the picture the hint banner shows`);
+  assert.ok(read("profile.js").includes(`src="${file}"`), `${file} is the picture Me shows`);
   assert.ok(fs.statSync(path.join(root, file)).size <= 20000, `${file} is small`);
 });
 
@@ -2828,10 +2833,10 @@ test("Road Ready 02: Louie's two peeking pictures stay in the repo and saved for
   }
 });
 
-test("Road Ready 03b: Louie's nine painted poses, light and dark, are in the repo, saved for offline, and each under 60 KB", () => {
+test("Road Ready 03b (10a: v3 black and v2 blue): Louie's painted poses, light and dark, are in the repo, saved for offline, and each under 60 KB", () => {
   const shell = read("sw.js"), LOUIE_ART = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud", "listen"];
-  for (const pose of LOUIE_ART) for (const look of ["dark", "light"]) {
-    const file = `art/louie/v2/louie-${pose}-${look}.webp`;
+  for (const v of ["v3", "v2"]) for (const pose of LOUIE_ART) for (const look of ["dark", "light"]) {
+    const file = `art/louie/${v}/louie-${pose}-${look}.webp`;
     assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
     assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
     assert.ok(fs.statSync(path.join(root, file)).size <= 60000, `${file} is small`);
