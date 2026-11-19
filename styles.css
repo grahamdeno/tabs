@@ -3805,6 +3805,10 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 .on-mic h2, .on-count-in h2 { margin: 6px 0; font: 700 26px var(--display); color: var(--fg); }
 .on-mic p, .on-count-in p { margin: 0 0 16px; font: 700 15px var(--sans); color: var(--muted); line-height: 1.4; }
 .on-mic .btn, .on-count-in .btn { width: 100%; }
+.on-strings { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
+.on-strings li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid color-mix(in srgb, var(--muted) 22%, transparent); font: 700 18px var(--display); color: var(--fg); }
+.on-strings li:last-child { border-bottom: 0; }
+.on-strings small { font: 700 13px var(--sans); color: var(--muted); }
 .on-not { display: block; margin: 10px auto 0; height: 44px; border: 0; background: none; color: var(--muted); font: 700 16px var(--display); }
 .on-count { position: absolute; inset: 0; z-index: 40; display: flex; align-items: flex-end; background: var(--scrim); }
 .on-count-in { width: 100%; box-sizing: border-box; border-radius: 24px 24px 0 0; background: var(--card); padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); text-align: center; animation: up .42s cubic-bezier(.2, 1.15, .3, 1); }

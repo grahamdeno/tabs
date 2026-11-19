@@ -48,18 +48,38 @@ export function roadPath(data, now = Date.now()) {
 export const FANS = { play: 10, lesson: 5, box: 25 };
 
 // ---------- Opening night (4.40.0) ----------
-// A short leg before Leg 1 that teaches by doing, on the sample song: the microphone (with the reason
-// first), tap a chord, play a verse (strum on the changes), pause and pick up, then the first show
-// through. data.opening = { step, fans, micOff, done, seen, skipped, replay }. A player with any play or
+// The first leg teaches the first steps, on the sample song: hold the guitar, the open strings, the
+// microphone, first notes, tap a chord, play a verse, pause and pick up, then the first show through.
+// data.opening = { step, fans, micOff, done, seen, skipped, replay }. A player with any play or
 // lesson before it started never sees it; Settings > Help > Tips & gestures can replay it (no fans again).
 export const OPENING = [
   { id: "who", name: "Who's playing tonight?", sub: "make your guitarist" } /* 4.85.0: no fans, nothing to teach */,
+  { id: "hold", name: "Hold the guitar", sub: "sit and hold it" },
+  { id: "strings", name: "The open strings", sub: "E A D G B E" },
   { id: "mic", name: "Let me hear you", sub: "the microphone" },
+  { id: "notes", name: "Your first notes", sub: "play two open strings" },
   { id: "chord", name: "Tap a chord", sub: "see how it's played" },
   { id: "verse", name: "Play a verse", sub: "strum on the changes" },
   { id: "pause", name: "Pause and pick up", sub: "tap, then Resume" },
   { id: "show", name: "Your first show", sub: "a song, start to finish" }
 ];
+const OPENING_VER = 3;
+/* Older step lists, used only to keep a saved step on the same id when new steps are added. */
+const OPENING_WAS = {
+  1: ["mic", "chord", "verse", "pause", "show"],
+  2: ["who", "mic", "chord", "verse", "pause", "show"]
+};
+function openingStepFrom(raw) {
+  const step = Math.max(0, Math.floor(+raw.step || 0));
+  const ver = raw.v === OPENING_VER ? OPENING_VER : raw.v === 2 ? 2 : 1;
+  if (ver === OPENING_VER) return Math.min(OPENING.length, step);
+  /* step 0 means it hasn't started, so it stays at the first stop (who), not the old first id */
+  if (step === 0) return 0;
+  const was = OPENING_WAS[ver];
+  if (step >= was.length) return OPENING.length;
+  const at = OPENING.findIndex(o => o.id === was[step]);
+  return at < 0 ? OPENING.length : at;
+}
 /* "leg" while it's on, "done" once right after the show, else null */
 export function openingView(data) {
   const o = data.opening;
@@ -76,9 +96,10 @@ export const openingStep = data => Math.min(Math.max(0, data.opening?.step || 0)
 /* Finish a step, only when it's the one you're on. Steps before the show give lesson fans (once). */
 export function openingAdvance(data, id, now = Date.now()) {
   if (!openingOn(data)) return false;
-  const o = data.opening && typeof data.opening === "object" ? data.opening : (data.opening = { step: 0, v: 2, fans: 0, started: now });
+  const o = data.opening && typeof data.opening === "object" ? data.opening : (data.opening = { step: 0, v: OPENING_VER, fans: 0, started: now });
   if (OPENING[o.step]?.id !== id) return false;
   o.step++;
+  o.v = OPENING_VER;
   if (!o.replay && id !== "show" && id !== "who") o.fans = (o.fans || 0) + FANS.lesson;
   if (o.step >= OPENING.length) o.done = now;
   return true;
@@ -349,17 +370,16 @@ export function openBox(data, id, now = Date.now()) {
 }
 export function cleanOpening(raw) {
   if (!isObj(raw)) return null;
-  /* 4.85.0: "Who's playing tonight?" became step 1, so a save from before (no v) that's past the start moves up one */
-  let step = Math.max(0, Math.min(OPENING.length, Math.floor(+raw.step || 0)));
-  if (raw.v !== 2 && step > 0) step = Math.min(OPENING.length, step + 1);
-  const out = { step, v: 2 };
+  /* v: 3 added hold, the open strings and first notes. A save from v: 2 or earlier stays on the same step id. */
+  const step = openingStepFrom(raw);
+  const out = { step, v: OPENING_VER };
   const fans = Math.max(0, Math.min((OPENING.length - 1) * FANS.lesson, Math.floor(+raw.fans || 0))); if (fans) out.fans = fans;
   for (const k of ["done", "seen", "skipped", "started"]) { const t = +raw[k]; if (t > 0) out[k] = t; }
   for (const k of ["micOff", "replay"]) if (raw[k] === true) out[k] = true;
   return out;
 }
-export function openingSkip(data, now = Date.now()) { data.opening = { ...(isObj(data.opening) ? data.opening : { step: 0, v: 2, fans: 0 }), skipped: now }; }
-export function openingReplay(data, now = Date.now()) { data.opening = { step: 1, v: 2, fans: data.opening?.fans || 0, replay: true, started: now }; }
+export function openingSkip(data, now = Date.now()) { data.opening = { ...(isObj(data.opening) ? data.opening : { step: 0, fans: 0 }), v: OPENING_VER, skipped: now }; }
+export function openingReplay(data, now = Date.now()) { data.opening = { step: 1, v: OPENING_VER, fans: data.opening?.fans || 0, replay: true, started: now }; }
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
   const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);

@@ -2416,28 +2416,53 @@ test("Road Ready 03: the guitarist's hands are the shapes Louie had before, unch
 test("4.40.0 Opening night: only for a new player, one step at a time, fans once, skip and replay", () => {
   const fresh = () => ({ songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], sets: [], trash: [], settings: {} });
   const d = fresh();
+  assert.deepEqual(C.OPENING.map(o => o.id), ["who", "hold", "strings", "mic", "notes", "chord", "verse", "pause", "show"]);
   assert.equal(C.openingView(d), "leg", "a new player starts on Opening night");
   assert.equal(C.openingView({ ...fresh(), skills: { done: { "chord-G": { n: 1 } } } }), null, "anyone with a lesson (or a play) never sees it");
   assert.equal(C.openingAdvance(d, "chord"), false, "steps go in order");
   assert.equal(C.OPENING[0].id, "who", "4.85.0: Who's playing tonight? comes first");
-  assert.equal(C.openingAdvance(d, "mic"), false, "the microphone waits for the guitarist");
+  assert.equal(C.openingAdvance(d, "mic"), false, "hold and the open strings come before the microphone");
   assert.equal(C.openingAdvance(d, "who"), true);
   assert.equal(C.fansOf(d), 0, "making your guitarist pays no fans");
-  assert.equal(C.openingAdvance(d, "mic"), true);
-  assert.equal(C.openingStep(d), 2); assert.equal(C.fansOf(d), C.FANS.lesson, "a step gives lesson fans");
-  for (const id of ["chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
-  assert.equal(d.opening.fans, 4 * C.FANS.lesson, "the show itself pays as a play, not as a step");
+  for (const id of ["hold", "strings", "mic", "notes", "chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
+  assert.equal(d.opening.fans, 7 * C.FANS.lesson, "who and the show itself pay no step fans");
   assert.equal(C.openingView(d), "done", "the Road shows it done once");
   d.opening.seen = 1; assert.equal(C.openingView(d), null);
   C.openingReplay(d); assert.equal(C.openingView(d), "leg", "Tips & gestures replays it");
   assert.equal(C.openingStep(d), 1, "a replay skips choosing your guitarist again");
-  C.openingAdvance(d, "mic"); assert.equal(d.opening.fans, 4 * C.FANS.lesson, "no fans twice");
+  assert.equal(C.OPENING[C.openingStep(d)].id, "hold");
+  C.openingAdvance(d, "hold"); assert.equal(d.opening.fans, 7 * C.FANS.lesson, "no fans twice");
   const s = fresh(); C.openingSkip(s); assert.equal(C.openingView(s), null, "Skip ends it");
-  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 6, v: 2, fans: 25, micOff: true });
-  assert.equal(C.cleanOpening({ step: 2, fans: 5 }).step, 3, "a save from before 4.85.0 moves up one step");
+  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 9, v: 3, fans: 40, micOff: true });
+  assert.equal(C.OPENING[C.cleanOpening({ step: 2, fans: 5 }).step].id, "verse", "a save from before 4.85.0 stays on the same step");
   assert.equal(C.cleanOpening({ step: 0 }).step, 0, "one that hadn't started stays at the start");
-  assert.equal(C.cleanOpening({ step: 2, v: 2 }).step, 2, "a current save is left alone");
   assert.equal(C.cleanOpening("no"), null);
+});
+
+test("Opening night: a saved place stays on the same step when first steps are added", () => {
+  const empty = { songs: [], sets: [], trash: [], settings: {} };
+  const chord = C.cleanOpening({ step: 2, v: 2, fans: 10 });
+  assert.equal(C.OPENING[chord.step].id, "chord");
+  assert.equal(chord.fans, 10, "fans already earned are not changed");
+  assert.equal(chord.v, 3);
+  assert.equal(C.OPENING[C.cleanOpening({ step: 1, v: 2, fans: 0 }).step].id, "mic", "on the microphone stays there");
+  assert.equal(C.OPENING[C.cleanOpening({ step: 4, v: 2, fans: 15 }).step].id, "pause");
+  assert.equal(C.OPENING[C.cleanOpening({ step: 5, v: 2, fans: 20 }).step].id, "show");
+  const done = C.cleanOpening({ step: 6, v: 2, done: 1, seen: 1, fans: 20 });
+  assert.equal(done.step, 9);
+  assert.equal(done.done, 1);
+  assert.equal(done.seen, 1);
+  assert.equal(done.fans, 20);
+  assert.equal(C.openingView({ ...empty, opening: done }), null, "a finished opening night stays finished");
+  const skip = C.cleanOpening({ step: 1, v: 2, skipped: 9, fans: 0 });
+  assert.equal(skip.skipped, 9);
+  assert.equal(C.openingView({ ...empty, opening: skip }), null, "a skipped opening night stays skipped");
+  assert.equal(C.cleanOpening({ step: 0, v: 2 }).step, 0, "one that hadn't started stays at the start");
+  assert.equal(C.cleanOpening({ step: 4, v: 3 }).step, 4, "a current save is left alone");
+  const mid = { ...empty, songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], opening: chord };
+  assert.equal(C.openingView(mid), "leg");
+  assert.equal(C.openingAdvance(mid, "hold"), false, "new earlier steps are not asked again");
+  assert.ok(C.openingAdvance(mid, "chord"));
 });
 
 test("4.41.0 chords where the chord sites have them: numbered words in, positions out, the sheet built on the phone", () => {
