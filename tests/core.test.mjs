@@ -1579,7 +1579,8 @@ test("The security policy lets MusicKit fetch Apple's certificate bundle and str
   const part = name => csp.split(";").map(x => x.trim()).find(x => x.startsWith(name + " "));
   for (const h of ["https://*.mzstatic.com", "https://*.cdn-apple.com", "https://*.aaplimg.com"]) assert.ok(part("connect-src").includes(h), "connect-src " + h);
   assert.ok(part("media-src").includes("https://*.mzstatic.com"));
-  assert.ok(!/unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
+  /* 'wasm-unsafe-eval' only lets the page compile WebAssembly (the selfie face finder); plain 'unsafe-eval' stays banned */
+  assert.ok(!/(?<!wasm-)unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
 });
 
 test("recording sync: marks bend the line between sheet and recording, both ways", () => {
@@ -3417,4 +3418,25 @@ test("Road Ready 9b: the offline copy has the builder's code and art, and the te
   for (const f of ["buildart.js", "builder.js", "art/guitars/builder/manifest.json"]) assert.ok(shell.includes(f), f);
   for (const t of Object.values(C.BUILD_TAKES)) for (const f of fs.readdirSync(path.join(root, "art/guitars/builder", t.slug))) assert.ok(shell.includes(`art/guitars/builder/${t.slug}/${f}`), `${t.slug}/${f}`);
   assert.ok(!shell.some(f => f.includes("builder/tex/")), "the 13 textures are cached when first used, not at install");
+});
+
+test("Selfie: colours snap to the guitarist's own inks; a darker chin is a beard; only skin, hair colour and beard are guessed", async () => {
+  const { SKIN, HAIR_COL } = await import("../guitarist.js");
+  const rgb = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  SKIN.forEach((h, i) => assert.equal(C.nearestInk(rgb(h), SKIN), i, `skin ${i}`));
+  for (const [k, h] of Object.entries(HAIR_COL)) assert.equal(C.nearestInk(rgb(h), HAIR_COL), k, k);
+  assert.equal(C.beardGuess([60, 45, 35], [150, 100, 70]), "beard");
+  assert.equal(C.beardGuess([140, 95, 66], [150, 100, 70]), "none");
+  assert.equal(C.beardGuess(null, [150, 100, 70]), "none");
+  const g = C.selfieGuess({ skin: [rgb(SKIN[4]), [150, 98, 64]], hair: [[30, 26, 27]], chin: [58, 42, 32], cheek: rgb(SKIN[4]) }, { skin: SKIN, hair: HAIR_COL });
+  assert.deepEqual(g, { skin: 4, hairCol: "black", beard: "beard" });
+  assert.deepEqual(C.selfieGuess({}, { skin: SKIN, hair: HAIR_COL }), { beard: "none" }, "nothing read, nothing guessed");
+});
+
+test("Selfie: the face finder is loaded on first use, never in the up-front list, and the page may run its WebAssembly", () => {
+  const shell = read("sw.js"), html = read("index.html");
+  assert.ok(shell.includes('"selfie.js"'), "selfie.js is saved for offline");
+  assert.ok(!/vendor\/mediapipe/.test(shell.match(/const SHELL = \[[^\]]*\]/)[0]), "no MediaPipe file in SHELL");
+  assert.match(html, /script-src 'self' 'wasm-unsafe-eval'/);
+  assert.ok(!/localStorage|indexedDB|caches\.|fetch\(/.test(read("selfie.js").replace(/\/\/.*$/gm, "")), "selfie.js stores nothing and sends nothing");
 });

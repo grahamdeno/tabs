@@ -9,6 +9,7 @@ import { esc, haptic, layer } from "./ui.js";
 import { data } from "./app.js";
 import { HAIR_COL, OUTFIT_COL, SKIN, guitarist } from "./guitarist.js";
 import { louie } from "./louie.js";
+import { selfieStart } from "./selfie.js";
 
 const NAME = { shag: "Shag", curly: "Curly", buzz: "Buzz", mohawk: "Mohawk", braids: "Braids", bob: "Bob", bun: "Bun", swoop: "Swoop", long: "Long", locs: "Locs", pixie: "Pixie", ponytail: "Ponytail", longhawk: "Long mohawk" };
 const BEARD = { none: "Clean", stubble: "Stubble", moustache: "Moustache", beard: "Beard" };
@@ -16,7 +17,7 @@ const hide = svg => svg.replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden=
 const same = (a, b) => ["skin", "hair", "hairCol", "beard", "glasses", "top"].every(k => (a[k] ?? ME_DEFAULT[k]) === (b[k] ?? ME_DEFAULT[k]));
 
 export function makerSheet({ mode = "full", done } = {}) {
-  let me = { ...meOf(data) };
+  let me = { ...meOf(data) }, selfieMsg = "", busy = false;
   const full = mode === "full", look = stageLook(data), guitar = guitarFor(roadPath(data).leg?.id);
   const owned = new Set(merchState(data).has);
   const keep = () => { if (full) { data.me = cleanMe(me); Tabs.save(data); } };
@@ -34,7 +35,9 @@ export function makerSheet({ mode = "full", done } = {}) {
         <h2>${mode === "full" ? "Your guitarist" : "Who's playing tonight?"}</h2>
         <div class="gm-prev" aria-live="polite">${prev()}</div>
         <h3>Start from</h3><div class="gm-row gm-starts">${ME_STARTERS.map((s, i) => chip("starter", i, `Starter ${i + 1}`, same(me, s), bust(s))).join("")}</div>
-        <h3>Skin</h3>${swatches("skin", SKIN, null, "Skin")}
+        <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? " disabled aria-busy=\"true\"" : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
+          <p class="gm-note">Your photo stays on this phone and is never saved.</p>${selfieMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(selfieMsg)}</p>` : ""}</div>
+        <h3 id="gm-skin-h">Skin</h3>${swatches("skin", SKIN, null, "Skin")}
         <h3>Hair colour</h3>${swatches("hairCol", ME_HAIR_COL, HAIR_COL, "Hair colour")}
         ${full ? `<h3>Hair</h3><div class="gm-row gm-hair">${ME_HAIR.map(h => chip("hair", h, NAME[h], me.hair === h, bust({ hair: h }) + `<span>${NAME[h]}</span>`)).join("")}</div>
         <h3>Face</h3><div class="gm-row">${ME_BEARD.map(b => chip("beard", b, BEARD[b], me.beard === b, `<span>${BEARD[b]}</span>`)).join("")}${chip("glasses", !me.glasses, "Glasses", me.glasses, "<span>Glasses</span>")}</div>
@@ -56,6 +59,15 @@ export function makerSheet({ mode = "full", done } = {}) {
       else if (k === "patch") { const cur = patchesOf({ ...data, me }).map(x => x.id), on = (me.patches?.length ? me.patches : []).includes(v); const base = me.patches?.length ? me.patches : cur; set("patches", on ? base.filter(x => x !== v) : [...base.filter(x => x !== v), v].slice(-ME_PATCHES)); }
       else set(k, v);
     }));
+    document.getElementById("gm-selfie")?.addEventListener("click", async () => {
+      selfieMsg = "";
+      const g = await selfieStart({ onBusy: b => { busy = b; paint(); } });
+      if (g?.cancelled) return;
+      if (!g) { selfieMsg = "Couldn't read that one. Pick a starter instead."; paint(); return; }
+      /* the guesses only set the preview: nothing is saved until THAT'S ME (or Done) */
+      me = { ...me, ...g }; selfieMsg = "Here's a start from your photo. Fix anything below."; paint(); haptic(1);
+      layer.querySelector("#gm-skin-h")?.scrollIntoView({ block: "start" });
+    });
     const close = () => { layer.innerHTML = ""; done?.(); };
     document.getElementById("gm-scrim").onclick = full ? close : () => { layer.innerHTML = ""; };
     document.getElementById("gm-ok").onclick = () => { data.me = cleanMe(me); Tabs.save(data); close(); };

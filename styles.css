@@ -5218,3 +5218,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .rr-glow.rr-glow-pill { width: 200px; height: 86px; border-radius: 43px; }
 /* the card of a stop near the end of a leg runs past its own neck: lift that neck above the next one (each neck isolates its layers) */
 .rd-path .rd-neck:has(.rd-pop) { z-index: 8; }
+
+/* Start from a selfie (Gig poster, 2026-11-19): the button under the starters, its privacy line and its message */
+.gm-selfie { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 10px 0 4px; }
+.gm-selfie .gm-selfie-b { min-height: 44px; }
+.gm-selfie .gm-note { margin: 0; }
