@@ -108,7 +108,7 @@ The other five spec bodies (Big Sky, Tin Roof, Low Road, Pocket, Wingtip) are ex
 - **9b [Opus]: the builder.** A Build your guitar section on the Merch table, as r10-19: case showcase, chips, swatches, wear, metal, Leave strings long, Save to case with the running total. The guitar on the Road and in the case shows its build.
 - **9c (next release): the five extra bodies.**
 
-**9a, painted necks (Sonnet, `rr-09-road`, PR into `rr-09-neck`, 2026-11-18).** The Road shows each leg's whole painted guitar (`-road.webp`, 1.2 units per painting pixel) with the stops in the painting's own fret spaces on its own strings, from `docs/guitars/frets.json` (NECK-DESIGN.md; taps from TAP-AREAS.md and the handoff). Stops still open their card first. The 23 `-head` and `-body` files are no longer used by the Road and are a clean-up item for a later step (they are still in `SHELL`, and the shop and Show complete have not been checked for them).
+**9a, painted necks (Sonnet, `rr-09-road`, PR into `rr-09-neck`, 2026-11-18).** The Road shows each leg's whole painted guitar (`-road.webp`, 1.2 units per painting pixel) with the stops in the painting's own fret spaces on its own strings, from `docs/guitars/frets.json` (NECK-DESIGN.md; taps from TAP-AREAS.md and the handoff). Stops still open their card first. The 23 `-head` and `-body` files are no longer used by the Road and are a clean-up item for a later step (they are still in `SHELL` and on disk; a search of the app's `.js` files finds no other user of them, and `picBase` now only draws the eight older pictures).
 
 Each of 9a and 9b is its own PR into `road-ready`, reviewed by Louie Review (Fable), on Graham's merge go.
 
