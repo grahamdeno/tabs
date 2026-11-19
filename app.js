@@ -524,14 +524,21 @@ function rowsOf(el, size) {
 function fitSlots(sheet, song) {
   const top = LYRIC_RR * sysText * (song.size || 1), floor = 22 * sysText * (song.size || 1);
   sheet.style.setProperty("--lyric-size", top.toFixed(1) + "px");
-  for (const el of sheet.querySelectorAll(":scope > .pr, :scope > .ly")) {
-    el.style.fontSize = "";
+  const lines = [...sheet.querySelectorAll(":scope > .pr, :scope > .ly")];
+  for (const el of lines) el.style.fontSize = "";
+  /* measure once: every line's rows at the full size in one read pass, then only the rare line that needs more than two steps down */
+  const rows = lines.map(el => rowsOf(el, top)), sizes = lines.map(() => top);
+  lines.forEach((el, i) => {
+    if (rows[i] <= 2) return;
     let size = top;
-    while (size - 2 >= floor && rowsOf(el, size) > 2) { size -= 2; el.style.fontSize = size.toFixed(1) + "px"; }
-    /* drawn at 26 (next, and the song page) and 22 (the others), never bigger than the line was laid out */
-    el.style.setProperty("--lyr-next", Math.min(1, 26 / LYRIC_RR * top / size).toFixed(3));
-    el.style.setProperty("--lyr-sung", Math.min(1, 22 / LYRIC_RR * top / size).toFixed(3));
-  }
+    do { size -= 2; el.style.fontSize = size.toFixed(1) + "px"; } while (size - 2 >= floor && rowsOf(el, size) > 2);
+    sizes[i] = size;
+  });
+  /* then write: drawn at 26 (next, and the song page) and 22 (the others), never bigger than the line was laid out */
+  lines.forEach((el, i) => {
+    el.style.setProperty("--lyr-next", Math.min(1, 26 / LYRIC_RR * top / sizes[i]).toFixed(3));
+    el.style.setProperty("--lyr-sung", Math.min(1, 22 / LYRIC_RR * top / sizes[i]).toFixed(3));
+  });
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
 }
 
