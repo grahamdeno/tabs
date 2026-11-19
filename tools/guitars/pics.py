@@ -147,11 +147,29 @@ def defringe(rgb, al):
     rgb[soft] = rgb[iy, ix][soft]
     return rgb, np.clip((al - .3) / .7, 0, 1)
 
+def tidy(rgb, al):
+    # the cream tuner buttons kept a dotted white edge on a dark screen: bright specks just outside the button and a
+    # half-see-through rim. Pull the rim in, keep only what is joined to the guitar's big piece (and within 1 px of
+    # it), and give the outer two pixels the colour of the solid pixel nearest inside.
+    lab, n = ndimage.label(al > .5, structure=np.ones((3, 3)))
+    size = ndimage.sum(np.ones_like(al), lab, range(1, n + 1))
+    keep = np.isin(lab, [i + 1 for i, z in enumerate(size) if z >= 400])
+    near = ndimage.binary_dilation(keep, iterations=2)
+    al = np.where(near, al, 0)
+    # a pixel with a see-through edge and one at the rim that is brighter than its neighbours inside is a speck
+    rim = (al > 0) & ~ndimage.binary_erosion(al > .5, iterations=2)
+    solid = ndimage.binary_erosion(al > .98, iterations=3)
+    _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
+    rgb = rgb.copy(); rgb[rim] = rgb[iy, ix][rim]
+    # a soft edge: the cut-out's alpha was a hard staircase at phone size
+    al = np.clip(ndimage.gaussian_filter(al, .7) * 1.15, 0, 1) * (ndimage.binary_dilation(al > .5, iterations=1))
+    return rgb, al
+
 nums = {}
 for name in NAMES:
     whole, closeup = SOURCES.get(name, (f"{SRC}/{name}.jpg", f"{SRC}/{name}-head.jpg"))
     rgb, al = cutout(whole)
-    if name in SOURCES: rgb, al = defringe(rgb, al)
+    if name in SOURCES: rgb, al = tidy(*defringe(rgb, al))
     if name == "cutaway-sunburst":
         rgb, al = defringe(rgb, al)
     if name == "cutaway":  # the picture kept a bridge; paint it in the top's colours (the app draws its own)
