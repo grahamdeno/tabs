@@ -52,3 +52,7 @@ Rain check, Double set and quests stay (restyled), Louie is black by default, pl
 1. Items 1 to 4 of the brief (header, tab bar band, case, review fixes).
 2. The shared rules above, once, in `styles.css`.
 3. Screen by screen, one commit each: Rehearse, Tour, Charts, Band, Me, Song page, Merch, playing controls.
+
+## Before and after
+
+Every screen, before on the left and after on the right: [Dark](before-after-dark.jpg), [Light](before-after-light.jpg).
