@@ -52,8 +52,15 @@ const tag = (it, st) => it.kind === "gear" ? price(it, st)
   : !it.price && it.id !== "stock" && it.id !== "basement" ? `<span class="mc-on own">FREE</span>`
   : st.has.has(it.id) ? `<span class="mc-on own">YOURS</span>` : price(it, st);
 
+/* 4.104.0 (agreed Merch screen): in Dark and Light the table is three tabs, Guitars, Looks and Gear, under a header with a round
+   back button, the title and your tips. Green Room and Headliner keep the one long page. The tab you were on is kept while the
+   app is open. */
+let mcTab = "guitars";
+/* open the table on a tab (Settings opens it on Looks for a look you don't have) */
+export const merchTab = k => { if (["guitars", "looks", "gear"].includes(k)) mcTab = k; };
+const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 export function renderMerch() {
-  const st = merchState(data);
+  const st = merchState(data), rr = rrLook();
   const of = k => MERCH.filter(x => x.kind === k);
   const gear = it => `<button class="mc-gear" data-id="${it.id}" aria-label="${esc(it.name)}: ${esc(it.line)}. ${it.price} dollars${st.own[it.id] ? `. You have ${st.own[it.id]}` : ""}">
       ${st.own[it.id] ? `<span class="mc-have">x${st.own[it.id]}</span>` : ""}${GEAR[it.id]}<b>${esc(it.name)}</b><small>${esc(it.line)}</small>${tag(it, st)}</button>`;
@@ -61,28 +68,34 @@ export function renderMerch() {
   const hat = it => `<button class="mc-fin${data.me?.extra === it.id.slice(5) ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} for your guitarist">${hatOn(it, { crop: "bust", size: 54 })}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const look = it => `<button class="mc-look${st.look === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} look">${swatch(it.id)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const drop = it => `<button class="mc-drop${st.backdrop === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} backdrop">${artSVG(it.id, "mc-art")}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
-  app.innerHTML = `<div class="mc">
-    <div class="mc-head"><button class="mc-back" id="mc-back" aria-label="Back">&lsaquo;</button><h1>Merch table</h1><span class="mc-fans" aria-label="${n(st.tips)} dollars in tips to spend">$${n(st.tips)}</span></div>
-    <div class="mc-table" aria-hidden="true">
+  const panel = (k, html) => rr ? `<section class="mc-panel" role="tabpanel" id="mc-p-${k}" aria-labelledby="mc-t-${k}"${mcTab === k ? "" : " hidden"}>${html}</section>` : html;
+  app.innerHTML = `<div class="mc${rr ? " mc-rr" : ""}">
+    <div class="mc-head"><button class="mc-back" id="mc-back" aria-label="Back">${rr ? icon("back") : "&lsaquo;"}</button><h1>${rr ? "Merch" : "Merch table"}</h1><span class="mc-fans" aria-label="${n(st.tips)} dollars in tips to spend">${rr ? `<i class="mc-coin" aria-hidden="true"></i>` : ""}$${n(st.tips)}</span></div>
+    ${rr ? `<div class="mc-seg" role="tablist" aria-label="Merch">${[["guitars", "Guitars"], ["looks", "Looks"], ["gear", "Gear"]].map(([k, l]) => `<button role="tab" id="mc-t-${k}" aria-controls="mc-p-${k}" aria-selected="${mcTab === k}" tabindex="${mcTab === k ? 0 : -1}" data-tab="${k}">${l}</button>`).join("")}</div>` : ""}
+    <div class="mc-table"${rr ? " hidden" : ""} aria-hidden="true">
       <svg class="mc-line" viewBox="0 0 390 70" preserveAspectRatio="none"><path d="M10 10 Q195 50 380 10" fill="none" stroke="currentColor" stroke-width="2"/>${[[60, "#FF3D7F", -4], [130, "#FF8A00", -3], [262, "#3A86FF", 3], [332, "#0FB5A6", 4]].map(([x, c, r]) => { const y = 10 + 40 * (1 - ((x - 195) / 185) ** 2) / 1.2; return `<g transform="translate(${x} ${y - 2}) rotate(${r})"><path d="M-16 3l7-5h5a4 4 0 0 0 8 0h5l7 5-4 7-5-2v19h-22V8l-5 2z" fill="${c}"/></g>`; }).join("")}</svg>
       <div class="mc-lou">${lou(st.louie, 84, "happy", "wave")}</div>
       <div class="mc-cloth"><i></i></div>
       <p class="mc-say">${st.tips >= 100 ? "Sold out show, sold out shirts. What are we getting?" : "Play a few shows and come back. Your tips pay for all of this."}</p>
     </div>
-    <h2 class="mc-h"><span>Gear</span><small>used up when you use it</small></h2>
-    <div class="mc-row three">${of("gear").map(gear).join("")}</div>
+    ${panel("gear", `<h2 class="mc-h"><span>Gear</span><small>used up when you use it</small></h2>
+    <div class="mc-row three">${of("gear").map(gear).join("")}</div>`)}
     ${/* Louie's finishes are off the table (Graham, 2026-11-19): the tweed Louie has one colour so far. Finishes already bought stay saved (merch.has) and come back with his new colours. */""}
-    <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
+    ${panel("looks", `<h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
     <h2 class="mc-h"><span>Hats</span><small>for your guitarist</small></h2>
     <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
-    <div class="mc-row scroll">${of("look").map(look).join("")}</div>
-    ${buildEntry()}
-    ${shopHTML()}
+    <div class="mc-row scroll">${of("look").map(look).join("")}</div>`)}
+    ${panel("guitars", `${buildEntry()}
+    ${shopHTML()}`)}
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
   document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/you");
+  const tabs = [...app.querySelectorAll(".mc-seg [role=tab]")];
+  const pick = k => { mcTab = k; for (const t of tabs) { const on = t.dataset.tab === k; t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1; document.getElementById("mc-p-" + t.dataset.tab).hidden = !on; } };
+  tabs.forEach((t, i) => { t.onclick = () => pick(t.dataset.tab);
+    t.onkeydown = e => { const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (!d) return; e.preventDefault(); const nx = tabs[(i + d + tabs.length) % tabs.length]; pick(nx.dataset.tab); nx.focus(); }; });
   app.querySelectorAll(".mc [data-id]").forEach(b => b.onclick = () => tryOn(b.dataset.id));
   document.getElementById("mc-build")?.addEventListener("click", () => openBuilder());
   document.addEventListener("builds-saved", renderMerch, { once: true });
