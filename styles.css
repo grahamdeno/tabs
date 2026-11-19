@@ -5817,3 +5817,32 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
    No picture is changed; the shadow is drawn under the painting. */
 :root[data-look="neon"] .rd-neck.road > svg.rd-base { filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .6)) drop-shadow(0 16px 26px rgba(0, 0, 0, .55)); }
 :root[data-look="festival"] .rd-neck.road > svg.rd-base { filter: drop-shadow(0 3px 4px rgba(60, 34, 10, .38)) drop-shadow(0 16px 26px rgba(60, 34, 10, .30)); }
+
+/* Me, 4.103.0 (agreed r10-06): no back button on a tab; Settings is a labelled gear at the top right; your name is the title and a
+   tap changes it; Milestones is one row that opens a sheet; the tip jar is a row in the list. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-top { display: flex; justify-content: flex-end; min-height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gear { display: grid; justify-items: center; gap: 2px; min-width: 52px; min-height: 48px; padding: 4px; color: var(--rr-text); text-decoration: none; background: none; border: 0; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gear svg { width: 26px; height: 26px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gear small { font: 600 var(--type-caption) / 1 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-name { all: unset; cursor: pointer; display: inline-block; min-height: 44px; line-height: 44px; font: inherit; color: inherit; overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-name:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-name.empty { color: var(--rr-text-2); font-weight: 600; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 14px; text-align: left; font: inherit; color: var(--rr-text); cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles-row .rr-row-t { flex: 1; font: 600 var(--type-body) / 1.2 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles-n { font: 600 var(--type-footnote) / 1 var(--sans); color: var(--rr-amber-text); }
+.rr-mdots { display: inline-flex; gap: 5px; }
+.rr-mdots i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--rr-text-2, var(--muted)); }
+.rr-mdots i.on { background: var(--rr-amber, var(--accent)); border-color: var(--rr-amber, var(--accent)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-opt { font-weight: 500; color: var(--rr-text-2); font-size: var(--type-footnote); }
+.nm-card input { width: 100%; min-height: 48px; margin: 12px 0 4px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--rim); background: var(--bg); color: var(--fg); font: 600 17px var(--sans); box-sizing: border-box; }
+:root:is([data-look="neon"], [data-look="festival"]) .nm-card input { border-color: var(--rr-outline); background: var(--rr-base); color: var(--rr-text); }
+.ms-card .ms-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 56vh; overflow-y: auto; margin: 10px 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .ms-card .pf-badge { background: linear-gradient(#F6EAD2, #D6C4A4); border: 1.5px solid #8C7858; box-shadow: none; color: #281E14; border-radius: 10px; min-height: 56px; }
+:root:is([data-look="neon"], [data-look="festival"]) .ms-card .pf-badge.locked { background: transparent; border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); }
+/* the gear sits at the top right beside your name, as in r10-06, not on a row of its own */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-top { position: relative; z-index: 2; height: 0; min-height: 0; margin: 0; padding: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-top .rr-gear { position: absolute; right: 0; top: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { padding-right: 56px; }
+/* the case lies open on its side (r10-06): wide and low, three compartments, each guitar standing in its slot */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { aspect-ratio: 116 / 168; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 92%; margin-bottom: 3%; }

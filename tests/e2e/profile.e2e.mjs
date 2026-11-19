@@ -101,7 +101,13 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
       return { now: c.now, of: c.of, chords: p.chords.length, plays: p.plays, fans: m.fansNow(d), tips: m.fansToSpend(d), venue: m.venueOf(m.lifetimePlays(d)).name, lvl: m.levelOf(d).level }; });
     const fmt = x => x.toLocaleString("en-US");
     /* criterion 2: the numbers are the ones profileOf, playableSongs, fansNow and fansToSpend give */
-    assert.equal(await page.innerText(".rr-me-name"), "Your profile");
+    /* 4.103.0: your name is the title; with none it asks for one, and a tap sets it */
+    assert.equal(await page.innerText(".rr-me-name"), "Add your name");
+    await page.click("#pf-name"); await page.waitForSelector(".nm-card #nm-in");
+    await page.fill("#nm-in", "  Graham <b>\n"); await page.click("#nm-ok"); await page.waitForSelector(".rr-me #pf-name:not(.empty)");
+    assert.equal(await page.innerText(".rr-me-name"), "Graham b");
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.playerName === "Graham b");
+    assert.equal(await page.getAttribute("#pf-name", "aria-label"), "Graham b. Change your name");
     assert.equal((await page.innerText(".rr-me-venue")).trim(), `${n.venue} · ${fmt(n.fans)} fans`);
     assert.match(await page.innerText(".rr-me-level"), new RegExp(`Level ${n.lvl} ·`));
     const tiles = await page.$$eval(".rr-tile", ts => ts.map(x => ({ n: x.querySelector("b").textContent.replace(/\s+/g, " ").trim(), l: x.querySelector("small").textContent.trim() })));
@@ -117,8 +123,8 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     /* criterion 3: game money and real money are apart */
     const merch = page.locator("#pf-r-merch");
     assert.equal(await merch.getAttribute("href"), "#/merch");
-    assert.equal(await merch.getAttribute("aria-label"), `Spend your game tips: $${fmt(n.tips)} at the Merch table`);
-    assert.equal((await merch.innerText()).trim(), `Spend your game tips: $${fmt(n.tips)} at the Merch table`);
+    assert.equal(await merch.getAttribute("aria-label"), `Merch: spend $${fmt(n.tips)} tips on new looks`);
+    assert.equal((await merch.innerText()).trim(), `Merch: spend $${fmt(n.tips)} tips on new looks`);
     assert.equal(await page.locator("#pf-r-merch .rr-coin").count(), 1, "the coin is on the Merch row");
     assert.equal(await page.locator(".rr-me .rr-coin").count(), 1, "and nowhere else on Me");
     const dollars = await page.evaluate(() => [...document.querySelectorAll(".rr-me *")].filter(e => [...e.childNodes].some(c => c.nodeType === 3 && /\$/.test(c.textContent)) || /\$/.test(e.getAttribute("aria-label") || "")).map(e => e.closest("#pf-r-merch") ? "merch" : e.tagName + "." + e.className));
@@ -135,21 +141,25 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
     assert.deepEqual([order[0], order[1], order[2], order[3], order[4], order.at(-2), order.at(-1)], ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-rows", "rr-support-h", "rr-support"]);
     /* Milestones as plates; the same badges as before */
-    assert.match(await page.innerText(".rr-miles .pf-label"), /MILESTONES\s*\d+ of 26/);
-    assert.ok(await page.locator(".rr-miles .pf-badge:not(.locked)").count() >= 1);
+    /* 4.103.0 (agreed r10-06): Milestones is one row; the badges open in a sheet */
+    assert.match(await page.innerText("#pf-miles"), /Milestones\s*\d+ of 26/);
+    assert.ok((await page.locator("#pf-miles").boundingBox()).height >= 52);
+    await page.click("#pf-miles"); await page.waitForSelector(".ms-card");
+    assert.equal(await page.locator(".ms-card .pf-badge").count(), 26); assert.ok(await page.locator(".ms-card .pf-badge:not(.locked)").count() >= 1);
+    await page.click("#ms-x"); await page.waitForSelector(".ms-card", { state: "detached" });
     /* the rows and their destinations, each 52 px or taller, with a name; no streak or "you missed" copy */
     for (const [id, href] of [["#pf-r-band", "#/band"], ["#pf-r-charts", "#/charts"], ["#pf-r-help", "#/settings/help"], ["#pf-r-support", "#/support"]]) assert.equal(await page.getAttribute(id, "href"), href, id);
     const rows = await page.$$eval(".rr-me .rr-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: (r.getAttribute("aria-label") || r.innerText).trim(), chev: !!r.querySelector(".chev"), ic: !!r.querySelector(".more-ic svg") })));
     assert.deepEqual(rows.map(r => r.id), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-share", "pf-r-help", "pf-r-support"]);
+    assert.match(await page.innerText("#pf-r-charts"), /^Charts and duels/);
     for (const r of rows) { assert.ok(r.h >= 52, `${r.id} is ${r.h} tall`); assert.ok(r.name && r.chev && r.ic, `${r.id}: a name, an icon and a chevron`); }
     assert.doesNotMatch(await page.innerText(".rr-me"), /you missed|missed a day|lost your streak|streak (lost|broken)/i);
-    /* criterion 5: every control is a 44 px target (the way back, the gear, the avatar, the venue, the Merch row, the case), and the Back button no longer a 36 */
-    for (const sel of ["#back", "#pf-set", "#pf-me", "#pf-map", "#pf-r-merch", ".rr-case-in"]) { const b = await page.locator(sel).boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `${sel} is ${Math.round(b.width)} by ${Math.round(b.height)}`); }
+    /* criterion 5: every control is a 44 px target (the gear, your name, the avatar, the venue, the Merch row, the case). 4.103.0: Me is a tab, so no Back button */
+    assert.equal(await page.locator(".rr-me-top #back, #back").count(), 0);
+    for (const sel of ["#pf-name", "#pf-set", "#pf-me", "#pf-map", "#pf-r-merch", ".rr-case-in"]) { const b = await page.locator(sel).boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `${sel} is ${Math.round(b.width)} by ${Math.round(b.height)}`); }
     assert.equal(await page.getAttribute("#pf-set", "aria-label"), "Settings");
-    /* the destinations work: Help opens Settings > Help, and the way back opens the Road */
+    /* the destinations work: Help opens Settings > Help */
     await page.click("#pf-r-help"); await page.waitForFunction(() => location.hash === "#/settings/help");
-    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
-    await page.click("#back"); await page.waitForSelector(".rd-path");
   });
 }
 
