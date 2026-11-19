@@ -5768,3 +5768,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.on:is(.k-open, .k-seventh, .k-color, .k-barre, .k-other) {
   border: 2px solid var(--rr-amber-text); background: var(--accent-soft); color: var(--rr-amber-text); box-shadow: inset 0 0 0 3px var(--rr-card), inset 0 0 0 4px var(--accent-line); font-weight: 700; }
 :root:is([data-look="neon"], [data-look="festival"]) .pf-pstamp.next { border: 1.5px solid var(--rr-amber-text); color: var(--rr-amber-text); }
+
+/* ===== Road Ready design pass: Song page ===== a new chord is the card with an amber edge and a small amber NEW plate, no pink */
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .strip .scard { border: 1px solid var(--rr-hairline); border-radius: var(--r-control); background: var(--rr-card); }
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .strip .scard.new { border: 1px solid var(--accent-line); background: var(--rr-card); box-shadow: var(--rr-lift); }
+:root:is([data-look="neon"], [data-look="festival"]) .sc-new { padding: 1px 6px; border-radius: var(--r-chip); background: var(--rr-amber); color: var(--rr-on-amber); font: 700 var(--type-caption) / 1.3 var(--sans); letter-spacing: var(--type-caption-ls); }
