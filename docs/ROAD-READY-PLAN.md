@@ -148,6 +148,12 @@ Criteria:
 
 Built on `rr-10-road-louie` (Sonnet), one PR into `road-ready`. `tests/e2e/roadnolouie.e2e.mjs` checks criteria 1 to 3 in every look and state; the pictures stay in the repo and in `sw.js` (criterion 4).
 
+### Step 10 status
+
+- 2026-11-19: Grok's black Louie art (`art/louie/v3/`), PR #106, merged into `road-ready` on Graham's go after he approved the look, merge commit `4760d48`. The app still shows v2 until 10a is built.
+- 2026-11-19: Story 10b, PR #107 at `dba8ffc` (reviewed by Claude Opus 5.5; CI test and browser passed), merged into `road-ready` on Graham's go, merge commit `8d82372`.
+- 2026-11-19: Grok's builder art for 9b (`art/guitars/builder/`), PR #108, merged into `road-ready` on Graham's go, merge commit `c8513b4`.
+
 ## Surprises
 
 Found while building step 01. Each needs a decision or a look from Opus or Graham.
