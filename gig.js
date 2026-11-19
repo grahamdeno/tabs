@@ -187,6 +187,17 @@ function bindIdle(g) {
    says how to get them back, with Louie listening beside it. The first tap or key takes it away at once; otherwise it
    fades on its own 5 s after it shows (0.25 s, or gone at once with Reduce Motion). Either way it never shows again. */
 const HINT_MS = 5000, HINT_FADE = 250;
+/* the first song (one-row Road, 2026-11-19): Louie's first line, which left the Road, shows once inside the playing screen, in
+   the same cream frame as the hint, and fades on its own */
+function firstLine(g) {
+  if (data.settings.used?.firstLine || playSongs(data).some(s => (s.playLog?.total || 0) > 0) || !["neon", "festival"].includes(document.documentElement.dataset.look)) return;
+  markUsed("firstLine");
+  const el = document.createElement("div");
+  el.className = "gg-hint gg-first"; el.setAttribute("role", "status");
+  el.innerHTML = `<span class="gg-hint-l" aria-hidden="true">${louie("happy", { pose: "wave", size: 44 })}</span><p>Let's play your first song. Play it through and your tour starts in the Garage.</p>`;
+  g.el.appendChild(el);
+  setTimeout(() => { el.classList.add("fading"); setTimeout(() => el.remove(), HINT_FADE); }, HINT_MS + 1000);
+}
 function hintShow(g) {
   /* Road Ready looks only: Green Room and Headliner keep the show as it was, and don't use up the one-time hint */
   if (g.hint || data.settings.used?.playHint || !["neon", "festival"].includes(document.documentElement.dataset.look)) return;
@@ -230,6 +241,7 @@ export function openGig(song, opts = {}) {
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
   bindDrag(g);
   bindIdle(g);
+  firstLine(g);
   g.known = knownChords(data);
   paintScore();
   /* Opening night (4.40.0): the first verse waits for Count me in */

@@ -3066,7 +3066,7 @@ test("Road Ready: its tokens exist for both looks and for no other look", () => 
   const names = b => [...b.matchAll(/(--rr-[a-z0-9-]+)\s*:/g)].map(m => m[1]).sort();
   assert.deepEqual(names(rrDark), names(rrLight), "dark and light define the same --rr tokens");
   assert.deepEqual(names(rrDark).map(n => n.slice(5)), ("amber amber-text base card chord engrave engrave-locked glow glow-core hairline louie-rim lyric-next lyric-now lyric-sung mesh on-amber outline "
-    + "pearl-done pearl-locked pearl-now plate-bottom plate-edge plate-text plate-top tab-off text text-2").split(" ").sort(), "all 27 colour tokens are there");
+    + "pearl-done pearl-locked pearl-now plate-bottom plate-edge plate-text plate-top tab-off text text-2 lift press motion").split(" ").sort(), "all 27 colour tokens are there, plus the raised and pressed shadows and the show and hide timing (design pass, 2026-11-19)");
   const shared = rrCss.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\]\) \{([^}]*)\}/)[1];
   for (const n of "display title title2 headline body callout subhead footnote caption lyric-now lyric-next lyric-sung chord mono".split(" "))
     assert.match(shared, new RegExp(`--type-${n}: calc\\(var\\(--sys-px, 17px\\) \\* [\\d.]+\\)`), `--type-${n} scales with --sys-px`);

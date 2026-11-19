@@ -20,7 +20,7 @@ const hash = (page, h) => page.evaluate(h => { location.hash = h; }, h);
 const store = page => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
 async function builder(t, theme = "dark", o = {}, opts = {}) {
   const page = await phone(t, lib(theme, o), { home: true, ...opts });
-  await page.waitForSelector("#rd-bubble, .rr-hdr"); await hash(page, "#/merch"); await page.waitForSelector(".mc");
+  await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/merch"); await page.waitForSelector(".mc");
   await page.click("#mc-build"); await page.waitForSelector(".bd"); await settled(page);
   /* the sheet slides up: wait until it has stopped */
   await page.evaluate(() => new Promise(res => { const el = document.querySelector(".bd"); let last = -1, n = 0; const f = () => { const y = el.getBoundingClientRect().top; n = y === last ? n + 1 : 0; last = y; n >= 5 ? res() : requestAnimationFrame(f); }; f(); }));
@@ -136,7 +136,7 @@ test("Builder: a built guitar on the Road keeps every stop where it is on the pa
 
 test("Builder: the built guitar is the one picture in the case on Me", { skip: skip() }, async t => {
   const page = await phone(t, lib("dark", { ring: 3, builds: { open: { paint: "seafoam" } }, merch: { has: ["b-seafoam"] } }), { home: true });
-  await page.waitForSelector(".rr-hdr, #rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".rr-gtr img");
+  await page.waitForSelector(".rr-stats, #rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".rr-gtr img");
   await page.waitForFunction(() => /^blob:/.test(document.querySelector(".rr-gtr img")?.getAttribute("src") || ""), null, { timeout: 15000 });
   assert.equal(await page.$$eval(".rr-gtr img", els => els.filter(e => e.src.startsWith("blob:")).length), 1, "only the built guitar changes");
 });

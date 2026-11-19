@@ -12,7 +12,7 @@ import { VERSION, QUEST, COVER_MULT, FRIEND_QUEST, Tabs, questState, questsSettl
 import { app, esc, icon, toast } from "./ui.js";
 import { aiKey, data, go, openSearch, playGig } from "./app.js";
 import { louie } from "./louie.js";
-import { statBar, bindStatBar } from "./hud.js";
+import { bindStatBar, pageStats } from "./hud.js";
 
 const CHECK = `<svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Done"><circle class="tq-ckd" cx="16" cy="17" r="14"/><circle class="tq-ck" cx="16" cy="15" r="14"/><path d="M10 15l4 4 8-8" stroke="#14213D" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const BOX = label => `<svg width="34" height="30" viewBox="0 0 34 30" role="img" aria-label="${esc(label)}"><rect class="tq-bxd" x="3" y="12" width="28" height="17" rx="3"/><rect class="tq-bx" x="3" y="10" width="28" height="17" rx="3"/><rect class="tq-lid" x="2" y="5" width="30" height="8" rx="3"/><rect class="tq-rib" x="14" y="5" width="6" height="22"/></svg>`;
@@ -42,7 +42,7 @@ export function renderTour() {
   const t = st.tour, r = st.request, heard = r && data.quests?.heard?.day === st.today && data.quests.heard.id === r.song.id, cv = coverState(data);
   app.innerHTML = `
     <div class="tq">
-      <div class="tq-top">${statBar()}</div>
+      <div class="tq-top">${pageStats()}</div>
       <section class="tq-head" aria-label="${esc(st.monthName)} Tour">
         <div class="tq-ht"><h1>${esc(st.monthName)} Tour</h1><small>${st.daysLeft ? `${st.daysLeft} DAY${st.daysLeft === 1 ? "" : "S"} LEFT` : "LAST DAY"}</small></div>
         <div class="tq-louie">${louie(t.done ? "cheer" : "happy", { pose: t.done ? "hornsUp" : "wave", size: 104 })}</div>
