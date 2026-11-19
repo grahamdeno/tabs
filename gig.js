@@ -6,7 +6,8 @@
 //   lines     the song page itself (4.51.0): the Gig is see-through in the middle, and stage.js draws the band
 //             and the chords on the real sheet, so you read, scroll and drag the song itself. A small shape for
 //             the next chord you haven't learned.
-//   bottom    Pause, in thumb reach
+//   bottom    Pause, in thumb reach (Road Ready 05: a big amber button, with the song's title at the top and a 2 px
+//             amber progress line along the bottom edge; those two show only in the Road Ready looks)
 // Paused (4.52.0), the show steps aside and the song page is back as it always is: Tools and Play (reading
 // Resume) in thumb reach, a quiet band on the line you stopped on, and Louie's line above Play when there is
 // one to say. Play picks the show up again; the page's Back, or Tools for anything but the switches, ends it.
@@ -14,10 +15,11 @@
 // playing (not dragged past, not paused); see gigStart in core/game.js and docs/NO-CATCH-PLAN.md.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans,
 // tips, the crowd, the song's stars, the song you played and Encore (play it again for double bonus fans).
-import { COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
+import { roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
-import { esc, icon, onLeave } from "./ui.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw } from "./app.js";
+import { esc, icon, onLeave, haptic } from "./ui.js";
+import { guitarSVG, guitarPic } from "./fretboard.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
@@ -25,6 +27,12 @@ import { gigDoneHere, gigFrame, gigOpen, gigPaused, gigResumed, hideStrip } from
 
 let gig = null; /* the show on stage, or null */
 const $ = id => document.getElementById(id);
+
+/* Road Ready is the Dark and Light looks; Green Room and Headliner keep the earlier screens */
+const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* the reward tiles' icons (spec 5.7): a fan and a coin */
+const FANS_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c.6-3.3 2.8-5 5.5-5s4.9 1.7 5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.5" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.5 13.6c2.6-.2 4.5 1.3 5 4.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const COIN_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 
 /* ---- the screen ---- */
 
@@ -40,9 +48,11 @@ function shell(song) {
     <div class="gg-status"><span class="gg-fans" id="gg-fans" role="img" aria-label="Crowd"></span></div>
     <div class="gg-shape" id="gg-shape" hidden></div>
     <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
+    <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
-      <button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button>
+      <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>
     </div>
+    <div class="gg-prog" aria-hidden="true"><i id="gg-prog"></i></div>
 `;
   document.body.appendChild(el);
   return el;
@@ -87,6 +97,9 @@ function frame() {
   const counting = !!document.querySelector(".countin");
   $("gg-sec").textContent = counting ? "COUNT IN" : (w.sec || "Verse").toUpperCase();
   gigFrame(g, w.sec, scroll.on && !counting);
+  /* Road Ready 05: how far along the song is, as a hairline along the bottom edge */
+  const prog = $("gg-prog"), pct = (w.progress * 100).toFixed(1) + "%";
+  if (prog && prog.style.width !== pct) prog.style.width = pct;
   /* the lines: the band on the line you're on, on the sheet itself */
   g.b = w.b;
   stageTick(song, w);
@@ -137,10 +150,20 @@ function bindDrag(g) {
 
 /* Controls that hide (4.60.0, Graham, 2026-10-24): while the song plays, the X and Pause fade after
    3 seconds without a touch, as in Apple Music. A touch brings them back; that first touch only wakes them, it never
-   presses one. Paused, counting in, waiting for a chord, a sheet open, or the end card: always shown. */
+   presses one. Paused, counting in, waiting for a chord, a sheet open, or the end card: always shown.
+   Road Ready 05: any key brings them back too (Space also plays and pauses, through the page's own keys), and they
+   never hide while keyboard focus is on one of them, with "Keep playing controls on screen" on, or once a control
+   has had focus with no touch or click before it (a screen reader or a switch; the web can't ask whether VoiceOver
+   or Switch Control is on), until the song is paused or ends. The first time they hide, a hint says how to get
+   them back, once. */
 function bindIdle(g) {
   g.touch = performance.now();
+  g.pointerAt = 0;
   const wake = e => {
+    if (e.type === "pointerdown" || e.type === "touchstart") g.pointerAt = performance.now();
+    /* focus that no touch or click brought: a screen reader or a switch is moving through the controls */
+    if (e.type === "focusin" && g.el?.contains(e.target) && performance.now() - g.pointerAt > 800) g.keep = true;
+    if (e.type === "pointerdown" || e.type === "keydown") hintGone(g);
     if (!g.el?.classList.contains("idle")) { g.touch = performance.now(); return; }
     g.touch = performance.now();
     g.el.classList.remove("idle");
@@ -153,10 +176,39 @@ function bindIdle(g) {
   g.idleT = setInterval(() => {
     if (gig !== g) return;
     const ok = scroll.on && !g.paused && !g.credited && !g.ended && !g.el.classList.contains("done") && !document.querySelector(".countin, .menu, .st-open");
-    if (!ok) g.el.classList.remove("idle");
-    else if (performance.now() - g.touch > 3000) g.el.classList.add("idle");
+    if (g.paused || g.ended || g.credited) g.keep = false; /* kept on until the song is paused or ends */
+    const focused = g.el.contains(document.activeElement) && document.activeElement.matches(":focus-visible");
+    if (!ok || g.keep || focused || data.settings.keepControls === true) g.el.classList.remove("idle");
+    else if (performance.now() - g.touch > 3000) { g.el.classList.add("idle"); hintShow(g); }
   }, 400);
   g.unbindIdle = () => { clearInterval(g.idleT); document.removeEventListener("click", eat, true); evs.forEach(ev => removeEventListener(ev, wake, { capture: true })); };
+}
+/* The first-run hint (Road Ready 05): the first time the controls hide, a cream frame at the bottom, where Pause was,
+   says how to get them back, with Louie listening beside it. The first tap or key takes it away at once; otherwise it
+   fades on its own 5 s after it shows (0.25 s, or gone at once with Reduce Motion). Either way it never shows again. */
+const HINT_MS = 5000, HINT_FADE = 250;
+function hintShow(g) {
+  /* Road Ready looks only: Green Room and Headliner keep the show as it was, and don't use up the one-time hint */
+  if (g.hint || data.settings.used?.playHint || !["neon", "festival"].includes(document.documentElement.dataset.look)) return;
+  markUsed("playHint");
+  const el = document.createElement("div");
+  el.className = "gg-hint"; el.id = "gg-hint";
+  el.innerHTML = `<span class="gg-hint-l" aria-hidden="true">${louie("happy", { pose: "wave", size: 44 })}</span><p><svg class="gg-hint-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5" fill="none" stroke-width="1.6"/></svg>Tap anywhere for controls</p>`;
+  g.el.appendChild(el);
+  g.hint = el;
+  g.hintT = setTimeout(() => {
+    if (g.hint !== el) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return hintGone(g);
+    el.classList.add("fading");
+    g.hintT = setTimeout(() => { if (g.hint === el) hintGone(g); }, HINT_FADE);
+  }, HINT_MS);
+}
+function hintGone(g) {
+  if (!g.hint) return;
+  clearTimeout(g.hintT);
+  g.hint.remove();
+  g.hint = null;
+  g.hintDone = true;
 }
 
 /* ---- open, pause, close ---- */
@@ -191,6 +243,7 @@ function paused(on) {
   if (!g) return;
   if (on && !g.paused && g.idx >= 0 && !g.ended) { showPaused(g.score); g.comboShown = 0; paintScore(); } /* a pause ends the run */
   g.paused = on;
+  if (on) g.keep = false; /* Road Ready 05: kept-on controls go back to hiding once the song is paused */
   gigHooks.held = on;
   g.el.classList.toggle("paused", on);
   document.body.classList.toggle("held", on);
@@ -226,6 +279,7 @@ export function closeGig(quiet = false) {
   gig = null;
   cancelAnimationFrame(g.raf);
   clearInterval(g.speedT);
+  clearTimeout(g.hintT);
   g.el?.remove();
   g.unbind?.(); g.unbindIdle?.();
   stageClear();
@@ -279,16 +333,9 @@ function showComplete() {
   const why = [stretch.speed && "full speed", stretch.newChord && "a chord you're still learning", stretch.debut && "your first time through"].filter(Boolean);
   g.el.classList.remove("paused"); document.body.classList.remove("held"); gigHooks.held = false; $("gg-say")?.remove();
   g.el.classList.add("done");
-  g.el.innerHTML = `<div class="gc">
-    <div class="gc-hero" id="gc-hero">${backdropBanner(backdropsOwned().find(x => x.on)?.id)}
-      <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
-      <button class="gc-bdc" id="gc-bdc" aria-haspopup="true">${icon("image")}<span>${esc(backdropsOwned().find(x => x.on)?.name || "Basement")} · Change</span></button>
-    </div>
-    <div class="gc-bds" id="gc-bds" role="group" aria-label="Backdrops you own" hidden></div>
-    <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
-    <p class="gc-s">${esc(g.song.title)}, start to finish.${whole ? " The crowd wants more." : ""}</p>
-    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("TIPS", `$${tips}`, "tips")}${tile("CROWD", `${crowd}/12`, "crowd")}${tile("STARS", starRow(stars.after), "beat")}</div>
+  const totalFans = fans + 10 + earned.reduce((n, x) => n + x.fans, 0);
+  /* the details every show complete lists: the song you played, what the show did, and the merch you can now get */
+  const details = `
     ${played}
     <div class="gc-list">
       ${stars.after > stars.before && stars.after >= 3 ? `<p><b>New star: ${STAR_NAMES[stars.after]}!</b> ${stars.after === 4 ? "Gig-ready on three different days." : "The whole song at full speed, no pausing."} <b>+${starFans} fans</b></p>` : stars.after === 2 && stars.before < 3 && !full ? `<p>Play it at full speed without pausing to make it <b>Gig-ready</b>.</p>` : stars.after === 2 && stars.before < 3 ? `<p>Play it through without pausing to make it <b>Gig-ready</b>.</p>` : ""}
@@ -306,6 +353,48 @@ function showComplete() {
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
     ${tip ? `<button class="gc-merch" id="gc-merch">${tip.kind === "louie" ? `<span class="fin fin-${tip.id}">${louie("happy", { size: 46 })}</span>` : `<span class="gc-merch-ic" aria-hidden="true">${icon("shirt")}</span>`}<span><b>You can get ${esc(tip.kind === "louie" ? `${tip.name} Louie` : `the ${tip.name} backdrop`)}</b><small>$${tip.price.toLocaleString("en-US")} in tips at the merch table</small></span>${icon("chev", "chev")}</button>` : ""}
+`;
+  if (rrLook()) {
+    /* Road Ready 06 (spec 5.6 to 5.8, r10-04): the guitar you played on (its whole picture, as in the case on the Road;
+       the drawn guitar with a full-length neck if it has none) stands alone with an amber glow and sparks, the
+       cheering Louie beside it, then the reward tiles, the next venue and the buttons; the details follow. No backdrop
+       in these two looks (Graham, 2026-11-18); Green Room and Headliner keep the backdrop and Change below. */
+    const legs = roadPath(data).legs, leg = legs.find(l => l.stops.some(x => x.state === "now")) || legs.filter(l => l.done).at(-1) || legs[0];
+    const gtr = guitarShown(data, leg?.id), gname = gtr.name, gpic = guitarPic(gtr.body), v = venueNow(data);
+    const sparks = [[18, 62], [28, 30], [34, 78], [70, 24], [76, 58], [64, 82], [22, 44], [80, 38], [40, 18]].map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join("");
+    g.el.innerHTML = `<div class="gc rr-sc">
+    <p class="sc-over">${g.encore ? "ENCORE COMPLETE" : "SHOW COMPLETE"}</p>
+    <h2 class="gc-t sc-title">${esc(g.song.title)}</h2>
+    <p class="gc-s sc-sub">Start to finish.${whole ? " The crowd wants more." : ""}</p>
+    <div class="sc-show glow" aria-hidden="true">
+      <span class="sc-sparks">${sparks}</span>
+      <div class="sc-guitar">${gpic ? `<img src="${gpic}" alt="">` : guitarSVG(leg?.id || "open", { full: true })}</div>
+      <span class="sc-label">${esc(gname)}</span>
+      <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
+    </div>
+    <div class="sc-reward" role="img" aria-label="Reward: ${totalFans} fans and ${tips} dollars in tips.">
+      <span class="sc-tile">${FANS_IC}<b>+${totalFans} fans</b></span><span class="sc-tile">${COIN_IC}<b>+$${tips} tips</b></span>
+    </div>
+    ${v.next ? `<p class="sc-next">Next stop: ${esc(v.next)}</p>` : ""}
+    <div class="gc-acts sc-acts">
+      <button class="btn primary" id="gc-go">Continue</button>
+      ${g.encore ? "" : `<button class="btn" id="gc-encore">Play it again, 2x bonus fans</button>`}
+    </div>
+    <div class="gc-tiles sc-more">${tile("CROWD", `${crowd}/12`, "crowd")}${tile("STARS", starRow(stars.after), "beat")}</div>
+    ${details}
+  </div>`;
+    haptic(1); /* a light tap on show complete */
+  } else g.el.innerHTML = `<div class="gc">
+    <div class="gc-hero" id="gc-hero">${backdropBanner(backdropsOwned().find(x => x.on)?.id)}
+      <div class="gc-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      ${joined.length ? `<div class="gc-join">${joined.map(f => friend(f.id, { size: 120, mood: "cheer" })).join("")}${louie("cheer", { pose: "hornsUp", size: 120 })}</div>` : louie("cheer", { pose: "hornsUp", size: 170 })}
+      <button class="gc-bdc" id="gc-bdc" aria-haspopup="true">${icon("image")}<span>${esc(backdropsOwned().find(x => x.on)?.name || "Basement")} · Change</span></button>
+    </div>
+    <div class="gc-bds" id="gc-bds" role="group" aria-label="Backdrops you own" hidden></div>
+    <h2 class="gc-t">${g.encore ? "Encore complete!" : "Show complete!"}</h2>
+    <p class="gc-s">${esc(g.song.title)}, start to finish.${whole ? " The crowd wants more." : ""}</p>
+    <div class="gc-tiles">${tile("FANS", `+${fans + 10 + earned.reduce((n, x) => n + x.fans, 0)}`, "fans")}${tile("TIPS", `$${tips}`, "tips")}${tile("CROWD", `${crowd}/12`, "crowd")}${tile("STARS", starRow(stars.after), "beat")}</div>
+${details}
     <div class="gc-acts">
       ${g.encore ? "" : `<button class="btn primary" id="gc-encore">ENCORE · 2x BONUS FANS</button>`}
       <button class="btn" id="gc-go">CONTINUE</button>
@@ -314,7 +403,6 @@ function showComplete() {
   $("gc-go").onclick = () => { closeGig(true); if (opened) { homeHooks.openDrawer = false; go("#/"); } else redraw?.(); }; /* Opening night's end goes on to the Road */
   /* 4.71.0: what the show paid bursts in, POW, one at a time: fans, tips, a band member, the streak. Through the
      app's callout, so they queue with the new-chord one instead of landing on top of it */
-  const totalFans = fans + 10 + earned.reduce((n, x) => n + x.fans, 0);
   setTimeout(() => {
     if (gig !== g) return;
     showCallout({ kind: "earn", pow: "POW!", word: "FANS", big: `+${totalFans}` });
@@ -324,7 +412,7 @@ function showComplete() {
   }, 500);
   $("gc-merch")?.addEventListener("click", () => { closeGig(true); go("#/merch"); });
   /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own, and the merch table */
-  $("gc-bdc").onclick = () => {
+  if ($("gc-bdc")) $("gc-bdc").onclick = () => {
     const box = $("gc-bds");
     if (!box.hidden) { box.hidden = true; return; }
     box.innerHTML = backdropsOwned().map(x => `<button class="chip${x.on ? " on" : ""}" data-bd="${x.id}" aria-pressed="${x.on}">${esc(x.name)}</button>`).join("") + `<button class="chip" data-bd="">More at the merch table</button>`;

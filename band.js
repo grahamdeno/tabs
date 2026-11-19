@@ -3,8 +3,8 @@
 // the others join the stage and cheer you on. The join order and when is BAND in core.js; the
 // drawings are friends.js.
 import { Tabs, bandMeet, bandState } from "./core.js";
-import { app, esc, toast } from "./ui.js";
-import { data } from "./app.js";
+import { app, esc, icon, toast } from "./ui.js";
+import { data, go } from "./app.js";
 import { friend, FRIENDS } from "./friends.js";
 import { louie } from "./louie.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -47,6 +47,7 @@ export function renderBand() {
   /* 4.69.0: Beat is in the band but isn't playing for now, so no DRUMS tag, no "plays drums" and no Band plays switch */
   const part = () => "";
   app.innerHTML = `<div class="bd">
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to Me">${icon("back")}</button></div>
     <div class="tq-top">${statBar()}</div>
     <section class="bd-head" aria-label="Your band">
       <div><h1>Your band</h1><small>${n} OF ${st.members.length} JOINED</small></div>
@@ -65,6 +66,7 @@ export function renderBand() {
   </div>`;
   bindStatBar();
   app.querySelectorAll(".bd-card[data-id]").forEach(b => b.onclick = () => toast(LINES[b.dataset.id] || nameOf(b.dataset.id), b));
+  document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/you");
   document.getElementById("bd-plays")?.addEventListener("click", () => { data.settings.bandPlays = !plays; Tabs.save(data); renderBand(); });
   if (met.length) setTimeout(() => toast(`${met.map(m => nameOf(m.id)).join(" and ")} joined your band!`), 300);
 }

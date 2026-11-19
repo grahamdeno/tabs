@@ -580,7 +580,7 @@ body.searching #list > .label:first-child { margin-top: 8px; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .ed-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 14px; }
 .ed-chip b { font-weight: 600; }
-.ed-tap { color: var(--accent-ink); font: inherit; font-size: 14px; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.ed-tap { min-width: 9.5em; justify-content: center; color: var(--accent-ink); font: inherit; font-size: 14px; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 .ed-tap svg { width: 15px; height: 15px; }
 .ed-tap.beat { animation: tapbeat .18s ease-out; }
 @keyframes tapbeat { from { background: var(--accent-soft); border-color: var(--accent); } }
@@ -1564,10 +1564,11 @@ body.tm-open .app { padding: 0; }
 .rd-first .pf-line { margin-top: 6px; color: var(--fg-2); }
 .louie .lv-body { transform-box: view-box; }
 @keyframes lv-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 30% { transform: translateY(-10px) scale(.96, 1.05); } 60% { transform: translateY(0) scale(1.06, .94); } }
-.louie.cheer .lv-body, .louie.hornsUp .lv-body { animation: lv-hop .7s cubic-bezier(.3,1.4,.5,1) 2; transform-origin: 100px 180px; }
+.louie .lv-art-wrap { transform-box: view-box; }
+.louie.cheer .lv-body, .louie.hornsUp .lv-body, .louie.cheer .lv-art-wrap, .louie.hornsUp .lv-art-wrap { animation: lv-hop .7s cubic-bezier(.3,1.4,.5,1) 2; transform-origin: 100px 180px; }
 @keyframes lv-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 .louie.happy .lv-eye { animation: lv-blink 5s infinite; transform-box: fill-box; transform-origin: center; }
-@media (prefers-reduced-motion: reduce) { .louie .lv-body, .louie .lv-eye { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .louie .lv-body, .louie .lv-eye, .louie .lv-art-wrap { animation: none !important; } }
 /* Tour Map: rival players and pressure */
 .tm-rival { display: grid; place-items: center; }
 .tm-rival b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #17181b; border: 2.5px solid var(--c); color: var(--c); font: 700 12px var(--sans); box-shadow: 0 3px 8px rgba(0,0,0,.6); }
@@ -1865,7 +1866,7 @@ body.is-home .rd-song b { font-size: 26px; }
    Version 4 look (4.0.0)
    Three palettes, one style: flat colour with no outlines, chunky buttons that
    sit on a darker lip, a soft gloss stripe, Fredoka for titles and Nunito for
-   text. Light is Festival Poster, Dark is Neon Midnight, Green is Green Room.
+   text. Light is Road Ready light (data-look festival), Dark is Road Ready dark (data-look neon), Green is Green Room.
    The amp materials above (copper, plate, recess, chrome, lamps, tolex, glass)
    are redrawn here from the palette, so every screen follows without its own
    colours. Game colours: --streak (the flame), --fans (the ticket), --strings.
@@ -1941,6 +1942,99 @@ body.is-home .rd-song b { font-size: 26px; }
   --tabs: calc(66px + var(--safe-b));
 }
 body { background: var(--bg); font-family: var(--sans); }
+
+/* ==========================================================================
+   Road Ready, step 01 (Graham, 2026-11-17): the foundation.
+   Dark tolex, grille cloth, chrome piping, cream engraved plates, warm amber;
+   Space Grotesk, Inter and IBM Plex Mono. Road Ready replaces the two free
+   looks: Dark (data-look="neon") is Road Ready dark, Light (data-look="festival")
+   is Road Ready light. The data-look values stay, so no stored setting changes.
+   Green Room and Headliner keep their own palettes and fonts: every rule here
+   is keyed on those two data-look values, never on plain :root, data-theme or
+   :root[data-look] (Green Room is also data-theme="light", Headliner "dark").
+   Screens are restyled in later steps; this only recolours today's layout.
+   ========================================================================== */
+@font-face { font-family: "Space Grotesk"; src: url("vendor/fonts/spacegrotesk.woff2") format("woff2"); font-weight: 500 700; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("vendor/fonts/inter.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("vendor/fonts/ibmplexmono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+/* Road Ready dark */
+:root[data-look="neon"] {
+  --muted: #ABA294; /* between text-2 and lyric-sung, plain so the readable test can parse it; AA on cards and wells */
+  --rr-base: #141210; --rr-card: #1A1918; --rr-mesh: #2A2724; --rr-hairline: #46423C;
+  --rr-text: #F6EEE0; --rr-text-2: #BEB4A4;
+  --rr-lyric-now: #F6EEE0; --rr-lyric-next: #C9C0B2; --rr-lyric-sung: #8F877C;
+  --rr-chord: #FFC46B; --rr-amber: #FFB547; --rr-amber-text: #FFB547; --rr-on-amber: #1E160C;
+  --rr-plate-top: #F6EAD2; --rr-plate-bottom: #D6C4A4; --rr-plate-edge: #8C7858; --rr-plate-text: #281E14;
+  --rr-tab-off: #D6CCBC; --rr-outline: #8C847A;
+  --rr-pearl-done: #FCCE80; --rr-pearl-now: #FFD68C; --rr-pearl-locked: #D6D0C4;
+  --rr-engrave: #5C3A16; --rr-engrave-locked: #46423C;
+  --rr-glow: #FFAA3C; --rr-glow-core: #FFDCA0; --rr-louie-rim: rgba(255, 226, 180, .35);
+  --rim-hi: rgba(255,255,255,.06); --scrim: rgba(8,6,4,.66); --shadow: 0 8px 24px rgba(0,0,0,.45);
+  --accent-deep: #B97B1C; --accent-soft: rgba(255,181,71,.14); --accent-line: rgba(255,181,71,.5);
+  --tabs-on: rgba(255,181,71,.14); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #2A2724;
+  /* grain over --rr-base, then a 45 percent black wash. The tile is drawn brighter (base / .55) so the wash lands the average on #141210. */
+  --tolex: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("art/surfaces/tolex-dark.webp") 0 0 / 256px 256px repeat, var(--rr-base);
+}
+/* Road Ready light: amber is for fills only; amber text on cream is always #763A00. The status colours are darkened to pass AA on cream, a card and a well. */
+:root[data-look="festival"] {
+  --muted: #635A50; /* same, for the light look */
+  --rr-base: #F6EFE2; --rr-card: #FBF7EF; --rr-mesh: #E7E0D4; --rr-hairline: #D3C8B6;
+  --rr-text: #1E1914; --rr-text-2: #5C5248;
+  --rr-lyric-now: #1E1914; --rr-lyric-next: #3A332C; --rr-lyric-sung: #6E655B;
+  --rr-chord: #763A00; --rr-amber: #FFB547; --rr-amber-text: #763A00; --rr-on-amber: #1E160C;
+  --rr-plate-top: #F6EAD2; --rr-plate-bottom: #D6C4A4; --rr-plate-edge: #8C7858; --rr-plate-text: #281E14;
+  --rr-tab-off: #4A4239; --rr-outline: #8C847A;
+  --rr-pearl-done: #FCCE80; --rr-pearl-now: #FFD68C; --rr-pearl-locked: #D6D0C4;
+  --rr-engrave: #5C3A16; --rr-engrave-locked: #46423C;
+  --rr-glow: #FFAA3C; --rr-glow-core: #FFDCA0; --rr-louie-rim: transparent;
+  --rim-hi: rgba(255,255,255,.7); --scrim: rgba(30,25,20,.38); --shadow: 0 8px 24px rgba(30,25,20,.14);
+  --accent-deep: var(--rr-amber-text); --accent-soft: rgba(255,181,71,.25); --accent-line: rgba(118,58,0,.55);
+  --tabs-on: rgba(255,181,71,.28); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #B9AD98;
+  --bad: #BE1F35; --bad-line: rgba(190,31,53,.4); --good: #0E7054; --good-soft: rgba(14,112,84,.12); --tune: #0E7054;
+  --streak: #B72857; --fans-text: #7B5E00; --strings: #2A60B8; --strings-deep: #1E4A8F;
+  /* the same grain, much fainter, over --rr-base */
+  --tolex: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px repeat, var(--rr-base);
+}
+/* both Road Ready looks */
+:root:is([data-look="neon"], [data-look="festival"]) {
+  /* the semantic colours every existing screen reads, pointed at the Road Ready tokens */
+  --bg: var(--rr-base); --fg: var(--rr-text); --fg-2: var(--rr-text-2);
+  --card: var(--rr-card); --card-2: var(--rr-mesh); --rim: var(--rr-hairline); --hair: var(--rr-hairline);
+  --bar: var(--rr-card); --solid: var(--rr-card); --head: var(--rr-text);
+  --accent: var(--rr-amber); --accent-ink: var(--rr-amber-text); --on-accent: var(--rr-on-amber);
+  --tabs-ring: var(--rr-amber-text); --banner: var(--rr-amber); --on-banner: var(--rr-on-amber);
+  --locked: var(--rr-hairline); --locked-ic: var(--rr-text-2);
+  /* type: Space Grotesk for titles, Inter for text, IBM Plex Mono for the tuner and tempo */
+  --display: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --serif: var(--display);
+  --readout: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* tuner and tempo readouts (later steps) */
+  /* sizes follow the iPhone text size: app.js sets --sys-px (17 px at the default) from readSysText() */
+  --type-display: calc(var(--sys-px, 17px) * 2);       --type-display-w: 700;   /* Space Grotesk */
+  --type-title: calc(var(--sys-px, 17px) * 1.647);     --type-title-w: 700;     /* Space Grotesk */
+  --type-title2: calc(var(--sys-px, 17px) * 1.294);    --type-title2-w: 700;    /* Space Grotesk */
+  --type-headline: calc(var(--sys-px, 17px) * 1);      --type-headline-w: 600;  /* Inter */
+  --type-body: calc(var(--sys-px, 17px) * 1);          --type-body-w: 450;      /* Inter */
+  --type-callout: calc(var(--sys-px, 17px) * .941);    --type-callout-w: 500;   /* Inter */
+  --type-subhead: calc(var(--sys-px, 17px) * .882);    --type-subhead-w: 500;   /* Inter */
+  --type-footnote: calc(var(--sys-px, 17px) * .765);   --type-footnote-w: 500;  /* Inter: footnotes and tab labels */
+  --type-caption: calc(var(--sys-px, 17px) * .706);    --type-caption-w: 600; --type-caption-ls: .06em; /* Inter: captions and overlines */
+  --type-lyric-now: calc(var(--sys-px, 17px) * 2);     --type-lyric-now-w: 700;  /* Inter */
+  --type-lyric-next: calc(var(--sys-px, 17px) * 1.529); --type-lyric-next-w: 600; /* Inter */
+  --type-lyric-sung: calc(var(--sys-px, 17px) * 1.294); --type-lyric-sung-w: 600; /* Inter */
+  --type-chord: calc(var(--sys-px, 17px) * 1);         --type-chord-w: 700;     /* Inter */
+  --type-mono: calc(var(--sys-px, 17px) * 1.176);      --type-mono-w: 600;      /* IBM Plex Mono: tuner and tempo */
+  /* spacing and radii */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
+  --r-chip: 999px; --r-control: 10px; --r-card: 16px; --r-strip: 18px; --r-sheet: 24px; --r-plate: 12px;
+  --r: 16px; --r-bar: 18px; --margin: 16px;
+  /* surfaces. The tolex is a 512 px bitmap tile (art/surfaces/, shown at 256 px); the grille cloth and raised panels are still drawn in code. */
+  --mesh: repeating-linear-gradient(45deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px), var(--rr-mesh); /* grille cloth, for the tab bar (step 04) */
+  --tolex-card: linear-gradient(180deg, rgba(255,255,255,.08) 0 1px, transparent 1px calc(100% - 1px), rgba(0,0,0,.3) calc(100% - 1px)), var(--rr-card); /* a raised panel: 1 px highlight on top, 1 px shadow below */
+  --chrome-pipe: linear-gradient(180deg, #E8EBEF, #7E858F 50%, #E8EBEF); --chrome-pipe-w: 3px; /* a chrome edge for the header strip and tab bar (later steps): border-image or a padded gradient */
+}
+@media (min-width: 600px) { :root:is([data-look="neon"], [data-look="festival"]) { --margin: 20px; } }
+:root:is([data-look="neon"], [data-look="festival"]) body { background: var(--tolex); }
 :root[data-theme] .title, :root[data-theme] .title.script, :root[data-theme] .tm-page .tm-top .title.script { font-family: var(--display); font-weight: 700; letter-spacing: -.005em; color: var(--fg); text-shadow: none; }
 :root[data-theme] .title.script { font-size: 34px; }
 h2, .label, .sheet .sec { font-family: var(--display); }
@@ -1957,14 +2051,40 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .add .add-bdg { background: var(--card); color: var(--fg); box-shadow: 0 0 0 2px var(--accent); }
 .toast { background: var(--fg); color: var(--bg); font-family: var(--display); font-weight: 600; }
 
-/* Louie's colours */
-.louie .lv-b { fill: var(--lv-body); } .louie .lv-s { fill: var(--lv-shade); } .louie .lv-ss { stroke: var(--lv-shade); }
-.louie .lv-hi { fill: var(--lv-hi); opacity: .9; } .louie .lv-f { fill: var(--lv-face); } .louie .lv-fs { fill: var(--lv-face-sh); }
-.louie .lv-l { stroke: var(--lv-shade); } .louie .lv-c { fill: var(--lv-cheek); opacity: .6; } .louie .lv-p { fill: var(--lv-pupil); } .louie .lv-ps { stroke: var(--lv-pupil); }
-.louie .lv-g { fill: var(--lv-grille); } .louie .lv-gs { fill: var(--lv-slat); } .louie .lv-m { fill: var(--lv-grille); } .louie .lv-ms { stroke: var(--lv-grille); }
-/* 4.86.0: knobs and plate in chrome, and chrome corner bumpers with a highlight, in every look */
-.louie .lv-fl { stroke: var(--lv-face-sh); } .louie .lv-cuff { fill: var(--lv-face-sh); } .louie .lv-k { fill: #DDE2EA; } .louie .lv-cn { stroke: #B9C0CB; } .louie .lv-cnh { stroke: #F2F4F7; }
-.louie .lv-t { fill: var(--lv-tongue); } .louie .lv-lamp { fill: var(--lv-lamp); } .louie .lv-shadow { fill: var(--lv-shadow); opacity: .18; } .louie .lv-z { fill: var(--muted); }
+/* Louie's colours (Road Ready): locked, the same in every look. They are set on Louie himself, so the looks' own
+   --lv-* values (which the electric tuner head also reads) stay as they were. A finish from the Merch table
+   (.fin-*, body[data-wear]) still recolours him. Nothing draws --lv-cheek, --lv-lamp, --lv-tongue or --lv-hi on him now. */
+.louie { overflow: visible; --lv-body: #292929; --lv-shade: #1B1B1B; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #767572; --lv-slat: #5A5956; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; }
+.louie .lv-mit-o, .louie .lv-arm-o { stroke: var(--lv-pupil); } .louie .lv-tolex, .louie .lv-mit { fill: var(--lv-body); } .louie .lv-side, .louie .lv-mit-s, .louie .lv-cuff { fill: var(--lv-shade); } .louie .lv-arm { stroke: var(--lv-body); }
+.louie .lv-panel { fill: var(--lv-face); } .louie .lv-panel-sh { fill: var(--lv-face-sh); } .louie .lv-ink { fill: var(--lv-pupil); } .louie .lv-inks { stroke: var(--lv-pupil); }
+.louie .lv-cloth { fill: var(--lv-grille); } .louie .lv-weave { stroke: var(--lv-slat); } .louie .lv-knob { fill: var(--lv-knob); }
+.louie .lv-nickel { fill: var(--lv-nickel); } .louie .lv-leather { stroke: var(--lv-leather); }
+.louie .lv-shadow { fill: var(--lv-shadow); opacity: .18; } .louie .lv-z { fill: var(--muted); }
+/* The warm rim, on dark looks only: a 3 px outline of his silhouette so his body reads on a dark screen. The colour is
+   --rr-louie-rim (#FFE2B4 at 35 percent) drawn solid and faded as one layer, so overlapping parts don't double up. */
+.louie .lv-rim { opacity: 0; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
+/* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
+/* Step 03b (10a: now art/louie/v3): Louie is the painted art. The light picture by default, the dark one (with its warm rim) on the
+   dark looks, and the light one again on the bright headers there. The code drawing (.lv-code) is the fallback: it shows
+   when he wears a finish from the Merch table (until Graham decides, Surprise 30), and in pictures made from the SVG. */
+.louie .lv-code, .louie .lv-art-d { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-d.lv-v3 { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-l.lv-v3 { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-l.lv-v3 { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-d.lv-v3 { display: none; }
+.fin:not(.fin-stock, .fin-black) .louie .lv-code, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-code { display: inline; }
+.fin:not(.fin-stock, .fin-black) .louie .lv-art-wrap, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-art-wrap { display: none; }
+/* 10a: the painted pictures are art/louie/v3 (black). The Blue finish (id black, the blue he wore first) shows art/louie/v2 instead,
+   with the same light, dark and bright-header rules. */
+.louie .lv-v2 { display: none; }
+:root .fin-black .louie .lv-v3, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v3 { display: none; }
+:root .fin-black .louie .lv-v2.lv-art-l, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: none; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
+:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: none; }
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }
@@ -1988,9 +2108,11 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 /* ---- The tab bar (4.0.0): Road, Tour, Charts, Band, Rehearse, More ---- */
 #tabs { display: none; }
 body.tabbed #tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--tabs); box-sizing: border-box; padding: 6px max(10px, var(--safe-l)) var(--safe-b) max(10px, var(--safe-r)); background: var(--bg); border-top: 2px solid var(--rim); justify-content: space-around; align-items: center; }
-#tabs a { position: relative; width: 54px; height: 50px; border-radius: 14px; display: grid; place-items: center; border: 2px solid transparent; -webkit-tap-highlight-color: transparent; }
-#tabs a[aria-current="page"] { border-color: var(--tabs-ring); background: var(--tabs-on); }
-#tabs .dotmark { position: absolute; top: 4px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--bg); }
+#tabs a { position: relative; flex: 1 1 0; min-width: 0; max-width: 84px; min-height: 50px; box-sizing: border-box; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 2px solid transparent; color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+#tabs a[aria-current="page"] { border-color: var(--tabs-ring); background: var(--tabs-on); color: var(--accent-ink); }
+#tabs .tb-ic { width: 28px; height: 28px; flex: none; }
+#tabs .tb-l { font: 500 min(clamp(13px, var(--type-footnote, 13px), 16px), calc((100vw - 32px) / 25)) / 1.15 var(--sans); white-space: nowrap; }
+#tabs .dotmark { position: absolute; top: 5px; left: calc(50% + 7px); width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--bg); }
 .tb-a { fill: var(--accent); } .tb-ad { fill: var(--accent-deep); } .tb-s { fill: var(--streak); } .tb-sd { fill: var(--streak-deep); }
 .tb-f { fill: var(--fans); } .tb-fd { fill: var(--fans-deep); } .tb-b { fill: var(--strings); } .tb-bd { fill: var(--strings-deep); }
 .tb-ink { fill: var(--fg); }  .tb-w { fill: #fff; } .tb-k { fill: #14213D; } .tb-kk { fill: #000; }
@@ -1999,9 +2121,14 @@ body.tabbed .s-dock { bottom: var(--tabs); }
 
 /* ---- More: a sheet of the other places ---- */
 .more-list { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 6px; }
-.more-list button { display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; min-height: 60px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); font: 700 17px var(--display); text-align: left; }
-.more-list button small { display: block; font: 600 13px var(--sans); color: var(--muted); margin-top: 1px; }
-.more-ic { width: 40px; height: 40px; display: grid; place-items: center; flex: none; }
+.more-list button, .more-list a { display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; min-height: 60px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--rim); color: var(--fg); font: 700 17px var(--display); text-align: left; }
+.more-list button small, .more-list a small { display: block; font: 600 13px var(--sans); color: var(--muted); margin-top: 1px; }
+.more-list a { text-decoration: none; }
+/* the rows on Me (Road Ready 04) grow with the iPhone text size; the More sheet's own list does not use these */
+.pf-rows .pf-row { font-size: var(--type-body, 17px); }
+.pf-rows .pf-row small { font-size: var(--type-footnote, 13px); }
+.more-ic { width: 40px; height: 40px; display: grid; place-items: center; flex: none; position: relative; }
+.more-ic .dotmark { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--streak); box-shadow: 0 0 0 2px var(--card); }
 .more-ic svg { width: 22px; height: 22px; }
 
 /* ---- Coming soon (Tour, Charts, Band) ---- */
@@ -2082,6 +2209,24 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look] .btn.primary:active:not(:disabled) { box-shadow: 0 2px 0 var(--accent-deep); }
 :root[data-look] .gs-show, :root[data-look] .ce-add, :root[data-look] .btn.sm { height: 34px; padding: 0 12px; border-radius: 12px; border: 2px solid var(--rim); background: var(--card); color: var(--fg); box-shadow: 0 3px 0 var(--rim); font: 600 13.5px var(--display); }
 :root[data-look] .btn.sm.primary { border: 0; background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 0 var(--accent-deep); }
+/* Road Ready (step 01, spec 5.6): the main button is a cream engraved plate with four screws, the other button an outlined capsule.
+   Only on Road Ready dark and light; Green Room and Headliner keep the chunky buttons above. Pressing is 1 px down and 6 percent darker, with no bounce. */
+:root:is([data-look="neon"], [data-look="festival"]) .btn, :root:is([data-look="neon"], [data-look="festival"]) .btn.sm { border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; border-radius: var(--r-chip); font-family: var(--display); font-weight: 600; transition: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.bad, :root:is([data-look="neon"], [data-look="festival"]) .btn.danger, :root:is([data-look="neon"], [data-look="festival"]) button.danger { box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary, :root:is([data-look="neon"], [data-look="festival"]) .btn.sm.primary {
+  border: 2px solid var(--rr-plate-edge); border-radius: var(--r-plate); color: var(--rr-plate-text); font-family: var(--display); font-weight: 700; letter-spacing: .02em;
+  background: linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 2px 4px rgba(0,0,0,.35); }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary {
+  background:
+    radial-gradient(circle at 7px 7px, var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at calc(100% - 7px) 7px, var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 7px calc(100% - 7px), var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), var(--rr-plate-edge) 0 1.6px, transparent 2.2px),
+    linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom)); } /* the four screws are decorative */
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary::before { content: none; } /* no gloss stripe on a plate */
+:root:is([data-look="neon"], [data-look="festival"]) .btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; filter: brightness(.94); }
+:root:is([data-look="neon"], [data-look="festival"]) .btn.primary:active:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 1px 2px rgba(0,0,0,.35); }
 :root[data-look] .linkish { color: var(--accent-deep); font-weight: 700; }
 :root:is([data-look="neon"], [data-look="headliner"]) .linkish { color: var(--accent-ink); }
 /* the round Play in the song bar and the add button: go colour on its lip */
@@ -2093,7 +2238,7 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
   border: 2px solid var(--rim); background: var(--card); color: var(--fg-2); box-shadow: 0 2px 0 var(--rim); font-family: var(--display); font-weight: 600; border-radius: 999px; }
 :root[data-look] .stat, :root[data-look] .keybtn { height: 30px; padding: 0 12px; font-size: 13.5px; }
 :root[data-look] .ed-chip { height: 36px; }
-:root[data-look] .chip.on, :root[data-look] #chips .chip.on, :root[data-look] .stat.learning, :root[data-look] .stat.on, :root[data-look] .stat.rec.on, :root[data-look] .pchip.on, :root[data-look] .keybtn, :root[data-look] .pf-first.big {
+:root[data-look] .chip.on, :root[data-look] #chips .chip.on, :root[data-look] .stat.learning, :root[data-look] .stat.solid, :root[data-look] .stat.on, :root[data-look] .stat.rec.on, :root[data-look] .pchip.on, :root[data-look] .keybtn, :root[data-look] .pf-first.big {
   border-color: var(--accent); background: var(--accent-soft); color: var(--fg); box-shadow: 0 2px 0 var(--accent-line); }
 :root[data-look] .keybtn b, :root[data-look] .ed-chip b, :root[data-look] .stat b { color: var(--fg); }
 :root[data-look] .stat.got { border-color: var(--good); background: var(--good-soft); color: var(--fg); box-shadow: 0 2px 0 var(--good-soft); }
@@ -2742,7 +2887,6 @@ body.gigging .ask { z-index: 66; }
 .fin-pink .louie, body[data-wear="pink"] .louie:not(.fin .louie) { --lv-body: #FF4FA3; --lv-shade: #D93A8A; --lv-hi: #FF84C0; --lv-cheek: #FFD84D; --lv-lamp: #3DE0FF; --lv-tongue: #3DE0FF; }
 .fin-teal .louie, body[data-wear="teal"] .louie:not(.fin .louie) { --lv-body: #0F8B8D; --lv-shade: #0B6F71; --lv-hi: #3BA7A9; --lv-cheek: #FF5A4E; --lv-lamp: #FF5A4E; --lv-tongue: #FF5A4E; }
 .fin-tweed .louie, body[data-wear="tweed"] .louie:not(.fin .louie) { --lv-body: #D8B571; --lv-shade: #B08A48; --lv-hi: #EBD39C; --lv-face: #F4EBD6; --lv-face-sh: #DCCDA8; --lv-grille: #5A3A22; --lv-slat: #7A5434; --lv-pupil: #3A2414; --lv-cheek: #E07A5F; --lv-lamp: #E63946; --lv-tongue: #E07A5F; --lv-shadow: #3A2414; }
-.fin-black .louie, body[data-wear="black"] .louie:not(.fin .louie) { --lv-body: #2A2B33; --lv-shade: #16171C; --lv-hi: #474956; --lv-face: #D5D8E0; --lv-face-sh: #A9AEBB; --lv-grille: #14151A; --lv-slat: #3A3D48; --lv-pupil: #14151A; --lv-cheek: #FF3D7F; --lv-lamp: #3A86FF; --lv-tongue: #FF3D7F; --lv-shadow: #000; }
 .fin-mint .louie, body[data-wear="mint"] .louie:not(.fin .louie) { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; --lv-face: #FFF4E2; --lv-face-sh: #F0DDBD; --lv-grille: #1E3A34; --lv-slat: #33584F; --lv-pupil: #1E3A34; --lv-cheek: #FF7A9C; --lv-lamp: #FF3D7F; --lv-tongue: #FF7A9C; --lv-shadow: #1E3A34; }
 .fin-gold .louie, body[data-wear="gold"] .louie:not(.fin .louie) { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; --lv-face: #FFF3C4; --lv-face-sh: #F2DD8C; --lv-grille: #3A2A10; --lv-slat: #5C4420; --lv-pupil: #3A2A10; --lv-cheek: #FF3D7F; --lv-lamp: #FF3D7F; --lv-tongue: #FF3D7F; --lv-shadow: #3A2A10; }
 .fin { display: inline-block; line-height: 0; }
@@ -3205,7 +3349,7 @@ body.gigging .ask { z-index: 66; }
 body[data-wear="pink"] .tuner2 { --lv-body: #FF4FA3; --lv-shade: #D93A8A; --lv-hi: #FF84C0; }
 body[data-wear="teal"] .tuner2 { --lv-body: #0F8B8D; --lv-shade: #0B6F71; --lv-hi: #3BA7A9; }
 body[data-wear="tweed"] .tuner2 { --lv-body: #D8B571; --lv-shade: #B08A48; --lv-hi: #EBD39C; }
-body[data-wear="black"] .tuner2 { --lv-body: #2A2B33; --lv-shade: #16171C; --lv-hi: #474956; }
+body[data-wear="black"] .tuner2 { --lv-body: #3A86FF; --lv-shade: #2C6FE0; --lv-hi: #6BA4FF; }
 body[data-wear="mint"] .tuner2 { --lv-body: #6FD3B8; --lv-shade: #45B394; --lv-hi: #A6E8D6; }
 body[data-wear="gold"] .tuner2 { --lv-body: #E8B828; --lv-shade: #C2961A; --lv-hi: #F6D96A; }
 
@@ -4254,7 +4398,7 @@ body.playing .tuneup, body.playing #tu-scrim { display: none; }
 :root[data-look] .rd-pop.now .rd-start:active:not(:disabled) { box-shadow: 0 2px 0 color-mix(in srgb, var(--streak-deep) 45%, #fff); }
 
 /* 4.77.0: Headliner (black, gold and chrome under a blacklight: violet, gold and blaze orange). It is a dark
-   look and shares Neon Midnight's dark fixes above; these are the places Neon names its own colours. */
+   look and shares the dark look's fixes above (data-look neon, Road Ready dark); these are the places the dark look names its own colours. */
 :root[data-look="headliner"] { --g-verse: #F5C542; --g-chorus: #9B5CFF; --g-bridge: #FF7A1A; --g-solo: #CFD4DA; }
 :root[data-look="headliner"] .sk { --sk-bg: #F5C542; --sk-deep: #A87F0C; --sk-ink: #3D2A00; }
 :root[data-look="headliner"] .rd-node.done, :root[data-look="headliner"] .rd-node.box.done, :root[data-look="headliner"] .rd-node.headline:not(.locked) { color: #16171B; }
@@ -4271,6 +4415,8 @@ body.playing .tuneup, body.playing #tu-scrim { display: none; }
 /* 4.78.0: Looks on the Merch table: a strip of the palette's colours, ground first */
 .mc-look { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 0 0 118px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--fg); padding: 6px 6px 10px; box-shadow: 0 4px 0 var(--rim); font-family: var(--sans); }
 .mc-look.on { border: 3px solid var(--strings); }
+/* Road Ready (design review): the selection ring is amber, not cyan (the darker amber on cream) */
+:root:is([data-look="neon"], [data-look="festival"]) :is(.mc-fin, .mc-drop, .mc-look).on { border-color: var(--rr-amber-text); }
 .mc-look b { margin: 2px 0 5px; font: 700 13.5px var(--display); text-align: center; }
 .mc-sw, .mt-sw { display: flex; width: 100%; height: 54px; border-radius: 12px; overflow: hidden; }
 .mc-sw i, .mt-sw i { flex: 1; display: block; } .mc-sw i:first-child, .mt-sw i:first-child { flex: 2.2; }
@@ -4553,3 +4699,521 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .yt-pick small { color: var(--fg-2); font-size: 12px; }
 .yt-paste { margin: 12px 0; }
 .yt-card.tap .yt-cap { background: var(--accent); color: var(--on-accent, #fff); font-weight: 800; text-align: center; }
+
+/* ==========================================================================
+   Road Ready, step 02 (Graham, 2026-11-17): the Road. Only the Dark and Light looks draw this markup (road.js
+   checks data-look); Green Room and Headliner keep the Road above. Every rule is keyed on the two looks, and the
+   ones that restyle shared Road parts (.rd-node, .rd-tag, .rd-legmark) are written to outrank the older rules.
+   Header strip (spec 5.5), pearl inlays (5.3), the amber connector (5.4), Louie peeking (9), motion (7).
+   ========================================================================== */
+:root:is([data-look="neon"], [data-look="festival"]) body.is-home .app:has(> .rr-hdr) { padding: calc(8px + var(--safe-t)) 8px calc(var(--peek) - var(--tabs) + 6px); gap: 8px; }
+
+/* ---- the header strip: a piece of the amp, tolex inside chrome piping. Two rows: the plate and tips; Tonight and
+   fans. In the page the order is plate, fans, tips, Tonight, which is the order a screen reader reads. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hdr {
+  flex: none; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "plate tips" "tonight fans"; gap: 8px;
+  padding: calc(10px + var(--chrome-pipe-w)); border-radius: var(--r-strip); background: var(--tolex); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+/* the chrome piping: a ring cut out of a chrome fill, so the strip's own corners stay round */
+/* the header's piping (design review): 2 px, and a darker chrome that turns at an angle, not the tab bar's flat light-to-dark ring */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hdr { --chrome-pipe-w: 2px; --chrome-pipe: linear-gradient(135deg, #C4C8CE 0%, #6A707A 28%, #2E3238 52%, #8B919B 76%, #BFC3C9 100%); }
+.rr-hdr::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--chrome-pipe-w); background: var(--chrome-pipe); pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.rr-hdr button { -webkit-tap-highlight-color: transparent; font: inherit; color: inherit; margin: 0; }
+/* the venue plate: cream, engraved, two tiny screws */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-plate {
+  grid-area: plate; min-width: 0; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; padding: 7px 12px; box-sizing: border-box;
+  border: 1.5px solid var(--rr-plate-edge); border-radius: var(--r-plate); color: var(--rr-plate-text); text-align: left;
+  background:
+    radial-gradient(circle at 7px 7px, var(--rr-plate-edge) 0 1.5px, transparent 2px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), var(--rr-plate-edge) 0 1.5px, transparent 2px),
+    linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom));
+}
+.rr-plate:active, .rr-pill:active, .rr-tonight:active { transform: translateY(1px); filter: brightness(.94); }
+.rr-pl-main, .rr-pl-side { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rr-pl-side { align-items: flex-end; margin-left: auto; }
+.rr-venue { font: 700 var(--type-headline) / 1.15 "Space Grotesk", var(--display); text-transform: uppercase; letter-spacing: .02em; overflow-wrap: break-word; }
+.rr-plate small { font: var(--type-footnote-w) var(--type-footnote) / 1.2 "Inter", var(--sans); color: var(--rr-plate-text); }
+.rr-pl-main small { font-size: var(--type-subhead); }
+.rr-pips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
+.rr-pips i { width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid var(--rr-engrave); }
+.rr-pips i.done { background: var(--rr-engrave); }
+.rr-pips i.now { border-width: 2.5px; }
+/* fans and tips: cream capsules, the number with its label under it; the two share a column, so they line up */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-pill {
+  min-width: 72px; min-height: 44px; padding: 5px 12px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border: 1.5px solid var(--rr-plate-edge); border-radius: 22px; color: var(--rr-plate-text);
+  background: linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom));
+}
+.rr-pill.rr-fans { grid-area: fans; } .rr-pill.rr-tips { grid-area: tips; }
+.rr-pv { display: flex; align-items: center; gap: 4px; }
+.rr-pv svg { width: 18px; height: 18px; flex: none; }
+.rr-pv b { font: 700 var(--type-headline) / 1.1 "Space Grotesk", var(--display); white-space: nowrap; }
+.rr-pill small { font: var(--type-footnote-w) var(--type-footnote) / 1.15 "Inter", var(--sans); white-space: nowrap; }
+.rr-coin { fill: #E9A93A; } .rr-coin-ring { stroke: #A8701E; stroke-width: 1.2; } .rr-coin-ink { stroke: #3A2408; }
+/* Tonight: a dark inset bar, the title and an amber play button; the whole row is one button */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tonight {
+  grid-area: tonight; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 12px; box-sizing: border-box; text-align: left;
+  border: 0; border-radius: var(--r-control); background: var(--rr-card); color: var(--rr-text); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35);
+}
+.rr-tn-t { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+/* light look (design review): Tonight is a dark bar on the cream header, with cream and amber text */
+:root[data-look="festival"] .rr-tonight { background: #1E1914; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+:root[data-look="festival"] .rr-tn-t b { color: #F5EBDC; }
+:root[data-look="festival"] .rr-tn-t small { color: #FFB547; }
+.rr-tn-t small { font: var(--type-caption-w) var(--type-caption) / 1.2 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); color: var(--rr-amber-text); }
+.rr-tn-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: break-word; min-width: 0; }
+.rr-play { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); }
+.rr-play svg { width: 22px; height: 22px; }
+/* Louie's line, under the strip */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-say {
+  flex: none; position: relative; align-self: flex-start; max-width: calc(100% - 24px); margin: 0 0 0 4px; padding: 8px 12px; box-sizing: border-box;
+  border-radius: 14px 14px 14px 4px; background: var(--rr-plate-top); color: var(--rr-plate-text); border: 1px solid var(--rr-plate-edge);
+  font: var(--type-callout-w) var(--type-callout) / 1.3 "Inter", var(--sans); box-shadow: none;
+}
+
+/* ---- the stage: the path scrolls inside it ---- */
+.rr-stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 0 -8px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr { margin: 0; padding: 4px 0 30px; gap: 18px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark { display: flex; justify-content: center; margin: 2px 0 -6px; color: var(--rr-text-2); font: var(--type-caption-w) var(--type-caption) / 1.3 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); text-transform: uppercase; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark::before, :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rd-legmark::after { background: var(--rr-hairline); }
+
+/* ---- the connector: a blurred amber glow under a thin light core ---- */
+.rd-neck > svg.rd-conn { z-index: 1; pointer-events: none; overflow: visible; }
+.rr-cg { fill: none; stroke: var(--rr-glow); stroke-opacity: .6; stroke-width: 12; stroke-linecap: round; }
+.rr-cc { fill: none; stroke: var(--rr-glow-core); stroke-width: 2.2; stroke-linecap: round; }
+.rr-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rr-draw .6s ease-out forwards; }
+@keyframes rr-draw { to { stroke-dashoffset: 0; } }
+
+/* ---- the stops: a 44 px button, the pearl centred in it ---- */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-stop.rr { z-index: 3; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-stop.rr:has(.rd-pop) { z-index: 6; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr {
+  width: 44px; height: 44px; display: grid; place-items: center; color: inherit; overflow: visible; -webkit-tap-highlight-color: transparent;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.cur:not(.box, .headline) { width: 56px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.headline { width: 72px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr:active { transform: translate(-50%, -50%) translateY(1px); }
+.rd-node.rr .rr-art { position: relative; z-index: 1; overflow: visible; }
+.rr-pearl.done { fill: var(--rr-pearl-done); } .rr-pearl.now { fill: var(--rr-pearl-now); } .rr-pearl.ahead { fill: var(--rr-pearl-locked); }
+.rr-cut { fill: none; stroke: #000; stroke-opacity: .45; stroke-width: 1; }
+.rr-sheen { fill: #fff; opacity: .55; }
+.rr-eng { fill: var(--rr-engrave); stroke: var(--rr-engrave); }
+.rr-eng.locked { fill: var(--rr-engrave-locked); stroke: var(--rr-engrave-locked); }
+.rr-eng path[fill="none"] { fill: none; }
+.rr-eng-hi { fill: rgba(255, 255, 255, .35); stroke: rgba(255, 255, 255, .35); }
+.rr-eng-hi path[fill="none"] { fill: none; }
+.rr-eng text, .rr-eng-hi text { stroke: none; font-family: "Space Grotesk", var(--display); font-weight: 700; }
+/* the current stop glows from within; a done stop has a faint halo */
+.rr-glow, .rr-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
+.rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
+.rr-halo { width: 40px; height: 40px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 20%, transparent) 0, transparent 70%); }
+/* light look (design review): the amber glow vanished on cream, so it is deeper and stronger there */
+:root[data-look="festival"] .rr-glow { width: 96px; height: 96px; background: radial-gradient(circle, rgba(232, 128, 20, .8) 0, rgba(240, 150, 40, .5) 38%, transparent 72%); }
+:root[data-look="festival"] .rr-halo { background: radial-gradient(circle, rgba(232, 128, 20, .35) 0, transparent 70%); }
+/* dark look: a soft amber glow behind the neck, as in the design */
+:root[data-look="neon"] .rr-stage { background: radial-gradient(ellipse 70% 42% at 50% 38%, rgba(255, 170, 60, .16), transparent 72%); }
+@keyframes rr-breathe { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
+/* the callout: cream, pointing at the current stop, always on the right of the neck */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-tag.rr-callout {
+  position: absolute; top: 0; right: auto; bottom: auto; transform: translateY(-50%); z-index: 4; width: max-content; padding: 6px 10px; box-sizing: border-box;
+  border-radius: var(--r-control); background: var(--rr-plate-top); color: var(--rr-plate-text); box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+  font: var(--type-callout-w) var(--type-callout) / 1.25 "Inter", var(--sans); text-align: left; white-space: normal; animation: none;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-tag.rr-callout::after { left: -5px; right: auto; top: 50%; bottom: auto; margin: -5px 0 0; width: 10px; height: 10px; }
+/* how many songs a stop ahead opens: a tiny cream chip on the other side */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-songs.rr-chip {
+  position: absolute; top: 0; left: auto; transform: translateY(-50%); padding: 2px 7px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+  background: var(--rr-plate-top); color: var(--rr-plate-text); font: var(--type-caption-w) var(--type-caption) / 1.3 "Inter", var(--sans); box-shadow: none;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-earned { background: var(--rr-plate-top); color: var(--rr-plate-text); font: var(--type-caption-w) var(--type-caption) "Inter", var(--sans); }
+
+/* ---- large text: the strip stacks (plate; Tonight; fans and tips side by side), nothing truncates ---- */
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-hdr { grid-template-columns: 1fr 1fr; grid-template-areas: "plate plate" "tonight tonight" "fans tips"; }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pill small, :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-pv b { white-space: normal; text-align: center; }
+:root[data-ax="3"] .rr-pips { display: none; }
+/* at large text the header and Louie's line would take over the screen and the Songbook dock would cover Louie, so: Louie's line is
+   smaller and cut to two lines (the whole line is still in the page for a screen reader), and the "N songs" chips
+   are hidden; the callout beside the current stop stays. */
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-say {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; padding: 6px 12px; font-size: var(--type-subhead);
+}
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip { display: none; }
+:root[data-ax="3"] .rr-say { -webkit-line-clamp: 1; line-clamp: 1; }
+
+@media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }
+
+/* ---- Road Ready 04: the tab bar. Five tabs in a floating grille-cloth bar with a chrome edge (spec 5.2). Only the two Road Ready looks;
+   Green Room and Headliner keep their flat bar, with the same five tabs, icons and labels. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) {
+  --tab-h: 64px; --tabs: calc(var(--tab-h) + var(--safe-b) + 16px); /* the page's bottom inset: the bar, the safe area and 16 px */
+}
+:root:is([data-look="neon"], [data-look="festival"])[data-ax="1"] { --tab-h: 74px; }
+/* the light bar's weave is finer and paler than the dark one (the shared --mesh is tuned for dark; its average tone stays --rr-mesh) */
+:root[data-look="festival"] { --mesh: repeating-linear-gradient(45deg, rgba(70, 52, 30, .13) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, .45) 0 1px, transparent 1px 3px), var(--rr-mesh); }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax="3"] { --tab-h: 60px; }
+:root:is([data-look="neon"], [data-look="festival"]) body.tabbed #tabs {
+  left: max(8px, var(--safe-l)); right: max(8px, var(--safe-r)); bottom: calc(8px + var(--safe-b)); height: var(--tab-h);
+  padding: var(--chrome-pipe-w); gap: 0; justify-content: space-between; border: 0; border-radius: var(--r-strip);
+  background: var(--mesh); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+/* the chrome piping: a ring cut out of a chrome fill, the same as the header strip */
+:root:is([data-look="neon"], [data-look="festival"]) #tabs::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--chrome-pipe-w); background: var(--chrome-pipe); pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a {
+  height: 100%; max-width: none; min-width: 0; min-height: 44px; padding: 0 0 7px; border: 0; border-radius: 12px; background: none; color: var(--rr-tab-off);
+}
+/* current: amber (the darker amber text colour in the light look), the icon tinted in, and a 3 by 24 px underline, so colour is never the only signal */
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] { background: none; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-fill { fill: currentColor; fill-opacity: .28; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"]::after {
+  content: ""; position: absolute; left: 50%; bottom: 4px; width: 24px; height: 3px; margin-left: -12px; border-radius: 2px; background: currentColor;
+}
+:root:is([data-look="neon"], [data-look="festival"]) #tabs .dotmark { top: 5px; box-shadow: 0 0 0 2px var(--rr-mesh); }
+/* large text: the labels grow with the text size (capped at 16 px so five fit), and from AX3 they hide and the icons grow; each tab keeps its name for a screen reader */
+:root[data-ax="3"] #tabs .tb-l { display: none; }
+:root[data-ax="3"] #tabs .tb-ic { width: 32px; height: 32px; }
+:root[data-ax="3"] #tabs a { padding-bottom: 6px; }
+
+/* Road Ready 04: the Songbook is a tab, so its search and Add bar rides above the tab bar, and the list scrolls clear of both (while searching the bar is at the top, as before) */
+body.tabbed:not(.searching):not(.is-home) .dock { bottom: calc(var(--tabs) + 6px); }
+body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) + 6px + 52px + 24px); }
+
+/* Road Ready 04: the Settings gear on Me is a full 44 px target in every look */
+:root[data-look] .ib.pf-gear { width: 44px; height: 44px; }
+
+/* ---- Road Ready 05: the playing screen (spec 6 and 7). The words fill the screen on the plain base, coloured by where
+   they are in the song (never dimmed with opacity), chords in amber, a 3 px amber bar beside the line you're on and a
+   2 px amber line along the bottom edge for how far along the song is. Only the two Road Ready looks; Green Room and
+   Headliner keep the show as it was. The song's title and the progress line are drawn in every look and shown in these two. ---- */
+.gg-pod { display: contents; }
+.gg-head, .gg-prog { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) { background: var(--rr-base); }
+:root:is([data-look="neon"], [data-look="festival"]) body:not(.covered) .gig::before { background: linear-gradient(180deg, var(--rr-base) calc(var(--safe-t) + 96px), transparent); }
+:root:is([data-look="neon"], [data-look="festival"]) body:not(.covered) .gig::after { background: linear-gradient(180deg, transparent, var(--rr-base) 44px); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) { color: var(--rr-lyric-next); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .st-past:is(.pr, .ly, .crow) { color: var(--rr-lyric-sung); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .st-now:is(.pr, .ly, .crow) { color: var(--rr-lyric-now); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) .c { color: var(--rr-chord); opacity: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet > .st-now:is(.pr, .ly, .crow)::after { content: ""; position: absolute; left: -12px; top: 2px; bottom: 4px; width: 3px; border-radius: 2px; background: var(--rr-amber-text); pointer-events: none; }
+/* the song's title at the top, centred; Pause a big amber button at the bottom in thumb reach */
+:root:is([data-look="neon"], [data-look="festival"]) .gig > .gg-head { display: flex; order: -1; flex-direction: column; align-items: center; gap: 1px; margin: 0 52px; text-align: center; pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-head b { font: var(--type-headline-w) var(--type-headline) / 1.2 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-head small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 "Inter", var(--sans); color: var(--rr-text-2); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bottom { justify-content: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-pause { width: 64px; height: 64px; border-radius: 50%; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-pause svg { width: 26px; height: 26px; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig > .gg-prog { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--rr-lyric-sung) 45%, transparent); pointer-events: none; }
+.gg-prog > i { display: block; height: 100%; width: 0; background: var(--rr-amber-text); }
+/* hiding (4.60.0's 3 s): a 0.25 s ease-out fade with an 8 px slide; Reduce Motion: a plain 0.2 s fade */
+:root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-head, .gg-pause) { transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig.idle :is(.gg-head, .gg-pause) { opacity: 0; visibility: hidden; transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s .25s; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig.idle .gg-head { transform: translateY(-8px); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig.idle .gg-pause { transform: translateY(8px); }
+@media (prefers-reduced-motion: reduce) {
+  /* the app's Reduce Motion rule zeroes every transition with !important; this one keeps the spec's plain fade */
+  :root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-head, .gg-pause) { transform: none; transition-property: opacity, visibility; transition-duration: .2s, 0s !important; transition-delay: 0s, 0s; transition-timing-function: ease; }
+  :root:is([data-look="neon"], [data-look="festival"]) .gig.idle :is(.gg-head, .gg-pause) { transform: none; transition-property: opacity, visibility; transition-duration: .2s, 0s !important; transition-delay: 0s, .2s; }
+}
+/* Graham, 2026-11-18: no crowd row and no section pill in the Road Ready looks, so the words fill the screen. The run
+   counter and the NOW chord card stay. The crowd still counts for fans; only the drawing goes. */
+:root:is([data-look="neon"], [data-look="festival"]) .gig :is(.gg-status, .gg-sec) { display: none; }
+/* Road Ready 05 polish (Surprise 83, Graham 2026-11-18): the amber bar marks the line you're on, so while playing there
+   is no section-coloured band behind it and no stage light. Paused keeps its quiet band on the line you stopped on.
+   The run chip and the NOW card take the Road Ready colours instead of the old pink and yellow. */
+:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.held) .sheet > .st-now::before { content: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .st-bg { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-top .gg-combo { color: var(--rr-amber-text); background: var(--rr-card); border: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-shape { background: var(--rr-card); border: 1px solid var(--rr-hairline); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-shape small { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .gg-shape b { color: var(--rr-text); }
+/* large text (AX1 and up): only the line you're on and the next one or two */
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-past,
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] body.staged .sheet > .st-next ~ :is(.pr, .ly, .crow) ~ * { visibility: hidden; }
+/* the first-run hint: a cream frame at the bottom, in the space Pause leaves when the controls hide (above the 2 px
+   progress line, inside the safe area, in thumb reach), so it never covers the words; Louie beside it. Taps go through
+   it to the page. It fades on its own after 5 s (gig.js): 0.25 s, or gone at once with Reduce Motion. */
+.gig > .gg-hint { position: absolute; left: 50%; top: auto; bottom: calc(12px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; flex-direction: row; align-items: center; gap: 6px; pointer-events: none; z-index: 4; transition: opacity .25s ease-out; }
+.gig > .gg-hint.fading { opacity: 0; }
+.gg-hint p { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; background: var(--rr-plate-top); color: var(--rr-plate-text); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); font: 500 var(--type-callout, 16px) / 1.25 "Inter", var(--sans); }
+.gg-hint-i { width: 20px; height: 20px; flex: none; fill: currentColor; stroke: currentColor; }
+.gg-hint-l { flex: none; order: -1; }
+.gg-hint-l .louie { display: block; width: 44px; height: auto; }
+
+/* ---- Road Ready 06: Show complete and the new-guitar sheet (spec 5.6 to 5.8, 7; r10-03, r10-04). Only the two Road
+   Ready looks draw this markup (gig.js and road.js check the look); Green Room and Headliner keep the screens above. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) .gig.done:has(.rr-sc) { background: var(--rr-base); justify-content: flex-start; }
+.rr-sc { gap: 10px; padding: calc(16px + var(--safe-t)) 16px calc(24px + var(--safe-b)); overflow-y: auto; height: 100%; }
+.rr-sc, .rr-case .pbody { text-align: center; }
+.sc-over { margin: 0; font: var(--type-caption-w, 600) var(--type-caption, 12px) / 1.3 "Inter", var(--sans); letter-spacing: var(--type-caption-ls, .08em); color: var(--rr-text-2); }
+.sc-title { margin: 0; font: 700 var(--type-display, 32px) / 1.1 "Space Grotesk", var(--display); color: var(--rr-text); overflow-wrap: break-word; }
+.rr-sc .sc-sub { margin: 0; font: var(--type-subhead-w, 500) var(--type-subhead, 15px) / 1.3 "Inter", var(--sans); color: var(--rr-text-2); }
+.sc-new { margin: 0; font: var(--type-headline-w, 600) var(--type-headline, 17px) / 1.25 "Inter", var(--sans); color: var(--rr-amber-text); }
+/* the showcase: the guitar, its cream label, the cheering Louie at the bottom right */
+.sc-show { position: relative; flex: none; width: 100%; max-width: 360px; height: min(46vh, 380px); margin: 4px auto; }
+.sc-guitar { position: absolute; left: 50%; top: 4%; bottom: 4%; transform: translateX(-50%); width: 62%; display: flex; justify-content: center; }
+.sc-guitar :is(.rd-gsvg, img) { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+.sc-show.glow .sc-guitar { filter: drop-shadow(0 0 2px var(--rr-glow-core)) drop-shadow(0 0 10px color-mix(in srgb, var(--rr-glow) 70%, transparent)) drop-shadow(0 0 24px color-mix(in srgb, var(--rr-glow) 40%, transparent)); animation: sc-pulse 1.2s ease-out 1; }
+@keyframes sc-pulse { 40% { filter: drop-shadow(0 0 3px var(--rr-glow-core)) drop-shadow(0 0 16px var(--rr-glow)) drop-shadow(0 0 40px color-mix(in srgb, var(--rr-glow) 60%, transparent)); } }
+.sc-label { position: absolute; right: 2%; top: 30%; padding: 4px 10px; border-radius: 8px; background: var(--rr-plate-top); color: var(--rr-plate-text); border: 1px solid var(--rr-plate-edge); font: 600 var(--type-footnote, 13px) / 1.2 "Inter", var(--sans); max-width: 34%; }
+.sc-label::before { content: ""; position: absolute; right: 100%; top: 50%; width: 22px; height: 1px; background: var(--rr-plate-top); }
+.sc-louie { position: absolute; right: -2%; bottom: -2%; width: 96px; animation: sc-hop .4s ease-out .3s 1; }
+.sc-louie .louie { width: 96px; height: auto; display: block; }
+@keyframes sc-hop { 50% { transform: translateY(-14px); } }
+/* sparks: a few amber dots drifting up from the guitar */
+.sc-sparks { position: absolute; inset: 0; pointer-events: none; }
+.sc-sparks i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--rr-glow-core); box-shadow: 0 0 6px var(--rr-glow); opacity: .85; animation: sc-drift calc(2.4s + var(--i) * .25s) ease-in-out calc(var(--i) * -.4s) infinite; }
+.sc-sparks i:nth-child(3n) { width: 3px; height: 3px; }
+@keyframes sc-drift { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translate(8px, -60px); opacity: 0; } }
+/* reward tiles (spec 5.7): two equal outlined tiles on Show complete */
+.sc-reward { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 360px; margin: 0 auto; }
+.sc-tile { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; box-sizing: border-box; border-radius: var(--r-control, 12px); border: 1.5px solid var(--rr-outline); color: var(--rr-text); }
+.sc-tile svg { width: 20px; height: 20px; flex: none; color: var(--rr-amber-text); }
+.sc-tile b { font: 600 var(--type-headline, 17px) / 1.2 "Inter", var(--sans); }
+.sc-next, .sc-got { margin: 0; font: var(--type-subhead-w, 500) var(--type-subhead, 15px) / 1.3 "Inter", var(--sans); color: var(--rr-text-2); }
+.sc-acts { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 360px; margin: 4px auto 0; }
+.sc-acts .btn { width: 100%; min-height: 52px; height: auto; padding: 10px 16px; font-size: var(--type-headline, 17px); white-space: normal; }
+.sc-acts .btn:not(.primary) { width: auto; min-width: 60%; min-height: 44px; border-radius: 999px; font-family: "Inter", var(--sans); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.sc-acts .btn.primary { text-transform: none; }
+/* the details below: crowd and stars as two quiet tiles, then the list, in the Road Ready colours */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tiles.sc-more { grid-template-columns: 1fr 1fr; display: grid; gap: 10px; width: 100%; max-width: 360px; margin: 10px auto 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile:is(.crowd, .beat), :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile { background: var(--rr-card); box-shadow: none; border: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile:is(.crowd, .beat) small, :root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile small { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-tile b { color: var(--rr-text); background: transparent; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list { background: var(--rr-card); border-color: var(--rr-hairline); color: var(--rr-text-2); text-align: left; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sc .gc-list b { color: var(--rr-text); }
+
+/* the case (r10-03): a dark brown shell with glowing orange plush, framed by chrome L corners */
+.sc-show.case { height: min(44vh, 360px); }
+.sc-corner { position: absolute; width: 22px; height: 22px; border: 3px solid transparent; z-index: 2; }
+.sc-corner { border-image: linear-gradient(135deg, #f4f4f2, #9a9ea6 50%, #e6e7ea) 1; }
+.sc-corner.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; } .sc-corner.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.sc-corner.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; } .sc-corner.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+/* the case is Grok's painting (art/show, 720 by 900, lid on the left, the cavity on the right); the guitar sits in the cavity */
+:root[data-look="neon"] { --show-case: url("art/show/case-open-dark.webp"); }
+:root[data-look="festival"] { --show-case: url("art/show/case-open-light.webp"); }
+.sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
+.sc-case-pic { position: absolute; left: 50%; top: 2%; bottom: 2%; height: 96%; aspect-ratio: 720 / 900; transform: translateX(-50%); }
+.sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+.sc-show.case .sc-louie { z-index: 3; }
+.sc-show.case .sc-label { z-index: 3; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case .pbody { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-show.glow .sc-guitar, .sc-louie, .sc-sparks i { animation: none; }
+  .sc-sparks i { opacity: .7; }
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-new { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-title { color: var(--rr-text); font: 700 var(--type-title, 26px) / 1.15 "Space Grotesk", var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody :is(.sc-got, .sc-next) { color: var(--rr-text-2); }
+
+/* Road Ready 07: the Songbook (r10-05). Only the Dark and Light looks draw this markup (rrLook() in library.js), and
+   every rule is limited to those two looks, so Green Room and Headliner keep the earlier Songbook. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head { flex-wrap: wrap; gap: var(--sp-2); min-height: 52px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .head-l { gap: var(--sp-1); flex: 1 1 auto; }
+:root:is([data-look="neon"], [data-look="festival"]) .app:not(.viewer) .rr-sb-head .head-l .sh-btn { margin-right: 0; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .title { font: var(--type-title-w) min(var(--type-title), 8.2vw) / 1.15 var(--display); color: var(--rr-text); letter-spacing: -.01em; padding: 0; margin: 0; white-space: nowrap; text-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-head .row-btns { gap: var(--sp-2); margin-left: auto; align-items: flex-start; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-add { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 44px; padding: 0; border: 0; background: none; color: var(--rr-text); font: 600 var(--type-caption) / 1.2 var(--sans); cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-plus { width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--rr-text); display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-plus svg { width: 22px; height: 22px; stroke-width: 2.2; }
+
+/* the filter chips: capsules that wrap to a second row rather than squeeze; the chosen one filled amber */
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips { flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: 0; background: none; border: 0; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; height: auto; padding: 6px 14px; border-radius: var(--r-chip); border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; font: var(--type-subhead-w) var(--type-subhead) / 1.2 var(--sans); text-transform: none; letter-spacing: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip::before { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip small { font: inherit; background: none; padding: 0; margin: 0; color: inherit; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip svg { width: 18px; height: 18px; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip.on { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
+
+/* the hint banner: Louie's face badge (the only Louie on this page) and the Today line */
+:root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { flex-direction: row; align-items: center; gap: var(--sp-3); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-control); border: 1px solid var(--accent-line); background: color-mix(in srgb, var(--rr-amber) 9%, var(--rr-card)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-badge { width: 44px; height: 44px; flex: none; border-radius: 50%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-hint-in { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-hint-chev { width: 16px; height: 16px; flex: none; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-i { height: auto; min-height: 44px; margin: 0; padding: 2px 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-i :is(.tdy-ic, .ng-ic) { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t :is(small, b, em) { opacity: 1; white-space: normal; overflow: visible; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-open { padding: 0 52px 0 0; gap: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t small { font: var(--type-caption-w) var(--type-caption) / 1.2 var(--sans); letter-spacing: var(--type-caption-ls); text-transform: uppercase; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 var(--sans); color: var(--rr-amber-text); white-space: normal; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t em { font: var(--type-subhead-w) var(--type-subhead) / 1.25 var(--sans); font-style: normal; color: var(--rr-text-2); white-space: normal; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-dots { justify-content: flex-start; margin: -10px 0 -12px -13px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-dot { width: 44px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .app:not(.viewer) .rr-sb-head .head-l .sh-btn { width: 44px; height: 44px; }
+
+/* the song rows: one card each */
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-row) { background: none; border: 0; box-shadow: none; border-radius: 0; overflow: visible; display: flex; flex-direction: column; gap: var(--sp-2); padding: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-row) .sw { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) .list .row.rr-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 16px; grid-template-areas: "tile txt side chev"; align-items: center; column-gap: var(--sp-3); min-height: 56px; box-sizing: border-box; padding: var(--sp-3); border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-tile { grid-area: tile; align-self: start; position: relative; width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: radial-gradient(circle at 78% 78%, #111 0 30%, transparent 31%), radial-gradient(circle at 78% 78%, rgba(0,0,0,.25) 0 46%, transparent 47%), var(--tile); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-tile b { position: absolute; left: 6px; top: 4px; font: 700 15px / 1.2 var(--display); color: #F6EEE0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-tile img { position: relative; width: 100%; height: 100%; object-fit: cover; display: block; } /* over the initials, which show if the art can't load */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .txt { grid-area: txt; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .t { font: var(--type-headline-w) var(--type-headline) / 1.25 var(--sans); color: var(--rr-text); white-space: normal; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .a { font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); margin: 0; white-space: normal; overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-cc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-cc i { font: 600 var(--type-footnote) / 1 var(--sans); font-style: normal; min-width: 28px; min-height: 28px; box-sizing: border-box; padding: 0 8px; border-radius: var(--r-chip); display: inline-grid; place-items: center; background: var(--rr-plate-top); border: 1px solid var(--rr-plate-edge); color: var(--rr-plate-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-cc i.rr-needs { background: var(--rr-amber); border-color: var(--rr-amber-text); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-side { grid-area: side; align-self: start; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots { display: flex; gap: 5px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots i { width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots i.on { background: var(--rr-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .heart { width: 16px; height: 16px; color: var(--rr-amber-text); fill: currentColor; margin: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .k { padding: 0; border: 0; background: none; min-width: 0; font: var(--type-footnote-w) var(--type-footnote) / 1.2 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { grid-area: chev; width: 16px; height: 16px; color: var(--rr-text-2); }
+/* large text: the dots and key move under the title, and the title wraps */
+:root[data-ax]:is([data-look="neon"], [data-look="festival"]) .list .row.rr-row { grid-template-columns: 44px minmax(0, 1fr) 16px; grid-template-areas: "tile txt chev" "tile side chev"; row-gap: var(--sp-2); }
+:root[data-ax]:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-side { flex-direction: row; align-items: center; justify-content: flex-start; padding-top: 0; }
+:root[data-ax]:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-dots i { width: 16px; height: 16px; }
+
+/* the search bar (it still rides above the tab bar, Surprise 50) */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd { background: var(--rr-card); border: 1.5px solid var(--rr-outline); border-radius: var(--r-control); box-shadow: none; color: var(--rr-text); min-height: 48px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd input { font: var(--type-body-w) var(--type-body) / 1.2 var(--sans); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd input::placeholder { color: var(--rr-text-2); opacity: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sb-dock .cmd > svg { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-can { white-space: nowrap; }
+
+/* ---- Road Ready 08: Me (spec 5.8, r10-06). Dark and Light only; Green Room and Headliner keep the earlier page. ---- */
+/* the way back to the Road is a full 44 px target in every look (Surprise 52) */
+:root[data-look] .ib.pf-back { width: 44px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me { display: flex; flex-direction: column; gap: 12px; padding: 0 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-avatar { flex: none; width: 80px; height: 80px; padding: 0; border-radius: 50%; border: 3px solid #D9CBB0; background: var(--rr-card); box-shadow: 0 0 0 2px var(--rr-outline); overflow: hidden; display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-avatar svg { width: 100%; height: 100%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-who { min-width: 0; flex: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-name { margin: 0; font: var(--type-title-w) var(--type-title) / 1.15 "Space Grotesk", var(--display); color: var(--rr-text); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-venue { display: block; min-height: 44px; padding: 0; margin: 0; background: none; border: 0; text-align: left; font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level { margin-top: -6px; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rr-outline); overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 14px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b { font: 700 var(--type-title) / 1.1 "Space Grotesk", var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b span { font: var(--type-footnote-w) var(--type-footnote) var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 var(--sans); color: var(--rr-text-2); }
+:root[data-ax="1"]:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { grid-template-columns: 1fr; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 16px; padding: 14px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h h2 { margin: 0; font: 700 var(--type-headline) / 1.2 "Space Grotesk", var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h span { font: var(--type-subhead-w) var(--type-subhead) var(--sans); color: var(--rr-text-2); }
+/* the open case: a dark shell, orange plush with a soft glow inside; the guitars stand upright, headstocks up, at one height */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case { padding: 8px; border-radius: 10px; background: #2A1810; border: 2px solid #0E0806; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-in { list-style: none; margin: 0; padding: 12px 10px 10px; display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; overflow-x: auto; border-radius: 6px; min-height: 150px; background: radial-gradient(rgba(255, 205, 130, .2) 1px, transparent 1.3px) 0 0 / 6px 6px, radial-gradient(120% 90% at 50% 10%, #E27A2A 0%, #B9531B 55%, #7A300E 100%); box-shadow: inset 0 0 28px rgba(255, 150, 60, .4); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gtr { flex: none; min-width: 44px; min-height: 44px; display: flex; align-items: flex-end; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gtr img { display: block; height: 176px; width: auto; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-empty { align-self: center; margin: 12px auto; padding: 10px 12px; border-radius: 8px; background: #1E1008; text-align: center; color: #FFF3E0; font: var(--type-callout-w) var(--type-callout) / 1.35 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid var(--rr-amber-text); border-radius: 12px; color: var(--rr-amber-text); text-decoration: none; font: 600 var(--type-callout) / 1.3 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { flex: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-coinic svg { width: 24px; height: 24px; display: block; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch .chev, :root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { width: 20px; height: 20px; flex: none; }
+/* Milestones: small engraved plates */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles { padding-top: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-label { margin: 8px 2px; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-label span + span { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge { background: linear-gradient(#F6EAD2, #D6C4A4); border: 1.5px solid #8C7858; box-shadow: none; color: #281E14; border-radius: 10px; min-height: 56px; padding: 8px 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge b { font: 700 var(--type-callout) / 1.1 "Space Grotesk", var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge small { font: 600 var(--type-caption) / 1.2 var(--sans); letter-spacing: .04em; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge.locked { background: transparent; border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); }
+/* the list of rows: 52 px or taller, icon, label, chevron */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-rows { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; min-height: 52px; padding: 6px 14px; background: none; border: 0; border-radius: 0; box-shadow: none; text-align: left; text-decoration: none; color: var(--rr-text); font: var(--type-body-w) var(--type-body) / 1.3 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row + .rr-row { border-top: 1px solid var(--rr-outline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .more-ic { background: none; color: var(--rr-text-2); width: 32px; height: 32px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row-t { flex: 1; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row-t small { display: block; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .rr-badge { width: 32px; height: 32px; border-radius: 50%; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-support-h { margin: 12px 2px 0; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-facts { margin: 8px 2px; font: var(--type-subhead-w) var(--type-subhead) var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-facts b { color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badges { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-miles .pf-badges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge { min-width: 0; }
+
+/* ---- Road Ready 9a: the Guitar shop on the Merch table ---- */
+.mc-sub { margin: 0 0 10px; font: 600 13px/1.35 var(--sans); color: var(--muted); }
+.mc-gts { display: grid; gap: 8px; }
+.mc-gt { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; width: 100%; min-height: 76px; padding: 8px 12px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--fg); font-family: var(--sans); text-align: left; }
+.mc-gt.on { border: 3px solid var(--strings); }
+.mc-gt.locked { opacity: .92; }
+.mc-gt-pic { display: grid; place-items: center; height: 60px; }
+.mc-gt-pic img { max-height: 60px; max-width: 54px; object-fit: contain; }
+.mc-gt.locked .mc-gt-pic img { filter: grayscale(.85) brightness(.7); }
+.mc-gt-t { display: grid; gap: 2px; justify-items: start; min-width: 0; }
+.mc-gt-t b { font: 700 16px var(--display); overflow-wrap: anywhere; }
+.mc-gt-t small { font: 700 12.5px var(--sans); color: var(--muted); }
+.mc-next { font: 800 12px var(--sans); font-style: normal; letter-spacing: .08em; padding: 3px 8px; border-radius: 9px; background: var(--tabs-on); color: var(--fg); }
+.mc-gt-s { display: grid; justify-items: end; gap: 4px; }
+.mc-more { font: 700 12.5px var(--sans); color: var(--fg-2); }
+.mc-gt-leg { margin: 0 0 10px; min-height: 44px; padding: 8px 14px; border: 2px solid var(--rim); border-radius: 14px; background: transparent; color: var(--fg); font: 700 14px var(--sans); }
+.mt-gtr { display: grid; place-items: center; }
+.mt-gtr img { max-height: 46vh; max-width: 70vw; object-fit: contain; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-gt.on { border-color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-more { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-gt-t small { color: var(--rr-text-2); }
+
+/* ---- Road Ready 9b, the guitar builder (builder.js): the case at the top, chips, 44 px swatches, a running total ---- */
+.mc-build { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--fg); font-family: var(--sans); text-align: left; }
+.mc-build:disabled { opacity: .7; }
+.mc-build-t { display: grid; gap: 2px; min-width: 0; }
+.mc-build-t b { font: 700 16px var(--display); }
+.mc-build-t small { font: 700 12.5px var(--sans); color: var(--muted); }
+.panel.de-sheet.bd { padding-bottom: 0; }
+.bd .pbody { display: flex; flex-direction: column; gap: 12px; padding-bottom: 18px; }
+.bd .pbody > * { flex: none; }
+.bd-x { flex: none; width: 44px; height: 44px; border: 2px solid var(--rim); border-radius: 14px; background: transparent; color: var(--fg); font: 700 24px/1 var(--sans); }
+.bd-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bd-top h2 { margin: 0; font: 700 20px var(--display); }
+.bd-case { display: grid; place-items: center; height: 220px; overflow: hidden; padding: 8px; border: 2px solid var(--rim); border-radius: 18px; background: color-mix(in srgb, var(--card) 92%, #000); }
+.bd-case img { height: 202px; width: auto; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+.bd-one { margin: 0; text-align: center; font: 700 15px var(--display); }
+.bd-legs, .bd-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.bd-leg, .bd-tab { flex: none; min-height: 44px; padding: 8px 14px; border: 2px solid var(--rim); border-radius: 22px; background: transparent; color: var(--fg); font: 700 14px var(--sans); white-space: nowrap; }
+.bd-leg.on, .bd-tab.on { border-color: var(--strings); background: var(--tabs-on); }
+.bd-sws, .bd-seg, .bd-dots { display: flex; flex-wrap: wrap; gap: 10px; }
+.bd-sw { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 64px; min-height: 44px; padding: 4px; border: 2px solid transparent; border-radius: 14px; background: transparent; color: var(--fg); font: 700 12px var(--sans); text-align: center; }
+.bd-sw small { font: 700 12px var(--sans); line-height: 1.2; overflow-wrap: anywhere; }
+.bd-sw small b { display: block; color: var(--fg-2); }
+.bd-chip { display: block; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--rim); }
+.bd-sw.on { border-color: var(--strings); }
+.bd-sw.locked .bd-chip { filter: grayscale(.8) brightness(.55); }
+.bd-sw.locked { color: var(--muted); }
+.bd-lk { position: absolute; top: 4px; left: 50%; width: 44px; height: 44px; transform: translateX(-50%); display: grid; place-items: center; color: #fff; }
+.bd-lk svg { width: 20px; height: 20px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .8)); }
+.bd-sw.wide { min-width: 96px; min-height: 44px; padding: 8px 12px; border-color: var(--rim); border-radius: 22px; align-content: center; grid-auto-flow: column; gap: 6px; }
+.bd-sw.wide.on { border-color: var(--strings); background: var(--tabs-on); }
+.bd-sw.wide .bd-lk { position: static; transform: none; width: 18px; height: 18px; }
+.bd-sw.wide .bd-lk svg { width: 16px; height: 16px; }
+.bd-note, .bd-tips, .bd-short { margin: 0; font: 600 13px var(--sans); color: var(--muted); }
+.bd-long { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px; font: 700 15px var(--sans); }
+.bd-long input { position: absolute; right: 0; top: 50%; width: 52px; height: 44px; margin: 0; transform: translateY(-50%); opacity: 0; }
+.bd-knob { flex: none; position: relative; width: 52px; height: 30px; border-radius: 15px; border: 2px solid var(--rim); background: transparent; }
+.bd-knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); }
+.bd-long input:checked + .bd-knob { border-color: var(--strings); background: var(--tabs-on); }
+.bd-long input:checked + .bd-knob::after { left: 25px; background: var(--strings); }
+.bd-long input:focus-visible + .bd-knob, .bd-sw:focus-visible, .bd-tab:focus-visible, .bd-leg:focus-visible { outline: 3px solid var(--strings); outline-offset: 2px; }
+.bd .pfoot { border-top: 2px solid var(--rim); }
+.bd-acts { display: grid; gap: 6px; justify-items: stretch; }
+.bd-acts .btn { min-height: 48px; }
+.bd-short { text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .bd-sw.on, :root:is([data-look="neon"], [data-look="festival"]) .bd-leg.on, :root:is([data-look="neon"], [data-look="festival"]) .bd-tab.on { border-color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.bd-note, .bd-tips, .bd-short, .mc-build-t small) { color: var(--rr-text-2); }
+@media (prefers-reduced-motion: no-preference) { .bd-knob::after { transition: left .15s; } }
+
+/* ---- Road Ready 9a, painted necks (docs/guitars/NECK-DESIGN.md, TAP-AREAS.md): the whole painted guitar with the stops in its own fret spaces ---- */
+.rd-neck.road .rr-hit { position: absolute; left: 0; right: 0; z-index: 2; background: transparent; } /* invisible: decides which stop a pointer tap selects (road.js, roadHit) */
+.rd-neck.road > svg.rd-base { z-index: 0; }
+/* a stop that sits on an inlay: the same pearl with a dark rim behind it and a soft shadow, so it reads over pearl, abalone, blocks and vines */
+.rd-node.rr.rr-over .rr-pearl { stroke: #14100d; stroke-opacity: .7; stroke-width: 4; paint-order: stroke fill; }
+.rd-node.rr.rr-over .rr-art { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
+/* the headline show: a pill badge on the body */
+.rr-glow.rr-glow-pill { width: 200px; height: 86px; border-radius: 43px; }
+/* the card of a stop near the end of a leg runs past its own neck: lift that neck above the next one (each neck isolates its layers) */
+.rd-path .rd-neck:has(.rd-pop) { z-index: 8; }

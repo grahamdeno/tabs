@@ -1,7 +1,9 @@
 // The game's chrome (4.0.0): the stat bar at the top of the Road, the tab bar along the bottom of
 // the main pages, the More sheet, and the pages still to come (Tour, Charts, Band).
 //   statBar()        the venue, the gig streak, your fans and your tips (4.70.0), as buttons (bindStatBar wires them)
+//   settleStats()    Rain checks and fading fans, settled before any stats show; statNotices() says what happened
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
+//   (Road Ready 04: five tabs, Road, Songbook, Rehearse, Tour and Me; the places that were on the More sheet are rows on Me)
 //   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the tips in the stat bar (4.16.2)
 import { Tabs, fameSettle, fansNow, openingOn, playSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
 import { esc, icon, layer, toast } from "./ui.js";
@@ -16,7 +18,9 @@ const TICKET = `<svg width="32" height="26" viewBox="0 0 34 28" aria-hidden="tru
 let rained = [], fame = [];
 /* 4.70.0: tips, a coin with a dollar sign */
 const COIN = `<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle class="h-cd" cx="14" cy="15.5" r="11.5"/><circle class="h-c" cx="14" cy="13.5" r="11.5"/><path d="M17.5 9.5c-.8-1-2-1.5-3.5-1.5-2 0-3.3 1-3.3 2.5 0 3.5 7 1.8 7 5.5 0 1.6-1.5 2.6-3.6 2.6-1.6 0-3-.6-3.8-1.7M14 6v2M14 18.6v2" fill="none" stroke="#14213D" stroke-width="2" stroke-linecap="round"/></svg>`;
-export function statBar() {
+/* Before the stats are shown: Rain checks and fading fans are settled (statBar and the Road Ready header both call
+   this), and statNotices() says what happened once the screen is up. */
+export function settleStats() {
   /* 4.14.0: a Rain check covers the nights missed since your last play, before the streak is counted */
   const used = rainSettle(data);
   if (used.length) { Tabs.save(data); rained = used; }
@@ -24,6 +28,9 @@ export function statBar() {
   const said = fameSettle(data);
   if (said.length || data.fame) Tabs.save(data);
   if (said.length) fame = said;
+}
+export function statBar() {
+  settleStats();
   const v = venueNow(data), st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data);
   /* 4.40.0: each one says what it is, with a ›, until you've tapped it once (not during Opening night) */
   const lab = (k, t) => openingOn(data) || data.settings.used?.["hud-" + k] ? "" : `<small class="h-lab" aria-hidden="true">${t}</small>`;
@@ -43,6 +50,9 @@ export function bindStatBar() {
   $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
   $("h-fans")?.addEventListener("click", () => go("#/you"));
   $("h-tips")?.addEventListener("click", () => go("#/merch"));
+  statNotices();
+}
+export function statNotices() {
   if (fame.length) {
     const said = fame; fame = [];
     const line = x => x.kind === "fade" ? `${n(x.lost)} fans drifted away while you were off the road`
@@ -55,13 +65,20 @@ export function bindStatBar() {
 }
 
 /* ---- the tab bar ---- */
+/* Road Ready 04: five tabs, our own line icons. 24 px grid shown at 28 px, a 1.9 stroke with round caps and joins, currentColor. The shapes
+   marked tb-fill are tinted in when the tab is current (the icon sheet's "active = fill + amber"). No lamps, gauges or picks. */
+const ICON = body => `<svg class="tb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 const TABS = [
-  ["road", "#/", "The Road", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tb-ink" x="14" y="12" width="4" height="18" rx="2" opacity=".35"/><path class="tb-ad" d="M5 7h18l5 5-5 5H5z"/><path class="tb-a" d="M5 5h18l5 5-5 5H5z"/><path d="M8 8h9" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/></svg>`],
-  ["tour", "#/tour", "Tour", `<svg width="34" height="32" viewBox="0 0 34 32" aria-hidden="true"><rect class="tb-sd" x="2" y="8" width="30" height="18" rx="5"/><rect class="tb-s" x="2" y="6" width="30" height="18" rx="5"/><rect class="tb-w" x="6" y="10" width="7" height="6" rx="2"/><rect class="tb-w" x="15" y="10" width="7" height="6" rx="2"/><rect class="tb-f" x="24" y="10" width="5" height="10" rx="2"/><circle class="tb-ink" cx="10" cy="26" r="4"/><circle class="tb-ink" cx="25" cy="26" r="4"/></svg>`],
-  ["charts", "#/charts", "Charts", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-kk" cx="16" cy="18" r="13"/><circle class="tb-k" cx="16" cy="16" r="13"/><circle cx="16" cy="16" r="9" fill="none" stroke="#2A3A63" stroke-width="1.5"/><circle class="tb-a" cx="16" cy="16" r="5"/><circle class="tb-k" cx="16" cy="16" r="1.2"/><path d="M7 11a10 10 0 0 1 5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".4"/></svg>`],
-  ["band", "#/band", "Your band", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tb-bd" x="4" y="11" width="24" height="16" rx="4"/><rect class="tb-b" x="4" y="10" width="20" height="16" rx="4"/><ellipse class="tb-w" cx="16" cy="10" rx="12" ry="5"/><path d="M20 2l-6 8" stroke="#F2B705" stroke-width="3" stroke-linecap="round"/></svg>`],
-  ["rehearse", "#/practice", "Rehearse", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path class="tb-fd" d="M13 4h8l6 26H7z"/><path class="tb-f" d="M12 3h8l6 26H6z"/><path d="M16 24l7-15" stroke="#14213D" stroke-width="2.6" stroke-linecap="round"/><circle class="tb-k" cx="21" cy="13" r="2.6"/><path d="M12 6h3" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".8"/></svg>`],
-  ["more", "", "More: Settings, Tuner, Songbook, Support", `<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle class="tb-bd" cx="16" cy="17" r="13"/><circle class="tb-b" cx="16" cy="16" r="13"/><circle class="tb-w" cx="10" cy="16" r="2.4"/><circle class="tb-w" cx="16" cy="16" r="2.4"/><circle class="tb-w" cx="22" cy="16" r="2.4"/></svg>`]
+  /* Road: a short fretboard (two frets) with a zigzag road joining three stops, as in the icon sheet's "Fretboard + stops" */
+  ["road", "#/", "Road", ICON(`<path class="tb-fill" d="M7.5 2.5h9l1.5 19H6z"/><path d="M6.9 8.5h10.2M6.4 15h11.2"/><path d="M14.2 5.6L9.8 11.8l4.4 6.6"/><circle cx="14.2" cy="5.6" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.2" cy="18.4" r="1.3" fill="currentColor" stroke="none"/>`)],
+  /* Songbook: an open book with a music note on the right page */
+  ["songbook", "#/library", "Songbook", ICON(`<path class="tb-fill" d="M12 6.6C9.8 5 6.8 4.6 3.4 5v13.2c3.4-.4 6.4 0 8.6 1.6 2.2-1.6 5.2-2 8.6-1.6V5c-3.4-.4-6.4 0-8.6 1.6z"/><path d="M12 6.6v13.2"/><circle cx="15.2" cy="14.2" r="1.5" fill="currentColor" stroke="none"/><path d="M16.7 14.2V9.2l2.3.7"/>`)],
+  /* Rehearse: a metronome, a trapezoid body with the arm leaning */
+  ["rehearse", "#/practice", "Rehearse", ICON(`<path class="tb-fill" d="M9 3h6l4 18H5z"/><path d="M12 17.5L15.2 7"/><circle cx="14" cy="11" r="1.3" fill="currentColor" stroke="none"/><path d="M8.2 21h7.6"/>`)],
+  /* Tour: a tour van from the side, two wheels, an amp on the roof */
+  ["tour", "#/tour", "Tour", ICON(`<path class="tb-fill" d="M2.5 17v-5.5L5 8h9.5l4.5 3.5h2.5V17h-2.4M14.9 17H9.1M4.9 17H2.5"/><path d="M8.5 4.5h5V8h-5zM9 8v3.5h10"/><circle cx="7" cy="17.5" r="2.1"/><circle cx="17" cy="17.5" r="2.1"/>`)],
+  /* Me: a backstage pass hanging from a U-shaped lanyard */
+  ["me", "#/you", "Me", ICON(`<path d="M6.5 2.5c0 3.5 1.6 5.2 5.5 5.2s5.5-1.7 5.5-5.2"/><rect class="tb-fill" x="6.5" y="8" width="11" height="13.5" rx="2.8"/><circle cx="12" cy="13" r="1.9"/><path d="M8.9 19.2c.4-2 1.7-3 3.1-3s2.7 1 3.1 3"/>`)]
 ];
 function tabsEl() {
   let el = document.getElementById("tabs");
@@ -70,8 +87,8 @@ function tabsEl() {
 }
 export function paintTabs(active) {
   const el = tabsEl();
-  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a ${href ? `href="${href}"` : 'href="#" role="button"'} data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${svg}${k === "more" && !tunedRecently() ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</a>`).join("");
-  el.querySelector('[data-tab="more"]').onclick = e => { e.preventDefault(); openMore(); };
+  /* the little dot on Me says the tuner hasn't been used lately (it was on More); the Tuner row on Me shows it too */
+  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${svg}<span class="tb-l">${esc(label)}</span>${k === "me" && !tunedRecently() ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</a>`).join("");
   document.body.classList.add("tabbed");
 }
 export function hideTabs() { document.body.classList.remove("tabbed"); }
@@ -96,6 +113,6 @@ export function openMore() {
   $("m-tune").onclick = () => { close(); openTuner("standard", () => { const r = route().name; if (TABBED.has(r)) paintTabs(tabFor(r)); }); };
 }
 
-/* which pages show the tab bar, and which tab each one lights */
-export const TABBED = new Set(["road", "tour", "charts", "band", "practice", "you", "merch", "support"]);
-export const tabFor = name => ({ practice: "rehearse", you: "more", merch: "more", support: "more" })[name] || name;
+/* which pages show the tab bar, and which tab each one lights. Songbook is a tab; Your band, Charts, the Merch table and Support are reached from Me, so Me stays lit on them. */
+export const TABBED = new Set(["road", "library", "tour", "practice", "you", "charts", "band", "merch", "support"]);
+export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me" })[name] || name;

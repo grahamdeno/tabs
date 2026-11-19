@@ -35,7 +35,7 @@ sees, and what teaches them anything.
 | The Road, first launch | Leg 1 "Open chords", the G chord finger dot glowing, Louie's bubble "Let's play your first song" with a Gig: Harbor Lights button | The halo | **Two first steps compete**: Louie says play a song, the glowing dot says learn the G chord |
 | | "You can play 0 of your 1 song" | | Starts the player on a zero |
 | | Stat bar: a shield with 1, a guitar with 0, a ticket with 0 | Nothing | No labels; nothing says what they are or that they open pages |
-| | A pink dot on More on every screen | Nothing | It means "not tuned in the last few hours", but it looks like "something new". It never clears unless you tune |
+| | A pink dot on the tab bar on every screen (on More until Road Ready 04, on Me now) | Nothing | It means "not tuned in the last few hours", but it looks like "something new". It never clears unless you tune |
 | Tap the pick | A tag over it already names it ("G chord", 4.75.0); the card: The G chord, a +5 fans chip, Start | The tag and the card | Fine |
 | Which lesson opens songs | A small gold badge on a lesson dot, "♪ 2": learning that chord opens 2 of your songs (4.84.0) | Listed (the badge is the teacher) | Fine |
 | A chord stop by playing songs | The stop's card: "Or play E in 3 more songs, start to finish (2 of 5)" and a Play button for a song with it (4.83.0); Show complete says "The Road: E chord, 3 of 5 songs" | Listed | Was none before 4.83.0: four songs without the chord moved nothing and nothing said why |
@@ -43,7 +43,7 @@ sees, and what teaches them anything.
 | Songbook | The sample song, "Back up your library" with Later and Back up | | **A backup nag on day one** with one sample song |
 | Harbor Lights | Chord tip, then "Tap any chord", then "Press play when you're ready" | Tip, Tip, Tip | Works as intended. About this song under the title is never pointed out |
 | Play (the Gig) | Count-in, then the song with the crowd and the run on top (4.91.0: no microphone in a show) | The crowd fills as the song goes | Nothing to explain about the mic any more |
-| Controls in the Gig | The X, the mic button and Pause fade after 3 s of play without a touch; a touch shows them again and that first touch only wakes them, it never pauses (4.60.0) | Found by watching | Not taught on purpose: it is what Apple Music does |
+| Controls in the Gig | Pause (and in the Road Ready looks the song's title) fade after 3 s of play without a touch; a touch or any key shows them again and that first touch only wakes them, it never pauses (4.60.0) | Road Ready 05: a tip, "Tap anywhere for controls", the first time they hide | Taught once now; Settings > Playing has Keep playing controls on screen for anyone who wants them to stay |
 | Song title and chord row | A title too long to fit scrolls as a banner for three loops; tap it to replay. More chords than fit scroll with a faded edge (4.62.0) | Seen, not taught | Replaying the banner by a tap is never taught |
 | Tap the Gig | Pauses: the song page comes back as it always is, Play reads Resume, a quiet band on the line you stopped on (4.52.0) | Found by accident | Tap to pause and drag the lines are never taught |
 | Tools | Play, Practice and Song tabs at the foot, dots on Practice and Song | Dots | Fine |
@@ -51,7 +51,7 @@ sees, and what teaches them anything.
 | Charts | Nine computer players already scoring, a Battle on day one | On screen | **Day one shows a full league and a rival battle before one song is played** |
 | Band | 0 of 27, silhouettes | On screen | The first silhouette read "1 SONGS" (fixed in 4.39.2) |
 | Rehearse | Today's lesson and Your changes from a song never played | On screen | Fine, if a little early |
-| More | Settings, Tuner, Songbook, Support | | The Songbook's own page lives here; the Road's bar is the other way in |
+| Me | Rows: Your band, Charts and duets, Merch table, Tuner, Support Louie; a Settings gear at the top right (Road Ready 04; the More sheet is gone) | | The Songbook is a tab now, so nothing hides in a sheet |
 | Your profile | Garage, level 1, 0 of 25 badges | On screen | Fine |
 | Merch table | Louie: "Play a few shows and come back. The fans pay for all of this." | On screen | **Good model**: Louie explains the page in one line. Every new page should have this |
 | Tour Map | Rivals' corners, "Plant your flag on a real map", "Pull up for your scene" | On screen | Fine |
@@ -95,7 +95,7 @@ anything a person found on their own is skipped.
 4. The Tools tabs (first open).
 5. Swipe left to delete, right to favorite (Songbook, existing swipe hint plus the right side).
 6. Fans open the Merch table (first time fans reach 100, the price of Second take).
-7. Tune up (first lesson that listens, or the tuner from More).
+7. Tune up (first lesson that listens, or the Tuner row on Me).
 8. Today's lesson in Rehearse (after the first leg).
 9. Backups (a few songs of your own, or day 7).
 
@@ -127,8 +127,8 @@ anything a person found on their own is skipped.
    opens Your profile. No labels and nothing says they're buttons; two of those pages have no other door
    from the Road.
 5. **The setup steps** (Home Screen, microphone, backups, AI key) aren't explained anywhere.
-6. **Two dots that mean different things.** The pink dot on More means "tune up", the Tools dots mean
-   "new". The More dot is lit most of the time, so people learn to ignore dots.
+6. **Two dots that mean different things.** The pink dot on Me means "tune up", the Tools dots mean
+   "new". The Me dot is lit most of the time, so people learn to ignore dots.
 7. **Tips & gestures was out of date in four places** (fixed in 4.39.2):
    - "Key: − and + in the bar": the key moved to About this song's Key tile and its dial (4.31.0).
    - "Now and Next ... turn it on with the fretboard below": it's a switch in Tools > Play now (4.32.0).
@@ -144,23 +144,28 @@ anything a person found on their own is skipped.
 - **Look tappable before teaching.** A small arrow on the stat bar's three items, a play badge on the
   song cover. A permanent cue beats a tip people dismiss.
 - **Louie explains every page once.** The Merch table already does it: one bubble on a first visit
-  says what the page is for. Tour, Charts, Band and Rehearse should do the same.
+  says what the page is for. Tour, Charts, Band and Rehearse should do the same (Charts and Band are rows on Me now).
 - **Pages light up as they're earned (an option for Graham).** Tour after the tutorial leg, Charts after
-  the first scored Gig, Band when Lola joins. The tab shows locked with one line ("Plays after your first
+  the first scored Gig, Band when Lola joins. The tab (now the row on Me) shows locked with one line ("Plays after your first
   show") instead of a full page of zeros.
-- **One meaning per dot.** "New" stays a dot; "tune up" becomes the tuner's own mark inside More, not
-  on the More tab.
+- **One meaning per dot.** "New" stays a dot; "tune up" is the tuner's own mark on its row on Me, and on the Me tab (Road Ready 04; it was on the More tab).
 
 ## By page, in the order to teach them
 
 ### The Road (home) and the stat bar
 
+Road Ready (step 02, 2026-11-17): in the Light and Dark looks the stat bar is a header strip. Its controls say what
+they are in words (the venue plate with "Show 4 of 6" and the next venue, "Fans" or "5-day streak", "Tips",
+"TONIGHT"), so rows 2 to 4 are only hidden in Green Room and Headliner, which keep the stat bar. The book button
+(Rehearse) is gone from the Road Ready header: Rehearse is a tab. The tuner is not on the Road: you find it on the Tuner row on Me
+and on the song screen, where you play.
+
 | # | Hidden feature | How you do it | Coverage | Why here in the order |
 |---|---|---|---|---|
-| 1 | Tap a stop for its card (Start, Play again) | Tap a stop; tap again or elsewhere to close | None (the halo invites it) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing dot" from Louie |
-| 2 | The streak opens Your profile | Tap the guitar in the stat bar | None | Right after the first song played through, when the streak first lights |
-| 3 | Fans open the Merch table | Tap the fans count | None | When fans first reach the price of the cheapest thing (Rain check) |
-| 4 | The venue opens the Tour Map | Tap the venue | None | After the first few songs, when there are hexagons to see |
+| 1 | Tap a stop for its card (Start, Play again) | Tap a stop; tap again or elsewhere to close | None (the halo invites it; Road Ready: the glowing trapezoid and its callout) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing dot" from Louie |
+| 2 | The streak opens Your profile | Tap the guitar in the stat bar (Road Ready: the Fans pill, which shows the streak) | None (Road Ready: labelled) | Right after the first song played through, when the streak first lights |
+| 3 | Tips open the Merch table | Tap the tips (Road Ready: the Tips pill) | None (Road Ready: labelled) | When tips first reach the price of the cheapest thing (Rain check) |
+| 4 | The venue opens the Tour Map | Tap the venue (Road Ready: the venue plate) | None | After the first few songs, when there are hexagons to see |
 | 5 | Other songs that fit (headline) | Tap a headline pick, then Other songs that fit | None (it's on the card) | Visible once the card is open; no tip needed |
 
 ### Song page (paused)
@@ -189,6 +194,7 @@ anything a person found on their own is skipped.
 | 5 | Tap a section on the page's rail to go there (4.53.0; the thin bar over the stage went in 4.54.0) | Tap the rail | None | The changes it jumps over don't count; a tip after the first show would do |
 | 6 | Encore doubles the bonus fans | The Encore button at the end | Visible | No tip needed |
 | 7 | Song duels (retired from the Gig in 4.91.0; coming back as switch duels) | Charts | Charts says so | None |
+| 8 | Get the controls back once they hide (Road Ready 05) | Tap anywhere, or press any key (Space plays and pauses) | Tip: a cream frame with Louie beside it, "Tap anywhere for controls" (`used.playHint`) | The first time the controls hide in a show; it goes on the first tap or key and never shows again. Keep playing controls on screen (Settings > Playing) stops them hiding at all |
 | 9 | Louie's count-in (4.56.0): a big number with Louie on each beat, the first chord and the strum | Nothing to do | Visible | Teaches itself; no tip |
 
 Achievement callouts (4.44.0) teach themselves: they appear when something is earned and point to nothing hidden, so they need no tip.
@@ -292,7 +298,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 6 | Play together | Both phones listen for one clap | Song tab > Play together | The sheet says it | Fine as is |
 | 7 | Merch | Rain check works on its own when you miss a night | Buy it | The buy toast says it | Fine as is |
 | 8 | Profile | Share your card makes a picture | The button | Visible | No tip |
-| 9 | More | The Songbook page lives in More (the Road's bar is the other way in) | More > Songbook | Visible | No tip |
+| 9 | Me | Charts, Your band, the Merch table, the Tuner and Support Louie are rows on Me; Settings is the gear (Road Ready 04) | Me > the row, or the gear | Visible | No tip |
 
 ## Suggested releases (for Graham to choose)
 
@@ -303,3 +309,18 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 4. **Louie's one line on each page** and the stat bar arrows.
 5. **Pages light up as earned**, if Graham wants it.
 6. The rest stays on Tips & gestures.
+
+## Road Ready 04: where things moved
+
+The tab bar has five tabs: Road, Songbook, Rehearse, Tour and Me. The More sheet is gone from the bar. No tip taught More, so no tip text changed; these pointers did.
+
+| Was | Now |
+|---|---|
+| Tab: Charts | Me > Charts and duets (`#/charts` still works; its back button returns to Me) |
+| Tab: Your band | Me > Your band (`#/band`; back returns to Me) |
+| More > Settings | The gear at the top right of Me (`#/settings`; back returns to Me) |
+| More > Tuner and its pink dot | Me > Tuner, and the dot on the Me tab. The tuner is still on the song screen. No Tune button on the Road |
+| More > Songbook | The Songbook tab (`#/library`) |
+| More > Support Louie | Me > Support Louie |
+| Merch table (from your tips in the stat bar) | Also Me > Merch table |
+| Settings copy "Tour Map (in More)" | "Tour Map (open it from your venue on Me)" |

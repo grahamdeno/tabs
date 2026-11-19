@@ -333,7 +333,7 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
 test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", { skip: skip() }, async t => {
   const skills = { done: { "c:G": { n: 3, best: 90, at: Date.now() }, "c:C": { n: 3, best: 90, at: Date.now() }, "c:D": { n: 3, best: 90, at: Date.now() } } };
   const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
-  await page.waitForSelector(".rd-node.box.now .rd-ring");
+  await page.waitForSelector(".rd-node.box.now");
   assert.equal(await page.innerText(".rd-stop.cur .rd-tag"), "Tap to open", "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
   const before = await fans();
@@ -341,15 +341,16 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   await page.waitForSelector(".co-powt");
   assert.match(await page.innerText(".co-powt"), /POW/, "a POW for the box");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).boxes?.opened?.length === 1);
-  await page.waitForSelector(".rd-node.box.done .rd-pearl");
+  await page.waitForSelector(".rd-node.box.done :is(.rd-pearl, .rr-pearl.done)");
   await page.waitForFunction(b => +(document.querySelector("#h-fans")?.innerText || "0").replace(/\D/g, "") >= b + 25, before);
   assert.equal(await page.locator(".rd-node.box.now").count(), 0, "opened, the road moves on");
 });
 
-test("The Road is home (4.0.0): stat bar, leg banner, the path with its current stop open, Louie, the Songbook bar and the tab bar", { skip: skip() }, async t => {
+/* Road Ready (step 02) draws the Road anew in the Light and Dark looks (roadready.e2e.mjs); Green Room and Headliner keep this one */
+test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with its current stop open, the message, the Songbook bar and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
-  const page = await phone(t, { ...LIB, songs }, { home: true });
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/road.png" });
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator(".hud #h-streak").count(), 1, "the stat bar has the streak");
@@ -364,7 +365,7 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop", { state: "detached" });
   assert.equal(await page.locator(".rd-node .rd-dot").count() > 3, true, "the lessons are finger dots");
   assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next dot");
-  assert.ok(await page.locator(".rd-say svg.louie").count() === 1, "Louie beside the path");
+  assert.ok(await page.locator(".rd-say svg.louie").count() === 0 && await page.locator(".rd-say #rd-bubble").count() === 1, "the message stays beside the path, without Louie (10b)");
   assert.equal(await page.locator(".rd-node.headline").count() >= 1, true, "each leg ends in a headline show");
   assert.equal(await page.locator(".rd-node.headline .rd-inlay").count(), await page.locator(".rd-node.headline").count(), "4.82.0: a show is the double inlay");
   assert.equal(await page.locator(".rd-tag").count(), 1, "4.75.0: one tag, on the next stop");
@@ -397,20 +398,22 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#libback"); await page.waitForSelector(".rd-path");
   await page.click("#rd-search"); await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
-  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0); Your band (4.7.0); More reaches Settings; the current stop's Start opens its lesson */
+  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0) and Your band (4.7.0), from Me since Road Ready 04; the gear on Me reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
   await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
   assert.match(await page.innerText(".tq-req"), /REQUEST LINE[\s\S]*asked for/);
   assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the Friend quest");
-  await page.click("#tabs [data-tab=charts]"); await page.waitForSelector(".ch-head");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-charts"); await settled(page);
+  await page.click("#pf-r-charts"); await page.waitForSelector(".ch-head");
   assert.match(await page.innerText(".ch-head"), /Garage Chart/, "4.6.0: Charts start at the Garage");
   assert.equal(await page.locator(".ch-row").count(), 10);
   assert.match(await page.innerText(".ch-row.you"), /You[\s\S]*\d+ XP/, "your XP this week (4.11.0: with what you did today)");
   await page.click("#ch-go"); await page.waitForSelector(".bt");
   assert.match(await page.innerText(".bt"), /wants your spot[\s\S]*TAKE THE STAGE/);
   await page.click("#bt-no"); await page.waitForSelector(".ch-head");
-  await page.click("#tabs [data-tab=band]"); await page.waitForSelector(".bd-head");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-band"); await settled(page);
+  await page.click("#pf-r-band"); await page.waitForSelector(".bd-head");
   const joined = +(await page.innerText(".bd-head")).match(/(\d+) OF 27 JOINED/)[1];
   assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
   assert.equal(await page.locator(".bd-card.locked").count(), 27 - joined);
@@ -418,7 +421,8 @@ test("The Road is home (4.0.0): stat bar, leg banner, the path with its current 
   await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-node.now");
   await page.click(".rd-node.now"); await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
-  await page.click("#tabs [data-tab=more]"); await page.click("#m-set"); await page.waitForFunction(() => location.hash === "#/settings");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-set"); await settled(page);
+  await page.click("#pf-set"); await page.waitForFunction(() => location.hash === "#/settings");
   await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
 });
 
@@ -426,7 +430,7 @@ test("The Road on a new library: Louie waves and the first song is ready to play
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
   await page.waitForSelector(".rd-path");
   assert.match(await page.innerText("#rd-bubble"), /first song/i);
-  assert.match(await page.innerText("#rd-tonight"), /Gig: /);
+  assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*River Road/, "Road Ready: Tonight names the song");
 });
 
 test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -449,10 +453,10 @@ test("4.0.1: one design system: buttons, chips, sheets and the editor's title fi
   const page = await phone(t);
   const look = sel => page.evaluate(s => { const c = getComputedStyle(document.querySelector(s)); return { r: c.borderTopWidth, f: c.fontFamily }; }, sel);
   await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector(".btn.primary");
-  assert.match((await look(".btn.primary")).f, /Fredoka/, "the main button is set in Fredoka");
+  assert.match((await look(".btn.primary")).f, /Space Grotesk/, "the main button is set in Space Grotesk (Road Ready, 2026-11-17)");
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#stat");
   assert.equal((await look("#stat")).r, "2px", "chips have the 2px rim");
-  assert.match((await look("#stat")).f, /Fredoka/);
+  assert.match((await look("#stat")).f, /Space Grotesk/);
   await page.evaluate(() => document.querySelector("#more").click()); await page.waitForSelector(".menu");
   assert.equal((await look(".menu")).r, "2px", "menus have the 2px rim");
   await page.evaluate(() => { location.hash = "#/edit/a"; }); await page.waitForSelector("#ed-title");
@@ -498,10 +502,10 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const lib = { ...LIB, songs, merch: { own: { rain: 1, take: 1 } }, charts: { tier: 0, battle: { day: dk(0), rival: "Neon Jen", songId: "a", target: 70, result: "lost", pct: 50 } } };
   const page = await phone(t, lib, { home: true });
   await page.waitForSelector("#h-fans");
-  assert.match(await page.innerText("#h-streak > span"), /^\s*3\s*$/, "the Rain check covered yesterday");
+  assert.match(await page.innerText("#h-fans small"), /^\s*3-day streak\s*$/, "the Rain check covered yesterday (Road Ready: the streak is under your fans)");
   const fans = +(await page.innerText("#h-tips")).replace(/\D/g, "");
   assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
-  assert.ok(+(await page.innerText("#h-fans")).replace(/\D/g, "") >= 1200, "and your fans stay");
+  assert.ok(+(await page.innerText("#h-fans b")).replace(/\D/g, "") >= 1200, "and your fans stay");
   await page.click("#h-tips"); await page.waitForSelector(".mc-head");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
@@ -513,10 +517,9 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   await page.click(".mc-fin[data-id=gold]"); await page.waitForSelector(".mt-sheet");
   assert.match(await page.innerText(".mt-acts"), /MORE IN TIPS TO GO/i, "can't afford Gold top yet");
   await page.click("#mt-not");
-  await page.click("#tabs [data-tab=more]"); await page.waitForSelector("#m-lib");
-  assert.equal(await page.locator("#m-merch").count(), 0, "4.16.2: the Merch table opens from the stat bar (4.70.0: the tips), not More");
-  await page.click("#more-x");
-  await page.click("#tabs [data-tab=charts]"); await page.waitForSelector("#ch-take");
+  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-charts"); await settled(page);
+  assert.equal(await page.getAttribute("#pf-r-merch", "href"), "#/merch", "Road Ready 04: the Merch table is a row on Me (More is gone; 4.16.2's stat bar way in stays)");
+  await page.click("#pf-r-charts"); await page.waitForSelector("#ch-take");
   await page.click("#ch-take"); await page.waitForSelector(".bt");
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).charts.battle.result, null, { timeout: 3000 });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
@@ -530,8 +533,8 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
     { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d", playLog: { total: 1, last: Date.now() - 5 * 864e5, days: {} } }];
   const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
   await page.waitForSelector(".rd-node.now.headline");
-  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rd-inlay").getBoundingClientRect().width);
-  assert.ok(w > 80, `4.34.1: the headline keeps its size (${w})`);
+  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rr-art").getBoundingClientRect().width);
+  assert.ok(w >= 60, `4.34.1: the headline keeps its size (Road Ready: two 24 px pearls, ${w})`);
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /Headline show[\s\S]*Low Tide[\s\S]*PLAY LOW TIDE/, "the last played song that fits");
   assert.match(await page.innerText("#rd-other"), /Other songs that fit \(1\)/);
@@ -654,11 +657,11 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
   await page.waitForSelector(".rd-neck");
   assert.ok(await page.locator(".rd-neck").count() >= 2, "a neck for each leg");
-  assert.match(await page.locator(".rd-neck").first().innerHTML(), /The beater/, "the first guitar is named on its headstock");
+  assert.match(await page.locator(".rd-neck").first().innerHTML(), /Porch/, "the first guitar is named on its headstock");
   assert.equal(await page.locator(".rd-tag").count(), 1, "one tag, on the next stop");
-  assert.equal(await page.locator(".rd-node.headline .rd-inlay").count() >= 1, true, "the headline is an inlay");
+  assert.equal(await page.locator(".rd-node.headline .rr-art").count() >= 1, true, "the headline is an inlay");
   await page.waitForSelector("#gt-x");
-  assert.match(await page.innerText(".rd-gt"), /The cutaway/, "the sheet names the new guitar");
+  assert.match(await page.innerText(".rd-gt"), /Cornerstone/, "the sheet names the new guitar");
   await page.click("#gt-x");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).guitars?.seen?.includes("open"));
   await page.reload(); await page.waitForSelector(".rd-neck");
@@ -668,9 +671,126 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
 test("4.84.0 a lesson that opens songs you have says how many; an opened merch box is a crate in the guitar's material", { skip: skip() }, async t => {
   const now = Date.now(), done = Object.fromEntries(["G", "C", "D"].map((c, i) => [`c:${c}`, { n: 3, best: 90, at: now - 1000 + i }]));
   const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] } }, { home: true });
+  /* Green Room: the old Road draws the box in the guitar's material; Road Ready's pearls are tested in roadready.e2e.mjs */
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   await page.waitForSelector(".rd-neck");
   assert.match(await page.innerText(".rd-node.now .rd-songs"), /1/, "Em opens one song");
   assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
-  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on the beater");
+  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on Porch");
+});
+
+/* ---- Road Ready 9a: the Guitar shop on the Merch table, and the chosen guitar on the Road, Me and Show complete ---- */
+const shopLib = (ring, merch, theme = "dark") => ({ ...LIB, journal: { v: 1, months: { "2026-11": { plays: 4 * ring * ring } } }, merch: { tconv: 1, lconv: 1, hlseen: 1, ...merch }, settings: { ...LIB.settings, v: 6, theme } });
+const openShop = async (t, ring, merch, theme) => {
+  const page = await phone(t, shopLib(ring, merch, theme), { home: true });
+  await page.waitForSelector("#h-fans"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-gts"); await settled(page);
+  return page;
+};
+
+for (const theme of ["dark", "light"]) {
+  test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
+    const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
+    const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
+    assert.deepEqual(heads, ["Gear", "Louie's finish", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "nothing existing moved; the 9b builder entry sits between Looks and the shop");
+    assert.equal(await page.locator(".mc-gt").count(), 16);
+    const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
+    /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */
+    assert.equal((await row("velvetcrown").innerText()).includes("Opens at Theater"), true);
+    assert.match(await row("velvetcrown").getAttribute("aria-label"), /Locked, opens at Theater/);
+    assert.equal(await row("velvetcrown").locator("svg").count(), 1, "a small lock");
+    /* an open guitar you can't afford: "$40 more" (tips 160, Highline $180: $20 more; Sticker Riot $90 can be bought) */
+    assert.match(await row("highline").innerText(), /\$20 more/); assert.match(await row("highline").getAttribute("aria-label"), /\$180, \$20 more/);
+    assert.doesNotMatch(await row("stickerriot").innerText(), /more/, "an affordable guitar shows only its price");
+    /* Next up: exactly one, the cheapest in reach */
+    assert.equal(await page.locator(".mc-next").count(), 1); assert.match(await row("stickerriot").innerText(), /NEXT UP/); assert.match(await row("stickerriot").getAttribute("aria-label"), /Next up/);
+    /* progress in plain words: no "about N shows" (nothing stored gives an honest average), no clocks, no guilt */
+    const words = await page.innerText(".mc-gts") + await page.innerText(".mc-sub");
+    assert.doesNotMatch(words, /about \d+ shows?|\bshows?\b.*\baway\b|hurry|limited|expires?|ends? (in|soon)|countdown|last chance|you missed|don't miss|only \d+ left/i);
+    /* every row is a 44 px target with a name */
+    for (const b of await page.$$(".mc-gt")) { const r = await b.boundingBox(); assert.ok(r.height >= 44 && r.width >= 44, "a target of at least 44 px"); assert.ok((await b.getAttribute("aria-label")).length > 8); }
+  });
+}
+
+test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<slug>, puts it on and shows it on the Road, in the case on Me and in the guitarist's hands", { skip: skip() }, async t => {
+  const page = await openShop(t, 1, { tips: 250 });
+  await page.click('.mc-gt[data-gt="stickerriot"]');
+  await page.waitForSelector(".mt[aria-label='Sticker Riot'] #gs-buy");
+  assert.equal(await page.innerText("#gs-buy"), "BUY FOR $90");
+  assert.equal(await page.locator("#mt-x").count(), 1);
+  await page.click("#gs-buy");
+  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).merch; return m.guitar === "stickerriot" && m.has?.includes("g-stickerriot"); });
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch);
+  assert.equal(saved.tspent, 90); assert.deepEqual(saved.has, ["g-stickerriot"]);
+  await page.waitForSelector('.mc-gt[data-gt="stickerriot"].on'); assert.match(await page.locator('.mc-gt[data-gt="stickerriot"]').innerText(), /ON NOW/);
+  assert.equal(await page.locator(".mc-gt-leg").count(), 1, "a way back to the leg's guitar");
+  /* the Road neck of the leg you're on draws it */
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-neck"); await settled(page);
+  const cur = await page.locator(".rd-legmark.cur ~ .rd-neck, .rd-neck").first().innerHTML();
+  assert.match(cur, /art\/guitars\/stickerriot-road\.webp/, "the whole painted guitar on the neck (9a, painted necks)");
+  assert.match(await page.locator(".rd-neck").first().getAttribute("aria-label"), /Sticker Riot/);
+  /* Me's case has it, and says it is the one you play */
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+  assert.ok((await page.$$eval(".rr-gtr", els => els.map(e => e.getAttribute("aria-label")))).includes("Sticker Riot, from the Guitar shop, the one you play"));
+  assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
+  /* the guitarist holds it (the small picture in his hands) */
+  const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
+  assert.match(hands, /art\/guitars\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  /* back to the leg's guitar, and the saved choice is gone */
+  await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
+  await page.click("#mc-gt-leg");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.guitar === undefined);
+  assert.equal(await page.locator(".mc-gt-leg").count(), 0);
+  /* put it on again from the sheet: owned, no second charge */
+  await page.click('.mc-gt[data-gt="stickerriot"]'); await page.waitForSelector("#gs-wear");
+  assert.equal(await page.locator("#gs-buy").count(), 0); await page.click("#gs-wear");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.guitar === "stickerriot");
+  assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch)).tspent, 90, "charged once");
+});
+
+test("Road Ready 9a: a locked guitar and one you can't afford open a sheet whose button is off, and nothing is spent", { skip: skip() }, async t => {
+  const page = await openShop(t, 1, { tips: 40 });
+  await page.click('.mc-gt[data-gt="barebones"]'); await page.waitForSelector(".mt");
+  assert.equal(await page.innerText(".mt-acts .btn"), "OPENS AT COFFEEHOUSE"); assert.equal(await page.isDisabled(".mt-acts .btn"), true);
+  await page.click("#mt-not");
+  await page.click('.mc-gt[data-gt="tartanpin"]'); await page.waitForSelector(".mt");
+  assert.equal(await page.innerText(".mt-acts .btn"), "$50 MORE IN TIPS TO GO"); assert.equal(await page.isDisabled(".mt-acts .btn"), true);
+  assert.doesNotMatch(await page.innerText(".mt-sheet"), /about \d+ shows?|hurry|limited|expires?|last chance|you missed/i);
+  await page.click("#mt-not");
+  assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch)).tspent, undefined);
+});
+
+test("Road Ready 9a: the Road neck of each leg is its new guitar's picture, with its strings painted once (the Road draws none over the body)", { skip: skip() }, async t => {
+  const page = await phone(t, shopLib(0, {}), { home: true });
+  await page.waitForSelector(".rd-neck"); await settled(page);
+  const html = await page.locator(".rd-neck").first().innerHTML();
+  assert.match(html, /art\/guitars\/porch-road\.webp/); assert.doesNotMatch(html, /porch-(body|head)\.webp/, "one picture, the whole guitar");
+  assert.equal(await page.locator(".rd-neck").first().getAttribute("aria-label"), "Porch");
+  /* the strings are in the painting: the Road draws none over it */
+  assert.equal(await page.locator(".rd-neck").first().locator(".rd-strings").count(), 0, "the painted strings are the only strings");
+});
+
+test("Road Ready 9a fix: for each of the 23 new pictures, lit and shade match the picture's own fretboard", { skip: skip() }, async t => {
+  const PICS = (await import("../../art/guitars/pics.js")).default;
+  const news = Object.entries(PICS).filter(([, p]) => p.str).map(([slug, p]) => ({ slug, lit: p.lit, shade: p.shade, cx: p.body.cx, nw: p.body.nw, end: p.body.end }));
+  const page = await phone(t, LIB, { home: true });
+  await page.waitForSelector("#h-fans");
+  const out = await page.evaluate(async list => {
+    const med = a => { a = a.slice().sort((x, y) => x - y); return a[a.length >> 1]; };
+    const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const res = [];
+    for (const g of list) {
+      const im = new Image(); im.src = `/art/guitars/${g.slug}-body.webp`; await im.decode();
+      const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d"); x.drawImage(im, 0, 0);
+      /* the wood: of the pixels over the neck, the darker half (strings, fret wires and inlays are the bright ones), then the median of each channel */
+      const half = (x0, x1) => { const px = []; const y0 = 0, y1 = 36; const w = Math.max(1, Math.round(x1 - x0)); const d = x.getImageData(Math.round(x0), y0, w, y1 - y0).data; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 250) px.push([d[i], d[i + 1], d[i + 2]]); px.sort((p, q) => p[0] + p[1] + p[2] - q[0] - q[1] - q[2]); const dark = px.slice(0, Math.ceil(px.length / 2)); return [0, 1, 2].map(k => med(dark.map(p => p[k]))); };
+      const L = half(g.cx - .35 * g.nw, g.cx - .05 * g.nw), R = half(g.cx + .05 * g.nw, g.cx + .35 * g.nw);
+      const d = (u, v) => u.reduce((s, q, i) => s + Math.abs(q - v[i]), 0);
+      res.push({ slug: g.slug, l: d(L, hex(g.lit)), r: d(R, hex(g.shade)) });
+    }
+    return res;
+  }, news);
+  assert.equal(out.length, 23);
+  if (process.env.DBG) console.log(JSON.stringify(out.map(o => [o.slug, o.l, o.r])));
+  for (const o of out) { assert.ok(o.l <= 70 && o.r <= 70, `${o.slug}: lit is ${o.l} and shade ${o.r} away from the picture's own fretboard`); }
 });

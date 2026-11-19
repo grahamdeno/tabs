@@ -29,7 +29,7 @@ Louie is drawn in code by `louie(mood, { pose, size })` in `louie.js` and shows 
 
 ## What to build
 
-- **Body:** a 1x12 combo amp, a little taller than wide, Tolex blue #23406A with a darker right side #1A3152, nickel corner caps #948573 on all four corners, a brown leather handle #55331B on top.
+- **Body:** a 1x12 combo amp, a little taller than wide, Tolex blue #3A86FF with a darker right side #2C6FE0, nickel corner caps #948573 on all four corners, a brown leather handle #55331B on top.
 - **Face:** the yellow control panel (#F0B23A, shade #D9982A) across the top third. On it: two round eyes, **one mouth** between the eyes and the knobs, and a row of four cream knobs (#E8D5B3) with a dark pointer line each. Ink lines #0B0F14.
 - **Grille:** the bottom two thirds, plain navy cloth (#182D47) with a fine weave (#2A4466) and at most a faint speaker circle. **No mouth, smile line, slot or feature on the grille, in any mood, pose or size.** Delete the old speaker-mouth and slat-mouth shapes.
 - **Moods** (keep the names callers pass): `happy` (soft smile), `cheer` (open smile, eyes closed in happy arcs), `sleepy` (half-closed eyes, small closed mouth), `worried` (draw it as "nervous": eyebrows up, small wavy mouth, never sad or crying), `proud` (closed-eye smile, chin up). All mouths live on the panel.
