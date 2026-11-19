@@ -44,6 +44,12 @@ body {
   
   -webkit-font-smoothing: antialiased;
 }
+
+/* First paint, before the app draws: Louie on the Dark ground. Hidden once #app has the first screen. */
+.boot { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--bg, #141210); pointer-events: none; }
+.boot img { width: min(44vw, 200px); height: auto; display: block; }
+#app:not(:empty) ~ #boot { display: none; }
+
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 input, textarea { outline: none; }
