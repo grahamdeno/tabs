@@ -5339,3 +5339,48 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .tq-ht h1 { color: var(--rr-text); font-family: "Space Grotesk", var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .tq-ht small { color: var(--rr-amber-text); }
 :root[data-look="festival"] .tq-head .tq-ht h1 { color: var(--rr-text); }
+/* every page (2026-11-19): content scrolls under the tab bar and is hidden there, as on the Road. A band of the page's own tolex,
+   fixed to the screen from just above the bar to the bottom edge, sits between the page and the bar; its top 14 px fade in so
+   nothing is cut with a hard line. The tolex is pinned to the screen in both, so the band's grain lines up with the page's. */
+:root:is([data-look="neon"], [data-look="festival"]) body { background-attachment: fixed; }
+:root:is([data-look="neon"], [data-look="festival"]) body.tabbed:not(.gigging)::after {
+  content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 29; height: calc(var(--tab-h) + var(--safe-b) + 8px + 14px);
+  background: var(--tolex); background-attachment: fixed; pointer-events: none;
+  -webkit-mask: linear-gradient(transparent, #000 14px); mask: linear-gradient(transparent, #000 14px);
+}
+
+/* ---- the one-row Road header (2026-11-19): four stats, icon then number, spread evenly, 44 pt; no cards, pills, outlines or
+   backgrounds. The neck starts right under it. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) body.is-home .app:has(> .rr-row) { padding: var(--safe-t) 8px calc(var(--peek) - var(--tabs) + 6px); gap: 0; }
+.rr-row { flex: none; height: 44px; }
+.rr-row .hud { height: 44px; min-height: 0; justify-content: space-around; gap: 0; padding: 0 4px; background: none; border: 0; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .hud button { min-width: 44px; min-height: 44px; height: 44px; padding: 0 8px; gap: 6px; background: none; border: 0; box-shadow: none; font: 700 var(--type-headline) / 1 "Space Grotesk", var(--sans); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .hud .h-streak { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .hud .h-streak.off { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row .hud .h-fans { color: var(--rr-text); }
+.rr-row .hud svg { width: 24px; height: 24px; }
+.rr-row .hud .h-streak .ri-guitar { width: 30px; height: 30px; margin: -3px -2px; }
+.rr-row .h-lab { display: none; }
+/* the venue sign at the start of the leg, on the dark around the headstock */
+.rr-legwrap { position: relative; flex: none; align-self: stretch; width: 100%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-sign {
+  position: absolute; z-index: 4; left: 14px; top: 10px; padding: 4px 9px; border-radius: 6px; pointer-events: none;
+  background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); border: 1px solid var(--rr-plate-edge); color: var(--rr-plate-text);
+  font: 700 var(--type-caption) / 1.2 "Space Grotesk", var(--sans); letter-spacing: .08em;
+}
+/* Opening night's line above the neck: the step, with Skip as a text button */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rr-onmark { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; min-height: 44px; }
+.rr-onmark::before, .rr-onmark::after { content: none !important; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-onmark .rr-on-btn.rr-text { color: var(--rr-text); font-size: var(--type-footnote); text-transform: none; letter-spacing: 0; }
+/* Tonight on the current stop: a small amber play button and the song's title */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tn-stop {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 0; box-sizing: border-box;
+  background: none; border: 0; color: var(--rr-text); text-align: left; font: 600 var(--type-subhead) / 1.2 "Inter", var(--sans); -webkit-tap-highlight-color: transparent;
+}
+.rr-tn-play { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 4px 12px rgba(0, 0, 0, .35); }
+.rr-tn-play svg { width: 18px; height: 18px; }
+.rr-tn-stop b { font: inherit; overflow-wrap: anywhere; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+:root[data-look="festival"] .rr-tn-stop b { color: #1E1914; text-shadow: 0 0 6px rgba(246, 239, 226, .9); }
+.rd-path.has-pop .rr-tn-stop { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) header.rr-row { height: 44px; min-height: 0; padding: 0; margin: 0; display: block; background: none; border: 0; box-shadow: none; position: relative; }
+.rr-row .hud { width: 100%; box-sizing: border-box; }
