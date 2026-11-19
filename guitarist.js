@@ -29,7 +29,8 @@ export const deepOf = c => luma(c) < 70 ? mix(c, "#000000", .35) : luma(c) > 200
 const ART_BASE = new URL("./art/", import.meta.url).href;
 
 /* patches for what you've done: a leg headlined (its guitar), a chart win (a star), the rest a pin with its number or word */
-const SPOTS = [[124, 178], [140, 198], [120, 202], [146, 222], [124, 228]];
+/* on the chest of the full-length figure (Grok's second pass, 2026-11-19), drawn at 0.6 so five fit */
+const SPOTS = [[113, 97], [122, 110], [111, 112], [127, 125], [113, 128]], PATCH_SCALE = .6;
 function patchSVG(pt, x, y) {
   if (pt.kind === "leg") return `<circle cx="${x}" cy="${y + 1.5}" r="11" fill="#00000055"/><circle cx="${x}" cy="${y}" r="11" fill="${pt.color}"/><circle cx="${x}" cy="${y}" r="11" fill="none" stroke="#F5C542" stroke-width="2" stroke-dasharray="2 1.6"/><path d="M${x - 1.5} ${y - 7}h3v7h-3z M${x} ${y + 3}m-5 0a5 4.5 0 1 0 10 0a5 4.5 0 1 0 -10 0" fill="#F5C542"/>`;
   if (pt.kind === "chart") return `<path d="M${x} ${y - 11}l3.2 6.6 7.3 1 -5.3 5.1 1.3 7.2 -6.5 -3.4 -6.5 3.4 1.3 -7.2 -5.3 -5.1 7.3 -1z" fill="#00000055" transform="translate(0 1.5)"/><path d="M${x} ${y - 11}l3.2 6.6 7.3 1 -5.3 5.1 1.3 7.2 -6.5 -3.4 -6.5 3.4 1.3 -7.2 -5.3 -5.1 7.3 -1z" fill="${pt.color}"/>`;
@@ -44,6 +45,7 @@ export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "fu
   const ink = {
     paper: INK.paper, line: INK.line, amber: INK.amber,
     skin: SKIN[me.skin] ?? SKIN[2], hair: HAIR_COL[me.hairCol] ?? HAIR_COL.brown, top: OUTFIT_COL[me.top] ?? OUTFIT_COL.red,
+    beard: HAIR_COL[me.beardCol] ?? HAIR_COL[me.hairCol] ?? HAIR_COL.brown, /* the beard's own ink (4.98.1); the hair colour unless chosen */
     hat: OUTFIT_COL[me.extraCol] ?? HAIR_COL[me.extraCol] ?? "#26282e", spot: spot0 ?? ART.spot[look] ?? INK.line
   };
   const sleeveInk = ART.sleeveInk[look];
@@ -75,8 +77,10 @@ export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "fu
   const mirror = me.lefty ? ` transform="translate(200 0) scale(-1 1)"` : "";
   const box = `maskUnits="userSpaceOnUse" x="-20" y="-20" width="240" height="300"`, all = `x="-20" y="-20" width="240" height="300"`;
   const { halftone: ht, stipple: st, grain: gr } = ART.print;
+  /* the bust is the figure zoomed in, so its dots are scaled back down to keep one dot size on screen (4.98.1) */
+  const zoom = bust ? +(/scale\(([\d.]+)\)/.exec(ART.bust.transform)?.[1] || 1) : 1, unzoom = zoom !== 1 ? ` scale(${(1 / zoom).toFixed(4)})` : "";
   /* the grain mask starts white, so the figure shows even before the grain tile has loaded */
-  const defs = `<defs>${flat ? "" : `<pattern id="${id}p" width="${ht.cell}" height="${ht.cell}" patternUnits="userSpaceOnUse" patternTransform="rotate(${ht.angle})"><rect width="9" height="9" fill="#000"/><circle cx="${ht.cell / 2}" cy="${ht.cell / 2}" r="${ht.dot}" fill="#fff"/></pattern><mask id="${id}h" ${box}><rect ${all} fill="url(#${id}p)"/></mask><pattern id="${id}q" width="${st.cell}" height="${st.cell}" patternUnits="userSpaceOnUse" patternTransform="rotate(${st.angle})"><rect width="9" height="9" fill="#000"/><circle cx="${st.cell / 2}" cy="${st.cell / 2}" r="${st.dot}" fill="#fff"/></pattern><mask id="${id}s" ${box}><rect ${all} fill="url(#${id}q)"/></mask>`}${useGrain ? `<pattern id="${id}g" width="${gr.tile}" height="${gr.tile}" patternUnits="userSpaceOnUse"><image href="${ART_BASE}${gr.file}" width="${gr.tile}" height="${gr.tile}"/></pattern><mask id="${id}w" ${box}><rect ${all} fill="#fff"/><rect ${all} fill="url(#${id}g)"/></mask>` : ""}${hatOn ? `<mask id="${id}k" ${box}><rect ${all} fill="#fff"/><path d="${ART.hats[me.extra].hides}" fill="#000"/></mask>` : ""}${bust ? `<clipPath id="${id}c"><circle cx="${ART.bust.disc[0]}" cy="${ART.bust.disc[1]}" r="${ART.bust.disc[2]}"/><rect x="30" y="14" width="140" height="${ART.bust.disc[1] - 14}"/></clipPath>` : ""}</defs>`;
+  const defs = `<defs>${flat ? "" : `<pattern id="${id}p" width="${ht.cell}" height="${ht.cell}" patternUnits="userSpaceOnUse" patternTransform="rotate(${ht.angle})${unzoom}"><rect width="9" height="9" fill="#000"/><circle cx="${ht.cell / 2}" cy="${ht.cell / 2}" r="${ht.dot}" fill="#fff"/></pattern><mask id="${id}h" ${box}><rect ${all} fill="url(#${id}p)"/></mask><pattern id="${id}q" width="${st.cell}" height="${st.cell}" patternUnits="userSpaceOnUse" patternTransform="rotate(${st.angle})${unzoom}"><rect width="9" height="9" fill="#000"/><circle cx="${st.cell / 2}" cy="${st.cell / 2}" r="${st.dot}" fill="#fff"/></pattern><mask id="${id}s" ${box}><rect ${all} fill="url(#${id}q)"/></mask>`}${useGrain ? `<pattern id="${id}g" width="${gr.tile}" height="${gr.tile}" patternUnits="userSpaceOnUse"><image href="${ART_BASE}${gr.file}" width="${gr.tile}" height="${gr.tile}"/></pattern><mask id="${id}w" ${box}><rect ${all} fill="#fff"/><rect ${all} fill="url(#${id}g)"/></mask>` : ""}${hatOn ? `<mask id="${id}k" ${box}><rect ${all} fill="#fff"/><path d="${ART.hats[me.extra].hides}" fill="#000"/></mask>` : ""}${bust ? `<clipPath id="${id}c"><circle cx="${ART.bust.disc[0]}" cy="${ART.bust.disc[1]}" r="${ART.bust.disc[2]}"/><rect x="30" y="14" width="140" height="${ART.bust.disc[1] - 14}"/></clipPath>` : ""}</defs>`;
   let body, vb;
   if (bust) {
     vb = ART.frame.bust;
@@ -88,7 +92,7 @@ export function guitarist(me, { mood = "happy", pose: pose0 = "play", crop = "fu
     const [x, y, w, h] = vb.split(" ").map(Number);
     const burst = ink.spot === INK.line || luma(ink.spot) < 70 ? INK.amber : ink.spot;
     const paper = card ? `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="7" fill="${INK.paper}"/><path d="${ART.card.burst}" fill="${burst}" opacity=".9"${mirror}/>${useGrain ? `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="7" fill="url(#${id}g)" opacity=".55" style="mix-blend-mode:multiply"/>` : ""}<rect x="${x + 1.5}" y="${y + 1.5}" width="${w - 3}" height="${h - 3}" rx="6.5" fill="none" stroke="${INK.line}" stroke-opacity=".22"/>` : "";
-    const wear = (patches || []).slice(0, pose === "play" ? SPOTS.length : 0).map((pt, i) => { const [px, py] = SPOTS[i]; return patchSVG(pt, me.lefty ? 200 - px : px, py); }).join("");
+    const wear = (patches || []).slice(0, pose === "play" ? SPOTS.length : 0).map((pt, i) => { const [px, py] = SPOTS[i]; const x = me.lefty ? 200 - px : px; return `<g transform="translate(${x} ${py}) scale(${PATCH_SCALE}) translate(${-x} ${-py})">${patchSVG(pt, x, py)}</g>`; }).join("");
     body = `${paper}<g${mirror}>${figure}</g>${wear}`;
   }
   const [, , vw, vh] = vb.split(" ").map(Number);
