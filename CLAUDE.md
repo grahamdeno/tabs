@@ -68,7 +68,7 @@ Everything not listed here uploads and deploys nothing. If you find a trigger th
 
 # Working on Tabs
 
-Louie: Learn Guitar (4.100.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
+Louie: Learn Guitar (4.101.0; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road". Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
 GitHub Pages from `main`. The README's Development section is the architecture
 map; docs/DATA.md describes every stored field. Read those before guessing.
 
@@ -223,6 +223,7 @@ A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a te
 3. Merge on Graham's merge go. Nothing deploys.
 4. The version bump (`VERSION` and `CACHE` together) happens on `next` before Graham tests, in one commit.
 5. `next` merges into `main` only on Graham's ship go.
+6. Small releases (Graham, 2026-11-19): ship small groups of changes that belong together, each with its own version bump, so a release is easy to account for and to roll back. Run every browser test (`node tests/quick.mjs --all-e2e`) before a ship; the quick run alone missed a failure in 4.97.0.
 
 Branch deletions go to Grok.
 

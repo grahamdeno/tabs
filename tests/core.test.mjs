@@ -646,6 +646,32 @@ test("importing a backup: only https links, and only image data for covers of se
   assert.equal(out.data.settings.lastTuned, 5);
 });
 
+test("importing a backup: Headliner does not come back on; the default Road Ready look stays", () => {
+  const hl = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "G\nla" }],
+    settings: { theme: "headliner", v: 6 },
+    merch: { has: ["headliner"], lconv: 1, hlseen: 1 }
+  });
+  assert.equal(hl.data.settings.theme, "auto", "Headliner becomes Auto");
+  assert.ok(hl.data.merch.has.includes("headliner"), "Headliner stays owned");
+
+  const dark = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "dark", v: 6 } });
+  assert.equal(dark.data.settings.theme, "dark", "Road Ready dark stays");
+
+  const light = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "light", v: 6 } });
+  assert.equal(light.data.settings.theme, "light", "Road Ready light stays");
+
+  const owned = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "G\nla" }],
+    settings: { theme: "green", v: 6 },
+    merch: { has: ["green"], lconv: 1, tspent: 400 }
+  });
+  assert.equal(owned.data.settings.theme, "green", "Green Room stays when owned and chosen");
+
+  const unowned = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "green", v: 6 } });
+  assert.equal(unowned.data.settings.theme, "auto", "Green Room without ownership becomes Auto");
+});
+
 test("importing a backup: old saves still migrate", () => {
   const out = C.cleanImport({ songs: [{ id: "a", title: "Old", tab: "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|", plays: [Date.now()] }], settings: { v: 1 } });
   const s = out.data.songs[0];
@@ -3466,4 +3492,66 @@ test("4.99.0 selfie: a light wall beside dark hair doesn't make it grey; photos 
   assert.ok(["black", "brown", "blonde", "red", "grey"].includes(C.selfieGuess({ hair: [[120, 70, 230]] }, { skin: SKIN, hair: HAIR_COL }).hairCol), "no purple from a photo");
   const g = C.selfieGuess({ hair: [[230, 200, 120]], chin: [70, 44, 28], cheek: [200, 160, 130] }, { skin: SKIN, hair: HAIR_COL });
   assert.equal(g.hairCol, "blonde"); assert.equal(g.beard, "beard"); assert.equal(g.beardCol, "brown", "a brown beard under blonde hair");
+});
+
+// ---------- App icon, launch screens and theme colour (black Louie) ----------
+
+const pngInfo = buf => {
+  assert.equal(buf.subarray(0, 8).toString("binary"), "\x89PNG\r\n\x1a\n", "PNG signature");
+  assert.equal(buf.toString("ascii", 12, 16), "IHDR", "IHDR comes first");
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20), bitDepth: buf[24], colorType: buf[25] };
+};
+const pngFile = rel => {
+  const buf = fs.readFileSync(path.join(root, rel));
+  return { buf, ...pngInfo(buf) };
+};
+
+test("the manifest theme colour is the Road Ready dark ground, and every listed icon is the size it claims", () => {
+  const base = rrHex(rrDark, "--rr-base");
+  const manifest = JSON.parse(read("manifest.webmanifest"));
+  assert.equal(manifest.theme_color.toLowerCase(), base.toLowerCase(), "theme_color matches --rr-base");
+  assert.equal(manifest.background_color.toLowerCase(), base.toLowerCase(), "background_color matches --rr-base");
+  assert.match(read("index.html"), new RegExp(`<meta name="theme-color" content="${base}"`, "i"), "the document theme-color starts on the same ground");
+  assert.ok(manifest.icons.length >= 3, "192, 512 and a maskable 512");
+  for (const icon of manifest.icons) {
+    const [w, h] = icon.sizes.split("x").map(Number);
+    const png = pngFile(icon.src);
+    assert.equal(png.w, w, `${icon.src} width`);
+    assert.equal(png.h, h, `${icon.src} height`);
+    assert.equal(png.bitDepth, 8, `${icon.src} is 8-bit`);
+    assert.equal(png.colorType, 2, `${icon.src} is opaque RGB, no transparency`);
+  }
+});
+
+test("the favicon, apple-touch icon and every iPhone launch screen exist at the size index.html names", () => {
+  const html = read("index.html");
+  assert.match(html, /rel="icon"[^>]*sizes="32x32"[^>]*href="icons\/favicon-32\.png"/);
+  const favicon = pngFile("icons/favicon-32.png");
+  assert.equal(favicon.w, 32); assert.equal(favicon.h, 32); assert.equal(favicon.colorType, 2);
+  const apple = pngFile("icons/apple-touch-icon.png");
+  assert.equal(apple.w, 180); assert.equal(apple.h, 180); assert.equal(apple.colorType, 2, "apple-touch-icon is opaque");
+  const master = pngFile("icons/icon-1024.png");
+  assert.equal(master.w, 1024); assert.equal(master.h, 1024); assert.equal(master.colorType, 2, "the 1024 master is opaque RGB");
+  assert.match(html, /rel="apple-touch-icon"[^>]*href="icons\/apple-touch-icon\.png"/);
+  const launches = [...html.matchAll(/rel="apple-touch-startup-image"[^>]*href="(icons\/splash\/launch-(\d+)x(\d+)\.png)"/g)];
+  assert.ok(launches.length >= 9, `every launch screen is linked, got ${launches.length}`);
+  for (const [, href, w, h] of launches) {
+    const png = pngFile(href);
+    assert.equal(png.w, Number(w), href);
+    assert.equal(png.h, Number(h), href);
+    assert.equal(png.colorType, 2, `${href} is opaque`);
+  }
+});
+
+test("the loading screen shows black Louie on the Dark ground, then hides once the app draws", () => {
+  const html = read("index.html"), css = read("styles.css");
+  assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
+  assert.match(html, /src="art\/louie\/v3\/louie-idle-dark\.webp"/, "it uses the black default Louie");
+  assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
+  assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
+  const shell = read("sw.js");
+  assert.match(shell, /"art\/louie\/v3\/louie-idle-dark\.webp"/, "the boot picture is saved for offline");
+  for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
 });

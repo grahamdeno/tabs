@@ -13,7 +13,7 @@ import { BOOTH_MAX, BOOTH_PLACES, BOOTH_RATE, BOOTH_RIVALS, boothCall, boothChor
 import { ytId, cleanYt, ytAt, ytSong, ytMatches } from "./core/youtube.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.100.0";
+export const VERSION = "4.101.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -372,6 +372,15 @@ export function cleanImport(parsed) {
   }
   if (!["auto", "dark", "light", "green", "headliner"].includes(settings.theme)) delete settings.theme;
   const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}), ...(cleanMerch(parsed.merch) ? { merch: cleanMerch(parsed.merch) } : {}), ...(cleanBuilds(parsed.builds) ? { builds: cleanBuilds(parsed.builds) } : {}), ...(cleanOpening(parsed.opening) ? { opening: cleanOpening(parsed.opening) } : {}), ...(cleanBoxes(parsed.boxes) ? { boxes: cleanBoxes(parsed.boxes) } : {}), ...(cleanGuitars(parsed.guitars) ? { guitars: cleanGuitars(parsed.guitars) } : {}), ...(cleanFame(parsed.fame) ? { fame: cleanFame(parsed.fame) } : {}), ...(cleanMe(parsed.me) ? { me: cleanMe(parsed.me) } : {}) });
+  /* A restored backup must not switch the app off the default Road Ready look.
+     Green Room stays only when the file chose it and already owns it. Headliner
+     and any other legacy look become Auto; they can still be put on from Settings
+     or the Merch table. */
+  const theme = data.settings.theme;
+  const ownsGreen = (data.merch?.has || []).includes("green");
+  if (!(theme === "green" && ownsGreen) && !["auto", "dark", "light"].includes(theme)) {
+    data.settings.theme = "auto";
+  }
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
