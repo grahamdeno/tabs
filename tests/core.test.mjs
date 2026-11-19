@@ -3194,3 +3194,132 @@ test("Road Ready 9a fix: the neck colours of the 23 new pictures are the fretboa
     assert.ok(Math.max(...a, ...b) <= 150, `${name}: a fretboard is not a pale string colour (${p.lit}, ${p.shade})`);
   }
 });
+
+/* ---- Road Ready 9a, painted necks (rr-09-road): stops in the painting's own fret spaces ---- */
+const FRETS = JSON.parse(fs.readFileSync(new URL("../docs/guitars/frets.json", import.meta.url)));
+const EXAMPLES = [["example_9", [..."LLLBLLLBL"]], ["example_12", [..."LLLBLLLBLLLL"]]];
+test("Painted necks: roadPlace puts the stops where Grok's example layouts in frets.json put them, for all 23 guitars (space, lane, x and y within 1 unit)", async () => {
+  const { roadPlace, ROAD } = await import("../core.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  assert.equal(Object.keys(FRETS).length, 23);
+  for (const [name, g] of Object.entries(FRETS)) {
+    const road = PICS[name].road; assert.ok(road, `${name} has a road entry`);
+    /* positions relative to the nut, in units (the painting's offset to the crop cancels out) */
+    const x0 = g.frets[0].centre_x - road.cx, y0 = g.frets[0].y - road.nut;
+    for (const [ex, kinds] of EXAMPLES) {
+      const got = roadPlace(kinds, road), want = g[ex];
+      assert.equal(got.full, true, `${name} ${ex} fits`);
+      assert.equal(got.spaces.length, want.length, `${name} ${ex}: stop count`);
+      got.spaces.forEach((c, i) => {
+        const w = want[i], at = `${name} ${ex} stop ${i + 1}`;
+        assert.equal(c.space, w.space, `${at}: space`);
+        assert.equal(c.lane[0], w.lane[0], `${at}: lane`);
+        assert.ok(Math.abs((c.x - road.cx) * ROAD.scale - (w.x - g.frets[0].centre_x) * ROAD.scale) <= 1, `${at}: x`);
+        assert.ok(Math.abs((c.y - road.nut) * ROAD.scale - (w.y - g.frets[0].y) * ROAD.scale) <= 1, `${at}: y`);
+        assert.equal(c.clear, w.clear, `${at}: clear`);
+      });
+      void x0; void y0;
+    }
+  }
+});
+test("Painted necks: a pair is two lessons in a row, the earlier one on the left, never a merch box; nine stops or fewer make no pair", async () => {
+  const { roadPlace } = await import("../core.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  for (const [name, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
+    for (const kinds of [[..."LLLLL"], [..."LLLBLLLBL"], [..."LLLBLLLBLL"], [..."LLLBLLLBLLLL"], [..."LLBLLLLBLLLLLB"]]) {
+      const r = roadPlace(kinds, p.road), by = {};
+      r.spaces.forEach(c => (by[c.space] ||= []).push(c));
+      const pairs = Object.values(by).filter(a => a.length === 2);
+      if (kinds.length <= 9) assert.equal(pairs.length, 0, `${name} ${kinds.join("")}: no pairs up to nine stops`);
+      for (const [a, b] of pairs) {
+        assert.equal(b.i, a.i + 1, `${name}: a pair is consecutive stops`);
+        assert.ok(kinds[a.i] === "L" && kinds[b.i] === "L", `${name}: a pair is two lessons`);
+        assert.equal(a.lane, "left"); assert.equal(b.lane, "right");
+      }
+      assert.ok(Object.values(by).every(a => a.length <= 2));
+      assert.deepEqual(r.spaces.map(c => c.i), kinds.map((_, i) => i).slice(0, r.spaces.length), `${name}: stops stay in order`);
+    }
+  }
+});
+test("Painted necks: roadHit gives the current stop a zone 32 units above and below its y across the whole Road; a tap on a stop's centre selects that stop", async () => {
+  const { roadPlace, roadHit, ROAD } = await import("../core.js"), PICS = (await import("../art/guitars/pics.js")).default;
+  for (const [name, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
+    for (const [, kinds] of EXAMPLES) {
+      const pts = roadPlace(kinds, p.road).spaces.map(c => ({ x: 195 + ROAD.scale * (c.x - p.road.cx), y: 12 + ROAD.scale * c.y }));
+      pts.forEach((c, cur) => {
+        for (const dy of [-31.9, -20, 0, 20, 31.9]) for (const x of [0, 40, 120, 195, 270, 350, 390])
+          assert.equal(roadHit(pts, { x, y: c.y + dy }, cur), cur, `${name}: a tap ${dy} units from stop ${cur + 1}'s row at x ${x} selects it`);
+        assert.equal(roadHit(pts, { x: c.x, y: c.y }, -1), cur, `${name}: a tap at stop ${cur + 1}'s centre selects it`);
+      });
+    }
+  }
+  /* outside the zone the nearest stop wins; the badge takes a tap inside its rectangle plus 8 units all round */
+  const pts = [{ x: 150, y: 100 }, { x: 240, y: 160 }, { x: 195, y: 500, w: 150, h: 42, badge: true }, { x: 290, y: 500 }];
+  assert.equal(roadHit(pts, { x: 245, y: 135 }, 0), 1, "beyond 32 units of the current stop's row, the nearest stop wins");
+  assert.equal(roadHit(pts, { x: 195 + 75 + 8, y: 500 + 21 + 8 }, 0), 2, "the badge's padded corner");
+  assert.equal(roadHit(pts, { x: 195 + 75 + 9, y: 500 }, 1), 3, "just outside the padded badge, the nearest stop wins");
+  assert.equal(roadHit([], { x: 1, y: 1 }, -1), -1);
+});
+test("Painted necks: every one of the 23 guitars has a road picture and fret data, saved for offline, and the road files stay small", async () => {
+  const PICS = (await import("../art/guitars/pics.js")).default, shell = read("sw.js"), news = Object.entries(PICS).filter(([, p]) => p.str);
+  assert.equal(news.length, 23);
+  let total = 0;
+  for (const [slug, p] of news) {
+    const f = `art/guitars/${slug}-road.webp`, r = p.road;
+    assert.ok(fs.existsSync(path.join(root, f)), f); assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    total += fs.statSync(path.join(root, f)).size;
+    assert.ok(r && r.w > 200 && r.h > r.w && r.cap >= 17 && r.f.length === 13 && r.sp.length === 11, `${slug}: the road entry has its 13 fret rows, 11 spaces and a capacity`);
+    assert.ok(r.cx > 0 && r.cx < r.w && r.nut > 0 && r.nut < r.join && r.join < r.h && r.badge[1] > r.join && r.badge[1] < r.h, `${slug}: nut, join and badge are inside the picture, in that order`);
+    assert.ok(r.f.every((row, i) => row.length === 9 && (!i || row[0] > r.f[i - 1][0])), `${slug}: the fret rows run down the picture`);
+  }
+  assert.ok(total < 2e6, `the 23 road pictures come to ${total} bytes`);
+});
+test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, and the stops stay inside the picture", async () => {
+  const { FB, PICS } = await wired(), mk = n => Array.from({ length: n }, (_, i) => ({ kind: i % 4 === 3 ? "box" : "chord", state: "locked" }));
+  for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
+    const hs = [5, 9, 12].map(n => FB.roadLayout([...mk(n), { kind: "headline", state: "locked" }], p).height);
+    assert.equal(new Set(hs).size, 1, `${slug}: height ${hs.join(", ")}`);
+    const lay = FB.roadLayout([...mk(12), { kind: "headline", state: "locked" }], p);
+    assert.ok(lay.spaces.every(sp => sp.y > 0 && sp.y < lay.height && sp.x > 0 && sp.x < 390), `${slug}: every stop is on the picture`);
+  }
+});
+test("Painted necks: every leg in the Road fits its guitar, whatever guitar it is shown on; the legs marked soon have no stops", async () => {
+  const { FB, PICS } = await wired(), data = C.migrate({ songs: [], settings: { v: 6 } }), legs = C.roadPath(data).legs;
+  assert.ok(legs.length >= 3);
+  const warned = []; const warn = console.warn; console.warn = m => warned.push(m);
+  try {
+    for (const leg of legs) for (const slug of Object.keys(PICS).filter(s => PICS[s].road)) FB.roadLayout(leg.stops, PICS[slug]);
+  } finally { console.warn = warn; }
+  assert.deepEqual(warned, [], "no leg has more stops than a guitar's neck takes");
+  for (const lv of C.SKILL_LEVELS.filter(l => l.soon)) assert.equal(lv.steps.length, 0, `${lv.id}: a leg that is coming has no stops to place`);
+  for (const leg of legs) assert.equal(FB.NANO_FILE[leg.id], C.GUITARS[leg.id].body, `${leg.id}: its own guitar`);
+});
+test("Painted necks: the eight older pictures lay out with picLayout exactly as before", async () => {
+  const { FB, PICS } = await wired(), kinds = [..."LLLBLLLBLH"].map(k => ({ kind: k === "B" ? "box" : k === "H" ? "headline" : "chord" }));
+  const heights = { parlor: 1498, cutaway: 1448, "cutaway-sunburst": 1459, solid: 1589, hollow: 1425, single: 1453, classical: 1440, headliner: 1556 };
+  for (const [slug, h] of Object.entries(heights)) {
+    const lay = FB.picLayout(kinds.map(k => ({ ...k })), PICS[slug]);
+    assert.equal(PICS[slug].road, undefined, `${slug} has no road picture`);
+    assert.equal(lay.height, h, `${slug}: height`);
+    assert.equal(lay.spaces.map(s => Math.round(s.y)).join(" "), "33 97 158 215 270 321 370 418 466 514", `${slug}: stop rows`);
+    assert.equal(lay.road, undefined, `${slug}: laid out by picLayout, not roadLayout`);
+  }
+});
+test("Painted necks: a finished stop is always tappable, on every guitar and every leg, whichever stop is current", async () => {
+  const { FB, PICS } = await wired(), { roadHit, roadPath, migrate } = C, legs = roadPath(migrate({ songs: [], settings: { v: 6 } })).legs;
+  const mk = k => [...k].map(c => ({ kind: c === "B" ? "box" : c === "H" ? "headline" : "chord" }));
+  const sets = [...legs.map(l => l.stops.map(s => ({ kind: s.kind }))), mk("LLLBLLLBLH"), mk("LLLBLLLBLLLLH")];
+  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? [30, 22] : cur ? [52, 38] : [26, 26];
+  let n = 0;
+  for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) for (const stops of sets) {
+    const sp = FB.roadLayout(stops, p).spaces;
+    for (let cur = 0; cur < sp.length; cur++) {
+      const pts = sp.map((s, i) => ({ x: s.x, y: s.y, w: size(s, i === cur)[0], h: size(s, i === cur)[1], done: i < cur, badge: s.kind === "double" }));
+      for (let i = 0; i < cur; i++) { n++; assert.equal(roadHit(pts, { x: pts[i].x, y: pts[i].y }, cur), i, `${slug}: with stop ${cur + 1} current, a tap on finished stop ${i + 1} selects it`); }
+      /* a locked stop never takes a tap from inside the zone */
+      for (let i = cur + 1; i < sp.length; i++) if (Math.abs(pts[i].y - pts[cur].y) <= 32) assert.equal(roadHit(pts, { x: pts[i].x, y: pts[i].y }, cur), cur, `${slug}: a locked stop inside the zone does not take the tap`);
+    }
+  }
+  assert.ok(n > 1000, `${n} taps checked`);
+  /* Chord switches, lesson 2 current: the first lesson's own art opens the first lesson */
+  const pts = [{ x: 150, y: 300, w: 26, h: 26, done: true }, { x: 205, y: 318, w: 52, h: 38 }];
+  assert.equal(roadHit(pts, { x: 150, y: 300 }, 1), 0); assert.equal(roadHit(pts, { x: 205, y: 318 }, 1), 1); assert.equal(roadHit(pts, { x: 20, y: 310 }, 1), 1, "the rest of the row is the current stop's");
+});

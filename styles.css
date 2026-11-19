@@ -5158,3 +5158,14 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .mc-gt.on { border-color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-more { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-gt-t small { color: var(--rr-text-2); }
+
+/* ---- Road Ready 9a, painted necks (docs/guitars/NECK-DESIGN.md, TAP-AREAS.md): the whole painted guitar with the stops in its own fret spaces ---- */
+.rd-neck.road .rr-hit { position: absolute; left: 0; right: 0; z-index: 2; background: transparent; } /* invisible: decides which stop a pointer tap selects (road.js, roadHit) */
+.rd-neck.road > svg.rd-base { z-index: 0; }
+/* a stop that sits on an inlay: the same pearl with a dark rim behind it and a soft shadow, so it reads over pearl, abalone, blocks and vines */
+.rd-node.rr.rr-over .rr-pearl { stroke: #14100d; stroke-opacity: .7; stroke-width: 4; paint-order: stroke fill; }
+.rd-node.rr.rr-over .rr-art { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
+/* the headline show: a pill badge on the body */
+.rr-glow.rr-glow-pill { width: 200px; height: 86px; border-radius: 43px; }
+/* the card of a stop near the end of a leg runs past its own neck: lift that neck above the next one (each neck isolates its layers) */
+.rd-path .rd-neck:has(.rd-pop) { z-index: 8; }

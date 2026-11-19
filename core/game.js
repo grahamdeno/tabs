@@ -127,6 +127,69 @@ export function neckStops(body) {
   while (y < FULL_NECK * body) y += FRET_STEPS[n++] ?? FRET_MIN;
   return n;
 }
+/* ---- Road Ready 9a, painted necks: the stops sit in the painting's own fret spaces (docs/guitars/NECK-DESIGN.md) ----
+   The 23 new guitars carry a `road` entry in art/guitars/pics.js (made by tools/guitars/pics.py from Grok's frets.json): the
+   fret spaces 1 to 11, each with a left, a right and a box lane, and which spaces can take a pair. This is the pure part:
+   which space and lane each stop takes (roadPlace), and which stop a tap selects (roadHit). fretboard.js scales it to the screen. */
+export const ROAD = { scale: 1.2, margin: 12, zone: 32, pad: 8, badge: [150, 42], pairs: 9, ends: 10 };
+/* kinds: "L" for a lesson, "B" for a merch box, in leg order; the headline show is not on the neck (it is the badge). `road` is the picture's
+   road entry. Stops go one per fret space from the nut, lessons alternating left and right (each from the lesson before; a pair is
+   left then right), a box in the middle. Nine stops is the default: with more, N - 9 spaces take a pair of lessons in a row (never a
+   box), chosen by: the leg ends by space 10 if it can; then fewest spaces; then fewest stops not clear of an inlay; then pairs as high
+   as possible. (The handoff lists "fewest stops not clear" before "fewest spaces", but Grok's example layouts in frets.json, which the
+   tests match, take the fewest spaces first: nine spaces with a stop on an inlay beat ten spaces that are all clear.) Returns { spaces: [{ i, space, lane: "left"|"right"|"box", x, y, clear, pair }], used, full }; x and y are in the
+   picture's pixels. `full` is false when the leg is longer than the neck can hold (the first stops are placed). */
+export function roadPlace(kinds, road) {
+  const N = kinds.length, sp = road.sp.map(t => ({ y: t[0], h: t[1], l: t[2], lc: t[3], r: t[4], rc: t[5], b: t[6], bc: t[7], ok: t[8], pl: t[9], pr: t[10] }));
+  const maxPairs = Math.max(0, N - ROAD.pairs);
+  let best = null, bestKey = null;
+  const better = (a, b) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] < b[i]; return false; };
+  const cell = (i, s, lane, x, clear, pair) => ({ i, space: s + 1, lane, x, y: sp[s].y, clear: !!clear, pair });
+  const go = (i, s, prev, pairs, acc, pairAt) => {
+    if (i === N) {
+      const unclear = acc.reduce((n, c) => n + (c.clear ? 0 : 1), 0), used = s, key = [used > ROAD.ends ? 1 : 0, used, unclear, ...pairAt];
+      if (!best || better(key, bestKey)) { best = acc; bestKey = key; }
+      return;
+    }
+    if (s >= sp.length) return;
+    const t = sp[s];
+    if (kinds[i] === "B") return go(i + 1, s + 1, prev, pairs, [...acc, cell(i, s, "box", t.b, t.bc)], pairAt);
+    const lane = prev === "left" ? "right" : "left";
+    go(i + 1, s + 1, lane, pairs, [...acc, cell(i, s, lane, lane === "left" ? t.l : t.r, lane === "left" ? t.lc : t.rc)], pairAt);
+    if (pairs < maxPairs && t.ok && kinds[i + 1] === "L")
+      go(i + 2, s + 1, "right", pairs + 1, [...acc, cell(i, s, "left", t.pl, t.lc, 1), cell(i + 1, s, "right", t.pr, t.rc, 2)], [...pairAt, s + 1]);
+  };
+  go(0, 0, null, 0, [], []);
+  if (best) return { spaces: best, used: best.reduce((m, c) => Math.max(m, c.space), 0), full: true };
+  /* longer than the neck holds: place what fits, one stop to a space, so the Road still draws */
+  const acc = []; let prev = null;
+  for (let i = 0; i < N && i < sp.length; i++) {
+    const t = sp[i];
+    if (kinds[i] === "B") { acc.push(cell(i, i, "box", t.b, t.bc)); continue; }
+    const lane = prev === "left" ? "right" : "left"; prev = lane;
+    acc.push(cell(i, i, lane, lane === "left" ? t.l : t.r, lane === "left" ? t.lc : t.rc));
+  }
+  return { spaces: acc, used: acc.length, full: false };
+}
+/* Which stop a tap selects. pts: the stops' centres in the drawing's units, [{ x, y }] (the headline badge carries badge: true, w and h: its
+   rectangle plus ROAD.pad all round); cur: the index of the current stop, or -1; tap: { x, y }. The current stop has a zone ROAD.zone
+   above and below its y across the whole width of the Road: a tap in it is the current stop, except a tap on a finished stop's own art (points
+   with w, h and done), which is that stop's. Anything else goes to the nearest
+   stop (the badge: inside its padded rectangle). Returns an index, or -1 for no stops. */
+export function roadHit(pts, tap, cur = -1) {
+  if (cur >= 0 && pts[cur] && Math.abs(tap.y - pts[cur].y) <= ROAD.zone) {
+    /* a finished stop is always tappable: a tap on its own art (a point with w, h and done) is that stop's, the nearest centre if two overlap.
+       Locked stops never take a tap from inside the zone. */
+    let at = cur, d = Infinity;
+    pts.forEach((p, i) => { if (!(i === cur || p.done) || !p.w || Math.abs(tap.x - p.x) > p.w / 2 + 2 || Math.abs(tap.y - p.y) > p.h / 2 + 2) return; const m = Math.hypot(tap.x - p.x, tap.y - p.y); if (m < d) { d = m; at = i; } });
+    return at;
+  }
+  const bi = pts.findIndex(p => p.badge && p.w && Math.abs(tap.x - p.x) <= p.w / 2 + ROAD.pad && Math.abs(tap.y - p.y) <= p.h / 2 + ROAD.pad);
+  if (bi >= 0) return bi;
+  let at = -1, d = Infinity;
+  pts.forEach((p, i) => { const m = Math.hypot(tap.x - p.x, tap.y - p.y); if (m < d) { d = m; at = i; } });
+  return at;
+}
 /* The guitars you've earned: every leg whose headline show is done, in order, plus the first. Shown once each. */
 export const guitarsEarned = (data, now = Date.now()) => roadPath(data, now).legs.filter(l => l.done).map(l => l.id);
 export function cleanGuitars(raw) {
