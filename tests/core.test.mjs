@@ -3323,3 +3323,90 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   const pts = [{ x: 150, y: 300, w: 26, h: 26, done: true }, { x: 205, y: 318, w: 52, h: 38 }];
   assert.equal(roadHit(pts, { x: 150, y: 300 }, 1), 0); assert.equal(roadHit(pts, { x: 205, y: 318 }, 1), 1); assert.equal(roadHit(pts, { x: 20, y: 310 }, 1), 1, "the rest of the row is the current stop's");
 });
+
+/* ---------- Road Ready 9b: the guitar builder (BUILD_PARTS and friends in core/game.js, buildart.js, builder.js) ---------- */
+const manifestB = JSON.parse(read("art/guitars/builder/manifest.json"));
+const earnedB = (ring, merch, extra = {}) => {
+  const d = C.migrate({ songs: [], settings: { v: 6 }, journal: { v: 1, months: { "2026-11": { plays: 4 * ring * ring } } }, merch: { tips: 1000, ...(merch || {}) }, ...extra });
+  for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(d, "c:" + c);
+  C.skillDone(d, "k:open");
+  return d;
+};
+
+test("Road Ready 9b: the parts, what each guitar takes and the art's manifest agree", () => {
+  const cats = { paint: manifestB.paints, top: manifestB.tops, guard: manifestB.guards, wear: manifestB.wear, metal: manifestB.metal };
+  for (const p of C.BUILD_PARTS) assert.ok(cats[p.cat][p.id], `${p.cat} ${p.id} is in the manifest`);
+  for (const [cat, set] of Object.entries(cats)) for (const id of Object.keys(set)) if (id !== C.BUILD_STOCK[cat] && !["new", "chrome"].includes(id) || (cat === "paint" && id === "amber")) assert.ok(C.BUILD_PARTS.find(p => p.cat === cat && p.id === id), `${cat} ${id} has a price row`);
+  for (const [leg, t] of Object.entries(C.BUILD_TAKES)) {
+    const g = manifestB.guitars[t.slug], o = g.options;
+    assert.ok(g, `${t.slug} is in the manifest`); assert.equal(C.guitarFor(leg).body, t.slug, `${leg} is ${t.slug}`);
+    assert.deepEqual(t.tops, o.top, `${t.slug} takes the tops the manifest lists`); assert.equal(t.guard, !!o.guard, `${t.slug} guard`);
+  }
+  assert.deepEqual(Object.values(C.BUILD_TAKES).map(t => t.slug), Object.values(manifestB.guitars).map(g => g && Object.keys(manifestB.guitars).find(k => manifestB.guitars[k] === g)), "the seven Road guitars, in order");
+});
+
+test("Road Ready 9b: prices and unlocks are the spec's, in one constant", () => {
+  const by = (cat, id) => C.BUILD_PARTS.find(p => p.cat === cat && p.id === id);
+  for (const [cat, id] of [["paint", "amber"], ["paint", "black"], ["guard", "pearloid"], ["guard", "tortoise"], ["guard", "mint"], ["guard", "black"]]) assert.equal(by(cat, id).price, 0, "stock is free");
+  for (const p of C.BUILD_PARTS.filter(x => x.at === 2)) { assert.ok(p.price >= 25 && p.price <= 45, `${p.id} is $25 to $45`); assert.equal(p.venue, "Coffeehouse"); }
+  assert.equal(by("wear", "played").price, 40); assert.equal(by("metal", "nickel").price, 45);
+  for (const p of C.BUILD_PARTS.filter(x => x.at === 3 && x.price !== 35)) { assert.ok(p.price >= 60 && p.price <= 90, `${p.id} is $60 to $90`); assert.equal(p.venue, "Club"); }
+  assert.equal(by("metal", "gold").price, 60); assert.equal(by("wear", "worn").price, 90);
+  for (const id of ["leopard", "tiger", "cow", "checker", "paisley"]) { assert.equal(by("guard", id).price, 35); assert.equal(by("guard", id).venue, "Club"); }
+  for (const id of ["teal", "violet", "purple", "koa"]) { assert.equal(by("top", id).price, 120); assert.equal(by("top", id).venue, "Theater"); }
+  assert.ok(by("guard", "sunflower").hidden && by("guard", "sunflower").price === 0);
+  assert.ok(!/\$(25|35|45|60|70|75|80|90|120)\b|price: (25|35|45|60|70|75|80|90|120)\b/.test(read("builder.js")), "no part price is written anywhere but the constant");
+});
+
+test("Road Ready 9b: an old save with no builds loads unchanged, and a bad entry is dropped", () => {
+  const old = { songs: [], settings: { v: 6 }, merch: { tips: 50, has: ["g-stickerriot"] } };
+  const d = C.migrate(JSON.parse(JSON.stringify(old)));
+  assert.equal(d.builds, undefined, "no builds appear"); assert.deepEqual(d.merch.has, ["g-stickerriot"]);
+  assert.equal(C.cleanBuilds(undefined), null); assert.equal(C.cleanBuilds("x"), null); assert.equal(C.cleanBuilds({}), null);
+  assert.deepEqual(C.cleanBuilds({ open: { paint: "nope" }, bogus: { paint: "amber" }, scales: { paint: "seafoam", long: true, junk: 1, top: "none", wear: "new" } }), { scales: { paint: "seafoam", long: 1 } }, "unknown legs, unknown values, extra keys and stock values go");
+  const b = C.migrate({ songs: [], settings: { v: 6 }, builds: { open: { paint: "seafoam", guard: "leopard", wear: 5 }, zzz: {} }, merch: { has: ["b-seafoam", "b-bogus", "g-nope"] } });
+  assert.deepEqual(b.builds, { open: { paint: "seafoam", guard: "leopard" } }); assert.deepEqual(b.merch.has, ["b-seafoam"]);
+});
+
+test("Road Ready 9b: a locked part can't be bought, an open one can, and a bought part is free the second time", () => {
+  let d = earnedB(2); /* Coffeehouse: shop parts are open, custom parts are not */
+  assert.deepEqual(C.buildSave(d, "open", { guard: "leopard" }), { why: "locked", id: "leopard" }); assert.equal(d.merch.tspent, undefined, "a locked part costs nothing"); assert.equal(d.builds, undefined);
+  assert.deepEqual(C.buildSave(d, "open", { top: "koa" }), { why: "locked", id: "koa" });
+  assert.deepEqual(C.buildSave(d, "switch", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built");
+  assert.equal(C.buildCost(d, "open", { paint: "seafoam", wear: "played" }), 65, "the running total is the new parts");
+  d.merch.tips = 0; assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam" }), { why: "tips", cost: 25 });
+  d = earnedB(2);
+  const before = C.tipsOf(d);
+  assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam", wear: "played" }), { ok: true, cost: 65 });
+  assert.equal(C.tipsOf(d), before - 65); assert.deepEqual(d.builds, { open: { paint: "seafoam", wear: "played" } }); assert.deepEqual(d.merch.has.sort(), ["b-played", "b-seafoam"]);
+  /* taken off and put back on: free, and free on any guitar */
+  assert.deepEqual(C.buildSave(d, "open", {}), { ok: true, cost: 0 }); assert.equal(d.builds, undefined, "a guitar left as painted keeps no entry");
+  assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam" }), { ok: true, cost: 0 }); assert.equal(C.tipsOf(d), before - 65, "bought once");
+  assert.equal(C.buildCost(d, "scales", { paint: "seafoam", wear: "played" }), 0, "the same parts are free on every guitar");
+  /* stock parts are always free; the hidden guard needs the song */
+  assert.equal(C.buildCost(d, "open", { paint: "black", guard: "mint" }), 0);
+  assert.deepEqual(C.buildSave(d, "open", { guard: "sunflower" }), { why: "locked", id: "sunflower" });
+  const e = earnedB(4, null, { songs: [{ id: "s1", title: "Sunflower", playLog: { total: 1 } }] });
+  assert.deepEqual(C.buildSave(e, "open", { guard: "sunflower" }), { ok: true, cost: 0 }, "free after finishing a Sunflower song");
+  /* it only looks: fans, XP, what legs earn and the chart are untouched */
+  const f = earnedB(4), snap = () => JSON.stringify({ f: C.fansOf(f), x: C.levelOf(f), g: C.guitarsEarned(f) });
+  const s0 = snap(); C.buildSave(f, "open", { paint: "candy" }); assert.equal(snap(), s0);
+});
+
+test("Road Ready 9b: what each guitar takes", () => {
+  assert.deepEqual(C.buildShown("open", { top: "teal", paint: "seafoam" }), { paint: "seafoam" }, "an acoustic can't wear a flame top, and the choice is not drawn");
+  assert.deepEqual(C.buildShown("open", { top: "koa" }), { top: "koa" });
+  assert.deepEqual(C.buildShown("strum", { guard: "leopard", wear: "worn" }), { wear: "worn" }, "no guard on Hollow Hill: kept in the save, not drawn");
+  assert.deepEqual(C.buildShown("pick", { guard: "leopard" }), {}); assert.deepEqual(C.buildShown("finger", { guard: "leopard" }), {});
+  assert.deepEqual(C.buildShown("scales", { top: "teal", guard: "leopard" }), { top: "teal", guard: "leopard" });
+  assert.deepEqual(C.buildShown("open", {}), {}, "no build is the painting"); assert.deepEqual(C.buildShown("open", { paint: "original", wear: "new", metal: "chrome" }), {});
+  assert.notEqual(C.buildKey("open", { paint: "seafoam" }), C.buildKey("open", { paint: "black" })); assert.equal(C.buildKey("strum", { guard: "leopard" }), C.buildKey("strum", {}), "choices that draw nothing share the painting's key");
+  assert.equal(C.buildKey("scales", { paint: "candy", long: 1 }), C.buildKey("scales", { long: 1, paint: "candy" }), "the key doesn't depend on order");
+});
+
+test("Road Ready 9b: the offline copy has the builder's code and art, and the textures load on first use", () => {
+  const sw = read("sw.js"), shell = JSON.parse(sw.match(/const SHELL = (\[.*?\]);/s)[1]);
+  for (const f of ["buildart.js", "builder.js", "art/guitars/builder/manifest.json"]) assert.ok(shell.includes(f), f);
+  for (const t of Object.values(C.BUILD_TAKES)) for (const f of fs.readdirSync(path.join(root, "art/guitars/builder", t.slug))) assert.ok(shell.includes(`art/guitars/builder/${t.slug}/${f}`), `${t.slug}/${f}`);
+  assert.ok(!shell.some(f => f.includes("builder/tex/")), "the 13 textures are cached when first used, not at install");
+});

@@ -1375,6 +1375,110 @@ export function guitarShown(data, legId) {
   const base = guitarFor(legId), id = data?.merch?.guitar, g = (data?.merch?.has || []).includes(`g-${id}`) && shopItem(id);
   return g ? { ...base, name: g.name, kind: g.kind, body: g.id, shape: base.shape, shop: true } : base;
 }
+/* ---- The guitar builder (Road Ready 9b): restyle the guitars you've earned ----
+   One constant: [id, category, tips, the venue it opens at (an index of VENUES in core/turf.js)]. Change a price or a venue here
+   and nowhere else. Stock parts are free with each body. A part is bought once and is then free on every guitar; bought parts
+   go in data.merch.has as `b-<id>`. The builds are data.builds: { [leg guitar id]: { paint, top, guard, wear, metal, long } },
+   and a missing entry (or a missing field) means the painting as it is. Names, colours and textures come from
+   art/guitars/builder/manifest.json (Grok's art); a test checks these ids against it. Looks only: nothing here touches fans,
+   tips earned, scores or what a leg earns. Spec section 8 (docs/road-ready/louie-design-spec.md). */
+export const BUILD_PARTS = [
+  /* stock: free with each body */
+  ["amber", "paint", 0, 0], ["black", "paint", 0, 0],
+  ["pearloid", "guard", 0, 0], ["tortoise", "guard", 0, 0], ["mint", "guard", 0, 0], ["black", "guard", 0, 0],
+  /* shop: open at Coffeehouse, $25 to $45 */
+  ["seafoam", "paint", 25, 2], ["burgundy", "paint", 35, 2], ["tobacco", "paint", 35, 2], ["honey", "paint", 35, 2],
+  ["played", "wear", 40, 2], ["nickel", "metal", 45, 2],
+  /* custom: open at Club, $60 to $90 */
+  ["candy", "paint", 60, 3], ["silverflake", "paint", 70, 3], ["graphite", "paint", 70, 3], ["midnight", "paint", 80, 3],
+  ["chrome", "guard", 75, 3], ["marble", "guard", 75, 3], ["gold", "metal", 60, 3], ["worn", "wear", 90, 3],
+  /* print guards: open at Club, $35 each */
+  ["leopard", "guard", 35, 3], ["tiger", "guard", 35, 3], ["cow", "guard", 35, 3], ["checker", "guard", 35, 3], ["paisley", "guard", 35, 3],
+  /* flame and koa tops: open at Theater, $120 each */
+  ["teal", "top", 120, 4], ["violet", "top", 120, 4], ["purple", "top", 120, 4], ["koa", "top", 120, 4],
+  /* hidden: opens free once you finish a song with "sunflower" in its title */
+  ["sunflower", "guard", 0, 0]
+].map(([id, cat, price, at]) => ({ id, cat, price, at, venue: VENUES[at], hidden: id === "sunflower" }));
+/* what each Road guitar takes (the manifest's `options`): the flame tops it can wear and whether it has a guard to change.
+   Teal, Violet and Purple are maple flame tops for the electric bodies; the acoustics take koa only. */
+const FLAME = ["teal", "violet", "purple", "koa"];
+export const BUILD_TAKES = {
+  open: { slug: "porch", tops: ["koa"], guard: true }, switch: { slug: "cornerstone", tops: ["koa"], guard: true },
+  scales: { slug: "clubslab", tops: FLAME, guard: true }, strum: { slug: "hollowhill", tops: FLAME, guard: false },
+  pick: { slug: "swing", tops: FLAME, guard: false }, finger: { slug: "koaarc", tops: ["koa"], guard: false },
+  encore: { slug: "comet", tops: FLAME, guard: true }
+};
+/* the choices that mean "the painting as it is" */
+export const BUILD_STOCK = { paint: "original", top: "none", guard: "original", wear: "new", metal: "chrome" };
+const buildPart = (cat, id) => BUILD_PARTS.find(x => x.cat === cat && x.id === id);
+/* you have finished a song whose title has "sunflower" in it: the hidden guard opens, free */
+export const sunflowerOn = data => (data.songs || []).some(s => /sunflower/i.test(s.title || "") && (s.playLog?.total || 0) > 0);
+/* the parts: for each, is it yours, open at your venue, or still hidden; what it would cost you now */
+export function buildState(data) {
+  const m = data.merch || {}, has = new Set(m.has || []), ring = shopRing(data), tips = tipsOf(data), sun = sunflowerOn(data);
+  const rows = BUILD_PARTS.map(x => {
+    const owned = !x.price && !x.hidden || has.has(`b-${x.id}`) || (x.hidden && sun);
+    return { ...x, owned, open: owned || ring >= x.at, show: !x.hidden || owned };
+  });
+  return { rows, tips, ring };
+}
+const buildRow = (st, cat, id) => st.rows.find(x => x.cat === cat && x.id === id);
+/* a build, cleaned to what this guitar draws; default values leave the entry (missing means the painting) */
+export function buildOf(data, legId) {
+  const b = data.builds?.[legId];
+  return b ? { ...b } : {};
+}
+/* the choices that change the picture: a guard on a guitar with no guard, and a flame top it cannot wear, are kept but not drawn */
+export function buildShown(legId, b = {}) {
+  const t = BUILD_TAKES[legId];
+  if (!t) return {};
+  const out = {};
+  if (b.paint && b.paint !== BUILD_STOCK.paint) out.paint = b.paint;
+  if (b.top && b.top !== BUILD_STOCK.top && t.tops.includes(b.top)) out.top = b.top;
+  if (t.guard && b.guard && b.guard !== BUILD_STOCK.guard) out.guard = b.guard;
+  if (b.wear && b.wear !== BUILD_STOCK.wear) out.wear = b.wear;
+  if (b.metal && b.metal !== BUILD_STOCK.metal) out.metal = b.metal;
+  if (b.long) out.long = 1;
+  return out;
+}
+export const buildKey = (legId, b) => `${legId}:${JSON.stringify(buildShown(legId, b), ["paint", "top", "guard", "wear", "metal", "long"])}`;
+/* the new parts a build would buy on this guitar: the ones it draws that you don't own yet */
+export function buildNew(data, legId, b) {
+  const st = buildState(data), sh = buildShown(legId, b), out = [];
+  for (const cat of ["paint", "top", "guard", "wear", "metal"]) if (sh[cat]) { const r = buildRow(st, cat, sh[cat]); if (r && !r.owned) out.push(r); }
+  return out;
+}
+export const buildCost = (data, legId, b) => buildNew(data, legId, b).reduce((a, r) => a + r.price, 0);
+/* save a build to a guitar you've earned: { ok, cost } or { why: "none" | "locked" | "tips", id } */
+export function buildSave(data, legId, choice) {
+  if (!BUILD_TAKES[legId] || !guitarsEarned(data).includes(legId)) return { why: "none" };
+  const b = cleanBuilds({ [legId]: choice })?.[legId] || {};
+  const st = buildState(data);
+  for (const r of buildNew(data, legId, b)) if (!r.open || r.hidden) return { why: "locked", id: r.id };
+  const cost = buildCost(data, legId, b);
+  if (st.tips < cost) return { why: "tips", cost };
+  const m = data.merch || (data.merch = {});
+  if (cost) m.tspent = (m.tspent || 0) + cost;
+  for (const r of buildNew(data, legId, b)) (m.has || (m.has = [])).push(`b-${r.id}`);
+  const builds = data.builds || (data.builds = {});
+  if (Object.keys(b).length) builds[legId] = b; else delete builds[legId];
+  if (!Object.keys(builds).length) delete data.builds;
+  return { ok: true, cost };
+}
+/* keep only known guitars, known values and the right types; a field with a value the app doesn't know is dropped,
+   and an entry with nothing left is dropped. Whether you own the parts is not checked here: a backup keeps what it had. */
+export function cleanBuilds(raw) {
+  if (!isObj(raw)) return null;
+  const out = {};
+  for (const [id, e] of Object.entries(raw)) {
+    if (!BUILD_TAKES[id] || !isObj(e)) continue;
+    const b = {};
+    for (const cat of ["paint", "top", "guard", "wear", "metal"]) if (typeof e[cat] === "string" && e[cat] !== BUILD_STOCK[cat] && buildPart(cat, e[cat])) b[cat] = e[cat];
+    if (e.long === true || e.long === 1) b.long = 1;
+    if (Object.keys(b).length) out[id] = b;
+  }
+  return Object.keys(out).length ? out : null;
+}
 export function cleanMerch(raw) {
   if (!isObj(raw)) return null;
   const out = {}, day = /^\d{4}-\d\d-\d\d$/, ids = new Set(MERCH.map(x => x.id));
@@ -1389,7 +1493,8 @@ export function cleanMerch(raw) {
   for (const g of MERCH.filter(x => x.kind === "gear")) { const n = Math.max(0, Math.min(g.max, Math.floor(+raw.own?.[g.id] || 0))); if (n) own[g.id] = n; }
   if (Object.keys(own).length) out.own = own;
   const shopIds = new Set(GUITAR_SHOP.map(x => `g-${x.id}`));
-  const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => shopIds.has(id) || (ids.has(id) && merchItem(id).kind !== "gear")))];
+  const buildIds = new Set(BUILD_PARTS.filter(x => x.price).map(x => `b-${x.id}`));
+  const has = [...new Set((Array.isArray(raw.has) ? raw.has : []).filter(id => shopIds.has(id) || buildIds.has(id) || (ids.has(id) && merchItem(id).kind !== "gear")))];
   if (has.length) out.has = has;
   const free = id => MERCH.some(x => x.id === id && freeItem(x));
   if (has.includes(raw.louie) || free(raw.louie)) out.louie = raw.louie;
