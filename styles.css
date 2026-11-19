@@ -5161,7 +5161,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 
 /* ---- Road Ready 9b, the guitar builder (builder.js): the case at the top, chips, 44 px swatches, a running total ---- */
 .mc-build { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--fg); font-family: var(--sans); text-align: left; }
-.mc-build:disabled { opacity: .7; }
+.mc-build:disabled { border-style: dashed; } /* 4.97.1: no fading, the line under the title has to stay readable */
+.mc-build:disabled svg { opacity: .5; }
 .mc-build-t { display: grid; gap: 2px; min-width: 0; }
 .mc-build-t b { font: 700 16px var(--display); }
 .mc-build-t small { font: 700 12.5px var(--sans); color: var(--muted); }
