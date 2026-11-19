@@ -637,7 +637,7 @@ export function badgesOf(data, p) {
     b("chords5", "5", "CHORDS", "chord", p.chords.length >= 5), b("chords10", "10", "CHORDS", "chord", p.chords.length >= 10), b("chords20", "20", "CHORDS", "chord", p.chords.length >= 20), b("barre", "1st", "BARRE CHORD", "chord", p.barres >= 1),
     b("writer", "1st", "SONG WRITTEN", "song", (data.songs || []).some(x => x.sketch)), /* 4.74.0: Sing it */
     b("got1", "1st", "SONG GOT", "song", p.got >= 1), b("got10", "10", "SONGS GOT", "song", p.got >= 10),
-    b("openmic", VENUES[1].toUpperCase(), "REACHED", "venue", ring >= 1), b("coffee", "CAFE", VENUES[2].toUpperCase(), "venue", ring >= 2), b("club", VENUES[3].toUpperCase(), "REACHED", "venue", ring >= 3),
+    b("openmic", VENUES[1].toUpperCase(), "REACHED", "venue", ring >= 1), b("coffee", "CAFE", "REACHED", "venue", ring >= 2), b("club", VENUES[3].toUpperCase(), "REACHED", "venue", ring >= 3),
     b("band1", "1st", "BAND MEMBER", "band", band.joined.length >= 1), b("drums", "BEAT", "ON DRUMS", "band", band.joined.some(x => x.id === "beat")), b("band18", "ALL", "FULL BAND", "band", band.joined.length >= BAND.length),
     b("promoted", "UP", "PROMOTED", "chart", promoted), b("duel", "WIN", "SONG DUEL", "chart", won), b("tune10", "10", "TUNE-UPS", "streak", p.tune.sessions >= 10)
   ];
