@@ -508,11 +508,18 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
   assert.ok(+(await page.innerText("#h-fans")).replace(/\D/g, "") >= 1200, "and your fans stay");
   await page.click("#h-tips"); await page.waitForSelector(".mc-head");
+  /* 4.104.0: the table is three tabs in Dark and Light; Guitars first, arrows move between them */
+  assert.equal(await page.innerText(".mc-head h1"), "Merch");
+  assert.deepEqual(await page.$$eval(".mc-seg [role=tab]", ts => ts.map(t => [t.textContent, t.getAttribute("aria-selected")])), [["Guitars", "true"], ["Looks", "false"], ["Gear", "false"]]);
+  assert.equal(await page.isVisible("#mc-p-guitars"), true); assert.equal(await page.isVisible("#mc-p-gear"), false);
+  await page.focus("#mc-t-guitars"); await page.keyboard.press("ArrowLeft");
+  assert.equal(await page.getAttribute("#mc-t-gear", "aria-selected"), "true", "left from the first tab goes to the last");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "mc-t-gear");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
   /* 4.102.0: Louie's finishes are off the table (the tweed Louie); a backdrop is bought and put on instead */
   assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 0, "no Louie finishes");
-  await page.click(".mc-drop[data-id=brick]"); await page.waitForSelector(".mt-sheet");
+  await page.click("#mc-t-looks"); await page.click(".mc-drop[data-id=brick]"); await page.waitForSelector(".mt-sheet");
   assert.match(await page.innerText(".mt-sheet"), /Brick wall[\s\S]*COSTS[\s\S]*300/);
   await page.click("#mt-buy"); await page.waitForSelector(".mc-drop.on[data-id=brick]");
   assert.equal(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, ""), fans - 300);
