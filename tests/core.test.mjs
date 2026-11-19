@@ -3314,6 +3314,8 @@ test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, a
   for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
     const hs = [5, 9, 12].map(n => FB.roadLayout([...mk(n), { kind: "headline", state: "locked" }], p).height);
     assert.equal(new Set(hs).size, 1, `${slug}: height ${hs.join(", ")}`);
+    const full = Math.round(C.ROAD.margin + C.ROAD.scale * p.road.h + C.ROAD.margin);
+    assert.ok(hs[0] < full, `${slug}: the unused lower body is cropped (${hs[0]} of ${full})`);
     const lay = FB.roadLayout([...mk(12), { kind: "headline", state: "locked" }], p);
     assert.ok(lay.spaces.every(sp => sp.y > 0 && sp.y < lay.height && sp.x > 0 && sp.x < 390), `${slug}: every stop is on the picture`);
   }
@@ -3344,7 +3346,7 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   const { FB, PICS } = await wired(), { roadHit, roadPath, migrate } = C, legs = roadPath(migrate({ songs: [], settings: { v: 6 } })).legs;
   const mk = k => [...k].map(c => ({ kind: c === "B" ? "box" : c === "H" ? "headline" : "chord" }));
   const sets = [...legs.map(l => l.stops.map(s => ({ kind: s.kind }))), mk("LLLBLLLBLH"), mk("LLLBLLLBLLLLH")];
-  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? [30, 22] : cur ? [52, 38] : [26, 26];
+  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? FB.RR_SIZE.box : cur ? FB.RR_SIZE.now : FB.RR_SIZE.dot;
   let n = 0;
   for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) for (const stops of sets) {
     const sp = FB.roadLayout(stops, p).spaces;
@@ -3357,8 +3359,29 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   }
   assert.ok(n > 1000, `${n} taps checked`);
   /* Chord switches, lesson 2 current: the first lesson's own art opens the first lesson */
-  const pts = [{ x: 150, y: 300, w: 26, h: 26, done: true }, { x: 205, y: 318, w: 52, h: 38 }];
+  const pts = [{ x: 150, y: 300, w: FB.RR_SIZE.dot[0], h: FB.RR_SIZE.dot[1], done: true }, { x: 205, y: 318, w: FB.RR_SIZE.now[0], h: FB.RR_SIZE.now[1] }];
   assert.equal(roadHit(pts, { x: 150, y: 300 }, 1), 0); assert.equal(roadHit(pts, { x: 205, y: 318 }, 1), 1); assert.equal(roadHit(pts, { x: 20, y: 310 }, 1), 1, "the rest of the row is the current stop's");
+});
+
+test("Road Ready: stop art makes progress the hero, with a solid done check, a large current stop, and a calm locked outline", async () => {
+  const { rrStopArt, RR_SIZE } = await import("../fretboard.js");
+  assert.deepEqual(RR_SIZE.dot, [36, 36]);
+  assert.deepEqual(RR_SIZE.now, [64, 46]);
+  const done = rrStopArt("dot", "done", 3);
+  assert.match(done, /rr-pearl done/, "a finished stop is a solid disc");
+  assert.match(done, /rr-eng done/, "with a check");
+  assert.match(done, /class="rr-halo"/, "and a soft halo");
+  assert.ok(!/rr-sheen/.test(done), "no pearl sheen on a done stop, so it reads as solid amber");
+  const now = rrStopArt("dot", "now", 6);
+  assert.match(now, /class="rr-glow"/, "the current stop glows");
+  assert.match(now, /width="64"[\s\S]*height="46"/, "and is the large trapezoid");
+  assert.match(now, />6</, "with its show number");
+  const ahead = rrStopArt("dot", "locked", 7);
+  assert.match(ahead, /rr-pearl ahead rr-ring/, "a locked stop is a calm outline");
+  assert.match(ahead, />7</, "with its number");
+  assert.ok(!/rr-pearl done|rr-pearl now/.test(ahead), "and is not filled as a done or current stop");
+  const open = rrStopArt("dot", "open", 9);
+  assert.match(open, /rr-pearl ahead rr-ring/, "an open stop ahead uses the same outline");
 });
 
 /* ---------- Road Ready 9b: the guitar builder (BUILD_PARTS and friends in core/game.js, buildart.js, builder.js) ---------- */
