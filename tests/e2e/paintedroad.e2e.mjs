@@ -91,6 +91,20 @@ test("Painted necks: from the keyboard, Enter opens the card and moves focus to 
   assert.equal(await page.evaluate(() => document.activeElement?.dataset?.stop), "c:Am", "focus is back on the stop");
 });
 
+test("Painted necks: on Chord switches, with lesson 2 current, a tap on finished lesson 1 opens lesson 1, and a tap on lesson 2 opens lesson 2", { skip: skip() }, async t => {
+  const page = await road(t, "dark", doneOf([...OPEN, "k:open", "s:G-C"]));
+  assert.equal(await page.locator(".rd-node.cur").getAttribute("data-stop"), "s:C-D");
+  const shown = () => page.evaluate(() => document.querySelector(".rd-pop")?.parentElement.querySelector("[data-stop]").dataset.stop);
+  const still = () => page.evaluate(() => new Promise(res => { const el = document.querySelector(".rd-node.cur"); let last = -1, n = 0; const f = () => { const y = el.getBoundingClientRect().top; n = y === last ? n + 1 : 0; last = y; n >= 8 ? res() : requestAnimationFrame(f); }; f(); }));
+  const first = await rect(page, stopSel("s:G-C"));
+  await page.mouse.click(first.x, first.y); await page.waitForSelector(".rd-pop");
+  assert.equal(await shown(), "s:G-C", "lesson 1's card, not lesson 2's");
+  await page.keyboard.press("Escape"); await page.waitForSelector(".rd-pop", { state: "detached" }); await still();
+  const cur = await rect(page, stopSel("s:C-D"));
+  await page.mouse.click(cur.x, cur.y); await page.waitForSelector(".rd-pop");
+  assert.equal(await shown(), "s:C-D", "lesson 2's card");
+});
+
 for (const theme of ["dark", "light"]) {
   test(`Painted necks: at 320 px wide in ${theme}, a busy inlay guitar keeps every stop on the screen and its number readable`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID, { merch: { guitar: "velvetcrown", has: ["g-velvetcrown"] }, journal: { v: 1, months: { "2026-11": { plays: 400 } } } }, { viewport: { width: 320, height: 640 } });

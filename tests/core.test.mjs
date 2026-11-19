@@ -3252,7 +3252,7 @@ test("Painted necks: roadHit gives the current stop a zone 32 units above and be
     }
   }
   /* outside the zone the nearest stop wins; the badge takes a tap inside its rectangle plus 8 units all round */
-  const pts = [{ x: 150, y: 100 }, { x: 240, y: 160 }, { x: 195, y: 500, w: 150, h: 42 }, { x: 290, y: 500 }];
+  const pts = [{ x: 150, y: 100 }, { x: 240, y: 160 }, { x: 195, y: 500, w: 150, h: 42, badge: true }, { x: 290, y: 500 }];
   assert.equal(roadHit(pts, { x: 245, y: 135 }, 0), 1, "beyond 32 units of the current stop's row, the nearest stop wins");
   assert.equal(roadHit(pts, { x: 195 + 75 + 8, y: 500 + 21 + 8 }, 0), 2, "the badge's padded corner");
   assert.equal(roadHit(pts, { x: 195 + 75 + 9, y: 500 }, 1), 3, "just outside the padded badge, the nearest stop wins");
@@ -3302,4 +3302,24 @@ test("Painted necks: the eight older pictures lay out with picLayout exactly as 
     assert.equal(lay.spaces.map(s => Math.round(s.y)).join(" "), "33 97 158 215 270 321 370 418 466 514", `${slug}: stop rows`);
     assert.equal(lay.road, undefined, `${slug}: laid out by picLayout, not roadLayout`);
   }
+});
+test("Painted necks: a finished stop is always tappable, on every guitar and every leg, whichever stop is current", async () => {
+  const { FB, PICS } = await wired(), { roadHit, roadPath, migrate } = C, legs = roadPath(migrate({ songs: [], settings: { v: 6 } })).legs;
+  const mk = k => [...k].map(c => ({ kind: c === "B" ? "box" : c === "H" ? "headline" : "chord" }));
+  const sets = [...legs.map(l => l.stops.map(s => ({ kind: s.kind }))), mk("LLLBLLLBLH"), mk("LLLBLLLBLLLLH")];
+  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? [30, 22] : cur ? [52, 38] : [26, 26];
+  let n = 0;
+  for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) for (const stops of sets) {
+    const sp = FB.roadLayout(stops, p).spaces;
+    for (let cur = 0; cur < sp.length; cur++) {
+      const pts = sp.map((s, i) => ({ x: s.x, y: s.y, w: size(s, i === cur)[0], h: size(s, i === cur)[1], done: i < cur, badge: s.kind === "double" }));
+      for (let i = 0; i < cur; i++) { n++; assert.equal(roadHit(pts, { x: pts[i].x, y: pts[i].y }, cur), i, `${slug}: with stop ${cur + 1} current, a tap on finished stop ${i + 1} selects it`); }
+      /* a locked stop never takes a tap from inside the zone */
+      for (let i = cur + 1; i < sp.length; i++) if (Math.abs(pts[i].y - pts[cur].y) <= 32) assert.equal(roadHit(pts, { x: pts[i].x, y: pts[i].y }, cur), cur, `${slug}: a locked stop inside the zone does not take the tap`);
+    }
+  }
+  assert.ok(n > 1000, `${n} taps checked`);
+  /* Chord switches, lesson 2 current: the first lesson's own art opens the first lesson */
+  const pts = [{ x: 150, y: 300, w: 26, h: 26, done: true }, { x: 205, y: 318, w: 52, h: 38 }];
+  assert.equal(roadHit(pts, { x: 150, y: 300 }, 1), 0); assert.equal(roadHit(pts, { x: 205, y: 318 }, 1), 1); assert.equal(roadHit(pts, { x: 20, y: 310 }, 1), 1, "the rest of the row is the current stop's");
 });

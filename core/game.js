@@ -171,13 +171,20 @@ export function roadPlace(kinds, road) {
   }
   return { spaces: acc, used: acc.length, full: false };
 }
-/* Which stop a tap selects. pts: the stops' centres in the drawing's units, [{ x, y }] (the headline badge may carry w and h: its
+/* Which stop a tap selects. pts: the stops' centres in the drawing's units, [{ x, y }] (the headline badge carries badge: true, w and h: its
    rectangle plus ROAD.pad all round); cur: the index of the current stop, or -1; tap: { x, y }. The current stop has a zone ROAD.zone
-   above and below its y across the whole width of the Road: a tap in it is always the current stop. Anything else goes to the nearest
+   above and below its y across the whole width of the Road: a tap in it is the current stop, except a tap on a finished stop's own art (points
+   with w, h and done), which is that stop's. Anything else goes to the nearest
    stop (the badge: inside its padded rectangle). Returns an index, or -1 for no stops. */
 export function roadHit(pts, tap, cur = -1) {
-  if (cur >= 0 && pts[cur] && Math.abs(tap.y - pts[cur].y) <= ROAD.zone) return cur;
-  const bi = pts.findIndex(p => p.w && Math.abs(tap.x - p.x) <= p.w / 2 + ROAD.pad && Math.abs(tap.y - p.y) <= p.h / 2 + ROAD.pad);
+  if (cur >= 0 && pts[cur] && Math.abs(tap.y - pts[cur].y) <= ROAD.zone) {
+    /* a finished stop is always tappable: a tap on its own art (a point with w, h and done) is that stop's, the nearest centre if two overlap.
+       Locked stops never take a tap from inside the zone. */
+    let at = cur, d = Infinity;
+    pts.forEach((p, i) => { if (!(i === cur || p.done) || !p.w || Math.abs(tap.x - p.x) > p.w / 2 + 2 || Math.abs(tap.y - p.y) > p.h / 2 + 2) return; const m = Math.hypot(tap.x - p.x, tap.y - p.y); if (m < d) { d = m; at = i; } });
+    return at;
+  }
+  const bi = pts.findIndex(p => p.badge && p.w && Math.abs(tap.x - p.x) <= p.w / 2 + ROAD.pad && Math.abs(tap.y - p.y) <= p.h / 2 + ROAD.pad);
   if (bi >= 0) return bi;
   let at = -1, d = Infinity;
   pts.forEach((p, i) => { const m = Math.hypot(tap.x - p.x, tap.y - p.y); if (m < d) { d = m; at = i; } });

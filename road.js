@@ -367,7 +367,7 @@ export function renderRoad() {
   const roadTapNode = (neck, e) => {
     const r = neck.getBoundingClientRect(), lh = +neck.dataset.lh || 1, tap = { x: (e.clientX - r.left) / r.width * 390, y: (e.clientY - r.top) / r.height * lh };
     const btns = [...neck.querySelectorAll("[data-stop][data-hx]")];
-    const pts = btns.map(b => ({ x: +b.dataset.hx, y: +b.dataset.hy, ...(b.dataset.kind === "double" ? { w: 150, h: 42 } : {}) }));
+    const pts = btns.map(b => { const art = b.querySelector(".rr-art"); return { x: +b.dataset.hx, y: +b.dataset.hy, w: +art?.getAttribute("width") || 0, h: +art?.getAttribute("height") || 0, done: b.classList.contains("done"), badge: b.dataset.kind === "double" }; });
     const at = roadHit(pts, tap, cur ? btns.findIndex(b => b.dataset.stop === cur.id) : -1);
     return btns[at] || null;
   };
