@@ -34,7 +34,8 @@ export function makerSheet({ mode = "full", done } = {}) {
   const step = Math.min(openingStep(data) + 1, OPENING.length);
   function panel() {
     if (tab === "face") return `<h3>Skin</h3>${blots("skin", SKIN, null, "Skin")}
-      <h3>Face</h3><div class="gm-row gm-thumbs">${ME_BEARD.map(b => chip("beard", b, BEARD[b], me.beard === b, bust({ beard: b }) + `<span>${BEARD[b]}</span>`)).join("")}${chip("glasses", !me.glasses, "Glasses", me.glasses, bust({ glasses: true }) + "<span>Glasses</span>")}</div>`;
+      <h3>Face</h3><div class="gm-row gm-thumbs">${ME_BEARD.map(b => chip("beard", b, BEARD[b], me.beard === b, bust({ beard: b }) + `<span>${BEARD[b]}</span>`)).join("")}${chip("glasses", !me.glasses, "Glasses", me.glasses, bust({ glasses: true }) + "<span>Glasses</span>")}</div>
+      ${me.beard && me.beard !== "none" && me.beard !== "stubble" ? `<h3>Beard colour</h3><div class="gm-row gm-blots" role="group" aria-label="Beard colour">${ME_HAIR_COL.map(v => chip("beardCol", v, `Beard colour: ${v}`, (me.beardCol || me.hairCol) === v, `<i class="gm-blot" style="--ink:${HAIR_COL[v]}"></i>`)).join("")}</div>` : ""}`;
     if (tab === "hair") return `<h3>Hair</h3><div class="gm-row gm-thumbs gm-hair">${ME_HAIR.map(h => chip("hair", h, NAME[h], me.hair === h, bust({ hair: h }) + `<span>${NAME[h]}</span>`)).join("")}</div>
       <h3>Hair colour</h3>${blots("hairCol", ME_HAIR_COL, HAIR_COL, "Hair colour")}`;
     if (tab === "fit") {
@@ -73,6 +74,7 @@ export function makerSheet({ mode = "full", done } = {}) {
       const k = b.dataset.k, v = b.dataset.v;
       if (k === "starter") { me = { ...ME_STARTERS[+v], extra: me.extra, extraCol: me.extraCol, lefty: me.lefty, patches: me.patches }; keep(); paint(); haptic(1); }
       else if (k === "skin") set("skin", +v);
+      else if (k === "beardCol") { me = { ...me, beardCol: v === me.hairCol ? undefined : v }; keep(); paint(); haptic(1); }
       else if (k === "glasses") set("glasses", v === "true");
       else if (k === "lefty") set("lefty", v === "true");
       else if (k === "patch") { const cur = patchesOf({ ...data, me }).map(x => x.id), on = (me.patches?.length ? me.patches : []).includes(v); const base = me.patches?.length ? me.patches : cur; set("patches", on ? base.filter(x => x !== v) : [...base.filter(x => x !== v), v].slice(-ME_PATCHES)); }
