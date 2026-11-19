@@ -3258,3 +3258,48 @@ test("Painted necks: roadHit gives the current stop a zone 32 units above and be
   assert.equal(roadHit(pts, { x: 195 + 75 + 9, y: 500 }, 1), 3, "just outside the padded badge, the nearest stop wins");
   assert.equal(roadHit([], { x: 1, y: 1 }, -1), -1);
 });
+test("Painted necks: every one of the 23 guitars has a road picture and fret data, saved for offline, and the road files stay small", async () => {
+  const PICS = (await import("../art/guitars/pics.js")).default, shell = read("sw.js"), news = Object.entries(PICS).filter(([, p]) => p.str);
+  assert.equal(news.length, 23);
+  let total = 0;
+  for (const [slug, p] of news) {
+    const f = `art/guitars/${slug}-road.webp`, r = p.road;
+    assert.ok(fs.existsSync(path.join(root, f)), f); assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    total += fs.statSync(path.join(root, f)).size;
+    assert.ok(r && r.w > 200 && r.h > r.w && r.cap >= 17 && r.f.length === 13 && r.sp.length === 11, `${slug}: the road entry has its 13 fret rows, 11 spaces and a capacity`);
+    assert.ok(r.cx > 0 && r.cx < r.w && r.nut > 0 && r.nut < r.join && r.join < r.h && r.badge[1] > r.join && r.badge[1] < r.h, `${slug}: nut, join and badge are inside the picture, in that order`);
+    assert.ok(r.f.every((row, i) => row.length === 9 && (!i || row[0] > r.f[i - 1][0])), `${slug}: the fret rows run down the picture`);
+  }
+  assert.ok(total < 2e6, `the 23 road pictures come to ${total} bytes`);
+});
+test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, and the stops stay inside the picture", async () => {
+  const { FB, PICS } = await wired(), mk = n => Array.from({ length: n }, (_, i) => ({ kind: i % 4 === 3 ? "box" : "chord", state: "locked" }));
+  for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
+    const hs = [5, 9, 12].map(n => FB.roadLayout([...mk(n), { kind: "headline", state: "locked" }], p).height);
+    assert.equal(new Set(hs).size, 1, `${slug}: height ${hs.join(", ")}`);
+    const lay = FB.roadLayout([...mk(12), { kind: "headline", state: "locked" }], p);
+    assert.ok(lay.spaces.every(sp => sp.y > 0 && sp.y < lay.height && sp.x > 0 && sp.x < 390), `${slug}: every stop is on the picture`);
+  }
+});
+test("Painted necks: every leg in the Road fits its guitar, whatever guitar it is shown on; the legs marked soon have no stops", async () => {
+  const { FB, PICS } = await wired(), data = C.migrate({ songs: [], settings: { v: 6 } }), legs = C.roadPath(data).legs;
+  assert.ok(legs.length >= 3);
+  const warned = []; const warn = console.warn; console.warn = m => warned.push(m);
+  try {
+    for (const leg of legs) for (const slug of Object.keys(PICS).filter(s => PICS[s].road)) FB.roadLayout(leg.stops, PICS[slug]);
+  } finally { console.warn = warn; }
+  assert.deepEqual(warned, [], "no leg has more stops than a guitar's neck takes");
+  for (const lv of C.SKILL_LEVELS.filter(l => l.soon)) assert.equal(lv.steps.length, 0, `${lv.id}: a leg that is coming has no stops to place`);
+  for (const leg of legs) assert.equal(FB.NANO_FILE[leg.id], C.GUITARS[leg.id].body, `${leg.id}: its own guitar`);
+});
+test("Painted necks: the eight older pictures lay out with picLayout exactly as before", async () => {
+  const { FB, PICS } = await wired(), kinds = [..."LLLBLLLBLH"].map(k => ({ kind: k === "B" ? "box" : k === "H" ? "headline" : "chord" }));
+  const heights = { parlor: 1498, cutaway: 1448, "cutaway-sunburst": 1459, solid: 1589, hollow: 1425, single: 1453, classical: 1440, headliner: 1556 };
+  for (const [slug, h] of Object.entries(heights)) {
+    const lay = FB.picLayout(kinds.map(k => ({ ...k })), PICS[slug]);
+    assert.equal(PICS[slug].road, undefined, `${slug} has no road picture`);
+    assert.equal(lay.height, h, `${slug}: height`);
+    assert.equal(lay.spaces.map(s => Math.round(s.y)).join(" "), "33 97 158 215 270 321 370 418 466 514", `${slug}: stop rows`);
+    assert.equal(lay.road, undefined, `${slug}: laid out by picLayout, not roadLayout`);
+  }
+});
