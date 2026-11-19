@@ -141,7 +141,7 @@ export function renderProfile() {
     <nav class="rr-card rr-rows" aria-label="Your places">
       ${rrRow("pf-r-band", "amp", "Your band", "", "#/band")}
       ${rrRow("pf-r-charts", "star", "Charts and duels", "", "#/charts")}
-      ${rrRow("pf-r-tune", "fork", "Tuner", "", "", !tunedRecently())}
+      ${rrRow("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
       ${nothing ? "" : rrRow("pf-share", "share", "Share your player card", "", "")}
       ${rrRow("pf-r-help", "info", "Help and feedback", "", "#/settings/help")}
     </nav>
