@@ -3805,6 +3805,10 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 .on-mic h2, .on-count-in h2 { margin: 6px 0; font: 700 26px var(--display); color: var(--fg); }
 .on-mic p, .on-count-in p { margin: 0 0 16px; font: 700 15px var(--sans); color: var(--muted); line-height: 1.4; }
 .on-mic .btn, .on-count-in .btn { width: 100%; }
+.on-strings { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
+.on-strings li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid color-mix(in srgb, var(--muted) 22%, transparent); font: 700 18px var(--display); color: var(--fg); }
+.on-strings li:last-child { border-bottom: 0; }
+.on-strings small { font: 700 13px var(--sans); color: var(--muted); }
 .on-not { display: block; margin: 10px auto 0; height: 44px; border: 0; background: none; color: var(--muted); font: 700 16px var(--display); }
 .on-count { position: absolute; inset: 0; z-index: 40; display: flex; align-items: flex-end; background: var(--scrim); }
 .on-count-in { width: 100%; box-sizing: border-box; border-radius: 24px 24px 0 0; background: var(--card); padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); text-align: center; animation: up .42s cubic-bezier(.2, 1.15, .3, 1); }
@@ -4788,8 +4792,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 
 /* ---- the connector: a blurred amber glow under a thin light core ---- */
 .rd-neck > svg.rd-conn { z-index: 1; pointer-events: none; overflow: visible; }
-.rr-cg { fill: none; stroke: var(--rr-glow); stroke-opacity: .6; stroke-width: 12; stroke-linecap: round; }
-.rr-cc { fill: none; stroke: var(--rr-glow-core); stroke-width: 2.2; stroke-linecap: round; }
+.rr-cg { fill: none; stroke: var(--rr-glow); stroke-opacity: .8; stroke-width: 16; stroke-linecap: round; }
+.rr-cc { fill: none; stroke: var(--rr-glow-core); stroke-width: 3.4; stroke-linecap: round; }
 .rr-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rr-draw .6s ease-out forwards; }
 @keyframes rr-draw { to { stroke-dashoffset: 0; } }
 
@@ -4799,11 +4803,22 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr {
   width: 44px; height: 44px; display: grid; place-items: center; color: inherit; overflow: visible; -webkit-tap-highlight-color: transparent;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.cur:not(.box, .headline) { width: 56px; height: 44px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.headline { width: 72px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.cur:not(.box, .headline) { width: 68px; height: 52px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.headline { width: 80px; height: 52px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr:active { transform: translate(-50%, -50%) translateY(1px); }
 .rd-node.rr .rr-art { position: relative; z-index: 1; overflow: visible; }
-.rr-pearl.done { fill: var(--rr-pearl-done); } .rr-pearl.now { fill: var(--rr-pearl-now); } .rr-pearl.ahead { fill: var(--rr-pearl-locked); }
+/* Progress is the hero: done stops are solid amber, the current one is lit, locked stops are a calm outline. */
+.rr-pearl.done { fill: var(--rr-amber); }
+.rr-pearl.now { fill: var(--rr-pearl-now); }
+.rr-pearl.ahead { fill: var(--rr-mesh); }
+.rr-pearl.ahead.rr-ring { stroke: var(--rr-outline); stroke-width: 2.4; }
+.rd-node.rr.done .rr-eng { fill: var(--rr-on-amber); stroke: var(--rr-on-amber); }
+.rd-node.rr.done .rr-eng-hi { fill: none; stroke: none; }
+.rd-node.rr.locked .rr-eng.locked { fill: var(--rr-text-2); stroke: var(--rr-text-2); }
+.rd-node.rr.locked .rr-eng-hi { opacity: .2; }
+/* The painted guitar sits quiet behind the path: lower brightness, contrast and saturation. Art files are unchanged. */
+:root[data-look="neon"] .rd-neck.road > svg.rr-quiet { filter: brightness(.62) contrast(.86) saturate(.38); }
+:root[data-look="festival"] .rd-neck.road > svg.rr-quiet { filter: brightness(.88) contrast(.9) saturate(.42); }
 .rr-cut { fill: none; stroke: #000; stroke-opacity: .45; stroke-width: 1; }
 .rr-sheen { fill: #fff; opacity: .55; }
 .rr-eng { fill: var(--rr-engrave); stroke: var(--rr-engrave); }
@@ -4814,10 +4829,10 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-eng text, .rr-eng-hi text { stroke: none; font-family: "Space Grotesk", var(--display); font-weight: 700; }
 /* the current stop glows from within; a done stop has a faint halo */
 .rr-glow, .rr-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
-.rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
-.rr-halo { width: 40px; height: 40px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 20%, transparent) 0, transparent 70%); }
+.rr-glow { width: 110px; height: 110px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 72%, transparent) 0, color-mix(in srgb, var(--rr-glow) 36%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
+.rr-halo { width: 52px; height: 52px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 32%, transparent) 0, transparent 70%); }
 /* light look (design review): the amber glow vanished on cream, so it is deeper and stronger there */
-:root[data-look="festival"] .rr-glow { width: 96px; height: 96px; background: radial-gradient(circle, rgba(232, 128, 20, .8) 0, rgba(240, 150, 40, .5) 38%, transparent 72%); }
+:root[data-look="festival"] .rr-glow { width: 120px; height: 120px; background: radial-gradient(circle, rgba(232, 128, 20, .85) 0, rgba(240, 150, 40, .55) 38%, transparent 72%); }
 :root[data-look="festival"] .rr-halo { background: radial-gradient(circle, rgba(232, 128, 20, .35) 0, transparent 70%); }
 /* dark look: a soft amber glow behind the neck, as in the design */
 :root[data-look="neon"] .rr-stage { background: radial-gradient(ellipse 70% 42% at 50% 38%, rgba(255, 170, 60, .16), transparent 72%); }

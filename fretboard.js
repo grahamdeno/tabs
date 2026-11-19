@@ -256,7 +256,13 @@ export function roadLayout(stops, p) {
     const st = neck[c.i], string = c.lane === "left" ? 1 : c.lane === "right" ? 4 : -1;
     return { stop: st, kind: st.kind === "box" ? "inlay" : "dot", string, y: Y(c.y), h: S * r.sp[c.space - 1][1], x: X(c.x), lane: c.lane, pair: c.pair, over: !c.clear, space: c.space, py: c.y, dx: S * (c.x - sx(string, c.y)) };
   });
-  if (head) spaces.push({ stop: head, kind: "double", string: -1, y: Y(r.badge[1]), h: ROAD.badge[1], w: ROAD.badge[0], x: X(r.badge[0]), lane: "badge", pair: 0, over: false, space: 0, py: r.badge[1], dx: 0 });
+  /* Sit the headline at the start of the body, just after the last used fret, so a short leg does not leave
+     a long empty neck above a badge parked low on the body. The painted badge coordinate is only a cap. */
+  if (head) {
+    const lastPy = spaces.reduce((m, sp) => Math.max(m, sp.py + (sp.space ? r.sp[sp.space - 1][1] / 2 : 0)), r.nut);
+    const py = Math.min(r.badge[1], Math.max(r.join + 20, lastPy + 24));
+    spaces.push({ stop: head, kind: "double", string: -1, y: Y(py), h: ROAD.badge[1], w: ROAD.badge[0], x: X(r.badge[0]), lane: "badge", pair: 0, over: false, space: 0, py, dx: 0 });
+  }
   /* the board's left and right edge at a row, in units: between the fret rows, the nut's width above the nut */
   const edge = y => {
     const py = (y - top) / S; let k = 1;
@@ -265,7 +271,13 @@ export function roadLayout(stops, p) {
     return { l: X(c - hw), r: X(c + hw) };
   };
   const ys = spaces.filter(sp => sp.kind !== "double").map(sp => sp.y);
-  return { spaces, head: 0, neck: 0, body: 0, height: Math.round(top + S * r.h + ROAD.margin), road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
+  /* Crop the unused lower body so the path fills the screen. The headline badge sits on the body, so the crop
+     keeps a short run of wood under the lowest stop and cuts the rest. 5, 9 and 12 stop legs stay the same height
+     whenever they share a headline, because the badge is in a fixed place. */
+  const fullH = Math.round(top + S * r.h + ROAD.margin);
+  const lowest = spaces.reduce((m, sp) => Math.max(m, sp.y + (sp.kind === "double" ? ROAD.badge[1] / 2 : 24)), 0);
+  const height = Math.min(fullH, Math.round(lowest + 52));
+  return { spaces, head: 0, neck: 0, body: 0, height, road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
 }
 /* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware */
 function roadBase(g, lay, f, build, legId) {
@@ -326,13 +338,13 @@ export function stopXY(sp, lay) {
   return { x: CX + (sp.string >= 0 ? STR[sp.string] * (f ? f(y) : 1) : 0), y };
 }
 
-/* ---- Road Ready (step 02): stops are pearl inlays set flush in the wood, in four states ----
-   done: a 26 px amber pearl with an engraved check and a faint glow. now: a 52 by 38 trapezoid, lit from within, with
-   the show number. ahead (open or locked): a 26 px matte pearl with the number. The headline show is two 24 px dots
-   (the number and a lock), a merch box the crate. Every one sits in a 44 px button. Colours are the --rr-* tokens. */
+/* ---- Road Ready (step 02): stops are the hero of the path, in four states ----
+   done: a 36 px solid amber disc with a dark check and a soft halo. now: a 64 by 46 trapezoid, lit from within, with
+   the show number and a glow. ahead (open or locked): a calm 36 px outline with the number. The headline show is two
+   dots (the number and a lock), a merch box the crate. Every one sits in a button of at least 44 px. Colours are the --rr-* tokens. */
 /* nowPair (Graham's decision, 2026-11-19, Surprise 169): the current stop is drawn smaller while it shares a fret space with
    its partner, so the two never overlap */
-const RR_SIZE = { dot: [26, 26], now: [52, 38], nowPair: [42, 31], box: [30, 22], double: [60, 24] };
+export const RR_SIZE = { dot: [36, 36], now: [64, 46], nowPair: [50, 36], box: [34, 26], double: [72, 28] };
 const rrPhase = st => st === "done" ? "done" : st === "now" ? "now" : "ahead";
 let rrN = 0;
 /* an engraved mark: the mark, with a lighter copy 1 px below it where the cut catches the light */
@@ -374,12 +386,14 @@ export function rrStopArt(kind, state, n, pill = false, paired = false) {
       return `<g transform="translate(${cx} 0)">${pearl(circle(0, 12), ph, engrave(mark, lock), ph !== "ahead", 24, 24)}</g>`;
     }).join("");
   } else if (kind === "inlay") {
-    const d = `M-15 -11H15V11H-15Z`, lines = `<path d="M-6 -11V11M5 -11V11M-15 -1H15" fill="none" stroke-width="1.6"/>`;
-    body = pearl(d, ph, engrave(lines, lock), ph !== "ahead", w, h);
+    const d = `M-17 -13H17V13H-17Z`, lines = `<path d="M-6 -13V13M6 -13V13M-17 -1H17" fill="none" stroke-width="1.8"/>`;
+    body = pearl(d, ph, engrave(lines, lock), ph === "now", w, h);
   } else if (cur) {
     body = pearl(`M${-w / 2} ${h / 2}H${w / 2}L${w * .385} ${-h / 2}H${-w * .385}Z`, ph, engrave(ENG.num(n, Math.round(h * .53)), ""), true, w, h);
+  } else if (ph === "done") {
+    body = pearl(circle(0, 17), ph, engrave(ENG.check(17), "done"), false, w, h);
   } else {
-    body = pearl(circle(0, 13), ph, engrave(ph === "done" ? ENG.check(13) : ENG.num(n, 13), lock), ph === "done", w, h);
+    body = `<circle class="rr-pearl ahead rr-ring" r="16"/>${engrave(ENG.num(n, 16), lock)}`;
   }
   const glow = cur ? `<span class="rr-glow" aria-hidden="true"></span>` : ph === "done" ? `<span class="rr-halo" aria-hidden="true"></span>` : "";
   return `${glow}<svg class="rr-art" width="${w}" height="${h}" style="width:${w}px;height:${h}px" viewBox="${-w / 2} ${-h / 2} ${w} ${h}" aria-hidden="true">${body}</svg>`;
@@ -412,7 +426,7 @@ export function connectorSVG(lay, spaces, o) {
   if (!segs.length) return "";
   const id = `rrc${++rrN}`;
   const path = (s, cls) => `<path class="${cls}${s.fresh ? " rr-draw" : ""}" d="${s.d}"${s.fresh ? ` pathLength="1"` : ""}/>`;
-  return `<svg class="rd-conn" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+  return `<svg class="rd-conn" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="8"/></filter></defs>
     <g class="rr-conn-glow" filter="url(#${id})">${segs.map(s => path(s, "rr-cg")).join("")}</g>${segs.map(s => path(s, "rr-cc")).join("")}</svg>`;
 }
 
@@ -482,7 +496,7 @@ export function neckHTML(leg, o) {
        drawing's units (data-hx, data-hy) so road.js can decide which stop a tap selects (roadHit in core/game.js) */
     const [h0, h1] = lay.hit;
     return `<div class="rd-neck road" data-guitar="${leg.id}" data-lh="${lay.height}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
-    <svg class="rd-base nano road" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
+    <svg class="rd-base nano road rr-quiet" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
     ${o.rr ? connectorSVG(lay, lay.spaces, o) : ""}
     <div class="rr-hit" aria-hidden="true" style="top:${(h0 / lay.height * 100).toFixed(3)}%;height:${((h1 - h0) / lay.height * 100).toFixed(3)}%"></div>
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}

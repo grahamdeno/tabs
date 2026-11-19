@@ -262,12 +262,17 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
 
     /* the stops: done ones carry a check, the current one is the trapezoid with its number, the ones ahead are numbered */
     const cur = await page.evaluate(() => { const b = document.querySelector(".rd-node.cur"), a = b.querySelector(".rr-art").getBoundingClientRect(); return { n: b.querySelector(".rr-eng text")?.textContent, w: a.width, h: a.height, glow: !!b.querySelector(".rr-glow"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill }; });
-    assert.deepEqual([cur.n, Math.round(cur.w), Math.round(cur.h), cur.glow], ["6", 52, 38, true], "the current stop: show 6, a 52 by 38 trapezoid, lit");
+    assert.deepEqual([cur.n, Math.round(cur.w), Math.round(cur.h), cur.glow], ["6", 64, 46, true], "the current stop: show 6, a 64 by 46 trapezoid, lit");
     assert.equal(cur.fill, "rgb(255, 214, 140)", "#FFD68C pearl");
     const done = await page.$$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box)", bs => bs.map(b => ({ check: !!b.querySelector(".rr-eng path"), w: b.querySelector(".rr-art").getBoundingClientRect().width, halo: !!b.querySelector(".rr-halo") })));
-    assert.equal(done.length, 4); assert.ok(done.every(d => d.check && Math.round(d.w) === 26 && d.halo), "done: 26 px with a check and a faint halo");
-    const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.filter(b => !b.closest(".rr-peek")).slice(0, 3).map(b => b.querySelector(".rr-eng text")?.textContent));
-    assert.deepEqual(ahead, ["7", "9"], "numbered ahead (8 is a merch box); the next leg is a locked peek with no stops (4.99.0)");
+    assert.equal(done.length, 4); assert.ok(done.every(d => d.check && Math.round(d.w) === 36 && d.halo), "done: 36 px solid amber with a check and a halo");
+    const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.filter(b => !b.closest(".rr-peek")).slice(0, 3).map(b => ({ n: b.querySelector(".rr-eng text")?.textContent, ring: !!b.querySelector(".rr-ring"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill })));
+    assert.deepEqual(ahead.map(a => a.n), ["7", "9"], "numbered ahead (8 is a merch box); the next leg is a locked peek with no stops (4.99.0)");
+    assert.ok(ahead.every(a => a.ring), "locked stops ahead are a calm outline");
+    const quiet = await page.evaluate(() => getComputedStyle(document.querySelector(".rd-neck.road > svg.rr-quiet")).filter);
+    assert.match(quiet, /brightness\(/, "the guitar is dimmed behind the path, with no change to the art files");
+    const doneFill = await page.$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box) .rr-pearl.done", el => getComputedStyle(el).fill);
+    assert.equal(doneFill, "rgb(255, 181, 71)", "done stops are solid amber (#FFB547)");
     assert.equal(await page.locator(".rd-neck >> nth=0 >> .rd-node.headline .rr-art").count(), 1, "the leg ends in the double inlay");
     assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
 
@@ -278,7 +283,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     n1.ends.forEach(([x, y], i) => { const s = n1.stops[i + 1]; assert.ok(Math.abs(x - s.x) < 1.5 && Math.abs(y - s.y) < 1.5, `step ${i + 1} ends on stop ${i + 2} (${x},${y} vs ${s.x},${s.y})`); });
     assert.equal(n2.ends.length, 0, "no line on the leg ahead");
     const glow = await page.evaluate(() => { const g = document.querySelector(".rr-cg"), c = document.querySelector(".rr-cc"), f = document.querySelector(".rd-conn feGaussianBlur"); return { gw: getComputedStyle(g).strokeWidth, cw: getComputedStyle(c).strokeWidth, blur: f?.getAttribute("stdDeviation") }; });
-    assert.deepEqual(glow, { gw: "12px", cw: "2.2px", blur: "7" }, "a 12 px glow blurred 7, a 2.2 px core");
+    assert.deepEqual(glow, { gw: "16px", cw: "3.4px", blur: "8" }, "a 16 px glow blurred 8, a 3.4 px core");
 
     /* Tonight beside the current stop, inside the screen and clear of it; the stop's own callout steps aside for it */
     const tag = await page.evaluate(() => { const t = document.querySelector(".rd-stop.cur #rd-tonight"), b = document.querySelector(".rd-node.cur"), r = t.getBoundingClientRect(), s = b.getBoundingClientRect(); return { left: r.left, right: r.right, h: r.height, stopRight: s.right, callout: !!document.querySelector(".rd-stop.cur .rr-callout") }; });
@@ -387,8 +392,8 @@ test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: 
         tonightLabel: ratio(col(".rr-tn-tx small"), hex(v("--rr-base"))),
         leg: ratio(col(".rd-legmark"), hex(v("--rr-base"))),
         numNow: ratio(getComputedStyle(document.querySelector(".rd-node.cur .rr-eng")).fill, hex(v("--rr-pearl-now"))),
-        numAhead: ratio(getComputedStyle(document.querySelector(".rd-node.locked:not(.box, .headline) .rr-eng")).fill, hex(v("--rr-pearl-locked"))),
-        check: ratio(getComputedStyle(document.querySelector(".rd-node.done:not(.box) .rr-eng")).stroke, hex(v("--rr-pearl-done")))
+        numAhead: ratio(getComputedStyle(document.querySelector(".rd-node.locked:not(.box, .headline) .rr-eng")).fill, getComputedStyle(document.querySelector(".rd-node.locked:not(.box, .headline) .rr-pearl.ahead")).fill),
+        check: ratio(getComputedStyle(document.querySelector(".rd-node.done:not(.box) .rr-eng")).stroke, getComputedStyle(document.querySelector(".rd-node.done:not(.box) .rr-pearl.done")).fill)
       };
     });
     for (const [k, r] of Object.entries(pairs)) assert.ok(r >= 4.5, `${theme}: ${k} is ${r.toFixed(2)}:1`);
@@ -411,7 +416,7 @@ for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light",
     const page = await road(t, theme, MID);
     const n = await page.evaluate(() => ({ strip: getComputedStyle(document.querySelector("header.rr-head"), "::before").content, glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rr-stage")).backgroundImage }));
     assert.ok(["none", "normal"].includes(n.strip), "no piping on the header (one bare row, 2026-11-19)");
-    if (look === "festival") assert.equal(Math.round(n.glowW), 96, "the current-stop glow is stronger on cream");
+    if (look === "festival") assert.equal(Math.round(n.glowW), 120, "the current-stop glow is stronger on cream");
     else assert.match(n.stage, /radial-gradient/, "a soft amber glow behind the neck in the dark look");
     /* large text: the "songs" chips are gone, and the header leaves the screen to the neck */
     await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });

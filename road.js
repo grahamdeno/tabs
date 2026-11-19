@@ -24,7 +24,7 @@
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
 import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
-import { micSheet, songFor } from "./opening.js";
+import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
 import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
@@ -145,21 +145,40 @@ function otherSongs(stop) {
 /* ---- Opening night (4.40.0): the first leg teaches the app by doing it ---- */
 const OIC = {
   who: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="10" r="6" fill="#fff"/><path d="M5 28c0-7 5-11 11-11s11 4 11 11z" fill="#fff"/></svg>`,
+  hold: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M19 3v11c4 1.2 7 5 7 9.5a8.5 8.5 0 0 1-17 0c0-4.5 3-8.3 7-9.5V3z" fill="#fff"/></svg>`,
+  strings: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7h20M6 11h20M6 15h20M6 19h20M6 23h20M6 27h20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>`,
   mic: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="11" y="3" width="10" height="17" rx="5" fill="#fff"/><path d="M6.5 14a9.5 9.5 0 0 0 19 0M16 24v5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>`,
+  notes: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="24" r="5" fill="#fff"/><path d="M16 24V8h9v5h-9" fill="#fff"/></svg>`,
   chord: ICONS.chord,
   verse: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 5l17 11-17 11z" fill="#fff"/></svg>`,
   pause: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="7" height="22" rx="2.5" fill="#fff"/><rect x="18" y="5" width="7" height="22" rx="2.5" fill="#fff"/></svg>`,
   show: ICONS.star
 };
-const OSAY = ["Hi, I'm Louie. Tap the glowing stop and make your guitarist. Then I'll show you around: six steps, ending with your first show.",
-  "Now I'll ask for the microphone. Tap the glowing stop.",
-  "Now a chord. Tap the glowing stop.", "Time to play. Just the first verse.",
-  "Next: pausing, and picking up where you left off.", "Last one: your first show, start to finish."];
+const OSAY = {
+  who: "Hi, I'm Louie. Tap the glowing stop and make your guitarist. Then I'll show you around, ending with your first show.",
+  hold: "First, how to hold the guitar. Tap the glowing stop.",
+  strings: "Next, the six open strings. Tap the glowing stop.",
+  mic: "Now I'll ask for the microphone. Tap the glowing stop.",
+  notes: "Time to play your first notes. Tap the glowing stop.",
+  chord: "Now a chord. Tap the glowing stop.",
+  verse: "Time to play. Just the first verse.",
+  pause: "Next: pausing, and picking up where you left off.",
+  show: "Last one: your first show, start to finish."
+};
+const OLINE = {
+  who: "Pick a starter, a skin tone and a hair colour. It's you on your card and the chart.",
+  hold: "Sit up, rest the guitar on your leg, neck pointing up and away.",
+  strings: "Six strings, thick to thin: E, A, D, G, B, E.",
+  mic: "I'll say why I listen, then your phone asks for the microphone.",
+  notes: "Play the thickest string, then the next one. Those are your first notes.",
+  chord: "Open the song and tap a chord to see its shape.",
+  verse: "Play the first verse. Play each chord as it comes.",
+  pause: "Play, tap anywhere to pause, then Resume.",
+  show: "Play a song start to finish."
+};
 function openingCard(i, step) {
   const o = OPENING[i], state = i < step ? "done" : i === step ? "now" : "locked";
-  const line = state === "locked" ? "Finish the steps before this one." : state === "done" ? "Done." : [
-    "Pick a starter, a skin tone and a hair colour. It's you on your card and the chart.", "I'll say why I listen, then your phone asks for the microphone.", "Open the song and tap a chord to see its shape.",
-    "Play the first verse. Play each chord as it comes.", "Play, tap anywhere to pause, then Resume.", "Play a song start to finish."][i];
+  const line = state === "locked" ? "Finish the steps before this one." : state === "done" ? "Done." : OLINE[o.id];
   const btn = state === "now" ? `<button class="btn primary rd-start" data-ostart="${i}">${o.id === "show" ? `PLAY · +${FANS.play} FANS` : o.id === "who" ? "PICK YOURS" : `START · +${FANS.lesson} FANS`}</button>` : "";
   return `<div class="rd-pop ${state}" role="dialog" aria-label="${esc(o.name)}"><b>${esc(o.name)}</b><p>${esc(line)}</p>${btn}</div>`;
 }
@@ -178,7 +197,7 @@ function renderOpening(view) {
       ${done ? `<button class="on-skip" id="on-next">On to Leg 1</button>` : `<button class="on-skip" id="on-skip">Skip</button>`}
     </section>
     <div class="rd-path on-path" id="rd-path">
-      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[step])}</p></div></div>
+      <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[OPENING[step]?.id] || "")}</p></div></div>
       ${stops}
     </div>`;
   const $ = id => document.getElementById(id);
@@ -200,7 +219,7 @@ function renderOpening(view) {
   });
 }
 
-/* Road Ready (2026-11-19): Opening night is the Road too. Its six steps are stops on the first leg's guitar neck (pearl inlays,
+/* Road Ready (2026-11-19): Opening night is the Road too. Its steps are stops on the first leg's guitar neck (pearl inlays,
    the amber connector, a callout on the current step, the first show as the double inlay), under the same header strip, with
    Opening night and Skip where Tonight sits. The steps, their cards and what they start are as before. */
 function rrOpening(done, step) {
@@ -255,6 +274,9 @@ function lockedPeek(l, why) {
 function openingStart(i) {
   const id = OPENING[i].id;
   if (id === "who") return makerSheet({ mode: "start", done: () => { openingAdvance(data, "who"); Tabs.save(data); renderRoad(); } });
+  if (id === "hold") return holdSheet(() => renderRoad());
+  if (id === "strings") return stringsSheet(() => renderRoad());
+  if (id === "notes") return notesSheet(() => renderRoad());
   if (id === "mic") return micSheet(() => renderRoad());
   const song = songFor();
   if (!song) { toast("Add a song with chords first; then it's your stage"); return go("#/library"); }
