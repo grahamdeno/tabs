@@ -243,6 +243,13 @@ function rrTag(s, all) {
   return tagOf(s);
 }
 
+/* Escape closes an open stop card even when focus has moved off the Road's own buttons. renderRoad sets escapeCard; a sheet or dialog
+   that is open takes the Escape first. */
+let escapeCard = null;
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || e.defaultPrevented || !escapeCard || document.querySelector("[role=dialog]:not(.rd-pop), .sheet, .modal")) return;
+  if (escapeCard()) e.preventDefault();
+});
 export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
   const ov = openingView(data);
@@ -371,14 +378,14 @@ export function renderRoad() {
     const at = roadHit(pts, tap, cur ? btns.findIndex(b => b.dataset.stop === cur.id) : -1);
     return btns[at] || null;
   };
-  /* Escape closes the card and puts focus back on its stop */
-  path.addEventListener("keydown", e => {
-    if (e.key !== "Escape") return;
-    const pop = path.querySelector(".rd-pop");
-    if (!pop) return;
+  /* Escape closes the card and puts focus back on its stop, wherever focus is (one listener for the page, see escapeCard) */
+  escapeCard = () => {
+    const pop = document.contains(path) && path.querySelector(".rd-pop");
+    if (!pop) return false;
     const stop = pop.parentElement.querySelector("[data-stop]");
     closePop(); stop?.focus();
-  });
+    return true;
+  };
   /* 4.76.0: tap the next box: it opens, the fans burst in, then the road moves on. 4.82.0: the pearl drops into the inlay. */
   const openCase = (node, s) => {
     if (node.classList.contains("opening") || !openBox(data, s.id)) return;

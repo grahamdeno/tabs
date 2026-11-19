@@ -106,6 +106,19 @@ test("Painted necks: on Chord switches, with lesson 2 current, a tap on finished
   assert.equal(await shown(), "s:C-D", "lesson 2's card");
 });
 
+test("Painted necks: Escape closes the open card wherever focus is, and puts focus on the stop", { skip: skip() }, async t => {
+  const page = await road(t);
+  for (const where of ["the page body", "the Songbook button", "the card's own Start button"]) {
+    await page.click(stopSel("c:Am")); await page.waitForSelector(".rd-pop.now"); await still(page);
+    await page.evaluate(w => { if (w === "the page body") document.activeElement?.blur(); else if (w === "the Songbook button") document.getElementById("rd-songbook").focus(); else document.querySelector(".rd-pop .rd-start").focus(); }, where);
+    await page.keyboard.press("Escape"); await page.waitForSelector(".rd-pop", { state: "detached" });
+    assert.equal(await page.evaluate(() => document.activeElement?.dataset?.stop), "c:Am", `focus is back on the stop after Escape from ${where}`);
+    await still(page);
+  }
+  await page.keyboard.press("Escape"); /* nothing open: nothing happens */
+  assert.equal(await page.locator(".rd-pop").count(), 0);
+});
+
 for (const theme of ["dark", "light"]) {
   test(`Painted necks: at 320 px wide in ${theme}, a busy inlay guitar keeps every stop on the screen and its number readable`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID, { merch: { guitar: "velvetcrown", has: ["g-velvetcrown"] }, journal: { v: 1, months: { "2026-11": { plays: 400 } } } }, { viewport: { width: 320, height: 640 } });
