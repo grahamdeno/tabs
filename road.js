@@ -248,7 +248,8 @@ const OPEN_GUITAR = () => ({ ...guitarShown(data, "open"), name: "Barebones", bo
 function lockedPeek(l, why) {
   if (!l) return "";
   return `<div class="rr-peek" role="group" aria-label="${esc(`Leg ${l.n}, ${l.name}. Locked. ${why}`)}">
-    <div class="rr-peek-neck" aria-hidden="true">${neckHTML({ ...l, stops: l.stops.map(s => ({ ...s, state: "locked" })) }, { cur: null, id: s => esc(s.id), icon: () => "", rr: true, num: () => 0, label: () => "", tag: () => "", songs: null })}</div>
+    <div class="rr-peek-neck" aria-hidden="true">${neckHTML({ ...l, stops: l.stops.map(s => ({ ...s, state: "locked" })) }, { cur: null, id: s => esc(s.id), icon: () => "", rr: true, num: () => 0, label: () => "", tag: () => "", songs: null })
+      .replace(/<button\b/g, "<span").replace(/<\/button>/g, "</span>").replace(/ data-stop=/g, " data-peek=").replace(/ role="group" aria-label="[^"]*"/, "")}</div>
     <p class="rr-peek-plate" aria-hidden="true"><b>LEG ${l.n} · ${esc(l.name.toUpperCase())}</b><small>Locked. ${esc(why)}</small></p>
   </div>`;
 }
@@ -278,7 +279,7 @@ function rrHeader({ v, leg, cur, song, st, strip }) {
       <span class="rr-pl-main" aria-hidden="true"><b class="rr-venue">${esc(v.name)}</b>${show ? `<small>${esc(show)}</small>` : ""}</span>
       ${of ? `<span class="rr-pips" aria-hidden="true">${pips}</span>` : ""}
     </button>
-    <button class="rr-pill rr-fans" id="h-fans" aria-label="${nf(fans)} fans${days ? `, ${days}-day gig streak` : ""}. Open your profile"><span class="rr-pv">${TICKET_IC}<b>${nf(fans)}</b>${days ? `<small aria-hidden="true">${days}d</small>` : ""}</span></button>
+    <button class="rr-pill rr-fans" id="h-fans" aria-label="${nf(fans)} fans${days ? `, ${days}-day gig streak` : ""}. Open your profile"><span class="rr-pv">${TICKET_IC}<b>${nf(fans)}</b>${days ? `<small aria-hidden="true">${days}-day</small>` : ""}</span></button>
     <button class="rr-pill rr-tips" id="h-tips" aria-label="${nf(tips)} dollars in tips. Open the Merch table"><span class="rr-pv">${COIN_IC}<b>$${nf(tips)}</b></span></button>
     ${strip || `<button class="rr-tonight" id="rd-tonight" aria-label="${song ? esc(`Tonight: ${song.title}. Play`) : "Add a song to play tonight"}">
       <span class="rr-tn-t"><small>TONIGHT</small><b>${song ? esc(song.title) : "Add a song to play tonight"}</b></span>

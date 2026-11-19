@@ -5327,15 +5327,6 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gm-stage .gm-card .gm-flip { right: 10px; }
 .gm-stage .gm-card .gm-flip.on { background: var(--rr-amber, var(--accent)); color: var(--rr-on-amber, #1b1714); }
 
-/* ---- the playing screen's type scale (4.99.0, spec 3 and 6; Grok's review): the line you're on large, the ones coming a
-   step smaller, sung lines smaller again in the sung colour; chords stay at text size so they don't swell with the words.
-   Scaled from the player's own lyric size, so Settings > text size still works. Road Ready looks only. ---- */
-:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly) { font-size: calc(var(--lyric-size, 17px) * 1.53); font-weight: 600; line-height: 1.3; transition: font-size .25s ease-out; }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .st-past:is(.pr, .ly) { font-size: calc(var(--lyric-size, 17px) * 1.29); }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .st-now:is(.pr, .ly) { font-size: calc(var(--lyric-size, 17px) * 2); font-weight: 700; }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) .c { font-size: var(--lyric-size, 17px); font-weight: 700; }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > .sec { font-size: var(--type-footnote); }
-@media (prefers-reduced-motion: reduce) { :root:is([data-look="neon"], [data-look="festival"]) body.staged:not(.covered) .sheet > :is(.pr, .ly) { transition: none; } }
 /* the plate callout (4.99.0): Road Ready's news, a cream engraved plate, no burst */
 .co.co-plate .co-fx { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .co.co-plate .co-badge {
