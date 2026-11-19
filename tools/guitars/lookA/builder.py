@@ -102,6 +102,8 @@ def segment(slug):
     if c.get('paint_hue') == 'red':
         redh = (rgb[..., 0] > rgb[..., 1] + 45) & (rgb[..., 0] > rgb[..., 2] + 45)
         guard = clean(guard & ~redh, 1, 200, 200)
+        # a smooth guard outline: the mask blurred and cut at half, so the edge has no steps
+        guard = cv2.GaussianBlur(guard.astype(np.float32), (0, 0), 1.6) > 0.5
     if c.get('paint_all'):
         S0 = paint.copy()
         # one colour over the whole face: everything inside the outline line that is not guard, metal or board
@@ -110,6 +112,16 @@ def segment(slug):
         if c.get('paint_hue') == 'red': paint &= ((rgb[..., 0] > rgb[..., 1] + 45) & (rgb[..., 0] > rgb[..., 2] + 45)) | (dist < 4)
         if c.get('paint_hue') == 'blue': paint &= ((rgb[..., 2] > rgb[..., 0] + 12) & (rgb[..., 2] >= rgb[..., 1])) | (dist < 4) | S0
         paint = clean(paint, 1, 60, 300) & ~guard
+        if c.get('paint_hue') == 'red':
+            # darker red next to the paint (the body seen between the guard and the bridge) is paint too
+            near = ((rgb[..., 0] > rgb[..., 1] + 25) & (rgb[..., 0] > rgb[..., 2] + 25)) & fa & ~guard & ~metal & ~board
+            near = near | (redh & fa & ~guard & ~metal & (M['board'] < 200))
+            if hpaint is not None and hpaint.any():
+                hpaint = hpaint | (head & ((rgb[..., 0] > rgb[..., 1] + 25) & (rgb[..., 0] > rgb[..., 2] + 25) & (sat > 0.72)) & ~ndi.binary_dilation(metal, iterations=1) & ~board)
+            lbn, nn = ndi.label(near | paint); grow = ndi.binary_dilation(paint, iterations=6)
+            keep = np.unique(lbn[grow & near]); paint = paint | (np.isin(lbn, keep[keep > 0]) & near)
+            # the soft outer edge pixels too, so no old red line is left round the outline
+            paint = paint | ((A > 0) & ~ndi.binary_erosion(A > 0, iterations=3) & ~ndi.binary_dilation(head, iterations=3) & ~board & ~guard & ~metal & (np.arange(H)[:, None] > np.where(body.any(1))[0].min() - 2))
     if c.get('rim_fill'):
         # the painted edge line is paint too, so a new colour reaches the outline
         paint = paint | (body & (dist <= c['rim_fill']) & ~ndi.binary_dilation(guard, iterations=2) & ~metal & ~board)
@@ -175,6 +187,13 @@ def layers(slug):
     v = cv2.GaussianBlur(v.astype(np.float32), (0, 0), 1.0)
     v = np.where(hpaint, 0.5 + np.where(xx < cx, 0.04, -0.04) - 0.08 * np.exp(-ndi.distance_transform_edt(S['head']) / 3.0), v)
     pa = feather(P_all, 0.6)
+    if c.get('head_mix'):
+        # head pixels that are part paint, part painted string or outline: paint them by how much paint they hold,
+        # so a new colour reaches the strings' and outline's soft edges and the string centres stay as they are
+        Pc = np.median(rgb[hpaint], axis=0); Sg = 222.0
+        m = np.clip((Sg - rgb[..., 1]) / max(Sg - Pc[1], 1), 0, 1) * ((rgb[..., 0] > rgb[..., 1] + 25) & (rgb[..., 0] > rgb[..., 2] + 20))
+        zone = ndi.binary_dilation(S['head'], iterations=3) & (S['A'] > 0) & ~ndi.binary_dilation(metal, iterations=1) & ~S['board']
+        pa = np.maximum(pa, np.where(zone, m, 0))
     grey = np.clip(v * 255, 0, 255)[..., None].repeat(3, 2)
     sizes['paint'] = save(rgba(grey, pa), f'{OUT}/{slug}/paint.webp')
     # ---- grain: faint fine detail only ----
