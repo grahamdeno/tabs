@@ -236,7 +236,8 @@ test("4.50.0 Now and Next is gone: an intro is lines like any other, and Tools h
 test("4.51.0 one page: a line of the song fits on one line, an intro's chords spread across, a quiet stage light behind the words", { skip: skip() }, async t => {
   const body = "[Intro]\nG   D   Em   C\n\n[Verse]\n" + Array.from({ length: 8 }, (_, i) => `G              D              Em\nThey keep the secrets that the sailors keep ${i}`).join("\n");
   const song = { id: "f", title: "Fit", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
-  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  /* Green Room keeps one line per lyric; Dark and Light wrap long lines at full size (Graham, 2026-11-19; see "lyrics are full size") */
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/f"; }); await page.waitForSelector("#sheet .pr"); await settled(page);
   const oneLine = () => page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].every(pr => new Set([...pr.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size === 1));
   /* the size is measured again once the app's font is in (fitText); CI's slower font load showed the fallback's fit (4.63.1) */
@@ -258,10 +259,7 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   });
   assert.ok((await page.evaluate(() => window.__w)).every(x => x === "800"), "4.61.1: lines are measured at 800 even while staged");
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
-  /* Road Ready 05 polish: this test's look is Road Ready, where the amber bar marks the line and there is no stage light;
-     Green Room's stage light is checked in "Green Room keeps the show as it was" */
-  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("st-bg")).display), "none", "no stage light in Road Ready");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
+  /* Road Ready 05 polish (no stage light, the page steps back) moved to "lyrics are full size", which runs in Dark (2026-11-19) */
   /* 4.66.0: no X: Pause, then the page's own Back leaves the show */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
   await page.click(".shead .sh-back"); await page.waitForSelector("#gig", { state: "detached" });
@@ -365,7 +363,7 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   assert.ok(dockA >= 0.85, `the dock lets no words through (${dockA})`);
   assert.equal(await page.locator(".scard svg text.dn").count(), 0, "a chord tile names its chord once");
   assert.ok(await page.locator(".scard .sc-n").count() > 0, "the name is the tile's big letter");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".sheet > .cur") || document.querySelector("#sheet > .pr")).transform), "none", "no growing current line");
+  assert.ok(await page.evaluate(() => { const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly)")], c = document.querySelector(".sheet > .cur") || lines[0], px = e => parseFloat(getComputedStyle(e).fontSize) * new DOMMatrixReadOnly(getComputedStyle(e).transform).a; return lines.every(e => px(e) <= px(c) + 0.5) && lines.every(e => px(c) <= px(e) + 0.5 || e.style.fontSize); }), "no growing current line: on the song page every line is drawn at one size");
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.waitForFunction(() => getComputedStyle(document.querySelector("#sheet > .st-now")).color === "rgb(255, 255, 255)"); /* after the fade */
   const look = await page.evaluate(() => ({ fg: getComputedStyle(document.querySelector("#sheet > .st-now")).color, light: getComputedStyle(document.getElementById("st-bg")).display }));
@@ -690,3 +688,47 @@ test("Road Ready 06: at large text Show complete scrolls, with nothing running o
   assert.ok(await page.evaluate(() => { const g = document.querySelector(".rr-sc"); return g.scrollHeight > g.clientHeight; }), "it scrolls");
 });
 
+
+/* Full-size lyrics (Grok, 2026-11-19, wrapping approved by Graham): in Dark and Light every line is laid out once at the current-line
+   size (34 px at the default text size), wrapping between words onto a second row when it needs to, and keeps that box. Only a
+   transform draws it at 26 (next) or 22 (the others), so nothing moves, reflows or rewraps when play starts or the line moves on */
+test("Road Ready: lyrics are full size (34, 26, 22), a long line wraps onto two rows, and nothing moves as the line you're on changes", { skip: skip() }, async t => {
+  const body = "[Verse]\n" + ["Short one", "A longer line that needs two rows", "Mid length line here", "Short two"].map(l => `A       D\n${l}`).join("\n");
+  const song = { id: "z", title: "Grow", artist: "A", key: "A", format: "chords", duration: 20, bpm: 80, body };
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/z"; }); await page.waitForSelector("#sheet .pr"); await page.evaluate(() => document.fonts.ready); await settled(page);
+  const read = () => page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].map(e => { const ends = [...e.querySelectorAll(".w")].map(w => w.getBoundingClientRect().bottom).sort((a, b) => a - b);
+    const fs = parseFloat(getComputedStyle(e).fontSize), m = new DOMMatrixReadOnly(getComputedStyle(e).transform);
+    return { top: Math.round(e.offsetTop), h: e.offsetHeight, px: Math.round(fs * m.a), rows: ends.reduce((n, y, i) => n + (i && y - ends[i - 1] > fs * m.a * 0.6 ? 1 : 0), 1), now: e.classList.contains("st-now"), next: e.classList.contains("st-next") }; }));
+  const before = await read();
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("sheet")).fontSize), "34px", "laid out at the current-line size");
+  assert.deepEqual(before.map(l => l.px), [26, 26, 26, 26], "the song page shows every line at 26");
+  assert.equal(before[1].rows, 2, "the long line wraps onto a second row"); assert.equal(before[0].rows, 1, "a short line stays on one");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now"); await page.waitForTimeout(400); /* real timer: the 0.25 s transform */
+  const playing = await read();
+  assert.deepEqual(playing.map(l => [l.top, l.h, l.rows]), before.map(l => [l.top, l.h, l.rows]), "nothing reflows or rewraps when play starts");
+  /* Road Ready 05 polish: the amber bar marks the line, there is no stage light, and the rest of the page steps back */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("st-bg")).display), "none", "no stage light in Road Ready");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
+  const now = playing.find(l => l.now), next = playing.find(l => l.next), other = playing.find(l => !l.now && !l.next);
+  assert.equal(now.px, 34, "the line you're on is 34"); assert.equal(next.px, 26, "the next line is 26"); assert.equal(other.px, 22, "the others are 22");
+  await page.waitForFunction(() => document.querySelector("#sheet > .pr:nth-of-type(n+2).st-now, #sheet > .st-now ~ .pr") && [...document.querySelectorAll("#sheet > .pr")].findIndex(e => e.classList.contains("st-now")) >= 1, null, { timeout: 15000 });
+  await page.waitForTimeout(400);
+  const later = await read();
+  assert.deepEqual(later.map(l => [l.top, l.h, l.rows]), before.map(l => [l.top, l.h, l.rows]), "nothing moves when the line you're on changes");
+  const r = await page.evaluate(() => { const s = document.getElementById("sheet").getBoundingClientRect().right; return [...document.querySelectorAll("#sheet .w")].every(w => w.getBoundingClientRect().right <= s + 1); });
+  assert.ok(r, "every word stays inside the width");
+});
+
+test("Road Ready: Louie's first-song line shows once inside the playing screen, away from the controls hint", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector(".gg-first");
+  assert.match(await page.innerText(".gg-first"), /first song/i);
+  const box = await page.evaluate(() => { const r = document.querySelector(".gg-first").getBoundingClientRect(); return { top: r.top, bottom: r.bottom, vh: innerHeight }; });
+  assert.ok(box.bottom < box.vh / 2, "near the top, so it never sits on the hint or Pause at the bottom");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.firstLine === true);
+  await page.reload(); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now"); await page.waitForTimeout(600); /* real timer */
+  assert.equal(await page.locator(".gg-first").count(), 0, "never again");
+});

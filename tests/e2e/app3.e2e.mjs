@@ -426,10 +426,10 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
 });
 
-test("The Road on a new library: Louie waves and the first song is ready to play", { skip: skip() }, async t => {
+test("The Road on a new library: the first song is ready to play on the current stop, and Louie's first line waits for the playing screen", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
   await page.waitForSelector(".rd-path");
-  assert.match(await page.innerText("#rd-bubble"), /first song/i);
+  assert.equal(await page.locator("#rd-bubble").count(), 0, "no message on the Road (one-row header, Grok 2026-11-19)");
   assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*River Road/, "Road Ready: Tonight names the song");
 });
 
@@ -502,10 +502,11 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const lib = { ...LIB, songs, merch: { own: { rain: 1, take: 1 } }, charts: { tier: 0, battle: { day: dk(0), rival: "Neon Jen", songId: "a", target: 70, result: "lost", pct: 50 } } };
   const page = await phone(t, lib, { home: true });
   await page.waitForSelector("#h-fans");
-  assert.match(await page.innerText("#h-fans small"), /^\s*3-day\s*$/, "the Rain check covered yesterday (Road Ready: the streak is under your fans)");
+  assert.equal((await page.innerText("#h-streak")).trim(), "3", "the Rain check covered yesterday (one-row header: the streak is its own stat)");
+  assert.match(await page.getAttribute("#h-streak", "aria-label"), /^Gig streak 3 days/);
   const fans = +(await page.innerText("#h-tips")).replace(/\D/g, "");
   assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
-  assert.ok(+(await page.innerText("#h-fans b")).replace(/\D/g, "") >= 1200, "and your fans stay");
+  assert.ok(+(await page.innerText("#h-fans")).replace(/\D/g, "") >= 1200, "and your fans stay");
   await page.click("#h-tips"); await page.waitForSelector(".mc-head");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
@@ -659,7 +660,7 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   await page.waitForSelector(".rd-neck");
   assert.ok(await page.locator(".rd-neck").count() >= 2, "a neck for each leg");
   assert.match(await page.locator(".rd-neck").first().innerHTML(), /Porch/, "the first guitar is named on its headstock");
-  assert.equal(await page.locator(".rd-tag").count(), 1, "one tag, on the next stop");
+  assert.equal(await page.locator(".rd-tag, #rd-tonight").count(), 1, "one tag, on the next stop (Road Ready: Tonight)");
   assert.equal(await page.locator(".rd-node.headline .rr-art").count() >= 1, true, "the headline is an inlay");
   await page.waitForSelector("#gt-x");
   assert.match(await page.innerText(".rd-gt"), /Cornerstone/, "the sheet names the new guitar");

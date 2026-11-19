@@ -83,7 +83,7 @@ test("4.74.0 Sing it: one take split at a breath into two lines, words, Your son
   assert.equal(await page.locator(".skwheel, #sk-wheel").count(), 0, "4.74.0: no key wheel");
   assert.deepEqual(await page.$$eval("[data-mode]", b => b.map(x => x.textContent.trim())), ["Voice", "Guitar", "Both"]);
   const hz = m => 440 * 2 ** ((m - 69) / 12);
-  const sing = async ms => { for (const m of ms) { await page.evaluate(f => { window.__hz = f; }, hz(m)); await page.waitForTimeout(420); /* real timer */ } };
+  const sing = async ms => { for (const m of ms) { await page.evaluate(f => { window.__hz = f; }, hz(m)); await page.waitForTimeout(600); /* real timer: each note held long enough for the take to register it (420 ms missed one now and then) */ } };
   const rest = async ms => { await page.evaluate(() => { window.__hz = 0; }); await page.waitForTimeout(ms); /* real timer */ };
   // 4.74.0: Redo drops a take
   await page.click("#sk-pad"); await page.waitForSelector("#sk-redo");

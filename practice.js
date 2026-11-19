@@ -18,7 +18,7 @@
 import { CHORD_FIT, HEAR, chordLeadOver, relativeOf, Tabs, VERSION, bleedProfile, buzzRms, chordTargets, chromaOf, detectPitch, strumFit, nearestNote, pitchRms, strumDetector, strumLine, trackFloor, gradeSwitches, journalPractice, judgeTarget, stringRange, skillDone, skillState, soundcheck, soundcheckDone, missedChanges, SOUNDCHECK_XP, TUNINGS, SCALES, scaleTargets, playCount, practiceRate, lessonOfDay, lessonDone, lessonKeep, lessonPartOf, LESSON_PASSES, changesToWork } from "./core.js";
 import { app, esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong, openTuner, playSong, tunedRecently } from "./app.js";
-import { statBar, bindStatBar } from "./hud.js";
+import { bindStatBar, pageStats } from "./hud.js";
 import { louie } from "./louie.js";
 import { callout } from "./callout.js";
 
@@ -172,7 +172,7 @@ export function renderRehearse() {
     </section>` : `<section class="rh-yc rh-yc-none" aria-label="Your changes"><div class="rh-yct"><div><b>Your changes</b><small>Add songs with chords and the changes they need show up here, with how often you land them in gigs.</small></div></div></section>`;
   const tile = (id, ic, t) => `<button class="rh-tile" id="${id}"><span class="rh-ic">${icon(ic)}</span><b>${t}</b></button>`;
   app.innerHTML = `<div class="rh">
-    <div class="tq-top">${statBar()}</div>
+    <div class="tq-top">${pageStats()}</div>
     <h1 class="rh-h1">Rehearse</h1>
     ${todayCard(l)}
     ${changes}
