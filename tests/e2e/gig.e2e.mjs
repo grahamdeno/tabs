@@ -11,10 +11,10 @@ useBrowser();
 /* A page whose microphone plays the chord the song is on (4.54.0), with the library in place before the app starts.
    Seeding it before the first load (instead of replacing it after) means the app's own first
    save can't land on top of it, which is what made the scored Gig test flaky on a busy machine. */
-async function strummingPage(t, lib, hash) {
+async function strummingPage(t, lib, hash, opts = {}) {
   const browser2 = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
   t.after(() => browser2.close());
-  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  const ctx = await browser2.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block", ...(opts.reducedMotion ? { reducedMotion: opts.reducedMotion } : {}) });
   await ctx.addInitScript(FAKE_MIC);
   await ctx.addInitScript(json => { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); } }, JSON.stringify(lib));
   const page = await ctx.newPage();
@@ -39,19 +39,31 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   assert.equal(await page.locator(".gg-map, #st-map, #gg-str, #gg-tw").count(), 0, "4.54.0: no song map over the stage, no strings, no timing word");
   /* 4.58.0: bold words that fade by distance; the chords stay brighter than the words; nothing runs past the edge */
   /* 4.65.3: wait out the 0.25 s colour fade, so the check doesn't read a line mid-change (it failed CI once) */
-  await page.waitForFunction(() => { const n = document.querySelector("#sheet > .st-now"), x = document.querySelector("#sheet > .st-next"); if (!n || !x) return true; const a = el => { const m = getComputedStyle(el).color.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; }; return a(n) > a(x) && !n.getAnimations().length && !x.getAnimations().length; });
+  /* Road Ready 05: "dimmer" is how strongly a colour stands out from the page, its alpha times its contrast with the
+     background, so it holds both for the earlier looks (which fade with alpha) and Road Ready (solid lyric colours) */
+  await page.evaluate(() => {
+    window.__strength = el => {
+      const n = c => c.match(/[\d.]+/g).map(Number), L = c => { const [r, g, b] = n(c).slice(0, 3).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+      const bg = getComputedStyle(document.body).backgroundColor, solid = n(bg).length < 4 || n(bg)[3] > 0 ? bg : "rgb(0, 0, 0)";
+      const c = getComputedStyle(el).color, m = n(c), a = m.length > 3 ? m[3] : 1, x = L(c), y = L(solid);
+      return a * (Math.max(x, y) + .05) / (Math.min(x, y) + .05);
+    };
+  });
+  await page.waitForFunction(() => { const strength = window.__strength, n = document.querySelector("#sheet > .st-now"), x = document.querySelector("#sheet > .st-next"); if (!n || !x) return true; return strength(n) > strength(x) && !n.getAnimations().length && !x.getAnimations().length; });
   const look = await page.evaluate(() => {
-    const now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
-    const alpha = c => { const m = c.match(/[\d.]+/g); return m.length > 3 ? +m[3] : 1; };
-    const w = el => +getComputedStyle(el).fontWeight, col = el => alpha(getComputedStyle(el).color);
+    /* Road Ready 05: in the Road Ready looks the chords stand out by colour (amber, or amber-brown on cream) at 4.5:1 or
+       more, as the spec's tokens set them; the earlier looks keep 4.58.0's "brighter than the words" */
+    const rr = ["neon", "festival"].includes(document.documentElement.dataset.look);
+    const strength = window.__strength, now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
+    const w = el => +getComputedStyle(el).fontWeight, col = el => strength(el);
     const nc = next?.querySelector(".c");
-    return { now: w(now), next: next ? w(next) : 0, nowCol: col(now), nextCol: next ? col(next) : 0, chordBrighter: nc ? +getComputedStyle(nc).opacity > col(next) : true,
+    return { now: w(now), next: next ? w(next) : 0, nowCol: col(now), nextCol: next ? col(next) : 0, chordBrighter: !nc ? true : rr ? strength(nc) >= 4.5 : strength(nc) * +getComputedStyle(nc).opacity > col(next),
       overflow: [...sheet.querySelectorAll(":scope > .pr, :scope > .ly, :scope > .crow")].some(l => [...l.children].some(c => c.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 1)) };
   });
   assert.equal(look.now, 800, "4.58.0: the line you're on is boldest");
   assert.ok(look.next === 700 || look.next === 0, "4.58.0: the next line is bold, got " + look.next);
   assert.ok(look.nowCol > look.nextCol, "4.58.0: the next line's words are dimmer than the current line's");
-  assert.ok(look.chordBrighter, "4.58.0: the next line's chords are brighter than its words");
+  assert.ok(look.chordBrighter, "4.58.0: the next line's chords stand out from its words");
   assert.equal(look.overflow, false, "4.58.0: no line runs past the edge at the boldest weight");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Paused, the show holds the line you stopped on; Tools has only what you change mid-song */
@@ -70,17 +82,13 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   assert.equal(await page.evaluate(() => document.body.dataset.gel), "chorus", "the stage washes into the chorus gel");
   /* Show complete */
   await page.waitForSelector(".gc", { timeout: 40000 });
-  assert.match(await page.innerText(".gc-t"), /Show complete/);
+  assert.match(await page.innerText(".gc"), /SHOW COMPLETE/, "Road Ready 06: the overline says it; the title is the song");
   assert.match(await page.innerText(".gc-list"), /Played \d+ chord change/, "4.91.0: the changes played through");
   assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the changes played");
   assert.doesNotMatch(await page.innerText(".gc-list"), /no pausing/, "it was paused, so not the whole song");
   assert.match(await page.innerText(".gc-list"), /The Road: [\s\S]*E chord, 1 of 5 songs/, "4.83.0: what the song did on the Road");
-  /* 4.66.0: the backdrop you wear is the banner; Change lists the ones you own */
-  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
-  assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
-  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
-  assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
-  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds", { state: "hidden" });
+  /* Road Ready 06 (Graham, 2026-11-18): no backdrop on Show complete in Dark and Light; Green Room keeps it (its own test below) */
+  assert.equal(await page.locator(".gc-hero, #gc-bdc").count(), 0, "no backdrop or Change in Road Ready");
   assert.match(await page.innerText(".gc-list"), /Double set: 2x XP on this show\. 1 more to go\./);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1"))?.gig?.shows === 4); /* the save lands a moment after */
   const s = await saved(page);
@@ -186,7 +194,11 @@ test("4.91.0 the show counts what you play through: the crowd fills, the run, no
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#gg-mic, #gg-skip, #gg-wpill").count(), 0, "no microphone button, no Skip, no Wait for me");
   assert.equal(await page.locator("#gg-fans svg").count(), 12, "the crowd is 12 fans");
-  assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "a bigger crowd, on its own row");
+  /* Graham, 2026-11-18: Road Ready (this test's look) doesn't draw the crowd row, so the words fill the screen; the crowd
+     still fills behind the scenes. Green Room's row is checked in "Green Room keeps the show as it was". */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".gg-status")).display), "none", "no crowd row in Road Ready");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-sec")).display), "none", "no section pill either");
+  assert.ok(await page.locator("#gg-combo").count() === 1, "the run counter stays");
   await page.waitForFunction(() => /in a row/.test(document.getElementById("gg-combo").textContent), null, { timeout: 25000 });
   await page.waitForFunction(() => document.querySelectorAll("#gg-fans .on").length > 0, null, { timeout: 25000 });
   assert.equal(await page.locator("#sheet .c.st-got, #sheet .c.st-miss").count(), 0, "no green or missed marks: nothing is judged");
@@ -246,7 +258,9 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   });
   assert.ok((await page.evaluate(() => window.__w)).every(x => x === "800"), "4.61.1: lines are measured at 800 even while staged");
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
-  assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light ends above the reading line");
+  /* Road Ready 05 polish: this test's look is Road Ready, where the amber bar marks the line and there is no stage light;
+     Green Room's stage light is checked in "Green Room keeps the show as it was" */
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("st-bg")).display), "none", "no stage light in Road Ready");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
   /* 4.66.0: no X: Pause, then the page's own Back leaves the show */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
@@ -394,3 +408,285 @@ test("Controls that hide while the song plays (4.60.0)", { skip: skip() }, async
   await page.waitForTimeout(4500); /* real timer */
   assert.equal(await page.locator("#gig.idle").count(), 0, "paused, the controls stay");
 });
+
+/* ---- Road Ready 05: the playing screen ---- */
+const rr = (theme, settings = {}) => ({ ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme, plainPlay: false, countIn: false, ...settings } });
+const idleNow = page => page.evaluate(() => document.getElementById("gig")?.classList.contains("idle"));
+const lum = c => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+
+test("Road Ready 05: with Keep playing controls on screen on, or keyboard focus on a control, the controls never hide", { skip: skip() }, async t => {
+  const kept = await strummingPage(t, rr("dark", { keepControls: true }), "#/song/g");
+  await kept.click("#play"); await kept.waitForSelector("#sheet > .st-now");
+  await kept.waitForTimeout(4500); /* real timer: they would have hidden by now */
+  assert.equal(await idleNow(kept), false, "the setting keeps them on screen");
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForTimeout(1000); /* real timer: no touch just before the focus */
+  await page.keyboard.press("Shift"); await page.focus("#gg-pause");
+  await page.waitForTimeout(4500); /* real timer */
+  assert.equal(await idleNow(page), false, "focus on Pause keeps them on screen");
+  /* focus that came with no touch (a screen reader or a switch) keeps them until the song is paused */
+  await page.evaluate(() => document.activeElement.blur());
+  await page.waitForTimeout(4500); /* real timer */
+  assert.equal(await idleNow(page), false, "still kept after focus moves on, while the song plays");
+  await page.keyboard.press("Space"); await page.waitForSelector("body.held");
+  await page.keyboard.press("Space"); await page.waitForSelector("body.staged:not(.held)");
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer: paused once, they hide again */
+});
+
+test("Road Ready 05: any key brings the controls back, and Space plays and pauses", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark", { used: { playHint: true } }), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
+  await page.keyboard.press("Shift"); await page.waitForSelector("#gig:not(.idle)");
+  assert.equal(await page.locator("body.held").count(), 0, "a key that isn't Space only shows them");
+  await page.keyboard.press("Space"); await page.waitForSelector("body.held");
+  assert.equal(await page.locator("#gig.paused").count(), 1, "Space pauses the show");
+  await page.keyboard.press("Space"); await page.waitForSelector("#gig:not(.paused)");
+  assert.equal(await page.locator("body.held").count(), 0, "and plays it again");
+});
+
+test("Road Ready 05: the first-run hint shows once, goes on the first tap, and never comes back", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gg-hint", { timeout: 15000 }); /* real timer: the first time the controls hide */
+  assert.match(await page.innerText("#gg-hint"), /Tap anywhere for controls/);
+  assert.equal(await page.getAttribute("#gg-hint .gg-hint-l", "aria-hidden"), "true", "Louie beside it is decoration");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.playHint === true);
+  await page.mouse.click(200, 300); await page.waitForSelector("#gg-hint", { state: "detached" });
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the tap only took the hint away");
+  await page.reload(); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); await page.waitForTimeout(800); /* real timer */
+  assert.equal(await page.locator("#gg-hint").count(), 0, "never again");
+});
+
+test("Road Ready 05: the first-run hint sits below the words, above the progress line, and fades on its own after 5 s", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark"), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.waitForSelector("#gg-hint", { timeout: 15000 }); /* real timer: the first time the controls hide */
+  const shown = Date.now();
+  const r = await page.evaluate(() => {
+    const gig = document.getElementById("gig"), hint = document.getElementById("gg-hint").getBoundingClientRect();
+    /* the bottom fade (.gig::after) is solid from 44 px down, so words below that line can't be seen */
+    const solid = innerHeight - (parseFloat(getComputedStyle(gig, "::after").height) - 44);
+    const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly, .crow)")].filter(el => getComputedStyle(el).visibility !== "hidden")
+      .map(el => el.getBoundingClientRect()).filter(b => b.height && b.top < solid && b.bottom > 0);
+    return { top: hint.top, bottom: hint.bottom, left: hint.left, right: hint.right, words: Math.max(...lines.map(b => Math.min(b.bottom, solid))), n: lines.length,
+      prog: document.getElementById("gg-prog").parentElement.getBoundingClientRect().top, w: innerWidth };
+  });
+  assert.ok(r.n > 3, "words fill the screen behind it");
+  assert.ok(r.top >= r.words - 0.5, `the hint (top ${r.top}) is below the last visible lyric line (${r.words})`);
+  assert.ok(r.bottom <= r.prog, "above the progress line");
+  assert.ok(r.left >= 0 && r.right <= r.w, "inside the screen");
+  await page.waitForTimeout(4000); /* real timer */
+  assert.equal(await page.locator("#gg-hint").count(), 1, "still there before 5 s");
+  await page.waitForSelector("#gg-hint", { state: "detached", timeout: 3000 });
+  const gone = Date.now() - shown;
+  assert.ok(gone >= 4500 && gone < 6500, `gone 5 s after it shows (${gone} ms; the test sees the hint a little after it shows)`);
+  assert.equal(await page.locator("#gig.paused").count(), 0, "the song plays on");
+  assert.equal((await saved(page)).settings.used?.playHint, true, "it still counts as shown");
+});
+
+for (const theme of ["dark", "light"]) test(`Road Ready 05 (${theme}): words in the lyric colours on the plain base, amber chords, the bar and the progress line, all readable`, { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr(theme), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-past:is(.pr, .ly)");
+  await page.waitForFunction(() => !document.querySelector("#sheet > .st-now")?.getAnimations().length);
+  const r = await page.evaluate(() => {
+    const css = (el, pseudo) => getComputedStyle(el, pseudo), q = s => document.querySelector(s), root = css(document.documentElement);
+    const probe = document.createElement("i"); document.body.appendChild(probe);
+    const tok = n => { probe.style.color = root.getPropertyValue(n); return getComputedStyle(probe).color; };
+    const out = { base: tok("--rr-base"), card: tok("--rr-card"), sung: tok("--rr-lyric-sung"), next: tok("--rr-lyric-next"), now: tok("--rr-lyric-now"), chordTok: tok("--rr-chord") };
+    probe.remove();
+    const now = q("#sheet > .st-now"), past = q("#sheet > .st-past:is(.pr, .ly)"), next = q("#sheet > .st-next");
+    return { ...out, body: css(document.body).backgroundColor, bodyImg: css(document.body).backgroundImage, cNow: css(now).color, cPast: css(past).color, cNext: css(next).color,
+      opPast: css(past).opacity, chord: css(past.querySelector(".c")).color, chordOp: css(past.querySelector(".c")).opacity,
+      bar: css(now, "::after").width, barBg: css(now, "::after").backgroundColor, prog: css(q(".gg-prog")).height, progHidden: q(".gg-prog").getAttribute("aria-hidden"),
+      title: q("#gg-head")?.textContent };
+  });
+  assert.equal(r.body, r.base, "the plain base behind the words");
+  assert.equal(r.bodyImg, "none", "no tolex grain behind the words");
+  assert.deepEqual([r.cPast, r.cNext, r.cNow], [r.sung, r.next, r.now], "sung, next and current lines in their own colours");
+  assert.equal(r.opPast, "1", "never dimmed with opacity");
+  assert.equal(r.chord, r.chordTok, "chords in amber"); assert.equal(r.chordOp, "1");
+  assert.ok(ratio(r.sung, r.base) >= 4.5 && ratio(r.sung, r.card) >= 4.5, `sung lines ${ratio(r.sung, r.base).toFixed(1)}:1`);
+  assert.ok(ratio(r.chordTok, r.base) >= 4.5, `chords ${ratio(r.chordTok, r.base).toFixed(1)}:1`);
+  assert.equal(r.bar, "3px", "a 3 px bar beside the line you're on");
+  assert.equal(r.prog, "2px", "a 2 px progress line"); assert.equal(r.progHidden, "true");
+  assert.match(r.title, /Short Road[\s\S]*Me/, "the song's title and artist at the top");
+  const box = await page.locator("#gg-pause").boundingBox();
+  assert.ok(box.width >= 44 && box.height >= 44, "Pause is at least 44 px");
+});
+
+for (const motion of ["no-preference", "reduce"]) test(`Road Ready 05: the controls hide with ${motion === "reduce" ? "a plain 0.2 s fade (Reduce Motion)" : "a 0.25 s fade and an 8 px slide"}`, { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark", { used: { playHint: true } }), "#/song/g");
+  await page.emulateMedia({ reducedMotion: motion });
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); await page.waitForTimeout(500); /* real timer: the fade is done */
+  const r = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("gg-pause")); return { tr: c.transitionDuration, prop: c.transitionProperty, tf: c.transform }; });
+  if (motion === "reduce") { assert.match(r.tr, /^0\.2s/); assert.equal(r.tf, "none", "no slide"); assert.doesNotMatch(r.prop, /transform/); }
+  else { assert.match(r.tr, /^0\.25s/); assert.equal(r.tf, "matrix(1, 0, 0, 1, 0, 8)", "an 8 px slide"); }
+});
+
+test("Road Ready 05: at large text only the line you're on and the next ones show, nothing runs off the edge or sits under Pause", { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr("dark", { keepControls: true }), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-past");
+  await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
+  const r = await page.evaluate(() => {
+    const p = document.getElementById("gg-pause").getBoundingClientRect(), sheet = document.getElementById("sheet").getBoundingClientRect();
+    const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly, .crow)")].filter(l => getComputedStyle(l).visibility !== "hidden" && l.getBoundingClientRect().bottom > 0 && l.getBoundingClientRect().top < innerHeight);
+    return { n: lines.length, past: [...document.querySelectorAll("#sheet > .st-past")].some(l => getComputedStyle(l).visibility !== "hidden"),
+      off: lines.some(l => [...l.querySelectorAll("*")].some(c => c.getBoundingClientRect().right > sheet.right + 1)),
+      under: lines.some(l => { const b = l.getBoundingClientRect(); return b.bottom > p.top && b.top < p.bottom && b.right > p.left && b.left < p.right; }) };
+  });
+  assert.equal(r.past, false, "lines already sung step aside");
+  assert.ok(r.n >= 2 && r.n <= 3, `the line you're on and the next one or two (${r.n})`);
+  assert.equal(r.off, false, "nothing runs off the edge");
+  assert.equal(r.under, false, "nothing sits under Pause");
+});
+
+test("Road Ready 05: Settings has Keep playing controls on screen, off until turned on", { skip: skip() }, async t => {
+  const page = await phone(t, rr("dark"));
+  await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-keepctl");
+  assert.equal(await page.getAttribute("#s-keepctl", "aria-checked"), "false");
+  assert.match(await page.innerText(".set:has(#s-keepctl)"), /For VoiceOver, Switch Control or if you like seeing them\./);
+  await page.click("#s-keepctl");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.keepControls === true);
+});
+
+test("Road Ready 05: Green Room keeps the show as it was (no title, no progress line, Pause where it was)", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...rr("green"), merch: { has: ["green"] } }, "#/song/g");
+  await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
+  const r = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById("gg-head")).display, prog: getComputedStyle(document.querySelector(".gg-prog")).display, pause: document.getElementById("gg-pause").getBoundingClientRect().left }));
+  assert.equal(r.head, "none"); assert.equal(r.prog, "none");
+  assert.ok(r.pause < 60, "Pause stays at the left");
+  assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "the crowd keeps its own row");
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.getElementById("gg-sec")).display), "none", "and the section pill");
+  assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && getComputedStyle(b.parentElement).display !== "none" && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light, ending above the reading line");
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "and the section band behind the line");
+  /* review fix: no first-run hint in Green Room, and the one-time hint is still unused for the Road Ready looks */
+  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
+  await page.waitForTimeout(500); /* real timer: the hint would show on the same tick as idle */
+  assert.equal(await page.locator("#gg-hint").count(), 0, "no hint in Green Room");
+  assert.notEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.playHint), true, "the hint isn't used up");
+});
+
+for (const theme of ["dark", "light"]) test(`Road Ready 05 polish (${theme}): no band behind the line or stage light while playing, and the run chip and NOW card in Road Ready colours`, { skip: skip() }, async t => {
+  const page = await strummingPage(t, rr(theme), "#/song/g");
+  await page.click("#play"); await page.waitForSelector("body.staged:not(.held) #sheet > .st-now");
+  const r = await page.evaluate(() => {
+    const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), probe = document.createElement("i");
+    document.body.append(probe); const rgb = v => { probe.style.color = v; return getComputedStyle(probe).color; };
+    const out = { band: getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content, light: getComputedStyle(document.getElementById("st-bg")).display,
+      amber: rgb(css("--rr-amber-text")), card: rgb(css("--rr-card")), hair: rgb(css("--rr-hairline")) };
+    const combo = document.getElementById("gg-combo"); combo.textContent = "3 in a row";
+    const shape = document.getElementById("gg-shape"); shape.hidden = false; shape.innerHTML = "<small>NOW</small><b>F</b>";
+    const c = getComputedStyle(combo), s = getComputedStyle(shape);
+    Object.assign(out, { comboInk: c.color, comboBg: c.backgroundColor, shapeBg: s.backgroundColor, shapeEdge: s.borderTopColor, shapeLabel: getComputedStyle(shape.querySelector("small")).color });
+    probe.remove(); return out;
+  });
+  assert.equal(r.band, "none", "no section-coloured band behind the line you're on (the amber bar marks it)");
+  assert.equal(r.light, "none", "no stage light");
+  assert.equal(r.comboInk, r.amber, "the run chip's text is amber"); assert.equal(r.comboBg, r.card, "on the Road Ready card");
+  assert.equal(r.shapeBg, r.card, "the NOW card is the Road Ready card"); assert.equal(r.shapeEdge, r.hair, "with a hairline edge");
+  assert.equal(r.shapeLabel, r.amber, "and an amber NOW");
+  await page.keyboard.press("Shift"); await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "paused keeps the quiet band on the line you stopped on");
+});
+
+/* ---- Road Ready 06: Show complete ---- */
+const scLib = (theme, extra = {}) => ({ ...LIB, songs: [SHORT], merch: { tconv: 1, lconv: 1, has: ["green"] }, ...extra, settings: { ...LIB.settings, v: 6, theme, plainPlay: false, countIn: false } });
+async function toComplete(t, theme, opts) {
+  const page = await strummingPage(t, scLib(theme), "#/song/g", opts);
+  await page.click("#play"); await page.waitForSelector(".gc", { timeout: 40000 });
+  return page;
+}
+
+test("Road Ready 9a: Show complete shows the guitar you chose from the Guitar shop, by name, instead of the leg's", { skip: skip() }, async t => {
+  const page = await strummingPage(t, scLib("dark", { merch: { tconv: 1, lconv: 1, has: ["green", "g-nova"], guitar: "nova" } }), "#/song/g");
+  await page.click("#play"); await page.waitForSelector(".gc", { timeout: 40000 });
+  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/nova-small\.webp/);
+  assert.equal(await page.innerText(".sc-label"), "Nova");
+});
+
+test("Road Ready 06: Show complete has the overline, the song, the glowing guitar with its name, Louie, one-sentence reward tiles, the next stop and the two buttons", { skip: skip() }, async t => {
+  const page = await toComplete(t, "dark");
+  assert.equal(await page.locator(".gc.rr-sc").count(), 1);
+  assert.equal(await page.innerText(".sc-over"), "SHOW COMPLETE");
+  assert.equal(await page.innerText(".sc-title"), "Short Road");
+  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/porch-small\.webp/, "the guitar you played on, its whole picture as in the case");
+  assert.equal(await page.innerText(".sc-label"), "Porch", "named after the leg you're on");
+  await page.waitForFunction(() => { const i = document.querySelector(".sc-guitar img"); return i.complete && i.naturalWidth > 0; });
+  const gr = await page.$eval(".sc-guitar img", i => i.complete && i.naturalWidth ? [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width, i.getBoundingClientRect().height] : null);
+  assert.ok(gr && gr[1] / gr[0] >= 2.5, "a whole guitar in its own proportions, not a stubby one");
+  assert.ok(Math.abs(gr[3] / gr[2] - gr[1] / gr[0]) < 0.05, "drawn without stretching");
+  assert.equal(await page.getAttribute(".sc-show", "aria-hidden"), "true", "the picture, label and Louie are hidden from screen readers");
+  assert.ok(await page.locator(".sc-show .sc-louie .louie").count() === 1, "the cheering Louie");
+  /* the tiles: "+N fans" and "+$N tips", read as one sentence */
+  const tiles = await page.$$eval(".sc-tile b", bs => bs.map(b => b.textContent));
+  assert.match(tiles[0], /^\+\d+ fans$/); assert.match(tiles[1], /^\+\$\d+ tips$/);
+  const [f, d] = [tiles[0].match(/\d+/)[0], tiles[1].match(/\d+/)[0]];
+  assert.equal(await page.getAttribute(".sc-reward", "aria-label"), `Reward: ${f} fans and ${d} dollars in tips.`);
+  assert.equal(await page.getAttribute(".sc-reward", "role"), "img", "one thing to a screen reader");
+  assert.match(await page.innerText(".sc-next"), /^Next stop: \S/);
+  /* everything Show complete showed before is still here, below */
+  for (const sel of [".gc-tile.crowd", ".gc-tile.beat .gc-stars", ".gc-song", ".gc-list"]) assert.equal(await page.locator(sel).count(), 1, sel);
+  assert.equal(await page.locator(".gc-hero, #gc-bdc").count(), 0, "no backdrop in Road Ready");
+  assert.doesNotMatch(await page.innerText(".gc"), /missed|lost|sorry|too bad|try harder/i, "nothing that makes you feel bad");
+  /* buttons: 44 px or more, Play it again starts the Encore */
+  const small = await page.evaluate(() => [...document.querySelectorAll(".gc button")].map(b => { const r = b.getBoundingClientRect(); return [b.id || b.textContent.trim(), r.width, r.height]; }).filter(([, w, h]) => w < 44 || h < 44));
+  assert.deepEqual(small, []);
+  assert.equal(await page.innerText("#gc-go"), "Continue");
+  assert.match(await page.innerText("#gc-encore"), /Play it again, 2x bonus fans/);
+  await page.click("#gc-encore"); await page.waitForSelector("#gig:not(.done)");
+});
+
+test("Road Ready 06: Continue keeps its action, and the text on Show complete meets AA in both looks", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await toComplete(t, theme);
+    const r = await page.evaluate(() => {
+      const rgb = c => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = c => { const [a, b, d] = rgb(c).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * a + .7152 * b + .0722 * d; };
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+      const bg = getComputedStyle(document.querySelector(".gig.done")).backgroundColor, col = s => getComputedStyle(document.querySelector(s)).color;
+      return { over: ratio(col(".sc-over"), bg), title: ratio(col(".sc-title"), bg), sub: ratio(col(".sc-sub"), bg), tile: ratio(col(".sc-tile b"), bg), next: ratio(col(".sc-next"), bg),
+        label: ratio(col(".sc-label"), getComputedStyle(document.querySelector(".sc-label")).backgroundColor) };
+    });
+    for (const [k, v] of Object.entries(r)) assert.ok(v >= 4.5, `${theme} ${k}: ${v.toFixed(2)}:1`);
+    await page.click("#gc-go"); await page.waitForSelector("#gig", { state: "detached" });
+    assert.ok(await page.locator(".shead").isVisible(), "Continue stays on the song page, as before");
+  }
+});
+
+test("Road Ready 06: Show complete moves (sparks, one pulse, one hop) and stays still with Reduce Motion", { skip: skip() }, async t => {
+  for (const reduce of [false, true]) {
+    const page = await toComplete(t, "dark", { reducedMotion: reduce ? "reduce" : "no-preference" });
+    const a = await page.evaluate(() => ["glow .sc-guitar", "sc-louie", "sc-sparks i"].map(s => getComputedStyle(document.querySelector(s.startsWith("glow") ? ".sc-show.glow .sc-guitar" : "." + s)).animationName));
+    assert.deepEqual(a, reduce ? ["none", "none", "none"] : ["sc-pulse", "sc-hop", "sc-drift"]);
+  }
+});
+
+test("Road Ready 06: Green Room keeps Show complete as it was, with the backdrop you wear and Change", { skip: skip() }, async t => {
+  const page = await toComplete(t, "green");
+  assert.equal(await page.locator(".rr-sc, .sc-show").count(), 0);
+  assert.match(await page.innerText(".gc-t"), /Show complete/);
+  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
+  assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
+  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
+  assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
+  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds", { state: "hidden" });
+  assert.match(await page.innerText("#gc-encore"), /ENCORE/);
+});
+
+test("Road Ready 06: at large text Show complete scrolls, with nothing running off the side", { skip: skip() }, async t => {
+  const page = await toComplete(t, "dark");
+  await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
+  await page.waitForTimeout(200); /* the layout settles */
+  const over = await page.evaluate(() => [...document.querySelectorAll(".rr-sc *")].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > innerWidth + 1 || r.left < -1) && !e.closest(".sc-show"); }).map(e => e.className || e.tagName));
+  assert.deepEqual(over, []);
+  assert.ok(await page.evaluate(() => { const g = document.querySelector(".rr-sc"); return g.scrollHeight > g.clientHeight; }), "it scrolls");
+});
+

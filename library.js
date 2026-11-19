@@ -10,6 +10,9 @@ import { $, I, app, esc, followKeyboard, icon, layer, onLeave, toast } from "./u
 import { aiError, aiKey, busy, cleanSheet, readPhoto } from "./aihelp.js";
 import { bindFind, data, findAI, findCard, go, keyOf, lastOpened, newSong, nextSongs, openTuner, playGig, route, tunedRecently } from "./app.js";
 
+/* Road Ready 07: the Dark and Light looks (data-look neon and festival) draw the Songbook as r10-05; Green Room and Headliner keep the earlier one */
+const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+
 export let query = "";
 export let filter = "all";
 export const setFilter = f => { filter = f; };
@@ -88,6 +91,7 @@ function todayItems() {
 function todayHTML() {
   const items = todayItems();
   if (!items.length) return "";
+  if (rrLook()) return `<div class="today rr-hint" id="today"><img class="rr-badge" src="art/louie/v3/louie-face-badge.webp" alt="" aria-hidden="true" width="44" height="44"><div class="rr-hint-in"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>${icon("chev", "chev rr-hint-chev")}</div>`;
   return `<div class="today" id="today"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>`;
 }
 // An empty, hidden #today keeps a place for the line when there's nothing to
@@ -115,12 +119,17 @@ function bindToday() {
 }
 /* The filter chips, on the Library page and in Tonight's drawer. */
 export function chipsHTML() {
-  if (!data.songs.length) return "";
+  const setsChip = () => `<button class="chip${filter === "sets" ? " on" : ""}" id="setsbtn" aria-pressed="${filter === "sets"}">Sets</button>`;
+  if (!data.songs.length) return rrLook() && data.sets.length ? `<div class="chips rr-chips" id="chips">${setsChip()}</div>` : "";
   const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
   const can = canPlayCount();
   if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can)) filter = "all";
   /* 4.20.1: one row that always fits. Sets is a button in the header and Tabs is a choice in the sort menu. */
   const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
+  /* Road Ready 07: capsules that wrap rather than squeeze, All with its count, and Sets as the last chip (it keeps its own button id and toggle) */
+  /* each filter says whether it is the chosen one (aria-pressed), as Sets does, so the fill isn't the only signal */
+  const pressed = h => h.replace(/data-f="(\w+)"/, (m, f) => `${m} aria-pressed="${filter === f}"`);
+  if (rrLook()) return `<div class="chips rr-chips" id="chips">${pressed(chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`))}${can ? pressed(chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`)) : ""}${hasLearn ? pressed(chip("learn", "Learning")) : ""}${hasFav ? pressed(chip("fav", icon("heart"), "Favorites")) : ""}${setsChip()}</div>`;
   return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play<small>${can}</small>`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
@@ -130,14 +139,20 @@ export const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?
 export function renderLibrary() {
   chipsHTML(); /* settles a filter that no longer has songs */
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
+  const rr = rrLook();
   app.innerHTML = `
-    <div class="head">
+    ${rr ? `<div class="head rr-sb-head">
+      <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title">Songbook</h1></div>
+      <div class="row-btns">
+        <button class="rr-sb-add" id="add"><span class="rr-sb-plus">${icon("plus")}</span><span class="rr-sb-addl">Add</span></button>
+      </div>
+    </div>` : `<div class="head">
       <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title script">Songbook</h1></div>
       <div class="row-btns">
         <button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets">${icon("list")}Sets</button>
         ${tunerBtn("ib chunky-tune")}
       </div>
-    </div>
+    </div>`}
     ${todayHTMLOrSpot()}
     ${chipsHTML()}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -147,19 +162,19 @@ export function renderLibrary() {
     </div>` : ""}
     <div id="list"></div>
     <div class="dock-fade"></div>
-    <div class="dock kb">
+    <div class="dock kb${rr ? " rr-sb-dock" : ""}">
       <label class="cmd glass float">
         ${icon("search")}
         <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search or add a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or add a song">
         <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
-        <button class="cmd-add" id="add" aria-label="Add a song">${icon("plus")}</button>
+        ${rr ? "" : `<button class="cmd-add" id="add" aria-label="Add a song">${icon("plus")}</button>`}
       </label>
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
   $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
-  $("setsbtn").onclick = () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); };
-  $("tunerbtn").onclick = () => openTuner("standard", () => route().name === "library" && renderLibrary());
+  $("setsbtn")?.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
+  $("tunerbtn")?.addEventListener("click", () => openTuner("standard", () => route().name === "library" && renderLibrary()));
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
@@ -266,7 +281,7 @@ export function bindShelf() {
   app.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => go("#/set/" + encodeURIComponent(b.dataset.sh)));
 }
 
-export const STATUS = { learning: "Learning", got: "Got it" };
+export const STATUS = { learning: "Learning", solid: "Solid", got: "Nailed it" };
 const SORTS = { title: "A–Z", artist: "Artist", recent: "Recently played", most: "Most played" };
 // A lyric that matched the search, with the matching words marked.
 function lyricHit(line, q) {
@@ -281,6 +296,7 @@ function songRow(s, hit) {
   const wk = playsThisWeek(s), sort = data.settings.sort, n = playCount(s);
   const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
+  if (rrLook()) return rrRow(s, hit, stat);
   const sub = hit ? `<span class="hit">${hit}</span>`
     : [esc(s.artist || "Unknown artist"), s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
   return `<button class="row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
@@ -288,6 +304,28 @@ function songRow(s, hit) {
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
     ${(() => { const f = fitOf(s); return s.status === "learning" ? `<span class="fit learn">LEARNING</span>` : f.can ? `<span class="fit can">CAN PLAY</span>` : f.missing.length === 1 ? `<span class="fit one">+ ${esc(f.missing[0])}</span>` : ""; })()}
     <span class="k">${esc(keyOf(s))}</span>
+  </button>`;
+}
+/* Road Ready 07 (r10-05): an art tile, the title, the artist, the song's chords as small chips, and mastery dots
+   (one for Learning, two for Solid, three for Nailed it). The dots are hidden from screen readers; the row's label
+   says the level in words. */
+const MASTERY = { learning: 1, solid: 2, got: 3 };
+const TILES = ["#8A4A16", "#34508A", "#8E2C2C", "#2D5E4A", "#735A1C", "#5B3A8C"];
+const initials = t => (String(t || "").match(/[A-Za-z0-9]+/g) || ["?"]).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+const unHTML = h => h.replace(/<[^>]+>/g, "").replace(/&(amp|lt|gt|quot|#39);/g, (_, e) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[e]);
+const tileOf = t => TILES[[...String(t || "")].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % TILES.length];
+function rrRow(s, hit, stat) {
+  const f = fitOf(s), lv = MASTERY[s.status] || 0, art = [s.art, s.listen?.art].find(u => /^https:\/\//.test(u || ""));
+  const chords = s.format === "tab" ? [] : sheetChords(s.body).slice(0, 5);
+  const needs = f.missing.length === 1 ? f.missing[0] : "";
+  const sub = hit ? `<span class="hit">${hit}</span>` : [esc(s.artist || "Unknown artist"), f.can && '<span class="rr-can">Can play</span>', stat].filter(Boolean).join(" · ");
+  const label = [s.title || "Untitled", s.artist || "Unknown artist", STATUS[s.status], s.favorite && "Favorite", f.can && "Can play", needs && `needs ${needs}`,
+    hit ? unHTML(hit) : stat, keyOf(s) && `key of ${keyOf(s)}`].filter(Boolean).map(esc).join(", ");
+  return `<button class="row rr-row" data-id="${esc(s.id)}" aria-label="${label}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
+    <span class="rr-tile" aria-hidden="true" style="--tile:${tileOf(s.title)}"><b>${esc(initials(s.title))}</b>${art ? `<img src="${esc(art)}" alt="" loading="lazy">` : ""}</span>
+    <span class="txt"><span class="t">${esc(s.title)}</span><span class="a">${sub}</span>${chords.length || needs ? `<span class="rr-cc" aria-hidden="true">${chords.map(c => `<i>${esc(c)}</i>`).join("")}${needs ? `<i class="rr-needs">needs ${esc(needs)}</i>` : ""}</span>` : ""}</span>
+    <span class="rr-side" aria-hidden="true">${lv ? `<span class="rr-dots">${[1, 2, 3].map(k => `<i${k <= lv ? ' class="on"' : ""}></i>`).join("")}</span>` : ""}${s.favorite ? `<svg class="heart" viewBox="0 0 24 24">${I.heart}</svg>` : ""}${keyOf(s) ? `<span class="k">${esc(keyOf(s))}</span>` : ""}</span>
+    ${icon("chev", "chev")}
   </button>`;
 }
 /* The Songbook (4.9.0): which songs use only chords you know, and which need just one more. */

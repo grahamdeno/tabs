@@ -8,7 +8,7 @@
 //   records          one for each week you finished in the top 5
 // The numbers are worked out in core.js (chartState, chartsSettle, battleFor, XP).
 import { STAR_NAMES, starsOf, VERSION, CHART_PROMOTE, CHART_DEMOTE, VENUES, XP, Tabs, battleFor, chartState, chartsSettle, merchState, secondTake, startBattle } from "./core.js";
-import { app, esc, toast } from "./ui.js";
+import { app, esc, icon, toast } from "./ui.js";
 import { data, go, playGig } from "./app.js";
 import { rival, you } from "./guitarist.js";
 import { statBar, bindStatBar } from "./hud.js";
@@ -38,6 +38,7 @@ export function renderCharts(view = "chart") {
     ? `<section class="ch-go done"><p>${b.result === "won" ? `You played ${esc(song?.title || "the song")} start to finish and passed ${esc(b.rival)}. +${XP.battle} XP, +${XP.battleFans} fans.` : `${esc(b.rival)} held on: the song needs to go start to finish at full speed, no pausing. ${takes ? "" : "A new battle tomorrow."}`}</p>${b.result === "lost" ? takes ? `<button class="ch-gobtn" id="ch-take">SECOND TAKE · ${takes} LEFT</button>` : `<button class="ch-takeget" id="ch-takeget">Get a Second take at the merch table</button>` : ""}</section>`
     : `<section class="ch-go"><p>${st.you.rank === 1 ? `<b>${esc(b.rival)}</b> wants your spot. Win on ${esc(song?.title || "a song")} and take ${XP.battle} XP` : `Win the battle with <b>${esc(b.rival)}</b> on ${esc(song?.title || "a song")} and take ${XP.battle} XP`}</p><button class="ch-gobtn" id="ch-go">GO</button></section>`;
   app.innerHTML = `<div class="ch">
+    <div class="head"><button class="ib glass" id="back" aria-label="Back to Me">${icon("back")}</button></div>
     <div class="tq-top">${statBar()}</div>
     ${st.last ? `<section class="ch-last"><p>${st.last.xp ? `Last week: <b>${ord(st.last.rank)}</b> on the ${esc(VENUES[st.last.tier])} chart${st.last.up ? `. Up to the <b>${esc(VENUES[st.last.tier + 1])}</b>!` : st.last.down ? `. Back down to the <b>${esc(VENUES[st.last.tier - 1])}</b>. Win it back this week.` : st.last.rank <= CHART_PROMOTE ? ". A record for the shelf." : ". Top 5 moves you up."}` : st.last.down ? `Last week went by without a play, so you're back at the <b>${esc(VENUES[st.last.tier - 1])}</b>.` : `Last week went by without a play. This week is a fresh chart.`}</p><button class="sb" id="ch-lastx" aria-label="Got it">OK</button></section>` : ""}
     <div class="seg ch-pane" role="group" aria-label="Charts">${[["league", "League"], ["friends", "Friends"]].map(([k, n]) => `<button data-pane="${k}" class="${pane === k ? "on" : ""}" aria-pressed="${pane === k}">${n}</button>`).join("")}</div>
@@ -54,6 +55,7 @@ export function renderCharts(view = "chart") {
     <p class="ch-how">XP: ${XP.play} for a song played through, ${XP.landed} for each chord change played in a gig (more with stretch pay), ${XP.crowd} for the whole song without pausing, ${XP.goal} for a setlist goal, ${XP.battle} for a battle won.</p>
   </div>`;
   bindStatBar();
+  document.getElementById("back").onclick = () => history.length > 1 ? history.back() : go("#/you");
   document.getElementById("ch-go")?.addEventListener("click", () => renderCharts("battle"));
   document.getElementById("ch-take")?.addEventListener("click", () => { if (secondTake(data)) { Tabs.save(data); renderCharts("battle"); } });
   document.getElementById("ch-takeget")?.addEventListener("click", () => go("#/merch"));

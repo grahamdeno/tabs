@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned } from "./core.js";
+import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -24,13 +24,19 @@ window.addEventListener("pagehide", () => Tabs.flush());
 // The phone's own text size (iPhone: Settings > Display & Brightness > Text Size)
 // scales the lyrics, so a larger system size means larger songs too.
 let sysText = 1;
+/* Road Ready: the same reading also sets --sys-px (the raw size, 17 at the default) for the --type-* sizes and
+   data-ax for the large-text layouts. The returned scale and its clamp are unchanged: the lyrics use them. */
 function readSysText() {
-  if (!window.CSS?.supports?.("font", "-apple-system-body")) return 1;
+  if (!window.CSS?.supports?.("font", "-apple-system-body")) return 1; /* not an iPhone: --sys-px stays unset (17 px) and data-ax absent */
+  const root = document.documentElement;
   const el = document.createElement("span");
   el.style.cssText = "font: -apple-system-body; position: absolute; visibility: hidden";
   document.body.appendChild(el);
   const px = parseFloat(getComputedStyle(el).fontSize) || 17;
   el.remove();
+  root.style.setProperty("--sys-px", px + "px");
+  const ax = axOf(px);
+  if (ax) root.dataset.ax = ax; else delete root.dataset.ax;
   return Math.min(1.6, Math.max(0.85, px / 17));
 }
 document.addEventListener("visibilitychange", () => {
@@ -46,13 +52,13 @@ function applyTheme() {
   const t0 = data.settings.theme, t = looksOwned(data).has(t0) ? t0 : "auto"; /* 4.78.0: a look you don't have yet is Auto */
   const green = t === "green", head = t === "headliner", light = green || t === "light" || (t !== "dark" && !head && phoneLight());
   document.documentElement.dataset.theme = light ? "light" : "dark";
-  /* 4.0.0: Light is Festival Poster, Dark is Neon Midnight, Green is Green Room (a light look) */
+  /* 4.0.0: Light is Road Ready light (data-look festival), Dark is Road Ready dark (data-look neon), Green is Green Room (a light look) */
   /* 4.77.0: Headliner is a dark look: violet, gold and blaze orange on black */
   document.documentElement.dataset.look = green ? "green" : head ? "headliner" : light ? "festival" : "neon";
   /* 4.14.0: the finish Louie wears, bought at the Merch table */
   const wear = merchWorn(data);
   if (wear === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = wear;
-  document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : head ? "#16171b" : light ? "#eaf3ff" : "#1d1640";
+  document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : head ? "#16171b" : light ? "#F6EFE2" : "#141210";
 }
 
 
@@ -228,7 +234,7 @@ function renderViewer(id) {
   });
   // One menu for everything about this song: text size, sets, edit, AI help, share, practice.
   app.querySelectorAll(".more").forEach(btn => btn.onclick = e => { e.stopPropagation(); songMenu(song, btn, draw); });
-  // Learning status: tap to cycle none → Learning → Got it.
+  // Mastery: tap to cycle none, Learning, Solid, Nailed it (stored "got"), then none again.
   const paintStat = () => {
     const st = $("stat");
     const wk = playsThisWeek(song);
@@ -240,11 +246,11 @@ function renderViewer(id) {
   $("meta").onclick = () => openAbout(song);
   bindCover(song);
   $("stat").onclick = () => {
-    song.status = !song.status ? "learning" : song.status === "learning" ? "got" : undefined;
+    song.status = { undefined: "learning", learning: "solid", solid: "got" }[song.status];
     if (!song.status) delete song.status;
     if (song.status === "got") journalGot(data, song);
     Tabs.save(data); paintStat(); paintLoop(song);
-    toast(song.status === "learning" ? "Learning" : song.status === "got" ? "Got it" : "Status cleared", $("stat"));
+    toast(STATUS[song.status] || "Status cleared", $("stat"));
   };
   curPaintStat = paintStat;
   const step2 = d => { const x = data.sets.find(z => z.id === setCtx.id), list = setSongs(x), n = list[setCtx.idx + d]; if (!n) return; setSetCtx({ id: x.id, idx: setCtx.idx + d }); go("#/song/" + encodeURIComponent(n.id)); };
@@ -1958,8 +1964,8 @@ function renderRoute() {
   leaveHooks.forEach(fn => fn(r));
   if (r.name === "road" || r.name === "library") lastHome = r.name;
   document.body.classList.toggle("is-home", r.name === "road");
-  /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings) */
-  const tabbed = ["road", "tour", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id && r.id !== "neck"); /* 4.42.5: #/practice/neck is Rehearse, so it keeps the tab bar */
+  /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings). Road Ready 04: the Songbook is a tab */
+  const tabbed = ["road", "library", "tour", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id && r.id !== "neck"); /* 4.42.5: #/practice/neck is Rehearse, so it keeps the tab bar */
   if (!tabbed) document.body.classList.remove("tabbed");
   else lazy("hud.js").then(m => { if (route().name === r.name) m.paintTabs(m.tabFor(r.name)); });
   app.classList.remove("viewer");

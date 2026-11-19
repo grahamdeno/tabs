@@ -17,10 +17,10 @@ test("4.85.0 a player who never made a guitarist is asked once on the Road, and 
   await page.click('.gm [data-k="starter"][data-v="4"]');
   await page.click("#gm-ok");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).me?.hair === "braids");
-  await page.waitForSelector(".rd-bubble");
+  await page.waitForSelector("#rd-bubble");
   assert.equal(await page.locator(".gm").count(), 0, "the sheet closes");
-  assert.ok(await page.locator(".rd-say .louie").count() >= 1, "Louie still talks on the Road");
-  await page.reload(); await page.waitForSelector(".rd-bubble"); await settled(page);
+  assert.ok(await page.locator(".rd-peek").count() === 0 && await page.locator("#rd-bubble").count() === 1, "the message stays on the Road, without Louie (Road Ready 10b)");
+  await page.reload(); await page.waitForSelector("#rd-bubble"); await settled(page);
   assert.equal(await page.locator(".gm").count(), 0, "asked once");
 });
 
@@ -29,14 +29,14 @@ test("4.85.0 Skip keeps the default and doesn't ask again", { skip: skip() }, as
   await page.waitForSelector(".gm");
   await page.click("#gm-skip");
   await page.waitForFunction(() => !!JSON.parse(localStorage.getItem("tabs-v1")).me);
-  await page.reload(); await page.waitForSelector(".rd-bubble"); await settled(page);
+  await page.reload(); await page.waitForSelector("#rd-bubble"); await settled(page);
   assert.equal(await page.locator(".gm").count(), 0);
 });
 
 test("4.85.0 your profile card shows your guitarist; the maker changes it and saves as you tap", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: { skin: 4, hair: "locs", hairCol: "purple", top: "teal" } }, { home: true });
-  await page.waitForSelector(".rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".pf-player");
-  assert.equal(await page.locator('.pf-pc-lou svg[aria-label="Your guitarist"]').count(), 1);
+  await page.waitForSelector("#rd-bubble"); await hash(page, "#/you"); await page.waitForSelector(".rr-me");
+  assert.equal(await page.locator('.rr-avatar svg[aria-label="Your guitarist"]').count(), 1); /* Road Ready 08: the avatar in the header */
   await page.click("#pf-me"); await page.waitForSelector(".gm");
   assert.equal(await page.locator(".gm button[aria-pressed]").count() > 20, true, "every choice is a pressed-state button");
   await page.click('.gm [data-k="hair"][data-v="pixie"]');
@@ -46,13 +46,13 @@ test("4.85.0 your profile card shows your guitarist; the maker changes it and sa
   await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.lefty && m.beard === "stubble"; });
   assert.equal(await page.locator(".gm .gm-prev svg").getAttribute("aria-label"), "Your guitarist");
   assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 3, "the three hats are locked until bought");
-  await page.click("#gm-ok"); await page.waitForSelector(".pf-player");
+  await page.click("#gm-ok"); await page.waitForSelector(".rr-me");
   assert.equal(await page.locator(".gm").count(), 0);
 });
 
 test("4.85.0 the chart's rows and the rival battle show guitarists, you and the computer players", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs) }, { home: true });
-  await page.waitForSelector(".rd-bubble"); await hash(page, "#/charts"); await page.waitForSelector(".ch-row");
+  await page.waitForSelector("#rd-bubble"); await hash(page, "#/charts"); await page.waitForSelector(".ch-row");
   assert.equal(await page.locator('.ch-row.you svg[aria-label="Your guitarist"]').count(), 1, "your row");
   assert.ok(await page.locator(".ch-row:not(.you) .ch-av svg").count() >= 5, "the rivals have faces too");
   assert.equal(await page.locator(".ch-av .louie").count(), 0, "Louie isn't a player on the chart");
@@ -73,7 +73,7 @@ test("4.85.0 a duel shows your guitarist, worried when you lost", { skip: skip()
 
 test("4.85.0 a hat bought on the Merch table goes on your guitarist and shows in the maker", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, merch: { tips: 400 }, songs: PLAYED(LIB.songs) }, { home: true });
-  await page.waitForSelector(".rd-bubble"); await hash(page, "#/merch"); await page.waitForSelector(".mc");
+  await page.waitForSelector("#rd-bubble"); await hash(page, "#/merch"); await page.waitForSelector(".mc");
   assert.equal(await page.locator(".mc-fin[aria-label$='for your guitarist']").count(), 3, "three hats");
   await page.click('[data-id="wear-beanie"]'); await page.waitForSelector(".mt");
   assert.match(await page.innerText(".mt"), /TRY IT ON YOUR GUITARIST[\s\S]*Beanie[\s\S]*BUY FOR \$150/);

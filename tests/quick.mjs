@@ -43,8 +43,8 @@ const COVERS = {
   "profile.js": ["profile"],
   "practice.js": ["practice"],
   "gig.js": ["app", "gig"], "tour.js": ["app"], "charts.js": ["app"], "band.js": ["app"], "friends.js": ["app"], "merch.js": ["app", "gig"], "hud.js": ["app"],
-  "road.js": ["app"], "duel.js": ["app"], "share.js": ["app", "duet"], "listen.js": ["app", "getsong"], "playmap.js": ["app"],
-  "scene.js": ["app"], "drawer.js": ["app"], "dial.js": ["app"], "crop.js": ["app"], "louie.js": ["regress"]
+  "road.js": ["app", "roadready", "opening"], "fretboard.js": ["app", "roadready"], "duel.js": ["app"], "share.js": ["app", "duet"], "listen.js": ["app", "getsong"], "playmap.js": ["app"],
+  "scene.js": ["app"], "drawer.js": ["app"], "dial.js": ["app"], "crop.js": ["app"], "louie.js": ["regress", "louie"]
 };
 const files = new Set();
 for (const f of changed) {

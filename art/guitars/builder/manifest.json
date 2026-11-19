@@ -1,0 +1,648 @@
+{
+ "version": 1,
+ "about": "Builder art for the seven Road guitars. Every layer is the same size as art/guitars/<slug>-road.webp and is drawn at (0, 0) on top of it. See docs/guitars/BUILDER-ART.md.",
+ "base": "art/guitars/{slug}-road.webp",
+ "dir": "art/guitars/builder/{slug}/",
+ "tex": "art/guitars/builder/tex/",
+ "default": {
+  "paint": "original",
+  "top": "none",
+  "guard": "original",
+  "wear": "new",
+  "metal": "chrome",
+  "strings": false
+ },
+ "steps": [
+  "base",
+  "paint",
+  "top",
+  "grain",
+  "shade",
+  "light",
+  "wear",
+  "guard",
+  "metal",
+  "strings"
+ ],
+ "paints": {
+  "amber": {
+   "name": "Amber burst",
+   "kind": "burst",
+   "centre": "#d9962f",
+   "mid": "#a0521a",
+   "edge": "#2a1406",
+   "grain": 0.85,
+   "light": 1.0
+  },
+  "seafoam": {
+   "name": "Seafoam",
+   "kind": "solid",
+   "colour": "#7ea596",
+   "grain": 0.15,
+   "light": 1.0
+  },
+  "burgundy": {
+   "name": "Burgundy mist",
+   "kind": "metallic",
+   "colour": "#6a1020",
+   "edge": "#2a0509",
+   "flake": 0.35,
+   "grain": 0.15,
+   "light": 1.1
+  },
+  "tobacco": {
+   "name": "Tobacco burst",
+   "kind": "burst",
+   "centre": "#e2a63a",
+   "mid": "#a8320f",
+   "edge": "#160804",
+   "grain": 0.85,
+   "light": 1.0
+  },
+  "honey": {
+   "name": "Honey burst",
+   "kind": "burst",
+   "centre": "#f0b44e",
+   "edge": "#9a4310",
+   "grain": 0.85,
+   "light": 1.0
+  },
+  "silverflake": {
+   "name": "Silver flake",
+   "kind": "flake",
+   "colour": "#a9adb3",
+   "flake": 0.55,
+   "grain": 0.1,
+   "light": 1.1
+  },
+  "black": {
+   "name": "Gloss black",
+   "kind": "solid",
+   "colour": "#121214",
+   "grain": 0.05,
+   "light": 1.2
+  },
+  "midnight": {
+   "name": "Midnight sparkle",
+   "kind": "flake",
+   "colour": "#123a78",
+   "flake": 0.7,
+   "grain": 0.1,
+   "light": 1.1
+  },
+  "graphite": {
+   "name": "Graphite flake",
+   "kind": "flake",
+   "colour": "#3a3c41",
+   "flake": 0.8,
+   "grain": 0.1,
+   "light": 1.1
+  },
+  "candy": {
+   "name": "Candy red",
+   "kind": "metallic",
+   "colour": "#c8121c",
+   "flake": 0.25,
+   "grain": 0.1,
+   "light": 1.1
+  }
+ },
+ "tops": {
+  "teal": {
+   "name": "Teal",
+   "texture": "flame.webp",
+   "centre": "#d6eef0",
+   "mid": "#3fa5b0",
+   "edge": "#0b4c58",
+   "rim": "#0b3a44"
+  },
+  "violet": {
+   "name": "Violet",
+   "texture": "flame.webp",
+   "centre": "#e3d3ee",
+   "mid": "#9a6cc0",
+   "edge": "#3a1858",
+   "rim": "#2a1040"
+  },
+  "purple": {
+   "name": "Purple",
+   "texture": "flame.webp",
+   "centre": "#8a3fb0",
+   "edge": "#3c1256",
+   "rim": "#2a0c3c"
+  },
+  "koa": {
+   "name": "Koa",
+   "texture": "koa.webp",
+   "edge": "#3a1606",
+   "rim": "#2a1206",
+   "edge_strength": 0.6
+  }
+ },
+ "guards": {
+  "pearloid": {
+   "name": "Pearloid",
+   "texture": "pearloid.webp"
+  },
+  "tortoise": {
+   "name": "Tortoise",
+   "texture": "tortoise.webp"
+  },
+  "mint": {
+   "name": "Mint",
+   "colour": "#cfe6d2"
+  },
+  "black": {
+   "name": "Black",
+   "colour": "#141414"
+  },
+  "chrome": {
+   "name": "Mirror chrome",
+   "texture": "chrome.webp",
+   "light": 1.4
+  },
+  "marble": {
+   "name": "Turquoise marble",
+   "texture": "marble.webp"
+  },
+  "leopard": {
+   "name": "Leopard",
+   "texture": "leopard.webp"
+  },
+  "tiger": {
+   "name": "Tiger stripe",
+   "texture": "tiger.webp"
+  },
+  "cow": {
+   "name": "Cow print",
+   "texture": "cow.webp"
+  },
+  "checker": {
+   "name": "Checkerboard",
+   "texture": "checker.webp"
+  },
+  "paisley": {
+   "name": "Paisley",
+   "texture": "paisley.webp"
+  },
+  "sunflower": {
+   "name": "Sunflower",
+   "texture": "sunflower.webp",
+   "locked": true
+  }
+ },
+ "wear": {
+  "new": {
+   "name": "Factory new",
+   "light": 1.0,
+   "overlay": null
+  },
+  "played": {
+   "name": "Played-in",
+   "light": 0.6,
+   "overlay": "wear-played.webp"
+  },
+  "worn": {
+   "name": "Road worn",
+   "light": 0.3,
+   "overlay": "wear-worn.webp",
+   "guard_age": {
+    "colour": "#f2dcae",
+    "op": "multiply",
+    "alpha": 0.45
+   },
+   "metal": "dull"
+  }
+ },
+ "metal": {
+  "chrome": {
+   "name": "Chrome",
+   "original": true
+  },
+  "nickel": {
+   "name": "Aged nickel",
+   "colour": "#9a958a",
+   "alpha": 1.0,
+   "dull": 0.12
+  },
+  "gold": {
+   "name": "Gold",
+   "colour": "#d8a640",
+   "alpha": 1.0
+  }
+ },
+ "guitars": {
+  "porch": {
+   "name": "Porch",
+   "type": "acoustic",
+   "w": 436,
+   "h": 1237,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "guard": "guard.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    8,
+    636,
+    428,
+    1219
+   ],
+   "guard_box": [
+    249,
+    752,
+    351,
+    954
+   ],
+   "centre_x": 218.0,
+   "options": {
+    "paint": true,
+    "head_paint": false,
+    "top": [
+     "koa"
+    ],
+    "guard": true,
+    "guard_kind": "added",
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {
+    "top": "Teal, Violet and Purple are maple flame tops for the electric bodies; on this acoustic they are not offered (chips shown locked with the line: Flame tops are for electric bodies). Koa is offered.",
+    "guard_original": "The painting has no guard, so original means no guard. Any other guard choice draws the added teardrop shape."
+   },
+   "original_paint": [
+    0.835,
+    0.498,
+    0.22
+   ],
+   "texture_anchor": {
+    "top": [
+     218,
+     928
+    ],
+    "guard": [
+     300,
+     853
+    ]
+   }
+  },
+  "cornerstone": {
+   "name": "Cornerstone",
+   "type": "acoustic",
+   "w": 487,
+   "h": 1244,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "guard": "guard.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    9,
+    630,
+    479,
+    1236
+   ],
+   "guard_box": [
+    278,
+    748,
+    382,
+    957
+   ],
+   "centre_x": 243.5,
+   "options": {
+    "paint": true,
+    "head_paint": false,
+    "top": [
+     "koa"
+    ],
+    "guard": true,
+    "guard_kind": "painted",
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {
+    "top": "Teal, Violet and Purple are maple flame tops for the electric bodies; on this acoustic they are not offered (chips shown locked with the line: Flame tops are for electric bodies). Koa is offered."
+   },
+   "original_paint": [
+    0.329,
+    0.031,
+    0.024
+   ],
+   "texture_anchor": {
+    "top": [
+     244,
+     933
+    ],
+    "guard": [
+     330,
+     852
+    ]
+   }
+  },
+  "clubslab": {
+   "name": "Club Slab",
+   "type": "electric",
+   "w": 431,
+   "h": 1242,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "guard": "guard.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    3,
+    639,
+    428,
+    1229
+   ],
+   "guard_box": [
+    120,
+    704,
+    379,
+    1007
+   ],
+   "centre_x": 215.0,
+   "options": {
+    "paint": true,
+    "head_paint": true,
+    "top": [
+     "teal",
+     "violet",
+     "purple",
+     "koa"
+    ],
+    "guard": true,
+    "guard_kind": "painted",
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {},
+   "original_paint": [
+    0.278,
+    0.267,
+    0.282
+   ],
+   "texture_anchor": {
+    "top": [
+     216,
+     934
+    ],
+    "guard": [
+     250,
+     856
+    ]
+   }
+  },
+  "hollowhill": {
+   "name": "Hollow Hill",
+   "type": "electric",
+   "w": 454,
+   "h": 1244,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    6,
+    636,
+    448,
+    1232
+   ],
+   "guard_box": null,
+   "centre_x": 229.5,
+   "options": {
+    "paint": true,
+    "head_paint": true,
+    "top": [
+     "teal",
+     "violet",
+     "purple",
+     "koa"
+    ],
+    "guard": false,
+    "guard_kind": null,
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {
+    "guard": "No guard on this body (soundholes, f-hole or carved top sit where a guard would go). Guard chips are hidden for this guitar; a saved guard choice is kept but not drawn."
+   },
+   "original_paint": [
+    0.749,
+    0.396,
+    0.133
+   ],
+   "texture_anchor": {
+    "top": [
+     227,
+     934
+    ],
+    "guard": null
+   }
+  },
+  "swing": {
+   "name": "Swing",
+   "type": "electric",
+   "w": 447,
+   "h": 1258,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    3,
+    645,
+    444,
+    1244
+   ],
+   "guard_box": null,
+   "centre_x": 221.5,
+   "options": {
+    "paint": true,
+    "head_paint": true,
+    "top": [
+     "teal",
+     "violet",
+     "purple",
+     "koa"
+    ],
+    "guard": false,
+    "guard_kind": null,
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {
+    "guard": "No guard on this body (soundholes, f-hole or carved top sit where a guard would go). Guard chips are hidden for this guitar; a saved guard choice is kept but not drawn."
+   },
+   "original_paint": [
+    0.051,
+    0.137,
+    0.263
+   ],
+   "texture_anchor": {
+    "top": [
+     224,
+     944
+    ],
+    "guard": null
+   }
+  },
+  "koaarc": {
+   "name": "Koa Arc",
+   "type": "acoustic",
+   "w": 468,
+   "h": 1186,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    7,
+    600,
+    461,
+    1179
+   ],
+   "guard_box": null,
+   "centre_x": 233.5,
+   "options": {
+    "paint": true,
+    "head_paint": false,
+    "top": [
+     "koa"
+    ],
+    "guard": false,
+    "guard_kind": null,
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {
+    "top": "Teal, Violet and Purple are maple flame tops for the electric bodies; on this acoustic they are not offered (chips shown locked with the line: Flame tops are for electric bodies). Koa is offered.",
+    "guard": "No guard on this body (soundholes, f-hole or carved top sit where a guard would go). Guard chips are hidden for this guitar; a saved guard choice is kept but not drawn.",
+    "top_original": "The painting is already figured koa, so Koa on this guitar draws nothing extra (it is the painting)."
+   },
+   "original_paint": [
+    0.596,
+    0.2,
+    0.024
+   ],
+   "texture_anchor": {
+    "top": [
+     234,
+     890
+    ],
+    "guard": null
+   },
+   "top_is_original": "koa"
+  },
+  "comet": {
+   "name": "Comet",
+   "type": "electric",
+   "w": 477,
+   "h": 1237,
+   "files": {
+    "paint": "paint.webp",
+    "top": "top.webp",
+    "grain": "grain.webp",
+    "burst": "burst.webp",
+    "light": "light.webp",
+    "metal": "metal.webp",
+    "guard": "guard.webp",
+    "worn": "wear-worn.webp",
+    "played": "wear-played.webp",
+    "strings": "strings-long.webp"
+   },
+   "body_box": [
+    3,
+    536,
+    473,
+    1234
+   ],
+   "guard_box": [
+    110,
+    713,
+    406,
+    1142
+   ],
+   "centre_x": 212.0,
+   "options": {
+    "paint": true,
+    "head_paint": true,
+    "top": [
+     "teal",
+     "violet",
+     "purple",
+     "koa"
+    ],
+    "guard": true,
+    "guard_kind": "painted",
+    "wear": true,
+    "metal": true,
+    "strings": true
+   },
+   "fallbacks": {},
+   "original_paint": [
+    0.459,
+    0.008,
+    0.016
+   ],
+   "texture_anchor": {
+    "top": [
+     238,
+     885
+    ],
+    "guard": [
+     258,
+     928
+    ]
+   }
+  }
+ }
+}
