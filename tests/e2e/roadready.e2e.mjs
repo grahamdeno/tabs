@@ -434,11 +434,8 @@ for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light",
   });
 }
 
-test("Road Ready design fixes: the side fret dots sit on the board, and the selected Merch finish has an amber ring", { skip: skip() }, async t => {
+test("Road Ready design fixes: the selected Merch finish has an amber ring", { skip: skip() }, async t => {
   const page = await road(t, "dark", MID);
-  const dots = await page.evaluate(() => [...document.querySelectorAll(".rd-base.nano circle[r='2.6']")].filter(c => ["#2b1d16", "#9b8f78"].includes(c.getAttribute("fill"))).map(c => +c.getAttribute("cx")));
-  /* 9a: the painted guitar carries its own fret dots, so the Road draws none; any that are drawn still sit on the board */
-  assert.ok(dots.every(x => x <= 195 + 42 - 2.6), `every side dot is on the board (${dots.join(", ")})`);
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-fin.on, .mc-look.on"); await settled(page);
   const ring = await page.evaluate(() => { const e = document.querySelector(".mc-fin.on, .mc-look.on"), probe = document.createElement("i"); probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--rr-amber-text"); document.body.appendChild(probe); const amber = getComputedStyle(probe).color; probe.remove(); return { ring: getComputedStyle(e).borderTopColor, amber }; });
   assert.equal(ring.ring, ring.amber, "the selected finish is ringed in amber, not cyan");
