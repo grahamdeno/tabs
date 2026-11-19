@@ -483,40 +483,56 @@ function chordSVG(name, scale = 1, { named = true, shape = null } = {}) {
 /* 4.51.0 (Graham, 2026-10-24): the text size is the one that fits the song's longest line on one line, so a
    line of the song is a line on screen, from 14 to 22 px (larger with the phone's own text size). Text size in
    Tools scales that up or down. Measured once per draw, each line laid out on one line. */
-const FIT_MIN = 14, FIT_MAX = 22, FIT_MAX_RR = 26; /* Road Ready looks: short lines may reach the spec's 26 (Grok, 2026-11-19) */
+const FIT_MIN = 14, FIT_MAX = 22;
+/* Full-size lyrics (Grok, 2026-11-19, approved by Graham): in Dark and Light every line is laid out once at the spec's current-line
+   size (34 pt at the default text size), wrapping between words onto a second line when it needs to. Each line keeps that space
+   all the time and is drawn smaller inside it by a transform from its top left corner: 26 for the next line and on the song page,
+   22 for the others while playing. So nothing moves, reflows or rewraps when play starts or the line moves on, and the reading
+   line stays where Apple Music expects it. Green Room and Headliner keep one line per lyric, sized to the widest. */
+const LYRIC_RR = 34;
 let fitWait = false;
 function fitText(sheet, song) {
   const base = 17 * sysText;
+  const rr = ["neon", "festival"].includes(document.documentElement.dataset.look);
+  sheet.classList.toggle("rr-slots", rr);
+  if (rr) return fitSlots(sheet, song);
   sheet.style.setProperty("--lyric-size", base.toFixed(1) + "px");
   const lines = sheet.querySelectorAll(":scope > .pr, :scope > .ly, :scope > .crow");
   if (!lines.length) return;
   sheet.classList.add("measure");
   let widest = 0;
-  const widths = [...lines].map(el => el.getBoundingClientRect().width);
-  for (const w of widths) widest = Math.max(widest, w);
+  for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width);
   sheet.classList.remove("measure");
   const room = sheet.clientWidth * 0.95 - 4; /* lines keep 5% on the right, clear of the song map, and 4 px for rounding between measuring and drawing (4.63.1) */
   /* measured in the fallback font while the app's own is still loading: measure again once it's in */
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
   const fit = widest > 0 ? base * room / widest : base;
-  const max = ["neon", "festival"].includes(document.documentElement.dataset.look) ? FIT_MAX_RR : FIT_MAX;
-  const size = Math.min(max * sysText, Math.max(FIT_MIN, fit)) * (song.size || 1);
+  const size = Math.min(FIT_MAX * sysText, Math.max(FIT_MIN, fit)) * (song.size || 1);
   sheet.style.setProperty("--lyric-size", size.toFixed(1) + "px");
-  growLines(sheet, lines, widths, base, size, room);
 }
-/* Bigger playing lyrics (Grok, 2026-11-19), Road Ready looks: every line keeps the size that fits the widest one, so nothing
-   rewraps, and the line you're on grows by a transform (it never moves the others), as far as it fits the width, up to 1.3x
-   (the spec's 34 over 26). Each line's room to grow is worked out here, before the first frame and before Play: --fs is how
-   far it may grow and --grow the space kept under it, so nothing reflows when play starts or the line moves on. */
-const GROW_MAX = 1.3;
-function growLines(sheet, lines, widths, base, size, room) {
-  const rr = ["neon", "festival"].includes(document.documentElement.dataset.look);
-  lines.forEach((el, i) => {
-    const w = (widths[i] || 0) * size / base;
-    const fs = rr && w > 0 ? Math.max(1, Math.min(GROW_MAX, room / w)) : 1;
-    el.style.setProperty("--fs", fs.toFixed(3));
-    el.style.setProperty("--grow", fs > 1 ? ((fs - 1) * el.offsetHeight).toFixed(1) + "px" : "0px");
-  });
+
+/* Every line starts at the current-line size. A line that would need more than two rows there (a very long line, or large text)
+   steps down 2 px at a time on its own, never below the sung size; one that still needs three rows at that size gets them.
+   The other lines keep the full size. Worked out once, before the first frame and before Play. */
+function rowsOf(el, size) {
+  if (el.classList.contains("pr")) { /* words with a chord on them sit taller than words without, so count rows by where words end */
+    const ends = [...el.querySelectorAll(".w")].map(w => w.getBoundingClientRect().bottom).sort((a, b) => a - b);
+    return ends.reduce((n, y, i) => n + (i && y - ends[i - 1] > size * 0.6 ? 1 : 0), ends.length ? 1 : 0);
+  }
+  return Math.round(el.offsetHeight / (size * 1.45));
+}
+function fitSlots(sheet, song) {
+  const top = LYRIC_RR * sysText * (song.size || 1), floor = 22 * sysText * (song.size || 1);
+  sheet.style.setProperty("--lyric-size", top.toFixed(1) + "px");
+  for (const el of sheet.querySelectorAll(":scope > .pr, :scope > .ly")) {
+    el.style.fontSize = "";
+    let size = top;
+    while (size - 2 >= floor && rowsOf(el, size) > 2) { size -= 2; el.style.fontSize = size.toFixed(1) + "px"; }
+    /* drawn at 26 (next, and the song page) and 22 (the others), never bigger than the line was laid out */
+    el.style.setProperty("--lyr-next", Math.min(1, 26 / LYRIC_RR * top / size).toFixed(3));
+    el.style.setProperty("--lyr-sung", Math.min(1, 22 / LYRIC_RR * top / size).toFixed(3));
+  }
+  if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
 }
 
 // Record every chord label and every line, top to bottom, for the reading line.

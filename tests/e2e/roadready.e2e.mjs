@@ -162,8 +162,8 @@ test("Road Ready: the iPhone text size sets --sys-px and data-ax, and the lyrics
   const at33 = await at(33), at45 = await at(45);
   assert.equal(at33[0], "1", "about AX2"); assert.equal(at45[0], "3", "AX3 and up");
   /* the lyrics still use readSysText()'s clamped scale (ceiling 1.6, reached by 28 px): bigger than the default, and the same at 33 and 45 px */
-  assert.equal(base17[1], "26.0px", "17 px: the Road Ready ceiling of 26 px (22 px before 2026-11-19)"); assert.equal(at33[1], "41.6px", "33 px: 26 px times the 1.6 ceiling");
-  assert.equal(at45[1], "41.6px", "45 px: the scale stops at its ceiling");
+  assert.equal(base17[1], "34.0px", "17 px: Road Ready lays lyrics out at the 34 px current-line size (2026-11-19)"); assert.equal(at33[1], "54.4px", "33 px: 34 px times the 1.6 ceiling");
+  assert.equal(at45[1], "54.4px", "45 px: the scale stops at its ceiling");
   const back = await at(17);
   assert.deepEqual(back, base17, "back to the default clears data-ax and returns the lyric size");
 });

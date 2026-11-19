@@ -5435,16 +5435,16 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
 
-/* Bigger playing lyrics (Grok, 2026-11-19, spec 6): the line you're on grows to as much as 1.3x by a transform from its top left
-   corner, only as far as it fits the width (fitText works out --fs and keeps --grow under every line from the first frame), and
-   the lines already sung step down to the sung size. Nothing reflows and nothing rewraps when play starts or the line moves on,
-   so the reading line stays where Apple Music expects it. Measuring takes the transforms off. */
-:root:is([data-look="neon"], [data-look="festival"]) .sheet > :is(.pr, .ly, .crow) { transform-origin: 0 0; margin-bottom: var(--grow, 0px); }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet > :is(.pr, .ly, .crow) { transition: transform .25s ease-out, color .25s ease-out; }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet > .st-now:is(.pr, .ly, .crow) { transform: scale(var(--fs, 1)) !important; }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet > .st-past:is(.pr, .ly, .crow) { transform: scale(.88) !important; }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet > .st-now:is(.pr, .ly, .crow)::after { bottom: calc(4px + var(--grow, 0px) / var(--fs, 1)); }
-.sheet.measure > * { transform: none !important; margin-bottom: 0 !important; }
+/* Full-size lyrics (Grok, 2026-11-19, spec 6, wrapping approved by Graham): app.js lays every line out at the current-line size
+   (--type-lyric-now, 34 pt at the default text size) and the line keeps that box. Inside it the words are drawn by a transform
+   from the top left: 26 (next line, and every line on the song page) and 22 (the others while playing). Only the transform
+   changes as the song moves on, so nothing jumps, reflows or rewraps, and the reading line stays put. */
+:root:is([data-look="neon"], [data-look="festival"]) .sheet.rr-slots > :is(.pr, .ly, .crow) { transform-origin: 0 0; transform: scale(var(--lyr-next, .765)); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transform: scale(var(--lyr-sung, .647)) !important; transition: transform var(--rr-motion), color var(--rr-motion); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > .st-next:is(.pr, .ly, .crow) { transform: scale(var(--lyr-next, .765)) !important; }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > .st-now:is(.pr, .ly, .crow) { transform: none !important; }
+@media (prefers-reduced-motion: reduce) { :root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transition: none; } }
+.sheet.measure > * { transform: none !important; }
 /* Louie's first-song line (one-row Road): once, near the top of the playing screen under the title, so it never meets the
    controls hint or Pause at the bottom; Louie waves beside it */
 .gig > .gg-hint.gg-first { top: calc(var(--safe-t) + 64px); bottom: auto; }
