@@ -67,7 +67,7 @@ export function makerSheet({ mode = "full", done } = {}) {
         <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? ' disabled aria-busy="true"' : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
           <p class="gm-note">Your photo stays on this phone and is never saved.</p>${selfieMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(selfieMsg)}</p>` : ""}</div>
         <div class="gm-selfie gm-port"><button class="btn gm-selfie-b" id="gm-port"${drawing ? ' disabled aria-busy="true"' : ""}>${drawing ? "Drawing your portrait..." : portraitNow() ? "Make a new portrait" : "Make my portrait"}</button>
-          <p class="gm-note">Optional. A poster portrait that looks like you, drawn by OpenAI from one photo with your own OpenAI key.</p>
+          <p class="gm-note">Optional. A poster portrait that looks like you, drawn by xAI's Grok Imagine from one photo with your own xAI key.</p>
           ${portraitNow() ? `<button class="mt-not gm-port-off" id="gm-port-off">Use the drawn guitarist instead</button>` : ""}${portMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(portMsg)}</p>` : ""}</div>
         <div class="gm-tabs" role="tablist" aria-label="Parts">${tabs.map(t => `<button role="tab" class="gm-tab${t === tab ? " on" : ""}" data-tab="${t}" aria-selected="${t === tab}" id="gm-t-${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join("")}</div>
         <div class="gm-panel" role="tabpanel" aria-labelledby="gm-t-${tab}">${panel()}</div>
@@ -98,11 +98,11 @@ export function makerSheet({ mode = "full", done } = {}) {
       me = { ...me, beardCol: undefined, ...g }; selfieMsg = "Here's a start from your photo. Fix anything below."; tab = "face"; paint(); haptic(1);
       layer.querySelector(".gm-tabs")?.scrollIntoView({ block: "start" });
     });
-    /* Make my portrait (4.99.0): a key first, then plain consent, then one photo to OpenAI; only the picture is kept, on this phone */
+    /* Make my portrait (4.99.0): a key first, then plain consent, then one photo to xAI; only the picture is kept, on this phone */
     document.getElementById("gm-port")?.addEventListener("click", () => {
       portMsg = "";
-      if (!imgKey()) { toast("Add your OpenAI key in Settings > Keys first", null, { label: "Keys", fn: () => { layer.innerHTML = ""; go("#/settings/keys"); } }); return; }
-      ask({ title: "Make a poster portrait?", text: "You pick one photo. It goes straight from this phone to OpenAI, with your key, to draw the portrait, and Louie keeps only the finished picture, on this phone. OpenAI's API terms say it doesn't train on what you send and may keep it up to 30 days for abuse checks. Each portrait costs a few cents on your OpenAI bill.", ok: "Pick a photo", keep: "Not now" }, async () => {
+      if (!imgKey()) { toast("Add your xAI key in Settings > Keys first", null, { label: "Keys", fn: () => { layer.innerHTML = ""; go("#/settings/keys"); } }); return; }
+      ask({ title: "Make a poster portrait?", text: "You pick one photo. It goes straight from this phone to xAI, with your key, to draw the portrait, and Louie keeps only the finished picture, on this phone. What xAI does with the photo is covered by xAI's API terms. Each portrait costs a few cents on your xAI bill.", ok: "Pick a photo", keep: "Not now" }, async () => {
         drawing = true; paint();
         try { const p = await makePortrait({ onBusy: b => { drawing = b; paint(); } }); if (!p?.cancelled) { portMsg = "Here's your portrait. It's your card and your round picture; the game's poses stay drawn."; haptic(2); } }
         catch (e) { portMsg = portraitError(e); }

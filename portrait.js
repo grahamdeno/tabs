@@ -1,14 +1,15 @@
-/* global createImageBitmap, FormData */
-// Make my portrait (4.99.0, Gig poster portraits story 2): a gig poster portrait drawn from a selfie by OpenAI's image model,
-// with the player's own OpenAI key (kept on this phone like the Anthropic key, sent only to OpenAI). Opt in, behind a consent
-// sheet. The photo is sent once, straight from the phone to OpenAI, and Louie keeps none of it: only the finished picture is
+/* global createImageBitmap */
+// Make my portrait (4.99.0, Gig poster portraits story 2): a gig poster portrait drawn from a selfie by xAI's image model (Grok
+// Imagine, 4.99.1), with the player's own xAI key (kept on this phone like the Anthropic key, sent
+// only to xAI). Opt in, behind a consent sheet. The photo is sent once, straight from the phone to xAI, and Louie keeps none of it: only the finished picture is
 // kept, on this phone (its own small database, "tabs-portrait"), never in the library, a backup or anywhere else. Removing it
 // deletes it. The game's poses and moods keep the drawn guitarist; the portrait is the player card, the share card and the
 // round portrait.
 import { faceFinder, pickPhoto } from "./selfie.js";
 
-export const IMG_STORE = "tabs.imgkey.v1";
-export const IMG_MODEL = "gpt-image-2";
+export const IMG_STORE = "tabs.xaikey.v1";
+export const IMG_MODEL = "grok-imagine-image-2.0";
+export const IMG_URL = "https://api.x.ai/v1/images/edits";
 export function imgKey() { try { return localStorage.getItem(IMG_STORE) || ""; } catch { return ""; } }
 
 /* what the model is asked for: Grok's gig poster style, the person kept recognisable, no words or logos in the picture */
@@ -43,16 +44,16 @@ export async function removePortrait() {
   try { await new Promise(ok => { const r = indexedDB.deleteDatabase(DB); r.onsuccess = r.onerror = r.onblocked = () => ok(); }); } catch { /* gone or blocked */ }
 }
 
-/* the photo, made small enough to send (1024 on the long side, JPEG) */
+/* the photo, made small enough to send (1024 on the long side), as a JPEG data URL (xAI takes the image inside the JSON) */
 async function shrink(file) {
   const bmp = await createImageBitmap(file);
   try {
     const s = Math.min(1, 1024 / Math.max(bmp.width, bmp.height)), c = document.createElement("canvas");
     c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
     c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise(ok => c.toBlob(ok, "image/jpeg", .9));
+    const url = c.toDataURL("image/jpeg", .9);
     c.width = 0;
-    return blob;
+    return url;
   } finally { bmp.close?.(); }
 }
 
@@ -73,11 +74,11 @@ async function faceIn(url) {
 /* plain words for what went wrong */
 export function portraitError(e) {
   const s = e?.status;
-  if (s === 401) return "OpenAI didn't accept that key. Check it in Settings > Keys.";
-  if (s === 429) return "OpenAI says the key is out of credit or busy. Try again later.";
-  if (s === 400) return "OpenAI wouldn't draw that photo. Try another one, face on and well lit.";
+  if (s === 401 || s === 403) return "xAI didn't accept that key. Check it in Settings > Keys.";
+  if (s === 429) return "xAI says the key is out of credit or busy. Try again later.";
+  if (s === 400) return "xAI wouldn't draw that photo. Try another one, face on and well lit.";
   if (e?.name === "AbortError") return "That took too long. Try again.";
-  return "Couldn't reach OpenAI. Check your connection and try again.";
+  return "Couldn't reach xAI. Check your connection and try again.";
 }
 
 /* the flow after consent: pick a photo, send it, keep only the picture. Returns { cancelled } or the portrait; throws on failure. */
@@ -89,18 +90,16 @@ export async function makePortrait({ onBusy } = {}) {
   onBusy?.(true);
   try {
     const photo = await shrink(file);
-    const form = new FormData();
-    form.append("model", IMG_MODEL); form.append("prompt", PORTRAIT_PROMPT);
-    form.append("image", photo, "photo.jpg");
-    form.append("size", "1024x1536"); form.append("quality", "medium"); form.append("output_format", "webp"); form.append("n", "1");
+    const body = JSON.stringify({ model: IMG_MODEL, prompt: PORTRAIT_PROMPT, image: { url: photo }, aspect_ratio: "2:3", resolution: "1k", response_format: "b64_json", n: 1 });
     const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 180e3);
     let res;
-    try { res = await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form, signal: ctl.signal }); }
+    try { res = await fetch(IMG_URL, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body, signal: ctl.signal }); }
     finally { clearTimeout(timer); }
-    if (!res.ok) throw Object.assign(new Error("OpenAI " + res.status), { status: res.status });
-    const b64 = (await res.json())?.data?.[0]?.b64_json;
+    if (!res.ok) throw Object.assign(new Error("xAI " + res.status), { status: res.status });
+    const out = (await res.json())?.data?.[0] || {}, b64 = out.b64_json;
     if (typeof b64 !== "string" || !/^[A-Za-z0-9+/=]+$/.test(b64.slice(0, 200))) throw new Error("no picture");
-    const url = "data:image/webp;base64," + b64;
+    const mime = /^image\/(jpeg|png|webp)$/.test(out.mime_type || "") ? out.mime_type : b64.startsWith("iVBOR") ? "image/png" : b64.startsWith("UklGR") ? "image/webp" : "image/jpeg";
+    const url = `data:${mime};base64,` + b64;
     const p = { url, face: await faceIn(url), at: Date.now() };
     await tx("readwrite", s => s.put(p, "me"));
     now = p;
