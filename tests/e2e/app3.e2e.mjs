@@ -692,7 +692,7 @@ for (const theme of ["dark", "light"]) {
   test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
     const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
     const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
-    assert.deepEqual(heads, ["Gear", "Louie's finish", "Stage backdrops", "Hats", "Looks", "Guitar shop"], "nothing existing moved; the shop is last");
+    assert.deepEqual(heads, ["Gear", "Louie's finish", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "nothing existing moved; the 9b builder entry sits between Looks and the shop");
     assert.equal(await page.locator(".mc-gt").count(), 16);
     const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
     /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */

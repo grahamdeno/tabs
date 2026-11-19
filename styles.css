@@ -5151,6 +5151,54 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .mc-more { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-gt-t small { color: var(--rr-text-2); }
 
+/* ---- Road Ready 9b, the guitar builder (builder.js): the case at the top, chips, 44 px swatches, a running total ---- */
+.mc-build { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px; border: 2px solid var(--rim); border-radius: 18px; background: var(--card); color: var(--fg); font-family: var(--sans); text-align: left; }
+.mc-build:disabled { opacity: .7; }
+.mc-build-t { display: grid; gap: 2px; min-width: 0; }
+.mc-build-t b { font: 700 16px var(--display); }
+.mc-build-t small { font: 700 12.5px var(--sans); color: var(--muted); }
+.panel.de-sheet.bd { padding-bottom: 0; }
+.bd .pbody { display: flex; flex-direction: column; gap: 12px; padding-bottom: 18px; }
+.bd .pbody > * { flex: none; }
+.bd-x { flex: none; width: 44px; height: 44px; border: 2px solid var(--rim); border-radius: 14px; background: transparent; color: var(--fg); font: 700 24px/1 var(--sans); }
+.bd-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bd-top h2 { margin: 0; font: 700 20px var(--display); }
+.bd-case { display: grid; place-items: center; height: 220px; overflow: hidden; padding: 8px; border: 2px solid var(--rim); border-radius: 18px; background: color-mix(in srgb, var(--card) 92%, #000); }
+.bd-case img { height: 202px; width: auto; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+.bd-one { margin: 0; text-align: center; font: 700 15px var(--display); }
+.bd-legs, .bd-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.bd-leg, .bd-tab { flex: none; min-height: 44px; padding: 8px 14px; border: 2px solid var(--rim); border-radius: 22px; background: transparent; color: var(--fg); font: 700 14px var(--sans); white-space: nowrap; }
+.bd-leg.on, .bd-tab.on { border-color: var(--strings); background: var(--tabs-on); }
+.bd-sws, .bd-seg, .bd-dots { display: flex; flex-wrap: wrap; gap: 10px; }
+.bd-sw { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 64px; min-height: 44px; padding: 4px; border: 2px solid transparent; border-radius: 14px; background: transparent; color: var(--fg); font: 700 12px var(--sans); text-align: center; }
+.bd-sw small { font: 700 12px var(--sans); line-height: 1.2; overflow-wrap: anywhere; }
+.bd-sw small b { display: block; color: var(--fg-2); }
+.bd-chip { display: block; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--rim); }
+.bd-sw.on { border-color: var(--strings); }
+.bd-sw.locked .bd-chip { filter: grayscale(.8) brightness(.55); }
+.bd-sw.locked { color: var(--muted); }
+.bd-lk { position: absolute; top: 4px; left: 50%; width: 44px; height: 44px; transform: translateX(-50%); display: grid; place-items: center; color: #fff; }
+.bd-lk svg { width: 20px; height: 20px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .8)); }
+.bd-sw.wide { min-width: 96px; min-height: 44px; padding: 8px 12px; border-color: var(--rim); border-radius: 22px; align-content: center; grid-auto-flow: column; gap: 6px; }
+.bd-sw.wide.on { border-color: var(--strings); background: var(--tabs-on); }
+.bd-sw.wide .bd-lk { position: static; transform: none; width: 18px; height: 18px; }
+.bd-sw.wide .bd-lk svg { width: 16px; height: 16px; }
+.bd-note, .bd-tips, .bd-short { margin: 0; font: 600 13px var(--sans); color: var(--muted); }
+.bd-long { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px; font: 700 15px var(--sans); }
+.bd-long input { position: absolute; right: 0; top: 50%; width: 52px; height: 44px; margin: 0; transform: translateY(-50%); opacity: 0; }
+.bd-knob { flex: none; position: relative; width: 52px; height: 30px; border-radius: 15px; border: 2px solid var(--rim); background: transparent; }
+.bd-knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); }
+.bd-long input:checked + .bd-knob { border-color: var(--strings); background: var(--tabs-on); }
+.bd-long input:checked + .bd-knob::after { left: 25px; background: var(--strings); }
+.bd-long input:focus-visible + .bd-knob, .bd-sw:focus-visible, .bd-tab:focus-visible, .bd-leg:focus-visible { outline: 3px solid var(--strings); outline-offset: 2px; }
+.bd .pfoot { border-top: 2px solid var(--rim); }
+.bd-acts { display: grid; gap: 6px; justify-items: stretch; }
+.bd-acts .btn { min-height: 48px; }
+.bd-short { text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .bd-sw.on, :root:is([data-look="neon"], [data-look="festival"]) .bd-leg.on, :root:is([data-look="neon"], [data-look="festival"]) .bd-tab.on { border-color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.bd-note, .bd-tips, .bd-short, .mc-build-t small) { color: var(--rr-text-2); }
+@media (prefers-reduced-motion: no-preference) { .bd-knob::after { transition: left .15s; } }
+
 /* ---- Road Ready 9a, painted necks (docs/guitars/NECK-DESIGN.md, TAP-AREAS.md): the whole painted guitar with the stops in its own fret spaces ---- */
 .rd-neck.road .rr-hit { position: absolute; left: 0; right: 0; z-index: 2; background: transparent; } /* invisible: decides which stop a pointer tap selects (road.js, roadHit) */
 .rd-neck.road > svg.rd-base { z-index: 0; }

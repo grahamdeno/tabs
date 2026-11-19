@@ -5,12 +5,13 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf, shopBuy, shopChoose, shopState } from "./core.js";
+import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
 import { you } from "./guitarist.js";
 import { guitarPic } from "./fretboard.js";
+import { openBuilder } from "./builder.js";
 
 const n = x => x.toLocaleString("en-US");
 const GEAR = {
@@ -79,11 +80,14 @@ export function renderMerch() {
     <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
     <div class="mc-row scroll">${of("look").map(look).join("")}</div>
+    ${buildEntry()}
     ${shopHTML()}
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
   document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/you");
   app.querySelectorAll(".mc [data-id]").forEach(b => b.onclick = () => tryOn(b.dataset.id));
+  document.getElementById("mc-build")?.addEventListener("click", () => openBuilder());
+  document.addEventListener("builds-saved", renderMerch, { once: true });
   app.querySelectorAll(".mc [data-gt]").forEach(b => b.onclick = () => shopSheet(b.dataset.gt));
   document.getElementById("mc-gt-leg")?.addEventListener("click", () => { shopChoose(data, null); Tabs.save(data); renderMerch(); toast("Back to the guitar of the leg you're on"); });
 }
@@ -98,6 +102,12 @@ function shopSay(g, st) {
   if (!g.open) return { tag: `<span class="mc-on earn">${icon("lock")}Opens at ${esc(g.venue)}</span>`, say: `Locked, opens at ${g.venue}` };
   if (g.more) return { tag: `<span class="mc-price short">$${n(g.price)}</span><small class="mc-more">$${n(g.more)} more</small>`, say: `$${n(g.price)}, $${n(g.more)} more` };
   return { tag: `<span class="mc-price">$${n(g.price)}</span>`, say: `$${n(g.price)}, you can buy it` };
+}
+/* Road Ready 9b: the guitar builder, for the Road guitars you've earned (not the shop guitars) */
+function buildEntry() {
+  const k = guitarsEarned(data).length;
+  return `<h2 class="mc-h"><span>Build your guitar</span><small>looks only</small></h2>
+    <button class="mc-build" id="mc-build" ${k ? "" : "disabled"}><span class="mc-build-t"><b>Build your guitar</b><small>${k ? "Paint, tops, guards, wear and hardware for the guitars you've earned" : "Finish a leg to earn your first guitar"}</small></span>${icon("chev", "chev")}</button>`;
 }
 function shopHTML() {
   const st = shopState(data), pic = id => guitarPic(id) ? `<img src="${guitarPic(id)}" alt="" aria-hidden="true" loading="lazy">` : "";
