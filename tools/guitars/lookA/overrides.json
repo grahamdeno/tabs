@@ -1,0 +1,101 @@
+{
+ "cornerstone": {
+  "end": 740
+ },
+ "ziricotegrand": {
+  "end": 712
+ },
+ "walnuthall": {
+  "end": 738
+ },
+ "comet": {
+  "end": 762,
+  "bridge": 998
+ },
+ "tartanpin": {
+  "end": 762,
+  "bridge": 1010
+ },
+ "razorwing": {
+  "end": 760,
+  "bridge": 1025
+ },
+ "arrowhead": {
+  "end": 768,
+  "bridge": 1045
+ },
+ "barebones": {
+  "end": 758,
+  "bridge": 1003
+ },
+ "clubslab": {
+  "end": 762,
+  "bridge": 1008
+ },
+ "flyerwall": {
+  "end": 740,
+  "bridge": 1025
+ },
+ "ghostspalt": {
+  "end": 762,
+  "bridge": 1012
+ },
+ "highline": {
+  "end": 768,
+  "bridge": 1015
+ },
+ "hollowhill": {
+  "end": 752,
+  "bridge": 1038
+ },
+ "islander": {
+  "end": 788,
+  "bridge": 1040
+ },
+ "koaarc": {
+  "end": 750
+ },
+ "nova": {
+  "end": 805,
+  "bridge": 1095
+ },
+ "porch": {
+  "end": 755
+ },
+ "redwoodhollow": {
+  "end": 742,
+  "bridge": 1088
+ },
+ "spraycancrack": {
+  "end": 885,
+  "bridge": 1012
+ },
+ "stickerriot": {
+  "end": 762,
+  "bridge": 1022
+ },
+ "swing": {
+  "end": 770,
+  "bridge": 1052
+ },
+ "toxicchecker": {
+  "end": 762,
+  "bridge": 997
+ },
+ "velvetcrown": {
+  "end": 773,
+  "copy_tail": 1,
+  "blockcol": [
+   196,
+   204,
+   196
+  ],
+  "draw_blocks": 1,
+  "extra_blocks": [
+   17,
+   19,
+   21
+  ],
+  "no_tail": 1
+ }
+}
