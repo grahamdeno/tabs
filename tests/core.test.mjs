@@ -3504,6 +3504,8 @@ test("the favicon, apple-touch icon and every iPhone launch screen exist at the 
   assert.equal(favicon.w, 32); assert.equal(favicon.h, 32); assert.equal(favicon.colorType, 2);
   const apple = pngFile("icons/apple-touch-icon.png");
   assert.equal(apple.w, 180); assert.equal(apple.h, 180); assert.equal(apple.colorType, 2, "apple-touch-icon is opaque");
+  const master = pngFile("icons/icon-1024.png");
+  assert.equal(master.w, 1024); assert.equal(master.h, 1024); assert.equal(master.colorType, 2, "the 1024 master is opaque RGB");
   assert.match(html, /rel="apple-touch-icon"[^>]*href="icons\/apple-touch-icon\.png"/);
   const launches = [...html.matchAll(/rel="apple-touch-startup-image"[^>]*href="(icons\/splash\/launch-(\d+)x(\d+)\.png)"/g)];
   assert.ok(launches.length >= 9, `every launch screen is linked, got ${launches.length}`);
@@ -3523,4 +3525,7 @@ test("the loading screen shows black Louie on the Dark ground, then hides once t
   assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
   const shell = read("sw.js");
   assert.match(shell, /"art\/louie\/v3\/louie-idle-dark\.webp"/, "the boot picture is saved for offline");
+  for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
 });

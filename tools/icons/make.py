@@ -8,7 +8,7 @@
 # ground and the full idle pose, with no text.
 
 from pathlib import Path
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
 LOUIE = ROOT / "art/louie/v3/louie-idle-dark.webp"
@@ -92,6 +92,9 @@ def main():
     idle = Image.open(LOUIE).convert("RGBA")
 
     print("icons")
+    master = icon(piece, 1024)
+    save(master, ICONS / "icon-1024.png")
+    save(master, ROOT / "shots" / "icon-1024.png")
     save(icon(piece, 512), ICONS / "icon-512.png")
     save(icon(piece, 192), ICONS / "icon-192.png")
     save(icon(piece, 180), ICONS / "apple-touch-icon.png")
@@ -101,6 +104,91 @@ def main():
     print("launch screens")
     for name, w, h, ratio in LAUNCH:
         save(launch(w, h, ratio, idle), SPLASH / name)
+    sheet()
+
+
+def sheet():
+    """A simple labelled before/after of the old blue-on-pink art and the new black Louie."""
+    old_dir = Path("/tmp/lgg16-old")
+    old_icon = old_dir / "icon-512.png"
+    old_splash = old_dir / "launch-1170x2532.png"
+    if not old_icon.is_file() or not old_splash.is_file():
+        print("  (no old icons in /tmp/lgg16-old; skipped shots/icon-before-after.jpg)")
+        return
+    new_icon = Image.open(ICONS / "icon-512.png").convert("RGB")
+    new_splash = Image.open(SPLASH / "launch-1170x2532.png").convert("RGB")
+    before_icon = Image.open(old_icon).convert("RGB")
+    before_splash = Image.open(old_splash).convert("RGB")
+
+    bg = (18, 16, 14)
+    cream = (0xF6, 0xEA, 0xD2)
+    muted = (168, 158, 140)
+    line = (90, 84, 74)
+    W, H = 1840, 1600
+    img = Image.new("RGB", (W, H), bg)
+    draw = ImageDraw.Draw(img)
+    font_path = "/usr/share/fonts/truetype/sand-box/google/Space Grotesk/SpaceGrotesk-VariableFont_wght.ttf"
+    def fnt(size):
+        try:
+            f = ImageFont.truetype(font_path, size=size)
+            if hasattr(f, "set_variation_by_axes"):
+                try: f.set_variation_by_axes([600])
+                except Exception: pass
+            return f
+        except OSError:
+            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=size)
+
+    def put(xy, s, size, fill=cream):
+        draw.text(xy, s, font=fnt(size), fill=fill, spacing=6)
+
+    def squircle(src, scale, radius_frac=0.223):
+        src = src.resize((scale, scale), Image.Resampling.LANCZOS)
+        r = int(scale * radius_frac)
+        mask = Image.new("L", (scale, scale), 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, scale - 1, scale - 1), r, fill=255)
+        out = Image.new("RGBA", (scale, scale), (0, 0, 0, 0))
+        out.paste(src.convert("RGBA"), (0, 0))
+        out.putalpha(mask)
+        return out, r
+
+    def phone(src, width=360):
+        h = int(width * src.height / src.width)
+        src = src.resize((width, h), Image.Resampling.LANCZOS)
+        r = 36
+        mask = Image.new("L", (width, h), 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, width - 1, h - 1), r, fill=255)
+        out = Image.new("RGBA", (width, h), (0, 0, 0, 0))
+        out.paste(src.convert("RGBA"), (0, 0))
+        out.putalpha(mask)
+        return out, r
+
+    def framed(tile, xy, radius):
+        x, y = xy
+        img.paste(tile, (x, y), tile)
+        draw.rounded_rectangle((x, y, x + tile.width - 1, y + tile.height - 1), radius=radius, outline=line, width=2)
+
+    put((80, 50), "Louie: home screen icon and loading screen", 42)
+    put((80, 108), "Before is the old blue Louie on pink. After is black Louie on the new Road dark.", 22, muted)
+    col = [420, 1100]
+    put((col[0] + 140, 180), "Before", 34)
+    put((col[1] + 150, 180), "After", 34)
+    icon_y, icon_s = 240, 400
+    put((80, icon_y + 160), "Home screen\nicon", 22, muted)
+    for i, src in enumerate((before_icon, new_icon)):
+        tile, r = squircle(src, icon_s)
+        framed(tile, (col[i], icon_y), r)
+    phone_y = 720
+    put((80, phone_y + 280), "Loading\nscreen", 22, muted)
+    for i, src in enumerate((before_splash, new_splash)):
+        tile, r = phone(src, 360)
+        x = col[i] + (icon_s - tile.width) // 2
+        framed(tile, (x, phone_y), r)
+
+    dest = ROOT / "shots" / "icon-before-after.jpg"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    img.save(dest, "JPEG", quality=92, optimize=True, subsampling=1)
+    print(f"  {dest.relative_to(ROOT)}  {img.size}  {dest.stat().st_size} bytes")
+
 
 
 if __name__ == "__main__":
