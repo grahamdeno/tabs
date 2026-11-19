@@ -338,8 +338,8 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
   const before = await fans();
   await page.click(".rd-node.box.now");
-  await page.waitForSelector(".co-powt");
-  assert.match(await page.innerText(".co-powt"), /POW/, "a POW for the box");
+  await page.waitForSelector(".co.co-plate .co-badge"); /* 4.99.0: in Light and Dark the news is an engraved plate, not a POW */
+  assert.match(await page.innerText(".co-badge"), /MERCH BOX/, "the plate says what you got");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).boxes?.opened?.length === 1);
   await page.waitForSelector(".rd-node.box.done :is(.rd-pearl, .rr-pearl.done)");
   await page.waitForFunction(b => +(document.querySelector("#h-fans")?.innerText || "0").replace(/\D/g, "") >= b + 25, before);
@@ -502,7 +502,7 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   const lib = { ...LIB, songs, merch: { own: { rain: 1, take: 1 } }, charts: { tier: 0, battle: { day: dk(0), rival: "Neon Jen", songId: "a", target: 70, result: "lost", pct: 50 } } };
   const page = await phone(t, lib, { home: true });
   await page.waitForSelector("#h-fans");
-  assert.match(await page.innerText("#h-fans small"), /^\s*3-day streak\s*$/, "the Rain check covered yesterday (Road Ready: the streak is under your fans)");
+  assert.match(await page.innerText("#h-fans small"), /^\s*3-day\s*$/, "the Rain check covered yesterday (Road Ready: the streak is under your fans)");
   const fans = +(await page.innerText("#h-tips")).replace(/\D/g, "");
   assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
   assert.ok(+(await page.innerText("#h-fans b")).replace(/\D/g, "") >= 1200, "and your fans stay");
@@ -546,7 +546,8 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
 
 test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road; before typing only what helps; typing shows your songs, then rows that say what they do", { skip: skip() }, async t => {
   const songs = LIB.songs.map((x, i) => i ? x : { ...x, opened: Date.now() - 3600e3 });
-  const page = await phone(t, { ...LIB, songs }, { home: true, permissions: ["clipboard-read", "clipboard-write"] });
+  /* 4.99.0: the Road's Songbook and search bar stays in Green Room and Headliner (Light and Dark have the Songbook tab) */
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true, permissions: ["clipboard-read", "clipboard-write"] });
   await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show", releaseDate: "2004-01-01" }, { trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show" }, { trackName: "Wagon Wheel", artistName: "Darius Rucker" }] }) }));
   /* the Road: Songbook and Search or add, both labelled */
@@ -594,7 +595,7 @@ test("4.49.1 The search screen holds still before you type, and scrolls again on
 });
 
 test("4.49.3 Closing the keyboard keeps the search screen; Cancel goes back where you came from", { skip: skip() }, async t => {
-  const page = await phone(t, LIB, { home: true });
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true }); /* the Road search bar: Green Room (4.99.0) */
   await page.waitForSelector("#rd-search"); await settled(page);
   await page.click("#rd-search"); await page.waitForSelector("#sr-paste");
   await page.evaluate(() => document.activeElement.blur()); /* the keyboard's checkmark */

@@ -12,9 +12,9 @@ const stepIs = (page, n) => page.waitForFunction(n => (JSON.parse(localStorage.g
 test("4.40.0 Opening night: a new player gets six steps; Who's playing tonight? comes first, then the microphone's reason, then a chord, then the verse waits for Count me in", { skip: skip() }, async t => {
   const page = await phone(t, FRESH, { home: true });
   await page.waitForSelector(".on-night");
-  assert.match(await page.innerText(".on-night"), /OPENING NIGHT/);
+  assert.match(await page.innerText(".on-night"), /1 OF 6/); assert.equal(await page.getAttribute(".on-night", "aria-label"), "Opening night");
   assert.equal(await page.locator('.on-path [data-stop^="o:"]').count(), 6, "six steps on the guitar neck (2026-11-19)");
-  assert.equal(await page.locator(".on-path .rd-neck").count(), 1, "Opening night is a guitar neck");
+  assert.equal(await page.locator(".on-path > .rd-neck").count(), 1, "Opening night is a guitar neck"); assert.equal(await page.locator(".on-path .rr-peek").count(), 1, "with Leg 1 locked below it (4.99.0)");
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
@@ -78,8 +78,8 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
   await page.click("#ask-ok");
   await page.waitForSelector("#rd-tonight");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).skipped > 0); /* skipped is kept */
-  await page.waitForSelector(".gm"); await page.click("#gm-skip"); /* 4.85.0: no guitarist yet, so Louie asks once on the Road; Skip keeps the default */
-  await page.waitForSelector(".gm", { state: "detached" });
+  await page.waitForFunction(() => !!JSON.parse(localStorage.getItem("tabs-v1")).me); /* 4.99.0: Skip keeps the default guitarist and opens no sheet */
+  assert.equal(await page.locator(".gm").count(), 0, "no maker after skipping");
   assert.equal(await page.locator(".hud .h-lab").count(), 4, "VENUE, STREAK, FANS and TIPS (4.70.0)");
   await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch");
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".hud");

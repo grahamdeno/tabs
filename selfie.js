@@ -10,8 +10,19 @@ const DIR = new URL("./vendor/mediapipe/", import.meta.url).href;
 let finder = null;
 
 /* the face finder, made once: the fast WebAssembly build first, then the release's fallback build */
-async function faceFinder() {
+/* MediaPipe's library tries to send usage logs to Google (odml.pa.googleapis.com). The CSP blocks it anyway; this answers those
+   calls on the phone so nothing is even attempted (4.99.0, Grok's review). */
+let quiet = false;
+function quietLogs() {
+  if (quiet) return; quiet = true;
+  const block = u => /odml\.pa\.googleapis\.com|play\.googleapis\.com\/log/.test(String(u?.url || u));
+  const f = window.fetch.bind(window);
+  window.fetch = (u, o) => block(u) ? Promise.resolve(new Response(null, { status: 204 })) : f(u, o);
+  if (navigator.sendBeacon) { const b = navigator.sendBeacon.bind(navigator); navigator.sendBeacon = (u, d) => block(u) ? true : b(u, d); }
+}
+export async function faceFinder() {
   if (finder) return finder;
+  quietLogs();
   const { FaceDetector, FilesetResolver } = await import(DIR + "vision_bundle.mjs");
   const make = async fallback => FaceDetector.createFromOptions(await FilesetResolver.forVisionTasks(DIR + "wasm", fallback), {
     baseOptions: { modelAssetPath: DIR + "models/blaze_face_short_range.tflite", delegate: "CPU" }, runningMode: "IMAGE", minDetectionConfidence: 0.5
@@ -21,7 +32,7 @@ async function faceFinder() {
 }
 
 /* ask for a photo: the camera (front) or the photo picker, whichever the phone offers */
-function pickPhoto() {
+export function pickPhoto() {
   return new Promise(resolve => {
     const input = document.createElement("input");
     input.type = "file"; input.accept = "image/*"; input.setAttribute("capture", "user");

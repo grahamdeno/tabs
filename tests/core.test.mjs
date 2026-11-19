@@ -3458,3 +3458,12 @@ test("4.98.1 the beard's own colour: optional, absent means the hair colour, unk
   assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "brown" }).beardCol, undefined, "the same as the hair is not stored");
   assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "<x>" }).beardCol, undefined, "unknown colours are dropped");
 });
+
+test("4.99.0 selfie: a light wall beside dark hair doesn't make it grey; photos guess natural colours; a beard gets its own colour", async () => {
+  const { SKIN, HAIR_COL } = await import("../guitarist.js");
+  const wall = [205, 200, 192], black = [28, 24, 26];
+  assert.equal(C.selfieGuess({ hair: [black, wall, [40, 34, 33]] }, { skin: SKIN, hair: HAIR_COL }).hairCol, "black", "the darker two of three samples");
+  assert.ok(["black", "brown", "blonde", "red", "grey"].includes(C.selfieGuess({ hair: [[120, 70, 230]] }, { skin: SKIN, hair: HAIR_COL }).hairCol), "no purple from a photo");
+  const g = C.selfieGuess({ hair: [[230, 200, 120]], chin: [70, 44, 28], cheek: [200, 160, 130] }, { skin: SKIN, hair: HAIR_COL });
+  assert.equal(g.hairCol, "blonde"); assert.equal(g.beard, "beard"); assert.equal(g.beardCol, "brown", "a brown beard under blonde hair");
+});
