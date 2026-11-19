@@ -223,6 +223,7 @@ A new app `.js` file (root or `core/`) must be added to `SHELL` in `sw.js` (a te
 3. Merge on Graham's merge go. Nothing deploys.
 4. The version bump (`VERSION` and `CACHE` together) happens on `next` before Graham tests, in one commit.
 5. `next` merges into `main` only on Graham's ship go.
+6. Small releases (Graham, 2026-11-19): ship small groups of changes that belong together, each with its own version bump, so a release is easy to account for and to roll back. Run every browser test (`node tests/quick.mjs --all-e2e`) before a ship; the quick run alone missed a failure in 4.97.0.
 
 Branch deletions go to Grok.
 
