@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 from scipy.ndimage import median_filter, minimum_filter
 from scipy import ndimage as ndi
 S = 4
-ROOT = '/workspace/cartoon-test/full'
+ROOT = os.environ.get('LOOKA_ROOT', '/workspace/cartoon-test/full')
 P = json.load(open(f'{ROOT}/pics.json')); F = json.load(open(f'{ROOT}/frets.json'))
 ACOUSTIC = {"porch", "cornerstone", "koaarc", "ziricotegrand", "walnuthall"}
 OV = json.load(open(f'{ROOT}/overrides.json'))

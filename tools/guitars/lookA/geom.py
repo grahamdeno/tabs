@@ -1,6 +1,9 @@
 """Measure each painting: top, bottom, nut, neck centre, body top, where the painted board ends, and where the painted
 strings end (the bridge) with their x span there. Writes geom.json and an overlay per guitar for checking by eye."""
 import json, sys, numpy as np, cv2
+import os
+ROOT = os.environ.get('LOOKA_ROOT', '/workspace/cartoon-test/full')
+os.chdir(ROOT)
 from PIL import Image, ImageDraw
 from scipy.ndimage import median_filter, minimum_filter
 S = 4

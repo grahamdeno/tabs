@@ -1,4 +1,6 @@
 import glob, os
+ROOT = os.environ.get('LOOKA_ROOT', '/workspace/cartoon-test/full')
+os.chdir(ROOT)
 from PIL import Image, ImageDraw
 cur='cur'; new='final'
 slugs=sorted(os.path.basename(f)[:-10] for f in glob.glob(f'{new}/*-road.webp'))

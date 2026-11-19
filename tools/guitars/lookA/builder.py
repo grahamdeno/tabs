@@ -3,7 +3,7 @@ as docs/guitars/BUILDER-ART.md; drawn at (0, 0) over -road.webp."""
 import json, os, sys, numpy as np, cv2
 from PIL import Image
 from scipy import ndimage as ndi
-ROOT = '/workspace/cartoon-test/full'
+ROOT = os.environ.get('LOOKA_ROOT', '/workspace/cartoon-test/full')
 P = json.load(open(f'{ROOT}/pics.json'))
 MAN = json.load(open(f'{ROOT}/cur-builder/manifest.json'))
 CFG = json.load(open(f'{ROOT}/builder-cfg.json')) if os.path.exists(f'{ROOT}/builder-cfg.json') else {}

@@ -1,8 +1,8 @@
 # Look A guitar redraw tools (Grok, box only, not used by the app)
 
 These scripts made the look A guitar pictures in art/guitars/ and the builder layers in art/guitars/builder/.
-They ran on Grok's box with paths under /workspace/cartoon-test/full, so they are kept here as a record of how
-the art was made, not as a build step.
+They ran on Grok's box. Every script reads its working folder from the LOOKA_ROOT environment variable, with
+/workspace/cartoon-test/full as the default, so they are kept here as a record of how the art was made, not as a build step.
 
 - cut.py, cutone.py, cutall.sh: cut each painted guitar off its green or magenta background, traced at 4x and smoothed,
   with the rim colour cleaned so there is no green, olive or yellow fringe.

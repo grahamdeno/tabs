@@ -2,7 +2,7 @@
 head (the head rendered from the 4x canvas at today's nut width, nut on the bottom row, neck centre at today's cx)."""
 import json, os, sys, numpy as np, cv2
 from PIL import Image
-ROOT = '/workspace/cartoon-test/full'; S = 4
+ROOT = os.environ.get('LOOKA_ROOT', '/workspace/cartoon-test/full'); S = 4
 P = json.load(open(f'{ROOT}/pics.json')); F = json.load(open(f'{ROOT}/frets.json'))
 os.makedirs(f'{ROOT}/final', exist_ok=True)
 def unpremul_resize(a, size):
