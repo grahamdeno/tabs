@@ -732,3 +732,20 @@ test("Road Ready: Louie's first-song line shows once inside the playing screen, 
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now"); await page.waitForTimeout(600); /* real timer */
   assert.equal(await page.locator(".gg-first").count(), 0, "never again");
 });
+
+test("4.108.0 Dark and Light: the song controls are an amp-style bar, Speed, a lit Pause, Loop and Tools, each a 44 px target, and they work", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
+  const ids = await page.$$eval(".gg-bar button", bs => bs.map(b => [b.id, b.getAttribute("aria-label"), b.getBoundingClientRect().width >= 44 && b.getBoundingClientRect().height >= 44]));
+  assert.deepEqual(ids, [["gg-speed", "Speed", true], ["gg-pause", "Pause", true], ["gg-loop", "Loop a section", true], ["gg-tools", "Tools", true]]);
+  await page.keyboard.press("Shift"); await page.click("#gg-tools"); await page.waitForSelector(".menu[aria-label='Tools']");
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+});
+
+test("4.108.0 Green Room keeps the single Pause button", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("#gg-pause");
+  assert.equal(await page.locator(".gg-bar").count(), 0);
+});
