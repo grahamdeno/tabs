@@ -205,7 +205,8 @@ export function guitarNew(data, now = Date.now()) {
   return next ? { leg: last, next: next.id, guitar: guitarFor(next.id), done } : null;
 }
 /* ---------- Your guitarist (4.85.0): the player in Louie's style, built from parts ----------
-   data.me = { skin 0-5, hair, hairCol, beardCol? (absent: the hair colour), beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches }.
+   data.me = { skin 0-8, hair, hairCol, beardCol? (absent: the hair colour), beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches,
+   and since 2026-11-20 face?, eyes?, eyeCol?, brows?, nose?, specs?, freckles? (each absent when it's the default, so older guitarists keep their data) }.
    The big looks aren't stored: the top follows the venue you've reached (stageLook), the patches come from what
    you've done (patchesOf) and the guitar is the one you're on. Drawn in guitarist.js. */
 export const ME_HAIR = ["shag", "curly", "buzz", "mohawk", "braids", "bob", "bun", "swoop", "long", "locs", "pixie", "ponytail", "longhawk"];
@@ -214,6 +215,14 @@ export const ME_TOP_COL = ["red", "teal", "yellow", "white", "black", "green", "
 export const ME_BEARD = ["none", "stubble", "moustache", "beard"];
 export const ME_HATS = ["beanie", "cap", "bandana"];
 export const ME_PATCHES = 5;
+/* the face parts (2026-11-20, Graham's avatar kit); the first of each is the default */
+export const ME_FACE = ["oval", "square", "round", "heart"];
+export const ME_EYES = ["round", "wide", "narrow"];
+export const ME_EYE_COL = ["brown", "hazel", "blue", "green", "grey", "amber"];
+export const ME_BROWS = ["natural", "thick", "arched", "straight"];
+export const ME_NOSE = ["wedge", "button", "bridge", "broad"];
+export const ME_SPECS = ["round", "square", "shades"];
+export const ME_SKINS = 9;
 export const ME_DEFAULT = { skin: 2, hair: "shag", hairCol: "brown", beard: "none", glasses: false, extra: "none", extraCol: "black", top: "red", lefty: false };
 /* eight quick starting points: no names, once picked it's you. Hats are on the Merch table, so none here. */
 export const ME_STARTERS = [
@@ -230,7 +239,7 @@ export function cleanMe(raw) {
   if (!isObj(raw)) return null;
   const pick = (v, list, d) => list.includes(v) ? v : d;
   const out = {
-    skin: Number.isInteger(raw.skin) && raw.skin >= 0 && raw.skin <= 5 ? raw.skin : ME_DEFAULT.skin,
+    skin: Number.isInteger(raw.skin) && raw.skin >= 0 && raw.skin < ME_SKINS ? raw.skin : ME_DEFAULT.skin,
     hair: pick(raw.hair, ME_HAIR, ME_DEFAULT.hair), hairCol: pick(raw.hairCol, ME_HAIR_COL, ME_DEFAULT.hairCol),
     beard: pick(raw.beard, ME_BEARD, "none"), glasses: raw.glasses === true,
     extra: pick(raw.extra, ME_HATS, "none"), extraCol: pick(raw.extraCol, ME_TOP_COL, ME_DEFAULT.extraCol),
@@ -240,6 +249,10 @@ export function cleanMe(raw) {
   if (patches.length) out.patches = patches;
   /* the beard's own colour (2026-11-19), optional: absent means the hair colour, so a saved guitarist looks the same */
   if (ME_HAIR_COL.includes(raw.beardCol) && raw.beardCol !== out.hairCol) out.beardCol = raw.beardCol;
+  /* the face parts (2026-11-20): kept only when they aren't the default, so a guitarist saved before them is unchanged */
+  for (const [k, list] of [["face", ME_FACE], ["eyes", ME_EYES], ["eyeCol", ME_EYE_COL], ["brows", ME_BROWS], ["nose", ME_NOSE], ["specs", ME_SPECS]])
+    if (list.includes(raw[k]) && raw[k] !== list[0]) out[k] = raw[k];
+  if (raw.freckles === true) out.freckles = true;
   return out;
 }
 /* Start from a selfie (Gig poster, 2026-11-19): colours sampled from a photo snap to the guitarist's own inks. The photo
@@ -326,7 +339,9 @@ export function meMood(data, now = Date.now()) {
 /* a computer rival's guitarist: seeded by name, at the look of its tier */
 export function rivalMe(name, tier = 0) {
   const r = rand(hashDay(`me:${name}`)), at = list => list[Math.floor(r() * list.length) % list.length];
-  return { ...ME_DEFAULT, skin: Math.floor(r() * 6), hair: at(ME_HAIR), hairCol: at(ME_HAIR_COL), beard: r() < 0.25 ? at(ME_BEARD) : "none", glasses: r() < 0.2, top: at(ME_TOP_COL), look: stageLookOf(tier) };
+  return { ...ME_DEFAULT, skin: Math.floor(r() * 6), hair: at(ME_HAIR), hairCol: at(ME_HAIR_COL), beard: r() < 0.25 ? at(ME_BEARD) : "none", glasses: r() < 0.2, top: at(ME_TOP_COL), look: stageLookOf(tier),
+    /* drawn after the parts above, so a rival from before keeps its hair, skin and top */
+    face: at(ME_FACE), eyes: at(ME_EYES), eyeCol: at(ME_EYE_COL), brows: at(ME_BROWS), nose: at(ME_NOSE) };
 }
 /* Merch boxes (4.76.0): the ids of the boxes you've opened on the Road. */
 export function cleanBoxes(raw) {
