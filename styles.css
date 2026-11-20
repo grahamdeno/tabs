@@ -5799,9 +5799,14 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* The chord editor (Edit) reads the words at the size where the widest line fits on one row (--lyric-fit, as before), not the 34 pt playing size, so its chips stay on one row */
 :root:is([data-look="neon"], [data-look="festival"]) body.cedit .sheet.rr-slots { font-size: calc(var(--lyric-fit, 17px) * var(--wide, 1)); }
 
-/* The Road, Road Ready (design r10-01 and r10-02): a warm glow on the tolex from under the guitar. It stays put while the neck scrolls over it. */
-:root[data-look="neon"] .rd-path { background: radial-gradient(ellipse 64% 44% at 46% 50%, rgba(255, 160, 60, .34) 0, rgba(255, 140, 40, .17) 42%, transparent 72%); }
-:root[data-look="festival"] .rd-path { background: radial-gradient(ellipse 64% 44% at 46% 50%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .13) 42%, transparent 72%); }
+/* The Road (agreed r10-01, r10-02; Graham, 2026-11-19): the tolex and the warm glow scroll with the guitars. The leather is drawn on
+   the scrolling path itself (background-attachment: local), and each guitar carries its own glow behind it, so the glow stays
+   pinned behind its guitar. Dark's leather is neutral black, not brown, closer to the agreed screen. */
+:root[data-look="neon"] .rd-path { background: linear-gradient(rgba(0, 0, 0, .5), rgba(0, 0, 0, .5)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px 180px, #000; background-blend-mode: normal, luminosity; background-attachment: local; }
+:root[data-look="festival"] .rd-path { background: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px, var(--rr-base); background-attachment: local; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck.road::before { content: ""; position: absolute; z-index: -1; left: -45%; right: -45%; top: 8%; bottom: 4%; pointer-events: none; }
+:root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 50% 46% at 50% 56%, rgba(255, 160, 60, .36) 0, rgba(255, 140, 40, .16) 45%, transparent 72%); }
+:root[data-look="festival"] .rd-neck.road::before { background: radial-gradient(ellipse 50% 46% at 50% 56%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .12) 45%, transparent 72%); }
 
 /* The streak card (from the Road header's streak, Dark and Light): the last seven days as dots. */
 .sk-week { display: flex; justify-content: space-between; gap: 6px; margin: 14px 0 4px; }
@@ -5883,3 +5888,19 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* The Tour Map is the Tour tab (Graham, 2026-11-19): with the tab bar along the bottom, the map and its scene sheet end above it */
 body.tabbed .tm-page { bottom: var(--tabs, 96px); }
 .tm-month { display: grid; place-items: center; }
+
+/* Lamp lit (Graham, 2026-11-19): the chosen tab, and every selected control in Dark and Light, glows like a pilot lamp: a warm
+   amber light spreading from the middle and fading out, not a flat colour. The underline stays, so colour is never the only signal. */
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] { background: radial-gradient(ellipse 58% 62% at 50% 40%, rgba(255, 196, 92, .30) 0, rgba(255, 160, 50, .14) 45%, transparent 75%); color: var(--rr-amber-text); text-shadow: 0 0 10px rgba(255, 170, 60, .55); }
+:root[data-look="festival"] #tabs a[aria-current="page"] { background: radial-gradient(ellipse 58% 62% at 50% 40%, rgba(232, 128, 20, .26) 0, rgba(232, 128, 20, .10) 45%, transparent 75%); color: var(--rr-amber-text); text-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-ic { filter: drop-shadow(0 0 4px rgba(255, 176, 64, .85)) drop-shadow(0 0 10px rgba(255, 150, 40, .45)); }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"]::after { box-shadow: 0 0 8px 1px rgba(255, 170, 60, .7); }
+/* the same lamp on a chosen filter chip and on the Merch switch */
+:root[data-look="neon"] #chips.rr-chips .chip.on { background-color: var(--rr-amber); background-image: radial-gradient(ellipse 70% 90% at 50% 45%, #FFD38A 0, #F2A33C 55%, #C9761E 100%); box-shadow: 0 0 12px rgba(255, 160, 50, .45), inset 0 1px 0 rgba(255, 255, 255, .5); }
+
+/* The Merch switch is thin and short, as agreed (about 28 px on a phone): do not make it taller. The bar is 30 px with a 26 px lit
+   segment; the tap target reaches 44 px through an invisible area outside the drawn bar. */
+.mc-seg { padding: 2px; border-radius: 10px; margin: 16px 0 10px; }
+.mc-seg button { min-height: 26px; height: 26px; border-radius: 8px; font-size: var(--type-footnote, 14px); position: relative; }
+.mc-seg button::before { content: ""; position: absolute; inset: -9px 0; } /* a 44 px tap target around the 26 px drawn segment */
+.mc-seg button[aria-selected="true"] { background: radial-gradient(ellipse 70% 120% at 50% 40%, rgba(255, 196, 110, .16) 0, transparent 70%), linear-gradient(#3A332C, #24201C); }
