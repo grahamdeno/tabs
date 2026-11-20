@@ -1333,6 +1333,9 @@ function songMenu(song, anchor, redrawSong) {
 const toolsAnchor = () => document.querySelector(".menu.tools") || moreBtn();
 /* Tools, from the paused gig. */
 function openTools(anchor) { if (viewing) songMenu(viewing, anchor, () => redraw?.()); }
+/* 4.108.0: the Gig's control bar (Dark and Light) asks the song page for the speed dial and a section loop */
+function openSpeedDial() { if (scroll.on) stopScroll(); songSpeed?.(); }
+function openLoopPick() { if (!viewing) return; if (gigHooks.on) gigHooks.leave?.(); setPracticing(viewing, true); startLoopPick(viewing); }
 
 // ---------- Find songs you don't have yet ----------
 // No match in the library: search the web for a chord sheet, then come back and
@@ -2096,4 +2099,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, openSpeedDial, openLoopPick, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
