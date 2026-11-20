@@ -85,6 +85,36 @@ def save(im, path):
     print(f"  {path.relative_to(ROOT)}  {im.size[0]}x{im.size[1]}  {path.stat().st_size} bytes")
 
 
+HORNS = ROOT / "docs/louie-tweed/cutouts/louie-horns.png"
+
+
+def horns_icon(size, pad=0.0):
+    """Graham's pick B (2026-11-20): Louie throwing the horns, close, a warm glow behind, on the dark ground."""
+    m = 1024
+    g = Image.new("RGBA", (m, m), BASE + (255,))
+    glow = Image.new("RGBA", (m, m), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((120, 200, 904, 1000), fill=(255, 150, 40, 130))
+    g.alpha_composite(glow.filter(ImageFilter.GaussianBlur(120)))
+    src = Image.open(HORNS).convert("RGBA")
+    body = src.crop((0, 0, src.width, int(src.height * 0.80)))
+    w = int(round(980 * (1 - 2 * pad)))
+    im = body.resize((w, round(body.height * w / body.width)), Image.Resampling.LANCZOS)
+    g.alpha_composite(im, ((m - w) // 2, m - im.height + int(40 * (1 - 2 * pad)) - int(m * pad)))
+    return g.resize((size, size), Image.Resampling.LANCZOS).convert("RGB")
+
+
+def horns_face(size):
+    """At 32 px a whole Louie is mush (the horns turn to specks), so the tab icon is the same picture's cabinet and face."""
+    src = Image.open(HORNS).convert("RGBA")
+    W, H = src.size
+    x0, y0, side = int(W * 0.22), int(H * 0.04), int(W * 0.56)  # the cabinet: frame, face and the top of the plate
+    face = src.crop((x0, y0, x0 + side, y0 + side))
+    g = Image.new("RGBA", face.size, BASE + (255,))
+    g.alpha_composite(face)
+    out = g.resize((size, size), Image.Resampling.LANCZOS)
+    return out.filter(ImageFilter.UnsharpMask(radius=0.6, percent=80, threshold=2)).convert("RGB")
+
+
 def main():
     if not LOUIE.is_file():
         raise SystemExit(f"missing {LOUIE}")
@@ -92,14 +122,14 @@ def main():
     idle = Image.open(LOUIE).convert("RGBA")
 
     print("icons")
-    master = icon(piece, 1024)
+    master = horns_icon(1024)
     save(master, ICONS / "icon-1024.png")
     save(master, ROOT / "shots" / "icon-1024.png")
-    save(icon(piece, 512), ICONS / "icon-512.png")
-    save(icon(piece, 192), ICONS / "icon-192.png")
-    save(icon(piece, 180), ICONS / "apple-touch-icon.png")
-    save(icon(piece, 32, sharpen=True), ICONS / "favicon-32.png")
-    save(icon(piece, 512, pad=MASKABLE_PAD), ICONS / "icon-maskable-512.png")
+    save(horns_icon(512), ICONS / "icon-512.png")
+    save(horns_icon(192), ICONS / "icon-192.png")
+    save(horns_icon(180), ICONS / "apple-touch-icon.png")
+    save(horns_face(32), ICONS / "favicon-32.png")
+    save(horns_icon(512, pad=MASKABLE_PAD), ICONS / "icon-maskable-512.png")
 
     print("launch screens")
     for name, w, h, ratio in LAUNCH:
