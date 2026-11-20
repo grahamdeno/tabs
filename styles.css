@@ -5804,9 +5804,9 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
    pinned behind its guitar. Dark's leather is neutral black, not brown, closer to the agreed screen. */
 :root[data-look="neon"] .rd-path { background: linear-gradient(rgba(0, 0, 0, .5), rgba(0, 0, 0, .5)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px 180px, #000; background-blend-mode: normal, luminosity; background-attachment: local; }
 :root[data-look="festival"] .rd-path { background: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px, var(--rr-base); background-attachment: local; }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-neck.road::before { content: ""; position: absolute; z-index: -1; left: -45%; right: -45%; top: 8%; bottom: 4%; pointer-events: none; }
-:root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 50% 46% at 50% 56%, rgba(255, 160, 60, .36) 0, rgba(255, 140, 40, .16) 45%, transparent 72%); }
-:root[data-look="festival"] .rd-neck.road::before { background: radial-gradient(ellipse 50% 46% at 50% 56%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .12) 45%, transparent 72%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck.road::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 8%; bottom: 4%; pointer-events: none; }
+:root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(255, 160, 60, .36) 0, rgba(255, 140, 40, .16) 45%, transparent 72%); }
+:root[data-look="festival"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .12) 45%, transparent 72%); }
 
 /* The streak card (from the Road header's streak, Dark and Light): the last seven days as dots. */
 .sk-week { display: flex; justify-content: space-between; gap: 6px; margin: 14px 0 4px; }
@@ -5951,3 +5951,6 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .p
 /* in a set, the set dial stays (song 2 of 5, sweep to pick a song), beside Speed, so the left side mirrors Loop and Tools */
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .player.rr-amp .setdial { grid-column: 1; grid-row: 1; justify-self: start; margin-left: 58px; height: auto; min-height: 52px; min-width: 52px; padding: 2px 4px; border: 0; background: none; box-shadow: none; color: #EADBC0; display: grid; justify-items: center; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .player.rr-amp .setdial svg { width: 26px; height: 26px; }
+/* 4.108.1: the Road scrolls up and down only. Each guitar's glow reaches past its sides, which made the path wide enough to
+   drag sideways on a phone; the path now clips anything past its sides and takes only vertical pans. */
+.rd-path { overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y; }
