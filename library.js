@@ -122,14 +122,14 @@ export function chipsHTML() {
   const setsChip = () => `<button class="chip${filter === "sets" ? " on" : ""}" id="setsbtn" aria-pressed="${filter === "sets"}">Sets</button>`;
   if (!data.songs.length) return rrLook() && data.sets.length ? `<div class="chips rr-chips" id="chips">${setsChip()}</div>` : "";
   const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
-  const can = canPlayCount();
-  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can)) filter = "all";
+  const can = canPlayCount(), near = nearCount();
+  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can) || (filter === "near" && !near)) filter = "all";
   /* 4.20.1: one row that always fits. Sets is a button in the header and Tabs is a choice in the sort menu. */
   const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
   /* Road Ready 07: capsules that wrap rather than squeeze, All with its count, and Sets as the last chip (it keeps its own button id and toggle) */
   /* each filter says whether it is the chosen one (aria-pressed), as Sets does, so the fill isn't the only signal */
   const pressed = h => h.replace(/data-f="(\w+)"/, (m, f) => `${m} aria-pressed="${filter === f}"`);
-  if (rrLook()) return `<div class="chips rr-chips" id="chips">${pressed(chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`))}${can ? pressed(chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`)) : ""}${hasLearn ? pressed(chip("learn", "Learning")) : ""}${hasFav ? pressed(chip("fav", icon("heart"), "Favorites")) : ""}${setsChip()}</div>`;
+  if (rrLook()) return `<div class="chips rr-chips" id="chips">${pressed(chip("all", `All<small>${data.songs.length}</small>`, `All, ${data.songs.length} songs`))}${can ? pressed(chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`)) : ""}${near ? pressed(chip("near", `Almost<small>${near}</small>`, `Almost, ${near} songs one chord away`)) : ""}${hasLearn ? pressed(chip("learn", "Learning")) : ""}${hasFav ? pressed(chip("fav", icon("heart"), "Favorites")) : ""}${setsChip()}</div>`;
   return `<div class="chips" id="chips">${chip("all", "All")}${can ? chip("can", `Can play<small>${can}</small>`) : ""}${hasLearn ? chip("learn", "Learning") : ""}${hasFav ? chip("fav", icon("heart"), "Favorites") : ""}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
@@ -142,7 +142,7 @@ export function renderLibrary() {
   const rr = rrLook();
   app.innerHTML = `
     ${rr ? `<div class="head rr-sb-head">
-      <div class="head-l"><button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button><h1 class="title">Songbook</h1></div>
+      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : ""}<h1 class="title">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
       <div class="row-btns">
         <button class="rr-sb-add" id="add"><span class="rr-sb-plus">${icon("plus")}</span><span class="rr-sb-addl">Add</span></button>
       </div>
@@ -153,8 +153,8 @@ export function renderLibrary() {
         ${tunerBtn("ib chunky-tune")}
       </div>
     </div>`}
-    ${todayHTMLOrSpot()}
-    ${chipsHTML()}
+    ${rr ? `${chipsHTML()}${todayHTMLOrSpot()}` : `${todayHTMLOrSpot()}
+    ${chipsHTML()}`}
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
       <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
@@ -172,7 +172,7 @@ export function renderLibrary() {
       <button class="qcancel" id="qcancel">Cancel</button>
     </div>`;
   bindToday();
-  $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
+  if ($("libback")) $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
   $("setsbtn")?.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
   $("tunerbtn")?.addEventListener("click", () => openTuner("standard", () => route().name === "library" && renderLibrary()));
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
@@ -342,6 +342,8 @@ function fitOf(s) {
   return out;
 }
 const canPlayCount = () => data.songs.filter(s => fitOf(s).can).length;
+/* 4.105.0 (agreed Songbook): Almost, the songs one chord away from playable */
+const nearCount = () => data.songs.filter(s => !fitOf(s).can && fitOf(s).missing.length === 1).length;
 const sortBy = sort => {
   const tabs = data.songs.some(s => s.format === "tab"), tabsOnly = filter === "tab" && tabs;
   const opts = Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort && !tabsOnly ? "selected" : ""}>${v}</option>`).join("") + (tabs ? `<option value="tabs" ${tabsOnly ? "selected" : ""}>Tabs only</option>` : "");
@@ -540,7 +542,7 @@ export function renderList() {
     return;
   }
   const pool = searching ? data.songs : data.songs.filter(s =>
-    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning") && (filter !== "can" || fitOf(s).can));
+    (filter !== "fav" || s.favorite) && (filter !== "tab" || s.format === "tab") && (filter !== "learn" || s.status === "learning") && (filter !== "can" || fitOf(s).can) && (filter !== "near" || (!fitOf(s).can && fitOf(s).missing.length === 1)));
   /* Searching: title and artist matches first, then songs whose lyrics have the words. */
   const found = q ? searchSongs(pool, q) : null;
   const sort = SORTS[data.settings.sort] ? data.settings.sort : "title";
