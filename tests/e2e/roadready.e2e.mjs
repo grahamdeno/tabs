@@ -471,3 +471,13 @@ test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: s
   assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
   assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*Cornerstone is yours for Leg 2/);
 });
+
+test("4.108.1 the Road scrolls up and down only, never sideways, in Dark and Light", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await road(t, theme, MID);
+    const m = await page.evaluate(() => { const p = document.querySelector(".rd-path"); p.scrollLeft = 200; return { sw: p.scrollWidth, cw: p.clientWidth, left: p.scrollLeft, doc: document.documentElement.scrollWidth > innerWidth, ox: getComputedStyle(p).overflowX, ta: getComputedStyle(p).touchAction }; });
+    assert.ok(m.sw <= m.cw, `nothing reaches past the sides (${m.sw} > ${m.cw})`);
+    assert.equal(m.doc, false, "nor the page");
+    assert.equal(m.ox, "hidden"); assert.equal(m.ta, "pan-y");
+  }
+});
