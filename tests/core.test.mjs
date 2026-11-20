@@ -2662,6 +2662,11 @@ test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a ba
   assert.equal(C.cleanMe(null), null);
   const me = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1", "leg:open", "bad id!", 5] });
   assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1"] });
+  /* the face parts (2026-11-20): kept when valid and not the default, so a guitarist saved before them is unchanged */
+  const parts = C.cleanMe({ ...C.ME_DEFAULT, skin: 8, face: "heart", eyes: "round", eyeCol: "green", brows: "nope", nose: "broad", specs: "shades", freckles: "yes" });
+  assert.equal(parts.skin, 8);
+  assert.deepEqual([parts.face, parts.eyes, parts.eyeCol, parts.brows, parts.nose, parts.specs, parts.freckles], ["heart", undefined, "green", undefined, "broad", "shades", undefined]);
+  assert.deepEqual(C.cleanMe(C.ME_DEFAULT), { ...C.ME_DEFAULT }, "a guitarist from before keeps exactly its fields");
   const bad = C.cleanMe({ skin: 9, hair: "mullet", hairCol: "x", beard: 3, extra: "crown", top: "plaid", lefty: "yes", patches: new Array(9).fill(0).map((_, i) => "p" + i) });
   assert.equal(bad.skin, C.ME_DEFAULT.skin);
   assert.equal(bad.hair, C.ME_DEFAULT.hair);
@@ -2721,7 +2726,8 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   const { guitarist } = await import("../guitarist.js");
   const looks = ["tee", "vest", "leather", "stage"], P = [{ kind: "leg", color: "#8a6a4a", top: "1" }, { kind: "show", color: "#ff5fa8", top: "10" }];
   for (const hair of C.ME_HAIR) for (const pose of ["play", "hornsUp", "rest"]) for (const mood of ["happy", "cheer", "worried", "sleepy", "proud"]) {
-    const s = guitarist({ ...C.ME_DEFAULT, hair, beard: "beard", glasses: true, extra: "cap" }, { mood, pose, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
+    const i = hair.length + mood.length, face = { face: C.ME_FACE[i % 4], eyes: C.ME_EYES[i % 3], brows: C.ME_BROWS[i % 4], nose: C.ME_NOSE[i % 4], eyeCol: C.ME_EYE_COL[i % 6], specs: C.ME_SPECS[i % 3], freckles: i % 2 === 0, skin: i % 9 };
+    const s = guitarist({ ...C.ME_DEFAULT, ...face, hair, beard: C.ME_BEARD[i % 4], glasses: true, extra: C.ME_HATS[i % 3] }, { mood, pose, crop: ["full", "three", "bust", "face"][i % 4], card: i % 2 === 1, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
     assert.ok(s.startsWith("<svg") && s.endsWith("</svg>") && !s.includes("undefined") && !s.includes("NaN"), `${hair} ${pose} ${mood}`);
   }
   for (const g of Object.values(C.GUITARS)) assert.ok(!guitarist(C.ME_DEFAULT, { guitar: g }).includes("undefined"), g.name);
@@ -2731,13 +2737,14 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
   const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
   assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
-  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], "ids are unique (Gig poster, 2026-11-19)");
-  /* the Gig poster print: halftone and grain at full size; flat at 48 px and under; a cream poster card when asked */
+  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], "ids are unique");
+  /* the inked cartoon (2026-11-20): one dark outline round the parts, a stage card when asked, no Gig poster print */
   const big = guitarist(C.ME_DEFAULT, { size: 160 }), small = guitarist(C.ME_DEFAULT, { crop: "bust", size: 32 });
-  assert.ok(big.includes("guitarist-poster/grain.webp") && /<mask id="gp\d+h"/.test(big), "halftone and grain at full size");
-  assert.ok(!small.includes("grain.webp") && !/<mask id="gp\d+h"/.test(small) && small.includes('stroke-width="0.8"'), "flat with a heavier line at 32 px");
-  assert.ok(!guitarist(C.ME_DEFAULT, { size: 400, grain: false }).includes("grain.webp"), "no grain for a canvas picture");
-  assert.ok(guitarist(C.ME_DEFAULT, { card: true }).includes('rx="7" fill="#F6EEE0"'), "the cream poster card");
+  for (const s of [big, small]) assert.ok(/<feMorphology[^>]+dilate/.test(s) && s.includes('flood-color="#24160E"') && !s.includes("grain.webp") && !s.includes("guitarist-poster"), "the ink outline, no poster print");
+  assert.ok(guitarist(C.ME_DEFAULT, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
+  assert.ok(guitarist(C.ME_DEFAULT, { mood: "worried" }).includes('data-mood="worried"'));
+  assert.ok(guitarist(C.ME_DEFAULT, { guitar: C.GUITARS.strum }).includes("<image "), "the Road guitar's painting in the hands");
+  assert.ok(!guitarist(C.ME_DEFAULT, { pose: "hornsUp", guitar: C.GUITARS.strum }).includes("<image "), "horns up: no guitar");
 });
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {

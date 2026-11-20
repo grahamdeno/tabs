@@ -39,13 +39,15 @@ test("4.85.0 your profile card shows your guitarist; the maker changes it and sa
   assert.equal(await page.locator('.rr-avatar svg[aria-label="Your guitarist"]').count(), 1); /* Road Ready 08: the avatar in the header */
   await page.click("#pf-me"); await page.waitForSelector(".gm");
   assert.equal(await page.locator(".gm button[aria-pressed]").count() > 15, true, "every choice on the Face tab is a pressed-state button");
-  /* the Gig poster maker (2026-11-19): Face is the first tab, Hair the second; Lefty is the flip on the poster */
-  await page.click('.gm [data-k="glasses"][data-v="true"]');
+  /* the maker: Face is the first tab, Hair the second; Lefty is the flip on the card */
+  await page.click('.gm [data-k="specs"][data-v="square"]');
   await page.click('.gm [data-k="lefty"][data-v="true"]');
   await page.click('.gm [data-k="beard"][data-v="stubble"]');
+  /* the face parts (2026-11-20): face shape, eyes, eye colour, brows, nose and freckles, each saved as you tap */
+  for (const [k, v] of [["face", "heart"], ["eyes", "wide"], ["eyeCol", "green"], ["brows", "arched"], ["nose", "broad"], ["freckles", "true"]]) await page.click(`.gm [data-k="${k}"][data-v="${v}"]`);
   await page.click("#gm-t-hair");
   await page.click('.gm [data-k="hair"][data-v="pixie"]');
-  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.lefty && m.beard === "stubble"; });
+  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.specs === "square" && m.lefty && m.beard === "stubble" && m.face === "heart" && m.eyes === "wide" && m.eyeCol === "green" && m.brows === "arched" && m.nose === "broad" && m.freckles === true; });
   assert.equal(await page.locator(".gm .gm-prev svg").getAttribute("aria-label"), "Your guitarist");
   await page.click("#gm-t-fit");
   assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 3, "the three hats are locked until bought");
@@ -71,12 +73,8 @@ test("4.85.0 a duel shows your guitarist, worried when you lost", { skip: skip()
   await page.waitForFunction(id => location.hash === "#/duel/" + id, id);
   await page.waitForSelector(".du-av.me");
   assert.equal(await page.locator('.du-av.me svg[aria-label="Your guitarist"]').count(), 1);
-  /* the Gig poster face for the mood (2026-11-19): the worried face's ink line is drawn, the happy one's isn't */
-  const ART = (await import("../../art/guitarist-poster.js")).default;
-  const ds = m => ART.faces[m].map(([, , d]) => d);
-  const only = (a, b) => ds(a).find(d => !ds(b).includes(d));
-  const html = await page.innerHTML(".du-av.me");
-  assert.ok(html.includes(only("worried", "happy")) && !html.includes(only("happy", "worried")), "the worried face after a loss");
+  /* the face for the mood: worried after a loss */
+  assert.equal(await page.getAttribute('.du-av.me svg[aria-label="Your guitarist"]', "data-mood"), "worried", "the worried face after a loss");
 });
 
 test("4.85.0 a hat bought on the Merch table goes on your guitarist and shows in the maker", { skip: skip() }, async t => {
