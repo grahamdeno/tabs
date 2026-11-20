@@ -332,7 +332,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   assert.ok((await box(".shead .sh-back")).top < 100 && (await box(".shead .fav")).top < 100, "back and the heart beside the title");
   for (const sel of ["#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
   assert.equal(await page.locator(".player .fav, .player #nnbtn, .player .oh-back").count(), 0, "just Tools and Play");
-  assert.ok((await box("#play")).right > 330, "Play at the right, in thumb reach");
+  /* 4.109.0 (Graham, 2026-11-19): in Dark and Light the bar is the amp-style bar, Play in the middle at the bottom, still in thumb reach */
+  { const p = await box("#play"); assert.ok(p.bottom > H * 0.85 && p.left > 120 && p.right < 270, "Play in the middle of the bottom bar, in thumb reach"); }
   assert.equal(await page.locator(".secbar").count(), 0, "4.55.0: no row of section chips on the song page");
   await page.click("#more"); await page.waitForSelector('.menu');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length); const m = await box(".menu");
