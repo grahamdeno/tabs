@@ -5879,3 +5879,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* the four filters fit on one row on a 390 px phone, each still a 44 px target */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-chips { flex-wrap: wrap; gap: 6px; }
 :root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip { min-width: 44px; justify-content: center; padding: 6px 11px; gap: 5px; font-size: var(--type-subhead); }
+
+/* The Tour Map is the Tour tab (Graham, 2026-11-19): with the tab bar along the bottom, the map and its scene sheet end above it */
+body.tabbed .tm-page { bottom: var(--tabs, 96px); }
+.tm-month { display: grid; place-items: center; }

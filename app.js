@@ -2017,7 +2017,7 @@ function renderRoute() {
   if (r.name === "road" || r.name === "library") lastHome = r.name;
   document.body.classList.toggle("is-home", r.name === "road");
   /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings). Road Ready 04: the Songbook is a tab */
-  const tabbed = ["road", "library", "tour", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id && r.id !== "neck"); /* 4.42.5: #/practice/neck is Rehearse, so it keeps the tab bar */
+  const tabbed = ["road", "library", "tour", "playmap", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id && r.id !== "neck"); /* 4.42.5: #/practice/neck is Rehearse, so it keeps the tab bar */
   if (!tabbed) document.body.classList.remove("tabbed");
   else lazy("hud.js").then(m => { if (route().name === r.name) m.paintTabs(m.tabFor(r.name)); });
   app.classList.remove("viewer");

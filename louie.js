@@ -2,8 +2,8 @@
 // with two knobs sits under it, and he has cream gloves and brown boots. He is always a picture, never a drawing:
 // art/louie/v4/louie-<pose>.webp, cut out from Graham's pictures (the originals and the full-size cut-outs are in
 // docs/louie-tweed/). Every earlier Louie (the black one, the blue one and the code drawing) is gone.
-// Four poses exist so far: cheer, horns, idle, listen. The other six borrow the nearest one (LOUIE_STAND_IN) until
-// their pictures arrive; to add one, put louie-<pose>.webp in art/louie/v4, add it to SHELL in sw.js and take it
+// Nine poses exist: cheer, horns, idle, listen, point, proud, sleepy, thumb, wave. Nervous borrows listen (LOUIE_STAND_IN)
+// until its picture arrives; to add one, put louie-<pose>.webp in art/louie/v4, add it to SHELL in sw.js and take it
 // out of LOUIE_STAND_IN.
 // louie(mood, { pose, size }) returns an <svg> string that shows the picture.
 //   moods: happy, cheer, sleepy, worried, proud, listen (a hand to his ear, for when the app is listening)
@@ -59,7 +59,7 @@ export function louieArt(mood = "happy", pose, size = Infinity) {
   return ART_POSE[pose] || (mood === "cheer" ? "cheer" : "idle");
 }
 /* Poses with no picture yet, and the one each borrows. */
-export const LOUIE_STAND_IN = { nervous: "listen", point: "idle", proud: "idle", sleepy: "idle", thumb: "horns", wave: "cheer" };
+export const LOUIE_STAND_IN = { nervous: "listen" };
 export const louiePic = art => `art/louie/v4/louie-${LOUIE_STAND_IN[art] || art}.webp`;
 
 const ARMS = new Set(["rest", "hornsUp", "thumb", "point", "wave", "peace"]);

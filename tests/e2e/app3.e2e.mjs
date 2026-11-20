@@ -319,7 +319,9 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   await page.click("#tm-info"); await page.waitForSelector("#tm-forget");
   await page.click("#tm-forget"); await page.waitForSelector("#tm-flag");
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
-  await page.click("#back"); await page.waitForFunction(() => !document.body.classList.contains("tm-open"));
+  /* the Tour Map is the Tour tab: no Back button; the month's tour is a button on it */
+  assert.equal(await page.locator("#back").count(), 0);
+  await page.click("#tm-month"); await page.waitForFunction(() => !document.body.classList.contains("tm-open"));
 });
 
 test("A run that stops early is not a play", { skip: skip() }, async t => {
@@ -400,7 +402,8 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
   /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0) and Your band (4.7.0), from Me since Road Ready 04; the gear on Me reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
-  await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");
+  await page.click("#tabs [data-tab=tour]"); await page.waitForSelector("#tm-month"); /* the Tour tab opens the Tour Map; the month's tour is a button on it */
+  await page.click("#tm-month"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
   assert.match(await page.innerText(".tq-req"), /REQUEST LINE[\s\S]*asked for/);
   assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the Friend quest");

@@ -12,7 +12,8 @@ Graham's new Louie, 2026-11-19. He replaces every earlier Louie in the app.
 
 1. Redo the four cut-outs (cheer, horns, idle, listen) with clean edges. The method used: everything joined to the white
    border is removed, plus the flat off-white gap under the handle, with a soft 4 px edge. Look at the glove edges on Dark.
-2. Six poses are missing: nervous, point, proud, sleepy, thumb, wave. Until they arrive each borrows another pose
+2. One pose is missing: nervous. Until it arrives it borrows listen. Point, proud, sleepy, thumb and wave arrived 2026-11-19 (their floor shadow was kept as a soft see-through shadow).
+   The missing pose borrows another
    (`LOUIE_STAND_IN` in `louie.js`). To add one: `art/louie/v4/louie-<pose>.webp`, add it to `SHELL` in `sw.js`, take it
    out of `LOUIE_STAND_IN`, and add it to the list in the Louie test in `tests/core.test.mjs`.
 3. His other colours, for the Merch table. Louie's finishes are hidden until then.
