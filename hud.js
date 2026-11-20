@@ -103,7 +103,7 @@ function streakCard() {
   const stored = data.journal && data.journal.v === 1 ? Math.max(0, +data.journal.best || 0) : 0;
   const best = Math.max(stored, d);
   const bestLine = data.journal && data.journal.v === 1 && best > 0
-    ? `<p class="sk-best">Best: ${best} day${best === 1 ? "" : "s"}</p>` : "";
+    ? `<p class="sk-high">Best: ${best} day${best === 1 ? "" : "s"}</p>` : "";
   const days = ["S", "M", "T", "W", "T", "F", "S"], today = new Date().getDay();
   layer.innerHTML = `<div class="scrim" id="sk-scrim"></div><div class="panel card sk-card" role="dialog" aria-label="Your gig streak">
     <h2>${d ? `${d} day${d === 1 ? "" : "s"} in a row` : "No streak yet"}</h2>
