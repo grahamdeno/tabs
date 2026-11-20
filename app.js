@@ -77,6 +77,9 @@ const gigsOn = song => canGig(song);
 /* 4.20.0: the face says what plays with you: the recording or the band (nothing when neither will) */
 const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : beatMode() === "kick" ? "WITH THE BASS DRUM" : beatMode() === "click" ? "WITH THE METRONOME" : "";
 /* 4.52.0: a show you paused is held on the song page; Play picks it up again */
+/* 4.109.0 (Graham, 2026-11-19): in Dark and Light the song page's bar is the same amp-style bar as the Gig's: Speed, a round
+   lamp-lit Play, then Loop and Tools as small knobs. The wide Tools + RESUME bar is gone there. */
+const rrAmp = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
@@ -210,8 +213,10 @@ function renderViewer(id) {
     <div class="dock">
       <div class="pw glass float">
       <div class="looprow" id="looprow"></div>
-      <div class="player">
-        <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+      <div class="player${rrAmp() ? " rr-amp" : ""}">
+        ${rrAmp() ? `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small>Speed</small></button>` : ""}
+        <button class="tl more tools${rrAmp() ? " gg-sb gg-knob" : ""}" id="more" aria-label="Tools" aria-haspopup="dialog">${rrAmp() ? `<i aria-hidden="true"></i><small>Tools</small>` : `${icon("sliders")}<span class="tl-w">Tools</span>`}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        ${rrAmp() ? `<button class="gg-sb gg-knob" id="pw-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button>` : ""}
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed" hidden>
@@ -236,6 +241,8 @@ function renderViewer(id) {
   });
   // One menu for everything about this song: text size, sets, edit, AI help, share, practice.
   app.querySelectorAll(".more").forEach(btn => btn.onclick = e => { e.stopPropagation(); songMenu(song, btn, draw); });
+  $("pw-speed")?.addEventListener("click", () => openSpeedDial());
+  $("pw-loop")?.addEventListener("click", () => openLoopPick());
   // Mastery: tap to cycle none, Learning, Solid, Nailed it (stored "got"), then none again.
   const paintStat = () => {
     const st = $("stat");
