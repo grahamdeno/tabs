@@ -214,7 +214,7 @@ function renderViewer(id) {
       <div class="pw glass float">
       <div class="looprow" id="looprow"></div>
       <div class="player${rrAmp() ? " rr-amp" : ""}">
-        ${rrAmp() ? `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small>Speed</small></button>` : ""}
+        ${rrAmp() ? `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>` : ""}
         <button class="tl more tools${rrAmp() ? " gg-sb gg-knob" : ""}" id="more" aria-label="Tools" aria-haspopup="dialog">${rrAmp() ? `<i aria-hidden="true"></i><small>Tools</small>` : `${icon("sliders")}<span class="tl-w">Tools</span>`}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         ${rrAmp() ? `<button class="gg-sb gg-knob" id="pw-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button>` : ""}
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
@@ -328,6 +328,14 @@ function renderViewer(id) {
     }
     const db = $("dialbtn")?.querySelector("span");
     if (db) db.textContent = $("sv").textContent;
+    /* 4.111.0 (Graham, 2026-11-20): the Speed button in the amp bar (song page and Gig) shows its setting, lit amber when the page isn't at 1.0x */
+    const off = !byLength() && Math.abs(speed.value / SPEEDS.medium - 1) >= 0.05;
+    for (const b of [$("pw-speed"), $("gg-speed")]) {
+      if (!b) continue;
+      const v = b.querySelector(".sp-val"); if (v) v.textContent = $("sv").textContent;
+      b.classList.toggle("sp-off", off);
+      b.setAttribute("aria-label", `${byLength() ? "Song length" : "Speed"}: ${$("sv").textContent}`);
+    }
   };
   showSpeed();
   speed.oninput = () => {
@@ -343,6 +351,7 @@ function renderViewer(id) {
     openDial({ min: +speed.min, max: +speed.max, step: dialStep(), value: +speed.value, label: "Song speed", event: e,
       marks: byLength() ? [2, 3, 4, 5, 6, 8, 10, 15].map(m => 540 - m * 60) : null,
       read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
+      reset: byLength() ? null : { value: SPEEDS.medium, label: "Back to 1.0x" }, /* 4.111.0: one tap back to the song's real speed */
       input: v => { speed.value = v; speed.oninput(); },
       done: (v, changed) => { if (changed) toast(byLength() ? `Length ${mmss(songLength(song))}` : `Speed ${$("sv").textContent}`, null, { label: "Undo", fn: () => {
         speed.value = was.v; song.duration = was.d; song.durationSet = was.set; song.speed = was.sp;

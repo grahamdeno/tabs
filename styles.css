@@ -5954,3 +5954,12 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 /* 4.108.1: the Road scrolls up and down only. Each guitar's glow reaches past its sides, which made the path wide enough to
    drag sideways on a phone; the path now clips anything past its sides and takes only vertical pans. */
 .rd-path { overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y; }
+
+/* 4.111.0 (Graham, 2026-11-20): Speed in the amp bar shows its setting (1.0x, 0.8x, or the song length) and is lit amber when the
+   page isn't at the song's real speed; the dial has a Back to 1.0x button at the bottom left, clear of the meter. */
+.gg-speed .sp-val { font-variant-numeric: tabular-nums; }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off svg { color: #FFB547; filter: drop-shadow(0 0 6px rgba(255, 166, 60, .6)); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off small { color: #FFB547; }
+.dial-reset { position: absolute; left: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 112px; min-height: 48px; padding: 8px 12px; border: 0; border-radius: 12px;
+  background: #2A2622; color: #FFE2B0; font: 600 var(--type-footnote, 14px) / 1.15 var(--sans, system-ui); box-shadow: inset 0 0 0 1.5px #8E8A84, 0 4px 10px rgba(0, 0, 0, .5); cursor: pointer; }
+.dial-reset:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; }
