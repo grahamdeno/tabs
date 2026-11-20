@@ -20,6 +20,7 @@ black. The agreed pictures set the look and materials; these later decisions set
 | 9 | Green Room and Headliner | whole look | Both still draw the screens from before the redesign. | Bring both into the new design, or retire them. Until then nothing may switch a player into them without their asking. | none |
 | 10 | Louie, everywhere | `art/louie/v4/*.webp`, `docs/louie-tweed/` | The tweed Louie, cut out by Claude from Graham's white-background pictures (nine poses). Nervous is missing and borrows listen. | Clean cut-outs, the six missing poses, his other colours, and a face-only picture for the icon. See `docs/louie-tweed/README.md`. | `docs/louie-tweed/source/pose-sheet.jpg` |
 | 11 | The Road, Dark leather | `art/surfaces/tolex-dark.webp` | A fine brown pebble. The app shows it neutral black at a finer grain since 4.107.0, but the pattern is still different. | The agreed leather: near black, larger cells with fine light crease lines, a soft sheen. A seamless tile like the current one. | `agreed-road-dark.jpg` (the leather around the guitar) |
+| 12 | App icon and tab icon | `icons/*.png`, `tools/icons/make.py` | Since 4.110.0 the icon is Louie throwing the horns (Graham's pick B), built by the tool from Claude's cut-out. The 32 px tab icon is a crop of the same picture's cabinet and face, softened by scaling. | The horns icon from a clean cut-out, and a hand-tuned 32 px and 16 px tab icon: Louie's face and cabinet drawn for that size, crisp eyes and smile, no specks. | `icons/icon-1024.png`, `icons/favicon-32.png` |
 
 ## Ideas, not yet items
 
