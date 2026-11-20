@@ -5870,9 +5870,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* Songbook, 4.105.0 (agreed Songbook): the hint is a slim one-line strip under the filters, a small Louie badge then the line */
 :root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { margin: var(--sp-2) 0 var(--sp-1); padding: 4px var(--sp-3) 4px 6px; min-height: 48px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-badge { width: 34px; height: 34px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .upn-c .tdy-t small { display: none; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-i:not(.upn-c) .tdy-t small { display: inline; font: 500 var(--type-subhead) / 1.25 var(--sans); text-transform: none; letter-spacing: 0; color: var(--rr-text); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-i:not(.upn-c) .tdy-t small::after { content: " "; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t small { display: block; font: 600 var(--type-caption) / 1.2 var(--sans); letter-spacing: .04em; color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t { display: block; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t b { display: inline; font: 600 var(--type-subhead) / 1.25 var(--sans); color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t em { display: inline; font: 500 var(--type-subhead) / 1.25 var(--sans); font-style: normal; color: var(--rr-text); }
