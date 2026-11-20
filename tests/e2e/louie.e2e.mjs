@@ -7,7 +7,7 @@ import { phone, LIB, skip, useBrowser, settled } from "./harness.mjs";
 useBrowser();
 
 const libWith = (theme, extra = {}) => ({ ...LIB, settings: { ...LIB.settings, v: 6, theme }, ...extra });
-const HAVE = ["cheer", "horns", "idle", "listen"];
+const HAVE = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
 
 /* what one Louie on the page shows: his picture, whether it loaded, his size, and anything drawn in code */
 const shown = (page, sel) => page.evaluate(async sel => {
@@ -34,7 +34,7 @@ test("Louie is the tweed picture on real screens, in all four looks, and every p
   }
 });
 
-test("every mood and pose at 44 to 190 px shows one of the four pictures, inside its frame, never squashed", { skip: skip() }, async t => {
+test("every mood and pose at 44 to 190 px shows one of his pictures, inside its frame, never squashed", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
   const out = await page.evaluate(async HAVE => {
     const { louie } = await import("/louie.js");
