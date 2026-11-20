@@ -41,9 +41,9 @@ export function statBar() {
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${COIN}<span>$${n(tips)}</span>${lab("tips", "TIPS")}</button>
   </div>`;
 }
-/* ---- the one-row Road header (Grok, 2026-11-19): four stats, each a line icon then a number, spread across one 44 pt row with
-   no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); songs you can play opens the Songbook;
-   the venue is the sign at the start of the leg, which opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
+/* ---- the one-row Road header (Grok, 2026-11-19): three stats, each a line icon then a number, spread across one 44 pt row with
+   no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); streak opens a small sheet, fans open
+   the Tour Map; the venue is the sign at the start of the leg, which also opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
 const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 const ST_ICON = {
   /* a guitar: the streak */
@@ -99,12 +99,18 @@ export function statNotices() {
 /* The streak card: how many days in a row, the last seven days, and what keeps it going. */
 function streakCard() {
   const st = streakOf(playSongs(data)), d = st.days;
+  /* best is already in the journal (core/playing.js); do not write a new key */
+  const stored = data.journal && data.journal.v === 1 ? Math.max(0, +data.journal.best || 0) : 0;
+  const best = Math.max(stored, d);
+  const bestLine = data.journal && data.journal.v === 1 && best > 0
+    ? `<p class="sk-best">Best: ${best} day${best === 1 ? "" : "s"}</p>` : "";
   const days = ["S", "M", "T", "W", "T", "F", "S"], today = new Date().getDay();
   layer.innerHTML = `<div class="scrim" id="sk-scrim"></div><div class="panel card sk-card" role="dialog" aria-label="Your gig streak">
     <h2>${d ? `${d} day${d === 1 ? "" : "s"} in a row` : "No streak yet"}</h2>
+    ${bestLine}
     <p class="tm-line">${d ? (st.today ? "You played today, so your streak is safe." : "Play a song through today to keep it going.") : "Play a song through today to start one."}</p>
     <div class="sk-week" role="img" aria-label="The last seven days: ${st.week.filter(Boolean).length} played">${st.week.map((on, i) => `<span class="sk-day${on ? " on" : ""}${i === 6 ? " now" : ""}"><i></i>${days[(today + i + 1) % 7]}</span>`).join("")}</div>
-    <div class="actions"><button class="btn primary" id="sk-x">Done</button></div></div>`;
+    <div class="actions"><button class="btn primary" id="sk-x">Close</button></div></div>`;
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("sk-scrim").onclick = close; document.getElementById("sk-x").onclick = close;
   document.getElementById("sk-x").focus();

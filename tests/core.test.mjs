@@ -3464,3 +3464,20 @@ test("4.103.0 the player's name: plain text on one line, at most 30 characters, 
   const bad = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: 42 } });
   assert.notEqual(bad.data.settings.playerName, 42, "a name that is not text is dropped");
 });
+
+test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a sheet", () => {
+  const hud = read("hud.js"), css = read("styles.css");
+  const rr = hud.slice(hud.indexOf("export function rrStats"), hud.indexOf("export const pageStats"));
+  assert.match(rr, /id="h-streak"/);
+  assert.match(rr, /id="h-fans"/);
+  assert.match(rr, /id="h-tips"/);
+  assert.doesNotMatch(rr, /h-songs/, "the songs stat is gone from the Road Ready header");
+  assert.match(hud, /go\(rr \? "#\/playmap" : "#\/you"\)/, "fans open the Tour Map in Dark and Light");
+  assert.match(hud, /rr \? streakCard\(\) : go\("#\/you"\)/, "streak opens a small sheet in Dark and Light");
+  assert.match(hud, /function streakCard\(/);
+  assert.match(hud, /id="sk-scrim"/, "the sheet closes on a tap outside");
+  assert.match(hud, /id="sk-x"/, "and on a close button");
+  assert.match(hud, /data\.journal\.best/, "best streak comes from the journal already stored");
+  assert.match(css, /\.sk-card[^}]*var\(--rr-card\)/, "the sheet uses Road Ready tokens");
+  assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
+});
