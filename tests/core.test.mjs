@@ -2742,7 +2742,7 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
   const { louie, louieArt, louiePic, LOUIE_STAND_IN } = await import("../louie.js");
-  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen"];
+  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
   for (const n of [...have, "face-badge"]) {
     const f = `art/louie/v4/louie-${n}.webp`;
     assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
@@ -2753,7 +2753,7 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   for (const mood of ["happy", "cheer", "sleepy", "worried", "proud", "listen"]) for (const pose of [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"]) for (const size of [44, 120]) {
     const svg = louie(mood, { pose, size }), href = svg.match(/href="([^"]+)"/)[1];
     assert.equal(href, louiePic(louieArt(mood, pose, size)));
-    assert.ok(have.some(n => href === `art/louie/v4/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the four pictures`);
+    assert.ok(have.some(n => href === `art/louie/v4/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
     assert.equal((svg.match(/<image /g) || []).length, 1, "one picture");
     assert.ok(!/<(path|rect|circle|ellipse|text)\b/.test(svg), "nothing is drawn in code");
     assert.match(svg, /role="img" aria-label="Louie"/);

@@ -118,7 +118,7 @@ const TABS = [
   /* Rehearse: a metronome, a trapezoid body with the arm leaning */
   ["rehearse", "#/practice", "Rehearse", ICON(`<path class="tb-fill" d="M9 3h6l4 18H5z"/><path d="M12 17.5L15.2 7"/><circle cx="14" cy="11" r="1.3" fill="currentColor" stroke="none"/><path d="M8.2 21h7.6"/>`)],
   /* Tour: a tour van from the side, two wheels, an amp on the roof */
-  ["tour", "#/tour", "Tour", ICON(`<path class="tb-fill" d="M2.5 17v-5.5L5 8h9.5l4.5 3.5h2.5V17h-2.4M14.9 17H9.1M4.9 17H2.5"/><path d="M8.5 4.5h5V8h-5zM9 8v3.5h10"/><circle cx="7" cy="17.5" r="2.1"/><circle cx="17" cy="17.5" r="2.1"/>`)],
+  ["tour", "#/playmap", "Tour", /* Graham, 2026-11-19: the Tour tab opens straight onto the Tour Map; the month's tour is a button on it */ ICON(`<path class="tb-fill" d="M2.5 17v-5.5L5 8h9.5l4.5 3.5h2.5V17h-2.4M14.9 17H9.1M4.9 17H2.5"/><path d="M8.5 4.5h5V8h-5zM9 8v3.5h10"/><circle cx="7" cy="17.5" r="2.1"/><circle cx="17" cy="17.5" r="2.1"/>`)],
   /* Me: a backstage pass hanging from a U-shaped lanyard */
   ["me", "#/you", "Me", ICON(`<path d="M6.5 2.5c0 3.5 1.6 5.2 5.5 5.2s5.5-1.7 5.5-5.2"/><rect class="tb-fill" x="6.5" y="8" width="11" height="13.5" rx="2.8"/><circle cx="12" cy="13" r="1.9"/><path d="M8.9 19.2c.4-2 1.7-3 3.1-3s2.7 1 3.1 3"/>`)]
 ];
@@ -157,5 +157,5 @@ export function openMore() {
 }
 
 /* which pages show the tab bar, and which tab each one lights. Songbook is a tab; Your band, Charts, the Merch table and Support are reached from Me, so Me stays lit on them. */
-export const TABBED = new Set(["road", "library", "tour", "practice", "you", "charts", "band", "merch", "support"]);
-export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me" })[name] || name;
+export const TABBED = new Set(["road", "library", "tour", "playmap", "practice", "you", "charts", "band", "merch", "support"]);
+export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me", playmap: "tour" })[name] || name;
