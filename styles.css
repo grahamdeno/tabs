@@ -5941,7 +5941,7 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .p
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play::before, html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play::after { display: none; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play svg { width: 22px; height: 22px; fill: currentColor; margin: 0; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span { display: block; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); font: 600 var(--type-footnote, 13px) / 1 var(--sans); letter-spacing: 0; color: #EADBC0; white-space: nowrap; text-transform: capitalize; }
-html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span .pw-with { display: none; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span .pw-with { display: block; margin-top: 2px; font: 600 11px / 1.1 var(--sans); letter-spacing: .02em; color: #CDBB9A; opacity: 1; } /* what Play plays with (the recording, the bass drum) stays said */
 :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp :is(#more, #pw-loop) { grid-row: 1; height: auto; width: auto; border: 0; background: none; box-shadow: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp #pw-loop { grid-column: 3; justify-self: end; margin-right: 58px; }
 :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp #more { grid-column: 3; justify-self: end; position: relative; }
