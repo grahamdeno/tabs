@@ -91,7 +91,7 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
 
 test("Road Ready 04: deep links to the pages that left the bar still open them; Songbook is a tab and Me stays lit under its pages", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
-  for (const [hash, ready, lit] of [["#/library", "#libback", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
+  for (const [hash, ready, lit] of [["#/library", "#chips", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
     await page.evaluate(h => { location.hash = h; }, hash); await page.waitForSelector(ready);
     await page.waitForSelector(`#tabs [data-tab=${lit}][aria-current=page]`);
   }
