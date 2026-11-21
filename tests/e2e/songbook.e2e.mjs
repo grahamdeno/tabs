@@ -50,16 +50,18 @@ for (const theme of ["dark", "light", "green", "headliner"]) test(`4.113.0 (${th
   const got = await page.evaluate(() => ({
     title: document.querySelector("#app .head .title")?.textContent, sets: !!document.querySelector(".head #setsbtn.sets-btn"), tuner: !!document.querySelector(".head #tunerbtn"),
     add: !!document.querySelector(".dock .cmd #add.cmd-add"), back: !!document.getElementById("libback"),
-    oldRows: document.querySelectorAll("#app .rr-row, #app .rr-tile, #app .rr-hint, #app .rr-chips, #app .rr-sb-head").length,
+    oldRows: document.querySelectorAll("#app .rr-row, #app .rr-tile, #app .rr-sb-head, #app .rr-cc").length,
+    agreed: [document.querySelectorAll("#list .row.rr-line").length === document.querySelectorAll("#list .row").length, !!document.querySelector("#chips.rr-chips")],
     k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .fit')?.textContent,
     b: document.querySelector('#list .row[data-id="b"] .fit')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
   }));
   const rr = theme === "dark" || theme === "light";
-  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, k: undefined, l: "LEARNING", b: "+ F", key: "G" }, "a Back button only in Green Room and Headliner (in Dark and Light the Songbook is a tab)");
+  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "LEARNING", b: "+ F", key: "G" }, "a Back button only in Green Room and Headliner; 4.113.1: Dark and Light draw each song as a card and the filters as capsules");
   assert.match(got.k, /Kettle Hums.*June and the Kettles.*Nailed it/, "title, artist and level in words");
   /* the chosen filter is said, not only filled; Almost (4.105.0) is there when a song is one chord away */
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f, c.getAttribute("aria-pressed")])));
   assert.deepEqual(await pressed(), { all: "true", can: "false", near: "false", learn: "false", fav: "false" });
+  if (rr) assert.equal(await page.evaluate(() => { const c = document.getElementById("chips"); return c.scrollWidth <= c.clientWidth + 1; }), true, "4.113.1: the filters fit on one row");
   await page.click('#chips [data-f="learn"]'); await page.waitForSelector('#chips [data-f="learn"].on');
   assert.deepEqual(await pressed(), { all: "false", can: "false", near: "false", learn: "true", fav: "false" });
   /* the order down the page: header, card strip (when there is one), filters, then the list */
