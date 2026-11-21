@@ -13,7 +13,9 @@ import { bindFind, data, findAI, findCard, go, keyOf, lastOpened, newSong, nextS
 /* Road Ready 07 drew the Songbook in Dark and Light as r10-05 (art tiles, chord chips, dots). 4.113.0 (Graham, 2026-11-20): every look
    draws the earlier, easier-to-read layout again (title with Sets and the tuner, the card strip, the filter switch, one-line rows with
    the status pill and the key), dressed in each look's own colours and type in styles.css. Dark and Light keep 4.105.0's one change:
-   no Back button, since the Songbook is a tab; Green Room and Headliner keep theirs. */
+   no Back button, since the Songbook is a tab; Green Room and Headliner keep theirs. 4.113.1: in Dark and Light each piece is drawn
+   in the agreed Road Ready components (r10-05): the slim amber hint strip with Louie's badge, outlined capsule filters, outlined
+   header plates, and each song as its own card with cream plate chips for the status and the key. */
 const rrTab = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 
 export let query = "";
@@ -94,6 +96,7 @@ function todayItems() {
 function todayHTML() {
   const items = todayItems();
   if (!items.length) return "";
+  if (rrTab()) return `<div class="today rr-hint" id="today"><img class="rr-badge" src="art/louie/v4/louie-face-badge.webp" alt="" aria-hidden="true" width="44" height="44"><div class="rr-hint-in"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>${icon("chev", "chev rr-hint-chev")}</div>`;
   return `<div class="today" id="today"><div class="tdy" id="tdy">${items.join("")}</div>${items.length > 1 ? `<div class="tdy-dots" id="tdy-dots">${items.map((_, k) => `<button class="tdy-dot${k ? "" : " on"}" data-k="${k}" aria-label="Show ${k + 1} of ${items.length}"><i></i></button>`).join("")}</div>` : ""}</div>`;
 }
 // An empty, hidden #today keeps a place for the line when there's nothing to
@@ -129,7 +132,8 @@ export function chipsHTML() {
   const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
   /* each filter says whether it is the chosen one (aria-pressed), so the fill isn't the only signal; Almost (4.105.0) stays when a song is one chord away */
   const pressed = h => h.replace(/data-f="(\w+)"/, (m, f) => `${m} aria-pressed="${filter === f}"`);
-  return `<div class="chips" id="chips">${[chip("all", "All"), can && chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`), near && chip("near", `Almost<small>${near}</small>`, `Almost, ${near} songs one chord away`), hasLearn && chip("learn", "Learning"), hasFav && chip("fav", icon("heart"), "Favorites")].filter(Boolean).map(pressed).join("")}</div>`;
+  const rr = rrTab();
+  return `<div class="chips${rr ? " rr-chips" : ""}" id="chips">${[chip("all", rr ? `All<small>${data.songs.length}</small>` : "All", rr ? `All, ${data.songs.length} songs` : ""), can && chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`), near && chip("near", `Almost<small>${near}</small>`, `Almost, ${near} songs one chord away`), hasLearn && chip("learn", "Learning"), hasFav && chip("fav", icon("heart"), "Favorites")].filter(Boolean).map(pressed).join("")}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
 export const homeHooks = { refresh: null, openDrawer: false }; /* openDrawer: Tonight opens with the Library up (3.24.2) */
@@ -291,7 +295,7 @@ function songRow(s, hit) {
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
   const sub = hit ? `<span class="hit">${hit}</span>`
     : [esc(s.artist || "Unknown artist"), s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
-  return `<button class="row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
+  return `<button class="row${rrTab() ? " rr-line" : ""}" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
     <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${sub}</div></div>
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
     ${(() => { const f = fitOf(s); return s.status === "learning" ? `<span class="fit learn">LEARNING</span>` : f.can ? `<span class="fit can">CAN PLAY</span>` : f.missing.length === 1 ? `<span class="fit one">+ ${esc(f.missing[0])}</span>` : ""; })()}
