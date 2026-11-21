@@ -2772,7 +2772,7 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   for (const d of ["art/louie/v2", "art/louie/v3", "art/louie/louie-face-badge.webp", "art/louie/louie-peek-dark.webp"]) assert.ok(!fs.existsSync(path.join(root, d)), `${d} is gone`);
   assert.ok(!read("merch.js").includes("Louie's finish</span>"), "Louie's finishes are off the Merch table until his new colours arrive");
   for (const n of have) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
-  assert.match(read("library.js"), /art\/louie\/v4\/louie-face-badge\.webp/); assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/);
+  assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
 });
 
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
