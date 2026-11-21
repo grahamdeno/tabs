@@ -5963,3 +5963,13 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 .dial-reset { position: absolute; left: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 112px; min-height: 48px; padding: 8px 12px; border: 0; border-radius: 12px;
   background: #2A2622; color: #FFE2B0; font: 600 var(--type-footnote, 14px) / 1.15 var(--sans, system-ui); box-shadow: inset 0 0 0 1.5px #8E8A84, 0 4px 10px rgba(0, 0, 0, .5); cursor: pointer; }
 .dial-reset:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; }
+
+/* 4.113.0 (Graham, 2026-11-20): the Songbook is the earlier layout again in Dark and Light (title with Sets and the tuner,
+   the card strip, the filter switch, one-line rows with the status pill and the key). Here it takes Road Ready's
+   materials: the card strip and the tuner are warm amber plates with dark ink, like the earlier orange card. */
+:root:is([data-look="neon"], [data-look="festival"]) .today { margin-top: 12px; }
+:root:is([data-look="neon"], [data-look="festival"]) .today .tdy-i,
+:root:is([data-look="neon"], [data-look="festival"]) .today .tdy-i.upn-c { background: linear-gradient(180deg, #FFC660, #F0A23A); color: var(--rr-on-amber); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), var(--rr-lift); }
+:root:is([data-look="neon"], [data-look="festival"]) .today .tdy-i :is(small, em, b, .tdy-t small, .tdy-t em) { color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .today .tdy-i :is(.tdy-ic, .ng-ic) { background: rgba(30, 22, 12, .14); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .ib.chunky-tune { background: var(--rr-amber); color: var(--rr-on-amber); }
