@@ -146,39 +146,67 @@ export function fretLayout(stops, head = FRET_HEAD, body = FRET_BODY) {
    the fret space. The moon is the headline. A diamond is the extra inlay a 10-stop leg needs. */
 export const NECK_INLAY = 64;
 export const NECK_CLEAR = 10;
+export const NECK_GOLD_CLEAR = 14;
 export const NECK_WIDTH = 0.58;
-export const NECK_NUT = 20;
+export const NECK_NUT = 18;
 const NECK_BODY = ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond"];
 export function fretAt(L, n) { return L * (1 - 2 ** (-n / 12)); }
+/* Which fret spaces hold the stops of a leg. Early, wider frets get an empty space between stops.
+   Later, tighter frets sit in pairs with one empty space between the pairs. A 9-stop leg uses
+   spaces 1, 3, 5, 7, 8, 10, 11, 13, 14 (gold fret at 15). A 10-stop leg uses 1, 3, 5, 6, 8, 9,
+   11, 12, 14, 15 (gold fret at 16). */
+export function neckSlots(nStops) {
+  const n = Math.max(0, nStops | 0);
+  const slots = [];
+  let space = 1, left = n;
+  const singles = Math.max(0, Math.min(n, 12 - n));
+  for (let i = 0; i < singles; i++) { slots.push(space); space += 2; left--; }
+  while (left > 0) {
+    slots.push(space); left--; space++;
+    if (left > 0) { slots.push(space); left--; space++; }
+    if (left > 0) space++;
+  }
+  return { slots, gold: left === n ? 1 : space };
+}
 export function neckScale(nStops) {
-  const n = Math.max(1, nStops | 0);
-  const factor = 2 ** (-n / 12) * (2 ** (1 / 12) - 1);
+  const { slots } = neckSlots(Math.max(1, nStops | 0));
+  const tight = Math.max(1, ...slots);
+  const factor = 2 ** (-tight / 12) * (2 ** (1 / 12) - 1);
   return (NECK_INLAY + 2 * NECK_CLEAR) / factor;
 }
 export function neckBoard(legs, { peek = 0 } = {}) {
-  const rows = [];
-  (legs || []).forEach((leg, li) => (leg.stops || []).forEach((stop, si) => rows.push({ li, si, stop, leg })));
-  const n = rows.length, L = neckScale(Math.max(1, n));
+  const real = (legs || []).filter(l => l.stops?.length);
   const strings = [0, 1, 2, 3, 4, 5].map(i => (i + 0.5) / 6);
   const lanes = [1 / 3, 2 / 3];
-  const yOf = k => NECK_NUT + fretAt(L, k);
-  let body = 0;
-  const stops = rows.map((row, i) => {
-    const y0 = yOf(i), y1 = yOf(i + 1), h = y1 - y0, headline = row.stop.kind === "headline";
-    return {
-      i, li: row.li, stop: row.stop, y0, y1, cy: (y0 + y1) / 2, h,
-      x: lanes[i % 2], inlay: headline ? "moon" : NECK_BODY[body++ % NECK_BODY.length],
-      clear: (h - NECK_INLAY) / 2, goldBelow: row.si === row.leg.stops.length - 1
-    };
+  const stops = [], frets = [];
+  let y = NECK_NUT;
+  real.forEach((leg, li) => {
+    const n = leg.stops.length;
+    const { slots, gold } = neckSlots(n);
+    const L = neckScale(n);
+    const origin = y;
+    const at = k => origin + fretAt(L, k);
+    let body = 0;
+    leg.stops.forEach((stop, si) => {
+      const space = slots[si], y0 = at(space - 1), y1 = at(space), h = y1 - y0;
+      const headline = stop.kind === "headline";
+      stops.push({
+        i: stops.length, li, si, stop, space, y0, y1, cy: (y0 + y1) / 2, h,
+        x: lanes[si % 2], inlay: headline ? "moon" : NECK_BODY[body++ % NECK_BODY.length],
+        clear: (h - NECK_INLAY) / 2, goldBelow: si === n - 1, L
+      });
+    });
+    for (let k = 1; k < gold; k++) frets.push({ n: k, y: at(k), gold: false, leg: li });
+    frets.push({ n: gold, y: at(gold), gold: true, leg: li });
+    const last = li === real.length - 1;
+    y = at(gold + (last ? peek : 0));
+    if (last) for (let k = 1; k <= peek; k++) frets.push({ n: gold + k, y: at(gold + k), gold: false, peek: true, leg: li });
   });
-  const frets = [];
-  for (let k = 1; k <= n; k++) frets.push({ n: k, y: yOf(k), gold: !!stops[k - 1]?.goldBelow });
-  for (let k = 1; k <= peek; k++) frets.push({ n: n + k, y: yOf(n + k), gold: false, peek: true });
-  return { L, width: NECK_WIDTH, nut: NECK_NUT, inlay: NECK_INLAY, clear: NECK_CLEAR, strings, stops, frets, height: yOf(n + peek) + 36 };
+  return { width: NECK_WIDTH, nut: NECK_NUT, inlay: NECK_INLAY, clear: NECK_CLEAR, strings, stops, frets, height: y + 28 };
 }
 /* A guitar shown on its own (Show complete, the new-guitar case, Road Ready 06) gets a neck in a real guitar's
    proportion: on a real guitar the neck from the nut to the body is about 0.7 of the body's length (14 inches to 20).
-   neckStops is how many fret spaces reach that; a leg's neck on the Road keeps one space per stop. */
+   neckStops is how many fret spaces reach that. The Road neck spaces its stops with empty frets between them. */
 export const FULL_NECK = 0.7;
 export function neckStops(body) {
   let n = 0, y = 0;

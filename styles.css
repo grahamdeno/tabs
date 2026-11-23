@@ -4382,6 +4382,7 @@ body.playing .tuneup, body.playing #tu-scrim { display: none; }
 /* ---- 4.75.0: the Road's path, plan A: shows are tickets, the next stop names itself, the card says what you'd earn.
    All of this release's look is in this block (roll back: revert the 4.75.0 commit). ---- */
 .rd-stop.cur { margin-top: 30px; }
+.rn-neck .rd-stop.rn-slot, .rn-neck .rd-stop.rn-slot.cur { margin: 0; }
 .rd-tag { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); z-index: 2; padding: 5px 11px; border-radius: 12px; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 800 13px var(--sans); white-space: nowrap; pointer-events: none; animation: rd-tagbob 2.4s ease-in-out infinite; }
 .rd-tag::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); }
 @keyframes rd-tagbob { 50% { transform: translate(-50%, -3px); } }
@@ -6031,40 +6032,45 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip svg { width: 16px; height: 16px; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip[data-f="fav"] { min-width: 36px; padding: 4px 9px; }
 
-/* The neck-only Road: one rosewood board, gutters on either side, pearl inlays for the stops. */
+/* The neck-only Road: one rosewood board, gutters on either side, pearl inlays for the stops.
+   Wood, then pearls, then fret wires, then thin strings, then the check and the lock. */
 :root[data-look="neon"] .rn-stage, :root[data-look="neon"] .rd-path.rn { background: #181614; }
 :root[data-look="festival"] .rn-stage, :root[data-look="festival"] .rd-path.rn { background: #F6EFE2; }
-.rd-path.rn { padding: 0 0 24px; gap: 0; align-items: stretch; }
-.rn-board { position: relative; width: 100%; flex: none; }
-.rn-neck { position: relative; height: 100%; margin: 0 auto; box-sizing: border-box; border-left: 6px solid #F3E6D0; border-right: 6px solid #F3E6D0; }
-.rn-wood { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; pointer-events: none; z-index: 0; }
-.rn-nut { position: absolute; z-index: 4; left: 8%; width: 84%; top: 1px; height: 16px; object-fit: fill; pointer-events: none; }
-.rn-string { position: absolute; z-index: 1; top: 18px; bottom: 12px; width: calc(var(--sw) * 1px); margin-left: calc(var(--sw) * -.5px); border-radius: 2px; pointer-events: none; background: linear-gradient(90deg, #6e624c, #fff6e4 42%, #cbb892); box-shadow: 0 0 0 0.5px rgba(255, 244, 220, .35), 1px 0 0 rgba(0, 0, 0, .55); }
+.rd-path.rn { padding: 0; gap: 0; align-items: stretch; }
+.rn-board { position: relative; width: 100%; flex: none; min-height: 100%; }
+.rn-neck { position: relative; height: 100%; margin: 0 auto; box-sizing: border-box; border-left: 4px solid #E8D7B8; border-right: 4px solid #E8D7B8;
+  background-image: url("art/road-neck/neck-rosewood.webp"); background-repeat: repeat-y; background-size: 100% auto;
+  box-shadow: inset 1px 0 0 #2C2118, inset -1px 0 0 #2C2118, 0 0 0 1px #C9B08A, 8px 0 16px rgba(20, 12, 6, .42), -8px 0 16px rgba(20, 12, 6, .42); }
+.rn-neck::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(90deg, rgba(48, 20, 10, .42), rgba(255, 214, 160, .07) 24%, rgba(255, 232, 196, .14) 50%, rgba(255, 214, 160, .07) 76%, rgba(48, 20, 10, .42)); }
+.rn-nut { position: absolute; z-index: 5; left: -5px; width: calc(100% + 10px); top: 0; height: 18px; object-fit: fill; pointer-events: none; background: #F3E6D0; }
+.rn-string { position: absolute; z-index: 3; top: 18px; bottom: 0; width: calc(var(--sw) * 1px); margin-left: calc(var(--sw) * -.5px); border-radius: 2px; opacity: .85; pointer-events: none; box-shadow: 0 0.6px 1px rgba(40, 24, 8, .35); }
+.rn-string.wound { background: linear-gradient(90deg, #8d6840, #f4e4c8 46%, #b89060); }
+.rn-string.plain { background: linear-gradient(90deg, #a7b0ba, #f8fbff 48%, #c9d2da); }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rn-leg { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; text-transform: none; letter-spacing: 0; text-align: left; }
-.rn-wire { position: absolute; z-index: 2; left: 0; right: 0; height: 3px; transform: translateY(-50%); pointer-events: none; background: linear-gradient(#f7f4ee, #b9b3a8 46%, #6a645c); box-shadow: 0 1px 0 rgba(0, 0, 0, .4); }
-.rn-gold { position: absolute; z-index: 3; left: -2px; right: -2px; width: calc(100% + 4px); height: 16px; transform: translateY(-50%); object-fit: fill; pointer-events: none; }
-.rn-slot { position: absolute; z-index: 4; width: 64px; height: 64px; margin: 0; transform: translate(-50%, -50%); }
+.rn-wire { position: absolute; z-index: 2; left: 0; right: 0; height: 2px; transform: translateY(-50%); pointer-events: none; background: linear-gradient(#f7f4ee, #b9b3a8 46%, #6a645c); box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+.rn-gold { position: absolute; z-index: 2; left: -2px; right: -2px; width: calc(100% + 4px); height: 16px; transform: translateY(-50%); object-fit: fill; pointer-events: none; }
+.rn-slot { position: absolute; z-index: 1; width: 64px; height: 64px; margin: 0; transform: translate(-50%, -50%); }
 .rn-slot:has(.rd-pop) { z-index: 8; }
 .rn-neck .rn-slot .rd-node.rn-stop, .rn-neck .rn-slot .rd-node.rn-stop.now, .rn-neck .rn-slot .rd-node.rn-stop.locked, .rn-neck .rn-slot .rd-node.rn-stop.done, .rn-neck .rn-slot .rd-node.rn-stop.open { position: relative; width: 64px; height: 64px; min-width: 64px; min-height: 64px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transform: none; color: inherit; }
 .rn-neck .rn-slot .rd-node.rn-stop:active { transform: none; box-shadow: none; }
-.rn-pearl { width: 64px; height: 64px; object-fit: contain; pointer-events: none; display: block; }
-.rn-stop.done .rn-pearl { filter: sepia(.6) saturate(2.8) hue-rotate(-8deg) brightness(1.08); }
-.rn-stop.now .rn-pearl { filter: sepia(.28) saturate(3.1) hue-rotate(-4deg) brightness(1.32); }
-.rn-stop.now .rr-glow { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%); border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle, rgba(255, 198, 96, .9) 0%, rgba(255, 150, 40, .38) 40%, transparent 72%); animation: rn-breathe 1.6s ease-in-out infinite alternate; }
-@keyframes rn-breathe { from { opacity: .6; } to { opacity: 1; } }
-.rn-mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 2; }
-.rn-check { width: 30px; height: 30px; }
+.rn-pearl { position: relative; z-index: 1; width: 64px; height: 64px; object-fit: contain; pointer-events: none; display: block; }
+.rn-stop.done .rn-pearl { filter: sepia(.85) saturate(1.7) hue-rotate(-12deg) brightness(.96) contrast(1.05); }
+.rn-stop.now .rn-pearl { filter: sepia(.55) saturate(2.1) hue-rotate(-8deg) brightness(1.08) contrast(1.04); }
+.rn-stop.locked .rn-pearl { filter: none; }
+.rn-stop.now .rr-glow { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%); border-radius: 50%; z-index: 0; pointer-events: none; background: radial-gradient(circle, rgba(255, 186, 72, .72) 0%, rgba(214, 120, 28, .28) 42%, transparent 72%); animation: rn-breathe 1.6s ease-in-out infinite alternate; }
+@keyframes rn-breathe { from { opacity: .55; } to { opacity: 1; } }
+.rn-mark { position: absolute; z-index: 4; transform: translate(-50%, -50%); pointer-events: none; }
+.rn-check { width: 20px; height: 20px; }
 .rn-lock { width: 22px; height: 22px; }
-.rn-num { position: absolute; top: 50%; transform: translateY(-50%); font: 700 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #F6EFE2; text-shadow: 0 1px 2px rgba(0, 0, 0, .9); pointer-events: none; }
-.lane-l .rn-num { right: calc(100% + 8px); }
-.lane-r .rn-num { left: calc(100% + 8px); }
+.rn-num { position: absolute; z-index: 5; left: calc(50% - var(--rn-w) / 2 - 8px); transform: translate(-100%, -50%); font: 700 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #8a7d70; pointer-events: none; }
+:root[data-look="festival"] .rn-num { color: #7a6856; }
 .rn-leg { position: absolute; z-index: 5; left: 8px; width: calc((100% - var(--rn-w)) / 2 - 16px); margin: 0; color: #F6EFE2; }
 :root[data-look="festival"] .rn-leg { color: #2A2118; }
 .rn-leg b { display: block; font: 650 13px/1.25 Inter, var(--sans); }
 .rn-leg small { display: block; margin-top: 1px; font: 500 12px/1.3 Inter, var(--sans); }
 .rn-skip { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; padding: 0 4px; border: 0; background: none; color: inherit; font: 650 13px/1 Inter, var(--sans); }
-.rn-bubble { position: absolute; z-index: 6; right: 8px; left: auto; bottom: auto; width: calc((100% - var(--rn-w)) / 2 - 16px); box-sizing: border-box; margin: 0; transform: translateY(-50%); padding: 8px; border-radius: 12px; background: #fffaf3; color: #2A2118; border: 1px solid #d9c7a4; box-shadow: 0 1px 0 rgba(40, 24, 8, .18); font: 600 15px/1.25 Inter, var(--sans); overflow-wrap: anywhere; white-space: normal; text-align: left; animation: none; }
-.rn-bubble::after { content: none; }
+.rn-bubble { position: absolute; z-index: 6; width: fit-content; max-width: calc((100% - var(--rn-w)) / 2 - 14px); left: calc(50% + var(--rn-w) / 2 + 10px); right: auto; bottom: auto; box-sizing: border-box; margin: 0; transform: translateY(-50%); padding: 6px 11px; border-radius: 12px; background: #FFFDF8; color: #2A2118; border: 1px solid #BDA37A; box-shadow: 0 2px 8px rgba(40, 24, 8, .22); font: 600 15px/1.25 Inter, var(--sans); overflow-wrap: anywhere; white-space: normal; text-align: left; animation: none; }
+.rn-bubble::after { content: ""; position: absolute; left: -6px; top: 50%; width: 10px; height: 10px; margin-top: -6px; background: #FFFDF8; border-left: 1px solid #BDA37A; border-bottom: 1px solid #BDA37A; transform: rotate(45deg); box-shadow: -2px 2px 3px rgba(40, 24, 8, .08); }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rn-leg { text-transform: none; letter-spacing: 0; }
 .rn-neck .rd-pop { top: 70px; width: min(268px, calc(100vw - 24px)); }
 @media (prefers-reduced-motion: reduce) { .rn-stop.now .rr-glow { animation: none; } }

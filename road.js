@@ -481,7 +481,12 @@ export function renderRoad() {
     if (node.classList.contains("rn-stop")) {
       node.querySelector(".rr-glow")?.remove();
       node.querySelector(".rn-lock")?.remove();
-      if (!node.querySelector(".rn-check")) node.insertAdjacentHTML("beforeend", `<img class="rn-mark rn-check" src="art/road-neck/check.webp?v=${VERSION}" alt="" draggable="false">`);
+      const neck = node.closest(".rn-neck");
+      const slot = node.closest(".rn-slot");
+      neck?.querySelector(`.rn-lock[data-for="${CSS.escape(node.dataset.stop)}"]`)?.remove();
+      if (neck && slot && !neck.querySelector(`.rn-check[data-for="${CSS.escape(node.dataset.stop)}"]`)) {
+        neck.insertAdjacentHTML("beforeend", `<img class="rn-mark rn-check" data-for="${node.dataset.stop}" style="top:${slot.style.top};left:${slot.style.left}" src="art/road-neck/check-v2.webp?v=${VERSION}" alt="" draggable="false">`);
+      }
     } else node.innerHTML = rr ? rrStopArt(node.dataset.kind, "done", +node.dataset.n) : inlaySVG(node.dataset.inlay, "set", false, node.dataset.mat);
     showCallout({ kind: "earn", pow: "POW!", word: "MERCH BOX", big: `+${FANS.box} fans` });
     setTimeout(() => { if (document.contains(node)) renderRoad(); }, 1400);

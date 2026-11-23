@@ -34,6 +34,39 @@ test("Neck-only Road: the neck is 55 to 60 percent wide, a gutter drag does not 
   assert.match(await page.innerText(".rd-pop"), /Am/);
 });
 
+test("Neck-only Road: the current stop is centred in its fret space, clear of the wire above and the wire below", { skip: skip() }, async t => {
+  const page = await phone(t, lib("dark", MID), { home: true, viewport: { width: 390, height: 844 } });
+  await page.waitForSelector(".rn-slot.cur"); await settled(page);
+  const m = await page.evaluate(() => {
+    const slot = document.querySelector(".rn-slot.cur");
+    const neckEl = document.querySelector(".rn-neck");
+    const neck = neckEl.getBoundingClientRect();
+    const box = slot.getBoundingClientRect();
+    const cy = (box.top + box.bottom) / 2;
+    const space = neck.top + neckEl.clientTop + (parseFloat(slot.dataset.y0) + parseFloat(slot.dataset.y1)) / 2;
+    const wires = [...document.querySelectorAll(".rn-wire, .rn-gold")].map(el => {
+      const r = el.getBoundingClientRect();
+      return (r.top + r.bottom) / 2;
+    }).sort((a, b) => a - b);
+    const above = wires.filter(y => y <= space).pop();
+    const below = wires.find(y => y >= space);
+    const half = box.height / 2;
+    const moons = [...document.querySelectorAll(".rn-slot:has(.headline)")].map(el => {
+      const b = el.getBoundingClientRect();
+      const gold = [...document.querySelectorAll(".rn-gold")].map(g => {
+        const r = g.getBoundingClientRect();
+        return (r.top + r.bottom) / 2;
+      }).filter(y => y > b.top).sort((a, c) => a - c)[0];
+      return gold - b.bottom;
+    });
+    return { off: Math.abs(cy - space), above: cy - half - above, below: below - (cy + half), moons };
+  });
+  assert.ok(m.off <= 2, `current stop is ${m.off}px off its fret space`);
+  assert.ok(m.above >= 10, `only ${m.above}px above the wire`);
+  assert.ok(m.below >= 10, `only ${m.below}px below the wire`);
+  assert.ok(m.moons.length >= 1 && m.moons.every(g => g >= 14), `moon to gold ${m.moons}`);
+});
+
 test("Neck-only Road: opening on the current stop keeps it on screen, and a stop near the nut stays at the top", { skip: skip() }, async t => {
   const page = await phone(t, lib("dark", MID), { home: true, viewport: { width: 390, height: 844 } });
   await page.waitForSelector(".rd-node.cur"); await settled(page);

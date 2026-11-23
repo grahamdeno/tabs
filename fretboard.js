@@ -578,26 +578,39 @@ export function guitarSVG(id, { full = false } = {}) {
 /* The neck-only Road: rosewood, a bone nut, straight strings and one pearl inlay per stop.
    legs: [{ title, sub, aria, cls, extra, stops }]. o.next draws a short peek of the following leg. */
 const NECK_ART = "art/road-neck";
-const neckImg = (file, cls) => `<img class="${cls}" src="${NECK_ART}/${file}.webp?v=${VERSION}" alt="" draggable="false">`;
+const INLAY_V2 = { fin: "fin-v2", vine: "vine-v2", moon: "moon-v2" };
+const neckImg = (file, cls, extra = "") => `<img class="${cls}" src="${NECK_ART}/${file}.webp?v=${VERSION}" alt="" draggable="false"${extra}>`;
+const inlayFile = name => "inlays/" + (INLAY_V2[name] || name);
 export function bareNeckHTML(legs, o = {}) {
   const real = (legs || []).filter(l => l.stops?.length);
-  const board = neckBoard(real, { peek: o.next ? 2 : 0 });
+  const board = neckBoard(real, { peek: o.next ? 3 : 0 });
   const w = (board.width * 100).toFixed(2);
-  const thick = [4.2, 3.6, 3.0, 2.4, 2.0, 1.6];
+  const thick = [2.2, 1.9, 1.6, 1.3, 1.1, 0.9];
   const wires = board.frets.map(f => f.gold
     ? `<img class="rn-gold" src="${NECK_ART}/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="top:${f.y.toFixed(1)}px">`
     : `<i class="rn-wire${f.peek ? " peek" : ""}" style="top:${f.y.toFixed(1)}px"></i>`).join("");
-  const strings = board.strings.map((x, i) => `<i class="rn-string" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
+  const strings = board.strings.map((x, i) => `<i class="rn-string ${i < 3 ? "wound" : "plain"}" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
   const curId = o.cur?.id;
+  const isCur = s => s === o.cur || (curId && s.id === curId);
   const stops = board.stops.map(sp => {
-    const s = sp.stop, cur = s === o.cur || (curId && s.id === curId), state = s.state || "locked";
-    const n = o.num ? o.num(s) : sp.i + 1, lane = sp.x < 0.5 ? "l" : "r";
-    const mark = state === "done" ? neckImg("check", "rn-mark rn-check") : state === "locked" ? neckImg("lock", "rn-mark rn-lock") : state === "now" ? `<span class="rr-glow" aria-hidden="true"></span>` : "";
-    return `<div class="rd-stop rn-slot lane-${lane}${cur ? " cur" : ""}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
-      <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${cur ? ". Double tap to open." : ""}">${neckImg("inlays/" + sp.inlay, "rn-pearl")}${mark}</button>
-      <span class="rn-num" aria-hidden="true">${n}</span></div>`;
+    const s = sp.stop, cur = isCur(s), state = s.state || "locked";
+    const n = o.num ? o.num(s) : sp.i + 1;
+    const glow = state === "now" ? `<span class="rr-glow" aria-hidden="true"></span>` : "";
+    return `<div class="rd-stop rn-slot${cur ? " cur" : ""}" data-y0="${sp.y0.toFixed(1)}" data-y1="${sp.y1.toFixed(1)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
+      <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${cur ? ". Double tap to open." : ""}">${neckImg(inlayFile(sp.inlay), "rn-pearl")}${glow}</button></div>`;
   }).join("");
-  const here = board.stops.find(sp => sp.stop === o.cur || (curId && sp.stop.id === curId));
+  const marks = board.stops.map(sp => {
+    const s = sp.stop, state = s.state || "locked";
+    const file = state === "done" ? "check-v2" : state === "locked" ? "lock-v2" : "";
+    if (!file) return "";
+    const cls = state === "done" ? "rn-check" : "rn-lock";
+    return neckImg(file, `rn-mark ${cls}`, ` data-for="${o.id(s)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%"`);
+  }).join("");
+  const nums = board.stops.map(sp => {
+    const n = o.num ? o.num(sp.stop) : sp.i + 1;
+    return `<span class="rn-num" aria-hidden="true" style="top:${sp.cy.toFixed(1)}px">${n}</span>`;
+  }).join("");
+  const here = board.stops.find(sp => isCur(sp.stop));
   const bub = here && o.name ? `<p class="rn-bubble" style="top:${here.cy.toFixed(1)}px">${o.name(here.stop)}</p>` : "";
   const labels = real.map((leg, li) => {
     const first = board.stops.find(sp => sp.li === li);
@@ -605,10 +618,11 @@ export function bareNeckHTML(legs, o = {}) {
     const y = li === 0 ? 4 : first.y0;
     return `<div class="rn-leg rd-legmark${leg.cls ? " " + leg.cls : ""}" role="group" aria-label="${leg.aria || `${leg.title}, ${leg.sub}`}" style="top:${y.toFixed(1)}px"><b>${leg.title}</b><small>${leg.sub}</small>${leg.extra || ""}</div>`;
   }).join("");
-  const end = board.frets.find(f => f.gold && f.n === board.stops.length);
+  const golds = board.frets.filter(f => f.gold);
+  const end = golds[golds.length - 1];
   const next = o.next && end ? `<div class="rn-leg rd-legmark rn-next" role="group" aria-label="${o.next.aria || `${o.next.title}, ${o.next.sub}`}" style="top:${(end.y + 10).toFixed(1)}px"><b>${o.next.title}</b><small>${o.next.sub}</small></div>` : "";
   return `<div class="rn-board" style="height:${Math.round(board.height)}px;--rn-w:${w}%">
     <div class="rn-neck" style="width:var(--rn-w)" role="group" aria-label="The neck">
-      ${neckImg("neck-rosewood", "rn-wood")}${neckImg("nut", "rn-nut")}${strings}${wires}${stops}
-    </div>${labels}${next}${bub}</div>`;
+      ${neckImg("nut", "rn-nut")}${stops}${wires}${strings}${marks}
+    </div>${nums}${labels}${next}${bub}</div>`;
 }

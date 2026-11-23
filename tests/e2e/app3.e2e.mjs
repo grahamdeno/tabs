@@ -737,7 +737,7 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   assert.equal(await page.locator(".mc-gt-leg").count(), 1, "a way back to the leg's guitar");
   /* the Road is the rosewood neck in every look that uses it; the shop guitar still shows on Me and in your hands */
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rn-neck"); await settled(page);
-  const cur = await page.locator(".rn-neck").innerHTML();
+  const cur = await page.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage + el.innerHTML);
   assert.match(cur, /neck-rosewood\.webp/, "the Road stays the rosewood neck");
   assert.doesNotMatch(cur, /stickerriot-road\.webp/, "a shop guitar does not replace the neck");
   /* Me's case has it, and says it is the one you play */
@@ -774,7 +774,7 @@ test("Road Ready 9a: a locked guitar and one you can't afford open a sheet whose
 test("Road Ready 9a: the Road is one rosewood neck, with six strings drawn on it", { skip: skip() }, async t => {
   const page = await phone(t, shopLib(0, {}), { home: true });
   await page.waitForSelector(".rn-neck"); await settled(page);
-  const html = await page.locator(".rn-neck").innerHTML();
+  const html = await page.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage + el.innerHTML);
   assert.match(html, /neck-rosewood\.webp/);
   assert.equal(await page.locator(".rn-string").count(), 6, "six strings");
   assert.equal(await page.locator(".rn-neck").getAttribute("aria-label"), "The neck");

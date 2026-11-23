@@ -260,10 +260,10 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
       return {
         frac: n.width / innerWidth, strings: document.querySelectorAll(".rn-string").length,
         stops: document.querySelectorAll(".rn-neck .rd-node").length,
-        num: cur.parentElement.querySelector(".rn-num").textContent,
+        num: [...document.querySelectorAll(".rn-num")].find(n => n.style.top === cur.parentElement.style.top)?.textContent,
         pearl: Math.round(pearl.width), glow: !!cur.querySelector(".rr-glow"),
-        check: document.querySelectorAll(".rd-node.done .rn-check").length,
-        lock: document.querySelectorAll(".rd-node.locked .rn-lock").length,
+        check: document.querySelectorAll(".rn-check").length,
+        lock: document.querySelectorAll(".rn-lock").length,
         name: document.querySelector(".rn-bubble").textContent,
         bubbleRight: bubble.right, neckRight: n.right, legRight: leg.right, neckLeft: n.left,
         gold: gold.height, label: document.querySelector(".rn-leg").innerText

@@ -3544,21 +3544,34 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   }
   const leg = C.roadPath(C.migrate({ songs: [], settings: { v: 6 } })).legs[0];
   assert.equal(leg.stops.length, 10, "the first leg is 10 stops when a merch box lands every 3 lessons");
-  const board = C.neckBoard([{ stops: leg.stops }]);
+  assert.deepEqual(C.neckSlots(9), { slots: [1, 3, 5, 7, 8, 10, 11, 13, 14], gold: 15 });
+  assert.deepEqual(C.neckSlots(10), { slots: [1, 3, 5, 6, 8, 9, 11, 12, 14, 15], gold: 16 });
+  const board = C.neckBoard([{ stops: leg.stops }], { peek: 3 });
+  assert.deepEqual(board.stops.map(s => s.space), [1, 3, 5, 6, 8, 9, 11, 12, 14, 15]);
   assert.deepEqual(board.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond", "moon"]);
+  assert.equal(board.frets.filter(f => f.gold).length, 1);
+  assert.equal(board.frets.find(f => f.gold).n, 16);
+  assert.equal(board.frets.filter(f => f.peek).length, 3, "three empty frets peek past the gold bar");
   assert.ok(board.width >= 0.55 && board.width <= 0.6, `neck width is ${board.width}`);
-  const tight = C.fretAt(C.neckScale(10), 10) - C.fretAt(C.neckScale(10), 9);
-  assert.ok(Math.abs(tight - (C.NECK_INLAY + 2 * C.NECK_CLEAR)) < 1e-6, "the tightest space fits the inlay plus clearance");
+  const tightN = Math.max(...board.stops.map(s => s.space));
+  const tight = C.fretAt(C.neckScale(10), tightN) - C.fretAt(C.neckScale(10), tightN - 1);
+  assert.ok(Math.abs(tight - (C.NECK_INLAY + 2 * C.NECK_CLEAR)) < 1e-6, "the tightest occupied space fits the inlay plus clearance");
   for (const s of board.stops) {
     assert.ok(Math.abs(s.cy - (s.y0 + s.y1) / 2) < 1e-6, "centred between the wires");
     assert.ok(s.clear + 1e-6 >= C.NECK_CLEAR, `clearance ${s.clear}`);
     const nearest = Math.min(...board.strings.map(x => Math.abs(x - s.x)));
     assert.ok(nearest > 0.05, "the inlay is not centred on a string");
+    if (s.goldBelow) {
+      const gold = board.frets.find(f => f.gold && f.leg === s.li);
+      assert.ok(gold.y - (s.cy + C.NECK_INLAY / 2) + 1e-6 >= C.NECK_GOLD_CLEAR, "the moon stays clear of the gold bar");
+    }
   }
   const opening = C.neckBoard([{ stops: C.OPENING.map(o => ({ kind: o.id === "show" ? "headline" : "chord" })) }]);
+  assert.deepEqual(opening.stops.map(s => s.space), [1, 3, 5, 7, 8, 10, 11, 13, 14]);
+  assert.equal(opening.frets.find(f => f.gold).n, 15);
   assert.deepEqual(opening.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon"]);
-  const files = ["neck-rosewood", "nut", "fret-gold", "check", "lock"].map(n => `art/road-neck/${n}.webp`)
-    .concat(["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon", "diamond"].map(n => `art/road-neck/inlays/${n}.webp`));
+  const files = ["neck-rosewood", "nut", "fret-gold", "check", "lock", "check-v2", "lock-v2"].map(n => `art/road-neck/${n}.webp`)
+    .concat(["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon", "diamond", "fin-v2", "vine-v2", "moon-v2"].map(n => `art/road-neck/inlays/${n}.webp`));
   for (const f of files) {
     const st = fs.statSync(path.join(root, f));
     assert.ok(st.size > 400, f);
