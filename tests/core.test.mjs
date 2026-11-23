@@ -2759,10 +2759,11 @@ test("painted genre guitarists stand in for the ink drawing, and the three fixes
   const { genreFile, genreCast, GENRE_DEFAULT, genreForName, you, rival } = await import("../guitarist.js");
   assert.equal(GENRE_DEFAULT, "rock-m");
   assert.equal(genreFile("rock-m"), "art/guitarist-painted/genres/rock-m.webp");
-  assert.equal(genreFile("punk-w"), "art/guitarist-painted/genres/punk-w-v2.webp");
+  assert.equal(genreFile("punk-w"), "art/guitarist-painted/genres/punk-w-v3.webp");
   assert.equal(genreFile("country-m"), "art/guitarist-painted/genres/country-m-v2.webp");
   assert.equal(genreFile("country-w"), "art/guitarist-painted/genres/country-w-v2.webp");
-  assert.equal(genreFile("funk-w"), "art/guitarist-painted/genres/funk-w.webp", "the funk woman was already the right size");
+  assert.equal(genreFile("jazz-w"), "art/guitarist-painted/genres/jazz-w-v2.webp", "the grey wedge is gone");
+  assert.equal(genreFile("funk-w"), "art/guitarist-painted/genres/funk-w-v2.webp");
   const cast = genreCast();
   assert.equal(cast.length, 24);
   assert.equal(genreForName("Ada"), genreForName("Ada"), "a rival's picture stays put");
@@ -2789,8 +2790,8 @@ test("painted genre guitarists stand in for the ink drawing, and the three fixes
   const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
   assert.equal(cleaned.genre, "punk", "a valid genre is kept");
   assert.equal(cleaned.who, "w", "a valid who is kept");
-  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "jazz", who: "w" } }, { size: 80 }), /art\/guitarist-painted\/genres\/jazz-w\.webp/, "the profile picture is the one you picked");
-  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "punk", who: "w" } }, {}), /punk-w-v2\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "jazz", who: "w" } }, { size: 80 }), /art\/guitarist-painted\/genres\/jazz-w-v2\.webp/, "the profile picture is the one you picked");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "punk", who: "w" } }, {}), /punk-w-v3\.webp/);
   assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "m" } }, {}), /country-m-v2\.webp/);
   assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "w" } }, {}), /country-w-v2\.webp/);
 });

@@ -217,7 +217,11 @@ export function guitarist(me, { mood: mood0 = "happy", pose: pose0 = "play", cro
 /* The finished paintings. One man and one woman for each genre. The player's picture is data.me.genre and data.me.who.
    A rival's picture comes from the name already used for that rival. */
 export const GENRE_IDS = ME_GENRE;
-const GENRE_V2 = { "punk-w": "punk-w-v2", "country-m": "country-m-v2", "country-w": "country-w-v2" };
+const GENRE_V2 = {
+  "classical-w": "classical-w-v2", "country-m": "country-m-v2", "country-w": "country-w-v2",
+  "funk-m": "funk-m-v2", "funk-w": "funk-w-v2", "jazz-w": "jazz-w-v2", "metal-m": "metal-m-v2",
+  "pop-w": "pop-w-v2", "punk-w": "punk-w-v3", "reggae-m": "reggae-m-v2", "rock-w": "rock-w-v2"
+};
 export const GENRE_DEFAULT = "rock-m";
 export const genreCast = () => GENRE_IDS.flatMap(g => [`${g}-m`, `${g}-w`]);
 export function genreFile(id) {
