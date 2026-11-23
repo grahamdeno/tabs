@@ -4989,8 +4989,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .sc-corner.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; } .sc-corner.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
 .sc-corner.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; } .sc-corner.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
 /* the case is Grok's painting (art/show, 720 by 900, lid on the left, the cavity on the right); the guitar sits in the cavity */
-:root[data-look="neon"] { --show-case: url("art/show/case-open-dark.webp"); }
-:root[data-look="festival"] { --show-case: url("art/show/case-open-light.webp"); }
+:root[data-look="neon"] { --show-case: url("art/show/case-fit-dark.webp"); }
+:root[data-look="festival"] { --show-case: url("art/show/case-fit-light.webp"); }
 .sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
 .sc-case-pic { position: absolute; left: 50%; top: 2%; bottom: 2%; height: 96%; aspect-ratio: 720 / 900; transform: translateX(-50%); }
 .sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }

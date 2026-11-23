@@ -2775,6 +2775,15 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
 });
 
+test("Show complete case: one open case fits every guitar, and the older shaped cases stay", () => {
+  const css = read("styles.css"), shell = read("sw.js");
+  assert.match(css, /art\/show\/case-fit-dark\.webp/);
+  assert.match(css, /art\/show\/case-fit-light\.webp/);
+  for (const f of ["art/show/case-fit-dark.webp", "art/show/case-fit-light.webp", "art/show/case-open-dark.webp"]) {
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+});
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
   const { GUITARS } = await import("../core.js");
   const PICS = (await import("../art/guitars/pics.js")).default;
