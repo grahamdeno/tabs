@@ -2770,7 +2770,8 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   /* no earlier Louie: not the black one (v3), the blue one (v2), the peeking pictures or the old badge */
   for (const f of ["sw.js", "louie.js", "index.html", "styles.css", "library.js", "maker.js", "profile.js", "merch.js", "road.js"]) assert.ok(!/art\/louie\/(v2|v3|louie-)/.test(read(f)), `${f} has no earlier Louie picture`);
   for (const d of ["art/louie/v2", "art/louie/v3", "art/louie/louie-face-badge.webp", "art/louie/louie-peek-dark.webp"]) assert.ok(!fs.existsSync(path.join(root, d)), `${d} is gone`);
-  assert.ok(!read("merch.js").includes("Louie's finish</span>"), "Louie's finishes are off the Merch table until his new colours arrive");
+  assert.match(read("merch.js"), /Louie's finishes/, "his other colours are back on the Merch table");
+  for (const fin of ["pink", "teal", "black", "mint", "gold"]) assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} Louie`);
   for (const n of have) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
   assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
 });
