@@ -3429,11 +3429,12 @@ test("the favicon, apple-touch icon and every iPhone launch screen exist at the 
   assert.equal(favicon.w, 32); assert.equal(favicon.h, 32); assert.equal(favicon.colorType, 2);
   const tiny = pngFile("icons/horns/favicon-16.png");
   assert.equal(tiny.w, 16); assert.equal(tiny.h, 16); assert.equal(tiny.colorType, 2, "the 16 px tab icon is hand drawn and opaque");
-  const apple = pngFile("icons/horns/apple-touch-icon.png");
+  const apple = pngFile("icons/fit/apple-touch-icon.png");
   assert.equal(apple.w, 180); assert.equal(apple.h, 180); assert.equal(apple.colorType, 2, "apple-touch-icon is opaque");
-  const master = pngFile("icons/horns/icon-1024.png");
+  const master = pngFile("icons/fit/icon-1024.png");
   assert.equal(master.w, 1024); assert.equal(master.h, 1024); assert.equal(master.colorType, 2, "the 1024 master is opaque RGB");
-  assert.match(html, /rel="apple-touch-icon"[^>]*href="icons\/horns\/apple-touch-icon\.png"/);
+  assert.ok(fs.existsSync(path.join(root, "icons/horns/icon-1024.png")), "the earlier horns icon stays");
+  assert.match(html, /rel="apple-touch-icon"[^>]*href="icons\/fit\/apple-touch-icon\.png"/);
   const launches = [...html.matchAll(/rel="apple-touch-startup-image"[^>]*href="(icons\/splash\/launch-(\d+)x(\d+)\.png)"/g)];
   assert.ok(launches.length >= 9, `every launch screen is linked, got ${launches.length}`);
   for (const [, href, w, h] of launches) {
@@ -3452,7 +3453,7 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
   assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
   const shell = read("sw.js");
   assert.match(shell, /"art\/louie\/v4\/louie-idle\.webp"/, "the boot picture is saved for offline");
-  for (const f of ["icons/horns/icon-192.png", "icons/horns/icon-512.png", "icons/horns/icon-maskable-512.png", "icons/horns/apple-touch-icon.png", "icons/horns/favicon-32.png", "icons/horns/favicon-16.png"]) {
+  for (const f of ["icons/fit/icon-192.png", "icons/fit/icon-512.png", "icons/fit/icon-maskable-512.png", "icons/fit/apple-touch-icon.png", "icons/horns/favicon-32.png", "icons/horns/favicon-16.png"]) {
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
 });
