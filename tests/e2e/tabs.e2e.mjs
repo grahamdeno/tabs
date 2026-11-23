@@ -175,12 +175,13 @@ test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every 
   }
 });
 
-test("the knob bar is on in Green Room too, with the same five tabs", { skip: skip() }, async t => {
-  const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"] } }, { home: true });
+test("a saved Green Room does not draw its own look, and the knob bar is the bar", { skip: skip() }, async t => {
+  const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"], tspent: 400 } }, { home: true, colorScheme: "light" });
   await page.waitForSelector("#tabs a");
-  const r = await page.evaluate(() => { const n = document.getElementById("tabs"), c = getComputedStyle(n); return { bg: c.backgroundImage, pipe: getComputedStyle(n, "::before").backgroundImage, tabs: [...n.querySelectorAll("a")].map(a => a.dataset.tab).join(), knobs: n.querySelectorAll(".tb-knob").length }; });
-  assert.match(r.bg, /art\/tabbar\/grille-/, "a grille, not the old flat bar");
-  assert.match(r.pipe, /linear-gradient/, "a chrome edge");
+  const r = await page.evaluate(() => { const n = document.getElementById("tabs"); return { look: document.documentElement.dataset.look, saved: JSON.parse(localStorage.getItem("tabs-v1")).settings.theme, tabs: [...n.querySelectorAll("a")].map(a => a.dataset.tab).join(), bg: getComputedStyle(n).backgroundImage, knobs: n.querySelectorAll(".tb-knob").length }; });
+  assert.equal(r.look, "festival");
+  assert.equal(r.saved, "green");
+  assert.match(r.bg, /art\/tabbar\/grille-light/, "the cream grille");
   assert.equal(r.knobs, 5);
   assert.equal(r.tabs, "road,songbook,rehearse,tour,me");
 });

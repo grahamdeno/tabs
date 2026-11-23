@@ -646,13 +646,15 @@ test("importing a backup: only https links, and only image data for covers of se
   assert.equal(out.data.settings.lastTuned, 5);
 });
 
-test("importing a backup: Headliner does not come back on; the default Road Ready look stays", () => {
+test("importing a backup: a saved Green Room or Headliner stays stored, and is not put on screen by the file", () => {
   const hl = C.cleanImport({
     songs: [{ id: "a", title: "A", body: "G\nla" }],
     settings: { theme: "headliner", v: 6 },
     merch: { has: ["headliner"], lconv: 1, hlseen: 1 }
   });
-  assert.equal(hl.data.settings.theme, "auto", "Headliner becomes Auto");
+  assert.equal(hl.data.settings.theme, "headliner", "Headliner stays stored so the retirement can be undone");
+  assert.equal(C.shownTheme(hl.data.settings.theme, false), "dark", "read on a dark phone as Dark");
+  assert.equal(C.shownTheme(hl.data.settings.theme, true), "light", "read on a light phone as Light");
   assert.ok(hl.data.merch.has.includes("headliner"), "Headliner stays owned");
 
   const dark = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "dark", v: 6 } });
@@ -666,10 +668,12 @@ test("importing a backup: Headliner does not come back on; the default Road Read
     settings: { theme: "green", v: 6 },
     merch: { has: ["green"], lconv: 1, tspent: 400 }
   });
-  assert.equal(owned.data.settings.theme, "green", "Green Room stays when owned and chosen");
+  assert.equal(owned.data.settings.theme, "green", "Green Room stays stored");
+  assert.equal(owned.data.merch.tspent, 400, "tips already spent on it stay spent");
+  assert.equal(C.shownTheme("green", undefined), "dark", "Dark when the phone doesn't say");
 
   const unowned = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "green", v: 6 } });
-  assert.equal(unowned.data.settings.theme, "auto", "Green Room without ownership becomes Auto");
+  assert.equal(unowned.data.settings.theme, "green", "a saved Green Room is not rewritten");
 });
 
 test("importing a backup: old saves still migrate", () => {
@@ -2606,18 +2610,18 @@ test("4.78.0 looks on the Merch table: Light and Dark free, Green Room bought, H
   const data = { songs: [], sets: [], trash: [], settings: { theme: "auto" }, skills: { done: { ...lessons } } };
   assert.deepEqual([...C.looksOwned(data)].sort(), ["auto", "dark", "light"], "a new player has Auto, Light and Dark");
   assert.deepEqual(C.merchBuy(data, "headliner", now), { why: "earn" }, "Headliner can't be bought");
-  assert.deepEqual(C.merchBuy(data, "green", now), { why: "tips" });
+  assert.deepEqual(C.merchBuy(data, "green", now), { why: "retired" }, "Green Room is not for sale");
   data.merch.tips = 400;
-  assert.deepEqual(C.merchBuy(data, "green", now), { ok: true });
-  assert.equal(data.settings.theme, "green", "buying a look puts it on");
-  assert.equal(C.merchState(data, now).look, "green");
+  assert.deepEqual(C.merchBuy(data, "green", now), { why: "retired" }, "Green Room can't be bought or put on");
+  assert.equal(data.settings.theme, "auto", "buying does not switch the look");
+  assert.equal(data.merch.tspent || 0, 0, "no tips are taken");
   assert.equal(C.looksOwned(data).has("headliner"), false, "lessons alone don't earn it");
   data.skills.done["k:open"] = { n: 3, best: 90, at: now };
   assert.equal(C.headlined(data, now), true);
-  assert.equal(C.looksOwned(data).has("headliner"), true, "the first headline show earns it");
-  assert.equal(C.merchWear(data, "headliner"), true);
-  assert.equal(data.settings.theme, "headliner");
-  assert.equal(C.merchTip({ songs: [], sets: [], trash: [], settings: {}, merch: { tips: 5000, tconv: 1, lconv: 1, told: ["tweed", "black", "mint", "gold", "brick", "stars", "sunset"] } })?.id, "green", "Show complete can point to Green Room, never to Headliner");
+  assert.equal(C.looksOwned(data).has("headliner"), true, "the first headline show still counts as owning it");
+  assert.equal(C.merchWear(data, "headliner"), false, "wearing it does not switch the look on");
+  assert.equal(data.settings.theme, "auto");
+  assert.notEqual(C.merchTip({ songs: [], sets: [], trash: [], settings: {}, merch: { tips: 5000, tconv: 1, lconv: 1, told: ["tweed", "black", "mint", "gold", "brick", "stars", "sunset"] } })?.id, "green", "Show complete does not point at a retired look");
   /* a look already in use before 4.78.0 stays yours, once */
   const old = { songs: [], sets: [], trash: [], settings: { theme: "headliner" } };
   assert.equal(C.looksOwned(old).has("headliner"), true, "kept");
