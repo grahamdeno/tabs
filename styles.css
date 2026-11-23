@@ -5105,7 +5105,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gtr img { display: block; height: 176px; width: auto; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55)); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-empty { align-self: center; margin: 12px auto; padding: 10px 12px; border-radius: 8px; background: #1E1008; text-align: center; color: #FFF3E0; font: var(--type-callout-w) var(--type-callout) / 1.35 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-merch { display: flex; align-items: center; gap: 8px; min-height: 52px; margin-top: 10px; padding: 8px 10px; border: 1.5px solid var(--rr-amber-text); border-radius: 12px; color: var(--rr-amber-text); text-decoration: none; font: 600 var(--type-callout) / 1.2 var(--sans); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { flex: 1; min-width: 0; white-space: nowrap; font-size: 14px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { flex: 1; min-width: 0; white-space: nowrap; font-size: 13px; letter-spacing: -0.01em; }
 @media (max-width: 360px) {
   :root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { white-space: normal; }
 }
