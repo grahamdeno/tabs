@@ -2808,12 +2808,13 @@ test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes f
 
 test("Me case: the perspective case picture is saved for offline, and the earlier pictures stay", () => {
   const shell = read("sw.js"), css = read("styles.css");
-  for (const f of ["art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp"]) {
+  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp"]) {
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
-  assert.ok(fs.statSync(path.join(root, "art/case/case-open-tall.webp")).size < 250000, "the case picture stays small enough for the phone");
-  assert.match(css, /case-open-tall\.webp/);
+  assert.ok(fs.statSync(path.join(root, "art/case/case-velvet-bed.webp")).size < 250000, "the case picture stays small enough for the phone");
+  assert.match(css, /case-velvet-bed\.webp/);
+  assert.match(css, /mask-composite:\s*exclude/, "the velvet lip is the guitar's own outline");
   assert.ok(!/rr-gcase \.rr-gtr[\s\S]{0,240}velvet-slot\.webp/.test(css), "the stalls are not the flat slot picture");
 });
 

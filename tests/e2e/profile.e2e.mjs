@@ -190,23 +190,28 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
   assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
 });
 
-test("the guitar case is the open perspective case, and each earned guitar is its small picture in a stall", { skip: skip() }, async t => {
+test("the guitar case is a velvet bed, and each guitar's stall is cut to that guitar", { skip: skip() }, async t => {
   const page = await openMe(t, "dark");
   const bg = await page.evaluate(() => getComputedStyle(document.querySelector(".rr-gcase")).backgroundImage);
-  assert.match(bg, /case-open-tall\.webp/, "the open case picture");
-  const slots = await page.$$eval(".rr-gtr", els => els.map(el => ({
-    image: getComputedStyle(el).backgroundImage,
-    img: el.querySelector("img")?.getAttribute("src") || "",
-    lean: getComputedStyle(el).getPropertyValue("--lean").trim()
-  })));
+  assert.match(bg, /case-velvet-bed\.webp/, "the open case is one velvet bed");
+  assert.doesNotMatch(bg, /case-open-tall/, "the divider grid is not the case");
+  const slots = await page.$$eval(".rr-gtr", els => els.map(el => {
+    const well = getComputedStyle(el, "::before");
+    const lip = getComputedStyle(el, "::after");
+    const src = (el.querySelector("img")?.getAttribute("src") || "").replace(/\?.*$/, "");
+    return { src, well: well.maskImage || well.webkitMaskImage, lip: lip.maskComposite || lip.webkitMaskComposite, shadow: getComputedStyle(el.querySelector("img")).filter };
+  }));
   assert.equal(slots.length, 3, "three earned guitars, three stalls");
-  for (const s of slots) assert.equal(s.image, "none", "the stall does not cover the case");
-  assert.deepEqual(slots.map(s => s.lean), ["-3.5deg", "0deg", "3.5deg"], "the side guitars tip with the perspective");
-  assert.deepEqual(slots.map(s => s.img.replace(/\?.*$/, "")), [
+  assert.deepEqual(slots.map(s => s.src), [
     "art/guitars/porch-small.webp",
     "art/guitars/cornerstone-small.webp",
     "art/guitars/clubslab-small.webp"
   ]);
+  for (const s of slots) {
+    assert.match(s.well, new RegExp(s.src.replace(".", "\\.")), "the hollow uses that guitar's outline");
+    assert.match(s.lip, /exclude|xor/i, "a velvet lip follows the outline");
+    assert.match(s.shadow, /drop-shadow/, "a contact shadow where the body meets the velvet");
+  }
 });
 
 test("with no tips the Merch line says to earn them, and with tips it says spend, on one line", { skip: skip() }, async t => {
@@ -233,28 +238,24 @@ test("each guitar is fully inside its stall, with velvet under the body, and an 
     return { top: box.top - caseBox.top, bottom: caseBox.bottom - box.bottom, gap: stall.bottom - box.bottom, caseH: caseBox.height, shadow: getComputedStyle(img).filter };
   }));
   assert.equal(fit.length, 3);
-  assert.ok(fit[0].caseH >= 210 && fit[0].caseH <= 250, `the case is ${Math.round(fit[0].caseH)} tall`);
+  assert.ok(fit[0].caseH >= 180, `the case is ${Math.round(fit[0].caseH)} tall`);
   for (const g of fit) {
-    assert.ok(g.top > 0 && g.top < 40, "the headstock sits in the back pocket");
-    assert.ok(g.bottom > 0 && g.bottom < 28, "the body reaches close to the bottom and is not cut off");
-    assert.ok(g.gap >= -16, "the lean stays inside the case");
+    assert.ok(g.top >= -2 && g.bottom >= -2, "the guitar stays inside the case");
     assert.match(g.shadow, /drop-shadow/, "a contact shadow under the guitar");
   }
   const one = await openMe(t, "light", { skills: legsDone(1) });
-  assert.equal(await one.locator(".rr-gtr.rr-slot-empty").count(), 2, "empty stalls stay, so the faint outline in the case shows");
+  assert.equal(await one.locator(".rr-gtr").count(), 1, "one guitar, one shaped stall, no empty dividers");
 });
 
-test("one earned guitar still leaves three stalls, and a bought guitar gets a stall of its own", { skip: skip() }, async t => {
+test("one earned guitar is one stall, and a bought guitar gets a stall of its own", { skip: skip() }, async t => {
   const one = await openMe(t, "dark", { skills: legsDone(1) });
-  const stalls = await one.$$eval(".rr-gtr", els => els.map(el => ({ empty: el.classList.contains("rr-slot-empty"), img: el.querySelector("img")?.getAttribute("src") || "" })));
-  assert.equal(stalls.length, 3, "at least three stalls");
-  assert.equal(stalls.filter(s => s.empty).length, 2);
-  assert.match(stalls[0].img, /porch-small\.webp/);
+  const stalls = await one.$$eval(".rr-gtr", els => els.map(el => el.querySelector("img")?.getAttribute("src") || ""));
+  assert.equal(stalls.length, 1, "one stall for the one guitar");
+  assert.match(stalls[0], /porch-small\.webp/);
   const four = await openMe(t, "light", { skills: legsDone(3), merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["g-stickerriot"] } });
   const more = await four.$$eval(".rr-gtr", els => els.map(el => el.querySelector("img")?.getAttribute("src") || ""));
-  assert.equal(more.length, 4, "one stall per guitar once there are more than three");
+  assert.equal(more.length, 4, "one stall per guitar");
   assert.match(more[3], /stickerriot-small\.webp/);
-  assert.equal(await four.locator(".rr-gtr.rr-slot-empty").count(), 0);
 });
 
 for (const theme of ["green", "headliner"]) {

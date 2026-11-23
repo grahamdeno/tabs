@@ -110,11 +110,11 @@ export function renderProfile() {
   const rr = rrLook();
   const rrRow = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row rr-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span class="rr-row-t">${name}${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "chev")}</${href ? "a" : "button"}>`;
   const legs = roadPath(data).legs, earned = guitarsEarned(data);
+  const stall = (label, src, attr = "") => `<li class="rr-gtr" role="img" aria-label="${label}"${src ? ` style="--gtr:url('${src}')"` : ""}>${src ? `<img src="${src}"${attr} alt="" aria-hidden="true">` : ""}</li>`;
   const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
-    return `<li class="rr-gtr" role="img" aria-label="${esc(g.name)}${esc(at)}">${pic ? `<img src="${bp.src}"${bp.attr} alt="" aria-hidden="true">` : `<span class="rr-gtr-ph" aria-hidden="true"></span>`}</li>`; }).join("");
+    return stall(`${esc(g.name)}${esc(at)}`, bp.src, bp.attr || ""); }).join("");
   /* Road Ready 9a: the guitars bought in the Guitar shop sit in the case too; the one you chose says so */
-  const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => { const pic = guitarPic(r.id);
-    return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");
+  const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => stall(`${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}`, guitarPic(r.id) || "")).join("");
   const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
   const mer = fansToSpend(data);
   const merchLine = mer > 0 ? `Merch: spend $${num(mer)} in tips` : "Merch: earn tips to buy new looks";
@@ -135,7 +135,7 @@ export function renderProfile() {
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <div class="rr-gcase"><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
+      <div class="rr-gcase"><ul class="rr-case-in" data-n="${nGuitars}" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}</ul></div>
       <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="${merchLine}"><span class="rr-coinic">${COIN}</span><span>${merchLine}</span>${icon("chev", "chev")}</a>
     </section>
     <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
