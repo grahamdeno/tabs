@@ -3492,8 +3492,9 @@ test("painted guitarist: every stored part is one 800 by 800 layer, and the mani
     const rel = base ? `${base}/${ent.name}` : ent.name;
     return ent.isDirectory() ? walk(path.join(d, ent.name), rel) : [rel];
   });
-  const onDisk = walk(dir).filter(f => f.endsWith(".webp")).sort();
-  assert.deepEqual(onDisk, [...listed].sort(), "the folder and the manifest name the same layers");
+  /* pilot and pilot2 are try-outs, not the layer kit */
+  const onDisk = walk(dir).filter(f => f.endsWith(".webp") && !f.startsWith("pilot")).sort();
+  assert.deepEqual(onDisk, [...listed].sort(), "the layer kit and the manifest name the same files");
   for (const f of man.files) {
     assert.equal(Number.isInteger(f.order), true, f.file);
     const dim = webpSize(fs.readFileSync(path.join(dir, f.file)));
