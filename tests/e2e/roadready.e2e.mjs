@@ -445,8 +445,9 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-over"), "HEADLINE SHOW");
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
-    assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.match(await page.getAttribute(".sc-show.case .sc-guitar img", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar's own picture in the case (the older case paintings are of the guitars the legs had before Road Ready 9a)");
+    assert.equal(await page.locator(".sc-stall").count(), 23, "one stall for each of the 23 guitars");
+    assert.equal(await page.locator(".sc-hardcase .rr-latch").count(), 2, "the case has two latches");
+    assert.match(await page.getAttribute(".sc-stall.on .sc-guitar", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar sits in its own stall");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");

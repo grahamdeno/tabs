@@ -22,26 +22,19 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, GUITARS, GUITAR_SHOP, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
 import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
-import { buildPic } from "./buildart.js";
 import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
 import { statBar, rrStats, bindStatBar, settleStats } from "./hud.js";
 
 const DAY = 86400000;
 /* Road Ready is the Dark and Light looks (data-look neon and festival); Green Room and Headliner keep the old Road */
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
-/* Grok's paintings of each earned guitar in its own open case (art/show, 720 by 900, dark and light), by body shape. A
-   guitar without one is drawn over the empty case. */
-/* Grok's case paintings (art/show/case-*.webp) are of the three guitars the Road had before Road Ready 9a (the beater, the cutaway,
-   the solid-body). The legs have new guitars now, so no painting fits them: the sheet shows the guitar's own picture in the case until new
-   paintings are made (Surprises in docs/ROAD-READY-PLAN.md). Add a body name here to bring a painting back. */
-const CASE_ART = {};
 /* the current stop when the Road was last drawn: when a show moves it on, the connector's newest step draws itself on */
 let lastCur = null;
 
@@ -482,9 +475,13 @@ function guitarEarned(road) {
       <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Leg done"}</h2>
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
-        <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
-        ${CASE_ART[gn.guitar.body] ? `<img class="sc-case-pic" src="art/show/case-${CASE_ART[gn.guitar.body]}-${document.documentElement.dataset.look === "festival" ? "light" : "dark"}.webp" alt="">`
-          : `<span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? (bp => `<img src="${bp.src}"${bp.attr} alt="">`)(buildPic(gn.next, data.builds?.[gn.next], guitarPic(gn.guitar.body))) : guitarSVG(gn.next, { full: true })}</span></span>`}
+        <div class="sc-hardcase">
+          <span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span>
+          <ul class="sc-stalls">${[...Object.values(GUITARS).map(g => ({ id: g.body, name: g.name })), ...GUITAR_SHOP.map(g => ({ id: g.id, name: g.name }))].map(g => {
+            const on = g.id === gn.guitar.body, pic = guitarPic(g.id);
+            return `<li class="sc-stall${on ? " on" : ""}" data-g="${esc(g.id)}">${pic ? `<img class="${on ? "sc-guitar" : ""}" src="${pic}" alt="">` : ""}</li>`;
+          }).join("")}</ul>
+        </div>
         <span class="sc-label">${esc(gn.guitar.name)}</span>
         <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
       </div>
@@ -495,7 +492,8 @@ function guitarEarned(road) {
   else layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
     <div class="pbody"><div class="rd-gt-row">${louie("cheer", { size: 96, pose: "hornsUp" })}<div class="rd-gt-art">${guitarSVG(gn.next)}</div></div>
     <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
-    <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div></div></div>`;
+    <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div>    </div></div>`;
+  document.querySelector(".sc-stall.on")?.scrollIntoView({ inline: "center", block: "nearest" });
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("gt-scrim").onclick = close; document.getElementById("gt-x").onclick = close;
   haptic(2);

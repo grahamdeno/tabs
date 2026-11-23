@@ -4994,6 +4994,15 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
 .sc-case-pic { position: absolute; left: 50%; top: 2%; bottom: 2%; height: 96%; aspect-ratio: 720 / 900; transform: translateX(-50%); }
 .sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+/* one open hard case, the same shell, velvet and latches as the case on Me, with a stall for every guitar */
+.sc-hardcase { position: relative; width: min(100%, 420px); margin: 8px auto 0; padding: 16px 8px 8px; border-radius: 14px; background: linear-gradient(rgba(0, 0, 0, .35), rgba(0, 0, 0, .55)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px; background-color: #15110D; box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 10px 18px rgba(0, 0, 0, .4); }
+.sc-hardcase .rr-latch { top: -6px; }
+.sc-stalls { display: grid; grid-auto-flow: column; grid-auto-columns: 86px; gap: 6px; margin: 0; padding: 8px; list-style: none; height: 168px; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 8px; background: #3A1A08; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), inset 0 8px 16px rgba(0, 0, 0, .55); scrollbar-width: none; }
+.sc-stalls::-webkit-scrollbar { display: none; }
+.sc-stall { position: relative; display: flex; align-items: flex-end; justify-content: center; min-width: 0; scroll-snap-align: center; background: url("art/case/velvet-slot.webp") center / 100% 100%; }
+.sc-stall img { position: relative; z-index: 1; height: 86%; width: auto; max-width: 90%; margin-bottom: 5%; object-fit: contain; object-position: bottom; filter: drop-shadow(2px 8px 5px rgba(40, 10, 0, .7)) drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
+.sc-stall.on { box-shadow: inset 0 0 0 2px #F5C542; }
+.sc-show.case { height: auto; min-height: 210px; }
 .sc-show.case .sc-louie { z-index: 3; }
 .sc-show.case .sc-label { z-index: 3; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }
