@@ -110,12 +110,22 @@ export function renderProfile() {
   const rr = rrLook();
   const rrRow = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row rr-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span class="rr-row-t">${name}${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "chev")}</${href ? "a" : "button"}>`;
   const legs = roadPath(data).legs, earned = guitarsEarned(data);
-  const stall = (label, src, attr = "") => `<li class="rr-gtr" role="img" aria-label="${label}"${src ? ` style="--gtr:url('${src}')"` : ""}>${src ? `<img src="${src}"${attr} alt="" aria-hidden="true">` : ""}</li>`;
-  const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
-    return stall(`${esc(g.name)}${esc(at)}`, bp.src, bp.attr || ""); }).join("");
+  /* one stall per guitar. A velvet wall sits between guitars and never across one. One or two
+     guitars sit in the middle of the bed, so that stall also has a wall on its outer side. */
+  const piece = (label, src, attr = "") => ({ label, src, attr });
+  const casePieces = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
+    return piece(`${esc(g.name)}${esc(at)}`, bp.src, bp.attr || ""); });
   /* Road Ready 9a: the guitars bought in the Guitar shop sit in the case too; the one you chose says so */
-  const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => stall(`${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}`, guitarPic(r.id) || "")).join("");
-  const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
+  const shop = shopState(data);
+  const boughtPieces = shop.rows.filter(r => r.owned).map(r => piece(`${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}`, guitarPic(r.id) || ""));
+  const pieces = casePieces.concat(boughtPieces);
+  const stall = (p, i) => {
+    const edge = pieces.length < 3, left = edge && i === 0, right = i < pieces.length - 1 || edge;
+    const wall = side => `<i class="rr-div ${side}" aria-hidden="true"></i>`;
+    return `<li class="rr-gtr" role="img" aria-label="${p.label}">${left ? wall("l") : ""}${p.src ? `<img src="${p.src}"${p.attr} alt="" aria-hidden="true">` : ""}${right ? wall("r") : ""}</li>`;
+  };
+  const caseGuitars = pieces.map(stall).join("");
+  const nGuitars = pieces.length;
   const mer = fansToSpend(data);
   const merchLine = mer > 0 ? `Merch: spend $${num(mer)} in tips` : "Merch: earn tips to buy new looks";
   const name = cleanName(data.settings.playerName);
@@ -135,7 +145,7 @@ export function renderProfile() {
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <div class="rr-gcase"><ul class="rr-case-in" data-n="${nGuitars}" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}</ul></div>
+      <div class="rr-gcase"><ul class="rr-case-in" data-n="${nGuitars}" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars}</ul><img class="rr-case-frame" src="art/case/case-r10-frame.webp" alt="" aria-hidden="true"></div>
       <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="${merchLine}"><span class="rr-coinic">${COIN}</span><span>${merchLine}</span>${icon("chev", "chev")}</a>
     </section>
     <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>

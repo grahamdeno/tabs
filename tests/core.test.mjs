@@ -2806,15 +2806,20 @@ test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes f
   }
 });
 
-test("Me case: the perspective case picture is saved for offline, and the earlier pictures stay", () => {
-  const shell = read("sw.js"), css = read("styles.css");
-  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp"]) {
+test("Me case: the hard case, the pocket row and the stall divider are saved for offline, and the earlier pictures stay", () => {
+  const shell = read("sw.js"), css = read("styles.css"), html = read("profile.js");
+  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp", "art/case/case-r10-shell.webp", "art/case/case-r10-frame.webp", "art/case/case-r10-divider.webp"]) {
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(fs.statSync(path.join(root, f)).size < 250000, `${f} stays small enough for the phone`);
   }
-  assert.ok(fs.statSync(path.join(root, "art/case/case-velvet-bed.webp")).size < 250000, "the case picture stays small enough for the phone");
-  assert.match(css, /case-velvet-bed\.webp/);
-  assert.match(css, /mask-composite:\s*exclude/, "the velvet lip is the guitar's own outline");
+  assert.match(css, /case-r10-shell\.webp/, "the case is the hard shell");
+  assert.match(html, /case-r10-frame\.webp/, "the walls sit over the guitars");
+  assert.match(css, /case-r10-divider\.webp/, "a divider between stalls");
+  assert.match(css, /drop-shadow\([\s\S]*drop-shadow\(/, "a soft drop shadow and a tight contact shadow");
+  assert.ok(!/rr-gcase[\s\S]{0,900}mask-composite:\s*exclude/.test(css), "a stall is not a hollow cut to the guitar");
+  assert.ok(!/rr-gcase[\s\S]{0,500}case-velvet-bed/.test(css), "the old velvet bed is not the case");
+  assert.match(html, /wall\("l"\)[\s\S]*wall\("r"\)/, "a stall can have a velvet wall on either side");
   assert.ok(!/rr-gcase \.rr-gtr[\s\S]{0,240}velvet-slot\.webp/.test(css), "the stalls are not the flat slot picture");
 });
 
