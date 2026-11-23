@@ -318,7 +318,7 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right, left: r.left } : null; }, sel);
   const H = 844;
   assert.ok((await box("#chips")).top < H * 0.3, "filters at the top (2.6: moved back)");
-  assert.ok((await box("#add")).top > H * 0.7, "4.113.0: + sits in the search bar at the bottom, in thumb reach");
+  assert.ok((await box("#add")).top < 120, "Add sits in the Songbook header");
   assert.ok((await box("#tunerbtn")).top < 100, "4.113.0: the tuner is back in the Songbook's header");
   /* the earlier Songbook (Green Room, Headliner) keeps the tuner in its header */
   const green = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } });
@@ -328,12 +328,11 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const dot = await green.evaluate(() => { const d = document.querySelector("#tunerbtn .dotmark"); return d && getComputedStyle(d).position; });
   if (dot) assert.equal(dot, "absolute", "the not-tuned dot sits in the corner");
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
-  /* 4.2.0: one song screen. Back, the title and the heart at the top; Tools and a big Play at the bottom. */
-  assert.ok((await box(".shead .sh-back")).top < 100 && (await box(".shead .fav")).top < 100, "back and the heart beside the title");
-  for (const sel of ["#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
-  assert.equal(await page.locator(".player .fav, .player #nnbtn, .player .oh-back").count(), 0, "just Tools and Play");
-  /* 4.109.0 (Graham, 2026-11-19): in Dark and Light the bar is the amp-style bar, Play in the middle at the bottom, still in thumb reach */
-  { const p = await box("#play"); assert.ok(p.bottom > H * 0.85 && p.left > 120 && p.right < 270, "Play in the middle of the bottom bar, in thumb reach"); }
+  /* Back, the title, the heart and Tools at the top. The bottom bar is Play or Pause only. */
+  assert.ok((await box(".shead .sh-back")).top < 100 && (await box(".shead .fav")).top < 100 && (await box("#more")).top < 120, "back, the heart and Tools beside the title");
+  assert.ok((await box("#play")).top > H * 0.7, "Play in the bottom bar");
+  assert.equal(await page.locator(".player #pw-speed, .player #pw-loop, .player #more").count(), 0, "no Speed, Loop or Tools on the playing bar");
+  { const p = await box("#play"); assert.ok(p.bottom > H * 0.85 && p.left > 80 && p.right < 310, "Play in the bottom bar, in thumb reach"); }
   assert.equal(await page.locator(".secbar").count(), 0, "4.55.0: no row of section chips on the song page");
   await page.click("#more"); await page.waitForSelector('.menu');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length); const m = await box(".menu");
@@ -495,7 +494,8 @@ test("4.20.1 Songbook filters: one row that fits, Sets in the header, Tabs in th
   const r = await page.evaluate(() => { const b = document.querySelector("#chips").getBoundingClientRect(); return { right: b.right, w: innerWidth, scroll: document.querySelector("#chips").scrollWidth - document.querySelector("#chips").clientWidth }; });
   assert.ok(r.right <= r.w, `the row ends inside the screen (${r.right} of ${r.w})`);
   assert.ok(r.scroll <= 0, "nothing scrolls sideways");
-  assert.equal(await page.locator("#chips [data-f='sets'], #chips [data-f='tab']").count(), 0, "Sets and Tabs are not in the row");
+  assert.equal(await page.locator("#chips [data-f='sets']").count(), 1, "Sets is a filter, as in the agreed Songbook");
+  assert.equal(await page.locator("#chips [data-f='tab']").count(), 0, "Tabs stays in the sort menu");
   await page.click("#setsbtn"); await page.waitForSelector("#newset");
   await page.click("#libback"); await page.waitForSelector("#chips [data-f='all'].on");
   assert.equal(await page.locator("#newset").count(), 0, "Back from Sets goes to All, not out of the Songbook");

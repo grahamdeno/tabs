@@ -133,44 +133,50 @@ export function chipsHTML() {
   /* each filter says whether it is the chosen one (aria-pressed), so the fill isn't the only signal; Almost (4.105.0) stays when a song is one chord away */
   const pressed = h => h.replace(/data-f="(\w+)"/, (m, f) => `${m} aria-pressed="${filter === f}"`);
   const rr = rrTab();
-  return `<div class="chips${rr ? " rr-chips" : ""}" id="chips">${[chip("all", rr ? `All<small>${data.songs.length}</small>` : "All", rr ? `All, ${data.songs.length} songs` : ""), can && chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`), near && chip("near", `Almost<small>${near}</small>`, `Almost, ${near} songs one chord away`), hasLearn && chip("learn", "Learning"), hasFav && chip("fav", icon("heart"), "Favorites")].filter(Boolean).map(pressed).join("")}</div>`;
+  const sets = rr ? `<button class="chip${filter === "sets" ? " on" : ""}" id="setsbtn" data-f="sets" aria-pressed="${filter === "sets"}" aria-label="Sets">Sets</button>` : "";
+  return `<div class="chips${rr ? " rr-chips" : ""}" id="chips">${[chip("all", rr ? `All<small>${data.songs.length}</small>` : "All", rr ? `All, ${data.songs.length} songs` : ""), can && chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`), near && chip("near", `Almost<small>${near}</small>`, `Almost, ${near} songs one chord away`), sets, hasLearn && chip("learn", "Learning"), hasFav && chip("fav", icon("heart"), "Favorites")].filter(Boolean).map(pressed).join("")}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
 export const homeHooks = { refresh: null, openDrawer: false }; /* openDrawer: Tonight opens with the Library up (3.24.2) */
 export const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?.() : renderLibrary();
 
 export function renderLibrary() {
-  chipsHTML(); /* settles a filter that no longer has songs */
+  const chips = chipsHTML(); /* settles a filter that no longer has songs */
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
+  const rr = rrTab();
+  const find = `<div class="dock${rr ? " rr-find" : " kb"}">
+      <label class="cmd glass float">
+        ${icon("search")}
+        <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search or add a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or add a song">
+        <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
+        ${rr ? "" : `<button class="cmd-add" id="add" aria-label="Add a song">${icon("plus")}</button>`}
+      </label>
+      <button class="qcancel" id="qcancel">Cancel</button>
+    </div>`;
   app.innerHTML = `
-    <div class="head">
-      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rrTab() ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
+    <div class="head${rr ? " rr-sb-head" : ""}">
+      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rr ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
       <div class="row-btns">
-        <button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>
+        ${rr && data.songs.length ? "" : `<button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>`}
         ${tunerBtn("ib chunky-tune")}
+        ${rr ? `<button class="rr-sb-add" id="add" aria-label="Add a song"><span class="rr-sb-plus">${icon("plus")}</span>Add</button>` : ""}
       </div>
     </div>
+    ${rr ? find : ""}
+    ${rr ? chips : ""}
     ${todayHTMLOrSpot()}
-    ${chipsHTML()}
+    ${rr ? "" : chips}
     ${needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
       <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
       <div class="bk-b"><button class="btn sm" id="bk-later">Later</button><button class="btn sm primary" id="bk-go">Back up</button></div>
     </div>` : ""}
     <div id="list"></div>
-    <div class="dock-fade"></div>
-    <div class="dock kb">
-      <label class="cmd glass float">
-        ${icon("search")}
-        <input id="q" type="text" inputmode="search" enterkeyhint="go" placeholder="Search or add a song" value="${esc(query)}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search or add a song">
-        <button class="clear" id="clear" aria-label="Clear search" ${query ? "" : "hidden"}>${icon("x")}</button>
-        <button class="cmd-add" id="add" aria-label="Add a song">${icon("plus")}</button>
-      </label>
-      <button class="qcancel" id="qcancel">Cancel</button>
-    </div>`;
+    ${rr ? "" : `<div class="dock-fade"></div>${find}`}`;
   bindToday();
   if ($("libback")) $("libback").onclick = () => { if (filter === "sets") { filter = "all"; renderLibrary(); } else go("#/"); };
-  $("setsbtn")?.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
+  const setsBtn = $("setsbtn");
+  if (setsBtn && !setsBtn.dataset.f) setsBtn.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
   $("tunerbtn")?.addEventListener("click", () => openTuner("standard", () => route().name === "library" && renderLibrary()));
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
@@ -289,17 +295,42 @@ function lyricHit(line, q) {
   if (from) { const sp = line.indexOf(" ", from); from = sp >= 0 && sp < i ? sp + 1 : from; } /* start on a whole word */
   return `“${from ? "…" : ""}${esc(line.slice(from, i))}<mark>${esc(line.slice(i, i + n))}</mark>${esc(line.slice(i + n))}”`;
 }
+const TILES = ["#C46A2A", "#3A4E8C", "#8C2E3A", "#1E6B4A", "#A6842A", "#5C3A8C", "#8C5A2A", "#2A5A6E"];
+function songArt(s) {
+  const words = String(s.title || "").replace(/[^A-Za-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+  const ini = (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || "?").slice(0, 2)).toUpperCase();
+  const hue = TILES[(s.title || "").split("").reduce((n, c) => n + c.charCodeAt(0), 0) % TILES.length];
+  return `<span class="rr-tile" style="--tile:${hue}" aria-hidden="true"><b>${esc(ini)}</b></span>`;
+}
+function songChips(s) {
+  if (s.format === "tab") return "";
+  const f = fitOf(s), ch = sheetChords(s.body).filter((c, i, a) => a.indexOf(c) === i).slice(0, 5);
+  const known = ch.filter(c => !f.missing.includes(c)).slice(0, 4).map(c => `<i>${esc(c)}</i>`).join("");
+  const need = f.missing.length === 1 ? `<i class="rr-needs">needs ${esc(f.missing[0])}</i>` : "";
+  return known || need ? `<span class="rr-cc">${known}${need}</span>` : "";
+}
+function songMarks(s) {
+  if (!playCount(s) && !s.status) return `<span class="rr-new">New</span>`;
+  const on = s.status === "got" ? 3 : s.status === "solid" ? 2 : 1;
+  return `<span class="rr-dots" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < on ? "on" : ""}"></i>`).join("")}</span>`;
+}
 function songRow(s, hit) {
   const wk = playsThisWeek(s), sort = data.settings.sort, n = playCount(s);
   const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
   const sub = hit ? `<span class="hit">${hit}</span>`
-    : [esc(s.artist || "Unknown artist"), s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
-  return `<button class="row${rrTab() ? " rr-line" : ""}" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
+    : [esc(s.artist || "Unknown artist"), !rrTab() && s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, !rrTab() && stat].filter(Boolean).join(" · ");
+  if (!rrTab()) return `<button class="row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
     <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${sub}</div></div>
     ${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}
     ${(() => { const f = fitOf(s); return s.status === "learning" ? `<span class="fit learn">LEARNING</span>` : f.can ? `<span class="fit can">CAN PLAY</span>` : f.missing.length === 1 ? `<span class="fit one">+ ${esc(f.missing[0])}</span>` : ""; })()}
     <span class="k">${esc(keyOf(s))}</span>
+  </button>`;
+  return `<button class="row rr-row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
+    ${songArt(s)}
+    <span class="txt"><span class="t">${esc(s.title)}</span><span class="a">${hit ? sub : esc(s.artist || "Unknown artist")}</span>${songChips(s)}</span>
+    <span class="rr-side">${songMarks(s)}${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}</span>
+    ${icon("chev", "chev")}
   </button>`;
 }
 /* The Songbook (4.9.0): which songs use only chords you know, and which need just one more. */

@@ -5,7 +5,7 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
+import { GUITARS, MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
@@ -55,7 +55,7 @@ const tag = (it, st) => it.kind === "gear" ? price(it, st)
 /* 4.104.0 (agreed Merch screen): in Dark and Light the table is three tabs, Guitars, Looks and Gear, under a header with a round
    back button, the title and your tips. Green Room and Headliner keep the one long page. The tab you were on is kept while the
    app is open. */
-let mcTab = "guitars";
+let mcTab = "guitars", heroAt = 0;
 /* open the table on a tab (Settings opens it on Looks for a look you don't have) */
 export const merchTab = k => { if (["guitars", "looks", "gear"].includes(k)) mcTab = k; };
 const rrLook = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
@@ -71,7 +71,7 @@ export function renderMerch() {
   const panel = (k, html) => rr ? `<section class="mc-panel" role="tabpanel" id="mc-p-${k}" aria-labelledby="mc-t-${k}"${mcTab === k ? "" : " hidden"}>${html}</section>` : html;
   app.innerHTML = `<div class="mc${rr ? " mc-rr" : ""}">
     <div class="mc-head"><button class="mc-back" id="mc-back" aria-label="Back">${rr ? icon("back") : "&lsaquo;"}</button><h1>${rr ? "Merch" : "Merch table"}</h1><span class="mc-fans" aria-label="${n(st.tips)} dollars in tips to spend">${rr ? `<i class="mc-coin" aria-hidden="true"></i>` : ""}$${n(st.tips)}</span></div>
-    ${rr ? `<div class="mc-seg" role="tablist" aria-label="Merch">${[["guitars", "Guitars"], ["looks", "Looks"], ["gear", "Gear"]].map(([k, l]) => `<button role="tab" id="mc-t-${k}" aria-controls="mc-p-${k}" aria-selected="${mcTab === k}" tabindex="${mcTab === k ? 0 : -1}" data-tab="${k}">${l}</button>`).join("")}</div>` : ""}
+    ${rr ? `<div class="mc-seg" role="tablist" aria-label="Merch">${[["guitars", "Guitars"], ["looks", "Louie"], ["gear", "Gear"]].map(([k, l]) => `<button role="tab" id="mc-t-${k}" aria-controls="mc-p-${k}" aria-selected="${mcTab === k}" tabindex="${mcTab === k ? 0 : -1}" data-tab="${k}">${l}</button>`).join("")}</div>` : ""}
     <div class="mc-table"${rr ? " hidden" : ""} aria-hidden="true">
       <svg class="mc-line" viewBox="0 0 390 70" preserveAspectRatio="none"><path d="M10 10 Q195 50 380 10" fill="none" stroke="currentColor" stroke-width="2"/>${[[60, "#FF3D7F", -4], [130, "#FF8A00", -3], [262, "#3A86FF", 3], [332, "#0FB5A6", 4]].map(([x, c, r]) => { const y = 10 + 40 * (1 - ((x - 195) / 185) ** 2) / 1.2; return `<g transform="translate(${x} ${y - 2}) rotate(${r})"><path d="M-16 3l7-5h5a4 4 0 0 0 8 0h5l7 5-4 7-5-2v19h-22V8l-5 2z" fill="${c}"/></g>`; }).join("")}</svg>
       <div class="mc-lou">${lou(st.louie, 84, "happy", "wave")}</div>
@@ -87,7 +87,8 @@ export function renderMerch() {
     <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
     <div class="mc-row scroll">${of("look").map(look).join("")}</div>`)}
-    ${panel("guitars", `${buildEntry()}
+    ${panel("guitars", `${guitarHero()}
+    ${buildEntry()}
     ${shopHTML()}`)}
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
@@ -100,6 +101,7 @@ export function renderMerch() {
   document.getElementById("mc-build")?.addEventListener("click", () => openBuilder());
   document.addEventListener("builds-saved", renderMerch, { once: true });
   app.querySelectorAll(".mc [data-gt]").forEach(b => b.onclick = () => shopSheet(b.dataset.gt));
+  app.querySelectorAll(".mc-hero [data-step]").forEach(b => b.onclick = () => { heroAt += +b.dataset.step; renderMerch(); });
   document.getElementById("mc-gt-leg")?.addEventListener("click", () => { shopChoose(data, null); Tabs.save(data); renderMerch(); toast("Back to the guitar of the leg you're on"); });
 }
 
@@ -113,6 +115,20 @@ function shopSay(g, st) {
   if (!g.open) return { tag: `<span class="mc-on earn">${icon("lock")}Opens at ${esc(g.venue)}</span>`, say: `Locked, opens at ${g.venue}` };
   if (g.more) return { tag: `<span class="mc-price short">$${n(g.price)}</span><small class="mc-more">$${n(g.more)} more</small>`, say: `$${n(g.price)}, $${n(g.more)} more` };
   return { tag: `<span class="mc-price">$${n(g.price)}</span>`, say: `$${n(g.price)}, you can buy it` };
+}
+/* The Guitars tab opens on three guitars at once (agreed Merch): the one in the middle is current, the count under them is N of M. */
+function guitarHero() {
+  const earned = new Set(guitarsEarned(data));
+  const items = Object.entries(GUITARS).map(([id, g]) => ({ id, name: g.name, src: guitarPic(g.body), earned: earned.has(id) }));
+  if (items.length < 2) return "";
+  heroAt = ((heroAt % items.length) + items.length) % items.length;
+  const at = step => items[(heroAt + step + items.length) % items.length];
+  const btn = (item, cls, step) => `<button type="button" class="mc-hero-g ${cls}" data-step="${step}" aria-label="${esc(item.name)}${item.earned ? ", earned" : ", still to earn"}">${item.src ? `<img src="${item.src}" alt="">` : ""}</button>`;
+  const cur = at(0);
+  const dots = items.map((_, i) => `<i class="${i === heroAt ? "on" : ""}"></i>`).join("");
+  return `<div class="mc-hero"><div class="mc-hero-stage">${btn(at(-1), "edge", -1)}${btn(cur, "mid", 0)}${btn(at(1), "edge", 1)}</div>
+    <p class="mc-hero-n"><span class="mc-hero-dots" aria-hidden="true">${dots}</span><b>${heroAt + 1} of ${items.length}</b></p>
+    <p class="mc-hero-cap">${esc(cur.name)} · ${cur.earned ? "Earned" : "On the Road"}</p></div>`;
 }
 /* Road Ready 9b: the guitar builder, for the Road guitars you've earned (not the shop guitars) */
 function buildEntry() {

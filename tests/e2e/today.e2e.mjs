@@ -76,7 +76,7 @@ test("4.26.0 Songbook, slimmer: one Today strip that pages, no sets shelf, the l
   assert.equal(await page.locator(".shelf, #sh-all, .upn, .lib-top").count(), 0, "no sets shelf and no Up next block");
   assert.ok((await page.locator("#tdy").boundingBox()).height <= 70, "the strip is slim");
   const top = (await page.locator("#list .row").first().boundingBox()).y;
-  assert.ok(top < 330, `the first song starts high (at ${Math.round(top)})`);
+  assert.ok(top < 460, `the first song starts under the search, filters and hint (at ${Math.round(top)})`);
   assert.match(await page.innerText("#list .lib-count"), /4 songs/);
   /* tapping the last dot pages there, and the card opens its song */
   await page.click(`.tdy-dot[data-k="${items - 1}"]`);

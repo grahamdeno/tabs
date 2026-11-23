@@ -708,35 +708,26 @@ test("Road Ready: Louie's first-song line shows once inside the playing screen, 
   assert.equal(await page.locator(".gg-first").count(), 0, "never again");
 });
 
-test("4.108.0 Dark and Light: the song controls are an amp-style bar, Speed, a lit Pause, Loop and Tools, each a 44 px target, and they work", { skip: skip() }, async t => {
+test("the playing screen shows Pause only; Speed, Loop and Tools are not on the bar", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  assert.equal(await page.locator("#pw-speed, #pw-loop, .player #more").count(), 0, "the song bar has no Speed, Loop or Tools");
+  assert.equal(await page.locator("#speed").count(), 1, "the speed control stays in the page");
   await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
   const ids = await page.$$eval(".gg-bar button", bs => bs.map(b => [b.id, b.getAttribute("aria-label"), b.getBoundingClientRect().width >= 44 && b.getBoundingClientRect().height >= 44]));
-  assert.deepEqual(ids, [["gg-speed", "Song length: 3:20", true], ["gg-pause", "Pause", true], ["gg-loop", "Loop a section", true], ["gg-tools", "Tools", true]]);
-  await page.keyboard.press("Shift"); await page.click("#gg-tools"); await page.waitForSelector(".menu[aria-label='Tools']");
-  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+  assert.deepEqual(ids, [["gg-pause", "Pause", true]]);
+  assert.equal(await page.locator("#gg-speed, #gg-loop, #gg-tools").count(), 0);
 });
 
-test("4.111.0 Speed shows its setting, lit when not 1.0x, on the song page and in the Gig; the dial puts it back to 1.0x in one tap", { skip: skip() }, async t => {
+test("4.111.0 the speed value stays stored, and the playing screen does not show a Speed button", { skip: skip() }, async t => {
   const slow = { ...LONG, speed: 36 };
   const page = await phone(t, { ...LIB, songs: [slow], settings: { ...LIB.settings, v: 6, theme: "dark", speedMode: "multiplier", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#pw-speed"); await settled(page);
-  assert.equal((await page.innerText("#pw-speed .sp-val")).trim(), "0.8x");
-  assert.equal(await page.getAttribute("#pw-speed", "aria-label"), "Speed: 0.8x");
-  assert.ok(await page.$eval("#pw-speed", b => b.classList.contains("sp-off")), "lit while not at the real speed");
-  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-speed");
-  assert.equal((await page.innerText("#gg-speed .sp-val")).trim(), "0.8x", "the Gig's Speed says the same");
-  assert.ok(await page.$eval("#gg-speed", b => b.classList.contains("sp-off")));
-  await page.click("#gg-speed"); await page.waitForSelector(".dial .dial-reset:not([hidden])");
-  const r = await page.$eval(".dial-reset", b => { const x = b.getBoundingClientRect(); return { h: x.height, bottom: innerHeight - x.bottom, text: b.textContent }; });
-  assert.equal(r.text, "Back to 1.0x"); assert.ok(r.h >= 44, "a 44 px target"); assert.ok(r.bottom < 80, "at the bottom, in thumb reach");
-  await page.click(".dial-reset"); await page.waitForSelector(".dial", { state: "detached" });
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs[0].speed === 45);
-  await page.waitForFunction(() => document.querySelector("#pw-speed .sp-val")?.textContent === "1.0x");
-  assert.ok(!(await page.$eval("#pw-speed", b => b.classList.contains("sp-off"))), "not lit at 1.0x");
-  await page.click("#pw-speed"); await page.waitForSelector(".dial");
-  assert.equal(await page.locator(".dial-reset:not([hidden])").count(), 0, "no Back to 1.0x when it is already 1.0x");
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  assert.equal(await page.locator("#pw-speed, #gg-speed").count(), 0);
+  assert.equal(await page.locator("#speed").count(), 1, "the speed control stays on the page, hidden");
+  assert.equal(await page.inputValue("#speed"), "36", "the stored speed is still the control's value");
+  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
+  assert.equal(await page.locator(".gg-bar #gg-speed").count(), 0);
 });
 
 test("4.108.0 Green Room uses the same amp bar as Dark and Light, with Pause in the middle", { skip: skip() }, async t => {

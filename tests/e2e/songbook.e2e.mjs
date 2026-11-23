@@ -43,31 +43,35 @@ const songbook = async (t, theme, opts = {}, extra = {}) => {
   return page;
 };
 
-/* 4.113.0 (Graham, 2026-11-20): every look draws the earlier Songbook again: the title with Sets and the tuner, the card strip,
-   the filter switch, one-line rows with the status pill and the key, and + in the search bar */
-for (const theme of ["dark", "light", "green", "headliner"]) test(`4.113.0 (${theme}): the earlier Songbook layout, with Sets and the tuner in the header and + in the search bar`, { skip: skip() }, async t => {
-  const page = await songbook(t, theme);
+/* The agreed Songbook (r10-05): art tiles, chord chips, Add in the header, search under the title. Sets is a filter. */
+for (const theme of ["dark", "light", "green", "headliner"]) test(`agreed Songbook (${theme}): art tiles, chord chips, Add in the header, search under the title`, { skip: skip() }, async t => {
+  const page = await songbook(t, theme, theme === "green" ? { colorScheme: "light" } : theme === "headliner" ? { colorScheme: "dark" } : {});
   const got = await page.evaluate(() => ({
-    title: document.querySelector("#app .head .title")?.textContent, sets: !!document.querySelector(".head #setsbtn.sets-btn"), tuner: !!document.querySelector(".head #tunerbtn"),
-    add: !!document.querySelector(".dock .cmd #add.cmd-add"), back: !!document.getElementById("libback"),
-    oldRows: document.querySelectorAll("#app .rr-row, #app .rr-tile, #app .rr-sb-head, #app .rr-cc").length,
-    agreed: [document.querySelectorAll("#list .row.rr-line").length === document.querySelectorAll("#list .row").length, !!document.querySelector("#chips.rr-chips")],
-    k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .fit')?.textContent,
-    b: document.querySelector('#list .row[data-id="b"] .fit')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
+    title: document.querySelector("#app .head .title")?.textContent, tuner: !!document.querySelector(".head #tunerbtn"),
+    add: !!document.querySelector(".head #add.rr-sb-add"), back: !!document.getElementById("libback"),
+    tiles: document.querySelectorAll("#list .row.rr-row .rr-tile").length, rows: document.querySelectorAll("#list .row").length,
+    chips: !!document.querySelector("#chips.rr-chips #setsbtn"),
+    k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "),
+    needs: document.querySelector('#list .row[data-id="b"] .rr-needs')?.textContent,
+    chords: document.querySelector('#list .row[data-id="k"] .rr-cc')?.innerText.replace(/\s+/g, " ")
   }));
-  const rr = theme === "dark" || theme === "light";
-  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "LEARNING", b: "+ F", key: "G" }, "a Back button only in Green Room and Headliner; 4.113.1: Dark and Light draw each song as a card and the filters as capsules");
-  assert.match(got.k, /Kettle Hums.*June and the Kettles.*Nailed it/, "title, artist and level in words");
-  /* the chosen filter is said, not only filled; Almost (4.105.0) is there when a song is one chord away */
+  assert.equal(got.title, "Songbook");
+  assert.equal(got.tuner, true); assert.equal(got.add, true); assert.equal(got.back, false);
+  assert.equal(got.tiles, got.rows); assert.ok(got.tiles >= 1);
+  assert.equal(got.chips, true, "Sets is a filter chip");
+  assert.match(got.k, /Kettle Hums\s+June and the Kettles/);
+  assert.match(got.chords, /G/);
+  assert.equal(got.needs, "needs F");
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f, c.getAttribute("aria-pressed")])));
-  assert.deepEqual(await pressed(), { all: "true", can: "false", near: "false", learn: "false", fav: "false" });
-  if (rr) assert.equal(await page.evaluate(() => { const c = document.getElementById("chips"); return c.scrollWidth <= c.clientWidth + 1; }), true, "4.113.1: the filters fit on one row");
+  assert.equal((await pressed()).all, "true");
+  assert.equal((await pressed()).sets, "false");
   await page.click('#chips [data-f="learn"]'); await page.waitForSelector('#chips [data-f="learn"].on');
-  assert.deepEqual(await pressed(), { all: "false", can: "false", near: "false", learn: "true", fav: "false" });
+  assert.equal((await pressed()).learn, "true");
+  assert.equal((await pressed()).all, "false");
   /* the order down the page: header, card strip (when there is one), filters, then the list */
   const order = await page.$$eval("#app > *", els => els.map(e => e.id || e.className.split(" ")[0]).filter(x => ["head", "today", "chips", "list"].includes(x)));
   assert.deepEqual(order.filter(x => x !== "today"), ["head", "chips", "list"]);
-  if (order.includes("today")) assert.ok(order.indexOf("today") < order.indexOf("chips"), "the card strip sits above the filters");
+  if (order.includes("today")) assert.ok(order.indexOf("chips") < order.indexOf("today"), "the filters sit above the hint");
   await page.click("#tunerbtn"); await page.waitForSelector("#tn-say", { state: "attached" });
 });
 
@@ -82,7 +86,7 @@ for (const width of [320, 390]) test(`4.113.0 at ${width} px: rows at least 56 p
       rows: [...document.querySelectorAll("#list .row")].map(e => r(e).height), clear: btns.top >= title.bottom || title.right <= btns.left - 4, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   assert.deepEqual(m.small, [], "every header button (with its tap area) and row is at least 44 by 44");
-  assert.ok(m.rows.every(h => h >= 56), `rows: ${m.rows}`);
+  assert.ok(m.rows.every(h => h >= 72), `rows: ${m.rows}`);
   assert.ok(m.clear, "the title and the header buttons don't touch");
   assert.equal(m.overflow, false, "nothing runs off the side");
 });

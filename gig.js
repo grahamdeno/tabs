@@ -51,10 +51,8 @@ function shell(song) {
     <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
       ${["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look)
-        ? /* 4.108.0 (Graham, 2026-11-19): a control bar like an amp's: Speed, a lit Pause, then Loop and Tools as small knobs */
-          `<div class="gg-bar" role="group" aria-label="Song controls"><button class="gg-sb gg-speed" id="gg-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>
-          <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div>
-          <span class="gg-knobs"><button class="gg-sb gg-knob" id="gg-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button><button class="gg-sb gg-knob" id="gg-tools" aria-label="Tools"><i aria-hidden="true"></i><small>Tools</small></button></span></div>`
+        ? /* Pause only (Graham): Speed, Loop and Tools stay in the app, and are not on this bar. */
+          `<div class="gg-bar" role="group" aria-label="Song controls"><div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div></div>`
         : `<div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>`}
     </div>
     <div class="gg-prog" aria-hidden="true"><i id="gg-prog"></i></div>

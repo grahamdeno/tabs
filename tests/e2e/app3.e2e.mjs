@@ -498,7 +498,7 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   await page.click("#h-tips"); await page.waitForSelector(".mc-head");
   /* 4.104.0: the table is three tabs in Dark and Light; Guitars first, arrows move between them */
   assert.equal(await page.innerText(".mc-head h1"), "Merch");
-  assert.deepEqual(await page.$$eval(".mc-seg [role=tab]", ts => ts.map(t => [t.textContent, t.getAttribute("aria-selected")])), [["Guitars", "true"], ["Looks", "false"], ["Gear", "false"]]);
+  assert.deepEqual(await page.$$eval(".mc-seg [role=tab]", ts => ts.map(t => [t.textContent, t.getAttribute("aria-selected")])), [["Guitars", "true"], ["Louie", "false"], ["Gear", "false"]]);
   assert.equal(await page.isVisible("#mc-p-guitars"), true); assert.equal(await page.isVisible("#mc-p-gear"), false);
   await page.focus("#mc-t-guitars"); await page.keyboard.press("ArrowLeft");
   assert.equal(await page.getAttribute("#mc-t-gear", "aria-selected"), "true", "left from the first tab goes to the last");
