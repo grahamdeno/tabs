@@ -29,7 +29,7 @@ const SCREENS = [
   ["edit", "#/song/a", p => tool(p, "edit")],
   ["get the chords", "#/library", p => p.evaluate(() => import("/findai.js").then(m => m.chartLinkSheet({ title: "Lantern", artist: "Me" })))],
   ["paste back", "#/library", async p => { await p.evaluate(() => import("/app.js").then(m => m.expectPaste({ q: "Lantern", title: "Lantern" }))); await back(p); }],
-  ["merch", "#/merch"], ["merch item", "#/merch", p => p.click(".mc-fin[data-id=tweed]")],
+  ["merch", "#/merch"], ["merch item", "#/merch", async p => { if (await p.locator("#mc-t-looks").count()) await p.click("#mc-t-looks"); await p.click(".mc-drop[data-id=brick]"); }],
   ["charts", "#/charts"], ["tour", "#/tour"], ["band", "#/band"], ["profile", "#/you"], ["map", "#/playmap"],
   ["practice", "#/practice"], ["settings", "#/settings"], ["settings: playing", "#/settings/playing"], ["settings: look", "#/settings/look"],
   ["tuner from me", "#/you", p => p.click("#pf-r-tune")],

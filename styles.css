@@ -44,6 +44,12 @@ body {
   
   -webkit-font-smoothing: antialiased;
 }
+
+/* First paint, before the app draws: Louie on the Dark ground. Hidden once #app has the first screen. */
+.boot { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--bg, #141210); pointer-events: none; }
+.boot img { width: min(44vw, 200px); height: auto; display: block; }
+#app:not(:empty) ~ #boot { display: none; }
+
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 input, textarea { outline: none; }
@@ -2070,25 +2076,8 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 :root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-rim { opacity: .35; }
 /* not where he stands on a bright card in a dark look (the Band and Tour headers): the rim is for dark surfaces */
 :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-rim { opacity: 0; }
-/* Step 03b (10a: now art/louie/v3): Louie is the painted art. The light picture by default, the dark one (with its warm rim) on the
-   dark looks, and the light one again on the bright headers there. The code drawing (.lv-code) is the fallback: it shows
-   when he wears a finish from the Merch table (until Graham decides, Surprise 30), and in pictures made from the SVG. */
-.louie .lv-code, .louie .lv-art-d { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-d.lv-v3 { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .louie .lv-art-l.lv-v3 { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-l.lv-v3 { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .louie .lv-art-d.lv-v3 { display: none; }
-.fin:not(.fin-stock, .fin-black) .louie .lv-code, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-code { display: inline; }
-.fin:not(.fin-stock, .fin-black) .louie .lv-art-wrap, body[data-wear]:not([data-wear="black"]) .louie:not(.fin .louie) .lv-art-wrap { display: none; }
-/* 10a: the painted pictures are art/louie/v3 (black). The Blue finish (id black, the blue he wore first) shows art/louie/v2 instead,
-   with the same light, dark and bright-header rules. */
-.louie .lv-v2 { display: none; }
-:root .fin-black .louie .lv-v3, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v3 { display: none; }
-:root .fin-black .louie .lv-v2.lv-art-l, :root body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: none; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-l, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-l { display: inline; }
-:root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) .fin-black .louie .lv-v2.lv-art-d, :root:is([data-look="neon"], [data-look="headliner"]) :is(.bd-head, .tq-head) body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d { display: none; }
+/* Louie is one picture (art/louie/v4, the tweed Louie; Graham, 2026-11-19) in every look and on every surface. The earlier
+   rules that chose between light, dark, blue and drawn Louies went with them. */
 
 /* The Library drawer on the Road: a flat card in the palette (was tolex) */
 .rd-drawer { background-image: none; background-color: var(--card); border: 2px solid var(--rim); border-bottom: 0; box-shadow: 0 -6px 0 var(--rim), 0 -14px 30px rgba(0,0,0,.12); }
@@ -5824,3 +5813,205 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 
 /* The chord editor (Edit) reads the words at the size where the widest line fits on one row (--lyric-fit, as before), not the 34 pt playing size, so its chips stay on one row */
 :root:is([data-look="neon"], [data-look="festival"]) body.cedit .sheet.rr-slots { font-size: calc(var(--lyric-fit, 17px) * var(--wide, 1)); }
+
+/* The Road (agreed r10-01, r10-02; Graham, 2026-11-19): the tolex and the warm glow scroll with the guitars. The leather is drawn on
+   the scrolling path itself (background-attachment: local), and each guitar carries its own glow behind it, so the glow stays
+   pinned behind its guitar. Dark's leather is neutral black, not brown, closer to the agreed screen. */
+:root[data-look="neon"] .rd-path { background: linear-gradient(rgba(0, 0, 0, .5), rgba(0, 0, 0, .5)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px 180px, #000; background-blend-mode: normal, luminosity; background-attachment: local; }
+:root[data-look="festival"] .rd-path { background: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px, var(--rr-base); background-attachment: local; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck.road::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 8%; bottom: 4%; pointer-events: none; }
+:root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(255, 160, 60, .36) 0, rgba(255, 140, 40, .16) 45%, transparent 72%); }
+:root[data-look="festival"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .12) 45%, transparent 72%); }
+
+/* The streak card (from the Road header's streak, Dark and Light): the last seven days as dots. */
+.sk-week { display: flex; justify-content: space-between; gap: 6px; margin: 14px 0 4px; }
+.sk-day { display: grid; justify-items: center; gap: 6px; flex: 1; font: 600 12px var(--sans); color: var(--muted); }
+.sk-day i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rim); }
+.sk-day.on i { background: var(--rr-amber, var(--accent)); border-color: var(--rr-amber, var(--accent)); }
+.sk-day.now { color: var(--fg); }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-day { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-day.now { color: var(--rr-text); }
+.sk-week { margin-bottom: 16px; }
+
+/* The Road guitar sits up off the tolex (the agreed Road and guitar pictures): a close contact shadow and a soft wide one.
+   No picture is changed; the shadow is drawn under the painting. */
+:root[data-look="neon"] .rd-neck.road > svg.rd-base { filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .6)) drop-shadow(0 16px 26px rgba(0, 0, 0, .55)); }
+:root[data-look="festival"] .rd-neck.road > svg.rd-base { filter: drop-shadow(0 3px 4px rgba(60, 34, 10, .38)) drop-shadow(0 16px 26px rgba(60, 34, 10, .30)); }
+
+/* Me, 4.103.0 (agreed r10-06): no back button on a tab; Settings is a labelled gear at the top right; your name is the title and a
+   tap changes it; Milestones is one row that opens a sheet; the tip jar is a row in the list. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-top { display: flex; justify-content: flex-end; min-height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gear { display: grid; justify-items: center; gap: 2px; min-width: 52px; min-height: 48px; padding: 4px; color: var(--rr-text); text-decoration: none; background: none; border: 0; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gear svg { width: 26px; height: 26px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gear small { font: 600 var(--type-caption) / 1 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-name { all: unset; cursor: pointer; display: inline-block; min-height: 44px; line-height: 44px; font: inherit; color: inherit; overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-name:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-name.empty { color: var(--rr-text-2); font-weight: 600; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 14px; text-align: left; font: inherit; color: var(--rr-text); cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles-row .rr-row-t { flex: 1; font: 600 var(--type-body) / 1.2 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles-n { font: 600 var(--type-footnote) / 1 var(--sans); color: var(--rr-amber-text); }
+.rr-mdots { display: inline-flex; gap: 5px; }
+.rr-mdots i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--rr-text-2, var(--muted)); }
+.rr-mdots i.on { background: var(--rr-amber, var(--accent)); border-color: var(--rr-amber, var(--accent)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-opt { font-weight: 500; color: var(--rr-text-2); font-size: var(--type-footnote); }
+.nm-card input { width: 100%; min-height: 48px; margin: 12px 0 4px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--rim); background: var(--bg); color: var(--fg); font: 600 17px var(--sans); box-sizing: border-box; }
+:root:is([data-look="neon"], [data-look="festival"]) .nm-card input { border-color: var(--rr-outline); background: var(--rr-base); color: var(--rr-text); }
+.ms-card .ms-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 56vh; overflow-y: auto; margin: 10px 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .ms-card .pf-badge { background: linear-gradient(#F6EAD2, #D6C4A4); border: 1.5px solid #8C7858; box-shadow: none; color: #281E14; border-radius: 10px; min-height: 56px; }
+:root:is([data-look="neon"], [data-look="festival"]) .ms-card .pf-badge.locked { background: transparent; border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); }
+/* the gear sits at the top right beside your name, as in r10-06, not on a row of its own */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-top { position: relative; z-index: 2; height: 0; min-height: 0; margin: 0; padding: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-top .rr-gear { position: absolute; right: 0; top: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { padding-right: 56px; }
+/* the case lies open on its side (r10-06): wide and low, three compartments, each guitar standing in its slot */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { aspect-ratio: 116 / 168; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 92%; margin-bottom: 3%; }
+
+/* Merch, 4.104.0 (agreed Merch screen): the title in the middle between a round back button and the tips pill, then a
+   bronze-edged bar of three tabs. Dark and Light only. */
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-head { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 8px; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-head h1 { text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-back { width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid #8A6A44; background: radial-gradient(circle at 50% 35%, #3A332C, #1A1714); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 2px 6px rgba(0, 0, 0, .5); color: #F1E3C8; }
+:root[data-look="festival"] .mc-rr .mc-back { background: radial-gradient(circle at 50% 35%, #FFF9EE, #E9DCC4); color: #3A2A1A; border-color: #A88A5E; box-shadow: inset 0 1px 0 #fff, 0 2px 5px rgba(80, 50, 20, .25); }
+:root:is([data-look="neon"], [data-look="festival"]) .mc-rr .mc-head .mc-fans { gap: 8px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; border: 1.5px solid #8A6A44; background: linear-gradient(#E9D6B6, #C9AE86); color: #2A1E12; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 2px 6px rgba(0, 0, 0, .35); font: 700 var(--type-headline) / 1 var(--display); }
+.mc-coin { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #C88A4A, #7A4A22 70%); box-shadow: inset 0 0 0 2px #5A3416, inset 0 0 0 4px #B07A42; }
+.mc-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 14px 0 6px; padding: 4px; border-radius: 14px; background: linear-gradient(#1C1916, #120F0D); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8A6A44, inset 0 0 0 3.5px #2A2017, 0 3px 8px rgba(0, 0, 0, .4); }
+.mc-seg button { min-height: 44px; border: 0; border-left: 1px solid rgba(255, 255, 255, .08); background: none; color: var(--rr-text, var(--fg)); font: 600 var(--type-body, 16px) / 1 var(--sans); cursor: pointer; border-radius: 10px; }
+.mc-seg button:first-child { border-left: 0; }
+.mc-seg button[aria-selected="true"] { background: linear-gradient(#3A332C, #24201C); box-shadow: inset 0 0 0 1px #8A6A44, inset 0 1px 0 rgba(255, 255, 255, .15); border-left-color: transparent; }
+.mc-seg button[aria-selected="true"] + button { border-left-color: transparent; }
+.mc-seg button:focus-visible { outline: 2px solid var(--rr-amber, var(--accent)); outline-offset: -3px; }
+:root[data-look="festival"] .mc-seg { background: linear-gradient(#F3EADB, #E6D9C3); box-shadow: inset 0 0 0 1px #6A5236, inset 0 0 0 2.5px #B89A6E, 0 2px 6px rgba(80, 50, 20, .2); }
+:root[data-look="festival"] .mc-seg button { border-left-color: rgba(60, 40, 20, .15); }
+:root[data-look="festival"] .mc-seg button[aria-selected="true"] { background: linear-gradient(#FFFDF8, #F1E6D2); box-shadow: inset 0 0 0 1px #A88A5E, 0 1px 2px rgba(60, 40, 20, .25); }
+.mc-table[hidden] { display: none !important; }
+.mc-rr .mc-back svg { width: 22px; height: 22px; }
+
+/* Songbook, 4.105.0 (agreed Songbook): the hint is a slim one-line strip under the filters, a small Louie badge then the line */
+:root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { margin: var(--sp-2) 0 var(--sp-1); padding: 4px var(--sp-3) 4px 6px; min-height: 48px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .rr-badge { width: 34px; height: 34px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t small { display: block; font: 600 var(--type-caption) / 1.2 var(--sans); letter-spacing: .04em; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t { display: block; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t b { display: inline; font: 600 var(--type-subhead) / 1.25 var(--sans); color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t em { display: inline; font: 500 var(--type-subhead) / 1.25 var(--sans); font-style: normal; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-t b + em::before { content: ": "; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-hint .tdy-dots { margin-top: 0; }
+/* the four filters fit on one row on a 390 px phone, each still a 44 px target */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-chips { flex-wrap: wrap; gap: 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) #chips.rr-chips .chip { min-width: 44px; justify-content: center; padding: 6px 11px; gap: 5px; font-size: var(--type-subhead); }
+
+/* The Tour Map is the Tour tab (Graham, 2026-11-19): with the tab bar along the bottom, the map and its scene sheet end above it */
+body.tabbed .tm-page { bottom: var(--tabs, 96px); }
+.tm-month { display: grid; place-items: center; }
+
+/* Lamp lit (Graham, 2026-11-19): the chosen tab, and every selected control in Dark and Light, glows like a pilot lamp: a warm
+   amber light spreading from the middle and fading out, not a flat colour. The underline stays, so colour is never the only signal. */
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] { background: radial-gradient(ellipse 58% 62% at 50% 40%, rgba(255, 196, 92, .30) 0, rgba(255, 160, 50, .14) 45%, transparent 75%); color: var(--rr-amber-text); text-shadow: 0 0 10px rgba(255, 170, 60, .55); }
+:root[data-look="festival"] #tabs a[aria-current="page"] { background: radial-gradient(ellipse 58% 62% at 50% 40%, rgba(232, 128, 20, .26) 0, rgba(232, 128, 20, .10) 45%, transparent 75%); color: var(--rr-amber-text); text-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-ic { filter: drop-shadow(0 0 4px rgba(255, 176, 64, .85)) drop-shadow(0 0 10px rgba(255, 150, 40, .45)); }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"]::after { box-shadow: 0 0 8px 1px rgba(255, 170, 60, .7); }
+/* the same lamp on a chosen filter chip and on the Merch switch */
+:root[data-look="neon"] #chips.rr-chips .chip.on { background-color: var(--rr-amber); background-image: radial-gradient(ellipse 70% 90% at 50% 45%, #FFD38A 0, #F2A33C 55%, #C9761E 100%); box-shadow: 0 0 12px rgba(255, 160, 50, .45), inset 0 1px 0 rgba(255, 255, 255, .5); }
+
+/* The Merch switch is thin and short, as agreed (about 28 px on a phone): do not make it taller. The bar is 30 px with a 26 px lit
+   segment; the tap target reaches 44 px through an invisible area outside the drawn bar. */
+.mc-seg { padding: 2px; border-radius: 10px; margin: 16px 0 10px; }
+.mc-seg button { min-height: 26px; height: 26px; border-radius: 8px; font-size: var(--type-footnote, 14px); position: relative; }
+.mc-seg button::before { content: ""; position: absolute; inset: -9px 0; } /* a 44 px tap target around the 26 px drawn segment */
+.mc-seg button[aria-selected="true"] { background: radial-gradient(ellipse 70% 120% at 50% 40%, rgba(255, 196, 110, .16) 0, transparent 70%), linear-gradient(#3A332C, #24201C); }
+
+/* The Gig's control bar, 4.108.0 (Graham, 2026-11-19): a dark grille panel with a chrome edge, like an amp's control strip.
+   Speed on the left, a round Pause in the middle lit by an amber lamp ring, and Loop and Tools as small knobs on the right.
+   It fades with the other controls while you play, and steps aside while paused (the page's own bar is there then). */
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: min(100%, 400px); margin: 0 auto; padding: 10px 14px 8px; border-radius: 16px;
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 5px), linear-gradient(#1A1715, #0E0C0B);
+  box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 8px 18px rgba(0, 0, 0, .5); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar small { display: block; margin-top: 4px; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); color: #EADBC0; text-align: center; }
+.gg-sb { display: grid; justify-items: center; align-content: center; min-width: 52px; min-height: 52px; padding: 2px 4px; border: 0; background: none; color: #EADBC0; cursor: pointer; }
+.gg-speed { justify-self: start; }
+.gg-speed svg { width: 30px; height: 30px; color: #D9C9AC; }
+.gg-knobs { justify-self: end; display: flex; gap: 6px; }
+.gg-knob i { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 42% 35%, #8F8A84 0, #4A4642 55%, #2A2725 100%); box-shadow: 0 0 0 2px #1A1816, 0 0 0 3.5px #6B655E, 0 3px 5px rgba(0, 0, 0, .6); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar .gg-pod { display: grid; justify-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar .gg-pause { width: 60px; height: 60px; border-radius: 50%; color: #EADBC0;
+  background: radial-gradient(circle at 45% 38%, #6B6560 0, #3A3633 55%, #22201E 100%);
+  box-shadow: 0 0 0 3px #1A1816, 0 0 0 5px #F2A33C, 0 0 14px 6px rgba(255, 166, 60, .45), 0 0 30px 10px rgba(255, 140, 40, .18); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar .gg-pause svg { width: 22px; height: 22px; fill: currentColor; }
+.gg-sb:focus-visible, .gig .gg-bar .gg-pause:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; border-radius: 12px; }
+.gig .gg-bar { transition: opacity .4s, visibility 0s; }
+.gig.idle .gg-bar { opacity: 0; visibility: hidden; transition: opacity .4s, visibility 0s .4s; }
+body.held .gig .gg-bar { display: none; }
+@media (prefers-reduced-motion: reduce) { .gig .gg-bar, .gig.idle .gg-bar { transition: none; } }
+
+/* 4.109.0: the song page's bar is the amp-style bar in Dark and Light (Speed, a round lamp-lit Play, Loop, Tools), the same as the
+   Gig's while playing. Play keeps its spoken name; its label shows small under the button. */
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .pw.glass:has(.rr-amp) { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 5px), linear-gradient(#1A1715, #0E0C0B); border: 0; border-radius: 16px; overflow: visible;
+  box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 8px 18px rgba(0, 0, 0, .5); background-color: #141210; }
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .player.rr-amp { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: none; align-items: center; height: auto; padding: 8px 14px 6px; gap: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp > * { grid-area: auto; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp .gg-speed { grid-column: 1; grid-row: 1; justify-self: start; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play { grid-column: 2; grid-row: 1; flex: none; width: 60px; height: 60px; min-width: 0; padding: 0; border-radius: 50%; color: #EADBC0; font-size: 0;
+  background: radial-gradient(circle at 45% 38%, #6B6560 0, #3A3633 55%, #22201E 100%);
+  box-shadow: 0 0 0 3px #1A1816, 0 0 0 5px #F2A33C, 0 0 14px 6px rgba(255, 166, 60, .45), 0 0 30px 10px rgba(255, 140, 40, .18); margin-bottom: 14px; position: relative; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play::before, html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play::after { display: none; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play svg { width: 22px; height: 22px; fill: currentColor; margin: 0; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span { display: block; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); font: 600 var(--type-footnote, 13px) / 1 var(--sans); letter-spacing: 0; color: #EADBC0; white-space: nowrap; text-transform: capitalize; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span .pw-with { display: block; margin-top: 2px; font: 600 11px / 1.1 var(--sans); letter-spacing: .02em; color: #CDBB9A; opacity: 1; } /* what Play plays with (the recording, the bass drum) stays said */
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp :is(#more, #pw-loop) { grid-row: 1; height: auto; width: auto; border: 0; background: none; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp #pw-loop { grid-column: 3; justify-self: end; margin-right: 58px; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp #more { grid-column: 3; justify-self: end; position: relative; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp small { display: block; margin-top: 4px; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); color: #EADBC0; text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp #more .newdot { position: absolute; top: 2px; right: 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp .dialbtn { display: none; } /* Speed opens the same dial */
+/* in a set, the set dial stays (song 2 of 5, sweep to pick a song), beside Speed, so the left side mirrors Loop and Tools */
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .player.rr-amp .setdial { grid-column: 1; grid-row: 1; justify-self: start; margin-left: 58px; height: auto; min-height: 52px; min-width: 52px; padding: 2px 4px; border: 0; background: none; box-shadow: none; color: #EADBC0; display: grid; justify-items: center; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .player.rr-amp .setdial svg { width: 26px; height: 26px; }
+/* 4.108.1: the Road scrolls up and down only. Each guitar's glow reaches past its sides, which made the path wide enough to
+   drag sideways on a phone; the path now clips anything past its sides and takes only vertical pans. */
+.rd-path { overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y; }
+
+/* 4.111.0 (Graham, 2026-11-20): Speed in the amp bar shows its setting (1.0x, 0.8x, or the song length) and is lit amber when the
+   page isn't at the song's real speed; the dial has a Back to 1.0x button at the bottom left, clear of the meter. */
+.gg-speed .sp-val { font-variant-numeric: tabular-nums; }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off svg { color: #FFB547; filter: drop-shadow(0 0 6px rgba(255, 166, 60, .6)); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off small { color: #FFB547; }
+.dial-reset { position: absolute; left: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 112px; min-height: 48px; padding: 8px 12px; border: 0; border-radius: 12px;
+  background: #2A2622; color: #FFE2B0; font: 600 var(--type-footnote, 14px) / 1.15 var(--sans, system-ui); box-shadow: inset 0 0 0 1.5px #8E8A84, 0 4px 10px rgba(0, 0, 0, .5); cursor: pointer; }
+.dial-reset:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; }
+
+/* 4.113.0 and 4.113.1 (Graham, 2026-11-20): the Songbook is the earlier layout again (title with Sets and the tuner, the card
+   strip, the filters, the backup card, one-line rows with the status and the key), drawn in Dark and Light in the agreed
+   Road Ready components (r10-05): the hint strip and capsule chips above, outlined plates in the header, a card per song. */
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .title { font: 700 clamp(26px, 8.6vw, 34px) / 1.1 var(--display); letter-spacing: -.01em; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head :is(.btn.sets-btn, .ib.chunky-tune) { min-height: 44px; height: 44px; box-sizing: border-box; border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn { padding: 0 16px; border-radius: var(--r-chip); font: var(--type-subhead-w) var(--type-subhead) / 1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn.on { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .ib.chunky-tune { width: 44px; border-radius: 50%; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .ib.chunky-tune:active { transform: none; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { margin-top: var(--sp-3); }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips { margin-bottom: var(--sp-1); }
+:root:is([data-look="neon"], [data-look="festival"]) .bk.glass { border: 1px solid var(--rr-hairline); background: var(--rr-card); box-shadow: none; border-radius: var(--r-card); }
+/* a card per song: title and artist on the left, the status and the key as plate chips on the right */
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-line) { background: none; border: 0; box-shadow: none; border-radius: 0; overflow: visible; display: flex; flex-direction: column; gap: var(--sp-2); padding: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-line) .sw { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) .list .row.rr-line { display: flex; align-items: center; gap: var(--sp-2); min-height: 64px; box-sizing: border-box; padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4); border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .list .row.rr-line + .row.rr-line { border-top: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .txt { flex: 1 1 auto; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .t { font: 600 var(--type-headline) / 1.25 var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .a { font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .a .st { color: var(--rr-amber-text); font-weight: 600; background: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .heart { width: 16px; height: 16px; color: var(--rr-amber-text); fill: currentColor; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line :is(.fit, .k) { flex: none; min-height: 28px; min-width: 28px; box-sizing: border-box; padding: 0 10px; border-radius: var(--r-chip); display: inline-grid; place-items: center; font: 600 var(--type-footnote) / 1 var(--sans); letter-spacing: 0; text-transform: none; background: var(--rr-plate-top); border: 1px solid var(--rr-plate-edge); color: var(--rr-plate-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .fit.learn { background: transparent; border: 1.5px solid var(--rr-amber-text); color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .fit.one { background: var(--rr-amber); border-color: var(--rr-amber-text); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .k { padding: 0 8px; }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .bk-b .btn { min-height: 44px; height: 44px; padding: 0 18px; border-radius: var(--r-chip); box-shadow: none; font: var(--type-subhead-w) var(--type-subhead) / 1 var(--sans); border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .bk-b .btn.primary { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .bk-b .btn::before { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .tile { background: color-mix(in srgb, var(--rr-amber) 14%, transparent); color: var(--rr-amber-text); }
+/* the filters stay on one row, as in the earlier layout: slimmer capsules that still take a 44 px tap through ::after */
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips { flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 4px 0; margin-top: var(--sp-2); }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip { position: relative; min-height: 36px; padding: 4px 9px; font: 600 var(--type-footnote) / 1.1 var(--sans); white-space: nowrap; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip::after { content: ""; position: absolute; inset: -4px 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip svg { width: 16px; height: 16px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip[data-f="fav"] { min-width: 36px; padding: 4px 9px; }

@@ -319,7 +319,9 @@ test("Tour Map: on by default on plain ground, no location or map pictures until
   await page.click("#tm-info"); await page.waitForSelector("#tm-forget");
   await page.click("#tm-forget"); await page.waitForSelector("#tm-flag");
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs.spot.v1")), null);
-  await page.click("#back"); await page.waitForFunction(() => !document.body.classList.contains("tm-open"));
+  /* the Tour Map is the Tour tab: no Back button; the month's tour is a button on it */
+  assert.equal(await page.locator("#back").count(), 0);
+  await page.click("#tm-month"); await page.waitForFunction(() => !document.body.classList.contains("tm-open"));
 });
 
 test("A run that stops early is not a play", { skip: skip() }, async t => {
@@ -400,7 +402,8 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
   /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0) and Your band (4.7.0), from Me since Road Ready 04; the gear on Me reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
-  await page.click("#tabs [data-tab=tour]"); await page.waitForSelector(".tq-head");
+  await page.click("#tabs [data-tab=tour]"); await page.waitForSelector("#tm-month"); /* the Tour tab opens the Tour Map; the month's tour is a button on it */
+  await page.click("#tm-month"); await page.waitForSelector(".tq-head");
   assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
   assert.match(await page.innerText(".tq-req"), /REQUEST LINE[\s\S]*asked for/);
   assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the Friend quest");
@@ -508,16 +511,21 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.ok(fans >= 1200, "4.70.0: the fans you had to spend became tips");
   assert.ok(+(await page.innerText("#h-fans")).replace(/\D/g, "") >= 1200, "and your fans stay");
   await page.click("#h-tips"); await page.waitForSelector(".mc-head");
+  /* 4.104.0: the table is three tabs in Dark and Light; Guitars first, arrows move between them */
+  assert.equal(await page.innerText(".mc-head h1"), "Merch");
+  assert.deepEqual(await page.$$eval(".mc-seg [role=tab]", ts => ts.map(t => [t.textContent, t.getAttribute("aria-selected")])), [["Guitars", "true"], ["Looks", "false"], ["Gear", "false"]]);
+  assert.equal(await page.isVisible("#mc-p-guitars"), true); assert.equal(await page.isVisible("#mc-p-gear"), false);
+  await page.focus("#mc-t-guitars"); await page.keyboard.press("ArrowLeft");
+  assert.equal(await page.getAttribute("#mc-t-gear", "aria-selected"), "true", "left from the first tab goes to the last");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "mc-t-gear");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
-  await page.click(".mc-fin[data-id=tweed]"); await page.waitForSelector(".mt-sheet");
-  assert.match(await page.innerText(".mt-sheet"), /Tweed Louie[\s\S]*COSTS[\s\S]*600/);
-  await page.click("#mt-buy"); await page.waitForSelector(".mc-fin.on[data-id=tweed]");
-  assert.equal(await page.evaluate(() => document.body.dataset.wear), "tweed", "Louie wears it everywhere");
-  assert.equal(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, ""), fans - 600);
-  await page.click(".mc-fin[data-id=gold]"); await page.waitForSelector(".mt-sheet");
-  assert.match(await page.innerText(".mt-acts"), /MORE IN TIPS TO GO/i, "can't afford Gold top yet");
-  await page.click("#mt-not");
+  /* 4.102.0: Louie's finishes are off the table (the tweed Louie); a backdrop is bought and put on instead */
+  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 0, "no Louie finishes");
+  await page.click("#mc-t-looks"); await page.click(".mc-drop[data-id=brick]"); await page.waitForSelector(".mt-sheet");
+  assert.match(await page.innerText(".mt-sheet"), /Brick wall[\s\S]*COSTS[\s\S]*300/);
+  await page.click("#mt-buy"); await page.waitForSelector(".mc-drop.on[data-id=brick]");
+  assert.equal(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, ""), fans - 300);
   await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-charts"); await settled(page);
   assert.equal(await page.getAttribute("#pf-r-merch", "href"), "#/merch", "Road Ready 04: the Merch table is a row on Me (More is gone; 4.16.2's stat bar way in stays)");
   await page.click("#pf-r-charts"); await page.waitForSelector("#ch-take");
@@ -525,7 +533,7 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).charts.battle.result, null, { timeout: 3000 });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.equal(saved.charts.battle.result, undefined, "the battle is on again");
-  assert.deepEqual([saved.merch.own.take || 0, saved.merch.own.rain || 0, saved.merch.louie], [0, 0, "tweed"], "both used");
+  assert.deepEqual([saved.merch.own.take || 0, saved.merch.own.rain || 0, saved.merch.backdrop], [0, 0, "brick"], "both used, and the backdrop is on");
 });
 
 test("4.35.0 the Road's headline: a tap opens its card, which names a song that fits; Other songs lists the rest", { skip: skip() }, async t => {
@@ -694,7 +702,7 @@ for (const theme of ["dark", "light"]) {
   test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
     const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
     const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
-    assert.deepEqual(heads, ["Gear", "Louie's finish", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "nothing existing moved; the 9b builder entry sits between Looks and the shop");
+    assert.deepEqual(heads, ["Gear", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "Louie's finishes are off the table since 4.102.0; the rest keeps its order");
     assert.equal(await page.locator(".mc-gt").count(), 16);
     const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
     /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */

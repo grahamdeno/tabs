@@ -5,7 +5,7 @@
 //   paintTabs(name)  shows the tab bar with one tab current; hideTabs() takes it away
 //   (Road Ready 04: five tabs, Road, Songbook, Rehearse, Tour and Me; the places that were on the More sheet are rows on Me)
 //   openMore()       a sheet of the places that aren't tabs, the most used nearest the thumb (4.16.0): Settings at the top, Songbook at the bottom; the Merch table opens from the tips in the stat bar (4.16.2)
-import { Tabs, fameSettle, fansNow, openingOn, playSongs, playableSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
+import { Tabs, fameSettle, fansNow, openingOn, playSongs, rainSettle, streakOf, tipsOf, venueNow } from "./core.js";
 import { esc, icon, layer, toast } from "./ui.js";
 import { data, go, openTuner, route, tunedRecently } from "./app.js";
 import { guitarIcon, buzz } from "./rock.js";
@@ -57,11 +57,10 @@ const ST_ICON = {
 };
 export function rrStats() {
   settleStats();
-  const st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data), can = playableSongs(data).now;
+  const st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data);
   return `<div class="hud rr-stats" role="group" aria-label="Your stats">
-    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${ST_ICON.streak}<span>${st.days}</span></button>
-    <button id="h-songs" class="h-songs" aria-label="${n(can)} song${can === 1 ? "" : "s"} you can play. Open the Songbook">${ST_ICON.songs}<span>${n(can)}</span></button>
-    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open your profile">${ST_ICON.fans}<span>${n(fans)}</span></button>
+    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Show your streak">${ST_ICON.streak}<span>${st.days}</span></button>
+    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open the Tour Map">${ST_ICON.fans}<span>${n(fans)}</span></button>
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${ST_ICON.tips}<span>$${n(tips)}</span></button>
   </div>`;
 }
@@ -74,10 +73,12 @@ export function bindStatBar() {
   for (const k of ["venue", "streak", "fans", "tips"]) $("h-" + k)?.addEventListener("click", () => learned(k));
   $("h-venue")?.addEventListener("click", () => go("#/playmap"));
   /* 4.16.0: the guitar rocks and the phone taps before your profile opens */
-  $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => go("#/you"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
-  $("h-fans")?.addEventListener("click", () => go("#/you"));
+  /* 4.16.0: the guitar rocks and the phone taps. In Dark and Light (Graham, 2026-11-19) the streak then shows a small card and
+     fans open the Tour Map; neither opens your profile. Green Room and Headliner keep the profile. */
+  const rr = $("h-streak")?.closest(".rr-stats");
+  $("h-streak")?.addEventListener("click", e => { const b = e.currentTarget; buzz("rock"); b.classList.add("go"); setTimeout(() => { b.classList.remove("go"); rr ? streakCard() : go("#/you"); }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420); });
+  $("h-fans")?.addEventListener("click", () => go(rr ? "#/playmap" : "#/you"));
   $("h-tips")?.addEventListener("click", () => go("#/merch"));
-  $("h-songs")?.addEventListener("click", () => go("#/library"));
   statNotices();
 }
 export function statNotices() {
@@ -95,6 +96,19 @@ export function statNotices() {
 /* ---- the tab bar ---- */
 /* Road Ready 04: five tabs, our own line icons. 24 px grid shown at 28 px, a 1.9 stroke with round caps and joins, currentColor. The shapes
    marked tb-fill are tinted in when the tab is current (the icon sheet's "active = fill + amber"). No lamps, gauges or picks. */
+/* The streak card: how many days in a row, the last seven days, and what keeps it going. */
+function streakCard() {
+  const st = streakOf(playSongs(data)), d = st.days;
+  const days = ["S", "M", "T", "W", "T", "F", "S"], today = new Date().getDay();
+  layer.innerHTML = `<div class="scrim" id="sk-scrim"></div><div class="panel card sk-card" role="dialog" aria-label="Your gig streak">
+    <h2>${d ? `${d} day${d === 1 ? "" : "s"} in a row` : "No streak yet"}</h2>
+    <p class="tm-line">${d ? (st.today ? "You played today, so your streak is safe." : "Play a song through today to keep it going.") : "Play a song through today to start one."}</p>
+    <div class="sk-week" role="img" aria-label="The last seven days: ${st.week.filter(Boolean).length} played">${st.week.map((on, i) => `<span class="sk-day${on ? " on" : ""}${i === 6 ? " now" : ""}"><i></i>${days[(today + i + 1) % 7]}</span>`).join("")}</div>
+    <div class="actions"><button class="btn primary" id="sk-x">Done</button></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("sk-scrim").onclick = close; document.getElementById("sk-x").onclick = close;
+  document.getElementById("sk-x").focus();
+}
 const ICON = body => `<svg class="tb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 const TABS = [
   /* Road: a short fretboard (two frets) with a zigzag road joining three stops, as in the icon sheet's "Fretboard + stops" */
@@ -104,7 +118,7 @@ const TABS = [
   /* Rehearse: a metronome, a trapezoid body with the arm leaning */
   ["rehearse", "#/practice", "Rehearse", ICON(`<path class="tb-fill" d="M9 3h6l4 18H5z"/><path d="M12 17.5L15.2 7"/><circle cx="14" cy="11" r="1.3" fill="currentColor" stroke="none"/><path d="M8.2 21h7.6"/>`)],
   /* Tour: a tour van from the side, two wheels, an amp on the roof */
-  ["tour", "#/tour", "Tour", ICON(`<path class="tb-fill" d="M2.5 17v-5.5L5 8h9.5l4.5 3.5h2.5V17h-2.4M14.9 17H9.1M4.9 17H2.5"/><path d="M8.5 4.5h5V8h-5zM9 8v3.5h10"/><circle cx="7" cy="17.5" r="2.1"/><circle cx="17" cy="17.5" r="2.1"/>`)],
+  ["tour", "#/playmap", "Tour", /* Graham, 2026-11-19: the Tour tab opens straight onto the Tour Map; the month's tour is a button on it */ ICON(`<path class="tb-fill" d="M2.5 17v-5.5L5 8h9.5l4.5 3.5h2.5V17h-2.4M14.9 17H9.1M4.9 17H2.5"/><path d="M8.5 4.5h5V8h-5zM9 8v3.5h10"/><circle cx="7" cy="17.5" r="2.1"/><circle cx="17" cy="17.5" r="2.1"/>`)],
   /* Me: a backstage pass hanging from a U-shaped lanyard */
   ["me", "#/you", "Me", ICON(`<path d="M6.5 2.5c0 3.5 1.6 5.2 5.5 5.2s5.5-1.7 5.5-5.2"/><rect class="tb-fill" x="6.5" y="8" width="11" height="13.5" rx="2.8"/><circle cx="12" cy="13" r="1.9"/><path d="M8.9 19.2c.4-2 1.7-3 3.1-3s2.7 1 3.1 3"/>`)]
 ];
@@ -143,5 +157,5 @@ export function openMore() {
 }
 
 /* which pages show the tab bar, and which tab each one lights. Songbook is a tab; Your band, Charts, the Merch table and Support are reached from Me, so Me stays lit on them. */
-export const TABBED = new Set(["road", "library", "tour", "practice", "you", "charts", "band", "merch", "support"]);
-export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me" })[name] || name;
+export const TABBED = new Set(["road", "library", "tour", "playmap", "practice", "you", "charts", "band", "merch", "support"]);
+export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me", playmap: "tour" })[name] || name;

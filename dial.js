@@ -31,6 +31,7 @@ function angleOf(x, y) {
  *  o.label                accessible name
  *  o.marks                optional values to label on the scale
  *  o.event                the pointerdown that opened it (to sweep straight away)
+ *  o.reset                optional { value, label }: a button at the bottom that puts the value back (4.111.0)
  */
 export function openDial(o) {
   closeDial();
@@ -65,6 +66,14 @@ export function openDial(o) {
     <text class="dial-big" x="${fmt(bx + bw / 2)}" y="${fmt(by + 37)}" text-anchor="middle" filter="url(#dial-glow)"></text>
     <text class="dial-small" x="${fmt(bx + bw / 2)}" y="${fmt(by + 55)}" text-anchor="middle"></text>`;
   layer.appendChild(svg);
+  let resetBtn = null;
+  if (o.reset) {
+    resetBtn = document.createElement("button");
+    resetBtn.className = "dial-reset"; resetBtn.type = "button"; resetBtn.textContent = o.reset.label;
+    resetBtn.addEventListener("pointerdown", e => e.stopPropagation());
+    resetBtn.addEventListener("click", e => { e.stopPropagation(); set(o.reset.value); finish(); });
+    layer.appendChild(resetBtn);
+  }
   document.body.appendChild(layer);
   requestAnimationFrame(() => layer.classList.add("on"));
 
@@ -93,6 +102,7 @@ export function openDial(o) {
     const r = o.read(value);
     big.textContent = r.big; small.textContent = r.small || "";
     layer.setAttribute("aria-valuenow", value); layer.setAttribute("aria-valuetext", `${r.big}${r.small ? `, ${r.small}` : ""}`);
+    if (resetBtn) resetBtn.hidden = value === snap(o.reset.value);
   };
   paint();
 

@@ -161,6 +161,22 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
   assert.equal(await page.locator(".cover img").first().getAttribute("src"), png);
 });
 
+/* 4.100.1: Graham restored a backup that wore Headliner and the whole app went back to the screens from before the design pass */
+for (const [name, settings, merch, want] of [
+  ["an old backup that wore Headliner comes back in the new look (Auto, so Dark on a dark phone)", { v: 6, theme: "headliner" }, { has: ["headliner"], lconv: 1, hlseen: 1 }, { theme: "dark", look: "neon", saved: "auto" }],
+  ["a backup that owns and wears Green Room keeps Green Room", { v: 6, theme: "green" }, { has: ["green"], lconv: 1 }, { theme: "light", look: "green", saved: "green" }]
+]) test(`restoring a backup: ${name}`, { skip: skip() }, async t => {
+  const page = await phone(t, undefined, { colorScheme: "dark" });
+  const backup = { songs: [{ id: "x", title: "Backup Song", body: "[Verse]\nG\nhello", format: "chords" }], sets: [], trash: [], settings: { ...settings, tipsSeen: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" }, merch };
+  await page.goto(base + "#/settings/library");
+  await page.locator("#file").setInputFiles({ name: "tabs-backup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup)) });
+  await page.waitForFunction(() => /Imported 1 song/.test(document.getElementById("toast")?.textContent || "") && JSON.parse(localStorage.getItem("tabs-v1")).songs[0]?.title === "Backup Song");
+  const got = await page.evaluate(() => ({ theme: document.documentElement.dataset.theme, look: document.documentElement.dataset.look, saved: JSON.parse(localStorage.getItem("tabs-v1")).settings.theme }));
+  assert.deepEqual(got, want);
+  await page.reload(); await page.waitForFunction(() => document.documentElement.dataset.look && document.getElementById("app")?.children.length);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.look), want.look, "still so after a reload");
+});
+
 test("Add opens a blank song in the editor; Save keeps it, Cancel removes it", { skip: skip() }, async t => {
   const page = await phone(t);
   const titles = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.map(s => s.title + (s.isNew ? "*" : "")));

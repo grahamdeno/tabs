@@ -3,20 +3,29 @@
 //   "once"   a player already past Opening night meets it once, on the Road (Louie asks); Skip keeps the default
 //   "full"   Your profile > Edit: all four tabs (Face, Hair, Fit, Guitar); every change saves as you tap it
 // The look, the patches and the guitar aren't picked here: the Road decides them (stageLook, patchesAll, guitarFor).
-// The preview is your guitarist on the cream "TONIGHT" poster; each option is a small poster bust of you with it.
-import { ME_BEARD, ME_DEFAULT, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_PATCHES, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
+// The preview is your guitarist on a "TONIGHT" stage card; each option is a small bust of you with it (2026-11-20: the
+// inked cartoon guitarist, with face shape, eyes, eye colour, brows, nose, glasses and freckles to pick).
+import { ME_BEARD, ME_BROWS, ME_DEFAULT, ME_EYES, ME_EYE_COL, ME_FACE, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_NOSE, ME_PATCHES, ME_SPECS, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
 import { ask, esc, haptic, layer, toast } from "./ui.js";
 import { data, go } from "./app.js";
-import { HAIR_COL, OUTFIT_COL, SKIN, guitarist } from "./guitarist.js";
+import { EYE_COL, HAIR_COL, OUTFIT_COL, SKIN, SKIN_ORDER, guitarist } from "./guitarist.js";
 import { guitarPic } from "./fretboard.js";
 import { selfieStart } from "./selfie.js";
 import { imgKey, makePortrait, portraitError, portraitNow, portraitSVG, removePortrait } from "./portrait.js";
 
 const NAME = { shag: "Shag", curly: "Curly", buzz: "Buzz", mohawk: "Mohawk", braids: "Braids", bob: "Bob", bun: "Bun", swoop: "Swoop", long: "Long", locs: "Locs", pixie: "Pixie", ponytail: "Ponytail", longhawk: "Long mohawk" };
 const BEARD = { none: "Clean", stubble: "Stubble", moustache: "Moustache", beard: "Beard" };
-const SKIN_NAME = ["Lightest", "Light", "Medium light", "Medium", "Medium dark", "Darkest"];
+const SKIN_NAME = ["Lightest", "Light", "Medium light", "Medium", "Medium dark", "Dark", "Deep", "Deepest", "Medium tan"];
+const FACE = { oval: "Oval", square: "Square", round: "Round", heart: "Heart" };
+const EYES = { round: "Round", wide: "Wide", narrow: "Narrow" };
+const BROWS = { natural: "Natural", thick: "Thick", arched: "Arched", straight: "Thin" };
+const NOSE = { wedge: "Wedge", button: "Button", bridge: "Long", broad: "Broad" };
+const SPECS = { none: "None", round: "Round", square: "Square", shades: "Shades" };
+/* the face parts: absent means the first of each list */
+const PARTS = { face: ME_FACE, eyes: ME_EYES, eyeCol: ME_EYE_COL, brows: ME_BROWS, nose: ME_NOSE };
+const partOf = (me, k) => me[k] ?? PARTS[k][0];
 const hide = svg => svg.replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
-const same = (a, b) => ["skin", "hair", "hairCol", "beard", "glasses", "top"].every(k => (a[k] ?? ME_DEFAULT[k]) === (b[k] ?? ME_DEFAULT[k]));
+const same = (a, b) => ["skin", "hair", "hairCol", "beard", "glasses", "top"].every(k => (a[k] ?? ME_DEFAULT[k]) === (b[k] ?? ME_DEFAULT[k])) && Object.keys(PARTS).every(k => partOf(a, k) === partOf(b, k)) && !a.freckles === !b.freckles;
 const DICE = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/></svg>`;
 const FLIP = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2.4"/><path d="M9 6L3 18h6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15 6l6 12h-6Z" fill="currentColor"/></svg>`;
 const pickOf = list => list[Math.floor(Math.random() * list.length)];
@@ -30,12 +39,20 @@ export function makerSheet({ mode = "full", done } = {}) {
   const set = (k, v) => { me = { ...me, [k]: v }; keep(); paint(); haptic(1); };
   const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : guitarist(me, { look, guitar, patches: patchesOf({ ...data, me: full ? me : data.me }), size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT" });
   const bust = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "bust", size: 56, look, flat: true }));
+  const close = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "face", size: 56, look }));
+  const thumbs = (key, list, names) => `<div class="gm-row gm-thumbs">${list.map(v => chip(key, v, names[v], partOf(me, key) === v, close({ [key]: v }) + `<span>${names[v]}</span>`)).join("")}</div>`;
   const chip = (key, v, label, on, inner, cls = "") => `<button class="gm-c${cls}${on ? " on" : ""}" data-k="${key}" data-v="${esc(String(v))}" aria-pressed="${on}" aria-label="${esc(label)}">${inner}</button>`;
-  const blots = (key, list, col, name) => `<div class="gm-row gm-blots" role="group" aria-label="${esc(name)}">${list.map((v, i) => { const c = key === "skin" ? SKIN[i] : col[v]; const val = key === "skin" ? i : v; return chip(key, val, `${name}: ${key === "skin" ? SKIN_NAME[i] : v}`, me[key] === val, `<i class="gm-blot" style="--ink:${c}"></i>`); }).join("")}</div>`;
+  const blots = (key, list, col, name) => `<div class="gm-row gm-blots" role="group" aria-label="${esc(name)}">${list.map(v => { const sk = key === "skin", c = sk ? SKIN[v] : col[v]; const on = sk ? me.skin === v : (PARTS[key] ? partOf(me, key) : me[key]) === v; return chip(key, v, `${name}: ${sk ? SKIN_NAME[v] : v}`, on, `<i class="gm-blot" style="--ink:${c}"></i>`); }).join("")}</div>`;
   const step = Math.min(openingStep(data) + 1, OPENING.length);
   function panel() {
-    if (tab === "face") return `<h3>Skin</h3>${blots("skin", SKIN, null, "Skin")}
-      <h3>Face</h3><div class="gm-row gm-thumbs">${ME_BEARD.map(b => chip("beard", b, BEARD[b], me.beard === b, bust({ beard: b }) + `<span>${BEARD[b]}</span>`)).join("")}${chip("glasses", !me.glasses, "Glasses", me.glasses, bust({ glasses: true }) + "<span>Glasses</span>")}</div>
+    if (tab === "face") return `<h3>Skin</h3>${blots("skin", SKIN_ORDER, null, "Skin")}
+      <h3>Face shape</h3>${thumbs("face", ME_FACE, FACE)}
+      <h3>Eyes</h3>${thumbs("eyes", ME_EYES, EYES)}
+      <h3>Eye colour</h3>${blots("eyeCol", ME_EYE_COL, EYE_COL, "Eye colour")}
+      <h3>Brows</h3>${thumbs("brows", ME_BROWS, BROWS)}
+      <h3>Nose</h3>${thumbs("nose", ME_NOSE, NOSE)}
+      <h3>Beard</h3><div class="gm-row gm-thumbs">${ME_BEARD.map(b => chip("beard", b, BEARD[b], me.beard === b, close({ beard: b }) + `<span>${BEARD[b]}</span>`)).join("")}${chip("freckles", !me.freckles, "Freckles", !!me.freckles, close({ freckles: true }) + "<span>Freckles</span>")}</div>
+      <h3>Glasses</h3><div class="gm-row gm-thumbs">${["none", ...ME_SPECS].map(g => { const on = g === "none" ? !me.glasses : me.glasses && (me.specs || "round") === g; return chip("specs", g, `Glasses: ${SPECS[g]}`, on, close(g === "none" ? { glasses: false } : { glasses: true, specs: g }) + `<span>${SPECS[g]}</span>`); }).join("")}</div>
       ${me.beard && me.beard !== "none" && me.beard !== "stubble" ? `<h3>Beard colour</h3><div class="gm-row gm-blots" role="group" aria-label="Beard colour">${ME_HAIR_COL.map(v => chip("beardCol", v, `Beard colour: ${v}`, (me.beardCol || me.hairCol) === v, `<i class="gm-blot" style="--ink:${HAIR_COL[v]}"></i>`)).join("")}</div>` : ""}`;
     if (tab === "hair") return `<h3>Hair</h3><div class="gm-row gm-thumbs gm-hair">${ME_HAIR.map(h => chip("hair", h, NAME[h], me.hair === h, bust({ hair: h }) + `<span>${NAME[h]}</span>`)).join("")}</div>
       <h3>Hair colour</h3>${blots("hairCol", ME_HAIR_COL, HAIR_COL, "Hair colour")}`;
@@ -61,7 +78,7 @@ export function makerSheet({ mode = "full", done } = {}) {
           <div class="gm-card"><div class="gm-prev" aria-live="polite">${prev()}</div>
           <button class="ib gm-rand" id="gm-rand" aria-label="Random guitarist">${DICE}</button>
           ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}</div>
-          <div class="gm-lou"><img src="art/louie/v3/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
+          <div class="gm-lou"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
         </div>
         <div class="gm-row gm-starts" role="group" aria-label="Start from">${ME_STARTERS.slice(0, 6).map((s, i) => chip("starter", i, `Starter ${i + 1}`, same(me, s), bust(s))).join("")}</div>
         <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? ' disabled aria-busy="true"' : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
@@ -80,13 +97,16 @@ export function makerSheet({ mode = "full", done } = {}) {
       else if (k === "skin") set("skin", +v);
       else if (k === "beardCol") { me = { ...me, beardCol: v === me.hairCol ? undefined : v }; keep(); paint(); haptic(1); }
       else if (k === "glasses") set("glasses", v === "true");
+      else if (k === "specs") { me = v === "none" ? { ...me, glasses: false } : { ...me, glasses: true, specs: v }; keep(); paint(); haptic(1); }
+      else if (k === "freckles") set("freckles", v === "true");
       else if (k === "lefty") set("lefty", v === "true");
       else if (k === "patch") { const cur = patchesOf({ ...data, me }).map(x => x.id), on = (me.patches?.length ? me.patches : []).includes(v); const base = me.patches?.length ? me.patches : cur; set("patches", on ? base.filter(x => x !== v) : [...base.filter(x => x !== v), v].slice(-ME_PATCHES)); }
       else set(k, v);
     }));
     layer.querySelectorAll(".gm [data-tab]").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab; paint(); layer.querySelector(`#gm-t-${tab}`)?.focus(); }));
     document.getElementById("gm-rand").onclick = () => {
-      me = { ...me, skin: Math.floor(Math.random() * SKIN.length), hair: pickOf(ME_HAIR), hairCol: pickOf(ME_HAIR_COL), top: pickOf(ME_TOP_COL), beard: Math.random() < .7 ? "none" : pickOf(ME_BEARD.slice(1)), glasses: Math.random() < .2 };
+      me = { ...me, skin: Math.floor(Math.random() * SKIN.length), hair: pickOf(ME_HAIR), hairCol: pickOf(ME_HAIR_COL), top: pickOf(ME_TOP_COL), beard: Math.random() < .7 ? "none" : pickOf(ME_BEARD.slice(1)), glasses: Math.random() < .2, specs: pickOf(ME_SPECS),
+        face: pickOf(ME_FACE), eyes: pickOf(ME_EYES), eyeCol: pickOf(ME_EYE_COL), brows: pickOf(ME_BROWS), nose: pickOf(ME_NOSE), freckles: Math.random() < .2 };
       keep(); paint(); haptic(1);
     };
     document.getElementById("gm-selfie")?.addEventListener("click", async () => {

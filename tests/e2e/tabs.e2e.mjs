@@ -8,7 +8,7 @@ import { phone, LIB, skip, useBrowser, base, settled } from "./harness.mjs";
 useBrowser();
 
 const libWith = (theme, settings = {}) => ({ ...LIB, settings: { ...LIB.settings, v: 6, theme, ...settings } });
-const TABS = [["road", "Road", "#/"], ["songbook", "Songbook", "#/library"], ["rehearse", "Rehearse", "#/practice"], ["tour", "Tour", "#/tour"], ["me", "Me", "#/you"]];
+const TABS = [["road", "Road", "#/"], ["songbook", "Songbook", "#/library"], ["rehearse", "Rehearse", "#/practice"], ["tour", "Tour", "#/playmap"], ["me", "Me", "#/you"]];
 
 /* WCAG contrast of two "rgb(r, g, b)" strings */
 const lum = c => { const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
@@ -91,7 +91,7 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
 
 test("Road Ready 04: deep links to the pages that left the bar still open them; Songbook is a tab and Me stays lit under its pages", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
-  for (const [hash, ready, lit] of [["#/library", "#libback", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
+  for (const [hash, ready, lit] of [["#/library", "#chips", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
     await page.evaluate(h => { location.hash = h; }, hash); await page.waitForSelector(ready);
     await page.waitForSelector(`#tabs [data-tab=${lit}][aria-current=page]`);
   }

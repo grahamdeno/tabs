@@ -19,7 +19,7 @@ import { roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, r
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave, haptic } from "./ui.js";
 import { guitarSVG, guitarPic } from "./fretboard.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed, openTools, openSpeedDial, openLoopPick, refreshSpeed } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
@@ -50,7 +50,12 @@ function shell(song) {
     <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
     <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
-      <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>
+      ${["neon", "festival"].includes(document.documentElement.dataset.look)
+        ? /* 4.108.0 (Graham, 2026-11-19): a control bar like an amp's: Speed, a lit Pause, then Loop and Tools as small knobs */
+          `<div class="gg-bar" role="group" aria-label="Song controls"><button class="gg-sb gg-speed" id="gg-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>
+          <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div>
+          <span class="gg-knobs"><button class="gg-sb gg-knob" id="gg-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button><button class="gg-sb gg-knob" id="gg-tools" aria-label="Tools"><i aria-hidden="true"></i><small>Tools</small></button></span></div>`
+        : `<div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>`}
     </div>
     <div class="gg-prog" aria-hidden="true"><i id="gg-prog"></i></div>
 `;
@@ -239,6 +244,10 @@ export function openGig(song, opts = {}) {
   gigHooks.resume = () => { if (gig === g) resume(); };
   gigHooks.leave = () => { if (gig === g) leave(); };
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
+  $("gg-speed")?.addEventListener("click", () => openSpeedDial());
+  if ($("gg-speed")) refreshSpeed(); /* 4.111.0: the Gig's Speed shows the setting too */
+  $("gg-loop")?.addEventListener("click", () => openLoopPick());
+  $("gg-tools")?.addEventListener("click", e => openTools(e.currentTarget));
   bindDrag(g);
   bindIdle(g);
   firstLine(g);

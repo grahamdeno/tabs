@@ -77,6 +77,9 @@ const gigsOn = song => canGig(song);
 /* 4.20.0: the face says what plays with you: the recording or the band (nothing when neither will) */
 const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDING" : beatMode() === "kick" ? "WITH THE BASS DRUM" : beatMode() === "click" ? "WITH THE METRONOME" : "";
 /* 4.52.0: a show you paused is held on the song page; Play picks it up again */
+/* 4.109.0 (Graham, 2026-11-19): in Dark and Light the song page's bar is the same amp-style bar as the Gig's: Speed, a round
+   lamp-lit Play, then Loop and Tools as small knobs. The wide Tools + RESUME bar is gone there. */
+const rrAmp = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
@@ -210,8 +213,10 @@ function renderViewer(id) {
     <div class="dock">
       <div class="pw glass float">
       <div class="looprow" id="looprow"></div>
-      <div class="player">
-        <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+      <div class="player${rrAmp() ? " rr-amp" : ""}">
+        ${rrAmp() ? `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>` : ""}
+        <button class="tl more tools${rrAmp() ? " gg-sb gg-knob" : ""}" id="more" aria-label="Tools" aria-haspopup="dialog">${rrAmp() ? `<i aria-hidden="true"></i><small>Tools</small>` : `${icon("sliders")}<span class="tl-w">Tools</span>`}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        ${rrAmp() ? `<button class="gg-sb gg-knob" id="pw-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button>` : ""}
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed" hidden>
@@ -236,6 +241,8 @@ function renderViewer(id) {
   });
   // One menu for everything about this song: text size, sets, edit, AI help, share, practice.
   app.querySelectorAll(".more").forEach(btn => btn.onclick = e => { e.stopPropagation(); songMenu(song, btn, draw); });
+  $("pw-speed")?.addEventListener("click", () => openSpeedDial());
+  $("pw-loop")?.addEventListener("click", () => openLoopPick());
   // Mastery: tap to cycle none, Learning, Solid, Nailed it (stored "got"), then none again.
   const paintStat = () => {
     const st = $("stat");
@@ -321,6 +328,14 @@ function renderViewer(id) {
     }
     const db = $("dialbtn")?.querySelector("span");
     if (db) db.textContent = $("sv").textContent;
+    /* 4.111.0 (Graham, 2026-11-20): the Speed button in the amp bar (song page and Gig) shows its setting, lit amber when the page isn't at 1.0x */
+    const off = !byLength() && Math.abs(speed.value / SPEEDS.medium - 1) >= 0.05;
+    for (const b of [$("pw-speed"), $("gg-speed")]) {
+      if (!b) continue;
+      const v = b.querySelector(".sp-val"); if (v) v.textContent = $("sv").textContent;
+      b.classList.toggle("sp-off", off);
+      b.setAttribute("aria-label", `${byLength() ? "Song length" : "Speed"}: ${$("sv").textContent}`);
+    }
   };
   showSpeed();
   speed.oninput = () => {
@@ -336,6 +351,7 @@ function renderViewer(id) {
     openDial({ min: +speed.min, max: +speed.max, step: dialStep(), value: +speed.value, label: "Song speed", event: e,
       marks: byLength() ? [2, 3, 4, 5, 6, 8, 10, 15].map(m => 540 - m * 60) : null,
       read: v => byLength() ? { big: mmss(540 - v), small: "SONG LENGTH" } : { big: (v / SPEEDS.medium).toFixed(1) + "x", small: "SPEED" },
+      reset: byLength() ? null : { value: SPEEDS.medium, label: "Back to 1.0x" }, /* 4.111.0: one tap back to the song's real speed */
       input: v => { speed.value = v; speed.oninput(); },
       done: (v, changed) => { if (changed) toast(byLength() ? `Length ${mmss(songLength(song))}` : `Speed ${$("sv").textContent}`, null, { label: "Undo", fn: () => {
         speed.value = was.v; song.duration = was.d; song.durationSet = was.set; song.speed = was.sp;
@@ -1333,6 +1349,9 @@ function songMenu(song, anchor, redrawSong) {
 const toolsAnchor = () => document.querySelector(".menu.tools") || moreBtn();
 /* Tools, from the paused gig. */
 function openTools(anchor) { if (viewing) songMenu(viewing, anchor, () => redraw?.()); }
+/* 4.108.0: the Gig's control bar (Dark and Light) asks the song page for the speed dial and a section loop */
+function openSpeedDial() { if (scroll.on) stopScroll(); songSpeed?.(); }
+function openLoopPick() { if (!viewing) return; if (gigHooks.on) gigHooks.leave?.(); setPracticing(viewing, true); startLoopPick(viewing); }
 
 // ---------- Find songs you don't have yet ----------
 // No match in the library: search the web for a chord sheet, then come back and
@@ -2017,7 +2036,7 @@ function renderRoute() {
   if (r.name === "road" || r.name === "library") lastHome = r.name;
   document.body.classList.toggle("is-home", r.name === "road");
   /* 4.0.0: the tab bar along the bottom of the main pages (not a lesson, a song or Settings). Road Ready 04: the Songbook is a tab */
-  const tabbed = ["road", "library", "tour", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id && r.id !== "neck"); /* 4.42.5: #/practice/neck is Rehearse, so it keeps the tab bar */
+  const tabbed = ["road", "library", "tour", "playmap", "charts", "band", "practice", "you", "merch", "support"].includes(r.name) && !(r.name === "practice" && r.id && r.id !== "neck"); /* 4.42.5: #/practice/neck is Rehearse, so it keeps the tab bar */
   if (!tabbed) document.body.classList.remove("tabbed");
   else lazy("hud.js").then(m => { if (route().name === r.name) m.paintTabs(m.tabFor(r.name)); });
   app.classList.remove("viewer");
@@ -2048,7 +2067,7 @@ function renderRoute() {
   else if (r.name === "tour") lazy("tour.js").then(m => { if (route().name === "tour") { m.renderTour(); window.scrollTo(0, 0); } });
   else if (r.name === "duel") lazy("duel.js").then(m => { if (route().name === "duel") { m.renderDuel(r.id); window.scrollTo(0, 0); } });
   else if (r.name === "charts") lazy("charts.js").then(m => { if (route().name === "charts") { m.renderCharts(); window.scrollTo(0, 0); } });
-  else if (r.name === "merch") lazy("merch.js").then(m => { if (route().name === "merch") { m.renderMerch(); window.scrollTo(0, 0); } });
+  else if (r.name === "merch") lazy("merch.js").then(m => { if (route().name === "merch") { if (r.id) m.merchTab(r.id); m.renderMerch(); window.scrollTo(0, 0); } }); /* 4.104.0: #/merch/looks opens a tab */
   else if (r.name === "support") lazy("support.js").then(m => { if (route().name === "support") { m.renderSupport(); window.scrollTo(0, 0); } });
   else if (r.name === "band") lazy("band.js").then(m => { if (route().name === "band") { m.renderBand(); window.scrollTo(0, 0); } });
   else { renderLibrary(); window.scrollTo(0, 0); if (searchNext) { searchNext = false; setTimeout(() => $("q")?.focus(), 60); } } /* the library always opens at its top */
@@ -2096,4 +2115,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, openSpeedDial, openLoopPick, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };

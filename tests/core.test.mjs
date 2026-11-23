@@ -646,6 +646,32 @@ test("importing a backup: only https links, and only image data for covers of se
   assert.equal(out.data.settings.lastTuned, 5);
 });
 
+test("importing a backup: Headliner does not come back on; the default Road Ready look stays", () => {
+  const hl = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "G\nla" }],
+    settings: { theme: "headliner", v: 6 },
+    merch: { has: ["headliner"], lconv: 1, hlseen: 1 }
+  });
+  assert.equal(hl.data.settings.theme, "auto", "Headliner becomes Auto");
+  assert.ok(hl.data.merch.has.includes("headliner"), "Headliner stays owned");
+
+  const dark = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "dark", v: 6 } });
+  assert.equal(dark.data.settings.theme, "dark", "Road Ready dark stays");
+
+  const light = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "light", v: 6 } });
+  assert.equal(light.data.settings.theme, "light", "Road Ready light stays");
+
+  const owned = C.cleanImport({
+    songs: [{ id: "a", title: "A", body: "G\nla" }],
+    settings: { theme: "green", v: 6 },
+    merch: { has: ["green"], lconv: 1, tspent: 400 }
+  });
+  assert.equal(owned.data.settings.theme, "green", "Green Room stays when owned and chosen");
+
+  const unowned = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "green", v: 6 } });
+  assert.equal(unowned.data.settings.theme, "auto", "Green Room without ownership becomes Auto");
+});
+
 test("importing a backup: old saves still migrate", () => {
   const out = C.cleanImport({ songs: [{ id: "a", title: "Old", tab: "e|---0---2---|\nB|---1---3---|\nG|---0---2---|\nD|---2---0---|", plays: [Date.now()] }], settings: { v: 1 } });
   const s = out.data.songs[0];
@@ -2289,73 +2315,6 @@ test("4.36.0 languages: Spanish and Russian genders, the sound of Russian kept, 
   assert.ok(C.germanBlocks(blocks, { lines: [ru[0]] }, 4).every(b => !b.tr), "only when asked");
 });
 
-test("4.39.1 Louie's hands: the thumbs up tips the thumb out, and the pointing hand leans toward the bubble", async () => {
-  const { louie, mittenOf } = await import("../louie.js");
-  /* Road Ready 03b: Louie has fingered hands again (Graham, 2026-11-17), the same shapes as the guitarist's, in blue Tolex like his arms.
-     These are the 4.86.0 checks on Louie's own hand, as they were before step 03, plus the same checks on the guitarist. */
-  const up = louie("cheer", { pose: "thumb" });
-  const tip = up.match(/<g class="lv-mit" fill="#292929"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
-  assert.ok(tip && +tip[1] < -4, "the thumb is on the side of the fist, not standing in the middle");
-  assert.match(up, /M2 -21\.5Q8 -20\.5 13\.5 -21\.5M2 -13\.5/, "the curled fingers show as creases");
-  assert.match(louie("happy", { pose: "point" }), /translate\(180 108\) rotate\(40\)/, "the pointing hand leans, never straight up");
-  const fist = mittenOf("thumb", "#DDA57A", "#AA8060", "#80604A", "#e8336e");
-  const gtip = fist.match(/<g fill="#DDA57A"><path d="M-11 -1C-13 -8 -14 -18 -13 -27C-14 -35 -15 -42 (-?[\d.]+) -46/);
-  assert.ok(gtip && +gtip[1] < -4, "the guitarist's thumb is on the side of the fist, not standing in the middle");
-  assert.match(fist, /M2 -21\.5Q8 -20\.5 13\.5 -21\.5M2 -13\.5/, "the guitarist's curled fingers show as creases");
-});
-
-/* Road Ready 03: Louie in code. The hard rule is one mouth, on the yellow panel; the grille is plain cloth. */
-const LOUIE_MOODS = ["happy", "cheer", "sleepy", "worried", "proud", "listen"], LOUIE_POSES = [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"];
-test("Road Ready 03: every mood and pose has exactly one mouth, drawn before the grille and inside the panel", async () => {
-  const { louie } = await import("../louie.js");
-  const nums = d => (d.match(/-?\d+(\.\d+)?/g) || []).map(Number);
-  for (const mood of [...LOUIE_MOODS, "no-such-mood"]) for (const pose of LOUIE_POSES) for (const size of [44, 60, 96, 112, 120, 400]) {
-    const svg = louie(mood, { pose, size }), where = `${mood}/${pose || "no arms"}/${size}`;
-    assert.equal((svg.match(/class="lv-mouth[ "]/g) || []).length, 1, `${where}: one mouth`);
-    const d = svg.match(/class="lv-mouth[^"]*" d="([^"]+)"/)[1];
-    /* every mouth starts between x 88 and 96 and y 54 and 60: on the panel (y 29 to 80), under the eyes (y 47) and above the knobs (y 71.5) */
-    const [x, y] = nums(d);
-    assert.ok(x >= 88 && x <= 96 && y >= 54 && y <= 60, `${where}: the mouth starts on the panel (${x}, ${y})`);
-    assert.ok(svg.indexOf("lv-mouth") < svg.indexOf("lv-cloth"), `${where}: the mouth is drawn with the panel, before the grille`);
-    /* after the cloth there is only the weave, the faint speaker circle, the grille's frame and the mittens */
-    const after = svg.slice(svg.indexOf('class="lv-cloth"'));
-    assert.deepEqual([...new Set((after.match(/class="([^"]+)"/g) || []).map(c => c.slice(7, -1)))].filter(c => !["lv-cloth", "lv-weave", "lv-cloth-sh", "lv-inks", "lv-nickel", "lv-mit-o", "lv-mit", "lv-mit-s", "lv-mit-l", "lv-cuff"].includes(c)), [], `${where}: nothing else on the grille`);
-    assert.equal((after.match(/class="lv-inks"/g) || []).length, 1, `${where}: the only ink line on the grille is its frame`);
-    /* review: the cloth's own parts can't carry a drawing either: one cloth, one inner shadow, and two weave shapes (the weave and the faint circle), both thin weave-grey lines */
-    const weave = after.match(/<[a-z]+ class="lv-weave"[^>]*>/g) || [];
-    assert.equal(weave.length, 2, `${where}: the weave and the speaker circle, nothing else in the weave's class`);
-    assert.ok(weave.every(w => /stroke="#5A5956"/.test(w) && /fill="none"/.test(w) && +w.match(/stroke-width="([\d.]+)"/)[1] <= 1.3), `${where}: weave lines are thin and weave-grey`);
-    assert.deepEqual([(after.match(/class="lv-cloth"/g) || []).length, (after.match(/class="lv-cloth-sh"/g) || []).length], [1, 1], `${where}: one cloth, one inner shadow`);
-    /* after the frame come only the corner caps (on the cabinet's corners, outside the grille) and the mittens */
-    const afterFrame = after.slice(after.indexOf('class="lv-inks"'));
-    assert.ok(!/lv-mouth|lv-ink"|lv-eye/.test(afterFrame), `${where}: no face part is drawn over the grille`);
-  }
-});
-test("Road Ready 03b: hands with fingers in black Tolex, the same shapes as the guitarist's; no cheeks, no lamp, no tongue, and the same signature as before", async () => {
-  const { louie, mittenOf } = await import("../louie.js");
-  const src = fs.readFileSync(new URL("../louie.js", import.meta.url), "utf8");
-  assert.match(src, /const HANDS = Object\.fromEntries\(Object\.entries\(HAND_PARTS\)\.map\(\(\[name, parts\]\) => \[name, \(\) => louieHand\(\.\.\.parts\)\]\)\);/, "Louie's hands are built from the shared hand shapes");
-  assert.match(src, /const GUITARIST_HANDS = Object\.fromEntries\(Object\.entries\(HAND_PARTS\)\.map\(\(\[name, parts\]\) => \[name, \(\) => guitaristMitt\(\.\.\.parts\)\]\)\);/, "and so are the guitarist's");
-  const paths = h => (h.match(/ d="[^"]+"/g) || []).join("");
-  for (const sign of ["fist", "horns", "thumb", "point", "wave", "peace"]) {
-    /* the hand Louie draws for each sign has exactly the guitarist's outlines (shape, creases), in blue Tolex */
-    const pose = { fist: "rest", horns: "hornsUp", thumb: "thumb", point: "point", wave: "wave", peace: "peace" }[sign];
-    const drawn = louie("happy", { pose }), lit = drawn.slice(drawn.indexOf('class="lv-cloth"')); /* the hands drawn last, over the cabinet (not the rim's copies) */
-    const hands = lit.split('scale(0.86 1.02)">').slice(1);
-    const mine = hands.find(h => paths(h).includes(paths(mittenOf(sign, "a", "b", "c", "d")).slice(0, 60)));
-    assert.ok(mine, `${sign}: Louie's ${pose} pose draws the fingered ${sign} hand`);
-    assert.match(mine, /class="lv-mit" fill="#292929"/, `${sign}: lit in black Tolex`);
-    assert.match(mine, /class="lv-cuff" fill="#1B1B1B"/, `${sign}: a Tolex-shadow cuff`);
-  }
-  for (const mood of LOUIE_MOODS) for (const pose of LOUIE_POSES) {
-    const svg = louie(mood, { pose, size: 120 });
-    for (const gone of ["lv-c\"", "lv-lamp", "lv-t\"", "lv-m\"", "lv-ms\"", "lv-gs", "lv-g\"", "lv-hi", "lv-fl"]) assert.ok(!svg.includes(`class="${gone}`), `${mood}/${pose}: no ${gone}`);
-    assert.ok(!/cheek|blush|tongue/i.test(svg), "no cheek, blush or tongue");
-    assert.match(svg, new RegExp(`^<svg class="louie ${mood}${pose ? " " + pose : ""}" width="120" height="${pose ? 106 : 146}" viewBox="${pose ? "-34 -30 268 236" : "18 0 164 200"}" role="img" aria-label="Louie">`), "the same class, size, viewBox, role and label as before");
-  }
-  assert.match(louie("happy", { label: "Louie says hi" }), /role="img" aria-label="Louie says hi"/);
-  assert.match(louie(), /^<svg class="louie happy" width="120"/, "happy and 120 by default");
-});
 test("Road Ready 03b: the spec and the later step prompts say hands with fingers, not mittens", () => {
   const spec = read("docs/road-ready/louie-design-spec.md");
   assert.match(spec, /Hands with fingers, blue Tolex like his arms \(Graham, 2026-11-17\)\. No hand ever shows one finger standing straight up/);
@@ -2364,45 +2323,6 @@ test("Road Ready 03b: the spec and the later step prompts say hands with fingers
     const doc = read(`docs/road-ready/claude-prompt-${n}.md`);
     assert.ok(doc.includes("Hands with fingers, blue Tolex like his arms; never one finger standing straight up") && !/mitten/i.test(doc), `prompt ${n}`);
   }
-});
-test("Road Ready 03b: each mood and pose shows its painted picture, light and dark, in the same frame, with the code drawing kept as the fallback", async () => {
-  const { louie, louieArt } = await import("../louie.js");
-  const want = { happy: { undefined: "idle", rest: "idle", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" },
-    cheer: { undefined: "cheer", rest: "cheer", hornsUp: "horns", thumb: "thumb", point: "point", wave: "wave", peace: "wave" } };
-  /* the painted pictures: light fills the frame; dark carries its warm rim in a 12 px margin on a 600 px frame, so it is drawn 2 percent of the height bigger on each side and Louie is the same size */
-  const frame = (x, y, w, h, k) => { const pd = k === "dark" ? Math.round(h * 0.02 * 10) / 10 : 0, r = n => Math.round(n * 10) / 10; return `x="${r(x - pd)}" y="${r(y - pd)}" width="${r(w + 2 * pd)}" height="${r(h + 2 * pd)}"`; };
-  for (const mood of LOUIE_MOODS) for (const pose of LOUIE_POSES) {
-    const art = { sleepy: "sleepy", worried: "nervous", proud: "proud", listen: "listen" }[mood] || want[mood][pose];
-    assert.equal(louieArt(mood, pose), art, `${mood}/${pose}`);
-    /* the thumbs-up hand is only used at 100 px or larger; smaller, he cheers */
-    const shown = art === "thumb" ? "cheer" : art, svg = louie(mood, { pose, size: 96 }), vb = pose ? "-34 -30 268 236" : "18 0 164 200", [x, y, w, h] = vb.split(" ").map(Number);
-    for (const v of ["v3", "v2"]) for (const k of ["light", "dark"]) assert.ok(svg.includes(`<image class="lv-art lv-art-${k[0]} lv-${v}" href="art/louie/${v}/louie-${shown}-${k}.webp" ${frame(x, y, w, h, k)} preserveAspectRatio="xMidYMax meet"/>`), `${mood}/${pose}: the ${k} ${shown} picture fills the frame`);
-    assert.equal((svg.match(/<image /g) || []).length, 4, "four pictures: black (v3) and blue (v2), each light and dark");
-    assert.ok(svg.indexOf('class="lv-art-wrap"') < svg.indexOf('class="lv-code"') && svg.indexOf('class="lv-code"') < svg.indexOf("lv-mouth"), "the art, then the code drawing with the face in it");
-    if (art === "thumb") assert.ok(louie(mood, { pose, size: 100 }).includes("louie-thumb-light.webp") && louie(mood, { pose, size: 99 }).includes("louie-cheer-light.webp"), "thumb from 100 px, cheer below");
-  }
-  assert.equal(louieArt("no-such-mood"), "idle");
-  assert.equal(louieArt("happy", "thumb", 99), "cheer"); assert.equal(louieArt("happy", "thumb", 100), "thumb"); assert.equal(louieArt("cheer", "point", 40), "point", "only the thumb is swapped");
-});
-test("Road Ready 03: the locked palette is written on the drawing and set once in styles.css; the rim shows on dark looks only", async () => {
-  const { louie } = await import("../louie.js");
-  const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-  const svg = louie("cheer", { pose: "hornsUp", size: 400 });
-  for (const hex of ["#292929", "#1B1B1B", "#F0B23A", "#D9982A", "#767572", "#5A5956", "#948573", "#55331B", "#E8D5B3", "#0B0F14"]) {
-    assert.ok(svg.includes(hex), `${hex} is in the drawing (the share card draws the SVG with no stylesheet)`);
-  }
-  assert.match(css, /\.louie \{ overflow: visible; --lv-body: #292929; --lv-shade: #1B1B1B; --lv-face: #F0B23A; --lv-face-sh: #D9982A; --lv-grille: #767572; --lv-slat: #5A5956; --lv-pupil: #0B0F14; --lv-nickel: #948573; --lv-leather: #55331B; --lv-knob: #E8D5B3; --lv-shadow: #000; \}/);
-  assert.match(svg, /<g class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="4"/, "the rim is hidden unless a dark look shows it, and is 3 px a side at this size");
-  assert.match(louie("happy", { size: 44 }), /class="lv-rim" opacity="0" fill="#FFE2B4" stroke="#FFE2B4" stroke-width="22.4"/, "still 3 px a side when he is 44 px");
-  assert.match(css, /\n\.louie \.lv-rim \{ opacity: 0; \}\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) \.louie \.lv-rim \{ opacity: \.35; \}\n/);
-  assert.equal((css.match(/lv-rim/g) || []).length, 3, "no other rule shows the rim");
-  assert.match(css, /\n:root:is\(\[data-look="neon"\], \[data-look="headliner"\]\) :is\(\.bd-head, \.tq-head\) \.louie \.lv-rim \{ opacity: 0; \}\n/, "review: no rim on the bright Band and Tour headers");
-  assert.match(css, /--rr-louie-rim: rgba\(255, 226, 180, \.35\)/, "the rim's colour and strength match the token");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.louie \.lv-body, \.louie \.lv-eye, \.louie \.lv-art-wrap \{ animation: none !important; \} \}/, "Reduce Motion still stops the hop and the blink, and the hop on the art");
-  assert.ok(!/\.louie \.lv-c \{|fill: var\(--lv-cheek\)|fill: var\(--lv-tongue\)|fill: var\(--lv-lamp\)/.test(css), "nothing draws a cheek, a tongue or a lamp");
-  for (const fin of ["pink", "teal", "tweed", "mint", "gold"]) assert.ok(css.includes(`.fin-${fin} .louie, body[data-wear="${fin}"] .louie:not(.fin .louie) {`), `the ${fin} finish is still there`);
-  assert.ok(!css.includes(`.fin-black .louie, body[data-wear="black"] .louie:not(.fin .louie) {`), "10a: Blue (id black) is not a recolour any more");
-  assert.ok(css.includes(`.fin-black .louie .lv-v2.lv-art-l`) && css.includes(`body[data-wear="black"] .louie:not(.fin .louie) .lv-v2.lv-art-d`), "10a: Blue shows the v2 pictures, on the Merch table and when worn");
 });
 test("Road Ready 03: the guitarist's hands are the shapes Louie had before, unchanged", async () => {
   const { mittenOf } = await import("../louie.js");
@@ -2767,6 +2687,11 @@ test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a ba
   assert.equal(C.cleanMe(null), null);
   const me = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1", "leg:open", "bad id!", 5] });
   assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1"] });
+  /* the face parts (2026-11-20): kept when valid and not the default, so a guitarist saved before them is unchanged */
+  const parts = C.cleanMe({ ...C.ME_DEFAULT, skin: 8, face: "heart", eyes: "round", eyeCol: "green", brows: "nope", nose: "broad", specs: "shades", freckles: "yes" });
+  assert.equal(parts.skin, 8);
+  assert.deepEqual([parts.face, parts.eyes, parts.eyeCol, parts.brows, parts.nose, parts.specs, parts.freckles], ["heart", undefined, "green", undefined, "broad", "shades", undefined]);
+  assert.deepEqual(C.cleanMe(C.ME_DEFAULT), { ...C.ME_DEFAULT }, "a guitarist from before keeps exactly its fields");
   const bad = C.cleanMe({ skin: 9, hair: "mullet", hairCol: "x", beard: 3, extra: "crown", top: "plaid", lefty: "yes", patches: new Array(9).fill(0).map((_, i) => "p" + i) });
   assert.equal(bad.skin, C.ME_DEFAULT.skin);
   assert.equal(bad.hair, C.ME_DEFAULT.hair);
@@ -2826,7 +2751,8 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   const { guitarist } = await import("../guitarist.js");
   const looks = ["tee", "vest", "leather", "stage"], P = [{ kind: "leg", color: "#8a6a4a", top: "1" }, { kind: "show", color: "#ff5fa8", top: "10" }];
   for (const hair of C.ME_HAIR) for (const pose of ["play", "hornsUp", "rest"]) for (const mood of ["happy", "cheer", "worried", "sleepy", "proud"]) {
-    const s = guitarist({ ...C.ME_DEFAULT, hair, beard: "beard", glasses: true, extra: "cap" }, { mood, pose, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
+    const i = hair.length + mood.length, face = { face: C.ME_FACE[i % 4], eyes: C.ME_EYES[i % 3], brows: C.ME_BROWS[i % 4], nose: C.ME_NOSE[i % 4], eyeCol: C.ME_EYE_COL[i % 6], specs: C.ME_SPECS[i % 3], freckles: i % 2 === 0, skin: i % 9 };
+    const s = guitarist({ ...C.ME_DEFAULT, ...face, hair, beard: C.ME_BEARD[i % 4], glasses: true, extra: C.ME_HATS[i % 3] }, { mood, pose, crop: ["full", "three", "bust", "face"][i % 4], card: i % 2 === 1, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
     assert.ok(s.startsWith("<svg") && s.endsWith("</svg>") && !s.includes("undefined") && !s.includes("NaN"), `${hair} ${pose} ${mood}`);
   }
   for (const g of Object.values(C.GUITARS)) assert.ok(!guitarist(C.ME_DEFAULT, { guitar: g }).includes("undefined"), g.name);
@@ -2836,44 +2762,42 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
   const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
   assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
-  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gp\d+/)[0], "ids are unique (Gig poster, 2026-11-19)");
-  /* the Gig poster print: halftone and grain at full size; flat at 48 px and under; a cream poster card when asked */
+  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], "ids are unique");
+  /* the inked cartoon (2026-11-20): one dark outline round the parts, a stage card when asked, no Gig poster print */
   const big = guitarist(C.ME_DEFAULT, { size: 160 }), small = guitarist(C.ME_DEFAULT, { crop: "bust", size: 32 });
-  assert.ok(big.includes("guitarist-poster/grain.webp") && /<mask id="gp\d+h"/.test(big), "halftone and grain at full size");
-  assert.ok(!small.includes("grain.webp") && !/<mask id="gp\d+h"/.test(small) && small.includes('stroke-width="0.8"'), "flat with a heavier line at 32 px");
-  assert.ok(!guitarist(C.ME_DEFAULT, { size: 400, grain: false }).includes("grain.webp"), "no grain for a canvas picture");
-  assert.ok(guitarist(C.ME_DEFAULT, { card: true }).includes('rx="7" fill="#F6EEE0"'), "the cream poster card");
+  for (const s of [big, small]) assert.ok(/<feMorphology[^>]+dilate/.test(s) && s.includes('flood-color="#24160E"') && !s.includes("grain.webp") && !s.includes("guitarist-poster"), "the ink outline, no poster print");
+  assert.ok(guitarist(C.ME_DEFAULT, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
+  assert.ok(guitarist(C.ME_DEFAULT, { mood: "worried" }).includes('data-mood="worried"'));
+  assert.ok(guitarist(C.ME_DEFAULT, { guitar: C.GUITARS.strum }).includes("<image "), "the Road guitar's painting in the hands");
+  assert.ok(!guitarist(C.ME_DEFAULT, { pose: "hornsUp", guitar: C.GUITARS.strum }).includes("<image "), "horns up: no guitar");
 });
 
-test("Road Ready 07 (10a: black): Louie's face badge is saved for offline, is the picture the Songbook and Me show, and is small", () => {
-  const file = "art/louie/v3/louie-face-badge.webp";
-  assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
-  assert.ok(read("sw.js").includes(`"${file}"`), `${file} is saved for offline`);
-  assert.ok(read("library.js").includes(`src="${file}"`), `${file} is the picture the hint banner shows`);
-  assert.ok(read("profile.js").includes(`src="${file}"`), `${file} is the picture Me shows`);
-  assert.ok(fs.statSync(path.join(root, file)).size <= 20000, `${file} is small`);
-});
-
-test("Road Ready 02: Louie's two peeking pictures stay in the repo and saved for offline (other screens use them), each under 60 KB; the Road no longer shows them (10b)", () => {
-  const shell = read("sw.js"), css = read("styles.css");
-  for (const look of ["dark", "light"]) {
-    const file = `art/louie/louie-peek-${look}.webp`;
-    assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
-    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
-    assert.ok(!css.includes(`url("${file}")`), `${file} is not drawn on the Road any more`);
-    assert.ok(fs.statSync(path.join(root, file)).size <= 60000, `${file} is small`);
+test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
+  const { louie, louieArt, louiePic, LOUIE_STAND_IN } = await import("../louie.js");
+  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
+  for (const n of [...have, "face-badge"]) {
+    const f = `art/louie/v4/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(fs.statSync(path.join(root, f)).size < 120 * 1024, `${f} is under 120 KB`);
   }
-});
-
-test("Road Ready 03b (10a: v3 black and v2 blue): Louie's painted poses, light and dark, are in the repo, saved for offline, and each under 60 KB", () => {
-  const shell = read("sw.js"), LOUIE_ART = ["idle", "cheer", "wave", "point", "thumb", "horns", "sleepy", "nervous", "proud", "listen"];
-  for (const v of ["v3", "v2"]) for (const pose of LOUIE_ART) for (const look of ["dark", "light"]) {
-    const file = `art/louie/${v}/louie-${pose}-${look}.webp`;
-    assert.ok(fs.existsSync(path.join(root, file)), `${file} is in the repo`);
-    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
-    assert.ok(fs.statSync(path.join(root, file)).size <= 60000, `${file} is small`);
+  for (const [pose, from] of Object.entries(LOUIE_STAND_IN)) assert.ok(have.includes(from) && !have.includes(pose), `${pose} borrows ${from} until its picture arrives`);
+  for (const mood of ["happy", "cheer", "sleepy", "worried", "proud", "listen"]) for (const pose of [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"]) for (const size of [44, 120]) {
+    const svg = louie(mood, { pose, size }), href = svg.match(/href="([^"]+)"/)[1];
+    assert.equal(href, louiePic(louieArt(mood, pose, size)));
+    assert.ok(have.some(n => href === `art/louie/v4/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
+    assert.equal((svg.match(/<image /g) || []).length, 1, "one picture");
+    assert.ok(!/<(path|rect|circle|ellipse|text)\b/.test(svg), "nothing is drawn in code");
+    assert.match(svg, /role="img" aria-label="Louie"/);
   }
-  assert.ok(!shell.includes("louie-v2-small-check"), "the check sheet is not part of the app");
+  assert.match(louie("cheer", { pose: "hornsUp", size: 100 }), /width="100" height="88" viewBox="-34 -30 268 236"/, "the same frame as before, so every place keeps its size");
+  assert.match(louie("happy", { size: 100 }), /width="100" height="122" viewBox="18 0 164 200"/);
+  /* no earlier Louie: not the black one (v3), the blue one (v2), the peeking pictures or the old badge */
+  for (const f of ["sw.js", "louie.js", "index.html", "styles.css", "library.js", "maker.js", "profile.js", "merch.js", "road.js"]) assert.ok(!/art\/louie\/(v2|v3|louie-)/.test(read(f)), `${f} has no earlier Louie picture`);
+  for (const d of ["art/louie/v2", "art/louie/v3", "art/louie/louie-face-badge.webp", "art/louie/louie-peek-dark.webp"]) assert.ok(!fs.existsSync(path.join(root, d)), `${d} is gone`);
+  assert.ok(!read("merch.js").includes("Louie's finish</span>"), "Louie's finishes are off the Merch table until his new colours arrive");
+  for (const n of have) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
 });
 
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
@@ -3514,4 +3438,77 @@ test("4.99.0 selfie: a light wall beside dark hair doesn't make it grey; photos 
   assert.ok(["black", "brown", "blonde", "red", "grey"].includes(C.selfieGuess({ hair: [[120, 70, 230]] }, { skin: SKIN, hair: HAIR_COL }).hairCol), "no purple from a photo");
   const g = C.selfieGuess({ hair: [[230, 200, 120]], chin: [70, 44, 28], cheek: [200, 160, 130] }, { skin: SKIN, hair: HAIR_COL });
   assert.equal(g.hairCol, "blonde"); assert.equal(g.beard, "beard"); assert.equal(g.beardCol, "brown", "a brown beard under blonde hair");
+});
+
+// ---------- App icon, launch screens and theme colour (black Louie) ----------
+
+const pngInfo = buf => {
+  assert.equal(buf.subarray(0, 8).toString("binary"), "\x89PNG\r\n\x1a\n", "PNG signature");
+  assert.equal(buf.toString("ascii", 12, 16), "IHDR", "IHDR comes first");
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20), bitDepth: buf[24], colorType: buf[25] };
+};
+const pngFile = rel => {
+  const buf = fs.readFileSync(path.join(root, rel));
+  return { buf, ...pngInfo(buf) };
+};
+
+test("the manifest theme colour is the Road Ready dark ground, and every listed icon is the size it claims", () => {
+  const base = rrHex(rrDark, "--rr-base");
+  const manifest = JSON.parse(read("manifest.webmanifest"));
+  assert.equal(manifest.theme_color.toLowerCase(), base.toLowerCase(), "theme_color matches --rr-base");
+  assert.equal(manifest.background_color.toLowerCase(), base.toLowerCase(), "background_color matches --rr-base");
+  assert.match(read("index.html"), new RegExp(`<meta name="theme-color" content="${base}"`, "i"), "the document theme-color starts on the same ground");
+  assert.ok(manifest.icons.length >= 3, "192, 512 and a maskable 512");
+  for (const icon of manifest.icons) {
+    const [w, h] = icon.sizes.split("x").map(Number);
+    const png = pngFile(icon.src);
+    assert.equal(png.w, w, `${icon.src} width`);
+    assert.equal(png.h, h, `${icon.src} height`);
+    assert.equal(png.bitDepth, 8, `${icon.src} is 8-bit`);
+    assert.equal(png.colorType, 2, `${icon.src} is opaque RGB, no transparency`);
+  }
+});
+
+test("the favicon, apple-touch icon and every iPhone launch screen exist at the size index.html names", () => {
+  const html = read("index.html");
+  assert.match(html, /rel="icon"[^>]*sizes="32x32"[^>]*href="icons\/favicon-32\.png"/);
+  const favicon = pngFile("icons/favicon-32.png");
+  assert.equal(favicon.w, 32); assert.equal(favicon.h, 32); assert.equal(favicon.colorType, 2);
+  const apple = pngFile("icons/apple-touch-icon.png");
+  assert.equal(apple.w, 180); assert.equal(apple.h, 180); assert.equal(apple.colorType, 2, "apple-touch-icon is opaque");
+  const master = pngFile("icons/icon-1024.png");
+  assert.equal(master.w, 1024); assert.equal(master.h, 1024); assert.equal(master.colorType, 2, "the 1024 master is opaque RGB");
+  assert.match(html, /rel="apple-touch-icon"[^>]*href="icons\/apple-touch-icon\.png"/);
+  const launches = [...html.matchAll(/rel="apple-touch-startup-image"[^>]*href="(icons\/splash\/launch-(\d+)x(\d+)\.png)"/g)];
+  assert.ok(launches.length >= 9, `every launch screen is linked, got ${launches.length}`);
+  for (const [, href, w, h] of launches) {
+    const png = pngFile(href);
+    assert.equal(png.w, Number(w), href);
+    assert.equal(png.h, Number(h), href);
+    assert.equal(png.colorType, 2, `${href} is opaque`);
+  }
+});
+
+test("the loading screen shows Louie on the Dark ground, then hides once the app draws", () => {
+  const html = read("index.html"), css = read("styles.css");
+  assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
+  assert.match(html, /src="art\/louie\/v4\/louie-idle\.webp"/, "it uses Louie's idle picture");
+  assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
+  assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
+  const shell = read("sw.js");
+  assert.match(shell, /"art\/louie\/v4\/louie-idle\.webp"/, "the boot picture is saved for offline");
+  for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+});
+
+test("4.103.0 the player's name: plain text on one line, at most 30 characters, kept through a backup and cleaned on import", () => {
+  assert.equal(C.cleanName("  Graham   DeNoyer \n"), "Graham DeNoyer");
+  assert.equal(C.cleanName("<script>x</script>"), "scriptx/script");
+  assert.equal(C.cleanName("a".repeat(40)).length, 30);
+  assert.equal(C.cleanName(undefined), "");
+  const out = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: "  Graham <b>  " } });
+  assert.equal(out.data.settings.playerName, "Graham b");
+  const bad = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: 42 } });
+  assert.notEqual(bad.data.settings.playerName, 42, "a name that is not text is dropped");
 });

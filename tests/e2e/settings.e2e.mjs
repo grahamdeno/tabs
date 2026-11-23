@@ -504,8 +504,7 @@ test("4.16.0: test fans from Help can be spent at the Merch table, and removed",
   await page.waitForSelector("#s-testfans-x");
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-head");
   assert.ok(+(await page.innerText(".mc-head .mc-fans")).replace(/\D/g, "") >= 1000, "spendable");
-  assert.match(await page.innerText(".mc-fin[data-id=pink]"), /Pink[\s\S]*FREE/, "Pink is free");
-  assert.match(await page.innerText(".mc-fin[data-id=black]"), /Blue/);
+  assert.match(await page.innerText(".mc-drop[data-id=brick]"), /Brick wall[\s\S]*\$300/, "a backdrop shows its price");
   await page.evaluate(() => { location.hash = "#/settings/help"; }); await page.waitForSelector("#s-testfans-x");
   await page.click("#s-testfans-x");
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).merch?.test);
