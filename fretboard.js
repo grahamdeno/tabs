@@ -219,14 +219,15 @@ function nanoHardware(g, yb, ac) {
   if (g.body === "swallow") return `${humbucker(yb - 110, "#1c1a1f", gold)}${humbucker(yb - 52, "#1c1a1f", gold)}${tuneomatic(yb)}${stopbar(yb + 34)}`;
   return `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${k("#efe4c8")}`;
 }
-/* The shown picture. Gloss and a lit binding are painted into art/guitars/elev/ (the flat
-   painting stays beside it, same pixels, so the fret numbers still line up). */
-export const GUITAR_ELEV = "art/guitars/elev";
+/* The shown picture. Clear-coat and a lit binding are painted into art/guitars/lift/.
+   The flat paintings and the first elevated set stay beside it, same size, so the frets still line up. */
+export const GUITAR_ELEV = "art/guitars/lift";
 const guitarSrc = (name, part) => `${GUITAR_ELEV}/${name}-${part}.webp?v=${VERSION}`;
-/* Room under the painting for the shadow. The picture itself has no empty ground. */
-const LIFT = 28;
+/* Room under the painting for the contact shadow. The picture itself has no empty ground. */
+const LIFT = 72;
 function elevFilter(id) {
-  return `<filter id="${id}" x="-22%" y="-6%" width="144%" height="128%" color-interpolation-filters="sRGB"><feOffset in="SourceAlpha" dx="1" dy="12" result="o"/><feGaussianBlur in="o" stdDeviation="7" result="b"/><feFlood flood-color="#070504" flood-opacity=".58" result="c"/><feComposite in="c" in2="b" operator="in" result="s"/><feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  /* Two shadows: a tight one where the body meets the ground, and a wider one offset down and to the right. */
+  return `<filter id="${id}" x="-40%" y="-10%" width="180%" height="150%" color-interpolation-filters="sRGB"><feOffset in="SourceAlpha" dx="4" dy="10" result="o1"/><feGaussianBlur in="o1" stdDeviation="3.5" result="b1"/><feOffset in="SourceAlpha" dx="10" dy="28" result="o2"/><feGaussianBlur in="o2" stdDeviation="14" result="b2"/><feComponentTransfer in="b1" result="a1"><feFuncA type="linear" slope="0.9"/></feComponentTransfer><feComponentTransfer in="b2" result="a2"><feFuncA type="linear" slope="0.62"/></feComponentTransfer><feFlood flood-color="#050302" result="ink"/><feComposite in="ink" in2="a1" operator="in" result="s1"/><feComposite in="ink" in2="a2" operator="in" result="s2"/><feMerge><feMergeNode in="s2"/><feMergeNode in="s1"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
 }
 function picBase(g, lay, f) {
   const { p, sh, sb, k } = lay.pic, top = lay.head, y0 = top + lay.neck, hw = NECK / 2, end = y0 + p.body.end * sb, yb = y0 + lay.bridge;

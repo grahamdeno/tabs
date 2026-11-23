@@ -4993,7 +4993,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] { --show-case: url("art/show/case-open-light.webp"); }
 .sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
 .sc-case-pic { position: absolute; left: 50%; top: 2%; bottom: 2%; height: 96%; aspect-ratio: 720 / 900; transform: translateX(-50%); }
-.sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
+.sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(4px 10px 4px rgba(0, 0, 0, .65)) drop-shadow(10px 22px 14px rgba(0, 0, 0, .4)); }
 .sc-show.case .sc-louie { z-index: 3; }
 .sc-show.case .sc-label { z-index: 3; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }
@@ -5102,7 +5102,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-in { list-style: none; margin: 0; padding: 12px 10px 10px; display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; overflow-x: auto; border-radius: 6px; min-height: 150px; background: radial-gradient(rgba(255, 205, 130, .2) 1px, transparent 1.3px) 0 0 / 6px 6px, radial-gradient(120% 90% at 50% 10%, #E27A2A 0%, #B9531B 55%, #7A300E 100%); box-shadow: inset 0 0 28px rgba(255, 150, 60, .4); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 2px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gtr { flex: none; min-width: 44px; min-height: 44px; display: flex; align-items: flex-end; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gtr img { display: block; height: 176px; width: auto; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55)); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gtr img { display: block; height: 176px; width: auto; filter: drop-shadow(3px 8px 3px rgba(0, 0, 0, .7)) drop-shadow(8px 18px 10px rgba(0, 0, 0, .45)); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-empty { align-self: center; margin: 12px auto; padding: 10px 12px; border-radius: 8px; background: #1E1008; text-align: center; color: #FFF3E0; font: var(--type-callout-w) var(--type-callout) / 1.35 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-merch { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid var(--rr-amber-text); border-radius: 12px; color: var(--rr-amber-text); text-decoration: none; font: 600 var(--type-callout) / 1.3 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { flex: 1; }
@@ -5139,8 +5139,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .mc-gt.on { border: 3px solid var(--strings); }
 .mc-gt.locked { opacity: .92; }
 .mc-gt-pic { display: grid; place-items: center; height: 60px; }
-.mc-gt-pic img { max-height: 60px; max-width: 54px; object-fit: contain; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .45)); }
-.mc-gt.locked .mc-gt-pic img { filter: grayscale(.85) brightness(.7) drop-shadow(0 3px 2px rgba(0, 0, 0, .35)); }
+.mc-gt-pic img { max-height: 60px; max-width: 54px; object-fit: contain; filter: drop-shadow(2px 5px 2px rgba(0, 0, 0, .7)) drop-shadow(4px 12px 8px rgba(0, 0, 0, .45)); }
+.mc-gt.locked .mc-gt-pic img { filter: grayscale(.85) brightness(.7) drop-shadow(2px 5px 2px rgba(0, 0, 0, .55)); }
 .mc-gt-t { display: grid; gap: 2px; justify-items: start; min-width: 0; }
 .mc-gt-t b { font: 700 16px var(--display); overflow-wrap: anywhere; }
 .mc-gt-t small { font: 700 12.5px var(--sans); color: var(--muted); }
@@ -5149,7 +5149,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .mc-more { font: 700 12.5px var(--sans); color: var(--fg-2); }
 .mc-gt-leg { margin: 0 0 10px; min-height: 44px; padding: 8px 14px; border: 2px solid var(--rim); border-radius: 14px; background: transparent; color: var(--fg); font: 700 14px var(--sans); }
 .mt-gtr { display: grid; place-items: center; }
-.mt-gtr img { max-height: 46vh; max-width: 70vw; object-fit: contain; filter: drop-shadow(0 14px 12px rgba(0, 0, 0, .45)); }
+.mt-gtr img { max-height: 46vh; max-width: 70vw; object-fit: contain; filter: drop-shadow(4px 10px 4px rgba(0, 0, 0, .72)) drop-shadow(10px 28px 16px rgba(0, 0, 0, .48)); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-gt.on { border-color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-more { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .mc-gt-t small { color: var(--rr-text-2); }

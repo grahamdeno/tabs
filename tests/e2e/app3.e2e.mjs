@@ -737,7 +737,7 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   /* the Road neck of the leg you're on draws it */
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-neck"); await settled(page);
   const cur = await page.locator(".rd-legmark.cur ~ .rd-neck, .rd-neck").first().innerHTML();
-  assert.match(cur, /art\/guitars\/elev\/stickerriot-road\.webp/, "the whole painted guitar on the neck (9a, painted necks)");
+  assert.match(cur, /art\/guitars\/lift\/stickerriot-road\.webp/, "the whole painted guitar on the neck (9a, painted necks)");
   assert.match(await page.locator(".rd-neck").first().getAttribute("aria-label"), /Sticker Riot/);
   /* Me's case has it, and says it is the one you play */
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
@@ -745,7 +745,7 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
   /* the guitarist holds it (the small picture in his hands) */
   const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
-  assert.match(hands, /art\/guitars\/elev\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  assert.match(hands, /art\/guitars\/lift\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
   /* back to the leg's guitar, and the saved choice is gone */
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
   await page.click("#mc-gt-leg");
@@ -774,7 +774,7 @@ test("Road Ready 9a: the Road neck of each leg is its new guitar's picture, with
   const page = await phone(t, shopLib(0, {}), { home: true });
   await page.waitForSelector(".rd-neck"); await settled(page);
   const html = await page.locator(".rd-neck").first().innerHTML();
-  assert.match(html, /art\/guitars\/elev\/porch-road\.webp/); assert.doesNotMatch(html, /porch-(body|head)\.webp/, "one picture, the whole guitar");
+  assert.match(html, /art\/guitars\/lift\/porch-road\.webp/); assert.doesNotMatch(html, /porch-(body|head)\.webp/, "one picture, the whole guitar");
   assert.equal(await page.locator(".rd-neck").first().getAttribute("aria-label"), "Porch");
   /* the strings are in the painting: the Road draws none over it */
   assert.equal(await page.locator(".rd-neck").first().locator(".rd-strings").count(), 0, "the painted strings are the only strings");
