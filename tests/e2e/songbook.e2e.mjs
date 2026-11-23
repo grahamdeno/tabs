@@ -55,8 +55,8 @@ for (const theme of ["dark", "light", "green", "headliner"]) test(`4.113.0 (${th
     k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .fit')?.textContent,
     b: document.querySelector('#list .row[data-id="b"] .fit')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
   }));
-  const rr = theme === "dark" || theme === "light";
-  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "LEARNING", b: "+ F", key: "G" }, "a Back button only in Green Room and Headliner; 4.113.1: Dark and Light draw each song as a card and the filters as capsules");
+  const rr = true; /* a saved Green Room or Headliner is read as Light or Dark, so the Songbook is that layout */
+  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "LEARNING", b: "+ F", key: "G" }, "the Songbook is the Road Ready layout, including when a retired look is what was saved");
   assert.match(got.k, /Kettle Hums.*June and the Kettles.*Nailed it/, "title, artist and level in words");
   /* the chosen filter is said, not only filled; Almost (4.105.0) is there when a song is one chord away */
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f, c.getAttribute("aria-pressed")])));
