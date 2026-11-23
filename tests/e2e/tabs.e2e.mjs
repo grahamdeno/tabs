@@ -62,7 +62,8 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
     const ground = dark ? "rgb(16, 14, 12)" : "rgb(232, 214, 188)";
     assert.ok(ratio(r.offLabel, ground) >= 4.5, `inactive labels ${ratio(r.offLabel, ground).toFixed(1)}:1`);
     assert.ok(ratio(r.onColor, ground) >= 4.5, `the amber label ${ratio(r.onColor, ground).toFixed(1)}:1`);
-    assert.ok(r.offLabelSize >= 13, "labels at least 13 px");
+    assert.ok(r.offLabelSize >= 11 && r.offLabelSize <= 12, `labels are ${r.offLabelSize}px, around 11 to 12`);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#tabs .tb-l")).fontWeight), "500", "medium weight");
     assert.equal(r.litOp, "1", "the current knob is the lit face");
     assert.equal(r.offOp, "0", "the dark face steps aside");
     assert.equal(r.otherLit, "0", "the other knobs stay dark");
@@ -151,8 +152,11 @@ for (const [w, h] of [[320, 568], [375, 667], [390, 844]]) {
         assert.equal(m.length, 5, "five tabs");
         for (let i = 0; i < m.length; i++) {
           assert.ok(m[i].l >= m[i].tl - 0.5 && m[i].r <= m[i].tr + 0.5, `${mode}: ${m[i].name} fits inside its tab (${m[i].l.toFixed(1)} to ${m[i].r.toFixed(1)} in ${m[i].tl.toFixed(1)} to ${m[i].tr.toFixed(1)})`);
-          if (i) assert.ok(m[i - 1].r <= m[i].l, `${mode}: ${m[i - 1].name} does not touch ${m[i].name}`);
-          if (w >= 375 && !large) assert.ok(m[i].size >= 13, `${mode}: ${m[i].name} is ${m[i].size} px, at least 13`);
+          if (i) {
+            const gap = m[i].l - m[i - 1].r;
+            assert.ok(gap >= 4, `${mode}: ${m[i - 1].name} and ${m[i].name} have ${gap.toFixed(1)}px between them`);
+          }
+          if (!large) assert.ok(m[i].size >= 11 && m[i].size <= 12, `${mode}: ${m[i].name} is ${m[i].size}px, around 11 to 12`);
         }
       }
     });
