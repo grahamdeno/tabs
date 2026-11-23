@@ -26,7 +26,7 @@ import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, song
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
-import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
+import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { buildPic } from "./buildart.js";
@@ -450,20 +450,8 @@ function guitaristAsk() {
   makerSheet({ mode: "once", done: () => renderRoad() });
 }
 
-/* 4.78.0: the first time a leg's headline show is done, Headliner is yours. Said once, on the Road. */
-function headlinerEarned(road) {
-  if (data.merch?.hlseen || layer.innerHTML || !road.legs.some(l => l.stops.some(s => s.kind === "headline" && s.state === "done"))) return;
-  (data.merch || (data.merch = {})).hlseen = 1; Tabs.save(data);
-  const on = data.settings.theme === "headliner";
-  layer.innerHTML = `<div class="scrim" id="hl-scrim"></div><div class="panel de-sheet rd-hl" role="dialog" aria-label="Headliner is yours"><div class="grab"></div>
-    <div class="pbody"><div class="rd-hl-lou">${louie("cheer", { size: 120, pose: "hornsUp" })}</div>
-    <h2>You headlined</h2><p>Headliner is yours: black, gold and chrome under a blacklight. ${on ? "You're already wearing it." : "Put it on now, or any time in Settings or at the Merch table."}</p>
-    <div class="rd-hl-acts">${on ? "" : `<button class="btn primary" id="hl-on">PUT IT ON</button>`}<button class="mt-not" id="hl-x">${on ? "Rock on" : "Not now"}</button></div></div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  document.getElementById("hl-scrim").onclick = close; document.getElementById("hl-x").onclick = close;
-  document.getElementById("hl-on")?.addEventListener("click", () => { data.settings.theme = "headliner"; Tabs.save(data); applyTheme(); close(); toast("Headliner is on"); });
-  haptic(2);
-}
+/* Headliner is retired. The Road does not offer it, and nothing here switches a player into it. */
+function headlinerEarned() {}
 
 
 /* 4.82.0: the first Road shown after a leg's headline show is done tells you the next guitar is yours. Said once;

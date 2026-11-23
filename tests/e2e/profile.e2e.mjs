@@ -4,39 +4,13 @@ import assert from "node:assert/strict";
 import { skip, LIB, phone, useBrowser, settled } from "./harness.mjs";
 useBrowser();
 
-test("Your profile: worked out from the songs you've played, with a passport, changes and a way back to a song", { skip: skip() }, async t => {
+test("a saved Green Room opens the Road Ready Me page and keeps the saved look", { skip: skip() }, async t => {
   const songs = LIB.songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } }));
-  /* Road Ready 08: Dark and Light draw Me as r10-06 (tested below); this test keeps the earlier page, which Green Room and Headliner still draw */
   const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
-  await page.waitForSelector("#h-fans"); await settled(page);
-  await page.click("#h-fans");
-  await page.waitForSelector(".pf-player");
-  assert.match(await page.innerText("h1"), /Your profile/);
-  /* 4.17.0: the player card, its tiles, badges and band */
-  assert.match(await page.innerText(".pf-player"), /LEVEL 1[\s\S]*\/ 100 XP/);
-  assert.equal(await page.locator(".pf-tile-streak .ri-knob").count(), 1, "the streak's knob");
-  assert.match(await page.innerText(".pf-tiles"), /SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
-  assert.ok(await page.locator(".pf-badge:not(.locked)").count() >= 1, "a song played through is a badge");
-  assert.match(await page.innerText(".pf-label:has-text('BADGES')"), /\d+ of 26/);
-  /* 4.19.0: the chord passport, a page per family, Learn it opens a lesson */
-  assert.match(await page.innerText(".pf-passport"), /Open chords\s*\d+ of 8[\s\S]*Barre chords[\s\S]*NEXT STAMP/);
-  assert.ok(await page.locator(".pf-pstamp.on").count() >= 1, "chords played are stamped");
-  await page.click(".pf-pstamp.on >> nth=0"); await page.waitForSelector(".pf-stampsheet");
-  assert.match(await page.innerText(".pf-stampsheet"), /Played about \d+ times?, first on/);
-  await page.click("#st-x"); await page.waitForSelector(".pf-stampsheet", { state: "detached" });
-  await page.waitForFunction(() => !!JSON.parse(localStorage.getItem("tabs-v1")).journal); /* the journal is kept */
-  /* Your stats: four cards; a change drills in Rehearse */
-  await page.click(".pf-more > summary");
-  assert.match(await page.innerText(".pf-stats"), /played[\s\S]*last seven days[\s\S]*your most played change[\s\S]*your key/);
-  await page.click(".pf-drill >> nth=0");
-  await page.waitForFunction(() => /#\/practice\/s(%3A|:)/.test(location.hash));
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
-  await page.click("#pf-learn"); await page.waitForFunction(() => /#\/practice\/c(%3A|:)/.test(location.hash));
-  await page.waitForSelector(".pk-lesson");
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
-  await page.click("#pf-map"); await page.waitForFunction(() => location.hash === "#/playmap"); /* the venue opens the Tour Map */
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
-  await page.click("#back"); await page.waitForSelector(".rd-path"); /* 4.0.0: back to the Road */
+  await page.evaluate(() => { location.hash = "#/you"; });
+  await page.waitForSelector(".rr-me");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "green");
 });
 
 test("Your profile: an empty library says how it fills in, with no share button", { skip: skip() }, async t => {
@@ -321,13 +295,11 @@ test("one earned guitar is one stall, and a bought guitar gets a stall of its ow
 });
 
 for (const theme of ["green", "headliner"]) {
-  test(`Road Ready 08 (${theme}): Me is the earlier page (the player card, four tiles, Tips to spend) and Back to the Road is a 44 px target`, { skip: skip() }, async t => {
-    const page = await phone(t, meLib(theme, { merch: { ...LIB.merch } }), { home: true });
+  test(`a saved ${theme} look shows the Road Ready Me page and keeps the saved look`, { skip: skip() }, async t => {
+    const page = await phone(t, meLib(theme, { merch: { ...LIB.merch, has: [theme], tconv: 1, lconv: 1 } }), { home: true, colorScheme: "dark" });
     await settled(page);
-    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
-    assert.equal(await page.locator(".rr-me").count(), 0);
-    assert.match(await page.innerText(".pf-tiles"), /TIPS TO SPEND[\s\S]*SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
-    assert.equal(await page.locator("#pf-r-merch.pf-row").count(), 1, "the earlier rows are as they were");
-    const b = await page.locator("#back").boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `Back to the Road is ${Math.round(b.width)} by ${Math.round(b.height)}`);
+    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "neon");
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), theme);
   });
 }

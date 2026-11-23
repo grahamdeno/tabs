@@ -163,8 +163,8 @@ test("restoring a backup brings back songs and set cover photos, and skips broke
 
 /* 4.100.1: Graham restored a backup that wore Headliner and the whole app went back to the screens from before the design pass */
 for (const [name, settings, merch, want] of [
-  ["an old backup that wore Headliner comes back in the new look (Auto, so Dark on a dark phone)", { v: 6, theme: "headliner" }, { has: ["headliner"], lconv: 1, hlseen: 1 }, { theme: "dark", look: "neon", saved: "auto" }],
-  ["a backup that owns and wears Green Room keeps Green Room", { v: 6, theme: "green" }, { has: ["green"], lconv: 1 }, { theme: "light", look: "green", saved: "green" }]
+  ["an old backup that wore Headliner stays stored and shows Dark on a dark phone", { v: 6, theme: "headliner" }, { has: ["headliner"], lconv: 1, hlseen: 1 }, { theme: "dark", look: "neon", saved: "headliner" }],
+  ["a backup that wears Green Room stays stored and shows Dark on a dark phone", { v: 6, theme: "green" }, { has: ["green"], lconv: 1, tspent: 400 }, { theme: "dark", look: "neon", saved: "green" }]
 ]) test(`restoring a backup: ${name}`, { skip: skip() }, async t => {
   const page = await phone(t, undefined, { colorScheme: "dark" });
   const backup = { songs: [{ id: "x", title: "Backup Song", body: "[Verse]\nG\nhello", format: "chords" }], sets: [], trash: [], settings: { ...settings, tipsSeen: true, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z" }, merch };
