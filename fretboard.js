@@ -219,9 +219,9 @@ function nanoHardware(g, yb, ac) {
   if (g.body === "swallow") return `${humbucker(yb - 110, "#1c1a1f", gold)}${humbucker(yb - 52, "#1c1a1f", gold)}${tuneomatic(yb)}${stopbar(yb + 34)}`;
   return `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${k("#efe4c8")}`;
 }
-/* The shown picture. Clear-coat and a lit binding are painted into art/guitars/lift/.
-   The flat paintings and the first elevated set stay beside it, same size, so the frets still line up. */
-export const GUITAR_ELEV = "art/guitars/lift";
+/* The shown picture. A narrow clear-coat streak is painted into art/guitars/sheen/.
+   The flat paintings, the first elevated set and the wide sheen stay beside it, same size, so the frets still line up. */
+export const GUITAR_ELEV = "art/guitars/sheen";
 const guitarSrc = (name, part) => `${GUITAR_ELEV}/${name}-${part}.webp?v=${VERSION}`;
 /* Room under the painting for the contact shadow. The picture itself has no empty ground. */
 const LIFT = 72;

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # A second pass of elevation. The first set (art/guitars/elev/) stays as it is.
-# This one writes art/guitars/lift/ and does not touch any older picture.
+# The wide sheen (art/guitars/lift/) stays as it is.
+# This pass writes art/guitars/sheen/ and does not touch any older picture.
 #
 # The grain of the paint is kept at full sharpness: light is applied only to a
 # soft copy of the colour, then the original fine detail is put back on top.
@@ -13,7 +14,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "art" / "guitars"
-DST = SRC / "lift"
+DST = SRC / "sheen"
 LIT = np.array([255.0, 250.0, 236.0])
 
 
@@ -133,24 +134,20 @@ def elevate(im, kind):
             bh = max(1, y1 - y0)
             yy = np.arange(h, dtype=np.float32)[:, None]
             dist = yy - edge[None, :]
-            # a defined band just inside the top's curve, wider than a line, not a blob
-            width = max(3.5, bh * 0.045)
-            center = bh * 0.11
-            band = np.exp(-((dist - center) / width) ** 2)
-            band *= face
-            # light from the upper left, so the band fades toward the right
+            # a narrow streak just inside the curve: a sharp edge on the lit side, then a quick falloff
+            peak = 3.2
+            sharp = 1.05
+            fall = 2.2
+            onset = np.clip((dist - (peak - sharp)) / sharp, 0, 1)
+            tail = np.exp(-(np.maximum(dist - peak, 0)) / fall)
+            streak = np.where(dist < peak, onset, tail).astype(np.float32)
+            streak *= face
             xs = np.linspace(0, 1, w)[None, :]
-            band *= 0.45 + 0.55 * (1 - xs)
-            # keep it off the soundhole and the dark hardware
+            streak *= 0.82 + 0.18 * (1 - xs)
+            # keep it off the soundhole and the dark hardware, and keep it faint so the grain reads through
             wood = np.clip((low.mean(-1) - 28) / 40, 0, 1)
-            band *= wood
-            # the band brightens the colour that is already there
-            lit = lit + (LIT - lit) * (band * 0.55)[..., None]
-            # a short crisp glint on the brightest part of that band
-            glint = np.exp(-((dist - center * 0.75) / max(1.6, width * 0.28)) ** 2)
-            glint *= np.exp(-((xs - 0.32) / 0.08) ** 2)
-            glint *= face * wood
-            lit = lit + (255 - lit) * (glint * 0.85)[..., None]
+            streak *= wood
+            lit = lit + (LIT - lit) * (streak * 0.16)[..., None]
 
         # binding: a thin bright edge on the lit side, a darker edge on the shadow side
         mask = Image.fromarray(np.clip(a * 255, 0, 255).astype(np.uint8), "L")
