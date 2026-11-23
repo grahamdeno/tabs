@@ -2806,6 +2806,17 @@ test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes f
   }
 });
 
+test("Me case: the painted velvet lining is in the repo and saved for offline", () => {
+  const shell = read("sw.js"), css = read("styles.css");
+  for (const f of ["art/case/lining-open.webp", "art/case/latch-chrome.webp"]) {
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+  assert.ok(fs.statSync(path.join(root, "art/case/lining-open.webp")).size < 200000, "the lining stays small enough for the phone");
+  assert.match(css, /\.rr-gcase \.rr-gtr \{[\s\S]*?lining-open\.webp/);
+  assert.ok(!css.includes("velvet-slot.webp"), "the stalls use the painted lining");
+});
+
 test("4.88.0: trumpet came out; what it saved is cleared on load", () => {
   const d = C.migrate({ songs: [{ id: "a", body: "G", tpMel: { v: 1, lines: [] }, tpEar: true, tpHardSeen: true }], settings: { v: 6, instrument: "trumpet", tpLevel: "two", tpPart: "hits" } });
   assert.equal(d.settings.instrument, undefined); assert.equal(d.settings.tpLevel, undefined); assert.equal(d.settings.tpPart, undefined);

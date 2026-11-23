@@ -188,6 +188,39 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
   assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
 });
 
+test("the guitar case uses one painted velvet lining, sliced into stalls, and each earned guitar is its small picture", { skip: skip() }, async t => {
+  const page = await openMe(t, "dark");
+  const slots = await page.$$eval(".rr-gtr", els => els.map(el => {
+    const s = getComputedStyle(el);
+    return { pos: s.backgroundPosition, size: s.backgroundSize, image: s.backgroundImage, img: el.querySelector("img")?.getAttribute("src") || "" };
+  }));
+  assert.equal(slots.length, 3, "three earned guitars, three stalls");
+  for (const s of slots) {
+    assert.match(s.image, /lining-open\.webp/, "the painted lining");
+    assert.doesNotMatch(s.image, /velvet-slot/);
+    assert.equal(s.size, "300% 100%", "each stall is one third of the painting");
+  }
+  assert.deepEqual(slots.map(s => s.pos), ["0% 50%", "50% 50%", "100% 50%"], "left, middle and right stalls meet as one case");
+  assert.deepEqual(slots.map(s => s.img.replace(/\?.*$/, "")), [
+    "art/guitars/porch-small.webp",
+    "art/guitars/cornerstone-small.webp",
+    "art/guitars/clubslab-small.webp"
+  ]);
+});
+
+test("one earned guitar still leaves three stalls, and a bought guitar gets a stall of its own", { skip: skip() }, async t => {
+  const one = await openMe(t, "dark", { skills: legsDone(1) });
+  const stalls = await one.$$eval(".rr-gtr", els => els.map(el => ({ empty: el.classList.contains("rr-slot-empty"), img: el.querySelector("img")?.getAttribute("src") || "" })));
+  assert.equal(stalls.length, 3, "at least three stalls");
+  assert.equal(stalls.filter(s => s.empty).length, 2);
+  assert.match(stalls[0].img, /porch-small\.webp/);
+  const four = await openMe(t, "light", { skills: legsDone(3), merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["g-stickerriot"] } });
+  const more = await four.$$eval(".rr-gtr", els => els.map(el => el.querySelector("img")?.getAttribute("src") || ""));
+  assert.equal(more.length, 4, "one stall per guitar once there are more than three");
+  assert.match(more[3], /stickerriot-small\.webp/);
+  assert.equal(await four.locator(".rr-gtr.rr-slot-empty").count(), 0);
+});
+
 for (const theme of ["green", "headliner"]) {
   test(`Road Ready 08 (${theme}): Me is the earlier page (the player card, four tiles, Tips to spend) and Back to the Road is a 44 px target`, { skip: skip() }, async t => {
     const page = await phone(t, meLib(theme, { merch: { ...LIB.merch } }), { home: true });

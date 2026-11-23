@@ -5392,35 +5392,39 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] .rr-tn-tx b, :root[data-look="festival"] .rr-tn-tx small { text-shadow: 0 0 6px rgba(246, 239, 226, .95); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tn-stop:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 22px; }
 .rd-path.has-pop .rr-tn-stop { display: none; }
-/* the guitar case on Me (Grok, 2026-11-19, r10-06): an open hard case in black tolex with chrome piping and two latches, lined in
-   Grok's painted brown-orange crushed velvet (art/case/velvet-slot.webp), one padded compartment per guitar and at least three.
-   Each earned or bought guitar stands in its own compartment on a soft shadow; more than three scroll sideways. The case is an
-   object, so it looks the same in Light and Dark. Class rr-gcase, so the Show complete sheet's .rr-case is not touched. */
+/* the guitar case on Me (Grok, r10-06): an open hard case in black tolex with chrome piping and two latches.
+   The lining is one painted picture (art/case/lining-open.webp): brown-orange crushed velvet, a neck rest across
+   the middle, and three padded stalls. Each stall shows one third of that picture, so the stalls meet as one case.
+   There is always one stall per guitar and at least three. More than three scroll sideways. Each earned or bought
+   guitar stands in its stall, headstock up, on a soft shadow. The case is an object, so it looks the same in Light
+   and Dark. Class rr-gcase, so the Show complete sheet's .rr-case is not touched. */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase {
   position: relative; margin-top: var(--sp-1); padding: 12px 10px 10px; border-radius: 16px;
   background: linear-gradient(rgba(0, 0, 0, .35), rgba(0, 0, 0, .55)), url("art/surfaces/tolex-dark.webp") 0 0 / 256px; background-color: #15110D;
   box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, inset 0 2px 0 3.5px rgba(255, 255, 255, .25), 0 10px 22px rgba(0, 0, 0, .45);
 }
 :root[data-look="festival"] .rr-gcase { box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #A9A49C, inset 0 0 0 3.5px #2A2622, 0 10px 20px rgba(60, 40, 20, .3); }
-.rr-latch { position: absolute; top: -7px; z-index: 2; width: 36px; height: 22px; background: url("art/case/latch.webp") 0 0 / 100% 100%; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .5)); }
+.rr-latch { position: absolute; top: -6px; z-index: 2; width: 40px; height: 18px; background: url("art/case/latch-chrome.webp") center / contain no-repeat; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45)); }
 .rr-latch.l { left: 22%; } .rr-latch.r { right: 22%; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in {
-  display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 8px) / 3); gap: 0; margin: 0; padding: 0; min-height: 0; list-style: none;
-  overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 8px; background: #3A1A08;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), inset 0 6px 14px rgba(0, 0, 0, .55); scrollbar-width: none;
+  display: grid; grid-auto-flow: column; grid-auto-columns: calc(100% / 3); gap: 0; margin: 0; padding: 0; min-height: 0; list-style: none;
+  overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 6px; background: #6e3014;
+  box-shadow: inset 0 0 0 1px rgba(40, 16, 6, .65); scrollbar-width: none;
 }
 .rr-gcase .rr-case-in::-webkit-scrollbar { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr {
-  position: relative; display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 116 / 300; min-width: 0; min-height: 44px; overflow: hidden; scroll-snap-align: start;
-  background: url("art/case/velvet-slot.webp") center / 100% 100%;
+  position: relative; display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 480 / 696; min-width: 0; min-height: 44px; overflow: hidden; scroll-snap-align: start;
+  background-color: #6e3014; background-image: url("art/case/lining-open.webp"); background-repeat: no-repeat;
+  background-size: 300% 100%; background-position: center center;
 }
-/* the guitar sits low in the bed, its neck on the rest, with a soft shadow on the velvet under it */
+/* the first stall is the left end of the painting and the last stall is the right end, so the walls meet */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr:first-child { background-position: left center; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr:last-child { background-position: right center; }
+/* the guitar sits low in the bed, its neck across the rest, with a soft shadow on the velvet under it */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img {
-  position: relative; z-index: 1; height: 86%; width: auto; max-width: 92%; object-fit: contain; object-position: bottom; margin-bottom: 4%;
-  filter: drop-shadow(2px 7px 6px rgba(40, 10, 0, .6)) drop-shadow(0 1px 1px rgba(0, 0, 0, .45));
+  position: relative; z-index: 1; height: 92%; width: auto; max-width: 92%; object-fit: contain; object-position: bottom; margin-bottom: 3%;
+  filter: drop-shadow(2px 7px 6px rgba(40, 10, 0, .55)) drop-shadow(0 1px 1px rgba(0, 0, 0, .4));
 }
-/* an empty compartment just shows the velvet, a touch darker, so it reads as waiting for a guitar */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-slot-empty::after { content: ""; position: absolute; inset: 0; background: rgba(30, 10, 0, .22); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
 
@@ -5848,8 +5852,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-top { position: relative; z-index: 2; height: 0; min-height: 0; margin: 0; padding: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-top .rr-gear { position: absolute; right: 0; top: 2px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { padding-right: 56px; }
-/* the case lies open on its side (r10-06): wide and low, three compartments, each guitar standing in its slot */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { aspect-ratio: 116 / 168; }
+/* the case lies open (r10-06): wide and low, three stalls across, each guitar standing in its slot */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { aspect-ratio: 480 / 696; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 92%; margin-bottom: 3%; }
 
 /* Merch, 4.104.0 (agreed Merch screen): the title in the middle between a round back button and the tips pill, then a
