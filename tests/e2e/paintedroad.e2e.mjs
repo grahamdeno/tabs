@@ -61,9 +61,14 @@ test("Painted necks: tapping another stop moves the card; tapping empty space cl
 
 test("Painted necks: a tap inside the current stop's zone always selects the current stop and opens its card", { skip: skip() }, async t => {
   const page = await road(t);
-  for (const [dx, dy] of [[-1000, 0], [150, -28], [-150, 28]]) {
+  /* dy is in the drawing's units (the zone is 32). The taps stay at the left edge, clear of Tonight and the other stops. */
+  const unit = await page.evaluate(() => { const n = document.querySelector(".rd-neck.road"); return n.getBoundingClientRect().height / (+n.dataset.lh || 1); });
+  for (const [dx, dy] of [[-1000, 0], [-1000, -12], [-1000, 12]]) {
     const cur = await rect(page, stopSel("c:Am")); /* measured again before every tap: the Road scrolls after a card opens */
-    await page.mouse.click(Math.max(4, Math.min(386, cur.x + dx)), cur.y + dy);
+    const x = Math.max(4, Math.min(386, cur.x + dx)), y = cur.y + dy * unit;
+    const off = await page.evaluate(([x, y]) => { const n = document.querySelector(".rd-neck.road"), r = n.getBoundingClientRect(), am = n.querySelector('[data-stop="c:Am"]'); const tapY = (y - r.top) / r.height * (+n.dataset.lh || 1); return Math.abs(tapY - +am.dataset.hy); }, [x, y]);
+    assert.ok(off <= 32, `the tap is ${off.toFixed(1)} drawing units from the stop, inside the zone`);
+    await page.mouse.click(x, y);
     await page.waitForSelector(".rd-pop.now"); await still(page);
     assert.equal(await page.evaluate(() => document.querySelector(".rd-pop").parentElement.querySelector("[data-stop]").dataset.stop), "c:Am", `a tap ${dx}, ${dy} from the current stop`);
     const again = await rect(page, stopSel("c:Am"));
