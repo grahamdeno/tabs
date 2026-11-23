@@ -318,8 +318,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const box = async sel => page.evaluate(sel => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r && r.width ? { top: r.top, bottom: r.bottom, right: r.right, left: r.left } : null; }, sel);
   const H = 844;
   assert.ok((await box("#chips")).top < H * 0.3, "filters at the top (2.6: moved back)");
-  assert.ok((await box("#add")).top < 100, "Road Ready 07: Add in the header; the tuner is on Me and the song screen");
-  assert.equal(await page.locator("#tunerbtn").count(), 0, "Road Ready 07: no tuner in the Road Ready Songbook");
+  assert.ok((await box("#add")).top > H * 0.7, "4.113.0: + sits in the search bar at the bottom, in thumb reach");
+  assert.ok((await box("#tunerbtn")).top < 100, "4.113.0: the tuner is back in the Songbook's header");
   /* the earlier Songbook (Green Room, Headliner) keeps the tuner in its header */
   const green = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } });
   await green.waitForSelector("#tunerbtn");
@@ -346,8 +346,8 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   const pad = await phone(t, LIB, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForSelector(".shead [data-go]");
   assert.ok(await pad.evaluate(() => document.querySelector(".shead [data-go]").getBoundingClientRect().top < 100), "iPad: back at the top");
-  await pad.goto(base + "#/library"); await pad.waitForSelector("#add");
-  assert.ok(await pad.evaluate(() => document.querySelector("#add").getBoundingClientRect().top < 100), "iPad: Add at the top (Road Ready 07; the tuner is on Me)");
+  await pad.goto(base + "#/library"); await pad.waitForSelector("#tunerbtn");
+  assert.ok(await pad.evaluate(() => document.querySelector("#tunerbtn").getBoundingClientRect().top < 100), "iPad: Sets and the tuner at the top (4.113.0)");
 });
 
 test("2.1, 2.6.5 speed dial (4.2.0: Tools, then Speed): a wobble changes nothing; a sweep sets the length, saves, and Undo puts it back", { skip: skip() }, async t => {

@@ -5973,3 +5973,40 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 .dial-reset { position: absolute; left: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 112px; min-height: 48px; padding: 8px 12px; border: 0; border-radius: 12px;
   background: #2A2622; color: #FFE2B0; font: 600 var(--type-footnote, 14px) / 1.15 var(--sans, system-ui); box-shadow: inset 0 0 0 1.5px #8E8A84, 0 4px 10px rgba(0, 0, 0, .5); cursor: pointer; }
 .dial-reset:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; }
+
+/* 4.113.0 and 4.113.1 (Graham, 2026-11-20): the Songbook is the earlier layout again (title with Sets and the tuner, the card
+   strip, the filters, the backup card, one-line rows with the status and the key), drawn in Dark and Light in the agreed
+   Road Ready components (r10-05): the hint strip and capsule chips above, outlined plates in the header, a card per song. */
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .title { font: 700 clamp(26px, 8.6vw, 34px) / 1.1 var(--display); letter-spacing: -.01em; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head :is(.btn.sets-btn, .ib.chunky-tune) { min-height: 44px; height: 44px; box-sizing: border-box; border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn { padding: 0 16px; border-radius: var(--r-chip); font: var(--type-subhead-w) var(--type-subhead) / 1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn.on { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .ib.chunky-tune { width: 44px; border-radius: 50%; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .ib.chunky-tune:active { transform: none; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { margin-top: var(--sp-3); }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips { margin-bottom: var(--sp-1); }
+:root:is([data-look="neon"], [data-look="festival"]) .bk.glass { border: 1px solid var(--rr-hairline); background: var(--rr-card); box-shadow: none; border-radius: var(--r-card); }
+/* a card per song: title and artist on the left, the status and the key as plate chips on the right */
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-line) { background: none; border: 0; box-shadow: none; border-radius: 0; overflow: visible; display: flex; flex-direction: column; gap: var(--sp-2); padding: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .list.glass:has(.rr-line) .sw { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) .list .row.rr-line { display: flex; align-items: center; gap: var(--sp-2); min-height: 64px; box-sizing: border-box; padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4); border: 1px solid var(--rr-hairline); border-radius: var(--r-card); background: var(--rr-card); color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .list .row.rr-line + .row.rr-line { border-top: 1px solid var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .txt { flex: 1 1 auto; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .t { font: 600 var(--type-headline) / 1.25 var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .a { font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .a .st { color: var(--rr-amber-text); font-weight: 600; background: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .heart { width: 16px; height: 16px; color: var(--rr-amber-text); fill: currentColor; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line :is(.fit, .k) { flex: none; min-height: 28px; min-width: 28px; box-sizing: border-box; padding: 0 10px; border-radius: var(--r-chip); display: inline-grid; place-items: center; font: 600 var(--type-footnote) / 1 var(--sans); letter-spacing: 0; text-transform: none; background: var(--rr-plate-top); border: 1px solid var(--rr-plate-edge); color: var(--rr-plate-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .fit.learn { background: transparent; border: 1.5px solid var(--rr-amber-text); color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .fit.one { background: var(--rr-amber); border-color: var(--rr-amber-text); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-line .k { padding: 0 8px; }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .bk-b .btn { min-height: 44px; height: 44px; padding: 0 18px; border-radius: var(--r-chip); box-shadow: none; font: var(--type-subhead-w) var(--type-subhead) / 1 var(--sans); border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .bk-b .btn.primary { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .bk-b .btn::before { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .bk .tile { background: color-mix(in srgb, var(--rr-amber) 14%, transparent); color: var(--rr-amber-text); }
+/* the filters stay on one row, as in the earlier layout: slimmer capsules that still take a 44 px tap through ::after */
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips { flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 4px 0; margin-top: var(--sp-2); }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip { position: relative; min-height: 36px; padding: 4px 9px; font: 600 var(--type-footnote) / 1.1 var(--sans); white-space: nowrap; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip::after { content: ""; position: absolute; inset: -4px 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip svg { width: 16px; height: 16px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip[data-f="fav"] { min-width: 36px; padding: 4px 9px; }
