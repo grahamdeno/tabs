@@ -75,6 +75,29 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   await page.waitForFunction(() => document.body.classList.contains("playing") && !document.querySelector(".on-count"));
 });
 
+for (const width of [390, 320]) {
+  test(`Opening night at ${width} wide: stop 1 and its line sit fully below the header at first load`, { skip: skip() }, async t => {
+    const page = await phone(t, { ...FRESH, settings: { ...FRESH.settings, theme: "dark" } }, { home: true, viewport: { width, height: 844 } });
+    await page.waitForSelector(".rd-node.now .rr-art");
+    await page.waitForSelector(".rd-tag");
+    await settled(page);
+    const box = await page.evaluate(() => {
+      const header = document.querySelector("header.rr-head").getBoundingClientRect();
+      const stop = document.querySelector(".rd-node.now").getBoundingClientRect();
+      const bubble = document.querySelector(".rd-tag").getBoundingClientRect();
+      return { headerBottom: header.bottom, scroll: document.getElementById("rd-path").scrollTop, stop, bubble, vw: innerWidth, vh: innerHeight, text: document.querySelector(".rd-tag").textContent };
+    });
+    assert.equal(box.scroll, 0, "first load has not scrolled the neck up under the header");
+    assert.match(box.text, /Who's playing tonight/);
+    for (const [name, r] of [["stop 1", box.stop], ["the line", box.bubble]]) {
+      assert.ok(r.top >= box.headerBottom - 0.5, `${name} starts at ${r.top}, below the header at ${box.headerBottom}`);
+      assert.ok(r.bottom <= box.vh + 0.5, `${name} ends at ${r.bottom}, inside the screen`);
+      assert.ok(r.left >= -0.5 && r.right <= box.vw + 0.5, `${name} stays inside the width (${r.left}..${r.right} of ${box.vw})`);
+      assert.ok(r.height > 20 && r.width > 20, `${name} is fully drawn`);
+    }
+  });
+}
+
 test("4.40.0 Opening night: pause and pick up in the Gig: the step says what to do at each point", { skip: skip() }, async t => {
   const page = await phone(t, { ...FRESH, opening: { step: 4, v: 2, fans: 15 } }, { home: true });
   await page.waitForSelector(".rd-node.now"); await settled(page);
