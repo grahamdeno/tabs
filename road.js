@@ -26,7 +26,7 @@ import { cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, song
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { micSheet, songFor } from "./opening.js";
 import { makerSheet } from "./maker.js";
-import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
+import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
@@ -443,20 +443,8 @@ function guitaristAsk() {
   makerSheet({ mode: "once", done: () => renderRoad() });
 }
 
-/* 4.78.0: the first time a leg's headline show is done, Headliner is yours. Said once, on the Road. */
-function headlinerEarned(road) {
-  if (data.merch?.hlseen || layer.innerHTML || !road.legs.some(l => l.stops.some(s => s.kind === "headline" && s.state === "done"))) return;
-  (data.merch || (data.merch = {})).hlseen = 1; Tabs.save(data);
-  const on = data.settings.theme === "headliner";
-  layer.innerHTML = `<div class="scrim" id="hl-scrim"></div><div class="panel de-sheet rd-hl" role="dialog" aria-label="Headliner is yours"><div class="grab"></div>
-    <div class="pbody"><div class="rd-hl-lou">${louie("cheer", { size: 120, pose: "hornsUp" })}</div>
-    <h2>You headlined</h2><p>Headliner is yours: black, gold and chrome under a blacklight. ${on ? "You're already wearing it." : "Put it on now, or any time in Settings or at the Merch table."}</p>
-    <div class="rd-hl-acts">${on ? "" : `<button class="btn primary" id="hl-on">PUT IT ON</button>`}<button class="mt-not" id="hl-x">${on ? "Rock on" : "Not now"}</button></div></div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  document.getElementById("hl-scrim").onclick = close; document.getElementById("hl-x").onclick = close;
-  document.getElementById("hl-on")?.addEventListener("click", () => { data.settings.theme = "headliner"; Tabs.save(data); applyTheme(); close(); toast("Headliner is on"); });
-  haptic(2);
-}
+/* Headliner is retired. The Road does not offer it, and nothing here switches a player into it. */
+function headlinerEarned() {}
 
 
 /* 4.82.0: the first Road shown after a leg's headline show is done tells you the next guitar is yours. Said once;
@@ -467,31 +455,38 @@ function guitarEarned(road) {
   if (!gn) return;
   data.guitars = { seen: gn.done }; Tabs.save(data);
   const lg = road.legs.find(l => l.id === gn.next), was = road.legs.find(l => l.id === gn.leg);
-  /* Road Ready 06 (spec 5.8, r10-03): the new guitar in Grok's painted open case (art/show), chrome L corners, the
-     cheering Louie beside it; the leg you finished as the title and the next leg as the next stop */
-  if (rrLook()) layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt rr-case" role="dialog" aria-label="New guitar earned"><div class="grab"></div>
+  /* The new guitar in the same velvet case as Me: three stalls, the picture at its own shape,
+     the body behind the front lip. More than three scroll one case at a time. Louie and the name sit under it. */
+  if (rrLook()) {
+    const all = [...Object.values(GUITARS).map(g => ({ id: g.body, name: g.name })), ...GUITAR_SHOP.map(g => ({ id: g.id, name: g.name }))];
+    const pages = [];
+    for (let i = 0; i < all.length; i += 3) pages.push(all.slice(i, i + 3));
+    const cases = pages.map(group => {
+      const stalls = group.map((g, i) => {
+        const on = g.id === gn.guitar.body, pic = guitarPic(g.id);
+        return `<li class="sc-stall${on ? " on" : ""}" data-slot="${i}" data-g="${esc(g.id)}">${pic ? `<img class="${on ? "sc-guitar" : ""}" src="${pic}" alt="">` : ""}</li>`;
+      }).join("");
+      const here = group.some(g => g.id === gn.guitar.body);
+      return `<div class="sc-velvet${here ? " on" : ""}"><ul class="sc-stalls">${stalls}</ul><i class="sc-lip" aria-hidden="true"></i></div>`;
+    }).join("");
+    layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt rr-case" role="dialog" aria-label="New guitar earned"><div class="grab"></div>
     <div class="pbody">
       <p class="sc-over">HEADLINE SHOW</p>
       <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Leg done"}</h2>
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
-        <div class="sc-persp">
-          <ul class="sc-stalls">${[...Object.values(GUITARS).map(g => ({ id: g.body, name: g.name })), ...GUITAR_SHOP.map(g => ({ id: g.id, name: g.name }))].map(g => {
-            const on = g.id === gn.guitar.body, pic = guitarPic(g.id);
-            return `<li class="sc-stall${on ? " on" : ""}" data-g="${esc(g.id)}">${pic ? `<img class="${on ? "sc-guitar" : ""}" src="${pic}" alt="">` : ""}</li>`;
-          }).join("")}</ul>
-        </div>
+        <div class="sc-case-scroll">${cases}</div>
       </div>
       <div class="sc-by"><span class="sc-louie">${louie("cheer", { size: 72 })}</span><span class="sc-label">${esc(gn.guitar.name)}</span></div>
       <p class="sc-got">${esc(gn.guitar.name)} is yours.</p>
       ${lg ? `<p class="sc-next">Next stop: Leg ${lg.n}, ${esc(lg.name)}</p>` : ""}
       <div class="sc-acts"><button class="btn primary" id="gt-x">Rock on</button></div>
     </div></div>`;
-  else layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
+  } else layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
     <div class="pbody"><div class="rd-gt-row">${louie("cheer", { size: 96, pose: "hornsUp" })}<div class="rd-gt-art">${guitarSVG(gn.next)}</div></div>
     <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
     <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div>    </div></div>`;
-  document.querySelector(".sc-stall.on")?.scrollIntoView({ inline: "center", block: "nearest" });
+  document.querySelector(".sc-velvet.on")?.scrollIntoView({ inline: "center", block: "nearest" });
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("gt-scrim").onclick = close; document.getElementById("gt-x").onclick = close;
   haptic(2);

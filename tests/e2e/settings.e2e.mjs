@@ -31,11 +31,17 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   assert.deepEqual(errs, []);
 });
 
-test("Settings > Look: Road Ready light and dark, Green Room and Headliner, kept after a reload (4.0.0, 4.77.0)", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, merch: { has: ["green", "headliner"], tconv: 1, lconv: 1 } }); /* 4.78.0: owned at the Merch table */
+test("Settings > Look: Light and Dark only, and a saved Green Room or Headliner is not rewritten", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { has: ["green", "headliner"], tconv: 1, lconv: 1, tspent: 400 } }, { colorScheme: "dark" });
   await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForSelector("#s-theme");
   const look = () => page.evaluate(() => [document.documentElement.dataset.theme, document.documentElement.dataset.look, getComputedStyle(document.body).backgroundColor]);
   const themeColor = () => page.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme);
+  assert.equal(await page.locator("#s-theme button").count(), 3, "Auto, Light and Dark");
+  assert.equal(await page.locator("#s-theme [data-t='green'], #s-theme [data-t='headliner']").count(), 0, "Green Room and Headliner are not offered");
+  assert.deepEqual(await look(), ["dark", "neon", "rgb(20, 18, 16)"], "a saved Green Room follows a dark phone");
+  assert.equal(await saved(), "green", "the saved look is not rewritten");
+  assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.tspent)), 400, "tips already spent stay spent");
   await page.click("#s-theme [data-t='dark']"); await page.waitForFunction(() => document.documentElement.dataset.look === "neon");
   assert.deepEqual(await look(), ["dark", "neon", "rgb(20, 18, 16)"], "Dark is Road Ready dark");
   assert.equal((await themeColor()).toLowerCase(), "#141210", "the status bar wears Road Ready dark");
@@ -43,16 +49,10 @@ test("Settings > Look: Road Ready light and dark, Green Room and Headliner, kept
   assert.deepEqual(await look(), ["light", "festival", "rgb(246, 239, 226)"], "Light is Road Ready light");
   assert.equal((await themeColor()).toLowerCase(), "#f6efe2", "the status bar wears Road Ready light");
   assert.match(await page.innerText(".foot"), /Light is Road Ready light and Dark is Road Ready dark/, "the Look page names the two looks");
-  assert.doesNotMatch(await page.innerText("body"), /Festival Poster|Neon Midnight/, "the old names are gone");
-  await page.click("#s-theme [data-t='green']"); await page.waitForFunction(() => document.documentElement.dataset.look === "green");
-  assert.deepEqual(await look(), ["light", "green", "rgb(230, 239, 231)"], "Green Room is a light look");
-  assert.equal((await themeColor()).toLowerCase(), "#e6efe7", "Green Room keeps its status bar colour");
-  assert.equal(await page.locator("#s-tolex").count(), 0, "the amp covering is gone with the amp look");
-  await page.click("#s-theme [data-t='headliner']"); await page.waitForFunction(() => document.documentElement.dataset.look === "headliner");
-  assert.deepEqual(await look(), ["dark", "headliner", "rgb(22, 23, 27)"], "Headliner is a dark look");
-  assert.equal((await themeColor()).toLowerCase(), "#16171b", "Headliner keeps its status bar colour");
-  await page.reload(); await page.waitForSelector("#s-theme");
-  assert.equal((await look())[1], "headliner", "kept");
+  assert.doesNotMatch(await page.innerText("body"), /Green Room|Headliner|Festival Poster|Neon Midnight/);
+  await page.evaluate(async () => { const app = await import("./app.js"); app.data.settings.theme = "headliner"; app.applyTheme(); });
+  assert.equal((await look())[1], "neon", "a saved Headliner follows the dark phone");
+  assert.equal(await page.evaluate(async () => (await import("./app.js")).data.settings.theme), "headliner", "kept in memory, not rewritten");
 });
 
 test("Settings > Apple Music: off by default; on, Listen plays the linked song with MusicKit", { skip: skip() }, async t => {
@@ -510,20 +510,14 @@ test("4.16.0: test fans from Help can be spent at the Merch table, and removed",
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem("tabs-v1")).merch?.test);
 });
 
-test("4.78.0 looks you don't have: locked in Settings, a tap opens the Merch table; Headliner says how to earn it", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, merch: { tips: 500, tconv: 1, lconv: 1 } });
-  await page.evaluate(() => { location.hash = "#/settings/look"; }); await page.waitForSelector("#s-theme");
-  assert.equal(await page.locator("#s-theme button.locked").count(), 2, "Green and Headliner are locked");
-  await page.click("#s-theme [data-t='green']");
-  await page.waitForSelector(".mc-look[data-id='green']");
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.look) !== "green", true, "not put on by the tap");
-  await page.click(".mc-look[data-id='headliner']"); await page.waitForSelector(".mt");
-  assert.match(await page.innerText(".mt-acts"), /HEADLINE A SHOW TO EARN IT/);
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "headliner", "trying it on shows the app in it");
+test("Looks at the Merch table are Light and Dark only", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, merch: { tips: 500, tconv: 1, lconv: 1, has: ["green", "headliner"] } });
+  await page.evaluate(() => { location.hash = "#/merch/looks"; }); await page.waitForSelector(".mc-look");
+  const ids = await page.$$eval(".mc-look", bs => bs.map(b => b.dataset.id).sort());
+  assert.deepEqual(ids, ["festival", "neon"]);
+  assert.doesNotMatch(await page.innerText("body"), /Green Room|Headliner/);
+  await page.click(".mc-look[data-id='festival']"); await page.waitForSelector(".mt");
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "festival", "trying Light on still works");
   await page.click("#mt-not");
-  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "headliner", "closing puts your own look back");
-  await page.click(".mc-look[data-id='green']"); await page.waitForSelector("#mt-buy");
-  await page.click("#mt-buy");
-  await page.waitForFunction(() => document.documentElement.dataset.look === "green");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme === "green");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "green");
 });
