@@ -3454,6 +3454,88 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
   }
 });
 
+function webpSize(buf) {
+  assert.equal(buf.toString("ascii", 0, 4), "RIFF");
+  assert.equal(buf.toString("ascii", 8, 12), "WEBP");
+  let o = 12;
+  while (o + 8 <= buf.length) {
+    const tag = buf.toString("ascii", o, o + 4);
+    const size = buf.readUInt32LE(o + 4);
+    const data = o + 8;
+    if (tag === "VP8X" && data + 10 <= buf.length) {
+      return {
+        w: 1 + buf.readUIntLE(data + 4, 3),
+        h: 1 + buf.readUIntLE(data + 7, 3),
+        alpha: (buf[data] & 16) !== 0
+      };
+    }
+    if (tag === "VP8L" && data + 5 <= buf.length) {
+      const bits = buf.readUInt32LE(data + 1);
+      return { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1, alpha: ((bits >> 28) & 1) === 1 };
+    }
+    if (tag === "VP8 " && data + 10 <= buf.length) {
+      return { w: buf.readUInt16LE(data + 6) & 0x3fff, h: buf.readUInt16LE(data + 8) & 0x3fff, alpha: false };
+    }
+    o = data + size + (size & 1);
+  }
+  throw new Error("webp size not found");
+}
+
+test("painted guitarist: every stored part is one 800 by 800 layer, and the manifest lists it", () => {
+  const dir = path.join(root, "art/guitarist-painted");
+  const man = JSON.parse(read("art/guitarist-painted/manifest.json"));
+  assert.deepEqual(man.canvas, [800, 800]);
+  assert.equal(man.shadeNeutral, 128);
+  const listed = man.files.map(f => f.file);
+  assert.equal(new Set(listed).size, listed.length, "every file is listed once");
+  const walk = (d, base = "") => fs.readdirSync(d, { withFileTypes: true }).flatMap(ent => {
+    const rel = base ? `${base}/${ent.name}` : ent.name;
+    return ent.isDirectory() ? walk(path.join(d, ent.name), rel) : [rel];
+  });
+  const onDisk = walk(dir).filter(f => f.endsWith(".webp")).sort();
+  assert.deepEqual(onDisk, [...listed].sort(), "the folder and the manifest name the same layers");
+  for (const f of man.files) {
+    assert.equal(Number.isInteger(f.order), true, f.file);
+    const dim = webpSize(fs.readFileSync(path.join(dir, f.file)));
+    assert.equal(dim.w, 800, f.file);
+    assert.equal(dim.h, 800, f.file);
+    assert.equal(dim.alpha, true, f.file);
+    if (f.shade) assert.ok(listed.includes(f.shade), `${f.file} shade`);
+  }
+  const names = new Set(listed);
+  for (const h of C.ME_HAIR) for (const role of ["back", "front", "tuck"]) {
+    assert.ok(names.has(`hair/${h}-${role}.webp`), `${h} ${role}`);
+    assert.ok(names.has(`hair/${h}-${role}-shade.webp`), `${h} ${role} shade`);
+  }
+  for (const shape of C.ME_FACE) {
+    assert.ok(names.has(`face/${shape}.webp`));
+    assert.ok(names.has(`face/${shape}-shade.webp`));
+  }
+  for (const eye of C.ME_EYES) for (const part of ["", "-iris", "-iris-shade", "-pupil", "-lid", "-lid-shade", "-lid-line"]) {
+    assert.ok(names.has(`eyes/${eye}${part}.webp`), `${eye}${part}`);
+  }
+  for (const extra of ["cheer", "sleepy"]) assert.ok(names.has(`eyes/${extra}.webp`));
+  for (const brow of C.ME_BROWS) for (const mood of ["", "-worried", "-raised"]) {
+    assert.ok(names.has(`brows/${brow}${mood}.webp`), `${brow}${mood}`);
+    assert.ok(names.has(`brows/${brow}${mood}-shade.webp`));
+  }
+  for (const nose of C.ME_NOSE) assert.ok(names.has(`nose/${nose}.webp`) && names.has(`nose/${nose}-shade.webp`));
+  for (const mood of ["happy", "cheer", "proud", "sleepy", "worried"]) assert.ok(names.has(`mouth/${mood}.webp`));
+  for (const beard of C.ME_BEARD) if (beard !== "none") assert.ok(names.has(`beard/${beard}.webp`) && names.has(`beard/${beard}-shade.webp`));
+  for (const hat of C.ME_HATS) assert.ok(names.has(`hat/${hat}.webp`) && names.has(`hat/${hat}-shade.webp`));
+  for (const specs of C.ME_SPECS) assert.ok(names.has(`glasses/${specs}.webp`));
+  for (const look of ["tee", "flannel", "vest", "leather", "stage"]) for (const pose of ["play", "hornsUp", "rest"]) {
+    assert.ok(names.has(`tops/${look}-${pose}.webp`), `${look} ${pose}`);
+    assert.ok(names.has(`tops/${look}-${pose}-shade.webp`));
+    assert.ok(names.has(`body/arms-${pose}.webp`) && names.has(`body/hands-${pose}.webp`));
+  }
+  assert.ok(names.has("freckles/freckles.webp"));
+  assert.ok(names.has("body/neck.webp") && names.has("body/strap.webp") && names.has("body/pick.webp"));
+  const orders = man.stack.map(s => s.order);
+  assert.deepEqual(orders, [...orders].sort((a, b) => a - b));
+  assert.ok(orders.indexOf(80) > orders.indexOf(70) && orders.indexOf(90) > orders.indexOf(80), "the guitar sits between the strap and the arms");
+});
+
 test("4.103.0 the player's name: plain text on one line, at most 30 characters, kept through a backup and cleaned on import", () => {
   assert.equal(C.cleanName("  Graham   DeNoyer \n"), "Graham DeNoyer");
   assert.equal(C.cleanName("<script>x</script>"), "scriptx/script");

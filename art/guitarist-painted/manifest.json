@@ -1,0 +1,2092 @@
+{
+  "canvas": [
+    800,
+    800
+  ],
+  "masterGrey": [
+    208,
+    208,
+    208
+  ],
+  "shadeNeutral": 128,
+  "composite": "Fill the master alpha with the part colour, then multiply the colour by shade divided by 128. 128 leaves the colour as it is. Darker is shadow, lighter is a highlight. Draw shade with the same alpha as the master.",
+  "lefty": "Flip the whole stack left to right about x = 400. A lefty uses the same files.",
+  "guitar": "The app places the painted Road guitar after the strap and before the arms. The neck runs to the viewer's right. These layers leave that space empty.",
+  "crop": "The figure is waist up. The top of the head sits near y = 100. Hair and hats may rise above that. The app cuts the head-and-shoulders crop itself.",
+  "hats": "A beanie or a cap uses the tucked front hair. A bandana uses the full front. The back hair stays either way.",
+  "eyes": "Happy and worried use the open eye of the chosen shape (white, then iris, then pupil). Proud draws the lid and the lid line over that eye. Cheer and sleepy replace the open eye.",
+  "brows": "Neutral is the resting brow. Worried lifts the inner ends. Raised lifts both brows (cheer and proud). The thin brow is stored as straight.",
+  "ids": "File ids match the values the app stores. The long nose is bridge. The long mohawk is longhawk.",
+  "anchors": {
+    "center": 400,
+    "headTop": 100,
+    "eyes": [
+      [
+        348.0,
+        228.0
+      ],
+      [
+        452.0,
+        228.0
+      ]
+    ],
+    "brows": 186,
+    "mouth": [
+      400.0,
+      328.0
+    ]
+  },
+  "stack": [
+    {
+      "order": 10,
+      "what": "Hair, back layer"
+    },
+    {
+      "order": 20,
+      "what": "Neck and shoulders"
+    },
+    {
+      "order": 30,
+      "what": "Top, the part that takes the top colour"
+    },
+    {
+      "order": 35,
+      "what": "Flannel centre panel, when the top is flannel"
+    },
+    {
+      "order": 40,
+      "what": "Jacket or vest sides, when that look has them"
+    },
+    {
+      "order": 50,
+      "what": "Fixed details: buttons, zipper, gold lapels"
+    },
+    {
+      "order": 70,
+      "what": "Strap, play pose"
+    },
+    {
+      "order": 80,
+      "what": "Painted Road guitar, placed by the app, play pose"
+    },
+    {
+      "order": 90,
+      "what": "Arms for the pose"
+    },
+    {
+      "order": 94,
+      "what": "Sleeves for the pose, over the arms"
+    },
+    {
+      "order": 96,
+      "what": "Flannel pinstripe, when the top is flannel"
+    },
+    {
+      "order": 100,
+      "what": "Hands for the pose"
+    },
+    {
+      "order": 110,
+      "what": "Pick, play pose"
+    },
+    {
+      "order": 120,
+      "what": "Face shape, with ears"
+    },
+    {
+      "order": 130,
+      "what": "Blush"
+    },
+    {
+      "order": 140,
+      "what": "Freckles, when worn"
+    },
+    {
+      "order": 150,
+      "what": "Nose"
+    },
+    {
+      "order": 155,
+      "what": "Mouth for the mood"
+    },
+    {
+      "order": 170,
+      "what": "Eye white, or the cheer or sleepy eye"
+    },
+    {
+      "order": 180,
+      "what": "Iris"
+    },
+    {
+      "order": 190,
+      "what": "Pupil, catchlights and lash"
+    },
+    {
+      "order": 200,
+      "what": "Proud lid"
+    },
+    {
+      "order": 210,
+      "what": "Proud lid line"
+    },
+    {
+      "order": 220,
+      "what": "Brows"
+    },
+    {
+      "order": 230,
+      "what": "Beard, when worn. The mouth shows through the opening."
+    },
+    {
+      "order": 240,
+      "what": "Hair front, or the tucked front under a beanie or a cap"
+    },
+    {
+      "order": 250,
+      "what": "Hat, when worn"
+    },
+    {
+      "order": 260,
+      "what": "Glasses, when worn"
+    }
+  ],
+  "files": [
+    {
+      "file": "hair/bob-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "bob",
+      "of": "hair/bob-back.webp"
+    },
+    {
+      "file": "hair/bob-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "bob",
+      "tint": "hair",
+      "shade": "hair/bob-back-shade.webp"
+    },
+    {
+      "file": "hair/braids-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "braids",
+      "of": "hair/braids-back.webp"
+    },
+    {
+      "file": "hair/braids-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "braids",
+      "tint": "hair",
+      "shade": "hair/braids-back-shade.webp"
+    },
+    {
+      "file": "hair/bun-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "bun",
+      "of": "hair/bun-back.webp"
+    },
+    {
+      "file": "hair/bun-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "bun",
+      "tint": "hair",
+      "shade": "hair/bun-back-shade.webp"
+    },
+    {
+      "file": "hair/buzz-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "buzz",
+      "of": "hair/buzz-back.webp"
+    },
+    {
+      "file": "hair/buzz-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "buzz",
+      "tint": "hair",
+      "shade": "hair/buzz-back-shade.webp"
+    },
+    {
+      "file": "hair/curly-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "curly",
+      "of": "hair/curly-back.webp"
+    },
+    {
+      "file": "hair/curly-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "curly",
+      "tint": "hair",
+      "shade": "hair/curly-back-shade.webp"
+    },
+    {
+      "file": "hair/locs-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "locs",
+      "of": "hair/locs-back.webp"
+    },
+    {
+      "file": "hair/locs-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "locs",
+      "tint": "hair",
+      "shade": "hair/locs-back-shade.webp"
+    },
+    {
+      "file": "hair/long-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "long",
+      "of": "hair/long-back.webp"
+    },
+    {
+      "file": "hair/long-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "long",
+      "tint": "hair",
+      "shade": "hair/long-back-shade.webp"
+    },
+    {
+      "file": "hair/longhawk-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "longhawk",
+      "of": "hair/longhawk-back.webp"
+    },
+    {
+      "file": "hair/longhawk-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "longhawk",
+      "tint": "hair",
+      "shade": "hair/longhawk-back-shade.webp"
+    },
+    {
+      "file": "hair/mohawk-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "mohawk",
+      "of": "hair/mohawk-back.webp"
+    },
+    {
+      "file": "hair/mohawk-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "mohawk",
+      "tint": "hair",
+      "shade": "hair/mohawk-back-shade.webp"
+    },
+    {
+      "file": "hair/pixie-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "pixie",
+      "of": "hair/pixie-back.webp"
+    },
+    {
+      "file": "hair/pixie-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "pixie",
+      "tint": "hair",
+      "shade": "hair/pixie-back-shade.webp"
+    },
+    {
+      "file": "hair/ponytail-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "ponytail",
+      "of": "hair/ponytail-back.webp"
+    },
+    {
+      "file": "hair/ponytail-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "ponytail",
+      "tint": "hair",
+      "shade": "hair/ponytail-back-shade.webp"
+    },
+    {
+      "file": "hair/shag-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "shag",
+      "of": "hair/shag-back.webp"
+    },
+    {
+      "file": "hair/shag-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "shag",
+      "tint": "hair",
+      "shade": "hair/shag-back-shade.webp"
+    },
+    {
+      "file": "hair/swoop-back-shade.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "shade",
+      "id": "swoop",
+      "of": "hair/swoop-back.webp"
+    },
+    {
+      "file": "hair/swoop-back.webp",
+      "order": 10,
+      "part": "hair",
+      "role": "back",
+      "id": "swoop",
+      "tint": "hair",
+      "shade": "hair/swoop-back-shade.webp"
+    },
+    {
+      "file": "body/neck-shade.webp",
+      "order": 20,
+      "part": "body",
+      "role": "shade",
+      "id": "neck",
+      "of": "body/neck.webp"
+    },
+    {
+      "file": "body/neck.webp",
+      "order": 20,
+      "part": "body",
+      "role": "neck",
+      "id": "neck",
+      "tint": "skin",
+      "shade": "body/neck-shade.webp"
+    },
+    {
+      "file": "tops/flannel-shade.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shade",
+      "id": "flannel",
+      "of": "tops/flannel.webp"
+    },
+    {
+      "file": "tops/flannel.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shirt",
+      "id": "flannel",
+      "tint": "top",
+      "shade": "tops/flannel-shade.webp"
+    },
+    {
+      "file": "tops/leather-shade.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shade",
+      "id": "leather",
+      "of": "tops/leather.webp"
+    },
+    {
+      "file": "tops/leather.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shirt",
+      "id": "leather",
+      "tint": "top",
+      "shade": "tops/leather-shade.webp"
+    },
+    {
+      "file": "tops/stage-shade.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shade",
+      "id": "stage",
+      "of": "tops/stage.webp"
+    },
+    {
+      "file": "tops/stage.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shirt",
+      "id": "stage",
+      "tint": "top",
+      "shade": "tops/stage-shade.webp"
+    },
+    {
+      "file": "tops/tee-shade.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shade",
+      "id": "tee",
+      "of": "tops/tee.webp"
+    },
+    {
+      "file": "tops/tee.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shirt",
+      "id": "tee",
+      "tint": "top",
+      "shade": "tops/tee-shade.webp"
+    },
+    {
+      "file": "tops/vest-shade.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shade",
+      "id": "vest",
+      "of": "tops/vest.webp"
+    },
+    {
+      "file": "tops/vest.webp",
+      "order": 30,
+      "part": "tops",
+      "role": "shirt",
+      "id": "vest",
+      "tint": "top",
+      "shade": "tops/vest-shade.webp"
+    },
+    {
+      "file": "tops/flannel-panel-shade.webp",
+      "order": 35,
+      "part": "tops",
+      "role": "shade",
+      "id": "flannel",
+      "of": "tops/flannel-panel.webp"
+    },
+    {
+      "file": "tops/flannel-panel.webp",
+      "order": 35,
+      "part": "tops",
+      "role": "panel",
+      "id": "flannel",
+      "tint": "#E7E1D6",
+      "shade": "tops/flannel-panel-shade.webp"
+    },
+    {
+      "file": "tops/leather-jacket-shade.webp",
+      "order": 40,
+      "part": "tops",
+      "role": "shade",
+      "id": "leather",
+      "of": "tops/leather-jacket.webp"
+    },
+    {
+      "file": "tops/leather-jacket.webp",
+      "order": 40,
+      "part": "tops",
+      "role": "jacket",
+      "id": "leather",
+      "tint": "#26221F",
+      "shade": "tops/leather-jacket-shade.webp"
+    },
+    {
+      "file": "tops/stage-jacket-shade.webp",
+      "order": 40,
+      "part": "tops",
+      "role": "shade",
+      "id": "stage",
+      "of": "tops/stage-jacket.webp"
+    },
+    {
+      "file": "tops/stage-jacket.webp",
+      "order": 40,
+      "part": "tops",
+      "role": "jacket",
+      "id": "stage",
+      "tint": "#1E1A18",
+      "shade": "tops/stage-jacket-shade.webp"
+    },
+    {
+      "file": "tops/vest-panel-shade.webp",
+      "order": 40,
+      "part": "tops",
+      "role": "shade",
+      "id": "vest",
+      "of": "tops/vest-panel.webp"
+    },
+    {
+      "file": "tops/vest-panel.webp",
+      "order": 40,
+      "part": "tops",
+      "role": "panel",
+      "id": "vest",
+      "tint": "#46689E",
+      "shade": "tops/vest-panel-shade.webp"
+    },
+    {
+      "file": "tops/leather-detail.webp",
+      "order": 50,
+      "part": "tops",
+      "role": "detail",
+      "id": "leather"
+    },
+    {
+      "file": "tops/stage-detail.webp",
+      "order": 50,
+      "part": "tops",
+      "role": "detail",
+      "id": "stage"
+    },
+    {
+      "file": "tops/vest-detail.webp",
+      "order": 50,
+      "part": "tops",
+      "role": "detail",
+      "id": "vest"
+    },
+    {
+      "file": "body/strap.webp",
+      "order": 70,
+      "part": "body",
+      "role": "strap",
+      "id": "strap"
+    },
+    {
+      "file": "body/arms-hornsUp-shade.webp",
+      "order": 90,
+      "part": "body",
+      "role": "shade",
+      "id": "hornsUp",
+      "of": "body/arms-hornsUp.webp"
+    },
+    {
+      "file": "body/arms-hornsUp.webp",
+      "order": 90,
+      "part": "body",
+      "role": "arms",
+      "id": "hornsUp",
+      "tint": "skin",
+      "shade": "body/arms-hornsUp-shade.webp"
+    },
+    {
+      "file": "body/arms-play-shade.webp",
+      "order": 90,
+      "part": "body",
+      "role": "shade",
+      "id": "play",
+      "of": "body/arms-play.webp"
+    },
+    {
+      "file": "body/arms-play.webp",
+      "order": 90,
+      "part": "body",
+      "role": "arms",
+      "id": "play",
+      "tint": "skin",
+      "shade": "body/arms-play-shade.webp"
+    },
+    {
+      "file": "body/arms-rest-shade.webp",
+      "order": 90,
+      "part": "body",
+      "role": "shade",
+      "id": "rest",
+      "of": "body/arms-rest.webp"
+    },
+    {
+      "file": "body/arms-rest.webp",
+      "order": 90,
+      "part": "body",
+      "role": "arms",
+      "id": "rest",
+      "tint": "skin",
+      "shade": "body/arms-rest-shade.webp"
+    },
+    {
+      "file": "tops/flannel-hornsUp-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "flannel",
+      "of": "tops/flannel-hornsUp.webp"
+    },
+    {
+      "file": "tops/flannel-hornsUp.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "flannel",
+      "tint": "top",
+      "shade": "tops/flannel-hornsUp-shade.webp"
+    },
+    {
+      "file": "tops/flannel-play-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "flannel",
+      "of": "tops/flannel-play.webp"
+    },
+    {
+      "file": "tops/flannel-play.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "flannel",
+      "tint": "top",
+      "shade": "tops/flannel-play-shade.webp"
+    },
+    {
+      "file": "tops/flannel-rest-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "flannel",
+      "of": "tops/flannel-rest.webp"
+    },
+    {
+      "file": "tops/flannel-rest.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "flannel",
+      "tint": "top",
+      "shade": "tops/flannel-rest-shade.webp"
+    },
+    {
+      "file": "tops/leather-hornsUp-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "leather",
+      "of": "tops/leather-hornsUp.webp"
+    },
+    {
+      "file": "tops/leather-hornsUp.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "leather",
+      "tint": "#26221F",
+      "shade": "tops/leather-hornsUp-shade.webp"
+    },
+    {
+      "file": "tops/leather-play-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "leather",
+      "of": "tops/leather-play.webp"
+    },
+    {
+      "file": "tops/leather-play.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "leather",
+      "tint": "#26221F",
+      "shade": "tops/leather-play-shade.webp"
+    },
+    {
+      "file": "tops/leather-rest-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "leather",
+      "of": "tops/leather-rest.webp"
+    },
+    {
+      "file": "tops/leather-rest.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "leather",
+      "tint": "#26221F",
+      "shade": "tops/leather-rest-shade.webp"
+    },
+    {
+      "file": "tops/stage-hornsUp-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "stage",
+      "of": "tops/stage-hornsUp.webp"
+    },
+    {
+      "file": "tops/stage-hornsUp.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "stage",
+      "tint": "#1E1A18",
+      "shade": "tops/stage-hornsUp-shade.webp"
+    },
+    {
+      "file": "tops/stage-play-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "stage",
+      "of": "tops/stage-play.webp"
+    },
+    {
+      "file": "tops/stage-play.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "stage",
+      "tint": "#1E1A18",
+      "shade": "tops/stage-play-shade.webp"
+    },
+    {
+      "file": "tops/stage-rest-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "stage",
+      "of": "tops/stage-rest.webp"
+    },
+    {
+      "file": "tops/stage-rest.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "stage",
+      "tint": "#1E1A18",
+      "shade": "tops/stage-rest-shade.webp"
+    },
+    {
+      "file": "tops/tee-hornsUp-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "tee",
+      "of": "tops/tee-hornsUp.webp"
+    },
+    {
+      "file": "tops/tee-hornsUp.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "tee",
+      "tint": "top",
+      "shade": "tops/tee-hornsUp-shade.webp"
+    },
+    {
+      "file": "tops/tee-play-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "tee",
+      "of": "tops/tee-play.webp"
+    },
+    {
+      "file": "tops/tee-play.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "tee",
+      "tint": "top",
+      "shade": "tops/tee-play-shade.webp"
+    },
+    {
+      "file": "tops/tee-rest-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "tee",
+      "of": "tops/tee-rest.webp"
+    },
+    {
+      "file": "tops/tee-rest.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "tee",
+      "tint": "top",
+      "shade": "tops/tee-rest-shade.webp"
+    },
+    {
+      "file": "tops/vest-hornsUp-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "vest",
+      "of": "tops/vest-hornsUp.webp"
+    },
+    {
+      "file": "tops/vest-hornsUp.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "vest",
+      "tint": "top",
+      "shade": "tops/vest-hornsUp-shade.webp"
+    },
+    {
+      "file": "tops/vest-play-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "vest",
+      "of": "tops/vest-play.webp"
+    },
+    {
+      "file": "tops/vest-play.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "vest",
+      "tint": "top",
+      "shade": "tops/vest-play-shade.webp"
+    },
+    {
+      "file": "tops/vest-rest-shade.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "shade",
+      "id": "vest",
+      "of": "tops/vest-rest.webp"
+    },
+    {
+      "file": "tops/vest-rest.webp",
+      "order": 94,
+      "part": "tops",
+      "role": "sleeves",
+      "id": "vest",
+      "tint": "top",
+      "shade": "tops/vest-rest-shade.webp"
+    },
+    {
+      "file": "tops/flannel-hornsUp-detail.webp",
+      "order": 96,
+      "part": "tops",
+      "role": "detail",
+      "id": "flannel"
+    },
+    {
+      "file": "tops/flannel-play-detail.webp",
+      "order": 96,
+      "part": "tops",
+      "role": "detail",
+      "id": "flannel"
+    },
+    {
+      "file": "tops/flannel-rest-detail.webp",
+      "order": 96,
+      "part": "tops",
+      "role": "detail",
+      "id": "flannel"
+    },
+    {
+      "file": "body/hands-hornsUp-shade.webp",
+      "order": 100,
+      "part": "body",
+      "role": "shade",
+      "id": "hornsUp",
+      "of": "body/hands-hornsUp.webp"
+    },
+    {
+      "file": "body/hands-hornsUp.webp",
+      "order": 100,
+      "part": "body",
+      "role": "hands",
+      "id": "hornsUp",
+      "tint": "skin",
+      "shade": "body/hands-hornsUp-shade.webp"
+    },
+    {
+      "file": "body/hands-play-shade.webp",
+      "order": 100,
+      "part": "body",
+      "role": "shade",
+      "id": "play",
+      "of": "body/hands-play.webp"
+    },
+    {
+      "file": "body/hands-play.webp",
+      "order": 100,
+      "part": "body",
+      "role": "hands",
+      "id": "play",
+      "tint": "skin",
+      "shade": "body/hands-play-shade.webp"
+    },
+    {
+      "file": "body/hands-rest-shade.webp",
+      "order": 100,
+      "part": "body",
+      "role": "shade",
+      "id": "rest",
+      "of": "body/hands-rest.webp"
+    },
+    {
+      "file": "body/hands-rest.webp",
+      "order": 100,
+      "part": "body",
+      "role": "hands",
+      "id": "rest",
+      "tint": "skin",
+      "shade": "body/hands-rest-shade.webp"
+    },
+    {
+      "file": "body/pick.webp",
+      "order": 110,
+      "part": "body",
+      "role": "pick",
+      "id": "pick"
+    },
+    {
+      "file": "face/heart-shade.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shade",
+      "id": "heart",
+      "of": "face/heart.webp"
+    },
+    {
+      "file": "face/heart.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shape",
+      "id": "heart",
+      "tint": "skin",
+      "shade": "face/heart-shade.webp"
+    },
+    {
+      "file": "face/oval-shade.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shade",
+      "id": "oval",
+      "of": "face/oval.webp"
+    },
+    {
+      "file": "face/oval.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shape",
+      "id": "oval",
+      "tint": "skin",
+      "shade": "face/oval-shade.webp"
+    },
+    {
+      "file": "face/round-shade.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shade",
+      "id": "round",
+      "of": "face/round.webp"
+    },
+    {
+      "file": "face/round.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shape",
+      "id": "round",
+      "tint": "skin",
+      "shade": "face/round-shade.webp"
+    },
+    {
+      "file": "face/square-shade.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shade",
+      "id": "square",
+      "of": "face/square.webp"
+    },
+    {
+      "file": "face/square.webp",
+      "order": 120,
+      "part": "face",
+      "role": "shape",
+      "id": "square",
+      "tint": "skin",
+      "shade": "face/square-shade.webp"
+    },
+    {
+      "file": "face/blush.webp",
+      "order": 130,
+      "part": "face",
+      "role": "blush",
+      "id": "blush"
+    },
+    {
+      "file": "freckles/freckles.webp",
+      "order": 140,
+      "part": "freckles",
+      "role": "spots",
+      "id": "freckles"
+    },
+    {
+      "file": "nose/bridge-shade.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shade",
+      "id": "bridge",
+      "of": "nose/bridge.webp"
+    },
+    {
+      "file": "nose/bridge.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shape",
+      "id": "bridge",
+      "tint": "skin",
+      "shade": "nose/bridge-shade.webp"
+    },
+    {
+      "file": "nose/broad-shade.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shade",
+      "id": "broad",
+      "of": "nose/broad.webp"
+    },
+    {
+      "file": "nose/broad.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shape",
+      "id": "broad",
+      "tint": "skin",
+      "shade": "nose/broad-shade.webp"
+    },
+    {
+      "file": "nose/button-shade.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shade",
+      "id": "button",
+      "of": "nose/button.webp"
+    },
+    {
+      "file": "nose/button.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shape",
+      "id": "button",
+      "tint": "skin",
+      "shade": "nose/button-shade.webp"
+    },
+    {
+      "file": "nose/wedge-shade.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shade",
+      "id": "wedge",
+      "of": "nose/wedge.webp"
+    },
+    {
+      "file": "nose/wedge.webp",
+      "order": 150,
+      "part": "nose",
+      "role": "shape",
+      "id": "wedge",
+      "tint": "skin",
+      "shade": "nose/wedge-shade.webp"
+    },
+    {
+      "file": "mouth/cheer.webp",
+      "order": 155,
+      "part": "mouth",
+      "role": "mood",
+      "id": "cheer"
+    },
+    {
+      "file": "mouth/happy.webp",
+      "order": 155,
+      "part": "mouth",
+      "role": "mood",
+      "id": "happy"
+    },
+    {
+      "file": "mouth/proud.webp",
+      "order": 155,
+      "part": "mouth",
+      "role": "mood",
+      "id": "proud"
+    },
+    {
+      "file": "mouth/sleepy.webp",
+      "order": 155,
+      "part": "mouth",
+      "role": "mood",
+      "id": "sleepy"
+    },
+    {
+      "file": "mouth/worried.webp",
+      "order": 155,
+      "part": "mouth",
+      "role": "mood",
+      "id": "worried"
+    },
+    {
+      "file": "eyes/cheer.webp",
+      "order": 170,
+      "part": "eyes",
+      "role": "cheer",
+      "id": "cheer"
+    },
+    {
+      "file": "eyes/narrow.webp",
+      "order": 170,
+      "part": "eyes",
+      "role": "white",
+      "id": "narrow"
+    },
+    {
+      "file": "eyes/round.webp",
+      "order": 170,
+      "part": "eyes",
+      "role": "white",
+      "id": "round"
+    },
+    {
+      "file": "eyes/sleepy.webp",
+      "order": 170,
+      "part": "eyes",
+      "role": "sleepy",
+      "id": "sleepy"
+    },
+    {
+      "file": "eyes/wide.webp",
+      "order": 170,
+      "part": "eyes",
+      "role": "white",
+      "id": "wide"
+    },
+    {
+      "file": "eyes/narrow-iris-shade.webp",
+      "order": 180,
+      "part": "eyes",
+      "role": "shade",
+      "id": "narrow",
+      "of": "eyes/narrow-iris.webp"
+    },
+    {
+      "file": "eyes/narrow-iris.webp",
+      "order": 180,
+      "part": "eyes",
+      "role": "iris",
+      "id": "narrow",
+      "tint": "eye",
+      "shade": "eyes/narrow-iris-shade.webp"
+    },
+    {
+      "file": "eyes/round-iris-shade.webp",
+      "order": 180,
+      "part": "eyes",
+      "role": "shade",
+      "id": "round",
+      "of": "eyes/round-iris.webp"
+    },
+    {
+      "file": "eyes/round-iris.webp",
+      "order": 180,
+      "part": "eyes",
+      "role": "iris",
+      "id": "round",
+      "tint": "eye",
+      "shade": "eyes/round-iris-shade.webp"
+    },
+    {
+      "file": "eyes/wide-iris-shade.webp",
+      "order": 180,
+      "part": "eyes",
+      "role": "shade",
+      "id": "wide",
+      "of": "eyes/wide-iris.webp"
+    },
+    {
+      "file": "eyes/wide-iris.webp",
+      "order": 180,
+      "part": "eyes",
+      "role": "iris",
+      "id": "wide",
+      "tint": "eye",
+      "shade": "eyes/wide-iris-shade.webp"
+    },
+    {
+      "file": "eyes/narrow-pupil.webp",
+      "order": 190,
+      "part": "eyes",
+      "role": "pupil",
+      "id": "narrow"
+    },
+    {
+      "file": "eyes/round-pupil.webp",
+      "order": 190,
+      "part": "eyes",
+      "role": "pupil",
+      "id": "round"
+    },
+    {
+      "file": "eyes/wide-pupil.webp",
+      "order": 190,
+      "part": "eyes",
+      "role": "pupil",
+      "id": "wide"
+    },
+    {
+      "file": "eyes/narrow-lid-shade.webp",
+      "order": 200,
+      "part": "eyes",
+      "role": "shade",
+      "id": "narrow",
+      "of": "eyes/narrow-lid.webp"
+    },
+    {
+      "file": "eyes/narrow-lid.webp",
+      "order": 200,
+      "part": "eyes",
+      "role": "lid",
+      "id": "narrow",
+      "tint": "skin",
+      "shade": "eyes/narrow-lid-shade.webp"
+    },
+    {
+      "file": "eyes/round-lid-shade.webp",
+      "order": 200,
+      "part": "eyes",
+      "role": "shade",
+      "id": "round",
+      "of": "eyes/round-lid.webp"
+    },
+    {
+      "file": "eyes/round-lid.webp",
+      "order": 200,
+      "part": "eyes",
+      "role": "lid",
+      "id": "round",
+      "tint": "skin",
+      "shade": "eyes/round-lid-shade.webp"
+    },
+    {
+      "file": "eyes/wide-lid-shade.webp",
+      "order": 200,
+      "part": "eyes",
+      "role": "shade",
+      "id": "wide",
+      "of": "eyes/wide-lid.webp"
+    },
+    {
+      "file": "eyes/wide-lid.webp",
+      "order": 200,
+      "part": "eyes",
+      "role": "lid",
+      "id": "wide",
+      "tint": "skin",
+      "shade": "eyes/wide-lid-shade.webp"
+    },
+    {
+      "file": "eyes/narrow-lid-line.webp",
+      "order": 210,
+      "part": "eyes",
+      "role": "lid-line",
+      "id": "narrow"
+    },
+    {
+      "file": "eyes/round-lid-line.webp",
+      "order": 210,
+      "part": "eyes",
+      "role": "lid-line",
+      "id": "round"
+    },
+    {
+      "file": "eyes/wide-lid-line.webp",
+      "order": 210,
+      "part": "eyes",
+      "role": "lid-line",
+      "id": "wide"
+    },
+    {
+      "file": "brows/arched-raised-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "arched-raised",
+      "of": "brows/arched-raised.webp"
+    },
+    {
+      "file": "brows/arched-raised.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "raised",
+      "id": "arched-raised",
+      "tint": "hair",
+      "shade": "brows/arched-raised-shade.webp"
+    },
+    {
+      "file": "brows/arched-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "arched",
+      "of": "brows/arched.webp"
+    },
+    {
+      "file": "brows/arched-worried-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "arched-worried",
+      "of": "brows/arched-worried.webp"
+    },
+    {
+      "file": "brows/arched-worried.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "worried",
+      "id": "arched-worried",
+      "tint": "hair",
+      "shade": "brows/arched-worried-shade.webp"
+    },
+    {
+      "file": "brows/arched.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "neutral",
+      "id": "arched",
+      "tint": "hair",
+      "shade": "brows/arched-shade.webp"
+    },
+    {
+      "file": "brows/natural-raised-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "natural-raised",
+      "of": "brows/natural-raised.webp"
+    },
+    {
+      "file": "brows/natural-raised.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "raised",
+      "id": "natural-raised",
+      "tint": "hair",
+      "shade": "brows/natural-raised-shade.webp"
+    },
+    {
+      "file": "brows/natural-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "natural",
+      "of": "brows/natural.webp"
+    },
+    {
+      "file": "brows/natural-worried-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "natural-worried",
+      "of": "brows/natural-worried.webp"
+    },
+    {
+      "file": "brows/natural-worried.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "worried",
+      "id": "natural-worried",
+      "tint": "hair",
+      "shade": "brows/natural-worried-shade.webp"
+    },
+    {
+      "file": "brows/natural.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "neutral",
+      "id": "natural",
+      "tint": "hair",
+      "shade": "brows/natural-shade.webp"
+    },
+    {
+      "file": "brows/straight-raised-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "straight-raised",
+      "of": "brows/straight-raised.webp"
+    },
+    {
+      "file": "brows/straight-raised.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "raised",
+      "id": "straight-raised",
+      "tint": "hair",
+      "shade": "brows/straight-raised-shade.webp"
+    },
+    {
+      "file": "brows/straight-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "straight",
+      "of": "brows/straight.webp"
+    },
+    {
+      "file": "brows/straight-worried-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "straight-worried",
+      "of": "brows/straight-worried.webp"
+    },
+    {
+      "file": "brows/straight-worried.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "worried",
+      "id": "straight-worried",
+      "tint": "hair",
+      "shade": "brows/straight-worried-shade.webp"
+    },
+    {
+      "file": "brows/straight.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "neutral",
+      "id": "straight",
+      "tint": "hair",
+      "shade": "brows/straight-shade.webp"
+    },
+    {
+      "file": "brows/thick-raised-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "thick-raised",
+      "of": "brows/thick-raised.webp"
+    },
+    {
+      "file": "brows/thick-raised.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "raised",
+      "id": "thick-raised",
+      "tint": "hair",
+      "shade": "brows/thick-raised-shade.webp"
+    },
+    {
+      "file": "brows/thick-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "thick",
+      "of": "brows/thick.webp"
+    },
+    {
+      "file": "brows/thick-worried-shade.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "shade",
+      "id": "thick-worried",
+      "of": "brows/thick-worried.webp"
+    },
+    {
+      "file": "brows/thick-worried.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "worried",
+      "id": "thick-worried",
+      "tint": "hair",
+      "shade": "brows/thick-worried-shade.webp"
+    },
+    {
+      "file": "brows/thick.webp",
+      "order": 220,
+      "part": "brows",
+      "role": "neutral",
+      "id": "thick",
+      "tint": "hair",
+      "shade": "brows/thick-shade.webp"
+    },
+    {
+      "file": "beard/beard-shade.webp",
+      "order": 230,
+      "part": "beard",
+      "role": "shade",
+      "id": "beard",
+      "of": "beard/beard.webp"
+    },
+    {
+      "file": "beard/beard.webp",
+      "order": 230,
+      "part": "beard",
+      "role": "style",
+      "id": "beard",
+      "tint": "beard",
+      "shade": "beard/beard-shade.webp"
+    },
+    {
+      "file": "beard/moustache-shade.webp",
+      "order": 230,
+      "part": "beard",
+      "role": "shade",
+      "id": "moustache",
+      "of": "beard/moustache.webp"
+    },
+    {
+      "file": "beard/moustache.webp",
+      "order": 230,
+      "part": "beard",
+      "role": "style",
+      "id": "moustache",
+      "tint": "beard",
+      "shade": "beard/moustache-shade.webp"
+    },
+    {
+      "file": "beard/stubble-shade.webp",
+      "order": 230,
+      "part": "beard",
+      "role": "shade",
+      "id": "stubble",
+      "of": "beard/stubble.webp"
+    },
+    {
+      "file": "beard/stubble.webp",
+      "order": 230,
+      "part": "beard",
+      "role": "style",
+      "id": "stubble",
+      "tint": "beard",
+      "shade": "beard/stubble-shade.webp"
+    },
+    {
+      "file": "hair/bob-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "bob",
+      "of": "hair/bob-front.webp"
+    },
+    {
+      "file": "hair/bob-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "bob",
+      "tint": "hair",
+      "shade": "hair/bob-front-shade.webp"
+    },
+    {
+      "file": "hair/bob-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "bob",
+      "of": "hair/bob-tuck.webp"
+    },
+    {
+      "file": "hair/bob-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "bob",
+      "tint": "hair",
+      "shade": "hair/bob-tuck-shade.webp"
+    },
+    {
+      "file": "hair/braids-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "braids",
+      "of": "hair/braids-front.webp"
+    },
+    {
+      "file": "hair/braids-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "braids",
+      "tint": "hair",
+      "shade": "hair/braids-front-shade.webp"
+    },
+    {
+      "file": "hair/braids-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "braids",
+      "of": "hair/braids-tuck.webp"
+    },
+    {
+      "file": "hair/braids-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "braids",
+      "tint": "hair",
+      "shade": "hair/braids-tuck-shade.webp"
+    },
+    {
+      "file": "hair/bun-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "bun",
+      "of": "hair/bun-front.webp"
+    },
+    {
+      "file": "hair/bun-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "bun",
+      "tint": "hair",
+      "shade": "hair/bun-front-shade.webp"
+    },
+    {
+      "file": "hair/bun-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "bun",
+      "of": "hair/bun-tuck.webp"
+    },
+    {
+      "file": "hair/bun-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "bun",
+      "tint": "hair",
+      "shade": "hair/bun-tuck-shade.webp"
+    },
+    {
+      "file": "hair/buzz-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "buzz",
+      "of": "hair/buzz-front.webp"
+    },
+    {
+      "file": "hair/buzz-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "buzz",
+      "tint": "hair",
+      "shade": "hair/buzz-front-shade.webp"
+    },
+    {
+      "file": "hair/buzz-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "buzz",
+      "of": "hair/buzz-tuck.webp"
+    },
+    {
+      "file": "hair/buzz-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "buzz",
+      "tint": "hair",
+      "shade": "hair/buzz-tuck-shade.webp"
+    },
+    {
+      "file": "hair/curly-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "curly",
+      "of": "hair/curly-front.webp"
+    },
+    {
+      "file": "hair/curly-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "curly",
+      "tint": "hair",
+      "shade": "hair/curly-front-shade.webp"
+    },
+    {
+      "file": "hair/curly-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "curly",
+      "of": "hair/curly-tuck.webp"
+    },
+    {
+      "file": "hair/curly-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "curly",
+      "tint": "hair",
+      "shade": "hair/curly-tuck-shade.webp"
+    },
+    {
+      "file": "hair/locs-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "locs",
+      "of": "hair/locs-front.webp"
+    },
+    {
+      "file": "hair/locs-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "locs",
+      "tint": "hair",
+      "shade": "hair/locs-front-shade.webp"
+    },
+    {
+      "file": "hair/locs-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "locs",
+      "of": "hair/locs-tuck.webp"
+    },
+    {
+      "file": "hair/locs-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "locs",
+      "tint": "hair",
+      "shade": "hair/locs-tuck-shade.webp"
+    },
+    {
+      "file": "hair/long-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "long",
+      "of": "hair/long-front.webp"
+    },
+    {
+      "file": "hair/long-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "long",
+      "tint": "hair",
+      "shade": "hair/long-front-shade.webp"
+    },
+    {
+      "file": "hair/long-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "long",
+      "of": "hair/long-tuck.webp"
+    },
+    {
+      "file": "hair/long-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "long",
+      "tint": "hair",
+      "shade": "hair/long-tuck-shade.webp"
+    },
+    {
+      "file": "hair/longhawk-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "longhawk",
+      "of": "hair/longhawk-front.webp"
+    },
+    {
+      "file": "hair/longhawk-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "longhawk",
+      "tint": "hair",
+      "shade": "hair/longhawk-front-shade.webp"
+    },
+    {
+      "file": "hair/longhawk-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "longhawk",
+      "of": "hair/longhawk-tuck.webp"
+    },
+    {
+      "file": "hair/longhawk-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "longhawk",
+      "tint": "hair",
+      "shade": "hair/longhawk-tuck-shade.webp"
+    },
+    {
+      "file": "hair/mohawk-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "mohawk",
+      "of": "hair/mohawk-front.webp"
+    },
+    {
+      "file": "hair/mohawk-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "mohawk",
+      "tint": "hair",
+      "shade": "hair/mohawk-front-shade.webp"
+    },
+    {
+      "file": "hair/mohawk-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "mohawk",
+      "of": "hair/mohawk-tuck.webp"
+    },
+    {
+      "file": "hair/mohawk-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "mohawk",
+      "tint": "hair",
+      "shade": "hair/mohawk-tuck-shade.webp"
+    },
+    {
+      "file": "hair/pixie-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "pixie",
+      "of": "hair/pixie-front.webp"
+    },
+    {
+      "file": "hair/pixie-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "pixie",
+      "tint": "hair",
+      "shade": "hair/pixie-front-shade.webp"
+    },
+    {
+      "file": "hair/pixie-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "pixie",
+      "of": "hair/pixie-tuck.webp"
+    },
+    {
+      "file": "hair/pixie-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "pixie",
+      "tint": "hair",
+      "shade": "hair/pixie-tuck-shade.webp"
+    },
+    {
+      "file": "hair/ponytail-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "ponytail",
+      "of": "hair/ponytail-front.webp"
+    },
+    {
+      "file": "hair/ponytail-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "ponytail",
+      "tint": "hair",
+      "shade": "hair/ponytail-front-shade.webp"
+    },
+    {
+      "file": "hair/ponytail-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "ponytail",
+      "of": "hair/ponytail-tuck.webp"
+    },
+    {
+      "file": "hair/ponytail-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "ponytail",
+      "tint": "hair",
+      "shade": "hair/ponytail-tuck-shade.webp"
+    },
+    {
+      "file": "hair/shag-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "shag",
+      "of": "hair/shag-front.webp"
+    },
+    {
+      "file": "hair/shag-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "shag",
+      "tint": "hair",
+      "shade": "hair/shag-front-shade.webp"
+    },
+    {
+      "file": "hair/shag-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "shag",
+      "of": "hair/shag-tuck.webp"
+    },
+    {
+      "file": "hair/shag-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "shag",
+      "tint": "hair",
+      "shade": "hair/shag-tuck-shade.webp"
+    },
+    {
+      "file": "hair/swoop-front-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "swoop",
+      "of": "hair/swoop-front.webp"
+    },
+    {
+      "file": "hair/swoop-front.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "front",
+      "id": "swoop",
+      "tint": "hair",
+      "shade": "hair/swoop-front-shade.webp"
+    },
+    {
+      "file": "hair/swoop-tuck-shade.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "shade",
+      "id": "swoop",
+      "of": "hair/swoop-tuck.webp"
+    },
+    {
+      "file": "hair/swoop-tuck.webp",
+      "order": 240,
+      "part": "hair",
+      "role": "tuck",
+      "id": "swoop",
+      "tint": "hair",
+      "shade": "hair/swoop-tuck-shade.webp"
+    },
+    {
+      "file": "hat/bandana-shade.webp",
+      "order": 250,
+      "part": "hat",
+      "role": "shade",
+      "id": "bandana",
+      "of": "hat/bandana.webp"
+    },
+    {
+      "file": "hat/bandana.webp",
+      "order": 250,
+      "part": "hat",
+      "role": "hat",
+      "id": "bandana",
+      "tint": "hat",
+      "shade": "hat/bandana-shade.webp"
+    },
+    {
+      "file": "hat/beanie-shade.webp",
+      "order": 250,
+      "part": "hat",
+      "role": "shade",
+      "id": "beanie",
+      "of": "hat/beanie.webp"
+    },
+    {
+      "file": "hat/beanie.webp",
+      "order": 250,
+      "part": "hat",
+      "role": "hat",
+      "id": "beanie",
+      "tint": "hat",
+      "shade": "hat/beanie-shade.webp"
+    },
+    {
+      "file": "hat/cap-shade.webp",
+      "order": 250,
+      "part": "hat",
+      "role": "shade",
+      "id": "cap",
+      "of": "hat/cap.webp"
+    },
+    {
+      "file": "hat/cap.webp",
+      "order": 250,
+      "part": "hat",
+      "role": "hat",
+      "id": "cap",
+      "tint": "hat",
+      "shade": "hat/cap-shade.webp"
+    },
+    {
+      "file": "glasses/round.webp",
+      "order": 260,
+      "part": "glasses",
+      "role": "specs",
+      "id": "round"
+    },
+    {
+      "file": "glasses/shades.webp",
+      "order": 260,
+      "part": "glasses",
+      "role": "specs",
+      "id": "shades"
+    },
+    {
+      "file": "glasses/square.webp",
+      "order": 260,
+      "part": "glasses",
+      "role": "specs",
+      "id": "square"
+    }
+  ]
+}
