@@ -110,8 +110,8 @@ export function renderProfile() {
   const rr = rrLook();
   const rrRow = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row rr-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span class="rr-row-t">${name}${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "chev")}</${href ? "a" : "button"}>`;
   const legs = roadPath(data).legs, earned = guitarsEarned(data);
-  /* one stall per guitar, in a painted case. Three share one case. One or two get a case of their own.
-     More than three scroll one case width at a time. */
+  /* one stall per guitar, left to right, in the same painted three-stall case.
+     One or two leave the other stalls empty. More than three scroll one case width at a time. */
   const piece = (label, src, attr = "") => ({ label, src, attr });
   const casePieces = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
     return piece(`${esc(g.name)}${esc(at)}`, bp.src, bp.attr || ""); });
@@ -123,8 +123,8 @@ export function renderProfile() {
   const casePages = [];
   for (let i = 0; i < pieces.length; i += 3) casePages.push(pieces.slice(i, i + 3));
   const casePage = group => {
-    const stalls = group.map(p => `<li class="rr-gtr" role="img" aria-label="${p.label}">${p.src ? `<img src="${p.src}"${p.attr} alt="" aria-hidden="true">` : ""}</li>`).join("");
-    return `<div class="rr-case" data-stalls="${group.length}"><ul class="rr-case-in" data-n="${group.length}">${stalls}</ul><i class="rr-case-lip" aria-hidden="true"></i></div>`;
+    const stalls = group.map((p, i) => `<li class="rr-gtr" data-slot="${i}" role="img" aria-label="${p.label}">${p.src ? `<img src="${p.src}"${p.attr} alt="" aria-hidden="true">` : ""}</li>`).join("");
+    return `<div class="rr-case" data-stalls="3"><ul class="rr-case-in" data-n="${group.length}">${stalls}</ul><i class="rr-case-lip" aria-hidden="true"></i></div>`;
   };
   const caseScroll = nGuitars ? `<div class="rr-case-scroll" tabindex="0" aria-label="Your guitars, earned and bought">${casePages.map(casePage).join("")}</div>` : `<div class="rr-case" data-stalls="3"><i class="rr-case-lip" aria-hidden="true"></i></div>`;
   const mer = fansToSpend(data);

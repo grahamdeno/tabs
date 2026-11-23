@@ -2808,16 +2808,15 @@ test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes f
 
 test("Me case: the wide perspective shells are saved for offline, and the earlier pictures stay", () => {
   const shell = read("sw.js"), css = read("styles.css"), html = read("profile.js");
-  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp", "art/case/case-r10-shell.webp", "art/case/case-r10-frame.webp", "art/case/case-r10-divider.webp", "art/case/case-r10-06-shell-1.webp", "art/case/case-r10-06-shell-2.webp", "art/case/case-r10-06-shell-3.webp", "art/case/case-r10-06-open-1.webp", "art/case/case-r10-06-open-2.webp", "art/case/case-r10-06-open-3.webp", "art/case/case-r10-06-open-lip-1.webp", "art/case/case-r10-06-open-lip-2.webp", "art/case/case-r10-06-open-lip-3.webp"]) {
+  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp", "art/case/case-r10-shell.webp", "art/case/case-r10-frame.webp", "art/case/case-r10-divider.webp", "art/case/case-r10-06-shell-1.webp", "art/case/case-r10-06-shell-2.webp", "art/case/case-r10-06-shell-3.webp", "art/case/case-r10-06-open-1.webp", "art/case/case-r10-06-open-2.webp", "art/case/case-r10-06-open-3.webp", "art/case/case-r10-06-open-lip-1.webp", "art/case/case-r10-06-open-lip-2.webp", "art/case/case-r10-06-open-lip-3.webp", "art/case/case-r10-06-velvet-3.webp", "art/case/case-r10-06-velvet-lip-3.webp"]) {
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.statSync(path.join(root, f)).size < 250000, `${f} stays small enough for the phone`);
   }
-  assert.match(css, /case-r10-06-open-3\.webp/, "three guitars use the wide case");
-  assert.match(css, /case-r10-06-open-1\.webp/, "one guitar has its own case");
-  assert.match(css, /case-r10-06-open-2\.webp/, "two guitars have their own case");
-  assert.match(css, /aspect-ratio:\s*1711\s*\/\s*732/, "the three-guitar case is wide and short");
-  assert.match(css, /rotateX\(/, "each guitar is foreshortened into the stall");
+  assert.match(css, /case-r10-06-velvet-3\.webp/, "every count uses the painted three-stall case");
+  assert.match(css, /case-r10-06-velvet-lip-3\.webp/, "the front lip tucks over the guitar bodies");
+  assert.match(css, /aspect-ratio:\s*1196\s*\/\s*720/, "the case is about 1.7 to 1");
+  assert.ok(!/\.rr-gcase \.rr-gtr img[\s\S]{0,240}scaleY\(/.test(css), "a guitar is not squashed to fit");
   assert.match(css, /drop-shadow\([\s\S]*drop-shadow\(/, "a soft drop shadow and a tight contact shadow");
   assert.match(css, /scroll-snap-type:\s*x mandatory/, "more than one case scrolls a case at a time");
   assert.match(html, /data-stalls/, "a case knows how many stalls it has");
