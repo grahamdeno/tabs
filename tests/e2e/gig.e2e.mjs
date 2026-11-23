@@ -671,7 +671,7 @@ test("Road Ready 06: Green Room keeps Show complete as it was, with the backdrop
   const page = await toComplete(t, "green");
   assert.equal(await page.locator(".rr-sc, .sc-show").count(), 0);
   assert.match(await page.innerText(".gc-t"), /Show complete/);
-  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
+  assert.equal(await page.locator(".gc-hero .gc-bd img, .gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
   assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
   await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
   assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
