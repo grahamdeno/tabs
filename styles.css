@@ -5328,6 +5328,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gm-stage .gm-prev .gm-hero.lefty { transform: scaleX(-1); }
 .gm-stage .gm-prev svg { height: auto; width: 100%; max-height: 100%; }
 .gm-stage .gm-card .gm-rand, .gm-stage .gm-card .gm-flip { top: 10px; bottom: auto; background: rgba(27, 23, 20, .82); color: #F6EEE0; border: 1px solid rgba(246, 238, 224, .25); }
+.gm-stage .gm-flip svg { width: 20px; height: 20px; display: block; }
 .gm-stage .gm-card .gm-rand { left: 10px; }
 .gm-stage .gm-card .gm-flip { right: 10px; }
 .gm-stage .gm-card .gm-flip.on { background: var(--rr-amber, var(--accent)); color: var(--rr-on-amber, #1b1714); }
