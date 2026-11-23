@@ -520,8 +520,8 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.equal(await page.evaluate(() => document.activeElement.id), "mc-t-gear");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
-  /* 4.102.0: Louie's finishes are off the table (the tweed Louie); a backdrop is bought and put on instead */
-  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 0, "no Louie finishes");
+  /* His other colours are on the Looks tab. A backdrop is bought and put on as well. */
+  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 7, "Louie's finishes are on the table");
   await page.click("#mc-t-looks"); await page.click(".mc-drop[data-id=brick]"); await page.waitForSelector(".mt-sheet");
   assert.match(await page.innerText(".mt-sheet"), /Brick wall[\s\S]*COSTS[\s\S]*300/);
   await page.click("#mt-buy"); await page.waitForSelector(".mc-drop.on[data-id=brick]");
