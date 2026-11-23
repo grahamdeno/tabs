@@ -117,6 +117,7 @@ export function renderProfile() {
     return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");
   const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
   const mer = fansToSpend(data);
+  const merchLine = mer > 0 ? `Merch: spend $${num(mer)} in tips` : "Merch: earn tips to buy new looks";
   const name = cleanName(data.settings.playerName);
   const rrHTML = `
     <div class="head rr-me-top"><a class="pf-gear rr-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}<small>Settings</small></a></div>
@@ -134,8 +135,8 @@ export function renderProfile() {
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <div class="rr-gcase"><span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
-      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="Merch: spend $${num(mer)} tips on new looks"><span class="rr-coinic">${COIN}</span><span>Merch: spend $${num(mer)} tips on new looks</span>${icon("chev", "chev")}</a>
+      <div class="rr-gcase"><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
+      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="${merchLine}"><span class="rr-coinic">${COIN}</span><span>${merchLine}</span>${icon("chev", "chev")}</a>
     </section>
     <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
     <nav class="rr-card rr-rows" aria-label="Your places">

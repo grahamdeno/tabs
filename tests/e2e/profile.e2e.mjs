@@ -122,13 +122,15 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.equal(g.tf, "none", `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.equal(g.h, gs[0].h, "one height for every guitar"); }
     /* criterion 3: game money and real money are apart */
     const merch = page.locator("#pf-r-merch");
+    const merchLine = n.tips > 0 ? `Merch: spend $${fmt(n.tips)} in tips` : "Merch: earn tips to buy new looks";
     assert.equal(await merch.getAttribute("href"), "#/merch");
-    assert.equal(await merch.getAttribute("aria-label"), `Merch: spend $${fmt(n.tips)} tips on new looks`);
-    assert.equal((await merch.innerText()).trim(), `Merch: spend $${fmt(n.tips)} tips on new looks`);
+    assert.equal(await merch.getAttribute("aria-label"), merchLine);
+    assert.equal((await merch.innerText()).trim(), merchLine);
     assert.equal(await page.locator("#pf-r-merch .rr-coin").count(), 1, "the coin is on the Merch row");
     assert.equal(await page.locator(".rr-me .rr-coin").count(), 1, "and nowhere else on Me");
     const dollars = await page.evaluate(() => [...document.querySelectorAll(".rr-me *")].filter(e => [...e.childNodes].some(c => c.nodeType === 3 && /\$/.test(c.textContent)) || /\$/.test(e.getAttribute("aria-label") || "")).map(e => e.closest("#pf-r-merch") ? "merch" : e.tagName + "." + e.className));
-    assert.ok(dollars.length >= 1 && dollars.every(d => d === "merch"), `a $ amount only on the Merch row (${dollars.join(", ")})`);
+    if (n.tips > 0) assert.ok(dollars.length >= 1 && dollars.every(d => d === "merch"), `a $ amount only on the Merch row (${dollars.join(", ")})`);
+    else assert.equal(dollars.length, 0, "no $ amount when there are no tips to spend");
     const sup = page.locator("#pf-r-support");
     assert.equal(await sup.getAttribute("href"), "#/support");
     assert.equal((await sup.innerText()).trim(), "Support Louie on Ko-fi (real money, optional)");
@@ -196,7 +198,7 @@ test("the guitar case uses one painted velvet lining, sliced into stalls, and ea
   }));
   assert.equal(slots.length, 3, "three earned guitars, three stalls");
   for (const s of slots) {
-    assert.match(s.image, /lining-open\.webp/, "the painted lining");
+    assert.match(s.image, /lining-plush\.webp/, "the plush lining");
     assert.doesNotMatch(s.image, /velvet-slot/);
     assert.equal(s.size, "300% 100%", "each stall is one third of the painting");
   }
@@ -206,6 +208,38 @@ test("the guitar case uses one painted velvet lining, sliced into stalls, and ea
     "art/guitars/cornerstone-small.webp",
     "art/guitars/clubslab-small.webp"
   ]);
+});
+
+test("with no tips the Merch line says to earn them, and with tips it says spend, on one line", { skip: skip() }, async t => {
+  const none = await openMe(t, "dark");
+  const line = await none.locator("#pf-r-merch");
+  assert.equal((await line.innerText()).trim(), "Merch: earn tips to buy new looks");
+  assert.equal(await line.getAttribute("aria-label"), "Merch: earn tips to buy new looks");
+  const fit = await none.evaluate(() => { const el = document.querySelector("#pf-r-merch span:nth-child(2)"); return el.scrollWidth <= el.clientWidth + 1; });
+  assert.equal(fit, true, "the Merch line stays on one line at 390");
+  const some = await openMe(t, "light", { merch: { tconv: 1, lconv: 1, hlseen: 1, tips: 40 } });
+  const spent = some.locator("#pf-r-merch");
+  assert.equal((await spent.innerText()).trim(), "Merch: spend $40 in tips");
+  assert.equal(await spent.getAttribute("aria-label"), "Merch: spend $40 in tips");
+  const fit2 = await some.evaluate(() => { const el = document.querySelector("#pf-r-merch span:nth-child(2)"); return el.scrollWidth <= el.clientWidth + 1; });
+  assert.equal(fit2, true, "the spend line stays on one line at 390");
+});
+
+test("the case has an 8 px dark rim, no latches, and each guitar tucks into its stall", { skip: skip() }, async t => {
+  const page = await openMe(t, "dark");
+  assert.equal(await page.locator(".rr-latch").count(), 0, "no latches stuck on the rim");
+  const seat = await page.evaluate(() => {
+    const stall = document.querySelector(".rr-gtr");
+    const img = stall.querySelector("img");
+    const sr = stall.getBoundingClientRect(), ir = img.getBoundingClientRect();
+    const rim = getComputedStyle(document.querySelector(".rr-gcase"));
+    return { pad: rim.paddingTop, bg: rim.backgroundColor, tucked: ir.bottom > sr.bottom + 1, shadow: getComputedStyle(stall, "::after").backgroundImage, tf: getComputedStyle(img).transform };
+  });
+  assert.equal(seat.pad, "8px", "an 8 px rim");
+  assert.equal(seat.bg, "rgb(26, 18, 14)");
+  assert.equal(seat.tucked, true, "the body sits down into the padding");
+  assert.match(seat.shadow, /gradient/, "a contact shadow under the guitar");
+  assert.equal(seat.tf, "none", "the picture is not turned");
 });
 
 test("one earned guitar still leaves three stalls, and a bought guitar gets a stall of its own", { skip: skip() }, async t => {
