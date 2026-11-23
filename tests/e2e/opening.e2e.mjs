@@ -60,7 +60,7 @@ test("4.40.0 Opening night: pause and pick up in the Gig: the step says what to 
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector("#on-strip"); await page.waitForFunction(() => document.body.classList.contains("playing"));
   assert.match(await page.innerText("#on-strip"), /Tap anywhere to pause/);
-  await page.click("#gg-pause");
+  await page.click("#play");
   await page.waitForSelector("body.held");
   assert.match(await page.innerText("#gg-hsay"), /Tap Resume/);
   await page.click("#play");

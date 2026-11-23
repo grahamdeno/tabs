@@ -81,11 +81,27 @@ const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDIN
    lamp-lit Play, then Loop and Tools as small knobs. The wide Tools + RESUME bar is gone there. */
 const rrAmp = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
+/* The amp bar keeps one Play button. Playing only swaps the icon and the word under it. */
+function paintAmp(on) {
+  const btn = $("play");
+  if (!btn) return;
+  if (!btn.classList.contains("amp-play")) {
+    btn.innerHTML = playFace(on, viewing);
+    btn.setAttribute("aria-label", on ? "Pause auto-scroll" : playLabel(viewing || {}, false));
+    return;
+  }
+  let face = btn.querySelector(".amp-face");
+  if (!face) { btn.innerHTML = `<span class="amp-face"></span><small class="amp-lab"></small>`; face = btn.querySelector(".amp-face"); }
+  face.innerHTML = icon(on ? "pause" : "play");
+  const lab = btn.querySelector(".amp-lab");
+  if (lab) lab.textContent = on ? "Pause" : "Play";
+  btn.setAttribute("aria-label", on ? (gigsOn(viewing || {}) ? "Pause" : "Pause auto-scroll") : playLabel(viewing || {}, false));
+}
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
 function refreshPlay(song) {
   const pb = $("play");
-  if (!pb || viewing !== song || scroll.on) return;
+  if (!pb || viewing !== song || scroll.on || pb.classList.contains("amp-play")) return;
   pb.setAttribute("aria-label", playLabel(song, false));
   pb.innerHTML = playFace(false, song);
 }
@@ -213,20 +229,24 @@ function renderViewer(id) {
     <div class="dock">
       <div class="pw glass float">
       <div class="looprow" id="looprow"></div>
-      <div class="player${rrAmp() ? " rr-amp" : ""}">
-        ${rrAmp() ? `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>` : ""}
-        <button class="tl more tools${rrAmp() ? " gg-sb gg-knob" : ""}" id="more" aria-label="Tools" aria-haspopup="dialog">${rrAmp() ? `<i aria-hidden="true"></i><small>Tools</small>` : `${icon("sliders")}<span class="tl-w">Tools</span>`}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
-        ${rrAmp() ? `<button class="gg-sb gg-knob" id="pw-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button>` : ""}
+      ${rrAmp() ? `<div class="amp-bar" id="amp-bar" role="group" aria-label="Song controls">
+        <button class="amp-slot" id="pw-speed" type="button" aria-label="Speed"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab"><b class="sp-val">Speed</b><span>Speed</span></small></button>
+        <button class="amp-slot amp-play" id="play" type="button" aria-label="${playLabel(song, false)}"><span class="amp-face">${icon("play")}</span><small class="amp-lab">Play</small></button>
+        <button class="amp-slot" id="pw-loop" type="button" aria-label="Loop a section"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab">Loop</small></button>
+        <button class="amp-slot more" id="more" type="button" aria-label="Tools" aria-haspopup="dialog"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab">Tools</small>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        <div class="amp-meta"><span id="gg-sofar">0:00</span><span class="amp-track gg-prog" aria-hidden="true"><i id="gg-prog"></i></span><span id="gg-total">${song.duration ? mmss(song.duration) : ""}</span>${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : []; return x && list[setCtx.idx]?.id === song.id ? `<button class="setdial" id="setdial" type="button" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song"><span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}</div>
+      </div>` : `<div class="player">
+        <button class="tl more tools" id="more" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
+        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false, song)}</button>
+      </div>`}
         <div class="speed" hidden>
           ${byLength()
             ? `<input type="range" id="speed" min="${540 - MAX_LENGTH}" max="480" step="1" value="${540 - songLength(song)}" aria-label="Song length">`
             : `<input type="range" id="speed" min="4.5" max="99" step="4.5" value="${song.speed}" aria-label="Scroll speed for this song">`}
           <span id="sv"></span>
         </div>
-        <button class="play" id="play" aria-label="${playLabel(song, false)}">${playFace(false, song)}</button>
-      </div>
       </div>
     </div>`;
   placeWide(); paintSide(song);
@@ -271,6 +291,8 @@ function renderViewer(id) {
   };
 
   const draw = () => {
+    /* Editing owns the sheet. A later redraw (the fonts finishing) must not wipe the pad. */
+    if (chordEdit) return;
     const steps = song.transpose || 0;
     const easy = isChords && song.easier?.on ? song.easier : null;
     const capo = easy ? easy.capo || 0 : 0;
@@ -1846,9 +1868,7 @@ async function startScroll(song, opts = {}) {
   }
   diag.pinned = null; diag.scrolling = false;
   updateDiagrams();
-  const btn = $("play");
-  btn.innerHTML = playFace(true);
-  btn.setAttribute("aria-label", "Pause auto-scroll");
+  paintAmp(true);
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   if (metroOn()) {
     if (!song.bpm) tempoFor(song); /* look it up during the count-in */
@@ -1957,7 +1977,7 @@ function stopScroll() {
   scroll.lock?.release?.().catch(() => {});
   scroll.lock = null;
   const btn = $("play");
-  if (btn) { btn.innerHTML = playFace(false, viewing); btn.setAttribute("aria-label", playLabel(viewing || {}, false)); }
+  paintAmp(false);
   updateDiagrams();
   /* After playing: the first pause shows starting from a line. */
   if (was && btn && !chordEdit) setTimeout(() => {
@@ -2104,4 +2124,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, openSpeedDial, openLoopPick, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, openSpeedDial, openLoopPick, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong, paintAmp };

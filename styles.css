@@ -3837,6 +3837,7 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 .on-mic .btn, .on-count-in .btn { width: 100%; }
 .on-not { display: block; margin: 10px auto 0; height: 44px; border: 0; background: none; color: var(--muted); font: 700 16px var(--display); }
 .on-count { position: absolute; inset: 0; z-index: 40; display: flex; align-items: flex-end; background: var(--scrim); }
+body.gigging .on-count-in { padding-bottom: calc(180px + env(safe-area-inset-bottom)); }
 .on-count-in { width: 100%; box-sizing: border-box; border-radius: 24px 24px 0 0; background: var(--card); padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); text-align: center; animation: up .42s cubic-bezier(.2, 1.15, .3, 1); }
 .hud .h-lab { font: 800 12px var(--sans); letter-spacing: .06em; color: var(--muted); }
 .hud .h-lab::after { content: " \203A"; }
@@ -4945,7 +4946,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bottom { flex-direction: column; align-items: stretch; width: 100%; gap: 8px; justify-content: flex-end; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-pause { width: 64px; height: 64px; border-radius: 50%; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-pause svg { width: 26px; height: 26px; }
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-prog { display: block; position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--rr-lyric-sung) 45%, transparent); pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-prog { display: block; position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--rr-text) 35%, transparent); pointer-events: none; }
 .gg-prog > i { display: block; height: 100%; width: 0; background: var(--rr-amber-text); }
 /* hiding (4.60.0's 3 s): a 0.25 s ease-out fade with an 8 px slide; Reduce Motion: a plain 0.2 s fade */
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig :is(.gg-head, .gg-pause) { transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s; }
@@ -4976,7 +4977,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* the first-run hint: a cream frame at the bottom, in the space Pause leaves when the controls hide (above the 2 px
    progress line, inside the safe area, in thumb reach), so it never covers the words; Louie beside it. Taps go through
    it to the page. It fades on its own after 5 s (gig.js): 0.25 s, or gone at once with Reduce Motion. */
-.gig > .gg-hint { position: absolute; left: 50%; top: auto; bottom: calc(12px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; flex-direction: row; align-items: center; gap: 6px; pointer-events: none; z-index: 4; transition: opacity .25s ease-out; }
+.gig > .gg-hint { position: absolute; left: 50%; top: auto; bottom: calc(156px + var(--safe-b)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; flex-direction: row; align-items: center; gap: 6px; pointer-events: none; z-index: 4; transition: opacity .25s ease-out; }
 .gig > .gg-hint.fading { opacity: 0; }
 .gg-hint p { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; background: var(--rr-plate-top); color: var(--rr-plate-text); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); font: 500 var(--type-callout, 16px) / 1.25 "Inter", var(--sans); }
 .gg-hint-i { width: 20px; height: 20px; flex: none; fill: currentColor; stroke: currentColor; }
@@ -6015,6 +6016,9 @@ body.tabbed .tm-page { bottom: var(--tabs, 96px); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bottom { position: relative; z-index: 5; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-clock { display: flex; justify-content: space-between; margin: 6px 0 0; padding: 2px 2px 0; font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--rr-text-2); background: var(--rr-base); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bar small { display: block; margin-top: 4px; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); color: #EADBC0; text-align: center; }
+:is(.gg-bar, .player.rr-amp) .gg-speed .sp-cap { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+:is(.gg-bar, .player.rr-amp) .gg-speed .sp-cap .sp-val { display: block; font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: inherit; }
+:is(.gg-bar, .player.rr-amp) .gg-speed .sp-cap span { display: block; font: 600 11px/1.1 var(--sans); letter-spacing: .01em; color: inherit; }
 .gg-sb { display: grid; justify-items: center; align-content: center; min-width: 52px; min-height: 52px; padding: 2px 4px; border: 0; background: none; color: #EADBC0; cursor: pointer; }
 .gg-speed { justify-self: start; }
 .gg-speed svg { width: 30px; height: 30px; color: #D9C9AC; }
@@ -6108,6 +6112,8 @@ html:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [d
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .dock.kb .cmd input { color: var(--rr-text); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .dock.kb .cmd input::placeholder { color: var(--rr-text-2); opacity: 1; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .dock.kb .cmd-add { color: var(--rr-amber-text); }
+/* 4.113.1: search stays pinned at the bottom, above the tab bar, until you tap it */
+body:not(.searching) #app > .dock.kb { position: fixed !important; left: 50% !important; right: auto !important; top: auto !important; bottom: calc(var(--tabs, 0px) + 8px) !important; transform: translateX(-50%) !important; width: min(496px, calc(100% - 24px)); margin: 0; z-index: 25; }
 
 /* Green Room and Headliner keep the Road Ready layout and swap the lamp colour for their own palette. */
 :root[data-look="green"] .rd-path { background: linear-gradient(rgba(210, 226, 214, .45), rgba(210, 226, 214, .45)), url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px, var(--rr-base); background-attachment: local; }
@@ -6124,3 +6130,27 @@ html:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [d
 :root[data-look="green"] #tabs a[aria-current="page"]::after { box-shadow: 0 0 6px 1px rgba(225, 90, 78, .45); }
 :root[data-look="headliner"] #chips.rr-chips .chip.on { background-color: var(--rr-amber); background-image: radial-gradient(ellipse 70% 90% at 50% 45%, #C4B5FD 0, #7C3AED 55%, #5B21B6 100%); box-shadow: 0 0 12px rgba(124, 58, 237, .45), inset 0 1px 0 rgba(255, 255, 255, .35); color: #fff; }
 :root[data-look="green"] #chips.rr-chips .chip.on { background-color: var(--rr-amber); background-image: radial-gradient(ellipse 70% 90% at 50% 45%, #FFD0C8 0, #FF8A7A 55%, #E15A4E 100%); box-shadow: 0 0 10px rgba(225, 90, 78, .28), inset 0 1px 0 rgba(255, 255, 255, .5); color: var(--rr-on-amber); }
+
+/* One amp bar on the song screen. The Gig does not build a second one. Play and Pause only swap the icon. */
+.app.viewer .dock:has(.amp-bar) { left: 0; right: 0; width: 100%; transform: none; bottom: 0; box-sizing: border-box; padding: 10px 12px calc(8px + var(--safe-b)); background: var(--rr-base, #141210); border-radius: 0; }
+.app.viewer .pw > .speed[hidden] { display: none !important; }
+body.gigging.staged .app.viewer > .dock:has(.amp-bar) { visibility: visible; z-index: 56; }
+body.gigging .tuner2 { z-index: 72; }
+.amp-meta .setdial { height: 32px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: #eadbc0; font: 700 12px/1 var(--sans); }
+body:has(#gig .gc) .app.viewer .dock:has(.amp-bar) { visibility: hidden; pointer-events: none; }
+.amp-bar .gg-prog { display: block; height: 2px; }
+body.covered .app.viewer .dock:has(.amp-bar) { background: #141210; }
+.app.viewer:has(.amp-bar) { padding-bottom: calc(156px + var(--safe-b)); }
+.amp-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; box-sizing: border-box; padding: 8px 4px 6px; background: #12100e; border-radius: 22px; overflow: hidden; box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px #8e8a84; }
+:root[data-look="festival"] .amp-bar { background: #1c1916; }
+.amp-slot { height: 96px; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: #eadbc0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; position: relative; cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .amp-bar #play { width: auto; height: 96px; min-width: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: #eadbc0; font-size: inherit; position: relative; display: flex; }
+.amp-knob { width: 36px; height: 36px; border-radius: 50%; flex: none; background: radial-gradient(circle at 42% 35%, #8f8a84 0, #4a4642 55%, #2a2725 100%); box-shadow: 0 0 0 2px #1a1816, 0 0 0 3px #6b655e; }
+.amp-face { width: 56px; height: 56px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--rr-amber, #ffb547); color: var(--rr-on-amber, #2a1e12); box-shadow: 0 0 0 3px #1a1816; }
+.amp-face svg { width: 22px; height: 22px; fill: currentColor; margin: 0; }
+.amp-lab { height: 28px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; font: 600 12px/1.15 var(--sans); color: #eadbc0; }
+.amp-lab .sp-val { font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: inherit; }
+.amp-meta { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; margin-top: 8px; font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #eadbc0; }
+.amp-track { height: 2px; border-radius: 2px; background: color-mix(in srgb, var(--rr-text, #fff) 35%, transparent); overflow: hidden; }
+.amp-track i { display: block; height: 100%; width: 0; background: var(--rr-amber-text, #ffb547); }
+.amp-slot .newdot { position: absolute; top: 8px; right: 18px; }
