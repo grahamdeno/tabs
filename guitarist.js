@@ -184,7 +184,7 @@ export function guitarist(me, { mood: mood0 = "happy", pose: pose0 = "play", cro
   const frontHair = hat && hat.cut ? `<g clip-path="url(#${id}k)">${hair[1]}</g>` : hair[1];
   const figure = [
     `<g ${ink}>${hair[0]}${neck}${TOP[look](top, sp)}${strap}</g>`,
-    pic ? `<g transform="${GUITAR_AT}"><image href="${pic}" width="124" height="353" preserveAspectRatio="xMidYMid meet"/></g>` : "",
+    pic ? `<g transform="${GUITAR_AT}"><image href="${pic}" width="124" height="353" preserveAspectRatio="xMidYMid meet" style="filter:drop-shadow(0 4px 3px rgba(0,0,0,.4))"/></g>` : "",
     `<g ${ink}>${arms(pose, look, top, skin, sk2)}${ears(skin, sk2)}${(HEAD[me.face] || HEAD.oval)(skin)}</g>`,
     face,
     me.beard && BEARD[me.beard] ? `<g ${me.beard === "stubble" ? "" : ink}>${BEARD[me.beard](beardC, skin)}</g>` : "",

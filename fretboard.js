@@ -219,9 +219,18 @@ function nanoHardware(g, yb, ac) {
   if (g.body === "swallow") return `${humbucker(yb - 110, "#1c1a1f", gold)}${humbucker(yb - 52, "#1c1a1f", gold)}${tuneomatic(yb)}${stopbar(yb + 34)}`;
   return `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${k("#efe4c8")}`;
 }
+/* The shown picture. Gloss and a lit binding are painted into art/guitars/elev/ (the flat
+   painting stays beside it, same pixels, so the fret numbers still line up). */
+export const GUITAR_ELEV = "art/guitars/elev";
+const guitarSrc = (name, part) => `${GUITAR_ELEV}/${name}-${part}.webp?v=${VERSION}`;
+/* Room under the painting for the shadow. The picture itself has no empty ground. */
+const LIFT = 28;
+function elevFilter(id) {
+  return `<filter id="${id}" x="-22%" y="-6%" width="144%" height="128%" color-interpolation-filters="sRGB"><feOffset in="SourceAlpha" dx="1" dy="12" result="o"/><feGaussianBlur in="o" stdDeviation="7" result="b"/><feFlood flood-color="#070504" flood-opacity=".58" result="c"/><feComposite in="c" in2="b" operator="in" result="s"/><feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+}
 function picBase(g, lay, f) {
   const { p, sh, sb, k } = lay.pic, top = lay.head, y0 = top + lay.neck, hw = NECK / 2, end = y0 + p.body.end * sb, yb = y0 + lay.bridge;
-  const img = (part, x, y, w, h) => `<image href="art/guitars/${f}-${part}.webp?v=${VERSION}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/>`;
+  const img = (part, x, y, w, h) => `<image href="${guitarSrc(f, part)}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/>`;
   let frets = "", y = top;
   for (const sp of lay.spaces) {
     y += sp.h;
@@ -265,15 +274,16 @@ export function roadLayout(stops, p) {
     return { l: X(c - hw), r: X(c + hw) };
   };
   const ys = spaces.filter(sp => sp.kind !== "double").map(sp => sp.y);
-  return { spaces, head: 0, neck: 0, body: 0, height: Math.round(top + S * r.h + ROAD.margin), road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
+  return { spaces, head: 0, neck: 0, body: 0, height: Math.round(top + S * r.h + ROAD.margin + LIFT), road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
 }
-/* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware */
+/* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware.
+   A soft shadow sits under the body, in the room LIFT leaves below the painting. */
 function roadBase(g, lay, f, build, legId) {
-  const { r, S, X, Y } = lay.road, painted = `art/guitars/${f}-road.webp?v=${VERSION}`;
+  const { r, S, X, Y } = lay.road, painted = guitarSrc(f, "road");
   /* Road Ready 9b: a guitar you restyled is put together once (buildart.js) and drawn at the same size, so the stops line up;
      the painting shows until it is ready, and for a guitar with no build */
   const bp = build && legId ? buildPic(legId, build, painted) : { src: painted, attr: "" };
-  return `<image href="${bp.src}"${bp.attr} x="${X(0).toFixed(1)}" y="${Y(0).toFixed(1)}" width="${(r.w * S).toFixed(1)}" height="${(r.h * S).toFixed(1)}"/>`;
+  return `<defs>${elevFilter("g-elev-" + f)}</defs><image filter="url(#g-elev-${f})" href="${bp.src}"${bp.attr} x="${X(0).toFixed(1)}" y="${Y(0).toFixed(1)}" width="${(r.w * S).toFixed(1)}" height="${(r.h * S).toFixed(1)}"/>`;
 }
 
 /* the strings and their shadows, from the nut to the bridge */
@@ -470,7 +480,7 @@ function stopHTML(sp, g, lay, o) {
 export const NANO_FILE = { open: "porch", switch: "cornerstone", scales: "clubslab", strum: "hollowhill", pick: "swing", finger: "koaarc", encore: "comet" };
 /* the small guitar in the guitarist's hands (guitarist.js): the whole picture, by body shape */
 const BODY_FILE = { parlor: "parlor", cutaway: "cutaway-sunburst", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner", ...Object.fromEntries(Object.keys(PICS).map(k => [k, k])) };
-export const guitarPic = body => BODY_FILE[body] ? `art/guitars/${BODY_FILE[body]}-small.webp?v=${VERSION}` : null;
+export const guitarPic = body => BODY_FILE[body] ? guitarSrc(BODY_FILE[body], "small") : null;
 /* the picture of a leg's guitar, or of the shop guitar you chose (o.shown is guitarShown(data, leg id) from core/game.js) */
 const picOf = (id, o = {}) => { const f = o.shown?.body || NANO_FILE[id]; return o.nano === false || !PICS[f] ? null : { f, p: PICS[f] }; };
 export function neckHTML(leg, o) {
@@ -502,7 +512,7 @@ export function neckHTML(leg, o) {
 export function guitarSVG(id, { full = false } = {}) {
   const g = guitarFor(id), pc = picOf(id), spaces = n => Array.from({ length: n }, () => ({ kind: "chord", state: "locked" }));
   /* Road Ready 9a: a painted guitar is shown whole (its painted neck, nothing drawn), scaled to fit; full makes no difference */
-  if (pc?.p.road) { const r = pc.p.road; return `<svg class="rd-gsvg road" viewBox="0 0 ${r.w} ${r.h}" role="img" aria-label="${g.name}"><image href="art/guitars/${pc.f}-road.webp?v=${VERSION}" width="${r.w}" height="${r.h}"/></svg>`; }
+  if (pc?.p.road) { const r = pc.p.road; return `<svg class="rd-gsvg road" viewBox="0 0 ${r.w} ${r.h + 24}" role="img" aria-label="${g.name}"><defs>${elevFilter("g-elev-svg-" + pc.f)}</defs><image filter="url(#g-elev-svg-${pc.f})" href="${guitarSrc(pc.f, "road")}" width="${r.w}" height="${r.h}"/></svg>`; }
   if (!pc) { const lay = fretLayout(spaces(full ? neckStops(FRET_BODY) : 2)); return `<svg class="rd-gsvg" viewBox="0 0 ${W} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay)}${stringLayer(g, lay)}</svg>`; }
   /* the body is wider than the screen on the Road, so the whole guitar is drawn wider to show all of it */
   const lay = picLayout(spaces(full ? neckStops(picLayout(spaces(2), pc.p).body) : 2), pc.p), half = 1.25 * W / 2 + 6;

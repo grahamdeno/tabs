@@ -3023,7 +3023,7 @@ test("Road Ready 9a: each leg has its new guitar, and all 23 pictures are built,
   for (const [leg, name] of Object.entries(legs)) {
     const g = C.GUITARS[leg];
     assert.equal(g.name, name); assert.equal(g.body, name.toLowerCase().replace(/ /g, "")); assert.equal(FB.NANO_FILE[leg], g.body, `${leg}: the neck uses its own picture`);
-    assert.ok(FB.guitarPic(g.body)?.startsWith(`art/guitars/${g.body}-small.webp`), `${leg}: the small picture resolves`);
+    assert.ok(FB.guitarPic(g.body)?.startsWith(`art/guitars/elev/${g.body}-small.webp`), `${leg}: the small picture is the elevated one`);
   }
   assert.deepEqual(Object.keys(C.GUITARS), Object.keys(legs), "leg ids and their order are as they were");
   const slugs = [...Object.values(C.GUITARS).map(g => g.body), ...C.GUITAR_SHOP.map(g => g.id)];
@@ -3207,6 +3207,43 @@ test("Painted necks: every one of the 23 guitars has a road picture and fret dat
     assert.ok(r.f.every((row, i) => row.length === 9 && (!i || row[0] > r.f[i - 1][0])), `${slug}: the fret rows run down the picture`);
   }
   assert.ok(total < 2e6, `the 23 road pictures come to ${total} bytes`);
+});
+/* VP8X canvas size: 24-bit little-endian width and height, each stored minus one. */
+const webpSize = buf => {
+  assert.equal(buf.toString("ascii", 0, 4), "RIFF");
+  assert.equal(buf.toString("ascii", 8, 12), "WEBP");
+  assert.equal(buf.toString("ascii", 12, 16), "VP8X");
+  return [1 + buf.readUIntLE(24, 3), 1 + buf.readUIntLE(27, 3)];
+};
+test("Guitars with elevation: the Road and the small pictures use the new files, same size as the flat ones, with a shadow under the body", async () => {
+  const { FB, PICS } = await wired(), shell = read("sw.js");
+  const slugs = [...Object.values(C.GUITARS).map(g => g.body), ...C.GUITAR_SHOP.map(g => g.id)];
+  for (const slug of slugs) {
+    for (const part of ["road", "small"]) {
+      const elev = `art/guitars/elev/${slug}-${part}.webp`, flat = `art/guitars/${slug}-${part}.webp`;
+      assert.ok(fs.existsSync(path.join(root, flat)), `${flat} is kept`);
+      assert.ok(fs.existsSync(path.join(root, elev)), elev);
+      assert.ok(shell.includes(`"${elev}"`), `${elev} is saved for offline`);
+      assert.deepEqual(webpSize(fs.readFileSync(path.join(root, elev))), webpSize(fs.readFileSync(path.join(root, flat))), `${slug} ${part}: the elevated picture is the same size`);
+    }
+    assert.ok(FB.guitarPic(slug).startsWith(`art/guitars/elev/${slug}-small.webp`), `${slug}: the shop and the case use the elevated picture`);
+  }
+  /* the eight older guitars are still head and body, from the elevated set */
+  for (const name of ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]) {
+    for (const part of ["head", "body", "small"]) {
+      const elev = `art/guitars/elev/${name}-${part}.webp`;
+      assert.ok(fs.existsSync(path.join(root, elev)) && shell.includes(`"${elev}"`), elev);
+      assert.deepEqual(webpSize(fs.readFileSync(path.join(root, elev))), webpSize(fs.readFileSync(path.join(root, `art/guitars/${name}-${part}.webp`))), `${name} ${part}`);
+    }
+  }
+  const stops = [...Array.from({ length: 5 }, () => ({ kind: "chord", state: "locked" })), { kind: "headline", state: "locked" }];
+  const html = FB.neckHTML({ id: "open", name: "Porch", done: false, stops }, { rr: true, id: () => "s", num: () => 1, label: () => "stop", tag: () => "" });
+  assert.match(html, /art\/guitars\/elev\/porch-road\.webp/, "the Road shows the elevated painting");
+  assert.match(html, /feOffset[^>]*dy="12"/, "a shadow sits under the body");
+  assert.match(html, /feGaussianBlur/, "the shadow is soft");
+  const lay = FB.roadLayout(stops, PICS.porch);
+  assert.ok(lay.height > PICS.porch.road.h * 1.2, "the neck leaves room under the painting for the shadow");
+  assert.ok(!html.includes("art/guitars/porch-road.webp?"), "the flat painting is not the one on the Road");
 });
 test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, and the stops stay inside the picture", async () => {
   const { FB, PICS } = await wired(), mk = n => Array.from({ length: n }, (_, i) => ({ kind: i % 4 === 3 ? "box" : "chord", state: "locked" }));
