@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Build the app icons and iPhone launch screens from the tweed Louie (docs/louie-tweed/cutouts).
+# Build the app icons and iPhone launch screens. Since 4.114.0 the icons are the guitar neck drawn in neck.py
+# (no mascot on the icon, Graham 2026-11-23); the launch screens still show the tweed Louie (docs/louie-tweed/cutouts).
 # Run from the repo root: python3 -I tools/icons/make.py
 #
 # The icon is a close crop of Louie's face (handle, yellow panel, knobs) on the
@@ -7,6 +8,7 @@
 # icon is the same picture with a safe margin. Launch screens are the solid Dark
 # ground and the full idle pose, with no text.
 
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -116,20 +118,23 @@ def horns_face(size):
 
 
 def main():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import neck  # the icon since 4.114.0
+
     if not LOUIE.is_file():
         raise SystemExit(f"missing {LOUIE}")
     piece = crop_louie()
     idle = Image.open(LOUIE).convert("RGBA")
 
     print("icons")
-    master = horns_icon(1024)
+    master = neck.icon(1024)
     save(master, ICONS / "icon-1024.png")
     save(master, ROOT / "shots" / "icon-1024.png")
-    save(horns_icon(512), ICONS / "icon-512.png")
-    save(horns_icon(192), ICONS / "icon-192.png")
-    save(horns_icon(180), ICONS / "apple-touch-icon.png")
-    save(horns_face(32), ICONS / "favicon-32.png")
-    save(horns_icon(512, pad=MASKABLE_PAD), ICONS / "icon-maskable-512.png")
+    save(neck.icon(512), ICONS / "icon-512.png")
+    save(neck.icon(192), ICONS / "icon-192.png")
+    save(neck.icon(180), ICONS / "apple-touch-icon.png")
+    save(neck.tab_icon(32), ICONS / "favicon-32.png")
+    save(neck.icon(512), ICONS / "icon-maskable-512.png")
 
     print("launch screens")
     for name, w, h, ratio in LAUNCH:
