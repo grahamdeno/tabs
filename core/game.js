@@ -1342,6 +1342,7 @@ export function merchBuy(data, id, now = Date.now()) {
   const st = merchState(data, now), m = data.merch || (data.merch = {});
   if (it.kind === "gear" ? st.own[id] + (it.adds || 1) > it.max : st.has.has(id)) return { why: it.kind === "gear" ? "max" : "have" };
   if (it.earn) return { why: "earn" }; /* 4.78.0: earned, never bought */
+  if (it.kind === "look" && (it.id === "green" || it.id === "headliner")) return { why: "retired" }; /* not offered, and buying must not switch the look on */
   if (st.tips < it.price) return { why: "tips" };
   m.tspent = (m.tspent || 0) + it.price;
   if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
@@ -1351,6 +1352,7 @@ export function merchBuy(data, id, now = Date.now()) {
 export function merchWear(data, id) {
   const it = merchItem(id), st = merchState(data);
   if (!it || it.kind === "gear" || !st.has.has(id)) return false;
+  if (it.kind === "look" && (it.id === "green" || it.id === "headliner")) return false; /* retired: wearing one must not switch the look on */
   if (it.kind === "look") { data.settings.theme = it.theme; return true; }
   if (it.kind === "wear") { data.me = { ...meOf(data), extra: id.slice(5) }; return true; }
   (data.merch || (data.merch = {}))[it.kind] = id;
@@ -1382,7 +1384,7 @@ export function secondTake(data, now = Date.now()) {
 export function merchTip(data, now = Date.now()) {
   const st = merchState(data, now), m = data.merch || {};
   const told = new Set(m.told || []);
-  const it = MERCH.filter(x => x.kind !== "gear" && x.kind !== "wear" && x.price && !x.earn && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
+  const it = MERCH.filter(x => x.kind !== "gear" && x.kind !== "wear" && x.kind !== "look" && x.price && !x.earn && !st.has.has(x.id) && x.price <= st.tips && !told.has(x.id)).sort((a, b) => a.price - b.price)[0];
   if (!it) return null;
   const mm = data.merch || (data.merch = {});
   (mm.told || (mm.told = [])).push(it.id);
