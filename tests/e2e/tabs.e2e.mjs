@@ -1,4 +1,4 @@
-// Road Ready, step 04: five tabs (Road, Songbook, Rehearse, Tour, Me) in a grille-cloth bar with our own icons.
+// Five tabs (Road, Songbook, Rehearse, Tour, Me) on the amp knob bar.
 // Charts, Your band, the Merch table, the Tuner, Support and Settings are reached from Me; their pages go back to Me.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -37,27 +37,40 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
     }
   });
 
-  test(`Road Ready 04 (${look}): the floating grille-cloth bar, amber when current, inactive labels readable on the mesh`, { skip: skip() }, async t => {
+  test(`knob bar (${look}): grille, chrome, a lit knob on the current tab, labels readable`, { skip: skip() }, async t => {
     const page = await phone(t, libWith(theme), { home: true });
     await page.waitForSelector("#tabs [data-tab=road][aria-current=page]");
+    const dark = theme === "dark";
     const r = await page.evaluate(() => {
-      const n = document.getElementById("tabs"), c = getComputedStyle(n), box = n.getBoundingClientRect(), root = getComputedStyle(document.documentElement);
+      const n = document.getElementById("tabs"), c = getComputedStyle(n), box = n.getBoundingClientRect();
       const on = document.querySelector("#tabs [aria-current=page]"), off = document.querySelector("#tabs a:not([aria-current])");
-      const under = getComputedStyle(on, "::after");
-      const probe = document.createElement("i"); probe.style.color = root.getPropertyValue("--rr-mesh"); document.body.appendChild(probe); const mesh = getComputedStyle(probe).color; probe.style.color = root.getPropertyValue("--rr-amber-text"); const amber = getComputedStyle(probe).color; probe.remove();
-      return { radius: c.borderTopLeftRadius, bg: c.backgroundImage, side: box.left, gapBelow: innerHeight - box.bottom, pipe: getComputedStyle(n, "::before").backgroundImage,
-        onColor: getComputedStyle(on).color, offLabel: getComputedStyle(off.querySelector(".tb-l")).color, offLabelSize: parseFloat(getComputedStyle(off.querySelector(".tb-l")).fontSize),
-        underW: under.width, underH: under.height, mesh, amber, ic: off.querySelector("svg").getBoundingClientRect().width };
+      const lit = on.querySelector(".tb-on"), knob = on.querySelector(".tb-knob").getBoundingClientRect();
+      return { radius: c.borderTopLeftRadius, bg: c.backgroundImage, side: box.left, gapBelow: innerHeight - box.bottom, h: box.height,
+        pipe: getComputedStyle(n, "::before").backgroundImage, onColor: getComputedStyle(on).color,
+        offLabel: getComputedStyle(off.querySelector(".tb-l")).color, offLabelSize: parseFloat(getComputedStyle(off.querySelector(".tb-l")).fontSize),
+        litOp: getComputedStyle(lit).opacity, offOp: getComputedStyle(on.querySelector(".tb-off")).opacity,
+        otherLit: getComputedStyle(off.querySelector(".tb-on")).opacity, src: lit.getAttribute("src"), nw: lit.naturalWidth, knob: knob.width,
+        under: getComputedStyle(on, "::after").content };
     });
     assert.equal(r.radius, "18px", "radius 18");
-    assert.match(r.bg, /repeating-linear-gradient/, "filled with the grille cloth");
-    assert.match(r.pipe, /linear-gradient/, "chrome piping");
+    assert.match(r.bg, dark ? /grille-dark\.webp/ : /grille-light\.webp/, "the grille cloth for this look");
+    assert.match(r.pipe, /linear-gradient/, "chrome edge");
     assert.ok(r.side >= 8 && r.gapBelow >= 8, "floats 8 px in from the sides and above the bottom");
-    assert.equal(r.onColor, r.amber, "the current tab is amber (the darker amber in the light look)");
-    assert.equal([r.underW, r.underH].join(), "24px,3px", "a 3 by 24 px underline under the current tab");
-    assert.ok(ratio(r.offLabel, r.mesh) >= 4.5, `inactive labels ${ratio(r.offLabel, r.mesh).toFixed(1)}:1 on the mesh`);
-    assert.ok(r.offLabelSize >= 13, "labels at least 13 px");
-    assert.equal(Math.round(r.ic), 28, "28 px icons");
+    assert.equal(Math.round(r.h), 70, "the bar stays close to the old height");
+    assert.equal(r.onColor, dark ? "rgb(255, 181, 71)" : "rgb(118, 58, 0)", "the current label is amber");
+    assert.equal(r.offLabel, dark ? "rgb(243, 230, 210)" : "rgb(58, 42, 26)", dark ? "cream labels" : "ink labels on the cream bar");
+    const ground = dark ? "rgb(16, 14, 12)" : "rgb(232, 214, 188)";
+    assert.ok(ratio(r.offLabel, ground) >= 4.5, `inactive labels ${ratio(r.offLabel, ground).toFixed(1)}:1`);
+    assert.ok(ratio(r.onColor, ground) >= 4.5, `the amber label ${ratio(r.onColor, ground).toFixed(1)}:1`);
+    assert.ok(r.offLabelSize >= 11 && r.offLabelSize <= 12, `labels are ${r.offLabelSize}px, around 11 to 12`);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#tabs .tb-l")).fontWeight), "500", "medium weight");
+    assert.equal(r.litOp, "1", "the current knob is the lit face");
+    assert.equal(r.offOp, "0", "the dark face steps aside");
+    assert.equal(r.otherLit, "0", "the other knobs stay dark");
+    assert.equal(r.src, "art/tabbar/knob-lit.webp");
+    assert.ok(r.nw >= r.knob * 3, `the face is ${r.nw}px for a ${r.knob}px knob, at least 3x`);
+    assert.equal(Math.round(r.knob), 46, "46 px knobs");
+    assert.equal(r.under, "none", "no underline: the lamp is the mark");
   });
 }
 
@@ -139,8 +152,11 @@ for (const [w, h] of [[320, 568], [375, 667], [390, 844]]) {
         assert.equal(m.length, 5, "five tabs");
         for (let i = 0; i < m.length; i++) {
           assert.ok(m[i].l >= m[i].tl - 0.5 && m[i].r <= m[i].tr + 0.5, `${mode}: ${m[i].name} fits inside its tab (${m[i].l.toFixed(1)} to ${m[i].r.toFixed(1)} in ${m[i].tl.toFixed(1)} to ${m[i].tr.toFixed(1)})`);
-          if (i) assert.ok(m[i - 1].r <= m[i].l, `${mode}: ${m[i - 1].name} does not touch ${m[i].name}`);
-          if (w >= 375 && !large) assert.ok(m[i].size >= 13, `${mode}: ${m[i].name} is ${m[i].size} px, at least 13`);
+          if (i) {
+            const gap = m[i].l - m[i - 1].r;
+            assert.ok(gap >= 4, `${mode}: ${m[i - 1].name} and ${m[i].name} have ${gap.toFixed(1)}px between them`);
+          }
+          if (!large) assert.ok(m[i].size >= 11 && m[i].size <= 12, `${mode}: ${m[i].name} is ${m[i].size}px, around 11 to 12`);
         }
       }
     });
@@ -151,20 +167,22 @@ test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every 
   const page = await phone(t, libWith("dark"), { home: true });
   await page.waitForSelector("#tabs a");
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "45px"); r.dataset.ax = "3"; });
-  const r = await page.$$eval("#tabs a", as => as.map(a => ({ name: a.getAttribute("aria-label"), label: getComputedStyle(a.querySelector(".tb-l")).display, ic: a.querySelector("svg").getBoundingClientRect().width, h: a.getBoundingClientRect().height })));
+  const r = await page.$$eval("#tabs a", as => as.map(a => ({ name: a.getAttribute("aria-label"), label: getComputedStyle(a.querySelector(".tb-l")).display, ic: a.querySelector(".tb-knob").getBoundingClientRect().width, h: a.getBoundingClientRect().height })));
   for (const x of r) {
     assert.equal(x.label, "none", `${x.name}: label hidden`);
-    assert.equal(Math.round(x.ic), 32, `${x.name}: 32 px icon`);
+    assert.equal(Math.round(x.ic), 50, `${x.name}: 50 px knob`);
     assert.ok(x.name && x.h >= 44, `${x.name}: named and 44 tall`);
   }
 });
 
-test("a saved Green Room does not draw its own look", { skip: skip() }, async t => {
+test("a saved Green Room does not draw its own look, and the knob bar is the bar", { skip: skip() }, async t => {
   const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"], tspent: 400 } }, { home: true, colorScheme: "light" });
   await page.waitForSelector("#tabs a");
-  const r = await page.evaluate(() => ({ look: document.documentElement.dataset.look, saved: JSON.parse(localStorage.getItem("tabs-v1")).settings.theme, tabs: [...document.querySelectorAll("#tabs a")].map(a => a.dataset.tab).join() }));
+  const r = await page.evaluate(() => { const n = document.getElementById("tabs"); return { look: document.documentElement.dataset.look, saved: JSON.parse(localStorage.getItem("tabs-v1")).settings.theme, tabs: [...n.querySelectorAll("a")].map(a => a.dataset.tab).join(), bg: getComputedStyle(n).backgroundImage, knobs: n.querySelectorAll(".tb-knob").length }; });
   assert.equal(r.look, "festival");
   assert.equal(r.saved, "green");
+  assert.match(r.bg, /art\/tabbar\/grille-light/, "the cream grille");
+  assert.equal(r.knobs, 5);
   assert.equal(r.tabs, "road,songbook,rehearse,tour,me");
 });
 
