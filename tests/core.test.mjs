@@ -2781,11 +2781,11 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   for (const fin of ["pink", "teal", "black", "mint", "gold"]) {
     assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} the first tint stays`);
     for (const pose of have) {
-      const f = `art/louie/colours/${fin}/louie-${pose}.webp`;
+      const f = `art/louie/tint/${fin}/louie-${pose}.webp`;
       assert.ok(fs.existsSync(path.join(root, f)), f);
       assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     }
-    assert.match(louie("worried", { finish: fin }), new RegExp(`art/louie/colours/${fin}/louie-nervous.webp`), `${fin} nervous is his own picture`);
+    assert.match(louie("worried", { finish: fin }), new RegExp(`art/louie/tint/${fin}/louie-nervous.webp`), `${fin} nervous is his own picture`);
   }
   for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
   assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);

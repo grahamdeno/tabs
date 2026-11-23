@@ -64,7 +64,7 @@ export const louiePic = (art, finish = "") => {
   const pose = LOUIE_STAND_IN[art] || art;
   let fin = finish;
   if (!fin && typeof document !== "undefined") fin = document.body?.dataset.wear || "";
-  if (FINISHES.has(fin)) return `art/louie/colours/${fin}/louie-${pose}.webp`;
+  if (FINISHES.has(fin)) return `art/louie/tint/${fin}/louie-${pose}.webp`;
   return `art/louie/v5/louie-${pose}.webp`;
 };
 

@@ -10,7 +10,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "art" / "louie" / "v5"
-DST = ROOT / "art" / "louie" / "colours"
+DST = ROOT / "art" / "louie" / "tint"
 POSES = ["cheer", "horns", "idle", "listen", "nervous", "point", "proud", "sleepy", "thumb", "wave"]
 # id, and the tweed colour. "black" is the Blue finish (that is the id the Merch table already uses).
 COLOURS = {
@@ -23,53 +23,54 @@ COLOURS = {
 
 
 def tweed_mask(rgb, al):
+    """The whole tweed cabinet, evenly. Not the face, the grille, the gold panel, the hands or the boots."""
     luma = rgb @ np.array([0.2126, 0.7152, 0.0722])
     h, w = luma.shape
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
-    oys = np.where(al > 80)[0]
-    if oys.size < 80:
+    op = al > 50
+    lefts, rights, ys = [], [], []
+    for y in range(h):
+        xs = np.flatnonzero(op[y])
+        if xs.size < w * 0.28:
+            continue
+        splits = np.where(np.diff(xs) > 6)[0]
+        starts = np.r_[0, splits + 1]
+        ends = np.r_[splits, xs.size - 1]
+        width = xs[ends] - xs[starts]
+        k = int(np.argmax(width))
+        if width[k] < w * 0.34:
+            continue
+        lefts.append(int(xs[starts[k]]))
+        rights.append(int(xs[ends[k]]))
+        ys.append(y)
+    if len(ys) < 8:
         return np.zeros((h, w), np.bool_)
-    cut = int(oys.min() + 0.66 * (oys.max() - oys.min()))
-    # the dark grille cloth, above the control panel. The face sits inside this box.
-    dark = (al > 160) & (luma < 58) & (r > b + 10)
-    dark[cut:] = False
-    ys, xs = np.where(dark)
-    if ys.size < 80:
+    cx0, cx1 = int(np.percentile(lefts, 75)) + 2, int(np.percentile(rights, 25)) - 2
+    cy0, cy1 = min(ys), max(ys)
+    cab = np.zeros((h, w), np.bool_)
+    cab[cy0:cy1 + 1, cx0:cx1 + 1] = True
+    cab &= op
+    dark = (luma < 64) & (al > 140) & (r > b + 8) & cab
+    dark[cy0 + int((cy1 - cy0) * 0.72):] = False
+    dys, dxs = np.where(dark)
+    if dys.size < 40:
         return np.zeros((h, w), np.bool_)
-    gx0, gx1 = int(np.percentile(xs, 5)), int(np.percentile(xs, 95))
-    gy0, gy1 = int(np.percentile(ys, 3)), int(np.percentile(ys, 97))
+    gx0, gx1 = int(np.percentile(dxs, 4)), int(np.percentile(dxs, 96))
+    gy0, gy1 = int(np.percentile(dys, 2)), int(np.percentile(dys, 98))
     gh = max(1, gy1 - gy0)
-    # the gold panel is the band under the grille, inset so the tweed sides stay
-    py0, py1 = gy1, min(h - 1, gy1 + int(gh * 0.20))
-    inset = int((gx1 - gx0) * 0.06)
-    px0, px1 = gx0 + inset, gx1 - inset
-    # gloves are cream, with a high blue channel. Tweed highlights stay browner.
-    glove = (al > 60) & (luma > 175) & (g > 165) & (b > 125)
-    glove = np.asarray(Image.fromarray((glove.astype(np.uint8) * 255), "L").filter(ImageFilter.MaxFilter(3))) > 0
-    yellow = (al > 120) & (r > g - 8) & (r > b + 18) & (luma > 55) & (luma < 190) & ((r - g) < 95) & ~glove
-    cover = yellow[gy0:gy1].mean(0)
-    reach = int((gx1 - gx0) * 0.45)
-    cx0 = gx0
-    for x in range(gx0 - 1, max(0, gx0 - reach) - 1, -1):
-        if cover[x] > 0.12:
-            cx0 = x
-        else:
-            break
-    cx1 = gx1
-    for x in range(gx1 + 1, min(w, gx1 + reach)):
-        if cover[x] > 0.12:
-            cx1 = x
-        else:
-            break
-    top = max(0, gy0 - int(gh * 0.12))
-    bot = min(h - 1, py1 + int(gh * 0.09))
-    tweed = yellow.copy()
+    py0, py1 = gy1, min(cy1, gy1 + int(gh * 0.30))
+    rail = max(10, gx0 - cx0 - 2)
+    px0, px1 = cx0 + rail, cx1 - rail
+    # cream gloves, including the fingers that rest on the panel
+    glove = (al > 30) & (luma > 145) & (r > 175) & (g > 148)
+    glove = np.asarray(Image.fromarray((glove.astype(np.uint8) * 255), "L").filter(ImageFilter.MaxFilter(5))) > 0
+    tweed = cab & (al > 80) & ~glove
     tweed[gy0:gy1, gx0:gx1] = False
     tweed[py0:py1, px0:px1] = False
-    tweed[:, :cx0] = False
-    tweed[:, cx1 + 1:] = False
-    tweed[bot + 1:] = False
+    top = max(cy0, gy0 - int(gh * 0.16))
+    bot = min(cy1, py1 + int(gh * 0.20))
     tweed[:top] = False
+    tweed[bot + 1:] = False
     return tweed
 
 
@@ -77,7 +78,7 @@ def tint(rgb, mask, target):
     luma = rgb @ np.array([0.2126, 0.7152, 0.0722])
     tl = float(target @ np.array([0.2126, 0.7152, 0.0722]))
     painted = target * (luma / max(tl, 1.0))[..., None]
-    mixed = rgb * 0.22 + painted * 0.78
+    mixed = rgb * 0.30 + painted * 0.70
     out = np.where(mask[..., None], mixed, rgb)
     return np.clip(out, 0, 255)
 
