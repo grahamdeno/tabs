@@ -3533,3 +3533,39 @@ test("4.103.0 the player's name: plain text on one line, at most 30 characters, 
   const bad = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: 42 } });
   assert.notEqual(bad.data.settings.playerName, 42, "a name that is not text is dropped");
 });
+
+test("Neck-only Road: frets follow the 12th root of 2, every stop is centred clear of the wires, and the new art does not replace old art", () => {
+  const L = 2400;
+  assert.ok(Math.abs(C.fretAt(L, 12) - L / 2) < 1e-6, "the 12th fret sits at half the scale length");
+  for (let n = 1; n <= 12; n++) {
+    const space = C.fretAt(L, n) - C.fretAt(L, n - 1);
+    const expect = L * (2 ** (-(n - 1) / 12) - 2 ** (-n / 12));
+    assert.ok(Math.abs(space - expect) < 1e-6, `fret space ${n}`);
+  }
+  const leg = C.roadPath(C.migrate({ songs: [], settings: { v: 6 } })).legs[0];
+  assert.equal(leg.stops.length, 10, "the first leg is 10 stops when a merch box lands every 3 lessons");
+  const board = C.neckBoard([{ stops: leg.stops }]);
+  assert.deepEqual(board.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond", "moon"]);
+  assert.ok(board.width >= 0.55 && board.width <= 0.6, `neck width is ${board.width}`);
+  const tight = C.fretAt(C.neckScale(10), 10) - C.fretAt(C.neckScale(10), 9);
+  assert.ok(Math.abs(tight - (C.NECK_INLAY + 2 * C.NECK_CLEAR)) < 1e-6, "the tightest space fits the inlay plus clearance");
+  for (const s of board.stops) {
+    assert.ok(Math.abs(s.cy - (s.y0 + s.y1) / 2) < 1e-6, "centred between the wires");
+    assert.ok(s.clear + 1e-6 >= C.NECK_CLEAR, `clearance ${s.clear}`);
+    const nearest = Math.min(...board.strings.map(x => Math.abs(x - s.x)));
+    assert.ok(nearest > 0.05, "the inlay is not centred on a string");
+  }
+  const opening = C.neckBoard([{ stops: C.OPENING.map(o => ({ kind: o.id === "show" ? "headline" : "chord" })) }]);
+  assert.deepEqual(opening.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon"]);
+  const files = ["neck-rosewood", "nut", "fret-gold", "check", "lock"].map(n => `art/road-neck/${n}.webp`)
+    .concat(["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon", "diamond"].map(n => `art/road-neck/inlays/${n}.webp`));
+  for (const f of files) {
+    const st = fs.statSync(path.join(root, f));
+    assert.ok(st.size > 400, f);
+  }
+  for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
+  let diff = "";
+  try { diff = execFileSync("git", ["diff", "--name-status", "origin/grok-road-leg1", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
+  const bad = diff.split("\n").filter(Boolean).filter(line => !/^A\tart\/(road-neck|tabbar)\//.test(line));
+  assert.deepEqual(bad, [], "no existing art file was edited");
+});

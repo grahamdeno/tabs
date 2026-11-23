@@ -139,6 +139,43 @@ export function fretLayout(stops, head = FRET_HEAD, body = FRET_BODY) {
   });
   return { spaces, neck: y, head, body, height: head + y + body };
 }
+/* The neck-only Road: one rosewood board, frets at a real scale (the 12th fret sits at half the scale
+   length). L is chosen so the tightest space that holds a stop still fits a 64 pt inlay with about
+   10 pt of clearance above and below the fret wires. x is a fraction of the neck width. Strings are
+   evenly spaced and inset from the binding. Inlays zigzag in the gaps between strings, centred in
+   the fret space. The moon is the headline. A diamond is the extra inlay a 10-stop leg needs. */
+export const NECK_INLAY = 64;
+export const NECK_CLEAR = 10;
+export const NECK_WIDTH = 0.58;
+export const NECK_NUT = 20;
+const NECK_BODY = ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond"];
+export function fretAt(L, n) { return L * (1 - 2 ** (-n / 12)); }
+export function neckScale(nStops) {
+  const n = Math.max(1, nStops | 0);
+  const factor = 2 ** (-n / 12) * (2 ** (1 / 12) - 1);
+  return (NECK_INLAY + 2 * NECK_CLEAR) / factor;
+}
+export function neckBoard(legs, { peek = 0 } = {}) {
+  const rows = [];
+  (legs || []).forEach((leg, li) => (leg.stops || []).forEach((stop, si) => rows.push({ li, si, stop, leg })));
+  const n = rows.length, L = neckScale(Math.max(1, n));
+  const strings = [0, 1, 2, 3, 4, 5].map(i => (i + 0.5) / 6);
+  const lanes = [1 / 3, 2 / 3];
+  const yOf = k => NECK_NUT + fretAt(L, k);
+  let body = 0;
+  const stops = rows.map((row, i) => {
+    const y0 = yOf(i), y1 = yOf(i + 1), h = y1 - y0, headline = row.stop.kind === "headline";
+    return {
+      i, li: row.li, stop: row.stop, y0, y1, cy: (y0 + y1) / 2, h,
+      x: lanes[i % 2], inlay: headline ? "moon" : NECK_BODY[body++ % NECK_BODY.length],
+      clear: (h - NECK_INLAY) / 2, goldBelow: row.si === row.leg.stops.length - 1
+    };
+  });
+  const frets = [];
+  for (let k = 1; k <= n; k++) frets.push({ n: k, y: yOf(k), gold: !!stops[k - 1]?.goldBelow });
+  for (let k = 1; k <= peek; k++) frets.push({ n: n + k, y: yOf(n + k), gold: false, peek: true });
+  return { L, width: NECK_WIDTH, nut: NECK_NUT, inlay: NECK_INLAY, clear: NECK_CLEAR, strings, stops, frets, height: yOf(n + peek) + 36 };
+}
 /* A guitar shown on its own (Show complete, the new-guitar case, Road Ready 06) gets a neck in a real guitar's
    proportion: on a real guitar the neck from the nut to the body is about 0.7 of the body's length (14 inches to 20).
    neckStops is how many fret spaces reach that; a leg's neck on the Road keeps one space per stop. */

@@ -127,11 +127,12 @@ function tabsEl() {
   if (!el) { el = document.createElement("nav"); el.id = "tabs"; el.setAttribute("aria-label", "Main"); document.body.appendChild(el); }
   return el;
 }
+const KNOB = `<span class="tb-knob" aria-hidden="true"><img class="tb-off" src="art/tabbar/knob-off.webp" alt="" draggable="false"><img class="tb-on" src="art/tabbar/knob-lit.webp" alt="" draggable="false"></span>`;
 export function paintTabs(active) {
   const el = tabsEl();
-  /* no dot on a tab (Grok's design list, 2026-11-19: a notification-style dot reads as Duolingo); the Tuner row on Me shows when
-     the tuner hasn't been used lately */
-  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${svg}<span class="tb-l">${esc(label)}</span></a>`).join("");
+  /* Light and Dark use the amp knob bar: the current tab's knob is lamp-lit. Green Room and Headliner keep the line icons. */
+  const knobs = ["neon", "festival"].includes(document.documentElement.dataset.look);
+  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${knobs ? KNOB : svg}<span class="tb-l">${esc(label)}</span></a>`).join("");
   document.body.classList.add("tabbed");
 }
 export function hideTabs() { document.body.classList.remove("tabbed"); }

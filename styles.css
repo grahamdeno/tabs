@@ -4850,7 +4850,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-say {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; padding: 6px 12px; font-size: var(--type-subhead);
 }
-:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip { display: none; }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip,
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rn-neck .rd-songs.rr-chip { display: none; }
 :root[data-ax="3"] .rr-say { -webkit-line-clamp: 1; line-clamp: 1; }
 
 @media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }
@@ -4864,10 +4865,17 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 /* the light bar's weave is finer and paler than the dark one (the shared --mesh is tuned for dark; its average tone stays --rr-mesh) */
 :root[data-look="festival"] { --mesh: repeating-linear-gradient(45deg, rgba(70, 52, 30, .13) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, .45) 0 1px, transparent 1px 3px), var(--rr-mesh); }
 :root:is([data-look="neon"], [data-look="festival"])[data-ax="3"] { --tab-h: 60px; }
-:root:is([data-look="neon"], [data-look="festival"]) body.tabbed #tabs {
+:root[data-look="neon"] body.tabbed #tabs {
   left: max(8px, var(--safe-l)); right: max(8px, var(--safe-r)); bottom: calc(8px + var(--safe-b)); height: var(--tab-h);
-  padding: var(--chrome-pipe-w); gap: 0; justify-content: space-between; border: 0; border-radius: var(--r-strip);
-  background: var(--mesh); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+  padding: 4px 2px 3px; gap: 0; justify-content: space-between; border: 0; border-radius: 18px;
+  background-color: #0c0b0a; background-image: url("art/tabbar/grille-dark.webp"); background-size: 28px 28px;
+  box-shadow: inset 0 0 0 1px #070605, inset 0 0 0 3px #d9c7a4, inset 0 0 0 4.5px #2a241c, 0 8px 16px rgba(0, 0, 0, .45);
+}
+:root[data-look="festival"] body.tabbed #tabs {
+  left: max(8px, var(--safe-l)); right: max(8px, var(--safe-r)); bottom: calc(8px + var(--safe-b)); height: var(--tab-h);
+  padding: 4px 2px 3px; gap: 0; justify-content: space-between; border: 0; border-radius: 18px;
+  background-color: #E8D6BC; background-image: url("art/tabbar/grille-light.webp"); background-size: 28px 28px;
+  box-shadow: inset 0 0 0 1px #6A5236, inset 0 0 0 3px #C4A56A, inset 0 0 0 4.5px #F6EAD6, 0 6px 14px rgba(80, 50, 20, .22);
 }
 /* the chrome piping: a ring cut out of a chrome fill, the same as the header strip */
 :root:is([data-look="neon"], [data-look="festival"]) #tabs::before {
@@ -4880,9 +4888,13 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 /* current: amber (the darker amber text colour in the light look), the icon tinted in, and a 3 by 24 px underline, so colour is never the only signal */
 :root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] { background: none; color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-fill { fill: currentColor; fill-opacity: .28; }
-:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"]::after {
-  content: ""; position: absolute; left: 50%; bottom: 4px; width: 24px; height: 3px; margin-left: -12px; border-radius: 2px; background: currentColor;
-}
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"]::after { content: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs .tb-knob { position: relative; width: 46px; height: 46px; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs .tb-knob img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs .tb-on { opacity: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-off { opacity: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #tabs a[aria-current="page"] .tb-on { opacity: 1; }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax="3"] #tabs .tb-knob { width: 50px; height: 50px; }
 :root:is([data-look="neon"], [data-look="festival"]) #tabs .dotmark { top: 5px; box-shadow: 0 0 0 2px var(--rr-mesh); }
 /* large text: the labels grow with the text size (capped at 16 px so five fit), and from AX3 they hide and the icons grow; each tab keeps its name for a screen reader */
 :root[data-ax="3"] #tabs .tb-l { display: none; }
@@ -6018,3 +6030,41 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip::after { content: ""; position: absolute; inset: -4px 0; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip svg { width: 16px; height: 16px; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip[data-f="fav"] { min-width: 36px; padding: 4px 9px; }
+
+/* The neck-only Road: one rosewood board, gutters on either side, pearl inlays for the stops. */
+:root[data-look="neon"] .rn-stage, :root[data-look="neon"] .rd-path.rn { background: #181614; }
+:root[data-look="festival"] .rn-stage, :root[data-look="festival"] .rd-path.rn { background: #F6EFE2; }
+.rd-path.rn { padding: 0 0 24px; gap: 0; align-items: stretch; }
+.rn-board { position: relative; width: 100%; flex: none; }
+.rn-neck { position: relative; height: 100%; margin: 0 auto; box-sizing: border-box; border-left: 6px solid #F3E6D0; border-right: 6px solid #F3E6D0; }
+.rn-wood { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; pointer-events: none; z-index: 0; }
+.rn-nut { position: absolute; z-index: 4; left: 8%; width: 84%; top: 1px; height: 16px; object-fit: fill; pointer-events: none; }
+.rn-string { position: absolute; z-index: 1; top: 18px; bottom: 12px; width: calc(var(--sw) * 1px); margin-left: calc(var(--sw) * -.5px); border-radius: 2px; pointer-events: none; background: linear-gradient(90deg, #6e624c, #fff6e4 42%, #cbb892); box-shadow: 0 0 0 0.5px rgba(255, 244, 220, .35), 1px 0 0 rgba(0, 0, 0, .55); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rn-leg { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; text-transform: none; letter-spacing: 0; text-align: left; }
+.rn-wire { position: absolute; z-index: 2; left: 0; right: 0; height: 3px; transform: translateY(-50%); pointer-events: none; background: linear-gradient(#f7f4ee, #b9b3a8 46%, #6a645c); box-shadow: 0 1px 0 rgba(0, 0, 0, .4); }
+.rn-gold { position: absolute; z-index: 3; left: -2px; right: -2px; width: calc(100% + 4px); height: 16px; transform: translateY(-50%); object-fit: fill; pointer-events: none; }
+.rn-slot { position: absolute; z-index: 4; width: 64px; height: 64px; margin: 0; transform: translate(-50%, -50%); }
+.rn-slot:has(.rd-pop) { z-index: 8; }
+.rn-neck .rn-slot .rd-node.rn-stop, .rn-neck .rn-slot .rd-node.rn-stop.now, .rn-neck .rn-slot .rd-node.rn-stop.locked, .rn-neck .rn-slot .rd-node.rn-stop.done, .rn-neck .rn-slot .rd-node.rn-stop.open { position: relative; width: 64px; height: 64px; min-width: 64px; min-height: 64px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transform: none; color: inherit; }
+.rn-neck .rn-slot .rd-node.rn-stop:active { transform: none; box-shadow: none; }
+.rn-pearl { width: 64px; height: 64px; object-fit: contain; pointer-events: none; display: block; }
+.rn-stop.done .rn-pearl { filter: sepia(.6) saturate(2.8) hue-rotate(-8deg) brightness(1.08); }
+.rn-stop.now .rn-pearl { filter: sepia(.28) saturate(3.1) hue-rotate(-4deg) brightness(1.32); }
+.rn-stop.now .rr-glow { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%); border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle, rgba(255, 198, 96, .9) 0%, rgba(255, 150, 40, .38) 40%, transparent 72%); animation: rn-breathe 1.6s ease-in-out infinite alternate; }
+@keyframes rn-breathe { from { opacity: .6; } to { opacity: 1; } }
+.rn-mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 2; }
+.rn-check { width: 30px; height: 30px; }
+.rn-lock { width: 22px; height: 22px; }
+.rn-num { position: absolute; top: 50%; transform: translateY(-50%); font: 700 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #F6EFE2; text-shadow: 0 1px 2px rgba(0, 0, 0, .9); pointer-events: none; }
+.lane-l .rn-num { right: calc(100% + 8px); }
+.lane-r .rn-num { left: calc(100% + 8px); }
+.rn-leg { position: absolute; z-index: 5; left: 8px; width: calc((100% - var(--rn-w)) / 2 - 16px); margin: 0; color: #F6EFE2; }
+:root[data-look="festival"] .rn-leg { color: #2A2118; }
+.rn-leg b { display: block; font: 650 13px/1.25 Inter, var(--sans); }
+.rn-leg small { display: block; margin-top: 1px; font: 500 12px/1.3 Inter, var(--sans); }
+.rn-skip { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; padding: 0 4px; border: 0; background: none; color: inherit; font: 650 13px/1 Inter, var(--sans); }
+.rn-bubble { position: absolute; z-index: 6; right: 8px; left: auto; bottom: auto; width: calc((100% - var(--rn-w)) / 2 - 16px); box-sizing: border-box; margin: 0; transform: translateY(-50%); padding: 8px; border-radius: 12px; background: #fffaf3; color: #2A2118; border: 1px solid #d9c7a4; box-shadow: 0 1px 0 rgba(40, 24, 8, .18); font: 600 15px/1.25 Inter, var(--sans); overflow-wrap: anywhere; white-space: normal; text-align: left; animation: none; }
+.rn-bubble::after { content: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rn-leg { text-transform: none; letter-spacing: 0; }
+.rn-neck .rd-pop { top: 70px; width: min(268px, calc(100vw - 24px)); }
+@media (prefers-reduced-motion: reduce) { .rn-stop.now .rr-glow { animation: none; } }

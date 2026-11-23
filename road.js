@@ -30,7 +30,7 @@ import { applyTheme, chordNames, data, go, homeHooks, nextSongs, openSearch, pla
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { buildPic } from "./buildart.js";
-import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard.js";
+import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt, bareNeckHTML } from "./fretboard.js";
 import { statBar, rrStats, bindStatBar, settleStats } from "./hud.js";
 
 const DAY = 86400000;
@@ -224,17 +224,18 @@ function renderOpening(view) {
    Opening night and Skip where Tonight sits. The steps, their cards and what they start are as before. */
 function rrOpening(done, step) {
   const stops = OPENING.map((o, i) => ({ id: "o:" + i, kind: o.id === "show" ? "headline" : "chord", state: i < step ? "done" : i === step ? "now" : "locked", name: o.name, sub: o.sub }));
-  const leg = { id: "open", n: 0, name: "Opening night", stops, done }, cur = stops[step] || null;
+  const cur = stops[step] || null;
   const said = s => s.state === "now" ? "your next step" : s.state;
-  const gx = { cur, id: s => esc(s.id), icon: () => "", rr: true, num: s => stops.indexOf(s) + 1, fresh: null, songs: null,
-    label: s => esc(`Step ${stops.indexOf(s) + 1} of ${stops.length}, ${s.name}, ${said(s)}`), tag: s => esc(s.name) };
-  const v = venueNow(data);
+  const btn = done ? `<button class="rn-skip" id="on-next">On to Leg 1</button>` : `<button class="rn-skip" id="on-skip">Skip</button>`;
+  const neck = bareNeckHTML([{ title: "Opening night", sub: "First steps", cls: "on-night", aria: "Opening night", extra: btn, stops }], {
+    cur, next: { title: "Leg 1", sub: "Open chords", aria: "Leg 1, Open chords" },
+    id: s => esc(s.id), num: s => stops.indexOf(s) + 1, name: s => esc(s.name),
+    label: s => esc(`Step ${stops.indexOf(s) + 1} of ${stops.length}, ${s.name}, ${said(s)}`)
+  });
   app.innerHTML = `
     ${rrRow()}
-    <div class="rr-stage">
-      <div class="rd-path rr on-path" id="rd-path">
-        <div class="rd-legmark rr-onmark on-night" role="group" aria-label="Opening night"><span>Opening night · ${done ? "done" : `${step + 1} of ${stops.length}`}</span>${done ? `<button class="rr-on-btn rr-text" id="on-next">On to Leg 1</button>` : `<button class="rr-on-btn rr-text" id="on-skip">Skip</button>`}</div>
-        <div class="rr-legwrap">${venueSign(v)}${neckHTML(leg, { ...gx, shown: OPEN_GUITAR() })}</div>${lockedPeek(roadPath(data).legs[0], "Starts after your first show.")}</div>
+    <div class="rr-stage rn-stage">
+      <div class="rd-path rr rn on-path" id="rd-path">${neck}</div>
     </div>`;
   const $ = id => document.getElementById(id);
   bindStatBar();
@@ -244,32 +245,53 @@ function rrOpening(done, step) {
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
     () => { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); /* 4.99.0: skipping means no sheets; change it on Your profile */ Tabs.save(data); renderRoad(); }));
   const path = $("rd-path");
+  armDrag(path);
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   path.addEventListener("click", e => {
+    if (tookDrag(path)) return;
     const st = e.target.closest("[data-ostart]");
     if (st) return openingStart(+st.dataset.ostart);
-    /* a tap on the neck between stops opens the current step, as on the Road */
-    const node = e.target.closest("[data-stop]") || (e.target.closest(".rr-hit") && cur ? path.querySelector(`[data-stop="o:${step}"]`) : null);
+    const node = e.target.closest("[data-stop]");
     if (!node) return closePop();
     const wrap = node.parentElement, open = wrap.querySelector(".rd-pop");
     closePop();
     if (!open) { wrap.insertAdjacentHTML("beforeend", openingCard(+node.dataset.stop.slice(2), step)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); if (!e.detail) wrap.querySelector(".rd-start")?.focus(); }
   });
+  pinNeck(path);
+}
+/* A drag on the neck or the gutter scrolls. A short tap is the only thing that opens a stop. */
+function armDrag(path) {
+  let x = 0, y = 0, moved = false;
+  path.addEventListener("pointerdown", e => { moved = false; x = e.clientX; y = e.clientY; });
+  path.addEventListener("pointermove", e => { if (Math.hypot(e.clientX - x, e.clientY - y) > 8) moved = true; });
+  const end = () => { path._moved = moved; };
+  path.addEventListener("pointerup", end);
+  path.addEventListener("pointercancel", end);
+}
+function tookDrag(path) {
+  const moved = !!path._moved;
+  path._moved = false;
+  return moved;
+}
+/* The current stop sits a little above the middle of the neck, clear of the header and the tab bar.
+   A stop near the nut stays pinned to the top so the nut stays in view. */
+function pinNeck(path) {
+  const go = () => {
+    if (!document.contains(path)) return;
+    const node = path.querySelector(".rd-node.cur");
+    if (!node) return;
+    const nut = path.querySelector(".rn-nut");
+    const pr = path.getBoundingClientRect(), nr = node.getBoundingClientRect();
+    if (!nr.height) return;
+    const mid = path.scrollTop + (nr.top - pr.top) + nr.height / 2;
+    const nutBottom = nut ? path.scrollTop + (nut.getBoundingClientRect().bottom - pr.top) : 0;
+    const view = path.clientHeight || 1;
+    path.scrollTop = mid - nutBottom < view * 0.55 ? 0 : Math.max(0, mid - view * 0.42);
+  };
+  go();
+  requestAnimationFrame(go);
 }
 /* the venue's name as a small sign at the start of the leg you're on (one-row Road) */
-const venueSign = v => `<button class="rr-sign" id="rd-sign" aria-label="${esc(`${v.name}, venue ${v.ring + 1}. Open the Tour Map`)}">${esc(v.name.toUpperCase())}</button>`;
-/* Opening night plays on its own guitar, so the Leg 1 guitar below it reads as the next one (4.99.0) */
-const OPEN_GUITAR = () => ({ ...guitarShown(data, "open"), name: "Barebones", body: "barebones", shop: true });
-/* the next leg, locked (4.99.0, Grok's review): its guitar's headstock and top of the neck in grey, fading out, no stops, and one
-   cream plate that says what opens it */
-function lockedPeek(l, why) {
-  if (!l) return "";
-  return `<div class="rr-peek" role="group" aria-label="${esc(`Leg ${l.n}, ${l.name}. Locked. ${why}`)}">
-    <div class="rr-peek-neck" aria-hidden="true">${neckHTML({ ...l, stops: l.stops.map(s => ({ ...s, state: "locked" })) }, { cur: null, id: s => esc(s.id), icon: () => "", rr: true, num: () => 0, label: () => "", tag: () => "", songs: null })
-      .replace(/<button\b/g, "<span").replace(/<\/button>/g, "</span>").replace(/ data-stop=/g, " data-peek=").replace(/ role="group" aria-label="[^"]*"/, "")}</div>
-    <p class="rr-peek-plate" aria-hidden="true"><b>LEG ${l.n} · ${esc(l.name.toUpperCase())}</b><small>Locked. ${esc(why)}</small></p>
-  </div>`;
-}
 /* what an Opening night step's button starts */
 function openingStart(i) {
   const id = OPENING[i].id;
@@ -346,10 +368,17 @@ export function renderRoad() {
   lastCur = cur?.id || null;
   const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "", tonightAdd: rr && !song };
   const curAt = road.legs.indexOf(leg);
-  const legsHTML = (rr ? road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length) : road.legs).map((l, n) => `
-    <div class="rd-legmark${l === leg ? " cur" : ""}"><span>${rr ? `Leg ${l.n}, ${esc(l.name)}` : `Leg ${l.n} · ${esc(l.name)}`}</span></div>
+  const shown = road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length);
+  const nxt = curAt >= 0 ? road.legs[curAt + 1] : null;
+  const bare = rr ? bareNeckHTML(shown.map(l => ({ title: `Leg ${l.n}`, sub: l.name, aria: `Leg ${l.n}, ${l.name}`, stops: l.stops })), {
+    cur, next: nxt ? { title: `Leg ${nxt.n}`, sub: nxt.name, aria: `Leg ${nxt.n}, ${nxt.name}` } : null,
+    id: s => esc(s.id), label: labelOf, num: numOf,
+    name: s => esc(s.name || (s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : "Stop"))
+  }) : "";
+  const legsHTML = rr ? "" : road.legs.map((l, n) => `
+    <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
-    ${rr && l === leg ? `<div class="rr-legwrap">${venueSign(v)}${neckHTML(l, { ...gx, shown: guitarShown(data, l.id), build: data.builds?.[l.id] })}</div>` : neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id), build: data.builds?.[l.id] } : { ...gx, build: data.builds?.[l.id] })}`).join("");
+    ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id), build: data.builds?.[l.id] } : { ...gx, build: data.builds?.[l.id] })}`).join("");
   const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
 
   const songbookBar = `
@@ -363,8 +392,8 @@ export function renderRoad() {
   if (rr) {
     app.innerHTML = `
     ${rrRow()}
-    <div class="rr-stage">
-      <div class="rd-path rr" id="rd-path">${legsHTML}${curAt >= 0 && road.legs[curAt + 1] ? lockedPeek(road.legs[curAt + 1], `Headline ${leg.name} to open it.`) : coming}</div>
+    <div class="rr-stage rn-stage">
+      <div class="rd-path rr rn" id="rd-path">${bare}${!nxt && coming ? coming : ""}</div>
     </div>`;
   } else app.innerHTML = `
     <div class="rd-top">${statBar()}</div>
@@ -401,7 +430,9 @@ export function renderRoad() {
     go("#/practice/" + encodeURIComponent(s.id));
   };
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
+  if (path.querySelector(".rn-neck")) armDrag(path);
   path.addEventListener("click", e => {
+    if (path.querySelector(".rn-neck") && tookDrag(path)) return; /* a drag scrolls; it does not open a stop */
     if (e.target.closest("[data-tonight]")) return; /* Tonight, on the current stop: #rd-tonight has its own handler above */
     const goBtn = e.target.closest("[data-go]");
     if (goBtn) return start(goBtn.dataset.go);
@@ -411,8 +442,8 @@ export function renderRoad() {
     let node = e.target.closest("[data-stop]");
     /* Road Ready 9a: on a painted neck a pointer tap goes through one hit layer (roadHit): the current stop has a zone 32 units above
        and below its row across the whole Road, anything else goes to the nearest stop. A keyboard or VoiceOver activation (detail 0)
-       is the stop's own button. */
-    const pn = e.target.closest(".rd-neck.road");
+       is the stop's own button. The neck-only Road keeps the hit on the inlay itself. */
+    const pn = path.querySelector(".rn-neck") ? null : e.target.closest(".rd-neck.road");
     const painted = pn && pn.querySelector("[data-hx]");
     if (painted && e.detail > 0 && !e.target.closest(".rd-pop")) node = (node || e.target.closest(".rr-hit")) ? roadTapNode(pn, e) : null;
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
@@ -446,14 +477,19 @@ export function renderRoad() {
     if (node.classList.contains("opening") || !openBox(data, s.id)) return;
     Tabs.save(data); haptic(2);
     node.parentElement.querySelector(".rd-tag")?.remove();
-    node.classList.add("opening", "done"); node.classList.remove("now");
-    node.innerHTML = rr ? rrStopArt(node.dataset.kind, "done", +node.dataset.n) : inlaySVG(node.dataset.inlay, "set", false, node.dataset.mat);
+    node.classList.add("opening", "done"); node.classList.remove("now", "cur");
+    if (node.classList.contains("rn-stop")) {
+      node.querySelector(".rr-glow")?.remove();
+      node.querySelector(".rn-lock")?.remove();
+      if (!node.querySelector(".rn-check")) node.insertAdjacentHTML("beforeend", `<img class="rn-mark rn-check" src="art/road-neck/check.webp?v=${VERSION}" alt="" draggable="false">`);
+    } else node.innerHTML = rr ? rrStopArt(node.dataset.kind, "done", +node.dataset.n) : inlaySVG(node.dataset.inlay, "set", false, node.dataset.mat);
     showCallout({ kind: "earn", pow: "POW!", word: "MERCH BOX", big: `+${FANS.box} fans` });
     setTimeout(() => { if (document.contains(node)) renderRoad(); }, 1400);
   };
   /* the current stop sits a third of the way down the path */
   const curNode = cur && path.querySelector(`[data-stop="${CSS.escape(cur.id)}"]`);
-  if (curNode) {
+  if (path.querySelector(".rn-neck")) pinNeck(path);
+  else if (curNode) {
     const pr = path.getBoundingClientRect(), nr = curNode.getBoundingClientRect(), neck = curNode.closest(".rd-neck");
     let to = path.scrollTop + nr.top - pr.top - path.clientHeight / 3;
     /* 4.82.1: near the nut, show the headstock and its name rather than centring on the stop */

@@ -9,7 +9,7 @@
 //
 // Woods and finishes keep the guitar's own colours in every look; only dots, rings, halos and tags take the
 // look's colours (styles.css, "The fretboard Road").
-import { fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace } from "./core.js";
+import { fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace, neckBoard } from "./core.js";
 import PICS from "./art/guitars/pics.js";
 import { buildPic } from "./buildart.js";
 
@@ -573,4 +573,42 @@ export function guitarSVG(id, { full = false } = {}) {
   /* the body is wider than the screen on the Road, so the whole guitar is drawn wider to show all of it */
   const lay = picLayout(spaces(full ? neckStops(picLayout(spaces(2), pc.p).body) : 2), pc.p), half = 1.25 * W / 2 + 6;
   return `<svg class="rd-gsvg" viewBox="${CX - half} 0 ${half * 2} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay, pc.f)}${stringLayer(g, lay)}</svg>`;
+}
+
+/* The neck-only Road: rosewood, a bone nut, straight strings and one pearl inlay per stop.
+   legs: [{ title, sub, aria, cls, extra, stops }]. o.next draws a short peek of the following leg. */
+const NECK_ART = "art/road-neck";
+const neckImg = (file, cls) => `<img class="${cls}" src="${NECK_ART}/${file}.webp?v=${VERSION}" alt="" draggable="false">`;
+export function bareNeckHTML(legs, o = {}) {
+  const real = (legs || []).filter(l => l.stops?.length);
+  const board = neckBoard(real, { peek: o.next ? 2 : 0 });
+  const w = (board.width * 100).toFixed(2);
+  const thick = [4.2, 3.6, 3.0, 2.4, 2.0, 1.6];
+  const wires = board.frets.map(f => f.gold
+    ? `<img class="rn-gold" src="${NECK_ART}/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="top:${f.y.toFixed(1)}px">`
+    : `<i class="rn-wire${f.peek ? " peek" : ""}" style="top:${f.y.toFixed(1)}px"></i>`).join("");
+  const strings = board.strings.map((x, i) => `<i class="rn-string" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
+  const curId = o.cur?.id;
+  const stops = board.stops.map(sp => {
+    const s = sp.stop, cur = s === o.cur || (curId && s.id === curId), state = s.state || "locked";
+    const n = o.num ? o.num(s) : sp.i + 1, lane = sp.x < 0.5 ? "l" : "r";
+    const mark = state === "done" ? neckImg("check", "rn-mark rn-check") : state === "locked" ? neckImg("lock", "rn-mark rn-lock") : state === "now" ? `<span class="rr-glow" aria-hidden="true"></span>` : "";
+    return `<div class="rd-stop rn-slot lane-${lane}${cur ? " cur" : ""}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
+      <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${cur ? ". Double tap to open." : ""}">${neckImg("inlays/" + sp.inlay, "rn-pearl")}${mark}</button>
+      <span class="rn-num" aria-hidden="true">${n}</span></div>`;
+  }).join("");
+  const here = board.stops.find(sp => sp.stop === o.cur || (curId && sp.stop.id === curId));
+  const bub = here && o.name ? `<p class="rn-bubble" style="top:${here.cy.toFixed(1)}px">${o.name(here.stop)}</p>` : "";
+  const labels = real.map((leg, li) => {
+    const first = board.stops.find(sp => sp.li === li);
+    if (!first) return "";
+    const y = li === 0 ? 4 : first.y0;
+    return `<div class="rn-leg rd-legmark${leg.cls ? " " + leg.cls : ""}" role="group" aria-label="${leg.aria || `${leg.title}, ${leg.sub}`}" style="top:${y.toFixed(1)}px"><b>${leg.title}</b><small>${leg.sub}</small>${leg.extra || ""}</div>`;
+  }).join("");
+  const end = board.frets.find(f => f.gold && f.n === board.stops.length);
+  const next = o.next && end ? `<div class="rn-leg rd-legmark rn-next" role="group" aria-label="${o.next.aria || `${o.next.title}, ${o.next.sub}`}" style="top:${(end.y + 10).toFixed(1)}px"><b>${o.next.title}</b><small>${o.next.sub}</small></div>` : "";
+  return `<div class="rn-board" style="height:${Math.round(board.height)}px;--rn-w:${w}%">
+    <div class="rn-neck" style="width:var(--rn-w)" role="group" aria-label="The neck">
+      ${neckImg("neck-rosewood", "rn-wood")}${neckImg("nut", "rn-nut")}${strings}${wires}${stops}
+    </div>${labels}${next}${bub}</div>`;
 }

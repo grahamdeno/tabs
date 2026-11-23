@@ -12,9 +12,9 @@ const stepIs = (page, n) => page.waitForFunction(n => (JSON.parse(localStorage.g
 test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight? comes first, then hold, strings, the microphone, first notes, then a chord, then the verse waits for Count me in", { skip: skip() }, async t => {
   const page = await phone(t, FRESH, { home: true });
   await page.waitForSelector(".on-night");
-  assert.match(await page.innerText(".on-night"), /1 OF 9/); assert.equal(await page.getAttribute(".on-night", "aria-label"), "Opening night");
+  assert.match(await page.innerText(".on-night"), /Opening night/); assert.equal(await page.getAttribute(".on-night", "aria-label"), "Opening night");
   assert.equal(await page.locator('.on-path [data-stop^="o:"]').count(), 9, "nine steps on the guitar neck");
-  assert.equal(await page.locator(".on-path > .rr-legwrap > .rd-neck").count(), 1, "Opening night is a guitar neck (with its venue sign beside it since 2026-11-19)"); assert.equal(await page.locator(".on-path .rr-peek").count(), 1, "with Leg 1 locked below it (4.99.0)");
+  assert.equal(await page.locator(".on-path .rn-neck").count(), 1, "Opening night is one rosewood neck"); assert.equal(await page.locator(".on-path .rn-next").count(), 1, "with Leg 1 named in the gutter below it");
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
@@ -78,14 +78,14 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
 for (const width of [390, 320]) {
   test(`Opening night at ${width} wide: stop 1 and its line sit fully below the header at first load`, { skip: skip() }, async t => {
     const page = await phone(t, { ...FRESH, settings: { ...FRESH.settings, theme: "dark" } }, { home: true, viewport: { width, height: 844 } });
-    await page.waitForSelector(".rd-node.now .rr-art");
-    await page.waitForSelector(".rd-tag");
+    await page.waitForSelector(".rd-node.now .rn-pearl");
+    await page.waitForSelector(".rn-bubble");
     await settled(page);
     const box = await page.evaluate(() => {
       const header = document.querySelector("header.rr-head").getBoundingClientRect();
       const stop = document.querySelector(".rd-node.now").getBoundingClientRect();
-      const bubble = document.querySelector(".rd-tag").getBoundingClientRect();
-      return { headerBottom: header.bottom, scroll: document.getElementById("rd-path").scrollTop, stop, bubble, vw: innerWidth, vh: innerHeight, text: document.querySelector(".rd-tag").textContent };
+      const bubble = document.querySelector(".rn-bubble").getBoundingClientRect();
+      return { headerBottom: header.bottom, scroll: document.getElementById("rd-path").scrollTop, stop, bubble, vw: innerWidth, vh: innerHeight, text: document.querySelector(".rn-bubble").textContent };
     });
     assert.equal(box.scroll, 0, "first load has not scrolled the neck up under the header");
     assert.match(box.text, /Who's playing tonight/);
