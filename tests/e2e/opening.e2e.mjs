@@ -125,10 +125,8 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).skipped > 0); /* skipped is kept */
   await page.waitForFunction(() => !!JSON.parse(localStorage.getItem("tabs-v1")).me); /* 4.99.0: Skip keeps the default guitarist and opens no sheet */
   assert.equal(await page.locator(".gm").count(), 0, "no maker after skipping");
-  assert.equal(await page.locator(".hud .h-lab").count(), 4, "VENUE, STREAK, FANS and TIPS (4.70.0)");
-  await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch");
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".hud");
-  assert.deepEqual(await page.locator(".hud .h-lab").allInnerTexts(), ["VENUE", "STREAK", "FANS"], "a door you've used loses its label");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "green", "Opening night does not show Green Room");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green", "the saved look stays");
 });
 
 test("4.40.0 Opening night: someone who already plays never sees it; Tips & gestures replays it", { skip: skip() }, async t => {

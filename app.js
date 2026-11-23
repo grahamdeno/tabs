@@ -1,6 +1,6 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
 import { loadPortrait } from "./portrait.js";
-import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, axOf } from "./core.js";
+import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -47,20 +47,27 @@ document.addEventListener("visibilitychange", () => {
   if (t !== sysText) { sysText = t; if (route().name === "song") redraw?.(); }
 });
 // Theme: Automatic (the default) follows the phone's light or dark appearance.
-const phoneLight = () => !!window.matchMedia?.("(prefers-color-scheme: light)").matches;
-window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (data.settings.theme === "auto" || !data.settings.theme) applyTheme(); });
+// A saved Green Room or Headliner is mapped here and not written back, so the save can be undone.
+const phoneLight = () => window.matchMedia?.("(prefers-color-scheme: light)").matches === true;
+window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => {
+  const t = data.settings.theme;
+  if (t === "auto" || !t || t === "green" || t === "headliner") applyTheme();
+});
+export function themeShown() {
+  const t = shownTheme(data.settings.theme, phoneLight());
+  return looksOwned(data).has(t) ? t : "auto";
+}
 function applyTheme() {
   sysText = readSysText();
-  const t0 = data.settings.theme, t = looksOwned(data).has(t0) ? t0 : "auto"; /* 4.78.0: a look you don't have yet is Auto */
-  const green = t === "green", head = t === "headliner", light = green || t === "light" || (t !== "dark" && !head && phoneLight());
+  const t = themeShown(); /* never green or headliner; the stored theme is left as it was */
+  const light = t === "light" || (t !== "dark" && phoneLight());
   document.documentElement.dataset.theme = light ? "light" : "dark";
-  /* 4.0.0: Light is Road Ready light (data-look festival), Dark is Road Ready dark (data-look neon), Green is Green Room (a light look) */
-  /* 4.77.0: Headliner is a dark look: violet, gold and blaze orange on black */
-  document.documentElement.dataset.look = green ? "green" : head ? "headliner" : light ? "festival" : "neon";
+  /* Light is Road Ready light (data-look festival). Dark is Road Ready dark (data-look neon). */
+  document.documentElement.dataset.look = light ? "festival" : "neon";
   /* 4.14.0: the finish Louie wears, bought at the Merch table */
   const wear = merchWorn(data);
   if (wear === "stock") delete document.body.dataset.wear; else document.body.dataset.wear = wear;
-  document.querySelector('meta[name="theme-color"]').content = green ? "#e6efe7" : head ? "#16171b" : light ? "#F6EFE2" : "#141210";
+  document.querySelector('meta[name="theme-color"]').content = light ? "#F6EFE2" : "#141210";
 }
 
 

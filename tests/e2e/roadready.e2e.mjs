@@ -1,5 +1,5 @@
-// Road Ready, step 01: the tokens, fonts, tolex and plate button on Dark and Light,
-// and proof that Green Room and Headliner are untouched.
+// Road Ready, step 01: the tokens, fonts, tolex and plate button on Dark and Light.
+// Green Room and Headliner are retired: a saved one is shown as Light or Dark, and their CSS stays unused.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { phone, LIB, skip, useBrowser, browser, base, tool, settled } from "./harness.mjs";
@@ -97,14 +97,19 @@ test("Road Ready: Auto follows the phone between Road Ready dark and light", { s
   }
 });
 
-test("Green Room and Headliner get no Road Ready tokens and keep their own colours, fonts and buttons", { skip: skip() }, async t => {
+test("a saved Green Room or Headliner follows the phone, and their CSS is still unused", { skip: skip() }, async t => {
+  for (const [stored, scheme, look] of [["green", "light", "festival"], ["headliner", "dark", "neon"]]) {
+    const page = await phone(t, libWith(stored, { merch: { has: [stored], tconv: 1, lconv: 1, tspent: stored === "green" ? 400 : 0 } }), { colorScheme: scheme });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), look, `${stored} on a ${scheme} phone`);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), stored, "not rewritten");
+  }
   const want = {
     green: { bg: "#E6EFE7", accent: "#FF5A4E", sans: /Nunito/, display: /Fredoka/ },
     headliner: { bg: "#16171B", accent: "#8A47F5", sans: /Nunito/, display: /Fredoka/ }
   };
+  const page = await phone(t, libWith("dark"));
   for (const [look, w] of Object.entries(want)) {
-    const page = await phone(t, libWith(look));
-    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), look);
+    await page.evaluate(l => { document.documentElement.dataset.look = l; document.documentElement.dataset.theme = l === "green" ? "light" : "dark"; }, look);
     assert.equal(await prop(page, "--rr-base"), "", `${look}: --rr-base is empty`);
     for (const n of RR) assert.equal(await prop(page, "--rr-" + n), "", `${look}: --rr-${n} is empty`);
     for (const n of ["--type-body", "--type-display", "--sp-1", "--r-plate", "--margin", "--mesh", "--chrome-pipe"]) assert.equal(await prop(page, n), "", `${look}: ${n} is empty`);
@@ -389,13 +394,13 @@ test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: 
   }
 });
 
-test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg banner, finger dots, the message card without Louie)", { skip: skip() }, async t => {
+test("a saved Green Room or Headliner shows the Road Ready road", { skip: skip() }, async t => {
   for (const look of ["green", "headliner"]) {
-    const page = await phone(t, roadLib(look, MID), { home: true });
+    const page = await phone(t, roadLib(look, MID), { home: true, colorScheme: "dark" });
     await page.waitForSelector(".rd-path"); await settled(page);
-    assert.equal(await page.locator(".rr-hdr, .rr-row, .rr-stats, .rr-tn-stop, .rr-sign, .rd-peek, .rr-say, .rd-conn, .rd-node.rr").count(), 0, `${look}: none of Road Ready`);
-    assert.equal(await page.locator(".rd-say svg.louie, .rd-say .louie").count(), 0, `${look}: no Louie on the Road`);
-    for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say #rd-bubble", ".rd-say .rd-tonight", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "neon", `${look} is read as Dark`);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), look, "stored");
+    assert.ok(await page.locator(".rr-stats, header.rr-head").count() >= 1, `${look}: the Road Ready header`);
   }
 });
 
@@ -454,11 +459,11 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
   }
 });
 
-test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: skip() }, async t => {
-  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true });
-  await page.waitForSelector(".rd-gt #gt-x");
-  assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
-  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*Cornerstone is yours for Leg 2/);
+test("a saved Green Room shows the Road Ready new-guitar sheet", { skip: skip() }, async t => {
+  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"], tspent: 400 } }), { home: true, colorScheme: "light" });
+  await page.waitForSelector(".rd-gt.rr-case #gt-x");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.tspent), 400);
 });
 
 test("4.108.1 the Road scrolls up and down only, never sideways, in Dark and Light", { skip: skip() }, async t => {

@@ -32,15 +32,14 @@ for (const [name, hash] of [["Songbook", "#/library"], ["Settings", "#/settings"
     assert.equal(r.segOn, "none", "the chosen segment has no raised edge in Light and Dark (design pass, 2026-11-19)");
   });
 
-  test(`System: buttons keep their lip on Green Room (${name})`, { skip: skip() }, async t => {
-    const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { ...(LIB.merch || {}), has: ["green"] } });
+  test(`System: a saved Green Room uses the Road Ready buttons (${name})`, { skip: skip() }, async t => {
+    const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { ...(LIB.merch || {}), has: ["green"], tspent: 400 } }, { colorScheme: "light" });
     await page.evaluate(h => { location.hash = h; }, hash); await settled(page);
     const r = await probe(page);
-    assert.equal(Math.round(r.main), 56, "main action is 56 tall");
-    assert.equal(Math.round(r.row), 42, "row action is 42 tall");
-    assert.match(r.mainLip, /0px 5px 0px/, "main button sits on its lip");
-    assert.match(r.lip, /0px 4px 0px/, "plain button sits on its lip");
-    assert.match(r.segOn, /0px 2px 0px/, "the chosen segment has a lip");
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "festival");
+    assert.equal(r.lip, "none", "the plain button has no lip");
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green");
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.tspent), 400);
   });
 }
 

@@ -13,7 +13,7 @@ import { BOOTH_MAX, BOOTH_PLACES, BOOTH_RATE, BOOTH_RIVALS, boothCall, boothChor
 import { ytId, cleanYt, ytAt, ytSong, ytMatches } from "./core/youtube.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.113.1";
+export const VERSION = "4.115.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -350,6 +350,8 @@ const COVER_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 const COVER_MAX = 4e6; // characters, about 3 MB of photo
 /* 4.103.0: the player's name: plain text, one line, no angle brackets, at most 30 characters */
 export const cleanName = v => String(v || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
+/* Green Room and Headliner are retired. A saved one follows the phone, or Dark when the phone doesn't say. The stored value is not changed. */
+export const shownTheme = (stored, phoneIsLight) => (stored === "green" || stored === "headliner") ? (phoneIsLight === true ? "light" : "dark") : (stored || "auto");
 export function cleanImport(parsed) {
   if (!isObj(parsed) || !Array.isArray(parsed.songs)) return null;
   let skipped = 0;
@@ -376,15 +378,9 @@ export function cleanImport(parsed) {
   if (!["auto", "dark", "light", "green", "headliner"].includes(settings.theme)) delete settings.theme;
   if (typeof settings.playerName === "string") settings.playerName = cleanName(settings.playerName);
   const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}), ...(cleanMerch(parsed.merch) ? { merch: cleanMerch(parsed.merch) } : {}), ...(cleanBuilds(parsed.builds) ? { builds: cleanBuilds(parsed.builds) } : {}), ...(cleanOpening(parsed.opening) ? { opening: cleanOpening(parsed.opening) } : {}), ...(cleanBoxes(parsed.boxes) ? { boxes: cleanBoxes(parsed.boxes) } : {}), ...(cleanGuitars(parsed.guitars) ? { guitars: cleanGuitars(parsed.guitars) } : {}), ...(cleanFame(parsed.fame) ? { fame: cleanFame(parsed.fame) } : {}), ...(cleanMe(parsed.me) ? { me: cleanMe(parsed.me) } : {}) });
-  /* A restored backup must not switch the app off the default Road Ready look.
-     Green Room stays only when the file chose it and already owns it. Headliner
-     and any other legacy look become Auto; they can still be put on from Settings
-     or the Merch table. */
-  const theme = data.settings.theme;
-  const ownsGreen = (data.merch?.has || []).includes("green");
-  if (!(theme === "green" && ownsGreen) && !["auto", "dark", "light"].includes(theme)) {
-    data.settings.theme = "auto";
-  }
+  /* A saved Green Room or Headliner stays in the file. The app maps it when it reads
+     the setting (shownTheme), so a backup does not put that look on screen. */
+  if (!["auto", "dark", "light", "green", "headliner"].includes(data.settings.theme)) data.settings.theme = "auto";
   const setIds = new Set(data.sets.map(x => x.id));
   const covers = {};
   for (const [id, url] of Object.entries(isObj(parsed.covers) ? parsed.covers : {})) {
