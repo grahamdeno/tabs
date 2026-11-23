@@ -230,7 +230,7 @@ function renderViewer(id) {
       <div class="pw glass float">
       <div class="looprow" id="looprow"></div>
       ${rrAmp() ? `<div class="amp-bar" id="amp-bar" role="group" aria-label="Song controls">
-        <button class="amp-slot" id="pw-speed" type="button" aria-label="Speed"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab"><b class="sp-val">Speed</b><span>Speed</span></small></button>
+        <button class="amp-slot" id="pw-speed" type="button" aria-label="Speed"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab"><b class="sp-val">1.0x</b><span>Speed</span></small></button>
         <button class="amp-slot amp-play" id="play" type="button" aria-label="${playLabel(song, false)}"><span class="amp-face">${icon("play")}</span><small class="amp-lab">Play</small></button>
         <button class="amp-slot" id="pw-loop" type="button" aria-label="Loop a section"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab">Loop</small></button>
         <button class="amp-slot more" id="more" type="button" aria-label="Tools" aria-haspopup="dialog"><i class="amp-knob" aria-hidden="true"></i><small class="amp-lab">Tools</small>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
@@ -350,13 +350,17 @@ function renderViewer(id) {
     }
     const db = $("dialbtn")?.querySelector("span");
     if (db) db.textContent = $("sv").textContent;
-    /* 4.111.0 (Graham, 2026-11-20): the Speed button in the amp bar (song page and Gig) shows its setting, lit amber when the page isn't at 1.0x */
-    const off = !byLength() && Math.abs(speed.value / SPEEDS.medium - 1) >= 0.05;
+    /* The knob shows the pace, not the clock. 1.0x is this song's length. A shorter length is faster. */
+    if (byLength() && !speed.dataset.base) speed.dataset.base = String(songLength(song));
+    const pace = byLength()
+      ? ((+speed.dataset.base || songLength(song)) / Math.max(1, songLength(song))).toFixed(1) + "x"
+      : $("sv").textContent;
+    const off = Math.abs(parseFloat(pace) - 1) >= 0.05;
     for (const b of [$("pw-speed"), $("gg-speed")]) {
       if (!b) continue;
-      const v = b.querySelector(".sp-val"); if (v) v.textContent = $("sv").textContent;
+      const v = b.querySelector(".sp-val"); if (v) v.textContent = pace;
       b.classList.toggle("sp-off", off);
-      b.setAttribute("aria-label", `${byLength() ? "Song length" : "Speed"}: ${$("sv").textContent}`);
+      b.setAttribute("aria-label", `Speed: ${pace}`);
     }
   };
   showSpeed();
