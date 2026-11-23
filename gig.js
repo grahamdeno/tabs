@@ -53,8 +53,10 @@ function shell(song) {
     <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
       ${rr
-        ? /* Pause only (Graham): the agreed bar, with the Speed and Loop places left empty. */
-          `<div class="gg-bar" role="group" aria-label="Song controls"><span class="gg-slot" aria-hidden="true"></span><div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div><span class="gg-slot" aria-hidden="true"></span></div>
+        ? /* 4.108.0: the amp bar. Speed, a lit Pause, then Loop and Tools. */
+          `<div class="gg-bar" role="group" aria-label="Song controls"><button class="gg-sb gg-speed" id="gg-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>
+          <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div>
+          <span class="gg-knobs"><button class="gg-sb gg-knob" id="gg-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button><button class="gg-sb gg-knob" id="gg-tools" aria-label="Tools"><i aria-hidden="true"></i><small>Tools</small></button></span></div>
            <div class="gg-clock" aria-hidden="true"><span id="gg-sofar">0:00</span><span id="gg-total">${song.duration ? mmss(song.duration) : ""}</span></div>`
         : `<div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>`}
     </div>
@@ -68,6 +70,8 @@ function shell(song) {
 function paintShape() {
   const g = gig, el = $("gg-shape");
   if (!g || !el || !g.catch) return;
+  /* the agreed playing screen has no floating chord card; the chord stays in the lines */
+  if (["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look)) { el.hidden = true; return; }
   /* the chord you're on if you haven't learned it, else the next one you haven't learned */
   const c = g.catch, now = c.targets[c.cur], next = c.targets[c.cur + 1];
   const pick = [[now, "NOW"], [next, "NEXT"]].find(([t]) => t && !g.known.has(t.name) && chordSVG(t.name, 1));

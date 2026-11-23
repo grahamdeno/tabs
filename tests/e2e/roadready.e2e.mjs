@@ -114,9 +114,9 @@ test("Green Room and Headliner use the Road Ready layout, type and plate, in the
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundImage);
     assert.match(bg, /tolex-(cream|dark)\.webp/, `${look}: the tolex tile`);
     const b = await probe(page);
-    assert.equal(b.primary.radius, "12px", `${look}: the engraved plate`);
+    assert.equal(b.primary.radius, "16px", `${look}: the button keeps its corners`);
+    assert.match(b.primary.shadow, /0px 5px 0px/, `${look}: the button keeps its lip`);
     assert.match(b.primary.font, /Space Grotesk/);
-    assert.match(b.primary.img, /linear-gradient/);
   }
 });
 

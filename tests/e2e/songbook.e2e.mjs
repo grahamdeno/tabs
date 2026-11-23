@@ -43,36 +43,45 @@ const songbook = async (t, theme, opts = {}, extra = {}) => {
   return page;
 };
 
-/* The agreed Songbook (r10-05): art tiles, chord chips, Add in the header, search under the title. Sets is a filter. */
-for (const theme of ["dark", "light", "green", "headliner"]) test(`agreed Songbook (${theme}): art tiles, chord chips, Add in the header, search under the title`, { skip: skip() }, async t => {
-  const page = await songbook(t, theme, theme === "green" ? { colorScheme: "light" } : theme === "headliner" ? { colorScheme: "dark" } : {});
+/* 4.113.1: the earlier Songbook in the new parts. Sets and the tuner in the title, capsule filters, a card per song, search at the bottom. */
+for (const theme of ["dark", "light"]) test(`4.113.1 (${theme}): Sets and the tuner in the header, a card per song, search at the bottom`, { skip: skip() }, async t => {
+  const page = await songbook(t, theme);
   const got = await page.evaluate(() => ({
-    title: document.querySelector("#app .head .title")?.textContent, tuner: !!document.querySelector(".head #tunerbtn"),
-    add: !!document.querySelector(".head #add.rr-sb-add"), back: !!document.getElementById("libback"),
-    tiles: document.querySelectorAll("#list .row.rr-row .rr-tile").length, rows: document.querySelectorAll("#list .row").length,
-    chips: !!document.querySelector("#chips.rr-chips #setsbtn"),
+    title: document.querySelector("#app .head .title")?.textContent, sets: !!document.querySelector(".head #setsbtn.sets-btn"), tuner: !!document.querySelector(".head #tunerbtn"),
+    add: !!document.querySelector(".dock.kb .cmd #add.cmd-add"), back: !!document.getElementById("libback"),
+    topSearch: !!document.querySelector(".dock.rr-find, .head #add"),
+    tiles: document.querySelectorAll("#list .rr-tile, #list .rr-row").length,
+    cards: document.querySelectorAll("#list .row.rr-line").length, rows: document.querySelectorAll("#list .row").length,
     k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "),
-    needs: document.querySelector('#list .row[data-id="b"] .rr-needs')?.textContent,
-    chords: document.querySelector('#list .row[data-id="k"] .rr-cc')?.innerText.replace(/\s+/g, " ")
+    l: document.querySelector('#list .row[data-id="l"] .fit')?.textContent,
+    b: document.querySelector('#list .row[data-id="b"] .fit')?.textContent,
+    key: document.querySelector('#list .row[data-id="k"] .k')?.textContent,
+    searchTop: document.querySelector(".dock.kb")?.getBoundingClientRect().top
   }));
   assert.equal(got.title, "Songbook");
-  assert.equal(got.tuner, true); assert.equal(got.add, true); assert.equal(got.back, false);
-  assert.equal(got.tiles, got.rows); assert.ok(got.tiles >= 1);
-  assert.equal(got.chips, true, "Sets is a filter chip");
-  assert.match(got.k, /Kettle Hums\s+June and the Kettles/);
-  assert.match(got.chords, /G/);
-  assert.equal(got.needs, "needs F");
+  assert.equal(got.sets, true); assert.equal(got.tuner, true); assert.equal(got.add, true); assert.equal(got.back, false);
+  assert.equal(got.topSearch, false, "search is not a bar under the title, and Add is not in the header");
+  assert.equal(got.tiles, 0, "no art tiles");
+  assert.equal(got.cards, got.rows);
+  assert.match(got.k, /Kettle Hums/);
+  assert.equal(got.l, "LEARNING"); assert.equal(got.b, "+ F"); assert.equal(got.key, "G");
+  assert.ok(got.searchTop > 600, "search rests at the bottom");
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f, c.getAttribute("aria-pressed")])));
   assert.equal((await pressed()).all, "true");
-  assert.equal((await pressed()).sets, "false");
+  assert.equal((await pressed()).sets, undefined, "Sets is a header button, not a filter");
   await page.click('#chips [data-f="learn"]'); await page.waitForSelector('#chips [data-f="learn"].on');
   assert.equal((await pressed()).learn, "true");
-  assert.equal((await pressed()).all, "false");
-  /* the order down the page: header, card strip (when there is one), filters, then the list */
   const order = await page.$$eval("#app > *", els => els.map(e => e.id || e.className.split(" ")[0]).filter(x => ["head", "today", "chips", "list"].includes(x)));
   assert.deepEqual(order.filter(x => x !== "today"), ["head", "chips", "list"]);
-  if (order.includes("today")) assert.ok(order.indexOf("chips") < order.indexOf("today"), "the filters sit above the hint");
-  await page.click("#tunerbtn"); await page.waitForSelector("#tn-say", { state: "attached" });
+  if (order.includes("today")) assert.ok(order.indexOf("today") < order.indexOf("chips"), "the hint sits above the filters");
+});
+
+test("the Songbook hint and a requested row use the tweed Louie picture", { skip: skip() }, async t => {
+  const page = await songbook(t, "dark");
+  const srcs = await page.evaluate(() => [...document.querySelectorAll(".rr-learn img, .rr-hint .rr-badge, .req .rr-lou")].map(img => img.getAttribute("src")));
+  assert.ok(srcs.length >= 1, "a Louie picture is on the hint");
+  assert.ok(srcs.every(s => s === "art/louie/v4/louie-face-badge.webp"), "the tweed Louie, " + srcs.join(" "));
+  assert.ok(await page.locator(".req").count() >= 1, "a requested row is in the hint");
 });
 
 for (const width of [320, 390]) test(`4.113.0 at ${width} px: rows at least 56 px, the header buttons at least 44 by 44, and nothing runs off the side`, { skip: skip() }, async t => {
@@ -86,7 +95,7 @@ for (const width of [320, 390]) test(`4.113.0 at ${width} px: rows at least 56 p
       rows: [...document.querySelectorAll("#list .row")].map(e => r(e).height), clear: btns.top >= title.bottom || title.right <= btns.left - 4, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   assert.deepEqual(m.small, [], "every header button (with its tap area) and row is at least 44 by 44");
-  assert.ok(m.rows.every(h => h >= 72), `rows: ${m.rows}`);
+  assert.ok(m.rows.every(h => h >= 56), `rows: ${m.rows}`);
   assert.ok(m.clear, "the title and the header buttons don't touch");
   assert.equal(m.overflow, false, "nothing runs off the side");
 });

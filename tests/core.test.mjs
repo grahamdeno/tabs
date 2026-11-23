@@ -2609,14 +2609,14 @@ test("4.78.0 looks on the Merch table: Light and Dark free, Green Room bought, H
   assert.deepEqual(C.merchBuy(data, "green", now), { why: "tips" });
   data.merch.tips = 400;
   assert.deepEqual(C.merchBuy(data, "green", now), { ok: true });
-  assert.equal(data.settings.theme, "green", "buying a look puts it on");
-  assert.equal(C.merchState(data, now).look, "green");
+  assert.equal(data.settings.theme, "auto", "buying Green Room does not switch the look");
+  assert.equal(C.merchState(data, now).look, null);
   assert.equal(C.looksOwned(data).has("headliner"), false, "lessons alone don't earn it");
   data.skills.done["k:open"] = { n: 3, best: 90, at: now };
   assert.equal(C.headlined(data, now), true);
   assert.equal(C.looksOwned(data).has("headliner"), true, "the first headline show earns it");
-  assert.equal(C.merchWear(data, "headliner"), true);
-  assert.equal(data.settings.theme, "headliner");
+  assert.equal(C.merchWear(data, "headliner"), false, "Put it on does not switch to Headliner");
+  assert.equal(data.settings.theme, "auto");
   assert.equal(C.merchTip({ songs: [], sets: [], trash: [], settings: {}, merch: { tips: 5000, tconv: 1, lconv: 1, told: ["tweed", "black", "mint", "gold", "brick", "stars", "sunset"] } })?.id, "green", "Show complete can point to Green Room, never to Headliner");
   /* a look already in use before 4.78.0 stays yours, once */
   const old = { songs: [], sets: [], trash: [], settings: { theme: "headliner" } };

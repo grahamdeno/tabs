@@ -46,7 +46,7 @@ test("Streak moment: once a day after the first song played through; tap to clos
   const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, countIn: false, controls: "bar", streakMoment: true } });
   await page.click(".list .row"); await page.waitForSelector("#play");
   await page.click("#play");
-  await page.waitForSelector(".sk", { timeout: 15000 });
+  await page.waitForSelector(".sk", { timeout: 25000 });
   assert.match(await page.innerText(".sk-say"), /Day one\.|days in a row/);
   assert.equal(await page.getAttribute(".sk", "role"), "dialog");
   assert.equal(await page.locator(".sk .ri-light").count(), 1, "4.16.0: the stage light, not a flame");

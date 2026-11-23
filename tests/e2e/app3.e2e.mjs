@@ -621,16 +621,19 @@ test("4.49.8 On an iPhone the search screen finds songs through Apple Music, sin
   assert.equal(itunesAsked, 0, "the closed iTunes search is not tried on an iPhone");
 });
 
-test("4.78.0 the first headline show done: the Road says Headliner is yours, once, and Put it on wears it", { skip: skip() }, async t => {
+test("4.78.0 the first headline show done: the Road says you headlined, once, and does not switch the look", { skip: skip() }, async t => {
   const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A", "k:open"].map((c, i) => [c.startsWith("k:") ? c : `c:${c}`, { n: 3, best: 90, at: Date.now() - 1000 + i }]));
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1 } }, { home: true });
   await page.waitForSelector(".rd-hl:not(.rd-gt)");
   assert.match(await page.innerText(".rd-hl:not(.rd-gt)"), /You headlined/);
-  await page.click("#hl-on");
-  await page.waitForFunction(() => document.documentElement.dataset.look === "headliner");
+  assert.equal(await page.locator("#hl-on").count(), 0, "no Put it on button");
+  const look = await page.evaluate(() => document.documentElement.dataset.look);
+  await page.click("#hl-x");
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.look), look, "the look stays");
+  assert.notEqual(look, "headliner");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.hlseen === 1);
   await page.reload(); await page.waitForSelector(".rd-node");
-  assert.ok(await page.locator("header.rr-head").count() >= 1, "Put it on wears the redesigned Headliner");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "headliner");
   assert.equal(await page.locator(".rd-hl:not(.rd-gt)").count(), 0, "said once");
 });
 

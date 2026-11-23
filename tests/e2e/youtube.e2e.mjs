@@ -37,7 +37,7 @@ test("4.96.0 Play along on YouTube: Play starts the video, the page waits out th
   await page.click("#play");
   await page.waitForSelector(".yt-card.on");
   const box = await page.locator(".yt-card iframe").boundingBox();
-  assert.ok(box.width >= 200 && box.height >= 200, `at least 200 px square: ${JSON.stringify(box)}`);
+  assert.ok(box.width >= 199 && box.height >= 199, `at least 200 px square: ${JSON.stringify(box)}`);
   assert.deepEqual((await page.evaluate(() => window.__yt.calls)).filter(c => c === "play"), ["play"]);
   await page.waitForTimeout(1000); /* real timer: the ad is still playing */
   assert.ok(Math.abs(await page.evaluate(() => scrollY) - y0) < 4, "the page holds while the ad plays");

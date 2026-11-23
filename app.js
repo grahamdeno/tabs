@@ -184,8 +184,7 @@ function renderViewer(id) {
       <button class="sh-btn sh-back" data-go="${back.to}" aria-label="${esc(back.label)}">${icon("back")}</button>
       ${coverBtn(song)}
       <div class="sh-t"><h1 class="song-title" style="view-transition-name: song-title">${esc(song.title)}</h1><button class="meta" id="meta" aria-label="About this song"></button></div>
-        <button class="sh-btn more" id="more" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="sr-only">Tools</span></button>
-        <button class="sh-btn fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
+      <button class="sh-btn fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}">${icon("heart")}</button>
     </div>
     ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
       if (!x || list[setCtx.idx]?.id !== song.id) { setSetCtx(null); return ""; }
@@ -215,8 +214,9 @@ function renderViewer(id) {
       <div class="pw glass float">
       <div class="looprow" id="looprow"></div>
       <div class="player${rrAmp() ? " rr-amp" : ""}">
-        ${rrAmp() ? "" : `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button><button class="tl more tools" aria-label="Tools" aria-haspopup="dialog">${icon("sliders")}<span class="tl-w">Tools</span>${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>`}
-        ${rrAmp() ? "" : `<button class="gg-sb gg-knob" id="pw-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button>`}
+        ${rrAmp() ? `<button class="gg-sb gg-speed" id="pw-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>` : ""}
+        <button class="tl more tools${rrAmp() ? " gg-sb gg-knob" : ""}" id="more" aria-label="Tools" aria-haspopup="dialog">${rrAmp() ? `<i aria-hidden="true"></i><small>Tools</small>` : `${icon("sliders")}<span class="tl-w">Tools</span>`}${menuHasNew() ? '<i class="newdot"></i>' : ""}</button>
+        ${rrAmp() ? `<button class="gg-sb gg-knob" id="pw-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button>` : ""}
         ${(() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); const list = x ? setSongs(x) : [];
           return x && list[setCtx.idx]?.id === song.id ? `<button class="tl dialbtn setdial" id="setdial" aria-label="${esc(x.name)}, song ${setCtx.idx + 1} of ${list.length}. Hold and sweep to pick a song">${icon("listplus")}<span>${setCtx.idx + 1} of ${list.length}</span></button>` : ""; })()}
         <div class="speed" hidden>
@@ -550,8 +550,8 @@ function fitSlots(sheet, song) {
   sheet.style.setProperty("--lyric-size", size.toFixed(1) + "px");
   lines.forEach(el => {
     el.style.fontSize = "";
-    el.style.setProperty("--lyr-next", "0.82");
-    el.style.setProperty("--lyr-sung", "0.7");
+    el.style.setProperty("--lyr-next", "0.78");
+    el.style.setProperty("--lyr-sung", "0.78");
   });
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
 }

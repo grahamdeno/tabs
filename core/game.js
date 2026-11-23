@@ -1341,13 +1341,13 @@ export function merchBuy(data, id, now = Date.now()) {
   if (st.tips < it.price) return { why: "tips" };
   m.tspent = (m.tspent || 0) + it.price;
   if (it.kind === "gear") (m.own || (m.own = {}))[id] = st.own[id] + (it.adds || 1);
-  else { (m.has || (m.has = [])).push(id); if (it.kind === "look") data.settings.theme = it.theme; else if (it.kind === "wear") { if (data.me) data.me.extra = id.slice(5); } else m[it.kind] = id; }
+  else { (m.has || (m.has = [])).push(id); if (it.kind === "look") { if (it.theme !== "green" && it.theme !== "headliner") data.settings.theme = it.theme; } else if (it.kind === "wear") { if (data.me) data.me.extra = id.slice(5); } else m[it.kind] = id; }
   return { ok: true };
 }
 export function merchWear(data, id) {
   const it = merchItem(id), st = merchState(data);
   if (!it || it.kind === "gear" || !st.has.has(id)) return false;
-  if (it.kind === "look") { data.settings.theme = it.theme; return true; }
+  if (it.kind === "look") { if (it.theme === "green" || it.theme === "headliner") return false; data.settings.theme = it.theme; return true; }
   if (it.kind === "wear") { data.me = { ...meOf(data), extra: id.slice(5) }; return true; }
   (data.merch || (data.merch = {}))[it.kind] = id;
   return true;

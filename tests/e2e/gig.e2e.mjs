@@ -180,8 +180,8 @@ test("4.54.0 words first: a repeat shown once, a shape for a chord you haven't l
   await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#sheet .gc-run, #sheet .st-lit").count(), 0, "4.54.0: no beat dots and no lit chord");
   assert.ok(await page.locator("#sheet .c.st-rep").count() > 0, "a chord played again in a row is hidden");
-  await page.waitForFunction(() => { const s = document.getElementById("gg-shape"); return s && !s.hidden && /Fmaj7/.test(s.textContent); }, null, { timeout: 40000 }); /* the taller chord tiles put the first line lower, so the song takes longer to get there */
-  assert.match(await page.innerText("#gg-shape"), /NOW|NEXT/, "a shape for the chord you haven't learned");
+  assert.equal(await page.locator("#gg-shape:not([hidden])").count(), 0, "no floating chord card on the playing screen");
+  assert.match(await page.innerText("#sheet"), /Fmaj7/, "the chord is still in the lines");
   assert.equal(await page.locator(".gg-timing, .gg-louie, .gg-crowd").count(), 0, "no timing bar, no Louie card, no crowd card");
 });
 
@@ -682,7 +682,8 @@ test("Road Ready: a lyric line stays on one row, the current line is the largest
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("st-bg")).display), "none", "no stage light in Road Ready");
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer > .shead")).visibility), "hidden", "the rest of the page steps back");
   const now = playing.find(l => l.now), next = playing.find(l => l.next), other = playing.find(l => !l.now && !l.next);
-  assert.ok(now.px > next.px && next.px > other.px, "the line you're on is larger than the next, which is larger than the others");
+  assert.ok(now.px > next.px && next.px / now.px >= 0.74 && next.px / now.px <= 0.84, "the other lines are about three quarters of the current line");
+  assert.ok(Math.abs(next.px - other.px) <= 2, "past and next lines are the same size");
   assert.ok(playing.every(l => l.rows === 1), "playing keeps every line on one row");
   await page.waitForFunction(() => document.querySelector("#sheet > .pr:nth-of-type(n+2).st-now, #sheet > .st-now ~ .pr") && [...document.querySelectorAll("#sheet > .pr")].findIndex(e => e.classList.contains("st-now")) >= 1, null, { timeout: 15000 });
   await page.waitForTimeout(400);
@@ -705,28 +706,27 @@ test("Road Ready: Louie's first-song line shows once inside the playing screen, 
   assert.equal(await page.locator(".gg-first").count(), 0, "never again");
 });
 
-test("the playing screen shows Pause only; Speed, Loop and Tools are not on the bar", { skip: skip() }, async t => {
+test("the playing bar is the amp bar: Speed, Play or Pause, Loop and Tools", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  assert.equal(await page.locator("#pw-speed, #pw-loop, .player #more").count(), 0, "the song bar has no Speed, Loop or Tools");
-  assert.equal(await page.locator("#speed").count(), 1, "the speed control stays in the page");
+  const song = await page.$$eval(".player.rr-amp button", bs => bs.map(b => b.id));
+  assert.deepEqual(song.filter(id => ["pw-speed", "more", "pw-loop", "play"].includes(id)), ["pw-speed", "more", "pw-loop", "play"]);
   await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
-  const ids = await page.$$eval(".gg-bar button", bs => bs.map(b => [b.id, b.getAttribute("aria-label"), b.getBoundingClientRect().width >= 44 && b.getBoundingClientRect().height >= 44]));
-  assert.deepEqual(ids, [["gg-pause", "Pause", true]]);
-  assert.equal(await page.locator("#gg-x").count(), 1, "Close is at the top of the playing screen");
-  assert.equal(await page.locator("#gg-speed, #gg-loop, #gg-tools").count(), 0);
-  assert.equal(await page.locator(".gg-clock").count(), 1, "elapsed and total sit with the progress line");
+  const gig = await page.$$eval(".gg-bar button", bs => bs.map(b => b.id));
+  assert.deepEqual(gig, ["gg-speed", "gg-pause", "gg-loop", "gg-tools"]);
+  assert.equal(await page.locator("#gg-x").count(), 1, "Close stays at the top");
+  assert.equal(await page.locator(".gg-clock").count(), 1, "elapsed and total stay with the bar");
+  assert.equal(await page.locator("#gg-shape:not([hidden])").count(), 0, "no floating chord card");
 });
 
-test("4.111.0 the speed value stays stored, and the playing screen does not show a Speed button", { skip: skip() }, async t => {
+test("4.111.0 Speed on the amp bar keeps the stored speed", { skip: skip() }, async t => {
   const slow = { ...LONG, speed: 36 };
   const page = await phone(t, { ...LIB, songs: [slow], settings: { ...LIB.settings, v: 6, theme: "dark", speedMode: "multiplier", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  assert.equal(await page.locator("#pw-speed, #gg-speed").count(), 0);
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#pw-speed"); await settled(page);
   assert.equal(await page.locator("#speed").count(), 1, "the speed control stays on the page, hidden");
   assert.equal(await page.inputValue("#speed"), "36", "the stored speed is still the control's value");
-  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
-  assert.equal(await page.locator(".gg-bar #gg-speed").count(), 0);
+  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-speed");
+  assert.equal(await page.locator(".gg-bar #gg-speed").count(), 1);
 });
 
 test("4.108.0 Green Room uses the same amp bar as Dark and Light, with Pause in the middle", { skip: skip() }, async t => {
