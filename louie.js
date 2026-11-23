@@ -1,10 +1,9 @@
 // Louie, the mascot (Graham, 2026-11-19): a tweed combo amp. His face is on the grille cloth, a gold control plate
 // with two knobs sits under it, and he has cream gloves and brown boots. He is always a picture, never a drawing:
-// art/louie/v4/louie-<pose>.webp, cut out from Graham's pictures (the originals and the full-size cut-outs are in
-// docs/louie-tweed/). Every earlier Louie (the black one, the blue one and the code drawing) is gone.
-// Nine poses exist: cheer, horns, idle, listen, point, proud, sleepy, thumb, wave. Nervous borrows listen (LOUIE_STAND_IN)
-// until its picture arrives; to add one, put louie-<pose>.webp in art/louie/v4, add it to SHELL in sw.js and take it
-// out of LOUIE_STAND_IN.
+// art/louie/v5/louie-<pose>.webp, the clean cut-outs (the first cut-outs stay in art/louie/v4).
+// Every earlier Louie (the black one, the blue one and the code drawing) is gone.
+// Ten poses, each with its own picture: cheer, horns, idle, listen, nervous, point, proud, sleepy, thumb, wave.
+// A coloured cabinet is art/louie/colours/<finish>/, the tweed only. The face, grille, panel and limbs stay.
 // louie(mood, { pose, size }) returns an <svg> string that shows the picture.
 //   moods: happy, cheer, sleepy, worried, proud, listen (a hand to his ear, for when the app is listening)
 //   poses: rest, hornsUp, thumb, point, wave, peace
@@ -58,15 +57,15 @@ export function louieArt(mood = "happy", pose, size = Infinity) {
   if (pose === "thumb" && size < THUMB_MIN) return "cheer";
   return ART_POSE[pose] || (mood === "cheer" ? "cheer" : "idle");
 }
-/* Poses with no picture yet, and the one each borrows. */
-export const LOUIE_STAND_IN = { nervous: "listen" };
+/* Every pose has its own picture now, including nervous. */
+export const LOUIE_STAND_IN = {};
 const FINISHES = new Set(["pink", "teal", "black", "mint", "gold"]);
 export const louiePic = (art, finish = "") => {
   const pose = LOUIE_STAND_IN[art] || art;
   let fin = finish;
   if (!fin && typeof document !== "undefined") fin = document.body?.dataset.wear || "";
-  if (FINISHES.has(fin)) return `art/louie/finishes/${fin}/louie-${pose}.webp`;
-  return `art/louie/v4/louie-${pose}.webp`;
+  if (FINISHES.has(fin)) return `art/louie/colours/${fin}/louie-${pose}.webp`;
+  return `art/louie/v5/louie-${pose}.webp`;
 };
 
 const ARMS = new Set(["rest", "hornsUp", "thumb", "point", "wave", "peace"]);

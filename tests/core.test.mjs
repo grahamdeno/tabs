@@ -2749,18 +2749,25 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
   const { louie, louieArt, louiePic, LOUIE_STAND_IN } = await import("../louie.js");
-  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
-  for (const n of [...have, "face-badge"]) {
+  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "nervous", "point", "proud", "sleepy", "thumb", "wave"];
+  const first = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
+  for (const n of [...first, "face-badge"]) {
     const f = `art/louie/v4/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} stays`);
+    assert.ok(shell.includes(`"${f}"`), `${f} stays saved for offline`);
+  }
+  for (const n of [...have, "face", "face-badge"]) {
+    const f = `art/louie/v5/louie-${n}.webp`;
     assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.statSync(path.join(root, f)).size < 120 * 1024, `${f} is under 120 KB`);
   }
-  for (const [pose, from] of Object.entries(LOUIE_STAND_IN)) assert.ok(have.includes(from) && !have.includes(pose), `${pose} borrows ${from} until its picture arrives`);
+  assert.deepEqual(LOUIE_STAND_IN, {}, "nervous has his own picture");
+  assert.equal(louieArt("worried"), "nervous");
   for (const mood of ["happy", "cheer", "sleepy", "worried", "proud", "listen"]) for (const pose of [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"]) for (const size of [44, 120]) {
     const svg = louie(mood, { pose, size }), href = svg.match(/href="([^"]+)"/)[1];
     assert.equal(href, louiePic(louieArt(mood, pose, size)));
-    assert.ok(have.some(n => href === `art/louie/v4/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
+    assert.ok(have.some(n => href === `art/louie/v5/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
     assert.equal((svg.match(/<image /g) || []).length, 1, "one picture");
     assert.ok(!/<(path|rect|circle|ellipse|text)\b/.test(svg), "nothing is drawn in code");
     assert.match(svg, /role="img" aria-label="Louie"/);
@@ -2771,9 +2778,17 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   for (const f of ["sw.js", "louie.js", "index.html", "styles.css", "library.js", "maker.js", "profile.js", "merch.js", "road.js"]) assert.ok(!/art\/louie\/(v2|v3|louie-)/.test(read(f)), `${f} has no earlier Louie picture`);
   for (const d of ["art/louie/v2", "art/louie/v3", "art/louie/louie-face-badge.webp", "art/louie/louie-peek-dark.webp"]) assert.ok(!fs.existsSync(path.join(root, d)), `${d} is gone`);
   assert.match(read("merch.js"), /Louie's finishes/, "his other colours are back on the Merch table");
-  for (const fin of ["pink", "teal", "black", "mint", "gold"]) assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} Louie`);
-  for (const n of have) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
-  assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
+  for (const fin of ["pink", "teal", "black", "mint", "gold"]) {
+    assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} the first tint stays`);
+    for (const pose of have) {
+      const f = `art/louie/colours/${fin}/louie-${pose}.webp`;
+      assert.ok(fs.existsSync(path.join(root, f)), f);
+      assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    }
+    assert.match(louie("worried", { finish: fin }), new RegExp(`art/louie/colours/${fin}/louie-nervous.webp`), `${fin} nervous is his own picture`);
+  }
+  for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
 });
 
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
@@ -3445,11 +3460,11 @@ test("the favicon, apple-touch icon and every iPhone launch screen exist at the 
 test("the loading screen shows Louie on the Dark ground, then hides once the app draws", () => {
   const html = read("index.html"), css = read("styles.css");
   assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
-  assert.match(html, /src="art\/louie\/v4\/louie-idle\.webp"/, "it uses Louie's idle picture");
+  assert.match(html, /src="art\/louie\/v5\/louie-idle\.webp"/, "it uses the clean idle picture");
   assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
   assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
   const shell = read("sw.js");
-  assert.match(shell, /"art\/louie\/v4\/louie-idle\.webp"/, "the boot picture is saved for offline");
+  assert.match(shell, /"art\/louie\/v5\/louie-idle\.webp"/, "the boot picture is saved for offline");
   for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
