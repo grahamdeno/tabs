@@ -1980,7 +1980,7 @@ body { background: var(--bg); font-family: var(--sans); }
   --tabs-on: rgba(255,181,71,.14); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #2A2724;
   /* grain over --rr-base, then a 45 percent black wash. The tile is drawn brighter (base / .55) so the wash lands the average on #141210. */
   /* The agreed near-black leather. The older fine pebble stays in tolex-dark.webp. */
-  --tolex: url("art/surfaces/tolex-dark-fine.webp") 0 0 / 320px 320px repeat, var(--rr-base);
+  --tolex: url("art/surfaces/tolex-dark-levant.webp") 0 0 / 320px 320px repeat, var(--rr-base);
   /* raised and pressed surfaces: a soft shadow, never a darker lip (design pass) */
   --rr-lift: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 8px rgba(0,0,0,.38); --rr-press: 0 1px 2px rgba(0,0,0,.4);
   --rr-motion: .25s ease-out; /* show and hide; Reduce Motion turns it into a plain fade or nothing */
@@ -5399,7 +5399,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
    object, so it looks the same in Light and Dark. Class rr-gcase, so the Show complete sheet's .rr-case is not touched. */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase {
   position: relative; margin-top: var(--sp-1); padding: 12px 10px 10px; border-radius: 16px;
-  background: url("art/surfaces/tolex-dark-fine.webp") 0 0 / 220px; background-color: #15110D;
+  background: url("art/surfaces/tolex-dark-levant.webp") 0 0 / 220px; background-color: #15110D;
   box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, inset 0 2px 0 3.5px rgba(255, 255, 255, .25), 0 10px 22px rgba(0, 0, 0, .45);
 }
 :root[data-look="festival"] .rr-gcase { box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #A9A49C, inset 0 0 0 3.5px #2A2622, 0 10px 20px rgba(60, 40, 20, .3); }
@@ -5803,7 +5803,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* The Road (agreed r10-01, r10-02; Graham, 2026-11-19): the tolex and the warm glow scroll with the guitars. The leather is drawn on
    the scrolling path itself (background-attachment: local), and each guitar carries its own glow behind it, so the glow stays
    pinned behind its guitar. Dark's leather is neutral black, not brown, closer to the agreed screen. */
-:root[data-look="neon"] .rd-path { background: url("art/surfaces/tolex-dark-fine.webp") 0 0 / 320px 320px, #141210; background-attachment: local; }
+:root[data-look="neon"] .rd-path { background: url("art/surfaces/tolex-dark-levant.webp") 0 0 / 320px 320px, #141210; background-attachment: local; }
 :root[data-look="festival"] .rd-path { background: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px, var(--rr-base); background-attachment: local; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck.road::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 8%; bottom: 4%; pointer-events: none; }
 :root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(255, 160, 60, .36) 0, rgba(255, 140, 40, .16) 45%, transparent 72%); }
