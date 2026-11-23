@@ -159,12 +159,12 @@ test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every 
   }
 });
 
-test("Road Ready 04: Green Room keeps its flat bar (no grille cloth, no chrome), with the same five tabs", { skip: skip() }, async t => {
-  const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"] } }, { home: true });
+test("a saved Green Room does not draw its own look", { skip: skip() }, async t => {
+  const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"], tspent: 400 } }, { home: true, colorScheme: "light" });
   await page.waitForSelector("#tabs a");
-  const r = await page.evaluate(() => { const n = document.getElementById("tabs"), c = getComputedStyle(n); return { bg: c.backgroundImage, pipe: getComputedStyle(n, "::before").content, tabs: [...n.querySelectorAll("a")].map(a => a.dataset.tab).join() }; });
-  assert.equal(r.bg, "none", "no grille cloth");
-  assert.equal(r.pipe, "none", "no chrome piping");
+  const r = await page.evaluate(() => ({ look: document.documentElement.dataset.look, saved: JSON.parse(localStorage.getItem("tabs-v1")).settings.theme, tabs: [...document.querySelectorAll("#tabs a")].map(a => a.dataset.tab).join() }));
+  assert.equal(r.look, "festival");
+  assert.equal(r.saved, "green");
   assert.equal(r.tabs, "road,songbook,rehearse,tour,me");
 });
 

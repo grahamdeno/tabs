@@ -66,7 +66,8 @@ export function renderMerch() {
       ${st.own[it.id] ? `<span class="mc-have">x${st.own[it.id]}</span>` : ""}${GEAR[it.id]}<b>${esc(it.name)}</b><small>${esc(it.line)}</small>${tag(it, st)}</button>`;
   const hatOn = (it, o) => you(data, { me: { ...meOf(data), extra: it.id.slice(5) }, ...o }).replace(/ role="img" aria-label="[^"]*"/, o.size < 100 ? ' aria-hidden="true"' : ` role="img" aria-label="Your guitarist in the ${it.name}"`);
   const hat = it => `<button class="mc-fin${data.me?.extra === it.id.slice(5) ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} for your guitarist">${hatOn(it, { crop: "bust", size: 54 })}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
-  const look = it => `<button class="mc-look${st.look === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} look">${swatch(it.id)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
+  const onLook = document.documentElement.dataset.look;
+  const look = it => `<button class="mc-look${onLook === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} look">${swatch(it.id)}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const drop = it => `<button class="mc-drop${st.backdrop === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} backdrop">${artSVG(it.id, "mc-art")}<b>${esc(it.name)}</b>${tag(it, st)}</button>`;
   const panel = (k, html) => rr ? `<section class="mc-panel" role="tabpanel" id="mc-p-${k}" aria-labelledby="mc-t-${k}"${mcTab === k ? "" : " hidden"}>${html}</section>` : html;
   app.innerHTML = `<div class="mc${rr ? " mc-rr" : ""}">
@@ -86,7 +87,7 @@ export function renderMerch() {
     <h2 class="mc-h"><span>Hats</span><small>for your guitarist</small></h2>
     <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
-    <div class="mc-row scroll">${of("look").map(look).join("")}</div>`)}
+    <div class="mc-row scroll">${of("look").filter(it => it.id === "festival" || it.id === "neon").map(look).join("")}</div>`)}
     ${panel("guitars", `${buildEntry()}
     ${shopHTML()}`)}
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
@@ -159,7 +160,7 @@ function shopSheet(id) {
 /* Try it on: the item big on a stage, flip through its kind, buy or put it on at the bottom (thumb reach) */
 function tryOn(id) {
   const it = MERCH.find(x => x.id === id);
-  if (!it) return;
+  if (!it || (it.kind === "look" && it.id !== "festival" && it.id !== "neon")) return;
   const st = merchState(data), kin = MERCH.filter(x => x.kind === it.kind), i = kin.indexOf(it);
   const worn = it.kind === "louie" ? st.louie : it.kind === "backdrop" ? st.backdrop : it.kind === "look" ? st.look : it.kind === "wear" ? (data.me?.extra === it.id.slice(5) ? it.id : null) : null;
   /* 4.78.0: trying on a look shows the whole app in it until you close */
