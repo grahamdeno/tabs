@@ -3156,6 +3156,24 @@ test("Road Ready 9a fix: the neck colours of the 23 new pictures are the fretboa
   }
 });
 
+test("Opening night: a stop circle hides the painted inlay it overlaps, and the dot below stop 8 stays", async () => {
+  const { roadPlace, ROAD } = await import("../core.js");
+  const { inlaysUnder, ROAD_INLAYS } = await import("../fretboard.js");
+  const PICS = (await import("../art/guitars/pics.js")).default;
+  const road = PICS.barebones.road;
+  const put = roadPlace(Array(8).fill("L"), road);
+  const reach = 18 / ROAD.scale;
+  const stops = put.spaces.map(c => ({ x: c.x, y: c.y, r: reach }));
+  const boxes = ROAD_INLAYS.barebones;
+  const yOf = i => (boxes[i][1] + boxes[i][3]) / 2;
+  const hidden = inlaysUnder(boxes, stops).map(yOf);
+  assert.ok(hidden.some(y => Math.abs(y - 309) < 8), "the dot beside an upper stop is covered");
+  assert.ok(hidden.some(y => Math.abs(y - 383) < 8), "the dot beside stop 5 is covered");
+  assert.ok(hidden.some(y => Math.abs(y - 448) < 8), "the dot beside stop 7 is covered");
+  assert.ok(!hidden.some(y => y > 500 && y < 530), "the inlay below stop 8 stays");
+  assert.equal(inlaysUnder([boxes.find(b => (b[1] + b[3]) / 2 > 500 && (b[1] + b[3]) / 2 < 530)], [stops[7]]).length, 0);
+});
+
 /* ---- Road Ready 9a, painted necks (rr-09-road): stops in the painting's own fret spaces ---- */
 const FRETS = JSON.parse(fs.readFileSync(new URL("../docs/guitars/frets.json", import.meta.url)));
 const EXAMPLES = [["example_9", [..."LLLBLLLBL"]], ["example_12", [..."LLLBLLLBLLLL"]]];
