@@ -172,7 +172,7 @@ test("Road Ready 08: at large text the tiles stack, the rows grow and the case s
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
   await frame(page);
   assert.equal(await cols(), 1, "one column at large text");
-  const m = await page.evaluate(() => ({ ox: getComputedStyle(document.querySelector(".rr-case-in")).overflowX, sw: document.scrollingElement.scrollWidth, iw: innerWidth,
+  const m = await page.evaluate(() => ({ ox: getComputedStyle(document.querySelector(".rr-case-scroll")).overflowX, sw: document.scrollingElement.scrollWidth, iw: innerWidth,
     gs: [...document.querySelectorAll(".rr-gtr")].map(g => { const r = g.getBoundingClientRect(); return [r.width, r.height]; }),
     rows: [...document.querySelectorAll(".rr-me .rr-row")].map(r => [r.getBoundingClientRect().height, r.scrollWidth > r.clientWidth + 1]) }));
   assert.equal(m.ox, "auto", "the case scrolls sideways when the guitars don't fit");
@@ -190,24 +190,23 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
   assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
 });
 
-test("the guitar case is a hard case, one stall per guitar, dividers only between them", { skip: skip() }, async t => {
+test("the guitar case is a wide hard case, one stall per guitar, and the guitar is foreshortened into it", { skip: skip() }, async t => {
   const page = await openMe(t, "dark");
-  const bg = await page.evaluate(() => getComputedStyle(document.querySelector(".rr-gcase")).backgroundImage);
-  assert.match(bg, /case-r10-shell\.webp/, "the open case is the hard shell");
-  assert.doesNotMatch(bg, /case-velvet-bed|case-open-tall/, "the old bed and the divider grid are not the case");
-  assert.match(await page.getAttribute(".rr-case-frame", "src"), /case-r10-frame\.webp/, "the velvet walls sit over the guitars");
+  const shape = await page.evaluate(() => {
+    const box = document.querySelector(".rr-case").getBoundingClientRect();
+    const bg = getComputedStyle(document.querySelector(".rr-case")).backgroundImage;
+    return { w: box.width, h: box.height, bg, stalls: document.querySelector(".rr-case").dataset.stalls };
+  });
+  assert.match(shape.bg, /case-r10-06-shell-3\.webp/, "three guitars use the three-stall case");
+  assert.ok(shape.w / shape.h > 2, `the case is wide and short (${Math.round(shape.w)} by ${Math.round(shape.h)})`);
+  assert.equal(shape.stalls, "3");
   const slots = await page.$$eval(".rr-gtr", els => els.map(el => {
     const img = el.querySelector("img");
     const src = (img?.getAttribute("src") || "").replace(/\?.*$/, "");
-    const shadow = getComputedStyle(img).filter;
+    const style = getComputedStyle(img);
     const box = img.getBoundingClientRect();
     const stall = el.getBoundingClientRect();
-    const divs = [...el.querySelectorAll(".rr-div")].map(d => {
-      const r = d.getBoundingClientRect();
-      const show = getComputedStyle(d).visibility !== "hidden";
-      return { show, x: r.x, w: r.width, h: r.height, overlaps: show && r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top };
-    });
-    return { src, shadow, boxW: box.width, boxH: box.height, stallW: stall.width, stallH: stall.height, divs };
+    return { src, shadow: style.filter, tilt: style.transform, boxW: box.width, boxH: box.height, stallW: stall.width, stallH: stall.height };
   }));
   assert.equal(slots.length, 3, "three earned guitars, three stalls");
   assert.deepEqual(slots.map(s => s.src), [
@@ -217,28 +216,10 @@ test("the guitar case is a hard case, one stall per guitar, dividers only betwee
   ]);
   for (const s of slots) {
     assert.equal((s.shadow.match(/drop-shadow\(/g) || []).length, 2, "a soft drop shadow and a tight contact shadow");
-    assert.ok(s.boxH > s.stallH * 0.85, "the guitar fills the stall");
-    assert.ok(s.divs.every(d => !d.show || d.h > d.w * 2), "a divider runs with the guitar, not across it");
+    assert.match(s.tilt, /matrix3d/, "the guitar is foreshortened");
+    assert.ok(s.boxW > s.stallW * 0.55, "the guitar fills most of the stall width");
   }
-  /* the wall between two stalls overlaps both guitars, and it does not cover the middle of either */
-  const between = await page.evaluate(() => {
-    const guitars = [...document.querySelectorAll(".rr-gtr img")].map(img => img.getBoundingClientRect());
-    const divs = [...document.querySelectorAll(".rr-div")].map(d => ({ r: d.getBoundingClientRect(), show: getComputedStyle(d).visibility !== "hidden" })).filter(d => d.show);
-    return divs.map(d => {
-      const mid = d.r.left + d.r.width / 2;
-      const hits = guitars.map(g => ({
-        overlap: Math.min(d.r.right, g.right) - Math.max(d.r.left, g.left),
-        midInside: mid > g.left + g.width * 0.25 && mid < g.right - g.width * 0.25
-      }));
-      return { wide: d.r.width, hits };
-    });
-  });
-  const joining = between.filter(d => d.hits.filter(h => h.overlap > 0).length >= 2);
-  assert.equal(joining.length, 2, "two dividers, one between each pair");
-  for (const d of joining) {
-    assert.ok(d.hits.filter(h => h.overlap > 2).length >= 2, "the divider overlaps both guitars");
-    assert.ok(d.hits.every(h => !h.midInside), "the divider stays off the middle of a guitar");
-  }
+  assert.equal(await page.locator(".rr-div").count(), 0, "the ridges are painted in the case, not drawn as pillars");
 });
 
 test("with no tips the Merch line says to earn them, and with tips it says spend, on one line", { skip: skip() }, async t => {
@@ -265,32 +246,28 @@ test("each guitar is fully inside its stall, with velvet under the body, and an 
     return { top: box.top - caseBox.top, bottom: caseBox.bottom - box.bottom, gap: stall.bottom - box.bottom, caseH: caseBox.height, shadow: getComputedStyle(img).filter };
   }));
   assert.equal(fit.length, 3);
-  assert.ok(fit[0].caseH >= 180, `the case is ${Math.round(fit[0].caseH)} tall`);
+  assert.ok(fit[0].caseH >= 100 && fit[0].caseH < 220, `the case is short (${Math.round(fit[0].caseH)})`);
   for (const g of fit) {
-    assert.ok(g.top >= -2 && g.bottom >= -2, "the guitar stays inside the case");
+    assert.ok(g.top >= -36 && g.bottom >= -6, `the guitar stays in the case (top ${Math.round(g.top)}, bottom ${Math.round(g.bottom)})`);
     assert.equal((g.shadow.match(/drop-shadow\(/g) || []).length, 2, "a soft shadow and a contact shadow under the guitar");
   }
   const one = await openMe(t, "light", { skills: legsDone(1) });
   assert.equal(await one.locator(".rr-gtr").count(), 1, "one guitar, one stall, no empty stalls");
-  const walls = await one.evaluate(() => [...document.querySelectorAll(".rr-gtr .rr-div")].filter(d => getComputedStyle(d).visibility !== "hidden").length);
-  assert.equal(walls, 2, "the one stall has a velvet wall on each side");
+  assert.match(await one.evaluate(() => getComputedStyle(document.querySelector(".rr-case")).backgroundImage), /case-r10-06-shell-1\.webp/, "one guitar uses the one-stall case");
 });
 
-test("six guitars scroll in one case, with a divider between each and none across a guitar", { skip: skip() }, async t => {
+test("six guitars are two cases, and the row scrolls one case width at a time", { skip: skip() }, async t => {
   const page = await openMe(t, "dark", { skills: legsDone(3), merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["g-stickerriot", "g-tartanpin", "g-spraycancrack"] } });
   const fit = await page.evaluate(() => {
-    const row = document.querySelector(".rr-case-in");
-    const guitars = [...document.querySelectorAll(".rr-gtr img")].map(img => img.getBoundingClientRect());
-    const divs = [...document.querySelectorAll(".rr-div")].filter(d => getComputedStyle(d).visibility !== "hidden").map(d => d.getBoundingClientRect());
-    const joining = divs.filter(d => guitars.filter(g => d.left < g.right - 1 && d.right > g.left + 1).length >= 2);
-    const across = divs.some(d => d.width > d.height || guitars.some(g => d.left < g.left + g.width * 0.3 && d.right > g.right - g.width * 0.3));
-    return { n: guitars.length, divs: divs.length, joining: joining.length, across, scrolls: row.scrollWidth > row.clientWidth + 8 };
+    const row = document.querySelector(".rr-case-scroll");
+    const cases = [...document.querySelectorAll(".rr-case")].map(el => el.dataset.stalls);
+    const snap = getComputedStyle(row).scrollSnapType;
+    return { n: document.querySelectorAll(".rr-gtr").length, cases, snap, scrolls: row.scrollWidth > row.clientWidth + 8 };
   });
   assert.equal(fit.n, 6, "six stalls");
-  assert.equal(fit.divs, 5, "a divider between each pair and nowhere else");
-  assert.equal(fit.joining, 5, "each divider overlaps the two guitars it separates");
-  assert.equal(fit.across, false, "no divider runs across a guitar");
-  assert.equal(fit.scrolls, true, "more than three scroll sideways");
+  assert.deepEqual(fit.cases, ["3", "3"], "two three-stall cases");
+  assert.match(fit.snap, /x/, "the row snaps sideways");
+  assert.equal(fit.scrolls, true, "more than three scroll one case width at a time");
 });
 
 test("one earned guitar is one stall, and a bought guitar gets a stall of its own", { skip: skip() }, async t => {

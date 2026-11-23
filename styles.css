@@ -5396,56 +5396,51 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] .rr-tn-tx b, :root[data-look="festival"] .rr-tn-tx small { text-shadow: 0 0 6px rgba(246, 239, 226, .95); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tn-stop:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 22px; }
 .rd-path.has-pop .rr-tn-stop { display: none; }
-/* the guitar case on Me (r10-06): a deep open black hard case in slight perspective.
-   art/case/case-r10-shell.webp is the shell, the orange bed, the pocket row and the latches.
-   art/case/case-r10-frame.webp sits over the guitars so the velvet walls overlap their edges.
-   One stall per guitar. Dividers (art/case/case-r10-divider.webp) run between the guitars and
-   never across one. Each guitar fills its stall, with a soft drop shadow and a tight contact
-   shadow under it. One or two are centred. More than three scroll sideways. The same case in
-   Light and Dark. Class rr-gcase, so Show complete's .rr-case is not touched. */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase {
-  position: relative; margin-top: var(--sp-1); aspect-ratio: 1280 / 1360; border-radius: 14px; overflow: hidden;
-  background: #12100e url("art/case/case-r10-shell.webp") center / 100% 100% no-repeat;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, .45);
+/* the guitar case on Me (r10-06): a wide, short hard case seen from slightly above.
+   The empty case is painted: case-r10-06-shell-1.webp, -2 and -3, one picture per stall count.
+   Low velvet ridges and the pocket row are in the picture. Each guitar sits in its stall,
+   foreshortened, with a soft drop shadow and a tight contact shadow. More than three scroll
+   one case width at a time. The same case in Light and Dark. Class rr-gcase, so Show complete's
+   .rr-case is not touched. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase { margin-top: var(--sp-1); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-scroll {
+  display: flex; align-items: center; justify-content: safe center; gap: 12px; min-height: 44px;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-frame {
-  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; object-fit: fill;
+.rr-case-scroll::-webkit-scrollbar { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-scroll:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case {
+  position: relative; flex: 0 0 auto; scroll-snap-align: start; scroll-snap-stop: always; padding: 0; border: 0;
+  background: #141210 center / 100% 100% no-repeat; border-radius: 16px; box-shadow: 0 8px 18px rgba(0, 0, 0, .4);
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in {
-  position: absolute; left: 4%; right: 4%; top: 16%; bottom: 13%;
-  display: grid; grid-auto-flow: column; grid-auto-columns: calc(100% / 3); gap: 0; margin: 0; padding: 0; min-height: 0; list-style: none;
-  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; background: none; box-shadow: none; scrollbar-width: none;
-  justify-content: start; z-index: 1;
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] { flex-basis: 100%; aspect-ratio: 1380 / 600; background-image: url("art/case/case-r10-06-shell-3.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] { flex-basis: 71%; aspect-ratio: 980 / 600; background-image: url("art/case/case-r10-06-shell-2.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] { flex-basis: 46%; aspect-ratio: 640 / 600; background-image: url("art/case/case-r10-06-shell-1.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case .rr-case-in {
+  position: absolute; top: 21%; height: 64%; margin: 0; padding: 0; min-height: 0; list-style: none;
+  display: grid; align-items: end; background: none; box-shadow: none; overflow: visible; border-radius: 0;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in[data-n="1"],
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in[data-n="2"] { justify-content: center; }
-.rr-gcase .rr-case-in::-webkit-scrollbar { display: none; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr {
-  position: relative; height: 100%; min-width: 0; min-height: 44px; scroll-snap-align: center; background: none;
-}
-/* the guitar fills the stall. The soft shadow is the wide one; the tight one is the contact shadow. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] .rr-case-in { left: 6%; right: 6%; grid-template-columns: repeat(3, 1fr); column-gap: 5%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-case-in { left: 7%; right: 7%; grid-template-columns: repeat(2, 1fr); column-gap: 8%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] .rr-case-in { left: 11%; right: 11%; grid-template-columns: 1fr; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { position: relative; height: 100%; min-width: 0; min-height: 44px; background: none; }
+/* foreshortened into the stall: the body stays wide at the front and the whole guitar
+   fits above the lip, so the scroll row does not clip it. */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img {
-  position: absolute; z-index: 1; left: 50%; bottom: 0; height: 100%; width: auto; max-width: none; margin: 0;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 1px 0.6px rgba(0, 0, 0, .95)) drop-shadow(3px 12px 8px rgba(0, 0, 0, .75));
+  position: absolute; z-index: 1; left: 50%; bottom: 1%; width: 94%; height: auto; max-height: none; margin: 0;
+  transform: translateX(-50%) scaleY(0.52) perspective(400px) rotateX(8deg);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, .95)) drop-shadow(0 9px 7px rgba(0, 0, 0, .7));
 }
-/* a soft pool of shadow on the velvet under the body, wider than the guitar so it stays visible */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr::after {
-  content: ""; position: absolute; z-index: 0; left: 6%; right: 6%; bottom: 1%; height: 16%;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0) 70%);
-  pointer-events: none;
+/* a single wide stall would make the guitar taller than the case, so it is scaled to fit */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] .rr-gtr img {
+  width: 78%;
+  transform: translateX(-50%) scaleY(0.4) perspective(400px) rotateX(8deg);
 }
-/* a plush velvet wall on each side of a stall. Between two guitars the walls meet as one divider. */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-div {
-  position: absolute; top: -2%; bottom: 0; width: 34px; z-index: 3; pointer-events: none;
-  background: url("art/case/case-r10-divider.webp") center / 100% 100% no-repeat;
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-gtr img {
+  width: 90%;
+  transform: translateX(-50%) scaleY(0.46) perspective(400px) rotateX(8deg);
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-div.l { left: -14px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-div.r { right: -14px; }
-/* stalls that fill the bed use the case's own side walls, so the outer dividers stay hidden */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:not([data-n="1"]):not([data-n="2"]) .rr-gtr:first-child > .rr-div.l,
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:not([data-n="1"]):not([data-n="2"]) .rr-gtr:last-child > .rr-div.r { visibility: hidden; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
 
 /* Full-size lyrics (Grok, 2026-11-19, spec 6, wrapping approved by Graham): app.js lays every line out at the current-line size

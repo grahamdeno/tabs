@@ -2806,20 +2806,22 @@ test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes f
   }
 });
 
-test("Me case: the hard case, the pocket row and the stall divider are saved for offline, and the earlier pictures stay", () => {
+test("Me case: the wide perspective shells are saved for offline, and the earlier pictures stay", () => {
   const shell = read("sw.js"), css = read("styles.css"), html = read("profile.js");
-  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp", "art/case/case-r10-shell.webp", "art/case/case-r10-frame.webp", "art/case/case-r10-divider.webp"]) {
+  for (const f of ["art/case/case-velvet-bed.webp", "art/case/case-open-tall.webp", "art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp", "art/case/case-r10-shell.webp", "art/case/case-r10-frame.webp", "art/case/case-r10-divider.webp", "art/case/case-r10-06-shell-1.webp", "art/case/case-r10-06-shell-2.webp", "art/case/case-r10-06-shell-3.webp"]) {
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.statSync(path.join(root, f)).size < 250000, `${f} stays small enough for the phone`);
   }
-  assert.match(css, /case-r10-shell\.webp/, "the case is the hard shell");
-  assert.match(html, /case-r10-frame\.webp/, "the walls sit over the guitars");
-  assert.match(css, /case-r10-divider\.webp/, "a divider between stalls");
+  assert.match(css, /case-r10-06-shell-3\.webp/, "three guitars use the wide case");
+  assert.match(css, /case-r10-06-shell-1\.webp/, "one guitar has its own case");
+  assert.match(css, /case-r10-06-shell-2\.webp/, "two guitars have their own case");
+  assert.match(css, /aspect-ratio:\s*1380\s*\/\s*600/, "the three-guitar case is wide and short");
+  assert.match(css, /rotateX\(/, "each guitar is foreshortened into the stall");
   assert.match(css, /drop-shadow\([\s\S]*drop-shadow\(/, "a soft drop shadow and a tight contact shadow");
-  assert.ok(!/rr-gcase[\s\S]{0,900}mask-composite:\s*exclude/.test(css), "a stall is not a hollow cut to the guitar");
-  assert.ok(!/rr-gcase[\s\S]{0,500}case-velvet-bed/.test(css), "the old velvet bed is not the case");
-  assert.match(html, /wall\("l"\)[\s\S]*wall\("r"\)/, "a stall can have a velvet wall on either side");
+  assert.match(css, /scroll-snap-type:\s*x mandatory/, "more than one case scrolls a case at a time");
+  assert.match(html, /data-stalls/, "a case knows how many stalls it has");
+  assert.ok(!/rr-gcase[\s\S]{0,700}case-velvet-bed/.test(css), "the old velvet bed is not the case");
   assert.ok(!/rr-gcase \.rr-gtr[\s\S]{0,240}velvet-slot\.webp/.test(css), "the stalls are not the flat slot picture");
 });
 
