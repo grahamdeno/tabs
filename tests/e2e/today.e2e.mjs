@@ -18,7 +18,8 @@ test("Today: on a rainy day a slow song that opens with a tap", { skip: skip() }
   const page = await phone(t, lib());
   let asked = 0;
   await page.route(/api\.open-meteo\.com/, r => { asked++; return r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
-  await page.evaluate(() => localStorage.removeItem("tabs.wx.v1"));
+  /* clear the saved forecast before the app starts, so the reload is the one fetch of the day */
+  await page.addInitScript(() => { if (!sessionStorage.getItem("wx-cleared")) { sessionStorage.setItem("wx-cleared", "1"); localStorage.removeItem("tabs.wx.v1"); } });
   await page.reload(); await page.waitForSelector("#nudge");
   assert.equal(await page.locator("#today .t-dots, #t-stat").count(), 0, "4.20.0: the streak lives in the stat bar, not here");
   const h = new Date().getHours();
