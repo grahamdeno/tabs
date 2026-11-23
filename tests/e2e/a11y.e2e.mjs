@@ -22,7 +22,7 @@ const SCREENS = [
   ["menu", "#/song/a", p => p.click("#more")],
   ["editor", "#/song/a", async p => { await tool(p, "edit"); }],
   ["question", "#/trash", p => p.click("[data-forget]")],
-  ["tuner", "#/you", p => p.click("#pf-r-tune")], /* Road Ready 07: the tuner is on Me, not in the Songbook */
+  ["tuner", "#/library", p => p.click("#tunerbtn")], /* the tuner is in the Songbook header */
   ["sketch", "#/sketch"],
   ["maker", "#/you", p => p.click("#pf-me")], /* 4.85.0: your guitarist's maker (labelled, pressed-state buttons) */
   ["hats", "#/merch"]

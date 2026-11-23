@@ -1219,7 +1219,7 @@ export const MERCH = [
   { id: "festival", kind: "look", theme: "light", name: "Road Ready light", price: 0, line: "The light look: cream tolex, chrome piping and warm amber." },
   { id: "neon", kind: "look", theme: "dark", name: "Road Ready dark", price: 0, line: "The dark look: black tolex, chrome piping and warm amber." },
   { id: "green", kind: "look", theme: "green", name: "Green Room", price: 400, line: "Sage, coral and mustard, calm as a dressing room." },
-  { id: "headliner", kind: "look", theme: "headliner", name: "Headliner", price: 0, earn: "headline", line: "Black, gold and chrome under a blacklight." }
+  { id: "headliner", kind: "look", theme: "headliner", name: "Headliner", price: 0, earn: "headline", line: "Violet and gold on black." }
 ];
 const merchItem = id => MERCH.find(x => x.id === id);
 /* free to have: no price and nothing to earn (gear is never "had") */

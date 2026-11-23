@@ -1,5 +1,5 @@
 // Road Ready, step 04: five tabs (Road, Songbook, Rehearse, Tour, Me) in a grille-cloth bar with our own icons.
-// Charts, Your band, the Merch table, the Tuner, Support and Settings are reached from Me; their pages go back to Me.
+// Charts, Your band, the Merch table, the tip jar and Settings are reached from Me; the tuner is in the Songbook. Their pages go back to Me.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -81,7 +81,7 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
   await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
   const large = await size();
-  assert.deepEqual(large.map(r => r.id).filter(id => id !== "pf-share"), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-r-help", "pf-r-support"], "band, charts, tuner, help and support (and Share only once something is played)");
+  assert.deepEqual(large.map(r => r.id).filter(id => id !== "pf-share"), ["pf-r-band", "pf-r-charts", "pf-r-support", "pf-r-help"], "band, charts, the tip jar and help (and Share only once something is played)");
   for (let i = 0; i < large.length; i++) {
     assert.ok(large[i].name > normal[i].name && large[i].small >= normal[i].small, `${large[i].id}: the text grows (${normal[i].name}/${normal[i].small} to ${large[i].name}/${large[i].small})`);
     if (normal[i].small) assert.ok(large[i].small > normal[i].small, `${large[i].id}: the small line grows too`);
@@ -107,20 +107,20 @@ test("Road Ready 04: the Songbook's search bar sits above the tab bar, so both c
   await page.tap("#q"); await page.waitForFunction(() => document.body.classList.contains("searching"));
 });
 
-test("Road Ready 04: the not-tuned dot is on the Tuner row (no dot on a tab since 2026-11-19), and goes once you've tuned; the Tuner row opens the tuner", { skip: skip() }, async t => {
+test("Road Ready 04: the not-tuned dot is on the Songbook tuner (no dot on a tab since 2026-11-19), and goes once you've tuned; that button opens the tuner", { skip: skip() }, async t => {
   const stale = await phone(t, libWith("dark", { lastTuned: 0 }), { home: true });
   await stale.waitForSelector("#tabs [data-tab=me]");
   assert.equal(await stale.locator("#tabs .dotmark").count(), 0, "no dot on a tab");
-  await stale.click("#tabs [data-tab=me]"); await stale.waitForSelector("#pf-r-tune"); await settled(stale);
-  assert.equal(await stale.locator("#pf-r-tune .dotmark").count(), 1, "the Tuner row has the dot");
-  assert.match(await stale.innerText("#pf-r-tune"), /Tuner\s*Not tuned in the last few hours/);
-  await stale.click("#pf-r-tune"); await stale.waitForSelector(".tuner, #tuner, [aria-label*='uner']");
+  await stale.click("#tabs [data-tab=songbook]"); await stale.waitForSelector("#tunerbtn"); await settled(stale);
+  assert.equal(await stale.locator("#tunerbtn .dotmark").count(), 1, "the Songbook tuner has the dot");
+  assert.match(await stale.getAttribute("#tunerbtn", "aria-label"), /Not tuned/);
+  await stale.click("#tunerbtn"); await stale.waitForSelector(".tuner, #tuner, [aria-label*='uner']");
   const fresh = await phone(t, libWith("dark", { lastTuned: Date.now() }), { home: true });
-  await fresh.waitForSelector("#tabs [data-tab=me]");
+  await fresh.waitForSelector("#tabs [data-tab=songbook]");
   assert.equal(await fresh.locator("#tabs .dotmark").count(), 0, "no dot after tuning");
-  await fresh.click("#tabs [data-tab=me]"); await fresh.waitForSelector("#pf-r-tune");
-  assert.match(await fresh.innerText("#pf-r-tune"), /Tuned in the last few hours/);
-  assert.equal(await fresh.locator("#pf-r-tune .dotmark").count(), 0);
+  await fresh.click("#tabs [data-tab=songbook]"); await fresh.waitForSelector("#tunerbtn");
+  assert.match(await fresh.getAttribute("#tunerbtn", "aria-label"), /^Tuner$/);
+  assert.equal(await fresh.locator("#tunerbtn .dotmark").count(), 0);
 });
 
 for (const [w, h] of [[320, 568], [375, 667], [390, 844]]) {
@@ -159,12 +159,12 @@ test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every 
   }
 });
 
-test("Road Ready 04: Green Room keeps its flat bar (no grille cloth, no chrome), with the same five tabs", { skip: skip() }, async t => {
-  const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"] } }, { home: true });
+test("Road Ready 04: Green Room uses the same grille-cloth bar, with the same five tabs", { skip: skip() }, async t => {
+  const page = await phone(t, { ...libWith("green"), merch: { ...(LIB.merch || {}), has: ["green"] } }, { home: true, colorScheme: "light" });
   await page.waitForSelector("#tabs a");
-  const r = await page.evaluate(() => { const n = document.getElementById("tabs"), c = getComputedStyle(n); return { bg: c.backgroundImage, pipe: getComputedStyle(n, "::before").content, tabs: [...n.querySelectorAll("a")].map(a => a.dataset.tab).join() }; });
-  assert.equal(r.bg, "none", "no grille cloth");
-  assert.equal(r.pipe, "none", "no chrome piping");
+  const r = await page.evaluate(() => { const n = document.getElementById("tabs"), c = getComputedStyle(n); return { bg: c.backgroundImage, pipe: getComputedStyle(n, "::before").backgroundImage, tabs: [...n.querySelectorAll("a")].map(a => a.dataset.tab).join() }; });
+  assert.match(r.bg, /repeating-linear-gradient/, "grille cloth");
+  assert.match(r.pipe, /linear-gradient/, "chrome piping");
   assert.equal(r.tabs, "road,songbook,rehearse,tour,me");
 });
 

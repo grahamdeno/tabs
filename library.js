@@ -16,7 +16,7 @@ import { bindFind, data, findAI, findCard, go, keyOf, lastOpened, newSong, nextS
    no Back button, since the Songbook is a tab; Green Room and Headliner keep theirs. 4.113.1: in Dark and Light each piece is drawn
    in the agreed Road Ready components (r10-05): the slim amber hint strip with Louie's badge, outlined capsule filters, outlined
    header plates, and each song as its own card with cream plate chips for the status and the key. */
-const rrTab = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+const rrTab = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 
 export let query = "";
 export let filter = "all";

@@ -27,8 +27,7 @@ for (const [look, theme] of [["Dark", "dark"], ["Light", "light"], ["Green Room"
     const page = await phone(t, lib(theme, { skills: MID }), { home: true });
     await page.waitForSelector(".rd-path"); await settled(page);
     await noLouie(page, look);
-    if (["dark", "light"].includes(theme)) assert.equal(await page.locator("#rd-bubble, .rr-say").count(), 0, `${look}: no message on the Road (one-row header)`);
-    else { assert.equal(await page.locator("#rd-bubble").count(), 1, `${look}: the message is there`); assert.ok((await page.innerText("#rd-bubble")).trim().length > 0, `${look}: the message has words`); }
+    assert.equal(await page.locator("#rd-bubble, .rr-say").count(), 0, `${look}: no message on the Road (one-row header)`);
     assert.equal(await page.locator("#rd-tonight, .rd-tonight").count(), 1, `${look}: the Gig button is there`);
     assert.ok(await page.locator("#rd-tonight, .rd-tonight").first().isVisible(), `${look}: the Gig button shows`);
   });

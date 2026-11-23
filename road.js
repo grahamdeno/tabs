@@ -34,8 +34,8 @@ import { guitarSVG, guitarPic, inlaySVG, neckHTML, rrStopArt } from "./fretboard
 import { statBar, rrStats, bindStatBar, settleStats } from "./hud.js";
 
 const DAY = 86400000;
-/* Road Ready is the Dark and Light looks (data-look neon and festival); Green Room and Headliner keep the old Road */
-const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* Road Ready is every look: Dark, Light, Green Room and Headliner share this Road, each in its own palette */
+const rrLook = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 /* Grok's paintings of each earned guitar in its own open case (art/show, 720 by 900, dark and light), by body shape. A
    guitar without one is drawn over the empty case. */
 /* Grok's case paintings (art/show/case-*.webp) are of the three guitars the Road had before Road Ready 9a (the beater, the cutaway,
@@ -457,7 +457,7 @@ function headlinerEarned(road) {
   const on = data.settings.theme === "headliner";
   layer.innerHTML = `<div class="scrim" id="hl-scrim"></div><div class="panel de-sheet rd-hl" role="dialog" aria-label="Headliner is yours"><div class="grab"></div>
     <div class="pbody"><div class="rd-hl-lou">${louie("cheer", { size: 120, pose: "hornsUp" })}</div>
-    <h2>You headlined</h2><p>Headliner is yours: black, gold and chrome under a blacklight. ${on ? "You're already wearing it." : "Put it on now, or any time in Settings or at the Merch table."}</p>
+    <h2>You headlined</h2><p>Headliner is yours: violet and gold on black. ${on ? "You're already wearing it." : "Put it on now, or any time in Settings or at the Merch table."}</p>
     <div class="rd-hl-acts">${on ? "" : `<button class="btn primary" id="hl-on">PUT IT ON</button>`}<button class="mt-not" id="hl-x">${on ? "Rock on" : "Not now"}</button></div></div></div>`;
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("hl-scrim").onclick = close; document.getElementById("hl-x").onclick = close;
@@ -483,7 +483,7 @@ function guitarEarned(road) {
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
         <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
-        ${CASE_ART[gn.guitar.body] ? `<img class="sc-case-pic" src="art/show/case-${CASE_ART[gn.guitar.body]}-${document.documentElement.dataset.look === "festival" ? "light" : "dark"}.webp" alt="">`
+        ${CASE_ART[gn.guitar.body] ? `<img class="sc-case-pic" src="art/show/case-${CASE_ART[gn.guitar.body]}-${["festival", "green"].includes(document.documentElement.dataset.look) ? "light" : "dark"}.webp" alt="">`
           : `<span class="sc-case"><span class="sc-guitar">${guitarPic(gn.guitar.body) ? (bp => `<img src="${bp.src}"${bp.attr} alt="">`)(buildPic(gn.next, data.builds?.[gn.next], guitarPic(gn.guitar.body))) : guitarSVG(gn.next, { full: true })}</span></span>`}
         <span class="sc-label">${esc(gn.guitar.name)}</span>
         <span class="sc-louie">${louie("cheer", { size: 96 })}</span>

@@ -97,26 +97,26 @@ test("Road Ready: Auto follows the phone between Road Ready dark and light", { s
   }
 });
 
-test("Green Room and Headliner get no Road Ready tokens and keep their own colours, fonts and buttons", { skip: skip() }, async t => {
+test("Green Room and Headliner use the Road Ready layout, type and plate, in their own palettes", { skip: skip() }, async t => {
   const want = {
-    green: { bg: "#E6EFE7", accent: "#FF5A4E", sans: /Nunito/, display: /Fredoka/ },
-    headliner: { bg: "#16171B", accent: "#8A47F5", sans: /Nunito/, display: /Fredoka/ }
+    green: { base: "#E6EFE7", amber: "#FF8A7A", ink: "#9C2C24" },
+    headliner: { base: "#16171B", amber: "#6D28D9", ink: "#D4B4FF" }
   };
   for (const [look, w] of Object.entries(want)) {
-    const page = await phone(t, libWith(look));
+    const page = await phone(t, libWith(look), { colorScheme: look === "green" ? "light" : "dark" });
     assert.equal(await page.evaluate(() => document.documentElement.dataset.look), look);
-    assert.equal(await prop(page, "--rr-base"), "", `${look}: --rr-base is empty`);
-    for (const n of RR) assert.equal(await prop(page, "--rr-" + n), "", `${look}: --rr-${n} is empty`);
-    for (const n of ["--type-body", "--type-display", "--sp-1", "--r-plate", "--margin", "--mesh", "--chrome-pipe"]) assert.equal(await prop(page, n), "", `${look}: ${n} is empty`);
-    assert.equal((await prop(page, "--bg")).toUpperCase(), w.bg, `${look}: --bg`);
-    assert.equal((await prop(page, "--accent")).toUpperCase(), w.accent, `${look}: --accent`);
-    assert.match(await prop(page, "--sans"), w.sans, `${look}: --sans`); assert.match(await prop(page, "--display"), w.display, `${look}: --display`);
-    assert.equal(await prop(page, "--r"), "14px", `${look}: --r`); assert.match(await prop(page, "--mono"), /^ui-monospace/, `${look}: --mono`);
+    for (const n of RR) assert.notEqual(await prop(page, "--rr-" + n), "", `${look}: --rr-${n} is set`);
+    assert.equal((await prop(page, "--rr-base")).toUpperCase(), w.base, `${look}: ground`);
+    assert.equal((await prop(page, "--rr-amber")).toUpperCase(), w.amber, `${look}: accent fill`);
+    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), w.ink, `${look}: accent text`);
+    assert.match(await prop(page, "--sans"), /Inter/, `${look}: text is Inter`);
+    assert.match(await prop(page, "--display"), /Space Grotesk/, `${look}: titles are Space Grotesk`);
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundImage);
-    assert.equal(bg, "none", `${look}: no tolex on the body`);
+    assert.match(bg, /tolex-(cream|dark)\.webp/, `${look}: the tolex tile`);
     const b = await probe(page);
-    assert.equal(b.primary.radius, "16px", `${look}: the chunky primary button`); assert.equal(b.primary.img, "none"); assert.equal(b.secondary.radius, "16px");
-    assert.match(b.primary.font, /Fredoka/);
+    assert.equal(b.primary.radius, "12px", `${look}: the engraved plate`);
+    assert.match(b.primary.font, /Space Grotesk/);
+    assert.match(b.primary.img, /linear-gradient/);
   }
 });
 
@@ -401,13 +401,13 @@ test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: 
   }
 });
 
-test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg banner, finger dots, the message card without Louie)", { skip: skip() }, async t => {
+test("Road Ready 02: Green Room and Headliner use the same Road as Dark and Light (one-row header, fans and streak, no Louie)", { skip: skip() }, async t => {
   for (const look of ["green", "headliner"]) {
-    const page = await phone(t, roadLib(look, MID), { home: true });
-    await page.waitForSelector(".rd-path"); await settled(page);
-    assert.equal(await page.locator(".rr-hdr, .rr-row, .rr-stats, .rr-tn-stop, .rr-sign, .rd-peek, .rr-say, .rd-conn, .rd-node.rr").count(), 0, `${look}: none of Road Ready`);
-    assert.equal(await page.locator(".rd-say svg.louie, .rd-say .louie").count(), 0, `${look}: no Louie on the Road`);
-    for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say #rd-bubble", ".rd-say .rd-tonight", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
+    const page = await phone(t, roadLib(look, MID), { home: true, colorScheme: look === "green" ? "light" : "dark" });
+    await page.waitForSelector("header.rr-head #h-streak"); await settled(page);
+    assert.ok(await page.locator("#h-fans").count() >= 1, `${look}: fans stay on the Road`);
+    assert.equal(await page.locator(".rd-banner, #rd-book, #rd-bubble, .rd-sbk, .rd-say .louie").count(), 0, `${look}: no old banner, message or Songbook bar`);
+    assert.equal(await page.locator("#app svg.louie, #app .louie, #app img[src*='louie']").count(), 0, `${look}: no Louie on the Road`);
   }
 });
 
@@ -465,11 +465,10 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
   }
 });
 
-test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: skip() }, async t => {
-  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true });
-  await page.waitForSelector(".rd-gt #gt-x");
-  assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
-  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*Cornerstone is yours for Leg 2/);
+test("Road Ready 06: Green Room uses the same new-guitar sheet as Dark and Light", { skip: skip() }, async t => {
+  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true, colorScheme: "light" });
+  await page.waitForSelector(".rd-gt.rr-case #gt-x");
+  assert.match(await page.innerText(".rd-gt"), /New guitar earned[\s\S]*Cornerstone/);
 });
 
 test("4.108.1 the Road scrolls up and down only, never sideways, in Dark and Light", { skip: skip() }, async t => {

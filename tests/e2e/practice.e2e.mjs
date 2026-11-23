@@ -185,12 +185,12 @@ test("4.23.0 Your changes in Rehearse: three rows with why and landed, Drill, an
   assert.match(await page.innerText("h1.title"), /C to Dm/);
 });
 
-/* Road Ready (step 02, Graham 2026-11-17) took the button off its Road, since Rehearse is a tab; Green Room and Headliner keep it */
-test("4.42.5 the Road's Rehearse button opens Rehearse with the tab bar, so you can get back (Green Room)", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
-  await page.click("#rd-book"); await page.waitForSelector(".rh-lesson");
+/* Rehearse is a tab in every look, including Green Room */
+test("4.42.5 the Rehearse tab opens Rehearse with the tab bar, so you can get back (Green Room)", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { has: ["green"], lconv: 1 } }, { home: true, colorScheme: "light" });
+  await page.click("#tabs [data-tab=rehearse]"); await page.waitForSelector(".rh-lesson");
   assert.equal(await page.evaluate(() => location.hash), "#/practice");
   await page.waitForSelector("#tabs [data-tab=rehearse][aria-current=page]", { state: "visible" });
   await settled(page);
-  await page.click("#tabs [data-tab=road]"); await page.waitForSelector("#rd-book");
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector("header.rr-head");
 });

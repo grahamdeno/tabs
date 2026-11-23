@@ -23,8 +23,8 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const shortDay = d => { const [y, m, dd] = String(d).split("-"); return y && m ? `${MONTHS[+m - 1]} ${+dd || ""}${y !== String(new Date().getFullYear()) ? `, ${y}` : ""}`.replace(" ,", ",") : ""; };
 const hoursText = h => h >= 10 ? Math.round(h).toString() : h >= 1 ? h.toFixed(1) : String(Math.round(h * 60));
 const hoursUnit = h => h >= 1 ? "hours" : "minutes";
-/* Road Ready 08: the Dark and Light looks (data-look neon and festival) draw Me as r10-06; Green Room and Headliner keep the earlier page */
-const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* Road Ready: every look draws Me as r10-06. Green Room and Headliner use the same page with their own palettes. */
+const rrLook = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 const COIN = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" class="rr-coin"/><circle cx="12" cy="12" r="7.4" fill="none" class="rr-coin-ring"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" class="rr-coin-ink" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 
 export function renderProfile() {
@@ -141,15 +141,12 @@ export function renderProfile() {
     <nav class="rr-card rr-rows" aria-label="Your places">
       ${rrRow("pf-r-band", "amp", "Your band", "", "#/band")}
       ${rrRow("pf-r-charts", "star", "Charts and duels", "", "#/charts")}
-      ${rrRow("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
       ${nothing ? "" : rrRow("pf-share", "share", "Share your player card", "", "")}
+      ${rrRow("pf-r-support", "heart", "Tip jar for Louie <span class=\"rr-opt\">(optional)</span>", "", "#/support")}
       ${rrRow("pf-r-help", "info", "Help and feedback", "", "#/settings/help")}
     </nav>
     ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary><p class="rr-facts">Nights in a row: <b>${p.streak}</b> · Shows played: <b>${num(data.gig?.shows || 0)}</b></p>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
-
-    <div class="pf-label rr-support-h"><span>SUPPORT THE APP</span></div>
-    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v4/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
     </div>`;
   app.innerHTML = rr ? rrHTML : `
     <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
@@ -160,11 +157,11 @@ export function renderProfile() {
   document.getElementById("back")?.addEventListener("click", () => go("#/"));
   document.getElementById("pf-name")?.addEventListener("click", () => nameSheet());
   document.getElementById("pf-miles")?.addEventListener("click", () => milesSheet(order.map(badge).join(""), badges));
-  document.getElementById("pf-r-tune").onclick = () => openTuner("standard", () => {
+  document.getElementById("pf-r-tune")?.addEventListener("click", () => openTuner("standard", () => {
     if (route().name !== "you") return;
     renderProfile(); /* the dot on the Tuner row and on the Me tab clears */
     paintTabs(tabFor("you"));
-  });
+  }));
   document.getElementById("pf-map")?.addEventListener("click", () => go("#/playmap"));
   document.getElementById("pf-me")?.addEventListener("click", () => makerSheet({ mode: "full", done: () => renderProfile() }));
   document.getElementById("pf-band")?.addEventListener("click", () => go("#/band"));

@@ -29,7 +29,7 @@ let gig = null; /* the show on stage, or null */
 const $ = id => document.getElementById(id);
 
 /* Road Ready is the Dark and Light looks; Green Room and Headliner keep the earlier screens */
-const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+const rrLook = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 /* the reward tiles' icons (spec 5.7): a fan and a coin */
 const FANS_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c.6-3.3 2.8-5 5.5-5s4.9 1.7 5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.5" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.5 13.6c2.6-.2 4.5 1.3 5 4.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 const COIN_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
@@ -50,7 +50,7 @@ function shell(song) {
     <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
     <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
-      ${["neon", "festival"].includes(document.documentElement.dataset.look)
+      ${["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look)
         ? /* 4.108.0 (Graham, 2026-11-19): a control bar like an amp's: Speed, a lit Pause, then Loop and Tools as small knobs */
           `<div class="gg-bar" role="group" aria-label="Song controls"><button class="gg-sb gg-speed" id="gg-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>
           <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div>
@@ -195,7 +195,7 @@ const HINT_MS = 5000, HINT_FADE = 250;
 /* the first song (one-row Road, 2026-11-19): Louie's first line, which left the Road, shows once inside the playing screen, in
    the same cream frame as the hint, and fades on its own */
 function firstLine(g) {
-  if (data.settings.used?.firstLine || playSongs(data).some(s => (s.playLog?.total || 0) > 0) || !["neon", "festival"].includes(document.documentElement.dataset.look)) return;
+  if (data.settings.used?.firstLine || playSongs(data).some(s => (s.playLog?.total || 0) > 0) || !["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look)) return;
   markUsed("firstLine");
   const el = document.createElement("div");
   el.className = "gg-hint gg-first"; el.setAttribute("role", "status");
@@ -205,7 +205,7 @@ function firstLine(g) {
 }
 function hintShow(g) {
   /* Road Ready looks only: Green Room and Headliner keep the show as it was, and don't use up the one-time hint */
-  if (g.hint || data.settings.used?.playHint || !["neon", "festival"].includes(document.documentElement.dataset.look)) return;
+  if (g.hint || data.settings.used?.playHint || !["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look)) return;
   markUsed("playHint");
   const el = document.createElement("div");
   el.className = "gg-hint"; el.id = "gg-hint";
@@ -379,7 +379,7 @@ function showComplete() {
     /* Road Ready 06 (spec 5.6 to 5.8, r10-04): the guitar you played on (its whole picture, as in the case on the Road;
        the drawn guitar with a full-length neck if it has none) stands alone with an amber glow and sparks, the
        cheering Louie beside it, then the reward tiles, the next venue and the buttons; the details follow. No backdrop
-       in these two looks (Graham, 2026-11-18); Green Room and Headliner keep the backdrop and Change below. */
+       on Show complete (Graham, 2026-11-18); every look uses this screen. Backdrops stay at the Merch table. */
     const legs = roadPath(data).legs, leg = legs.find(l => l.stops.some(x => x.state === "now")) || legs.filter(l => l.done).at(-1) || legs[0];
     const gtr = guitarShown(data, leg?.id), gname = gtr.name, gpic = guitarPic(gtr.body), v = venueNow(data);
     const sparks = [[18, 62], [28, 30], [34, 78], [70, 24], [76, 58], [64, 82], [22, 44], [80, 38], [40, 18]].map(([x, y], i) => `<i style="left:${x}%;top:${y}%;--i:${i}"></i>`).join("");

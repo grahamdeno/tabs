@@ -79,7 +79,7 @@ const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDIN
 /* 4.52.0: a show you paused is held on the song page; Play picks it up again */
 /* 4.109.0 (Graham, 2026-11-19): in Dark and Light the song page's bar is the same amp-style bar as the Gig's: Speed, a round
    lamp-lit Play, then Loop and Tools as small knobs. The wide Tools + RESUME bar is gone there. */
-const rrAmp = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+const rrAmp = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
 const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
@@ -509,7 +509,7 @@ const LYRIC_RR = 34;
 let fitWait = false;
 function fitText(sheet, song) {
   const base = 17 * sysText;
-  const rr = ["neon", "festival"].includes(document.documentElement.dataset.look);
+  const rr = ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
   sheet.classList.toggle("rr-slots", rr);
   if (rr) return fitSlots(sheet, song);
   sheet.style.setProperty("--lyric-size", base.toFixed(1) + "px");

@@ -58,7 +58,7 @@ const tag = (it, st) => it.kind === "gear" ? price(it, st)
 let mcTab = "guitars";
 /* open the table on a tab (Settings opens it on Looks for a look you don't have) */
 export const merchTab = k => { if (["guitars", "looks", "gear"].includes(k)) mcTab = k; };
-const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+const rrLook = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
 export function renderMerch() {
   const st = merchState(data), rr = rrLook();
   const of = k => MERCH.filter(x => x.kind === k);

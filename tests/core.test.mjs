@@ -2986,21 +2986,39 @@ test("Road Ready: the status colours stay readable on the base, a card and a wel
   }
 });
 
-test("Road Ready: its tokens exist for both looks and for no other look", () => {
+test("Road Ready: Green Room and Headliner status colours stay readable on their surfaces", () => {
+  for (const [label, block] of [["green", rrBlock("green")], ["headliner", rrBlock("headliner")]]) {
+    const surfaces = ["base", "card", "mesh"].map(n => rrHex(block, "--rr-" + n));
+    for (const name of ["--bad", "--good", "--streak", "--fans-text", "--strings"]) {
+      const c = rrHex(block, name);
+      for (const s of surfaces) assert.ok(rrRatio(c, s) >= 4.5, `${label} ${name} ${c} on ${s}: ${rrRatio(c, s).toFixed(2)}`);
+    }
+    assert.ok(rrRatio(rrHex(block, "--rr-on-amber"), rrHex(block, "--rr-amber")) >= 4.5, `${label}: text on the accent fill`);
+    assert.ok(rrRatio(rrHex(block, "--rr-text"), rrHex(block, "--rr-base")) >= 7, `${label}: body text`);
+    assert.ok(rrRatio(rrHex(block, "--rr-amber-text"), rrHex(block, "--rr-base")) >= 4.5, `${label}: accent text`);
+  }
+});
+
+test("Road Ready: its tokens exist for all four looks and nowhere else", () => {
   const names = b => [...b.matchAll(/(--rr-[a-z0-9-]+)\s*:/g)].map(m => m[1]).sort();
+  const rrGreen = rrBlock("green"), rrHead = rrBlock("headliner");
   assert.deepEqual(names(rrDark), names(rrLight), "dark and light define the same --rr tokens");
+  assert.deepEqual(names(rrGreen), names(rrDark), "Green Room defines the same tokens");
+  assert.deepEqual(names(rrHead), names(rrDark), "Headliner defines the same tokens");
   assert.deepEqual(names(rrDark).map(n => n.slice(5)), ("amber amber-text base card chord engrave engrave-locked glow glow-core hairline louie-rim lyric-next lyric-now lyric-sung mesh on-amber outline "
     + "pearl-done pearl-locked pearl-now plate-bottom plate-edge plate-text plate-top tab-off text text-2 lift press motion").split(" ").sort(), "all 27 colour tokens are there, plus the raised and pressed shadows and the show and hide timing (design pass, 2026-11-19)");
-  const shared = rrCss.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\]\) \{([^}]*)\}/)[1];
+  const shared = rrCss.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\], \[data-look="green"\], \[data-look="headliner"\]\) \{([^}]*)\}/)[1];
   for (const n of "display title title2 headline body callout subhead footnote caption lyric-now lyric-next lyric-sung chord mono".split(" "))
     assert.match(shared, new RegExp(`--type-${n}: calc\\(var\\(--sys-px, 17px\\) \\* [\\d.]+\\)`), `--type-${n} scales with --sys-px`);
   for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) assert.match(shared, new RegExp(`--sp-${n}: \\d+px`));
   for (const n of ["chip", "control", "card", "strip", "sheet", "plate"]) assert.match(shared, new RegExp(`--r-${n}: `));
   assert.match(shared, /--margin: 16px/); assert.match(shared, /--r: 16px; --r-bar: 18px/);
-  /* Green Room and Headliner (and plain :root) never get a Road Ready value */
-  const outside = rrCss.replace(rrDark, "").replace(rrLight, "");
-  assert.equal([...outside.matchAll(/--rr-[a-z0-9-]+\s*:/g)].length, 0, "no --rr token is defined outside the two Road Ready looks");
+  const outside = rrCss.replace(rrDark, "").replace(rrLight, "").replace(rrGreen, "").replace(rrHead, "");
+  assert.equal([...outside.matchAll(/--rr-[a-z0-9-]+\s*:/g)].length, 0, "no --rr token is defined outside the four looks");
   for (const once of ["--type-body:", "--sp-1:", "--r-plate:", '--readout: "IBM Plex Mono"']) assert.equal(rrCss.split(once).length - 1, 1, `${once} is set once, in the shared Road Ready block`);
+  assert.equal(rrHex(rrHead, "--rr-amber").toLowerCase(), "#6d28d9", "Headliner active colour is violet");
+  assert.equal(rrHex(rrHead, "--rr-chord").toLowerCase(), "#f0c85a", "Headliner chords are gold");
+  assert.equal(rrHex(rrGreen, "--rr-base").toLowerCase(), "#e6efe7", "Green Room keeps its sage ground");
 });
 
 test("Road Ready: the fonts are bundled as woff2 with their licences", () => {

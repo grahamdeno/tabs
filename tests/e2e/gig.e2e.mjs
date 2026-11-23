@@ -53,7 +53,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   const look = await page.evaluate(() => {
     /* Road Ready 05: in the Road Ready looks the chords stand out by colour (amber, or amber-brown on cream) at 4.5:1 or
        more, as the spec's tokens set them; the earlier looks keep 4.58.0's "brighter than the words" */
-    const rr = ["neon", "festival"].includes(document.documentElement.dataset.look);
+    const rr = ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
     const strength = window.__strength, now = document.querySelector("#sheet > .st-now"), next = document.querySelector("#sheet > .st-next"), sheet = document.getElementById("sheet");
     const w = el => +getComputedStyle(el).fontWeight, col = el => strength(el);
     const nc = next?.querySelector(".c");
@@ -236,29 +236,16 @@ test("4.50.0 Now and Next is gone: an intro is lines like any other, and Tools h
 test("4.51.0 one page: a line of the song fits on one line, an intro's chords spread across, a quiet stage light behind the words", { skip: skip() }, async t => {
   const body = "[Intro]\nG   D   Em   C\n\n[Verse]\n" + Array.from({ length: 8 }, (_, i) => `G              D              Em\nThey keep the secrets that the sailors keep ${i}`).join("\n");
   const song = { id: "f", title: "Fit", artist: "A", key: "G", format: "chords", duration: 240, bpm: 80, body };
-  /* Green Room keeps one line per lyric; Dark and Light wrap long lines at full size (Graham, 2026-11-19; see "lyrics are full size") */
-  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
-  await page.evaluate(() => { location.hash = "#/song/f"; }); await page.waitForSelector("#sheet .pr"); await settled(page);
-  const oneLine = () => page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].every(pr => new Set([...pr.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size === 1));
-  /* the size is measured again once the app's font is in (fitText); CI's slower font load showed the fallback's fit (4.63.1) */
+  /* Green Room uses the same full-size lyric layout as Dark and Light, so a long line wraps. */
+  const page = await phone(t, { ...LIB, songs: [song], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false }, merch: { has: ["green"], lconv: 1 } }, { isMobile: true, colorScheme: "light" });
+  await page.evaluate(() => { location.hash = "#/song/f"; }); await page.waitForSelector("#sheet.rr-slots .pr"); await settled(page);
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForFunction(() => [...document.querySelectorAll("#sheet > .pr")].every(pr => new Set([...pr.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size === 1), null, { timeout: 5000 }).catch(() => {});
-  assert.ok(await oneLine(), "every line of the song is one line on screen");
-  const size = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize));
-  assert.ok(size >= 14 && size <= 22, `the text is sized to fit (${size}px)`);
-  const spread = await page.evaluate(() => { const r = document.querySelector("#sheet > .crow"), cs = [...r.querySelectorAll(".c")]; return cs[cs.length - 1].getBoundingClientRect().left - r.getBoundingClientRect().left > r.getBoundingClientRect().width * 0.6; });
+  const wrapped = () => page.evaluate(() => [...document.querySelectorAll("#sheet > .pr")].some(pr => new Set([...pr.querySelectorAll(".w")].map(w => Math.round(w.getBoundingClientRect().top))).size > 1));
+  assert.ok(await wrapped(), "a long line wraps onto a second row");
+  const spread = await page.evaluate(() => { const r = document.querySelector("#sheet > .crow"), cs = [...r.querySelectorAll(".c")]; return cs[cs.length - 1].getBoundingClientRect().left - r.getBoundingClientRect().left > r.getBoundingClientRect().width * 0.4; });
   assert.ok(spread, "an intro's chords spread across the width");
-  const hs = await page.evaluate(() => [document.querySelector("#sheet > .crow"), document.querySelector("#sheet > .pr")].map(e => e.getBoundingClientRect().height));
-  assert.ok(Math.abs(hs[0] - hs[1]) <= 3, `4.56.0: a row of chords with no words is as tall as a sung line, paused too (${hs[0]} and ${hs[1]})`);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
-  assert.ok(await oneLine(), "playing, nothing rewraps");
-  await page.evaluate(() => { /* a redraw during the show measures at the boldest weight, not the stage's */
-    const sh = document.getElementById("sheet"); sh.classList.add("measure");
-    const w = [...sh.querySelectorAll(":scope > .pr")].map(e => getComputedStyle(e).fontWeight); sh.classList.remove("measure");
-    window.__w = w;
-  });
-  assert.ok((await page.evaluate(() => window.__w)).every(x => x === "800"), "4.61.1: lines are measured at 800 even while staged");
-  assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
+  assert.ok(await page.locator("#sheet.rr-slots").count() === 1, "playing keeps the full-size layout");
   /* Road Ready 05 polish (no stage light, the page steps back) moved to "lyrics are full size", which runs in Dark (2026-11-19) */
   /* 4.66.0: no X: Pause, then the page's own Back leaves the show */
   await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
@@ -555,21 +542,14 @@ test("Road Ready 05: Settings has Keep playing controls on screen, off until tur
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.keepControls === true);
 });
 
-test("Road Ready 05: Green Room keeps the show as it was (no title, no progress line, Pause where it was)", { skip: skip() }, async t => {
+test("Road Ready 05: Green Room uses the same show as Dark and Light (title, progress line, Pause on the amp bar)", { skip: skip() }, async t => {
   const page = await strummingPage(t, { ...rr("green"), merch: { has: ["green"] } }, "#/song/g");
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
-  const r = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById("gg-head")).display, prog: getComputedStyle(document.querySelector(".gg-prog")).display, pause: document.getElementById("gg-pause").getBoundingClientRect().left }));
-  assert.equal(r.head, "none"); assert.equal(r.prog, "none");
-  assert.ok(r.pause < 60, "Pause stays at the left");
-  assert.ok(await page.evaluate(() => document.querySelector("#gg-fans").getBoundingClientRect().height >= 50), "the crowd keeps its own row");
-  assert.notEqual(await page.evaluate(() => getComputedStyle(document.getElementById("gg-sec")).display), "none", "and the section pill");
-  assert.ok(await page.evaluate(() => { const b = document.querySelector("#st-bg .st-beam"); return !!b && getComputedStyle(b.parentElement).display !== "none" && b.getBoundingClientRect().bottom <= innerHeight * 0.4 + 1; }), "the stage light, ending above the reading line");
-  assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "and the section band behind the line");
-  /* review fix: no first-run hint in Green Room, and the one-time hint is still unused for the Road Ready looks */
-  await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
-  await page.waitForTimeout(500); /* real timer: the hint would show on the same tick as idle */
-  assert.equal(await page.locator("#gg-hint").count(), 0, "no hint in Green Room");
-  assert.notEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.used?.playHint), true, "the hint isn't used up");
+  const r = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById("gg-head")).display, prog: getComputedStyle(document.querySelector(".gg-prog")).display, pause: document.getElementById("gg-pause").getBoundingClientRect() }));
+  assert.notEqual(r.head, "none", "the title shows");
+  assert.notEqual(r.prog, "none", "the progress line shows");
+  assert.ok(r.pause.width >= 44 && r.pause.height >= 44, "Pause is a 44 px target");
+  assert.ok(await page.locator(".gg-bar #gg-pause").count() === 1, "Pause sits on the amp bar");
 });
 
 for (const theme of ["dark", "light"]) test(`Road Ready 05 polish (${theme}): no band behind the line or stage light while playing, and the run chip and NOW card in Road Ready colours`, { skip: skip() }, async t => {
@@ -667,16 +647,11 @@ test("Road Ready 06: Show complete moves (sparks, one pulse, one hop) and stays 
   }
 });
 
-test("Road Ready 06: Green Room keeps Show complete as it was, with the backdrop you wear and Change", { skip: skip() }, async t => {
+test("Road Ready 06: Green Room uses the same Show complete as Dark and Light", { skip: skip() }, async t => {
   const page = await toComplete(t, "green");
-  assert.equal(await page.locator(".rr-sc, .sc-show").count(), 0);
-  assert.match(await page.innerText(".gc-t"), /Show complete/);
-  assert.equal(await page.locator(".gc-hero .gc-bd svg").count(), 1, "the backdrop is drawn behind the band");
-  assert.match(await page.innerText("#gc-bdc"), /Basement · Change/);
-  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds:not([hidden]) [data-bd='basement']");
-  assert.match(await page.innerText("#gc-bds"), /More at the merch table/);
-  await page.click("#gc-bdc"); await page.waitForSelector("#gc-bds", { state: "hidden" });
-  assert.match(await page.innerText("#gc-encore"), /ENCORE/);
+  assert.ok(await page.locator(".rr-sc .sc-show").count() >= 1, "the glowing guitar");
+  assert.match(await page.innerText(".sc-over"), /SHOW COMPLETE/);
+  assert.match(await page.innerText("#gc-encore"), /Play it again/);
 });
 
 test("Road Ready 06: at large text Show complete scrolls, with nothing running off the side", { skip: skip() }, async t => {
@@ -764,9 +739,10 @@ test("4.111.0 Speed shows its setting, lit when not 1.0x, on the song page and i
   assert.equal(await page.locator(".dial-reset:not([hidden])").count(), 0, "no Back to 1.0x when it is already 1.0x");
 });
 
-test("4.108.0 Green Room keeps the single Pause button", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
+test("4.108.0 Green Room uses the same amp bar as Dark and Light, with Pause in the middle", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false }, merch: { has: ["green"], lconv: 1 } }, { isMobile: true, colorScheme: "light" });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  await page.click("#play"); await page.waitForSelector("#gg-pause");
-  assert.equal(await page.locator(".gg-bar").count(), 0);
+  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
+  assert.equal(await page.locator(".gg-bar").count(), 1);
+  assert.equal(await page.locator(".gg-bar #gg-pause").count(), 1, "Pause is on the bar");
 });

@@ -43,7 +43,7 @@ function next() {
   showing = true;
   /* 4.99.0 (Grok's review): in Light and Dark there's no comic burst (POW, KA-CHING, bolts); the news is an engraved plate with
      Louie beside it. Green Room and Headliner keep the bursts. */
-  const rrLook = ["neon", "festival"].includes(document.documentElement.dataset.look);
+  const rrLook = ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
   const look = rrLook ? "plate" : pickLook(c.kind, lastLook[c.kind]); lastLook[c.kind] = look;
   const cast = dataRef ? castFor(dataRef, c.kind, lastCast, Math.random(), c.who) : null;
   if (cast) lastCast = cast;

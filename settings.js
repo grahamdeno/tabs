@@ -74,7 +74,7 @@ function renderSettings() {
             : `<button data-t="${k}" class="locked" aria-label="${n}, at the Merch table">${icon("lock")}${n}</button>`).join(""); })()}</div>
       </div>
     </div>
-    <p class="foot">Light is Road Ready light and Dark is Road Ready dark. Green Room is at the Merch table for tips, and Headliner, black and gold under a blacklight, is yours once you headline a show. Auto follows your phone between Light and Dark.</p>
+    <p class="foot">Light is Road Ready light and Dark is Road Ready dark. Green Room is at the Merch table for tips, and Headliner, violet and gold on black, is yours once you headline a show. Auto follows your phone between Light and Dark.</p>
     <p class="foot">On a phone held upright, the whole bar shows while a song is paused. Press Play and it folds into Play's corner; pause and it comes back. At the top of a paused song, pull down to go back.</p>`],
     newsongs: ["New songs", `
     <div class="set-group glass">

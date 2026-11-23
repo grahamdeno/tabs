@@ -32,7 +32,7 @@ const SCREENS = [
   ["merch", "#/merch"], ["merch item", "#/merch", async p => { if (await p.locator("#mc-t-looks").count()) await p.click("#mc-t-looks"); await p.click(".mc-drop[data-id=brick]"); }],
   ["charts", "#/charts"], ["tour", "#/tour"], ["band", "#/band"], ["profile", "#/you"], ["map", "#/playmap"],
   ["practice", "#/practice"], ["settings", "#/settings"], ["settings: playing", "#/settings/playing"], ["settings: look", "#/settings/look"],
-  ["tuner from me", "#/you", p => p.click("#pf-r-tune")],
+  ["tuner from songbook", "#/library", p => p.click("#tunerbtn")],
   ["set", "#/set/s"], ["trash", "#/trash"], ["gestures", "#/gestures"],
   ["show complete", "#/song/g", async p => { await p.click("#play"); await p.waitForSelector(".gc", { timeout: 40000 }); await p.waitForFunction(() => !document.querySelector(".co"), null, { timeout: 15000 }).catch(() => {}); }]
 ];

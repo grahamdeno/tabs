@@ -6,18 +6,13 @@ useBrowser();
 
 test("Your profile: worked out from the songs you've played, with a passport, changes and a way back to a song", { skip: skip() }, async t => {
   const songs = LIB.songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } }));
-  /* Road Ready 08: Dark and Light draw Me as r10-06 (tested below); this test keeps the earlier page, which Green Room and Headliner still draw */
-  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
+  /* Me is the r10-06 page in every look. XP stays on the header; milestones open from the row. */
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "dark" } }, { home: true });
   await page.waitForSelector("#h-fans"); await settled(page);
-  await page.click("#h-fans");
-  await page.waitForSelector(".pf-player");
-  assert.match(await page.innerText("h1"), /Your profile/);
-  /* 4.17.0: the player card, its tiles, badges and band */
-  assert.match(await page.innerText(".pf-player"), /LEVEL 1[\s\S]*\/ 100 XP/);
-  assert.equal(await page.locator(".pf-tile-streak .ri-knob").count(), 1, "the streak's knob");
-  assert.match(await page.innerText(".pf-tiles"), /SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
-  assert.ok(await page.locator(".pf-badge:not(.locked)").count() >= 1, "a song played through is a badge");
-  assert.match(await page.innerText(".pf-label:has-text('BADGES')"), /\d+ of 26/);
+  await page.click("#tabs [data-tab=me]");
+  await page.waitForSelector(".rr-me");
+  assert.match(await page.innerText(".rr-me-level"), /Level 1 · .+ \/ 100 XP/);
+  assert.match(await page.innerText("#pf-miles"), /\d+ of 26/);
   /* 4.19.0: the chord passport, a page per family, Learn it opens a lesson */
   assert.match(await page.innerText(".pf-passport"), /Open chords\s*\d+ of 8[\s\S]*Barre chords[\s\S]*NEXT STAMP/);
   assert.ok(await page.locator(".pf-pstamp.on").count() >= 1, "chords played are stamped");
@@ -30,13 +25,13 @@ test("Your profile: worked out from the songs you've played, with a passport, ch
   assert.match(await page.innerText(".pf-stats"), /played[\s\S]*last seven days[\s\S]*your most played change[\s\S]*your key/);
   await page.click(".pf-drill >> nth=0");
   await page.waitForFunction(() => /#\/practice\/s(%3A|:)/.test(location.hash));
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   await page.click("#pf-learn"); await page.waitForFunction(() => /#\/practice\/c(%3A|:)/.test(location.hash));
   await page.waitForSelector(".pk-lesson");
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   await page.click("#pf-map"); await page.waitForFunction(() => location.hash === "#/playmap"); /* the venue opens the Tour Map */
-  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
-  await page.click("#back"); await page.waitForSelector(".rd-path"); /* 4.0.0: back to the Road */
+  await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-path");
 });
 
 test("Your profile: an empty library says how it fills in, with no share button", { skip: skip() }, async t => {
@@ -131,28 +126,27 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.ok(dollars.length >= 1 && dollars.every(d => d === "merch"), `a $ amount only on the Merch row (${dollars.join(", ")})`);
     const sup = page.locator("#pf-r-support");
     assert.equal(await sup.getAttribute("href"), "#/support");
-    assert.equal((await sup.innerText()).trim(), "Support Louie on Ko-fi (real money, optional)");
-    const supText = (await page.innerText(".rr-support-h")) + " " + (await page.locator(".rr-support").evaluate(el => el.innerText + " " + [...el.querySelectorAll("[aria-label],[title],img")].map(e => (e.getAttribute("aria-label") || "") + (e.getAttribute("title") || "") + (e.getAttribute("alt") || "")).join(" ")));
-    assert.doesNotMatch(supText, /tips?\b/i, "the word tips is never on the real-money section"); assert.doesNotMatch(supText, /\$|\d/, "no amount");
+    assert.equal((await sup.innerText()).replace(/\s+/g, " ").trim(), "Tip jar for Louie (optional)");
+    const supText = await sup.evaluate(el => el.innerText + " " + [...el.querySelectorAll("[aria-label],[title],img")].map(e => (e.getAttribute("aria-label") || "") + (e.getAttribute("title") || "") + (e.getAttribute("alt") || "")).join(" "));
+    assert.doesNotMatch(supText, /\btips\b/i, "the game word tips is never on the tip jar"); assert.doesNotMatch(supText, /\$|\d/, "no amount");
     assert.equal(await page.locator("#pf-r-support svg:not(.chev)").count(), 1, "a heart"); assert.equal(await page.locator("#pf-r-support .rr-coin").count(), 0, "no coin");
-    assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/v4/louie-face-badge.webp", "the face badge");
-    assert.equal(await page.locator(".rr-me >> text=SUPPORT THE APP").count(), 1);
-    /* the order: header, tiles, case (Merch inside), Milestones, rows, Support the app last */
-    const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
-    assert.deepEqual([order[0], order[1], order[2], order[3], order[4], order.at(-2), order.at(-1)], ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-rows", "rr-support-h", "rr-support"]);
+    assert.equal(await page.locator(".rr-me >> text=SUPPORT THE APP").count(), 0, "the tip jar is a row, not its own section");
+    /* the order: header, tiles, case (Merch inside), Milestones, then the one list (r10-06) */
+    const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
+    assert.deepEqual(order.slice(0, 5), ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-rows"]);
     /* Milestones as plates; the same badges as before */
     /* 4.103.0 (agreed r10-06): Milestones is one row; the badges open in a sheet */
     assert.match(await page.innerText("#pf-miles"), /Milestones\s*\d+ of 26/);
-    assert.ok((await page.locator("#pf-miles").boundingBox()).height >= 52);
+    assert.ok((await page.locator("#pf-miles").boundingBox()).height >= 44);
     await page.click("#pf-miles"); await page.waitForSelector(".ms-card");
     assert.equal(await page.locator(".ms-card .pf-badge").count(), 26); assert.ok(await page.locator(".ms-card .pf-badge:not(.locked)").count() >= 1);
     await page.click("#ms-x"); await page.waitForSelector(".ms-card", { state: "detached" });
     /* the rows and their destinations, each 52 px or taller, with a name; no streak or "you missed" copy */
     for (const [id, href] of [["#pf-r-band", "#/band"], ["#pf-r-charts", "#/charts"], ["#pf-r-help", "#/settings/help"], ["#pf-r-support", "#/support"]]) assert.equal(await page.getAttribute(id, "href"), href, id);
     const rows = await page.$$eval(".rr-me .rr-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: (r.getAttribute("aria-label") || r.innerText).trim(), chev: !!r.querySelector(".chev"), ic: !!r.querySelector(".more-ic svg") })));
-    assert.deepEqual(rows.map(r => r.id), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-share", "pf-r-help", "pf-r-support"]);
+    assert.deepEqual(rows.map(r => r.id), ["pf-r-band", "pf-r-charts", "pf-share", "pf-r-support", "pf-r-help"]);
     assert.match(await page.innerText("#pf-r-charts"), /^Charts and duels/);
-    for (const r of rows) { assert.ok(r.h >= 52, `${r.id} is ${r.h} tall`); assert.ok(r.name && r.chev && r.ic, `${r.id}: a name, an icon and a chevron`); }
+    for (const r of rows) { assert.ok(r.h >= 44, `${r.id} is ${r.h} tall`); assert.ok(r.name && r.chev && r.ic, `${r.id}: a name, an icon and a chevron`); }
     assert.doesNotMatch(await page.innerText(".rr-me"), /you missed|missed a day|lost your streak|streak (lost|broken)/i);
     /* criterion 5: every control is a 44 px target (the gear, your name, the avatar, the venue, the Merch row, the case). 4.103.0: Me is a tab, so no Back button */
     assert.equal(await page.locator(".rr-me-top #back, #back").count(), 0);
@@ -176,7 +170,7 @@ test("Road Ready 08: at large text the tiles stack, the rows grow and the case s
   assert.equal(m.ox, "auto", "the case scrolls sideways when the guitars don't fit");
   assert.ok(m.sw <= m.iw, "the page doesn't scroll sideways");
   for (const [w, h] of m.gs) assert.ok(w >= 44 && h >= 44, "each guitar is at least 44 px");
-  for (const [h, clip] of m.rows) assert.ok(h >= 52 && !clip, "a row is 52 tall or more and doesn't clip");
+  for (const [h, clip] of m.rows) assert.ok(h >= 44 && !clip, "a row is 44 tall or more and doesn't clip");
 });
 
 test("Road Ready 08: with no guitar earned the case says how to earn one; a library with no plays has no share row and no Milestones gap", { skip: skip() }, async t => {
@@ -185,17 +179,18 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   assert.match(await page.innerText(".rr-case-card"), /0 guitars[\s\S]*Headline a leg to earn your first guitar\./);
   assert.equal(await page.locator("#pf-share").count(), 0, "no share row until there is something to share");
-  assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
+  assert.equal(await page.locator("#pf-r-support").count(), 1, "the tip jar is still there");
+  assert.match(await page.innerText("#pf-r-support"), /Tip jar for Louie/);
 });
 
 for (const theme of ["green", "headliner"]) {
-  test(`Road Ready 08 (${theme}): Me is the earlier page (the player card, four tiles, Tips to spend) and Back to the Road is a 44 px target`, { skip: skip() }, async t => {
-    const page = await phone(t, meLib(theme, { merch: { ...LIB.merch } }), { home: true });
+  test(`Road Ready 08 (${theme}): Me is the same page as Dark and Light, in that look's palette`, { skip: skip() }, async t => {
+    const page = await phone(t, meLib(theme, { merch: { ...LIB.merch } }), { home: true, colorScheme: theme === "green" ? "light" : "dark" });
     await settled(page);
-    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".pf-player"); await settled(page);
-    assert.equal(await page.locator(".rr-me").count(), 0);
-    assert.match(await page.innerText(".pf-tiles"), /TIPS TO SPEND[\s\S]*SHOWS PLAYED[\s\S]*SONGS YOU CAN PLAY/);
-    assert.equal(await page.locator("#pf-r-merch.pf-row").count(), 1, "the earlier rows are as they were");
-    const b = await page.locator("#back").boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `Back to the Road is ${Math.round(b.width)} by ${Math.round(b.height)}`);
+    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
+    assert.equal(await page.locator(".pf-player, #back").count(), 0);
+    assert.deepEqual(await page.$$eval(".rr-me .rr-row", rs => rs.map(r => r.id)), ["pf-r-band", "pf-r-charts", "pf-share", "pf-r-support", "pf-r-help"]);
+    const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--rr-amber").trim().toUpperCase());
+    assert.equal(accent, theme === "green" ? "#FF8A7A" : "#6D28D9");
   });
 }

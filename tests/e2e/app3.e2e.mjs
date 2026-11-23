@@ -348,8 +348,8 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   assert.equal(await page.locator(".rd-node.box.now").count(), 0, "opened, the road moves on");
 });
 
-/* Road Ready (step 02) draws the Road anew in the Light and Dark looks (roadready.e2e.mjs); Green Room and Headliner keep this one */
-test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with its current stop open, the message, the Songbook bar and the tab bar", { skip: skip() }, async t => {
+/* Green Room uses the same Road as Dark and Light. The old banner, finger dots and Songbook bar are gone. */
+test("The Road is home (4.0.0, Green Room): the header, the path, tonight's gig and the tab bar", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
@@ -357,27 +357,19 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator(".hud #h-streak").count(), 1, "the stat bar has the streak");
   assert.match(await page.innerText("#h-fans"), /\d/, "and your fans");
-  assert.match(await page.innerText(".rd-banner"), /LEG 1[\s\S]*Open chords/);
+  assert.match(await page.innerText(".rd-legmark.cur"), /leg 1/i);
   assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
   assert.equal(await page.locator(".rd-pop, .rd-flag").count(), 0, "4.35.0: nothing open on arrival, no flag");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-node.now .rd-halo")).animationName), "rd-halof", "the halo pulses");
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /The G chord[\s\S]*\+5 fans[\s\S]*START/, "a tap opens its card: what you'd earn, then Start (4.75.0)");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-pop.now .rd-start")).backgroundColor), "rgb(255, 255, 255)", "4.75.1: Start is white on the card");
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop", { state: "detached" });
-  assert.equal(await page.locator(".rd-node .rd-dot").count() > 3, true, "the lessons are finger dots");
-  assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next dot");
-  assert.ok(await page.locator(".rd-say svg.louie").count() === 0 && await page.locator(".rd-say #rd-bubble").count() === 1, "the message stays beside the path, without Louie (10b)");
+  assert.equal(await page.locator("#rd-bubble, .rd-say .louie").count(), 0, "no Louie and no tip on the Road");
   assert.equal(await page.locator(".rd-node.headline").count() >= 1, true, "each leg ends in a headline show");
-  assert.equal(await page.locator(".rd-node.headline .rd-inlay").count(), await page.locator(".rd-node.headline").count(), "4.82.0: a show is the double inlay");
-  assert.equal(await page.locator(".rd-tag").count(), 1, "4.75.0: one tag, on the next stop");
-  assert.equal(await page.innerText(".rd-stop.cur .rd-tag"), "G chord");
   assert.equal(await page.locator(".rd-node.box").count() >= 1, true, "with merch boxes along the way");
   /* another pick: a small bubble; a tap anywhere else closes it */
   await page.click(".rd-node.locked >> nth=0");
   assert.match(await page.innerText(".rd-pop"), /Its lesson opens when you get here\.[\s\S]*Songs count already: play C in \d more songs?, start to finish \(\d of 5\)/, "4.83.0: a locked chord says songs count toward it already");
-  await page.click(".rd-legmark >> nth=1"); await page.waitForSelector(".rd-pop", { state: "detached" });
-  assert.equal(await page.locator(".rd-node.box .rd-inlay").count(), await page.locator(".rd-node.box").count(), "4.82.0: a merch box is a single inlay");
+  await page.keyboard.press("Escape"); await page.waitForSelector(".rd-pop", { state: "detached" });
   /* tonight's song plays as a gig (4.1.0) */
   await page.click("#rd-tonight");
   await page.waitForSelector("#gig");
@@ -388,18 +380,11 @@ test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with 
   await page.click(".shead .sh-back");
   await page.waitForSelector(".rd-path");
   assert.equal(await page.evaluate(() => location.hash), "#/", "and Back goes to the Road");
-  /* 4.9.0: the Road never scrolls; the Songbook is a bar along the bottom that opens its page */
-  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "the Road does not scroll");
-  assert.equal(await page.locator("#rd-drawer").count(), 0, "no drawer");
-  assert.match(await page.innerText("#rd-songbook"), /Songbook[\s\S]*2 songs/);
-  const bar = await page.locator(".rd-sbk").boundingBox(), tabsTop = (await page.locator("#tabs").boundingBox()).y;
-  assert.ok(bar.y + bar.height <= tabsTop, "above the tab bar");
-  await page.click("#rd-songbook"); await page.waitForFunction(() => location.hash === "#/library");
+  assert.equal(await page.locator("#rd-drawer, .rd-sbk").count(), 0, "no drawer and no floating Songbook bar");
+  await page.click("#tabs [data-tab=songbook]"); await page.waitForFunction(() => location.hash === "#/library");
   assert.match(await page.innerText("h1.title"), /Songbook/);
   assert.ok(await page.locator("#list .row").first().isVisible(), "the songs");
-  await page.click("#libback"); await page.waitForSelector(".rd-path");
-  await page.click("#rd-search"); await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
+  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-path");
   /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0) and Your band (4.7.0), from Me since Road Ready 04; the gear on Me reaches Settings; the current stop's Start opens its lesson */
   assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
   await page.click("#tabs [data-tab=tour]"); await page.waitForSelector("#tm-month"); /* the Tour tab opens the Tour Map; the month's tour is a button on it */
@@ -555,20 +540,11 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
 
 test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road; before typing only what helps; typing shows your songs, then rows that say what they do", { skip: skip() }, async t => {
   const songs = LIB.songs.map((x, i) => i ? x : { ...x, opened: Date.now() - 3600e3 });
-  /* 4.99.0: the Road's Songbook and search bar stays in Green Room and Headliner (Light and Dark have the Songbook tab) */
-  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true, permissions: ["clipboard-read", "clipboard-write"] });
+  /* Search lives on the Songbook in every look. The Road no longer has its own search bar. */
+  const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { has: ["green"], lconv: 1 } }, { home: true, colorScheme: "light", permissions: ["clipboard-read", "clipboard-write"] });
   await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show", releaseDate: "2004-01-01" }, { trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show" }, { trackName: "Wagon Wheel", artistName: "Darius Rucker" }] }) }));
-  /* the Road: Songbook and Search or add, both labelled */
-  await page.waitForSelector("#rd-search"); await settled(page);
-  assert.match(await page.innerText("#rd-songbook"), /Songbook[\s\S]*2 songs/);
-  assert.match(await page.innerText("#rd-search"), /Search or add a song/);
-  await page.click("#rd-search"); await page.waitForSelector("#sr-browse");
-  assert.match(await page.innerText("#sr-browse"), /Open your Songbook[\s\S]*2 songs/, "from the Road, the Songbook is the first row");
-  assert.match(await page.innerText("#list"), /Not in your Songbook yet\?[\s\S]*Paste[\s\S]*Sing it[\s\S]*Write one from scratch/i);
-  assert.equal(await page.locator(".sr-card").count(), 0, "4.49.2: no recent songs here; the Songbook has those");
-  assert.equal(await page.locator("#sr-scan").count(), 0, "Scan needs the AI");
-  await page.click("#sr-browse"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
+  await page.click("#tabs [data-tab=songbook]"); await page.waitForSelector("#q"); await settled(page);
   /* the Songbook: one bar, its + opens the same screen without the Songbook row */
   assert.equal(await page.getAttribute("#q", "placeholder"), "Search or add a song");
   assert.ok((await page.locator(".dock .cmd").boundingBox()).width > 300, "a full-width bar");
@@ -604,17 +580,12 @@ test("4.49.1 The search screen holds still before you type, and scrolls again on
 });
 
 test("4.49.3 Closing the keyboard keeps the search screen; Cancel goes back where you came from", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true }); /* the Road search bar: Green Room (4.99.0) */
-  await page.waitForSelector("#rd-search"); await settled(page);
-  await page.click("#rd-search"); await page.waitForSelector("#sr-paste");
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { has: ["green"], lconv: 1 } }, { home: true, colorScheme: "light" });
+  await page.click("#tabs [data-tab=songbook]"); await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#sr-paste");
   await page.evaluate(() => document.activeElement.blur()); /* the keyboard's checkmark */
   await page.waitForTimeout(400); /* real timer: the old screen closed 200 ms after the keyboard did */
   assert.equal(await page.evaluate(() => document.body.classList.contains("searching")), true, "still on the search screen");
-  await page.click("#qcancel"); await page.waitForSelector("#rd-search");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "from the Road, Cancel goes back to the Road");
-  await settled(page);
-  await page.click("#rd-songbook"); await page.waitForSelector("#add"); await settled(page);
-  await page.click("#add"); await page.waitForSelector("#sr-paste");
   await page.click("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
   assert.equal(await page.evaluate(() => location.hash), "#/library", "from the Songbook, Cancel stays on the Songbook");
 });
@@ -659,6 +630,7 @@ test("4.78.0 the first headline show done: the Road says Headliner is yours, onc
   await page.waitForFunction(() => document.documentElement.dataset.look === "headliner");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.hlseen === 1);
   await page.reload(); await page.waitForSelector(".rd-node");
+  assert.ok(await page.locator("header.rr-head").count() >= 1, "Put it on wears the redesigned Headliner");
   assert.equal(await page.locator(".rd-hl:not(.rd-gt)").count(), 0, "said once");
 });
 
@@ -681,12 +653,10 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
 test("4.84.0 a lesson that opens songs you have says how many; an opened merch box is a crate in the guitar's material", { skip: skip() }, async t => {
   const now = Date.now(), done = Object.fromEntries(["G", "C", "D"].map((c, i) => [`c:${c}`, { n: 3, best: 90, at: now - 1000 + i }]));
   const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
-  /* Green Room: the old Road draws the box in the guitar's material; Road Ready's pearls are tested in roadready.e2e.mjs */
-  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
+  const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" }, merch: { has: ["green"], lconv: 1 } }, { home: true, colorScheme: "light" });
   await page.waitForSelector(".rd-neck");
-  assert.match(await page.innerText(".rd-node.now .rd-songs"), /1/, "Em opens one song");
-  assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
-  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on Porch");
+  assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "the current stop says how many songs it opens");
+  assert.equal(await page.locator(".rd-node.box.done").count(), 1, "the opened box stays done on the neck");
 });
 
 /* ---- Road Ready 9a: the Guitar shop on the Merch table, and the chosen guitar on the Road, Me and Show complete ---- */

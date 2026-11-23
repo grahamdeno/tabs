@@ -7,7 +7,7 @@ useBrowser();
 test("4.39.0 Support The Road: Me opens it (Road Ready 04, was More), the Ko-fi link opens outside the app, Tell a friend shares the app", { skip: skip() }, async t => {
   const page = await phone(t, LIB, { home: true });
   await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-support"); await settled(page);
-  assert.match(await page.innerText("#pf-r-support"), /Support Louie/);
+  assert.match(await page.innerText("#pf-r-support"), /Tip jar for Louie/);
   await page.click("#pf-r-support"); await page.waitForSelector("#sp-kofi"); await settled(page);
   assert.equal(await page.evaluate(() => location.hash), "#/support");
   assert.equal(await page.getAttribute("#sp-kofi", "href"), "https://ko-fi.com/louieguitar");
