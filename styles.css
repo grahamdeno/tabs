@@ -5397,22 +5397,22 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tn-stop:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 22px; }
 .rd-path.has-pop .rr-tn-stop { display: none; }
 /* the guitar case on Me (r10-06): an open hard case seen from above, black tolex rim and glowing
-   orange velvet in the picture itself (art/case/case-open-persp.webp). A back row of short pockets,
-   then three long stalls. Each guitar's small picture sits in a stall, tipped a little with the
-   perspective, headstock to the bottom of the body, with velvet still showing under it. An empty
-   stall keeps the faint outline painted in the case. More than three scroll sideways. The case is
-   an object, so it looks the same in Light and Dark. Class rr-gcase, so Show complete's .rr-case
-   is not touched. */
+   orange velvet in the picture itself (art/case/case-open-tall.webp). A back row of short pockets,
+   then three long stalls. Each guitar's small picture fills its stall: headstock in the back pocket,
+   body close to the bottom edge, tipped a little with the perspective, with a soft shadow under it.
+   An empty stall keeps the faint outline painted in the case. More than three scroll sideways.
+   The case is an object, so it looks the same in Light and Dark. Class rr-gcase, so Show complete's
+   .rr-case is not touched. */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase {
-  position: relative; margin-top: var(--sp-1); aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
-  background: #0c0c0c url("art/case/case-open-persp.webp") center / 100% 100% no-repeat;
+  position: relative; margin-top: var(--sp-1); aspect-ratio: 1280 / 932; border-radius: 10px; overflow: hidden;
+  background: #0c0c0c url("art/case/case-open-tall.webp") center / 100% 100% no-repeat;
   box-shadow: 0 8px 18px rgba(0, 0, 0, .45);
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in {
-  position: absolute; left: 8%; right: 7%; top: 6%; bottom: 7%;
+  position: absolute; left: 7%; right: 6%; top: 3%; bottom: 7%;
   display: grid; grid-auto-flow: column; grid-auto-columns: calc(100% / 3); gap: 0; margin: 0; padding: 0; min-height: 0; list-style: none;
   overflow-x: auto; scroll-snap-type: x mandatory; background: none; box-shadow: none; scrollbar-width: none;
-  perspective: 700px;
+  perspective: 800px;
 }
 .rr-gcase .rr-case-in::-webkit-scrollbar { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr {
@@ -5421,11 +5421,11 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr:nth-child(3n+1) { --lean: -3.5deg; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr:nth-child(3n) { --lean: 3.5deg; }
-/* the whole guitar, tipped with the case, and a soft shadow where the body meets the velvet */
+/* the whole guitar fills the stall, tipped with the case, and a soft shadow under the body */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img {
-  position: relative; z-index: 1; top: 0; height: 94%; width: auto; max-width: 96%; object-fit: contain; object-position: center bottom; margin: 0 0 2% 0;
-  transform: perspective(700px) rotateX(11deg) rotate(var(--lean)); transform-origin: 50% 78%;
-  filter: drop-shadow(0 7px 2px rgba(50, 16, 0, .5));
+  position: relative; z-index: 1; top: 0; height: 100%; width: auto; max-width: none; object-fit: contain; object-position: center bottom; margin: 0;
+  transform: rotate(var(--lean)); transform-origin: 50% 62%;
+  filter: drop-shadow(0 10px 3px rgba(40, 12, 0, .55));
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
@@ -5856,7 +5856,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { padding-right: 56px; }
 /* the open case keeps its own picture; these overrides must not flatten it back into a front view */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { height: 100%; background: none; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 94%; top: 0; margin: 0 0 2% 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 100%; top: 0; margin: 0; }
 
 /* Merch, 4.104.0 (agreed Merch screen): the title in the middle between a round back button and the tips pill, then a
    bronze-edged bar of three tabs. Dark and Light only. */

@@ -193,7 +193,7 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
 test("the guitar case is the open perspective case, and each earned guitar is its small picture in a stall", { skip: skip() }, async t => {
   const page = await openMe(t, "dark");
   const bg = await page.evaluate(() => getComputedStyle(document.querySelector(".rr-gcase")).backgroundImage);
-  assert.match(bg, /case-open-persp\.webp/, "the open case picture");
+  assert.match(bg, /case-open-tall\.webp/, "the open case picture");
   const slots = await page.$$eval(".rr-gtr", els => els.map(el => ({
     image: getComputedStyle(el).backgroundImage,
     img: el.querySelector("img")?.getAttribute("src") || "",
@@ -230,13 +230,14 @@ test("each guitar is fully inside its stall, with velvet under the body, and an 
     const stall = img.closest(".rr-gtr").getBoundingClientRect();
     const box = img.getBoundingClientRect();
     const caseBox = document.querySelector(".rr-gcase").getBoundingClientRect();
-    return { top: box.top - caseBox.top, bottom: caseBox.bottom - box.bottom, gap: stall.bottom - box.bottom, shadow: getComputedStyle(img).filter };
+    return { top: box.top - caseBox.top, bottom: caseBox.bottom - box.bottom, gap: stall.bottom - box.bottom, caseH: caseBox.height, shadow: getComputedStyle(img).filter };
   }));
   assert.equal(fit.length, 3);
+  assert.ok(fit[0].caseH >= 210 && fit[0].caseH <= 250, `the case is ${Math.round(fit[0].caseH)} tall`);
   for (const g of fit) {
-    assert.ok(g.top > 2, "the headstock is inside the case");
-    assert.ok(g.bottom > 2, "the bottom of the body is inside the case");
-    assert.ok(g.gap >= 0, "the body is not cut off by the stall");
+    assert.ok(g.top > 0 && g.top < 40, "the headstock sits in the back pocket");
+    assert.ok(g.bottom > 0 && g.bottom < 28, "the body reaches close to the bottom and is not cut off");
+    assert.ok(g.gap >= -16, "the lean stays inside the case");
     assert.match(g.shadow, /drop-shadow/, "a contact shadow under the guitar");
   }
   const one = await openMe(t, "light", { skills: legsDone(1) });
