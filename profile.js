@@ -124,9 +124,9 @@ export function renderProfile() {
   for (let i = 0; i < pieces.length; i += 3) casePages.push(pieces.slice(i, i + 3));
   const casePage = group => {
     const stalls = group.map(p => `<li class="rr-gtr" role="img" aria-label="${p.label}">${p.src ? `<img src="${p.src}"${p.attr} alt="" aria-hidden="true">` : ""}</li>`).join("");
-    return `<div class="rr-case" data-stalls="${group.length}"><ul class="rr-case-in" data-n="${group.length}">${stalls}</ul></div>`;
+    return `<div class="rr-case" data-stalls="${group.length}"><ul class="rr-case-in" data-n="${group.length}">${stalls}</ul><i class="rr-case-lip" aria-hidden="true"></i></div>`;
   };
-  const caseScroll = nGuitars ? `<div class="rr-case-scroll" tabindex="0" aria-label="Your guitars, earned and bought">${casePages.map(casePage).join("")}</div>` : `<div class="rr-case" data-stalls="3"></div>`;
+  const caseScroll = nGuitars ? `<div class="rr-case-scroll" tabindex="0" aria-label="Your guitars, earned and bought">${casePages.map(casePage).join("")}</div>` : `<div class="rr-case" data-stalls="3"><i class="rr-case-lip" aria-hidden="true"></i></div>`;
   const mer = fansToSpend(data);
   const merchLine = mer > 0 ? `Merch: spend $${num(mer)} in tips` : "Merch: earn tips to buy new looks";
   const name = cleanName(data.settings.playerName);

@@ -119,7 +119,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf: getComputedStyle(im).transform, hidden: im.getAttribute("aria-hidden") }; }));
     assert.equal(gs.length, 3);
     assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 2, Chord switches", "Club Slab, earned on Leg 3, Scales"]);
-    for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.ok(g.h > g.w, `${g.label}: standing in the stall`); assert.equal(g.hidden, "true"); assert.ok(Math.abs(g.h - gs[0].h) <= 14, "one height for every guitar"); }
+    for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture file is upright, headstock up`); assert.ok(g.h > g.w * 0.7, `${g.label}: lying in the stall`); assert.equal(g.hidden, "true"); assert.ok(Math.abs(g.h - gs[0].h) <= 18, "one height for every guitar"); }
     /* criterion 3: game money and real money are apart */
     const merch = page.locator("#pf-r-merch");
     const merchLine = n.tips > 0 ? `Merch: spend $${fmt(n.tips)} in tips` : "Merch: earn tips to buy new looks";
@@ -181,6 +181,25 @@ test("Road Ready 08: at large text the tiles stack, the rows grow and the case s
   for (const [h, clip] of m.rows) assert.ok(h >= 52 && !clip, "a row is 52 tall or more and doesn't clip");
 });
 
+test("with no guitar the case is the same open case, empty stalls, not a flat panel", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })), settings: { ...LIB.settings, v: 6, theme } }, { home: true });
+    await page.waitForSelector("#h-fans"); await settled(page);
+    await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-case"); await settled(page);
+    const shape = await page.evaluate(() => {
+      const el = document.querySelector(".rr-case");
+      const box = el.getBoundingClientRect();
+      return { bg: getComputedStyle(el).backgroundImage, stalls: el.dataset.stalls, guitars: document.querySelectorAll(".rr-gtr").length, w: box.width, h: box.height, lip: !!el.querySelector(".rr-case-lip") };
+    });
+    assert.match(shape.bg, /case-r10-06-open-3\.webp/, `${theme}: the empty case is the open three-stall case`);
+    assert.equal(shape.stalls, "3");
+    assert.equal(shape.guitars, 0, "no guitar, so the stalls stay empty");
+    assert.equal(shape.lip, true, "the velvet lip is part of the case");
+    assert.ok(shape.w / shape.h > 2 && shape.w / shape.h < 2.6, `${theme}: wide and short (${Math.round(shape.w)} by ${Math.round(shape.h)})`);
+    assert.match(await page.innerText(".rr-case-card"), /0 guitars[\s\S]*Headline a leg to earn your first guitar\./);
+  }
+});
+
 test("Road Ready 08: with no guitar earned the case says how to earn one; a library with no plays has no share row and no Milestones gap", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })), settings: { ...LIB.settings, v: 6, theme: "dark" } }, { home: true });
   await page.waitForSelector("#h-fans"); await settled(page);
@@ -197,7 +216,7 @@ test("the guitar case is a wide hard case, one stall per guitar, and the guitar 
     const bg = getComputedStyle(document.querySelector(".rr-case")).backgroundImage;
     return { w: box.width, h: box.height, bg, stalls: document.querySelector(".rr-case").dataset.stalls };
   });
-  assert.match(shape.bg, /case-r10-06-shell-3\.webp/, "three guitars use the three-stall case");
+  assert.match(shape.bg, /case-r10-06-open-3\.webp/, "three guitars use the three-stall case");
   assert.ok(shape.w / shape.h > 2, `the case is wide and short (${Math.round(shape.w)} by ${Math.round(shape.h)})`);
   assert.equal(shape.stalls, "3");
   const slots = await page.$$eval(".rr-gtr", els => els.map(el => {
@@ -253,7 +272,7 @@ test("each guitar is fully inside its stall, with velvet under the body, and an 
   }
   const one = await openMe(t, "light", { skills: legsDone(1) });
   assert.equal(await one.locator(".rr-gtr").count(), 1, "one guitar, one stall, no empty stalls");
-  assert.match(await one.evaluate(() => getComputedStyle(document.querySelector(".rr-case")).backgroundImage), /case-r10-06-shell-1\.webp/, "one guitar uses the one-stall case");
+  assert.match(await one.evaluate(() => getComputedStyle(document.querySelector(".rr-case")).backgroundImage), /case-r10-06-open-1\.webp/, "one guitar uses the one-stall case");
 });
 
 test("six guitars are two cases, and the row scrolls one case width at a time", { skip: skip() }, async t => {
@@ -268,6 +287,16 @@ test("six guitars are two cases, and the row scrolls one case width at a time", 
   assert.deepEqual(fit.cases, ["3", "3"], "two three-stall cases");
   assert.match(fit.snap, /x/, "the row snaps sideways");
   assert.equal(fit.scrolls, true, "more than three scroll one case width at a time");
+  const step = await page.evaluate(() => {
+    const row = document.querySelector(".rr-case-scroll");
+    const cases = [...row.querySelectorAll(".rr-case")];
+    const first = cases[0].getBoundingClientRect().width;
+    const gap = cases[1].offsetLeft - cases[0].offsetLeft;
+    row.scrollLeft = gap;
+    return { first, gap, left: row.scrollLeft, second: cases[1].getBoundingClientRect().left - row.getBoundingClientRect().left };
+  });
+  assert.ok(Math.abs(step.gap - step.first) < 20, `the next case starts one case width along (${Math.round(step.gap)} vs ${Math.round(step.first)})`);
+  assert.ok(Math.abs(step.second) < 24, `scrolling one case width brings the next case to the front (${Math.round(step.second)})`);
 });
 
 test("one earned guitar is one stall, and a bought guitar gets a stall of its own", { skip: skip() }, async t => {

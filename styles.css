@@ -5396,51 +5396,53 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] .rr-tn-tx b, :root[data-look="festival"] .rr-tn-tx small { text-shadow: 0 0 6px rgba(246, 239, 226, .95); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tn-stop:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 22px; }
 .rd-path.has-pop .rr-tn-stop { display: none; }
-/* the guitar case on Me (r10-06): a wide, short hard case seen from slightly above.
-   The empty case is painted: case-r10-06-shell-1.webp, -2 and -3, one picture per stall count.
-   Low velvet ridges and the pocket row are in the picture. Each guitar sits in its stall,
-   foreshortened, with a soft drop shadow and a tight contact shadow. More than three scroll
-   one case width at a time. The same case in Light and Dark. Class rr-gcase, so Show complete's
-   .rr-case is not touched. */
+/* the guitar case on Me (r10-06): a deep black hard case, open, seen from slightly above.
+   The empty case is painted: case-r10-06-open-1.webp, -2 and -3. A lip picture sits over the
+   guitars so the velvet overlaps their edges. Each guitar lies in its stall, foreshortened,
+   with a soft drop shadow and a tight contact shadow. More than three scroll one case width
+   at a time. The same case in Light and Dark. Class rr-gcase, so Show complete's .rr-case is not touched. */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase { margin-top: var(--sp-1); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-scroll {
-  display: flex; align-items: center; justify-content: safe center; gap: 12px; min-height: 44px;
+  display: flex; align-items: flex-start; justify-content: safe center; gap: 10px; min-height: 44px;
   overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
 }
 .rr-case-scroll::-webkit-scrollbar { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-scroll:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case {
   position: relative; flex: 0 0 auto; scroll-snap-align: start; scroll-snap-stop: always; padding: 0; border: 0;
-  background: #141210 center / 100% 100% no-repeat; border-radius: 16px; box-shadow: 0 8px 18px rgba(0, 0, 0, .4);
+  background: transparent center / 100% 100% no-repeat; border-radius: 18px;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .45));
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] { flex-basis: 100%; aspect-ratio: 1380 / 600; background-image: url("art/case/case-r10-06-shell-3.webp"); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] { flex-basis: 71%; aspect-ratio: 980 / 600; background-image: url("art/case/case-r10-06-shell-2.webp"); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] { flex-basis: 46%; aspect-ratio: 640 / 600; background-image: url("art/case/case-r10-06-shell-1.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] { width: 100%; aspect-ratio: 1711 / 732; background-image: url("art/case/case-r10-06-open-3.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] { width: 68.56%; aspect-ratio: 1173 / 732; background-image: url("art/case/case-r10-06-open-2.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] { width: 37.29%; aspect-ratio: 638 / 732; background-image: url("art/case/case-r10-06-open-1.webp"); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case .rr-case-in {
-  position: absolute; top: 21%; height: 64%; margin: 0; padding: 0; min-height: 0; list-style: none;
-  display: grid; align-items: end; background: none; box-shadow: none; overflow: visible; border-radius: 0;
+  position: absolute; inset: 0; margin: 0; padding: 0; min-height: 0; list-style: none;
+  background: none; box-shadow: none; overflow: visible; border-radius: 0;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] .rr-case-in { left: 6%; right: 6%; grid-template-columns: repeat(3, 1fr); column-gap: 5%; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-case-in { left: 7%; right: 7%; grid-template-columns: repeat(2, 1fr); column-gap: 8%; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] .rr-case-in { left: 11%; right: 11%; grid-template-columns: 1fr; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { position: relative; height: 100%; min-width: 0; min-height: 44px; background: none; }
-/* foreshortened into the stall: the body stays wide at the front and the whole guitar
-   fits above the lip, so the scroll row does not clip it. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { position: absolute; min-width: 44px; min-height: 44px; background: none; }
+/* the stall quad, in the case picture: back edge narrower, front edge wider. The guitar
+   fills that quad and tips back a little, so the body is near and the headstock is far. */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img {
-  position: absolute; z-index: 1; left: 50%; bottom: 1%; width: 94%; height: auto; max-height: none; margin: 0;
-  transform: translateX(-50%) scaleY(0.52) perspective(400px) rotateX(8deg);
+  position: absolute; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; margin: 0; object-fit: fill;
+  clip-path: var(--stall);
+  transform: perspective(480px) rotateX(11deg);
   transform-origin: 50% 100%;
-  filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, .95)) drop-shadow(0 9px 7px rgba(0, 0, 0, .7));
+  filter: drop-shadow(0 1px 0.6px rgba(0, 0, 0, .92)) drop-shadow(0 9px 7px rgba(0, 0, 0, .62));
 }
-/* a single wide stall would make the guitar taller than the case, so it is scaled to fit */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] .rr-gtr img {
-  width: 78%;
-  transform: translateX(-50%) scaleY(0.4) perspective(400px) rotateX(8deg);
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] .rr-gtr:nth-child(1) { left: 12.23%; top: 25.37%; width: 26.23%; height: 57.3%; --stall: polygon(40.2% 0, 100% 0, 83% 100%, 0 100%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] .rr-gtr:nth-child(2) { left: 39.57%; top: 25.37%; width: 20.82%; height: 57.3%; --stall: polygon(13.9% 0, 86% 0, 100% 100%, 0 100%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] .rr-gtr:nth-child(3) { left: 61.5%; top: 25.37%; width: 25.18%; height: 57.3%; --stall: polygon(0 0, 59.3% 0, 100% 100%, 17.8% 100%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-gtr:nth-child(1) { left: 14.18%; top: 25.37%; width: 32.88%; height: 57.3%; --stall: polygon(30.4% 0, 100% 0, 96.5% 100%, 0 100%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-gtr:nth-child(2) { left: 52.92%; top: 25.37%; width: 31.34%; height: 57.3%; --stall: polygon(0 0, 69.5% 0, 100% 100%, 3.6% 100%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] .rr-gtr:nth-child(1) { left: 19.55%; top: 25.37%; width: 58.05%; height: 57.3%; --stall: polygon(14.6% 0, 86.7% 0, 100% 100%, 0 100%); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-lip {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: center / 100% 100% no-repeat;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-gtr img {
-  width: 90%;
-  transform: translateX(-50%) scaleY(0.46) perspective(400px) rotateX(8deg);
-}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="3"] .rr-case-lip { background-image: url("art/case/case-r10-06-open-lip-3.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="2"] .rr-case-lip { background-image: url("art/case/case-r10-06-open-lip-2.webp"); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case[data-stalls="1"] .rr-case-lip { background-image: url("art/case/case-r10-06-open-lip-1.webp"); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
 
 /* Full-size lyrics (Grok, 2026-11-19, spec 6, wrapping approved by Graham): app.js lays every line out at the current-line size
