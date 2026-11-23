@@ -2806,16 +2806,15 @@ test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes f
   }
 });
 
-test("Me case: the plush lining is in the repo and saved for offline, and the earlier pictures stay", () => {
+test("Me case: the perspective case picture is saved for offline, and the earlier pictures stay", () => {
   const shell = read("sw.js"), css = read("styles.css");
-  for (const f of ["art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp"]) {
+  for (const f of ["art/case/case-open-persp.webp", "art/case/lining-plush.webp", "art/case/lining-open.webp", "art/case/latch-chrome.webp", "art/case/velvet-slot.webp"]) {
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
-  assert.ok(fs.statSync(path.join(root, "art/case/lining-plush.webp")).size < 200000, "the lining stays small enough for the phone");
-  assert.match(css, /\.rr-gcase \.rr-gtr \{[\s\S]*?lining-plush\.webp/);
-  assert.ok(!css.includes("velvet-slot.webp"), "the stalls use the plush lining");
-  assert.match(css, /\.rr-gcase \{[\s\S]*?padding: 8px/);
+  assert.ok(fs.statSync(path.join(root, "art/case/case-open-persp.webp")).size < 250000, "the case picture stays small enough for the phone");
+  assert.match(css, /case-open-persp\.webp/);
+  assert.ok(!/rr-gcase \.rr-gtr[\s\S]{0,240}velvet-slot\.webp/.test(css), "the stalls are not the flat slot picture");
 });
 
 test("4.88.0: trumpet came out; what it saved is cleared on load", () => {
