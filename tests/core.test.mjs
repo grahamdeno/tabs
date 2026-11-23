@@ -3446,6 +3446,8 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
   assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
   assert.match(html, /src="art\/louie\/v4\/louie-idle\.webp"/, "it uses Louie's idle picture");
   assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
+  assert.match(html, /@media \(prefers-color-scheme: light\)\{html,body,\.boot\{background:#F6EFE2\}/, "a Light phone gets the cream ground while the app loads");
+  assert.match(html, /icons\/splash\/light-launch-1170x2532\.png/, "the Light launch screens are linked");
   assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
   const shell = read("sw.js");
   assert.match(shell, /"art\/louie\/v4\/louie-idle\.webp"/, "the boot picture is saved for offline");
