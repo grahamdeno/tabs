@@ -2775,6 +2775,15 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
 });
 
+test("Merch backdrops: the thumbnails are painted pictures, saved for offline", () => {
+  const js = read("merch.js"), shell = read("sw.js");
+  for (const name of ["basement", "brick", "stars", "sunset"]) {
+    const f = `art/merch/backdrop-${name}.webp`;
+    assert.match(js, new RegExp(f.replace(/\./g, "\\.")));
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+});
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
   const { GUITARS } = await import("../core.js");
   const PICS = (await import("../art/guitars/pics.js")).default;

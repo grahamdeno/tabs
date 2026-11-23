@@ -26,7 +26,17 @@ const ART = {
   sunset: () => `<rect width="100" height="64" fill="#FF8A00"/><rect width="100" height="20" fill="#FF3D7F"/><circle cx="50" cy="40" r="17" fill="#FFD23F"/><path d="M0 46 L18 34 L34 44 L52 30 L72 44 L86 36 L100 44 V64 H0Z" fill="#14213D" opacity=".75"/>`,
   basement: () => `<rect width="100" height="64" fill="#2A3A63"/><ellipse cx="50" cy="0" rx="30" ry="44" fill="#FFF6C8" opacity=".14"/>`
 };
-const artSVG = (id, cls = "") => `<svg class="${cls}" viewBox="0 0 100 64" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${(ART[id] || ART.basement)()}</svg>`;
+/* Painted thumbnails (the flat drawings stay in ART for anything that still asks). */
+const BACKDROP_PIC = {
+  brick: "art/merch/backdrop-brick.webp",
+  stars: "art/merch/backdrop-stars.webp",
+  sunset: "art/merch/backdrop-sunset.webp",
+  basement: "art/merch/backdrop-basement.webp"
+};
+const artSVG = (id, cls = "") => {
+  const src = BACKDROP_PIC[id] || BACKDROP_PIC.basement;
+  return `<img class="${cls}" src="${src}" alt="" aria-hidden="true">`;
+};
 export const backdropBanner = id => `<div class="gc-bd" aria-hidden="true">${artSVG(ART[id] ? id : "basement")}</div>`;
 /* the backdrops you own (the Basement is everyone's), in the merch table's order */
 export const backdropsOwned = () => { const st = merchState(data); return MERCH.filter(x => x.kind === "backdrop" && st.has.has(x.id)).map(x => ({ id: x.id, name: x.name, on: st.backdrop === x.id })); };
