@@ -2777,10 +2777,10 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
 
 test("Show complete case: one open case with a stall for every guitar, and the older case paintings stay", () => {
   const css = read("styles.css"), shell = read("sw.js"), road = read("road.js");
-  assert.match(css, /art\/case\/velvet-slot\.webp/);
+  assert.match(css, /art\/case\/case-open-persp\.webp/);
   assert.match(road, /sc-stall/);
   assert.match(road, /GUITAR_SHOP/);
-  for (const f of ["art/show/case-fit-dark.webp", "art/show/case-fit-light.webp", "art/show/case-open-dark.webp", "art/case/velvet-slot.webp", "art/case/latch.webp"]) {
+  for (const f of ["art/show/case-fit-dark.webp", "art/show/case-fit-light.webp", "art/show/case-open-dark.webp", "art/case/velvet-slot.webp", "art/case/latch.webp", "art/case/case-open-persp.webp"]) {
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }

@@ -4994,15 +4994,18 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .sc-case { position: absolute; left: 50%; top: 2%; bottom: 2%; aspect-ratio: 720 / 900; transform: translateX(-50%); background: var(--show-case) center / contain no-repeat; }
 .sc-case-pic { position: absolute; left: 50%; top: 2%; bottom: 2%; height: 96%; aspect-ratio: 720 / 900; transform: translateX(-50%); }
 .sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
-/* one open hard case, the same shell, velvet and latches as the case on Me, with a stall for every guitar */
-.sc-hardcase { position: relative; width: min(100%, 420px); margin: 8px auto 0; padding: 16px 8px 8px; border-radius: 14px; background: linear-gradient(rgba(0, 0, 0, .35), rgba(0, 0, 0, .55)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px; background-color: #15110D; box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 10px 18px rgba(0, 0, 0, .4); }
-.sc-hardcase .rr-latch { top: -6px; }
-.sc-stalls { display: grid; grid-auto-flow: column; grid-auto-columns: 86px; gap: 6px; margin: 0; padding: 8px; list-style: none; height: 168px; overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 8px; background: #3A1A08; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), inset 0 8px 16px rgba(0, 0, 0, .55); scrollbar-width: none; }
-.sc-stalls::-webkit-scrollbar { display: none; }
-.sc-stall { position: relative; display: flex; align-items: flex-end; justify-content: center; min-width: 0; scroll-snap-align: center; background: url("art/case/velvet-slot.webp") center / 100% 100%; }
-.sc-stall img { position: relative; z-index: 1; height: 86%; width: auto; max-width: 90%; margin-bottom: 5%; object-fit: contain; object-position: bottom; filter: drop-shadow(2px 8px 5px rgba(40, 10, 0, .7)) drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
-.sc-stall.on { box-shadow: inset 0 0 0 2px #F5C542; }
-.sc-show.case { height: auto; min-height: 210px; }
+/* the open case from the Me picture: slight perspective, a pocket row, velvet stalls */
+.sc-persp { position: relative; width: 100%; aspect-ratio: 1280 / 720; background: url("art/case/case-open-persp.webp") center / 100% 100% no-repeat; }
+.sc-persp .sc-stalls { position: absolute; left: 8%; right: 8%; top: 46%; bottom: 6%; display: grid; grid-auto-flow: column; grid-auto-columns: 33.333%; gap: 0; margin: 0; padding: 0; height: auto; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; background: none; box-shadow: none; scrollbar-width: none; }
+.sc-persp .sc-stalls::-webkit-scrollbar { display: none; }
+.sc-persp .sc-stall { position: relative; display: flex; align-items: flex-end; justify-content: center; height: 100%; min-width: 0; min-height: 0; scroll-snap-align: start; background: none; }
+.sc-persp .sc-stall img { max-height: 100%; height: auto; width: auto; max-width: 86%; margin: 0; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 6px 4px rgba(30, 8, 0, .78)); }
+.sc-by { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+.sc-by .sc-louie { position: static; width: 72px; animation: none; }
+.sc-by .sc-louie .louie { width: 72px; }
+.sc-by .sc-label { position: static; max-width: none; }
+.sc-by .sc-label::before { display: none; }
+.sc-show.case { height: auto; min-height: 0; }
 .sc-show.case .sc-louie { z-index: 3; }
 .sc-show.case .sc-label { z-index: 3; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }

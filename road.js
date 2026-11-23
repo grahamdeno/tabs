@@ -475,16 +475,14 @@ function guitarEarned(road) {
       <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Leg done"}</h2>
       <p class="sc-new">New guitar earned</p>
       <div class="sc-show case" aria-hidden="true">
-        <div class="sc-hardcase">
-          <span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span>
+        <div class="sc-persp">
           <ul class="sc-stalls">${[...Object.values(GUITARS).map(g => ({ id: g.body, name: g.name })), ...GUITAR_SHOP.map(g => ({ id: g.id, name: g.name }))].map(g => {
             const on = g.id === gn.guitar.body, pic = guitarPic(g.id);
             return `<li class="sc-stall${on ? " on" : ""}" data-g="${esc(g.id)}">${pic ? `<img class="${on ? "sc-guitar" : ""}" src="${pic}" alt="">` : ""}</li>`;
           }).join("")}</ul>
         </div>
-        <span class="sc-label">${esc(gn.guitar.name)}</span>
-        <span class="sc-louie">${louie("cheer", { size: 96 })}</span>
       </div>
+      <div class="sc-by"><span class="sc-louie">${louie("cheer", { size: 72 })}</span><span class="sc-label">${esc(gn.guitar.name)}</span></div>
       <p class="sc-got">${esc(gn.guitar.name)} is yours.</p>
       ${lg ? `<p class="sc-next">Next stop: Leg ${lg.n}, ${esc(lg.name)}</p>` : ""}
       <div class="sc-acts"><button class="btn primary" id="gt-x">Rock on</button></div>

@@ -446,8 +446,15 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
     assert.equal(await page.locator(".sc-stall").count(), 23, "one stall for each of the 23 guitars");
-    assert.equal(await page.locator(".sc-hardcase .rr-latch").count(), 2, "the case has two latches");
+    assert.equal(await page.locator(".sc-persp").count(), 1, "the open case in perspective");
     assert.match(await page.getAttribute(".sc-stall.on .sc-guitar", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar sits in its own stall");
+    const cover = await page.evaluate(() => {
+      const caseBox = document.querySelector(".sc-persp").getBoundingClientRect();
+      const lou = document.querySelector(".sc-by .louie").getBoundingClientRect();
+      const tag = document.querySelector(".sc-by .sc-label").getBoundingClientRect();
+      return { below: lou.top >= caseBox.bottom - 1 && tag.top >= caseBox.bottom - 1 };
+    });
+    assert.equal(cover.below, true, "Louie and the name sit below the case, not on a guitar");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
