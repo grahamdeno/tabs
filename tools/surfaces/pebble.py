@@ -9,18 +9,19 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
-DST = ROOT / "art" / "surfaces" / "tolex-dark-pebble.webp"
+# Shown at 320 CSS px. About 3 to 4 px per grain at that size.
+DST = ROOT / "art" / "surfaces" / "tolex-dark-fine.webp"
 
 
-def pebble(n=512, cells=42, seed=11):
+def pebble(n=512, cells=96, seed=11):
     rng = np.random.default_rng(seed)
     step = n / cells
     px = np.zeros((cells, cells), np.float32)
     py = np.zeros((cells, cells), np.float32)
     for j in range(cells):
         for i in range(cells):
-            px[j, i] = ((i + 0.5 + rng.uniform(-0.46, 0.46)) * step) % n
-            py[j, i] = ((j + 0.5 + rng.uniform(-0.46, 0.46)) * step) % n
+            px[j, i] = ((i + 0.5 + rng.uniform(-0.16, 0.16)) * step) % n
+            py[j, i] = ((j + 0.5 + rng.uniform(-0.16, 0.16)) * step) % n
     yy, xx = np.indices((n, n))
     ci = np.minimum((xx / step).astype(np.int32), cells - 1)
     cj = np.minimum((yy / step).astype(np.int32), cells - 1)
@@ -42,13 +43,14 @@ def pebble(n=512, cells=42, seed=11):
             d2 = np.where(closer, d1, np.where(between, dist, d2))
             d1 = np.where(closer, dist, d1)
     # the crease is the gap between two cells; the centre of a cell stays rounded
-    edge = np.clip((d2 - d1) / (step * 0.16), 0, 1)
-    t = np.clip(d1 / (step * 0.55), 0, 1)
-    dome = 1 - t ** 2
-    height = (edge ** 0.65) * (0.55 + 0.45 * dome)
+    # a round bump in each cell, with a soft crease, not a flat stone
+    t = np.clip(d1 / (step * 0.52), 0, 1)
+    dome = (1 - t * t) ** 2
+    crease = np.clip((d2 - d1) / (step * 0.28), 0, 1)
+    height = dome * (0.72 + 0.28 * crease)
     # wrap so the blur does not leave a seam
     pad = np.pad(height, 8, mode="wrap")
-    soft = np.asarray(Image.fromarray(np.clip(pad * 255, 0, 255).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(0.7)), np.float32) / 255
+    soft = np.asarray(Image.fromarray(np.clip(pad * 255, 0, 255).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(0.35)), np.float32) / 255
     height = soft[8:-8, 8:-8]
     gy, gx = np.gradient(height)
     light = np.clip(0.62 + (-gx * 0.55 - gy * 0.72) * 3.4, 0.35, 1)
@@ -57,7 +59,7 @@ def pebble(n=512, cells=42, seed=11):
     # a whisper of larger wobble, not enough to turn the tile into marble
     slow = rng.random((cells, cells)).astype(np.float32)
     slow = np.asarray(Image.fromarray(np.clip(slow * 255, 0, 255).astype(np.uint8), "L").resize((n, n), Image.Resampling.BICUBIC), np.float32) / 255
-    shade = shade + (slow - 0.5) * 3.5
+    shade = shade + (slow - 0.5) * 1.6
     grain = rng.normal(0, 0.7, (n, n)).astype(np.float32)
     shade = shade + grain
     img = np.clip(shade, 0, 255).astype(np.uint8)
