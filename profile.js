@@ -189,8 +189,12 @@ function stampSheet(c) {
 /* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */
 /* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
 async function meCardImage() {
-  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false, portrait: true }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
-  const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
+  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false, portrait: true });
+  const href = svg.match(/href="(art\/guitarist-painted\/genres\/[^"]+)"/);
+  const im = new Image();
+  /* a painted picture is a file. A portrait is still drawn from its own svg, with the colours written in. */
+  im.src = href ? href[1] : "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" '));
+  await im.decode();
   return im;
 }
 async function louieCardImage() {

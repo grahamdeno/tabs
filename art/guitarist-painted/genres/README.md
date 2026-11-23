@@ -6,4 +6,6 @@ They follow the painted pilot. Soft dimensional cartoon, warm light from the upp
 
 Files are named `<genre>-m.webp` and `<genre>-w.webp`. The canvas is 800 by 800.
 
+Three were painted again, as new files, and the first ones are still here. `punk-w-v2.webp` is a woman with pink side-swept hair. `country-m-v2.webp` and `country-w-v2.webp` are cropped like the others, head to about mid-thigh. The funk woman is already that size, so she has no second file.
+
 These pictures are not wired into the app. `pilot/`, `pilot2/`, `pilot3/` and `pilot4/` are unchanged.

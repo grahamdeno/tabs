@@ -743,9 +743,9 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   assert.ok((await page.$$eval(".rr-gtr", els => els.map(e => e.getAttribute("aria-label")))).includes("Sticker Riot, from the Guitar shop, the one you play"));
   assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
-  /* the guitarist holds it (the small picture in his hands) */
+  /* the guitarist on the card is the painted rock picture */
   const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
-  assert.match(hands, /art\/guitars\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  assert.match(hands, /art\/guitarist-painted\/genres\/rock-m\.webp/, "the guitarist is the painted rock picture");
   /* back to the leg's guitar, and the saved choice is gone */
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
   await page.click("#mc-gt-leg");

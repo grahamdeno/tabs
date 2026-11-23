@@ -142,7 +142,7 @@ function shopSheet(id) {
       <div class="mt-name"><small>GUITAR SHOP, ${esc(GROUPS[g.group].toUpperCase())}</small><b>${esc(g.name)}</b></div>
       <div class="mt-show"><div class="mt-it mt-gtr">${guitarPic(g.id) ? `<img src="${guitarPic(g.id)}" alt="${esc(g.name)}">` : ""}</div></div></div>
     <div class="mt-sheet"><h2>${esc(g.name)}</h2>
-      <p>${g.owned ? "Yours to keep." : g.open ? `Opened at ${esc(g.venue)}.` : `Opens when you reach ${esc(g.venue)}.`} It changes how your guitar looks on the Road, on Show complete and in your guitarist's hands. Nothing else changes.${g.next ? " This is the next one up." : ""}</p>
+      <p>${g.owned ? "Yours to keep." : g.open ? `Opened at ${esc(g.venue)}.` : `Opens when you reach ${esc(g.venue)}.`} It changes how your guitar looks on the Road and on Show complete. Nothing else changes.${g.next ? " This is the next one up." : ""}</p>
       ${!g.owned ? `<div class="mt-tiles"><div><small>COSTS</small><b>$${n(g.price)}</b></div><div><small>OPENS AT</small><b>${esc(g.venue)}</b></div></div>` : ""}
       <div class="mt-acts">${act}<button class="mt-not" id="mt-not">Not now</button></div></div></div>`;
   const close = () => { layer.innerHTML = ""; };

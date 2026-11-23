@@ -2747,6 +2747,42 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
   assert.ok(!guitarist(C.ME_DEFAULT, { pose: "hornsUp", guitar: C.GUITARS.strum }).includes("<image "), "horns up: no guitar");
 });
 
+test("painted genre guitarists stand in for the ink drawing, and the three fixes use the new files", async () => {
+  const { genreFile, genreCast, GENRE_DEFAULT, genreForName, you, rival } = await import("../guitarist.js");
+  assert.equal(GENRE_DEFAULT, "rock-m");
+  assert.equal(genreFile("rock-m"), "art/guitarist-painted/genres/rock-m.webp");
+  assert.equal(genreFile("punk-w"), "art/guitarist-painted/genres/punk-w-v2.webp");
+  assert.equal(genreFile("country-m"), "art/guitarist-painted/genres/country-m-v2.webp");
+  assert.equal(genreFile("country-w"), "art/guitarist-painted/genres/country-w-v2.webp");
+  assert.equal(genreFile("funk-w"), "art/guitarist-painted/genres/funk-w.webp", "the funk woman was already the right size");
+  const cast = genreCast();
+  assert.equal(cast.length, 24);
+  assert.equal(genreForName("Ada"), genreForName("Ada"), "a rival's picture stays put");
+  assert.ok(cast.includes(genreForName("Ada")));
+  const seen = new Set(cast.map(genreForName));
+  assert.ok(seen.size > 1, "different names can be different pictures");
+  const pic = you({ me: C.ME_DEFAULT }, { size: 80 });
+  assert.match(pic, /art\/guitarist-painted\/genres\/rock-m\.webp/);
+  assert.match(pic, /aria-label="Your guitarist"/);
+  assert.match(pic, /data-genre="rock-m"/);
+  assert.doesNotMatch(pic, /feMorphology/, "the player is not the ink drawing");
+  assert.match(you({ me: { ...C.ME_DEFAULT, lefty: true } }, {}), /scale\(-1 1\)/, "lefty mirrors the painting");
+  const rv = rival("Ada", 1, { size: 42 });
+  assert.match(rv, /art\/guitarist-painted\/genres\//);
+  assert.match(rv, /aria-hidden="true"/);
+  assert.doesNotMatch(rv, /feMorphology/);
+  const shell = read("sw.js");
+  for (const id of cast) {
+    const file = genreFile(id);
+    const dim = webpSize(fs.readFileSync(path.join(root, file)));
+    assert.equal(dim.w, 800, id); assert.equal(dim.h, 800, id); assert.equal(dim.alpha, true, id);
+    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
+  }
+  const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
+  assert.equal(cleaned.genre, undefined, "a genre is not stored");
+  assert.equal(cleaned.who, undefined, "man or woman is not stored");
+});
+
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
   const { louie, louieArt, louiePic, LOUIE_STAND_IN } = await import("../louie.js");
   const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];

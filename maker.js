@@ -3,12 +3,12 @@
 //   "once"   a player already past Opening night meets it once, on the Road (Louie asks); Skip keeps the default
 //   "full"   Your profile > Edit: all four tabs (Face, Hair, Fit, Guitar); every change saves as you tap it
 // The look, the patches and the guitar aren't picked here: the Road decides them (stageLook, patchesAll, guitarFor).
-// The preview is your guitarist on a "TONIGHT" stage card; each option is a small bust of you with it (2026-11-20: the
-// inked cartoon guitarist, with face shape, eyes, eye colour, brows, nose, glasses and freckles to pick).
+// The preview is the painted rock guitarist on a TONIGHT card. Each option is still a small ink drawing of that part
+// (face shape, eyes, eye colour, brows, nose, glasses and freckles), which is what gets saved.
 import { ME_BEARD, ME_BROWS, ME_DEFAULT, ME_EYES, ME_EYE_COL, ME_FACE, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_NOSE, ME_PATCHES, ME_SPECS, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
 import { ask, esc, haptic, layer, toast } from "./ui.js";
 import { data, go } from "./app.js";
-import { EYE_COL, HAIR_COL, OUTFIT_COL, SKIN, SKIN_ORDER, guitarist } from "./guitarist.js";
+import { EYE_COL, HAIR_COL, OUTFIT_COL, SKIN, SKIN_ORDER, guitarist, you } from "./guitarist.js";
 import { guitarPic } from "./fretboard.js";
 import { selfieStart } from "./selfie.js";
 import { imgKey, makePortrait, portraitError, portraitNow, portraitSVG, removePortrait } from "./portrait.js";
@@ -37,7 +37,7 @@ export function makerSheet({ mode = "full", done } = {}) {
   const owned = new Set(merchState(data).has);
   const keep = () => { if (full) { data.me = cleanMe(me); Tabs.save(data); } };
   const set = (k, v) => { me = { ...me, [k]: v }; keep(); paint(); haptic(1); };
-  const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : guitarist(me, { look, guitar, patches: patchesOf({ ...data, me: full ? me : data.me }), size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT" });
+  const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : you(data, { size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT", look, lefty: me.lefty });
   const bust = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "bust", size: 56, look, flat: true }));
   const close = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "face", size: 56, look }));
   const thumbs = (key, list, names) => `<div class="gm-row gm-thumbs">${list.map(v => chip(key, v, names[v], partOf(me, key) === v, close({ [key]: v }) + `<span>${names[v]}</span>`)).join("")}</div>`;

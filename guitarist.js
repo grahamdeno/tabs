@@ -3,7 +3,7 @@
 // front hair, glasses, hat, patches. The parts follow Graham's avatar kit (docs/guitarist-ink/PLAN.md). The big looks still
 // come from the Road: the top follows the venue, the guitar is the Road guitar you're on (its painted picture), the
 // patches are what you've done.
-import { guitarShown, meMood, meOf, patchesOf, rivalMe, roadPath, stageLook, stageLookOf } from "./core.js";
+import { meMood, meOf, stageLook, stageLookOf } from "./core.js";
 import { guitarPic } from "./fretboard.js";
 import { portraitNow, portraitSVG } from "./portrait.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label, card, headline }) returns an <svg> string.
@@ -214,17 +214,50 @@ export function guitarist(me, { mood: mood0 = "happy", pose: pose0 = "play", cro
   return `<svg viewBox="${vb}" width="${size}" height="${Math.round(size * vh / vw)}" role="img" aria-label="${label.replace(/"/g, "&quot;")}" data-mood="${mood}" style="overflow:hidden">${defs}${body}</svg>`;
 }
 
-/* you, as the app means you: your parts, the look of your venue, the patches you've earned, the Road guitar you're on and
-   your mood tonight. o overrides any of the options (mood, pose, crop, size, label). */
+/* The finished paintings. One man and one woman for each genre. Nothing here is saved: the player is rock until a
+   choice has a place to live, and a rival's picture comes from the name already used for that rival. */
+export const GENRE_IDS = ["rock", "punk", "metal", "blues", "country", "folk", "jazz", "classical", "indie", "funk", "reggae", "pop"];
+const GENRE_V2 = { "punk-w": "punk-w-v2", "country-m": "country-m-v2", "country-w": "country-w-v2" };
+export const GENRE_DEFAULT = "rock-m";
+export const genreCast = () => GENRE_IDS.flatMap(g => [`${g}-m`, `${g}-w`]);
+export function genreFile(id) {
+  return `art/guitarist-painted/genres/${GENRE_V2[id] || id}.webp`;
+}
+export function genreForName(name) {
+  const cast = genreCast();
+  let h = 7;
+  for (const c of String(name || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return cast[h % cast.length];
+}
+/* a finished painting, in the same svg the screens already size. A bust is the head, clipped to a disc. */
+function painted(id, { crop = "full", size = 160, label = "Your guitarist", card = false, headline = "", mood = "happy", lefty = false, look = "tee" } = {}) {
+  const file = genreFile(id);
+  const gid = `gp${++N}`;
+  const safe = String(label).replace(/"/g, "&quot;");
+  const [bk] = STAGE[look] || STAGE.tee;
+  const mirror = lefty ? ` transform="translate(800 0) scale(-1 1)"` : "";
+  const img = `<g${mirror}><image href="${file}" width="800" height="800"/></g>`;
+  const open = `role="img" aria-label="${safe}" data-mood="${mood}" data-genre="${id}" style="overflow:hidden"`;
+  if (crop === "bust" || crop === "face") {
+    const face = crop === "face";
+    const cx = 390, cy = face ? 200 : 240, r = face ? 140 : 200;
+    return `<svg viewBox="${cx - r} ${cy - r} ${r * 2} ${r * 2}" width="${size}" height="${size}" ${open}><defs><clipPath id="${gid}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath></defs><circle cx="${cx}" cy="${cy}" r="${r}" fill="${bk}"/><g clip-path="url(#${gid})">${img}</g></svg>`;
+  }
+  if (card) {
+    const title = headline ? `<text x="400" y="72" text-anchor="middle" font-family="'Space Grotesk', Impact, sans-serif" font-weight="700" font-size="44" letter-spacing="3" fill="#F6EEE0">${String(headline).replace(/[<&]/g, "")}</text>` : "";
+    return `<svg viewBox="0 0 800 900" width="${size}" height="${Math.round(size * 900 / 800)}" ${open}><rect width="800" height="900" rx="28" fill="${bk}"/>${title}<g transform="translate(0 88)">${img}</g></svg>`;
+  }
+  return `<svg viewBox="30 10 740 780" width="${size}" height="${size}" ${open}>${img}</svg>`;
+}
+/* you, as the app means you. The painted rock guitarist stands in for the ink drawing. A portrait still stands in
+   for the round portrait and the share card. o overrides mood, crop, size, label, look and lefty. */
 export function you(data, o = {}) {
-  /* 4.99.0: a portrait made from your selfie stands in for the round portrait and the poster card; the game's poses keep the drawing */
   const p = !o.me && !o.drawn && portraitNow();
   if (p && (o.crop === "bust" || o.portrait)) return portraitSVG(p, { crop: o.crop === "bust" ? "bust" : "full", size: o.size, label: o.label || "Your portrait", headline: o.headline });
-  const leg = o.crop === "bust" ? null : roadPath(data).leg;
-  return guitarist(o.me || meOf(data), { mood: meMood(data), look: stageLook(data), patches: patchesOf(data), guitar: guitarShown(data, leg?.id), ...o, me: undefined });
+  const me = o.me || meOf(data || {});
+  return painted(GENRE_DEFAULT, { mood: meMood(data || {}), look: stageLook(data || {}), ...o, lefty: o.lefty ?? me.lefty });
 }
-/* a computer rival, seeded by name, at the look of its tier; decorative (the name is beside it) */
+/* a computer rival. The picture is one of the 24, chosen from the name. Decorative (the name is beside it). */
 export function rival(name, tier, o = {}) {
-  const r = rivalMe(name, tier);
-  return guitarist(r, { look: stageLookOf(tier), crop: "bust", ...o, label: name }).replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
+  return painted(genreForName(name), { look: stageLookOf(tier), crop: "bust", ...o, label: name }).replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
 }
