@@ -14,7 +14,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "art" / "guitars"
-DST = SRC / "sheen"
+DST = SRC / "streak"
 LIT = np.array([255.0, 250.0, 236.0])
 
 
@@ -134,20 +134,22 @@ def elevate(im, kind):
             bh = max(1, y1 - y0)
             yy = np.arange(h, dtype=np.float32)[:, None]
             dist = yy - edge[None, :]
-            # a narrow streak just inside the curve: a sharp edge on the lit side, then a quick falloff
-            peak = 3.2
-            sharp = 1.05
-            fall = 2.2
+            # a narrow streak on the upper bout only: sharp on the lit side, a short falloff,
+            # bright enough to read at phone size, with the grain put back on top afterwards
+            peak = max(6.0, bh * 0.010)
+            sharp = max(1.6, bh * 0.0025)
+            fall = max(7.0, bh * 0.012)
             onset = np.clip((dist - (peak - sharp)) / sharp, 0, 1)
             tail = np.exp(-(np.maximum(dist - peak, 0)) / fall)
             streak = np.where(dist < peak, onset, tail).astype(np.float32)
-            streak *= face
+            upper = np.zeros((h, w), np.float32)
+            upper[y0:y0 + int(bh * 0.40)] = 1
+            streak *= face * upper
             xs = np.linspace(0, 1, w)[None, :]
-            streak *= 0.82 + 0.18 * (1 - xs)
-            # keep it off the soundhole and the dark hardware, and keep it faint so the grain reads through
-            wood = np.clip((low.mean(-1) - 28) / 40, 0, 1)
+            streak *= 0.78 + 0.22 * (1 - xs)
+            wood = np.clip((low.mean(-1) - 22) / 36, 0, 1)
             streak *= wood
-            lit = lit + (LIT - lit) * (streak * 0.16)[..., None]
+            lit = lit + (LIT - lit) * (streak * 0.58)[..., None]
 
         # binding: a thin bright edge on the lit side, a darker edge on the shadow side
         mask = Image.fromarray(np.clip(a * 255, 0, 255).astype(np.uint8), "L")
