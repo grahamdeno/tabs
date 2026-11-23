@@ -14,9 +14,9 @@ test("4.85.0 a player who never made a guitarist is asked once on the Road, and 
   await page.waitForSelector(".gm");
   assert.match(await page.innerText(".gm"), /Who's playing tonight\?/);
   assert.match(await page.innerText(".gm"), /I drew you a guitarist/, "Louie asks");
-  await page.click('.gm [data-k="starter"][data-v="4"]');
+  await page.click('.gm [data-k="genre"][data-v="punk"]');
   await page.click("#gm-ok");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).me?.hair === "braids");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).me?.genre === "punk");
   await page.waitForSelector("#rd-bubble, .rr-stats");
   assert.equal(await page.locator(".gm").count(), 0, "the sheet closes");
   assert.ok(await page.locator(".rd-peek").count() === 0 && await page.locator("#rd-bubble, .rr-say").count() === 0, "no Louie and no message on the Road (Road Ready 10b; one-row header)");
@@ -48,7 +48,8 @@ test("4.85.0 your profile card shows your guitarist; the maker changes it and sa
   await page.click("#gm-t-hair");
   await page.click('.gm [data-k="hair"][data-v="pixie"]');
   await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.specs === "square" && m.lefty && m.beard === "stubble" && m.face === "heart" && m.eyes === "wide" && m.eyeCol === "green" && m.brows === "arched" && m.nose === "broad" && m.freckles === true; });
-  assert.equal(await page.locator(".gm .gm-prev svg").getAttribute("aria-label"), "Your guitarist");
+  assert.equal(await page.locator(".gm .gm-hero").getAttribute("alt"), "Your guitarist");
+  assert.equal(await page.locator(".gm-starts").count(), 0, "the old face chips are hidden");
   await page.click("#gm-t-fit");
   assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 3, "the three hats are locked until bought");
   await page.click("#gm-ok"); await page.waitForSelector(".rr-me");

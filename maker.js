@@ -3,12 +3,12 @@
 //   "once"   a player already past Opening night meets it once, on the Road (Louie asks); Skip keeps the default
 //   "full"   Your profile > Edit: all four tabs (Face, Hair, Fit, Guitar); every change saves as you tap it
 // The look, the patches and the guitar aren't picked here: the Road decides them (stageLook, patchesAll, guitarFor).
-// The preview is the painted guitarist you picked (genre, and man or woman) on a TONIGHT card. Each option below is
-// still a small ink drawing of that part (face shape, eyes, eye colour, brows, nose, glasses and freckles).
+// The preview is the whole painted guitarist you picked, head to mid-thigh. The face, hair and hat fields stay saved
+// and the tabs below still read them. The old starter faces are not shown.
 import { ME_BEARD, ME_BROWS, ME_DEFAULT, ME_EYES, ME_EYE_COL, ME_FACE, ME_GENRE, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_NOSE, ME_PATCHES, ME_SPECS, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
 import { ask, esc, haptic, layer, toast } from "./ui.js";
 import { data, go } from "./app.js";
-import { EYE_COL, HAIR_COL, OUTFIT_COL, SKIN, SKIN_ORDER, guitarist, you } from "./guitarist.js";
+import { EYE_COL, HAIR_COL, OUTFIT_COL, SKIN, SKIN_ORDER, genreFile, genreIdOf, guitarist } from "./guitarist.js";
 import { guitarPic } from "./fretboard.js";
 import { selfieStart } from "./selfie.js";
 import { imgKey, makePortrait, portraitError, portraitNow, portraitSVG, removePortrait } from "./portrait.js";
@@ -26,7 +26,6 @@ const SPECS = { none: "None", round: "Round", square: "Square", shades: "Shades"
 const PARTS = { face: ME_FACE, eyes: ME_EYES, eyeCol: ME_EYE_COL, brows: ME_BROWS, nose: ME_NOSE };
 const partOf = (me, k) => me[k] ?? PARTS[k][0];
 const hide = svg => svg.replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
-const same = (a, b) => ["skin", "hair", "hairCol", "beard", "glasses", "top"].every(k => (a[k] ?? ME_DEFAULT[k]) === (b[k] ?? ME_DEFAULT[k])) && Object.keys(PARTS).every(k => partOf(a, k) === partOf(b, k)) && !a.freckles === !b.freckles;
 const DICE = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/></svg>`;
 const FLIP = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2.4"/><path d="M9 6L3 18h6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15 6l6 12h-6Z" fill="currentColor"/></svg>`;
 const pickOf = list => list[Math.floor(Math.random() * list.length)];
@@ -38,7 +37,9 @@ export function makerSheet({ mode = "full", done } = {}) {
   const owned = new Set(merchState(data).has);
   const keep = () => { if (full) { data.me = cleanMe(me); Tabs.save(data); } };
   const set = (k, v) => { me = { ...me, [k]: v }; keep(); paint(); haptic(1); };
-  const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : you(data, { me, size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT", look, lefty: me.lefty });
+  const prev = () => portraitNow()
+    ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" })
+    : `<img class="gm-hero${me.lefty ? " lefty" : ""}" src="${genreFile(genreIdOf(me))}" alt="Your guitarist">`;
   const picked = () => `<h3>Genre</h3><div class="gm-row gm-genre" role="group" aria-label="Genre">${ME_GENRE.map(g => chip("genre", g, GENRE_NAME[g], (me.genre || "rock") === g, `<span>${GENRE_NAME[g]}</span>`)).join("")}</div>
         <h3>Man or woman</h3><div class="gm-row gm-who" role="group" aria-label="Man or woman">${[["m", "Man"], ["w", "Woman"]].map(([v, n]) => chip("who", v, n, (me.who || "m") === v, `<span>${n}</span>`)).join("")}</div>`;
   const bust = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "bust", size: 56, look, flat: true }));
@@ -81,10 +82,9 @@ export function makerSheet({ mode = "full", done } = {}) {
           <div class="gm-card"><div class="gm-prev" aria-live="polite">${prev()}</div>
           <button class="ib gm-rand" id="gm-rand" aria-label="Random guitarist">${DICE}</button>
           ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}</div>
-          <div class="gm-lou"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
+          <div class="gm-lou"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Pick your genre and look."}</p></div>
         </div>
         ${picked()}
-        <div class="gm-row gm-starts" role="group" aria-label="Start from">${ME_STARTERS.slice(0, 6).map((s, i) => chip("starter", i, `Starter ${i + 1}`, same(me, s), bust(s))).join("")}</div>
         <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? ' disabled aria-busy="true"' : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
           <p class="gm-note">Your photo stays on this phone and is never saved.</p>${selfieMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(selfieMsg)}</p>` : ""}</div>
         <div class="gm-selfie gm-port"><button class="btn gm-selfie-b" id="gm-port"${drawing ? ' disabled aria-busy="true"' : ""}>${drawing ? "Drawing your portrait..." : portraitNow() ? "Make a new portrait" : "Make my portrait"}</button>

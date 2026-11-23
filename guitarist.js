@@ -249,17 +249,17 @@ function painted(id, { crop = "full", size = 160, label = "Your guitarist", card
   }
   return `<svg viewBox="30 10 740 780" width="${size}" height="${size}" ${open}>${img}</svg>`;
 }
-const playerGenre = me => {
+export function genreIdOf(me) {
   const id = `${GENRE_IDS.includes(me?.genre) ? me.genre : "rock"}-${me?.who === "w" ? "w" : "m"}`;
   return genreCast().includes(id) ? id : GENRE_DEFAULT;
-};
+}
 /* you, as the app means you. The picture is the genre and the man or woman you picked. A portrait still stands in
    for the round portrait and the share card. o overrides mood, crop, size, label, look and lefty. */
 export function you(data, o = {}) {
   const p = !o.me && !o.drawn && portraitNow();
   if (p && (o.crop === "bust" || o.portrait)) return portraitSVG(p, { crop: o.crop === "bust" ? "bust" : "full", size: o.size, label: o.label || "Your portrait", headline: o.headline });
   const me = o.me || meOf(data || {});
-  return painted(playerGenre(me), { mood: meMood(data || {}), look: stageLook(data || {}), ...o, lefty: o.lefty ?? me.lefty });
+  return painted(genreIdOf(me), { mood: meMood(data || {}), look: stageLook(data || {}), ...o, lefty: o.lefty ?? me.lefty });
 }
 /* a computer rival. The picture is one of the 24, chosen from the name. Decorative (the name is beside it). */
 export function rival(name, tier, o = {}) {

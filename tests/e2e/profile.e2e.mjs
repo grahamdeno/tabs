@@ -201,7 +201,10 @@ test("the maker saves a genre and man or woman, and Me shows that picture", { sk
     const me = JSON.parse(localStorage.getItem("tabs-v1")).me;
     return me && me.genre === "blues" && me.who === "w";
   });
-  assert.equal(await page.locator(".gm-prev image").getAttribute("href"), "art/guitarist-painted/genres/blues-w.webp", "the card follows the pick");
+  assert.equal(await page.locator(".gm-prev .gm-hero").getAttribute("src"), "art/guitarist-painted/genres/blues-w.webp", "the card follows the pick");
+  const hero = await page.locator(".gm-hero").evaluate(el => getComputedStyle(el).objectFit);
+  assert.equal(hero, "contain", "the whole painting fits in the card");
+  assert.equal(await page.locator(".gm-starts").count(), 0, "the old face chips are not on the maker");
   await page.click("#gm-ok");
   await page.waitForSelector(".gm", { state: "detached" });
   await settled(page);
