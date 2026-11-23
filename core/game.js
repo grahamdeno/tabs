@@ -205,8 +205,9 @@ export function guitarNew(data, now = Date.now()) {
   return next ? { leg: last, next: next.id, guitar: guitarFor(next.id), done } : null;
 }
 /* ---------- Your guitarist (4.85.0): the player in Louie's style, built from parts ----------
-   data.me = { skin 0-8, hair, hairCol, beardCol? (absent: the hair colour), beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, patches,
+   data.me = { skin 0-8, hair, hairCol, beardCol? (absent: the hair colour), beard, glasses, extra (a hat), extraCol, top (the top's colour), lefty, genre, who, patches,
    and since 2026-11-20 face?, eyes?, eyeCol?, brows?, nose?, specs?, freckles? (each absent when it's the default, so older guitarists keep their data) }.
+   genre is one of ME_GENRE and who is m or w. A missing or invalid one becomes rock and m.
    The big looks aren't stored: the top follows the venue you've reached (stageLook), the patches come from what
    you've done (patchesOf) and the guitar is the one you're on. Drawn in guitarist.js. */
 export const ME_HAIR = ["shag", "curly", "buzz", "mohawk", "braids", "bob", "bun", "swoop", "long", "locs", "pixie", "ponytail", "longhawk"];
@@ -223,7 +224,9 @@ export const ME_BROWS = ["natural", "thick", "arched", "straight"];
 export const ME_NOSE = ["wedge", "button", "bridge", "broad"];
 export const ME_SPECS = ["round", "square", "shades"];
 export const ME_SKINS = 9;
-export const ME_DEFAULT = { skin: 2, hair: "shag", hairCol: "brown", beard: "none", glasses: false, extra: "none", extraCol: "black", top: "red", lefty: false };
+export const ME_GENRE = ["rock", "punk", "metal", "blues", "country", "folk", "jazz", "classical", "indie", "funk", "reggae", "pop"];
+export const ME_WHO = ["m", "w"];
+export const ME_DEFAULT = { skin: 2, hair: "shag", hairCol: "brown", beard: "none", glasses: false, extra: "none", extraCol: "black", top: "red", lefty: false, genre: "rock", who: "m" };
 /* eight quick starting points: no names, once picked it's you. Hats are on the Merch table, so none here. */
 export const ME_STARTERS = [
   { skin: 2, hair: "shag", hairCol: "brown", top: "red" },
@@ -243,7 +246,8 @@ export function cleanMe(raw) {
     hair: pick(raw.hair, ME_HAIR, ME_DEFAULT.hair), hairCol: pick(raw.hairCol, ME_HAIR_COL, ME_DEFAULT.hairCol),
     beard: pick(raw.beard, ME_BEARD, "none"), glasses: raw.glasses === true,
     extra: pick(raw.extra, ME_HATS, "none"), extraCol: pick(raw.extraCol, ME_TOP_COL, ME_DEFAULT.extraCol),
-    top: pick(raw.top, ME_TOP_COL, ME_DEFAULT.top), lefty: raw.lefty === true
+    top: pick(raw.top, ME_TOP_COL, ME_DEFAULT.top), lefty: raw.lefty === true,
+    genre: pick(raw.genre, ME_GENRE, "rock"), who: pick(raw.who, ME_WHO, "m")
   };
   const patches = [...new Set((Array.isArray(raw.patches) ? raw.patches : []).filter(x => typeof x === "string" && /^[\w:-]{1,24}$/.test(x)))].slice(0, ME_PATCHES);
   if (patches.length) out.patches = patches;

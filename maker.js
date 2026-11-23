@@ -3,9 +3,9 @@
 //   "once"   a player already past Opening night meets it once, on the Road (Louie asks); Skip keeps the default
 //   "full"   Your profile > Edit: all four tabs (Face, Hair, Fit, Guitar); every change saves as you tap it
 // The look, the patches and the guitar aren't picked here: the Road decides them (stageLook, patchesAll, guitarFor).
-// The preview is the painted rock guitarist on a TONIGHT card. Each option is still a small ink drawing of that part
-// (face shape, eyes, eye colour, brows, nose, glasses and freckles), which is what gets saved.
-import { ME_BEARD, ME_BROWS, ME_DEFAULT, ME_EYES, ME_EYE_COL, ME_FACE, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_NOSE, ME_PATCHES, ME_SPECS, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
+// The preview is the painted guitarist you picked (genre, and man or woman) on a TONIGHT card. Each option below is
+// still a small ink drawing of that part (face shape, eyes, eye colour, brows, nose, glasses and freckles).
+import { ME_BEARD, ME_BROWS, ME_DEFAULT, ME_EYES, ME_EYE_COL, ME_FACE, ME_GENRE, ME_HAIR, ME_HAIR_COL, ME_HATS, ME_NOSE, ME_PATCHES, ME_SPECS, ME_STARTERS, ME_TOP_COL, MERCH, OPENING, Tabs, cleanMe, guitarShown, merchState, meOf, openingStep, patchesAll, patchesOf, roadPath, stageLook } from "./core.js";
 import { ask, esc, haptic, layer, toast } from "./ui.js";
 import { data, go } from "./app.js";
 import { EYE_COL, HAIR_COL, OUTFIT_COL, SKIN, SKIN_ORDER, guitarist, you } from "./guitarist.js";
@@ -14,6 +14,7 @@ import { selfieStart } from "./selfie.js";
 import { imgKey, makePortrait, portraitError, portraitNow, portraitSVG, removePortrait } from "./portrait.js";
 
 const NAME = { shag: "Shag", curly: "Curly", buzz: "Buzz", mohawk: "Mohawk", braids: "Braids", bob: "Bob", bun: "Bun", swoop: "Swoop", long: "Long", locs: "Locs", pixie: "Pixie", ponytail: "Ponytail", longhawk: "Long mohawk" };
+const GENRE_NAME = { rock: "Rock", punk: "Punk", metal: "Metal", blues: "Blues", country: "Country", folk: "Folk", jazz: "Jazz", classical: "Classical", indie: "Indie", funk: "Funk", reggae: "Reggae", pop: "Pop" };
 const BEARD = { none: "Clean", stubble: "Stubble", moustache: "Moustache", beard: "Beard" };
 const SKIN_NAME = ["Lightest", "Light", "Medium light", "Medium", "Medium dark", "Dark", "Deep", "Deepest", "Medium tan"];
 const FACE = { oval: "Oval", square: "Square", round: "Round", heart: "Heart" };
@@ -37,7 +38,9 @@ export function makerSheet({ mode = "full", done } = {}) {
   const owned = new Set(merchState(data).has);
   const keep = () => { if (full) { data.me = cleanMe(me); Tabs.save(data); } };
   const set = (k, v) => { me = { ...me, [k]: v }; keep(); paint(); haptic(1); };
-  const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : you(data, { size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT", look, lefty: me.lefty });
+  const prev = () => portraitNow() ? portraitSVG(portraitNow(), { size: 270, headline: "TONIGHT", label: "Your portrait" }) : you(data, { me, size: 270, mood: "happy", card: true, crop: "three", headline: "TONIGHT", look, lefty: me.lefty });
+  const picked = () => `<h3>Genre</h3><div class="gm-row gm-genre" role="group" aria-label="Genre">${ME_GENRE.map(g => chip("genre", g, GENRE_NAME[g], (me.genre || "rock") === g, `<span>${GENRE_NAME[g]}</span>`)).join("")}</div>
+        <h3>Man or woman</h3><div class="gm-row gm-who" role="group" aria-label="Man or woman">${[["m", "Man"], ["w", "Woman"]].map(([v, n]) => chip("who", v, n, (me.who || "m") === v, `<span>${n}</span>`)).join("")}</div>`;
   const bust = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "bust", size: 56, look, flat: true }));
   const close = o => hide(guitarist({ ...me, extra: "none", ...o }, { crop: "face", size: 56, look }));
   const thumbs = (key, list, names) => `<div class="gm-row gm-thumbs">${list.map(v => chip(key, v, names[v], partOf(me, key) === v, close({ [key]: v }) + `<span>${names[v]}</span>`)).join("")}</div>`;
@@ -80,6 +83,7 @@ export function makerSheet({ mode = "full", done } = {}) {
           ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}</div>
           <div class="gm-lou"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
         </div>
+        ${picked()}
         <div class="gm-row gm-starts" role="group" aria-label="Start from">${ME_STARTERS.slice(0, 6).map((s, i) => chip("starter", i, `Starter ${i + 1}`, same(me, s), bust(s))).join("")}</div>
         <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? ' disabled aria-busy="true"' : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
           <p class="gm-note">Your photo stays on this phone and is never saved.</p>${selfieMsg ? `<p class="gm-note gm-selfie-msg" role="status">${esc(selfieMsg)}</p>` : ""}</div>
@@ -93,7 +97,7 @@ export function makerSheet({ mode = "full", done } = {}) {
     const nb = layer.querySelector(".gm .pbody"); if (nb) nb.scrollTop = top;
     layer.querySelectorAll(".gm [data-k]").forEach(b => b.addEventListener("click", () => {
       const k = b.dataset.k, v = b.dataset.v;
-      if (k === "starter") { me = { ...ME_STARTERS[+v], extra: me.extra, extraCol: me.extraCol, lefty: me.lefty, patches: me.patches }; keep(); paint(); haptic(1); }
+      if (k === "starter") { me = { ...ME_STARTERS[+v], extra: me.extra, extraCol: me.extraCol, lefty: me.lefty, patches: me.patches, genre: me.genre, who: me.who }; keep(); paint(); haptic(1); }
       else if (k === "skin") set("skin", +v);
       else if (k === "beardCol") { me = { ...me, beardCol: v === me.hairCol ? undefined : v }; keep(); paint(); haptic(1); }
       else if (k === "glasses") set("glasses", v === "true");

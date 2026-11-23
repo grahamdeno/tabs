@@ -188,6 +188,26 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
   assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
 });
 
+test("the maker saves a genre and man or woman, and Me shows that picture", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { colorScheme: "dark" });
+  await page.evaluate(() => { location.hash = "#/you"; });
+  await page.waitForSelector("#pf-me");
+  await settled(page);
+  await page.click("#pf-me");
+  await page.waitForSelector('.gm-c[data-k="genre"][data-v="blues"]');
+  await page.click('.gm-c[data-k="genre"][data-v="blues"]');
+  await page.click('.gm-c[data-k="who"][data-v="w"]');
+  await page.waitForFunction(() => {
+    const me = JSON.parse(localStorage.getItem("tabs-v1")).me;
+    return me && me.genre === "blues" && me.who === "w";
+  });
+  assert.equal(await page.locator(".gm-prev image").getAttribute("href"), "art/guitarist-painted/genres/blues-w.webp", "the card follows the pick");
+  await page.click("#gm-ok");
+  await page.waitForSelector(".gm", { state: "detached" });
+  await settled(page);
+  assert.equal(await page.locator(".rr-avatar image").getAttribute("href"), "art/guitarist-painted/genres/blues-w.webp", "Me shows the picture you picked");
+});
+
 for (const theme of ["green", "headliner"]) {
   test(`Road Ready 08 (${theme}): Me is the earlier page (the player card, four tiles, Tips to spend) and Back to the Road is a 44 px target`, { skip: skip() }, async t => {
     const page = await phone(t, meLib(theme, { merch: { ...LIB.merch } }), { home: true });

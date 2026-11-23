@@ -3,7 +3,7 @@
 // front hair, glasses, hat, patches. The parts follow Graham's avatar kit (docs/guitarist-ink/PLAN.md). The big looks still
 // come from the Road: the top follows the venue, the guitar is the Road guitar you're on (its painted picture), the
 // patches are what you've done.
-import { meMood, meOf, stageLook, stageLookOf } from "./core.js";
+import { ME_GENRE, meMood, meOf, stageLook, stageLookOf } from "./core.js";
 import { guitarPic } from "./fretboard.js";
 import { portraitNow, portraitSVG } from "./portrait.js";
 // guitarist(me, { mood, pose, crop, size, look, patches, guitar, label, card, headline }) returns an <svg> string.
@@ -214,9 +214,9 @@ export function guitarist(me, { mood: mood0 = "happy", pose: pose0 = "play", cro
   return `<svg viewBox="${vb}" width="${size}" height="${Math.round(size * vh / vw)}" role="img" aria-label="${label.replace(/"/g, "&quot;")}" data-mood="${mood}" style="overflow:hidden">${defs}${body}</svg>`;
 }
 
-/* The finished paintings. One man and one woman for each genre. Nothing here is saved: the player is rock until a
-   choice has a place to live, and a rival's picture comes from the name already used for that rival. */
-export const GENRE_IDS = ["rock", "punk", "metal", "blues", "country", "folk", "jazz", "classical", "indie", "funk", "reggae", "pop"];
+/* The finished paintings. One man and one woman for each genre. The player's picture is data.me.genre and data.me.who.
+   A rival's picture comes from the name already used for that rival. */
+export const GENRE_IDS = ME_GENRE;
 const GENRE_V2 = { "punk-w": "punk-w-v2", "country-m": "country-m-v2", "country-w": "country-w-v2" };
 export const GENRE_DEFAULT = "rock-m";
 export const genreCast = () => GENRE_IDS.flatMap(g => [`${g}-m`, `${g}-w`]);
@@ -249,13 +249,17 @@ function painted(id, { crop = "full", size = 160, label = "Your guitarist", card
   }
   return `<svg viewBox="30 10 740 780" width="${size}" height="${size}" ${open}>${img}</svg>`;
 }
-/* you, as the app means you. The painted rock guitarist stands in for the ink drawing. A portrait still stands in
+const playerGenre = me => {
+  const id = `${GENRE_IDS.includes(me?.genre) ? me.genre : "rock"}-${me?.who === "w" ? "w" : "m"}`;
+  return genreCast().includes(id) ? id : GENRE_DEFAULT;
+};
+/* you, as the app means you. The picture is the genre and the man or woman you picked. A portrait still stands in
    for the round portrait and the share card. o overrides mood, crop, size, label, look and lefty. */
 export function you(data, o = {}) {
   const p = !o.me && !o.drawn && portraitNow();
   if (p && (o.crop === "bust" || o.portrait)) return portraitSVG(p, { crop: o.crop === "bust" ? "bust" : "full", size: o.size, label: o.label || "Your portrait", headline: o.headline });
   const me = o.me || meOf(data || {});
-  return painted(GENRE_DEFAULT, { mood: meMood(data || {}), look: stageLook(data || {}), ...o, lefty: o.lefty ?? me.lefty });
+  return painted(playerGenre(me), { mood: meMood(data || {}), look: stageLook(data || {}), ...o, lefty: o.lefty ?? me.lefty });
 }
 /* a computer rival. The picture is one of the 24, chosen from the name. Decorative (the name is beside it). */
 export function rival(name, tier, o = {}) {

@@ -2661,7 +2661,7 @@ test("4.84.0 every guitar has its own inlay material, and the solid-body is on m
 test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a backup keeps data.me", () => {
   assert.equal(C.cleanMe(null), null);
   const me = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1", "leg:open", "bad id!", 5] });
-  assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1"] });
+  assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, genre: "rock", who: "m", patches: ["leg:open", "b:song1"] });
   /* the face parts (2026-11-20): kept when valid and not the default, so a guitarist saved before them is unchanged */
   const parts = C.cleanMe({ ...C.ME_DEFAULT, skin: 8, face: "heart", eyes: "round", eyeCol: "green", brows: "nope", nose: "broad", specs: "shades", freckles: "yes" });
   assert.equal(parts.skin, 8);
@@ -2674,7 +2674,15 @@ test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a ba
   assert.equal(bad.extra, "none");
   assert.equal(bad.top, C.ME_DEFAULT.top);
   assert.equal(bad.lefty, false);
+  assert.equal(bad.genre, "rock", "a bad genre becomes rock");
+  assert.equal(bad.who, "m", "a bad who becomes m");
   assert.equal(bad.patches.length, C.ME_PATCHES, "at most five patches");
+  const kept = C.cleanMe({ ...C.ME_DEFAULT, genre: "funk", who: "w" });
+  assert.equal(kept.genre, "funk");
+  assert.equal(kept.who, "w");
+  const dropped = C.cleanMe({ ...C.ME_DEFAULT, genre: "ska", who: "x" });
+  assert.equal(dropped.genre, "rock");
+  assert.equal(dropped.who, "m");
   assert.equal(C.ME_STARTERS.length, 8);
   assert.ok(C.ME_STARTERS.every(s => C.cleanMe(s).hair === s.hair && s.extra === "none" && !("name" in s)), "starters are valid, hat-free and nameless");
   const back = C.cleanImport(JSON.parse(JSON.stringify({ songs: [], sets: [], trash: [], settings: {}, me })));
@@ -2779,8 +2787,12 @@ test("painted genre guitarists stand in for the ink drawing, and the three fixes
     assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
   }
   const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
-  assert.equal(cleaned.genre, undefined, "a genre is not stored");
-  assert.equal(cleaned.who, undefined, "man or woman is not stored");
+  assert.equal(cleaned.genre, "punk", "a valid genre is kept");
+  assert.equal(cleaned.who, "w", "a valid who is kept");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "jazz", who: "w" } }, { size: 80 }), /art\/guitarist-painted\/genres\/jazz-w\.webp/, "the profile picture is the one you picked");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "punk", who: "w" } }, {}), /punk-w-v2\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "m" } }, {}), /country-m-v2\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "w" } }, {}), /country-w-v2\.webp/);
 });
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {

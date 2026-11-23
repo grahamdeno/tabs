@@ -5285,6 +5285,11 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gm-stage .gm-lou p { margin: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .gm-blots .gm-c { border: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .gm-blots .gm-c.on { box-shadow: 0 0 0 3px var(--rr-amber); }
+/* the genre and the man or woman: the chosen one is lit like a lamp */
+.gm-genre .gm-c, .gm-who .gm-c { min-height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gm-genre, .gm-who) .gm-c.on {
+  background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 0 18px var(--rr-amber);
+}
 
 /* ---- the lean header (4.99.0, Grok's design review): one plate line, number-only fans and tips, a 44 px Tonight row, tighter
    padding; Louie's line is one short line under it. The neck starts about where r10-01 has it. ---- */
