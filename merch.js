@@ -28,10 +28,10 @@ const ART = {
 };
 /* Painted thumbnails (the flat drawings stay in ART for anything that still asks). */
 const BACKDROP_PIC = {
-  brick: "art/merch/backdrop-brick.webp",
-  stars: "art/merch/backdrop-stars.webp",
-  sunset: "art/merch/backdrop-sunset.webp",
-  basement: "art/merch/backdrop-basement.webp"
+  brick: "art/merch/paint-brick.webp",
+  stars: "art/merch/paint-stars.webp",
+  sunset: "art/merch/paint-sunset.webp",
+  basement: "art/merch/paint-basement.webp"
 };
 const artSVG = (id, cls = "") => {
   const src = BACKDROP_PIC[id] || BACKDROP_PIC.basement;

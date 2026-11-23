@@ -2778,10 +2778,13 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
 test("Merch backdrops: the thumbnails are painted pictures, saved for offline", () => {
   const js = read("merch.js"), shell = read("sw.js");
   for (const name of ["basement", "brick", "stars", "sunset"]) {
-    const f = `art/merch/backdrop-${name}.webp`;
+    const f = `art/merch/paint-${name}.webp`;
+    const old = `art/merch/backdrop-${name}.webp`;
     assert.match(js, new RegExp(f.replace(/\./g, "\\.")));
     assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(fs.existsSync(path.join(root, old)), `${old} stays`);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(shell.includes(`"${old}"`), `${old} stays saved for offline`);
   }
 });
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
