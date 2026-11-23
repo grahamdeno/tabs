@@ -4928,19 +4928,21 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
    Headliner keep the show as it was. The song's title and the progress line are drawn in every look and shown in these two. ---- */
 .gg-pod { display: contents; }
 .gg-head, .gg-prog { display: none; }
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged:not(.covered) { background: var(--rr-base); }
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body:not(.covered) .gig::before { background: linear-gradient(180deg, var(--rr-base) calc(var(--safe-t) + 96px), transparent); }
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body:not(.covered) .gig::after { background: linear-gradient(180deg, transparent, var(--rr-base) 44px); }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged:not(.covered) { background: var(--tolex); }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body:not(.covered) .gig::before { background: linear-gradient(180deg, color-mix(in srgb, var(--rr-base) 35%, transparent) calc(var(--safe-t) + 48px), transparent 120px); }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body:not(.covered) .gig::after { background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--rr-base) 40%, transparent) 44px); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) { color: var(--rr-lyric-next); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged:not(.covered) .sheet > .st-past:is(.pr, .ly, .crow) { color: var(--rr-lyric-sung); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged:not(.covered) .sheet > .st-now:is(.pr, .ly, .crow) { color: var(--rr-lyric-now); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged:not(.covered) .sheet > :is(.pr, .ly, .crow) .c { color: var(--rr-chord); opacity: 1; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet > .st-now:is(.pr, .ly, .crow)::after { content: ""; position: absolute; left: -12px; top: 2px; bottom: 4px; width: 3px; border-radius: 2px; background: var(--rr-amber-text); pointer-events: none; }
 /* the song's title at the top, centred; Pause a big amber button at the bottom in thumb reach */
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-head { display: flex; order: -1; flex-direction: column; align-items: center; gap: 1px; margin: 0 52px; text-align: center; pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-x { position: absolute; z-index: 2; left: 12px; top: calc(6px + var(--safe-t)); width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--rr-outline); background: color-mix(in srgb, var(--rr-card) 88%, transparent); color: var(--rr-text); display: grid; place-items: center; padding: 0; cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-x svg { width: 18px; height: 18px; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-head { display: flex; order: -1; flex-direction: column; align-items: center; gap: 1px; margin: 0 56px; text-align: center; pointer-events: none; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gg-head b { font: var(--type-headline-w) var(--type-headline) / 1.2 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: anywhere; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gg-head small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 "Inter", var(--sans); color: var(--rr-text-2); overflow-wrap: anywhere; }
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bottom { justify-content: center; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bottom { flex-direction: column; align-items: stretch; width: 100%; gap: 8px; justify-content: flex-end; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-pause { width: 64px; height: 64px; border-radius: 50%; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-pause svg { width: 26px; height: 26px; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig > .gg-prog { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--rr-lyric-sung) 45%, transparent); pointer-events: none; }
@@ -5123,17 +5125,39 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 #app > .dock.rr-find .cmd input { flex: 1; width: 100%; min-width: 0; font: var(--type-body-w, 500) var(--type-body, 16px) / 1.2 var(--sans); color: var(--rr-text, var(--fg)); }
 #app > .dock.rr-find .cmd input::placeholder { color: var(--rr-text-2, var(--muted)); opacity: 1; }
 #app > .dock.rr-find .cmd > svg { color: var(--rr-text-2, var(--muted)); }
-.mc-hero { position: relative; width: 100%; box-sizing: border-box; margin: 12px 0 8px; padding: 18px 8px 12px; border-radius: 18px; overflow: hidden; background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.55)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px 180px, #141210; }
-.mc-hero-stage { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: center; width: 100%; min-height: 250px; gap: 0; }
-.mc-hero-stage::before { content: ""; position: absolute; left: 28%; right: 28%; top: 8%; bottom: 0; background: radial-gradient(ellipse at 50% 70%, rgba(255, 160, 60, .45), transparent 70%); pointer-events: none; }
-.mc-hero-g { position: relative; z-index: 1; border: 0; background: none; padding: 0; cursor: pointer; min-width: 0; min-height: 44px; }
-.mc-hero-g.edge { flex: 1 1 0; }
-.mc-hero-g.mid { flex: 1.35 1 0; z-index: 2; }
-.mc-hero-g img { display: block; width: 100%; height: 210px; object-fit: contain; object-position: bottom; filter: drop-shadow(0 14px 16px rgba(0,0,0,.55)); }
-.mc-hero-g.mid img { height: 250px; }
-.mc-hero-g.edge img { height: 168px; opacity: .9; }
-.mc-hero-n, .mc-hero-cap { position: relative; z-index: 1; margin: 10px 0 0; text-align: center; color: #F6EEE0; font: 600 14px/1.3 var(--sans); }
-.mc-hero-n { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.mc-hero { position: relative; width: 100%; box-sizing: border-box; margin: 8px 0 8px; padding: 0 0 12px; }
+.mc-hero-stage { position: relative; z-index: 1; height: 48vh; min-height: 320px; overflow: hidden; border-radius: 18px; background: linear-gradient(rgba(0,0,0,.28), rgba(0,0,0,.5)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px 180px, #141210; }
+.mc-hero-stage::before { content: ""; position: absolute; left: 18%; right: 18%; top: 8%; bottom: 6%; background: radial-gradient(ellipse at 50% 62%, rgba(255, 150, 50, .55), rgba(255, 110, 20, .12) 46%, transparent 72%); pointer-events: none; }
+.mc-hero-g { position: absolute; bottom: 28px; border: 0; background: none; padding: 0; cursor: pointer; min-width: 0; min-height: 44px; }
+.mc-hero-g.edge { height: 92%; width: 46%; }
+.mc-hero-g.edge.pre { left: -16%; }
+.mc-hero-g.edge.post { right: -16%; }
+.mc-hero-g.mid { left: 50%; height: 118%; width: 62%; transform: translateX(-50%); z-index: 2; }
+.mc-hero-g img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 16px 14px rgba(0,0,0,.6)); }
+.mc-hero-g.edge img { opacity: .92; }
+.mc-stand { position: absolute; z-index: 3; left: 50%; bottom: 2px; width: 92px; height: 16px; transform: translateX(-50%); pointer-events: none;
+  background: linear-gradient(#1a1614, #1a1614) 50% 100% / 36px 4px no-repeat, linear-gradient(#3a322c, #3a322c) 18% 100% / 3px 14px no-repeat, linear-gradient(#3a322c, #3a322c) 82% 100% / 3px 14px no-repeat; }
+.mc-finish { margin: 10px 0 4px; padding: 10px 10px 12px; border-radius: 16px; border: 1.5px solid #C4A574; background: linear-gradient(#221c18, #14110e); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.mc-finish-h { margin: 0 0 10px; text-align: center; color: #F6EEE0; font: 600 15px/1.3 var(--sans); }
+.mc-finish-sw { display: flex; justify-content: space-between; gap: 6px; }
+.mc-fin-sw { flex: 1; min-width: 0; min-height: 44px; border: 0; background: none; color: #E7DCC8; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font: 500 11px/1.2 var(--sans); }
+.mc-fin-sw i { width: 46px; height: 46px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.18), 0 2px 6px rgba(0,0,0,.45); }
+.mc-fin-sw.on i { box-shadow: inset 0 0 0 2px #F6EEE0, 0 0 0 2px #C4A574; }
+.mc-fin-sw.locked { opacity: .72; }
+.mc-fin-sw small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-fin-ok, .mc-fin-lk { position: absolute; }
+.mc-fin-sw { position: relative; }
+.mc-fin-ok { top: 14px; color: #F6EEE0; }
+.mc-fin-ok svg { width: 18px; height: 18px; }
+.mc-fin-lk { top: 8px; display: flex; flex-direction: column; align-items: center; color: #F6EEE0; font: 700 10px/1.1 var(--sans); }
+.mc-fin-lk svg { width: 14px; height: 14px; }
+.mc-wear { display: block; width: 100%; min-height: 44px; margin-top: 12px; border: 0; border-radius: 12px; background: linear-gradient(#F3E6CC, #E4D0AE); color: #2A1E12; font: 700 16px/1 var(--display); cursor: pointer; }
+.rr-learn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; margin: 10px 0 0; padding: 4px 12px 4px 6px; box-sizing: border-box; border-radius: 14px; border: 1px solid var(--rr-amber-text, var(--accent)); background: color-mix(in srgb, var(--rr-amber, var(--accent)) 14%, var(--rr-card, var(--card))); color: var(--rr-amber-text, var(--accent-ink)); font: 600 var(--type-subhead, 15px) / 1.3 var(--sans); text-align: left; cursor: pointer; }
+.rr-learn img { width: 36px; height: 36px; border-radius: 50%; flex: none; }
+.rr-learn span { flex: 1; min-width: 0; }
+.rr-learn svg { width: 16px; height: 16px; flex: none; }
+.mc-hero-n, .mc-hero-cap { position: relative; z-index: 4; margin: 0; text-align: center; color: #F6EEE0; font: 600 14px/1.3 var(--sans); }
+.mc-hero-n { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 .mc-hero-n b { font-weight: 600; }
 .mc-hero-dots { display: flex; align-items: center; gap: 5px; }
 .mc-hero-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(246, 238, 224, .35); }
@@ -5490,16 +5514,20 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .rr-gcase .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
 
-/* Full-size lyrics (Grok, 2026-11-19, spec 6, wrapping approved by Graham): app.js lays every line out at the current-line size
-   (--type-lyric-now, 34 pt at the default text size) and the line keeps that box. Inside it the words are drawn by a transform
-   from the top left: 26 (next line, and every line on the song page) and 22 (the others while playing). Only the transform
-   changes as the song moves on, so nothing jumps, reflows or rewraps, and the reading line stays put. */
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .sheet.rr-slots > :is(.pr, .ly, .crow) { transform-origin: 0 0; transform: scale(var(--lyr-next, .765)); }
+/* Playing lyrics: one row each. The current line is full size; the next line and the song page are a little smaller,
+   and the lines already sung are smaller still. Only the transform changes as the song moves on. */
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .sheet.rr-slots > :is(.pr, .ly, .crow) { transform-origin: 0 0; transform: scale(var(--lyr-next, .82)); white-space: nowrap; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .app.viewer { padding-top: calc(56px + var(--safe-t)); padding-bottom: 70vh; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .app.viewer > :not(.sheet):not(.dock):not(.dock-fade):not(.fp) { position: absolute; height: 0; margin: 0; padding: 0; overflow: hidden; border: 0; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet.rr-slots { margin-top: 34vh; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet.rr-slots > :is(.pr, .ly) { margin-bottom: 0.15em; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet .sec { margin: 4px 0 2px; font-size: 12px; letter-spacing: .06em; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transform: scale(var(--lyr-sung, .647)) !important; transition: transform var(--rr-motion), color var(--rr-motion); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet.rr-slots > .st-next:is(.pr, .ly, .crow) { transform: scale(var(--lyr-next, .765)) !important; }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet.rr-slots > .st-now:is(.pr, .ly, .crow) { transform: none !important; }
 @media (prefers-reduced-motion: reduce) { :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transition: none; } }
 .sheet.measure > * { transform: none !important; }
+.sheet.measure > :is(.pr, .ly, .crow) { white-space: nowrap !important; }
 /* Louie's first-song line (one-row Road): once, near the top of the playing screen under the title, so it never meets the
    controls hint or Pause at the bottom; Louie waves beside it */
 .gig > .gg-hint.gg-first { top: calc(var(--safe-t) + 64px); bottom: auto; }
@@ -5974,9 +6002,11 @@ body.tabbed .tm-page { bottom: var(--tabs, 96px); }
 /* The Gig's control bar, 4.108.0 (Graham, 2026-11-19): a dark grille panel with a chrome edge, like an amp's control strip.
    Speed on the left, a round Pause in the middle lit by an amber lamp ring, and Loop and Tools as small knobs on the right.
    It fades with the other controls while you play, and steps aside while paused (the page's own bar is there then). */
-:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bar { position: relative; display: flex; justify-content: center; width: auto; margin: 0 auto; padding: 8px 14px; border-radius: 999px;
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bar { position: relative; display: flex; align-items: center; justify-content: space-between; width: min(360px, calc(100% - 8px)); margin: 0 auto; padding: 8px 22px; border-radius: 28px;
   background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 5px), linear-gradient(#1A1715, #0E0C0B);
   box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 8px 18px rgba(0, 0, 0, .5); }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-slot { width: 44px; height: 44px; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-clock { display: flex; justify-content: space-between; margin: 8px 4px 0; font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"], [data-look="green"], [data-look="headliner"]) .gig .gg-bar small { display: block; margin-top: 4px; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); color: #EADBC0; text-align: center; }
 .gg-sb { display: grid; justify-items: center; align-content: center; min-width: 52px; min-height: 52px; padding: 2px 4px; border: 0; background: none; color: #EADBC0; cursor: pointer; }
 .gg-speed { justify-self: start; }

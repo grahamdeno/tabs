@@ -1,6 +1,6 @@
 // The Road: the Songbook (search, filters, the song list, swipes) and the paste card. Split from app.js (4.15.1); app.js re-exports what other files use.
 import { coachTip, demoSearch, dismissCoach, markUsed, searchOpened, tick, tipDue, tipsSeen, used } from "./coach.js";
-import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playsThisWeek, requestSong, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
+import { Tabs, artistSortName, detectPaste, gigCountdown, guessKey, indexLetter, knownChords, lastPlayed, nextSet, parseSheet, pickNudge, playCount, playableSongs, playsThisWeek, requestSong, roadPath, searchSongs, sheetChords, sortSongs, untilLabel, weatherMood } from "./core.js";
 import { recentApple, searchApple } from "./listen.js";
 import { guitarIcon } from "./rock.js";
 import { appleBlocksSearch, fullWhen, itunes, keyColor, newSet, playSet, setCover, setKeys, setLength, setSetCtx, setSongs, whenText } from "./sets.js";
@@ -86,7 +86,7 @@ function todayItems() {
     const req = requestSong(data);
     const again = data.songs.filter(x => { const c = playCount(x); return c >= 1 && c <= 2 && x.status !== "got" && Date.now() - (x.playLog?.last || 0) > 21 * 864e5 && x !== one && x !== req; })
       .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0))[0];
-    if (one) items.push(`<button class="tdy-i upn-c one" data-id="${esc(one.id)}"><span class="tdy-t"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><em>Learn ${esc(fitOf(one).missing[0])} and it's yours</em></span></button>`);
+    if (one && !learnChord()) items.push(`<button class="tdy-i upn-c one" data-id="${esc(one.id)}"><span class="tdy-t"><small>ONE NEW CHORD</small><b>${esc(one.title)}</b><em>Learn ${esc(fitOf(one).missing[0])} and it's yours</em></span></button>`);
     if (req) items.push(`<button class="tdy-i upn-c req" data-gig="${esc(req.id)}"><span class="tdy-t"><small>${data.quests?.heard?.id === req.id ? "FROM YOUR LISTENING" : "REQUESTED"}</small><b>${esc(req.title)}</b><em>2x bonus fans tonight</em></span></button>`);
     if (again) items.push(`<button class="tdy-i upn-c again" data-id="${esc(again.id)}"><span class="tdy-t"><small>WORTH ANOTHER TRY</small><b>${esc(again.title)}</b><em>You left it ${Math.round((Date.now() - again.playLog.last) / 864e5 / 7)} weeks ago</em></span></button>`);
   }
@@ -103,6 +103,21 @@ function todayHTML() {
 // show yet, so a forecast that arrives after the library is drawn can still
 // fill it in (with no plays this week the weather never appeared).
 const todayHTMLOrSpot = (...a) => todayHTML(...a) || `<div id="today" hidden></div>`;
+/* The next chord still to learn that opens songs, or the Road's next chord when none of them do. */
+function learnChord() {
+  if (!rrTab() || searching || filter !== "all") return null;
+  const stops = roadPath(data).legs.flatMap(l => l.stops).filter(s => s.kind === "chord" && s.state !== "done" && s.chord);
+  const ranked = stops.map(s => ({ s, more: playableSongs(data, s.chord).more }));
+  return ranked.find(x => x.more > 0) || ranked[0] || null;
+}
+/* The agreed Songbook hint: Louie's head and that chord, under the filters. */
+function learnHint() {
+  const hit = learnChord();
+  if (!hit) return "";
+  const { s, more } = hit;
+  const line = more > 0 ? `Learn ${s.chord} and ${more} more song${more === 1 ? "" : "s"} open` : `Learn ${s.chord}`;
+  return `<button class="rr-learn" id="rr-learn" type="button" data-stop="${esc(s.id)}"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="36" height="36"><span>${esc(line)}</span>${icon("chev")}</button>`;
+}
 function bindToday() {
   $("nudge")?.addEventListener("click", e => go("#/song/" + encodeURIComponent(e.currentTarget.dataset.song)));
   clearInterval(gigTimer);
@@ -164,6 +179,7 @@ export function renderLibrary() {
     </div>
     ${rr ? find : ""}
     ${rr ? chips : ""}
+    ${learnHint()}
     ${todayHTMLOrSpot()}
     ${rr ? "" : chips}
     ${needsBackup() ? `<div class="bk glass" id="bk">
@@ -178,6 +194,7 @@ export function renderLibrary() {
   const setsBtn = $("setsbtn");
   if (setsBtn && !setsBtn.dataset.f) setsBtn.addEventListener("click", () => { filter = filter === "sets" ? "all" : "sets"; renderLibrary(); });
   $("tunerbtn")?.addEventListener("click", () => openTuner("standard", () => route().name === "library" && renderLibrary()));
+  $("rr-learn")?.addEventListener("click", e => go("#/practice/" + encodeURIComponent(e.currentTarget.dataset.stop)));
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
@@ -203,6 +220,9 @@ export function renderLibrary() {
   q.addEventListener("pointerdown", e => {
     if (searching) return;
     e.preventDefault();
+    /* the tap's click lands after the bar settles, and would hit whatever slid under the finger */
+    const eat = ev => { ev.preventDefault(); ev.stopPropagation(); document.removeEventListener("click", eat, true); };
+    document.addEventListener("click", eat, true);
     enterSearch();
     q.focus({ preventScroll: true });
   });
@@ -505,6 +525,7 @@ function catalogSearch(term) {
 export function renderList() {
   document.body.classList.toggle("sr-lock", searching && !query.trim()); /* 4.49.1: the search screen holds still until you type */
   const list = $("list"), drawer = route().name === "road";
+  if (!list) return;
   document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx");
   if (!data.songs.length) {
     list.innerHTML = `<div class="empty">No songs yet.<br>Add your first one: search for it by name below,<br>or use one of these.</div>${addTools()}`;

@@ -5,7 +5,7 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { GUITARS, MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, meOf, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
+import { BUILD_STOCK, GUITARS, MERCH, Tabs, VERSION, buildOf, buildSave, buildState, merchBuy, merchState, merchWear, merchWorn, meOf, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
@@ -55,7 +55,7 @@ const tag = (it, st) => it.kind === "gear" ? price(it, st)
 /* 4.104.0 (agreed Merch screen): in Dark and Light the table is three tabs, Guitars, Looks and Gear, under a header with a round
    back button, the title and your tips. Green Room and Headliner keep the one long page. The tab you were on is kept while the
    app is open. */
-let mcTab = "guitars", heroAt = 0;
+let mcTab = "guitars", heroAt = 0, heroPaint = {};
 /* open the table on a tab (Settings opens it on Looks for a look you don't have) */
 export const merchTab = k => { if (["guitars", "looks", "gear"].includes(k)) mcTab = k; };
 const rrLook = () => ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
@@ -88,8 +88,8 @@ export function renderMerch() {
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
     <div class="mc-row scroll">${of("look").map(look).join("")}</div>`)}
     ${panel("guitars", `${guitarHero()}
-    ${buildEntry()}
-    ${shopHTML()}`)}
+    ${shopHTML()}
+    ${buildEntry()}`)}
     <p class="mc-note">Tips come from your shows: more with a bigger crowd and a longer run of chords. Spending them never touches your fans, your XP or your chart spot.</p>
   </div>`;
   document.getElementById("mc-back").onclick = () => history.length > 1 ? history.back() : go("#/you");
@@ -102,6 +102,12 @@ export function renderMerch() {
   document.addEventListener("builds-saved", renderMerch, { once: true });
   app.querySelectorAll(".mc [data-gt]").forEach(b => b.onclick = () => shopSheet(b.dataset.gt));
   app.querySelectorAll(".mc-hero [data-step]").forEach(b => b.onclick = () => { heroAt += +b.dataset.step; renderMerch(); });
+  app.querySelectorAll(".mc-fin-sw[data-paint]").forEach(b => b.onclick = () => {
+    if (b.classList.contains("locked")) return;
+    heroPaint[b.dataset.leg] = b.dataset.paint;
+    renderMerch();
+  });
+  document.getElementById("mc-wear")?.addEventListener("click", () => wearHero());
   document.getElementById("mc-gt-leg")?.addEventListener("click", () => { shopChoose(data, null); Tabs.save(data); renderMerch(); toast("Back to the guitar of the leg you're on"); });
 }
 
@@ -116,19 +122,58 @@ function shopSay(g, st) {
   if (g.more) return { tag: `<span class="mc-price short">$${n(g.price)}</span><small class="mc-more">$${n(g.more)} more</small>`, say: `$${n(g.price)}, $${n(g.more)} more` };
   return { tag: `<span class="mc-price">$${n(g.price)}</span>`, say: `$${n(g.price)}, you can buy it` };
 }
+/* The four body finishes the hero card shows. Names and colours are the builder's paints (manifest.json). */
+const HERO_PAINTS = [
+  { id: "original", name: "Original", fill: "radial-gradient(circle at 50% 40%, #f0d2a0, #c4843c 62%, #6e3e1c)" },
+  { id: "amber", name: "Amber burst", fill: "radial-gradient(circle at 50% 42%, #e0a44a, #a0521a 58%, #2a1406)" },
+  { id: "black", name: "Gloss black", fill: "radial-gradient(circle at 40% 35%, #3a3a3e, #121214)" },
+  { id: "midnight", name: "Midnight", fill: "radial-gradient(circle at 40% 32%, #4a7ec4, #123a78 55%, #071428)" }
+];
+const roadPic = body => `art/guitars/${body}-road.webp?v=${VERSION}`;
 /* The Guitars tab opens on three guitars at once (agreed Merch): the one in the middle is current, the count under them is N of M. */
 function guitarHero() {
   const earned = new Set(guitarsEarned(data));
-  const items = Object.entries(GUITARS).map(([id, g]) => ({ id, name: g.name, src: guitarPic(g.body), earned: earned.has(id) }));
+  const items = Object.entries(GUITARS).map(([id, g]) => ({ id, name: g.name, body: g.body, src: roadPic(g.body), earned: earned.has(id) }));
   if (items.length < 2) return "";
   heroAt = ((heroAt % items.length) + items.length) % items.length;
   const at = step => items[(heroAt + step + items.length) % items.length];
-  const btn = (item, cls, step) => `<button type="button" class="mc-hero-g ${cls}" data-step="${step}" aria-label="${esc(item.name)}${item.earned ? ", earned" : ", still to earn"}">${item.src ? `<img src="${item.src}" alt="">` : ""}</button>`;
+  const btn = (item, cls, step) => `<button type="button" class="mc-hero-g ${cls}" data-step="${step}" aria-label="${esc(item.name)}${item.earned ? ", earned" : ", still to earn"}"><img src="${item.src}" alt=""></button>`;
   const cur = at(0);
   const dots = items.map((_, i) => `<i class="${i === heroAt ? "on" : ""}"></i>`).join("");
-  return `<div class="mc-hero"><div class="mc-hero-stage">${btn(at(-1), "edge", -1)}${btn(cur, "mid", 0)}${btn(at(1), "edge", 1)}</div>
-    <p class="mc-hero-n"><span class="mc-hero-dots" aria-hidden="true">${dots}</span><b>${heroAt + 1} of ${items.length}</b></p>
-    <p class="mc-hero-cap">${esc(cur.name)} · ${cur.earned ? "Earned" : "On the Road"}</p></div>`;
+  return `<div class="mc-hero"><div class="mc-hero-stage">${btn(at(-1), "edge pre", -1)}${btn(cur, "mid", 0)}${btn(at(1), "edge post", 1)}<span class="mc-stand" aria-hidden="true"></span>
+    <p class="mc-hero-n"><span class="mc-hero-dots" aria-hidden="true">${dots}</span><b>${heroAt + 1} of ${items.length}</b></p></div>
+    ${finishCard(cur)}</div>`;
+}
+/* The cream-edged finish card under the hero. These are the builder's body paints, not a separate finish list. */
+function finishCard(cur) {
+  const saved = buildOf(data, cur.id).paint || "original";
+  const pick = heroPaint[cur.id] || saved;
+  const st = buildState(data);
+  const rowOf = id => id === "original" ? { owned: true, open: true, price: 0 } : st.rows.find(r => r.cat === "paint" && r.id === id);
+  const swatches = HERO_PAINTS.map(p => {
+    const row = rowOf(p.id) || { owned: false, open: false, price: 0 };
+    const locked = !row.owned && !row.open;
+    const on = pick === p.id;
+    const price = !row.owned && row.price ? `$${n(row.price)}` : "";
+    return `<button type="button" class="mc-fin-sw${on ? " on" : ""}${locked ? " locked" : ""}" data-leg="${cur.id}" data-paint="${p.id}" aria-pressed="${on}" aria-label="${esc(p.name)}${locked ? `, locked${price ? `, ${price}` : ""}` : row.owned ? ", yours" : price ? `, ${price}` : ""}"${locked ? ` aria-disabled="true"` : ""}>
+      <i style="background:${p.fill}"></i>${locked ? `<span class="mc-fin-lk" aria-hidden="true">${icon("lock")}${price}</span>` : on ? `<span class="mc-fin-ok" aria-hidden="true">${icon("check")}</span>` : ""}<small>${esc(p.name)}</small></button>`;
+  }).join("");
+  const say = cur.earned ? "Earned" : "On the Road";
+  return `<div class="mc-finish"><p class="mc-finish-h">${esc(cur.name)} · ${say}</p>
+    <div class="mc-finish-sw" role="group" aria-label="Finishes">${swatches}</div>
+    <button type="button" class="mc-wear" id="mc-wear">Wear on the Road</button></div>`;
+}
+function wearHero() {
+  const items = Object.entries(GUITARS);
+  const id = items[((heroAt % items.length) + items.length) % items.length][0];
+  const paint = heroPaint[id] || buildOf(data, id).paint || "original";
+  if (!guitarsEarned(data).includes(id)) return toast("Finish this leg to wear it on the Road");
+  const choice = paint === BUILD_STOCK.paint ? {} : { paint };
+  const r = buildSave(data, id, choice);
+  if (!r.ok) return toast(r.why === "tips" ? "Not enough tips yet" : r.why === "locked" ? "That finish isn't open yet" : "Finish this leg to wear it on the Road");
+  Tabs.save(data);
+  toast(r.cost ? `On the Road. $${n(r.cost)} in tips` : "On the Road");
+  renderMerch();
 }
 /* Road Ready 9b: the guitar builder, for the Road guitars you've earned (not the shop guitars) */
 function buildEntry() {

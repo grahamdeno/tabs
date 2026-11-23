@@ -19,7 +19,7 @@ import { roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, r
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave, haptic } from "./ui.js";
 import { guitarSVG, guitarPic } from "./fretboard.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed, openTools, openSpeedDial, openLoopPick, refreshSpeed } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed, openTools, openSpeedDial, openLoopPick, refreshSpeed, mmss } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
@@ -40,7 +40,9 @@ function shell(song) {
   const el = document.createElement("div");
   el.id = "gig"; el.className = "gig"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `Gig: ${song.title}`);
   /* 4.66.0: no X and no backdrop: the show is the song page itself, left with the page's own Back */
+  const rr = ["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look);
   el.innerHTML = `
+    ${rr ? `<button class="gg-x" id="gg-x" aria-label="Close">${icon("x")}</button>` : ""}
     <div class="gg-top">
       <span class="gg-sec" id="gg-sec">Get ready</span>
       <span class="gg-combo" id="gg-combo"></span>
@@ -50,9 +52,10 @@ function shell(song) {
     <p class="sr-only" id="gg-live" role="status" aria-live="polite"></p>
     <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
-      ${["neon", "festival", "green", "headliner"].includes(document.documentElement.dataset.look)
-        ? /* Pause only (Graham): Speed, Loop and Tools stay in the app, and are not on this bar. */
-          `<div class="gg-bar" role="group" aria-label="Song controls"><div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div></div>`
+      ${rr
+        ? /* Pause only (Graham): the agreed bar, with the Speed and Loop places left empty. */
+          `<div class="gg-bar" role="group" aria-label="Song controls"><span class="gg-slot" aria-hidden="true"></span><div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div><span class="gg-slot" aria-hidden="true"></span></div>
+           <div class="gg-clock" aria-hidden="true"><span id="gg-sofar">0:00</span><span id="gg-total">${song.duration ? mmss(song.duration) : ""}</span></div>`
         : `<div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>`}
     </div>
     <div class="gg-prog" aria-hidden="true"><i id="gg-prog"></i></div>
@@ -103,6 +106,8 @@ function frame() {
   /* Road Ready 05: how far along the song is, as a hairline along the bottom edge */
   const prog = $("gg-prog"), pct = (w.progress * 100).toFixed(1) + "%";
   if (prog && prog.style.width !== pct) prog.style.width = pct;
+  const sofar = $("gg-sofar");
+  if (sofar && song.duration) sofar.textContent = mmss(song.duration * w.progress);
   /* the lines: the band on the line you're on, on the sheet itself */
   g.b = w.b;
   stageTick(song, w);
@@ -242,6 +247,7 @@ export function openGig(song, opts = {}) {
   gigHooks.resume = () => { if (gig === g) resume(); };
   gigHooks.leave = () => { if (gig === g) leave(); };
   $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
+  $("gg-x")?.addEventListener("click", () => leave());
   $("gg-speed")?.addEventListener("click", () => openSpeedDial());
   if ($("gg-speed")) refreshSpeed(); /* 4.111.0: the Gig's Speed shows the setting too */
   $("gg-loop")?.addEventListener("click", () => openLoopPick());
