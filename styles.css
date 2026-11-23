@@ -4805,9 +4805,9 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rd-node.rr.done .rr-eng-hi { fill: none; stroke: none; }
 .rd-node.rr.locked .rr-eng.locked { fill: var(--rr-text-2); stroke: var(--rr-text-2); }
 .rd-node.rr.locked .rr-eng-hi { opacity: .2; }
-/* The painted guitar sits quiet behind the path: lower brightness, contrast and saturation. Art files are unchanged. */
-:root[data-look="neon"] .rd-neck.road > svg.rr-quiet { filter: brightness(.62) contrast(.86) saturate(.38); }
-:root[data-look="festival"] .rd-neck.road > svg.rr-quiet { filter: brightness(.88) contrast(.9) saturate(.42); }
+/* The locked Headline plate is cream in both looks, so the word reads on a dark guitar. */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-node.rr.headline .rr-pearl.ahead { fill: var(--rr-pearl-locked); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-node.rr.headline.locked .rr-eng.locked { fill: var(--rr-plate-text); stroke: var(--rr-plate-text); }
 .rr-cut { fill: none; stroke: #000; stroke-opacity: .45; stroke-width: 1; }
 .rr-sheen { fill: #fff; opacity: .55; }
 .rr-eng { fill: var(--rr-engrave); stroke: var(--rr-engrave); }
@@ -5319,7 +5319,10 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] .rr-on-btn.rr-text { color: #F5EBDC; }
 /* the next leg, locked (4.99.0) */
 .rr-peek { position: relative; flex: none; align-self: stretch; width: 100%; margin: 10px 0 0; height: 300px; overflow: hidden; }
-.rr-peek-neck { filter: grayscale(1) brightness(.42); -webkit-mask: linear-gradient(#000 35%, transparent 92%); mask: linear-gradient(#000 35%, transparent 92%); pointer-events: none; }
+/* locked next leg: grey and fading, but still the painted headstock. brightness .42 turned it into a black shape in Light. */
+.rr-peek-neck { -webkit-mask: linear-gradient(#000 35%, transparent 92%); mask: linear-gradient(#000 35%, transparent 92%); pointer-events: none; }
+:root[data-look="neon"] .rr-peek-neck { filter: grayscale(.75) brightness(.78) contrast(.95); }
+:root[data-look="festival"] .rr-peek-neck { filter: grayscale(.4) brightness(1) contrast(.96); }
 .rr-peek-neck .rd-stop, .rr-peek-neck .rd-conn, .rr-peek-neck .rr-hit, .rr-peek-neck .rd-earned { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-peek-plate {
   position: absolute; left: 50%; top: 150px; transform: translateX(-50%); margin: 0; width: max-content; max-width: calc(100% - 48px); padding: 8px 14px; box-sizing: border-box; text-align: center;

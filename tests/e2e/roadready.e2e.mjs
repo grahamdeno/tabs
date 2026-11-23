@@ -269,8 +269,15 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.filter(b => !b.closest(".rr-peek")).slice(0, 3).map(b => ({ n: b.querySelector(".rr-eng text")?.textContent, ring: !!b.querySelector(".rr-ring"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill })));
     assert.deepEqual(ahead.map(a => a.n), ["7", "9"], "numbered ahead (8 is a merch box); the next leg is a locked peek with no stops (4.99.0)");
     assert.ok(ahead.every(a => a.ring), "locked stops ahead are a calm outline");
-    const quiet = await page.evaluate(() => getComputedStyle(document.querySelector(".rd-neck.road > svg.rr-quiet")).filter);
-    assert.match(quiet, /brightness\(/, "the guitar is dimmed behind the path, with no change to the art files");
+    const guitar = await page.evaluate(() => {
+      const svg = document.querySelector(".rd-neck.road > svg.rd-base"), img = svg.querySelector("image"), vb = svg.viewBox.baseVal;
+      const x = +img.getAttribute("x"), w = +img.getAttribute("width"), y = +img.getAttribute("y"), h = +img.getAttribute("height");
+      return { left: x - vb.x, right: vb.x + vb.width - (x + w), bottom: vb.y + vb.height - (y + h), filter: getComputedStyle(svg).filter, quiet: svg.classList.contains("rr-quiet") };
+    });
+    assert.ok(guitar.left >= -0.5 && guitar.right >= -0.5 && guitar.bottom >= -0.5, "the painted body is inside the frame, not cut off at the edge");
+    assert.equal(guitar.quiet, false, "the guitar is not greyed out");
+    assert.match(guitar.filter, /drop-shadow/, "a shadow under the guitar");
+    assert.doesNotMatch(guitar.filter, /saturate\(0\./, "the guitar keeps its own colours");
     const doneFill = await page.$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box) .rr-pearl.done", el => getComputedStyle(el).fill);
     assert.equal(doneFill, "rgb(255, 181, 71)", "done stops are solid amber (#FFB547)");
     assert.equal(await page.locator(".rd-neck >> nth=0 >> .rd-node.headline .rr-art").count(), 1, "the leg ends in the double inlay");

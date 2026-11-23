@@ -3239,7 +3239,10 @@ test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, a
     const hs = [5, 9, 12].map(n => FB.roadLayout([...mk(n), { kind: "headline", state: "locked" }], p).height);
     assert.equal(new Set(hs).size, 1, `${slug}: height ${hs.join(", ")}`);
     const full = Math.round(C.ROAD.margin + C.ROAD.scale * p.road.h + C.ROAD.margin);
-    assert.ok(hs[0] < full, `${slug}: the unused lower body is cropped (${hs[0]} of ${full})`);
+    assert.equal(hs[0], full, `${slug}: the whole guitar is shown, body included`);
+    const imgL = 195 + C.ROAD.scale * (0 - p.road.cx), imgR = imgL + p.road.w * C.ROAD.scale;
+    const lay5 = FB.roadLayout([...mk(5), { kind: "headline", state: "locked" }], p);
+    assert.ok(lay5.frame.vx <= imgL + .01 && lay5.frame.vx + lay5.frame.vw >= imgR - .01, `${slug}: the frame holds the body (${lay5.frame.vx}..${lay5.frame.vx + lay5.frame.vw} vs ${imgL}..${imgR})`);
     const lay = FB.roadLayout([...mk(12), { kind: "headline", state: "locked" }], p);
     assert.ok(lay.spaces.every(sp => sp.y > 0 && sp.y < lay.height && sp.x > 0 && sp.x < 390), `${slug}: every stop is on the picture`);
   }

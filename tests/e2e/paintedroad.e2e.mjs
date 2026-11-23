@@ -125,7 +125,7 @@ for (const theme of ["dark", "light"]) {
     assert.match(await page.locator(".rd-neck").first().getAttribute("aria-label"), /Velvet Crown/);
     const out = await page.evaluate(() => {
       const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; return .2126 * f(m[0]) + .7152 * f(m[1]) + .0722 * f(m[2]); };
-      return [...document.querySelectorAll(".rd-neck .rd-node")].map(b => {
+      return [...document.querySelectorAll(".rd-neck .rd-node")].filter(b => !b.closest(".rr-peek")).map(b => {
         const r = b.getBoundingClientRect(), pearl = b.querySelector(".rr-pearl"), txt = b.querySelector(".rr-eng text, .rr-eng path");
         const a = lum(getComputedStyle(pearl).fill), e = lum(getComputedStyle(txt).fill !== "none" ? getComputedStyle(txt).fill : getComputedStyle(txt).stroke), hi = Math.max(a, e), lo = Math.min(a, e);
         return { id: b.dataset.stop, left: r.left, right: r.right, ratio: (hi + .05) / (lo + .05), font: parseFloat(getComputedStyle(b.querySelector(".rr-eng text") || b).fontSize), over: b.parentElement.querySelector(".rr-pearl.rr-over, .rr-over") !== null || b.classList.contains("rr-over") || b.parentElement.classList.contains("rr-over") };
@@ -133,5 +133,21 @@ for (const theme of ["dark", "light"]) {
     });
     assert.ok(out.length >= 10);
     for (const s of out) { assert.ok(s.left >= 0 && s.right <= 320, `${s.id} is on the screen (${s.left}..${s.right})`); assert.ok(s.ratio >= 3, `${s.id}: number against its pearl is ${s.ratio.toFixed(2)}`); }
+    const frame = await page.evaluate(() => {
+      const necks = [...document.querySelectorAll(".rd-neck.road")].map(n => {
+        const svg = n.querySelector("svg.rd-base"), img = svg?.querySelector("image");
+        if (!img) return null;
+        const vb = svg.viewBox.baseVal, x = +img.getAttribute("x"), w = +img.getAttribute("width"), y = +img.getAttribute("y"), h = +img.getAttribute("height");
+        return { left: x - vb.x, right: vb.x + vb.width - (x + w), bottom: vb.y + vb.height - (y + h) };
+      }).filter(Boolean);
+      const peek = document.querySelector(".rr-peek-neck");
+      const plate = document.querySelector(".rd-neck.road .rd-node.headline");
+      return { necks, peek: peek ? getComputedStyle(peek).filter : "", plate: plate?.querySelector(".rr-eng text")?.textContent || "" };
+    });
+    for (const n of frame.necks) assert.ok(n.left >= -0.5 && n.right >= -0.5 && n.bottom >= -0.5, `the body stays inside the frame (${JSON.stringify(n)})`);
+    assert.equal(frame.plate, "HEADLINE");
+    const bright = +(frame.peek.match(/brightness\(([\d.]+)\)/) || [])[1];
+    if (theme === "light") assert.ok(bright >= 0.9, `Light headstock stays painted (${frame.peek})`);
+    else assert.ok(bright >= 0.7 && bright < 1, `Dark next leg stays grey, not a black shape (${frame.peek})`);
   });
 }

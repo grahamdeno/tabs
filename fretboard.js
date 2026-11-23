@@ -271,13 +271,11 @@ export function roadLayout(stops, p) {
     return { l: X(c - hw), r: X(c + hw) };
   };
   const ys = spaces.filter(sp => sp.kind !== "double").map(sp => sp.y);
-  /* Crop the unused lower body so the path fills the screen. The headline badge sits on the body, so the crop
-     keeps a short run of wood under the lowest stop and cuts the rest. 5, 9 and 12 stop legs stay the same height
-     whenever they share a headline, because the badge is in a fixed place. */
-  const fullH = Math.round(top + S * r.h + ROAD.margin);
-  const lowest = spaces.reduce((m, sp) => Math.max(m, sp.y + (sp.kind === "double" ? ROAD.badge[1] / 2 : 24)), 0);
-  const height = Math.min(fullH, Math.round(lowest + 52));
-  return { spaces, head: 0, neck: 0, body: 0, height, road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
+  /* The whole painted guitar. The picture is wider than the 390-wide board, so the frame grows to hold the body.
+     A crop through the body left a cut-off piece at the right edge. */
+  const height = Math.round(top + S * r.h + ROAD.margin);
+  const imgL = X(0), imgR = imgL + r.w * S, vx = Math.min(0, imgL), vw = Math.max(W, imgR) - vx;
+  return { spaces, head: 0, neck: 0, body: 0, height, frame: { vx, vw }, road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
 }
 /* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware */
 function roadBase(g, lay, f, build, legId) {
@@ -426,7 +424,8 @@ export function connectorSVG(lay, spaces, o) {
   if (!segs.length) return "";
   const id = `rrc${++rrN}`;
   const path = (s, cls) => `<path class="${cls}${s.fresh ? " rr-draw" : ""}" d="${s.d}"${s.fresh ? ` pathLength="1"` : ""}/>`;
-  return `<svg class="rd-conn" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="8"/></filter></defs>
+  const vx = lay.frame?.vx || 0, vw = lay.frame?.vw || W;
+  return `<svg class="rd-conn" viewBox="${vx} 0 ${vw} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="8"/></filter></defs>
     <g class="rr-conn-glow" filter="url(#${id})">${segs.map(s => path(s, "rr-cg")).join("")}</g>${segs.map(s => path(s, "rr-cc")).join("")}</svg>`;
 }
 
@@ -436,11 +435,12 @@ export function connectorSVG(lay, spaces, o) {
 function rrStopHTML(sp, g, lay, o) {
   const s = sp.stop, { x, y } = stopXY(sp, lay), cur = s === o.cur, ph = rrPhase(s.state), road = !!lay.road, pill = road && sp.kind === "double";
   const [w] = pill ? ROAD.badge : sp.kind === "double" ? RR_SIZE.double : sp.kind === "inlay" ? RR_SIZE.box : cur ? (sp.paired ? RR_SIZE.nowPair : RR_SIZE.now) : RR_SIZE.dot;
-  const half = Math.max(22, w / 2), px = (x / W * 100).toFixed(3);
+  const vx = lay.frame ? lay.frame.vx : 0, vw = lay.frame ? lay.frame.vw : W, pct = n => (n - vx) / vw * 100;
+  const half = Math.max(22, w / 2), px = pct(x).toFixed(3);
   /* on a painted neck the callout sits just off the right edge of the board at the stop's row (the badge: off its own end), the
      songs chip off the left edge, never over the strings */
   const e = road ? (pill ? { l: x - w / 2, r: x + w / 2 } : lay.road.edge(y)) : null;
-  const tagAt = road ? `left:${((e.r + 10) / W * 100).toFixed(3)}%;max-width:calc(${(100 - (e.r + 10) / W * 100).toFixed(3)}% - 8px)` : `left:calc(${px}% + ${half + 8}px);max-width:calc(${(100 - x / W * 100).toFixed(3)}% - ${half + 16}px)`;
+  const tagAt = road ? `left:${pct(e.r + 10).toFixed(3)}%;max-width:calc(${(100 - pct(e.r + 10)).toFixed(3)}% - 8px)` : `left:calc(${px}% + ${half + 8}px);max-width:calc(${(100 - x / W * 100).toFixed(3)}% - ${half + 16}px)`;
   /* one-row Road (2026-11-19): Tonight lives on the current stop, a small amber play button and the song's title, both one button */
   const PLAY = `<span class="rr-tn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 5.5v13l10-6.5z" fill="currentColor"/></svg></span>`;
   const ADD = `<span class="rr-tn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span>`;
@@ -451,7 +451,7 @@ function rrStopHTML(sp, g, lay, o) {
     : cur ? `<span class="rd-tag rr-callout" style="${tagAt}" aria-hidden="true">${o.tag(s)}</span>` : "";
   /* the label says how many songs a lesson opens; the chip shows it only on the stops ahead (the callout says it on the current one) */
   const songs = sp.kind === "dot" && ph !== "done" && o.songs ? o.songs(s) : 0;
-  const chipAt = road ? `right:${((W - (e.l - 4)) / W * 100).toFixed(3)}%` : `right:calc(${(100 - x / W * 100).toFixed(3)}% + ${half + 4}px)`;
+  const chipAt = road ? `right:${(100 - pct(e.l - 4)).toFixed(3)}%` : `right:calc(${(100 - x / W * 100).toFixed(3)}% + ${half + 4}px)`;
   const badge = songs > 0 && ph === "ahead" ? `<span class="rd-songs rr-chip" style="${chipAt}" aria-hidden="true">${songs} song${songs === 1 ? "" : "s"}</span>` : "";
   const cls = `rd-node rr ${s.kind} ${s.state}${sp.kind === "double" ? " big" : ""}${cur ? " cur" : ""}${road && sp.over ? " rr-over" : ""}${pill ? " rr-pill" : ""}`;
   /* the badge's button is the badge plus 8 units all round */
@@ -494,9 +494,9 @@ export function neckHTML(leg, o) {
   if (lay.road) {
     /* Road Ready 9a: the painted guitar, no drawn strings; one invisible hit layer over the neck, and every stop's x and y in the
        drawing's units (data-hx, data-hy) so road.js can decide which stop a tap selects (roadHit in core/game.js) */
-    const [h0, h1] = lay.hit;
-    return `<div class="rd-neck road" data-guitar="${leg.id}" data-lh="${lay.height}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
-    <svg class="rd-base nano road rr-quiet" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
+    const [h0, h1] = lay.hit, { vx, vw } = lay.frame;
+    return `<div class="rd-neck road" data-guitar="${leg.id}" data-lh="${lay.height}" data-vx="${vx}" data-vw="${vw}" style="aspect-ratio:${vw}/${lay.height}" role="group" aria-label="${g.name}">
+    <svg class="rd-base nano road" viewBox="${vx} 0 ${vw} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
     ${o.rr ? connectorSVG(lay, lay.spaces, o) : ""}
     <div class="rr-hit" aria-hidden="true" style="top:${(h0 / lay.height * 100).toFixed(3)}%;height:${((h1 - h0) / lay.height * 100).toFixed(3)}%"></div>
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}
