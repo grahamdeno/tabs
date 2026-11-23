@@ -461,19 +461,19 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
       const img = document.querySelector(".sc-stall.on img");
       const lou = document.querySelector(".sc-by .louie").getBoundingClientRect();
       const tag = document.querySelector(".sc-by .sc-label").getBoundingClientRect();
-      const style = getComputedStyle(img);
+      const ir = img.getBoundingClientRect();
+      const nat = img.naturalWidth / img.naturalHeight;
       return {
         below: lou.top >= sc.bottom - 1 && tag.top >= sc.bottom - 1,
         inView: box.left >= sc.left - 2 && box.right <= sc.right + 2,
-        fit: style.objectFit, w: style.width, h: style.height,
-        ratio: img.naturalWidth / img.naturalHeight
+        fit: getComputedStyle(img).objectFit,
+        shape: Math.abs(ir.width / ir.height - nat)
       };
     });
     assert.equal(cover.below, true, "Louie and the name sit below the case, not on a guitar");
     assert.equal(cover.inView, true, "the case with the new guitar is the one on screen");
     assert.equal(cover.fit, "contain", "the picture is not squashed");
-    assert.equal(cover.w, "auto");
-    assert.ok(cover.ratio > 0.2, "the guitar picture has its own shape");
+    assert.ok(cover.shape < 0.02, "the guitar keeps the shape of its picture");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
