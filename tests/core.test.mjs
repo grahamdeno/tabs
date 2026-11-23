@@ -2797,9 +2797,10 @@ test("4.87.0 every guitar is a picture: head, body and small picture saved for o
 
 test("Dark Road leather: the agreed near-black tile is what Dark shows, and the older pebble is kept", () => {
   const css = read("styles.css"), shell = read("sw.js");
-  assert.match(css, /art\/surfaces\/tolex-dark-leather\.webp/);
+  assert.match(css, /art\/surfaces\/tolex-dark-pebble\.webp/);
   assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark.webp")), "the older pebble stays");
-  assert.ok(shell.includes('"art/surfaces/tolex-dark-leather.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-pebble.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-leather.webp"'), "the earlier leather tile stays");
   assert.ok(!/luminosity/.test(css.split(".rd-path")[1] || ""), "the Road no longer washes the leather flat");
 });
 test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes from bitmap tiles, all saved for offline", async () => {
