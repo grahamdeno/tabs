@@ -3454,6 +3454,20 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
   }
 });
 
+test("knob tab bar: the off and lit faces, and both grilles, are in the offline copy", () => {
+  const shell = read("sw.js"), hud = read("hud.js");
+  for (const f of ["art/tabbar/knob-off.webp", "art/tabbar/knob-lit.webp", "art/tabbar/grille-dark.webp", "art/tabbar/grille-light.webp"]) {
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(fs.statSync(path.join(root, f)).size > 200, `${f} is a real picture`);
+  }
+  assert.match(hud, /art\/tabbar\/knob-off\.webp/);
+  assert.match(hud, /art\/tabbar\/knob-lit\.webp/);
+  assert.match(read("styles.css"), /art\/tabbar\/grille-dark\.webp/);
+  assert.match(read("styles.css"), /art\/tabbar\/grille-light\.webp/);
+  assert.match(read("styles.css"), /bottom: calc\(8px \+ var\(--safe-b\)\)/);
+});
+
 test("4.103.0 the player's name: plain text on one line, at most 30 characters, kept through a backup and cleaned on import", () => {
   assert.equal(C.cleanName("  Graham   DeNoyer \n"), "Graham DeNoyer");
   assert.equal(C.cleanName("<script>x</script>"), "scriptx/script");
