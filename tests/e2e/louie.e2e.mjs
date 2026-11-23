@@ -74,7 +74,7 @@ test("a finish bought before stays saved, and Pink Louie on the table wears the 
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-seg"); await settled(page);
   await page.click("#mc-t-looks");
   assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 7, "Louie's finishes are on the table");
-  assert.match(await page.locator(".mc-fin[data-id=pink] image").getAttribute("href"), /art\/louie\/tint\/pink\/louie-/, "Pink uses his pink picture");
+  assert.match(await page.locator(".mc-fin[data-id=pink] image").getAttribute("href"), /art\/louie\/front\/pink\/louie-/, "Pink uses his pink picture");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch);
   assert.ok(saved.has.includes("tweed") && saved.has.includes("pink"), "what was bought is still saved");
   assert.equal(saved.louie, "pink");
