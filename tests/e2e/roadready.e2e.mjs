@@ -19,7 +19,7 @@ async function probe(page) {
     const host = document.createElement("div"); host.id = "rr-probe"; host.style.cssText = "position:fixed;left:0;top:0;width:300px;z-index:9";
     host.innerHTML = '<button class="btn primary" id="p1">Save</button><button class="btn" id="p2">Cancel</button>';
     document.body.appendChild(host);
-    const read = id => { const c = getComputedStyle(document.getElementById(id)); return { radius: c.borderTopLeftRadius, border: c.borderTopWidth, borderColor: c.borderTopColor, bg: c.backgroundColor, img: c.backgroundImage, color: c.color, font: c.fontFamily, weight: c.fontWeight, height: parseFloat(c.height), shadow: c.boxShadow, trans: c.transitionProperty }; };
+    const read = id => { const c = getComputedStyle(document.getElementById(id)); return { radius: c.borderTopLeftRadius, border: c.borderTopWidth, side: c.borderLeftWidth, borderColor: c.borderTopColor, bg: c.backgroundColor, img: c.backgroundImage, slice: c.borderImageSource, color: c.color, font: c.fontFamily, weight: c.fontWeight, height: parseFloat(c.height), shadow: c.boxShadow, trans: c.transitionProperty, fill: c.webkitTextFillColor, filter: c.filter }; };
     return { primary: read("p1"), secondary: read("p2") };
   });
 }
@@ -76,11 +76,25 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     await page.evaluate(() => { document.getElementById("app").style.visibility = ""; });
     for (let i = 0; i < 3; i++) assert.ok(Math.abs(mean[i] - rgb[i]) <= (label === "Dark" ? 4 : 5), `average ${["red", "green", "blue"][i]} ${mean[i].toFixed(1)} should stay near ${rgb[i]}`);
 
-    /* the plate button (primary) and the capsule (secondary) */
+    /* the guitar-pick primary and the capsule (secondary). Dark is brushed brass, Light is espresso with a brass rim. */
     const b = await probe(page);
-    assert.equal(b.primary.radius, "12px"); assert.equal(b.primary.border, "2px"); assert.equal(b.primary.borderColor, "rgb(140, 120, 88)", "plate edge");
-    assert.equal(b.primary.color, "rgb(40, 30, 20)", "plate text"); assert.match(b.primary.font, /Space Grotesk/); assert.equal(b.primary.weight, "700");
-    assert.equal((b.primary.img.match(/radial-gradient/g) || []).length, 4, "four screws"); assert.match(b.primary.img, /linear-gradient/);
+    assert.equal(b.primary.radius, "0px", "the pick shape comes from the SVG, not a corner radius");
+    assert.equal(b.primary.border, "0px", "no top border; the curves are in the side slices");
+    assert.equal(b.primary.side, "42px", "the hero pick keeps 42 px shoulders");
+    assert.equal(b.primary.img, "none", "no cream-plate fill and no corner screws");
+    assert.match(b.primary.slice, /svg/i, "the face is an SVG border image");
+    assert.doesNotMatch(b.primary.slice, /radial-gradient/, "the pick has no screw dots");
+    assert.match(b.primary.font, /Space Grotesk/); assert.equal(b.primary.weight, "700");
+    assert.notEqual(b.primary.fill, "rgba(0, 0, 0, 0)", "the words are a real colour, so an inline icon keeps currentColor");
+    assert.match(b.primary.filter, /drop-shadow/, "the pick lifts off the tolex");
+    if (label === "Dark") {
+      assert.equal(b.primary.color, "rgb(35, 26, 16)", "espresso ink on the brass face");
+      assert.match(b.primary.slice, /FFF4DA|fff4da/i, "brushed brass face");
+    } else {
+      assert.equal(b.primary.color, "rgb(244, 230, 203)", "champagne ink on the espresso face");
+      assert.match(b.primary.slice, /272019/i, "espresso face");
+      assert.match(b.primary.slice, /FBF0D2|fbf0d2/i, "antique brass rim");
+    }
     assert.ok(b.primary.height >= 44, `primary is ${b.primary.height} px tall`);
     assert.equal(b.secondary.radius.replace("px", "") >= 100 || b.secondary.radius === "999px", true, "capsule"); assert.ok(parseFloat(b.secondary.border) >= 1 && parseFloat(b.secondary.border) <= 1.5, "a hairline border (1.5 px, which a 1x screen draws as 1)"); assert.equal(b.secondary.borderColor, "rgb(140, 132, 122)", "outline colour");
     assert.equal(b.secondary.bg, "rgba(0, 0, 0, 0)"); assert.ok(b.secondary.height >= 44, `secondary is ${b.secondary.height} px tall`);
@@ -120,7 +134,7 @@ test("a saved Green Room or Headliner follows the phone, and their CSS is still 
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundImage);
     assert.equal(bg, "none", `${look}: no tolex on the body`);
     const b = await probe(page);
-    assert.equal(b.primary.radius, "16px", `${look}: the chunky primary button`); assert.equal(b.primary.img, "none"); assert.equal(b.secondary.radius, "16px");
+    assert.equal(b.primary.radius, "16px", `${look}: the chunky primary button`); assert.equal(b.primary.img, "none"); assert.equal(b.primary.slice, "none", `${look}: no guitar pick`); assert.equal(b.secondary.radius, "16px");
     assert.match(b.primary.font, /Fredoka/);
   }
 });
@@ -197,7 +211,7 @@ test("Road Ready: the fonts come from vendor/fonts only, and are kept for offlin
   assert.deepEqual(loaded, [true, true, true]);
 });
 
-test("Road Ready: nothing new animates with Reduce Motion on, and the plate press is instant", { skip: skip() }, async t => {
+test("Road Ready: nothing new animates with Reduce Motion on, and the pick press is instant", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"), { reducedMotion: "reduce" });
   const b = await probe(page);
   assert.equal(b.primary.trans, "none"); assert.equal(b.secondary.trans, "none");
@@ -210,7 +224,72 @@ test("Road Ready: nothing new animates with Reduce Motion on, and the plate pres
   await page.mouse.move(box.x + 20, box.y + 20); await page.mouse.down();
   const down = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("p1")); return [c.transform, c.filter]; });
   await page.mouse.up();
-  assert.match(down[0], /matrix\(1, 0, 0, 1, 0, 1\)/, "1 px down"); assert.match(down[1], /brightness\(0\.94\)/, "6 percent darker");
+  assert.match(down[0], /matrix\(1, 0, 0, 1, 0, 1\)/, "1 px down"); assert.match(down[1], /brightness\(0\.92\)/, "8 percent darker, with no bounce");
+});
+
+/* Contrast of the pick inks against the face colours they sit on. The words are centred, so the mid tone is the one that matters. */
+const lum = hex => { const [r, g, b] = [0, 2, 4].map(i => parseInt(hex.slice(i + 1, i + 3), 16) / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g + .0722 * b; };
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+
+test("Road Ready pick: brass on Dark, espresso on Light, icons and short labels stay inside the curves", { skip: skip() }, async t => {
+  assert.ok(contrast("#231A10", "#E6D4B2") > 10, "espresso ink on the mid brass is over 10:1");
+  assert.ok(contrast("#231A10", "#FFF4DA") > 10, "espresso ink on the bright brass is over 10:1");
+  assert.ok(contrast("#231A10", "#C2AA80") > 7, "espresso ink on the darkest brass still clears AAA");
+  assert.ok(contrast("#F4E6CB", "#272019") > 11, "champagne ink on the lightest espresso is over 11:1");
+  assert.ok(contrast("#F4E6CB", "#14100C") > 11, "champagne ink on the darkest espresso is over 11:1");
+
+  for (const [label, theme, scheme, ink, face] of [
+    ["Dark", "dark", "light", "rgb(35, 26, 16)", "FFF4DA"],
+    ["Light", "light", "dark", "rgb(244, 230, 203)", "272019"]
+  ]) {
+    const page = await phone(t, libWith(theme), { colorScheme: scheme, reducedMotion: "reduce" });
+    const fit = await page.evaluate(() => {
+      const host = document.createElement("div");
+      host.style.cssText = "position:fixed;left:8px;top:8px;width:358px;z-index:9;display:flex;flex-direction:column;gap:8px";
+      host.innerHTML = [
+        '<button class="btn primary" id="wide">Head to the Club</button>',
+        '<button class="btn primary" id="icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 12v8h16v-8M12 3v12M8 7l4-4 4 4"/></svg>Share your card</button>',
+        '<div style="display:flex;gap:10px"><button class="btn sm primary" id="ok">OK</button><button class="btn sm primary" id="done">Done</button><button class="btn sm primary" id="save">Save</button></div>',
+        '<div class="rd-pop" style="position:relative;width:268px"><button class="btn primary rd-start" id="long">FIND A SONG THAT FITS</button></div>',
+        '<button class="btn primary" id="off" disabled>Save</button>',
+        '<button class="rr-plate" id="plate">Venue</button>'
+      ].join("");
+      document.body.appendChild(host);
+      const box = el => { const r = el.getBoundingClientRect(), c = getComputedStyle(el); return { w: r.width, h: r.height, side: c.borderLeftWidth, slice: c.borderImageSource, color: c.color, fill: c.webkitTextFillColor, over: el.scrollWidth > el.clientWidth + 1 }; };
+      const inside = id => { const b = document.getElementById(id).getBoundingClientRect(); const range = document.createRange(); range.selectNodeContents(document.getElementById(id)); const t = range.getBoundingClientRect(); return { insetL: t.left - b.left, insetR: b.right - t.right }; };
+      const icon = document.querySelector("#icon svg").getBoundingClientRect();
+      const ib = document.getElementById("icon").getBoundingClientRect();
+      return {
+        wide: { ...box(document.getElementById("wide")), ...inside("wide") },
+        icon: { ...box(document.getElementById("icon")), svgColor: getComputedStyle(document.querySelector("#icon svg")).color, svgIn: icon.left > ib.left + 16 && icon.right < ib.right - 16 && icon.width > 8 },
+        ok: box(document.getElementById("ok")), done: box(document.getElementById("done")), save: box(document.getElementById("save")),
+        long: { ...box(document.getElementById("long")), ...inside("long") },
+        off: { slice: getComputedStyle(document.getElementById("off")).borderImageSource, color: getComputedStyle(document.getElementById("off")).color, filter: getComputedStyle(document.getElementById("off")).filter },
+        plate: (getComputedStyle(document.getElementById("plate")).backgroundImage.match(/radial-gradient/g) || []).length
+      };
+    });
+    assert.equal(fit.wide.over, false, `${label}: a wide label stays on one line`);
+    assert.ok(fit.wide.insetL >= 36 && fit.wide.insetR >= 36, `${label}: wide text clears the shoulders (${fit.wide.insetL}, ${fit.wide.insetR})`);
+    assert.equal(fit.icon.color, ink, `${label}: icon button ink`);
+    assert.equal(fit.icon.svgColor, ink, `${label}: the icon uses the button colour`);
+    assert.equal(fit.icon.svgIn, true, `${label}: the icon sits inside the pick`);
+    assert.notEqual(fit.icon.fill, "rgba(0, 0, 0, 0)", `${label}: text fill is not clipped away`);
+    assert.match(fit.icon.slice, new RegExp(face, "i"), `${label}: the pick face is in the border image`);
+    for (const id of ["ok", "done", "save"]) {
+      assert.equal(fit[id].over, false, `${label}: ${id} does not overflow`);
+      assert.equal(fit[id].side, "32px", `${label}: ${id} uses the compact shoulders`);
+      assert.ok(fit[id].h >= 42, `${label}: ${id} is ${fit[id].h} px tall`);
+      assert.ok(fit[id].w >= 108, `${label}: ${id} is wide enough to hold its curves (${fit[id].w})`);
+    }
+    assert.equal(fit.long.over, false, `${label}: the stop card's long label fits`);
+    assert.equal(fit.long.side, "24px", `${label}: the stop card uses the tighter pick`);
+    assert.ok(fit.long.h >= 44, `${label}: the stop button is ${fit.long.h} px tall`);
+    assert.ok(fit.long.insetL >= 18 && fit.long.insetR >= 18, `${label}: the long label clears the tighter shoulders`);
+    assert.equal(fit.off.slice, "none", `${label}: a disabled primary drops the metallic face`);
+    assert.notEqual(fit.off.color, ink, `${label}: disabled words are the quiet colour`);
+    assert.equal(fit.off.filter, "none", `${label}: a disabled pick does not cast a shadow`);
+    assert.equal(fit.plate, 2, `${label}: the venue plate keeps its two screws, and they are not four`);
+  }
 });
 
 test("the Tap tempo chip stays put while its label grows, so a thumb can keep tapping", { skip: skip() }, async t => {
@@ -439,11 +518,11 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-over"), "HEADLINE SHOW");
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
-    assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.match(await page.getAttribute(".sc-show.case .sc-guitar img", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar's own picture in the case (the older case paintings are of the guitars the legs had before Road Ready 9a)");
+    assert.equal(await page.locator(".sc-corner, .rr-gcase").count(), 0, "no velvet case and no chrome corners");
+    assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
-    assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
+    assert.equal(await page.locator(".gs-back").count(), 1, "the A-frame stand");
     const c = await page.evaluate(() => {
       const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
       const lum = s => { const [a, b, d] = rgb(s).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * a + .7152 * b + .0722 * d; };
