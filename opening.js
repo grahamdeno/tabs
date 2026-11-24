@@ -1,11 +1,15 @@
-// Opening night (4.40.0): the first leg of the Road teaches the app by doing it, on the sample song.
-//   1 Let me hear you    Louie gives the reason, then the phone asks for the microphone
-//   2 Tap a chord        in the song, a strip above Play says which one
-//   3 Play a verse       the Gig waits for Count me in and says to play each chord
-//   4 Pause and pick up  tap anywhere, then Resume
-//   5 Your first show    the song through; the Road then shows the leg done and the stat bar's doors
+// Opening night (4.40.0): the first leg of the Road teaches the first steps, on the sample song.
+//   Who's playing tonight?  make your guitarist
+//   Hold the guitar         sit up, guitar on your leg, neck pointing up and away
+//   The open strings        E A D G B E, thick to thin
+//   Let me hear you         Louie gives the reason, then the phone asks for the microphone
+//   Your first notes        play the open low E, then the A
+//   Tap a chord             in the song, a strip above Play says which one
+//   Play a verse            the Gig waits for Count me in and says to play each chord
+//   Pause and pick up       tap anywhere, then Resume
+//   Your first show         the song through; the Road then shows the leg done
 // The steps and fans live in core (`openingAdvance` and friends); this file is what you see.
-// Gig.js calls the gig* hooks; the song page calls onSong and onChord; the Road calls micSheet and songFor.
+// Gig.js calls the gig* hooks; the song page calls onSong and onChord; the Road calls the sheets and songFor.
 import { OPENING, Tabs, openingAdvance, openingOn, openingStep } from "./core.js";
 import { esc, getMic, haptic, layer, onLeave, toast } from "./ui.js";
 import { chordNames, data } from "./app.js";
@@ -32,12 +36,42 @@ export function hideStrip() { clearTimeout(stripTimer); document.getElementById(
 onLeave(hideStrip);
 
 const advance = id => { const ok = openingAdvance(data, id); if (ok) { Tabs.save(data); haptic(1); } return ok; };
+const pipsHtml = (i = openingStep(data)) => OPENING.map((_, k) => `<i class="${k < i ? "done" : k === i ? "on" : ""}"></i>`).join("");
 
-/* ---- 1 Let me hear you: the reason before the phone's own question ---- */
+/* ---- Hold the guitar, the open strings, first notes: a short sheet, then on to the next stop ---- */
+function teachSheet({ id, title, mood, pose, text, ok, extra = "" }, done) {
+  layer.innerHTML = `<div class="scrim" id="on-scrim"></div><div class="panel de-sheet on-mic" role="dialog" aria-label="${esc(title)}"><div class="grab"></div>
+    <div class="on-mic-lv">${louie(mood, { pose, size: 120 })}</div>
+    <div class="on-pips c" aria-hidden="true">${pipsHtml()}</div>
+    <h2>${esc(title)}</h2>
+    <p>${text}</p>${extra}
+    <button class="btn primary" id="on-ok">${esc(ok)}</button></div>`;
+  document.getElementById("on-scrim").onclick = () => { layer.innerHTML = ""; };
+  document.getElementById("on-ok").onclick = () => { advance(id); layer.innerHTML = ""; done?.(); };
+}
+export function holdSheet(done) {
+  teachSheet({ id: "hold", title: "Hold the guitar", mood: "happy", pose: "peace",
+    text: "Sit up. Rest the guitar on your leg, with the neck pointing up and away. Your fretting hand holds the neck. Your picking hand sits over the strings.",
+    ok: "I've got it" }, done);
+}
+export function stringsSheet(done) {
+  const rows = [["E", "low, the thickest"], ["A", ""], ["D", ""], ["G", ""], ["B", ""], ["E", "high, the thinnest"]];
+  const extra = `<ul class="on-strings">${rows.map(([n, sub]) => `<li><b>${n}</b>${sub ? `<small>${sub}</small>` : ""}</li>`).join("")}</ul>`;
+  teachSheet({ id: "strings", title: "The open strings", mood: "happy", pose: "point",
+    text: "Six strings, thick to thin. The thick E is the low one.",
+    ok: "I've got them", extra }, done);
+}
+export function notesSheet(done) {
+  teachSheet({ id: "notes", title: "Your first notes", mood: "happy", pose: "thumb",
+    text: "Play the thickest string with a downstroke. That's a low E. Then the next string, the A.",
+    ok: "I played them" }, done);
+}
+
+/* ---- Let me hear you: the reason before the phone's own question ---- */
 export function micSheet(done) {
   layer.innerHTML = `<div class="scrim" id="on-scrim"></div><div class="panel de-sheet on-mic" role="dialog" aria-label="Let me hear you"><div class="grab"></div>
     <div class="on-mic-lv">${louie("listen", { pose: "wave", size: 120 })}</div>
-    <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k === 0 ? "on" : ""}"></i>`).join("")}</div>
+    <div class="on-pips c" aria-hidden="true">${pipsHtml()}</div>
     <h2>Let me hear you</h2>
     <p>I listen when you tune and when a lesson checks your chords. Nothing is recorded or sent anywhere.</p>
     <button class="btn primary" id="on-allow">Turn on the microphone</button>
@@ -103,7 +137,7 @@ export function gigOpen(g, el, start) {
   const card = document.createElement("div");
   card.className = "on-count";
   card.innerHTML = `<div class="on-count-in de-sheet"><div class="on-mic-lv">${louie("happy", { pose: "point", size: 104 })}</div>
-    <div class="on-pips c" aria-hidden="true">${OPENING.map((_, k) => `<i class="${k < 2 ? "done" : k === 2 ? "on" : ""}"></i>`).join("")}</div>
+    <div class="on-pips c" aria-hidden="true">${pipsHtml()}</div>
     <h2>Play each chord</h2>
     <p>Play the chord you see as the words go by. The crowd gets on its feet as you play through the song. Miss one and the song keeps going; nothing fails. Just the first verse for now.</p>
     <button class="btn primary" id="on-go">Count me in</button></div>`;

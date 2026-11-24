@@ -3865,6 +3865,10 @@ body.gigging .on-strip { bottom: calc(env(safe-area-inset-bottom) + 100px); }
 .on-mic h2, .on-count-in h2 { margin: 6px 0; font: 700 26px var(--display); color: var(--fg); }
 .on-mic p, .on-count-in p { margin: 0 0 16px; font: 700 15px var(--sans); color: var(--muted); line-height: 1.4; }
 .on-mic .btn, .on-count-in .btn { width: 100%; }
+.on-strings { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
+.on-strings li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid color-mix(in srgb, var(--muted) 22%, transparent); font: 700 18px var(--display); color: var(--fg); }
+.on-strings li:last-child { border-bottom: 0; }
+.on-strings small { font: 700 13px var(--sans); color: var(--muted); }
 .on-not { display: block; margin: 10px auto 0; height: 44px; border: 0; background: none; color: var(--muted); font: 700 16px var(--display); }
 .on-count { position: absolute; inset: 0; z-index: 40; display: flex; align-items: flex-end; background: var(--scrim); }
 .on-count-in { width: 100%; box-sizing: border-box; border-radius: 24px 24px 0 0; background: var(--card); padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); text-align: center; animation: up .42s cubic-bezier(.2, 1.15, .3, 1); }
@@ -4449,6 +4453,7 @@ body.playing .tuneup, body.playing #tu-scrim { display: none; }
 /* ---- 4.75.0: the Road's path, plan A: shows are tickets, the next stop names itself, the card says what you'd earn.
    All of this release's look is in this block (roll back: revert the 4.75.0 commit). ---- */
 .rd-stop.cur { margin-top: 30px; }
+.rn-neck .rd-stop.rn-slot, .rn-neck .rd-stop.rn-slot.cur { margin: 0; }
 .rd-tag { position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%); z-index: 2; padding: 5px 11px; border-radius: 12px; background: var(--card); box-shadow: 0 3px 0 var(--rim); color: var(--fg); font: 800 13px var(--sans); white-space: nowrap; pointer-events: none; animation: rd-tagbob 2.4s ease-in-out infinite; }
 .rd-tag::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); }
 @keyframes rd-tagbob { 50% { transform: translate(-50%, -3px); } }
@@ -4853,8 +4858,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 
 /* ---- the connector: a blurred amber glow under a thin light core ---- */
 .rd-neck > svg.rd-conn { z-index: 1; pointer-events: none; overflow: visible; }
-.rr-cg { fill: none; stroke: var(--rr-glow); stroke-opacity: .6; stroke-width: 12; stroke-linecap: round; }
-.rr-cc { fill: none; stroke: var(--rr-glow-core); stroke-width: 2.2; stroke-linecap: round; }
+.rr-cg { fill: none; stroke: var(--rr-glow); stroke-opacity: .8; stroke-width: 16; stroke-linecap: round; }
+.rr-cc { fill: none; stroke: var(--rr-glow-core); stroke-width: 3.4; stroke-linecap: round; }
 .rr-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rr-draw .6s ease-out forwards; }
 @keyframes rr-draw { to { stroke-dashoffset: 0; } }
 
@@ -4864,11 +4869,22 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr {
   width: 44px; height: 44px; display: grid; place-items: center; color: inherit; overflow: visible; -webkit-tap-highlight-color: transparent;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.cur:not(.box, .headline) { width: 56px; height: 44px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.headline { width: 72px; height: 44px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.cur:not(.box, .headline) { width: 68px; height: 52px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr.headline { width: 80px; height: 52px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-node.rr:active { transform: translate(-50%, -50%) translateY(1px); }
 .rd-node.rr .rr-art { position: relative; z-index: 1; overflow: visible; }
-.rr-pearl.done { fill: var(--rr-pearl-done); } .rr-pearl.now { fill: var(--rr-pearl-now); } .rr-pearl.ahead { fill: var(--rr-pearl-locked); }
+/* Progress is the hero: done stops are solid amber, the current one is lit, locked stops are a calm outline. */
+.rr-pearl.done { fill: var(--rr-amber); }
+.rr-pearl.now { fill: var(--rr-pearl-now); }
+.rr-pearl.ahead { fill: var(--rr-mesh); }
+.rr-pearl.ahead.rr-ring { stroke: var(--rr-outline); stroke-width: 2.4; }
+.rd-node.rr.done .rr-eng { fill: var(--rr-on-amber); stroke: var(--rr-on-amber); }
+.rd-node.rr.done .rr-eng-hi { fill: none; stroke: none; }
+.rd-node.rr.locked .rr-eng.locked { fill: var(--rr-text-2); stroke: var(--rr-text-2); }
+.rd-node.rr.locked .rr-eng-hi { opacity: .2; }
+/* The locked Headline plate is cream in both looks, so the word reads on a dark guitar. */
+:root:is([data-look="neon"], [data-look="festival"]) .rd-node.rr.headline .rr-pearl.ahead { fill: var(--rr-pearl-locked); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-node.rr.headline.locked .rr-eng.locked { fill: var(--rr-plate-text); stroke: var(--rr-plate-text); }
 .rr-cut { fill: none; stroke: #000; stroke-opacity: .45; stroke-width: 1; }
 .rr-sheen { fill: #fff; opacity: .55; }
 .rr-eng { fill: var(--rr-engrave); stroke: var(--rr-engrave); }
@@ -4879,10 +4895,10 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-eng text, .rr-eng-hi text { stroke: none; font-family: "Space Grotesk", var(--display); font-weight: 700; }
 /* the current stop glows from within; a done stop has a faint halo */
 .rr-glow, .rr-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
-.rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
-.rr-halo { width: 40px; height: 40px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 20%, transparent) 0, transparent 70%); }
+.rr-glow { width: 110px; height: 110px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 72%, transparent) 0, color-mix(in srgb, var(--rr-glow) 36%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
+.rr-halo { width: 52px; height: 52px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 32%, transparent) 0, transparent 70%); }
 /* light look (design review): the amber glow vanished on cream, so it is deeper and stronger there */
-:root[data-look="festival"] .rr-glow { width: 96px; height: 96px; background: radial-gradient(circle, rgba(232, 128, 20, .8) 0, rgba(240, 150, 40, .5) 38%, transparent 72%); }
+:root[data-look="festival"] .rr-glow { width: 120px; height: 120px; background: radial-gradient(circle, rgba(232, 128, 20, .85) 0, rgba(240, 150, 40, .55) 38%, transparent 72%); }
 :root[data-look="festival"] .rr-halo { background: radial-gradient(circle, rgba(232, 128, 20, .35) 0, transparent 70%); }
 /* dark look: a soft amber glow behind the neck, as in the design */
 :root[data-look="neon"] .rr-stage { background: radial-gradient(ellipse 70% 42% at 50% 38%, rgba(255, 170, 60, .16), transparent 72%); }
@@ -4911,12 +4927,13 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 :root:is([data-look="neon"], [data-look="festival"])[data-ax] .rr-say {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; padding: 6px 12px; font-size: var(--type-subhead);
 }
-:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip { display: none; }
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rd-neck .rd-songs.rr-chip,
+:root:is([data-look="neon"], [data-look="festival"])[data-ax] .rn-neck .rd-songs.rr-chip { display: none; }
 :root[data-ax="3"] .rr-say { -webkit-line-clamp: 1; line-clamp: 1; }
 
 @media (prefers-reduced-motion: reduce) { .rr-glow, .rr-draw { animation: none; } .rr-draw { stroke-dashoffset: 0; } }
 
-/* The knob tab bar (above) is the bar on every screen, including these two looks. Large text grows the bar; from AX3 the labels hide. */
+/* The knob tab bar (above) is the bar on every screen. Large text grows the bar; from AX3 the labels hide. */
 
 /* Road Ready 04: the Songbook is a tab, so its search and Add bar rides above the tab bar, and the list scrolls clear of both (while searching the bar is at the top, as before) */
 body.tabbed:not(.searching):not(.is-home) .dock { bottom: calc(var(--tabs) + 6px); }
@@ -5351,7 +5368,10 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] .rr-on-btn.rr-text { color: #F5EBDC; }
 /* the next leg, locked (4.99.0) */
 .rr-peek { position: relative; flex: none; align-self: stretch; width: 100%; margin: 10px 0 0; height: 300px; overflow: hidden; }
-.rr-peek-neck { filter: grayscale(1) brightness(.42); -webkit-mask: linear-gradient(#000 35%, transparent 92%); mask: linear-gradient(#000 35%, transparent 92%); pointer-events: none; }
+/* locked next leg: grey and fading, but still the painted headstock. brightness .42 turned it into a black shape in Light. */
+.rr-peek-neck { -webkit-mask: linear-gradient(#000 35%, transparent 92%); mask: linear-gradient(#000 35%, transparent 92%); pointer-events: none; }
+:root[data-look="neon"] .rr-peek-neck { filter: grayscale(.75) brightness(.78) contrast(.95); }
+:root[data-look="festival"] .rr-peek-neck { filter: grayscale(.4) brightness(1) contrast(.96); }
 .rr-peek-neck .rd-stop, .rr-peek-neck .rd-conn, .rr-peek-neck .rr-hit, .rr-peek-neck .rd-earned { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-peek-plate {
   position: absolute; left: 50%; top: 150px; transform: translateX(-50%); margin: 0; width: max-content; max-width: calc(100% - 48px); padding: 8px 14px; box-sizing: border-box; text-align: center;
@@ -6080,3 +6100,49 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip::after { content: ""; position: absolute; inset: -4px 0; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip svg { width: 16px; height: 16px; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips .chip[data-f="fav"] { min-width: 36px; padding: 4px 9px; }
+
+/* The neck-only Road: one rosewood board, gutters on either side, pearl inlays for the stops.
+   Wood, then pearls, then fret wires, then thin strings, then the check and the lock. */
+:root[data-look="neon"] .rn-stage, :root[data-look="neon"] .rd-path.rn { background: #181614; }
+:root[data-look="festival"] .rn-stage, :root[data-look="festival"] .rd-path.rn { background: #F6EFE2; }
+:root:is([data-look="neon"], [data-look="festival"]) body.is-home .app:has(> .rr-head):has(.rn-stage) { padding-bottom: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr.rn { padding: 0; margin: 0; gap: 0; }
+.rd-path.rn { padding: 0; gap: 0; align-items: stretch; }
+.rn-board { position: relative; width: 100%; flex: none; box-sizing: content-box; min-height: 100%; padding-bottom: var(--tabs); }
+.rn-neck { position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: var(--rn-w); height: auto; margin: 0 auto; box-sizing: border-box; border-left: 4px solid #E8D7B8; border-right: 4px solid #E8D7B8;
+  background-image: url("art/road-neck/neck-rosewood-v2.webp"); background-repeat: repeat-y; background-size: 100% auto;
+  box-shadow: inset 1px 0 0 #2C2118, inset -1px 0 0 #2C2118, 0 0 0 1px #C9B08A, 8px 0 16px rgba(20, 12, 6, .42), -8px 0 16px rgba(20, 12, 6, .42); }
+.rn-neck::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(90deg, rgba(48, 20, 10, .42), rgba(255, 214, 160, .07) 24%, rgba(255, 232, 196, .14) 50%, rgba(255, 214, 160, .07) 76%, rgba(48, 20, 10, .42)); }
+.rn-nut { position: absolute; z-index: 5; left: -5px; width: calc(100% + 10px); top: 0; height: 18px; object-fit: fill; pointer-events: none; background: #E8D7B8; }
+.rn-string { position: absolute; z-index: 3; top: 18px; bottom: 0; width: calc(var(--sw) * 1px); margin-left: calc(var(--sw) * -.5px); border-radius: 1px; pointer-events: none; }
+.rn-string.wound { opacity: .94; box-shadow: 1px 0.8px 1.2px rgba(24, 12, 4, .5); background-image: repeating-linear-gradient(to bottom, rgba(255, 236, 200, .4) 0 0.35px, rgba(80, 48, 20, .16) 0.35px 1.25px), linear-gradient(to right, #6a4424, #e4be78 36%, #fff3d4 50%, #c48848 74%, #5a381c); background-size: 100% 1.25px, 100% 100%; background-repeat: repeat-y, no-repeat; }
+.rn-string.wound.g { box-shadow: 0.7px 0.6px 1px rgba(24, 16, 8, .45); background-image: repeating-linear-gradient(to bottom, rgba(255, 248, 236, .38) 0 0.3px, rgba(70, 62, 48, .14) 0.3px 1.1px), linear-gradient(to right, #7a6a52, #f0e4cc 38%, #fffaf2 51%, #c8beb0 76%, #6a6054); background-size: 100% 1.1px, 100% 100%; }
+.rn-string.plain { opacity: .9; box-shadow: 0.4px 0.5px 0.8px rgba(16, 14, 10, .42); background: linear-gradient(to right, #8e98a4, #f5f8fc 38%, #ffffff 52%, #d0d8e0 78%, #8a949e); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rn-leg { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; text-transform: none; letter-spacing: 0; text-align: left; }
+.rn-wire { position: absolute; z-index: 2; left: -2px; right: -2px; height: 4.5px; transform: translateY(-50%); border-radius: 2.25px; pointer-events: none; background: linear-gradient(to bottom, #fff 0% 18%, #f3efe8 18% 46%, #d4cdc2 46% 78%, #a8a096 78% 100%); box-shadow: inset 0 0.8px 0 #fff, 0 1.4px 0 #241810, 0 2px 1.2px rgba(0, 0, 0, .4); }
+.rn-gold { position: absolute; z-index: 2; left: -2px; right: -2px; width: calc(100% + 4px); height: 16px; transform: translateY(-50%); object-fit: fill; pointer-events: none; }
+.rn-slot { position: absolute; z-index: 1; width: 64px; height: 64px; margin: 0; transform: translate(-50%, -50%); }
+.rn-slot:has(.rd-pop) { z-index: 8; }
+.rn-neck .rn-slot .rd-node.rn-stop, .rn-neck .rn-slot .rd-node.rn-stop.now, .rn-neck .rn-slot .rd-node.rn-stop.locked, .rn-neck .rn-slot .rd-node.rn-stop.done, .rn-neck .rn-slot .rd-node.rn-stop.open { position: relative; width: 64px; height: 64px; min-width: 64px; min-height: 64px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transform: none; color: inherit; }
+.rn-neck .rn-slot .rd-node.rn-stop:active { transform: none; box-shadow: none; }
+.rn-pearl { position: relative; z-index: 1; width: 64px; height: 64px; object-fit: contain; pointer-events: none; display: block; }
+.rn-stop.done .rn-pearl { filter: sepia(.92) saturate(2.4) hue-rotate(-10deg) brightness(.58) contrast(1.18); }
+.rn-stop.now .rn-pearl { filter: sepia(.88) saturate(2.6) hue-rotate(-8deg) brightness(.66) contrast(1.16); }
+.rn-stop.locked .rn-pearl { filter: none; }
+.rn-stop.now .rr-glow { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%); border-radius: 50%; z-index: 0; pointer-events: none; background: radial-gradient(circle, rgba(255, 186, 72, .72) 0%, rgba(214, 120, 28, .28) 42%, transparent 72%); animation: rn-breathe 1.6s ease-in-out infinite alternate; }
+@keyframes rn-breathe { from { opacity: .55; } to { opacity: 1; } }
+.rn-mark { position: absolute; z-index: 4; transform: translate(-50%, -50%); pointer-events: none; }
+.rn-check { width: 20px; height: 20px; filter: drop-shadow(0 0.6px 0 rgba(42, 22, 6, .55)); }
+.rn-lock { width: 22px; height: 22px; }
+.rn-num { position: absolute; z-index: 5; left: calc(50% - var(--rn-w) / 2 - 8px); transform: translate(-100%, -50%); font: 700 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #8a7d70; pointer-events: none; }
+:root[data-look="festival"] .rn-num { color: #7a6856; }
+.rn-leg { position: absolute; z-index: 5; left: 8px; width: calc((100% - var(--rn-w)) / 2 - 16px); margin: 0; color: #F6EFE2; }
+:root[data-look="festival"] .rn-leg { color: #2A2118; }
+.rn-leg b { display: block; font: 650 13px/1.25 Inter, var(--sans); }
+.rn-leg small { display: block; margin-top: 1px; font: 500 12px/1.3 Inter, var(--sans); }
+.rn-skip { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; padding: 0 4px; border: 0; background: none; color: inherit; font: 650 13px/1 Inter, var(--sans); }
+.rn-bubble { position: absolute; z-index: 6; width: fit-content; max-width: calc((100% - var(--rn-w)) / 2 - 14px); left: calc(50% + var(--rn-w) / 2 + 10px); right: auto; bottom: auto; box-sizing: border-box; margin: 0; transform: translateY(-50%); padding: 6px 11px; border-radius: 12px; background: #FFFDF8; color: #2A2118; border: 1px solid #BDA37A; box-shadow: 0 2px 8px rgba(40, 24, 8, .22); font: 600 15px/1.25 Inter, var(--sans); overflow-wrap: anywhere; white-space: normal; text-align: left; animation: none; }
+.rn-bubble::after { content: ""; position: absolute; left: -6px; top: 50%; width: 10px; height: 10px; margin-top: -6px; background: #FFFDF8; border-left: 1px solid #BDA37A; border-bottom: 1px solid #BDA37A; transform: rotate(45deg); box-shadow: -2px 2px 3px rgba(40, 24, 8, .08); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr .rn-leg { text-transform: none; letter-spacing: 0; }
+.rn-neck .rd-pop { top: 70px; width: min(268px, calc(100vw - 24px)); }
+@media (prefers-reduced-motion: reduce) { .rn-stop.now .rr-glow { animation: none; } }
