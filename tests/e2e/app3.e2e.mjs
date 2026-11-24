@@ -29,9 +29,10 @@ test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest
   assert.equal(await pad.evaluate(() => document.body.classList.contains("fold")), false, "iPad: the bar stays");
   assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
 });
-test("4.15.0: the section rail is always there; Stage mode and the old toggles are gone from Settings", { skip: skip() }, async t => {
+test("4.15.0: Stage mode and the old toggles are gone from Settings (5.3.1: and so is the section rail)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, songMap: false, stage: true, pauseDiagrams: false } });
-  await page.goto(base + "#/song/a"); await page.waitForSelector(".smap");
+  await page.goto(base + "#/song/a"); await page.waitForSelector("#play"); await settled(page);
+  assert.equal(await page.locator(".smap").count(), 0, "5.3.1: no section rail");
   assert.equal(await page.evaluate(() => document.body.classList.contains("stage")), false, "no stage look");
   await page.goto(base + "#/settings/playing"); await page.waitForSelector("#s-focus");
   assert.equal(await page.locator("#s-stage, #s-map, #s-pause, #s-diagrams").count(), 0);

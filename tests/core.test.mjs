@@ -2817,6 +2817,10 @@ test("painted genre guitarists stand in for the ink drawing, and the three fixes
     assert.equal(dim.w, 800, id); assert.equal(dim.h, 800, id); assert.equal(dim.alpha, true, id);
     assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
   }
+  /* 5.0.0 took the nine unused earlier paintings out of the offline list. They stay out. */
+  for (const unused of ["classical-w.webp", "funk-m.webp", "funk-w.webp", "jazz-w.webp", "metal-m.webp", "pop-w.webp", "punk-w-v2.webp", "reggae-m.webp", "rock-w.webp"]) {
+    assert.ok(!shell.includes(`art/guitarist-painted/genres/${unused}`), `${unused} stays out of the offline list`);
+  }
   const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
   assert.equal(cleaned.genre, "punk", "a valid genre is kept");
   assert.equal(cleaned.who, "w", "a valid who is kept");
@@ -3225,7 +3229,7 @@ test("Road Ready 9a: each leg has its new guitar, and all 23 pictures are built,
   for (const [leg, name] of Object.entries(legs)) {
     const g = C.GUITARS[leg];
     assert.equal(g.name, name); assert.equal(g.body, name.toLowerCase().replace(/ /g, "")); assert.equal(FB.NANO_FILE[leg], g.body, `${leg}: the neck uses its own picture`);
-    assert.ok(FB.guitarPic(g.body)?.startsWith(`art/guitars/${g.body}-small.webp`), `${leg}: the small picture resolves`);
+    assert.ok(FB.guitarPic(g.body)?.startsWith(`art/guitars/streak/${g.body}-small.webp`), `${leg}: the small picture is the elevated one`);
   }
   assert.deepEqual(Object.keys(C.GUITARS), Object.keys(legs), "leg ids and their order are as they were");
   const slugs = [...Object.values(C.GUITARS).map(g => g.body), ...C.GUITAR_SHOP.map(g => g.id)];
@@ -3427,6 +3431,57 @@ test("Painted necks: every one of the 23 guitars has a road picture and fret dat
     assert.ok(r.f.every((row, i) => row.length === 9 && (!i || row[0] > r.f[i - 1][0])), `${slug}: the fret rows run down the picture`);
   }
   assert.ok(total < 2e6, `the 23 road pictures come to ${total} bytes`);
+});
+/* VP8X canvas size: 24-bit little-endian width and height, each stored minus one. */
+const elevBox = buf => {
+  assert.equal(buf.toString("ascii", 0, 4), "RIFF");
+  assert.equal(buf.toString("ascii", 8, 12), "WEBP");
+  const kind = buf.toString("ascii", 12, 16);
+  if (kind === "VP8X") return [1 + buf.readUIntLE(24, 3), 1 + buf.readUIntLE(27, 3)];
+  /* lossless WebP keeps the grain. The size is packed in the first four bytes after the signature. */
+  if (kind === "VP8L") { const b = buf.readUInt32LE(21); return [1 + (b & 0x3fff), 1 + ((b >> 14) & 0x3fff)]; }
+  assert.fail(`unknown webp ${kind}`);
+};
+test("Guitars with elevation: the streak copies match the flat pictures, and the stand uses the large one", async () => {
+  const { FB } = await wired(), shell = read("sw.js");
+  const slugs = [...Object.values(C.GUITARS).map(g => g.body), ...C.GUITAR_SHOP.map(g => g.id)];
+  for (const slug of slugs) {
+    for (const part of ["road", "small"]) {
+      const elev = `art/guitars/streak/${slug}-${part}.webp`, flat = `art/guitars/${slug}-${part}.webp`;
+      assert.ok(fs.existsSync(path.join(root, flat)), `${flat} is kept`);
+      assert.ok(fs.existsSync(path.join(root, elev)), elev);
+      assert.ok(shell.includes(`"${elev}"`), `${elev} is saved for offline`);
+      assert.deepEqual(elevBox(fs.readFileSync(path.join(root, elev))), elevBox(fs.readFileSync(path.join(root, flat))), `${slug} ${part}: the elevated picture is the same size`);
+    }
+    assert.ok(FB.guitarPic(slug).startsWith(`art/guitars/streak/${slug}-small.webp`), `${slug}: the shop uses the elevated picture`);
+    assert.equal(FB.largeGuitar(FB.guitarPic(slug)), `art/guitars/streak/${slug}-road.webp`, `${slug}: the stand uses the large picture`);
+  }
+  /* the eight older guitars still have head and body copies in streak/. Nothing draws those, so they stay out of the offline list. The small picture is the one the shop uses. */
+  for (const name of ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]) {
+    for (const part of ["head", "body", "small"]) {
+      const elev = `art/guitars/streak/${name}-${part}.webp`;
+      assert.ok(fs.existsSync(path.join(root, elev)), elev);
+      if (part === "small") assert.ok(shell.includes(`"${elev}"`), `${elev} is saved for offline`);
+      else assert.ok(!shell.includes(`"${elev}"`), `${elev} stays out of the offline list`);
+      assert.deepEqual(elevBox(fs.readFileSync(path.join(root, elev))), elevBox(fs.readFileSync(path.join(root, `art/guitars/${name}-${part}.webp`))), `${name} ${part}`);
+    }
+  }
+  assert.equal(FB.largeGuitar("art/guitars/porch-small.webp?v=1"), "art/guitars/porch-road.webp");
+  assert.equal(FB.largeGuitar("art/guitars/streak/porch-small.webp?v=1"), "art/guitars/streak/porch-road.webp");
+  assert.equal(FB.largeGuitar("art/guitars/porch-head.webp"), "");
+  const stops = [...Array.from({ length: 5 }, () => ({ kind: "chord", state: "locked" })), { kind: "headline", state: "locked" }];
+  const html = FB.neckHTML({ id: "open", name: "Porch", done: false, stops }, { rr: true, id: () => "s", num: () => 1, label: () => "stop", tag: () => "" });
+  assert.doesNotMatch(html, /feOffset|feGaussianBlur/, "the Road drawing has no shadow under the body");
+  for (const folder of ["elev", "lift", "sheen"]) {
+    assert.ok(fs.existsSync(path.join(root, `docs/guitars/elevation-tryouts/${folder}/porch-road.webp`)), `${folder} is kept with the tryouts`);
+    assert.ok(!fs.existsSync(path.join(root, `art/guitars/${folder}`)), `${folder} left the app art`);
+  }
+});
+test("the offline list does not carry the elevation tryouts", () => {
+  const shell = JSON.parse(read("sw.js").match(/const SHELL = (\[.*?\]);/s)[1]);
+  for (const prefix of ["art/guitars/elev/", "art/guitars/lift/", "art/guitars/sheen/"]) {
+    assert.equal(shell.filter(u => u.includes(prefix)).length, 0, prefix);
+  }
 });
 test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, and the stops stay inside the picture", async () => {
   const { FB, PICS } = await wired(), mk = n => Array.from({ length: n }, (_, i) => ({ kind: i % 4 === 3 ? "box" : "chord", state: "locked" }));
@@ -3729,12 +3784,18 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   assert.equal(leg.stops.length, 10, "the first leg is 10 stops when a merch box lands every 3 lessons");
   assert.deepEqual(C.neckSlots(9), { slots: [1, 3, 5, 7, 8, 10, 11, 13, 14], gold: 15 });
   assert.deepEqual(C.neckSlots(10), { slots: [1, 3, 5, 6, 8, 9, 11, 12, 14, 15], gold: 16 });
-  const board = C.neckBoard([{ stops: leg.stops }], { peek: 3 });
+  const board = C.neckBoard([{ stops: leg.stops }], { peek: 0 });
   assert.deepEqual(board.stops.map(s => s.space), [1, 3, 5, 6, 8, 9, 11, 12, 14, 15]);
   assert.deepEqual(board.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond", "moon"]);
   assert.equal(board.frets.filter(f => f.gold).length, 1);
   assert.equal(board.frets.find(f => f.gold).n, 16);
-  assert.equal(board.frets.filter(f => f.peek).length, 3, "three empty frets peek past the gold bar");
+  assert.equal(board.frets.filter(f => f.peek).length, 0, "the Road draws no empty frets past the gold bar");
+  const peeked = C.neckBoard([{ stops: leg.stops }], { peek: 3 });
+  assert.equal(peeked.frets.filter(f => f.peek).length, 3, "an optional peek still adds empty frets when asked");
+  const next = C.neckBoard([{ stops: leg.stops }, { stops: leg.stops.map(s => ({ kind: s.kind, state: "locked" })) }], { peek: 0 });
+  assert.equal(next.stops.length, leg.stops.length * 2, "the next leg keeps every real stop");
+  assert.equal(next.frets.filter(f => f.peek).length, 0, "a full next leg adds no empty frets");
+  assert.equal(next.frets.filter(f => f.gold).length, 2, "each leg still ends on its own gold fret");
   assert.ok(board.width >= 0.55 && board.width <= 0.6, `neck width is ${board.width}`);
   const tightN = Math.max(...board.stops.map(s => s.space));
   const tight = C.fretAt(C.neckScale(10), tightN) - C.fretAt(C.neckScale(10), tightN - 1);
@@ -3762,7 +3823,20 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t") && !/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line) && !/^D\tart\/guitarist-painted\/pilot/.test(line));
+  /* The 24 paintings the app shows are smaller copies of the same canvases. Nothing else under art/ may change. */
+  const PAINT = new Set([
+    "blues-m", "blues-w", "classical-m", "classical-w-v2", "country-m-v2", "country-w-v2",
+    "folk-m", "folk-w", "funk-m-v2", "funk-w-v2", "indie-m", "indie-w", "jazz-m", "jazz-w-v2",
+    "metal-m-v2", "metal-w", "pop-m", "pop-w-v2", "punk-m", "punk-w-v3", "reggae-m-v2", "reggae-w",
+    "rock-m", "rock-w-v2"
+  ].map(n => `art/guitarist-painted/genres/${n}.webp`));
+  const bad = diff.split("\n").filter(Boolean).filter(line => {
+    if (line.startsWith("A\t")) return false;
+    if (/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line)) return false;
+    if (/^D\tart\/guitarist-painted\/pilot/.test(line)) return false;
+    const parts = line.split("\t");
+    return !(parts[0] === "M" && PAINT.has(parts[1]));
+  });
   assert.deepEqual(bad, [], "no existing art file was edited (the old ink drawing was deleted on Graham's go, 2026-11-23)");
 });
 
@@ -3799,14 +3873,14 @@ test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder 
   assert.deepEqual(C.guitarsEarned(data), ["open"], "guitarsEarned stays the headlined legs");
 });
 
-test("5.2.0 imported backups follow the 50% text size: an unmarked backup moves 1 to 0.5, a marked one imports as it is", () => {
+test("5.3.2 imported backups follow the 50% text size: an unmarked backup moves 1 to 0.5, a marked one imports as it is", () => {
   const song = (id, size) => ({ id, title: id, body: "G\nla", ...(size === undefined ? {} : { size }) });
   const old = { songs: [song("a", 1), song("b", 1.3), song("c")], sets: [], trash: [{ type: "song", item: song("d", 1), deletedAt: new Date().toISOString() }], settings: {} };
   const got = C.cleanImport(JSON.parse(JSON.stringify(old)));
   assert.deepEqual(got.data.songs.map(s => s.size), [0.5, 1.3, undefined], "1 becomes 0.5, 1.3 stays, no size stays none");
   assert.equal(got.data.trash[0].item.size, 0.5, "a song in Recently deleted moves too");
   const marked = C.cleanImport({ ...JSON.parse(JSON.stringify(old)), sizes: 2 });
-  assert.deepEqual(marked.data.songs.map(s => s.size), [1, 1.3, undefined], "a backup from 5.2.0 on keeps a song you set to 100%");
+  assert.deepEqual(marked.data.songs.map(s => s.size), [1, 1.3, undefined], "a backup from 5.3.2 on keeps a song you set to 100%");
   assert.equal(marked.data.trash[0].item.size, 1);
   assert.equal("sizes" in marked.data, false, "the marker stays out of the saved library");
   /* a backup written by this release carries the marker, and round-trips unchanged */

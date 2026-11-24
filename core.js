@@ -13,7 +13,7 @@ import { BOOTH_MAX, BOOTH_PLACES, BOOTH_RATE, BOOTH_RIVALS, boothCall, boothChor
 import { ytId, cleanYt, ytAt, ytSong, ytMatches } from "./core/youtube.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "5.1.0";
+export const VERSION = "5.3.1";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -352,7 +352,7 @@ const COVER_MAX = 4e6; // characters, about 3 MB of photo
 export const cleanName = v => String(v || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
 /* Green Room and Headliner are retired. A saved one follows the phone, or Dark when the phone doesn't say. The stored value is not changed. */
 export const shownTheme = (stored, phoneIsLight) => (stored === "green" || stored === "headliner") ? (phoneIsLight === true ? "light" : "dark") : (stored || "auto");
-/* 5.2.0 (Graham, 2026-11-24): a backup written from 5.2.0 on says so with sizes: 2 at its top (beside covers, never in
+/* 5.3.2 (Graham, 2026-11-24): a backup written from 5.3.2 on says so with sizes: 2 at its top (beside covers, never in
    the saved library). A backup without it was made when new songs started at 1, so on import a song (or a song in
    Recently deleted) stored at exactly 1 moves to 0.5; every other size stays. A marked backup imports as it is. */
 export const BACKUP_SIZES = 2;

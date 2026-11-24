@@ -229,7 +229,7 @@ The journal keeps `days` (`{ "YYYY-MM-DD": seconds }`, last 60 days) and `daysFr
 
 ## Backup file
 
-The library as above, plus `covers: { [setId]: "data:image/png|jpeg|webp;base64,..." }` when sets have cover photos, and `sizes: 2` on every backup written from 5.2.0 on (`backupOf` in `core.js`; never kept in the saved library). Importing a backup without `sizes: 2` moves any song, or song in Recently deleted, stored at exactly `size: 1` to `0.5`, since it was made when new songs started at 1; every other size stays. A backup with the marker imports as it is.
+The library as above, plus `covers: { [setId]: "data:image/png|jpeg|webp;base64,..." }` when sets have cover photos, and `sizes: 2` on every backup written from 5.3.2 on (`backupOf` in `core.js`; never kept in the saved library). Importing a backup without `sizes: 2` moves any song, or song in Recently deleted, stored at exactly `size: 1` to `0.5`, since it was made when new songs started at 1; every other size stays. A backup with the marker imports as it is.
 
 Restoring a backup (`Tabs.import` and `cleanImport` in `core.js`) checks every field before it replaces the library:
 
