@@ -15,21 +15,24 @@ test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest
   const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, countIn: false } });
   await page.goto(base + "#/set/s"); await page.waitForSelector("[data-open='0']");
   await page.click("[data-open='0']"); await page.waitForSelector('#setdial'); await settled(page);
-  assert.match(await page.innerText("#setdial"), /1 of 2/, "the set count sits on the progress row");
+  assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the bar");
   assert.ok(await page.locator("#setdial").isVisible());
-  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
-  assert.equal(await page.evaluate(() => document.body.classList.contains("fold")), false, "the amp bar does not fold");
-  assert.equal(await page.locator("#setdial").isVisible(), true, "the set count stays while playing");
+  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
+  assert.equal(await page.locator("#setdial").isVisible(), false, "folded away while playing");
+  assert.match(await page.innerText("#fp-nav"), /One\s*2 of 2/, "3.20.0: beside Play, the next song in the set");
+  await page.click("#fp-nav"); await page.waitForFunction(() => /One/.test(document.querySelector('.song-title')?.innerText || ''));
+  assert.match(await page.innerText(".song-title"), /One/, "a tap moves on to it");
 
   const pad = await phone(t, { ...LIB, settings: { ...LIB.settings, countIn: false } }, { viewport: { width: 1180, height: 820 } });
   await pad.goto(base + "#/song/a"); await pad.waitForSelector("#play"); await settled(pad);
   await pad.click("#play"); await pad.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
   assert.equal(await pad.evaluate(() => document.body.classList.contains("fold")), false, "iPad: the bar stays");
-  assert.equal(await pad.evaluate(() => document.getElementById("play").closest("#amp-bar") !== null), true, "iPad: Play in the bar");
+  assert.equal(await pad.evaluate(() => document.getElementById("play").closest(".player") !== null), true, "iPad: Play in the bar");
 });
-test("4.15.0: the section rail is always there; Stage mode and the old toggles are gone from Settings", { skip: skip() }, async t => {
+test("4.15.0: Stage mode and the old toggles are gone from Settings (5.3.1: and so is the section rail)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, settings: { ...LIB.settings, songMap: false, stage: true, pauseDiagrams: false } });
-  await page.goto(base + "#/song/a"); await page.waitForSelector(".smap");
+  await page.goto(base + "#/song/a"); await page.waitForSelector("#play"); await settled(page);
+  assert.equal(await page.locator(".smap").count(), 0, "5.3.1: no section rail");
   assert.equal(await page.evaluate(() => document.body.classList.contains("stage")), false, "no stage look");
   await page.goto(base + "#/settings/playing"); await page.waitForSelector("#s-focus");
   assert.equal(await page.locator("#s-stage, #s-map, #s-pause, #s-diagrams").count(), 0);
@@ -408,7 +411,7 @@ test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply show
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.ok(saved.songs.some(s => s.title === "Wagon Wheel"), "the song came with it");
   assert.equal(saved.duels.list[0].opp, "Mike");
-  await page.click("#play"); await page.waitForSelector("body.held");
+  await page.click("#gg-pause"); await page.waitForSelector("body.held");
   /* a duel you sent comes back answered */
   const reply = await page.evaluate(async () => {
     const C = await import("/core.js"), app = await import("/app.js"), d = C.startDuel(app.data, app.data.songs[0], { pct: 70, combo: 5, crowd: 8 }); C.Tabs.save(app.data);

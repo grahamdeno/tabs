@@ -55,32 +55,31 @@ test("5.2.0 the lyrics at 50% are smaller than at 100%", { skip: skip() }, async
   assert.ok(small <= big * 0.55, `about half: ${small} against ${big}`);
 });
 
-test("5.2.0 the song and the Gig share one amp bar: the Pause word is the centre knob, and there is no second bar", { skip: skip() }, async t => {
+const centre = async (page, sel) => { const b = await page.locator(sel).boundingBox(); return b.x + b.width / 2; };
+
+test("5.2.0 no Pause word under the button, and Play is in the middle of the bar, playing and paused, in a gig", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [song("a", 1.3)], settings: GIG }, { home: true, size50: true });
   await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");
-  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause"); await settled(page);
-  assert.equal(await page.locator("#gg-pause, .gg-bar").count(), 0, "the Gig does not add a second bar");
-  assert.equal((await page.innerText("#play")).trim(), "Pause", "the centre knob says Pause");
-  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause", "the name stays for VoiceOver");
+  await page.click("#play"); await page.waitForSelector("#gig"); await page.waitForSelector("#gg-pause"); await settled(page);
+  assert.equal(await page.locator("#gg-pod small, .gg-bar #gg-pod small").count(), 0, "no small label under the button");
+  assert.ok(!/Pause/.test(await page.innerText("#gg-pod")), "no Pause text under the button");
+  assert.equal(await page.getAttribute("#gg-pause", "aria-label"), "Pause", "the name stays for VoiceOver");
   const view = 390 / 2;
-  const mid = await page.evaluate(() => { const r = document.getElementById("amp-bar").getBoundingClientRect(); return r.x + r.width / 2; });
-  assert.ok(Math.abs(mid - view) <= 8, `the amp bar is centred, middle ${mid}`);
-  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
-  assert.equal((await page.innerText("#play")).trim(), "Play", "pausing puts Play back on the same knob");
-  assert.equal(await page.locator("#amp-bar").count(), 1);
+  const mid = async () => { const bar = await page.locator(".gg-bar").count() ? await centre(page, ".gg-bar") : view; return [await centre(page, "#gg-pause"), bar]; };
+  let [p, b] = await mid(); assert.ok(Math.abs(p - view) <= 2, `playing: Play at ${p}, middle ${view}`); assert.ok(Math.abs(p - b) <= 2, `playing: bar middle ${b}`);
+  /* paused, the show steps aside and the song page's own bar is back (body.held) */
+  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  /* the bar unfolds from the corner as the show steps aside: give it its second, then measure */
+  await page.waitForFunction(() => { const r = document.getElementById("play").getBoundingClientRect(); return Math.abs(r.x + r.width / 2 - 195) <= 2; }, null, { timeout: 4000 }).catch(() => {});
+  p = await centre(page, "#play"); b = await centre(page, ".player:visible >> nth=0");
+  assert.ok(Math.abs(p - view) <= 2, `paused: Play at ${p}, middle ${view}`); assert.ok(Math.abs(p - b) <= 2, `paused: bar middle ${b}`);
 });
 
-test("5.2.0 Play is the centre knob of the amp bar on the song page", { skip: skip() }, async t => {
+test("5.2.0 Play is in the middle of the bar on the song page while paused (a song played in place folds Play into the corner, as before)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [song("a", 1.3)], settings: PLAIN }, { home: true, size50: true });
   await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");
-  const place = await page.evaluate(() => {
-    const slots = [...document.querySelectorAll("#amp-bar .amp-slot")].map(b => b.id);
-    const play = document.getElementById("play").getBoundingClientRect();
-    const bar = document.getElementById("amp-bar").getBoundingClientRect();
-    return { slots, play: play.x + play.width / 2, left: bar.x, width: bar.width };
-  });
-  assert.deepEqual(place.slots, ["pw-speed", "play", "pw-loop", "more"]);
-  assert.ok(place.play > place.left + place.width * 0.2 && place.play < place.left + place.width * 0.55, `Play is the centre knob (${place.play})`);
+  const p0 = await centre(page, "#play"); assert.ok(Math.abs(p0 - 390 / 2) <= 2, `paused: Play at ${p0}, middle ${390 / 2}`);
+  assert.ok(Math.abs((await centre(page, ".player")) - p0) <= 2, "and it is the middle of the bar");
 });
 
 /* 5.2.0 (Fable's review): at 320 px the centred Play met Loop. No two buttons in either bar overlap, and each stays 44 px. */
@@ -97,6 +96,19 @@ test("5.2.0 at 320 px no two bar buttons overlap, on the paused song page and in
   const page = await phone(t, { ...LIB, songs: [song("a", 1.3)], settings: GIG }, { home: true, size50: true, viewport: { width: 320, height: 640 } });
   await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");
   assert.equal(await noOverlap(page, ["pw-speed", "play", "pw-loop", "more"]), 4, "the song page bar has all four buttons");
-  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause"); await settled(page);
-  assert.equal(await noOverlap(page, ["pw-speed", "play", "pw-loop", "more"]), 4, "the same amp bar stays during the Gig, with no overlap");
+  await page.click("#play"); await page.waitForSelector("#gg-pause"); await settled(page);
+  assert.equal(await noOverlap(page, ["gg-speed", "gg-pause", "gg-loop", "gg-tools"]), 4, "the Gig bar has all four buttons");
+});
+
+test("5.3.1 no section rail; a long line runs to 12 px from the right edge; Play is centred top to bottom in the bar", { skip: skip() }, async t => {
+  const LONG = "[Verse]\nG\nWhere all good men are trampled down and more words here too, and more\n[Chorus]\nC\nla la";
+  const page = await phone(t, { ...LIB, songs: [{ ...song("a", 1), body: LONG }], settings: PLAIN }, { home: true, size50: true });
+  await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");
+  assert.equal(await page.locator(".smap").count(), 0, "no rail");
+  const right = await page.evaluate(() => document.getElementById("sheet").getBoundingClientRect().right);
+  assert.ok(Math.abs(right - (390 - 12)) <= 1, `the song's lines may run to 12 px from the edge (${right})`);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .pr, #sheet > .ly")).marginRight), "0px", "no right margin kept for a rail");
+  const r = await page.evaluate(() => { const b = document.querySelector(".player").getBoundingClientRect(), p = document.getElementById("play").getBoundingClientRect(); return { bar: b.top + b.height / 2, play: p.top + p.height / 2 }; });
+  assert.ok(Math.abs(r.bar - r.play) <= 1.5, `Play's middle ${r.play} is the bar's middle ${r.bar}`);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "Play keeps its spoken name");
 });

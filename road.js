@@ -303,10 +303,24 @@ function rrOpening(done, step) {
   const cur = stops[step] || null;
   const said = s => s.state === "now" ? "your next step" : s.state;
   const btn = done ? `<button type="button" class="rn-skip" id="on-next">On to Leg 1</button>` : `<button type="button" class="rn-skip" id="on-skip" aria-label="Skip opening night">Skip</button>`;
-  const neck = bareNeckHTML([{ title: "Opening night", sub: "First steps", cls: "on-night", aria: "Opening night", stops }], {
-    cur, next: { title: "Leg 1", sub: "Open chords", aria: "Leg 1, Open chords" },
-    id: s => esc(s.id), num: s => stops.indexOf(s) + 1,
-    label: s => esc(`Step ${stops.indexOf(s) + 1} of ${stops.length}, ${s.name}, ${said(s)}`)
+  const leg1 = roadPath(data).legs[0];
+  const legs = [{ title: "Opening night", sub: "First steps", cls: "on-night", aria: "Opening night", stops }];
+  if (leg1?.stops?.length) legs.push({ title: "Leg 1", sub: leg1.name, aria: `Leg 1, ${leg1.name}`, upcoming: true, stops: leg1.stops });
+  const stopName = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name;
+  const neck = bareNeckHTML(legs, {
+    cur,
+    id: s => esc(s.id),
+    num: s => {
+      const i = stops.indexOf(s);
+      if (i >= 0) return i + 1;
+      const j = leg1 ? leg1.stops.findIndex(x => x.id === s.id) : -1;
+      return j >= 0 ? j + 1 : 0;
+    },
+    label: s => {
+      const i = stops.indexOf(s);
+      if (i >= 0) return esc(`Step ${i + 1} of ${stops.length}, ${s.name}, ${said(s)}`);
+      return esc(`${stopName(s)}, locked`);
+    }
   });
   app.innerHTML = `
     ${rrRow()}
@@ -326,6 +340,7 @@ function rrOpening(done, step) {
   armDrag(path);
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   const openStepCard = (node, fromKey) => {
+    if (!String(node.dataset.stop || "").startsWith("o:")) return;
     const wrap = node.parentElement, open = wrap.querySelector(".rd-pop");
     closePop();
     if (!open) { wrap.insertAdjacentHTML("beforeend", openingCard(+node.dataset.stop.slice(2), step)); path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop")); if (fromKey) wrap.querySelector(".rd-start")?.focus(); }
@@ -336,6 +351,17 @@ function rrOpening(done, step) {
     if (st) return openingStart(+st.dataset.ostart);
     const node = e.target.closest("[data-stop]");
     if (!node) return closePop();
+    /* Leg 1 under Opening night is locked. A tap says so, and does not start the lesson. */
+    if (node.closest(".rn-dim")) {
+      const wrap = node.parentElement, open = wrap.querySelector(".rd-pop");
+      closePop();
+      if (!open) {
+        const s = leg1?.stops.find(x => x.id === node.dataset.stop);
+        wrap.insertAdjacentHTML("beforeend", `<div class="rd-pop locked" role="dialog" aria-label="Locked"><b>${esc(s ? stopName(s) : "Leg 1")}</b><p>This opens after Opening night.</p></div>`);
+        path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop"));
+      }
+      return;
+    }
     openStepCard(node, !e.detail);
   });
   $("rn-now-open")?.addEventListener("click", e => { const node = path.querySelector(".rd-node.cur"); if (node) openStepCard(node, !e.detail); });
@@ -444,9 +470,12 @@ export function renderRoad() {
   const said = s => s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked";
   /* Road Ready: each stop's number in its leg, and a label that says it ("Show 4 of 6, The D chord, current") */
   const numOf = s => { const l = road.legs.find(x => x.stops.includes(s)); return l ? l.stops.indexOf(s) + 1 : 0; };
+  const curAt = road.legs.indexOf(leg);
+  const nxt = curAt >= 0 ? road.legs[curAt + 1] : null;
+  const ahead = new Set(nxt ? nxt.stops.map(s => s.id) : []);
   const rrLabel = s => {
-    if (s.kind === "headline" || s.kind === "box") return esc(`${s.kind === "headline" ? "Headline show" : "Merch box"}, ${said(s)}`);
-    const l = road.legs.find(x => x.stops.includes(s)), state = s.state === "now" ? "current" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked";
+    if (s.kind === "headline" || s.kind === "box") return esc(`${s.kind === "headline" ? "Headline show" : "Merch box"}, ${ahead.has(s.id) ? "locked" : said(s)}`);
+    const l = road.legs.find(x => x.stops.includes(s)), state = ahead.has(s.id) ? "locked" : s.state === "now" ? "current" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked";
     return esc(`Show ${numOf(s)} of ${l ? l.stops.length : 0}, ${stopTitle(s)}, ${state}`);
   };
   const labelOf = rr ? rrLabel : s => esc(`${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${said(s)}`);
@@ -455,12 +484,12 @@ export function renderRoad() {
   const fresh = rr && lastCur && cur && lastCur !== cur.id ? cur.id : null;
   lastCur = cur?.id || null;
   const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "", tonightAdd: rr && !song };
-  const curAt = road.legs.indexOf(leg);
   const shown = road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length);
-  const nxt = curAt >= 0 ? road.legs[curAt + 1] : null;
-  const bare = rr ? bareNeckHTML(shown.map(l => ({ title: `Leg ${l.n}`, sub: l.name, aria: `Leg ${l.n}, ${l.name}`, stops: l.stops })), {
-    cur, next: nxt ? { title: `Leg ${nxt.n}`, sub: nxt.name, aria: `Leg ${nxt.n}, ${nxt.name}` } : null,
-    id: s => esc(s.id), label: labelOf, num: numOf, songs: opens
+  /* The legs already reached, then the next one in full, flagged so it draws gray and locked. Nothing past that. */
+  const bareLegs = shown.map(l => ({ title: `Leg ${l.n}`, sub: l.name, aria: `Leg ${l.n}, ${l.name}`, stops: l.stops }));
+  if (nxt) bareLegs.push({ title: `Leg ${nxt.n}`, sub: nxt.name, aria: `Leg ${nxt.n}, ${nxt.name}`, upcoming: true, stops: nxt.stops });
+  const bare = rr ? bareNeckHTML(bareLegs, {
+    cur, id: s => esc(s.id), label: labelOf, num: numOf, songs: opens
   }) : "";
   const legsHTML = rr ? "" : road.legs.map((l, n) => `
     <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
@@ -546,6 +575,11 @@ export function renderRoad() {
     const painted = pn && pn.querySelector("[data-hx]");
     if (painted && e.detail > 0 && !e.target.closest(".rd-pop")) node = (node || e.target.closest(".rr-hit")) ? roadTapNode(pn, e) : null;
     if (!node) return closePop(); /* a tap anywhere else closes the bubble */
+    /* The next leg is on the neck, grayed out. A tap shows the locked card and does not open the lesson. */
+    if (node.closest(".rn-dim")) {
+      const locked = all.find(x => x.id === node.dataset.stop);
+      return openStopCard(node, locked ? { ...locked, state: "locked" } : null, !e.detail);
+    }
     const s = all.find(x => x.id === node.dataset.stop);
     if (s?.kind === "box" && s.state === "now") return openCase(node, s);
     openStopCard(node, s, !e.detail);

@@ -50,9 +50,7 @@ function apply(force) {
   if (!st) return;
   const one = foldActive();
   document.body.classList.toggle("one", one);
-  /* The amp bar stays put in Dark and Light. Play and Pause only swap the icon. Green Room and Headliner still fold. */
-  const amp = ["neon", "festival"].includes(document.documentElement.dataset.look);
-  const on = one && st.o.playing() && !amp;
+  const on = one && st.o.playing();
   const was = document.body.classList.contains("fold");
   const motion = !force && on !== was && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   const before = motion ? foldStart(on) : null;

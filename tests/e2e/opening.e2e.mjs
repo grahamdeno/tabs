@@ -155,13 +155,49 @@ for (const width of [390, 320]) for (const theme of ["dark", "light"]) {
   });
 }
 
+test("Opening night: Leg 1 is drawn gray and locked under the gold fret, and a tap does not start it", { skip: skip() }, async t => {
+  const page = await phone(t, FRESH, { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  await page.waitForSelector(".rn-slot.rn-dim"); await settled(page);
+  const m = await page.evaluate(() => ({
+    steps: document.querySelectorAll('.on-path [data-stop^="o:"]').length,
+    dim: document.querySelectorAll(".rn-slot.rn-dim").length,
+    locked: document.querySelectorAll(".rn-slot.rn-dim .rn-stop.locked").length,
+    live: document.querySelectorAll(".rn-slot:not(.rn-dim)").length,
+    peek: document.querySelectorAll(".rn-wire.peek").length,
+    next: document.querySelector(".rn-lat.rn-next")?.dataset.title || "",
+    sub: document.querySelector(".rn-lat.rn-next")?.dataset.sub || "",
+    veil: document.querySelectorAll(".rn-upcoming").length
+  }));
+  assert.equal(m.steps, 9, "Opening night keeps its nine steps");
+  assert.equal(m.live, 9, "those steps stay full colour");
+  assert.equal(m.dim, 10, "Leg 1's ten stops are on the neck");
+  assert.equal(m.locked, 10, "each one is locked");
+  assert.equal(m.peek, 0, "no empty frets under the gold");
+  assert.equal(m.veil, 1);
+  assert.equal(m.next, "Leg 1");
+  assert.match(m.sub, /Open chords/);
+  await page.evaluate(() => {
+    const path = document.getElementById("rd-path");
+    const mark = document.querySelector(".rn-lat.rn-next");
+    path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
+  });
+  await page.waitForFunction(() => /Leg 1/.test(document.getElementById("rn-legline").innerText));
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("on-skip")).display), "none", "Skip steps aside once Leg 1 is the leg in view");
+  const step = await saved(page);
+  await page.locator(".rn-slot.rn-dim .rd-node").first().click();
+  await page.waitForSelector(".rn-slot.rn-dim .rd-pop");
+  assert.match(await page.innerText(".rd-pop"), /This opens after Opening night/);
+  assert.equal(await page.locator(".rd-pop .rd-start, .rd-pop [data-ostart]").count(), 0, "no way to start it");
+  assert.equal((await saved(page)).step || 0, step.step || 0, "Opening night does not advance");
+});
+
 test("4.40.0 Opening night: pause and pick up in the Gig: the step says what to do at each point", { skip: skip() }, async t => {
   const page = await phone(t, { ...FRESH, opening: { step: 4, v: 2, fans: 15 } }, { home: true });
   await page.waitForSelector(".rd-node.now"); await settled(page);
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector("#on-strip"); await page.waitForFunction(() => document.body.classList.contains("playing"));
   assert.match(await page.innerText("#on-strip"), /Tap anywhere to pause/);
-  await page.click("#play");
+  await page.click("#gg-pause");
   await page.waitForSelector("body.held");
   assert.match(await page.innerText("#gg-hsay"), /Tap Resume/);
   await page.click("#play");
