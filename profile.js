@@ -143,7 +143,7 @@ export function renderProfile() {
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
 
     <div class="pf-label rr-support-h"><span>SUPPORT THE APP</span></div>
-    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v4/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
+    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v5/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
     </div>`;
   app.innerHTML = rr ? rrHTML : `
     <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>

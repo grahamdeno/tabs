@@ -78,7 +78,7 @@ export function makerSheet({ mode = "full", done } = {}) {
           <div class="gm-card"><div class="gm-prev" aria-live="polite">${prev()}</div>
           <button class="ib gm-rand" id="gm-rand" aria-label="Random guitarist">${DICE}</button>
           ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}</div>
-          <div class="gm-lou"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
+          <div class="gm-lou"><img src="art/louie/v5/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I drew you a guitarist for your card and the chart." : "Make it look like you."}</p></div>
         </div>
         <div class="gm-row gm-starts" role="group" aria-label="Start from">${ME_STARTERS.slice(0, 6).map((s, i) => chip("starter", i, `Starter ${i + 1}`, same(me, s), bust(s))).join("")}</div>
         <div class="gm-selfie"><button class="btn gm-selfie-b" id="gm-selfie"${busy ? ' disabled aria-busy="true"' : ""}>${busy ? "Reading your photo..." : "Start from a selfie"}</button>
