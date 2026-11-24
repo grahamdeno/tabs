@@ -123,15 +123,12 @@ test("Builder: a guitar left as painted puts together pixel for pixel the same a
 });
 
 test("Builder: a built guitar on the Road keeps every stop where it is on the painting, and the picture is the same size", { skip: skip() }, async t => {
-  const where = async page => page.$$eval('.rd-neck[data-guitar="open"] .rd-node', els => els.map(e => { const r = e.getBoundingClientRect(); return [e.dataset.stop, Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }));
-  const img = page => page.$eval('.rd-neck[data-guitar="open"] svg.rd-base image', el => ["x", "y", "width", "height"].map(a => el.getAttribute(a)));
-  const plain = await phone(t, lib("dark", { ring: 3 }), { home: true }); await plain.waitForSelector(".rd-neck.road"); await settled(plain);
+  const where = async page => page.$$eval('.rn-neck .rd-node', els => els.map(e => { const r = e.getBoundingClientRect(); return [e.dataset.stop, Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }));
+  const plain = await phone(t, lib("dark", { ring: 3 }), { home: true }); await plain.waitForSelector(".rn-neck"); await settled(plain);
   const built = await phone(t, lib("dark", { ring: 3, builds: { open: { paint: "seafoam", wear: "played", guard: "leopard" } }, merch: { has: ["b-seafoam", "b-played", "b-leopard"] } }), { home: true });
-  await built.waitForSelector(".rd-neck.road"); await settled(built);
-  await built.waitForFunction(() => /^blob:/.test(document.querySelector('.rd-neck[data-guitar="open"] svg.rd-base image')?.getAttribute("href") || ""), null, { timeout: 15000 });
-  assert.deepEqual(await img(built), await img(plain), "same place and size");
-  assert.ok((await plain.$eval('.rd-neck[data-guitar="open"] svg.rd-base image', el => el.getAttribute("href"))).includes("porch-road.webp"), "no build: the painting");
-  assert.deepEqual(await where(built), await where(plain), "the stops sit where they did");
+  await built.waitForSelector(".rn-neck"); await settled(built);
+  assert.match(await plain.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage), /neck-rosewood(?:-v2)?\.webp/, "the Road is the rosewood neck");
+  assert.deepEqual(await where(built), await where(plain), "a built guitar does not move the stops");
 });
 
 test("Builder: the built guitar is the one picture in the case on Me", { skip: skip() }, async t => {

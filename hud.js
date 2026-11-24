@@ -126,7 +126,7 @@ function tabsEl() {
 export function paintTabs(active) {
   const el = tabsEl();
   /* no dot on a tab (Grok's design list, 2026-11-19: a notification-style dot reads as Duolingo); the Tuner row on Me shows when
-     the tuner hasn't been used lately */
+     the tuner hasn't been used lately. The knob bar is the bar in every look. */
   el.innerHTML = TABS.map(([k, href, label]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${KNOB}<span class="tb-l">${esc(label)}</span></a>`).join("");
   document.body.classList.add("tabbed");
 }

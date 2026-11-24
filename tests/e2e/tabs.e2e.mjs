@@ -167,11 +167,12 @@ test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every 
   const page = await phone(t, libWith("dark"), { home: true });
   await page.waitForSelector("#tabs a");
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "45px"); r.dataset.ax = "3"; });
-  const r = await page.$$eval("#tabs a", as => as.map(a => ({ name: a.getAttribute("aria-label"), label: getComputedStyle(a.querySelector(".tb-l")).display, ic: a.querySelector(".tb-knob").getBoundingClientRect().width, h: a.getBoundingClientRect().height })));
+  const r = await page.$$eval("#tabs a", as => as.map(a => ({ name: a.getAttribute("aria-label"), label: getComputedStyle(a.querySelector(".tb-l")).display, ic: a.querySelector(".tb-knob").getBoundingClientRect().width, h: a.getBoundingClientRect().height, lit: a.getAttribute("aria-current") === "page" ? getComputedStyle(a.querySelector(".tb-on")).opacity : "" })));
   for (const x of r) {
     assert.equal(x.label, "none", `${x.name}: label hidden`);
     assert.equal(Math.round(x.ic), 50, `${x.name}: 50 px knob`);
     assert.ok(x.name && x.h >= 44, `${x.name}: named and 44 tall`);
+    if (x.name === "Road") assert.equal(x.lit, "1", "Road stays lamp-lit");
   }
 });
 
