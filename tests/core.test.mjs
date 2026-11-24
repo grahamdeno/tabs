@@ -3037,8 +3037,8 @@ test("Road Ready dark: the text, chord, plate and tab colours meet their contras
   const t = n => rrHex(rrDark, "--rr-" + n);
   const pairs = [
     ["text on base", t("text"), t("base"), 15], ["text on card", t("text"), t("card"), 14], ["text-2 on card", t("text-2"), t("card"), 7],
-    ["lyric-sung on base", t("lyric-sung"), t("base"), 4.5], ["chord on base", t("chord"), t("base"), 7], ["on-amber on amber", t("on-amber"), t("amber"), 7],
-    ["plate-text on plate-bottom", t("plate-text"), t("plate-bottom"), 7], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5], ["engrave on pearl-done", t("engrave"), t("pearl-done"), 4.5]
+    ["lyric-sung on base", t("lyric-sung"), t("base"), 4.5], ["chord on base", t("chord"), t("base"), 6], ["on-amber on amber", t("on-amber"), t("amber"), 5],
+    ["plate-text on plate-bottom", t("plate-text"), t("plate-bottom"), 7], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5]
   ];
   for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
 });
@@ -3050,7 +3050,57 @@ test("Road Ready light: the text, amber text and tab colours meet their contrast
     ["lyric-sung on card", t("lyric-sung"), t("card"), 4.5], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5]
   ];
   for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
-  assert.equal(t("amber-text").toLowerCase(), "#763a00", "amber text on cream is always #763A00");
+  assert.equal(t("amber-text").toLowerCase(), "#065f5b", "Cool Teal text on cream is #065F5B");
+});
+
+test("Cool Teal: Dark and Light accent tokens, pearl marks, the $0 tips line, and no leftover amber, cobalt or crimson", () => {
+  const t = (block, n) => rrHex(block, "--rr-" + n).toLowerCase();
+  assert.equal(t(rrDark, "amber-text"), "#20e0d0");
+  assert.equal(t(rrDark, "chord"), "#20e0d0");
+  assert.equal(t(rrDark, "amber"), "#00c8b8");
+  assert.equal(t(rrDark, "on-amber"), "#082422");
+  assert.equal(t(rrDark, "glow"), "#12d8c8");
+  assert.equal(t(rrDark, "glow-core"), "#c2fff8");
+  assert.equal(t(rrDark, "pearl-now"), "#7cf5ea");
+  assert.equal(t(rrDark, "pearl-done"), "#18d4c4");
+  assert.equal(t(rrLight, "amber-text"), "#065f5b");
+  assert.equal(t(rrLight, "chord"), "#065f5b");
+  assert.equal(t(rrLight, "amber"), "#065f5b");
+  assert.equal(t(rrLight, "on-amber"), "#ffffff");
+  assert.equal(t(rrLight, "glow"), "#0b8b82");
+  assert.equal(t(rrLight, "glow-core"), "#8cf2e8");
+  assert.equal(t(rrLight, "pearl-now"), "#0b8b82");
+  assert.equal(t(rrLight, "pearl-done"), "#065f5b");
+  assert.ok(rrRatio("#082422", "#00c8b8") >= 7, "deep teal ink on the dark fill");
+  assert.ok(rrRatio("#ffffff", "#00c8b8") < 4.5, "white ink fails on the dark fill");
+  assert.ok(rrRatio("#ffffff", "#065f5b") >= 7, "white ink on the light fill");
+  assert.ok(rrRatio("#20e0d0", "#141210") >= 4.5 && rrRatio("#20e0d0", "#1a1918") >= 4.5, "dark accent text");
+  assert.ok(rrRatio("#065f5b", "#f6efe2") >= 4.5 && rrRatio("#065f5b", "#fbf7ef") >= 4.5 && rrRatio("#065f5b", "#e8d6bc") >= 4.5, "light accent text");
+  assert.ok(rrRatio("#00c8b8", "#141210") >= 3 && rrRatio("#00c8b8", "#1a1918") >= 3, "dark fill as a border");
+  assert.ok(rrRatio("#082422", "#7cf5ea") >= 4.5 && rrRatio("#082422", "#18d4c4") >= 4.5, "the mark on Dark pearls");
+  assert.ok(rrRatio("#000000", "#0b8b82") >= 4.5, "the mark on the Light current pearl");
+  assert.ok(rrRatio("#f4e6cb", "#065f5b") >= 4.5, "the mark on the Light done pearl");
+  assert.match(rrCss, /:root\[data-look="neon"\] \.rr-eng:not\(\.locked\) \{ fill: #082422/);
+  assert.match(rrCss, /:root\[data-look="festival"\] \.rr-eng:not\(\.locked\) \{ fill: #000000/);
+  assert.match(rrCss, /:root\[data-look="festival"\] \.rd-node\.done \.rr-eng:not\(\.locked\) \{ fill: #F4E6CB/);
+  assert.match(read("profile.js"), /mer > 0 \? `Merch: spend \$\$\{num\(mer\)\} tips on new looks` : "Merch table: earn tips at your shows"/);
+  assert.match(read("hud.js"), /art\/tabbar\/knob-lit-teal\.webp/);
+  assert.match(read("sw.js"), /art\/tabbar\/knob-lit-teal\.webp/);
+  assert.doesNotMatch(read("hud.js"), /knob-lit-crimson|knob-lit-cobalt/);
+  assert.doesNotMatch(read("sw.js"), /knob-lit-cobalt/);
+  const banned = ["#ffb547", "#763a00", "#f2a33c", "#e9a93a", "#ffaa3c", "#ffd38a", "#c9761e", "#ffc46b", "#ff5c78", "#d4143c", "#6b122c", "#8e1834", "#ff3b5c", "#5b9bff", "#0a60ff", "#123a86", "#0a2e86", "#3d7eff", "#1a4a9a"];
+  for (const hex of banned) {
+    assert.equal(rrDark.toLowerCase().includes(hex), false, `${hex} is not in the Dark token block`);
+    assert.equal(rrLight.toLowerCase().includes(hex), false, `${hex} is not in the Light token block`);
+  }
+  /* The unscoped tab label stays amber so Green Room and Headliner are untouched. Road Ready overrides it. */
+  assert.match(rrCss, /:root\[data-look="neon"\] #tabs a\[aria-current="page"\] \{ color: #20E0D0/);
+  assert.match(rrCss, /:root\[data-look="festival"\] #tabs a\[aria-current="page"\] \{ color: #065F5B/);
+  assert.match(rrCss, /rgba\(32, 224, 208, \.72\)/);
+  assert.doesNotMatch(rrCss, /rgba\(232,\s*128,\s*20|rgba\(255,\s*186,\s*72|rgba\(214,\s*120,\s*28|rgba\(61,\s*126,\s*255|hue-rotate\(-10deg\)|hue-rotate\(-8deg\)/);
+  assert.doesNotMatch(rrCss, /#5B9BFF|#0A60FF|#123A86|#0A2E86|#3D7EFF|#1A4A9A|#2563EB|#6AA0FF|#A9C8FF/i);
+  assert.doesNotMatch(rrCss, /#E9A93A|#F2A33C|#FF5C78|#D4143C|#6B122C/i);
+  assert.doesNotMatch(rrCss, /knob-lit-crimson|knob-lit-cobalt/);
 });
 
 test("Road Ready: the status colours stay readable on the base, a card and a well in both looks", () => {
@@ -3661,7 +3711,7 @@ test("painted guitarist: every stored part is one 800 by 800 layer, and the mani
 
 test("knob tab bar: the off and lit faces, and both grilles, are in the offline copy", () => {
   const shell = read("sw.js"), hud = read("hud.js");
-  for (const f of ["art/tabbar/knob-off.webp", "art/tabbar/knob-lit.webp", "art/tabbar/grille-dark.webp", "art/tabbar/grille-light.webp"]) {
+  for (const f of ["art/tabbar/knob-off.webp", "art/tabbar/knob-lit.webp", "art/tabbar/knob-lit-teal.webp", "art/tabbar/grille-dark.webp", "art/tabbar/grille-light.webp"]) {
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(fs.statSync(path.join(root, f)).size > 200, `${f} is a real picture`);

@@ -98,12 +98,15 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     /* criterion 3: game money and real money are apart */
     const merch = page.locator("#pf-r-merch");
     assert.equal(await merch.getAttribute("href"), "#/merch");
-    assert.equal(await merch.getAttribute("aria-label"), `Merch: spend $${fmt(n.tips)} tips on new looks`);
-    assert.equal((await merch.innerText()).trim(), `Merch: spend $${fmt(n.tips)} tips on new looks`);
+    const merchLine = n.tips > 0 ? `Merch: spend $${fmt(n.tips)} tips on new looks` : "Merch table: earn tips at your shows";
+    assert.equal(await merch.getAttribute("aria-label"), merchLine);
+    assert.equal((await merch.innerText()).trim(), merchLine);
+    assert.equal(n.tips > 0, (await merch.innerText()).includes("spend"), "the row names the amount only when there is something to spend");
     assert.equal(await page.locator("#pf-r-merch .rr-coin").count(), 1, "the coin is on the Merch row");
     assert.equal(await page.locator(".rr-me .rr-coin").count(), 1, "and nowhere else on Me");
     const dollars = await page.evaluate(() => [...document.querySelectorAll(".rr-me *")].filter(e => [...e.childNodes].some(c => c.nodeType === 3 && /\$/.test(c.textContent)) || /\$/.test(e.getAttribute("aria-label") || "")).map(e => e.closest("#pf-r-merch") ? "merch" : e.tagName + "." + e.className));
-    assert.ok(dollars.length >= 1 && dollars.every(d => d === "merch"), `a $ amount only on the Merch row (${dollars.join(", ")})`);
+    if (n.tips > 0) assert.ok(dollars.length >= 1 && dollars.every(d => d === "merch"), `a $ amount only on the Merch row (${dollars.join(", ")})`);
+    else assert.deepEqual(dollars, [], "with $0 tips the page does not print a dollar amount");
     const sup = page.locator("#pf-r-support");
     assert.equal(await sup.getAttribute("href"), "#/support");
     assert.equal((await sup.innerText()).trim(), "Support Louie on Ko-fi (real money, optional)");
@@ -137,6 +140,16 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     await page.click("#pf-r-help"); await page.waitForFunction(() => location.hash === "#/settings/help");
   });
 }
+
+test("Me: $0 tips says to earn them at shows, and a balance keeps the spend line", { skip: skip() }, async t => {
+  const base = { tconv: 1, lconv: 1, hlseen: 1 };
+  const zero = await openMe(t, "dark", { merch: { ...base, tips: 0 } });
+  assert.equal((await zero.innerText("#pf-r-merch")).trim(), "Merch table: earn tips at your shows");
+  assert.equal(await zero.getAttribute("#pf-r-merch", "aria-label"), "Merch table: earn tips at your shows");
+  const paid = await openMe(t, "light", { merch: { ...base, tips: 12 } });
+  assert.equal((await paid.innerText("#pf-r-merch")).trim(), "Merch: spend $12 tips on new looks");
+  assert.equal(await paid.getAttribute("#pf-r-merch", "aria-label"), "Merch: spend $12 tips on new looks");
+});
 
 test("Road Ready 08: at large text the tiles stack, the rows grow and the stand scrolls sideways with each guitar a 44 px target; nothing runs off the screen", { skip: skip() }, async t => {
   const page = await openMe(t, "dark");
