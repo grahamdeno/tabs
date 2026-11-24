@@ -83,12 +83,22 @@ test("a new set with a date shows as Up next and plays after its title card", { 
 });
 
 test("a shared song link opens the Shared with you sheet", { skip: skip() }, async t => {
-  const page = await phone(t, LIB, { permissions: ["clipboard-read", "clipboard-write"] });
+  const page = await phone(t, LIB);
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
+  /* Record the link the app hands to share or copy, once packShare has finished.
+     Reading the system clipboard comes back empty when the page is busy. */
+  await page.evaluate(() => {
+    window.__shareUrl = "";
+    const keep = url => { window.__shareUrl = String(url || ""); };
+    const share = data => { keep(data && data.url); return Promise.resolve(); };
+    try { navigator.share = share; } catch { /* leave the browser's share in place */ }
+    const clip = navigator.clipboard || {};
+    clip.writeText = text => { keep(text); return Promise.resolve(); };
+    try { navigator.clipboard = clip; } catch { /* clipboard is already there */ }
+  });
   await tool(page, "share");
-  /* Waited for, not slept on, so a busy test machine doesn't flake. */
-  await page.waitForFunction(async () => /#\/import\//.test(await navigator.clipboard.readText()), null, { timeout: 8000 });
-  const url = await page.evaluate(() => navigator.clipboard.readText());
+  await page.waitForFunction(() => /#\/import\/[zj]/.test(window.__shareUrl));
+  const url = await page.evaluate(() => window.__shareUrl);
   assert.match(url, /#\/import\/z/);
   await page.goto(url); await page.reload();
   await page.waitForSelector("[aria-label='Shared with you']", { timeout: 8000 });

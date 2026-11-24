@@ -3823,19 +3823,30 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  /* The 24 paintings the app shows are smaller copies of the same canvases. Nothing else under art/ may change. */
+  /* The 24 paintings the app shows are smaller copies of the same canvases. Nothing else under art/ may change.
+     Porch's four pictures are repainted in place. */
   const PAINT = new Set([
     "blues-m", "blues-w", "classical-m", "classical-w-v2", "country-m-v2", "country-w-v2",
     "folk-m", "folk-w", "funk-m-v2", "funk-w-v2", "indie-m", "indie-w", "jazz-m", "jazz-w-v2",
     "metal-m-v2", "metal-w", "pop-m", "pop-w-v2", "punk-m", "punk-w-v3", "reggae-m-v2", "reggae-w",
     "rock-m", "rock-w-v2"
   ].map(n => `art/guitarist-painted/genres/${n}.webp`));
+  const PORCH = new Set([
+    "art/guitars/porch-body.webp",
+    "art/guitars/porch-head.webp",
+    "art/guitars/porch-road.webp",
+    "art/guitars/porch-small.webp",
+    "art/guitars/streak/porch-body.webp",
+    "art/guitars/streak/porch-head.webp",
+    "art/guitars/streak/porch-road.webp",
+    "art/guitars/streak/porch-small.webp",
+  ]);
   const bad = diff.split("\n").filter(Boolean).filter(line => {
     if (line.startsWith("A\t")) return false;
     if (/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line)) return false;
     if (/^D\tart\/guitarist-painted\/pilot/.test(line)) return false;
     const parts = line.split("\t");
-    return !(parts[0] === "M" && PAINT.has(parts[1]));
+    return !(parts[0] === "M" && (PAINT.has(parts[1]) || PORCH.has(parts[1])));
   });
   assert.deepEqual(bad, [], "no existing art file was edited (the old ink drawing was deleted on Graham's go, 2026-11-23)");
 });
