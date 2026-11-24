@@ -5943,3 +5943,77 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 .s-due-t b { font-weight: 600; color: var(--fg); }
 .s-due-t span { color: var(--muted); }
 #app .s-due #s-backup { flex: 0 0 auto; height: 44px; min-height: 44px; font-size: 15px; } /* the small pick (Grok's button), 44 px tall */
+
+/* Your stats and chord cards on Me (Dark and Light only). Green Room and Headliner keep the stamp passport. */
+:root:is([data-look="neon"], [data-look="festival"]) .pf-jumps { display: flex; flex-direction: column; gap: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-jump { display: flex; align-items: center; gap: 12px; min-height: 64px; text-decoration: none; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-jump > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-jump b { font: 600 var(--type-headline) / 1.25 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-jump small { font: 500 var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-jump .chev { width: 20px; height: 20px; flex: none; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stats-page,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-chords { min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-st-h h1,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ch-top h1 { margin: 0; font: 700 var(--type-title) / 1.15 var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-st-h p { margin: 2px 0 4px; font: 500 var(--type-subhead) / 1.35 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-block { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--rr-hairline); border-radius: 16px; background: var(--rr-card); box-shadow: var(--rr-lift); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-over { margin: 0 0 6px; font: 600 12px / 1.2 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-cap,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-shows { margin: 8px 0 0; font: 500 var(--type-subhead) / 1.35 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-shows b { color: var(--rr-text); font-weight: 650; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stubs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stubs::-webkit-scrollbar { height: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stub { flex: 0 0 auto; min-width: 74px; min-height: 72px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 8px 8px 16px; border-radius: 4px 12px 12px 4px; background: linear-gradient(180deg, var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text); -webkit-mask-image: radial-gradient(circle at 0 8px, transparent 5px, #000 5.5px); mask-image: radial-gradient(circle at 0 8px, transparent 5px, #000 5.5px); -webkit-mask-size: 100% 16px; mask-size: 100% 16px; -webkit-mask-repeat: repeat-y; mask-repeat: repeat-y; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stub b,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stub small { font: 700 12px / 1.2 var(--sans); letter-spacing: .04em; text-transform: uppercase; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stub.ghost { background: none; color: var(--rr-text-2); border: 1.5px dashed var(--rr-outline); -webkit-mask-image: none; mask-image: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-poster { margin: 0 0 4px; text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-poster b { display: block; font: 700 48px / .95 var(--display); color: var(--rr-text); letter-spacing: -.03em; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-poster span { display: block; margin-top: 2px; font: 700 13px / 1.2 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-poster small { display: block; font: 500 13px / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-bars { display: grid; grid-template-columns: repeat(var(--n, 7), minmax(0, 1fr)); gap: 8px; align-items: end; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-bars > div { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-track { height: 52px; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-track i { display: block; width: 100%; max-width: 36px; height: var(--h); min-height: 0; border-radius: 7px 7px 3px 3px; background: var(--rr-chord); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-bars small { font: 600 12px / 1.2 var(--sans); color: var(--rr-text-2); text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-when { margin: 0 0 8px; font: 600 var(--type-headline) / 1.3 var(--sans); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-heat { display: grid; grid-template-columns: 16px repeat(4, 1fr); gap: 4px 6px; align-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-heat small { font: 600 12px / 1 var(--sans); color: var(--rr-text-2); text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-heat i { display: block; height: 14px; border-radius: 4px; background: var(--rr-mesh); position: relative; overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-heat i::after { content: ""; position: absolute; inset: 0; background: var(--rr-chord); opacity: var(--a, 0); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-best h2 { margin: 0; font: 700 32px / 1.1 var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stats-page .pf-drill { display: block; margin: 10px 0 0 auto; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: none; font: 700 15px / 1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-kt-row { display: flex; gap: 12px; align-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-dial,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-bpm { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-dial-wrap { position: relative; width: 92px; height: 92px; display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-dial-wrap i { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from -90deg, var(--rr-chord) calc(var(--p) * 1%), var(--rr-mesh) 0); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-dial-wrap b,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-bpm b { position: relative; font: 700 28px / 1 var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-dial small,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-bpm small,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-dial span,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-trend { font: 500 12px / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-trend { color: var(--rr-chord); font-weight: 650; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ch-top { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; margin: 0 0 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ch-top .ib { width: 44px; height: 44px; border: 0; background: none; box-shadow: none; color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ch-top > span { font: 600 var(--type-subhead) / 1 var(--sans); color: var(--rr-chord); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-fam { margin: 16px -20px 0 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-fam-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 8px; padding-right: 20px; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-fam-h b { font: 600 var(--type-headline) / 1.25 var(--sans); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-fam-h span { font: 600 var(--type-subhead) / 1 var(--sans); color: var(--rr-chord); white-space: nowrap; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-shelf { display: flex; gap: 10px; align-items: stretch; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px 20px 14px 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-shelf::-webkit-scrollbar { height: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard { flex: 0 0 calc((100% - 20px) / 2.6); scroll-snap-align: start; box-sizing: border-box; min-height: 158px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; margin: 0; padding: 10px 8px 12px; border: 1.5px solid var(--rr-hairline); border-radius: 16px; background: var(--rr-card); color: var(--rr-text-2); font: 600 var(--type-subhead) / 1.2 var(--sans); text-align: center; }
+:root:is([data-look="neon"], [data-look="festival"]) button.pf-ccard { cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard.on { border-color: var(--rr-chord); color: var(--rr-text); box-shadow: 0 0 0 1px var(--rr-chord), 0 0 16px color-mix(in srgb, var(--rr-chord) 42%, transparent); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard.locked .pf-dg { opacity: .42; filter: grayscale(1); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard .pf-dg { display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard .pf-dg svg { width: 96px; height: auto; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard .dk { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard > b,
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard > span > b { font: 600 var(--type-subhead) / 1.2 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-ccard.on > b { color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-learn { min-height: 44px; min-width: 44px; margin-top: auto; padding: 0 12px; border: 0; border-radius: 999px; background: var(--rr-amber); color: var(--rr-on-amber); font: 700 13px / 1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .pf-stats-page .foot { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.pf-ccard, .pf-learn, .pf-stats-page .pf-drill, .pf-jump, .pf-ch-top .ib):focus-visible { outline: 2px solid var(--rr-chord); outline-offset: 2px; }

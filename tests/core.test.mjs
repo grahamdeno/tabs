@@ -1260,6 +1260,42 @@ test("profile: the journal is worked out once from songs already played, then co
   assert.equal(C.profileOf(data, now).practiceSecs, 600, "practice time is told apart (3.24.2)");
 });
 
+test("when you play: one line from the grid, and the hours chart falls back to four weeks", () => {
+  const blank = () => Array.from({ length: 7 }, () => [0, 0, 0, 0]);
+  assert.equal(C.whenYouPlay(blank()), "");
+  const evenings = blank();
+  evenings[0][2] = 5; evenings[1][2] = 4;
+  assert.equal(C.whenYouPlay(evenings), "You play most on Sunday and Monday evenings");
+  const one = blank();
+  one[0][0] = 10;
+  assert.equal(C.whenYouPlay(one), "You play most on Sunday mornings");
+  const split = blank();
+  split[0][0] = 10; split[6][3] = 10;
+  assert.equal(C.whenYouPlay(split), "You play most on Sunday and Saturday");
+  const even = Array.from({ length: 7 }, () => [1, 1, 1, 1]);
+  assert.equal(C.whenYouPlay(even), "You play across the week, with no one time standing out");
+  const now = new Date(2026, 10, 24, 15).getTime();
+  const key = off => { const d = new Date(now - off * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  assert.equal(C.playBars({}, now).mode, "none", "no days and no weeks: no flat chart");
+  const recent = C.playBars({ [key(1)]: 600, [key(3)]: 300 }, now);
+  assert.equal(recent.mode, "days");
+  assert.equal(recent.bars.length, 7);
+  assert.equal(recent.bars.reduce((a, b) => a + b.secs, 0), 900);
+  assert.equal(recent.caption, "");
+  const older = C.playBars({ [key(10)]: 3600, [key(18)]: 1800 }, now);
+  assert.equal(older.mode, "weeks");
+  assert.equal(older.caption, "Your last 4 weeks");
+  assert.equal(older.bars.length, 4);
+  assert.equal(older.bars.reduce((a, b) => a + b.secs, 0), 5400);
+  assert.ok(older.bars.some(b => b.secs === 0) && older.bars.some(b => b.secs > 0), "empty weeks stay in the row, with no invented time");
+  const data = { songs: [], sets: [], settings: {}, journal: { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, chords: {}, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, days: { [key(10)]: 3600 } } };
+  data.journal.week[0 * 24 + 19] = 3; data.journal.week[1 * 24 + 18] = 3;
+  const p = C.profileOf(data, now);
+  assert.equal(p.whenLine, "You play most on Sunday and Monday evenings");
+  assert.equal(p.bars.mode, "weeks");
+  assert.equal(p.bars.caption, "Your last 4 weeks");
+});
+
 test("profile: tuner sessions show which string drifts; a journal from a backup is repaired", () => {
   const data = { songs: [], sets: [], settings: {} };
   for (let i = 0; i < 4; i++) C.journalTune(data, [1, -2, 0, 3, i < 3 ? -12 : 2, 0]);
