@@ -92,7 +92,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - He uses the phone one-handed, mostly right hand: put actions people reach
   for mid-song in thumb reach (bottom of sheets, `pfoot`, the bar).
 - The Gig is words first (4.46.0): no Lines in a gig and no Full; the words fill the screen.
-- Text size (Graham, 2026-11-23, 5.2.0): it goes from 50% to 160% and a new song starts at 50%. Once, under `tabs.size50.v1`, songs stored at exactly 1 moved to 0.5. Play sits in the middle of the bar in a song and in a Gig, with no Pause word; below 340 px the bar buttons tighten to 44 px so nothing overlaps.
+- Text size (Graham, 2026-11-23, 5.2.0): it goes from 50% to 160% and a new song starts at 50%. Once, under `tabs.size50.v1`, songs stored at exactly 1 moved to 0.5. A backup written from 5.3.2 on carries `sizes: 2` (`backupOf` in `core.js`); importing a backup without it makes the same move, so an older backup comes back at 50%. Play sits in the middle of the bar in a song and in a Gig, with no Pause word; below 340 px the bar buttons tighten to 44 px so nothing overlaps.
 - Songs don't listen (Graham, 2026-11-13, 4.91.0): no chord catching during a song, a gig, Wait for me or
   Follow my tempo. Listening for chords is only for one chord held or a switch between two, at your own pace
   (the Chord check and Switch check in `docs/NO-CATCH-PLAN.md`), plus single notes (tuner, string checks).
