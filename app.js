@@ -531,7 +531,7 @@ function oneLineSize(sheet, song) {
   let widest = 0;
   for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width * base / parseFloat(getComputedStyle(el).fontSize));
   sheet.classList.remove("measure");
-  const room = sheet.clientWidth - 4; /* 4 px for rounding between measuring and drawing (4.63.1); 5.2.1: no 5% kept for the song map, which is gone */
+  const room = sheet.clientWidth * 0.95 - 4; /* 5% on the right so the chord editor's chips keep to one row (it was also clear of the song map, gone in 5.2.1), and 4 px for rounding between measuring and drawing (4.63.1) */
   /* measured in the fallback font while the app's own is still loading: measure again once it's in */
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
   const fit = widest > 0 ? base * room / widest : base;
