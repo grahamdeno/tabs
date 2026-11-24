@@ -585,11 +585,12 @@ export function bareNeckHTML(legs, o = {}) {
   const real = (legs || []).filter(l => l.stops?.length);
   const board = neckBoard(real, { peek: o.next ? 3 : 0 });
   const w = (board.width * 100).toFixed(2);
-  const thick = [2.2, 1.9, 1.6, 1.3, 1.1, 0.9];
+  /* Low E to high E. Each width is one constant, the whole length of the string. */
+  const thick = [3.5, 2.7, 2.2, 1.7, 1.2, 0.95];
   const wires = board.frets.map(f => f.gold
     ? `<img class="rn-gold" src="${NECK_ART}/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="top:${f.y.toFixed(1)}px">`
     : `<i class="rn-wire${f.peek ? " peek" : ""}" style="top:${f.y.toFixed(1)}px"></i>`).join("");
-  const strings = board.strings.map((x, i) => `<i class="rn-string ${i < 3 ? "wound" : "plain"}" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
+  const strings = board.strings.map((x, i) => `<i class="rn-string ${i < 3 ? "wound" : i === 3 ? "wound g" : "plain"}" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
   const curId = o.cur?.id;
   const isCur = s => s === o.cur || (curId && s.id === curId);
   const stops = board.stops.map(sp => {

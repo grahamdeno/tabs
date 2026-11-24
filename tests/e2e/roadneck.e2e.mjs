@@ -67,6 +67,34 @@ test("Neck-only Road: the current stop is centred in its fret space, clear of th
   assert.ok(m.moons.length >= 1 && m.moons.every(g => g >= 14), `moon to gold ${m.moons}`);
 });
 
+test("Neck-only Road: the six strings step down from low E to high E, each one width, and the fret wires are substantial", { skip: skip() }, async t => {
+  const page = await phone(t, lib("dark", MID), { home: true, viewport: { width: 390, height: 844 } });
+  await page.waitForSelector(".rn-string"); await settled(page);
+  const m = await page.evaluate(() => {
+    const neck = document.querySelector(".rn-neck").getBoundingClientRect();
+    const strings = [...document.querySelectorAll(".rn-string")].map(el => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return { left: r.left, w: r.width, sw: parseFloat(cs.getPropertyValue("--sw")), top: r.top, bottom: r.bottom, wound: el.classList.contains("wound"), plain: el.classList.contains("plain") };
+    }).sort((a, b) => a.left - b.left);
+    const wire = document.querySelector(".rn-wire").getBoundingClientRect().height;
+    const gold = Math.max(...[...document.querySelectorAll(".rn-gold")].map(el => el.getBoundingClientRect().height));
+    return { strings, wire, gold, neckTop: neck.top, neckBottom: neck.bottom };
+  });
+  assert.equal(m.strings.length, 6);
+  const gauges = m.strings.map(s => s.sw);
+  assert.deepEqual(gauges, [3.5, 2.7, 2.2, 1.7, 1.2, 0.95]);
+  for (let i = 1; i < gauges.length; i++) assert.ok(gauges[i] < gauges[i - 1], "each string is thinner than the one on its left");
+  for (const s of m.strings) {
+    assert.ok(Math.abs(s.w - s.sw) < 0.35, `drawn width ${s.w} matches the constant gauge ${s.sw}`);
+    assert.ok(s.top <= m.neckTop + 30 && s.bottom >= m.neckBottom - 8, "the string runs the length of the neck at one width");
+  }
+  assert.ok(m.strings.slice(0, 4).every(s => s.wound), "the four bass strings are wound");
+  assert.ok(m.strings.slice(4).every(s => s.plain), "B and high E are plain steel");
+  assert.ok(m.wire >= 4 && m.wire <= 5.5, `a nickel fret is ${m.wire}px`);
+  assert.ok(m.gold > m.wire, "the gold leg fret stays proud of the nickel frets");
+});
+
 test("Neck-only Road: opening on the current stop keeps it on screen, and a stop near the nut stays at the top", { skip: skip() }, async t => {
   const page = await phone(t, lib("dark", MID), { home: true, viewport: { width: 390, height: 844 } });
   await page.waitForSelector(".rd-node.cur"); await settled(page);
