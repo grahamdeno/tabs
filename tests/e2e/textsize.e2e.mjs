@@ -100,7 +100,7 @@ test("5.2.0 at 320 px no two bar buttons overlap, on the paused song page and in
   assert.equal(await noOverlap(page, ["gg-speed", "gg-pause", "gg-loop", "gg-tools"]), 4, "the Gig bar has all four buttons");
 });
 
-test("5.2.1 no section rail; a long line runs to 12 px from the right edge; Play is centred top to bottom in the bar", { skip: skip() }, async t => {
+test("5.3.1 no section rail; a long line runs to 12 px from the right edge; Play is centred top to bottom in the bar", { skip: skip() }, async t => {
   const LONG = "[Verse]\nG\nWhere all good men are trampled down and more words here too, and more\n[Chorus]\nC\nla la";
   const page = await phone(t, { ...LIB, songs: [{ ...song("a", 1), body: LONG }], settings: PLAIN }, { home: true, size50: true });
   await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");

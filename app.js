@@ -531,7 +531,7 @@ function oneLineSize(sheet, song) {
   let widest = 0;
   for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width * base / parseFloat(getComputedStyle(el).fontSize));
   sheet.classList.remove("measure");
-  const room = sheet.clientWidth * 0.95 - 4; /* 5% on the right so the chord editor's chips keep to one row (it was also clear of the song map, gone in 5.2.1), and 4 px for rounding between measuring and drawing (4.63.1) */
+  const room = sheet.clientWidth * 0.95 - 4; /* 5% on the right so the chord editor's chips keep to one row (it was also clear of the song map, gone in 5.3.1), and 4 px for rounding between measuring and drawing (4.63.1) */
   /* measured in the fallback font while the app's own is still loading: measure again once it's in */
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
   const fit = widest > 0 ? base * room / widest : base;
@@ -980,7 +980,7 @@ document.addEventListener("keyup", e => {
 });
 
 // ---------- Song map ----------
-/* 5.2.1 (Graham, 2026-11-24): the section rail on the right edge is gone (rarely used), and the lines take its room. */
+/* 5.3.1 (Graham, 2026-11-24): the section rail on the right edge is gone (rarely used), and the lines take its room. */
 const mapMax = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
 
 let openEdit = null;            /* { id, view } to open the editor once the song page draws */
