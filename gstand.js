@@ -1,7 +1,7 @@
 // The guitar stand (Road Ready Dark and Light): one hero guitar in an A-frame cradle, the
 // previous and next guitars peeking at the sides, and a dot pager under the feet. Me and the
 // new-guitar sheet share this. Green Room and Headliner never call it.
-import { VERSION, GUITARS, guitarsEarned, roadPath, shopState } from "./core.js";
+import { VERSION, GUITARS, roadGuitars, roadPath, shopState } from "./core.js";
 import { guitarPic } from "./fretboard.js";
 import { buildPic } from "./buildart.js";
 import { esc } from "./ui.js";
@@ -22,10 +22,8 @@ export function standPic(body) {
    put it in the row before that leg is marked done. A road id kept in guitars.seen is shown too. */
 export function collectionOf(data, extraId) {
   const legs = roadPath(data).legs;
-  /* 2026-11-23: headlining a leg earns the next leg's guitar too (guitarNew announces it, "Cornerstone is
-     yours"), so the case holds it, labelled with the leg that earned it. The headlined leg's own guitar stays. */
-  const done = guitarsEarned(data), earned = new Set(done), wonOn = {};
-  for (const id of done) { const li = legs.findIndex(l => l.id === id); const nx = legs[li + 1]; if (li >= 0 && nx) { earned.add(nx.id); if (!(nx.id in wonOn)) wonOn[nx.id] = li; } }
+  /* roadGuitars: each headlined leg's guitar plus the next leg's (2026-11-23), labelled with the leg that earned it */
+  const owned = roadGuitars(data), earned = new Set(owned.map(g => g.id)), wonOn = Object.fromEntries(owned.map(g => [g.id, g.li]));
   const seen = new Set(Array.isArray(data.guitars?.seen) ? data.guitars.seen : []);
   if (extraId && GUITARS[extraId]) seen.add(extraId);
   const items = [];
