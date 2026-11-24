@@ -3507,7 +3507,7 @@ test("Road Ready 9b: a locked part can't be bought, an open one can, and a bough
   let d = earnedB(2); /* Coffeehouse: shop parts are open, custom parts are not */
   assert.deepEqual(C.buildSave(d, "open", { guard: "leopard" }), { why: "locked", id: "leopard" }); assert.equal(d.merch.tspent, undefined, "a locked part costs nothing"); assert.equal(d.builds, undefined);
   assert.deepEqual(C.buildSave(d, "open", { top: "koa" }), { why: "locked", id: "koa" });
-  assert.deepEqual(C.buildSave(d, "switch", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built");
+  assert.deepEqual(C.buildSave(d, "scales", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built (2026-11-23: Leg 1 earns Cornerstone, so Club Slab)");
   assert.equal(C.buildCost(d, "open", { paint: "seafoam", wear: "played" }), 65, "the running total is the new parts");
   d.merch.tips = 0; assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam" }), { why: "tips", cost: 25 });
   d = earnedB(2);
@@ -3741,4 +3741,20 @@ test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a s
   assert.match(hud, /data\.journal\.best/, "best streak comes from the journal already stored");
   assert.match(css, /\.sk-card[^}]*var\(--rr-card\)/, "the sheet uses Road Ready tokens");
   assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
+});
+
+test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder and buildSave all accept Cornerstone", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.guitarsOwned(data), [], "nothing headlined, no Road guitar");
+  assert.deepEqual(C.buildSave(data, "switch", {}), { why: "none" });
+  for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
+  C.skillDone(data, "k:open");
+  const said = C.guitarNew(data);
+  assert.equal(said.guitar.name, "Cornerstone", "the sheet announces Cornerstone");
+  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: 0 }, { id: "switch", li: 0 }], "Porch and Cornerstone, both earned on Leg 1");
+  assert.ok(C.guitarsOwned(data).includes("switch"), "the case and the builder (both read guitarsOwned) hold Cornerstone");
+  assert.ok(C.guitarsOwned(data).filter(id => C.BUILD_TAKES[id]).includes("switch"), "the builder's list includes Cornerstone");
+  assert.notDeepEqual(C.buildSave(data, "switch", {}), { why: "none" }, "buildSave accepts Cornerstone");
+  assert.deepEqual(C.buildSave(data, "scales", {}), { why: "none" }, "Club Slab waits for Leg 2");
+  assert.deepEqual(C.guitarsEarned(data), ["open"], "guitarsEarned stays the headlined legs");
 });

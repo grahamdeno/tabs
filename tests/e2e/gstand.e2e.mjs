@@ -67,13 +67,15 @@ test("Me (dark): no guitar leaves the empty stand and the way to earn one", { sk
 });
 
 test("Me (dark): one guitar sits alone in the cradle, with its name", { skip: skip() }, async t => {
-  const page = await openMe(t, "dark", { skills: legsDone(1), guitars: { seen: ["open"] } });
+  /* 2026-11-23: a headlined leg now earns two road guitars (its own and the next), so one guitar is a shop guitar */
+  const page = await openMe(t, "dark", { merch: { has: [shopIds[0]] } });
   await page.waitForFunction(() => document.querySelector(".gs-item.is-on img")?.naturalWidth > 0);
   const s = await seen(page);
   assert.equal(s.n, 1);
   assert.equal(s.count, "1 of 1");
-  assert.equal(s.name, "Porch");
-  assert.match(s.status, /Earned on Leg 1/);
+  assert.equal(s.name, GUITAR_SHOP[0].name);
+  assert.match(s.status, /Guitar shop|you play/);
+  assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".gs-track")).touchAction), /pan-y/, "2026-11-23: a vertical swipe on the stand scrolls the page");
   assert.equal(s.prev, null); assert.equal(s.next, null);
   assert.ok(s.hero.shown > 0.95, "the one guitar is fully in view");
   assert.ok(Math.abs(s.hero.cx - s.hero.scx) < 8, "centered");
@@ -83,7 +85,7 @@ test("Me (dark): one guitar sits alone in the cradle, with its name", { skip: sk
 
 for (const theme of ["dark", "light"]) {
   test(`Me (${theme}): six guitars, the second in the cradle, neighbours peeking, pager says 2 of 6`, { skip: skip() }, async t => {
-    const page = await openMe(t, theme, { skills: legsDone(3), guitars: { seen: ["open", "switch", "scales"] }, merch: { has: shopIds.slice(0, 3) } });
+    const page = await openMe(t, theme, { skills: legsDone(2), guitars: { seen: ["open", "switch"] }, merch: { has: shopIds.slice(0, 3) } });
     await page.waitForFunction(() => document.querySelectorAll(".gs-item").length === 6);
     await page.locator(".gs-item").nth(1).click();
     await page.waitForFunction(() => {
@@ -110,7 +112,7 @@ for (const theme of ["dark", "light"]) {
     await page.locator(".gs-item.is-on").focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForFunction(() => document.querySelector(".gs-count")?.textContent === "3 of 6");
-    assert.equal(await page.locator(".gs-item.is-on").getAttribute("aria-label"), "Club Slab, earned on Leg 3, Scales");
+    assert.equal(await page.locator(".gs-item.is-on").getAttribute("aria-label"), "Club Slab, earned on Leg 2, Chord switches");
   });
 }
 
@@ -159,4 +161,18 @@ test("New guitar sheet (dark and light): Cornerstone is in the cradle, with a ne
     await page.click("#gt-x");
     await page.waitForFunction(() => !document.querySelector(".rd-gt"));
   }
+});
+
+test("2026-11-23: the guitar the headline sheet says you earned is in the Guitar case", { skip: skip() }, async t => {
+  const page = await phone(t);
+  const r = await page.evaluate(async () => {
+    const C = await import("./core.js"), G = await import("./gstand.js");
+    const data = { songs: [], sets: [], trash: [], settings: {} };
+    for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
+    C.skillDone(data, "k:open");
+    const gn = C.guitarNew(data);
+    return { said: gn.guitar.name, inCase: G.collectionOf(data).map(g => g.name) };
+  });
+  assert.equal(r.said, "Cornerstone");
+  assert.ok(r.inCase.includes(r.said), `the case holds ${r.said}: ${r.inCase.join(", ")}`);
 });
