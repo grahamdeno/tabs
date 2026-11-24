@@ -67,8 +67,10 @@ test.after(async () => { await browser?.close(); server?.close(); });
 }
 
 // A fresh phone with the test library; fails the test on any page error.
-// opts are Playwright context options, plus fixedTime: a date the page's clock stays at.
-export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } = {}) {
+// opts are Playwright context options, plus fixedTime (a date the page's clock stays at)
+// and prepare (a function that runs on the page before the first load, so a stub is in place
+// before the app can call the real network).
+export async function phone(t, lib = LIB, { fixedTime, home = false, prepare, ...opts } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: "block", hasTouch: true, ...opts });
   if (fixedTime) await ctx.clock.setFixedTime(new Date(fixedTime));
   const page = await ctx.newPage();
@@ -78,6 +80,7 @@ export async function phone(t, lib = LIB, { fixedTime, home = false, ...opts } =
   /* The library is in place before the app starts, once per tab (a reload keeps what the test changed).
      Replacing it after a first load let the app's own first save land on top of it on a busy machine. */
   await page.addInitScript(json => { try { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); } } catch { /* blocked */ } }, JSON.stringify(lib));
+  if (prepare) await prepare(page);
   await page.goto(base + (home ? "" : "#/library")); /* most tests start in the Library; home: true starts on Tonight */
   await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0); /* drawn, rather than a fixed wait */
   t.after(async () => { assert.deepEqual(errors, [], "page errors"); await ctx.close(); });
