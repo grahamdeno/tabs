@@ -385,7 +385,8 @@ test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls u
 });
 
 test("4.0.1: one design system: buttons, chips, sheets and the editor's title field share the version 4 look", { skip: skip() }, async t => {
-  const page = await phone(t);
+  /* 5.x: Settings shows its Back up button only when a backup is due */
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lastBackup: "2020-01-01T00:00:00Z" } });
   const look = sel => page.evaluate(s => { const c = getComputedStyle(document.querySelector(s)); return { r: c.borderTopWidth, f: c.fontFamily }; }, sel);
   await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector(".btn.primary");
   assert.match((await look(".btn.primary")).f, /Sora/, "the main button is set in Sora");
