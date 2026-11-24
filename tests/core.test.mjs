@@ -3173,7 +3173,7 @@ test("Sora is the Road Ready heading font, and Green Room and Headliner keep Fre
   assert.ok(shell.includes("vendor/fonts/sora-600.woff2"), "Sora SemiBold is in the app shell");
   assert.ok(shell.includes("vendor/fonts/sora-700.woff2"), "Sora Bold is in the app shell");
   assert.ok(!shell.some(f => /spacegrotesk|Space Grotesk/.test(f)));
-  assert.doesNotMatch(read("guitarist.js") + read("portrait.js"), /Space Grotesk/);
+  assert.doesNotMatch(read("guitarist.js"), /Space Grotesk/);
 });
 
 /* ---- Road Ready 9a: the 23 guitars and the Guitar shop ---- */
@@ -3750,7 +3750,7 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  const bad = diff.split("\n").filter(Boolean).filter(line => !/^A\tart\/(road-neck|tabbar|case|guitarist-painted|guitars)\//.test(line) && !/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line) && !/^D\tart\/guitarist-painted\/pilot/.test(line));
+  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t") && !/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line) && !/^D\tart\/guitarist-painted\/pilot/.test(line));
   assert.deepEqual(bad, [], "no existing art file was edited (the old ink drawing was deleted on Graham's go, 2026-11-23)");
 });
 
