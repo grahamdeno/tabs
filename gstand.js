@@ -95,7 +95,6 @@ export function standHTML(items, o = {}) {
       <div class="gs-floor" aria-hidden="true"></div>
       <img class="gs-back" src="${STAND}-back.webp${v}" alt="" aria-hidden="true">
       ${n ? `<div class="gs-track" role="group" aria-label="Your guitars, earned and bought">${pics}</div>` : ""}
-      <img class="gs-front" src="${STAND}-front.webp${v}" alt="" aria-hidden="true">
     </div>
     ${n ? pagerHTML(n, active) : ""}
     ${n && !sheet ? `<p class="gs-cap"><b>${esc(cur.name)}</b>${cur.status ? `<small>${esc(cur.status)}</small>` : ""}</p>` : ""}

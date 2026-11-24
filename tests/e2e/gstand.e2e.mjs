@@ -78,7 +78,7 @@ test("Me (dark): one guitar sits alone in the cradle, with its name", { skip: sk
   assert.ok(s.hero.shown > 0.95, "the one guitar is fully in view");
   assert.ok(Math.abs(s.hero.cx - s.hero.scx) < 8, "centered");
   assert.ok(Math.abs(s.hero.w / s.hero.h - s.hero.nw / s.hero.nh) < 0.05, "natural shape");
-  assert.ok(s.hero.h >= 240 && s.hero.h <= 280, `hero is ${Math.round(s.hero.h)} px tall`);
+  assert.ok(s.hero.h >= 300 && s.hero.h <= 350, `hero is ${Math.round(s.hero.h)} px tall`);
 });
 
 for (const theme of ["dark", "light"]) {
@@ -89,17 +89,17 @@ for (const theme of ["dark", "light"]) {
     await page.waitForFunction(() => {
       const track = document.querySelector(".gs-track")?.getBoundingClientRect();
       const im = document.querySelector(".gs-item.is-on img")?.getBoundingClientRect();
-      return track && im && im.height >= 240 && document.querySelector(".gs-count")?.textContent === "2 of 6" && Math.abs((im.left + im.right) / 2 - (track.left + track.right) / 2) < 8;
+      return track && im && im.height >= 300 && document.querySelector(".gs-count")?.textContent === "2 of 6" && Math.abs((im.left + im.right) / 2 - (track.left + track.right) / 2) < 8;
     });
     const s = await seen(page);
     assert.equal(s.on, 1);
     assert.equal(s.name, "Cornerstone");
     assert.ok(s.hero.shown > 0.95, "the hero is fully visible");
     assert.ok(Math.abs(s.hero.cx - s.hero.scx) < 8, "the hero is centered");
-    assert.ok(s.hero.h >= 240 && s.hero.h <= 280, `hero height ${Math.round(s.hero.h)}`);
+    assert.ok(s.hero.h >= 300 && s.hero.h <= 350, `hero height ${Math.round(s.hero.h)}`);
     assert.ok(Math.abs(s.hero.w / s.hero.h - s.hero.nw / s.hero.nh) < 0.05, "natural aspect");
     for (const side of [s.prev, s.next]) {
-      assert.ok(side.shown >= 0.55 && side.shown <= 0.72, `a neighbour shows ${side.shown.toFixed(2)} of itself`);
+      assert.ok(side.shown >= 0.65 && side.shown <= 1.02, `a neighbour shows ${side.shown.toFixed(2)} of itself`);
       assert.ok(Math.abs(side.w / side.h - side.nw / side.nh) < 0.06, "a neighbour keeps its shape");
     }
     assert.ok(s.pagerH > 0 && s.pagerH < 40, "the pager is one line");
@@ -153,7 +153,7 @@ test("New guitar sheet (dark and light): Cornerstone is in the cradle, with a ne
       return { btn: b.bottom <= innerHeight + 1 && b.top > 0, hero: hero.height, shown, look: document.documentElement.dataset.look };
     });
     assert.equal(fit.btn, true, `${theme}: Rock on is on the screen`);
-    assert.ok(fit.hero >= 120 && fit.hero <= 200, `${theme}: the sheet guitar is ${Math.round(fit.hero)} px`);
+    assert.ok(fit.hero >= 255 && fit.hero <= 305, `${theme}: the sheet guitar is ${Math.round(fit.hero)} px`);
     assert.ok(fit.shown >= 0.5, `${theme}: a neighbour peeks`);
     assert.equal(fit.look, theme === "light" ? "festival" : "neon");
     await page.click("#gt-x");

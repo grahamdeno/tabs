@@ -5446,48 +5446,53 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .rr-card-h { padding: 0 2px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 4px 2px 0; color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
-.gs-stage { --gs-h: 252px; --gs-stand-w: 176px; --gs-aspect: 1.372; --gs-seat: 0.74; --gs-b: .72; --gs-o: .78; position: relative; }
-.gs-sheet { --gs-h: 140px; --gs-stand-w: 104px; }
-:root[data-look="festival"] .gs-stage { --gs-b: .94; --gs-o: .74; }
+.gs-stage { --gs-h: 328px; --gs-leg: 32px; --gs-stride: 136px; --gs-b: .78; --gs-o: .84; position: relative; }
+.gs-sheet { --gs-h: 276px; --gs-leg: 28px; --gs-stride: 132px; }
+:root[data-look="festival"] .gs-stage { --gs-b: .96; --gs-o: .76; }
 .gs-hero { position: relative; }
 .gs-glow {
-  position: absolute; left: 50%; top: -4%; z-index: 0; width: 72%; height: calc(var(--gs-h) * 1.08); transform: translateX(-50%); pointer-events: none;
-  background: radial-gradient(ellipse 52% 70% at 50% 44%, rgba(220, 140, 52, .34) 0%, rgba(176, 98, 30, .14) 40%, transparent 74%);
+  position: absolute; left: 50%; top: -10px; z-index: 0; width: 58%; height: calc(var(--gs-h) + 20px); transform: translateX(-50%); pointer-events: none;
+  background: radial-gradient(ellipse 46% 56% at 50% 46%, rgba(232, 160, 68, .42) 0%, rgba(220, 140, 52, .24) 24%, rgba(176, 98, 30, .11) 46%, transparent 72%);
 }
 :root[data-look="festival"] .gs-glow {
-  background: radial-gradient(ellipse 54% 70% at 50% 44%, rgba(214, 146, 62, .24) 0%, rgba(196, 130, 52, .09) 44%, transparent 76%);
+  background: radial-gradient(ellipse 50% 58% at 50% 46%, rgba(214, 146, 62, .30) 0%, rgba(196, 130, 52, .12) 32%, transparent 72%);
 }
-.gs-empty .gs-glow { top: 8%; height: 86%; }
-.gs-floor { display: none; position: absolute; left: 50%; bottom: 2px; z-index: 1; width: 54%; height: 18px; transform: translateX(-50%); pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(62, 40, 16, .30) 0%, transparent 72%); }
-:root[data-look="festival"] .gs-floor { display: block; }
-.gs-back, .gs-front {
-  position: absolute; left: 50%; bottom: 0; z-index: 1; width: var(--gs-stand-w); height: auto; transform: translateX(-50%); pointer-events: none; user-select: none;
+.gs-empty .gs-glow { top: 4%; height: 96%; width: 86%; }
+.gs-floor { position: absolute; left: 50%; bottom: 8px; z-index: 0; width: 50%; height: 36px; transform: translateX(-50%); pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(220, 140, 52, .28), transparent 72%); }
+:root[data-look="festival"] .gs-floor { background: radial-gradient(ellipse at center, rgba(80, 48, 20, .24), transparent 70%); }
+.gs-back {
+  position: absolute; left: 50%; bottom: 0; z-index: 1; width: auto; height: 148px; transform: translateX(-50%); pointer-events: none; user-select: none;
 }
-.gs-front { z-index: 4; }
 .gs-track {
   position: relative; z-index: 2; display: flex; align-items: flex-end; box-sizing: border-box;
-  height: calc(var(--gs-h) + var(--gs-stand-w) * var(--gs-aspect) * var(--gs-seat) + 6px);
-  padding-bottom: calc(var(--gs-stand-w) * var(--gs-aspect) * var(--gs-seat) - 12px);
+  height: calc(var(--gs-h) + var(--gs-leg) + 4px);
+  padding-bottom: var(--gs-leg);
   overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none;
   overscroll-behavior-x: contain; touch-action: pan-x;
 }
 .gs-track::-webkit-scrollbar { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .gs-track::before,
-:root:is([data-look="neon"], [data-look="festival"]) .gs-track::after { content: ""; flex: 0 0 26%; }
+:root:is([data-look="neon"], [data-look="festival"]) .gs-track::after { content: ""; flex: 0 0 calc((100% - var(--gs-stride)) / 2); }
 :root:is([data-look="neon"], [data-look="festival"]) .gs-item {
-  flex: 0 0 48%; scroll-snap-align: center; display: flex; align-items: flex-end; justify-content: center;
+  flex: 0 0 var(--gs-stride); scroll-snap-align: center; display: flex; align-items: flex-end; justify-content: center;
   min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; background: none; color: inherit; cursor: pointer;
 }
 :root:is([data-look="neon"], [data-look="festival"]) .gs-item img {
   display: block; height: var(--gs-h); width: auto; max-width: none; object-fit: contain; object-position: center bottom; transform-origin: center bottom;
-  transform: scale(calc(1 - .16 * var(--gs-p, 0)));
-  filter: brightness(calc(1 - (1 - var(--gs-b)) * var(--gs-p, 0))) drop-shadow(0 12px 10px rgba(0, 0, 0, .42));
+  transform: scale(calc(1 - .13 * var(--gs-p, 0)));
+  filter: brightness(calc(1 - (1 - var(--gs-b)) * var(--gs-p, 0))) drop-shadow(0 8px 8px rgba(0, 0, 0, .28));
   opacity: calc(1 - (1 - var(--gs-o)) * var(--gs-p, 0));
   transition: transform .35s ease, filter .35s ease, opacity .35s ease;
 }
+:root[data-look="neon"] .gs-item.is-on img {
+  filter: brightness(1) drop-shadow(0 0 14px rgba(242, 168, 76, .52)) drop-shadow(0 0 34px rgba(208, 124, 38, .30)) drop-shadow(0 8px 10px rgba(0, 0, 0, .32));
+}
+:root[data-look="festival"] .gs-item.is-on img {
+  filter: brightness(1) drop-shadow(0 0 12px rgba(214, 146, 62, .40)) drop-shadow(0 0 28px rgba(186, 118, 42, .18)) drop-shadow(0 8px 8px rgba(70, 42, 16, .22));
+}
 .gs-item:focus-visible { outline: 2px solid var(--rr-amber-text); outline-offset: 2px; border-radius: 8px; }
-.gs-pager { display: flex; align-items: center; justify-content: center; flex-wrap: nowrap; gap: 8px; min-height: 28px; margin: 2px 0 0; white-space: nowrap; }
+.gs-pager { position: relative; z-index: 5; display: flex; align-items: center; justify-content: center; flex-wrap: nowrap; gap: 7px; min-height: 22px; margin: -18px 0 0; white-space: nowrap; }
 .gs-dots { display: inline-flex; align-items: center; gap: 5px; }
 .gs-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--rr-text-2); opacity: .42; display: block; }
 .gs-dots i.on { width: 7px; height: 7px; opacity: 1; background: var(--rr-amber); }
@@ -5496,8 +5501,12 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gs-cap { margin: 2px 8px 0; text-align: center; }
 .gs-cap b { display: block; font: 700 var(--type-headline, 17px)/1.2 "Space Grotesk", var(--display); color: var(--rr-text); }
 .gs-cap small { display: block; margin-top: 1px; font: 500 var(--type-footnote, 13px)/1.3 "Inter", var(--sans); color: var(--rr-text-2); }
-.gs-empty { height: calc(var(--gs-stand-w) * var(--gs-aspect)); }
+.gs-empty { height: 136px; }
 .gs-empty .gs-hero { height: 100%; }
+.gs-empty .gs-back { height: 132px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case .pbody { gap: 4px; }
+.rr-case .sc-who { min-height: 0; }
+.rr-case .sc-who .sc-louie, .rr-case .sc-who .sc-louie .louie { width: 58px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-stage { width: calc(100% + 44px); margin-left: -22px; margin-right: -22px; }
 .rr-case .gs-stage { width: calc(100% + 8px); margin-left: -4px; margin-right: -4px; }
 
