@@ -62,7 +62,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
 
     /* fonts */
     const fam = await page.evaluate(() => { const c = getComputedStyle(document.body); const h = document.createElement("h2"); document.body.appendChild(h); const d = getComputedStyle(h).fontFamily; h.remove(); return [c.fontFamily, d, getComputedStyle(document.documentElement).getPropertyValue("--readout")]; });
-    assert.match(fam[0], /^Inter\b|^"Inter"/, "text is Inter"); assert.match(fam[1], /Space Grotesk/, "titles are Space Grotesk"); assert.match(fam[2], /IBM Plex Mono/, "--readout (tuner and tempo numbers) is IBM Plex Mono");
+    assert.match(fam[0], /^Inter\b|^"Inter"/, "text is Inter"); assert.match(fam[1], /Sora/, "titles are Sora"); assert.match(fam[2], /IBM Plex Mono/, "--readout (tuner and tempo numbers) is IBM Plex Mono");
     const tabFam = await page.evaluate(() => { const s = document.createElement("div"); s.className = "sheet"; const e = document.createElement("div"); e.className = "tab"; e.textContent = "e|--0--"; s.appendChild(e); document.body.appendChild(s); const f = getComputedStyle(e).fontFamily; s.remove(); return f; });
     assert.doesNotMatch(tabFam, /IBM Plex Mono/, "tab blocks keep the system monospace");
 
@@ -84,7 +84,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     assert.equal(b.primary.img, "none", "no cream-plate fill and no corner screws");
     assert.match(b.primary.slice, /svg/i, "the face is an SVG border image");
     assert.doesNotMatch(b.primary.slice, /radial-gradient/, "the pick has no screw dots");
-    assert.match(b.primary.font, /Space Grotesk/); assert.equal(b.primary.weight, "700");
+    assert.match(b.primary.font, /Sora/); assert.equal(b.primary.weight, "700");
     assert.notEqual(b.primary.fill, "rgba(0, 0, 0, 0)", "the words are a real colour, so an inline icon keeps currentColor");
     assert.match(b.primary.filter, /drop-shadow/, "the pick lifts off the tolex");
     if (label === "Dark") {
@@ -199,15 +199,15 @@ test("Road Ready: the fonts come from vendor/fonts only, and are kept for offlin
   await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   /* use all three families once (the tuner and tempo numbers use the mono one) */
-  await page.evaluate(() => Promise.all(['500 20px "Space Grotesk"', '450 17px "Inter"', '600 20px "IBM Plex Mono"'].map(f => document.fonts.load(f, "A1"))));
+  await page.evaluate(() => Promise.all(['600 20px "Sora"', '700 20px "Sora"', '450 17px "Inter"', '600 20px "IBM Plex Mono"'].map(f => document.fonts.load(f, "A1"))));
   const fontUrls = urls.filter(u => /\.(woff2?|ttf|otf)(\?|$)/.test(u));
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(fontUrls.some(u => u.endsWith("/vendor/fonts/" + f)), `${f} was requested from vendor/fonts`);
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(fontUrls.some(u => u.endsWith("/vendor/fonts/" + f)), `${f} was requested from vendor/fonts`);
   assert.ok(fontUrls.every(u => u.startsWith(base + "vendor/fonts/")), `every font comes from this app: ${fontUrls.join(", ")}`);
   assert.ok(urls.filter(u => !u.startsWith("data:") && !u.startsWith("blob:")).every(u => u.startsWith(base)), "no request leaves the app");
   /* the service worker keeps them */
   const kept = await page.evaluate(async () => (await (await caches.open("tabs-vendor")).keys()).map(r => new URL(r.url).pathname));
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(kept.some(p => p.endsWith("/vendor/fonts/" + f)), `${f} is in the tabs-vendor cache (${kept.join(", ")})`);
-  const loaded = await page.evaluate(() => ["Space Grotesk", "Inter", "IBM Plex Mono"].map(f => document.fonts.check(`16px "${f}"`)));
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(kept.some(p => p.endsWith("/vendor/fonts/" + f)), `${f} is in the tabs-vendor cache (${kept.join(", ")})`);
+  const loaded = await page.evaluate(() => ["Sora", "Inter", "IBM Plex Mono"].map(f => document.fonts.check(`16px "${f}"`)));
   assert.deepEqual(loaded, [true, true, true]);
 });
 

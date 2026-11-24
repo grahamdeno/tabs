@@ -1952,7 +1952,7 @@ body { background: var(--bg); font-family: var(--sans); }
 /* ==========================================================================
    Road Ready, step 01 (Graham, 2026-11-17): the foundation.
    Dark tolex, grille cloth, chrome piping, cream engraved plates, warm amber;
-   Space Grotesk, Inter and IBM Plex Mono. Road Ready replaces the two free
+   Sora, Inter and IBM Plex Mono. Road Ready replaces the two free
    looks: Dark (data-look="neon") is Road Ready dark, Light (data-look="festival")
    is Road Ready light. The data-look values stay, so no stored setting changes.
    Green Room and Headliner keep their own palettes and fonts: every rule here
@@ -1960,7 +1960,8 @@ body { background: var(--bg); font-family: var(--sans); }
    :root[data-look] (Green Room is also data-theme="light", Headliner "dark").
    Screens are restyled in later steps; this only recolours today's layout.
    ========================================================================== */
-@font-face { font-family: "Space Grotesk"; src: url("vendor/fonts/spacegrotesk.woff2") format("woff2"); font-weight: 500 700; font-display: swap; }
+@font-face { font-family: "Sora"; src: url("vendor/fonts/sora-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Sora"; src: url("vendor/fonts/sora-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 @font-face { font-family: "Inter"; src: url("vendor/fonts/inter.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
 @font-face { font-family: "IBM Plex Mono"; src: url("vendor/fonts/ibmplexmono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 /* Road Ready dark */
@@ -2014,15 +2015,15 @@ body { background: var(--bg); font-family: var(--sans); }
   --accent: var(--rr-amber); --accent-ink: var(--rr-amber-text); --on-accent: var(--rr-on-amber);
   --tabs-ring: var(--rr-amber-text); --banner: var(--rr-amber); --on-banner: var(--rr-on-amber);
   --locked: var(--rr-hairline); --locked-ic: var(--rr-text-2);
-  /* type: Space Grotesk for titles, Inter for text, IBM Plex Mono for the tuner and tempo */
-  --display: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* type: Sora for titles, Inter for text, IBM Plex Mono for the tuner and tempo */
+  --display: "Sora", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --serif: var(--display);
   --readout: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* tuner and tempo readouts (later steps) */
   /* sizes follow the iPhone text size: app.js sets --sys-px (17 px at the default) from readSysText() */
-  --type-display: calc(var(--sys-px, 17px) * 2);       --type-display-w: 700;   /* Space Grotesk */
-  --type-title: calc(var(--sys-px, 17px) * 1.647);     --type-title-w: 700;     /* Space Grotesk */
-  --type-title2: calc(var(--sys-px, 17px) * 1.294);    --type-title2-w: 700;    /* Space Grotesk */
+  --type-display: calc(var(--sys-px, 17px) * 2);       --type-display-w: 700;   /* Sora */
+  --type-title: calc(var(--sys-px, 17px) * 1.647);     --type-title-w: 700;     /* Sora */
+  --type-title2: calc(var(--sys-px, 17px) * 1.294);    --type-title2-w: 700;    /* Sora */
   --type-headline: calc(var(--sys-px, 17px) * 1);      --type-headline-w: 600;  /* Inter */
   --type-body: calc(var(--sys-px, 17px) * 1);          --type-body-w: 450;      /* Inter */
   --type-callout: calc(var(--sys-px, 17px) * .941);    --type-callout-w: 500;   /* Inter */
@@ -4803,7 +4804,7 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-plate:active, .rr-pill:active, .rr-tonight:active { transform: translateY(1px); filter: brightness(.94); }
 .rr-pl-main, .rr-pl-side { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rr-pl-side { align-items: flex-end; margin-left: auto; }
-.rr-venue { font: 700 var(--type-headline) / 1.15 "Space Grotesk", var(--display); text-transform: uppercase; letter-spacing: .02em; overflow-wrap: break-word; }
+.rr-venue { font: 700 var(--type-headline) / 1.15 "Sora", var(--display); text-transform: uppercase; letter-spacing: .02em; overflow-wrap: break-word; }
 .rr-plate small { font: var(--type-footnote-w) var(--type-footnote) / 1.2 "Inter", var(--sans); color: var(--rr-plate-text); }
 .rr-pl-main small { font-size: var(--type-subhead); }
 .rr-pips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
@@ -4819,7 +4820,7 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-pill.rr-fans { grid-area: fans; } .rr-pill.rr-tips { grid-area: tips; }
 .rr-pv { display: flex; align-items: center; gap: 4px; }
 .rr-pv svg { width: 18px; height: 18px; flex: none; }
-.rr-pv b { font: 700 var(--type-headline) / 1.1 "Space Grotesk", var(--display); white-space: nowrap; }
+.rr-pv b { font: 700 var(--type-headline) / 1.1 "Sora", var(--display); white-space: nowrap; }
 .rr-pill small { font: var(--type-footnote-w) var(--type-footnote) / 1.15 "Inter", var(--sans); white-space: nowrap; }
 .rr-coin { fill: #E9A93A; } .rr-coin-ring { stroke: #A8701E; stroke-width: 1.2; } .rr-coin-ink { stroke: #3A2408; }
 /* Tonight: a dark inset bar, the title and an amber play button; the whole row is one button */
@@ -4837,7 +4838,7 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-play { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); }
 .rr-play svg { width: 22px; height: 22px; }
 /* Opening night (2026-11-19): the strip where Tonight sits says the step, with Skip (or On to Leg 1) as a cream plate button */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-on-btn { opacity: 1; flex: none; min-width: 72px; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--rr-plate-edge); background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text); font: 700 var(--type-subhead) / 1 "Space Grotesk", var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-on-btn { opacity: 1; flex: none; min-width: 72px; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--rr-plate-edge); background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text); font: 700 var(--type-subhead) / 1 "Sora", var(--sans); }
 /* Louie's line, under the strip */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-say {
   flex: none; position: relative; align-self: flex-start; max-width: calc(100% - 24px); margin: 0 0 0 4px; padding: 8px 12px; box-sizing: border-box;
@@ -4876,7 +4877,7 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-eng path[fill="none"] { fill: none; }
 .rr-eng-hi { fill: rgba(255, 255, 255, .35); stroke: rgba(255, 255, 255, .35); }
 .rr-eng-hi path[fill="none"] { fill: none; }
-.rr-eng text, .rr-eng-hi text { stroke: none; font-family: "Space Grotesk", var(--display); font-weight: 700; }
+.rr-eng text, .rr-eng-hi text { stroke: none; font-family: "Sora", var(--display); font-weight: 700; }
 /* the current stop glows from within; a done stop has a faint halo */
 .rr-glow, .rr-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); }
 .rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
@@ -4989,7 +4990,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .rr-sc { gap: 10px; padding: calc(16px + var(--safe-t)) 16px calc(24px + var(--safe-b)); overflow-y: auto; height: 100%; }
 .rr-sc, .rr-case .pbody { text-align: center; }
 .sc-over { margin: 0; font: var(--type-caption-w, 600) var(--type-caption, 12px) / 1.3 "Inter", var(--sans); letter-spacing: var(--type-caption-ls, .08em); color: var(--rr-text-2); }
-.sc-title { margin: 0; font: 700 var(--type-display, 32px) / 1.1 "Space Grotesk", var(--display); color: var(--rr-text); overflow-wrap: break-word; }
+.sc-title { margin: 0; font: 700 var(--type-display, 32px) / 1.1 "Sora", var(--display); color: var(--rr-text); overflow-wrap: break-word; }
 .rr-sc .sc-sub { margin: 0; font: var(--type-subhead-w, 500) var(--type-subhead, 15px) / 1.3 "Inter", var(--sans); color: var(--rr-text-2); }
 .sc-new { margin: 0; font: var(--type-headline-w, 600) var(--type-headline, 17px) / 1.25 "Inter", var(--sans); color: var(--rr-amber-text); }
 /* the showcase: the guitar, its cream label, the cheering Louie at the bottom right */
@@ -5053,7 +5054,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
   .sc-sparks i { opacity: .7; }
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-new { color: var(--rr-amber-text); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-title { color: var(--rr-text); font: 700 var(--type-title, 26px) / 1.15 "Space Grotesk", var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody .sc-title { color: var(--rr-text); font: 700 var(--type-title, 26px) / 1.15 "Sora", var(--display); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case .pbody :is(.sc-got, .sc-next) { color: var(--rr-text-2); }
 
 /* Road Ready 07: the Songbook (r10-05). Only the Dark and Light looks draw this markup (rrLook() in library.js), and
@@ -5131,20 +5132,20 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-avatar { flex: none; width: 80px; height: 80px; padding: 0; border-radius: 50%; border: 3px solid #D9CBB0; background: var(--rr-card); box-shadow: 0 0 0 2px var(--rr-outline); overflow: hidden; display: grid; place-items: center; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-avatar svg { width: 100%; height: 100%; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-who { min-width: 0; flex: 1; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-me-name { margin: 0; font: var(--type-title-w) var(--type-title) / 1.15 "Space Grotesk", var(--display); color: var(--rr-text); overflow-wrap: anywhere; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-name { margin: 0; font: var(--type-title-w) var(--type-title) / 1.15 "Sora", var(--display); color: var(--rr-text); overflow-wrap: anywhere; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-venue { display: block; min-height: 44px; padding: 0; margin: 0; background: none; border: 0; text-align: left; font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-level { margin-top: -6px; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rr-outline); overflow: hidden; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tile { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 14px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b { font: 700 var(--type-title) / 1.1 "Space Grotesk", var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b { font: 700 var(--type-title) / 1.1 "Sora", var(--display); color: var(--rr-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tile b span { font: var(--type-footnote-w) var(--type-footnote) var(--sans); color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tile small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 var(--sans); color: var(--rr-text-2); }
 :root[data-ax="1"]:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { grid-template-columns: 1fr; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-card { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 16px; padding: 14px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h h2 { margin: 0; font: 700 var(--type-headline) / 1.2 "Space Grotesk", var(--display); color: var(--rr-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-card-h h2 { margin: 0; font: 700 var(--type-headline) / 1.2 "Sora", var(--display); color: var(--rr-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-card-h span { font: var(--type-subhead-w) var(--type-subhead) var(--sans); color: var(--rr-text-2); }
 /* the open case: a dark shell, orange plush with a soft glow inside; the guitars stand upright, headstocks up, at one height */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case { padding: 8px; border-radius: 10px; background: #2A1810; border: 2px solid #0E0806; }
@@ -5162,7 +5163,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-label { margin: 8px 2px; color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-label span + span { color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge { background: linear-gradient(#F6EAD2, #D6C4A4); border: 1.5px solid #8C7858; box-shadow: none; color: #281E14; border-radius: 10px; min-height: 56px; padding: 8px 4px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge b { font: 700 var(--type-callout) / 1.1 "Space Grotesk", var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge b { font: 700 var(--type-callout) / 1.1 "Sora", var(--display); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge small { font: 600 var(--type-caption) / 1.2 var(--sans); letter-spacing: .04em; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-miles .pf-badge.locked { background: transparent; border: 1.5px dashed var(--rr-outline); color: var(--rr-text-2); }
 /* the list of rows: 52 px or taller, icon, label, chevron */
@@ -5314,12 +5315,13 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop::before,
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now::before { background: var(--rr-plate-top); border-left: 1.5px solid var(--rr-plate-edge); border-top: 1.5px solid var(--rr-plate-edge); }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-pop b { font: 700 var(--type-headline) / 1.2 "Space Grotesk", var(--sans); color: var(--rr-plate-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-pop b { font: 700 var(--type-headline) / 1.2 "Sora", var(--sans); color: var(--rr-plate-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop :is(p, .rd-pt p, .rd-pt small),
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now p { color: var(--rr-plate-text); opacity: .85; font: 500 var(--type-subhead) / 1.35 "Inter", var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop .rd-start,
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop.now .rd-start {
-  font: 700 16px / 1 "Space Grotesk", var(--sans); letter-spacing: 0;
+  /* 15 px so the longest stop label still fits the pick */
+  font: 700 15px / 1.05 "Sora", var(--sans); letter-spacing: -.01em;
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-pop .rd-other { color: var(--rr-plate-text); }
 
@@ -5357,7 +5359,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
   position: absolute; left: 50%; top: 150px; transform: translateX(-50%); margin: 0; width: max-content; max-width: calc(100% - 48px); padding: 8px 14px; box-sizing: border-box; text-align: center;
   border: 1.5px solid var(--rr-plate-edge); border-radius: var(--r-plate, 10px); background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)); color: var(--rr-plate-text);
 }
-.rr-peek-plate b { display: block; font: 700 var(--type-subhead) / 1.2 "Space Grotesk", var(--sans); letter-spacing: .04em; }
+.rr-peek-plate b { display: block; font: 700 var(--type-subhead) / 1.2 "Sora", var(--sans); letter-spacing: .04em; }
 .rr-peek-plate small { display: block; font: 500 var(--type-footnote) / 1.3 "Inter", var(--sans); }
 /* the maker's poster (4.99.0): bigger, cropped head to thigh with TONIGHT on it; Random and Lefty sit on the card's lower corners */
 .gm-stage .gm-card { position: relative; }
@@ -5372,11 +5374,11 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .co.co-plate .co-badge {
   background: linear-gradient(var(--rr-plate-top), var(--rr-plate-bottom)) var(--rr-plate-top); color: var(--rr-plate-text); border: 1.5px solid var(--rr-plate-edge); border-radius: 14px; box-shadow: 0 10px 24px rgba(0, 0, 0, .38); transform: none;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .co.co-plate .co-badge small { color: var(--rr-plate-text); font: 700 var(--type-footnote) / 1.2 "Space Grotesk", var(--sans); letter-spacing: .06em; }
-:root:is([data-look="neon"], [data-look="festival"]) .co.co-plate .co-badge b { color: var(--rr-plate-text); font-family: "Space Grotesk", var(--sans); -webkit-text-stroke: 0; text-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .co.co-plate .co-badge small { color: var(--rr-plate-text); font: 700 var(--type-footnote) / 1.2 "Sora", var(--sans); letter-spacing: .06em; }
+:root:is([data-look="neon"], [data-look="festival"]) .co.co-plate .co-badge b { color: var(--rr-plate-text); font-family: "Sora", var(--sans); -webkit-text-stroke: 0; text-shadow: none; }
 /* Tour (4.99.0, Grok's review): the month's banner is a piece of the amp (tolex, amber overline), not a hot-pink flood */
 :root:is([data-look="neon"], [data-look="festival"]) .tq-head { background: var(--tolex); border-bottom: 2px solid var(--rr-amber); }
-:root:is([data-look="neon"], [data-look="festival"]) .tq-ht h1 { color: var(--rr-text); font-family: "Space Grotesk", var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .tq-ht h1 { color: var(--rr-text); font-family: "Sora", var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .tq-ht small { color: var(--rr-amber-text); }
 :root[data-look="festival"] .tq-head .tq-ht h1 { color: var(--rr-text); }
 /* every page (2026-11-19): content scrolls under the tab bar and is hidden there, as on the Road. A band of the page's own tolex,
@@ -5397,7 +5399,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats button {
   display: inline-flex; align-items: center; gap: 7px; min-width: 64px; min-height: 44px; height: 44px; padding: 0 var(--sp-2); justify-content: center;
   background: none; border: 0; border-radius: var(--r-control); box-shadow: none; color: var(--rr-text);
-  font: 600 var(--type-headline) / 1 "Space Grotesk", var(--sans); font-variant-numeric: tabular-nums; letter-spacing: 0; -webkit-tap-highlight-color: transparent;
+  font: 600 var(--type-headline) / 1 "Sora", var(--sans); font-variant-numeric: tabular-nums; letter-spacing: 0; -webkit-tap-highlight-color: transparent;
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats button:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: -2px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats .rr-st-ic { flex: none; width: 22px; height: 22px; color: var(--rr-amber-text); }
@@ -5413,7 +5415,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sign {
   position: absolute; z-index: 4; left: var(--sp-4); top: var(--sp-3); min-height: 44px; padding: 0; display: flex; align-items: center;
   background: none; border: 0; color: var(--rr-plate-text); -webkit-tap-highlight-color: transparent;
-  font: 700 var(--type-caption) / 1 "Space Grotesk", var(--sans); letter-spacing: .12em;
+  font: 700 var(--type-caption) / 1 "Sora", var(--sans); letter-spacing: .12em;
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-sign::before {
   content: ""; position: absolute; inset: 11px -10px; z-index: -1; border-radius: 6px;
@@ -5499,7 +5501,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gs-dots i.far { width: 4px; height: 4px; opacity: .28; }
 .gs-count { font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .03em; color: var(--rr-text-2); }
 .gs-cap { margin: 2px 8px 0; text-align: center; }
-.gs-cap b { display: block; font: 700 var(--type-headline, 17px)/1.2 "Space Grotesk", var(--display); color: var(--rr-text); }
+.gs-cap b { display: block; font: 700 var(--type-headline, 17px)/1.2 "Sora", var(--display); color: var(--rr-text); }
 .gs-cap small { display: block; margin-top: 1px; font: 500 var(--type-footnote, 13px)/1.3 "Inter", var(--sans); color: var(--rr-text-2); }
 .gs-empty { height: 136px; }
 .gs-empty .gs-hero { height: 100%; }
