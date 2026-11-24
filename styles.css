@@ -5937,6 +5937,16 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .sk-day { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) .sk-day.now { color: var(--rr-text); }
 .sk-week { margin-bottom: 16px; }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-card {
+  background: var(--rr-card);
+  color: var(--rr-text);
+  border: 1px solid var(--rr-hairline);
+  border-radius: var(--r-sheet);
+}
+:root:is([data-look="neon"], [data-look="festival"]) .sk-card h2 { margin: 0 0 8px; color: var(--rr-text); font: 700 var(--type-title) / 1.2 var(--display); }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-card .sk-high,
+:root:is([data-look="neon"], [data-look="festival"]) .sk-card .tm-line { margin: 0 0 8px; color: var(--rr-text-2); font: 600 var(--type-body) / 1.4 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .sk-card #sk-x { min-width: 44px; min-height: 44px; }
 
 /* The Road guitar sits up off the tolex (the agreed Road and guitar pictures): a close contact shadow and a soft wide one.
    No picture is changed; the shadow is drawn under the painting. */

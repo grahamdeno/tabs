@@ -3650,3 +3650,20 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   const bad = diff.split("\n").filter(Boolean).filter(line => !/^A\tart\/(road-neck|tabbar|case)\//.test(line));
   assert.deepEqual(bad, [], "no existing art file was edited");
 });
+
+test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a sheet", () => {
+  const hud = read("hud.js"), css = read("styles.css");
+  const rr = hud.slice(hud.indexOf("export function rrStats"), hud.indexOf("export const pageStats"));
+  assert.match(rr, /id="h-streak"/);
+  assert.match(rr, /id="h-fans"/);
+  assert.match(rr, /id="h-tips"/);
+  assert.doesNotMatch(rr, /h-songs/, "the songs stat is gone from the Road Ready header");
+  assert.match(hud, /go\(rr \? "#\/playmap" : "#\/you"\)/, "fans open the Tour Map in Dark and Light");
+  assert.match(hud, /rr \? streakCard\(\) : go\("#\/you"\)/, "streak opens a small sheet in Dark and Light");
+  assert.match(hud, /function streakCard\(/);
+  assert.match(hud, /id="sk-scrim"/, "the sheet closes on a tap outside");
+  assert.match(hud, /id="sk-x"/, "and on a close button");
+  assert.match(hud, /data\.journal\.best/, "best streak comes from the journal already stored");
+  assert.match(css, /\.sk-card[^}]*var\(--rr-card\)/, "the sheet uses Road Ready tokens");
+  assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
+});
