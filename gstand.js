@@ -1,11 +1,10 @@
 // The guitar stand (Road Ready Dark and Light): one hero guitar in an A-frame cradle, the
 // previous and next guitars peeking at the sides, and a dot pager under the feet. Me and the
 // new-guitar sheet share this. Green Room and Headliner never call it.
-import { VERSION, GUITARS, guitarsEarned, roadPath, shopState } from "./core.js";
-import { guitarPic } from "./fretboard.js";
+import { VERSION, GUITARS, roadGuitars, roadPath, shopState } from "./core.js";
+import { guitarPic, largeGuitar } from "./fretboard.js";
 import { buildPic } from "./buildart.js";
 import { esc } from "./ui.js";
-import PICS from "./art/guitars/pics.js";
 
 const STAND = `art/case/guitar-stand`;
 
@@ -13,22 +12,22 @@ const STAND = `art/case/guitar-stand`;
 export function standPic(body) {
   const small = guitarPic(body);
   if (!small) return "";
-  const slug = small.match(/art\/guitars\/([^/?]+)-small\.webp/)?.[1];
-  if (slug && PICS[slug]?.road) return `art/guitars/${slug}-road.webp?v=${VERSION}`;
-  return small;
+  const large = largeGuitar(small);
+  return large ? `${large}?v=${VERSION}` : small;
 }
 
 /* Guitars you own, in road order then shop order. extraId is the one just earned, so the sheet can
    put it in the row before that leg is marked done. A road id kept in guitars.seen is shown too. */
 export function collectionOf(data, extraId) {
   const legs = roadPath(data).legs;
-  const earned = new Set(guitarsEarned(data));
+  /* roadGuitars: each headlined leg's guitar plus the next leg's (2026-11-23), labelled with the leg that earned it */
+  const owned = roadGuitars(data), earned = new Set(owned.map(g => g.id)), wonOn = Object.fromEntries(owned.map(g => [g.id, g.li]));
   const seen = new Set(Array.isArray(data.guitars?.seen) ? data.guitars.seen : []);
   if (extraId && GUITARS[extraId]) seen.add(extraId);
   const items = [];
   for (const id of Object.keys(GUITARS)) {
     if (!earned.has(id) && !seen.has(id)) continue;
-    const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = li >= 0 ? legs[li] : null;
+    const g = GUITARS[id], li = wonOn[id] ?? legs.findIndex(l => l.id === id), lg = li >= 0 ? legs[li] : null;
     const painted = standPic(g.body);
     const bp = data.builds?.[id] ? buildPic(id, data.builds[id], painted) : { src: painted, attr: "" };
     const got = earned.has(id) && lg;

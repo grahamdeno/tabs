@@ -18,16 +18,18 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
-  /* 1: your guitarist (4.85.0): a starter, then THAT'S ME. No fans, and the Road keeps it as data.me */
+  /* 1: your guitarist: the painted picture, then THAT'S ME. No fans, and the Road keeps the genre you picked */
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector(".gm");
-  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Start from a selfie[\s\S]*Change anything later on Your profile/);
-  assert.equal(await page.locator('.gm svg[aria-label="Your guitarist"]').count(), 1, "the preview");
-  await page.click('.gm [data-k="starter"][data-v="3"]');
+  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Change anything later on Your profile/);
+  assert.equal(await page.locator('.gm img.gm-hero[alt="Your guitarist"]').count(), 1, "the preview");
+  await page.click('.gm [data-k="genre"][data-v="punk"]');
+  await page.click('.gm [data-k="who"][data-v="w"]');
   await page.click("#gm-ok");
   await stepIs(page, 1);
   const me = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).me);
-  assert.equal(me.hair, "mohawk", "the starter you picked is you");
+  assert.equal(me.genre, "punk", "the genre you picked is you");
+  assert.equal(me.who, "w", "and whether you are a man or a woman");
   assert.equal((await saved(page)).fans || 0, 0, "no fans for choosing a guitarist");
   /* Hold the guitar */
   await page.waitForSelector(".on-path .rd-node.now"); await settled(page);
@@ -152,6 +154,42 @@ for (const width of [390, 320]) for (const theme of ["dark", "light"]) {
     }
   });
 }
+
+test("Opening night: Leg 1 is drawn gray and locked under the gold fret, and a tap does not start it", { skip: skip() }, async t => {
+  const page = await phone(t, FRESH, { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  await page.waitForSelector(".rn-slot.rn-dim"); await settled(page);
+  const m = await page.evaluate(() => ({
+    steps: document.querySelectorAll('.on-path [data-stop^="o:"]').length,
+    dim: document.querySelectorAll(".rn-slot.rn-dim").length,
+    locked: document.querySelectorAll(".rn-slot.rn-dim .rn-stop.locked").length,
+    live: document.querySelectorAll(".rn-slot:not(.rn-dim)").length,
+    peek: document.querySelectorAll(".rn-wire.peek").length,
+    next: document.querySelector(".rn-lat.rn-next")?.dataset.title || "",
+    sub: document.querySelector(".rn-lat.rn-next")?.dataset.sub || "",
+    veil: document.querySelectorAll(".rn-upcoming").length
+  }));
+  assert.equal(m.steps, 9, "Opening night keeps its nine steps");
+  assert.equal(m.live, 9, "those steps stay full colour");
+  assert.equal(m.dim, 10, "Leg 1's ten stops are on the neck");
+  assert.equal(m.locked, 10, "each one is locked");
+  assert.equal(m.peek, 0, "no empty frets under the gold");
+  assert.equal(m.veil, 1);
+  assert.equal(m.next, "Leg 1");
+  assert.match(m.sub, /Open chords/);
+  await page.evaluate(() => {
+    const path = document.getElementById("rd-path");
+    const mark = document.querySelector(".rn-lat.rn-next");
+    path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
+  });
+  await page.waitForFunction(() => /Leg 1/.test(document.getElementById("rn-legline").innerText));
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("on-skip")).display), "none", "Skip steps aside once Leg 1 is the leg in view");
+  const step = await saved(page);
+  await page.locator(".rn-slot.rn-dim .rd-node").first().click();
+  await page.waitForSelector(".rn-slot.rn-dim .rd-pop");
+  assert.match(await page.innerText(".rd-pop"), /This opens after Opening night/);
+  assert.equal(await page.locator(".rd-pop .rd-start, .rd-pop [data-ostart]").count(), 0, "no way to start it");
+  assert.equal((await saved(page)).step || 0, step.step || 0, "Opening night does not advance");
+});
 
 test("4.40.0 Opening night: pause and pick up in the Gig: the step says what to do at each point", { skip: skip() }, async t => {
   const page = await phone(t, { ...FRESH, opening: { step: 4, v: 2, fans: 15 } }, { home: true });

@@ -44,7 +44,7 @@ export const LIB = {
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
   sets: [], trash: [], opening: { step: 6, v: 2, done: 1, seen: 1 }, /* 4.40.0: Opening night already played */
-  me: { skin: 2, hair: "shag", hairCol: "brown", top: "red" }, /* 4.85.0: a guitarist already made, so the Road has no sheet to ask for one */
+  me: { genre: "rock", who: "m" }, /* 4.85.0: a guitarist already made, so the Road has no sheet to ask for one */
   settings: { v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, plainPlay: true }
 };
 
@@ -70,7 +70,10 @@ test.after(async () => { await browser?.close(); server?.close(); });
 // opts are Playwright context options, plus fixedTime (a date the page's clock stays at)
 // and prepare (a function that runs on the page before the first load, so a stub is in place
 // before the app can call the real network).
-export async function phone(t, lib = LIB, { fixedTime, home = false, prepare, ...opts } = {}) {
+/* size50: true leaves text sizes as the app finds them (the 5.2.0 default and the one-time move). Without it, songs with no size are
+   seeded at 100% and the one-time move is marked done, so every other test sees the sizes it was written for. */
+export async function phone(t, lib = LIB, { fixedTime, home = false, prepare, size50 = false, ...opts } = {}) {
+  if (!size50 && Array.isArray(lib?.songs)) lib = { ...lib, songs: lib.songs.map(s => s.size === undefined ? { ...s, size: 1 } : s) };
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: "block", hasTouch: true, ...opts });
   if (fixedTime) await ctx.clock.setFixedTime(new Date(fixedTime));
   const page = await ctx.newPage();
@@ -79,7 +82,8 @@ export async function phone(t, lib = LIB, { fixedTime, home = false, prepare, ..
   page.on("console", m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
   /* The library is in place before the app starts, once per tab (a reload keeps what the test changed).
      Replacing it after a first load let the app's own first save land on top of it on a busy machine. */
-  await page.addInitScript(json => { try { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); } } catch { /* blocked */ } }, JSON.stringify(lib));
+  if (size50) await page.addInitScript(() => { window.__size50 = true; });
+  await page.addInitScript(json => { try { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("tabs-v1", json); if (!window.__size50) localStorage.setItem("tabs.size50.v1", "1"); } } catch { /* blocked */ } }, JSON.stringify(lib));
   if (prepare) await prepare(page);
   await page.goto(base + (home ? "" : "#/library")); /* most tests start in the Library; home: true starts on Tonight */
   await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0); /* drawn, rather than a fixed wait */
