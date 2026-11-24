@@ -43,7 +43,7 @@ const SWATCH = {
   headliner: ["#16171B", "#9B5CFF", "#F5C542", "#FF7A1A"]
 };
 const swatch = (id, cls = "mc-sw") => `<span class="${cls}" aria-hidden="true">${(SWATCH[id] || []).map(c => `<i style="background:${c}"></i>`).join("")}</span>`;
-const lou = (id, size, mood = "happy", pose) => `<span class="fin fin-${id}">${louie(mood, { size, pose })}</span>`;
+const lou = (id, size, mood = "happy", pose) => `<span class="fin fin-${id}">${louie(mood, { size, pose, finish: id === "stock" || id === "tweed" ? "" : id })}</span>`;
 const price = (it, st) => `<span class="mc-price${st.tips < it.price ? " short" : ""}">$${n(it.price)}</span>`;
 const tag = (it, st) => it.kind === "gear" ? price(it, st)
   : it.kind === "look" ? st.look === it.id ? `<span class="mc-on">ON</span>` : st.has.has(it.id) ? `<span class="mc-on own">${it.price || it.earn ? "YOURS" : "FREE"}</span>`
@@ -81,8 +81,9 @@ export function renderMerch() {
     </div>
     ${panel("gear", `<h2 class="mc-h"><span>Gear</span><small>used up when you use it</small></h2>
     <div class="mc-row three">${of("gear").map(gear).join("")}</div>`)}
-    ${/* Louie's finishes are off the table (Graham, 2026-11-19): the tweed Louie has one colour so far. Finishes already bought stay saved (merch.has) and come back with his new colours. */""}
-    ${panel("looks", `<h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
+    ${panel("looks", `<h2 class="mc-h"><span>Louie's finishes</span><small>his other colours</small></h2>
+    <div class="mc-row scroll">${of("louie").map(it => `<button class="mc-fin${st.louie === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} Louie">${lou(it.id, 64, "happy")}<b>${esc(it.name)}</b>${tag(it, st)}</button>`).join("")}</div>
+    <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
     <h2 class="mc-h"><span>Hats</span><small>for your guitarist</small></h2>
     <div class="mc-row scroll">${of("wear").map(hat).join("")}</div>

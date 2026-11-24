@@ -69,13 +69,15 @@ test("Louie hops when he cheers, and Reduce Motion stops it", { skip: skip() }, 
   }
 });
 
-test("a finish bought before stays saved but no longer changes Louie, and the Merch table has no finishes", { skip: skip() }, async t => {
+test("a finish bought before stays saved, and Pink Louie on the table wears the pink cabinet", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark", { merch: { has: ["tweed", "pink"], louie: "pink", tconv: 1, lconv: 1 } }));
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector(".mc-seg"); await settled(page);
-  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 0, "no Louie finishes on the table");
-  assert.doesNotMatch(await page.innerText("#app"), /Louie.s finish/);
+  await page.click("#mc-t-looks");
+  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 7, "Louie's finishes are on the table");
+  assert.match(await page.locator(".mc-fin[data-id=pink] image").getAttribute("href"), /art\/louie\/front\/pink\/louie-/, "Pink uses his pink picture");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch);
   assert.ok(saved.has.includes("tweed") && saved.has.includes("pink"), "what was bought is still saved");
+  assert.equal(saved.louie, "pink");
 });
 
 test("the Songbook hint and the maker show the new face badge, and it loads", { skip: skip() }, async t => {

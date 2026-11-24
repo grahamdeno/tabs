@@ -2782,6 +2782,11 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   const first = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
   for (const n of [...first, "face-badge"]) {
     const f = `art/louie/v4/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} stays`);
+    assert.ok(shell.includes(`"${f}"`), `${f} stays saved for offline`);
+  }
+  for (const n of [...have, "face", "face-badge"]) {
+    const f = `art/louie/v5/louie-${n}.webp`;
     assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
@@ -2792,6 +2797,7 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
     assert.ok(fs.statSync(path.join(root, f)).size < 120 * 1024, `${f} is under 120 KB`);
   }
   assert.deepEqual(LOUIE_STAND_IN, {}, "every pose, including nervous, has its own picture");
+  assert.deepEqual(LOUIE_STAND_IN, {}, "nervous has his own picture");
   assert.equal(louieArt("worried"), "nervous");
   for (const mood of ["happy", "cheer", "sleepy", "worried", "proud", "listen"]) for (const pose of [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"]) for (const size of [44, 120]) {
     const svg = louie(mood, { pose, size }), href = svg.match(/href="([^"]+)"/)[1];
@@ -2812,6 +2818,20 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
   assert.ok(fs.existsSync(path.join(root, "art/louie/v5/louie-face.webp")), "a face-only picture");
   assert.ok(fs.existsSync(path.join(root, "art/louie/v4/louie-idle.webp")), "the first cut-outs stay");
+  assert.match(read("merch.js"), /Louie's finishes/, "his other colours are back on the Merch table");
+  for (const fin of ["pink", "teal", "black", "mint", "gold"]) {
+    assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} the first tint stays`);
+    for (const pose of have) {
+      const earlier = `art/louie/tint/${fin}/louie-${pose}.webp`;
+      const f = `art/louie/front/${fin}/louie-${pose}.webp`;
+      assert.ok(fs.existsSync(path.join(root, earlier)), `${earlier} stays`);
+      assert.ok(fs.existsSync(path.join(root, f)), f);
+      assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    }
+    assert.match(louie("worried", { finish: fin }), new RegExp(`art/louie/front/${fin}/louie-nervous.webp`), `${fin} nervous is his own picture`);
+  }
+  for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
 });
 
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
