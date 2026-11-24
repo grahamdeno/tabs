@@ -2817,6 +2817,10 @@ test("painted genre guitarists stand in for the ink drawing, and the three fixes
     assert.equal(dim.w, 800, id); assert.equal(dim.h, 800, id); assert.equal(dim.alpha, true, id);
     assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
   }
+  /* 5.0.0 took the nine unused earlier paintings out of the offline list. They stay out. */
+  for (const unused of ["classical-w.webp", "funk-m.webp", "funk-w.webp", "jazz-w.webp", "metal-m.webp", "pop-w.webp", "punk-w-v2.webp", "reggae-m.webp", "rock-w.webp"]) {
+    assert.ok(!shell.includes(`art/guitarist-painted/genres/${unused}`), `${unused} stays out of the offline list`);
+  }
   const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
   assert.equal(cleaned.genre, "punk", "a valid genre is kept");
   assert.equal(cleaned.who, "w", "a valid who is kept");
@@ -3762,7 +3766,20 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t") && !/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line) && !/^D\tart\/guitarist-painted\/pilot/.test(line));
+  /* The 24 paintings the app shows are smaller copies of the same canvases. Nothing else under art/ may change. */
+  const PAINT = new Set([
+    "blues-m", "blues-w", "classical-m", "classical-w-v2", "country-m-v2", "country-w-v2",
+    "folk-m", "folk-w", "funk-m-v2", "funk-w-v2", "indie-m", "indie-w", "jazz-m", "jazz-w-v2",
+    "metal-m-v2", "metal-w", "pop-m", "pop-w-v2", "punk-m", "punk-w-v3", "reggae-m-v2", "reggae-w",
+    "rock-m", "rock-w-v2"
+  ].map(n => `art/guitarist-painted/genres/${n}.webp`));
+  const bad = diff.split("\n").filter(Boolean).filter(line => {
+    if (line.startsWith("A\t")) return false;
+    if (/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line)) return false;
+    if (/^D\tart\/guitarist-painted\/pilot/.test(line)) return false;
+    const parts = line.split("\t");
+    return !(parts[0] === "M" && PAINT.has(parts[1]));
+  });
   assert.deepEqual(bad, [], "no existing art file was edited (the old ink drawing was deleted on Graham's go, 2026-11-23)");
 });
 
