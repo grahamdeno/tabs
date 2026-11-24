@@ -1,10 +1,10 @@
 // Louie, the mascot (Graham, 2026-11-19): a tweed combo amp. His face is on the grille cloth, a gold control plate
 // with two knobs sits under it, and he has cream gloves and brown boots. He is always a picture, never a drawing:
-// art/louie/v4/louie-<pose>.webp, cut out from Graham's pictures (the originals and the full-size cut-outs are in
-// docs/louie-tweed/). Every earlier Louie (the black one, the blue one and the code drawing) is gone.
-// Nine poses exist: cheer, horns, idle, listen, point, proud, sleepy, thumb, wave. Nervous borrows listen (LOUIE_STAND_IN)
-// until its picture arrives; to add one, put louie-<pose>.webp in art/louie/v4, add it to SHELL in sw.js and take it
-// out of LOUIE_STAND_IN.
+// art/louie/v5/louie-<pose>.webp, cut out clean from Graham's pictures (the originals stay in
+// docs/louie-tweed/, and the first cut-outs stay in docs/louie-tweed/cutouts/ and art/louie/v4/).
+// Every earlier Louie (the black one, the blue one and the code drawing) is gone.
+// Ten poses: cheer, horns, idle, listen, nervous, point, proud, sleepy, thumb, wave.
+// A face-only picture is louie-face.webp, and the round badge is louie-face-badge.webp.
 // louie(mood, { pose, size }) returns an <svg> string that shows the picture.
 //   moods: happy, cheer, sleepy, worried, proud, listen (a hand to his ear, for when the app is listening)
 //   poses: rest, hornsUp, thumb, point, wave, peace
@@ -58,9 +58,9 @@ export function louieArt(mood = "happy", pose, size = Infinity) {
   if (pose === "thumb" && size < THUMB_MIN) return "cheer";
   return ART_POSE[pose] || (mood === "cheer" ? "cheer" : "idle");
 }
-/* Poses with no picture yet, and the one each borrows. */
-export const LOUIE_STAND_IN = { nervous: "listen" };
-export const louiePic = art => `art/louie/v4/louie-${LOUIE_STAND_IN[art] || art}.webp`;
+/* Poses with no picture yet, and the one each borrows. Nervous has its own picture now. */
+export const LOUIE_STAND_IN = {};
+export const louiePic = art => `art/louie/v5/louie-${LOUIE_STAND_IN[art] || art}.webp`;
 
 const ARMS = new Set(["rest", "hornsUp", "thumb", "point", "wave", "peace"]);
 export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}) {

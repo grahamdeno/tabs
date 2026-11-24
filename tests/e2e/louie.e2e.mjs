@@ -1,4 +1,4 @@
-// Louie, the mascot (Graham, 2026-11-19): the tweed amp, always a picture (art/louie/v4), the same one in every look.
+// Louie, the mascot (Graham, 2026-11-19): the tweed amp, always a picture (art/louie/v5), the same one in every look.
 // The earlier Louies (black, blue and the code drawing) are gone, and so are their tests.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { phone, LIB, skip, useBrowser, settled } from "./harness.mjs";
 useBrowser();
 
 const libWith = (theme, extra = {}) => ({ ...LIB, settings: { ...LIB.settings, v: 6, theme }, ...extra });
-const HAVE = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
+const HAVE = ["cheer", "horns", "idle", "listen", "nervous", "point", "proud", "sleepy", "thumb", "wave"];
 
 /* what one Louie on the page shows: his picture, whether it loaded, his size, and anything drawn in code */
 const shown = (page, sel) => page.evaluate(async sel => {
@@ -24,7 +24,7 @@ test("Louie is the tweed picture on real screens, in all four looks, and every p
       await page.evaluate(h => { location.hash = h; }, h);
       await page.waitForSelector("#app svg.louie");
       const l = await shown(page, "#app");
-      assert.match(l.href, new RegExp(`^art/louie/v4/louie-(${HAVE.join("|")})\\.webp$`), `${look} ${h}: ${l.href}`);
+      assert.match(l.href, new RegExp(`^art/louie/v5/louie-(${HAVE.join("|")})\\.webp$`), `${look} ${h}: ${l.href}`);
       assert.equal(l.loaded, true, `${look} ${h}: the picture loads`);
       assert.equal(l.images, 1, `${look} ${h}: one picture`); assert.equal(l.drawn, 0, `${look} ${h}: nothing drawn in code`);
       assert.ok(l.iw > 20 && l.ih > 20, `${look} ${h}: he has a size on screen (${l.iw} by ${l.ih})`);
@@ -45,7 +45,7 @@ test("every mood and pose at 44 to 190 px shows one of his pictures, inside its 
       const svg = host.firstElementChild, im = svg.querySelector("image"), r = svg.getBoundingClientRect(), href = im.getAttribute("href");
       const pic = new Image(); pic.src = href; await pic.decode().catch(() => {});
       const name = `${mood} ${pose} ${size}`;
-      if (!HAVE.some(n => href === `art/louie/v4/louie-${n}.webp`)) bad.push(`${name}: ${href}`);
+      if (!HAVE.some(n => href === `art/louie/v5/louie-${n}.webp`)) bad.push(`${name}: ${href}`);
       if (!pic.naturalWidth) bad.push(`${name}: did not load`);
       if (Math.round(r.width) !== size) bad.push(`${name}: ${r.width} wide`);
       if (im.getAttribute("preserveAspectRatio") !== "xMidYMax meet") bad.push(`${name}: could be squashed`);
@@ -80,7 +80,7 @@ test("a finish bought before stays saved but no longer changes Louie, and the Me
 
 test("the Songbook hint and the maker show the new face badge, and it loads", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
-  const ok = await page.evaluate(async () => { const im = new Image(); im.src = "art/louie/v4/louie-face-badge.webp"; await im.decode().catch(() => {}); return [im.naturalWidth, im.naturalHeight]; });
+  const ok = await page.evaluate(async () => { const im = new Image(); im.src = "art/louie/v5/louie-face-badge.webp"; await im.decode().catch(() => {}); return [im.naturalWidth, im.naturalHeight]; });
   assert.deepEqual(ok, [132, 132]);
   const old = await page.evaluate(async () => Promise.all(["art/louie/v3/louie-idle-dark.webp", "art/louie/v2/louie-idle-light.webp", "art/louie/louie-face-badge.webp"].map(async f => (await fetch(f)).status)));
   assert.deepEqual(old, [404, 404, 404], "the earlier Louie pictures are gone");
