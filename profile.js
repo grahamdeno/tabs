@@ -178,6 +178,7 @@ export function renderProfile() {
 
 /* Your stats (Dark and Light). Every number comes from the journal already on the phone.
    Left out, because it is not saved: a sparkline, changes per minute, and a tempo range. */
+const STUBS = 7; /* the most ticket stubs Nights in a row draws */
 function renderStats() {
   const p = profileOf(data);
   Tabs.save(data);
@@ -186,11 +187,12 @@ function renderStats() {
   const shows = (data.gig && data.gig.shows) || 0;
   const stubs = n <= 0
     ? `<div class="pf-stub wait"><b>Night 1</b><small>Tonight</small></div>${[2, 3, 4, 5].map(k => `<div class="pf-stub ghost" aria-hidden="true"><b>${k}</b></div>`).join("")}`
-    : Array.from({ length: n }, (_, i) => {
-      const k = i + 1;
+    : Array.from({ length: Math.min(n, STUBS) }, (_, i) => {
+      const k = n - Math.min(n, STUBS) + i + 1; /* a long run shows its most recent nights, ending with the latest */
       return `<div class="pf-stub on"><b>Night ${k}</b>${st.today && k === n ? "<small>Tonight</small>" : ""}</div>`;
     }).join("");
   const runLabel = n <= 0 ? "Nights in a row: 0. Night 1 is waiting." : `${n} ${n === 1 ? "night" : "nights"} in a row`;
+  const runCap = n <= 0 ? "Play tonight to start a run" : n > STUBS ? `${n.toLocaleString("en-US")} nights in a row` : "";
   const bars = p.bars || { mode: "none", bars: [] };
   const max = Math.max(1, ...bars.bars.map(b => b.secs));
   const mins = Math.round(bars.bars.reduce((a, b) => a + b.secs, 0) / 60);
@@ -209,12 +211,14 @@ function renderStats() {
       ${tempo.avg > 0 ? `<div class="pf-bpm"><b>${Math.round(tempo.avg)}</b><small>bpm on average</small>${trendLine ? `<span class="pf-trend">${trendLine}</span>` : ""}</div>` : ""}
     </div></section>` : "";
   app.innerHTML = `<div class="pf-stats-page">
-    <header class="pf-st-h"><h1>Your stats</h1><p>Hours, when you play, your changes, keys and tempo</p></header>
-    <section class="pf-block pf-run"><p class="pf-over">Nights in a row</p><div class="pf-stubs" role="img" aria-label="${runLabel}">${stubs}</div>${n <= 0 ? `<p class="pf-cap">Play tonight to start a run</p>` : ""}<p class="pf-shows">Shows played: <b>${shows.toLocaleString("en-US")}</b></p></section>
+    <header class="pf-st-h"><div class="pf-ch-top"><button type="button" class="ib" id="back" aria-label="Back to Me">${icon("back")}</button><h1>Your stats</h1><span></span></div><p>Hours, when you play, your changes, keys and tempo</p></header>
+    <section class="pf-block pf-run"><p class="pf-over">Nights in a row</p><div class="pf-stubs" role="img" aria-label="${runLabel}">${stubs}</div>${runCap ? `<p class="pf-cap" id="pf-run-cap">${runCap}</p>` : ""}<p class="pf-shows">Shows played: <b>${shows.toLocaleString("en-US")}</b></p></section>
     <section class="pf-block pf-tour"><p class="pf-over">Tour time</p><div class="pf-poster"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)}</span><small>played</small></div>${barsHTML}</section>
     ${heat}${best}${keys}
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>
   </div>`;
+  document.getElementById("back").onclick = () => go("#/you");
+  const strip = app.querySelector(".pf-stubs"); if (strip && n > 0) strip.scrollLeft = strip.scrollWidth; /* the latest night is in view */
   app.querySelectorAll("[data-drill]").forEach(b => b.onclick = () => go("#/practice/" + encodeURIComponent("s:" + b.dataset.drill)));
 }
 

@@ -270,6 +270,26 @@ test("Your stats: an empty week uses the last 4 weeks, and a run of 0 waits on N
   assert.equal(await page.locator(".pf-stub.wait").count(), 1);
 });
 
+test("Your stats: Back returns to Me, and a 40-night run shows its last 7 tickets with the count in words", { skip: skip() }, async t => {
+  const lib = statsLib("dark", true), days = {};
+  for (let k = 0; k < 40; k++) days[statsDay(k)] = 1;
+  lib.songs = [{ ...lib.songs[0], playLog: { total: 40, last: STATS_NOW, days } }];
+  const page = await phone(t, lib, { home: true, fixedTime: STATS_NOW, colorScheme: "dark", viewport: { width: 320, height: 640 } });
+  await page.evaluate(() => { location.hash = "#/you/stats"; });
+  await page.waitForSelector(".pf-stats-page"); await settled(page);
+  assert.deepEqual(await page.locator(".pf-stub.on b").allInnerTexts().then(a => a.map(x => x.trim().toUpperCase())), [34, 35, 36, 37, 38, 39, 40].map(k => `NIGHT ${k}`), "the last seven nights, ending with the latest");
+  assert.match(await page.innerText(".pf-stub.on:last-child"), /tonight/i, "tonight's ticket is shown");
+  assert.ok(await page.evaluate(() => { const s = document.querySelector(".pf-stubs").getBoundingClientRect(), l = document.querySelector(".pf-stub.on:last-child").getBoundingClientRect(); return l.left >= s.left - 1 && l.right <= s.right + 1; }), "the latest ticket is in view without scrolling");
+  assert.equal((await page.innerText("#pf-run-cap")).trim(), "40 nights in a row", "the full count is in words");
+  assert.equal(await page.getAttribute(".pf-stubs", "aria-label"), "40 nights in a row");
+  const box = await page.locator("#back").boundingBox();
+  assert.ok(box.width >= 44 && box.height >= 44, "Back is a 44 px target");
+  assert.equal(await page.getAttribute("#back", "aria-label"), "Back to Me");
+  await page.click("#back");
+  await page.waitForFunction(() => location.hash === "#/you");
+  await page.waitForSelector("#pf-open-stats");
+});
+
 test("Chord cards: learned cards are teal buttons, locked cards keep a gray diagram, and the shelf peeks", { skip: skip() }, async t => {
   const page = await phone(t, statsLib("dark", true), { home: true, fixedTime: STATS_NOW, colorScheme: "dark" });
   await page.evaluate(() => { location.hash = "#/you"; });
