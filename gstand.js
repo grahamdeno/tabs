@@ -22,13 +22,16 @@ export function standPic(body) {
    put it in the row before that leg is marked done. A road id kept in guitars.seen is shown too. */
 export function collectionOf(data, extraId) {
   const legs = roadPath(data).legs;
-  const earned = new Set(guitarsEarned(data));
+  /* 2026-11-23: headlining a leg earns the next leg's guitar too (guitarNew announces it, "Cornerstone is
+     yours"), so the case holds it, labelled with the leg that earned it. The headlined leg's own guitar stays. */
+  const done = guitarsEarned(data), earned = new Set(done), wonOn = {};
+  for (const id of done) { const li = legs.findIndex(l => l.id === id); const nx = legs[li + 1]; if (li >= 0 && nx) { earned.add(nx.id); if (!(nx.id in wonOn)) wonOn[nx.id] = li; } }
   const seen = new Set(Array.isArray(data.guitars?.seen) ? data.guitars.seen : []);
   if (extraId && GUITARS[extraId]) seen.add(extraId);
   const items = [];
   for (const id of Object.keys(GUITARS)) {
     if (!earned.has(id) && !seen.has(id)) continue;
-    const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = li >= 0 ? legs[li] : null;
+    const g = GUITARS[id], li = wonOn[id] ?? legs.findIndex(l => l.id === id), lg = li >= 0 ? legs[li] : null;
     const painted = standPic(g.body);
     const bp = data.builds?.[id] ? buildPic(id, data.builds[id], painted) : { src: painted, attr: "" };
     const got = earned.has(id) && lg;

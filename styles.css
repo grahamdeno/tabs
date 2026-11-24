@@ -5506,7 +5506,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
   height: calc(var(--gs-h) + var(--gs-leg) + 4px);
   padding-bottom: var(--gs-leg);
   overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none;
-  overscroll-behavior-x: contain; touch-action: pan-x;
+  overscroll-behavior-x: contain; touch-action: pan-x pan-y; /* 2026-11-23: a vertical swipe on the guitars scrolls the page */
 }
 .gs-track::-webkit-scrollbar { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .gs-track::before,
