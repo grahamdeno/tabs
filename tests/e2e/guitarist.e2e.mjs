@@ -33,25 +33,25 @@ test("4.85.0 Skip keeps the default and doesn't ask again", { skip: skip() }, as
   assert.equal(await page.locator(".gm").count(), 0);
 });
 
-test("4.85.0 your profile card shows your guitarist; the maker changes it and saves as you tap", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: { skin: 4, hair: "locs", hairCol: "purple", top: "teal" } }, { home: true });
+test("painted-only: the maker offers 12 genres, man or woman and left-handed; each choice saves as you tap and shows its painting", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: { genre: "blues", who: "w" } }, { home: true });
   await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/you"); await page.waitForSelector(".rr-me");
-  assert.equal(await page.locator('.rr-avatar svg[aria-label="Your guitarist"]').count(), 1); /* Road Ready 08: the avatar in the header */
+  assert.equal(await page.locator('.rr-avatar svg[aria-label="Your guitarist"]').count(), 1);
   await page.click("#pf-me"); await page.waitForSelector(".gm");
-  assert.equal(await page.locator(".gm button[aria-pressed]").count() > 15, true, "every choice on the Face tab is a pressed-state button");
-  /* the maker: Face is the first tab, Hair the second; Lefty is the flip on the card */
-  await page.click('.gm [data-k="specs"][data-v="square"]');
-  await page.click('.gm [data-k="lefty"][data-v="true"]');
-  await page.click('.gm [data-k="beard"][data-v="stubble"]');
-  /* the face parts (2026-11-20): face shape, eyes, eye colour, brows, nose and freckles, each saved as you tap */
-  for (const [k, v] of [["face", "heart"], ["eyes", "wide"], ["eyeCol", "green"], ["brows", "arched"], ["nose", "broad"], ["freckles", "true"]]) await page.click(`.gm [data-k="${k}"][data-v="${v}"]`);
-  await page.click("#gm-t-hair");
-  await page.click('.gm [data-k="hair"][data-v="pixie"]');
-  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.hair === "pixie" && m.glasses && m.specs === "square" && m.lefty && m.beard === "stubble" && m.face === "heart" && m.eyes === "wide" && m.eyeCol === "green" && m.brows === "arched" && m.nose === "broad" && m.freckles === true; });
-  assert.equal(await page.locator(".gm .gm-hero").getAttribute("alt"), "Your guitarist");
-  assert.equal(await page.locator(".gm-starts").count(), 0, "the old face chips are hidden");
-  await page.click("#gm-t-fit");
-  assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 3, "the three hats are locked until bought");
+  assert.equal(await page.locator('.gm [data-k="genre"]').count(), 12, "12 genres");
+  assert.equal(await page.locator('.gm [data-k="who"]').count(), 2, "man or woman");
+  assert.equal(await page.locator('.gm [data-k="lefty"]').count(), 1, "left-handed");
+  assert.equal(await page.locator(".gm button[aria-pressed]").count(), 15, "12 + 2 + 1 choices, and nothing else");
+  assert.equal(await page.locator("#gm-t-hair, #gm-t-fit, .gm-selfie, .gm-port, .gm-starts").count(), 0, "no face, hair or fit tabs, selfie or portrait");
+  assert.match(await page.getAttribute(".gm .gm-hero", "src"), /blues-w/, "the preview is the saved painting");
+  for (const g of ["rock", "punk", "metal", "blues", "country", "folk", "jazz", "classical", "indie", "funk", "reggae", "pop"]) for (const w of ["m", "w"]) {
+    await page.click(`.gm [data-k="genre"][data-v="${g}"]`); await page.click(`.gm [data-k="who"][data-v="${w}"]`);
+    assert.match(await page.getAttribute(".gm .gm-hero", "src"), new RegExp(`/${g}-${w}`), `${g} ${w}`);
+  }
+  await page.click('.gm [data-k="lefty"]');
+  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.genre === "pop" && m.who === "w" && m.lefty === true; });
+  const me = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).me);
+  assert.deepEqual(Object.keys(me).sort(), ["genre", "lefty", "who"], "only three fields are kept");
   await page.click("#gm-ok"); await page.waitForSelector(".rr-me");
   assert.equal(await page.locator(".gm").count(), 0);
 });
@@ -78,18 +78,45 @@ test("4.85.0 a duel shows your guitarist, worried when you lost", { skip: skip()
   assert.equal(await page.getAttribute('.du-av.me svg[aria-label="Your guitarist"]', "data-mood"), "worried", "the worried face after a loss");
 });
 
-test("4.85.0 a hat bought on the Merch table goes on your guitarist and shows in the maker", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, merch: { tips: 400 }, songs: PLAYED(LIB.songs) }, { home: true });
-  await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/merch/looks"); await page.waitForSelector(".mc"); /* 4.104.0: hats are on the Looks tab */
-  assert.equal(await page.locator(".mc-fin[aria-label$='for your guitarist']").count(), 3, "three hats");
-  await page.click('[data-id="wear-beanie"]'); await page.waitForSelector(".mt");
-  assert.match(await page.innerText(".mt"), /TRY IT ON YOUR GUITARIST[\s\S]*Beanie[\s\S]*BUY FOR \$150/);
-  await page.click("#mt-buy");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).me?.extra === "beanie");
-  const s = await stored(page);
-  assert.equal(s.merch.tspent, 150, "paid in tips");
-  await hash(page, "#/you"); await page.waitForSelector("#pf-me"); await page.click("#pf-me"); await page.waitForSelector(".gm");
-  await page.click("#gm-t-fit");
-  assert.equal(await page.locator('.gm [data-k="extra"][data-v="beanie"][aria-pressed="true"]').count(), 1, "wearing it");
-  assert.equal(await page.locator('.gm .gm-c.lock[disabled]').count(), 2, "cap and bandana still locked");
+test("painted-only: no hat is on the Merch table, a hat can't be bought, and a hat already bought stays", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, merch: { tips: 400, has: ["wear-cap"] }, songs: PLAYED(LIB.songs) }, { home: true });
+  await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/merch/looks"); await page.waitForSelector(".mc");
+  assert.equal(await page.locator(".mc-fin, [data-id^='wear-']").count(), 0, "no hat is offered");
+  const r = await page.evaluate(async () => { const C = await import("/core.js"), app = await import("/app.js"); const out = C.merchBuy(app.data, "wear-beanie"); return { out, has: app.data.merch.has, spent: app.data.merch.tspent || 0 }; });
+  assert.equal(r.out.why, "retired"); assert.equal(r.spent, 0, "nothing is charged");
+  assert.ok(r.has.includes("wear-cap"), "a hat bought earlier stays saved");
+});
+
+test("painted-only: every place that draws a player draws a painting", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: { genre: "jazz", who: "w", lefty: true } }, { home: true });
+  await page.waitForSelector("#rd-bubble, .rr-stats");
+  const svgs = await page.evaluate(async () => { const g = await import("./guitarist.js"); return [g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }), g.you(JSON.parse(localStorage.getItem("tabs-v1")), { crop: "bust" }), g.rival("Sarah", "Opener")]; });
+  for (const v of svgs) assert.match(v, /art\/guitarist-painted\/genres\/[a-z-]+\.webp/);
+  assert.match(svgs[0], /jazz-w/); assert.match(svgs[0], /scale\(-1 1\)/, "mirrored for a left-handed player");
+  await hash(page, "#/charts"); await page.waitForSelector(".ch-row");
+  assert.ok(await page.locator(".ch-row image[href*='guitarist-painted']").count() >= 6, "the chart rows are paintings");
+  await hash(page, "#/you"); await page.waitForSelector(".rr-me");
+  assert.ok(await page.locator(".rr-avatar image[href*='guitarist-painted']").count() >= 1, "the profile is a painting");
+});
+
+test("painted-only: the portrait database and the xAI key are deleted once on first start", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs) }, { home: true });
+  await page.waitForSelector("#rd-bubble, .rr-stats");
+  await page.waitForFunction(() => localStorage.getItem("tabs.portraitgone.v1") === "1");
+  /* put the leftovers back as an older version would have left them, and clear the once-flag */
+  await page.evaluate(async () => {
+    localStorage.setItem("tabs.xaikey.v1", "xai-test-not-a-real-key"); localStorage.removeItem("tabs.portraitgone.v1");
+    await new Promise((ok, no) => { const r = indexedDB.open("tabs-portrait", 1); r.onupgradeneeded = () => r.result.createObjectStore("p"); r.onsuccess = () => { r.result.close(); ok(); }; r.onerror = no; });
+  });
+  assert.ok((await page.evaluate(() => indexedDB.databases())).some(d => d.name === "tabs-portrait"), "the old database exists");
+  await page.reload(); await page.waitForSelector("#rd-bubble, .rr-stats");
+  await page.waitForFunction(() => localStorage.getItem("tabs.portraitgone.v1") === "1");
+  assert.equal(await page.evaluate(() => localStorage.getItem("tabs.xaikey.v1")), null, "the key is gone");
+  assert.ok(!(await page.evaluate(() => indexedDB.databases())).some(d => d.name === "tabs-portrait"), "the database is gone");
+  /* once: a later start leaves a key alone (it is not read or used by anything, so this only proves the flag) */
+  await page.evaluate(() => localStorage.setItem("tabs.xaikey.v1", "again"));
+  await page.reload(); await page.waitForSelector("#rd-bubble, .rr-stats");
+  assert.equal(await page.evaluate(() => localStorage.getItem("tabs.xaikey.v1")), "again", "it runs once");
+  /* Settings has no xAI section and the CSP no longer names xAI */
+  assert.ok(!(await page.evaluate(() => document.querySelector('meta[http-equiv="Content-Security-Policy"]').content)).includes("x.ai"));
 });

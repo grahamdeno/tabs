@@ -21,7 +21,7 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   /* 1: your guitarist: the painted picture, then THAT'S ME. No fans, and the Road keeps the genre you picked */
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector(".gm");
-  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Start from a selfie[\s\S]*Change anything later on Your profile/);
+  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Change anything later on Your profile/);
   assert.equal(await page.locator('.gm img.gm-hero[alt="Your guitarist"]').count(), 1, "the preview");
   await page.click('.gm [data-k="genre"][data-v="punk"]');
   await page.click('.gm [data-k="who"][data-v="w"]');
