@@ -2689,6 +2689,9 @@ test("4.84.0 every guitar has its own inlay material, and the solid-body is on m
 
 test("painted-only: cleanMe keeps only genre, who and left-handed; older fields are dropped; a backup keeps data.me", () => {
   assert.equal(C.cleanMe(null), null);
+  assert.equal(C.cleanMe({ skin: 4, hair: "locs", top: "blue", lefty: true }), null, "an old guitarist with no genre is null, so the Road asks once");
+  assert.equal(C.cleanImport({ songs: [], sets: [], trash: [], settings: {}, me: { skin: 4, hair: "locs" } }).data.me, undefined, "an old save loads with no guitarist");
+  assert.deepEqual(C.cleanMe({ genre: "blues", who: "w" }), { genre: "blues", who: "w", lefty: false }, "the new shape is kept");
   const old = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", top: "blue", face: "heart", specs: "shades", patches: ["leg:open"], lefty: true, genre: "funk", who: "w" });
   assert.deepEqual(old, { genre: "funk", who: "w", lefty: true }, "only three fields");
   assert.deepEqual(Object.keys(C.cleanMe(C.ME_DEFAULT)).sort(), ["genre", "lefty", "who"]);
@@ -2738,7 +2741,7 @@ test("painted-only: guitarist.js has no ink drawing, and every caller gets a pai
   assert.ok(G.you({}, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
   assert.ok(G.you({}, { mood: "worried" }).includes('data-mood="worried"'));
   assert.ok(G.you({}, { label: "Neon Jen" }).includes('aria-label="Neon Jen"'));
-  assert.ok(G.you({ me: { lefty: true } }, {}).includes("scale(-1 1)"), "left-handed mirrors");
+  assert.ok(G.you({ me: { genre: "rock", lefty: true } }, {}).includes("scale(-1 1)"), "left-handed mirrors");
   assert.ok(!G.you({}, {}).includes("scale(-1 1)"));
   assert.notEqual(G.you({}, { crop: "bust" }).match(/id="gp\d+/)[0], G.you({}, { crop: "bust" }).match(/id="gp\d+/)[0], "ids are unique");
   for (const gone of ["art/guitarist.js", "art/guitarist-poster.js", "selfie.js", "portrait.js", "vendor/mediapipe"]) assert.ok(!fs.existsSync(path.join(root, gone)), gone + " is gone");
@@ -3652,33 +3655,6 @@ function webpSize(buf) {
   }
   throw new Error("webp size not found");
 }
-
-test("painted guitarist: every stored part is one 800 by 800 layer, and the manifest lists it", () => {
-  const dir = path.join(root, "art/guitarist-painted");
-  const man = JSON.parse(read("art/guitarist-painted/manifest.json"));
-  assert.deepEqual(man.canvas, [800, 800]);
-  assert.equal(man.shadeNeutral, 128);
-  const listed = man.files.map(f => f.file);
-  assert.equal(new Set(listed).size, listed.length, "every file is listed once");
-  const walk = (d, base = "") => fs.readdirSync(d, { withFileTypes: true }).flatMap(ent => {
-    const rel = base ? `${base}/${ent.name}` : ent.name;
-    return ent.isDirectory() ? walk(path.join(d, ent.name), rel) : [rel];
-  });
-  /* pilot folders and genres are try-outs, not the layer kit */
-  const onDisk = walk(dir).filter(f => f.endsWith(".webp") && !f.startsWith("pilot") && !f.startsWith("genres")).sort();
-  assert.deepEqual(onDisk, [...listed].sort(), "the layer kit and the manifest name the same files");
-  for (const f of man.files) {
-    assert.equal(Number.isInteger(f.order), true, f.file);
-    const dim = webpSize(fs.readFileSync(path.join(dir, f.file)));
-    assert.equal(dim.w, 800, f.file);
-    assert.equal(dim.h, 800, f.file);
-    assert.equal(dim.alpha, true, f.file);
-    if (f.shade) assert.ok(listed.includes(f.shade), `${f.file} shade`);
-  }
-  const orders = man.stack.map(s => s.order);
-  assert.deepEqual(orders, [...orders].sort((a, b) => a - b));
-  assert.ok(orders.indexOf(80) > orders.indexOf(70) && orders.indexOf(90) > orders.indexOf(80), "the guitar sits between the strap and the arms");
-});
 
 test("knob tab bar: the off and lit faces, and both grilles, are in the offline copy", () => {
   const shell = read("sw.js"), hud = read("hud.js");

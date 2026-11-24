@@ -298,7 +298,7 @@ export const ME_GENRE = ["rock", "punk", "metal", "blues", "country", "folk", "j
 export const ME_WHO = ["m", "w"];
 export const ME_DEFAULT = { lefty: false, genre: "rock", who: "m" };
 export function cleanMe(raw) {
-  if (!isObj(raw)) return null;
+  if (!isObj(raw) || !raw.genre) return null; /* a guitarist from before the paintings has no genre: null, so the Road asks once (Who's playing tonight?) */
   const pick = (v, list, d) => list.includes(v) ? v : d;
   return { genre: pick(raw.genre, ME_GENRE, "rock"), who: pick(raw.who, ME_WHO, "m"), lefty: raw.lefty === true };
 }
