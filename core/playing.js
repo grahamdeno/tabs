@@ -132,6 +132,62 @@ export const PASSPORT = [
 ];
 const BARRES = new Set(["F", "Bm", "F#m", "Bb", "B", "C#m", "Gm", "Cm", "G#m", "Fm", "Ab", "Eb", "Db"]);
 export const isBarre = c => BARRES.has(String(c).replace(/\/.*$/, ""));
+
+/* When you play: one sentence from the day and time grid. Names a time of day only when
+   that part is clearly ahead, and names the days that share it. */
+const WHEN_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WHEN_PARTS = ["mornings", "afternoons", "evenings", "late nights"];
+const joinNames = names => names.length <= 1 ? (names[0] || "") : names.length === 2 ? `${names[0]} and ${names[1]}` : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+export function whenYouPlay(grid) {
+  if (!Array.isArray(grid) || grid.length !== 7) return "";
+  const cell = (d, p) => +grid[d]?.[p] || 0;
+  let total = 0;
+  for (let d = 0; d < 7; d++) for (let p = 0; p < 4; p++) total += cell(d, p);
+  if (!total) return "";
+  const partSums = [0, 1, 2, 3].map(p => { let n = 0; for (let d = 0; d < 7; d++) n += cell(d, p); return n; });
+  const daySums = Array.from({ length: 7 }, (_, d) => { let n = 0; for (let p = 0; p < 4; p++) n += cell(d, p); return n; });
+  const topPart = partSums.indexOf(Math.max(...partSums));
+  const ranked = [...partSums].sort((a, b) => b - a);
+  const partClear = ranked[0] >= ranked[1] * 1.25 && ranked[0] / total >= 0.4;
+  const peak = Math.max(...Array.from({ length: 7 }, (_, d) => cell(d, topPart)));
+  const days = WHEN_DAYS.filter((_, d) => cell(d, topPart) >= peak * 0.5 && cell(d, topPart) > 0);
+  if (partClear && days.length && days.length <= 3) return `You play most on ${joinNames(days)} ${WHEN_PARTS[topPart]}`;
+  if (partClear) return `You play most in the ${WHEN_PARTS[topPart]}`;
+  const dayPeak = Math.max(...daySums);
+  const topDays = WHEN_DAYS.filter((_, d) => daySums[d] >= dayPeak * 0.5 && daySums[d] > 0);
+  if (topDays.length && topDays.length <= 3 && dayPeak / total >= 0.28) return `You play most on ${joinNames(topDays)}`;
+  return "You play across the week, with no one time standing out";
+}
+
+/* The hours chart: the last seven days, or the last four calendar weeks when that week is empty.
+   No bars at all when both are empty, so the chart never draws a row of flat lines. */
+const BAR_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export function playBars(days, now = Date.now()) {
+  const map = days && typeof days === "object" ? days : {};
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const t = now - (6 - i) * DAY;
+    return { label: "SMTWTFS"[new Date(t).getDay()], secs: +map[dayKey(t)] || 0 };
+  });
+  if (last7.some(b => b.secs > 0)) return { mode: "days", caption: "", bars: last7 };
+  const monday = new Date(now);
+  monday.setHours(12, 0, 0, 0);
+  const wd = monday.getDay();
+  monday.setDate(monday.getDate() - (wd === 0 ? 6 : wd - 1));
+  const weeks = Array.from({ length: 4 }, (_, i) => {
+    const start = new Date(monday);
+    start.setDate(monday.getDate() - (3 - i) * 7);
+    let secs = 0;
+    for (let k = 0; k < 7; k++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + k);
+      secs += +map[dayKey(d)] || 0;
+    }
+    return { label: `${BAR_MONTHS[start.getMonth()]} ${start.getDate()}`, secs };
+  });
+  if (weeks.some(b => b.secs > 0)) return { mode: "weeks", caption: "Your last 4 weeks", bars: weeks };
+  return { mode: "none", caption: "", bars: [] };
+}
+
 // Everything the profile page shows, worked out from the library and journal.
 export function profileOf(data, now = Date.now()) {
   const j = journalOf(data, now), songs = data.songs || [];
@@ -178,6 +234,8 @@ export function profileOf(data, now = Date.now()) {
     changes: changes.slice(0, 5),
     keys: keys.slice(0, 5), tempo: { avg: avg(tempo), recent: avg(recent), earlier: avg(earlier), months: tempo.slice(-12) },
     rhythm: { grid, top: top && `${DAYS[top.d]} ${parts[top.p][2]}`, bestMonth: bestMonth && { m: bestMonth, plays: j.months[bestMonth].plays } },
+    whenLine: whenYouPlay(grid),
+    bars: playBars(j.days, now),
     /* 4.19.0: seconds played on each of the last seven days, oldest first */
     week: Array.from({ length: 7 }, (_, i) => { const t = now - (6 - i) * DAY; return { day: "SMTWTFS"[new Date(t).getDay()], secs: (j.days || {})[dayKey(t)] || 0 }; }),
     repertoire, yearAgo: repertoire[0].n,
