@@ -6041,6 +6041,8 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 :root:is([data-look="neon"], [data-look="festival"]) .amp-meta { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; margin-top: 4px; padding: 0 16px; font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #eadbc0; }
 :root:is([data-look="neon"], [data-look="festival"]) .amp-bar .amp-track { display: block; height: 2px; min-height: 2px; border-radius: 2px; background: #8a8174; overflow: hidden; }
 :root:is([data-look="neon"], [data-look="festival"]) .amp-bar .amp-track i { display: block; height: 2px; width: 0; background: var(--rr-amber-text); }
+/* The length slider stays in the page for the Speed dial. It is not a second progress line. */
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .dock:has(.amp-bar) .speed { display: none !important; }
 :root:is([data-look="neon"], [data-look="festival"]) .amp-slot .newdot { position: absolute; top: 8px; right: 18px; }
 :root:is([data-look="neon"], [data-look="festival"]) .amp-meta .setdial { height: 32px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: #eadbc0; font: 700 12px/1 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .amp-slot:focus-visible, :root:is([data-look="neon"], [data-look="festival"]) .amp-bar #play:focus-visible { outline: 2px solid var(--rr-amber-text); outline-offset: 3px; border-radius: 12px; }

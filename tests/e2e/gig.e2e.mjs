@@ -740,8 +740,51 @@ test("4.108.0 Dark and Light: the song controls are an amp-style bar, Speed, a l
     return { fill: getComputedStyle(document.querySelector(".amp-track i")).backgroundColor, teal };
   });
   assert.equal(fill.fill, fill.teal, "the progress fill is the cool teal");
+  const lines = await page.evaluate(() => {
+    const shown = el => {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      return s.visibility !== "hidden" && r.width > 20 && r.height > 1;
+    };
+    return {
+      ranges: [...document.querySelectorAll("input[type=range]")].filter(shown).map(el => el.id),
+      tracks: [...document.querySelectorAll(".amp-track")].filter(shown).length,
+      gigLine: [...document.querySelectorAll(".gig > .gg-prog")].filter(shown).length
+    };
+  });
+  assert.deepEqual(lines.ranges, [], "no second slider under the bar");
+  assert.equal(lines.tracks, 1, "one progress line, inside the amp bar");
+  assert.equal(lines.gigLine, 0, "the Gig does not add a line under the bar");
   await page.keyboard.press("Shift"); await page.click("#more"); await page.waitForSelector(".menu[aria-label='Tools']");
   await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+});
+
+test("Dark and Light: while a song plays, the only progress line is the one inside the amp bar", { skip: skip() }, async t => {
+  const shown = () => {
+    const vis = el => {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      return s.visibility !== "hidden" && r.width > 20 && r.height > 1;
+    };
+    return {
+      ranges: [...document.querySelectorAll("input[type=range]")].filter(vis).map(el => el.id),
+      inside: [...document.querySelectorAll(".amp-track")].filter(vis).every(el => el.closest("#amp-bar")),
+      tracks: [...document.querySelectorAll(".amp-track")].filter(vis).length,
+      speed: !!document.getElementById("speed")
+    };
+  };
+  for (const theme of ["dark", "light"]) {
+    const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme, plainPlay: true, countIn: false } }, { isMobile: true });
+    await page.evaluate(() => { location.hash = "#/song/g"; });
+    await page.waitForSelector("#amp-bar"); await settled(page);
+    await page.click("#play");
+    await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
+    const lines = await page.evaluate(shown);
+    assert.deepEqual(lines.ranges, [], theme + ": no slider under the bar");
+    assert.equal(lines.tracks, 1, theme + ": one progress line");
+    assert.equal(lines.inside, true, theme + ": that line is inside the amp bar");
+    assert.equal(lines.speed, true, theme + ": Speed still has its slider for the dial");
+  }
 });
 
 test("4.111.0 Speed shows its setting, lit when not 1.0x, on the song page and in the Gig; the dial puts it back to 1.0x in one tap", { skip: skip() }, async t => {
