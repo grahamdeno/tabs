@@ -277,14 +277,14 @@ test("4.52.0 unscored play is on the stage too: the band and the chord you're on
   assert.equal(await page.locator("#sheet .st-now, #st-bg").count(), 0, "paused, the page is as it was");
 });
 
-test("4.54.0 no section bar over the stage, in a show or in practice; the page's own rail still jumps", { skip: skip() }, async t => {
+test("4.54.0 no section bar over the stage, in a show or in practice (5.3.1: no section rail on the page either)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   assert.equal(await page.locator("#st-map, .gg-map").count(), 0, "unscored play has no bar");
   await page.evaluate(() => document.querySelector(".fp-play, #play")?.click());
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
-  assert.ok(await page.locator(".smap").count() > 0, "paused, the page's own rail is as it was");
+  assert.equal(await page.locator(".smap").count(), 0, "5.3.1: the section rail is gone, paused too");
 });
 
 test("4.54.0 the chords row on the song page is shape tiles: name over a diagram, 44 px or taller, tap marks the chord", { skip: skip() }, async t => {
