@@ -14,7 +14,7 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   await page.waitForSelector(".on-night");
   assert.match(await page.innerText(".on-night"), /Opening night/); assert.equal(await page.getAttribute(".on-night", "aria-label"), "Opening night");
   assert.equal(await page.locator('.on-path [data-stop^="o:"]').count(), 9, "nine steps on the guitar neck");
-  assert.equal(await page.locator(".on-path .rn-neck").count(), 1, "Opening night is one rosewood neck"); assert.equal(await page.locator(".on-path .rn-next").count(), 1, "with Leg 1 named in the gutter below it");
+  assert.equal(await page.locator(".on-path .rn-neck").count(), 1, "Opening night is one rosewood neck"); assert.equal(await page.locator(".rn-lat.rn-next").count(), 1, "Leg 1 is marked where it starts, not written in the gutter");
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
@@ -75,25 +75,80 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   await page.waitForFunction(() => document.body.classList.contains("playing") && !document.querySelector(".on-count"));
 });
 
-for (const width of [390, 320]) {
-  test(`Opening night at ${width} wide: stop 1 and its line sit fully below the header at first load`, { skip: skip() }, async t => {
-    const page = await phone(t, { ...FRESH, settings: { ...FRESH.settings, theme: "dark" } }, { home: true, viewport: { width, height: 844 } });
+for (const width of [390, 320]) for (const theme of ["dark", "light"]) {
+  test(`Opening night at ${width} wide (${theme}): the leg line, Skip and the now plate sit on the screen`, { skip: skip() }, async t => {
+    const page = await phone(t, { ...FRESH, settings: { ...FRESH.settings, theme } }, { home: true, viewport: { width, height: 844 }, reducedMotion: "reduce" });
     await page.waitForSelector(".rd-node.now .rn-pearl");
-    await page.waitForSelector(".rn-bubble");
+    await page.waitForSelector("#rn-now");
     await settled(page);
     const box = await page.evaluate(() => {
       const header = document.querySelector("header.rr-head").getBoundingClientRect();
+      const leg = document.querySelector(".rn-legbar").getBoundingClientRect();
+      const line = document.querySelector(".rn-legline");
       const stop = document.querySelector(".rd-node.now").getBoundingClientRect();
-      const bubble = document.querySelector(".rn-bubble").getBoundingClientRect();
-      return { headerBottom: header.bottom, scroll: document.getElementById("rd-path").scrollTop, stop, bubble, vw: innerWidth, vh: innerHeight, text: document.querySelector(".rn-bubble").textContent };
+      const nut = document.querySelector(".rn-nut").getBoundingClientRect();
+      const plate = document.getElementById("rn-now").getBoundingClientRect();
+      const tabs = document.getElementById("tabs").getBoundingClientRect();
+      const skip = document.getElementById("on-skip").getBoundingClientRect();
+      const open = document.getElementById("rn-now-open").getBoundingClientRect();
+      const start = document.getElementById("rn-now-start").getBoundingClientRect();
+      const name = document.querySelector(".rn-now-tx");
+      const neck = document.querySelector(".rn-neck").getBoundingClientRect();
+      const walker = document.createTreeWalker(document.getElementById("rd-path"), NodeFilter.SHOW_TEXT);
+      const gutter = [];
+      while (walker.nextNode()) {
+        const t = walker.currentNode.textContent.trim();
+        if (!t) continue;
+        const range = document.createRange();
+        range.selectNodeContents(walker.currentNode);
+        const rect = range.getBoundingClientRect();
+        if (rect.width && rect.right <= neck.left + 2) gutter.push(t);
+      }
+      const lh = parseFloat(getComputedStyle(line).lineHeight) || parseFloat(getComputedStyle(line).fontSize) * 1.2;
+      return {
+        headerBottom: header.bottom, scroll: document.getElementById("rd-path").scrollTop, stop, leg, nut, plate, tabs, skip, open, start,
+        vw: innerWidth, vh: innerHeight, line: line.innerText, name: name.textContent,
+        oneLine: line.getBoundingClientRect().height <= lh + 2,
+        lineFits: line.scrollWidth <= line.clientWidth + 1, nameFits: name.scrollWidth <= name.clientWidth + 1,
+        skipName: document.getElementById("on-skip").getAttribute("aria-label"),
+        openName: document.getElementById("rn-now-open").getAttribute("aria-label"),
+        startName: document.getElementById("rn-now-start").getAttribute("aria-label"),
+        side: document.querySelectorAll(".rn-bubble, .rn-leg").length, gutter
+      };
     });
     assert.equal(box.scroll, 0, "first load has not scrolled the neck up under the header");
-    assert.match(box.text, /Who's playing tonight/);
-    for (const [name, r] of [["stop 1", box.stop], ["the line", box.bubble]]) {
-      assert.ok(r.top >= box.headerBottom - 0.5, `${name} starts at ${r.top}, below the header at ${box.headerBottom}`);
+    assert.match(box.line, /Opening night · First steps/);
+    assert.equal(box.oneLine, true, "the leg line is one line");
+    assert.equal(box.lineFits, true, "the leg line is not clipped");
+    assert.equal(box.name, "Who's playing tonight?");
+    assert.equal(box.nameFits, true, "the stop name is not clipped");
+    assert.equal(box.skipName, "Skip opening night");
+    assert.equal(box.openName, "Who's playing tonight?, open this stop");
+    assert.equal(box.startName, "Start Who's playing tonight?");
+    assert.equal(box.side, 0, "no title or bubble in the gutter");
+    assert.deepEqual(box.gutter.filter(t => !/^\d+$/.test(t)), [], `gutter text ${box.gutter.join(", ")}`);
+    assert.ok(box.leg.top >= box.headerBottom - 1, "the leg row is under the stats");
+    assert.ok(box.nut.top >= box.leg.bottom - 2 && box.nut.top - box.leg.bottom <= 8, "the nut sits under the leg row");
+    assert.ok(box.plate.bottom <= box.tabs.top + 1, "the plate sits above the tab bar");
+    assert.ok(box.stop.top >= box.leg.bottom - 1, "stop 1 is below the leg row");
+    for (const [name, r] of [["the leg row", box.leg], ["stop 1", box.stop], ["the plate", box.plate], ["Skip", box.skip], ["the stop name", box.open], ["Start", box.start]]) {
       assert.ok(r.bottom <= box.vh + 0.5, `${name} ends at ${r.bottom}, inside the screen`);
       assert.ok(r.left >= -0.5 && r.right <= box.vw + 0.5, `${name} stays inside the width (${r.left}..${r.right} of ${box.vw})`);
-      assert.ok(r.height > 20 && r.width > 20, `${name} is fully drawn`);
+      assert.ok(r.height >= 44 && r.width >= 44, `${name} is at least 44 by 44 (${r.width} by ${r.height})`);
+    }
+    if (width === 320 && theme === "dark") {
+      await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "40px"); document.documentElement.dataset.ax = "3"; });
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const big = await page.evaluate(() => {
+        const line = document.querySelector(".rn-legline"), name = document.querySelector(".rn-now-tx");
+        const lh = parseFloat(getComputedStyle(line).lineHeight) || parseFloat(getComputedStyle(line).fontSize) * 1.2;
+        const skip = document.getElementById("on-skip").getBoundingClientRect();
+        return { one: line.getBoundingClientRect().height <= lh + 2, lineFits: line.scrollWidth <= line.clientWidth + 1, nameFits: name.scrollWidth <= name.clientWidth + 1, skip };
+      });
+      assert.equal(big.one, true, "large text keeps one leg line");
+      assert.equal(big.lineFits, true, "large text does not clip the leg line");
+      assert.equal(big.nameFits, true, "large text does not clip the stop name");
+      assert.ok(big.skip.width >= 44 && big.skip.height >= 44, `Skip stays a 44 px target (${big.skip.width} by ${big.skip.height})`);
     }
   });
 }
@@ -143,5 +198,5 @@ test("4.45.2 Opening night: tapping the last pick scrolls its card and button ab
   const page = await phone(t, { ...FRESH, opening: { step: 5, v: 2, fans: 20 } }, { home: true });
   await page.waitForSelector('[data-stop="o:8"]');
   await page.click('[data-stop="o:8"]'); await page.waitForSelector(".rd-pop");
-  await page.waitForFunction(() => { const r = document.querySelector(".rd-pop").getBoundingClientRect(), b = document.getElementById("tabs").getBoundingClientRect(); return r.bottom <= b.top; }, null, { timeout: 4000 });
+  await page.waitForFunction(() => { const r = document.querySelector(".rd-pop").getBoundingClientRect(), b = document.getElementById("rn-now").getBoundingClientRect(); return r.bottom <= b.top + 1; }, null, { timeout: 4000 });
 });

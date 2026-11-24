@@ -332,25 +332,42 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.ok(row.h <= 44, `the header is ${row.h} px tall`); assert.equal(Math.round(row.top), 0, "right under the safe area");
     for (const x of [row.row, ...row.stats]) assert.deepEqual([x.bg, x.img, x.border, x.shadow], ["rgba(0, 0, 0, 0)", "none", "0px", "none"], "bare: no card, pill, outline or background");
     assert.equal(row.stats.length, 3); assert.equal(await page.locator("#h-songs").count(), 0, "the songs number is out of the header (Graham, 2026-11-19)"); assert.ok(row.stats.every(x => x.icon && x.w >= 44 && x.hh >= 44), "three stats, each a line icon, each at least 44 by 44");
-    assert.ok(row.neck <= 60, `the neck starts right under the header (${row.neck} px)`);
 
     const neck = await page.evaluate(() => {
       const n = document.querySelector(".rn-neck").getBoundingClientRect();
       const cur = document.querySelector(".rd-node.cur");
       const pearl = cur.querySelector(".rn-pearl").getBoundingClientRect();
-      const bubble = document.querySelector(".rn-bubble").getBoundingClientRect();
-      const leg = document.querySelector(".rn-leg").getBoundingClientRect();
+      const leg = document.querySelector(".rn-legbar").getBoundingClientRect();
+      const line = document.querySelector(".rn-legline");
+      const plate = document.getElementById("rn-now").getBoundingClientRect();
+      const tabs = document.getElementById("tabs").getBoundingClientRect();
       const gold = document.querySelector(".rn-gold").getBoundingClientRect();
+      const header = document.querySelector("header.rr-head").getBoundingClientRect();
+      const nut = document.querySelector(".rn-nut").getBoundingClientRect();
+      const walker = document.createTreeWalker(document.getElementById("rd-path"), NodeFilter.SHOW_TEXT);
+      const gutter = [];
+      while (walker.nextNode()) {
+        const t = walker.currentNode.textContent.trim();
+        if (!t) continue;
+        const range = document.createRange();
+        range.selectNodeContents(walker.currentNode);
+        const rect = range.getBoundingClientRect();
+        if (rect.width && rect.right <= n.left + 2) gutter.push(t);
+      }
+      const lh = parseFloat(getComputedStyle(line).lineHeight) || parseFloat(getComputedStyle(line).fontSize) * 1.2;
       return {
         frac: n.width / innerWidth, strings: document.querySelectorAll(".rn-string").length,
         stops: document.querySelectorAll(".rn-neck .rd-node").length,
-        num: [...document.querySelectorAll(".rn-num")].find(n => n.style.top === cur.parentElement.style.top)?.textContent,
+        num: [...document.querySelectorAll(".rn-num")].find(el => el.style.top === cur.parentElement.style.top)?.textContent,
         pearl: Math.round(pearl.width), glow: !!cur.querySelector(".rr-glow"),
         check: document.querySelectorAll(".rn-check").length,
         lock: document.querySelectorAll(".rn-lock").length,
-        name: document.querySelector(".rn-bubble").textContent,
-        bubbleRight: bubble.right, neckRight: n.right, legRight: leg.right, neckLeft: n.left,
-        gold: gold.height, label: document.querySelector(".rn-leg").innerText
+        name: document.querySelector(".rn-now-tx").textContent,
+        plateTop: plate.top, plateBottom: plate.bottom, plateLeft: plate.left, plateRight: plate.right, tabsTop: tabs.top,
+        legLeft: leg.left, legRight: leg.right, legTop: leg.top, legBottom: leg.bottom, headerBottom: header.bottom, nutTop: nut.top,
+        oneLine: line.getBoundingClientRect().height <= lh + 2, fits: line.scrollWidth <= line.clientWidth + 1,
+        gold: gold.height, label: line.innerText, gutter,
+        side: document.querySelectorAll(".rn-bubble, .rn-leg").length
       };
     });
     assert.ok(neck.frac >= 0.55 && neck.frac <= 0.6, `the neck is ${neck.frac} of the screen`);
@@ -362,9 +379,19 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.ok(neck.check >= 4, "done stops carry a check");
     assert.ok(neck.lock >= 1, "locked stops carry a padlock");
     assert.match(neck.name, /Am/);
-    assert.ok(neck.bubbleRight <= 390 && neck.legRight <= neck.neckLeft + 1, "the name and the leg label sit in the gutters");
+    assert.ok(neck.legTop >= neck.headerBottom - 1, "the leg row is under the stats");
+    const nutGap = await page.evaluate(() => { const path = document.getElementById("rd-path"); path.scrollTop = 0; const nut = document.querySelector(".rn-nut").getBoundingClientRect(); const leg = document.querySelector(".rn-legbar").getBoundingClientRect(); return nut.top - leg.bottom; });
+    assert.ok(nutGap >= -2 && nutGap <= 8, `the nut sits under the leg row (${nutGap})`);
+    assert.ok(neck.legLeft <= 1 && neck.legRight >= 389, "the leg row is full width");
+    assert.equal(neck.oneLine, true, "the leg name is one line");
+    assert.equal(neck.fits, true, "the leg name is not clipped");
+    assert.ok(neck.plateBottom <= neck.tabsTop + 1, "the plate sits above the tab bar");
+    assert.ok(neck.plateLeft <= 12 && neck.plateRight >= 370, "the plate spans the screen");
+    assert.deepEqual(neck.gutter.filter(t => !/^\d+$/.test(t)), [], `the left gutter holds only numbers (${neck.gutter.join(", ")})`);
+    assert.ok(neck.gutter.length >= 1, "the stop numbers are in the gutter");
+    assert.equal(neck.side, 0, "no side bubble and no gutter title");
     assert.ok(neck.gold >= 12, "the leg change is a thick gold fret");
-    assert.match(neck.label, /Leg 1\s+Open chords/);
+    assert.match(neck.label, /Leg 1 · Open chords/);
     assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
     assert.equal(await page.locator("#app svg.louie, #app .louie").count(), 0, "no Louie on the Road");
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
@@ -376,13 +403,19 @@ test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is onl
   const m = await page.evaluate(() => ({
     gold: document.querySelectorAll(".rn-gold").length,
     cur: document.querySelector(".rd-node.cur")?.getAttribute("aria-label") || "",
-    next: document.querySelector(".rn-next")?.innerText || "",
+    next: document.querySelector(".rn-next")?.dataset.title || "",
     stops: document.querySelectorAll(".rn-neck .rd-node").length
   }));
   assert.ok(m.gold >= 1, "the leg change is a gold fret");
   assert.match(m.cur, /^Show 1 of 11,/);
   assert.match(m.next, /Leg 3/);
   assert.ok(m.stops > 10, "the finished leg stays on the neck with the one you are on");
+  await page.evaluate(() => {
+    const path = document.getElementById("rd-path");
+    const mark = [...document.querySelectorAll(".rn-lat")].find(m => m.dataset.title === "Leg 2");
+    path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
+  });
+  await page.waitForFunction(() => /Leg 2/.test(document.getElementById("rn-legline").innerText));
 });
 
 test("Road Ready 02: every stop and header control does what it did, and each is at least 44 by 44", { skip: skip() }, async t => {
@@ -403,6 +436,12 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /The Am chord[\s\S]*START/, "the stop card, as before");
   await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop", { state: "detached" });
+  await page.click("#rn-now-open"); await page.waitForSelector(".rd-pop.now");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "the plate's name opens the card and does not start");
+  assert.notEqual(await page.evaluate(() => document.getElementById("rn-now-open") === document.querySelector(".rd-pop .rd-start")), true);
+  await page.click("#rn-now-open"); await page.waitForSelector(".rd-pop", { state: "detached" });
+  await page.click("#rn-now-start");
+  await page.waitForFunction(() => location.hash.startsWith("#/practice/"));
 });
 
 test("Road Ready 02: with no song, Tonight asks for one and opens search; with no streak, Fans shows no streak at all", { skip: skip() }, async t => {
@@ -421,7 +460,9 @@ test("Road Ready 02: a screen reader meets the three stats, then the leg and its
   assert.deepEqual(order.slice(0, 3), ["h-streak", "h-fans", "h-tips"]);
   assert.ok(order.includes("stop"), "the stops are buttons");
   assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1/);
-  assert.match(await page.innerText(".rn-bubble"), /Am/);
+  assert.match(await page.innerText(".rn-now-tx"), /Am/);
+  assert.equal(await page.getAttribute("#rn-now-open", "aria-label"), "Am, open this stop");
+  assert.equal(await page.getAttribute("#rn-now-start", "aria-label"), "Start Am");
 });
 
 test("Road Ready 02: large text keeps the header to one row, with nothing cut off and every stat on the screen", { skip: skip() }, async t => {
@@ -465,8 +506,8 @@ test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: 
       const bg = sel => getComputedStyle(document.querySelector(sel)).backgroundColor;
       return {
         stat: ratio(col("#h-fans"), hex(v("--rr-base"))),
-        leg: ratio(col(".rn-leg"), bg(".rn-stage")),
-        bubble: ratio(col(".rn-bubble"), bg(".rn-bubble"))
+        leg: ratio(col(".rn-legline"), bg(".rn-legbar")),
+        plate: ratio(col(".rn-now-name"), bg(".rn-now"))
       };
     });
     for (const [k, r] of Object.entries(pairs)) assert.ok(r >= 4.5, `${theme}: ${k} is ${r.toFixed(2)}:1`);
