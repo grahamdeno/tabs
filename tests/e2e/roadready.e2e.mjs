@@ -51,7 +51,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     for (const [n, v] of Object.entries({ chip: "999px", control: "10px", card: "16px", strip: "18px", sheet: "24px", plate: "12px" })) assert.equal(await prop(page, "--r-" + n), v, `--r-${n}`);
     assert.equal(await prop(page, "--r"), "16px"); assert.equal(await prop(page, "--r-bar"), "18px"); assert.equal(await prop(page, "--margin"), "16px");
     assert.equal((await prop(page, "--rr-base")).toUpperCase(), baseHex);
-    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#763A00" : "#FFB547");
+    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#123A86" : "#5B9BFF");
 
     /* the type tokens work as font sizes and follow --sys-px */
     const sizes = () => page.evaluate(names => names.map(n => { const e = document.createElement("i"); e.style.fontSize = `var(--type-${n})`; document.body.appendChild(e); const v = parseFloat(getComputedStyle(e).fontSize); e.remove(); return Math.round(v * 10) / 10; }), TYPE);
@@ -152,7 +152,7 @@ test("Road Ready: the Merch table and Settings use the new names, and no screen 
   assert.equal(await first("neon"), "rgb(20, 18, 16)", "the dark swatch starts with #141210");
   await page.click('.mc-look[data-id="festival"]'); /* Try it on opens the sheet; its line describes the look */
   await page.waitForFunction(() => document.documentElement.dataset.look === "festival");
-  assert.match(await page.innerText("body"), /cream tolex, chrome piping and warm amber/);
+  assert.match(await page.innerText("body"), /cream tolex, chrome piping and electric cobalt/);
   assert.doesNotMatch(await page.innerText("body"), /Festival Poster|Neon Midnight/);
 });
 
@@ -347,7 +347,8 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     /* the stops: done ones carry a check, the current one is the trapezoid with its number, the ones ahead are numbered */
     const cur = await page.evaluate(() => { const b = document.querySelector(".rd-node.cur"), a = b.querySelector(".rr-art").getBoundingClientRect(); return { n: b.querySelector(".rr-eng text")?.textContent, w: a.width, h: a.height, glow: !!b.querySelector(".rr-glow"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill }; });
     assert.deepEqual([cur.n, Math.round(cur.w), Math.round(cur.h), cur.glow], ["6", 52, 38, true], "the current stop: show 6, a 52 by 38 trapezoid, lit");
-    assert.equal(cur.fill, "rgb(255, 214, 140)", "#FFD68C pearl");
+    const pearl = label === "light" ? "rgb(26, 74, 154)" : "rgb(169, 200, 255)";
+    assert.equal(cur.fill, pearl, "the current pearl is Electric Cobalt");
     const done = await page.$$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box)", bs => bs.map(b => ({ check: !!b.querySelector(".rr-eng path"), w: b.querySelector(".rr-art").getBoundingClientRect().width, halo: !!b.querySelector(".rr-halo") })));
     assert.equal(done.length, 4); assert.ok(done.every(d => d.check && Math.round(d.w) === 26 && d.halo), "done: 26 px with a check and a faint halo");
     const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.filter(b => !b.closest(".rr-peek")).slice(0, 3).map(b => b.querySelector(".rr-eng text")?.textContent));

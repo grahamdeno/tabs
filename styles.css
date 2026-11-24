@@ -1969,36 +1969,36 @@ body { background: var(--bg); font-family: var(--sans); }
   --rr-base: #141210; --rr-card: #1A1918; --rr-mesh: #2A2724; --rr-hairline: #46423C;
   --rr-text: #F6EEE0; --rr-text-2: #BEB4A4;
   --rr-lyric-now: #F6EEE0; --rr-lyric-next: #C9C0B2; --rr-lyric-sung: #8F877C;
-  --rr-chord: #FFC46B; --rr-amber: #FFB547; --rr-amber-text: #FFB547; --rr-on-amber: #1E160C;
+  --rr-chord: #5B9BFF; --rr-amber: #0A60FF; --rr-amber-text: #5B9BFF; --rr-on-amber: #FFFFFF;
   --rr-plate-top: #F6EAD2; --rr-plate-bottom: #D6C4A4; --rr-plate-edge: #8C7858; --rr-plate-text: #281E14;
   --rr-tab-off: #D6CCBC; --rr-outline: #8C847A;
-  --rr-pearl-done: #FCCE80; --rr-pearl-now: #FFD68C; --rr-pearl-locked: #D6D0C4;
+  --rr-pearl-done: #6AA0FF; --rr-pearl-now: #A9C8FF; --rr-pearl-locked: #D6D0C4;
   --rr-engrave: #5C3A16; --rr-engrave-locked: #46423C;
-  --rr-glow: #FFAA3C; --rr-glow-core: #FFDCA0; --rr-louie-rim: rgba(255, 226, 180, .35);
+  --rr-glow: #3D7EFF; --rr-glow-core: #D6E6FF; --rr-louie-rim: rgba(255, 226, 180, .35);
   --rim-hi: rgba(255,255,255,.06); --scrim: rgba(8,6,4,.66); --shadow: 0 8px 24px rgba(0,0,0,.45);
-  --accent-deep: #B97B1C; --accent-soft: rgba(255,181,71,.14); --accent-line: rgba(255,181,71,.5);
-  --tabs-on: rgba(255,181,71,.14); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #2A2724;
+  --accent-deep: #0A2E86; --accent-soft: rgba(10,96,255,.18); --accent-line: #5B9BFF;
+  --tabs-on: rgba(91,155,255,.14); --banner-deep: #0A2E86; --banner-sub: #FFFFFF; --locked-deep: #2A2724;
   /* grain over --rr-base, then a 45 percent black wash. The tile is drawn brighter (base / .55) so the wash lands the average on #141210. */
   --tolex: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("art/surfaces/tolex-dark.webp") 0 0 / 256px 256px repeat, var(--rr-base);
   /* raised and pressed surfaces: a soft shadow, never a darker lip (design pass) */
   --rr-lift: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 8px rgba(0,0,0,.38); --rr-press: 0 1px 2px rgba(0,0,0,.4);
   --rr-motion: .25s ease-out; /* show and hide; Reduce Motion turns it into a plain fade or nothing */
 }
-/* Road Ready light: amber is for fills only; amber text on cream is always #763A00. The status colours are darkened to pass AA on cream, a card and a well. */
+/* Road Ready light: Electric Cobalt text on cream is #123A86, and the fill is that same deep cobalt with white ink. The status colours are darkened to pass AA on cream, a card and a well. */
 :root[data-look="festival"] {
   --muted: #635A50; /* same, for the light look */
   --rr-base: #F6EFE2; --rr-card: #FBF7EF; --rr-mesh: #E7E0D4; --rr-hairline: #D3C8B6;
   --rr-text: #1E1914; --rr-text-2: #5C5248;
   --rr-lyric-now: #1E1914; --rr-lyric-next: #3A332C; --rr-lyric-sung: #6E655B;
-  --rr-chord: #763A00; --rr-amber: #FFB547; --rr-amber-text: #763A00; --rr-on-amber: #1E160C;
+  --rr-chord: #123A86; --rr-amber: #123A86; --rr-amber-text: #123A86; --rr-on-amber: #FFFFFF;
   --rr-plate-top: #F6EAD2; --rr-plate-bottom: #D6C4A4; --rr-plate-edge: #8C7858; --rr-plate-text: #281E14;
   --rr-tab-off: #4A4239; --rr-outline: #8C847A;
-  --rr-pearl-done: #FCCE80; --rr-pearl-now: #FFD68C; --rr-pearl-locked: #D6D0C4;
+  --rr-pearl-done: #123A86; --rr-pearl-now: #1A4A9A; --rr-pearl-locked: #D6D0C4;
   --rr-engrave: #5C3A16; --rr-engrave-locked: #46423C;
-  --rr-glow: #FFAA3C; --rr-glow-core: #FFDCA0; --rr-louie-rim: transparent;
+  --rr-glow: #1A4A9A; --rr-glow-core: #7AA0D8; --rr-louie-rim: transparent;
   --rim-hi: rgba(255,255,255,.7); --scrim: rgba(30,25,20,.38); --shadow: 0 8px 24px rgba(30,25,20,.14);
-  --accent-deep: var(--rr-amber-text); --accent-soft: rgba(255,181,71,.25); --accent-line: rgba(118,58,0,.55);
-  --tabs-on: rgba(255,181,71,.28); --banner-deep: #C98A1E; --banner-sub: #5A3A00; --locked-deep: #B9AD98;
+  --accent-deep: var(--rr-amber-text); --accent-soft: rgba(18,58,134,.12); --accent-line: #123A86;
+  --tabs-on: rgba(18,58,134,.12); --banner-deep: #0C2A64; --banner-sub: #FFFFFF; --locked-deep: #B9AD98;
   --bad: #BE1F35; --bad-line: rgba(190,31,53,.4); --good: #0E7054; --good-soft: rgba(14,112,84,.12); --tune: #0E7054;
   --streak: #B72857; --fans-text: #7B5E00; --strings: #2A60B8; --strings-deep: #1E4A8F;
   /* the same grain, much fainter, over --rr-base */
@@ -2099,7 +2099,7 @@ h2, .label, .sheet .sec { font-family: var(--display); }
 .gc-tile.tips { background: #3DDBA0; box-shadow: 0 5px 0 #22A877; }
 
 /* ---- The tab bar: an amp knob strip on every screen (Graham, 2026-11-23). Dark grille with a chrome edge,
-   cream grille in a light look so it sits on the cream ground. The chosen knob is the painted lamp; the label turns amber. ---- */
+   cream grille in a light look so it sits on the cream ground. The chosen knob is the painted lamp; the label turns Electric Cobalt. ---- */
 #tabs { display: none; }
 body.tabbed #tabs {
   display: flex; position: fixed; z-index: 30; box-sizing: border-box;
@@ -2128,6 +2128,11 @@ body.tabbed #tabs {
 :root[data-theme="light"] #tabs a { color: #3A2A1A; }
 :root[data-theme="light"] #tabs a[aria-current="page"] { color: #763A00; text-shadow: none; }
 #tabs a:focus-visible { outline: 2px solid #FFB547; outline-offset: -3px; }
+/* Electric Cobalt on the two Road Ready looks only. Green Room and Headliner keep the amber label above. */
+:root[data-look="neon"] #tabs a[aria-current="page"] { color: #5B9BFF; text-shadow: 0 0 8px rgba(61, 126, 255, .5); }
+:root[data-look="festival"] #tabs a[aria-current="page"] { color: #123A86; text-shadow: none; }
+:root[data-look="neon"] #tabs a:focus-visible { outline-color: #5B9BFF; }
+:root[data-look="festival"] #tabs a:focus-visible { outline-color: #123A86; }
 #tabs .tb-knob { position: relative; width: 46px; height: 46px; flex: none; }
 #tabs .tb-knob img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #tabs .tb-on { opacity: 0; }
@@ -2384,6 +2389,9 @@ body.is-home .dock { bottom: calc(14px + var(--tabs)); }
 :root[data-look] .pk-fret.done { color: var(--accent-deep); }
 :root:is([data-look="neon"], [data-look="headliner"]) .pk-fret.done { color: var(--accent-ink); }
 :root[data-look] .pk-fret.now { color: var(--on-accent); background: var(--streak); box-shadow: 0 3px 0 var(--streak-deep); border-radius: 12px; border-right-color: transparent; }
+/* Dark: the current fret sits on the pink streak, so its words stay dark ink. White accent ink fails there. Light puts that fret on the cobalt fill, so it keeps the white ink. */
+:root[data-look="neon"] .pk-fret.now { color: #1A1020; }
+:root:is([data-look="neon"], [data-look="festival"]) .pk-inlay.now { box-shadow: 0 0 12px rgba(61, 126, 255, .7); }
 :root[data-look] .pk-inlay { border: 2px solid var(--rim); }
 :root[data-look] .pk-inlay.done, :root[data-look] .pk-inlay.on { background: var(--fans); border-color: var(--fans-deep); }
 
@@ -4821,7 +4829,8 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-pv svg { width: 18px; height: 18px; flex: none; }
 .rr-pv b { font: 700 var(--type-headline) / 1.1 "Space Grotesk", var(--display); white-space: nowrap; }
 .rr-pill small { font: var(--type-footnote-w) var(--type-footnote) / 1.15 "Inter", var(--sans); white-space: nowrap; }
-.rr-coin { fill: #E9A93A; } .rr-coin-ring { stroke: #A8701E; stroke-width: 1.2; } .rr-coin-ink { stroke: #3A2408; }
+:root[data-look="neon"] .rr-coin { fill: #0A60FF; } :root[data-look="neon"] .rr-coin-ring { stroke: #0A2E86; stroke-width: 1.2; } :root[data-look="neon"] .rr-coin-ink { stroke: #FFFFFF; }
+:root[data-look="festival"] .rr-coin { fill: #123A86; } :root[data-look="festival"] .rr-coin-ring { stroke: #0C2A64; stroke-width: 1.2; } :root[data-look="festival"] .rr-coin-ink { stroke: #FFFFFF; }
 /* Tonight: a dark inset bar, the title and an amber play button; the whole row is one button */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tonight {
   grid-area: tonight; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 12px; box-sizing: border-box; text-align: left;
@@ -4831,7 +4840,7 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 /* light look (design review): Tonight is a dark bar on the cream header, with cream and amber text */
 :root[data-look="festival"] .rr-tonight { background: #1E1914; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
 :root[data-look="festival"] .rr-tn-t b { color: #F5EBDC; }
-:root[data-look="festival"] .rr-tn-t small { color: #FFB547; }
+:root[data-look="festival"] .rr-tn-t small { color: var(--rr-amber-text); }
 .rr-tn-t small { font: var(--type-caption-w) var(--type-caption) / 1.2 "Inter", var(--sans); letter-spacing: var(--type-caption-ls); color: var(--rr-amber-text); }
 .rr-tn-t b { font: var(--type-headline-w) var(--type-headline) / 1.25 "Inter", var(--sans); color: var(--rr-text); overflow-wrap: break-word; min-width: 0; }
 .rr-play { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); }
@@ -4872,6 +4881,9 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-cut { fill: none; stroke: #000; stroke-opacity: .45; stroke-width: 1; }
 .rr-sheen { fill: #fff; opacity: .55; }
 .rr-eng { fill: var(--rr-engrave); stroke: var(--rr-engrave); }
+/* Electric Cobalt pearls: Dark pearls are light sapphire, so the mark is deep cobalt. Light pearls are deep cobalt, so the mark is champagne. */
+:root[data-look="neon"] .rr-eng:not(.locked) { fill: #0A2E86; stroke: #0A2E86; }
+:root[data-look="festival"] .rr-eng:not(.locked) { fill: #F4E6CB; stroke: #F4E6CB; }
 .rr-eng.locked { fill: var(--rr-engrave-locked); stroke: var(--rr-engrave-locked); }
 .rr-eng path[fill="none"] { fill: none; }
 .rr-eng-hi { fill: rgba(255, 255, 255, .35); stroke: rgba(255, 255, 255, .35); }
@@ -4882,10 +4894,10 @@ body.staged .sheet > .sec.st-past { color: var(--muted); }
 .rr-glow { width: 88px; height: 88px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 60%, transparent) 0, color-mix(in srgb, var(--rr-glow) 30%, transparent) 40%, transparent 70%); animation: rr-breathe 2.4s ease-in-out infinite; }
 .rr-halo { width: 40px; height: 40px; background: radial-gradient(circle, color-mix(in srgb, var(--rr-glow) 20%, transparent) 0, transparent 70%); }
 /* light look (design review): the amber glow vanished on cream, so it is deeper and stronger there */
-:root[data-look="festival"] .rr-glow { width: 96px; height: 96px; background: radial-gradient(circle, rgba(232, 128, 20, .8) 0, rgba(240, 150, 40, .5) 38%, transparent 72%); }
-:root[data-look="festival"] .rr-halo { background: radial-gradient(circle, rgba(232, 128, 20, .35) 0, transparent 70%); }
-/* dark look: a soft amber glow behind the neck, as in the design */
-:root[data-look="neon"] .rr-stage { background: radial-gradient(ellipse 70% 42% at 50% 38%, rgba(255, 170, 60, .16), transparent 72%); }
+:root[data-look="festival"] .rr-glow { width: 96px; height: 96px; background: radial-gradient(circle, rgba(26, 74, 154, .82) 0, rgba(18, 58, 134, .42) 38%, transparent 72%); }
+:root[data-look="festival"] .rr-halo { background: radial-gradient(circle, rgba(18, 58, 134, .36) 0, transparent 70%); }
+/* dark look: a soft cobalt glow behind the neck */
+:root[data-look="neon"] .rr-stage { background: radial-gradient(ellipse 70% 42% at 50% 38%, rgba(61, 126, 255, .16), transparent 72%); }
 @keyframes rr-breathe { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
 /* the callout: cream, pointing at the current stop, always on the right of the neck */
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck .rd-tag.rr-callout {
@@ -5847,8 +5859,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="neon"] .rd-path { background: linear-gradient(rgba(0, 0, 0, .5), rgba(0, 0, 0, .5)), url("art/surfaces/tolex-dark.webp") 0 0 / 180px 180px, #000; background-blend-mode: normal, luminosity; background-attachment: local; }
 :root[data-look="festival"] .rd-path { background: url("art/surfaces/tolex-cream.webp") 0 0 / 256px 256px, var(--rr-base); background-attachment: local; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-neck.road::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 8%; bottom: 4%; pointer-events: none; }
-:root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(255, 160, 60, .36) 0, rgba(255, 140, 40, .16) 45%, transparent 72%); }
-:root[data-look="festival"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(176, 104, 40, .30) 0, rgba(176, 104, 40, .12) 45%, transparent 72%); }
+:root[data-look="neon"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(61, 126, 255, .36) 0, rgba(10, 96, 255, .16) 45%, transparent 72%); }
+:root[data-look="festival"] .rd-neck.road::before { background: radial-gradient(ellipse 72% 46% at 50% 56%, rgba(18, 58, 134, .30) 0, rgba(18, 58, 134, .12) 45%, transparent 72%); }
 
 /* The streak card (from the Road header's streak, Dark and Light): the last seven days as dots. */
 .sk-week { display: flex; justify-content: space-between; gap: 6px; margin: 14px 0 4px; }
@@ -5933,14 +5945,14 @@ body.tabbed .tm-page { bottom: var(--tabs, 96px); }
 
 /* Lamp lit (Graham, 2026-11-19): a chosen control in Dark and Light glows like a pilot lamp. The tab bar's lamp is the painted knob. */
 /* the same lamp on a chosen filter chip and on the Merch switch */
-:root[data-look="neon"] #chips.rr-chips .chip.on { background-color: var(--rr-amber); background-image: radial-gradient(ellipse 70% 90% at 50% 45%, #FFD38A 0, #F2A33C 55%, #C9761E 100%); box-shadow: 0 0 12px rgba(255, 160, 50, .45), inset 0 1px 0 rgba(255, 255, 255, .5); }
+:root[data-look="neon"] #chips.rr-chips .chip.on { background-color: var(--rr-amber); background-image: radial-gradient(ellipse 70% 90% at 50% 45%, #2563EB 0, #0A60FF 55%, #0A2E86 100%); box-shadow: 0 0 12px rgba(61, 126, 255, .45), inset 0 1px 0 rgba(255, 255, 255, .5); }
 
 /* The Merch switch is thin and short, as agreed (about 28 px on a phone): do not make it taller. The bar is 30 px with a 26 px lit
    segment; the tap target reaches 44 px through an invisible area outside the drawn bar. */
 .mc-seg { padding: 2px; border-radius: 10px; margin: 16px 0 10px; }
 .mc-seg button { min-height: 26px; height: 26px; border-radius: 8px; font-size: var(--type-footnote, 14px); position: relative; }
 .mc-seg button::before { content: ""; position: absolute; inset: -9px 0; } /* a 44 px tap target around the 26 px drawn segment */
-.mc-seg button[aria-selected="true"] { background: radial-gradient(ellipse 70% 120% at 50% 40%, rgba(255, 196, 110, .16) 0, transparent 70%), linear-gradient(#3A332C, #24201C); }
+.mc-seg button[aria-selected="true"] { background: radial-gradient(ellipse 70% 120% at 50% 40%, rgba(91, 155, 255, .16) 0, transparent 70%), linear-gradient(#3A332C, #24201C); }
 
 /* The Gig's control bar, 4.108.0 (Graham, 2026-11-19): a dark grille panel with a chrome edge, like an amp's control strip.
    Speed on the left, a round Pause in the middle lit by an amber lamp ring, and Loop and Tools as small knobs on the right.
@@ -5957,7 +5969,7 @@ body.tabbed .tm-page { bottom: var(--tabs, 96px); }
 :root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar .gg-pod { display: grid; justify-items: center; }
 :root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar .gg-pause { width: 60px; height: 60px; border-radius: 50%; color: #EADBC0;
   background: radial-gradient(circle at 45% 38%, #6B6560 0, #3A3633 55%, #22201E 100%);
-  box-shadow: 0 0 0 3px #1A1816, 0 0 0 5px #F2A33C, 0 0 14px 6px rgba(255, 166, 60, .45), 0 0 30px 10px rgba(255, 140, 40, .18); }
+  box-shadow: 0 0 0 3px #1A1816, 0 0 0 5px #5B9BFF, 0 0 14px 6px rgba(61, 126, 255, .45), 0 0 30px 10px rgba(10, 96, 255, .22); }
 :root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar .gg-pause svg { width: 22px; height: 22px; fill: currentColor; }
 .gg-sb:focus-visible, .gig .gg-bar .gg-pause:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; border-radius: 12px; }
 .gig .gg-bar { transition: opacity .4s, visibility 0s; }
@@ -5974,7 +5986,7 @@ body.held .gig .gg-bar { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp .gg-speed { grid-column: 1; grid-row: 1; justify-self: start; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play { grid-column: 2; grid-row: 1; flex: none; width: 60px; height: 60px; min-width: 0; padding: 0; border-radius: 50%; color: #EADBC0; font-size: 0;
   background: radial-gradient(circle at 45% 38%, #6B6560 0, #3A3633 55%, #22201E 100%);
-  box-shadow: 0 0 0 3px #1A1816, 0 0 0 5px #F2A33C, 0 0 14px 6px rgba(255, 166, 60, .45), 0 0 30px 10px rgba(255, 140, 40, .18); margin-bottom: 14px; position: relative; }
+  box-shadow: 0 0 0 3px #1A1816, 0 0 0 5px #5B9BFF, 0 0 14px 6px rgba(61, 126, 255, .45), 0 0 30px 10px rgba(10, 96, 255, .22); margin-bottom: 14px; position: relative; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play::before, html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play::after { display: none; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play svg { width: 22px; height: 22px; fill: currentColor; margin: 0; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span { display: block; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); font: 600 var(--type-footnote, 13px) / 1 var(--sans); letter-spacing: 0; color: #EADBC0; white-space: nowrap; text-transform: capitalize; }
@@ -5995,8 +6007,8 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 /* 4.111.0 (Graham, 2026-11-20): Speed in the amp bar shows its setting (1.0x, 0.8x, or the song length) and is lit amber when the
    page isn't at the song's real speed; the dial has a Back to 1.0x button at the bottom left, clear of the meter. */
 .gg-speed .sp-val { font-variant-numeric: tabular-nums; }
-:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off svg { color: #FFB547; filter: drop-shadow(0 0 6px rgba(255, 166, 60, .6)); }
-:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off small { color: #FFB547; }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off svg { color: #5B9BFF; filter: drop-shadow(0 0 6px rgba(61, 126, 255, .6)); }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.gig .gg-bar, .player.rr-amp) .gg-speed.sp-off small { color: #5B9BFF; }
 .dial-reset { position: absolute; left: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 112px; min-height: 48px; padding: 8px 12px; border: 0; border-radius: 12px;
   background: #2A2622; color: #FFE2B0; font: 600 var(--type-footnote, 14px) / 1.15 var(--sans, system-ui); box-shadow: inset 0 0 0 1.5px #8E8A84, 0 4px 10px rgba(0, 0, 0, .5); cursor: pointer; }
 .dial-reset:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 3px; }
