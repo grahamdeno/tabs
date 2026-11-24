@@ -6018,4 +6018,4 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 /* 5.2.1 (Graham, 2026-11-24): Play sits in the middle of the bar top to bottom. The small label under it (which the bar's
    edge hid) is gone, and with it the space kept for it; the button keeps its spoken name. */
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play { margin-bottom: 0; }
-html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span { display: none; }
+html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; top: auto; left: auto; transform: none; } /* still read, not shown */
