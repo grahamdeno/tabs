@@ -3,7 +3,7 @@
 import { Tabs, openingReplay, tipPaced } from "./core.js";
 import { $, app, esc, icon, layer, onLeave, onScroll, toast } from "./ui.js";
 import { setSetCtx } from "./sets.js";
-import { aiKey, applyPaused, calm, chordEdit, data, diag, go, map, openTuner, paintMap, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
+import { aiKey, applyPaused, calm, chordEdit, data, diag, go, openTuner, route, scroll, searching, setCurrent, setOpenEdit, showChordPop, viewing } from "./app.js";
 
 // ---------- Coach: one-time help, in place and never in the way ----------
 // "Try it" on the first song (tap a chord, then Play); everything else is shown
@@ -174,16 +174,6 @@ function demoLine() {
   setTimeout(() => { if (!scroll.on && diag.block === line && $("sheet") === sheet) { setCurrent(was); applyPaused(); } }, 3400);
   return true;
 }
-// Song map: show the section names, the way they appear while dragging.
-function demoMap() {
-  const m = map.el;
-  if (!m) return false;
-  m.classList.remove("away");
-  m.classList.add("active");
-  setTimeout(() => { if (!map.dragging) { m.classList.remove("active"); paintMap(); } }, 2600);
-  coach(m, "Drag to jump to a section", { ms: 2800, place: "left", fixed: true, spot: false });
-  return true;
-}
 // Tap tempo: the chip taps out 92 BPM, four flashes you can feel, then shows the result.
 function demoTap() {
   const tap = $("ed-tap");
@@ -256,11 +246,6 @@ function runDemo(name, song) {
   if (name === "chord") return demoChord(song, true);
   if (name === "pause") return demoPause();
   if (name === "line") return demoLine();
-  if (name === "map") {
-    const sec = document.querySelectorAll(".sheet > .sec")[1];
-    if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + scrollY - innerHeight * 0.3 });
-    return setTimeout(demoMap, 450);
-  }
 }
 // Grouped by where you are; only things without a visible button.
 const GESTURES = [
@@ -272,7 +257,6 @@ const GESTURES = [
   ["On a song", [
     ["chord", "Tap a chord", "Its shape shows above Play; tap a chord chip to mark everywhere it's played", "fretboard"],
     ["line", "Tap a line", "Play starts from there", "play"],
-    ["map", "Drag the song map", "Jump through the song's sections (practicing, a tab or Play together)", "sections"],
     ["", "Tap the title bar", "Back to the top", "up"],
     ["", "Change the key", "Tap the title for About this song, then the Key tile", "plus"],
     ["", "Count-in", "Plays only when you start from the top", "metro"]]],
@@ -316,4 +300,4 @@ function renderGestures() {
   };
 }
 
-export { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used };
+export { chordTapped, coach, coachTip, demoLine, demoPause, demoSearch, demoTap, dismissCoach, markSeen, markUsed, renderGestures, searchOpened, songCoach, takeDemo, tick, tipDue, tipsSeen, used };
