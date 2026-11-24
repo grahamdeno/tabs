@@ -3870,13 +3870,16 @@ test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a s
 
 test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder and buildSave all accept Cornerstone", () => {
   const data = { songs: [], sets: [], trash: [], settings: {} };
-  assert.deepEqual(C.guitarsOwned(data), [], "nothing headlined, no Road guitar");
+  assert.deepEqual(C.guitarsOwned(data), ["open"], "5.5.0: Porch is yours from the first launch");
+  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: C.GUITAR_START }], "it is the guitar you start with, not one earned on a leg");
+  assert.notDeepEqual(C.buildSave(data, "open", {}), { why: "none" }, "5.5.0: the builder takes Porch before any show");
+  assert.equal(C.guitarNew(data), null, "5.5.0: nothing is announced for the guitar you start with");
   assert.deepEqual(C.buildSave(data, "switch", {}), { why: "none" });
   for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
   C.skillDone(data, "k:open");
   const said = C.guitarNew(data);
   assert.equal(said.guitar.name, "Cornerstone", "the sheet announces Cornerstone");
-  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: 0 }, { id: "switch", li: 0 }], "Porch and Cornerstone, both earned on Leg 1");
+  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: C.GUITAR_START }, { id: "switch", li: 0 }], "5.5.0: Porch from the start, Cornerstone earned on Leg 1");
   assert.ok(C.guitarsOwned(data).includes("switch"), "the case and the builder (both read guitarsOwned) hold Cornerstone");
   assert.ok(C.guitarsOwned(data).filter(id => C.BUILD_TAKES[id]).includes("switch"), "the builder's list includes Cornerstone");
   assert.notDeepEqual(C.buildSave(data, "switch", {}), { why: "none" }, "buildSave accepts Cornerstone");
