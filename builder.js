@@ -2,7 +2,7 @@
 // The numbers (parts, prices, what a guitar takes, saving) are BUILD_PARTS and friends in core/game.js; the picture is put
 // together once per build in buildart.js. Names and colours come from art/guitars/builder/manifest.json (Grok's art).
 //   openBuilder(legId)   the sheet over the Merch table
-import { BUILD_STOCK, BUILD_TAKES, GUITARS, Tabs, VERSION, buildCost, buildOf, buildSave, buildState, guitarsEarned } from "./core.js";
+import { BUILD_STOCK, BUILD_TAKES, GUITARS, Tabs, VERSION, buildCost, buildOf, buildSave, buildState, guitarsOwned } from "./core.js";
 import { buildPic, manifest } from "./buildart.js";
 import { esc, haptic, icon, layer, toast } from "./ui.js";
 import { data } from "./app.js";
@@ -38,7 +38,7 @@ function fill(man, cat, id) {
 }
 
 export async function openBuilder(startLeg) {
-  const earned = guitarsEarned(data).filter(id => BUILD_TAKES[id]);
+  const earned = guitarsOwned(data).filter(id => BUILD_TAKES[id]);
   if (!earned.length) return;
   let man;
   try { man = await manifest(); } catch { toast("The builder isn't ready. Try again in a moment."); return; }

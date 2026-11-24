@@ -43,7 +43,7 @@ function painted(id, { crop = "full", size = 160, label = "Your guitarist", card
     return `<svg viewBox="${cx - r} ${cy - r} ${r * 2} ${r * 2}" width="${size}" height="${size}" ${open}><defs><clipPath id="${gid}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath></defs><circle cx="${cx}" cy="${cy}" r="${r}" fill="${bk}"/><g clip-path="url(#${gid})">${img}</g></svg>`;
   }
   if (card) {
-    const title = headline ? `<text x="400" y="72" text-anchor="middle" font-family="'Space Grotesk', Impact, sans-serif" font-weight="700" font-size="44" letter-spacing="3" fill="#F6EEE0">${String(headline).replace(/[<&]/g, "")}</text>` : "";
+    const title = headline ? `<text x="400" y="72" text-anchor="middle" font-family="'Sora', Impact, sans-serif" font-weight="700" font-size="44" letter-spacing="3" fill="#F6EEE0">${String(headline).replace(/[<&]/g, "")}</text>` : "";
     return `<svg viewBox="0 0 800 900" width="${size}" height="${Math.round(size * 900 / 800)}" ${open}><rect width="800" height="900" rx="28" fill="${bk}"/>${title}<g transform="translate(0 88)">${img}</g></svg>`;
   }
   return `<svg viewBox="30 10 740 780" width="${size}" height="${size}" ${open}>${img}</svg>`;

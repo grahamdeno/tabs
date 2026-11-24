@@ -2,7 +2,7 @@
 import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
-import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
+import { ago, backupNow, copyDiagnostics, needsBackup, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
 // ---------- Settings ----------
@@ -12,12 +12,12 @@ function renderSettings() {
   const t = s.transpose || 0;
   const semis = n => n === 0 ? "None" : `${n > 0 ? "+" : ""}${n} semitone${Math.abs(n) === 1 ? "" : "s"}`;
   const page = location.hash.split("/")[2] || "";
-  const dot = k => `<i class="dot ${k ? "on" : ""}"></i>`;
+  /* 5.x (Graham, 2026-11-23): Back and the title on one row, a smaller title */
   const head = (title, back) => `
-    <div class="head">
-      <button class="ib glass" id="back" aria-label="${back}">${icon("back")}</button>
-    </div>
-    <h1 class="title" style="margin:14px 2px 10px">${title}</h1>`;
+    <div class="head s-head">
+      <button class="ib" id="back" aria-label="${back}">${icon("back")}</button>
+      <h1 class="title">${title}</h1>
+    </div>`;
   const metVol = Math.round((s.metroVol >= 0 && s.metroVol <= 1.5 ? s.metroVol : 0.8) * 100);
   /* 4.69.0: the beat is Off, Bass drum or Metronome (the drum kit and its beat and swing sit out for now) */
   const beat = !s.metronome ? "off" : s.metroSound === "click" ? "click" : "kick";
@@ -110,7 +110,7 @@ function renderSettings() {
       <div id="s-cities"></div>` : ""}
     </div>
     <p class="foot">Under the Songbook's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day, and when the air has changed a lot since your last play the song page says to tune up first. Only the city's position is sent, once a day; Louie asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
-    keys: ["Keys", `
+    keys: ["API keys", `
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>
     <div class="set-group glass">
@@ -205,27 +205,37 @@ function renderSettings() {
     const city = s.place?.name?.split(",")[0];
     const shown = shownTheme(s.theme, window.matchMedia?.("(prefers-color-scheme: light)").matches === true);
     const theme = { dark: "Dark", light: "Light", auto: "Auto" }[shown] || "Auto";
-    const row = (id, ic, name, val, muted = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val${muted ? " muted" : ""}">${val}</span>${icon("chev", "chev")}</button>`;
+    /* 5.x (Graham, 2026-11-23): named groups; values in the quiet colour, teal only where something needs doing;
+       one icon per row; the backup line shows at the top only when a backup is due (no floating button) */
+    const row = (id, ic, name, val, act = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val ${act ? "act" : "muted"}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
+    const keys = [aiKey(), bpmKey()], setN = keys.filter(Boolean).length;
+    const due = needsBackup({ ignoreSnooze: true });
+    const appleNoToken = s.appleMusic && !s.appleMusicToken;
     app.innerHTML = head("Settings", "Back") + `
+    ${due ? `<div class="s-due" role="status"><span class="s-due-ic">${icon("cloud")}</span><span class="s-due-t"><b>${s.lastBackup ? "Not backed up this week" : "Not backed up yet"}</b><span>${n} song${n === 1 ? "" : "s"} on this phone only</span></span><button class="btn sm primary" id="s-backup">Back up</button></div>` : ""}
+    <div class="label">Playing</div>
     <div class="set-group glass">
-      ${row("playing", "play", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "Count-in"].filter(Boolean).join(" · "))}
+      ${row("playing", "wave", "Playing", [s.speedMode === "multiplier" ? "1x style" : "Song length", s.countIn !== false && "count-in"].filter(Boolean).join(", "))}
+      ${row("newsongs", "sliders", "New songs", `${s.speedMode === "multiplier" ? ((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1) + "x" : mmss(s.startLength || 210)}, ${t ? semis(t).toLowerCase() : "no transpose"}`)}
       ${row("look", "moon", "Look", theme)}
-      ${row("newsongs", "sliders", "New songs", `${s.speedMode === "multiplier" ? ((s.startSpeed || SPEEDS.medium) / SPEEDS.medium).toFixed(1) + "x" : mmss(s.startLength || 210)} · ${t ? semis(t) : "No transpose"}`)}
     </div>
-    <div class="set-group glass s-gap">
-      ${row("today", "flame", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
-      ${row("apple", "note", "Apple Music", s.appleMusic ? (s.appleMusicToken ? "On" : "On · no token") : "Off")}
-      ${row("youtube", "play", "YouTube", s.youtube === false ? "Off" : s.youtubeServer ? "On" : "On · paste links")}
-      ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
+    <div class="label">Connections</div>
+    <div class="set-group glass">
+      ${row("apple", "note", "Apple Music", s.appleMusic ? (s.appleMusicToken ? "On" : "On, no token") : "Off", appleNoToken)}
+      ${row("youtube", "video", "YouTube", s.youtube === false ? "Off" : s.youtubeServer ? "On" : "On, paste links")}
+      ${row("keys", "key", "API keys", setN === keys.length ? "All set" : setN ? `${setN} of ${keys.length} set` : "Not set", setN < keys.length)}
+    </div>
+    <div class="label">Your data</div>
+    <div class="set-group glass">
+      ${row("library", "cloud", "Songbook and backups", `${n} song${n === 1 ? "" : "s"}`)}
+      ${row("today", "calendar", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
       ${row("lang", "chat", "Language practice", langChosen(data) ? LANGS[langOf(data)].name : "Not picked")}
     </div>
     <div class="set-group glass s-gap">
-      ${row("library", "cloud", "Songbook and backups", `${n} song${n === 1 ? "" : "s"}`, true)}
-      ${row("help", "info", "Help", problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : "Tips, diagnostics", true)}
+      ${row("help", "info", "Help", problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : "Tips, diagnostics", problems.length > 0)}
     </div>
-    <p class="foot s-ver" id="s-ver">Louie: Learn Guitar ${VERSION}</p>
-    <div class="s-dock"><button class="btn primary" id="s-backup">${icon("cloud")}Back up now</button><span>Last backup ${esc(ago(s.lastBackup) || "never")}</span></div>`;
+    <p class="foot s-ver" id="s-ver">Louie: Learn Guitar ${VERSION}</p>`;
   }
   document.getElementById("back").onclick = () => go(PAGES[page] ? "#/settings" : "#/you");
   app.querySelectorAll("[data-page]").forEach(b => b.onclick = () => go("#/settings/" + b.dataset.page));

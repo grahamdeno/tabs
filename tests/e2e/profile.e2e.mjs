@@ -92,7 +92,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitar case\n3 guitars");
     const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); const tf = getComputedStyle(im).transform; return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf, hidden: im.getAttribute("aria-hidden"), on: li.classList.contains("is-on") }; }));
     assert.equal(gs.length, 3);
-    assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 2, Chord switches", "Club Slab, earned on Leg 3, Scales"]);
+    assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 1, Open chords", "Club Slab, earned on Leg 2, Chord switches"], "2026-11-23: headlining a leg earns the next leg's guitar");
     for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.ok(!/matrix\(/.test(g.tf) || /matrix\([^,]+, 0, 0,/.test(g.tf), `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.ok(Math.abs(g.w / g.h - g.nw / g.nh) < 0.05, `${g.label}: natural shape`); }
     assert.equal(gs.filter(g => g.on).length, 1, "one guitar in the cradle");
     /* criterion 3: game money and real money are apart */
@@ -113,7 +113,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     const supText = (await page.innerText(".rr-support-h")) + " " + (await page.locator(".rr-support").evaluate(el => el.innerText + " " + [...el.querySelectorAll("[aria-label],[title],img")].map(e => (e.getAttribute("aria-label") || "") + (e.getAttribute("title") || "") + (e.getAttribute("alt") || "")).join(" ")));
     assert.doesNotMatch(supText, /tips?\b/i, "the word tips is never on the real-money section"); assert.doesNotMatch(supText, /\$|\d/, "no amount");
     assert.equal(await page.locator("#pf-r-support svg:not(.chev)").count(), 1, "a heart"); assert.equal(await page.locator("#pf-r-support .rr-coin").count(), 0, "no coin");
-    assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/v4/louie-face-badge.webp", "the face badge");
+    assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/v5/louie-face-badge.webp", "the face badge");
     assert.equal(await page.locator(".rr-me >> text=SUPPORT THE APP").count(), 1);
     /* the order: header, tiles, case (Merch inside), Milestones, rows, Support the app last */
     const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
@@ -197,6 +197,153 @@ test("the maker saves a genre and man or woman, and Me shows that picture", { sk
   await page.waitForSelector(".gm", { state: "detached" });
   await settled(page);
   assert.equal(await page.locator(".rr-avatar image").getAttribute("href"), "art/guitarist-painted/genres/blues-w.webp", "Me shows the picture you picked");
+});
+
+const STATS_NOW = new Date(2026, 10, 24, 15).getTime();
+const statsDay = off => { const d = new Date(STATS_NOW - off * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const statsLib = (theme, recent) => {
+  const week = Array(168).fill(0);
+  for (let h = 17; h < 22; h++) { week[h] = 4; week[24 + h] = 3; }
+  const days = recent
+    ? { [statsDay(0)]: 2000, [statsDay(1)]: 3200, [statsDay(2)]: 800, [statsDay(4)]: 1400, [statsDay(6)]: 600 }
+    : { [statsDay(10)]: 3600, [statsDay(18)]: 1800 };
+  const played = recent ? { [statsDay(0)]: 1, [statsDay(1)]: 1, [statsDay(2)]: 1 } : { [statsDay(30)]: 1 };
+  return {
+    ...LIB,
+    songs: [{ id: "a", title: "River Road", artist: "The Wanderers", key: "G", format: "chords", body: "[Verse]\nC G\nla", duration: 180, playLog: { total: 6, last: STATS_NOW, days: played } }],
+    gig: { shows: 4, fans: 0, best: {}, ready: {}, seeded: true },
+    settings: { ...LIB.settings, v: 6, theme },
+    journal: {
+      v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 2.3 * 3600, best: recent ? 3 : 0, firsts: [], days, week,
+      chords: { G: { n: 6, first: "2026-01-01" }, C: { n: 5, first: "2026-01-02" }, E7: { n: 3, first: "2026-02-01" }, A7: { n: 2, first: "2026-02-02" }, F: { n: 2, first: "2026-03-01" }, "F#m": { n: 1, first: "2026-03-02" }, Dm7: { n: 1, first: "2026-04-01" } },
+      changes: { "C|G": 42, "G|D": 9 }, keys: { G: 8, C: 2 },
+      months: { "2026-05": { plays: 2, secs: 400, bpm: 140, bpmN: 2 }, "2026-06": { plays: 2, secs: 400, bpm: 144, bpmN: 2 }, "2026-07": { plays: 2, secs: 400, bpm: 148, bpmN: 2 }, "2026-09": { plays: 2, secs: 400, bpm: 180, bpmN: 2 }, "2026-10": { plays: 2, secs: 400, bpm: 188, bpmN: 2 }, "2026-11": { plays: 2, secs: 400, bpm: 192, bpmN: 2 } },
+      tune: { n: 0, checked: [0, 0, 0, 0, 0, 0], drift: [0, 0, 0, 0, 0, 0] }
+    }
+  };
+};
+const openStats = async (t, theme, recent) => {
+  const page = await phone(t, statsLib(theme, recent), { home: true, fixedTime: STATS_NOW, colorScheme: theme === "light" ? "light" : "dark" });
+  await page.evaluate(() => { location.hash = "#/you/stats"; });
+  await page.waitForSelector(".pf-stats-page"); await settled(page);
+  return page;
+};
+
+test("Your stats: the when-you-play line, seven days, and no speed or range the phone does not know", { skip: skip() }, async t => {
+  const page = await openStats(t, "dark", true);
+  const text = await page.innerText(".pf-stats-page");
+  assert.match(text, /You play most on Sunday and Monday evenings/);
+  assert.match(text, /C to G/);
+  assert.match(text, /Played 42 times/);
+  assert.match(text, /Drill it/);
+  assert.match(text, /2\.3/);
+  assert.match(text, /NIGHT 1[\s\S]*NIGHT 2[\s\S]*NIGHT 3/);
+  assert.match(text, /Shows played:\s*4/);
+  assert.match(text, /Your most played key[\s\S]*80% of plays|G[\s\S]*Your most played key/);
+  assert.match(text, /You're speeding up/);
+  assert.match(text, /bpm on average/);
+  assert.doesNotMatch(text, /[→↔⇒←↑↓—]/);
+  assert.doesNotMatch(text, /a minute|per minute|70 to 96|Your last 4 weeks|Play tonight to start a run/);
+  assert.equal(await page.getAttribute(".pf-bars", "data-mode"), "days");
+  assert.equal(await page.locator(".pf-bars > div").count(), 7);
+  assert.equal(await page.locator(".pf-spark, .pf-range").count(), 0);
+  const heights = await page.$$eval(".pf-track i", els => els.map(el => el.style.getPropertyValue("--h")));
+  assert.ok(heights.some(h => h === "0%"), "a day with no time draws no bar");
+  assert.ok(heights.some(h => h !== "0%"));
+  await page.click(".pf-drill");
+  await page.waitForFunction(() => location.hash.includes("practice"));
+  assert.match(decodeURIComponent(await page.evaluate(() => location.hash)), /C-G/);
+});
+
+test("Your stats: an empty week uses the last 4 weeks, and a run of 0 waits on Night 1", { skip: skip() }, async t => {
+  const page = await openStats(t, "dark", false);
+  const text = await page.innerText(".pf-stats-page");
+  assert.match(text, /Play tonight to start a run/);
+  assert.match(text, /NIGHT 1/);
+  assert.match(text, /Shows played:\s*4/);
+  assert.match(text, /Your last 4 weeks/);
+  assert.equal(await page.getAttribute(".pf-bars", "data-mode"), "weeks");
+  assert.equal(await page.locator(".pf-bars > div").count(), 4);
+  const heights = await page.$$eval(".pf-track i", els => els.map(el => el.style.getPropertyValue("--h")));
+  assert.ok(heights.some(h => h === "0%") && heights.some(h => h !== "0%"), "the fallback is not a row of flat lines");
+  assert.equal(await page.locator(".pf-stub.on").count(), 0);
+  assert.equal(await page.locator(".pf-stub.wait").count(), 1);
+});
+
+test("Your stats: Back returns to Me, and a 40-night run shows its last 7 tickets with the count in words", { skip: skip() }, async t => {
+  const lib = statsLib("dark", true), days = {};
+  for (let k = 0; k < 40; k++) days[statsDay(k)] = 1;
+  lib.songs = [{ ...lib.songs[0], playLog: { total: 40, last: STATS_NOW, days } }];
+  const page = await phone(t, lib, { home: true, fixedTime: STATS_NOW, colorScheme: "dark", viewport: { width: 320, height: 640 } });
+  await page.evaluate(() => { location.hash = "#/you/stats"; });
+  await page.waitForSelector(".pf-stats-page"); await settled(page);
+  assert.deepEqual(await page.locator(".pf-stub.on b").allInnerTexts().then(a => a.map(x => x.trim().toUpperCase())), [34, 35, 36, 37, 38, 39, 40].map(k => `NIGHT ${k}`), "the last seven nights, ending with the latest");
+  assert.match(await page.innerText(".pf-stub.on:last-child"), /tonight/i, "tonight's ticket is shown");
+  assert.ok(await page.evaluate(() => { const s = document.querySelector(".pf-stubs").getBoundingClientRect(), l = document.querySelector(".pf-stub.on:last-child").getBoundingClientRect(); return l.left >= s.left - 1 && l.right <= s.right + 1; }), "the latest ticket is in view without scrolling");
+  assert.equal((await page.innerText("#pf-run-cap")).trim(), "40 nights in a row", "the full count is in words");
+  assert.equal(await page.getAttribute(".pf-stubs", "aria-label"), "40 nights in a row");
+  const box = await page.locator("#back").boundingBox();
+  assert.ok(box.width >= 44 && box.height >= 44, "Back is a 44 px target");
+  assert.equal(await page.getAttribute("#back", "aria-label"), "Back to Me");
+  await page.click("#back");
+  await page.waitForFunction(() => location.hash === "#/you");
+  await page.waitForSelector("#pf-open-stats");
+});
+
+test("Chord cards: learned cards are teal buttons, locked cards keep a gray diagram, and the shelf peeks", { skip: skip() }, async t => {
+  const page = await phone(t, statsLib("dark", true), { home: true, fixedTime: STATS_NOW, colorScheme: "dark" });
+  await page.evaluate(() => { location.hash = "#/you"; });
+  await page.waitForSelector("#pf-open-chords"); await settled(page);
+  assert.match(await page.innerText("#pf-open-chords"), /Chords\s*7 of 25/);
+  await page.click("#pf-open-chords");
+  await page.waitForSelector(".pf-ccard.on"); await settled(page);
+  assert.match(await page.innerText(".pf-ch-top"), /Chords[\s\S]*7 of 25/);
+  assert.match(await page.innerText(".pf-fam"), /Open\/7th chords\s*4 of 13/);
+  const learned = page.locator(".pf-ccard.on[data-stamp='G']");
+  assert.equal(await learned.evaluate(el => el.tagName), "BUTTON");
+  assert.match(await learned.locator("svg").innerHTML(), /class="do"/);
+  assert.match(await learned.locator("svg").innerHTML(), /class="dd"/);
+  const locked = page.locator(".pf-ccard.locked").filter({ has: page.locator("b", { hasText: /^D$/ }) }).first();
+  assert.equal(await locked.evaluate(el => el.tagName), "DIV");
+  assert.match(await locked.locator("svg").innerHTML(), /class="dx"/);
+  assert.match(await locked.locator("svg").innerHTML(), /class="dd"/);
+  const paint = await page.evaluate(() => {
+    const on = getComputedStyle(document.querySelector(".pf-ccard.on"));
+    const off = getComputedStyle(document.querySelector(".pf-ccard.locked .pf-dg"));
+    return { edge: on.borderTopColor, glow: on.boxShadow, gray: off.filter, fade: off.opacity };
+  });
+  assert.notEqual(paint.edge, "rgba(0, 0, 0, 0)");
+  assert.match(paint.glow, /0px/);
+  assert.match(paint.gray, /grayscale/);
+  assert.ok(Number(paint.fade) < 0.7, paint.fade);
+  assert.match(await page.locator("[data-stamp='F'] svg").innerHTML(), /<rect class="dd"/, "a barre is a bar, from the stored shape");
+  const shelf = await page.$eval(".pf-shelf", el => {
+    const r = el.getBoundingClientRect();
+    const cards = [...el.children].map(c => c.getBoundingClientRect());
+    return { scrolls: el.scrollWidth > el.clientWidth + 8, cut: cards.some(c => c.left < r.right - 4 && c.right > r.right + 2), wide: document.scrollingElement.scrollWidth <= innerWidth + 1 };
+  });
+  assert.equal(shelf.scrolls, true);
+  assert.equal(shelf.cut, true, "a card is cut off at the right edge");
+  assert.equal(shelf.wide, true, "the page itself does not scroll sideways");
+  await page.click("[data-stamp='G']");
+  await page.waitForSelector(".pf-stampsheet");
+  assert.match(await page.innerText(".pf-stampsheet"), /^G/);
+  await page.click("#st-x");
+  await page.waitForSelector(".pf-stampsheet", { state: "detached" });
+  await page.click("#pf-learn");
+  await page.waitForFunction(() => location.hash.includes("practice"));
+  assert.match(decodeURIComponent(await page.evaluate(() => location.hash)), /c:D/);
+});
+
+test("Chord cards and Your stats use the light look too", { skip: skip() }, async t => {
+  const page = await phone(t, statsLib("light", true), { home: true, fixedTime: STATS_NOW, colorScheme: "light" });
+  await page.evaluate(() => { location.hash = "#/you/chords"; });
+  await page.waitForSelector(".pf-ccard.on"); await settled(page);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "festival");
+  assert.ok(await page.locator(".pf-ccard.locked").count() > 0);
+  await page.evaluate(() => { location.hash = "#/you/stats"; });
+  await page.waitForSelector(".pf-poster");
+  assert.match(await page.innerText(".pf-when"), /You play most on Sunday and Monday evenings/);
 });
 
 for (const theme of ["green", "headliner"]) {

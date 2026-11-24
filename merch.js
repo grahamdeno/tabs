@@ -5,7 +5,7 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
+import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, guitarsOwned, shopBuy, shopChoose, shopState } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
@@ -25,7 +25,17 @@ const ART = {
   sunset: () => `<rect width="100" height="64" fill="#FF8A00"/><rect width="100" height="20" fill="#FF3D7F"/><circle cx="50" cy="40" r="17" fill="#FFD23F"/><path d="M0 46 L18 34 L34 44 L52 30 L72 44 L86 36 L100 44 V64 H0Z" fill="#14213D" opacity=".75"/>`,
   basement: () => `<rect width="100" height="64" fill="#2A3A63"/><ellipse cx="50" cy="0" rx="30" ry="44" fill="#FFF6C8" opacity=".14"/>`
 };
-const artSVG = (id, cls = "") => `<svg class="${cls}" viewBox="0 0 100 64" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${(ART[id] || ART.basement)()}</svg>`;
+/* Painted thumbnails (the flat drawings stay in ART for anything that still asks). */
+const BACKDROP_PIC = {
+  brick: "art/merch/paint-brick.webp",
+  stars: "art/merch/paint-stars.webp",
+  sunset: "art/merch/paint-sunset.webp",
+  basement: "art/merch/paint-basement.webp"
+};
+const artSVG = (id, cls = "") => {
+  const src = BACKDROP_PIC[id] || BACKDROP_PIC.basement;
+  return `<img class="${cls}" src="${src}" alt="" aria-hidden="true">`;
+};
 export const backdropBanner = id => `<div class="gc-bd" aria-hidden="true">${artSVG(ART[id] ? id : "basement")}</div>`;
 /* the backdrops you own (the Basement is everyone's), in the merch table's order */
 export const backdropsOwned = () => { const st = merchState(data); return MERCH.filter(x => x.kind === "backdrop" && st.has.has(x.id)).map(x => ({ id: x.id, name: x.name, on: st.backdrop === x.id })); };
@@ -42,7 +52,7 @@ const SWATCH = {
   headliner: ["#16171B", "#9B5CFF", "#F5C542", "#FF7A1A"]
 };
 const swatch = (id, cls = "mc-sw") => `<span class="${cls}" aria-hidden="true">${(SWATCH[id] || []).map(c => `<i style="background:${c}"></i>`).join("")}</span>`;
-const lou = (id, size, mood = "happy", pose) => `<span class="fin fin-${id}">${louie(mood, { size, pose })}</span>`;
+const lou = (id, size, mood = "happy", pose) => `<span class="fin fin-${id}">${louie(mood, { size, pose, finish: id === "stock" || id === "tweed" ? "" : id })}</span>`;
 const price = (it, st) => `<span class="mc-price${st.tips < it.price ? " short" : ""}">$${n(it.price)}</span>`;
 const tag = (it, st) => it.kind === "gear" ? price(it, st)
   : it.kind === "look" ? st.look === it.id ? `<span class="mc-on">ON</span>` : st.has.has(it.id) ? `<span class="mc-on own">${it.price || it.earn ? "YOURS" : "FREE"}</span>`
@@ -78,8 +88,9 @@ export function renderMerch() {
     </div>
     ${panel("gear", `<h2 class="mc-h"><span>Gear</span><small>used up when you use it</small></h2>
     <div class="mc-row three">${of("gear").map(gear).join("")}</div>`)}
-    ${/* Louie's finishes are off the table (Graham, 2026-11-19): the tweed Louie has one colour so far. Finishes already bought stay saved (merch.has) and come back with his new colours. */""}
-    ${panel("looks", `<h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
+    ${panel("looks", `<h2 class="mc-h"><span>Louie's finishes</span><small>his other colours</small></h2>
+    <div class="mc-row scroll">${of("louie").map(it => `<button class="mc-fin${st.louie === it.id ? " on" : ""}" data-id="${it.id}" aria-label="${esc(it.name)} Louie">${lou(it.id, 64, "happy")}<b>${esc(it.name)}</b>${tag(it, st)}</button>`).join("")}</div>
+    <h2 class="mc-h"><span>Stage backdrops</span><small>on Show complete</small></h2>
     <div class="mc-row scroll">${of("backdrop").map(drop).join("")}</div>
     <h2 class="mc-h"><span>Looks</span><small>the whole app</small></h2>
     <div class="mc-row scroll">${of("look").filter(it => it.id === "festival" || it.id === "neon").map(look).join("")}</div>`)}
@@ -112,7 +123,7 @@ function shopSay(g, st) {
 }
 /* Road Ready 9b: the guitar builder, for the Road guitars you've earned (not the shop guitars) */
 function buildEntry() {
-  const k = guitarsEarned(data).length;
+  const k = guitarsOwned(data).length;
   return `<h2 class="mc-h"><span>Build your guitar</span><small>looks only</small></h2>
     <button class="mc-build" id="mc-build" ${k ? "" : "disabled"}><span class="mc-build-t"><b>Build your guitar</b><small>${k ? "Paint, tops, guards, wear and hardware for the guitars you've earned" : "Finish a leg to earn your first guitar"}</small></span>${icon("chev", "chev")}</button>`;
 }
