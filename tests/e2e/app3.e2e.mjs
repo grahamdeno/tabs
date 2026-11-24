@@ -618,7 +618,7 @@ for (const theme of ["dark", "light"]) {
   test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
     const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
     const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
-    assert.deepEqual(heads, ["Gear", "Louie's finishes", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "Louie's other colours are on the table, and the rest keeps its order");
+    assert.deepEqual(heads, ["Gear", "Louie's finishes", "Stage backdrops", "Looks", "Build your guitar", "Guitar shop"], "Louie's other colours are on the table, hats left on 2026-11-23, and the rest keeps its order");
     assert.equal(await page.locator(".mc-gt").count(), 16);
     const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
     /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */
@@ -659,9 +659,9 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   assert.ok((await page.$$eval(".rr-gtr", els => els.map(e => e.getAttribute("aria-label")))).includes("Sticker Riot, from the Guitar shop, the one you play"));
   assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
-  /* the guitarist holds it (the small picture in his hands) */
+  /* the guitarist on the card is the painted rock picture */
   const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
-  assert.match(hands, /art\/guitars\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  assert.match(hands, /art\/guitarist-painted\/genres\/rock-m\.webp/, "the guitarist is the painted rock picture");
   /* back to the leg's guitar, and the saved choice is gone */
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
   await page.click("#mc-gt-leg");

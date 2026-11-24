@@ -176,6 +176,29 @@ test("Road Ready 08: with no guitar earned the case says how to earn one; a libr
   assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
 });
 
+test("the maker saves a genre and man or woman, and Me shows that picture", { skip: skip() }, async t => {
+  const page = await phone(t, LIB, { colorScheme: "dark" });
+  await page.evaluate(() => { location.hash = "#/you"; });
+  await page.waitForSelector("#pf-me");
+  await settled(page);
+  await page.click("#pf-me");
+  await page.waitForSelector('.gm-c[data-k="genre"][data-v="blues"]');
+  await page.click('.gm-c[data-k="genre"][data-v="blues"]');
+  await page.click('.gm-c[data-k="who"][data-v="w"]');
+  await page.waitForFunction(() => {
+    const me = JSON.parse(localStorage.getItem("tabs-v1")).me;
+    return me && me.genre === "blues" && me.who === "w";
+  });
+  assert.equal(await page.locator(".gm-prev .gm-hero").getAttribute("src"), "art/guitarist-painted/genres/blues-w.webp", "the card follows the pick");
+  const hero = await page.locator(".gm-hero").evaluate(el => getComputedStyle(el).objectFit);
+  assert.equal(hero, "contain", "the whole painting fits in the card");
+  assert.equal(await page.locator(".gm-starts").count(), 0, "the old face chips are not on the maker");
+  await page.click("#gm-ok");
+  await page.waitForSelector(".gm", { state: "detached" });
+  await settled(page);
+  assert.equal(await page.locator(".rr-avatar image").getAttribute("href"), "art/guitarist-painted/genres/blues-w.webp", "Me shows the picture you picked");
+});
+
 for (const theme of ["green", "headliner"]) {
   test(`a saved ${theme} look shows the Road Ready Me page and keeps the saved look`, { skip: skip() }, async t => {
     const page = await phone(t, meLib(theme, { merch: { ...LIB.merch, has: [theme], tconv: 1, lconv: 1 } }), { home: true, colorScheme: "dark" });
