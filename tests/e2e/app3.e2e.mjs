@@ -336,7 +336,7 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   const skills = { done: { "c:G": { n: 3, best: 90, at: Date.now() }, "c:C": { n: 3, best: 90, at: Date.now() }, "c:D": { n: 3, best: 90, at: Date.now() } } };
   const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
   await page.waitForSelector(".rd-node.box.now");
-  assert.match(await page.innerText(".rn-bubble"), /Merch box/, "the shut box is the next stop");
+  assert.match(await page.innerText(".rn-now-tx"), /Merch box/, "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
   const before = await fans();
   await page.click(".rd-node.box.now");
@@ -365,7 +365,7 @@ test("The Road on a new library: the first song is ready to play on the current 
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator("#rd-bubble").count(), 0, "no message on the Road (one-row header, Grok 2026-11-19)");
   assert.equal(await page.locator("#rd-tonight").count(), 0, "no Tonight bar on the Road");
-  assert.match(await page.innerText(".rn-bubble"), /G/, "the current stop's name sits in the gutter");
+  assert.match(await page.innerText(".rn-now-tx"), /^G$/, "the current stop's name sits on the plate");
 });
 
 test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -582,8 +582,9 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
   await page.waitForSelector(".rn-neck");
   assert.equal(await page.locator(".rn-neck").count(), 1, "one rosewood neck for the legs you can see");
-  assert.match(await page.innerText(".rn-leg"), /Leg 1/);
-  assert.equal(await page.locator(".rn-bubble").count(), 1, "one name bubble, on the current stop");
+  assert.match(await page.innerText(".rn-legbar"), /Leg 1/);
+  assert.equal(await page.locator(".rn-bubble").count(), 0, "no name bubble in the gutter");
+  assert.equal(await page.locator(".rn-now").count(), 1, "one now plate, for the current stop");
   assert.equal(await page.locator(".rd-node.headline .rn-pearl").count() >= 1, true, "the headline is an inlay");
   await page.waitForSelector("#gt-x");
   assert.match(await page.innerText(".rd-gt"), /Cornerstone/, "the sheet names the new guitar");

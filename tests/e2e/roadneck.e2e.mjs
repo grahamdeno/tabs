@@ -102,10 +102,12 @@ test("Neck-only Road: opening on the current stop keeps it on screen, and a stop
     const stop = document.querySelector(".rd-node.cur").getBoundingClientRect();
     const header = document.querySelector("header.rr-head").getBoundingClientRect();
     const tabs = document.getElementById("tabs").getBoundingClientRect();
-    return { top: stop.top, bottom: stop.bottom, header: header.bottom, tabs: tabs.top, scroll: document.getElementById("rd-path").scrollTop };
+    const plate = document.getElementById("rn-now").getBoundingClientRect();
+    return { top: stop.top, bottom: stop.bottom, header: header.bottom, tabs: tabs.top, plate: plate.top, scroll: document.getElementById("rd-path").scrollTop };
   });
   assert.ok(box.scroll > 0, "a stop down the neck is scrolled into view");
   assert.ok(box.top >= box.header - 1, "clear of the header");
+  assert.ok(box.bottom <= box.plate + 1, "clear of the now plate");
   assert.ok(box.bottom <= box.tabs + 1, "clear of the tab bar");
   const fresh = await phone(t, { ...LIB, opening: undefined, me: undefined, settings: { ...LIB.settings, v: 6, theme: "dark" } }, { home: true, viewport: { width: 390, height: 844 } });
   await fresh.waitForSelector(".on-night");
@@ -113,4 +115,139 @@ test("Neck-only Road: opening on the current stop keeps it on screen, and a stop
   const top = await fresh.evaluate(() => ({ scroll: document.getElementById("rd-path").scrollTop, stop: document.querySelector(".rd-node.now").getBoundingClientRect().top, header: document.querySelector("header.rr-head").getBoundingClientRect().bottom }));
   assert.equal(top.scroll, 0, "a stop near the nut pins to the top");
   assert.ok(top.stop >= top.header - 1, "and stays clear of the header");
+});
+
+test("Road labels do not break inside a word, at 320 and 390, in both looks, including large text", { skip: skip() }, async t => {
+  for (const theme of ["dark", "light"]) {
+    const page = await phone(t, lib(theme, MID), { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+    await page.waitForSelector("#rn-legline"); await settled(page);
+    const read = () => page.evaluate(() => {
+      const linesOf = el => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const parts = [];
+        while (walker.nextNode()) {
+          const node = walker.currentNode, text = node.textContent;
+          for (let i = 0; i < text.length; i++) {
+            const range = document.createRange();
+            range.setStart(node, i); range.setEnd(node, i + 1);
+            const rect = range.getClientRects()[0];
+            if (!rect || !rect.width) continue;
+            parts.push({ ch: text[i], top: Math.round(rect.top) });
+          }
+        }
+        const lines = [];
+        let y = null, line = "";
+        for (const p of parts) {
+          if (y === null || Math.abs(p.top - y) > 2) { if (line) lines.push(line); line = ""; y = p.top; }
+          line += p.ch;
+        }
+        if (line) lines.push(line);
+        return lines;
+      };
+      const cssBad = [];
+      for (const el of document.querySelectorAll(".rn-legbar, .rn-legbar *, .rn-now, .rn-now *, .rn-num, .rd-pop, .rd-pop *")) {
+        const c = getComputedStyle(el);
+        if (c.wordBreak === "break-all" || c.overflowWrap === "anywhere") cssBad.push((el.className || el.tagName) + " " + c.wordBreak + " " + c.overflowWrap);
+      }
+      const intact = el => {
+        const text = el.innerText.replace(/\s+/g, " ").trim();
+        const words = text.split(" ").filter(Boolean);
+        const lines = linesOf(el).map(s => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+        const rebuilt = lines.join(" ").replace(/\s+/g, " ").trim();
+        if (rebuilt !== text) return rebuilt + " vs " + text;
+        for (const line of lines) for (const part of line.split(" ").filter(Boolean)) if (!words.includes(part)) return part + " in " + line;
+        return "";
+      };
+      const overflow = [...document.querySelectorAll(".rn-legline, .rn-now-tx, .rn-legbar, .rn-now")].filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.id || el.className);
+      const line = document.querySelector(".rn-legline");
+      const lh = parseFloat(getComputedStyle(line).lineHeight) || parseFloat(getComputedStyle(line).fontSize) * 1.2;
+      const src = getComputedStyle(document.querySelector(".rn-now-tx"));
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:absolute;left:0;top:0;width:70px;font:" + src.font + ";word-break:" + src.wordBreak + ";overflow-wrap:" + src.overflowWrap + ";white-space:normal;";
+      probe.textContent = "AlphaBeta ChordName";
+      document.body.appendChild(probe);
+      const probeLines = linesOf(probe).map(s => s.trim()).filter(Boolean);
+      probe.remove();
+      const plate = document.getElementById("rn-now").getBoundingClientRect();
+      return {
+        cssBad, overflow, one: line.getBoundingClientRect().height <= lh + 2,
+        label: intact(line), name: intact(document.querySelector(".rn-now-name")),
+        probeLines, wordBreak: src.wordBreak, overflowWrap: src.overflowWrap,
+        glow: getComputedStyle(document.querySelector(".rr-glow")).animationName,
+        plateAbove: plate.bottom <= document.getElementById("tabs").getBoundingClientRect().top + 1
+      };
+    });
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const got = await read();
+      assert.deepEqual(got.cssBad, [], `${theme} ${width}`);
+      assert.deepEqual(got.overflow, [], `${theme} ${width} clips ${got.overflow}`);
+      assert.equal(got.one, true, `${theme} ${width}: one leg line`);
+      assert.equal(got.label, "", got.label);
+      assert.equal(got.name, "", got.name);
+      assert.notEqual(got.wordBreak, "break-all");
+      assert.notEqual(got.overflowWrap, "anywhere");
+      assert.equal(got.probeLines.join(" "), "AlphaBeta ChordName");
+      assert.ok(got.probeLines.every(line => line.split(" ").every(w => ["AlphaBeta", "ChordName"].includes(w))), got.probeLines.join("|"));
+      assert.equal(got.glow, "none", "Reduce Motion keeps the glow still");
+      assert.equal(got.plateAbove, true, "the plate stays above the tab bar");
+    }
+    await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "40px"); document.documentElement.dataset.ax = "3"; });
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const big = await read();
+    assert.equal(big.one, true, "large text keeps one leg line");
+    assert.deepEqual(big.overflow, [], `large text clips ${big.overflow}`);
+    assert.equal(big.label, "", big.label);
+    assert.equal(big.name, "", big.name);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => { const p = document.getElementById("rd-path"); p.scrollTop = p.scrollHeight; });
+    const clear = await page.evaluate(() => {
+      const stops = [...document.querySelectorAll(".rn-slot")];
+      const last = stops[stops.length - 1].getBoundingClientRect();
+      const plate = document.getElementById("rn-now").getBoundingClientRect();
+      return { stop: last.bottom, plate: plate.top };
+    });
+    assert.ok(clear.stop <= clear.plate + 1, `the last stop (${clear.stop}) scrolls clear of the plate (${clear.plate})`);
+    await page.click(".rd-node.cur");
+    await page.waitForSelector(".rd-pop p");
+    const card = await page.evaluate(() => {
+      const linesOf = el => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const parts = [];
+        while (walker.nextNode()) {
+          const node = walker.currentNode, text = node.textContent;
+          for (let i = 0; i < text.length; i++) {
+            const range = document.createRange();
+            range.setStart(node, i); range.setEnd(node, i + 1);
+            const rect = range.getClientRects()[0];
+            if (!rect || !rect.width) continue;
+            parts.push({ ch: text[i], top: Math.round(rect.top) });
+          }
+        }
+        const lines = [];
+        let y = null, line = "";
+        for (const p of parts) {
+          if (y === null || Math.abs(p.top - y) > 2) { if (line) lines.push(line); line = ""; y = p.top; }
+          line += p.ch;
+        }
+        if (line) lines.push(line);
+        return lines;
+      };
+      const p = document.querySelector(".rd-pop p");
+      p.style.width = "120px";
+      const c = getComputedStyle(p);
+      const text = p.innerText.replace(/\s+/g, " ").trim();
+      const words = text.split(" ").filter(Boolean);
+      const lines = linesOf(p).map(s => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+      const broken = [];
+      for (const line of lines) for (const part of line.split(" ").filter(Boolean)) if (!words.includes(part)) broken.push(part);
+      return { wordBreak: c.wordBreak, overflowWrap: c.overflowWrap, broken, rebuilt: lines.join(" ").replace(/\s+/g, " ").trim(), text };
+    });
+    assert.notEqual(card.wordBreak, "break-all");
+    assert.notEqual(card.overflowWrap, "anywhere");
+    assert.deepEqual(card.broken, []);
+    assert.equal(card.rebuilt, card.text);
+  }
 });
