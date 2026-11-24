@@ -1,6 +1,0 @@
-/* The Gig poster guitarist (Grok, 2026-11-19): ink layers the app tints. Made by tools/guitarist/poster_art.py; do not
-   edit by hand (art changes go to Grok). How the pieces go together: art/guitarist-poster/README.md. Reference
-   compositor: posterSVG in tools/guitarist/poster_preview.mjs.
-   Every part is a list of layers [ink, tone, path], drawn in order with fill-rule evenodd. ink: paper, line, amber
-   (fixed), skin, hair, top, spot, hat (tinted). tone: 0 the ink, 1 its shade as halftone dots, 2 its deep shade (solid),
-   3 the ink as a fine stipple (stubble, shaved hair). */

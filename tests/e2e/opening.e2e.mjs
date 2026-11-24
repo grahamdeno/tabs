@@ -18,16 +18,18 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
-  /* 1: your guitarist (4.85.0): a starter, then THAT'S ME. No fans, and the Road keeps it as data.me */
+  /* 1: your guitarist: the painted picture, then THAT'S ME. No fans, and the Road keeps the genre you picked */
   await page.click(".rd-node.now"); await page.click("[data-ostart]");
   await page.waitForSelector(".gm");
-  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Start from a selfie[\s\S]*Change anything later on Your profile/);
-  assert.equal(await page.locator('.gm svg[aria-label="Your guitarist"]').count(), 1, "the preview");
-  await page.click('.gm [data-k="starter"][data-v="3"]');
+  assert.match(await page.innerText(".gm"), /Who's playing tonight\?[\s\S]*Change anything later on Your profile/);
+  assert.equal(await page.locator('.gm img.gm-hero[alt="Your guitarist"]').count(), 1, "the preview");
+  await page.click('.gm [data-k="genre"][data-v="punk"]');
+  await page.click('.gm [data-k="who"][data-v="w"]');
   await page.click("#gm-ok");
   await stepIs(page, 1);
   const me = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).me);
-  assert.equal(me.hair, "mohawk", "the starter you picked is you");
+  assert.equal(me.genre, "punk", "the genre you picked is you");
+  assert.equal(me.who, "w", "and whether you are a man or a woman");
   assert.equal((await saved(page)).fans || 0, 0, "no fans for choosing a guitarist");
   /* Hold the guitar */
   await page.waitForSelector(".on-path .rd-node.now"); await settled(page);
