@@ -3135,13 +3135,34 @@ test("Road Ready: its tokens exist for both looks and for no other look", () => 
 });
 
 test("Road Ready: the fonts are bundled as woff2 with their licences", () => {
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
     const b = fs.readFileSync(path.join(root, "vendor/fonts", f));
     assert.equal(b.subarray(0, 4).toString("latin1"), "wOF2", `${f} is a woff2 file`);
     assert.ok(b.length < 120 * 1024, `${f} is under 120 KB (${b.length})`);
   }
-  for (const f of ["OFL-SpaceGrotesk.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
+  for (const f of ["OFL-Sora.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
   assert.doesNotMatch(read("styles.css"), /fonts\.googleapis|fonts\.gstatic|cdn\./i, "no font comes from a network address");
+});
+
+test("Sora is the Road Ready heading font, and Green Room and Headliner keep Fredoka", () => {
+  const css = read("styles.css"), sw = read("sw.js");
+  assert.match(css, /@font-face \{ font-family: "Sora"; src: url\("vendor\/fonts\/sora-600\.woff2"\) format\("woff2"\); font-weight: 600;/);
+  assert.match(css, /@font-face \{ font-family: "Sora"; src: url\("vendor\/fonts\/sora-700\.woff2"\) format\("woff2"\); font-weight: 700;/);
+  assert.doesNotMatch(css, /Space Grotesk|spacegrotesk/);
+  const rootDisplay = css.match(/:root, :root\[data-theme="light"\], :root\[data-look\] \{\s*--sans:[^;]+;\s*--serif:[^;]+;\s*--display: ([^;]+);/);
+  assert.ok(rootDisplay, "the shared display font is declared");
+  assert.match(rootDisplay[1], /Fredoka/, "Green Room and Headliner still use Fredoka");
+  const rr = css.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\]\) \{[^]*?--display: ([^;]+);/);
+  assert.ok(rr, "Road Ready sets its own display font");
+  assert.match(rr[1], /"Sora"/);
+  assert.match(rr[1], /"Inter"/);
+  assert.match(css, /--readout: "IBM Plex Mono"/);
+  assert.match(css, /--sans: "Inter"/);
+  const shell = JSON.parse(sw.match(/const SHELL = (\[.*?\]);/s)[1]);
+  assert.ok(shell.includes("vendor/fonts/sora-600.woff2"), "Sora SemiBold is in the app shell");
+  assert.ok(shell.includes("vendor/fonts/sora-700.woff2"), "Sora Bold is in the app shell");
+  assert.ok(!shell.some(f => /spacegrotesk|Space Grotesk/.test(f)));
+  assert.doesNotMatch(read("guitarist.js") + read("portrait.js"), /Space Grotesk/);
 });
 
 /* ---- Road Ready 9a: the 23 guitars and the Guitar shop ---- */
