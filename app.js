@@ -1,11 +1,10 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { loadPortrait } from "./portrait.js";
 import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderSet, setCtx, setRun, setSongs, setSetCtx } from "./sets.js";
-import { copyDiagnostics, loadLibrary, noteError } from "./store.js";
+import { clearPortraitLeftovers, copyDiagnostics, loadLibrary, noteError } from "./store.js";
 import { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
 import { appleSearchURL, hasMusic, recordingOn, musicLead, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
@@ -17,7 +16,7 @@ import { stagePlay, stageStop, stageOpen, stageBeat, coverOn, coverOff } from ".
 
 // ---------- State ----------
 let data = await loadLibrary(); /* see store.js */
-await loadPortrait(); /* 4.99.0: the selfie portrait, if one was made (portrait.js) */
+await clearPortraitLeftovers(); /* once: the old selfie portrait and xAI key are deleted (store.js) */
 /* Replacing the whole library (a restored backup or the safety copy) goes through here. */
 const setData = d => { data = d; };
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") Tabs.flush(); });
