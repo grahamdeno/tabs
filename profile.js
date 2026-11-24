@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, shopState, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
+import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie, louiePic } from "./louie.js";
@@ -16,8 +16,7 @@ import { makerSheet } from "./maker.js";
 import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
 import { friend } from "./friends.js";
 import { paintTabs, tabFor } from "./hud.js";
-import { guitarPic } from "./fretboard.js";
-import { buildPic } from "./buildart.js";
+import { bindStand, collectionOf, standHTML, standIndex } from "./gstand.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const shortDay = d => { const [y, m, dd] = String(d).split("-"); return y && m ? `${MONTHS[+m - 1]} ${+dd || ""}${y !== String(new Date().getFullYear()) ? `, ${y}` : ""}`.replace(" ,", ",") : ""; };
@@ -105,17 +104,12 @@ export function renderProfile() {
       ${row("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
       ${row("pf-r-support", "heart", "Support Louie", "If you like the app, chip in on Ko-fi", "#/support")}
     </nav>`;
-  /* Road Ready 08 (spec 5.8, r10-06): the player header, three tiles, the guitar case with the Merch row, Milestones, a list of rows, then
+  /* Road Ready 08 (spec 5.8, r10-06): the player header, three tiles, your guitars on the stand, Milestones, a list of rows, then
      Support the app on its own. Game money (the coin and the $ amount) is only on the Merch row; real money is only in the last section. */
   const rr = rrLook();
   const rrRow = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row rr-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span class="rr-row-t">${name}${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "chev")}</${href ? "a" : "button"}>`;
-  const legs = roadPath(data).legs, earned = guitarsEarned(data);
-  const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
-    return `<li class="rr-gtr" role="img" aria-label="${esc(g.name)}${esc(at)}">${pic ? `<img src="${bp.src}"${bp.attr} alt="" aria-hidden="true">` : `<span class="rr-gtr-ph" aria-hidden="true"></span>`}</li>`; }).join("");
-  /* Road Ready 9a: the guitars bought in the Guitar shop sit in the case too; the one you chose says so */
-  const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => { const pic = guitarPic(r.id);
-    return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");
-  const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
+  /* earned road guitars, then shop guitars. The one you play opens in the cradle. */
+  const guitars = collectionOf(data), nGuitars = guitars.length;
   const mer = fansToSpend(data);
   const name = cleanName(data.settings.playerName);
   const rrHTML = `
@@ -133,8 +127,8 @@ export function renderProfile() {
       <div class="rr-tile"><b>${num(p.plays)}</b><small>plays</small></div>
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
+      ${standHTML(guitars, { active: standIndex(guitars) })}
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <div class="rr-gcase"><span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
       <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="${mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows"}"><span class="rr-coinic">${COIN}</span><span>${mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows"}</span>${icon("chev", "chev")}</a>
     </section>
     <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
@@ -157,6 +151,7 @@ export function renderProfile() {
     ${meRows}${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
+  bindStand(document.querySelector(".rr-case-card .gs-stage"));
   document.getElementById("back")?.addEventListener("click", () => go("#/"));
   document.getElementById("pf-name")?.addEventListener("click", () => nameSheet());
   document.getElementById("pf-miles")?.addEventListener("click", () => milesSheet(order.map(badge).join(""), badges));

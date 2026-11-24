@@ -2340,28 +2340,53 @@ test("Road Ready 03: the guitarist's hands are the shapes Louie had before, unch
 test("4.40.0 Opening night: only for a new player, one step at a time, fans once, skip and replay", () => {
   const fresh = () => ({ songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], sets: [], trash: [], settings: {} });
   const d = fresh();
+  assert.deepEqual(C.OPENING.map(o => o.id), ["who", "hold", "strings", "mic", "notes", "chord", "verse", "pause", "show"]);
   assert.equal(C.openingView(d), "leg", "a new player starts on Opening night");
   assert.equal(C.openingView({ ...fresh(), skills: { done: { "chord-G": { n: 1 } } } }), null, "anyone with a lesson (or a play) never sees it");
   assert.equal(C.openingAdvance(d, "chord"), false, "steps go in order");
   assert.equal(C.OPENING[0].id, "who", "4.85.0: Who's playing tonight? comes first");
-  assert.equal(C.openingAdvance(d, "mic"), false, "the microphone waits for the guitarist");
+  assert.equal(C.openingAdvance(d, "mic"), false, "hold and the open strings come before the microphone");
   assert.equal(C.openingAdvance(d, "who"), true);
   assert.equal(C.fansOf(d), 0, "making your guitarist pays no fans");
-  assert.equal(C.openingAdvance(d, "mic"), true);
-  assert.equal(C.openingStep(d), 2); assert.equal(C.fansOf(d), C.FANS.lesson, "a step gives lesson fans");
-  for (const id of ["chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
-  assert.equal(d.opening.fans, 4 * C.FANS.lesson, "the show itself pays as a play, not as a step");
+  for (const id of ["hold", "strings", "mic", "notes", "chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
+  assert.equal(d.opening.fans, 7 * C.FANS.lesson, "who and the show itself pay no step fans");
   assert.equal(C.openingView(d), "done", "the Road shows it done once");
   d.opening.seen = 1; assert.equal(C.openingView(d), null);
   C.openingReplay(d); assert.equal(C.openingView(d), "leg", "Tips & gestures replays it");
   assert.equal(C.openingStep(d), 1, "a replay skips choosing your guitarist again");
-  C.openingAdvance(d, "mic"); assert.equal(d.opening.fans, 4 * C.FANS.lesson, "no fans twice");
+  assert.equal(C.OPENING[C.openingStep(d)].id, "hold");
+  C.openingAdvance(d, "hold"); assert.equal(d.opening.fans, 7 * C.FANS.lesson, "no fans twice");
   const s = fresh(); C.openingSkip(s); assert.equal(C.openingView(s), null, "Skip ends it");
-  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 6, v: 2, fans: 25, micOff: true });
-  assert.equal(C.cleanOpening({ step: 2, fans: 5 }).step, 3, "a save from before 4.85.0 moves up one step");
+  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 9, v: 3, fans: 40, micOff: true });
+  assert.equal(C.OPENING[C.cleanOpening({ step: 2, fans: 5 }).step].id, "verse", "a save from before 4.85.0 stays on the same step");
   assert.equal(C.cleanOpening({ step: 0 }).step, 0, "one that hadn't started stays at the start");
-  assert.equal(C.cleanOpening({ step: 2, v: 2 }).step, 2, "a current save is left alone");
   assert.equal(C.cleanOpening("no"), null);
+});
+
+test("Opening night: a saved place stays on the same step when first steps are added", () => {
+  const empty = { songs: [], sets: [], trash: [], settings: {} };
+  const chord = C.cleanOpening({ step: 2, v: 2, fans: 10 });
+  assert.equal(C.OPENING[chord.step].id, "chord");
+  assert.equal(chord.fans, 10, "fans already earned are not changed");
+  assert.equal(chord.v, 3);
+  assert.equal(C.OPENING[C.cleanOpening({ step: 1, v: 2, fans: 0 }).step].id, "mic", "on the microphone stays there");
+  assert.equal(C.OPENING[C.cleanOpening({ step: 4, v: 2, fans: 15 }).step].id, "pause");
+  assert.equal(C.OPENING[C.cleanOpening({ step: 5, v: 2, fans: 20 }).step].id, "show");
+  const done = C.cleanOpening({ step: 6, v: 2, done: 1, seen: 1, fans: 20 });
+  assert.equal(done.step, 9);
+  assert.equal(done.done, 1);
+  assert.equal(done.seen, 1);
+  assert.equal(done.fans, 20);
+  assert.equal(C.openingView({ ...empty, opening: done }), null, "a finished opening night stays finished");
+  const skip = C.cleanOpening({ step: 1, v: 2, skipped: 9, fans: 0 });
+  assert.equal(skip.skipped, 9);
+  assert.equal(C.openingView({ ...empty, opening: skip }), null, "a skipped opening night stays skipped");
+  assert.equal(C.cleanOpening({ step: 0, v: 2 }).step, 0, "one that hadn't started stays at the start");
+  assert.equal(C.cleanOpening({ step: 4, v: 3 }).step, 4, "a current save is left alone");
+  const mid = { ...empty, songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], opening: chord };
+  assert.equal(C.openingView(mid), "leg");
+  assert.equal(C.openingAdvance(mid, "hold"), false, "new earlier steps are not asked again");
+  assert.ok(C.openingAdvance(mid, "chord"));
 });
 
 test("4.41.0 chords where the chord sites have them: numbered words in, positions out, the sheet built on the phone", () => {
@@ -2976,52 +3001,57 @@ test("Road Ready light: the text, amber text and tab colours meet their contrast
     ["lyric-sung on card", t("lyric-sung"), t("card"), 4.5], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5]
   ];
   for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
-  assert.equal(t("amber-text").toLowerCase(), "#123a86", "Electric Cobalt text on cream is #123A86");
+  assert.equal(t("amber-text").toLowerCase(), "#065f5b", "Cool Teal text on cream is #065F5B");
 });
 
-test("Electric Cobalt: Dark and Light accent tokens, pearl marks, the $0 tips line, and no leftover amber or crimson", () => {
+test("Cool Teal: Dark and Light accent tokens, pearl marks, the $0 tips line, and no leftover amber, cobalt or crimson", () => {
   const t = (block, n) => rrHex(block, "--rr-" + n).toLowerCase();
-  assert.equal(t(rrDark, "amber-text"), "#5b9bff");
-  assert.equal(t(rrDark, "chord"), "#5b9bff");
-  assert.equal(t(rrDark, "amber"), "#0a60ff");
-  assert.equal(t(rrDark, "on-amber"), "#ffffff");
-  assert.equal(t(rrDark, "glow"), "#3d7eff");
-  assert.equal(t(rrDark, "glow-core"), "#d6e6ff");
-  assert.equal(t(rrDark, "pearl-now"), "#a9c8ff");
-  assert.equal(t(rrDark, "pearl-done"), "#6aa0ff");
-  assert.equal(t(rrLight, "amber-text"), "#123a86");
-  assert.equal(t(rrLight, "chord"), "#123a86");
-  assert.equal(t(rrLight, "amber"), "#123a86");
+  assert.equal(t(rrDark, "amber-text"), "#20e0d0");
+  assert.equal(t(rrDark, "chord"), "#20e0d0");
+  assert.equal(t(rrDark, "amber"), "#00c8b8");
+  assert.equal(t(rrDark, "on-amber"), "#082422");
+  assert.equal(t(rrDark, "glow"), "#12d8c8");
+  assert.equal(t(rrDark, "glow-core"), "#c2fff8");
+  assert.equal(t(rrDark, "pearl-now"), "#7cf5ea");
+  assert.equal(t(rrDark, "pearl-done"), "#18d4c4");
+  assert.equal(t(rrLight, "amber-text"), "#065f5b");
+  assert.equal(t(rrLight, "chord"), "#065f5b");
+  assert.equal(t(rrLight, "amber"), "#065f5b");
   assert.equal(t(rrLight, "on-amber"), "#ffffff");
-  assert.equal(t(rrLight, "glow"), "#1a4a9a");
-  assert.equal(t(rrLight, "glow-core"), "#7aa0d8");
-  assert.equal(t(rrLight, "pearl-now"), "#1a4a9a");
-  assert.equal(t(rrLight, "pearl-done"), "#123a86");
-  assert.ok(rrRatio("#ffffff", "#0a60ff") >= 4.5, "white ink on the dark fill");
-  assert.ok(rrRatio("#ffffff", "#123a86") >= 4.5, "white ink on the light fill");
-  assert.ok(rrRatio("#5b9bff", "#141210") >= 4.5 && rrRatio("#5b9bff", "#1a1918") >= 4.5, "dark accent text");
-  assert.ok(rrRatio("#123a86", "#f6efe2") >= 4.5 && rrRatio("#123a86", "#fbf7ef") >= 4.5, "light accent text");
-  assert.ok(rrRatio("#0a60ff", "#141210") >= 3 && rrRatio("#0a60ff", "#1a1918") >= 3, "dark fill as a border");
-  assert.ok(rrRatio("#123a86", "#f6efe2") >= 3 && rrRatio("#123a86", "#fbf7ef") >= 3, "light fill as a border");
-  assert.ok(rrRatio("#0a2e86", "#6aa0ff") >= 4.5 && rrRatio("#0a2e86", "#a9c8ff") >= 4.5, "the mark on Dark pearls");
-  assert.ok(rrRatio("#f4e6cb", "#123a86") >= 4.5 && rrRatio("#f4e6cb", "#1a4a9a") >= 4.5, "the mark on Light pearls");
-  assert.match(rrCss, /:root\[data-look="neon"\] \.rr-eng:not\(\.locked\) \{ fill: #0A2E86/);
-  assert.match(rrCss, /:root\[data-look="festival"\] \.rr-eng:not\(\.locked\) \{ fill: #F4E6CB/);
+  assert.equal(t(rrLight, "glow"), "#0b8b82");
+  assert.equal(t(rrLight, "glow-core"), "#8cf2e8");
+  assert.equal(t(rrLight, "pearl-now"), "#0b8b82");
+  assert.equal(t(rrLight, "pearl-done"), "#065f5b");
+  assert.ok(rrRatio("#082422", "#00c8b8") >= 7, "deep teal ink on the dark fill");
+  assert.ok(rrRatio("#ffffff", "#00c8b8") < 4.5, "white ink fails on the dark fill");
+  assert.ok(rrRatio("#ffffff", "#065f5b") >= 7, "white ink on the light fill");
+  assert.ok(rrRatio("#20e0d0", "#141210") >= 4.5 && rrRatio("#20e0d0", "#1a1918") >= 4.5, "dark accent text");
+  assert.ok(rrRatio("#065f5b", "#f6efe2") >= 4.5 && rrRatio("#065f5b", "#fbf7ef") >= 4.5 && rrRatio("#065f5b", "#e8d6bc") >= 4.5, "light accent text");
+  assert.ok(rrRatio("#00c8b8", "#141210") >= 3 && rrRatio("#00c8b8", "#1a1918") >= 3, "dark fill as a border");
+  assert.ok(rrRatio("#082422", "#7cf5ea") >= 4.5 && rrRatio("#082422", "#18d4c4") >= 4.5, "the mark on Dark pearls");
+  assert.ok(rrRatio("#000000", "#0b8b82") >= 4.5, "the mark on the Light current pearl");
+  assert.ok(rrRatio("#f4e6cb", "#065f5b") >= 4.5, "the mark on the Light done pearl");
+  assert.match(rrCss, /:root\[data-look="neon"\] \.rr-eng:not\(\.locked\) \{ fill: #082422/);
+  assert.match(rrCss, /:root\[data-look="festival"\] \.rr-eng:not\(\.locked\) \{ fill: #000000/);
+  assert.match(rrCss, /:root\[data-look="festival"\] \.rd-node\.done \.rr-eng:not\(\.locked\) \{ fill: #F4E6CB/);
   assert.match(read("profile.js"), /mer > 0 \? `Merch: spend \$\$\{num\(mer\)\} tips on new looks` : "Merch table: earn tips at your shows"/);
-  assert.match(read("hud.js"), /art\/tabbar\/knob-lit-cobalt\.webp/);
-  assert.match(read("sw.js"), /art\/tabbar\/knob-lit-cobalt\.webp/);
-  assert.doesNotMatch(read("hud.js"), /knob-lit-crimson/);
-  const banned = ["#ffb547", "#763a00", "#f2a33c", "#e9a93a", "#ffaa3c", "#ffd38a", "#c9761e", "#ffc46b", "#ff5c78", "#d4143c", "#6b122c", "#8e1834", "#ff3b5c"];
+  assert.match(read("hud.js"), /art\/tabbar\/knob-lit-teal\.webp/);
+  assert.match(read("sw.js"), /art\/tabbar\/knob-lit-teal\.webp/);
+  assert.doesNotMatch(read("hud.js"), /knob-lit-crimson|knob-lit-cobalt/);
+  assert.doesNotMatch(read("sw.js"), /knob-lit-cobalt/);
+  const banned = ["#ffb547", "#763a00", "#f2a33c", "#e9a93a", "#ffaa3c", "#ffd38a", "#c9761e", "#ffc46b", "#ff5c78", "#d4143c", "#6b122c", "#8e1834", "#ff3b5c", "#5b9bff", "#0a60ff", "#123a86", "#0a2e86", "#3d7eff", "#1a4a9a"];
   for (const hex of banned) {
     assert.equal(rrDark.toLowerCase().includes(hex), false, `${hex} is not in the Dark token block`);
     assert.equal(rrLight.toLowerCase().includes(hex), false, `${hex} is not in the Light token block`);
   }
   /* The unscoped tab label stays amber so Green Room and Headliner are untouched. Road Ready overrides it. */
-  assert.match(rrCss, /:root\[data-look="neon"\] #tabs a\[aria-current="page"\] \{ color: #5B9BFF/);
-  assert.match(rrCss, /:root\[data-look="festival"\] #tabs a\[aria-current="page"\] \{ color: #123A86/);
-  assert.doesNotMatch(rrCss, /rgba\(232,\s*128,\s*20/);
+  assert.match(rrCss, /:root\[data-look="neon"\] #tabs a\[aria-current="page"\] \{ color: #20E0D0/);
+  assert.match(rrCss, /:root\[data-look="festival"\] #tabs a\[aria-current="page"\] \{ color: #065F5B/);
+  assert.match(rrCss, /rgba\(32, 224, 208, \.72\)/);
+  assert.doesNotMatch(rrCss, /rgba\(232,\s*128,\s*20|rgba\(255,\s*186,\s*72|rgba\(214,\s*120,\s*28|rgba\(61,\s*126,\s*255|hue-rotate\(-10deg\)|hue-rotate\(-8deg\)/);
+  assert.doesNotMatch(rrCss, /#5B9BFF|#0A60FF|#123A86|#0A2E86|#3D7EFF|#1A4A9A|#2563EB|#6AA0FF|#A9C8FF/i);
   assert.doesNotMatch(rrCss, /#E9A93A|#F2A33C|#FF5C78|#D4143C|#6B122C/i);
-  assert.doesNotMatch(rrCss, /knob-lit-crimson/);
+  assert.doesNotMatch(rrCss, /knob-lit-crimson|knob-lit-cobalt/);
 });
 
 test("Road Ready: the status colours stay readable on the base, a card and a well in both looks", () => {
@@ -3180,6 +3210,24 @@ test("Road Ready 9a fix: the neck colours of the 23 new pictures are the fretboa
   }
 });
 
+test("Opening night: a stop circle hides the painted inlay it overlaps, and the dot below stop 8 stays", async () => {
+  const { roadPlace, ROAD } = await import("../core.js");
+  const { inlaysUnder, ROAD_INLAYS } = await import("../fretboard.js");
+  const PICS = (await import("../art/guitars/pics.js")).default;
+  const road = PICS.barebones.road;
+  const put = roadPlace(Array(8).fill("L"), road);
+  const reach = 18 / ROAD.scale;
+  const stops = put.spaces.map(c => ({ x: c.x, y: c.y, r: reach }));
+  const boxes = ROAD_INLAYS.barebones;
+  const yOf = i => (boxes[i][1] + boxes[i][3]) / 2;
+  const hidden = inlaysUnder(boxes, stops).map(yOf);
+  assert.ok(hidden.some(y => Math.abs(y - 309) < 8), "the dot beside an upper stop is covered");
+  assert.ok(hidden.some(y => Math.abs(y - 383) < 8), "the dot beside stop 5 is covered");
+  assert.ok(hidden.some(y => Math.abs(y - 448) < 8), "the dot beside stop 7 is covered");
+  assert.ok(!hidden.some(y => y > 500 && y < 530), "the inlay below stop 8 stays");
+  assert.equal(inlaysUnder([boxes.find(b => (b[1] + b[3]) / 2 > 500 && (b[1] + b[3]) / 2 < 530)], [stops[7]]).length, 0);
+});
+
 /* ---- Road Ready 9a, painted necks (rr-09-road): stops in the painting's own fret spaces ---- */
 const FRETS = JSON.parse(fs.readFileSync(new URL("../docs/guitars/frets.json", import.meta.url)));
 const EXAMPLES = [["example_9", [..."LLLBLLLBL"]], ["example_12", [..."LLLBLLLBLLLL"]]];
@@ -3262,6 +3310,11 @@ test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, a
   for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
     const hs = [5, 9, 12].map(n => FB.roadLayout([...mk(n), { kind: "headline", state: "locked" }], p).height);
     assert.equal(new Set(hs).size, 1, `${slug}: height ${hs.join(", ")}`);
+    const full = Math.round(C.ROAD.margin + C.ROAD.scale * p.road.h + C.ROAD.margin);
+    assert.equal(hs[0], full, `${slug}: the whole guitar is shown, body included`);
+    const imgL = 195 + C.ROAD.scale * (0 - p.road.cx), imgR = imgL + p.road.w * C.ROAD.scale;
+    const lay5 = FB.roadLayout([...mk(5), { kind: "headline", state: "locked" }], p);
+    assert.ok(lay5.frame.vx <= imgL + .01 && lay5.frame.vx + lay5.frame.vw >= imgR - .01, `${slug}: the frame holds the body (${lay5.frame.vx}..${lay5.frame.vx + lay5.frame.vw} vs ${imgL}..${imgR})`);
     const lay = FB.roadLayout([...mk(12), { kind: "headline", state: "locked" }], p);
     assert.ok(lay.spaces.every(sp => sp.y > 0 && sp.y < lay.height && sp.x > 0 && sp.x < 390), `${slug}: every stop is on the picture`);
   }
@@ -3292,7 +3345,7 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   const { FB, PICS } = await wired(), { roadHit, roadPath, migrate } = C, legs = roadPath(migrate({ songs: [], settings: { v: 6 } })).legs;
   const mk = k => [...k].map(c => ({ kind: c === "B" ? "box" : c === "H" ? "headline" : "chord" }));
   const sets = [...legs.map(l => l.stops.map(s => ({ kind: s.kind }))), mk("LLLBLLLBLH"), mk("LLLBLLLBLLLLH")];
-  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? [30, 22] : cur ? [52, 38] : [26, 26];
+  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? FB.RR_SIZE.box : cur ? FB.RR_SIZE.now : FB.RR_SIZE.dot;
   let n = 0;
   for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) for (const stops of sets) {
     const sp = FB.roadLayout(stops, p).spaces;
@@ -3305,8 +3358,29 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   }
   assert.ok(n > 1000, `${n} taps checked`);
   /* Chord switches, lesson 2 current: the first lesson's own art opens the first lesson */
-  const pts = [{ x: 150, y: 300, w: 26, h: 26, done: true }, { x: 205, y: 318, w: 52, h: 38 }];
+  const pts = [{ x: 150, y: 300, w: FB.RR_SIZE.dot[0], h: FB.RR_SIZE.dot[1], done: true }, { x: 205, y: 318, w: FB.RR_SIZE.now[0], h: FB.RR_SIZE.now[1] }];
   assert.equal(roadHit(pts, { x: 150, y: 300 }, 1), 0); assert.equal(roadHit(pts, { x: 205, y: 318 }, 1), 1); assert.equal(roadHit(pts, { x: 20, y: 310 }, 1), 1, "the rest of the row is the current stop's");
+});
+
+test("Road Ready: stop art makes progress the hero, with a solid done check, a large current stop, and a calm locked outline", async () => {
+  const { rrStopArt, RR_SIZE } = await import("../fretboard.js");
+  assert.deepEqual(RR_SIZE.dot, [36, 36]);
+  assert.deepEqual(RR_SIZE.now, [64, 46]);
+  const done = rrStopArt("dot", "done", 3);
+  assert.match(done, /rr-pearl done/, "a finished stop is a solid disc");
+  assert.match(done, /rr-eng done/, "with a check");
+  assert.match(done, /class="rr-halo"/, "and a soft halo");
+  assert.ok(!/rr-sheen/.test(done), "no pearl sheen on a done stop, so it reads as solid amber");
+  const now = rrStopArt("dot", "now", 6);
+  assert.match(now, /class="rr-glow"/, "the current stop glows");
+  assert.match(now, /width="64"[\s\S]*height="46"/, "and is the large trapezoid");
+  assert.match(now, />6</, "with its show number");
+  const ahead = rrStopArt("dot", "locked", 7);
+  assert.match(ahead, /rr-pearl ahead rr-ring/, "a locked stop is a calm outline");
+  assert.match(ahead, />7</, "with its number");
+  assert.ok(!/rr-pearl done|rr-pearl now/.test(ahead), "and is not filled as a done or current stop");
+  const open = rrStopArt("dot", "open", 9);
+  assert.match(open, /rr-pearl ahead rr-ring/, "an open stop ahead uses the same outline");
 });
 
 /* ---------- Road Ready 9b: the guitar builder (BUILD_PARTS and friends in core/game.js, buildart.js, builder.js) ---------- */
@@ -3505,7 +3579,7 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
 
 test("knob tab bar: the off and lit faces, and both grilles, are in the offline copy", () => {
   const shell = read("sw.js"), hud = read("hud.js");
-  for (const f of ["art/tabbar/knob-off.webp", "art/tabbar/knob-lit.webp", "art/tabbar/knob-lit-cobalt.webp", "art/tabbar/grille-dark.webp", "art/tabbar/grille-light.webp"]) {
+  for (const f of ["art/tabbar/knob-off.webp", "art/tabbar/knob-lit.webp", "art/tabbar/knob-lit-teal.webp", "art/tabbar/grille-dark.webp", "art/tabbar/grille-light.webp"]) {
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.existsSync(path.join(root, f)), f);
     assert.ok(fs.statSync(path.join(root, f)).size > 200, `${f} is a real picture`);
@@ -3526,4 +3600,53 @@ test("4.103.0 the player's name: plain text on one line, at most 30 characters, 
   assert.equal(out.data.settings.playerName, "Graham b");
   const bad = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: 42 } });
   assert.notEqual(bad.data.settings.playerName, 42, "a name that is not text is dropped");
+});
+
+test("Neck-only Road: frets follow the 12th root of 2, every stop is centred clear of the wires, and the new art does not replace old art", () => {
+  const L = 2400;
+  assert.ok(Math.abs(C.fretAt(L, 12) - L / 2) < 1e-6, "the 12th fret sits at half the scale length");
+  for (let n = 1; n <= 12; n++) {
+    const space = C.fretAt(L, n) - C.fretAt(L, n - 1);
+    const expect = L * (2 ** (-(n - 1) / 12) - 2 ** (-n / 12));
+    assert.ok(Math.abs(space - expect) < 1e-6, `fret space ${n}`);
+  }
+  const leg = C.roadPath(C.migrate({ songs: [], settings: { v: 6 } })).legs[0];
+  assert.equal(leg.stops.length, 10, "the first leg is 10 stops when a merch box lands every 3 lessons");
+  assert.deepEqual(C.neckSlots(9), { slots: [1, 3, 5, 7, 8, 10, 11, 13, 14], gold: 15 });
+  assert.deepEqual(C.neckSlots(10), { slots: [1, 3, 5, 6, 8, 9, 11, 12, 14, 15], gold: 16 });
+  const board = C.neckBoard([{ stops: leg.stops }], { peek: 3 });
+  assert.deepEqual(board.stops.map(s => s.space), [1, 3, 5, 6, 8, 9, 11, 12, 14, 15]);
+  assert.deepEqual(board.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond", "moon"]);
+  assert.equal(board.frets.filter(f => f.gold).length, 1);
+  assert.equal(board.frets.find(f => f.gold).n, 16);
+  assert.equal(board.frets.filter(f => f.peek).length, 3, "three empty frets peek past the gold bar");
+  assert.ok(board.width >= 0.55 && board.width <= 0.6, `neck width is ${board.width}`);
+  const tightN = Math.max(...board.stops.map(s => s.space));
+  const tight = C.fretAt(C.neckScale(10), tightN) - C.fretAt(C.neckScale(10), tightN - 1);
+  assert.ok(Math.abs(tight - (C.NECK_INLAY + 2 * C.NECK_CLEAR)) < 1e-6, "the tightest occupied space fits the inlay plus clearance");
+  for (const s of board.stops) {
+    assert.ok(Math.abs(s.cy - (s.y0 + s.y1) / 2) < 1e-6, "centred between the wires");
+    assert.ok(s.clear + 1e-6 >= C.NECK_CLEAR, `clearance ${s.clear}`);
+    const nearest = Math.min(...board.strings.map(x => Math.abs(x - s.x)));
+    assert.ok(nearest > 0.05, "the inlay is not centred on a string");
+    if (s.goldBelow) {
+      const gold = board.frets.find(f => f.gold && f.leg === s.li);
+      assert.ok(gold.y - (s.cy + C.NECK_INLAY / 2) + 1e-6 >= C.NECK_GOLD_CLEAR, "the moon stays clear of the gold bar");
+    }
+  }
+  const opening = C.neckBoard([{ stops: C.OPENING.map(o => ({ kind: o.id === "show" ? "headline" : "chord" })) }]);
+  assert.deepEqual(opening.stops.map(s => s.space), [1, 3, 5, 7, 8, 10, 11, 13, 14]);
+  assert.equal(opening.frets.find(f => f.gold).n, 15);
+  assert.deepEqual(opening.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon"]);
+  const files = ["neck-rosewood", "neck-rosewood-v2", "nut", "nut-v2", "fret-gold", "check", "lock", "check-v2", "lock-v2"].map(n => `art/road-neck/${n}.webp`)
+    .concat(["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon", "diamond", "fin-v2", "vine-v2", "moon-v2"].map(n => `art/road-neck/inlays/${n}.webp`));
+  for (const f of files) {
+    const st = fs.statSync(path.join(root, f));
+    assert.ok(st.size > 400, f);
+  }
+  for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
+  let diff = "";
+  try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
+  const bad = diff.split("\n").filter(Boolean).filter(line => !/^A\tart\/(road-neck|tabbar|case)\//.test(line));
+  assert.deepEqual(bad, [], "no existing art file was edited");
 });

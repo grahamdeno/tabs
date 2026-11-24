@@ -119,7 +119,7 @@ const TABS = [
 ];
 const KNOB_OFF = "art/tabbar/knob-off.webp";
 const KNOB_LIT = "art/tabbar/knob-lit.webp";
-const KNOB_LIT_RR = "art/tabbar/knob-lit-cobalt.webp";
+const KNOB_LIT_RR = "art/tabbar/knob-lit-teal.webp";
 const knobHtml = () => {
   const lit = ["neon", "festival"].includes(document.documentElement.dataset.look) ? KNOB_LIT_RR : KNOB_LIT;
   return `<span class="tb-knob" aria-hidden="true"><img class="tb-off" src="${KNOB_OFF}" alt="" draggable="false"><img class="tb-on" src="${lit}" alt="" draggable="false"></span>`;
@@ -132,7 +132,7 @@ function tabsEl() {
 export function paintTabs(active) {
   const el = tabsEl();
   /* no dot on a tab (Grok's design list, 2026-11-19: a notification-style dot reads as Duolingo); the Tuner row on Me shows when
-     the tuner hasn't been used lately */
+     the tuner hasn't been used lately. The knob bar is the bar in every look. */
   const knob = knobHtml();
   el.innerHTML = TABS.map(([k, href, label]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${knob}<span class="tb-l">${esc(label)}</span></a>`).join("");
   document.body.classList.add("tabbed");

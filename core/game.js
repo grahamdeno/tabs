@@ -48,18 +48,38 @@ export function roadPath(data, now = Date.now()) {
 export const FANS = { play: 10, lesson: 5, box: 25 };
 
 // ---------- Opening night (4.40.0) ----------
-// A short leg before Leg 1 that teaches by doing, on the sample song: the microphone (with the reason
-// first), tap a chord, play a verse (strum on the changes), pause and pick up, then the first show
-// through. data.opening = { step, fans, micOff, done, seen, skipped, replay }. A player with any play or
+// The first leg teaches the first steps, on the sample song: hold the guitar, the open strings, the
+// microphone, first notes, tap a chord, play a verse, pause and pick up, then the first show through.
+// data.opening = { step, fans, micOff, done, seen, skipped, replay }. A player with any play or
 // lesson before it started never sees it; Settings > Help > Tips & gestures can replay it (no fans again).
 export const OPENING = [
   { id: "who", name: "Who's playing tonight?", sub: "make your guitarist" } /* 4.85.0: no fans, nothing to teach */,
+  { id: "hold", name: "Hold the guitar", sub: "sit and hold it" },
+  { id: "strings", name: "The open strings", sub: "E A D G B E" },
   { id: "mic", name: "Let me hear you", sub: "the microphone" },
+  { id: "notes", name: "Your first notes", sub: "play two open strings" },
   { id: "chord", name: "Tap a chord", sub: "see how it's played" },
   { id: "verse", name: "Play a verse", sub: "strum on the changes" },
   { id: "pause", name: "Pause and pick up", sub: "tap, then Resume" },
   { id: "show", name: "Your first show", sub: "a song, start to finish" }
 ];
+const OPENING_VER = 3;
+/* Older step lists, used only to keep a saved step on the same id when new steps are added. */
+const OPENING_WAS = {
+  1: ["mic", "chord", "verse", "pause", "show"],
+  2: ["who", "mic", "chord", "verse", "pause", "show"]
+};
+function openingStepFrom(raw) {
+  const step = Math.max(0, Math.floor(+raw.step || 0));
+  const ver = raw.v === OPENING_VER ? OPENING_VER : raw.v === 2 ? 2 : 1;
+  if (ver === OPENING_VER) return Math.min(OPENING.length, step);
+  /* step 0 means it hasn't started, so it stays at the first stop (who), not the old first id */
+  if (step === 0) return 0;
+  const was = OPENING_WAS[ver];
+  if (step >= was.length) return OPENING.length;
+  const at = OPENING.findIndex(o => o.id === was[step]);
+  return at < 0 ? OPENING.length : at;
+}
 /* "leg" while it's on, "done" once right after the show, else null */
 export function openingView(data) {
   const o = data.opening;
@@ -76,9 +96,10 @@ export const openingStep = data => Math.min(Math.max(0, data.opening?.step || 0)
 /* Finish a step, only when it's the one you're on. Steps before the show give lesson fans (once). */
 export function openingAdvance(data, id, now = Date.now()) {
   if (!openingOn(data)) return false;
-  const o = data.opening && typeof data.opening === "object" ? data.opening : (data.opening = { step: 0, v: 2, fans: 0, started: now });
+  const o = data.opening && typeof data.opening === "object" ? data.opening : (data.opening = { step: 0, v: OPENING_VER, fans: 0, started: now });
   if (OPENING[o.step]?.id !== id) return false;
   o.step++;
+  o.v = OPENING_VER;
   if (!o.replay && id !== "show" && id !== "who") o.fans = (o.fans || 0) + FANS.lesson;
   if (o.step >= OPENING.length) o.done = now;
   return true;
@@ -118,9 +139,74 @@ export function fretLayout(stops, head = FRET_HEAD, body = FRET_BODY) {
   });
   return { spaces, neck: y, head, body, height: head + y + body };
 }
+/* The neck-only Road: one rosewood board, frets at a real scale (the 12th fret sits at half the scale
+   length). L is chosen so the tightest space that holds a stop still fits a 64 pt inlay with about
+   10 pt of clearance above and below the fret wires. x is a fraction of the neck width. Strings are
+   evenly spaced and inset from the binding. Inlays zigzag in the gaps between strings, centred in
+   the fret space. The moon is the headline. A diamond is the extra inlay a 10-stop leg needs. */
+export const NECK_INLAY = 64;
+export const NECK_CLEAR = 10;
+export const NECK_GOLD_CLEAR = 14;
+export const NECK_WIDTH = 0.58;
+export const NECK_NUT = 18;
+const NECK_BODY = ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond"];
+export function fretAt(L, n) { return L * (1 - 2 ** (-n / 12)); }
+/* Which fret spaces hold the stops of a leg. Early, wider frets get an empty space between stops.
+   Later, tighter frets sit in pairs with one empty space between the pairs. A 9-stop leg uses
+   spaces 1, 3, 5, 7, 8, 10, 11, 13, 14 (gold fret at 15). A 10-stop leg uses 1, 3, 5, 6, 8, 9,
+   11, 12, 14, 15 (gold fret at 16). */
+export function neckSlots(nStops) {
+  const n = Math.max(0, nStops | 0);
+  const slots = [];
+  let space = 1, left = n;
+  const singles = Math.max(0, Math.min(n, 12 - n));
+  for (let i = 0; i < singles; i++) { slots.push(space); space += 2; left--; }
+  while (left > 0) {
+    slots.push(space); left--; space++;
+    if (left > 0) { slots.push(space); left--; space++; }
+    if (left > 0) space++;
+  }
+  return { slots, gold: left === n ? 1 : space };
+}
+export function neckScale(nStops) {
+  const { slots } = neckSlots(Math.max(1, nStops | 0));
+  const tight = Math.max(1, ...slots);
+  const factor = 2 ** (-tight / 12) * (2 ** (1 / 12) - 1);
+  return (NECK_INLAY + 2 * NECK_CLEAR) / factor;
+}
+export function neckBoard(legs, { peek = 0 } = {}) {
+  const real = (legs || []).filter(l => l.stops?.length);
+  const strings = [0, 1, 2, 3, 4, 5].map(i => (i + 0.5) / 6);
+  const lanes = [1 / 3, 2 / 3];
+  const stops = [], frets = [];
+  let y = NECK_NUT;
+  real.forEach((leg, li) => {
+    const n = leg.stops.length;
+    const { slots, gold } = neckSlots(n);
+    const L = neckScale(n);
+    const origin = y;
+    const at = k => origin + fretAt(L, k);
+    let body = 0;
+    leg.stops.forEach((stop, si) => {
+      const space = slots[si], y0 = at(space - 1), y1 = at(space), h = y1 - y0;
+      const headline = stop.kind === "headline";
+      stops.push({
+        i: stops.length, li, si, stop, space, y0, y1, cy: (y0 + y1) / 2, h,
+        x: lanes[si % 2], inlay: headline ? "moon" : NECK_BODY[body++ % NECK_BODY.length],
+        clear: (h - NECK_INLAY) / 2, goldBelow: si === n - 1, L
+      });
+    });
+    for (let k = 1; k < gold; k++) frets.push({ n: k, y: at(k), gold: false, leg: li });
+    frets.push({ n: gold, y: at(gold), gold: true, leg: li });
+    const last = li === real.length - 1;
+    y = at(gold + (last ? peek : 0));
+    if (last) for (let k = 1; k <= peek; k++) frets.push({ n: gold + k, y: at(gold + k), gold: false, peek: true, leg: li });
+  });
+  return { width: NECK_WIDTH, nut: NECK_NUT, inlay: NECK_INLAY, clear: NECK_CLEAR, strings, stops, frets, height: y + 28 };
+}
 /* A guitar shown on its own (Show complete, the new-guitar case, Road Ready 06) gets a neck in a real guitar's
    proportion: on a real guitar the neck from the nut to the body is about 0.7 of the body's length (14 inches to 20).
-   neckStops is how many fret spaces reach that; a leg's neck on the Road keeps one space per stop. */
+   neckStops is how many fret spaces reach that. The Road neck spaces its stops with empty frets between them. */
 export const FULL_NECK = 0.7;
 export function neckStops(body) {
   let n = 0, y = 0;
@@ -364,17 +450,16 @@ export function openBox(data, id, now = Date.now()) {
 }
 export function cleanOpening(raw) {
   if (!isObj(raw)) return null;
-  /* 4.85.0: "Who's playing tonight?" became step 1, so a save from before (no v) that's past the start moves up one */
-  let step = Math.max(0, Math.min(OPENING.length, Math.floor(+raw.step || 0)));
-  if (raw.v !== 2 && step > 0) step = Math.min(OPENING.length, step + 1);
-  const out = { step, v: 2 };
+  /* v: 3 added hold, the open strings and first notes. A save from v: 2 or earlier stays on the same step id. */
+  const step = openingStepFrom(raw);
+  const out = { step, v: OPENING_VER };
   const fans = Math.max(0, Math.min((OPENING.length - 1) * FANS.lesson, Math.floor(+raw.fans || 0))); if (fans) out.fans = fans;
   for (const k of ["done", "seen", "skipped", "started"]) { const t = +raw[k]; if (t > 0) out[k] = t; }
   for (const k of ["micOff", "replay"]) if (raw[k] === true) out[k] = true;
   return out;
 }
-export function openingSkip(data, now = Date.now()) { data.opening = { ...(isObj(data.opening) ? data.opening : { step: 0, v: 2, fans: 0 }), skipped: now }; }
-export function openingReplay(data, now = Date.now()) { data.opening = { step: 1, v: 2, fans: data.opening?.fans || 0, replay: true, started: now }; }
+export function openingSkip(data, now = Date.now()) { data.opening = { ...(isObj(data.opening) ? data.opening : { step: 0, fans: 0 }), v: OPENING_VER, skipped: now }; }
+export function openingReplay(data, now = Date.now()) { data.opening = { step: 1, v: OPENING_VER, fans: data.opening?.fans || 0, replay: true, started: now }; }
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
   const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
@@ -1216,8 +1301,8 @@ export const MERCH = [
   { id: "wear-cap", kind: "wear", name: "Cap", price: 150, line: "A ball cap, for your guitarist." },
   { id: "wear-bandana", kind: "wear", name: "Bandana", price: 150, line: "A knotted bandana, for your guitarist." },
   /* 4.78.0: the looks. Light and Dark are everyone's, Green Room is bought, Headliner is earned by headlining a show. */
-  { id: "festival", kind: "look", theme: "light", name: "Road Ready light", price: 0, line: "The light look: cream tolex, chrome piping and electric cobalt." },
-  { id: "neon", kind: "look", theme: "dark", name: "Road Ready dark", price: 0, line: "The dark look: black tolex, chrome piping and electric cobalt." },
+  { id: "festival", kind: "look", theme: "light", name: "Road Ready light", price: 0, line: "The light look: cream tolex, chrome piping and cool teal." },
+  { id: "neon", kind: "look", theme: "dark", name: "Road Ready dark", price: 0, line: "The dark look: black tolex, chrome piping and cool teal." },
   { id: "green", kind: "look", theme: "green", name: "Green Room", price: 400, line: "Sage, coral and mustard, calm as a dressing room." },
   { id: "headliner", kind: "look", theme: "headliner", name: "Headliner", price: 0, earn: "headline", line: "Black, gold and chrome under a blacklight." }
 ];

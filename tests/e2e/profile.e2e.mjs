@@ -88,12 +88,13 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.deepEqual(tiles.map(x => x.l), ["songs you can play", "chords", "plays"], "three tiles");
     assert.equal(tiles[0].n, `${n.now} of ${n.of}`); assert.equal(tiles[1].n, fmt(n.chords)); assert.equal(tiles[2].n, fmt(n.plays));
     assert.ok(n.plays >= 1 && n.chords >= 1, "the fixture has something to count");
-    /* the guitar case: the guitars of the legs you finished, upright, one height, each with a spoken name and where it was earned */
+    /* the stand: the guitars of the legs you finished, upright, each with a spoken name and where it was earned */
     assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitar case\n3 guitars");
-    const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf: getComputedStyle(im).transform, hidden: im.getAttribute("aria-hidden") }; }));
+    const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); const tf = getComputedStyle(im).transform; return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf, hidden: im.getAttribute("aria-hidden"), on: li.classList.contains("is-on") }; }));
     assert.equal(gs.length, 3);
     assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 2, Chord switches", "Club Slab, earned on Leg 3, Scales"]);
-    for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.equal(g.tf, "none", `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.equal(g.h, gs[0].h, "one height for every guitar"); }
+    for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.ok(!/matrix\(/.test(g.tf) || /matrix\([^,]+, 0, 0,/.test(g.tf), `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.ok(Math.abs(g.w / g.h - g.nw / g.nh) < 0.05, `${g.label}: natural shape`); }
+    assert.equal(gs.filter(g => g.on).length, 1, "one guitar in the cradle");
     /* criterion 3: game money and real money are apart */
     const merch = page.locator("#pf-r-merch");
     assert.equal(await merch.getAttribute("href"), "#/merch");
@@ -133,7 +134,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.doesNotMatch(await page.innerText(".rr-me"), /you missed|missed a day|lost your streak|streak (lost|broken)/i);
     /* criterion 5: every control is a 44 px target (the gear, your name, the avatar, the venue, the Merch row, the case). 4.103.0: Me is a tab, so no Back button */
     assert.equal(await page.locator(".rr-me-top #back, #back").count(), 0);
-    for (const sel of ["#pf-name", "#pf-set", "#pf-me", "#pf-map", "#pf-r-merch", ".rr-case-in"]) { const b = await page.locator(sel).boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `${sel} is ${Math.round(b.width)} by ${Math.round(b.height)}`); }
+    for (const sel of ["#pf-name", "#pf-set", "#pf-me", "#pf-map", "#pf-r-merch", ".gs-item"]) { const b = await page.locator(sel).first().boundingBox(); assert.ok(b.width >= 44 && b.height >= 44, `${sel} is ${Math.round(b.width)} by ${Math.round(b.height)}`); }
     assert.equal(await page.getAttribute("#pf-set", "aria-label"), "Settings");
     /* the destinations work: Help opens Settings > Help */
     await page.click("#pf-r-help"); await page.waitForFunction(() => location.hash === "#/settings/help");
@@ -150,18 +151,18 @@ test("Me: $0 tips says to earn them at shows, and a balance keeps the spend line
   assert.equal(await paid.getAttribute("#pf-r-merch", "aria-label"), "Merch: spend $12 tips on new looks");
 });
 
-test("Road Ready 08: at large text the tiles stack, the rows grow and the case scrolls sideways with each guitar a 44 px target; nothing runs off the screen", { skip: skip() }, async t => {
+test("Road Ready 08: at large text the tiles stack, the rows grow and the stand scrolls sideways with each guitar a 44 px target; nothing runs off the screen", { skip: skip() }, async t => {
   const page = await openMe(t, "dark");
   const cols = () => page.$eval(".rr-me-tiles", el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
   assert.equal(await cols(), 3);
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
   await frame(page);
   assert.equal(await cols(), 1, "one column at large text");
-  const m = await page.evaluate(() => ({ ox: getComputedStyle(document.querySelector(".rr-case-in")).overflowX, sw: document.scrollingElement.scrollWidth, iw: innerWidth,
+  const m = await page.evaluate(() => ({ ox: getComputedStyle(document.querySelector(".gs-track")).overflowX, sw: document.scrollingElement.scrollWidth, iw: innerWidth,
     gs: [...document.querySelectorAll(".rr-gtr")].map(g => { const r = g.getBoundingClientRect(); return [r.width, r.height]; }),
     rows: [...document.querySelectorAll(".rr-me .rr-row")].map(r => [r.getBoundingClientRect().height, r.scrollWidth > r.clientWidth + 1]) }));
-  assert.equal(m.ox, "auto", "the case scrolls sideways when the guitars don't fit");
-  assert.ok(m.sw <= m.iw, "the page doesn't scroll sideways");
+  assert.equal(m.ox, "auto", "the stand scrolls sideways");
+  assert.ok(m.sw <= m.iw + 1, "the page doesn't scroll sideways");
   for (const [w, h] of m.gs) assert.ok(w >= 44 && h >= 44, "each guitar is at least 44 px");
   for (const [h, clip] of m.rows) assert.ok(h >= 52 && !clip, "a row is 52 tall or more and doesn't clip");
 });

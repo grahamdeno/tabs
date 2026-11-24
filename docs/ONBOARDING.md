@@ -23,6 +23,7 @@ and a release that adds a tip or Show me marks it.
 
 - 4.39.2: the four stale Tips & gestures lines, "1 SONGS".
 - 4.85.0: Opening night's first step, Who's playing tonight? (the maker sheet: a starter, skin, hair colour, THAT'S ME; Louie introduces it for a player past Opening night, once, on the Road); Edit your guitarist on the profile card; patches and looks come from the Road; hats on the Merch table. Opening night is six steps now.
+- Opening night is nine steps: Who's playing tonight?, Hold the guitar, The open strings, Let me hear you, Your first notes, Tap a chord, Play a verse, Pause and pick up, Your first show. A save from the old six-step list stays on the same step.
 - 4.40.0: Opening night (the first five steps of the first session below: mic, chord, verse, pause, first show), Skip (asks first), Replay in Tips & gestures, and the stat bar's VENUE, STREAK and FANS labels until each is tapped once. Not now on the microphone plays Opening night unscored and says so; it never asks again by itself.
 
 ## The fresh-install walkthrough (2026-10-22, 4.39.1)
