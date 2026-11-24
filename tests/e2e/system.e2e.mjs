@@ -10,7 +10,7 @@ const probe = page => page.evaluate(() => {
   const out = {
     main: a.getBoundingClientRect().height, plain: b.getBoundingClientRect().height, row: c.getBoundingClientRect().height,
     seg: s.getBoundingClientRect().height, lip: getComputedStyle(b).boxShadow, mainLip: getComputedStyle(a).boxShadow,
-    border: getComputedStyle(b).borderTopWidth, mainBorder: getComputedStyle(a).borderTopWidth, mainRadius: getComputedStyle(a).borderTopLeftRadius, segOn: getComputedStyle(s.querySelector(".on")).boxShadow
+    border: getComputedStyle(b).borderTopWidth, mainBorder: getComputedStyle(a).borderTopWidth, mainSide: getComputedStyle(a).borderLeftWidth, mainRadius: getComputedStyle(a).borderTopLeftRadius, mainImage: getComputedStyle(a).borderImageSource, segOn: getComputedStyle(s.querySelector(".on")).boxShadow
   };
   [a, b, c, s].forEach(e => e.remove());
   return out;
@@ -25,9 +25,11 @@ for (const [name, hash] of [["Songbook", "#/library"], ["Settings", "#/settings"
     assert.equal(Math.round(r.plain), 56, "a plain button beside it matches");
     assert.equal(Math.round(r.row), 42, "row action is 42 tall");
     assert.ok(r.seg >= 48, "segmented track is at least 48");
-    /* the default look is Road Ready: a plate with a 2 px edge and 12 px corners, and no lip */
-    assert.equal(r.mainBorder, "2px", "main button is a plate with a 2 px edge");
-    assert.equal(r.mainRadius, "12px", "main button has 12 px corners");
+    /* the default look is Road Ready: a guitar-pick primary, shoulders in the side slices, and no lip */
+    assert.equal(r.mainBorder, "0px", "the pick has no top edge; the curves are in the sides");
+    assert.equal(r.mainSide, "42px", "the hero pick keeps 42 px shoulders");
+    assert.equal(r.mainRadius, "0px", "the pick shape comes from the SVG");
+    assert.match(r.mainImage, /svg/i, "the face is an SVG border image");
     assert.equal(r.lip, "none", "the plain button has no box shadow");
     assert.equal(r.segOn, "none", "the chosen segment has no raised edge in Light and Dark (design pass, 2026-11-19)");
   });
