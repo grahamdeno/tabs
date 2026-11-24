@@ -1,6 +1,6 @@
 # Road Ready plan
 
-Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, cream engraved plates and warm amber, set in Space Grotesk, Inter and IBM Plex Mono. The spec is `docs/road-ready/louie-design-spec.md`. Each step has a prompt in `docs/road-ready/claude-prompt-NN-*.md`.
+Road Ready is the new look for Louie: dark tolex, grille cloth, chrome piping, cream engraved plates and warm amber, set in Sora, Inter and IBM Plex Mono. The spec is `docs/road-ready/louie-design-spec.md`. Each step has a prompt in `docs/road-ready/claude-prompt-NN-*.md`.
 
 ## Graham's answers (top)
 

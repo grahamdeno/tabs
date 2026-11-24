@@ -9,7 +9,7 @@
 //
 // Woods and finishes keep the guitar's own colours in every look; only dots, rings, halos and tags take the
 // look's colours (styles.css, "The fretboard Road").
-import { fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace, neckBoard } from "./core.js";
+import { esc, fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace, neckBoard } from "./core.js";
 import PICS from "./art/guitars/pics.js";
 import { buildPic } from "./buildart.js";
 
@@ -576,7 +576,9 @@ export function guitarSVG(id, { full = false } = {}) {
 }
 
 /* The neck-only Road: rosewood, a bone nut, straight strings and one pearl inlay per stop.
-   legs: [{ title, sub, aria, cls, extra, stops }]. o.next draws a short peek of the following leg. */
+   legs: [{ title, sub, aria, cls, stops }]. The title is not drawn in the gutter. A zero-size marker
+   (.rn-lat) records where each leg starts so the row under the stats can name the leg in view.
+   o.next marks the peek of the following leg the same way. */
 const NECK_ART = "art/road-neck";
 const INLAY_V2 = { fin: "fin-v2", vine: "vine-v2", moon: "moon-v2" };
 const neckImg = (file, cls, extra = "") => `<img class="${cls}" src="${NECK_ART}/${file}.webp?v=${VERSION}" alt="" draggable="false"${extra}>`;
@@ -612,19 +614,17 @@ export function bareNeckHTML(legs, o = {}) {
     const n = o.num ? o.num(sp.stop) : sp.i + 1;
     return `<span class="rn-num" aria-hidden="true" style="top:${sp.cy.toFixed(1)}px">${n}</span>`;
   }).join("");
-  const here = board.stops.find(sp => isCur(sp.stop));
-  const bub = here && o.name ? `<p class="rn-bubble" style="top:${here.cy.toFixed(1)}px">${o.name(here.stop)}</p>` : "";
+  const legMark = (leg, top, extra = "") => `<span class="rn-lat${extra}" data-title="${esc(leg.title || "")}" data-sub="${esc(leg.sub || "")}" data-aria="${esc(leg.aria || `${leg.title}, ${leg.sub}`)}" data-cls="${esc(leg.cls || "")}" style="top:${top.toFixed(1)}px"></span>`;
   const labels = real.map((leg, li) => {
     const first = board.stops.find(sp => sp.li === li);
     if (!first) return "";
-    const y = li === 0 ? 4 : first.y0;
-    return `<div class="rn-leg rd-legmark${leg.cls ? " " + leg.cls : ""}" role="group" aria-label="${leg.aria || `${leg.title}, ${leg.sub}`}" style="top:${y.toFixed(1)}px"><b>${leg.title}</b><small>${leg.sub}</small>${leg.extra || ""}</div>`;
+    return legMark(leg, li === 0 ? 0 : first.y0);
   }).join("");
   const golds = board.frets.filter(f => f.gold);
   const end = golds[golds.length - 1];
-  const next = o.next && end ? `<div class="rn-leg rd-legmark rn-next" role="group" aria-label="${o.next.aria || `${o.next.title}, ${o.next.sub}`}" style="top:${(end.y + 10).toFixed(1)}px"><b>${o.next.title}</b><small>${o.next.sub}</small></div>` : "";
+  const next = o.next && end ? legMark(o.next, end.y + 10, " rn-next") : "";
   return `<div class="rn-board" style="height:${Math.round(board.height)}px;--rn-w:${w}%">
-    <div class="rn-neck" style="width:var(--rn-w)" role="group" aria-label="The neck">
+    <div class="rn-neck" style="width:var(--rn-w);height:${Math.round(board.height)}px" role="group" aria-label="The neck">
       ${neckImg("nut-v2", "rn-nut")}${stops}${wires}${strings}${marks}
-    </div>${nums}${labels}${next}${bub}</div>`;
+    </div>${nums}${labels}${next}</div>`;
 }

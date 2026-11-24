@@ -113,7 +113,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     const supText = (await page.innerText(".rr-support-h")) + " " + (await page.locator(".rr-support").evaluate(el => el.innerText + " " + [...el.querySelectorAll("[aria-label],[title],img")].map(e => (e.getAttribute("aria-label") || "") + (e.getAttribute("title") || "") + (e.getAttribute("alt") || "")).join(" ")));
     assert.doesNotMatch(supText, /tips?\b/i, "the word tips is never on the real-money section"); assert.doesNotMatch(supText, /\$|\d/, "no amount");
     assert.equal(await page.locator("#pf-r-support svg:not(.chev)").count(), 1, "a heart"); assert.equal(await page.locator("#pf-r-support .rr-coin").count(), 0, "no coin");
-    assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/v4/louie-face-badge.webp", "the face badge");
+    assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/v5/louie-face-badge.webp", "the face badge");
     assert.equal(await page.locator(".rr-me >> text=SUPPORT THE APP").count(), 1);
     /* the order: header, tiles, case (Merch inside), Milestones, rows, Support the app last */
     const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));

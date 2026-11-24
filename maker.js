@@ -31,7 +31,7 @@ export function makerSheet({ mode = "full", done } = {}) {
           <div class="gm-card"><div class="gm-prev" aria-live="polite"><img class="gm-hero${me.lefty ? " lefty" : ""}" src="${genreFile(genreIdOf(me))}" alt="Your guitarist"></div>
           <button class="ib gm-rand" id="gm-rand" aria-label="Random guitarist">${DICE}</button>
           ${chip("lefty", !me.lefty, "Left-handed", me.lefty, FLIP, " ib gm-flip")}</div>
-          <div class="gm-lou"><img src="art/louie/v4/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I picked you a guitarist for your card and the chart." : "Pick your genre and who's playing."}</p></div>
+          <div class="gm-lou"><img src="art/louie/v5/louie-face-badge.webp" alt="" width="40" height="40"><p>${mode === "once" ? "I picked you a guitarist for your card and the chart." : "Pick your genre and who's playing."}</p></div>
         </div>
         <h3>Genre</h3><div class="gm-row gm-genre" role="group" aria-label="Genre">${ME_GENRE.map(g => chip("genre", g, GENRE_NAME[g], me.genre === g, `<span>${GENRE_NAME[g]}</span>`)).join("")}</div>
         <h3>Man or woman</h3><div class="gm-row gm-who" role="group" aria-label="Man or woman">${[["m", "Man"], ["w", "Woman"]].map(([v, n]) => chip("who", v, n, me.who === v, `<span>${n}</span>`)).join("")}</div>

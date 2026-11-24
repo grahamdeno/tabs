@@ -104,7 +104,7 @@ export const SIX = [
 function page(body, bg = "#222") {
   return `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:${bg};font:600 13px Inter,system-ui,sans-serif;color:#BEB4A4}
 .row{display:flex;gap:18px;align-items:flex-end;padding:14px 18px}.cell{display:flex;flex-direction:column;align-items:center;gap:6px}
-.band{padding:8px 0}.band h2{margin:0;padding:12px 18px 0;font:700 15px "Space Grotesk",Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase}</style></head><body>${body}</body></html>`;
+.band{padding:8px 0}.band h2{margin:0;padding:12px 18px 0;font:700 15px "Sora",Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase}</style></head><body>${body}</body></html>`;
 }
 
 if (process.argv[1] && process.argv[1].endsWith("poster_preview.mjs")) {
