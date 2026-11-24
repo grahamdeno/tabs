@@ -156,6 +156,19 @@ test("Me: $0 tips says to earn them at shows, and a balance keeps the spend line
   assert.equal(await rich.locator("#pf-r-merch.lit").count(), 1, "tips that can buy something light the row");
 });
 
+test("Me: tips that could only buy a retired hat do not light the Merch row", { skip: skip() }, async t => {
+  const page = await phone(t, {
+    ...LIB,
+    songs: LIB.songs.map(s => ({ ...s, playLog: undefined })),
+    settings: { ...LIB.settings, v: 6, theme: "dark" },
+    merch: { tconv: 1, lconv: 1, hlseen: 1, tips: 150, own: { rain: 2, double: 9, take: 3 } }
+  }, { home: true });
+  await page.evaluate(() => { location.hash = "#/you"; });
+  await page.waitForSelector("#pf-r-merch"); await settled(page);
+  assert.equal(await page.locator("#pf-r-merch.lit").count(), 0, "a hat is not for sale, so the row stays quiet");
+  assert.match(await page.innerText("#pf-r-merch"), /\$150/);
+});
+
 test("Me polish: one stat bar, one places card, and the XP track lines up with the cards", { skip: skip() }, async t => {
   const page = await openMe(t, "dark");
   const lay = await page.evaluate(() => {

@@ -24,14 +24,14 @@ const hoursText = h => h >= 10 ? Math.round(h).toString() : h >= 1 ? h.toFixed(1
 const hoursUnit = h => h >= 1 ? "hours" : "minutes";
 /* Road Ready 08: the Dark and Light looks (data-look neon and festival) draw Me as r10-06; Green Room and Headliner keep the earlier page */
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
-/* The Merch row stays on the same card as the others until tips can buy something
-   (gear, a finish, a hat, a backdrop, or a shop guitar that is open). */
+/* The Merch row stays quiet until tips can buy something that is still for sale
+   (gear, a finish, a backdrop, or a shop guitar that is open). Hats are retired. */
 function merchLit(d) {
   const tips = fansToSpend(d);
   if (!(tips > 0)) return false;
   const st = merchState(d);
   const item = MERCH.some(it => {
-    if (!(it.price > 0) || it.earn || it.kind === "look") return false;
+    if (!(it.price > 0) || it.earn || it.kind === "look" || it.kind === "wear") return false;
     if (tips < it.price) return false;
     if (it.kind === "gear") return (st.own[it.id] || 0) + (it.adds || 1) <= it.max;
     return !st.has.has(it.id);
