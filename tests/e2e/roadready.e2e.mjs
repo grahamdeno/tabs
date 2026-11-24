@@ -243,6 +243,7 @@ test("Road Ready pick: brass on Dark, espresso on Light, icons and short labels 
     ["Light", "light", "dark", "rgb(244, 230, 203)", "272019"]
   ]) {
     const page = await phone(t, libWith(theme), { colorScheme: scheme, reducedMotion: "reduce" });
+    await page.evaluate(() => document.fonts.load('700 15px "Sora"'));
     const fit = await page.evaluate(() => {
       const host = document.createElement("div");
       host.style.cssText = "position:fixed;left:8px;top:8px;width:358px;z-index:9;display:flex;flex-direction:column;gap:8px";
@@ -571,7 +572,7 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
     assert.equal(await page.locator(".sc-corner, .rr-gcase").count(), 0, "no velvet case and no chrome corners");
-    assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
+    assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/streak\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
     assert.equal(await page.locator(".gs-back").count(), 1, "the A-frame stand");

@@ -598,7 +598,7 @@ async function toComplete(t, theme, opts) {
 test("Road Ready 9a: Show complete shows the guitar you chose from the Guitar shop, by name, instead of the leg's", { skip: skip() }, async t => {
   const page = await strummingPage(t, scLib("dark", { merch: { tconv: 1, lconv: 1, has: ["green", "g-nova"], guitar: "nova" } }), "#/song/g");
   await page.click("#play"); await page.waitForSelector(".gc", { timeout: 40000 });
-  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/nova-small\.webp/);
+  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/streak\/nova-small\.webp/);
   assert.equal(await page.innerText(".sc-label"), "Nova");
 });
 
@@ -607,7 +607,7 @@ test("Road Ready 06: Show complete has the overline, the song, the glowing guita
   assert.equal(await page.locator(".gc.rr-sc").count(), 1);
   assert.equal(await page.innerText(".sc-over"), "SHOW COMPLETE");
   assert.equal(await page.innerText(".sc-title"), "Short Road");
-  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/porch-small\.webp/, "the guitar you played on, its whole picture as in the case");
+  assert.match(await page.getAttribute(".sc-show.glow .sc-guitar img", "src"), /art\/guitars\/streak\/porch-small\.webp/, "the guitar you played on, its whole picture as in the case");
   assert.equal(await page.innerText(".sc-label"), "Porch", "named after the leg you're on");
   await page.waitForFunction(() => { const i = document.querySelector(".sc-guitar img"); return i.complete && i.naturalWidth > 0; });
   const gr = await page.$eval(".sc-guitar img", i => i.complete && i.naturalWidth ? [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width, i.getBoundingClientRect().height] : null);

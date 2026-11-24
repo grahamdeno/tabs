@@ -536,7 +536,14 @@ function stopHTML(sp, g, lay, o) {
 export const NANO_FILE = { open: "porch", switch: "cornerstone", scales: "clubslab", strum: "hollowhill", pick: "swing", finger: "koaarc", encore: "comet" };
 /* the small guitar in the guitarist's hands (guitarist.js): the whole picture, by body shape */
 const BODY_FILE = { parlor: "parlor", cutaway: "cutaway-sunburst", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner", ...Object.fromEntries(Object.keys(PICS).map(k => [k, k])) };
-export const guitarPic = body => BODY_FILE[body] ? `art/guitars/${BODY_FILE[body]}-small.webp?v=${VERSION}` : null;
+/* The shop, the stand and the show use the streak copies. The flat paintings stay beside them. */
+export const guitarPic = body => BODY_FILE[body] ? `art/guitars/streak/${BODY_FILE[body]}-small.webp?v=${VERSION}` : null;
+/* The large picture sits next to the small one, in art/guitars/ or in a folder under it such as streak/. */
+export function largeGuitar(small) {
+  const m = String(small || "").match(/^(.*\/)([^/?]+)-small\.webp/);
+  if (!m || !PICS[m[2]]?.road) return "";
+  return `${m[1]}${m[2]}-road.webp`;
+}
 /* the picture of a leg's guitar, or of the shop guitar you chose (o.shown is guitarShown(data, leg id) from core/game.js) */
 const picOf = (id, o = {}) => { const f = o.shown?.body || NANO_FILE[id]; return o.nano === false || !PICS[f] ? null : { f, p: PICS[f] }; };
 export function neckHTML(leg, o) {
