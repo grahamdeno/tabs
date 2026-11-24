@@ -5,7 +5,7 @@ import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderSet, setCtx, setRun, setSongs, setSetCtx } from "./sets.js";
 import { clearPortraitLeftovers, copyDiagnostics, loadLibrary, noteError } from "./store.js";
-import { chordTapped, coach, coachTip, demoLine, demoMap, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
+import { chordTapped, coach, coachTip, demoLine, demoPause, demoTap, markSeen, markUsed, renderGestures, songCoach, takeDemo, tick, tipDue, tipsSeen, used } from "./coach.js";
 import { duetSheet, moreBtn, renderImport, shareSet, shareSong } from "./share.js";
 import { appleSearchURL, hasMusic, recordingOn, musicLead, onFeel, aboutSheet, timeLines, listenSheet, musicClock, openLink, pauseMusic, prepareMusic, rateWorks, recordingLength, seekMusic, setMusicRate, startMusic } from "./listen.js";
 import { STATUS, bindShelf, chipsHTML, filter, homeHooks, leaveSearch, query, refreshLibrary, renderLibrary, renderList, searching, setFilter, setSearchFrom, setsShelf, showPasteCard, todayKey } from "./library.js";
@@ -311,12 +311,11 @@ function renderViewer(id) {
     layoutDiagrams(sheet, isChords);
   };
   draw();
-  redraw = () => { draw(); paintLoop(song); buildMap(); };
+  redraw = () => { draw(); paintLoop(song); };
   viewing = song;
   coverOn(song); /* 4.61.0: the song's cover is the room behind the whole song screen */
   fitTitle(song);
   paintLoop(song);
-  setTimeout(buildMap, 50);
   if (setCtx?.autoplay) { setCtx.autoplay = false; setTimeout(() => { if (viewing === song && !scroll.on) startScroll(song); }, 400); }
   else setTimeout(() => { if (openingOn(data)) import(`./opening.js?v=${VERSION}`).then(m => { if (viewing === song && !m.onSong(song)) songCoach(song); }); else songCoach(song); }, 600); /* 4.40.0: Opening night says what this step wants */
   /* 4.41.0: a song whose chords were guessed is lined up from the chord sites, once, in the background */
@@ -532,7 +531,7 @@ function oneLineSize(sheet, song) {
   let widest = 0;
   for (const el of lines) widest = Math.max(widest, el.getBoundingClientRect().width * base / parseFloat(getComputedStyle(el).fontSize));
   sheet.classList.remove("measure");
-  const room = sheet.clientWidth * 0.95 - 4; /* lines keep 5% on the right, clear of the song map, and 4 px for rounding between measuring and drawing (4.63.1) */
+  const room = sheet.clientWidth * 0.95 - 4; /* 5% on the right so the chord editor's chips keep to one row (it was also clear of the song map, gone in 5.3.1), and 4 px for rounding between measuring and drawing (4.63.1) */
   /* measured in the fallback font while the app's own is still loading: measure again once it's in */
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
   const fit = widest > 0 ? base * room / widest : base;
@@ -981,86 +980,8 @@ document.addEventListener("keyup", e => {
 });
 
 // ---------- Song map ----------
-// A thin rail on the right edge with a dot for each section. Quiet while you play;
-// touch it and the section names appear, slide to a section and let go to jump.
-const map = { secs: [], el: null, dragging: false, hideTimer: 0 };
-onLeave(() => { document.querySelector(".smap")?.remove(); map.el = null; });
+/* 5.3.1 (Graham, 2026-11-24): the section rail on the right edge is gone (rarely used), and the lines take its room. */
 const mapMax = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
-function buildMap() {
-  document.querySelector(".smap")?.remove();
-  map.el = null;
-  const sheet = $("sheet");
-  if (!sheet || route().name !== "song") return;
-  const secs = [...sheet.querySelectorAll(":scope > .sec")];
-  if (secs.length < 2) return;
-  /* Dots sit where each section is in the song; jumping puts its label at the reading line. */
-  const H = document.documentElement.scrollHeight;
-  map.secs = secs.map(el => { const top = el.getBoundingClientRect().top + scrollY; return { el, name: el.textContent.trim(), y: top / H, to: Math.max(0, top - innerHeight * READ_AT) }; });
-  const m = document.createElement("div");
-  m.className = "smap";
-  m.setAttribute("role", "navigation");
-  m.setAttribute("aria-label", "Song sections");
-  m.innerHTML = `<i class="sm-track"></i><i class="sm-fill"></i>${map.secs.map((x, i) =>
-    `<button class="sm-m" data-i="${i}" style="top:${(x.y * 100).toFixed(2)}%" aria-label="Go to ${esc(x.name)}" tabindex="-1"><b>${esc(x.name)}</b><i></i></button>`).join("")}`;
-  document.body.appendChild(m);
-  map.el = m;
-  const pick = e => {
-    const r = m.getBoundingClientRect(), f = (e.clientY - r.top) / r.height;
-    let best = 0;
-    map.secs.forEach((x, i) => { if (Math.abs(x.y - f) < Math.abs(map.secs[best].y - f)) best = i; });
-    return best;
-  };
-  const jump = (i, smooth) => {
-    const top = Math.min(map.secs[i].to, mapMax());
-    hold.active = true; releaseSoon(smooth ? 900 : 300);
-    window.scrollTo({ top, behavior: smooth && !calm() ? "smooth" : "auto" });
-    diag.pinned = null;
-  };
-  m.addEventListener("pointerdown", e => {
-    e.preventDefault(); e.stopPropagation();
-    map.dragging = true; m.setPointerCapture?.(e.pointerId); markUsed("map");
-    clearTimeout(map.hideTimer); m.classList.add("active");
-    map.target = pick(e); paintMap(map.target);
-  });
-  m.addEventListener("pointermove", e => {
-    if (!map.dragging) return;
-    const i = pick(e);
-    if (i !== map.target) { map.target = i; paintMap(i); jump(i, false); }
-  });
-  const end = () => {
-    if (!map.dragging) return;
-    map.dragging = false;
-    jump(map.target, true);
-    map.hideTimer = setTimeout(() => { m.classList.remove("active"); paintMap(); }, 900);
-  };
-  m.addEventListener("pointerup", end);
-  m.addEventListener("pointercancel", end);
-  m.addEventListener("click", e => e.stopPropagation());
-  paintMap();
-}
-function paintMap(target) {
-  const m = map.el;
-  if (!m || !m.isConnected) return;
-  /* Out of the way at the top of the song, where the title and chord cards are. */
-  const away = !map.dragging && ($("sheet")?.getBoundingClientRect().top ?? 0) > innerHeight * 0.25;
-  m.classList.toggle("away", away);
-  if (!away && !scroll.on && !chordEdit && tipDue("map") && !map.coaching) {
-    map.coaching = true;
-    setTimeout(() => {
-      map.coaching = false;
-      if (map.el !== m || m.classList.contains("away") || scroll.on || !coachTip("map")) return;
-      demoMap();
-    }, 700);
-  }
-  const f = Math.min(1, (scrollY + innerHeight * READ_AT) / document.documentElement.scrollHeight);
-  m.querySelector(".sm-fill").style.height = (f * 100) + "%";
-  let cur = 0;
-  /* At the very end the page can't scroll further, so count sections in view. */
-  const line = scrollY >= mapMax() - 2 ? innerHeight * 0.7 : innerHeight * READ_AT + 4;
-  map.secs.forEach((x, i) => { if (x.el.getBoundingClientRect().top <= line) cur = i; });
-  m.querySelectorAll(".sm-m").forEach((b, i) => { b.classList.toggle("on", i === (target ?? cur)); b.classList.toggle("past", i < cur); });
-}
-onScroll(() => { if (map.el) paintMap(map.dragging ? map.target : undefined); });
 
 let openEdit = null;            /* { id, view } to open the editor once the song page draws */
 const setOpenEdit = v => { openEdit = v; };
@@ -2121,4 +2042,4 @@ if ("serviceWorker" in navigator) {
 }
 
 // Shared with the feature modules that load on first use (tuner.js and others).
-export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, openSpeedDial, openLoopPick, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, map, openEdit, openTuner, paintMap, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
+export { jumpToSection, openLessonSong, gigHooks, playGig, openTools, openSpeedDial, openLoopPick, musicClock, usesMusic, chordTimes, pxPerSecond, sheetLines, tempoFor, isLine, beatTrack, playSong, openAtSection, openSearch, chipsHTML, renderList, refreshLibrary, bindShelf, setsShelf, homeHooks, aiLastStop, grooveFor, metroPreview, byLength, refreshSpeed, startScroll, deJobs, tunedRecently, $, data, icon, layer, esc, coach, coachTip, markUsed, tick, toast, go, busy, AI, aiKey, BPM_STORE, bpmKey, askClaude, aiError, parseJSON, openLink, appleSearchURL, leaveSearch, chordNames, chordSVG, songKey, redraw, READ_AT, applyPaused, calm, chordEdit, diag, openEdit, openTuner, route, scroll, searching, setCurrent, showChordPop, viewing, setOpenEdit, applyTheme, render, setData, mmss, filter, keyOf, lazy, shareSet, songLength, songTuning, setFilter, cleanSheet, demoTap, readPhoto, stopScroll, takeDemo, setChordEdit, settleNew, newSong };
