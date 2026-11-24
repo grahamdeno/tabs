@@ -243,6 +243,7 @@ test("Road Ready pick: brass on Dark, espresso on Light, icons and short labels 
     ["Light", "light", "dark", "rgb(244, 230, 203)", "272019"]
   ]) {
     const page = await phone(t, libWith(theme), { colorScheme: scheme, reducedMotion: "reduce" });
+    await page.evaluate(() => document.fonts.load('700 15px "Sora"'));
     const fit = await page.evaluate(() => {
       const host = document.createElement("div");
       host.style.cssText = "position:fixed;left:8px;top:8px;width:358px;z-index:9;display:flex;flex-direction:column;gap:8px";
