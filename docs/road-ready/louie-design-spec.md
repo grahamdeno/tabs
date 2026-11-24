@@ -64,13 +64,13 @@ Ratios are WCAG 2.x contrast ratios, computed against the surface named in the r
 
 ## 3. Type
 
-Fonts: **Space Grotesk** for display and headings, **Inter** for UI and lyrics, **IBM Plex Mono** for tuner and tempo readouts. Register them as custom fonts and scale with `Font.custom(_:size:relativeTo:)` so Dynamic Type works.
+Fonts: **Sora** for display and headings, **Inter** for UI and lyrics, **IBM Plex Mono** for tuner and tempo readouts. Register them as custom fonts and scale with `Font.custom(_:size:relativeTo:)` so Dynamic Type works.
 
 | Role | Font, weight | Default size (pt) | `relativeTo:` | Notes |
 |---|---|---|---|---|
-| Display | Space Grotesk 700 | 34 | `.largeTitle` | Show Complete title |
-| Title | Space Grotesk 700 | 28 | `.title` | Screen titles |
-| Title 2 | Space Grotesk 700 | 22 | `.title2` | Venue name in header |
+| Display | Sora 700 | 34 | `.largeTitle` | Show Complete title |
+| Title | Sora 700 | 28 | `.title` | Screen titles |
+| Title 2 | Sora 700 | 22 | `.title2` | Venue name in header |
 | Headline | Inter 600 | 17 | `.headline` | Row titles, button labels |
 | Body | Inter 450 | 17 | `.body` | General copy |
 | Callout | Inter 500 | 16 | `.callout` | Inlay callout bubble |
@@ -152,7 +152,7 @@ These are drawn in code: flush pearl set into the rosewood, with a thin dark cut
 
 ### 5.6 Buttons
 
-- **Primary:** a cream engraved plate (gradient #F6EAD2 to #D6C4A4, 2 pt #8C7858 stroke, four tiny screws, radius 12), label in Space Grotesk 700 using `plate.text`. Example: "Head to the Club".
+- **Primary:** a cream engraved plate (gradient #F6EAD2 to #D6C4A4, 2 pt #8C7858 stroke, four tiny screws, radius 12), label in Sora 700 using `plate.text`. Example: "Head to the Club".
 - **Secondary:** a quiet capsule outline (1.5 pt #8C847A) with a `text.primary` label. Example: "Play it again".
 - **Text button:** an underlined label for low-emphasis actions.
 - **Pressed state:** the plate darkens 6 percent and moves down 1 pt. No bounce.

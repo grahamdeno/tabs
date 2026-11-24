@@ -206,7 +206,7 @@ export function guitarist(me, { mood: mood0 = "happy", pose: pose0 = "play", cro
     const [x, y, w, h] = vb.split(" ").map(Number);
     const stage = card ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="18" fill="${bk}"/><polygon points="140,${y} 260,${y} ${x + w - 20},${y + h} ${x + 20},${y + h}" fill="${beam}"/><circle cx="200" cy="200" r="130" fill="${glow}" opacity=".13"/><ellipse cx="200" cy="${y + h - 14}" rx="150" ry="20" fill="${glow}" opacity=".2"/>` : "";
     const wear = (patches || []).slice(0, pose === "play" ? SPOTS.length : 0).map((pt, i) => { const [px, py] = SPOTS[i]; return patchSVG(pt, me.lefty ? 400 - px : px, py); }).join("");
-    const head = card && headline ? `<text x="200" y="${y + 40}" text-anchor="middle" font-family="'Space Grotesk', Impact, sans-serif" font-weight="700" font-size="40" letter-spacing="3" fill="#F6EEE0">${headline.replace(/[<&]/g, "")}</text>` : "";
+    const head = card && headline ? `<text x="200" y="${y + 40}" text-anchor="middle" font-family="'Sora', Impact, sans-serif" font-weight="700" font-size="40" letter-spacing="3" fill="#F6EEE0">${headline.replace(/[<&]/g, "")}</text>` : "";
     const clip = `<clipPath id="${id}v"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="18"/></clipPath>`;
     body = `${clip}<g clip-path="url(#${id}v)">${stage}${head}<g${mirror}>${figure}</g>${wear}</g>`;
   }
