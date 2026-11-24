@@ -1,5 +1,4 @@
 // Tabs Settings and Recently deleted screens.
-import { IMG_STORE, imgKey } from "./portrait.js";
 import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
@@ -138,17 +137,6 @@ function renderSettings() {
     </div>
     <details class="foot s-why"><summary>What it's used for</summary>Get the song checks the chart's tempo and time signature against GetSongBPM's measured data. The free key is at <a href="https://getsongbpm.com/api" target="_blank" rel="noopener">getsongbpm.com/api</a>; it stays on this phone and is sent only to GetSongBPM, with the song's title and artist. Words come from <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, which needs no key.</details>
     <p class="foot credit">Tempo data by <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM.com</a></p>
-    <div class="label">xAI · Your portrait</div>
-    <div class="set-group glass">
-      <label class="fld fld-k"><span class="tile ftile">${icon("wand")}</span>
-        <input id="s-imgkey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="xAI API key" value="${esc(imgKey())}" aria-label="xAI API key"></label>
-      <div class="key-row">
-        <span class="ai-status"><i class="dot ${imgKey() ? "on" : ""}"></i>${imgKey() ? "On" : "Off"}</span>
-        ${imgKey() ? `<button class="btn sm" id="s-imgremove">Remove</button>` : ""}
-        <button class="btn sm primary" id="s-imgsave">Save key</button>
-      </div>
-    </div>
-    <details class="foot s-why"><summary>What it's used for</summary>Make my portrait, in the guitarist maker, draws a gig poster portrait that looks like you with xAI's Grok Imagine. Keys are at <a href="https://console.x.ai" target="_blank" rel="noopener">console.x.ai</a>. The key stays on this phone and is sent only to xAI, with the one photo you pick for a portrait. Louie keeps only the finished picture, on this phone. Use a key made just for Louie, with a low monthly spend limit; a portrait costs a few cents.</details>
 `],
     apple: ["Apple Music", `
     <p class="foot" style="margin:0 4px 14px">With an Apple Music subscription, songs play their real recording here: Play starts it with the scroll, and the Recording chip under a song's title sets what Play starts.</p>
@@ -229,7 +217,7 @@ function renderSettings() {
       ${row("today", "flame", "Today", s.nudge === false ? "Off" : city ? esc(city) : "On")}
       ${row("apple", "note", "Apple Music", s.appleMusic ? (s.appleMusicToken ? "On" : "On · no token") : "Off")}
       ${row("youtube", "play", "YouTube", s.youtube === false ? "Off" : s.youtubeServer ? "On" : "On · paste links")}
-      ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo ${dot(imgKey())}Portrait</span>`, true)}
+      ${row("keys", "wand", "Keys", `<span class="s-keys">${dot(aiKey())}AI ${dot(bpmKey())}Tempo</span>`, true)}
       ${row("lang", "chat", "Language practice", langChosen(data) ? LANGS[langOf(data)].name : "Not picked")}
     </div>
     <div class="set-group glass s-gap">
@@ -314,16 +302,6 @@ function renderSettings() {
     try { localStorage.setItem(BPM, k); } catch {}
     renderSettings(); toast("Key saved");
   };
-  $("s-imgsave").onclick = () => {
-    const k = $("s-imgkey").value.trim();
-    if (!k) { toast("Paste a key first"); return; }
-    try { localStorage.setItem(IMG_STORE, k); } catch {}
-    renderSettings(); toast("Key saved");
-  };
-  $("s-imgremove")?.addEventListener("click", () => {
-    try { localStorage.removeItem(IMG_STORE); } catch {}
-    renderSettings(); toast("Key removed from this phone");
-  });
   $("s-bpmremove")?.addEventListener("click", () => {
     try { localStorage.removeItem(BPM); } catch {}
     renderSettings(); toast("Key removed from this phone");
