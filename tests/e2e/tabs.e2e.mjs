@@ -57,7 +57,7 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
     assert.match(r.pipe, /linear-gradient/, "chrome edge");
     assert.ok(r.side >= 8 && r.gapBelow >= 8, "floats 8 px in from the sides and above the bottom");
     assert.equal(Math.round(r.h), 70, "the bar stays close to the old height");
-    assert.equal(r.onColor, dark ? "rgb(255, 181, 71)" : "rgb(118, 58, 0)", "the current label is amber");
+    assert.equal(r.onColor, dark ? "rgb(32, 224, 208)" : "rgb(6, 95, 91)", "the current label is Cool Teal");
     assert.equal(r.offLabel, dark ? "rgb(243, 230, 210)" : "rgb(58, 42, 26)", dark ? "cream labels" : "ink labels on the cream bar");
     const ground = dark ? "rgb(16, 14, 12)" : "rgb(232, 214, 188)";
     assert.ok(ratio(r.offLabel, ground) >= 4.5, `inactive labels ${ratio(r.offLabel, ground).toFixed(1)}:1`);
@@ -67,7 +67,7 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
     assert.equal(r.litOp, "1", "the current knob is the lit face");
     assert.equal(r.offOp, "0", "the dark face steps aside");
     assert.equal(r.otherLit, "0", "the other knobs stay dark");
-    assert.equal(r.src, "art/tabbar/knob-lit.webp");
+    assert.equal(r.src, "art/tabbar/knob-lit-teal.webp");
     assert.ok(r.nw >= r.knob * 3, `the face is ${r.nw}px for a ${r.knob}px knob, at least 3x`);
     assert.equal(Math.round(r.knob), 46, "46 px knobs");
     assert.equal(r.under, "none", "no underline: the lamp is the mark");

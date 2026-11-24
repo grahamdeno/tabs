@@ -117,7 +117,13 @@ const TABS = [
   ["tour", "#/playmap", "Tour"],
   ["me", "#/you", "Me"]
 ];
-const KNOB = `<span class="tb-knob" aria-hidden="true"><img class="tb-off" src="art/tabbar/knob-off.webp" alt="" draggable="false"><img class="tb-on" src="art/tabbar/knob-lit.webp" alt="" draggable="false"></span>`;
+const KNOB_OFF = "art/tabbar/knob-off.webp";
+const KNOB_LIT = "art/tabbar/knob-lit.webp";
+const KNOB_LIT_RR = "art/tabbar/knob-lit-teal.webp";
+const knobHtml = () => {
+  const lit = ["neon", "festival"].includes(document.documentElement.dataset.look) ? KNOB_LIT_RR : KNOB_LIT;
+  return `<span class="tb-knob" aria-hidden="true"><img class="tb-off" src="${KNOB_OFF}" alt="" draggable="false"><img class="tb-on" src="${lit}" alt="" draggable="false"></span>`;
+};
 function tabsEl() {
   let el = document.getElementById("tabs");
   if (!el) { el = document.createElement("nav"); el.id = "tabs"; el.setAttribute("aria-label", "Main"); document.body.appendChild(el); }
@@ -127,7 +133,8 @@ export function paintTabs(active) {
   const el = tabsEl();
   /* no dot on a tab (Grok's design list, 2026-11-19: a notification-style dot reads as Duolingo); the Tuner row on Me shows when
      the tuner hasn't been used lately. The knob bar is the bar in every look. */
-  el.innerHTML = TABS.map(([k, href, label]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${KNOB}<span class="tb-l">${esc(label)}</span></a>`).join("");
+  const knob = knobHtml();
+  el.innerHTML = TABS.map(([k, href, label]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${knob}<span class="tb-l">${esc(label)}</span></a>`).join("");
   document.body.classList.add("tabbed");
 }
 export function hideTabs() { document.body.classList.remove("tabbed"); }
