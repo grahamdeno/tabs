@@ -5852,8 +5852,8 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 :root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr.rn { padding: 0; margin: 0; gap: 0; }
 .rd-path.rn { padding: 0; gap: 0; align-items: stretch; }
 .rn-board { position: relative; width: 100%; flex: none; box-sizing: content-box; min-height: 100%; padding-bottom: var(--tabs); }
-/* room to scroll any stop, and the start of the next leg, clear of the plate and up to the leg row */
-body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dvh)); }
+/* The wood ends just above the now plate. A full screen of padding used to sit under a short peek and left a void. */
+body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--tab-h) + var(--safe-b) + 148px); }
 .rn-neck { position: absolute; top: 0; bottom: auto; left: 0; right: 0; width: var(--rn-w); margin: 0 auto; box-sizing: border-box; border-left: 4px solid #E8D7B8; border-right: 4px solid #E8D7B8;
   background-image: url("art/road-neck/neck-rosewood-v2.webp"); background-repeat: repeat-y; background-size: 100% auto;
   box-shadow: inset 1px 0 0 #2C2118, inset -1px 0 0 #2C2118, 0 0 0 1px #C9B08A, 8px 0 16px rgba(20, 12, 6, .42), -8px 0 16px rgba(20, 12, 6, .42); }
@@ -5885,6 +5885,25 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 :root[data-look="festival"] .rn-num { color: #7a6856; }
 /* where each leg starts, for the pinned row. No text, so the gutter stays numbers only. */
 .rn-lat { position: absolute; left: 0; width: 0; height: 0; pointer-events: none; }
+/* The upcoming leg, from just under its gold fret to the end of its wood. The leg you are on stays full colour above that line. */
+.rn-upcoming {
+  position: absolute; left: 0; right: 0; z-index: 5; pointer-events: none;
+  background: linear-gradient(180deg, rgba(28, 24, 20, 0) 0, rgba(42, 38, 34, .16) 16px, rgba(34, 32, 30, .2) 100%);
+  backdrop-filter: grayscale(.9) saturate(.24) brightness(1.02) contrast(1.08);
+  -webkit-backdrop-filter: grayscale(.9) saturate(.24) brightness(1.02) contrast(1.08);
+}
+:root[data-look="festival"] .rn-upcoming {
+  background: linear-gradient(180deg, rgba(88, 76, 64, 0) 0, rgba(92, 80, 68, .18) 16px, rgba(74, 64, 54, .22) 100%);
+  backdrop-filter: grayscale(.86) saturate(.26) brightness(1.06) contrast(1.06);
+  -webkit-backdrop-filter: grayscale(.86) saturate(.26) brightness(1.06) contrast(1.06);
+}
+.rn-slot.rn-dim .rn-pearl { filter: grayscale(1) brightness(.7) contrast(1.12); }
+:root[data-look="festival"] .rn-slot.rn-dim .rn-pearl { filter: grayscale(1) brightness(.64) contrast(1.16); }
+.rn-mark.rn-dim { filter: grayscale(1) brightness(.92) contrast(1.15); opacity: .95; }
+.rn-wire.rn-dim { opacity: .72; filter: grayscale(.35) brightness(.92); }
+.rn-gold.rn-dim { filter: grayscale(.4) brightness(.86) saturate(.5); opacity: .92; }
+.rn-num.rn-dim { color: #6a6158; }
+:root[data-look="festival"] .rn-num.rn-dim { color: #7d6e60; }
 /* The leg in view: one line between the stats and the nut, full width, in the header's type and colours. */
 :root:is([data-look="neon"], [data-look="festival"]) .rn-legbar {
   position: relative; z-index: 6; flex: none; display: flex; align-items: center; gap: 8px; box-sizing: border-box;
@@ -5901,6 +5920,7 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
   min-width: 44px; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--rr-text);
   font: 600 var(--type-subhead) / 1 "Inter", var(--sans); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap;
 }
+.rn-skip[hidden] { display: none; }
 .rn-skip:focus-visible, .rn-now-name:focus-visible, .rn-now-go:focus-visible { outline: 2px solid var(--rr-amber, #FFB547); outline-offset: 2px; }
 /* The current stop, a cream engraved plate pinned above the knob tab bar. */
 :root:is([data-look="neon"], [data-look="festival"]) .rn-now {
