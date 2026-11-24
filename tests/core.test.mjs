@@ -2778,18 +2778,31 @@ test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lef
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
   const { louie, louieArt, louiePic, LOUIE_STAND_IN } = await import("../louie.js");
-  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
-  for (const n of [...have, "face-badge"]) {
+  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "nervous", "point", "proud", "sleepy", "thumb", "wave"];
+  const first = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
+  for (const n of [...first, "face-badge"]) {
     const f = `art/louie/v4/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} stays`);
+    assert.ok(shell.includes(`"${f}"`), `${f} stays saved for offline`);
+  }
+  for (const n of [...have, "face", "face-badge"]) {
+    const f = `art/louie/v5/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+  for (const n of [...have, "face-badge", "face"]) {
+    const f = `art/louie/v5/louie-${n}.webp`;
     assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.statSync(path.join(root, f)).size < 120 * 1024, `${f} is under 120 KB`);
   }
-  for (const [pose, from] of Object.entries(LOUIE_STAND_IN)) assert.ok(have.includes(from) && !have.includes(pose), `${pose} borrows ${from} until its picture arrives`);
+  assert.deepEqual(LOUIE_STAND_IN, {}, "every pose, including nervous, has its own picture");
+  assert.deepEqual(LOUIE_STAND_IN, {}, "nervous has his own picture");
+  assert.equal(louieArt("worried"), "nervous");
   for (const mood of ["happy", "cheer", "sleepy", "worried", "proud", "listen"]) for (const pose of [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"]) for (const size of [44, 120]) {
     const svg = louie(mood, { pose, size }), href = svg.match(/href="([^"]+)"/)[1];
     assert.equal(href, louiePic(louieArt(mood, pose, size)));
-    assert.ok(have.some(n => href === `art/louie/v4/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
+    assert.ok(have.some(n => href === `art/louie/v5/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
     assert.equal((svg.match(/<image /g) || []).length, 1, "one picture");
     assert.ok(!/<(path|rect|circle|ellipse|text)\b/.test(svg), "nothing is drawn in code");
     assert.match(svg, /role="img" aria-label="Louie"/);
@@ -2800,10 +2813,39 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   for (const f of ["sw.js", "louie.js", "index.html", "styles.css", "library.js", "maker.js", "profile.js", "merch.js", "road.js"]) assert.ok(!/art\/louie\/(v2|v3|louie-)/.test(read(f)), `${f} has no earlier Louie picture`);
   for (const d of ["art/louie/v2", "art/louie/v3", "art/louie/louie-face-badge.webp", "art/louie/louie-peek-dark.webp"]) assert.ok(!fs.existsSync(path.join(root, d)), `${d} is gone`);
   assert.ok(!read("merch.js").includes("Louie's finish</span>"), "Louie's finishes are off the Merch table until his new colours arrive");
-  for (const n of have) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
-  assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
+  for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.ok(fs.existsSync(path.join(root, "docs/louie-tweed/clean/louie-nervous.png")), "the clean nervous cut-out is kept");
+  assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
+  assert.ok(fs.existsSync(path.join(root, "art/louie/v5/louie-face.webp")), "a face-only picture");
+  assert.ok(fs.existsSync(path.join(root, "art/louie/v4/louie-idle.webp")), "the first cut-outs stay");
+  assert.match(read("merch.js"), /Louie's finishes/, "his other colours are back on the Merch table");
+  for (const fin of ["pink", "teal", "black", "mint", "gold"]) {
+    assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} the first tint stays`);
+    for (const pose of have) {
+      const earlier = `art/louie/tint/${fin}/louie-${pose}.webp`;
+      const f = `art/louie/front/${fin}/louie-${pose}.webp`;
+      assert.ok(fs.existsSync(path.join(root, earlier)), `${earlier} stays`);
+      assert.ok(fs.existsSync(path.join(root, f)), f);
+      assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    }
+    assert.match(louie("worried", { finish: fin }), new RegExp(`art/louie/front/${fin}/louie-nervous.webp`), `${fin} nervous is his own picture`);
+  }
+  for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
 });
 
+test("Merch backdrops: the thumbnails are painted pictures, saved for offline", () => {
+  const js = read("merch.js"), shell = read("sw.js");
+  for (const name of ["basement", "brick", "stars", "sunset"]) {
+    const f = `art/merch/paint-${name}.webp`;
+    const old = `art/merch/backdrop-${name}.webp`;
+    assert.match(js, new RegExp(f.replace(/\./g, "\\.")));
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(fs.existsSync(path.join(root, old)), `${old} stays`);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(shell.includes(`"${old}"`), `${old} stays saved for offline`);
+  }
+});
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
   const { GUITARS } = await import("../core.js");
   const PICS = (await import("../art/guitars/pics.js")).default;
@@ -2824,13 +2866,23 @@ test("4.87.0 every guitar is a picture: head, body and small picture saved for o
   }
 });
 
+test("Dark Road leather: the agreed near-black tile is what Dark shows, and the older pebble is kept", () => {
+  const css = read("styles.css"), shell = read("sw.js");
+  assert.match(css, /art\/surfaces\/tolex-dark-levant\.webp/);
+  assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark.webp")), "the older pebble stays");
+  assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark-fine.webp")), "the fine tile stays");
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-fine.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-levant.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-leather.webp"'), "the earlier leather tile stays");
+  assert.ok(!/luminosity/.test(css.split(".rd-path")[1] || ""), "the Road no longer washes the leather flat");
+});
 test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes from bitmap tiles, all saved for offline", async () => {
   const shell = read("sw.js"), PICS = (await import("../art/guitars/pics.js")).default;
   const fb = read("fretboard.js");
   /* Road Ready 9a: the switch leg is Cornerstone now; the sunburst cutaway is still built and still named by its body */
   assert.match(fb, /switch: "cornerstone"/); assert.match(fb, /cutaway: "cutaway-sunburst"/);
   assert.ok(PICS["cutaway-sunburst"] && PICS.cornerstone, "the sunburst and Cornerstone have numbers");
-  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-cream.webp"])) {
+  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-dark-leather.webp", "art/surfaces/tolex-cream.webp"])) {
     assert.ok(fs.existsSync(path.join(root, f)), f); assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`); assert.ok(fs.statSync(path.join(root, f)).size <= 60000, `${f} is small`);
   }
 });
@@ -3083,13 +3135,34 @@ test("Road Ready: its tokens exist for both looks and for no other look", () => 
 });
 
 test("Road Ready: the fonts are bundled as woff2 with their licences", () => {
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
     const b = fs.readFileSync(path.join(root, "vendor/fonts", f));
     assert.equal(b.subarray(0, 4).toString("latin1"), "wOF2", `${f} is a woff2 file`);
     assert.ok(b.length < 120 * 1024, `${f} is under 120 KB (${b.length})`);
   }
-  for (const f of ["OFL-SpaceGrotesk.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
+  for (const f of ["OFL-Sora.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
   assert.doesNotMatch(read("styles.css"), /fonts\.googleapis|fonts\.gstatic|cdn\./i, "no font comes from a network address");
+});
+
+test("Sora is the Road Ready heading font, and Green Room and Headliner keep Fredoka", () => {
+  const css = read("styles.css"), sw = read("sw.js");
+  assert.match(css, /@font-face \{ font-family: "Sora"; src: url\("vendor\/fonts\/sora-600\.woff2"\) format\("woff2"\); font-weight: 600;/);
+  assert.match(css, /@font-face \{ font-family: "Sora"; src: url\("vendor\/fonts\/sora-700\.woff2"\) format\("woff2"\); font-weight: 700;/);
+  assert.doesNotMatch(css, /Space Grotesk|spacegrotesk/);
+  const rootDisplay = css.match(/:root, :root\[data-theme="light"\], :root\[data-look\] \{\s*--sans:[^;]+;\s*--serif:[^;]+;\s*--display: ([^;]+);/);
+  assert.ok(rootDisplay, "the shared display font is declared");
+  assert.match(rootDisplay[1], /Fredoka/, "Green Room and Headliner still use Fredoka");
+  const rr = css.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\]\) \{[^]*?--display: ([^;]+);/);
+  assert.ok(rr, "Road Ready sets its own display font");
+  assert.match(rr[1], /"Sora"/);
+  assert.match(rr[1], /"Inter"/);
+  assert.match(css, /--readout: "IBM Plex Mono"/);
+  assert.match(css, /--sans: "Inter"/);
+  const shell = JSON.parse(sw.match(/const SHELL = (\[.*?\]);/s)[1]);
+  assert.ok(shell.includes("vendor/fonts/sora-600.woff2"), "Sora SemiBold is in the app shell");
+  assert.ok(shell.includes("vendor/fonts/sora-700.woff2"), "Sora Bold is in the app shell");
+  assert.ok(!shell.some(f => /spacegrotesk|Space Grotesk/.test(f)));
+  assert.doesNotMatch(read("guitarist.js") + read("portrait.js"), /Space Grotesk/);
 });
 
 /* ---- Road Ready 9a: the 23 guitars and the Guitar shop ---- */
@@ -3567,11 +3640,13 @@ test("the favicon, apple-touch icon and every iPhone launch screen exist at the 
 test("the loading screen shows Louie on the Dark ground, then hides once the app draws", () => {
   const html = read("index.html"), css = read("styles.css");
   assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
-  assert.match(html, /src="art\/louie\/v4\/louie-idle\.webp"/, "it uses Louie's idle picture");
+  assert.match(html, /src="art\/louie\/v5\/louie-idle\.webp"/, "it uses the clean idle picture");
   assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
+  assert.match(html, /@media \(prefers-color-scheme: light\)\{html,body,\.boot\{background:#F6EFE2\}/, "a Light phone gets the cream ground while the app loads");
+  assert.match(html, /icons\/splash\/light-launch-1170x2532\.png/, "the Light launch screens are linked");
   assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
   const shell = read("sw.js");
-  assert.match(shell, /"art\/louie\/v4\/louie-idle\.webp"/, "the boot picture is saved for offline");
+  assert.match(shell, /"art\/louie\/v5\/louie-idle\.webp"/, "the boot picture is saved for offline");
   for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
@@ -3647,6 +3722,23 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  const bad = diff.split("\n").filter(Boolean).filter(line => !/^A\tart\/(road-neck|tabbar|case)\//.test(line));
+  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t"));
   assert.deepEqual(bad, [], "no existing art file was edited");
+});
+
+test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a sheet", () => {
+  const hud = read("hud.js"), css = read("styles.css");
+  const rr = hud.slice(hud.indexOf("export function rrStats"), hud.indexOf("export const pageStats"));
+  assert.match(rr, /id="h-streak"/);
+  assert.match(rr, /id="h-fans"/);
+  assert.match(rr, /id="h-tips"/);
+  assert.doesNotMatch(rr, /h-songs/, "the songs stat is gone from the Road Ready header");
+  assert.match(hud, /go\(rr \? "#\/playmap" : "#\/you"\)/, "fans open the Tour Map in Dark and Light");
+  assert.match(hud, /rr \? streakCard\(\) : go\("#\/you"\)/, "streak opens a small sheet in Dark and Light");
+  assert.match(hud, /function streakCard\(/);
+  assert.match(hud, /id="sk-scrim"/, "the sheet closes on a tap outside");
+  assert.match(hud, /id="sk-x"/, "and on a close button");
+  assert.match(hud, /data\.journal\.best/, "best streak comes from the journal already stored");
+  assert.match(css, /\.sk-card[^}]*var\(--rr-card\)/, "the sheet uses Road Ready tokens");
+  assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
 });

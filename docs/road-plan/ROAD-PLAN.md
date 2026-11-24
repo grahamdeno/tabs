@@ -69,7 +69,7 @@ What the plan can reuse, nearly all of it already tested:
 
 Short tours first, so a beginner gets a level marker in the first week, then longer tours as skills deepen. A tour plays on one guitar; each leg is one neck of stops on it. Neck stops count the lessons plus a merch box after every third lesson, as today; the headline show is the badge, not on the neck.
 
-In numbers: 13 tours (Opening night plus 12), 56 legs (49 new, 7 existing or placeholder), about 348 stops counting lessons, boxes and headlines. A neck holds 17 to 19 stops; the longest leg here is 10.
+In numbers: 13 tours (Opening night plus 12), 56 legs (49 new, 7 existing or placeholder), about 351 stops counting lessons, boxes and headlines. A neck holds 17 to 19 stops; the longest leg here is 10.
 
 | Tour | Level marker at the end | Legs | Guitar | Existing legs inside |
 |---|---|---|---|---|
@@ -93,7 +93,9 @@ Guitar: None (picks). Level marker: You know how the app works and played a firs
 
 | Leg (id) | Skill it unlocks | Lesson stops | Neck stops | Headline show |
 |---|---|---|---|---|
-| Opening night (`opening`), exists | Mic, a chord, a verse, pause, first show | Who's playing, Let me hear you, Tap a chord, Play a verse, Pause and pick up | 6 | Your first show |
+| Opening night (`opening`), exists | Hold the guitar, the open strings, the microphone, first notes, a chord, a verse, pause, first show | Who's playing tonight?, Hold the guitar, The open strings, Let me hear you, Your first notes, Tap a chord, Play a verse (Count me in), Pause and pick up | 9 | Your first show |
+
+The nine stops on the neck, in order (PR #137): Who's playing tonight?, Hold the guitar, The open strings, the microphone (Let me hear you), Your first notes, the first chord (Tap a chord), the verse (Play a verse, Count me in), Pause and pick up, then Your first show.
 
 ### Tour 1: First chords
 
