@@ -87,7 +87,15 @@ test("Painted necks: from the keyboard, Enter opens the card and moves focus to 
   const page = await road(t);
   const labels = await page.evaluate(() => [...document.querySelector(".rn-neck").querySelectorAll(".rd-node")].map(b => [b.dataset.stop, b.dataset.kind, b.dataset.n, b.getAttribute("aria-label")]));
   assert.ok(labels.length >= 10 && labels.every(([s, k, n, a]) => s && k && n && a), "every stop is a real button with a label, id, kind and number");
-  assert.deepEqual(labels.map(l => +l[2]), labels.map((_, i) => i + 1), "in order down the neck");
+  const runs = [];
+  let prev = 0;
+  for (const n of labels.map(l => +l[2])) {
+    if (n === 1) runs.push([n]);
+    else { assert.equal(n, prev + 1, "numbers climb inside a leg"); runs[runs.length - 1].push(n); }
+    prev = n;
+  }
+  assert.ok(runs.length >= 2, "the next leg is numbered from 1 on its own");
+  for (const run of runs) assert.deepEqual(run, run.map((_, i) => i + 1), "in order down each leg");
   await page.focus(stopSel("c:Am")); await page.keyboard.press("Enter");
   await page.waitForSelector(".rd-pop.now .rd-start");
   assert.equal(await page.evaluate(() => document.activeElement.classList.contains("rd-start")), true, "focus is on Start");

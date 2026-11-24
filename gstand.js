@@ -2,10 +2,9 @@
 // previous and next guitars peeking at the sides, and a dot pager under the feet. Me and the
 // new-guitar sheet share this. Green Room and Headliner never call it.
 import { VERSION, GUITARS, roadGuitars, roadPath, shopState } from "./core.js";
-import { guitarPic } from "./fretboard.js";
+import { guitarPic, largeGuitar } from "./fretboard.js";
 import { buildPic } from "./buildart.js";
 import { esc } from "./ui.js";
-import PICS from "./art/guitars/pics.js";
 
 const STAND = `art/case/guitar-stand`;
 /* A faint guitar waiting on the empty stand. Inline only, so no picture under art/ changes. */
@@ -21,9 +20,8 @@ const GHOST = `<svg class="gs-ghost" viewBox="0 0 100 250" aria-hidden="true">
 export function standPic(body) {
   const small = guitarPic(body);
   if (!small) return "";
-  const slug = small.match(/art\/guitars\/([^/?]+)-small\.webp/)?.[1];
-  if (slug && PICS[slug]?.road) return `art/guitars/${slug}-road.webp?v=${VERSION}`;
-  return small;
+  const large = largeGuitar(small);
+  return large ? `${large}?v=${VERSION}` : small;
 }
 
 /* Guitars you own, in road order then shop order. extraId is the one just earned, so the sheet can
