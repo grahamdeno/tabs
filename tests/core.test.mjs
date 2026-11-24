@@ -3836,6 +3836,10 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
     "art/guitars/porch-head.webp",
     "art/guitars/porch-road.webp",
     "art/guitars/porch-small.webp",
+    "art/guitars/streak/porch-body.webp",
+    "art/guitars/streak/porch-head.webp",
+    "art/guitars/streak/porch-road.webp",
+    "art/guitars/streak/porch-small.webp",
   ]);
   const bad = diff.split("\n").filter(Boolean).filter(line => {
     if (line.startsWith("A\t")) return false;
