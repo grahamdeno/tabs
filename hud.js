@@ -41,9 +41,9 @@ export function statBar() {
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${COIN}<span>$${n(tips)}</span>${lab("tips", "TIPS")}</button>
   </div>`;
 }
-/* ---- the one-row Road header (Grok, 2026-11-19): four stats, each a line icon then a number, spread across one 44 pt row with
-   no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); songs you can play opens the Songbook;
-   the venue is the sign at the start of the leg, which opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
+/* ---- the one-row Road header (Grok, 2026-11-19): three stats, each a line icon then a number, spread across one 44 pt row with
+   no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); streak opens a small sheet, fans open
+   the Tour Map; the venue is the sign at the start of the leg, which also opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
 const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 const ST_ICON = {
   /* a guitar: the streak */
@@ -94,34 +94,42 @@ export function statNotices() {
 }
 
 /* ---- the tab bar ---- */
-/* Road Ready 04: five tabs, our own line icons. 24 px grid shown at 28 px, a 1.9 stroke with round caps and joins, currentColor. The shapes
-   marked tb-fill are tinted in when the tab is current (the icon sheet's "active = fill + amber"). No lamps, gauges or picks. */
+/* The amp knob bar (Graham, 2026-11-23): five knobs on a grille strip, the same on every screen.
+   The faces are painted (art/tabbar): dark when off, lamp-lit when this tab is the one you're on. */
 /* The streak card: how many days in a row, the last seven days, and what keeps it going. */
 function streakCard() {
   const st = streakOf(playSongs(data)), d = st.days;
+  /* best is already in the journal (core/playing.js); do not write a new key */
+  const stored = data.journal && data.journal.v === 1 ? Math.max(0, +data.journal.best || 0) : 0;
+  const best = Math.max(stored, d);
+  const bestLine = data.journal && data.journal.v === 1 && best > 0
+    ? `<p class="sk-high">Best: ${best} day${best === 1 ? "" : "s"}</p>` : "";
   const days = ["S", "M", "T", "W", "T", "F", "S"], today = new Date().getDay();
   layer.innerHTML = `<div class="scrim" id="sk-scrim"></div><div class="panel card sk-card" role="dialog" aria-label="Your gig streak">
     <h2>${d ? `${d} day${d === 1 ? "" : "s"} in a row` : "No streak yet"}</h2>
+    ${bestLine}
     <p class="tm-line">${d ? (st.today ? "You played today, so your streak is safe." : "Play a song through today to keep it going.") : "Play a song through today to start one."}</p>
     <div class="sk-week" role="img" aria-label="The last seven days: ${st.week.filter(Boolean).length} played">${st.week.map((on, i) => `<span class="sk-day${on ? " on" : ""}${i === 6 ? " now" : ""}"><i></i>${days[(today + i + 1) % 7]}</span>`).join("")}</div>
-    <div class="actions"><button class="btn primary" id="sk-x">Done</button></div></div>`;
+    <div class="actions"><button class="btn primary" id="sk-x">Close</button></div></div>`;
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("sk-scrim").onclick = close; document.getElementById("sk-x").onclick = close;
   document.getElementById("sk-x").focus();
 }
-const ICON = body => `<svg class="tb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 const TABS = [
-  /* Road: a short fretboard (two frets) with a zigzag road joining three stops, as in the icon sheet's "Fretboard + stops" */
-  ["road", "#/", "Road", ICON(`<path class="tb-fill" d="M7.5 2.5h9l1.5 19H6z"/><path d="M6.9 8.5h10.2M6.4 15h11.2"/><path d="M14.2 5.6L9.8 11.8l4.4 6.6"/><circle cx="14.2" cy="5.6" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.8" cy="11.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.2" cy="18.4" r="1.3" fill="currentColor" stroke="none"/>`)],
-  /* Songbook: an open book with a music note on the right page */
-  ["songbook", "#/library", "Songbook", ICON(`<path class="tb-fill" d="M12 6.6C9.8 5 6.8 4.6 3.4 5v13.2c3.4-.4 6.4 0 8.6 1.6 2.2-1.6 5.2-2 8.6-1.6V5c-3.4-.4-6.4 0-8.6 1.6z"/><path d="M12 6.6v13.2"/><circle cx="15.2" cy="14.2" r="1.5" fill="currentColor" stroke="none"/><path d="M16.7 14.2V9.2l2.3.7"/>`)],
-  /* Rehearse: a metronome, a trapezoid body with the arm leaning */
-  ["rehearse", "#/practice", "Rehearse", ICON(`<path class="tb-fill" d="M9 3h6l4 18H5z"/><path d="M12 17.5L15.2 7"/><circle cx="14" cy="11" r="1.3" fill="currentColor" stroke="none"/><path d="M8.2 21h7.6"/>`)],
-  /* Tour: a tour van from the side, two wheels, an amp on the roof */
-  ["tour", "#/playmap", "Tour", /* Graham, 2026-11-19: the Tour tab opens straight onto the Tour Map; the month's tour is a button on it */ ICON(`<path class="tb-fill" d="M2.5 17v-5.5L5 8h9.5l4.5 3.5h2.5V17h-2.4M14.9 17H9.1M4.9 17H2.5"/><path d="M8.5 4.5h5V8h-5zM9 8v3.5h10"/><circle cx="7" cy="17.5" r="2.1"/><circle cx="17" cy="17.5" r="2.1"/>`)],
-  /* Me: a backstage pass hanging from a U-shaped lanyard */
-  ["me", "#/you", "Me", ICON(`<path d="M6.5 2.5c0 3.5 1.6 5.2 5.5 5.2s5.5-1.7 5.5-5.2"/><rect class="tb-fill" x="6.5" y="8" width="11" height="13.5" rx="2.8"/><circle cx="12" cy="13" r="1.9"/><path d="M8.9 19.2c.4-2 1.7-3 3.1-3s2.7 1 3.1 3"/>`)]
+  ["road", "#/", "Road"],
+  ["songbook", "#/library", "Songbook"],
+  ["rehearse", "#/practice", "Rehearse"],
+  /* Graham, 2026-11-19: the Tour tab opens straight onto the Tour Map; the month's tour is a button on it */
+  ["tour", "#/playmap", "Tour"],
+  ["me", "#/you", "Me"]
 ];
+const KNOB_OFF = "art/tabbar/knob-off.webp";
+const KNOB_LIT = "art/tabbar/knob-lit.webp";
+const KNOB_LIT_RR = "art/tabbar/knob-lit-teal.webp";
+const knobHtml = () => {
+  const lit = ["neon", "festival"].includes(document.documentElement.dataset.look) ? KNOB_LIT_RR : KNOB_LIT;
+  return `<span class="tb-knob" aria-hidden="true"><img class="tb-off" src="${KNOB_OFF}" alt="" draggable="false"><img class="tb-on" src="${lit}" alt="" draggable="false"></span>`;
+};
 function tabsEl() {
   let el = document.getElementById("tabs");
   if (!el) { el = document.createElement("nav"); el.id = "tabs"; el.setAttribute("aria-label", "Main"); document.body.appendChild(el); }
@@ -130,8 +138,9 @@ function tabsEl() {
 export function paintTabs(active) {
   const el = tabsEl();
   /* no dot on a tab (Grok's design list, 2026-11-19: a notification-style dot reads as Duolingo); the Tuner row on Me shows when
-     the tuner hasn't been used lately */
-  el.innerHTML = TABS.map(([k, href, label, svg]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${svg}<span class="tb-l">${esc(label)}</span></a>`).join("");
+     the tuner hasn't been used lately. The knob bar is the bar in every look. */
+  const knob = knobHtml();
+  el.innerHTML = TABS.map(([k, href, label]) => `<a href="${href}" data-tab="${k}" aria-label="${esc(label)}"${k === active ? ' aria-current="page"' : ""}>${knob}<span class="tb-l">${esc(label)}</span></a>`).join("");
   document.body.classList.add("tabbed");
 }
 export function hideTabs() { document.body.classList.remove("tabbed"); }

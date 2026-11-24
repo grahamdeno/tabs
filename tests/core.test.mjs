@@ -646,13 +646,15 @@ test("importing a backup: only https links, and only image data for covers of se
   assert.equal(out.data.settings.lastTuned, 5);
 });
 
-test("importing a backup: Headliner does not come back on; the default Road Ready look stays", () => {
+test("importing a backup: a saved Green Room or Headliner stays stored, and is not put on screen by the file", () => {
   const hl = C.cleanImport({
     songs: [{ id: "a", title: "A", body: "G\nla" }],
     settings: { theme: "headliner", v: 6 },
     merch: { has: ["headliner"], lconv: 1, hlseen: 1 }
   });
-  assert.equal(hl.data.settings.theme, "auto", "Headliner becomes Auto");
+  assert.equal(hl.data.settings.theme, "headliner", "Headliner stays stored so the retirement can be undone");
+  assert.equal(C.shownTheme(hl.data.settings.theme, false), "dark", "read on a dark phone as Dark");
+  assert.equal(C.shownTheme(hl.data.settings.theme, true), "light", "read on a light phone as Light");
   assert.ok(hl.data.merch.has.includes("headliner"), "Headliner stays owned");
 
   const dark = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "dark", v: 6 } });
@@ -666,10 +668,12 @@ test("importing a backup: Headliner does not come back on; the default Road Read
     settings: { theme: "green", v: 6 },
     merch: { has: ["green"], lconv: 1, tspent: 400 }
   });
-  assert.equal(owned.data.settings.theme, "green", "Green Room stays when owned and chosen");
+  assert.equal(owned.data.settings.theme, "green", "Green Room stays stored");
+  assert.equal(owned.data.merch.tspent, 400, "tips already spent on it stay spent");
+  assert.equal(C.shownTheme("green", undefined), "dark", "Dark when the phone doesn't say");
 
   const unowned = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { theme: "green", v: 6 } });
-  assert.equal(unowned.data.settings.theme, "auto", "Green Room without ownership becomes Auto");
+  assert.equal(unowned.data.settings.theme, "green", "a saved Green Room is not rewritten");
 });
 
 test("importing a backup: old saves still migrate", () => {
@@ -1256,6 +1260,42 @@ test("profile: the journal is worked out once from songs already played, then co
   assert.equal(C.profileOf(data, now).practiceSecs, 600, "practice time is told apart (3.24.2)");
 });
 
+test("when you play: one line from the grid, and the hours chart falls back to four weeks", () => {
+  const blank = () => Array.from({ length: 7 }, () => [0, 0, 0, 0]);
+  assert.equal(C.whenYouPlay(blank()), "");
+  const evenings = blank();
+  evenings[0][2] = 5; evenings[1][2] = 4;
+  assert.equal(C.whenYouPlay(evenings), "You play most on Sunday and Monday evenings");
+  const one = blank();
+  one[0][0] = 10;
+  assert.equal(C.whenYouPlay(one), "You play most on Sunday mornings");
+  const split = blank();
+  split[0][0] = 10; split[6][3] = 10;
+  assert.equal(C.whenYouPlay(split), "You play most on Sunday and Saturday");
+  const even = Array.from({ length: 7 }, () => [1, 1, 1, 1]);
+  assert.equal(C.whenYouPlay(even), "You play across the week, with no one time standing out");
+  const now = new Date(2026, 10, 24, 15).getTime();
+  const key = off => { const d = new Date(now - off * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  assert.equal(C.playBars({}, now).mode, "none", "no days and no weeks: no flat chart");
+  const recent = C.playBars({ [key(1)]: 600, [key(3)]: 300 }, now);
+  assert.equal(recent.mode, "days");
+  assert.equal(recent.bars.length, 7);
+  assert.equal(recent.bars.reduce((a, b) => a + b.secs, 0), 900);
+  assert.equal(recent.caption, "");
+  const older = C.playBars({ [key(10)]: 3600, [key(18)]: 1800 }, now);
+  assert.equal(older.mode, "weeks");
+  assert.equal(older.caption, "Your last 4 weeks");
+  assert.equal(older.bars.length, 4);
+  assert.equal(older.bars.reduce((a, b) => a + b.secs, 0), 5400);
+  assert.ok(older.bars.some(b => b.secs === 0) && older.bars.some(b => b.secs > 0), "empty weeks stay in the row, with no invented time");
+  const data = { songs: [], sets: [], settings: {}, journal: { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, chords: {}, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, days: { [key(10)]: 3600 } } };
+  data.journal.week[0 * 24 + 19] = 3; data.journal.week[1 * 24 + 18] = 3;
+  const p = C.profileOf(data, now);
+  assert.equal(p.whenLine, "You play most on Sunday and Monday evenings");
+  assert.equal(p.bars.mode, "weeks");
+  assert.equal(p.bars.caption, "Your last 4 weeks");
+});
+
 test("profile: tuner sessions show which string drifts; a journal from a backup is repaired", () => {
   const data = { songs: [], sets: [], settings: {} };
   for (let i = 0; i < 4; i++) C.journalTune(data, [1, -2, 0, 3, i < 3 ? -12 : 2, 0]);
@@ -1605,7 +1645,7 @@ test("The security policy lets MusicKit fetch Apple's certificate bundle and str
   const part = name => csp.split(";").map(x => x.trim()).find(x => x.startsWith(name + " "));
   for (const h of ["https://*.mzstatic.com", "https://*.cdn-apple.com", "https://*.aaplimg.com"]) assert.ok(part("connect-src").includes(h), "connect-src " + h);
   assert.ok(part("media-src").includes("https://*.mzstatic.com"));
-  /* 'wasm-unsafe-eval' only lets the page compile WebAssembly (the selfie face finder); plain 'unsafe-eval' stays banned */
+  /* 'wasm-unsafe-eval' only lets the page compile WebAssembly (the pitch model's tfjs); plain 'unsafe-eval' stays banned */
   assert.ok(!/(?<!wasm-)unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
 });
 
@@ -2336,28 +2376,53 @@ test("Road Ready 03: the guitarist's hands are the shapes Louie had before, unch
 test("4.40.0 Opening night: only for a new player, one step at a time, fans once, skip and replay", () => {
   const fresh = () => ({ songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], sets: [], trash: [], settings: {} });
   const d = fresh();
+  assert.deepEqual(C.OPENING.map(o => o.id), ["who", "hold", "strings", "mic", "notes", "chord", "verse", "pause", "show"]);
   assert.equal(C.openingView(d), "leg", "a new player starts on Opening night");
   assert.equal(C.openingView({ ...fresh(), skills: { done: { "chord-G": { n: 1 } } } }), null, "anyone with a lesson (or a play) never sees it");
   assert.equal(C.openingAdvance(d, "chord"), false, "steps go in order");
   assert.equal(C.OPENING[0].id, "who", "4.85.0: Who's playing tonight? comes first");
-  assert.equal(C.openingAdvance(d, "mic"), false, "the microphone waits for the guitarist");
+  assert.equal(C.openingAdvance(d, "mic"), false, "hold and the open strings come before the microphone");
   assert.equal(C.openingAdvance(d, "who"), true);
   assert.equal(C.fansOf(d), 0, "making your guitarist pays no fans");
-  assert.equal(C.openingAdvance(d, "mic"), true);
-  assert.equal(C.openingStep(d), 2); assert.equal(C.fansOf(d), C.FANS.lesson, "a step gives lesson fans");
-  for (const id of ["chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
-  assert.equal(d.opening.fans, 4 * C.FANS.lesson, "the show itself pays as a play, not as a step");
+  for (const id of ["hold", "strings", "mic", "notes", "chord", "verse", "pause", "show"]) assert.ok(C.openingAdvance(d, id), id);
+  assert.equal(d.opening.fans, 7 * C.FANS.lesson, "who and the show itself pay no step fans");
   assert.equal(C.openingView(d), "done", "the Road shows it done once");
   d.opening.seen = 1; assert.equal(C.openingView(d), null);
   C.openingReplay(d); assert.equal(C.openingView(d), "leg", "Tips & gestures replays it");
   assert.equal(C.openingStep(d), 1, "a replay skips choosing your guitarist again");
-  C.openingAdvance(d, "mic"); assert.equal(d.opening.fans, 4 * C.FANS.lesson, "no fans twice");
+  assert.equal(C.OPENING[C.openingStep(d)].id, "hold");
+  C.openingAdvance(d, "hold"); assert.equal(d.opening.fans, 7 * C.FANS.lesson, "no fans twice");
   const s = fresh(); C.openingSkip(s); assert.equal(C.openingView(s), null, "Skip ends it");
-  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 6, v: 2, fans: 25, micOff: true });
-  assert.equal(C.cleanOpening({ step: 2, fans: 5 }).step, 3, "a save from before 4.85.0 moves up one step");
+  assert.deepEqual(C.cleanOpening({ step: 9, fans: 999, micOff: true, done: "x", junk: 1 }), { step: 9, v: 3, fans: 40, micOff: true });
+  assert.equal(C.OPENING[C.cleanOpening({ step: 2, fans: 5 }).step].id, "verse", "a save from before 4.85.0 stays on the same step");
   assert.equal(C.cleanOpening({ step: 0 }).step, 0, "one that hadn't started stays at the start");
-  assert.equal(C.cleanOpening({ step: 2, v: 2 }).step, 2, "a current save is left alone");
   assert.equal(C.cleanOpening("no"), null);
+});
+
+test("Opening night: a saved place stays on the same step when first steps are added", () => {
+  const empty = { songs: [], sets: [], trash: [], settings: {} };
+  const chord = C.cleanOpening({ step: 2, v: 2, fans: 10 });
+  assert.equal(C.OPENING[chord.step].id, "chord");
+  assert.equal(chord.fans, 10, "fans already earned are not changed");
+  assert.equal(chord.v, 3);
+  assert.equal(C.OPENING[C.cleanOpening({ step: 1, v: 2, fans: 0 }).step].id, "mic", "on the microphone stays there");
+  assert.equal(C.OPENING[C.cleanOpening({ step: 4, v: 2, fans: 15 }).step].id, "pause");
+  assert.equal(C.OPENING[C.cleanOpening({ step: 5, v: 2, fans: 20 }).step].id, "show");
+  const done = C.cleanOpening({ step: 6, v: 2, done: 1, seen: 1, fans: 20 });
+  assert.equal(done.step, 9);
+  assert.equal(done.done, 1);
+  assert.equal(done.seen, 1);
+  assert.equal(done.fans, 20);
+  assert.equal(C.openingView({ ...empty, opening: done }), null, "a finished opening night stays finished");
+  const skip = C.cleanOpening({ step: 1, v: 2, skipped: 9, fans: 0 });
+  assert.equal(skip.skipped, 9);
+  assert.equal(C.openingView({ ...empty, opening: skip }), null, "a skipped opening night stays skipped");
+  assert.equal(C.cleanOpening({ step: 0, v: 2 }).step, 0, "one that hadn't started stays at the start");
+  assert.equal(C.cleanOpening({ step: 4, v: 3 }).step, 4, "a current save is left alone");
+  const mid = { ...empty, songs: [{ id: "s", title: "Harbor Lights", sample: true, body: "[Verse]\nG D\nLights" }], opening: chord };
+  assert.equal(C.openingView(mid), "leg");
+  assert.equal(C.openingAdvance(mid, "hold"), false, "new earlier steps are not asked again");
+  assert.ok(C.openingAdvance(mid, "chord"));
 });
 
 test("4.41.0 chords where the chord sites have them: numbered words in, positions out, the sheet built on the phone", () => {
@@ -2606,18 +2671,18 @@ test("4.78.0 looks on the Merch table: Light and Dark free, Green Room bought, H
   const data = { songs: [], sets: [], trash: [], settings: { theme: "auto" }, skills: { done: { ...lessons } } };
   assert.deepEqual([...C.looksOwned(data)].sort(), ["auto", "dark", "light"], "a new player has Auto, Light and Dark");
   assert.deepEqual(C.merchBuy(data, "headliner", now), { why: "earn" }, "Headliner can't be bought");
-  assert.deepEqual(C.merchBuy(data, "green", now), { why: "tips" });
+  assert.deepEqual(C.merchBuy(data, "green", now), { why: "retired" }, "Green Room is not for sale");
   data.merch.tips = 400;
-  assert.deepEqual(C.merchBuy(data, "green", now), { ok: true });
-  assert.equal(data.settings.theme, "green", "buying a look puts it on");
-  assert.equal(C.merchState(data, now).look, "green");
+  assert.deepEqual(C.merchBuy(data, "green", now), { why: "retired" }, "Green Room can't be bought or put on");
+  assert.equal(data.settings.theme, "auto", "buying does not switch the look");
+  assert.equal(data.merch.tspent || 0, 0, "no tips are taken");
   assert.equal(C.looksOwned(data).has("headliner"), false, "lessons alone don't earn it");
   data.skills.done["k:open"] = { n: 3, best: 90, at: now };
   assert.equal(C.headlined(data, now), true);
-  assert.equal(C.looksOwned(data).has("headliner"), true, "the first headline show earns it");
-  assert.equal(C.merchWear(data, "headliner"), true);
-  assert.equal(data.settings.theme, "headliner");
-  assert.equal(C.merchTip({ songs: [], sets: [], trash: [], settings: {}, merch: { tips: 5000, tconv: 1, lconv: 1, told: ["tweed", "black", "mint", "gold", "brick", "stars", "sunset"] } })?.id, "green", "Show complete can point to Green Room, never to Headliner");
+  assert.equal(C.looksOwned(data).has("headliner"), true, "the first headline show still counts as owning it");
+  assert.equal(C.merchWear(data, "headliner"), false, "wearing it does not switch the look on");
+  assert.equal(data.settings.theme, "auto");
+  assert.notEqual(C.merchTip({ songs: [], sets: [], trash: [], settings: {}, merch: { tips: 5000, tconv: 1, lconv: 1, told: ["tweed", "black", "mint", "gold", "brick", "stars", "sunset"] } })?.id, "green", "Show complete does not point at a retired look");
   /* a look already in use before 4.78.0 stays yours, once */
   const old = { songs: [], sets: [], trash: [], settings: { theme: "headliner" } };
   assert.equal(C.looksOwned(old).has("headliner"), true, "kept");
@@ -2658,31 +2723,26 @@ test("4.84.0 every guitar has its own inlay material, and the solid-body is on m
   assert.ok(Object.values(C.GUITARS).every(g => g.head === "plain"), "no slotted, book or pointed heads left");
 });
 
-test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a backup keeps data.me", () => {
+test("painted-only: cleanMe keeps only genre, who and left-handed; older fields are dropped; a backup keeps data.me", () => {
   assert.equal(C.cleanMe(null), null);
-  const me = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1", "leg:open", "bad id!", 5] });
-  assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1"] });
-  /* the face parts (2026-11-20): kept when valid and not the default, so a guitarist saved before them is unchanged */
-  const parts = C.cleanMe({ ...C.ME_DEFAULT, skin: 8, face: "heart", eyes: "round", eyeCol: "green", brows: "nope", nose: "broad", specs: "shades", freckles: "yes" });
-  assert.equal(parts.skin, 8);
-  assert.deepEqual([parts.face, parts.eyes, parts.eyeCol, parts.brows, parts.nose, parts.specs, parts.freckles], ["heart", undefined, "green", undefined, "broad", "shades", undefined]);
-  assert.deepEqual(C.cleanMe(C.ME_DEFAULT), { ...C.ME_DEFAULT }, "a guitarist from before keeps exactly its fields");
-  const bad = C.cleanMe({ skin: 9, hair: "mullet", hairCol: "x", beard: 3, extra: "crown", top: "plaid", lefty: "yes", patches: new Array(9).fill(0).map((_, i) => "p" + i) });
-  assert.equal(bad.skin, C.ME_DEFAULT.skin);
-  assert.equal(bad.hair, C.ME_DEFAULT.hair);
-  assert.equal(bad.beard, "none");
-  assert.equal(bad.extra, "none");
-  assert.equal(bad.top, C.ME_DEFAULT.top);
-  assert.equal(bad.lefty, false);
-  assert.equal(bad.patches.length, C.ME_PATCHES, "at most five patches");
-  assert.equal(C.ME_STARTERS.length, 8);
-  assert.ok(C.ME_STARTERS.every(s => C.cleanMe(s).hair === s.hair && s.extra === "none" && !("name" in s)), "starters are valid, hat-free and nameless");
-  const back = C.cleanImport(JSON.parse(JSON.stringify({ songs: [], sets: [], trash: [], settings: {}, me })));
-  assert.deepEqual(back.data.me, me, "an import keeps data.me");
+  assert.equal(C.cleanMe({ skin: 4, hair: "locs", top: "blue", lefty: true }), null, "an old guitarist with no genre is null, so the Road asks once");
+  assert.equal(C.cleanImport({ songs: [], sets: [], trash: [], settings: {}, me: { skin: 4, hair: "locs" } }).data.me, undefined, "an old save loads with no guitarist");
+  assert.deepEqual(C.cleanMe({ genre: "blues", who: "w" }), { genre: "blues", who: "w", lefty: false }, "the new shape is kept");
+  const old = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", top: "blue", face: "heart", specs: "shades", patches: ["leg:open"], lefty: true, genre: "funk", who: "w" });
+  assert.deepEqual(old, { genre: "funk", who: "w", lefty: true }, "only three fields");
+  assert.deepEqual(Object.keys(C.cleanMe(C.ME_DEFAULT)).sort(), ["genre", "lefty", "who"]);
+  assert.deepEqual(C.ME_DEFAULT, { lefty: false, genre: "rock", who: "m" });
+  const bad = C.cleanMe({ genre: "ska", who: "x", lefty: "yes" });
+  assert.deepEqual(bad, { genre: "rock", who: "m", lefty: false }, "bad values fall back");
+  assert.equal(C.ME_GENRE.length, 12, "12 genres, a man and a woman each: 24 paintings");
+  assert.deepEqual(C.meOf({ songs: [] }), C.ME_DEFAULT, "no data.me, the default");
+  const back = C.cleanImport(JSON.parse(JSON.stringify({ songs: [], sets: [], trash: [], settings: {}, me: old })));
+  assert.deepEqual(back.data.me, old, "an import keeps data.me");
   assert.equal(C.cleanImport({ songs: [], sets: [], trash: [], settings: {} }).data.me, undefined, "no me, none made up");
+  for (const gone of ["ME_HAIR", "ME_HAIR_COL", "ME_TOP_COL", "ME_BEARD", "ME_HATS", "ME_PATCHES", "ME_FACE", "ME_EYES", "ME_EYE_COL", "ME_BROWS", "ME_NOSE", "ME_SPECS", "ME_SKINS", "ME_STARTERS", "selfieGuess", "beardGuess", "rgbLab", "nearestInk", "rivalMe", "patchesOf"]) assert.equal(C[gone], undefined, gone + " is gone");
 });
 
-test("4.85.0 your guitarist: the look follows the venue and never drops; a hat shows only once bought", () => {
+test("painted-only: the look follows the venue and never drops; hats are off the Merch table, bought ones stay", () => {
   assert.equal(C.stageLookOf(0), "tee");
   assert.equal(C.stageLookOf(1), "tee");
   assert.equal(C.stageLookOf(3), "vest");
@@ -2691,20 +2751,15 @@ test("4.85.0 your guitarist: the look follows the venue and never drops; a hat s
   assert.equal(C.stageLookOf(99), "stage", "beyond the Festival headliner stays the stage jacket");
   const data = { songs: [], sets: [], trash: [], settings: {}, fame: { down: 2 } };
   assert.equal(C.stageLook(data), "tee", "no plays, a tee");
-  data.me = { ...C.ME_DEFAULT, extra: "cap" };
-  assert.equal(C.meOf(data).extra, "none", "a hat you haven't bought doesn't show");
-  data.merch = { has: ["wear-cap"] };
-  assert.equal(C.meOf(data).extra, "cap");
-  assert.equal(C.meOf({ songs: [] }).skin, C.ME_DEFAULT.skin, "no data.me, the default");
-  const buy = { songs: [], sets: [], trash: [], settings: {}, merch: { tips: 300 }, me: { ...C.ME_DEFAULT } };
-  assert.equal(C.merchBuy(buy, "wear-beanie").ok, true);
-  assert.equal(buy.me.extra, "beanie", "buying a hat puts it on");
-  assert.equal(C.merchBuy(buy, "wear-beanie").why, "have");
+  const buy = { songs: [], sets: [], trash: [], settings: {}, merch: { tips: 300, has: ["wear-cap"] }, me: { ...C.ME_DEFAULT } };
+  assert.equal(C.merchBuy(buy, "wear-beanie").why, "retired", "a hat can't be bought");
+  assert.equal(buy.merch.tspent || 0, 0, "nothing is charged");
+  assert.deepEqual(buy.me, { ...C.ME_DEFAULT }, "nothing is put on");
+  assert.ok(C.cleanMerch(buy.merch).has.includes("wear-cap"), "a hat bought before stays saved");
 });
 
-test("4.85.0 your guitarist: patches, moods and seeded rivals", () => {
+test("painted-only: your guitarist's mood follows your streak", () => {
   const data = { songs: [], sets: [], trash: [], settings: {} };
-  assert.deepEqual(C.patchesOf(data), [], "nothing earned, nothing worn");
   assert.equal(C.meMood(data, Date.now()), "happy");
   const day = new Date(2026, 9, 28, 21, 0).getTime(), yesterday = new Date(2026, 9, 27, 12, 0).getTime();
   const key = t => C.dayKey(t);
@@ -2712,55 +2767,92 @@ test("4.85.0 your guitarist: patches, moods and seeded rivals", () => {
   const streaky = { songs: [song], sets: [], trash: [], settings: {} };
   assert.equal(C.meMood(streaky, day), "sleepy", "a streak to lose and not played tonight, late");
   assert.equal(C.meMood(streaky, new Date(2026, 9, 28, 10, 0).getTime()), "happy", "in the morning there's time");
-  const a = C.rivalMe("Neon Jen", 2), b = C.rivalMe("Neon Jen", 2);
-  assert.deepEqual(a, b, "a rival looks the same every time");
-  assert.equal(a.look, "vest");
-  assert.equal(C.rivalMe("Neon Jen", 5).look, "leather");
-  assert.notDeepEqual(C.rivalMe("Basement Ray", 2), a, "different names look different");
-  assert.ok(C.cleanMe(a), "a rival is a valid guitarist");
-  const worn = C.cleanMe({ ...C.ME_DEFAULT, patches: ["b:nope"] });
-  assert.deepEqual(C.patchesOf({ ...data, me: worn }), [], "a patch you haven't earned isn't worn");
 });
 
-test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lefty mirrors the body", async () => {
-  const { guitarist } = await import("../guitarist.js");
-  const looks = ["tee", "vest", "leather", "stage"], P = [{ kind: "leg", color: "#8a6a4a", top: "1" }, { kind: "show", color: "#ff5fa8", top: "10" }];
-  for (const hair of C.ME_HAIR) for (const pose of ["play", "hornsUp", "rest"]) for (const mood of ["happy", "cheer", "worried", "sleepy", "proud"]) {
-    const i = hair.length + mood.length, face = { face: C.ME_FACE[i % 4], eyes: C.ME_EYES[i % 3], brows: C.ME_BROWS[i % 4], nose: C.ME_NOSE[i % 4], eyeCol: C.ME_EYE_COL[i % 6], specs: C.ME_SPECS[i % 3], freckles: i % 2 === 0, skin: i % 9 };
-    const s = guitarist({ ...C.ME_DEFAULT, ...face, hair, beard: C.ME_BEARD[i % 4], glasses: true, extra: C.ME_HATS[i % 3] }, { mood, pose, crop: ["full", "three", "bust", "face"][i % 4], card: i % 2 === 1, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
-    assert.ok(s.startsWith("<svg") && s.endsWith("</svg>") && !s.includes("undefined") && !s.includes("NaN"), `${hair} ${pose} ${mood}`);
+test("painted-only: guitarist.js has no ink drawing, and every caller gets a painting", async () => {
+  const G = await import("../guitarist.js");
+  assert.deepEqual(Object.keys(G).sort(), ["GENRE_DEFAULT", "GENRE_IDS", "genreCast", "genreFile", "genreForName", "genreIdOf", "rival", "you"]);
+  const shapes = [G.you({}, {}), G.you({}, { crop: "bust", size: 32 }), G.you({}, { crop: "face" }), G.you({}, { card: true, look: "vest", headline: "Tonight" }), G.rival("Neon Jen", 2, { size: 40 }), G.rival("Basement Ray", 5, { crop: "bust" })];
+  for (const v of shapes) { assert.match(v, /<image href="art\/guitarist-painted\/genres\/[a-z0-9-]+\.webp"/); assert.doesNotMatch(v, /feMorphology|undefined/); }
+  assert.ok(G.you({}, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
+  assert.ok(G.you({}, { mood: "worried" }).includes('data-mood="worried"'));
+  assert.ok(G.you({}, { label: "Neon Jen" }).includes('aria-label="Neon Jen"'));
+  assert.ok(G.you({ me: { genre: "rock", lefty: true } }, {}).includes("scale(-1 1)"), "left-handed mirrors");
+  assert.ok(!G.you({}, {}).includes("scale(-1 1)"));
+  assert.notEqual(G.you({}, { crop: "bust" }).match(/id="gp\d+/)[0], G.you({}, { crop: "bust" }).match(/id="gp\d+/)[0], "ids are unique");
+  for (const gone of ["art/guitarist.js", "art/guitarist-poster.js", "selfie.js", "portrait.js", "vendor/mediapipe"]) assert.ok(!fs.existsSync(path.join(root, gone)), gone + " is gone");
+  const shell = read("sw.js").match(/const SHELL = \[[^\]]*\]/)[0];
+  assert.ok(!/selfie\.js|portrait\.js|mediapipe|guitarist-poster|art\/guitarist\.js/.test(shell), "none of them is saved for offline");
+});
+
+test("painted genre guitarists stand in for the ink drawing, and the three fixes use the new files", async () => {
+  const { genreFile, genreCast, GENRE_DEFAULT, genreForName, you, rival } = await import("../guitarist.js");
+  assert.equal(GENRE_DEFAULT, "rock-m");
+  assert.equal(genreFile("rock-m"), "art/guitarist-painted/genres/rock-m.webp");
+  assert.equal(genreFile("punk-w"), "art/guitarist-painted/genres/punk-w-v3.webp");
+  assert.equal(genreFile("country-m"), "art/guitarist-painted/genres/country-m-v2.webp");
+  assert.equal(genreFile("country-w"), "art/guitarist-painted/genres/country-w-v2.webp");
+  assert.equal(genreFile("jazz-w"), "art/guitarist-painted/genres/jazz-w-v2.webp", "the grey wedge is gone");
+  assert.equal(genreFile("funk-w"), "art/guitarist-painted/genres/funk-w-v2.webp");
+  const cast = genreCast();
+  assert.equal(cast.length, 24);
+  assert.equal(genreForName("Ada"), genreForName("Ada"), "a rival's picture stays put");
+  assert.ok(cast.includes(genreForName("Ada")));
+  const seen = new Set(cast.map(genreForName));
+  assert.ok(seen.size > 1, "different names can be different pictures");
+  const pic = you({ me: C.ME_DEFAULT }, { size: 80 });
+  assert.match(pic, /art\/guitarist-painted\/genres\/rock-m\.webp/);
+  assert.match(pic, /aria-label="Your guitarist"/);
+  assert.match(pic, /data-genre="rock-m"/);
+  assert.doesNotMatch(pic, /feMorphology/, "the player is not the ink drawing");
+  assert.match(you({ me: { ...C.ME_DEFAULT, lefty: true } }, {}), /scale\(-1 1\)/, "lefty mirrors the painting");
+  const rv = rival("Ada", 1, { size: 42 });
+  assert.match(rv, /art\/guitarist-painted\/genres\//);
+  assert.match(rv, /aria-hidden="true"/);
+  assert.doesNotMatch(rv, /feMorphology/);
+  const shell = read("sw.js");
+  for (const id of cast) {
+    const file = genreFile(id);
+    const dim = webpSize(fs.readFileSync(path.join(root, file)));
+    assert.equal(dim.w, 800, id); assert.equal(dim.h, 800, id); assert.equal(dim.alpha, true, id);
+    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
   }
-  for (const g of Object.values(C.GUITARS)) assert.ok(!guitarist(C.ME_DEFAULT, { guitar: g }).includes("undefined"), g.name);
-  assert.ok(guitarist(C.ME_DEFAULT, {}).includes('aria-label="Your guitarist"'));
-  assert.ok(guitarist(C.ME_DEFAULT, { label: "Neon Jen" }).includes('aria-label="Neon Jen"'));
-  assert.ok(guitarist({ ...C.ME_DEFAULT, lefty: true }, {}).includes("scale(-1 1)"), "lefty mirrors");
-  assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
-  const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
-  assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
-  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], "ids are unique");
-  /* the inked cartoon (2026-11-20): one dark outline round the parts, a stage card when asked, no Gig poster print */
-  const big = guitarist(C.ME_DEFAULT, { size: 160 }), small = guitarist(C.ME_DEFAULT, { crop: "bust", size: 32 });
-  for (const s of [big, small]) assert.ok(/<feMorphology[^>]+dilate/.test(s) && s.includes('flood-color="#24160E"') && !s.includes("grain.webp") && !s.includes("guitarist-poster"), "the ink outline, no poster print");
-  assert.ok(guitarist(C.ME_DEFAULT, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
-  assert.ok(guitarist(C.ME_DEFAULT, { mood: "worried" }).includes('data-mood="worried"'));
-  assert.ok(guitarist(C.ME_DEFAULT, { guitar: C.GUITARS.strum }).includes("<image "), "the Road guitar's painting in the hands");
-  assert.ok(!guitarist(C.ME_DEFAULT, { pose: "hornsUp", guitar: C.GUITARS.strum }).includes("<image "), "horns up: no guitar");
+  const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
+  assert.equal(cleaned.genre, "punk", "a valid genre is kept");
+  assert.equal(cleaned.who, "w", "a valid who is kept");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "jazz", who: "w" } }, { size: 80 }), /art\/guitarist-painted\/genres\/jazz-w-v2\.webp/, "the profile picture is the one you picked");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "punk", who: "w" } }, {}), /punk-w-v3\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "m" } }, {}), /country-m-v2\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "w" } }, {}), /country-w-v2\.webp/);
 });
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
   const { louie, louieArt, louiePic, LOUIE_STAND_IN } = await import("../louie.js");
-  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
-  for (const n of [...have, "face-badge"]) {
+  const shell = read("sw.js"), have = ["cheer", "horns", "idle", "listen", "nervous", "point", "proud", "sleepy", "thumb", "wave"];
+  const first = ["cheer", "horns", "idle", "listen", "point", "proud", "sleepy", "thumb", "wave"];
+  for (const n of [...first, "face-badge"]) {
     const f = `art/louie/v4/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} stays`);
+    assert.ok(shell.includes(`"${f}"`), `${f} stays saved for offline`);
+  }
+  for (const n of [...have, "face", "face-badge"]) {
+    const f = `art/louie/v5/louie-${n}.webp`;
+    assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+  }
+  for (const n of [...have, "face-badge", "face"]) {
+    const f = `art/louie/v5/louie-${n}.webp`;
     assert.ok(fs.existsSync(path.join(root, f)), `${f} is in the repo`);
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
     assert.ok(fs.statSync(path.join(root, f)).size < 120 * 1024, `${f} is under 120 KB`);
   }
-  for (const [pose, from] of Object.entries(LOUIE_STAND_IN)) assert.ok(have.includes(from) && !have.includes(pose), `${pose} borrows ${from} until its picture arrives`);
+  assert.deepEqual(LOUIE_STAND_IN, {}, "every pose, including nervous, has its own picture");
+  assert.deepEqual(LOUIE_STAND_IN, {}, "nervous has his own picture");
+  assert.equal(louieArt("worried"), "nervous");
   for (const mood of ["happy", "cheer", "sleepy", "worried", "proud", "listen"]) for (const pose of [undefined, "rest", "hornsUp", "thumb", "point", "wave", "peace"]) for (const size of [44, 120]) {
     const svg = louie(mood, { pose, size }), href = svg.match(/href="([^"]+)"/)[1];
     assert.equal(href, louiePic(louieArt(mood, pose, size)));
-    assert.ok(have.some(n => href === `art/louie/v4/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
+    assert.ok(have.some(n => href === `art/louie/v5/louie-${n}.webp`), `${mood} ${pose}: ${href} is one of the pictures`);
     assert.equal((svg.match(/<image /g) || []).length, 1, "one picture");
     assert.ok(!/<(path|rect|circle|ellipse|text)\b/.test(svg), "nothing is drawn in code");
     assert.match(svg, /role="img" aria-label="Louie"/);
@@ -2771,10 +2863,39 @@ test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture 
   for (const f of ["sw.js", "louie.js", "index.html", "styles.css", "library.js", "maker.js", "profile.js", "merch.js", "road.js"]) assert.ok(!/art\/louie\/(v2|v3|louie-)/.test(read(f)), `${f} has no earlier Louie picture`);
   for (const d of ["art/louie/v2", "art/louie/v3", "art/louie/louie-face-badge.webp", "art/louie/louie-peek-dark.webp"]) assert.ok(!fs.existsSync(path.join(root, d)), `${d} is gone`);
   assert.ok(!read("merch.js").includes("Louie's finish</span>"), "Louie's finishes are off the Merch table until his new colours arrive");
-  for (const n of have) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
-  assert.match(read("maker.js"), /art\/louie\/v4\/louie-face-badge\.webp/); /* the Songbook's hint strip that showed it went in 4.113.0 */
+  for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.ok(fs.existsSync(path.join(root, "docs/louie-tweed/clean/louie-nervous.png")), "the clean nervous cut-out is kept");
+  assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
+  assert.ok(fs.existsSync(path.join(root, "art/louie/v5/louie-face.webp")), "a face-only picture");
+  assert.ok(fs.existsSync(path.join(root, "art/louie/v4/louie-idle.webp")), "the first cut-outs stay");
+  assert.match(read("merch.js"), /Louie's finishes/, "his other colours are back on the Merch table");
+  for (const fin of ["pink", "teal", "black", "mint", "gold"]) {
+    assert.ok(fs.existsSync(path.join(root, `art/louie/finishes/${fin}/louie-idle.webp`)), `${fin} the first tint stays`);
+    for (const pose of have) {
+      const earlier = `art/louie/tint/${fin}/louie-${pose}.webp`;
+      const f = `art/louie/front/${fin}/louie-${pose}.webp`;
+      assert.ok(fs.existsSync(path.join(root, earlier)), `${earlier} stays`);
+      assert.ok(fs.existsSync(path.join(root, f)), f);
+      assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    }
+    assert.match(louie("worried", { finish: fin }), new RegExp(`art/louie/front/${fin}/louie-nervous.webp`), `${fin} nervous is his own picture`);
+  }
+  for (const n of first) assert.ok(fs.existsSync(path.join(root, `docs/louie-tweed/source/louie-${n}.jpg`)) && fs.existsSync(path.join(root, `docs/louie-tweed/cutouts/louie-${n}.png`)), `the original and the full-size cut-out of ${n} are kept for Grok`);
+  assert.match(read("maker.js"), /art\/louie\/v5\/louie-face-badge\.webp/);
 });
 
+test("Merch backdrops: the thumbnails are painted pictures, saved for offline", () => {
+  const js = read("merch.js"), shell = read("sw.js");
+  for (const name of ["basement", "brick", "stars", "sunset"]) {
+    const f = `art/merch/paint-${name}.webp`;
+    const old = `art/merch/backdrop-${name}.webp`;
+    assert.match(js, new RegExp(f.replace(/\./g, "\\.")));
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(fs.existsSync(path.join(root, old)), `${old} stays`);
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(shell.includes(`"${old}"`), `${old} stays saved for offline`);
+  }
+});
 test("4.87.0 every guitar is a picture: head, body and small picture saved for offline, numbers in range, each picture under 60 KB", async () => {
   const { GUITARS } = await import("../core.js");
   const PICS = (await import("../art/guitars/pics.js")).default;
@@ -2795,13 +2916,23 @@ test("4.87.0 every guitar is a picture: head, body and small picture saved for o
   }
 });
 
+test("Dark Road leather: the agreed near-black tile is what Dark shows, and the older pebble is kept", () => {
+  const css = read("styles.css"), shell = read("sw.js");
+  assert.match(css, /art\/surfaces\/tolex-dark-levant\.webp/);
+  assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark.webp")), "the older pebble stays");
+  assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark-fine.webp")), "the fine tile stays");
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-fine.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-levant.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-leather.webp"'), "the earlier leather tile stays");
+  assert.ok(!/luminosity/.test(css.split(".rd-path")[1] || ""), "the Road no longer washes the leather flat");
+});
 test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes from bitmap tiles, all saved for offline", async () => {
   const shell = read("sw.js"), PICS = (await import("../art/guitars/pics.js")).default;
   const fb = read("fretboard.js");
   /* Road Ready 9a: the switch leg is Cornerstone now; the sunburst cutaway is still built and still named by its body */
   assert.match(fb, /switch: "cornerstone"/); assert.match(fb, /cutaway: "cutaway-sunburst"/);
   assert.ok(PICS["cutaway-sunburst"] && PICS.cornerstone, "the sunburst and Cornerstone have numbers");
-  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-cream.webp"])) {
+  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-dark-leather.webp", "art/surfaces/tolex-cream.webp"])) {
     assert.ok(fs.existsSync(path.join(root, f)), f); assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`); assert.ok(fs.statSync(path.join(root, f)).size <= 60000, `${f} is small`);
   }
 });
@@ -2959,8 +3090,8 @@ test("Road Ready dark: the text, chord, plate and tab colours meet their contras
   const t = n => rrHex(rrDark, "--rr-" + n);
   const pairs = [
     ["text on base", t("text"), t("base"), 15], ["text on card", t("text"), t("card"), 14], ["text-2 on card", t("text-2"), t("card"), 7],
-    ["lyric-sung on base", t("lyric-sung"), t("base"), 4.5], ["chord on base", t("chord"), t("base"), 7], ["on-amber on amber", t("on-amber"), t("amber"), 7],
-    ["plate-text on plate-bottom", t("plate-text"), t("plate-bottom"), 7], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5], ["engrave on pearl-done", t("engrave"), t("pearl-done"), 4.5]
+    ["lyric-sung on base", t("lyric-sung"), t("base"), 4.5], ["chord on base", t("chord"), t("base"), 6], ["on-amber on amber", t("on-amber"), t("amber"), 5],
+    ["plate-text on plate-bottom", t("plate-text"), t("plate-bottom"), 7], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5]
   ];
   for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
 });
@@ -2972,7 +3103,57 @@ test("Road Ready light: the text, amber text and tab colours meet their contrast
     ["lyric-sung on card", t("lyric-sung"), t("card"), 4.5], ["tab-off on mesh", t("tab-off"), t("mesh"), 4.5]
   ];
   for (const [name, fg, bg, min] of pairs) assert.ok(rrRatio(fg, bg) >= min, `${name}: ${rrRatio(fg, bg).toFixed(2)} should be at least ${min}`);
-  assert.equal(t("amber-text").toLowerCase(), "#763a00", "amber text on cream is always #763A00");
+  assert.equal(t("amber-text").toLowerCase(), "#065f5b", "Cool Teal text on cream is #065F5B");
+});
+
+test("Cool Teal: Dark and Light accent tokens, pearl marks, the $0 tips line, and no leftover amber, cobalt or crimson", () => {
+  const t = (block, n) => rrHex(block, "--rr-" + n).toLowerCase();
+  assert.equal(t(rrDark, "amber-text"), "#20e0d0");
+  assert.equal(t(rrDark, "chord"), "#20e0d0");
+  assert.equal(t(rrDark, "amber"), "#00c8b8");
+  assert.equal(t(rrDark, "on-amber"), "#082422");
+  assert.equal(t(rrDark, "glow"), "#12d8c8");
+  assert.equal(t(rrDark, "glow-core"), "#c2fff8");
+  assert.equal(t(rrDark, "pearl-now"), "#7cf5ea");
+  assert.equal(t(rrDark, "pearl-done"), "#18d4c4");
+  assert.equal(t(rrLight, "amber-text"), "#065f5b");
+  assert.equal(t(rrLight, "chord"), "#065f5b");
+  assert.equal(t(rrLight, "amber"), "#065f5b");
+  assert.equal(t(rrLight, "on-amber"), "#ffffff");
+  assert.equal(t(rrLight, "glow"), "#0b8b82");
+  assert.equal(t(rrLight, "glow-core"), "#8cf2e8");
+  assert.equal(t(rrLight, "pearl-now"), "#0b8b82");
+  assert.equal(t(rrLight, "pearl-done"), "#065f5b");
+  assert.ok(rrRatio("#082422", "#00c8b8") >= 7, "deep teal ink on the dark fill");
+  assert.ok(rrRatio("#ffffff", "#00c8b8") < 4.5, "white ink fails on the dark fill");
+  assert.ok(rrRatio("#ffffff", "#065f5b") >= 7, "white ink on the light fill");
+  assert.ok(rrRatio("#20e0d0", "#141210") >= 4.5 && rrRatio("#20e0d0", "#1a1918") >= 4.5, "dark accent text");
+  assert.ok(rrRatio("#065f5b", "#f6efe2") >= 4.5 && rrRatio("#065f5b", "#fbf7ef") >= 4.5 && rrRatio("#065f5b", "#e8d6bc") >= 4.5, "light accent text");
+  assert.ok(rrRatio("#00c8b8", "#141210") >= 3 && rrRatio("#00c8b8", "#1a1918") >= 3, "dark fill as a border");
+  assert.ok(rrRatio("#082422", "#7cf5ea") >= 4.5 && rrRatio("#082422", "#18d4c4") >= 4.5, "the mark on Dark pearls");
+  assert.ok(rrRatio("#000000", "#0b8b82") >= 4.5, "the mark on the Light current pearl");
+  assert.ok(rrRatio("#f4e6cb", "#065f5b") >= 4.5, "the mark on the Light done pearl");
+  assert.match(rrCss, /:root\[data-look="neon"\] \.rr-eng:not\(\.locked\) \{ fill: #082422/);
+  assert.match(rrCss, /:root\[data-look="festival"\] \.rr-eng:not\(\.locked\) \{ fill: #000000/);
+  assert.match(rrCss, /:root\[data-look="festival"\] \.rd-node\.done \.rr-eng:not\(\.locked\) \{ fill: #F4E6CB/);
+  assert.match(read("profile.js"), /mer > 0 \? `Merch: spend \$\$\{num\(mer\)\} tips on new looks` : "Merch table: earn tips at your shows"/);
+  assert.match(read("hud.js"), /art\/tabbar\/knob-lit-teal\.webp/);
+  assert.match(read("sw.js"), /art\/tabbar\/knob-lit-teal\.webp/);
+  assert.doesNotMatch(read("hud.js"), /knob-lit-crimson|knob-lit-cobalt/);
+  assert.doesNotMatch(read("sw.js"), /knob-lit-cobalt/);
+  const banned = ["#ffb547", "#763a00", "#f2a33c", "#e9a93a", "#ffaa3c", "#ffd38a", "#c9761e", "#ffc46b", "#ff5c78", "#d4143c", "#6b122c", "#8e1834", "#ff3b5c", "#5b9bff", "#0a60ff", "#123a86", "#0a2e86", "#3d7eff", "#1a4a9a"];
+  for (const hex of banned) {
+    assert.equal(rrDark.toLowerCase().includes(hex), false, `${hex} is not in the Dark token block`);
+    assert.equal(rrLight.toLowerCase().includes(hex), false, `${hex} is not in the Light token block`);
+  }
+  /* The unscoped tab label stays amber so Green Room and Headliner are untouched. Road Ready overrides it. */
+  assert.match(rrCss, /:root\[data-look="neon"\] #tabs a\[aria-current="page"\] \{ color: #20E0D0/);
+  assert.match(rrCss, /:root\[data-look="festival"\] #tabs a\[aria-current="page"\] \{ color: #065F5B/);
+  assert.match(rrCss, /rgba\(32, 224, 208, \.72\)/);
+  assert.doesNotMatch(rrCss, /rgba\(232,\s*128,\s*20|rgba\(255,\s*186,\s*72|rgba\(214,\s*120,\s*28|rgba\(61,\s*126,\s*255|hue-rotate\(-10deg\)|hue-rotate\(-8deg\)/);
+  assert.doesNotMatch(rrCss, /#5B9BFF|#0A60FF|#123A86|#0A2E86|#3D7EFF|#1A4A9A|#2563EB|#6AA0FF|#A9C8FF/i);
+  assert.doesNotMatch(rrCss, /#E9A93A|#F2A33C|#FF5C78|#D4143C|#6B122C/i);
+  assert.doesNotMatch(rrCss, /knob-lit-crimson|knob-lit-cobalt/);
 });
 
 test("Road Ready: the status colours stay readable on the base, a card and a well in both looks", () => {
@@ -3004,13 +3185,34 @@ test("Road Ready: its tokens exist for both looks and for no other look", () => 
 });
 
 test("Road Ready: the fonts are bundled as woff2 with their licences", () => {
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) {
     const b = fs.readFileSync(path.join(root, "vendor/fonts", f));
     assert.equal(b.subarray(0, 4).toString("latin1"), "wOF2", `${f} is a woff2 file`);
     assert.ok(b.length < 120 * 1024, `${f} is under 120 KB (${b.length})`);
   }
-  for (const f of ["OFL-SpaceGrotesk.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
+  for (const f of ["OFL-Sora.txt", "OFL-Inter.txt", "OFL-IBMPlexMono.txt"]) assert.match(read("vendor/fonts/" + f), /SIL OPEN FONT LICENSE/i);
   assert.doesNotMatch(read("styles.css"), /fonts\.googleapis|fonts\.gstatic|cdn\./i, "no font comes from a network address");
+});
+
+test("Sora is the Road Ready heading font, and Green Room and Headliner keep Fredoka", () => {
+  const css = read("styles.css"), sw = read("sw.js");
+  assert.match(css, /@font-face \{ font-family: "Sora"; src: url\("vendor\/fonts\/sora-600\.woff2"\) format\("woff2"\); font-weight: 600;/);
+  assert.match(css, /@font-face \{ font-family: "Sora"; src: url\("vendor\/fonts\/sora-700\.woff2"\) format\("woff2"\); font-weight: 700;/);
+  assert.doesNotMatch(css, /Space Grotesk|spacegrotesk/);
+  const rootDisplay = css.match(/:root, :root\[data-theme="light"\], :root\[data-look\] \{\s*--sans:[^;]+;\s*--serif:[^;]+;\s*--display: ([^;]+);/);
+  assert.ok(rootDisplay, "the shared display font is declared");
+  assert.match(rootDisplay[1], /Fredoka/, "Green Room and Headliner still use Fredoka");
+  const rr = css.match(/:root:is\(\[data-look="neon"\], \[data-look="festival"\]\) \{[^]*?--display: ([^;]+);/);
+  assert.ok(rr, "Road Ready sets its own display font");
+  assert.match(rr[1], /"Sora"/);
+  assert.match(rr[1], /"Inter"/);
+  assert.match(css, /--readout: "IBM Plex Mono"/);
+  assert.match(css, /--sans: "Inter"/);
+  const shell = JSON.parse(sw.match(/const SHELL = (\[.*?\]);/s)[1]);
+  assert.ok(shell.includes("vendor/fonts/sora-600.woff2"), "Sora SemiBold is in the app shell");
+  assert.ok(shell.includes("vendor/fonts/sora-700.woff2"), "Sora Bold is in the app shell");
+  assert.ok(!shell.some(f => /spacegrotesk|Space Grotesk/.test(f)));
+  assert.doesNotMatch(read("guitarist.js"), /Space Grotesk/);
 });
 
 /* ---- Road Ready 9a: the 23 guitars and the Guitar shop ---- */
@@ -3131,6 +3333,24 @@ test("Road Ready 9a fix: the neck colours of the 23 new pictures are the fretboa
   }
 });
 
+test("Opening night: a stop circle hides the painted inlay it overlaps, and the dot below stop 8 stays", async () => {
+  const { roadPlace, ROAD } = await import("../core.js");
+  const { inlaysUnder, ROAD_INLAYS } = await import("../fretboard.js");
+  const PICS = (await import("../art/guitars/pics.js")).default;
+  const road = PICS.barebones.road;
+  const put = roadPlace(Array(8).fill("L"), road);
+  const reach = 18 / ROAD.scale;
+  const stops = put.spaces.map(c => ({ x: c.x, y: c.y, r: reach }));
+  const boxes = ROAD_INLAYS.barebones;
+  const yOf = i => (boxes[i][1] + boxes[i][3]) / 2;
+  const hidden = inlaysUnder(boxes, stops).map(yOf);
+  assert.ok(hidden.some(y => Math.abs(y - 309) < 8), "the dot beside an upper stop is covered");
+  assert.ok(hidden.some(y => Math.abs(y - 383) < 8), "the dot beside stop 5 is covered");
+  assert.ok(hidden.some(y => Math.abs(y - 448) < 8), "the dot beside stop 7 is covered");
+  assert.ok(!hidden.some(y => y > 500 && y < 530), "the inlay below stop 8 stays");
+  assert.equal(inlaysUnder([boxes.find(b => (b[1] + b[3]) / 2 > 500 && (b[1] + b[3]) / 2 < 530)], [stops[7]]).length, 0);
+});
+
 /* ---- Road Ready 9a, painted necks (rr-09-road): stops in the painting's own fret spaces ---- */
 const FRETS = JSON.parse(fs.readFileSync(new URL("../docs/guitars/frets.json", import.meta.url)));
 const EXAMPLES = [["example_9", [..."LLLBLLLBL"]], ["example_12", [..."LLLBLLLBLLLL"]]];
@@ -3209,7 +3429,7 @@ test("Painted necks: every one of the 23 guitars has a road picture and fret dat
   assert.ok(total < 2e6, `the 23 road pictures come to ${total} bytes`);
 });
 /* VP8X canvas size: 24-bit little-endian width and height, each stored minus one. */
-const webpSize = buf => {
+const elevBox = buf => {
   assert.equal(buf.toString("ascii", 0, 4), "RIFF");
   assert.equal(buf.toString("ascii", 8, 12), "WEBP");
   const kind = buf.toString("ascii", 12, 16);
@@ -3218,8 +3438,8 @@ const webpSize = buf => {
   if (kind === "VP8L") { const b = buf.readUInt32LE(21); return [1 + (b & 0x3fff), 1 + ((b >> 14) & 0x3fff)]; }
   assert.fail(`unknown webp ${kind}`);
 };
-test("Guitars with elevation: the Road and the small pictures use the new files, same size as the flat ones, with a shadow under the body", async () => {
-  const { FB, PICS } = await wired(), shell = read("sw.js");
+test("Guitars with elevation: the streak copies match the flat pictures, and the stand uses the large one", async () => {
+  const { FB } = await wired(), shell = read("sw.js");
   const slugs = [...Object.values(C.GUITARS).map(g => g.body), ...C.GUITAR_SHOP.map(g => g.id)];
   for (const slug of slugs) {
     for (const part of ["road", "small"]) {
@@ -3227,36 +3447,39 @@ test("Guitars with elevation: the Road and the small pictures use the new files,
       assert.ok(fs.existsSync(path.join(root, flat)), `${flat} is kept`);
       assert.ok(fs.existsSync(path.join(root, elev)), elev);
       assert.ok(shell.includes(`"${elev}"`), `${elev} is saved for offline`);
-      assert.deepEqual(webpSize(fs.readFileSync(path.join(root, elev))), webpSize(fs.readFileSync(path.join(root, flat))), `${slug} ${part}: the elevated picture is the same size`);
+      assert.deepEqual(elevBox(fs.readFileSync(path.join(root, elev))), elevBox(fs.readFileSync(path.join(root, flat))), `${slug} ${part}: the elevated picture is the same size`);
     }
-    assert.ok(FB.guitarPic(slug).startsWith(`art/guitars/streak/${slug}-small.webp`), `${slug}: the shop and the case use the elevated picture`);
+    assert.ok(FB.guitarPic(slug).startsWith(`art/guitars/streak/${slug}-small.webp`), `${slug}: the shop uses the elevated picture`);
+    assert.equal(FB.largeGuitar(FB.guitarPic(slug)), `art/guitars/streak/${slug}-road.webp`, `${slug}: the stand uses the large picture`);
   }
   /* the eight older guitars are still head and body, from the elevated set */
   for (const name of ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]) {
     for (const part of ["head", "body", "small"]) {
       const elev = `art/guitars/streak/${name}-${part}.webp`;
       assert.ok(fs.existsSync(path.join(root, elev)) && shell.includes(`"${elev}"`), elev);
-      assert.deepEqual(webpSize(fs.readFileSync(path.join(root, elev))), webpSize(fs.readFileSync(path.join(root, `art/guitars/${name}-${part}.webp`))), `${name} ${part}`);
+      assert.deepEqual(elevBox(fs.readFileSync(path.join(root, elev))), elevBox(fs.readFileSync(path.join(root, `art/guitars/${name}-${part}.webp`))), `${name} ${part}`);
     }
   }
+  assert.equal(FB.largeGuitar("art/guitars/porch-small.webp?v=1"), "art/guitars/porch-road.webp");
+  assert.equal(FB.largeGuitar("art/guitars/streak/porch-small.webp?v=1"), "art/guitars/streak/porch-road.webp");
+  assert.equal(FB.largeGuitar("art/guitars/porch-head.webp"), "");
   const stops = [...Array.from({ length: 5 }, () => ({ kind: "chord", state: "locked" })), { kind: "headline", state: "locked" }];
   const html = FB.neckHTML({ id: "open", name: "Porch", done: false, stops }, { rr: true, id: () => "s", num: () => 1, label: () => "stop", tag: () => "" });
-  assert.match(html, /art\/guitars\/streak\/porch-road\.webp/, "the Road shows the clear-coat streak");
-  assert.match(html, /feOffset[^>]*dy="28"/, "a wide shadow sits under the body, offset down");
-  assert.match(html, /dy="10"/, "a tight contact shadow sits where the body meets the ground");
+  assert.doesNotMatch(html, /feOffset|feGaussianBlur/, "the Road drawing has no shadow under the body");
   assert.ok(fs.existsSync(path.join(root, "art/guitars/elev/porch-road.webp")), "the first elevated set is kept");
   assert.ok(fs.existsSync(path.join(root, "art/guitars/lift/porch-road.webp")), "the wide sheen is kept");
   assert.ok(fs.existsSync(path.join(root, "art/guitars/sheen/porch-road.webp")), "the faint streak is kept");
-  assert.match(html, /feGaussianBlur/, "the shadow is soft");
-  const lay = FB.roadLayout(stops, PICS.porch);
-  assert.ok(lay.height > PICS.porch.road.h * 1.2, "the neck leaves room under the painting for the shadow");
-  assert.ok(!html.includes("art/guitars/porch-road.webp?"), "the flat painting is not the one on the Road");
 });
 test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, and the stops stay inside the picture", async () => {
   const { FB, PICS } = await wired(), mk = n => Array.from({ length: n }, (_, i) => ({ kind: i % 4 === 3 ? "box" : "chord", state: "locked" }));
   for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) {
     const hs = [5, 9, 12].map(n => FB.roadLayout([...mk(n), { kind: "headline", state: "locked" }], p).height);
     assert.equal(new Set(hs).size, 1, `${slug}: height ${hs.join(", ")}`);
+    const full = Math.round(C.ROAD.margin + C.ROAD.scale * p.road.h + C.ROAD.margin);
+    assert.equal(hs[0], full, `${slug}: the whole guitar is shown, body included`);
+    const imgL = 195 + C.ROAD.scale * (0 - p.road.cx), imgR = imgL + p.road.w * C.ROAD.scale;
+    const lay5 = FB.roadLayout([...mk(5), { kind: "headline", state: "locked" }], p);
+    assert.ok(lay5.frame.vx <= imgL + .01 && lay5.frame.vx + lay5.frame.vw >= imgR - .01, `${slug}: the frame holds the body (${lay5.frame.vx}..${lay5.frame.vx + lay5.frame.vw} vs ${imgL}..${imgR})`);
     const lay = FB.roadLayout([...mk(12), { kind: "headline", state: "locked" }], p);
     assert.ok(lay.spaces.every(sp => sp.y > 0 && sp.y < lay.height && sp.x > 0 && sp.x < 390), `${slug}: every stop is on the picture`);
   }
@@ -3287,7 +3510,7 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   const { FB, PICS } = await wired(), { roadHit, roadPath, migrate } = C, legs = roadPath(migrate({ songs: [], settings: { v: 6 } })).legs;
   const mk = k => [...k].map(c => ({ kind: c === "B" ? "box" : c === "H" ? "headline" : "chord" }));
   const sets = [...legs.map(l => l.stops.map(s => ({ kind: s.kind }))), mk("LLLBLLLBLH"), mk("LLLBLLLBLLLLH")];
-  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? [30, 22] : cur ? [52, 38] : [26, 26];
+  const size = (sp, cur) => sp.kind === "double" ? [150, 42] : sp.kind === "inlay" ? FB.RR_SIZE.box : cur ? FB.RR_SIZE.now : FB.RR_SIZE.dot;
   let n = 0;
   for (const [slug, p] of Object.entries(PICS).filter(([, p]) => p.road)) for (const stops of sets) {
     const sp = FB.roadLayout(stops, p).spaces;
@@ -3300,8 +3523,29 @@ test("Painted necks: a finished stop is always tappable, on every guitar and eve
   }
   assert.ok(n > 1000, `${n} taps checked`);
   /* Chord switches, lesson 2 current: the first lesson's own art opens the first lesson */
-  const pts = [{ x: 150, y: 300, w: 26, h: 26, done: true }, { x: 205, y: 318, w: 52, h: 38 }];
+  const pts = [{ x: 150, y: 300, w: FB.RR_SIZE.dot[0], h: FB.RR_SIZE.dot[1], done: true }, { x: 205, y: 318, w: FB.RR_SIZE.now[0], h: FB.RR_SIZE.now[1] }];
   assert.equal(roadHit(pts, { x: 150, y: 300 }, 1), 0); assert.equal(roadHit(pts, { x: 205, y: 318 }, 1), 1); assert.equal(roadHit(pts, { x: 20, y: 310 }, 1), 1, "the rest of the row is the current stop's");
+});
+
+test("Road Ready: stop art makes progress the hero, with a solid done check, a large current stop, and a calm locked outline", async () => {
+  const { rrStopArt, RR_SIZE } = await import("../fretboard.js");
+  assert.deepEqual(RR_SIZE.dot, [36, 36]);
+  assert.deepEqual(RR_SIZE.now, [64, 46]);
+  const done = rrStopArt("dot", "done", 3);
+  assert.match(done, /rr-pearl done/, "a finished stop is a solid disc");
+  assert.match(done, /rr-eng done/, "with a check");
+  assert.match(done, /class="rr-halo"/, "and a soft halo");
+  assert.ok(!/rr-sheen/.test(done), "no pearl sheen on a done stop, so it reads as solid amber");
+  const now = rrStopArt("dot", "now", 6);
+  assert.match(now, /class="rr-glow"/, "the current stop glows");
+  assert.match(now, /width="64"[\s\S]*height="46"/, "and is the large trapezoid");
+  assert.match(now, />6</, "with its show number");
+  const ahead = rrStopArt("dot", "locked", 7);
+  assert.match(ahead, /rr-pearl ahead rr-ring/, "a locked stop is a calm outline");
+  assert.match(ahead, />7</, "with its number");
+  assert.ok(!/rr-pearl done|rr-pearl now/.test(ahead), "and is not filled as a done or current stop");
+  const open = rrStopArt("dot", "open", 9);
+  assert.match(open, /rr-pearl ahead rr-ring/, "an open stop ahead uses the same outline");
 });
 
 /* ---------- Road Ready 9b: the guitar builder (BUILD_PARTS and friends in core/game.js, buildart.js, builder.js) ---------- */
@@ -3355,7 +3599,7 @@ test("Road Ready 9b: a locked part can't be bought, an open one can, and a bough
   let d = earnedB(2); /* Coffeehouse: shop parts are open, custom parts are not */
   assert.deepEqual(C.buildSave(d, "open", { guard: "leopard" }), { why: "locked", id: "leopard" }); assert.equal(d.merch.tspent, undefined, "a locked part costs nothing"); assert.equal(d.builds, undefined);
   assert.deepEqual(C.buildSave(d, "open", { top: "koa" }), { why: "locked", id: "koa" });
-  assert.deepEqual(C.buildSave(d, "switch", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built");
+  assert.deepEqual(C.buildSave(d, "scales", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built (2026-11-23: Leg 1 earns Cornerstone, so Club Slab)");
   assert.equal(C.buildCost(d, "open", { paint: "seafoam", wear: "played" }), 65, "the running total is the new parts");
   d.merch.tips = 0; assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam" }), { why: "tips", cost: 25 });
   d = earnedB(2);
@@ -3394,46 +3638,9 @@ test("Road Ready 9b: the offline copy has the builder's code and art, and the te
   assert.ok(!shell.some(f => f.includes("builder/tex/")), "the 13 textures are cached when first used, not at install");
 });
 
-test("Selfie: colours snap to the guitarist's own inks; a darker chin is a beard; only skin, hair colour and beard are guessed", async () => {
-  const { SKIN, HAIR_COL } = await import("../guitarist.js");
-  const rgb = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-  SKIN.forEach((h, i) => assert.equal(C.nearestInk(rgb(h), SKIN), i, `skin ${i}`));
-  for (const [k, h] of Object.entries(HAIR_COL)) assert.equal(C.nearestInk(rgb(h), HAIR_COL), k, k);
-  assert.equal(C.beardGuess([60, 45, 35], [150, 100, 70]), "beard");
-  assert.equal(C.beardGuess([140, 95, 66], [150, 100, 70]), "none");
-  assert.equal(C.beardGuess(null, [150, 100, 70]), "none");
-  const g = C.selfieGuess({ skin: [rgb(SKIN[4]), [150, 98, 64]], hair: [[30, 26, 27]], chin: [58, 42, 32], cheek: rgb(SKIN[4]) }, { skin: SKIN, hair: HAIR_COL });
-  assert.deepEqual(g, { skin: 4, hairCol: "black", beard: "beard" });
-  assert.deepEqual(C.selfieGuess({}, { skin: SKIN, hair: HAIR_COL }), { beard: "none" }, "nothing read, nothing guessed");
-});
-
-test("Selfie: the face finder is loaded on first use, never in the up-front list, and the page may run its WebAssembly", () => {
-  const shell = read("sw.js"), html = read("index.html");
-  assert.ok(shell.includes('"selfie.js"'), "selfie.js is saved for offline");
-  assert.ok(!/vendor\/mediapipe/.test(shell.match(/const SHELL = \[[^\]]*\]/)[0]), "no MediaPipe file in SHELL");
-  assert.match(html, /script-src 'self' 'wasm-unsafe-eval'/);
-  assert.ok(!/localStorage|indexedDB|caches\.|fetch\(/.test(read("selfie.js").replace(/\/\/.*$/gm, "")), "selfie.js stores nothing and sends nothing");
-});
-
 test("Opening night: every step's pick has an icon, so no pick says undefined (fixed 2026-11-19)", () => {
   const src = read("road.js"), block = src.slice(src.indexOf("const OIC = {"), src.indexOf("};", src.indexOf("const OIC = {")));
   for (const o of C.OPENING) assert.ok(new RegExp(`\\b${o.id}:`).test(block), `an icon for ${o.id}`);
-});
-
-test("4.98.1 the beard's own colour: optional, absent means the hair colour, unknown values dropped; the renderer reads it", () => {
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beard: "beard" }).beardCol, undefined, "a saved guitarist without one stays without one");
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beard: "beard", beardCol: "black" }).beardCol, "black");
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "brown" }).beardCol, undefined, "the same as the hair is not stored");
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "<x>" }).beardCol, undefined, "unknown colours are dropped");
-});
-
-test("4.99.0 selfie: a light wall beside dark hair doesn't make it grey; photos guess natural colours; a beard gets its own colour", async () => {
-  const { SKIN, HAIR_COL } = await import("../guitarist.js");
-  const wall = [205, 200, 192], black = [28, 24, 26];
-  assert.equal(C.selfieGuess({ hair: [black, wall, [40, 34, 33]] }, { skin: SKIN, hair: HAIR_COL }).hairCol, "black", "the darker two of three samples");
-  assert.ok(["black", "brown", "blonde", "red", "grey"].includes(C.selfieGuess({ hair: [[120, 70, 230]] }, { skin: SKIN, hair: HAIR_COL }).hairCol), "no purple from a photo");
-  const g = C.selfieGuess({ hair: [[230, 200, 120]], chin: [70, 44, 28], cheek: [200, 160, 130] }, { skin: SKIN, hair: HAIR_COL });
-  assert.equal(g.hairCol, "blonde"); assert.equal(g.beard, "beard"); assert.equal(g.beardCol, "brown", "a brown beard under blonde hair");
 });
 
 // ---------- App icon, launch screens and theme colour (black Louie) ----------
@@ -3488,14 +3695,57 @@ test("the favicon, apple-touch icon and every iPhone launch screen exist at the 
 test("the loading screen shows Louie on the Dark ground, then hides once the app draws", () => {
   const html = read("index.html"), css = read("styles.css");
   assert.match(html, /id="boot"/, "an inline boot splash is in index.html");
-  assert.match(html, /src="art\/louie\/v4\/louie-idle\.webp"/, "it uses Louie's idle picture");
+  assert.match(html, /src="art\/louie\/v5\/louie-idle\.webp"/, "it uses the clean idle picture");
   assert.match(html, /<style>html,body\{background:#141210/, "the page is the Dark ground before styles.css loads");
+  assert.match(html, /@media \(prefers-color-scheme: light\)\{html,body,\.boot\{background:#F6EFE2\}/, "a Light phone gets the cream ground while the app loads");
+  assert.match(html, /icons\/splash\/light-launch-1170x2532\.png/, "the Light launch screens are linked");
   assert.match(css, /#app:not\(:empty\)\s*~\s*#boot\s*\{\s*display:\s*none/, "the boot splash hides when #app has the first screen");
   const shell = read("sw.js");
-  assert.match(shell, /"art\/louie\/v4\/louie-idle\.webp"/, "the boot picture is saved for offline");
+  assert.match(shell, /"art\/louie\/v5\/louie-idle\.webp"/, "the boot picture is saved for offline");
   for (const f of ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"]) {
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
+});
+
+function webpSize(buf) {
+  assert.equal(buf.toString("ascii", 0, 4), "RIFF");
+  assert.equal(buf.toString("ascii", 8, 12), "WEBP");
+  let o = 12;
+  while (o + 8 <= buf.length) {
+    const tag = buf.toString("ascii", o, o + 4);
+    const size = buf.readUInt32LE(o + 4);
+    const data = o + 8;
+    if (tag === "VP8X" && data + 10 <= buf.length) {
+      return {
+        w: 1 + buf.readUIntLE(data + 4, 3),
+        h: 1 + buf.readUIntLE(data + 7, 3),
+        alpha: (buf[data] & 16) !== 0
+      };
+    }
+    if (tag === "VP8L" && data + 5 <= buf.length) {
+      const bits = buf.readUInt32LE(data + 1);
+      return { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1, alpha: ((bits >> 28) & 1) === 1 };
+    }
+    if (tag === "VP8 " && data + 10 <= buf.length) {
+      return { w: buf.readUInt16LE(data + 6) & 0x3fff, h: buf.readUInt16LE(data + 8) & 0x3fff, alpha: false };
+    }
+    o = data + size + (size & 1);
+  }
+  throw new Error("webp size not found");
+}
+
+test("knob tab bar: the off and lit faces, and both grilles, are in the offline copy", () => {
+  const shell = read("sw.js"), hud = read("hud.js");
+  for (const f of ["art/tabbar/knob-off.webp", "art/tabbar/knob-lit.webp", "art/tabbar/knob-lit-teal.webp", "art/tabbar/grille-dark.webp", "art/tabbar/grille-light.webp"]) {
+    assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
+    assert.ok(fs.existsSync(path.join(root, f)), f);
+    assert.ok(fs.statSync(path.join(root, f)).size > 200, `${f} is a real picture`);
+  }
+  assert.match(hud, /art\/tabbar\/knob-off\.webp/);
+  assert.match(hud, /art\/tabbar\/knob-lit\.webp/);
+  assert.match(read("styles.css"), /art\/tabbar\/grille-dark\.webp/);
+  assert.match(read("styles.css"), /art\/tabbar\/grille-light\.webp/);
+  assert.match(read("styles.css"), /bottom: calc\(8px \+ var\(--safe-b\)\)/);
 });
 
 test("4.103.0 the player's name: plain text on one line, at most 30 characters, kept through a backup and cleaned on import", () => {
@@ -3507,4 +3757,86 @@ test("4.103.0 the player's name: plain text on one line, at most 30 characters, 
   assert.equal(out.data.settings.playerName, "Graham b");
   const bad = C.cleanImport({ songs: [{ id: "a", title: "A", body: "G\nla" }], settings: { v: 6, playerName: 42 } });
   assert.notEqual(bad.data.settings.playerName, 42, "a name that is not text is dropped");
+});
+
+test("Neck-only Road: frets follow the 12th root of 2, every stop is centred clear of the wires, and the new art does not replace old art", () => {
+  const L = 2400;
+  assert.ok(Math.abs(C.fretAt(L, 12) - L / 2) < 1e-6, "the 12th fret sits at half the scale length");
+  for (let n = 1; n <= 12; n++) {
+    const space = C.fretAt(L, n) - C.fretAt(L, n - 1);
+    const expect = L * (2 ** (-(n - 1) / 12) - 2 ** (-n / 12));
+    assert.ok(Math.abs(space - expect) < 1e-6, `fret space ${n}`);
+  }
+  const leg = C.roadPath(C.migrate({ songs: [], settings: { v: 6 } })).legs[0];
+  assert.equal(leg.stops.length, 10, "the first leg is 10 stops when a merch box lands every 3 lessons");
+  assert.deepEqual(C.neckSlots(9), { slots: [1, 3, 5, 7, 8, 10, 11, 13, 14], gold: 15 });
+  assert.deepEqual(C.neckSlots(10), { slots: [1, 3, 5, 6, 8, 9, 11, 12, 14, 15], gold: 16 });
+  const board = C.neckBoard([{ stops: leg.stops }], { peek: 3 });
+  assert.deepEqual(board.stops.map(s => s.space), [1, 3, 5, 6, 8, 9, 11, 12, 14, 15]);
+  assert.deepEqual(board.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "diamond", "moon"]);
+  assert.equal(board.frets.filter(f => f.gold).length, 1);
+  assert.equal(board.frets.find(f => f.gold).n, 16);
+  assert.equal(board.frets.filter(f => f.peek).length, 3, "three empty frets peek past the gold bar");
+  assert.ok(board.width >= 0.55 && board.width <= 0.6, `neck width is ${board.width}`);
+  const tightN = Math.max(...board.stops.map(s => s.space));
+  const tight = C.fretAt(C.neckScale(10), tightN) - C.fretAt(C.neckScale(10), tightN - 1);
+  assert.ok(Math.abs(tight - (C.NECK_INLAY + 2 * C.NECK_CLEAR)) < 1e-6, "the tightest occupied space fits the inlay plus clearance");
+  for (const s of board.stops) {
+    assert.ok(Math.abs(s.cy - (s.y0 + s.y1) / 2) < 1e-6, "centred between the wires");
+    assert.ok(s.clear + 1e-6 >= C.NECK_CLEAR, `clearance ${s.clear}`);
+    const nearest = Math.min(...board.strings.map(x => Math.abs(x - s.x)));
+    assert.ok(nearest > 0.05, "the inlay is not centred on a string");
+    if (s.goldBelow) {
+      const gold = board.frets.find(f => f.gold && f.leg === s.li);
+      assert.ok(gold.y - (s.cy + C.NECK_INLAY / 2) + 1e-6 >= C.NECK_GOLD_CLEAR, "the moon stays clear of the gold bar");
+    }
+  }
+  const opening = C.neckBoard([{ stops: C.OPENING.map(o => ({ kind: o.id === "show" ? "headline" : "chord" })) }]);
+  assert.deepEqual(opening.stops.map(s => s.space), [1, 3, 5, 7, 8, 10, 11, 13, 14]);
+  assert.equal(opening.frets.find(f => f.gold).n, 15);
+  assert.deepEqual(opening.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon"]);
+  const files = ["neck-rosewood", "neck-rosewood-v2", "nut", "nut-v2", "fret-gold", "check", "lock", "check-v2", "lock-v2"].map(n => `art/road-neck/${n}.webp`)
+    .concat(["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon", "diamond", "fin-v2", "vine-v2", "moon-v2"].map(n => `art/road-neck/inlays/${n}.webp`));
+  for (const f of files) {
+    const st = fs.statSync(path.join(root, f));
+    assert.ok(st.size > 400, f);
+  }
+  for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
+  let diff = "";
+  try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
+  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t") && !/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line) && !/^D\tart\/guitarist-painted\/pilot/.test(line));
+  assert.deepEqual(bad, [], "no existing art file was edited (the old ink drawing was deleted on Graham's go, 2026-11-23)");
+});
+
+test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a sheet", () => {
+  const hud = read("hud.js"), css = read("styles.css");
+  const rr = hud.slice(hud.indexOf("export function rrStats"), hud.indexOf("export const pageStats"));
+  assert.match(rr, /id="h-streak"/);
+  assert.match(rr, /id="h-fans"/);
+  assert.match(rr, /id="h-tips"/);
+  assert.doesNotMatch(rr, /h-songs/, "the songs stat is gone from the Road Ready header");
+  assert.match(hud, /go\(rr \? "#\/playmap" : "#\/you"\)/, "fans open the Tour Map in Dark and Light");
+  assert.match(hud, /rr \? streakCard\(\) : go\("#\/you"\)/, "streak opens a small sheet in Dark and Light");
+  assert.match(hud, /function streakCard\(/);
+  assert.match(hud, /id="sk-scrim"/, "the sheet closes on a tap outside");
+  assert.match(hud, /id="sk-x"/, "and on a close button");
+  assert.match(hud, /data\.journal\.best/, "best streak comes from the journal already stored");
+  assert.match(css, /\.sk-card[^}]*var\(--rr-card\)/, "the sheet uses Road Ready tokens");
+  assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
+});
+
+test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder and buildSave all accept Cornerstone", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.guitarsOwned(data), [], "nothing headlined, no Road guitar");
+  assert.deepEqual(C.buildSave(data, "switch", {}), { why: "none" });
+  for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
+  C.skillDone(data, "k:open");
+  const said = C.guitarNew(data);
+  assert.equal(said.guitar.name, "Cornerstone", "the sheet announces Cornerstone");
+  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: 0 }, { id: "switch", li: 0 }], "Porch and Cornerstone, both earned on Leg 1");
+  assert.ok(C.guitarsOwned(data).includes("switch"), "the case and the builder (both read guitarsOwned) hold Cornerstone");
+  assert.ok(C.guitarsOwned(data).filter(id => C.BUILD_TAKES[id]).includes("switch"), "the builder's list includes Cornerstone");
+  assert.notDeepEqual(C.buildSave(data, "switch", {}), { why: "none" }, "buildSave accepts Cornerstone");
+  assert.deepEqual(C.buildSave(data, "scales", {}), { why: "none" }, "Club Slab waits for Leg 2");
+  assert.deepEqual(C.guitarsEarned(data), ["open"], "guitarsEarned stays the headlined legs");
 });

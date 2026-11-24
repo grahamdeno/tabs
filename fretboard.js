@@ -9,7 +9,7 @@
 //
 // Woods and finishes keep the guitar's own colours in every look; only dots, rings, halos and tags take the
 // look's colours (styles.css, "The fretboard Road").
-import { fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace } from "./core.js";
+import { esc, fretLayout, guitarFor, neckStops, FRET_BODY, VERSION, ROAD, roadPlace, neckBoard } from "./core.js";
 import PICS from "./art/guitars/pics.js";
 import { buildPic } from "./buildart.js";
 
@@ -219,19 +219,9 @@ function nanoHardware(g, yb, ac) {
   if (g.body === "swallow") return `${humbucker(yb - 110, "#1c1a1f", gold)}${humbucker(yb - 52, "#1c1a1f", gold)}${tuneomatic(yb)}${stopbar(yb + 34)}`;
   return `${humbucker(yb - 96, "#1c1d22", "#efe4c8")}${humbucker(yb - 46, "#1c1d22", "#efe4c8")}${tuneomatic(yb)}${stopbar(yb + 30)}${k("#efe4c8")}`;
 }
-/* The shown picture. A clear-coat streak along the upper bout is painted into art/guitars/streak/.
-   The flat paintings and the earlier elevated sets stay beside it, same size, so the frets still line up. */
-export const GUITAR_ELEV = "art/guitars/streak";
-const guitarSrc = (name, part) => `${GUITAR_ELEV}/${name}-${part}.webp?v=${VERSION}`;
-/* Room under the painting for the contact shadow. The picture itself has no empty ground. */
-const LIFT = 72;
-function elevFilter(id) {
-  /* Two shadows: a tight one where the body meets the ground, and a wider one offset down and to the right. */
-  return `<filter id="${id}" x="-40%" y="-10%" width="180%" height="150%" color-interpolation-filters="sRGB"><feOffset in="SourceAlpha" dx="4" dy="10" result="o1"/><feGaussianBlur in="o1" stdDeviation="3.5" result="b1"/><feOffset in="SourceAlpha" dx="10" dy="28" result="o2"/><feGaussianBlur in="o2" stdDeviation="14" result="b2"/><feComponentTransfer in="b1" result="a1"><feFuncA type="linear" slope="0.9"/></feComponentTransfer><feComponentTransfer in="b2" result="a2"><feFuncA type="linear" slope="0.62"/></feComponentTransfer><feFlood flood-color="#050302" result="ink"/><feComposite in="ink" in2="a1" operator="in" result="s1"/><feComposite in="ink" in2="a2" operator="in" result="s2"/><feMerge><feMergeNode in="s2"/><feMergeNode in="s1"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
-}
 function picBase(g, lay, f) {
   const { p, sh, sb, k } = lay.pic, top = lay.head, y0 = top + lay.neck, hw = NECK / 2, end = y0 + p.body.end * sb, yb = y0 + lay.bridge;
-  const img = (part, x, y, w, h) => `<image href="${guitarSrc(f, part)}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/>`;
+  const img = (part, x, y, w, h) => `<image href="art/guitars/${f}-${part}.webp?v=${VERSION}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/>`;
   let frets = "", y = top;
   for (const sp of lay.spaces) {
     y += sp.h;
@@ -266,7 +256,13 @@ export function roadLayout(stops, p) {
     const st = neck[c.i], string = c.lane === "left" ? 1 : c.lane === "right" ? 4 : -1;
     return { stop: st, kind: st.kind === "box" ? "inlay" : "dot", string, y: Y(c.y), h: S * r.sp[c.space - 1][1], x: X(c.x), lane: c.lane, pair: c.pair, over: !c.clear, space: c.space, py: c.y, dx: S * (c.x - sx(string, c.y)) };
   });
-  if (head) spaces.push({ stop: head, kind: "double", string: -1, y: Y(r.badge[1]), h: ROAD.badge[1], w: ROAD.badge[0], x: X(r.badge[0]), lane: "badge", pair: 0, over: false, space: 0, py: r.badge[1], dx: 0 });
+  /* Sit the headline at the start of the body, just after the last used fret, so a short leg does not leave
+     a long empty neck above a badge parked low on the body. The painted badge coordinate is only a cap. */
+  if (head) {
+    const lastPy = spaces.reduce((m, sp) => Math.max(m, sp.py + (sp.space ? r.sp[sp.space - 1][1] / 2 : 0)), r.nut);
+    const py = Math.min(r.badge[1], Math.max(r.join + 20, lastPy + 24));
+    spaces.push({ stop: head, kind: "double", string: -1, y: Y(py), h: ROAD.badge[1], w: ROAD.badge[0], x: X(r.badge[0]), lane: "badge", pair: 0, over: false, space: 0, py, dx: 0 });
+  }
   /* the board's left and right edge at a row, in units: between the fret rows, the nut's width above the nut */
   const edge = y => {
     const py = (y - top) / S; let k = 1;
@@ -275,16 +271,71 @@ export function roadLayout(stops, p) {
     return { l: X(c - hw), r: X(c + hw) };
   };
   const ys = spaces.filter(sp => sp.kind !== "double").map(sp => sp.y);
-  return { spaces, head: 0, neck: 0, body: 0, height: Math.round(top + S * r.h + ROAD.margin + LIFT), road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
+  /* The whole painted guitar. The picture is wider than the 390-wide board, so the frame grows to hold the body.
+     A crop through the body left a cut-off piece at the right edge. */
+  const height = Math.round(top + S * r.h + ROAD.margin);
+  const imgL = X(0), imgR = imgL + r.w * S, vx = Math.min(0, imgL), vw = Math.max(W, imgR) - vx;
+  return { spaces, head: 0, neck: 0, body: 0, height, frame: { vx, vw }, road: { p, r, X, Y, S, sx: (string, y) => X(sx(string, (y - top) / S)), edge }, hit: ys.length ? [Math.min(...ys) - 40, Math.max(...ys) + 40] : [0, 0] };
 }
-/* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware.
-   A soft shadow sits under the body, in the room LIFT leaves below the painting. */
+/* Painted fret inlays, in each road picture's own pixels: [left, top, right, bottom].
+   A stop circle that overlaps one is painted over, so the white dot does not peek out beside the stop.
+   An inlay the circles miss, such as the one below Opening night's stop 8, stays. */
+export const ROAD_INLAYS = {
+  porch: [[215.0,316.0,221.0,324.0], [215.0,384.0,222.0,393.0], [216.0,447.0,222.0,455.0], [215.0,502.0,222.0,511.0], [237.0,578.0,244.0,586.0], [194.0,579.0,199.0,585.0]],
+  cornerstone: [[240.0,315.0,247.0,324.0], [240.0,391.0,247.0,398.0], [239.0,455.0,247.0,463.0], [240.0,514.0,248.0,523.0], [262.0,589.0,270.0,598.0], [219.0,590.0,225.0,597.0], [239.0,652.0,247.0,659.0]],
+  clubslab: [[211.0,321.0,218.0,330.0], [211.0,391.0,218.0,400.0], [211.0,452.0,218.0,461.0], [211.0,506.0,218.0,516.0], [191.0,578.0,197.0,586.0], [233.0,578.0,240.0,586.0], [211.0,635.0,219.0,645.0]],
+  hollowhill: [[226.0,316.0,233.0,324.0], [226.0,384.0,233.0,392.0], [227.0,444.0,234.0,452.0], [227.0,498.0,234.0,506.0], [214.0,567.0,218.0,574.0], [248.0,567.0,252.0,574.0], [225.0,625.0,235.0,634.0]],
+  swing: [[219.0,316.0,226.0,326.0], [218.0,385.0,226.0,395.0], [218.0,448.0,226.0,456.0], [218.0,504.0,226.0,512.0], [240.0,574.0,247.0,584.0], [198.0,576.0,203.0,583.0], [219.0,636.0,226.0,644.0]],
+  koaarc: [[231.0,286.0,237.0,295.0], [231.0,355.0,237.0,365.0], [230.0,416.0,237.0,425.0], [231.0,470.0,237.0,480.0], [251.0,540.0,259.0,550.0], [211.0,541.0,216.0,550.0], [230.0,602.0,238.0,611.0]],
+  comet: [[209.0,314.0,216.0,322.0], [209.0,383.0,216.0,392.0], [209.0,443.0,216.0,451.0], [209.0,497.0,216.0,506.0], [230.0,566.0,236.0,576.0], [189.0,568.0,195.0,577.0], [208.0,627.0,216.0,636.0]],
+  highline: [[226.0,313.0,233.0,323.0], [226.0,389.0,233.0,400.0], [225.0,456.0,233.0,467.0], [225.0,515.0,233.0,526.0], [247.0,569.0,255.0,578.0], [224.0,634.0,233.0,643.0], [224.0,673.0,233.0,682.0]],
+  velvetcrown: [[217.0,227.0,265.0,253.0], [210.0,309.0,266.0,335.0], [215.0,383.0,267.0,406.0], [215.0,448.0,267.0,469.0], [214.0,508.0,268.0,525.0], [213.0,583.0,269.0,596.0], [207.0,625.0,210.0,634.0], [212.0,644.0,233.0,655.0], [242.0,645.0,270.0,655.0]],
+  ghostspalt: [[212.0,308.0,219.0,318.0], [212.0,382.0,219.0,392.0], [211.0,448.0,219.0,457.0], [211.0,505.0,219.0,514.0], [199.0,580.0,203.0,589.0], [228.0,581.0,238.0,589.0], [211.0,640.0,220.0,651.0], [210.0,676.0,220.0,686.0]],
+  redwoodhollow: [[218.0,294.0,266.0,317.0], [218.0,375.0,267.0,386.0], [218.0,438.0,268.0,450.0], [218.0,495.0,269.0,506.0], [212.0,541.0,215.0,546.0], [218.0,567.0,271.0,577.0], [212.0,607.0,215.0,619.0], [247.0,614.0,250.0,619.0], [231.0,626.0,250.0,638.0], [212.0,629.0,215.0,634.0], [247.0,645.0,250.0,656.0], [211.0,646.0,215.0,656.0]],
+  razorwing: [[197.0,229.0,240.0,262.0], [196.0,315.0,241.0,342.0], [195.0,391.0,242.0,414.0], [194.0,456.0,243.0,477.0], [193.0,542.0,244.0,557.0], [192.0,610.0,245.0,623.0], [191.0,649.0,246.0,660.0]],
+  nova: [[235.0,331.0,243.0,342.0], [235.0,374.0,243.0,385.0], [235.0,452.0,244.0,462.0], [235.0,518.0,245.0,529.0], [215.0,602.0,226.0,611.0], [253.0,603.0,264.0,611.0], [234.0,666.0,246.0,679.0], [243.0,686.0,246.0,698.0], [234.0,705.0,246.0,716.0]],
+  arrowhead: [[224.0,306.0,232.0,316.0], [224.0,377.0,232.0,388.0], [224.0,444.0,232.0,453.0], [224.0,503.0,233.0,513.0], [202.0,579.0,210.0,588.0], [247.0,579.0,253.0,587.0], [224.0,640.0,233.0,649.0]],
+  ziricotegrand: [[272.0,256.0,275.0,276.0], [247.0,297.0,254.0,309.0], [247.0,426.0,255.0,437.0], [247.0,484.0,255.0,494.0], [225.0,555.0,233.0,565.0], [271.0,556.0,277.0,565.0], [242.0,617.0,256.0,626.0], [242.0,633.0,245.0,644.0]],
+  walnuthall: [[242.0,255.0,249.0,282.0], [245.0,295.0,260.0,317.0], [233.0,297.0,239.0,307.0], [235.0,310.0,246.0,321.0], [245.0,328.0,249.0,335.0], [221.0,330.0,270.0,356.0], [223.0,363.0,271.0,387.0], [220.0,398.0,272.0,422.0], [220.0,429.0,273.0,452.0], [219.0,459.0,273.0,480.0], [219.0,487.0,274.0,508.0], [224.0,515.0,273.0,534.0], [218.0,541.0,275.0,558.0], [221.0,565.0,264.0,581.0], [217.0,588.0,275.0,604.0], [217.0,611.0,276.0,623.0], [217.0,630.0,276.0,643.0], [228.0,650.0,266.0,661.0]],
+  islander: [[201.0,331.0,250.0,347.0], [200.0,373.0,250.0,388.0], [199.0,447.0,251.0,466.0], [198.0,513.0,251.0,530.0], [196.0,595.0,252.0,608.0], [220.0,663.0,229.0,673.0], [210.0,700.0,253.0,711.0]],
+  stickerriot: [[222.0,301.0,229.0,309.0], [222.0,372.0,229.0,383.0], [222.0,438.0,229.0,448.0], [222.0,497.0,229.0,506.0], [244.0,570.0,250.0,579.0], [203.0,571.0,206.0,578.0], [221.0,629.0,229.0,639.0]],
+  spraycancrack: [[278.0,314.0,285.0,323.0], [278.0,389.0,286.0,397.0], [278.0,456.0,286.0,465.0], [278.0,517.0,286.0,526.0], [256.0,570.0,263.0,579.0], [301.0,570.0,310.0,580.0], [277.0,637.0,286.0,647.0], [265.0,641.0,268.0,647.0]],
+  tartanpin: [[203.0,299.0,210.0,308.0], [203.0,372.0,210.0,381.0], [203.0,437.0,210.0,447.0], [203.0,496.0,210.0,505.0], [225.0,569.0,231.0,579.0], [183.0,571.0,187.0,578.0], [202.0,629.0,211.0,639.0]],
+  toxicchecker: [[217.0,306.0,224.0,319.0], [217.0,380.0,225.0,391.0], [216.0,443.0,225.0,455.0], [216.0,503.0,225.0,514.0], [194.0,578.0,202.0,588.0], [240.0,578.0,249.0,588.0], [216.0,639.0,226.0,649.0]],
+  barebones: [[212.0,305.0,220.0,314.0], [213.0,379.0,220.0,388.0], [212.0,444.0,220.0,453.0], [213.0,503.0,220.0,513.0], [191.0,579.0,197.0,588.0], [235.0,579.0,242.0,588.0], [212.0,622.0,221.0,631.0], [213.0,661.0,221.0,670.0]],
+  flyerwall: [[229.0,313.0,236.0,324.0], [228.0,388.0,237.0,399.0], [228.0,455.0,237.0,465.0], [228.0,516.0,237.0,525.0], [208.0,567.0,220.0,575.0], [252.0,567.0,261.0,576.0], [228.0,590.0,237.0,599.0], [228.0,632.0,238.0,641.0]]
+};
+/* How far a stop's pearl reaches, in the drawing's pixels. Ahead and done are the round dots.
+   The current stop is the trapezoid. A merch box is the small crate. */
+const stopReach = sp => sp.kind === "inlay" ? 18 : sp.stop.state === "now" ? 26 : 18;
+/* Which inlay boxes a set of circles overlaps. boxes and stops share one pixel space.
+   stops are { x, y, r }. Returns the indexes to cover. */
+export function inlaysUnder(boxes, stops) {
+  const hit = [];
+  boxes.forEach((b, i) => {
+    const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, rad = Math.max(b[2] - b[0], b[3] - b[1]) / 2;
+    if (stops.some(s => Math.hypot(s.x - cx, s.y - cy) < s.r + rad)) hit.push(i);
+  });
+  return hit;
+}
+/* Wood discs over the inlays a stop circle overlaps, drawn on the painting and under the stops. */
+function inlayCover(f, lay) {
+  const boxes = ROAD_INLAYS[f];
+  if (!boxes || !lay.road) return "";
+  const { X, Y, S } = lay.road, fill = mix(PICS[f].lit || "#5a3d28", "#ffffff", 0.04);
+  const stops = lay.spaces.filter(sp => sp.kind !== "double").map(sp => ({ x: sp.x, y: sp.y, r: stopReach(sp) }));
+  return inlaysUnder(boxes, stops.map(s => ({ x: (s.x - CX) / S + lay.road.r.cx, y: (s.y - ROAD.margin) / S, r: s.r / S }))).map(i => {
+    const b = boxes[i], cx = X((b[0] + b[2]) / 2), cy = Y((b[1] + b[3]) / 2), rad = S * Math.max(b[2] - b[0], b[3] - b[1]) / 2 + 1.6;
+    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rad.toFixed(1)}" fill="${fill}"/>`;
+  }).join("");
+}
+/* the painted guitar, nothing else: the painting has the head, board, frets, inlays, strings and hardware */
 function roadBase(g, lay, f, build, legId) {
-  const { r, S, X, Y } = lay.road, painted = guitarSrc(f, "road");
+  const { r, S, X, Y } = lay.road, painted = `art/guitars/${f}-road.webp?v=${VERSION}`;
   /* Road Ready 9b: a guitar you restyled is put together once (buildart.js) and drawn at the same size, so the stops line up;
      the painting shows until it is ready, and for a guitar with no build */
   const bp = build && legId ? buildPic(legId, build, painted) : { src: painted, attr: "" };
-  return `<defs>${elevFilter("g-elev-" + f)}</defs><image filter="url(#g-elev-${f})" href="${bp.src}"${bp.attr} x="${X(0).toFixed(1)}" y="${Y(0).toFixed(1)}" width="${(r.w * S).toFixed(1)}" height="${(r.h * S).toFixed(1)}"/>`;
+  return `<image href="${bp.src}"${bp.attr} x="${X(0).toFixed(1)}" y="${Y(0).toFixed(1)}" width="${(r.w * S).toFixed(1)}" height="${(r.h * S).toFixed(1)}"/>${inlayCover(f, lay)}`;
 }
 
 /* the strings and their shadows, from the nut to the bridge */
@@ -337,13 +388,13 @@ export function stopXY(sp, lay) {
   return { x: CX + (sp.string >= 0 ? STR[sp.string] * (f ? f(y) : 1) : 0), y };
 }
 
-/* ---- Road Ready (step 02): stops are pearl inlays set flush in the wood, in four states ----
-   done: a 26 px amber pearl with an engraved check and a faint glow. now: a 52 by 38 trapezoid, lit from within, with
-   the show number. ahead (open or locked): a 26 px matte pearl with the number. The headline show is two 24 px dots
-   (the number and a lock), a merch box the crate. Every one sits in a 44 px button. Colours are the --rr-* tokens. */
+/* ---- Road Ready (step 02): stops are the hero of the path, in four states ----
+   done: a 36 px solid amber disc with a dark check and a soft halo. now: a 64 by 46 trapezoid, lit from within, with
+   the show number and a glow. ahead (open or locked): a calm 36 px outline with the number. The headline show is two
+   dots (the number and a lock), a merch box the crate. Every one sits in a button of at least 44 px. Colours are the --rr-* tokens. */
 /* nowPair (Graham's decision, 2026-11-19, Surprise 169): the current stop is drawn smaller while it shares a fret space with
    its partner, so the two never overlap */
-const RR_SIZE = { dot: [26, 26], now: [52, 38], nowPair: [42, 31], box: [30, 22], double: [60, 24] };
+export const RR_SIZE = { dot: [36, 36], now: [64, 46], nowPair: [50, 36], box: [34, 26], double: [72, 28] };
 const rrPhase = st => st === "done" ? "done" : st === "now" ? "now" : "ahead";
 let rrN = 0;
 /* an engraved mark: the mark, with a lighter copy 1 px below it where the cut catches the light */
@@ -385,12 +436,14 @@ export function rrStopArt(kind, state, n, pill = false, paired = false) {
       return `<g transform="translate(${cx} 0)">${pearl(circle(0, 12), ph, engrave(mark, lock), ph !== "ahead", 24, 24)}</g>`;
     }).join("");
   } else if (kind === "inlay") {
-    const d = `M-15 -11H15V11H-15Z`, lines = `<path d="M-6 -11V11M5 -11V11M-15 -1H15" fill="none" stroke-width="1.6"/>`;
-    body = pearl(d, ph, engrave(lines, lock), ph !== "ahead", w, h);
+    const d = `M-17 -13H17V13H-17Z`, lines = `<path d="M-6 -13V13M6 -13V13M-17 -1H17" fill="none" stroke-width="1.8"/>`;
+    body = pearl(d, ph, engrave(lines, lock), ph === "now", w, h);
   } else if (cur) {
     body = pearl(`M${-w / 2} ${h / 2}H${w / 2}L${w * .385} ${-h / 2}H${-w * .385}Z`, ph, engrave(ENG.num(n, Math.round(h * .53)), ""), true, w, h);
+  } else if (ph === "done") {
+    body = pearl(circle(0, 17), ph, engrave(ENG.check(17), "done"), false, w, h);
   } else {
-    body = pearl(circle(0, 13), ph, engrave(ph === "done" ? ENG.check(13) : ENG.num(n, 13), lock), ph === "done", w, h);
+    body = `<circle class="rr-pearl ahead rr-ring" r="16"/>${engrave(ENG.num(n, 16), lock)}`;
   }
   const glow = cur ? `<span class="rr-glow" aria-hidden="true"></span>` : ph === "done" ? `<span class="rr-halo" aria-hidden="true"></span>` : "";
   return `${glow}<svg class="rr-art" width="${w}" height="${h}" style="width:${w}px;height:${h}px" viewBox="${-w / 2} ${-h / 2} ${w} ${h}" aria-hidden="true">${body}</svg>`;
@@ -423,7 +476,8 @@ export function connectorSVG(lay, spaces, o) {
   if (!segs.length) return "";
   const id = `rrc${++rrN}`;
   const path = (s, cls) => `<path class="${cls}${s.fresh ? " rr-draw" : ""}" d="${s.d}"${s.fresh ? ` pathLength="1"` : ""}/>`;
-  return `<svg class="rd-conn" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+  const vx = lay.frame?.vx || 0, vw = lay.frame?.vw || W;
+  return `<svg class="rd-conn" viewBox="${vx} 0 ${vw} ${lay.height}" aria-hidden="true"><defs><filter id="${id}" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation="8"/></filter></defs>
     <g class="rr-conn-glow" filter="url(#${id})">${segs.map(s => path(s, "rr-cg")).join("")}</g>${segs.map(s => path(s, "rr-cc")).join("")}</svg>`;
 }
 
@@ -433,11 +487,12 @@ export function connectorSVG(lay, spaces, o) {
 function rrStopHTML(sp, g, lay, o) {
   const s = sp.stop, { x, y } = stopXY(sp, lay), cur = s === o.cur, ph = rrPhase(s.state), road = !!lay.road, pill = road && sp.kind === "double";
   const [w] = pill ? ROAD.badge : sp.kind === "double" ? RR_SIZE.double : sp.kind === "inlay" ? RR_SIZE.box : cur ? (sp.paired ? RR_SIZE.nowPair : RR_SIZE.now) : RR_SIZE.dot;
-  const half = Math.max(22, w / 2), px = (x / W * 100).toFixed(3);
+  const vx = lay.frame ? lay.frame.vx : 0, vw = lay.frame ? lay.frame.vw : W, pct = n => (n - vx) / vw * 100;
+  const half = Math.max(22, w / 2), px = pct(x).toFixed(3);
   /* on a painted neck the callout sits just off the right edge of the board at the stop's row (the badge: off its own end), the
      songs chip off the left edge, never over the strings */
   const e = road ? (pill ? { l: x - w / 2, r: x + w / 2 } : lay.road.edge(y)) : null;
-  const tagAt = road ? `left:${((e.r + 10) / W * 100).toFixed(3)}%;max-width:calc(${(100 - (e.r + 10) / W * 100).toFixed(3)}% - 8px)` : `left:calc(${px}% + ${half + 8}px);max-width:calc(${(100 - x / W * 100).toFixed(3)}% - ${half + 16}px)`;
+  const tagAt = road ? `left:${pct(e.r + 10).toFixed(3)}%;max-width:calc(${(100 - pct(e.r + 10)).toFixed(3)}% - 8px)` : `left:calc(${px}% + ${half + 8}px);max-width:calc(${(100 - x / W * 100).toFixed(3)}% - ${half + 16}px)`;
   /* one-row Road (2026-11-19): Tonight lives on the current stop, a small amber play button and the song's title, both one button */
   const PLAY = `<span class="rr-tn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 5.5v13l10-6.5z" fill="currentColor"/></svg></span>`;
   const ADD = `<span class="rr-tn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span>`;
@@ -448,7 +503,7 @@ function rrStopHTML(sp, g, lay, o) {
     : cur ? `<span class="rd-tag rr-callout" style="${tagAt}" aria-hidden="true">${o.tag(s)}</span>` : "";
   /* the label says how many songs a lesson opens; the chip shows it only on the stops ahead (the callout says it on the current one) */
   const songs = sp.kind === "dot" && ph !== "done" && o.songs ? o.songs(s) : 0;
-  const chipAt = road ? `right:${((W - (e.l - 4)) / W * 100).toFixed(3)}%` : `right:calc(${(100 - x / W * 100).toFixed(3)}% + ${half + 4}px)`;
+  const chipAt = road ? `right:${(100 - pct(e.l - 4)).toFixed(3)}%` : `right:calc(${(100 - x / W * 100).toFixed(3)}% + ${half + 4}px)`;
   const badge = songs > 0 && ph === "ahead" ? `<span class="rd-songs rr-chip" style="${chipAt}" aria-hidden="true">${songs} song${songs === 1 ? "" : "s"}</span>` : "";
   const cls = `rd-node rr ${s.kind} ${s.state}${sp.kind === "double" ? " big" : ""}${cur ? " cur" : ""}${road && sp.over ? " rr-over" : ""}${pill ? " rr-pill" : ""}`;
   /* the badge's button is the badge plus 8 units all round */
@@ -481,7 +536,14 @@ function stopHTML(sp, g, lay, o) {
 export const NANO_FILE = { open: "porch", switch: "cornerstone", scales: "clubslab", strum: "hollowhill", pick: "swing", finger: "koaarc", encore: "comet" };
 /* the small guitar in the guitarist's hands (guitarist.js): the whole picture, by body shape */
 const BODY_FILE = { parlor: "parlor", cutaway: "cutaway-sunburst", solid: "solid", hollow: "hollow", single: "single", classical: "classical", swallow: "headliner", ...Object.fromEntries(Object.keys(PICS).map(k => [k, k])) };
-export const guitarPic = body => BODY_FILE[body] ? guitarSrc(BODY_FILE[body], "small") : null;
+/* The shop, the stand and the show use the streak copies. The flat paintings stay beside them. */
+export const guitarPic = body => BODY_FILE[body] ? `art/guitars/streak/${BODY_FILE[body]}-small.webp?v=${VERSION}` : null;
+/* The large picture sits next to the small one, in art/guitars/ or in a folder under it such as streak/. */
+export function largeGuitar(small) {
+  const m = String(small || "").match(/^(.*\/)([^/?]+)-small\.webp/);
+  if (!m || !PICS[m[2]]?.road) return "";
+  return `${m[1]}${m[2]}-road.webp`;
+}
 /* the picture of a leg's guitar, or of the shop guitar you chose (o.shown is guitarShown(data, leg id) from core/game.js) */
 const picOf = (id, o = {}) => { const f = o.shown?.body || NANO_FILE[id]; return o.nano === false || !PICS[f] ? null : { f, p: PICS[f] }; };
 export function neckHTML(leg, o) {
@@ -491,9 +553,9 @@ export function neckHTML(leg, o) {
   if (lay.road) {
     /* Road Ready 9a: the painted guitar, no drawn strings; one invisible hit layer over the neck, and every stop's x and y in the
        drawing's units (data-hx, data-hy) so road.js can decide which stop a tap selects (roadHit in core/game.js) */
-    const [h0, h1] = lay.hit;
-    return `<div class="rd-neck road" data-guitar="${leg.id}" data-lh="${lay.height}" style="aspect-ratio:${W}/${lay.height}" role="group" aria-label="${g.name}">
-    <svg class="rd-base nano road" viewBox="0 0 ${W} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
+    const [h0, h1] = lay.hit, { vx, vw } = lay.frame;
+    return `<div class="rd-neck road" data-guitar="${leg.id}" data-lh="${lay.height}" data-vx="${vx}" data-vw="${vw}" style="aspect-ratio:${vw}/${lay.height}" role="group" aria-label="${g.name}">
+    <svg class="rd-base nano road" viewBox="${vx} 0 ${vw} ${lay.height}" aria-hidden="true">${roadBase(g, lay, pc.f, o.shown?.shop ? null : o.build, leg.id)}</svg>
     ${o.rr ? connectorSVG(lay, lay.spaces, o) : ""}
     <div class="rr-hit" aria-hidden="true" style="top:${(h0 / lay.height * 100).toFixed(3)}%;height:${((h1 - h0) / lay.height * 100).toFixed(3)}%"></div>
     ${lay.spaces.map(sp => stopHTML(sp, g, lay, o)).join("")}
@@ -513,9 +575,63 @@ export function neckHTML(leg, o) {
 export function guitarSVG(id, { full = false } = {}) {
   const g = guitarFor(id), pc = picOf(id), spaces = n => Array.from({ length: n }, () => ({ kind: "chord", state: "locked" }));
   /* Road Ready 9a: a painted guitar is shown whole (its painted neck, nothing drawn), scaled to fit; full makes no difference */
-  if (pc?.p.road) { const r = pc.p.road; return `<svg class="rd-gsvg road" viewBox="0 0 ${r.w} ${r.h + 24}" role="img" aria-label="${g.name}"><defs>${elevFilter("g-elev-svg-" + pc.f)}</defs><image filter="url(#g-elev-svg-${pc.f})" href="${guitarSrc(pc.f, "road")}" width="${r.w}" height="${r.h}"/></svg>`; }
+  if (pc?.p.road) { const r = pc.p.road; return `<svg class="rd-gsvg road" viewBox="0 0 ${r.w} ${r.h}" role="img" aria-label="${g.name}"><image href="art/guitars/${pc.f}-road.webp?v=${VERSION}" width="${r.w}" height="${r.h}"/></svg>`; }
   if (!pc) { const lay = fretLayout(spaces(full ? neckStops(FRET_BODY) : 2)); return `<svg class="rd-gsvg" viewBox="0 0 ${W} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay)}${stringLayer(g, lay)}</svg>`; }
   /* the body is wider than the screen on the Road, so the whole guitar is drawn wider to show all of it */
   const lay = picLayout(spaces(full ? neckStops(picLayout(spaces(2), pc.p).body) : 2), pc.p), half = 1.25 * W / 2 + 6;
   return `<svg class="rd-gsvg" viewBox="${CX - half} 0 ${half * 2} ${lay.height}" role="img" aria-label="${g.name}">${baseLayer(g, lay, pc.f)}${stringLayer(g, lay)}</svg>`;
+}
+
+/* The neck-only Road: rosewood, a bone nut, straight strings and one pearl inlay per stop.
+   legs: [{ title, sub, aria, cls, stops }]. The title is not drawn in the gutter. A zero-size marker
+   (.rn-lat) records where each leg starts so the row under the stats can name the leg in view.
+   o.next marks the peek of the following leg the same way. */
+const NECK_ART = "art/road-neck";
+const INLAY_V2 = { fin: "fin-v2", vine: "vine-v2", moon: "moon-v2" };
+const neckImg = (file, cls, extra = "") => `<img class="${cls}" src="${NECK_ART}/${file}.webp?v=${VERSION}" alt="" draggable="false"${extra}>`;
+const inlayFile = name => "inlays/" + (INLAY_V2[name] || name);
+export function bareNeckHTML(legs, o = {}) {
+  const real = (legs || []).filter(l => l.stops?.length);
+  const board = neckBoard(real, { peek: o.next ? 3 : 0 });
+  const w = (board.width * 100).toFixed(2);
+  /* Low E to high E. Each width is one constant, the whole length of the string. */
+  const thick = [3.5, 2.7, 2.2, 1.7, 1.2, 0.95];
+  const wires = board.frets.map(f => f.gold
+    ? `<img class="rn-gold" src="${NECK_ART}/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="top:${f.y.toFixed(1)}px">`
+    : `<i class="rn-wire${f.peek ? " peek" : ""}" style="top:${f.y.toFixed(1)}px"></i>`).join("");
+  const strings = board.strings.map((x, i) => `<i class="rn-string ${i < 3 ? "wound" : i === 3 ? "wound g" : "plain"}" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
+  const curId = o.cur?.id;
+  const isCur = s => s === o.cur || (curId && s.id === curId);
+  const stops = board.stops.map(sp => {
+    const s = sp.stop, cur = isCur(s), state = s.state || "locked";
+    const n = o.num ? o.num(s) : sp.i + 1;
+    const songs = o.songs ? o.songs(s) : 0;
+    const glow = state === "now" ? `<span class="rr-glow" aria-hidden="true"></span>` : "";
+    return `<div class="rd-stop rn-slot${cur ? " cur" : ""}" data-y0="${sp.y0.toFixed(1)}" data-y1="${sp.y1.toFixed(1)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
+      <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${songs > 0 ? `, opens ${songs} of your songs` : ""}${cur ? ". Double tap to open." : ""}">${neckImg(inlayFile(sp.inlay), "rn-pearl")}${glow}</button></div>`;
+  }).join("");
+  const marks = board.stops.map(sp => {
+    const s = sp.stop, state = s.state || "locked";
+    const file = state === "done" ? "check-v2" : state === "locked" ? "lock-v2" : "";
+    if (!file) return "";
+    const cls = state === "done" ? "rn-check" : "rn-lock";
+    return neckImg(file, `rn-mark ${cls}`, ` data-for="${o.id(s)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%"`);
+  }).join("");
+  const nums = board.stops.map(sp => {
+    const n = o.num ? o.num(sp.stop) : sp.i + 1;
+    return `<span class="rn-num" aria-hidden="true" style="top:${sp.cy.toFixed(1)}px">${n}</span>`;
+  }).join("");
+  const legMark = (leg, top, extra = "") => `<span class="rn-lat${extra}" data-title="${esc(leg.title || "")}" data-sub="${esc(leg.sub || "")}" data-aria="${esc(leg.aria || `${leg.title}, ${leg.sub}`)}" data-cls="${esc(leg.cls || "")}" style="top:${top.toFixed(1)}px"></span>`;
+  const labels = real.map((leg, li) => {
+    const first = board.stops.find(sp => sp.li === li);
+    if (!first) return "";
+    return legMark(leg, li === 0 ? 0 : first.y0);
+  }).join("");
+  const golds = board.frets.filter(f => f.gold);
+  const end = golds[golds.length - 1];
+  const next = o.next && end ? legMark(o.next, end.y + 10, " rn-next") : "";
+  return `<div class="rn-board" style="height:${Math.round(board.height)}px;--rn-w:${w}%">
+    <div class="rn-neck" style="width:var(--rn-w);height:${Math.round(board.height)}px" role="group" aria-label="The neck">
+      ${neckImg("nut-v2", "rn-nut")}${stops}${wires}${strings}${marks}
+    </div>${nums}${labels}${next}</div>`;
 }

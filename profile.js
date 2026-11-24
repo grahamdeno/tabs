@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { GUITARS, PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, guitarsEarned, shopState, levelOf, playableSongs, profileOf, lifetimePlays, roadPath, venueOf } from "./core.js";
+import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, meOf, streakOf, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie, louiePic } from "./louie.js";
@@ -16,8 +16,7 @@ import { makerSheet } from "./maker.js";
 import { stageLight, hornsIcon, knobIcon, guitarIcon, buzz } from "./rock.js";
 import { friend } from "./friends.js";
 import { paintTabs, tabFor } from "./hud.js";
-import { guitarPic } from "./fretboard.js";
-import { buildPic } from "./buildart.js";
+import { bindStand, collectionOf, standHTML, standIndex } from "./gstand.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const shortDay = d => { const [y, m, dd] = String(d).split("-"); return y && m ? `${MONTHS[+m - 1]} ${+dd || ""}${y !== String(new Date().getFullYear()) ? `, ${y}` : ""}`.replace(" ,", ",") : ""; };
@@ -28,6 +27,8 @@ const rrLook = () => ["neon", "festival"].includes(document.documentElement.data
 const COIN = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" class="rr-coin"/><circle cx="12" cy="12" r="7.4" fill="none" class="rr-coin-ring"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" class="rr-coin-ink" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 
 export function renderProfile() {
+  if (rrLook() && route().id === "stats") return renderStats();
+  if (rrLook() && route().id === "chords") return renderChords();
   const p = profileOf(data);
   Tabs.save(data); /* the journal may have just been worked out from your songs (here or by the stat bar): keep it */
   const nothing = !p.plays && !p.tune.sessions;
@@ -105,19 +106,19 @@ export function renderProfile() {
       ${row("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
       ${row("pf-r-support", "heart", "Support Louie", "If you like the app, chip in on Ko-fi", "#/support")}
     </nav>`;
-  /* Road Ready 08 (spec 5.8, r10-06): the player header, three tiles, the guitar case with the Merch row, Milestones, a list of rows, then
+  /* Road Ready 08 (spec 5.8, r10-06): the player header, three tiles, your guitars on the stand, Milestones, a list of rows, then
      Support the app on its own. Game money (the coin and the $ amount) is only on the Merch row; real money is only in the last section. */
   const rr = rrLook();
   const rrRow = (id, ic, name, sub, href, dot) => `<${href ? `a href="${href}"` : "button"} id="${id}" class="pf-row rr-row"><span class="more-ic">${icon(ic)}${dot ? '<i class="dotmark" aria-hidden="true"></i>' : ""}</span><span class="rr-row-t">${name}${sub ? `<small>${sub}</small>` : ""}</span>${icon("chev", "chev")}</${href ? "a" : "button"}>`;
-  const legs = roadPath(data).legs, earned = guitarsEarned(data);
-  const caseGuitars = earned.map(id => { const g = GUITARS[id], li = legs.findIndex(l => l.id === id), lg = legs[li], pic = guitarPic(g.body), bp = pic && data.builds?.[id] ? buildPic(id, data.builds[id], pic) : { src: pic, attr: "" }, at = lg ? `, earned on Leg ${li + 1}, ${lg.name}` : "";
-    return `<li class="rr-gtr" role="img" aria-label="${esc(g.name)}${esc(at)}">${pic ? `<img src="${bp.src}"${bp.attr} alt="" aria-hidden="true">` : `<span class="rr-gtr-ph" aria-hidden="true"></span>`}</li>`; }).join("");
-  /* Road Ready 9a: the guitars bought in the Guitar shop sit in the case too; the one you chose says so */
-  const shop = shopState(data), bought = shop.rows.filter(r => r.owned).map(r => { const pic = guitarPic(r.id);
-    return `<li class="rr-gtr" role="img" aria-label="${esc(r.name)}, from the Guitar shop${r.id === shop.chosen ? ", the one you play" : ""}">${pic ? `<img src="${pic}" alt="" aria-hidden="true">` : ""}</li>`; }).join("");
-  const nGuitars = earned.length + shop.rows.filter(r => r.owned).length;
+  /* earned road guitars, then shop guitars. The one you play opens in the cradle. */
+  const guitars = collectionOf(data), nGuitars = guitars.length;
   const mer = fansToSpend(data);
   const name = cleanName(data.settings.playerName);
+  const chordTotal = PASSPORT.reduce((n, f) => n + f.chords.length, 0) + extra.length;
+  const jumps = `<nav class="pf-jumps" aria-label="Chords and stats">
+      <a class="rr-card pf-jump" id="pf-open-chords" href="#/you/chords"><span><b>Chords</b><small>${p.chords.length} of ${chordTotal}</small></span>${icon("chev", "chev")}</a>
+      <a class="rr-card pf-jump" id="pf-open-stats" href="#/you/stats"><span><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></span>${icon("chev", "chev")}</a>
+    </nav>`;
   const rrHTML = `
     <div class="head rr-me-top"><a class="pf-gear rr-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}<small>Settings</small></a></div>
     <div class="rr-me">
@@ -133,9 +134,9 @@ export function renderProfile() {
       <div class="rr-tile"><b>${num(p.plays)}</b><small>plays</small></div>
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
+      ${standHTML(guitars, { active: standIndex(guitars) })}
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <div class="rr-gcase"><span class="rr-latch l" aria-hidden="true"></span><span class="rr-latch r" aria-hidden="true"></span><ul class="rr-case-in" role="list" tabindex="0" aria-label="Your guitars, earned and bought">${caseGuitars + bought}${`<li class="rr-gtr rr-slot-empty" aria-hidden="true"></li>`.repeat(Math.max(0, 3 - nGuitars))}</ul></div>
-      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="Merch: spend $${num(mer)} tips on new looks"><span class="rr-coinic">${COIN}</span><span>Merch: spend $${num(mer)} tips on new looks</span>${icon("chev", "chev")}</a>
+      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="${mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows"}"><span class="rr-coinic">${COIN}</span><span>${mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows"}</span>${icon("chev", "chev")}</a>
     </section>
     <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
     <nav class="rr-card rr-rows" aria-label="Your places">
@@ -145,11 +146,10 @@ export function renderProfile() {
       ${nothing ? "" : rrRow("pf-share", "share", "Share your player card", "", "")}
       ${rrRow("pf-r-help", "info", "Help and feedback", "", "#/settings/help")}
     </nav>
-    ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary><p class="rr-facts">Nights in a row: <b>${p.streak}</b> · Shows played: <b>${num(data.gig?.shows || 0)}</b></p>${stats}</details>
-    <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
+    ${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${jumps}${duelCard}`}
 
     <div class="pf-label rr-support-h"><span>SUPPORT THE APP</span></div>
-    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v4/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
+    <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v5/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
     </div>`;
   app.innerHTML = rr ? rrHTML : `
     <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
@@ -157,6 +157,7 @@ export function renderProfile() {
     ${meRows}${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}
     ${nothing ? "" : `<div class="s-dock pf-dock"><button class="btn primary" id="pf-share">${icon("share")}Share your card</button></div>`}`;
+  bindStand(document.querySelector(".rr-case-card .gs-stage"));
   document.getElementById("back")?.addEventListener("click", () => go("#/"));
   document.getElementById("pf-name")?.addEventListener("click", () => nameSheet());
   document.getElementById("pf-miles")?.addEventListener("click", () => milesSheet(order.map(badge).join(""), badges));
@@ -175,6 +176,85 @@ export function renderProfile() {
   document.getElementById("pf-share")?.addEventListener("click", () => shareCard(p));
 }
 
+/* Your stats (Dark and Light). Every number comes from the journal already on the phone.
+   Left out, because it is not saved: a sparkline, changes per minute, and a tempo range. */
+const STUBS = 7; /* the most ticket stubs Nights in a row draws */
+function renderStats() {
+  const p = profileOf(data);
+  Tabs.save(data);
+  const st = streakOf(data.songs || []);
+  const n = st.days;
+  const shows = (data.gig && data.gig.shows) || 0;
+  const stubs = n <= 0
+    ? `<div class="pf-stub wait"><b>Night 1</b><small>Tonight</small></div>${[2, 3, 4, 5].map(k => `<div class="pf-stub ghost" aria-hidden="true"><b>${k}</b></div>`).join("")}`
+    : Array.from({ length: Math.min(n, STUBS) }, (_, i) => {
+      const k = n - Math.min(n, STUBS) + i + 1; /* a long run shows its most recent nights, ending with the latest */
+      return `<div class="pf-stub on"><b>Night ${k}</b>${st.today && k === n ? "<small>Tonight</small>" : ""}</div>`;
+    }).join("");
+  const runLabel = n <= 0 ? "Nights in a row: 0. Night 1 is waiting." : `${n} ${n === 1 ? "night" : "nights"} in a row`;
+  const runCap = n <= 0 ? "Play tonight to start a run" : n > STUBS ? `${n.toLocaleString("en-US")} nights in a row` : "";
+  const bars = p.bars || { mode: "none", bars: [] };
+  const max = Math.max(1, ...bars.bars.map(b => b.secs));
+  const mins = Math.round(bars.bars.reduce((a, b) => a + b.secs, 0) / 60);
+  const barsHTML = bars.mode === "none" ? "" : `<div class="pf-bars" data-mode="${bars.mode}" style="--n:${bars.bars.length}" role="img" aria-label="${bars.mode === "weeks" ? "Minutes played in each of the last four weeks" : "Minutes played on each of the last seven days"}">${bars.bars.map(b => `<div><span class="pf-track"><i style="--h:${b.secs ? Math.max(12, Math.round(b.secs / max * 100)) : 0}%"></i></span><small>${esc(b.label)}</small></div>`).join("")}</div><p class="pf-cap">${esc(bars.mode === "weeks" ? bars.caption : `${mins} min in the last seven days`)}</p>`;
+  const most = Math.max(1, ...p.rhythm.grid.flat());
+  const heat = p.whenLine ? `<section class="pf-block"><p class="pf-over">When you play</p><p class="pf-when">${esc(p.whenLine)}</p>
+      <div class="pf-heat" role="img" aria-label="${esc(p.whenLine)}"><span></span>${["Morn", "Aft", "Eve", "Late"].map(x => `<small>${x}</small>`).join("")}
+      ${p.rhythm.grid.map((row, d) => `<small>${"SMTWTFS"[d]}</small>${row.map(v => `<i style="--a:${v ? (0.28 + 0.72 * v / most).toFixed(2) : 0}"></i>`).join("")}`).join("")}</div></section>` : "";
+  const ch = p.changes[0];
+  const best = ch ? `<section class="pf-block pf-best"><p class="pf-over">Your best change</p><h2>${esc(ch.a)} to ${esc(ch.b)}</h2><p class="pf-cap">Played ${ch.n.toLocaleString("en-US")} ${ch.n === 1 ? "time" : "times"}</p><button type="button" class="pf-drill" data-drill="${esc(ch.a)}-${esc(ch.b)}" aria-label="Drill ${esc(ch.a)} to ${esc(ch.b)} in Rehearse">Drill it</button></section>` : "";
+  const tempo = p.tempo, trend = tempo.earlier && tempo.recent ? Math.round(tempo.recent - tempo.earlier) : 0;
+  const key = p.keys[0], keyTotal = p.keys.reduce((a, k) => a + k.n, 0) || 1, pct = key ? Math.round(key.n / keyTotal * 100) : 0;
+  const trendLine = trend >= 3 ? "You're speeding up" : trend <= -3 ? "You're slowing down" : "";
+  const keys = (key || tempo.avg > 0) ? `<section class="pf-block pf-kt"><p class="pf-over">Keys and tempo</p><div class="pf-kt-row">
+      ${key ? `<div class="pf-dial"><span class="pf-dial-wrap"><i style="--p:${pct}" aria-hidden="true"></i><b>${esc(key.key)}</b></span><small>Your most played key</small><span>${pct}% of plays</span></div>` : ""}
+      ${tempo.avg > 0 ? `<div class="pf-bpm"><b>${Math.round(tempo.avg)}</b><small>bpm on average</small>${trendLine ? `<span class="pf-trend">${trendLine}</span>` : ""}</div>` : ""}
+    </div></section>` : "";
+  app.innerHTML = `<div class="pf-stats-page">
+    <header class="pf-st-h"><div class="pf-ch-top"><button type="button" class="ib" id="back" aria-label="Back to Me">${icon("back")}</button><h1>Your stats</h1><span></span></div><p>Hours, when you play, your changes, keys and tempo</p></header>
+    <section class="pf-block pf-run"><p class="pf-over">Nights in a row</p><div class="pf-stubs" role="img" aria-label="${runLabel}">${stubs}</div>${runCap ? `<p class="pf-cap" id="pf-run-cap">${runCap}</p>` : ""}<p class="pf-shows">Shows played: <b>${shows.toLocaleString("en-US")}</b></p></section>
+    <section class="pf-block pf-tour"><p class="pf-over">Tour time</p><div class="pf-poster"><b>${hoursText(p.hours)}</b><span>${hoursUnit(p.hours)}</span><small>played</small></div>${barsHTML}</section>
+    ${heat}${best}${keys}
+    <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>
+  </div>`;
+  document.getElementById("back").onclick = () => go("#/you");
+  const strip = app.querySelector(".pf-stubs"); if (strip && n > 0) strip.scrollLeft = strip.scrollWidth; /* the latest night is in view */
+  app.querySelectorAll("[data-drill]").forEach(b => b.onclick = () => go("#/practice/" + encodeURIComponent("s:" + b.dataset.drill)));
+}
+
+/* Chord cards (Dark and Light): a shelf per family, a fingering from the shapes the app already draws. */
+function renderChords() {
+  const p = profileOf(data);
+  Tabs.save(data);
+  const have = new Map(p.chords.map(c => [c.name, c]));
+  const nextUp = PASSPORT.flatMap(f => f.chords).find(c => !have.has(c));
+  const extra = p.chords.filter(c => !PASSPORT.some(f => f.chords.includes(c.name)));
+  const byId = id => PASSPORT.find(f => f.id === id)?.chords || [];
+  const families = [
+    { name: "Open/7th chords", chords: [...byId("open"), ...byId("seventh")] },
+    ...PASSPORT.filter(f => f.id === "color" || f.id === "barre").map(f => ({ name: f.name, chords: f.chords })),
+    ...(extra.length ? [{ name: "More chords", chords: extra.map(c => c.name), all: true }] : [])
+  ];
+  const total = families.reduce((n, f) => n + f.chords.length, 0);
+  const card = c => {
+    const dg = `<span class="pf-dg" aria-hidden="true">${chordSVG(c, 1.45, { named: false })}</span><b>${esc(c)}</b>`;
+    if (have.has(c)) return `<button type="button" class="pf-ccard on" data-stamp="${esc(c)}" aria-label="${esc(c)}, learned. Show the diagram">${dg}</button>`;
+    if (c === nextUp) return `<div class="pf-ccard locked next">${dg}<button type="button" class="pf-learn" id="pf-learn" data-chord="${esc(c)}" aria-label="Learn ${esc(c)} in Rehearse">Learn it</button></div>`;
+    return `<div class="pf-ccard locked" role="img" aria-label="${esc(c)}, not yet"><span aria-hidden="true">${dg}</span></div>`;
+  };
+  const shelf = f => {
+    const got = f.chords.filter(c => have.has(c)).length;
+    return `<section class="pf-fam"><div class="pf-fam-h"><b>${esc(f.name)}</b><span>${f.all ? got : `${got} of ${f.chords.length}`}</span></div><div class="pf-shelf">${f.chords.map(card).join("")}</div></section>`;
+  };
+  app.innerHTML = `<div class="pf-chords">
+    <div class="pf-ch-top"><button type="button" class="ib" id="back" aria-label="Back to Me">${icon("back")}</button><h1>Chords</h1><span>${p.chords.length} of ${total}</span></div>
+    ${families.map(shelf).join("")}
+  </div>`;
+  document.getElementById("back").onclick = () => go("#/you");
+  document.getElementById("pf-learn")?.addEventListener("click", e => go("#/practice/" + encodeURIComponent("c:" + e.currentTarget.dataset.chord)));
+  app.querySelectorAll("[data-stamp]").forEach(b => b.onclick = () => stampSheet(have.get(b.dataset.stamp)));
+}
+
 /* 4.19.0: a stamp opened: the chord's diagram, how often you've played it and since when */
 function stampSheet(c) {
   if (!c) return;
@@ -189,9 +269,16 @@ function stampSheet(c) {
 /* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */
 /* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
 async function meCardImage() {
-  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false, portrait: true }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
-  const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
-  return im;
+  /* the painting is a file: the canvas draws that file, not the svg around it. A left-handed player is mirrored on the canvas. */
+  const svg = you(data, { size: 400 });
+  const href = svg.match(/href="(art\/guitarist-painted\/genres\/[^"]+)"/)[1];
+  const im = new Image();
+  im.src = href;
+  await im.decode();
+  if (!meOf(data).lefty) return im;
+  const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const x = c.getContext("2d"); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(im, 0, 0);
+  return Object.assign(c, { naturalWidth: c.width, naturalHeight: c.height });
 }
 async function louieCardImage() {
   const im = new Image(); im.src = louiePic("horns"); await im.decode();

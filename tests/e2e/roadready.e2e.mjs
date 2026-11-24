@@ -1,5 +1,5 @@
-// Road Ready, step 01: the tokens, fonts, tolex and plate button on Dark and Light,
-// and proof that Green Room and Headliner are untouched.
+// Road Ready, step 01: the tokens, fonts, tolex and plate button on Dark and Light.
+// Green Room and Headliner are retired: a saved one is shown as Light or Dark, and their CSS stays unused.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { phone, LIB, skip, useBrowser, browser, base, tool, settled } from "./harness.mjs";
@@ -19,7 +19,7 @@ async function probe(page) {
     const host = document.createElement("div"); host.id = "rr-probe"; host.style.cssText = "position:fixed;left:0;top:0;width:300px;z-index:9";
     host.innerHTML = '<button class="btn primary" id="p1">Save</button><button class="btn" id="p2">Cancel</button>';
     document.body.appendChild(host);
-    const read = id => { const c = getComputedStyle(document.getElementById(id)); return { radius: c.borderTopLeftRadius, border: c.borderTopWidth, borderColor: c.borderTopColor, bg: c.backgroundColor, img: c.backgroundImage, color: c.color, font: c.fontFamily, weight: c.fontWeight, height: parseFloat(c.height), shadow: c.boxShadow, trans: c.transitionProperty }; };
+    const read = id => { const c = getComputedStyle(document.getElementById(id)); return { radius: c.borderTopLeftRadius, border: c.borderTopWidth, side: c.borderLeftWidth, borderColor: c.borderTopColor, bg: c.backgroundColor, img: c.backgroundImage, slice: c.borderImageSource, color: c.color, font: c.fontFamily, weight: c.fontWeight, height: parseFloat(c.height), shadow: c.boxShadow, trans: c.transitionProperty, fill: c.webkitTextFillColor, filter: c.filter }; };
     return { primary: read("p1"), secondary: read("p2") };
   });
 }
@@ -51,7 +51,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     for (const [n, v] of Object.entries({ chip: "999px", control: "10px", card: "16px", strip: "18px", sheet: "24px", plate: "12px" })) assert.equal(await prop(page, "--r-" + n), v, `--r-${n}`);
     assert.equal(await prop(page, "--r"), "16px"); assert.equal(await prop(page, "--r-bar"), "18px"); assert.equal(await prop(page, "--margin"), "16px");
     assert.equal((await prop(page, "--rr-base")).toUpperCase(), baseHex);
-    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#763A00" : "#FFB547");
+    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#065F5B" : "#20E0D0");
 
     /* the type tokens work as font sizes and follow --sys-px */
     const sizes = () => page.evaluate(names => names.map(n => { const e = document.createElement("i"); e.style.fontSize = `var(--type-${n})`; document.body.appendChild(e); const v = parseFloat(getComputedStyle(e).fontSize); e.remove(); return Math.round(v * 10) / 10; }), TYPE);
@@ -62,13 +62,13 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
 
     /* fonts */
     const fam = await page.evaluate(() => { const c = getComputedStyle(document.body); const h = document.createElement("h2"); document.body.appendChild(h); const d = getComputedStyle(h).fontFamily; h.remove(); return [c.fontFamily, d, getComputedStyle(document.documentElement).getPropertyValue("--readout")]; });
-    assert.match(fam[0], /^Inter\b|^"Inter"/, "text is Inter"); assert.match(fam[1], /Space Grotesk/, "titles are Space Grotesk"); assert.match(fam[2], /IBM Plex Mono/, "--readout (tuner and tempo numbers) is IBM Plex Mono");
+    assert.match(fam[0], /^Inter\b|^"Inter"/, "text is Inter"); assert.match(fam[1], /Sora/, "titles are Sora"); assert.match(fam[2], /IBM Plex Mono/, "--readout (tuner and tempo numbers) is IBM Plex Mono");
     const tabFam = await page.evaluate(() => { const s = document.createElement("div"); s.className = "sheet"; const e = document.createElement("div"); e.className = "tab"; e.textContent = "e|--0--"; s.appendChild(e); document.body.appendChild(s); const f = getComputedStyle(e).fontFamily; s.remove(); return f; });
     assert.doesNotMatch(tabFam, /IBM Plex Mono/, "tab blocks keep the system monospace");
 
     /* tolex ground: the grain is there, and the average stays the base colour */
     const bg = await page.evaluate(() => { const c = getComputedStyle(document.body); return { img: c.backgroundImage, col: c.backgroundColor }; });
-    assert.match(bg.img, /art\/surfaces\/tolex-(dark|cream)\.webp/, "the tolex bitmap tile is on the body");
+    assert.match(bg.img, /art\/surfaces\/tolex-(dark-levant|dark-fine|dark-leather|dark|cream)\.webp/, "the tolex bitmap tile is on the body");
     assert.equal(bg.col, `rgb(${rgb.join(", ")})`, "under the grain is the base colour");
     /* the page's own cards are hidden while the ground is measured (the Songbook's cards filled this band from step 07) */
     await page.evaluate(() => { document.getElementById("app").style.visibility = "hidden"; });
@@ -76,11 +76,25 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     await page.evaluate(() => { document.getElementById("app").style.visibility = ""; });
     for (let i = 0; i < 3; i++) assert.ok(Math.abs(mean[i] - rgb[i]) <= (label === "Dark" ? 4 : 5), `average ${["red", "green", "blue"][i]} ${mean[i].toFixed(1)} should stay near ${rgb[i]}`);
 
-    /* the plate button (primary) and the capsule (secondary) */
+    /* the guitar-pick primary and the capsule (secondary). Dark is brushed brass, Light is espresso with a brass rim. */
     const b = await probe(page);
-    assert.equal(b.primary.radius, "12px"); assert.equal(b.primary.border, "2px"); assert.equal(b.primary.borderColor, "rgb(140, 120, 88)", "plate edge");
-    assert.equal(b.primary.color, "rgb(40, 30, 20)", "plate text"); assert.match(b.primary.font, /Space Grotesk/); assert.equal(b.primary.weight, "700");
-    assert.equal((b.primary.img.match(/radial-gradient/g) || []).length, 4, "four screws"); assert.match(b.primary.img, /linear-gradient/);
+    assert.equal(b.primary.radius, "0px", "the pick shape comes from the SVG, not a corner radius");
+    assert.equal(b.primary.border, "0px", "no top border; the curves are in the side slices");
+    assert.equal(b.primary.side, "42px", "the hero pick keeps 42 px shoulders");
+    assert.equal(b.primary.img, "none", "no cream-plate fill and no corner screws");
+    assert.match(b.primary.slice, /svg/i, "the face is an SVG border image");
+    assert.doesNotMatch(b.primary.slice, /radial-gradient/, "the pick has no screw dots");
+    assert.match(b.primary.font, /Sora/); assert.equal(b.primary.weight, "700");
+    assert.notEqual(b.primary.fill, "rgba(0, 0, 0, 0)", "the words are a real colour, so an inline icon keeps currentColor");
+    assert.match(b.primary.filter, /drop-shadow/, "the pick lifts off the tolex");
+    if (label === "Dark") {
+      assert.equal(b.primary.color, "rgb(35, 26, 16)", "espresso ink on the brass face");
+      assert.match(b.primary.slice, /FFF4DA|fff4da/i, "brushed brass face");
+    } else {
+      assert.equal(b.primary.color, "rgb(244, 230, 203)", "champagne ink on the espresso face");
+      assert.match(b.primary.slice, /272019/i, "espresso face");
+      assert.match(b.primary.slice, /FBF0D2|fbf0d2/i, "antique brass rim");
+    }
     assert.ok(b.primary.height >= 44, `primary is ${b.primary.height} px tall`);
     assert.equal(b.secondary.radius.replace("px", "") >= 100 || b.secondary.radius === "999px", true, "capsule"); assert.ok(parseFloat(b.secondary.border) >= 1 && parseFloat(b.secondary.border) <= 1.5, "a hairline border (1.5 px, which a 1x screen draws as 1)"); assert.equal(b.secondary.borderColor, "rgb(140, 132, 122)", "outline colour");
     assert.equal(b.secondary.bg, "rgba(0, 0, 0, 0)"); assert.ok(b.secondary.height >= 44, `secondary is ${b.secondary.height} px tall`);
@@ -97,14 +111,19 @@ test("Road Ready: Auto follows the phone between Road Ready dark and light", { s
   }
 });
 
-test("Green Room and Headliner get no Road Ready tokens and keep their own colours, fonts and buttons", { skip: skip() }, async t => {
+test("a saved Green Room or Headliner follows the phone, and their CSS is still unused", { skip: skip() }, async t => {
+  for (const [stored, scheme, look] of [["green", "light", "festival"], ["headliner", "dark", "neon"]]) {
+    const page = await phone(t, libWith(stored, { merch: { has: [stored], tconv: 1, lconv: 1, tspent: stored === "green" ? 400 : 0 } }), { colorScheme: scheme });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), look, `${stored} on a ${scheme} phone`);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), stored, "not rewritten");
+  }
   const want = {
     green: { bg: "#E6EFE7", accent: "#FF5A4E", sans: /Nunito/, display: /Fredoka/ },
     headliner: { bg: "#16171B", accent: "#8A47F5", sans: /Nunito/, display: /Fredoka/ }
   };
+  const page = await phone(t, libWith("dark"));
   for (const [look, w] of Object.entries(want)) {
-    const page = await phone(t, libWith(look));
-    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), look);
+    await page.evaluate(l => { document.documentElement.dataset.look = l; document.documentElement.dataset.theme = l === "green" ? "light" : "dark"; }, look);
     assert.equal(await prop(page, "--rr-base"), "", `${look}: --rr-base is empty`);
     for (const n of RR) assert.equal(await prop(page, "--rr-" + n), "", `${look}: --rr-${n} is empty`);
     for (const n of ["--type-body", "--type-display", "--sp-1", "--r-plate", "--margin", "--mesh", "--chrome-pipe"]) assert.equal(await prop(page, n), "", `${look}: ${n} is empty`);
@@ -115,7 +134,7 @@ test("Green Room and Headliner get no Road Ready tokens and keep their own colou
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundImage);
     assert.equal(bg, "none", `${look}: no tolex on the body`);
     const b = await probe(page);
-    assert.equal(b.primary.radius, "16px", `${look}: the chunky primary button`); assert.equal(b.primary.img, "none"); assert.equal(b.secondary.radius, "16px");
+    assert.equal(b.primary.radius, "16px", `${look}: the chunky primary button`); assert.equal(b.primary.img, "none"); assert.equal(b.primary.slice, "none", `${look}: no guitar pick`); assert.equal(b.secondary.radius, "16px");
     assert.match(b.primary.font, /Fredoka/);
   }
 });
@@ -133,7 +152,7 @@ test("Road Ready: the Merch table and Settings use the new names, and no screen 
   assert.equal(await first("neon"), "rgb(20, 18, 16)", "the dark swatch starts with #141210");
   await page.click('.mc-look[data-id="festival"]'); /* Try it on opens the sheet; its line describes the look */
   await page.waitForFunction(() => document.documentElement.dataset.look === "festival");
-  assert.match(await page.innerText("body"), /cream tolex, chrome piping and warm amber/);
+  assert.match(await page.innerText("body"), /cream tolex, chrome piping and cool teal/);
   assert.doesNotMatch(await page.innerText("body"), /Festival Poster|Neon Midnight/);
 });
 
@@ -180,19 +199,19 @@ test("Road Ready: the fonts come from vendor/fonts only, and are kept for offlin
   await page.reload(); await page.waitForFunction(() => document.getElementById("app")?.childElementCount > 0);
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   /* use all three families once (the tuner and tempo numbers use the mono one) */
-  await page.evaluate(() => Promise.all(['500 20px "Space Grotesk"', '450 17px "Inter"', '600 20px "IBM Plex Mono"'].map(f => document.fonts.load(f, "A1"))));
+  await page.evaluate(() => Promise.all(['600 20px "Sora"', '700 20px "Sora"', '450 17px "Inter"', '600 20px "IBM Plex Mono"'].map(f => document.fonts.load(f, "A1"))));
   const fontUrls = urls.filter(u => /\.(woff2?|ttf|otf)(\?|$)/.test(u));
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(fontUrls.some(u => u.endsWith("/vendor/fonts/" + f)), `${f} was requested from vendor/fonts`);
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(fontUrls.some(u => u.endsWith("/vendor/fonts/" + f)), `${f} was requested from vendor/fonts`);
   assert.ok(fontUrls.every(u => u.startsWith(base + "vendor/fonts/")), `every font comes from this app: ${fontUrls.join(", ")}`);
   assert.ok(urls.filter(u => !u.startsWith("data:") && !u.startsWith("blob:")).every(u => u.startsWith(base)), "no request leaves the app");
   /* the service worker keeps them */
   const kept = await page.evaluate(async () => (await (await caches.open("tabs-vendor")).keys()).map(r => new URL(r.url).pathname));
-  for (const f of ["spacegrotesk.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(kept.some(p => p.endsWith("/vendor/fonts/" + f)), `${f} is in the tabs-vendor cache (${kept.join(", ")})`);
-  const loaded = await page.evaluate(() => ["Space Grotesk", "Inter", "IBM Plex Mono"].map(f => document.fonts.check(`16px "${f}"`)));
+  for (const f of ["sora-600.woff2", "sora-700.woff2", "inter.woff2", "ibmplexmono-600.woff2"]) assert.ok(kept.some(p => p.endsWith("/vendor/fonts/" + f)), `${f} is in the tabs-vendor cache (${kept.join(", ")})`);
+  const loaded = await page.evaluate(() => ["Sora", "Inter", "IBM Plex Mono"].map(f => document.fonts.check(`16px "${f}"`)));
   assert.deepEqual(loaded, [true, true, true]);
 });
 
-test("Road Ready: nothing new animates with Reduce Motion on, and the plate press is instant", { skip: skip() }, async t => {
+test("Road Ready: nothing new animates with Reduce Motion on, and the pick press is instant", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"), { reducedMotion: "reduce" });
   const b = await probe(page);
   assert.equal(b.primary.trans, "none"); assert.equal(b.secondary.trans, "none");
@@ -205,7 +224,72 @@ test("Road Ready: nothing new animates with Reduce Motion on, and the plate pres
   await page.mouse.move(box.x + 20, box.y + 20); await page.mouse.down();
   const down = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("p1")); return [c.transform, c.filter]; });
   await page.mouse.up();
-  assert.match(down[0], /matrix\(1, 0, 0, 1, 0, 1\)/, "1 px down"); assert.match(down[1], /brightness\(0\.94\)/, "6 percent darker");
+  assert.match(down[0], /matrix\(1, 0, 0, 1, 0, 1\)/, "1 px down"); assert.match(down[1], /brightness\(0\.92\)/, "8 percent darker, with no bounce");
+});
+
+/* Contrast of the pick inks against the face colours they sit on. The words are centred, so the mid tone is the one that matters. */
+const lum = hex => { const [r, g, b] = [0, 2, 4].map(i => parseInt(hex.slice(i + 1, i + 3), 16) / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g + .0722 * b; };
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+
+test("Road Ready pick: brass on Dark, espresso on Light, icons and short labels stay inside the curves", { skip: skip() }, async t => {
+  assert.ok(contrast("#231A10", "#E6D4B2") > 10, "espresso ink on the mid brass is over 10:1");
+  assert.ok(contrast("#231A10", "#FFF4DA") > 10, "espresso ink on the bright brass is over 10:1");
+  assert.ok(contrast("#231A10", "#C2AA80") > 7, "espresso ink on the darkest brass still clears AAA");
+  assert.ok(contrast("#F4E6CB", "#272019") > 11, "champagne ink on the lightest espresso is over 11:1");
+  assert.ok(contrast("#F4E6CB", "#14100C") > 11, "champagne ink on the darkest espresso is over 11:1");
+
+  for (const [label, theme, scheme, ink, face] of [
+    ["Dark", "dark", "light", "rgb(35, 26, 16)", "FFF4DA"],
+    ["Light", "light", "dark", "rgb(244, 230, 203)", "272019"]
+  ]) {
+    const page = await phone(t, libWith(theme), { colorScheme: scheme, reducedMotion: "reduce" });
+    const fit = await page.evaluate(() => {
+      const host = document.createElement("div");
+      host.style.cssText = "position:fixed;left:8px;top:8px;width:358px;z-index:9;display:flex;flex-direction:column;gap:8px";
+      host.innerHTML = [
+        '<button class="btn primary" id="wide">Head to the Club</button>',
+        '<button class="btn primary" id="icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 12v8h16v-8M12 3v12M8 7l4-4 4 4"/></svg>Share your card</button>',
+        '<div style="display:flex;gap:10px"><button class="btn sm primary" id="ok">OK</button><button class="btn sm primary" id="done">Done</button><button class="btn sm primary" id="save">Save</button></div>',
+        '<div class="rd-pop" style="position:relative;width:268px"><button class="btn primary rd-start" id="long">FIND A SONG THAT FITS</button></div>',
+        '<button class="btn primary" id="off" disabled>Save</button>',
+        '<button class="rr-plate" id="plate">Venue</button>'
+      ].join("");
+      document.body.appendChild(host);
+      const box = el => { const r = el.getBoundingClientRect(), c = getComputedStyle(el); return { w: r.width, h: r.height, side: c.borderLeftWidth, slice: c.borderImageSource, color: c.color, fill: c.webkitTextFillColor, over: el.scrollWidth > el.clientWidth + 1 }; };
+      const inside = id => { const b = document.getElementById(id).getBoundingClientRect(); const range = document.createRange(); range.selectNodeContents(document.getElementById(id)); const t = range.getBoundingClientRect(); return { insetL: t.left - b.left, insetR: b.right - t.right }; };
+      const icon = document.querySelector("#icon svg").getBoundingClientRect();
+      const ib = document.getElementById("icon").getBoundingClientRect();
+      return {
+        wide: { ...box(document.getElementById("wide")), ...inside("wide") },
+        icon: { ...box(document.getElementById("icon")), svgColor: getComputedStyle(document.querySelector("#icon svg")).color, svgIn: icon.left > ib.left + 16 && icon.right < ib.right - 16 && icon.width > 8 },
+        ok: box(document.getElementById("ok")), done: box(document.getElementById("done")), save: box(document.getElementById("save")),
+        long: { ...box(document.getElementById("long")), ...inside("long") },
+        off: { slice: getComputedStyle(document.getElementById("off")).borderImageSource, color: getComputedStyle(document.getElementById("off")).color, filter: getComputedStyle(document.getElementById("off")).filter },
+        plate: (getComputedStyle(document.getElementById("plate")).backgroundImage.match(/radial-gradient/g) || []).length
+      };
+    });
+    assert.equal(fit.wide.over, false, `${label}: a wide label stays on one line`);
+    assert.ok(fit.wide.insetL >= 36 && fit.wide.insetR >= 36, `${label}: wide text clears the shoulders (${fit.wide.insetL}, ${fit.wide.insetR})`);
+    assert.equal(fit.icon.color, ink, `${label}: icon button ink`);
+    assert.equal(fit.icon.svgColor, ink, `${label}: the icon uses the button colour`);
+    assert.equal(fit.icon.svgIn, true, `${label}: the icon sits inside the pick`);
+    assert.notEqual(fit.icon.fill, "rgba(0, 0, 0, 0)", `${label}: text fill is not clipped away`);
+    assert.match(fit.icon.slice, new RegExp(face, "i"), `${label}: the pick face is in the border image`);
+    for (const id of ["ok", "done", "save"]) {
+      assert.equal(fit[id].over, false, `${label}: ${id} does not overflow`);
+      assert.equal(fit[id].side, "32px", `${label}: ${id} uses the compact shoulders`);
+      assert.ok(fit[id].h >= 42, `${label}: ${id} is ${fit[id].h} px tall`);
+      assert.ok(fit[id].w >= 108, `${label}: ${id} is wide enough to hold its curves (${fit[id].w})`);
+    }
+    assert.equal(fit.long.over, false, `${label}: the stop card's long label fits`);
+    assert.equal(fit.long.side, "24px", `${label}: the stop card uses the tighter pick`);
+    assert.ok(fit.long.h >= 44, `${label}: the stop button is ${fit.long.h} px tall`);
+    assert.ok(fit.long.insetL >= 18 && fit.long.insetR >= 18, `${label}: the long label clears the tighter shoulders`);
+    assert.equal(fit.off.slice, "none", `${label}: a disabled primary drops the metallic face`);
+    assert.notEqual(fit.off.color, ink, `${label}: disabled words are the quiet colour`);
+    assert.equal(fit.off.filter, "none", `${label}: a disabled pick does not cast a shadow`);
+    assert.equal(fit.plate, 2, `${label}: the venue plate keeps its two screws, and they are not four`);
+  }
 });
 
 test("the Tap tempo chip stays put while its label grows, so a thumb can keep tapping", { skip: skip() }, async t => {
@@ -234,72 +318,104 @@ async function road(t, theme, skills, opts = {}, extra) {
   await page.waitForSelector(".rr-head .rr-stats"); await settled(page);
   return page;
 }
-/* the end of each connector step, and the centre of each stop's button, both in screen pixels */
-const connectorEnds = page => page.evaluate(() => [...document.querySelectorAll(".rd-neck")].map(neck => {
-  const ends = [...neck.querySelectorAll(".rd-conn .rr-cc")].map(p => { const m = p.getScreenCTM(), q = p.getPointAtLength(p.getTotalLength()); return [q.x * m.a + m.e, q.y * m.d + m.f]; });
-  const stops = [...neck.querySelectorAll(".rd-node")].map(b => { const r = b.getBoundingClientRect(); return { id: b.dataset.stop, state: [...b.classList].find(c => ["done", "now", "open", "locked"].includes(c)), x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  return { ends, stops };
-}));
 
 for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
   test(`Road Ready 02 (${label}): one-row header, venue sign, pearl inlays, the connector up to the current stop, Tonight beside it, and no Louie`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
     /* the one-row header (Grok, 2026-11-19): streak, songs you can play, fans and tips, each an icon then a number; nothing else */
-    for (const sel of ["header.rr-head .rr-stats", "#h-streak", "#h-fans", "#h-tips", ".rd-stop.cur #rd-tonight.rr-tn-stop", "#rd-sign.rr-sign"]) assert.equal(await page.locator(sel).count(), 1, sel);
-    for (const sel of [".hud:not(.rr-stats)", ".rr-hdr", ".rr-plate", ".rr-pips", "#h-venue", "#rd-bubble", ".rr-say", ".rr-tonight", ".rd-banner", "#rd-book", ".rd-chip", ".rd-say", "#rd-tune", ".h-lab"]) assert.equal(await page.locator(sel).count(), 0, `${sel} is gone from the Road`);
-    assert.equal(await page.innerText("#rd-sign"), "GARAGE", "the venue is a small sign at the start of the leg");
-    assert.equal(await page.getAttribute("#rd-sign", "aria-label"), "Garage, venue 1. Open the Tour Map");
+    for (const sel of ["header.rr-head .rr-stats", "#h-streak", "#h-fans", "#h-tips"]) assert.equal(await page.locator(sel).count(), 1, sel);
+    for (const sel of [".hud:not(.rr-stats)", ".rr-hdr", ".rr-plate", ".rr-pips", "#h-venue", "#rd-bubble", ".rr-say", ".rr-tonight", "#rd-tonight", "#rd-sign", ".rd-banner", "#rd-book", ".rd-chip", ".rd-say", "#rd-tune", ".h-lab", ".louie"]) assert.equal(await page.locator(sel).count(), 0, `${sel} is gone from the Road`);
     assert.match(await page.innerText("#h-tips"), /^\$\d/); for (const id of ["h-streak", "h-fans"]) assert.match(await page.innerText("#" + id), /^\d[\d,]*$/, `${id} is a number only`);
-    assert.match(await page.getAttribute("#rd-tonight", "aria-label"), /^Tonight: .+\. Play$/);
-    assert.match(await page.innerText("#rd-tonight"), /^TONIGHT\s+River Road$/);
     /* 44 px or less, below the safe area, with no card, pill, outline or background on the row or a stat */
     const row = await page.evaluate(() => { const h = document.querySelector("header.rr-head"), r = h.getBoundingClientRect(), bare = e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, img: c.backgroundImage, border: c.borderTopWidth, shadow: c.boxShadow }; };
-      return { top: r.top, h: r.height, row: bare(h), stats: [...h.querySelectorAll("button")].map(b => ({ ...bare(b), w: b.getBoundingClientRect().width, hh: b.getBoundingClientRect().height, icon: !!b.querySelector("svg.rr-st-ic") })), neck: document.querySelector(".rd-neck").getBoundingClientRect().top + scrollY }; });
+      return { top: r.top, h: r.height, row: bare(h), stats: [...h.querySelectorAll("button")].map(b => ({ ...bare(b), w: b.getBoundingClientRect().width, hh: b.getBoundingClientRect().height, icon: !!b.querySelector("svg.rr-st-ic") })), neck: document.querySelector(".rn-neck").getBoundingClientRect().top + scrollY }; });
     assert.ok(row.h <= 44, `the header is ${row.h} px tall`); assert.equal(Math.round(row.top), 0, "right under the safe area");
     for (const x of [row.row, ...row.stats]) assert.deepEqual([x.bg, x.img, x.border, x.shadow], ["rgba(0, 0, 0, 0)", "none", "0px", "none"], "bare: no card, pill, outline or background");
     assert.equal(row.stats.length, 3); assert.equal(await page.locator("#h-songs").count(), 0, "the songs number is out of the header (Graham, 2026-11-19)"); assert.ok(row.stats.every(x => x.icon && x.w >= 44 && x.hh >= 44), "three stats, each a line icon, each at least 44 by 44");
-    assert.ok(row.neck <= 60, `the neck starts right under the header (${row.neck} px)`);
 
-    /* the stops: done ones carry a check, the current one is the trapezoid with its number, the ones ahead are numbered */
-    const cur = await page.evaluate(() => { const b = document.querySelector(".rd-node.cur"), a = b.querySelector(".rr-art").getBoundingClientRect(); return { n: b.querySelector(".rr-eng text")?.textContent, w: a.width, h: a.height, glow: !!b.querySelector(".rr-glow"), fill: getComputedStyle(b.querySelector(".rr-pearl")).fill }; });
-    assert.deepEqual([cur.n, Math.round(cur.w), Math.round(cur.h), cur.glow], ["6", 52, 38, true], "the current stop: show 6, a 52 by 38 trapezoid, lit");
-    assert.equal(cur.fill, "rgb(255, 214, 140)", "#FFD68C pearl");
-    const done = await page.$$eval(".rd-neck >> nth=0 >> .rd-node.rr.done:not(.box)", bs => bs.map(b => ({ check: !!b.querySelector(".rr-eng path"), w: b.querySelector(".rr-art").getBoundingClientRect().width, halo: !!b.querySelector(".rr-halo") })));
-    assert.equal(done.length, 4); assert.ok(done.every(d => d.check && Math.round(d.w) === 26 && d.halo), "done: 26 px with a check and a faint halo");
-    const ahead = await page.$$eval(".rd-node.rr.locked:not(.box, .headline)", bs => bs.filter(b => !b.closest(".rr-peek")).slice(0, 3).map(b => b.querySelector(".rr-eng text")?.textContent));
-    assert.deepEqual(ahead, ["7", "9"], "numbered ahead (8 is a merch box); the next leg is a locked peek with no stops (4.99.0)");
-    assert.equal(await page.locator(".rd-neck >> nth=0 >> .rd-node.headline .rr-art").count(), 1, "the leg ends in the double inlay");
+    const neck = await page.evaluate(() => {
+      const n = document.querySelector(".rn-neck").getBoundingClientRect();
+      const cur = document.querySelector(".rd-node.cur");
+      const pearl = cur.querySelector(".rn-pearl").getBoundingClientRect();
+      const leg = document.querySelector(".rn-legbar").getBoundingClientRect();
+      const line = document.querySelector(".rn-legline");
+      const plate = document.getElementById("rn-now").getBoundingClientRect();
+      const tabs = document.getElementById("tabs").getBoundingClientRect();
+      const gold = document.querySelector(".rn-gold").getBoundingClientRect();
+      const header = document.querySelector("header.rr-head").getBoundingClientRect();
+      const nut = document.querySelector(".rn-nut").getBoundingClientRect();
+      const walker = document.createTreeWalker(document.getElementById("rd-path"), NodeFilter.SHOW_TEXT);
+      const gutter = [];
+      while (walker.nextNode()) {
+        const t = walker.currentNode.textContent.trim();
+        if (!t) continue;
+        const range = document.createRange();
+        range.selectNodeContents(walker.currentNode);
+        const rect = range.getBoundingClientRect();
+        if (rect.width && rect.right <= n.left + 2) gutter.push(t);
+      }
+      const lh = parseFloat(getComputedStyle(line).lineHeight) || parseFloat(getComputedStyle(line).fontSize) * 1.2;
+      return {
+        frac: n.width / innerWidth, strings: document.querySelectorAll(".rn-string").length,
+        stops: document.querySelectorAll(".rn-neck .rd-node").length,
+        num: [...document.querySelectorAll(".rn-num")].find(el => el.style.top === cur.parentElement.style.top)?.textContent,
+        pearl: Math.round(pearl.width), glow: !!cur.querySelector(".rr-glow"),
+        check: document.querySelectorAll(".rn-check").length,
+        lock: document.querySelectorAll(".rn-lock").length,
+        name: document.querySelector(".rn-now-tx").textContent,
+        plateTop: plate.top, plateBottom: plate.bottom, plateLeft: plate.left, plateRight: plate.right, tabsTop: tabs.top,
+        legLeft: leg.left, legRight: leg.right, legTop: leg.top, legBottom: leg.bottom, headerBottom: header.bottom, nutTop: nut.top,
+        oneLine: line.getBoundingClientRect().height <= lh + 2, fits: line.scrollWidth <= line.clientWidth + 1,
+        gold: gold.height, label: line.innerText, gutter,
+        side: document.querySelectorAll(".rn-bubble, .rn-leg").length
+      };
+    });
+    assert.ok(neck.frac >= 0.55 && neck.frac <= 0.6, `the neck is ${neck.frac} of the screen`);
+    assert.equal(neck.strings, 6);
+    assert.equal(neck.stops, 10, "one inlay per stop on the first leg");
+    assert.equal(neck.num, "6");
+    assert.equal(neck.pearl, 64);
+    assert.equal(neck.glow, true);
+    assert.ok(neck.check >= 4, "done stops carry a check");
+    assert.ok(neck.lock >= 1, "locked stops carry a padlock");
+    assert.match(neck.name, /Am/);
+    assert.ok(neck.legTop >= neck.headerBottom - 1, "the leg row is under the stats");
+    const nutGap = await page.evaluate(() => { const path = document.getElementById("rd-path"); path.scrollTop = 0; const nut = document.querySelector(".rn-nut").getBoundingClientRect(); const leg = document.querySelector(".rn-legbar").getBoundingClientRect(); return nut.top - leg.bottom; });
+    assert.ok(nutGap >= -2 && nutGap <= 8, `the nut sits under the leg row (${nutGap})`);
+    assert.ok(neck.legLeft <= 1 && neck.legRight >= 389, "the leg row is full width");
+    assert.equal(neck.oneLine, true, "the leg name is one line");
+    assert.equal(neck.fits, true, "the leg name is not clipped");
+    assert.ok(neck.plateBottom <= neck.tabsTop + 1, "the plate sits above the tab bar");
+    assert.ok(neck.plateLeft <= 12 && neck.plateRight >= 370, "the plate spans the screen");
+    assert.deepEqual(neck.gutter.filter(t => !/^\d+$/.test(t)), [], `the left gutter holds only numbers (${neck.gutter.join(", ")})`);
+    assert.ok(neck.gutter.length >= 1, "the stop numbers are in the gutter");
+    assert.equal(neck.side, 0, "no side bubble and no gutter title");
+    assert.ok(neck.gold >= 12, "the leg change is a thick gold fret");
+    assert.match(neck.label, /Leg 1 · Open chords/);
     assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
-
-    /* the connector: one step per pair from the first stop to the current one, each ending on its stop; nothing ahead */
-    const [n1, n2] = await connectorEnds(page);
-    const curAt = n1.stops.findIndex(s => s.state === "now");
-    assert.equal(n1.ends.length, curAt, `${curAt} steps up to the current stop`);
-    n1.ends.forEach(([x, y], i) => { const s = n1.stops[i + 1]; assert.ok(Math.abs(x - s.x) < 1.5 && Math.abs(y - s.y) < 1.5, `step ${i + 1} ends on stop ${i + 2} (${x},${y} vs ${s.x},${s.y})`); });
-    assert.equal(n2.ends.length, 0, "no line on the leg ahead");
-    const glow = await page.evaluate(() => { const g = document.querySelector(".rr-cg"), c = document.querySelector(".rr-cc"), f = document.querySelector(".rd-conn feGaussianBlur"); return { gw: getComputedStyle(g).strokeWidth, cw: getComputedStyle(c).strokeWidth, blur: f?.getAttribute("stdDeviation") }; });
-    assert.deepEqual(glow, { gw: "12px", cw: "2.2px", blur: "7" }, "a 12 px glow blurred 7, a 2.2 px core");
-
-    /* Tonight beside the current stop, inside the screen and clear of it; the stop's own callout steps aside for it */
-    const tag = await page.evaluate(() => { const t = document.querySelector(".rd-stop.cur #rd-tonight"), b = document.querySelector(".rd-node.cur"), r = t.getBoundingClientRect(), s = b.getBoundingClientRect(); return { left: r.left, right: r.right, h: r.height, stopRight: s.right, callout: !!document.querySelector(".rd-stop.cur .rr-callout") }; });
-    assert.ok(tag.left > tag.stopRight && tag.right <= 390, `Tonight sits right of the stop, on the screen (${tag.left}-${tag.right})`);
-    assert.ok(tag.h >= 44, "and is at least 44 tall"); assert.equal(tag.callout, false);
-
-    /* Road Ready 10b: Louie is not on the Road; his line stays as a plain card */
-    assert.equal(await page.locator(".rd-peek, #app svg.louie, #app .louie").count(), 0, "no Louie on the Road");
+    assert.equal(await page.locator("#app svg.louie, #app .louie").count(), 0, "no Louie on the Road");
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
   });
 }
 
-test("Road Ready 02: a fresh leg has no connector; a finished leg's runs to its double inlay", { skip: skip() }, async t => {
-  const page = await road(t, "dark", LEG1, {}, { merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] } }); /* the headline and new-guitar sheets already seen */
-  const [n1, n2] = await connectorEnds(page);
-  assert.equal(n1.ends.length, n1.stops.length - 1, "the whole first leg is joined up");
-  const last = n1.ends.at(-1), dbl = await page.evaluate(() => { const r = document.querySelector('.rd-neck .rd-node[data-kind="double"]').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
-  assert.ok(Math.abs(last[0] - dbl[0]) < 1.5 && Math.abs(last[1] - dbl[1]) < 1.5, "ending at the double inlay");
-  assert.equal(await page.locator('.rd-neck >> nth=0 >> .rd-node[data-kind="double"].done .rr-eng path').count(), 1, "9a: the headline is one done pill, with a check");
-  assert.equal(n2.ends.length, 0, "the new leg's first stop is current: no line yet");
-  assert.match(await page.getAttribute(".rd-node.cur", "aria-label"), /^Show 1 of 11,/);
+test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is only a peek", { skip: skip() }, async t => {
+  const page = await road(t, "dark", LEG1, {}, { merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] } });
+  const m = await page.evaluate(() => ({
+    gold: document.querySelectorAll(".rn-gold").length,
+    cur: document.querySelector(".rd-node.cur")?.getAttribute("aria-label") || "",
+    next: document.querySelector(".rn-next")?.dataset.title || "",
+    stops: document.querySelectorAll(".rn-neck .rd-node").length
+  }));
+  assert.ok(m.gold >= 1, "the leg change is a gold fret");
+  assert.match(m.cur, /^Show 1 of 11,/);
+  assert.match(m.next, /Leg 3/);
+  assert.ok(m.stops > 10, "the finished leg stays on the neck with the one you are on");
+  await page.evaluate(() => {
+    const path = document.getElementById("rd-path");
+    const mark = [...document.querySelectorAll(".rn-lat")].find(m => m.dataset.title === "Leg 2");
+    path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
+  });
+  await page.waitForFunction(() => /Leg 2/.test(document.getElementById("rn-legline").innerText));
 });
 
 test("Road Ready 02: every stop and header control does what it did, and each is at least 44 by 44", { skip: skip() }, async t => {
@@ -307,11 +423,10 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   const small = await page.evaluate(() => [...document.querySelectorAll("#app button")].map(b => { const r = b.getBoundingClientRect(); return { id: b.id || b.dataset.stop || b.className, w: r.width, h: r.height }; }).filter(r => r.w < 44 || r.h < 44));
   assert.deepEqual(small, [], "every control on the Road is at least 44 by 44");
   const back = async () => { await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rr-head .rr-stats"); await settled(page); };
-  await page.click("#rd-sign"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
   /* Graham, 2026-11-19: the streak shows a small card and fans open the Tour Map; neither opens your profile. Tips still open Merch. */
   assert.equal(await page.getAttribute("#h-streak", "aria-label"), "Gig streak 0 days. Show your streak");
   await page.click("#h-streak"); await page.waitForSelector(".sk-card");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "the streak stays on the Road");
+  assert.equal(await page.evaluate(() => location.hash), "", "the streak stays on the Road");
   assert.equal(await page.innerText(".sk-card h2"), "No streak yet"); assert.equal(await page.locator(".sk-card .sk-day").count(), 7, "the last seven days");
   assert.equal(await page.evaluate(() => document.activeElement.id), "sk-x", "focus is on Done");
   await page.click("#sk-x"); await page.waitForSelector(".sk-card", { state: "detached" });
@@ -320,31 +435,34 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   await page.click("#h-fans"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
   await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /The Am chord[\s\S]*START/, "the stop card, as before");
-  assert.equal(await page.locator("#rd-tonight").isVisible(), false, "Tonight steps aside for the card");
   await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop", { state: "detached" });
-  await page.click("#rd-tonight"); await page.waitForSelector("#gig");
+  await page.click("#rn-now-open"); await page.waitForSelector(".rd-pop.now");
+  assert.equal(await page.evaluate(() => location.hash), "#/", "the plate's name opens the card and does not start");
+  assert.notEqual(await page.evaluate(() => document.getElementById("rn-now-open") === document.querySelector(".rd-pop .rd-start")), true);
+  await page.click("#rn-now-open"); await page.waitForSelector(".rd-pop", { state: "detached" });
+  await page.click("#rn-now-start");
+  await page.waitForFunction(() => location.hash.startsWith("#/practice/"));
 });
 
 test("Road Ready 02: with no song, Tonight asks for one and opens search; with no streak, Fans shows no streak at all", { skip: skip() }, async t => {
   const page = await road(t, "dark", MID, {}, { songs: [], opening: { skipped: true } });
-  assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*Add a song to play tonight/); /* on the current stop (Grok, 2026-11-19) */
-  assert.equal(await page.getAttribute("#rd-tonight", "aria-label"), "Add a song to play tonight");
+  assert.equal(await page.locator("#rd-tonight").count(), 0, "no Tonight bar on the Road");
   assert.equal(await page.locator("#h-fans small").count(), 0, "no streak: nothing beside the number, never a 0 (4.99.0)");
   assert.doesNotMatch(await page.getAttribute("#h-fans", "aria-label"), /streak/i, "and a screen reader hears no streak");
-  await page.click("#rd-tonight");
-  await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
 });
 
-test("Road Ready 02: a screen reader meets the three stats, then the leg, its sign, and its stops with Tonight beside the current one", { skip: skip() }, async t => {
+test("Road Ready 02: a screen reader meets the three stats, then the leg and its stops", { skip: skip() }, async t => {
   const page = await road(t, "light", MID);
   const order = await page.evaluate(() => {
     const els = [...document.querySelectorAll("#app button, #app .rd-legmark")];
-    return els.filter(e => !e.closest("[aria-hidden=true]")).map(e => e.id || (e.classList.contains("rd-legmark") ? "leg" : e.classList.contains("rd-node") ? "stop" : e.className)).slice(0, 7);
+    return els.filter(e => !e.closest("[aria-hidden=true]")).map(e => e.id || (e.classList.contains("rd-legmark") ? "leg" : e.classList.contains("rd-node") ? "stop" : e.className)).slice(0, 6);
   });
-  assert.deepEqual(order, ["h-streak", "h-fans", "h-tips", "leg", "rd-sign", "stop", "stop"]);
-  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1, Open chords/i);
-  const cur = await page.evaluate(() => { const b = [...document.querySelectorAll("#app button")].filter(e => !e.closest("[aria-hidden=true]")); const i = b.findIndex(x => x.matches(".rd-node.cur")); return b.slice(i + 1).find(x => !x.matches(".rr-hit"))?.id; });
-  assert.equal(cur, "rd-tonight", "Tonight comes right after the current stop");
+  assert.deepEqual(order.slice(0, 3), ["h-streak", "h-fans", "h-tips"]);
+  assert.ok(order.includes("stop"), "the stops are buttons");
+  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1/);
+  assert.match(await page.innerText(".rn-now-tx"), /Am/);
+  assert.equal(await page.getAttribute("#rn-now-open", "aria-label"), "Am, open this stop");
+  assert.equal(await page.getAttribute("#rn-now-start", "aria-label"), "Start Am");
 });
 
 test("Road Ready 02: large text keeps the header to one row, with nothing cut off and every stat on the screen", { skip: skip() }, async t => {
@@ -369,10 +487,9 @@ test("Road Ready 02: the current stop breathes and a new step of the line draws 
     await page.waitForSelector(".rd-node.box.now");
     await page.click(".rd-node.box.now");
     await page.waitForSelector(".rd-node.cur:not(.box) .rr-glow", { timeout: 6000 }); /* the Road is drawn again with the next stop current */
-    const m = await page.evaluate(() => ({ glow: getComputedStyle(document.querySelector(".rd-node.cur .rr-glow")).animationName, draw: [...document.querySelectorAll(".rr-draw")].map(p => getComputedStyle(p).animationName), off: [...document.querySelectorAll(".rr-cc.rr-draw")].map(p => getComputedStyle(p).strokeDashoffset) }));
-    assert.equal(m.draw.length, 2, "the newest step (glow and core) is the one that draws");
-    if (reduce) { assert.equal(m.glow, "none"); assert.deepEqual(m.draw, ["none", "none"]); assert.deepEqual(m.off, ["0px"], "the line is there at once"); }
-    else { assert.equal(m.glow, "rr-breathe"); assert.deepEqual(m.draw, ["rr-draw", "rr-draw"]); }
+    const m = await page.evaluate(() => ({ glow: getComputedStyle(document.querySelector(".rd-node.cur .rr-glow")).animationName }));
+    if (reduce) assert.equal(m.glow, "none");
+    else assert.equal(m.glow, "rn-breathe");
   }
 });
 
@@ -386,28 +503,24 @@ test("Road Ready 02: text on the Road meets AA contrast in both looks", { skip: 
       const v = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
       const hex = h => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)})`;
       const col = sel => getComputedStyle(document.querySelector(sel)).color;
+      const bg = sel => getComputedStyle(document.querySelector(sel)).backgroundColor;
       return {
-        sign: ratio(col(".rr-sign"), hex(v("--rr-plate-bottom"))),
         stat: ratio(col("#h-fans"), hex(v("--rr-base"))),
-        tonight: ratio(col(".rr-tn-tx b"), hex(v("--rr-base"))),
-        tonightLabel: ratio(col(".rr-tn-tx small"), hex(v("--rr-base"))),
-        leg: ratio(col(".rd-legmark"), hex(v("--rr-base"))),
-        numNow: ratio(getComputedStyle(document.querySelector(".rd-node.cur .rr-eng")).fill, hex(v("--rr-pearl-now"))),
-        numAhead: ratio(getComputedStyle(document.querySelector(".rd-node.locked:not(.box, .headline) .rr-eng")).fill, hex(v("--rr-pearl-locked"))),
-        check: ratio(getComputedStyle(document.querySelector(".rd-node.done:not(.box) .rr-eng")).stroke, hex(v("--rr-pearl-done")))
+        leg: ratio(col(".rn-legline"), bg(".rn-legbar")),
+        plate: ratio(col(".rn-now-name"), bg(".rn-now"))
       };
     });
     for (const [k, r] of Object.entries(pairs)) assert.ok(r >= 4.5, `${theme}: ${k} is ${r.toFixed(2)}:1`);
   }
 });
 
-test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg banner, finger dots, the message card without Louie)", { skip: skip() }, async t => {
+test("a saved Green Room or Headliner shows the Road Ready road", { skip: skip() }, async t => {
   for (const look of ["green", "headliner"]) {
-    const page = await phone(t, roadLib(look, MID), { home: true });
+    const page = await phone(t, roadLib(look, MID), { home: true, colorScheme: "dark" });
     await page.waitForSelector(".rd-path"); await settled(page);
-    assert.equal(await page.locator(".rr-hdr, .rr-row, .rr-stats, .rr-tn-stop, .rr-sign, .rd-peek, .rr-say, .rd-conn, .rd-node.rr").count(), 0, `${look}: none of Road Ready`);
-    assert.equal(await page.locator(".rd-say svg.louie, .rd-say .louie").count(), 0, `${look}: no Louie on the Road`);
-    for (const sel of [".hud #h-streak", ".rd-banner #rd-book", ".rd-say #rd-bubble", ".rd-say .rd-tonight", ".rd-node .rd-dot"]) assert.ok(await page.locator(sel).count() >= 1, `${look}: ${sel}`);
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "neon", `${look} is read as Dark`);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), look, "stored");
+    assert.ok(await page.locator(".rr-stats, header.rr-head").count() >= 1, `${look}: the Road Ready header`);
   }
 });
 
@@ -415,15 +528,16 @@ test("Road Ready 02: Green Room and Headliner keep the old Road (stat bar, leg b
 for (const [label, theme, look] of [["dark", "dark", "neon"], ["light", "light", "festival"]]) {
   test(`Road Ready design fixes (${label}): the header has no piping or strip, the current stop glows, large text keeps the neck clear of the header`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
-    const n = await page.evaluate(() => ({ strip: getComputedStyle(document.querySelector("header.rr-head"), "::before").content, glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rr-stage")).backgroundImage }));
+    const n = await page.evaluate(() => ({ strip: getComputedStyle(document.querySelector("header.rr-head"), "::before").content, glowW: document.querySelector(".rr-glow").getBoundingClientRect().width, stage: getComputedStyle(document.querySelector(".rn-stage")).backgroundColor }));
     assert.ok(["none", "normal"].includes(n.strip), "no piping on the header (one bare row, 2026-11-19)");
-    if (look === "festival") assert.equal(Math.round(n.glowW), 96, "the current-stop glow is stronger on cream");
-    else assert.match(n.stage, /radial-gradient/, "a soft amber glow behind the neck in the dark look");
+    assert.equal(Math.round(n.glowW), 120, "the current stop glows on the wood");
+    if (look === "festival") assert.equal(n.stage, "rgb(246, 239, 226)", "Light gutter is cream");
+    else assert.equal(n.stage, "rgb(24, 22, 20)", "Dark gutter is #181614");
     /* large text: the "songs" chips are gone, and the header leaves the screen to the neck */
     await page.evaluate(() => { document.documentElement.style.setProperty("--sys-px", "33px"); document.documentElement.dataset.ax = "1"; });
     const ax = await page.evaluate(() => ({ chips: [...document.querySelectorAll(".rr-chip")].map(c => getComputedStyle(c).display), hdr: document.querySelector("header.rr-head").getBoundingClientRect().bottom, vh: innerHeight }));
     assert.ok(ax.chips.every(d => d === "none"), "the songs chips are hidden at large text");
-    const probe = await page.evaluate(() => { const c = document.createElement("span"); c.className = "rd-songs rr-chip"; document.querySelector(".rd-neck .rd-stop").appendChild(c); const d = getComputedStyle(c).display; c.remove(); return d; });
+    const probe = await page.evaluate(() => { const c = document.createElement("span"); c.className = "rd-songs rr-chip"; document.querySelector(".rn-neck .rd-stop").appendChild(c); const d = getComputedStyle(c).display; c.remove(); return d; });
     assert.equal(probe, "none", "a songs chip drawn at large text is hidden (a lesson that opens songs shows one on the road ahead)");
     assert.ok(ax.hdr <= ax.vh * 0.1, `the header takes ${Math.round(ax.hdr / ax.vh * 100)} percent of the screen, at most 10`);
   });
@@ -445,11 +559,11 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-over"), "HEADLINE SHOW");
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
-    assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.match(await page.getAttribute(".sc-show.case .sc-guitar img", "src"), /art\/guitars\/streak\/cornerstone-small\.webp/, "the new guitar's own picture in the case (the older case paintings are of the guitars the legs had before Road Ready 9a)");
+    assert.equal(await page.locator(".sc-corner, .rr-gcase").count(), 0, "no velvet case and no chrome corners");
+    assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/streak\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
-    assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
+    assert.equal(await page.locator(".gs-back").count(), 1, "the A-frame stand");
     const c = await page.evaluate(() => {
       const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
       const lum = s => { const [a, b, d] = rgb(s).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * a + .7152 * b + .0722 * d; };
@@ -465,11 +579,11 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
   }
 });
 
-test("Road Ready 06: Green Room keeps the new-guitar sheet as it was", { skip: skip() }, async t => {
-  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"] } }), { home: true });
-  await page.waitForSelector(".rd-gt #gt-x");
-  assert.equal(await page.locator(".rr-case, .sc-show").count(), 0);
-  assert.match(await page.innerText(".rd-gt"), /New guitar[\s\S]*Cornerstone is yours for Leg 2/);
+test("a saved Green Room shows the Road Ready new-guitar sheet", { skip: skip() }, async t => {
+  const page = await phone(t, roadLib("green", HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1, has: ["green"], tspent: 400 } }), { home: true, colorScheme: "light" });
+  await page.waitForSelector(".rd-gt.rr-case #gt-x");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.tspent), 400);
 });
 
 test("4.108.1 the Road scrolls up and down only, never sideways, in Dark and Light", { skip: skip() }, async t => {

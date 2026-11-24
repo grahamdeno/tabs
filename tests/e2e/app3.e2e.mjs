@@ -336,104 +336,36 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   const skills = { done: { "c:G": { n: 3, best: 90, at: Date.now() }, "c:C": { n: 3, best: 90, at: Date.now() }, "c:D": { n: 3, best: 90, at: Date.now() } } };
   const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
   await page.waitForSelector(".rd-node.box.now");
-  assert.equal(await page.innerText(".rd-stop.cur .rd-tag"), "Tap to open", "the shut box is the next stop");
+  assert.match(await page.innerText(".rn-now-tx"), /Merch box/, "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
   const before = await fans();
   await page.click(".rd-node.box.now");
   await page.waitForSelector(".co.co-plate .co-badge"); /* 4.99.0: in Light and Dark the news is an engraved plate, not a POW */
   assert.match(await page.innerText(".co-badge"), /MERCH BOX/, "the plate says what you got");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).boxes?.opened?.length === 1);
-  await page.waitForSelector(".rd-node.box.done :is(.rd-pearl, .rr-pearl.done)");
+  await page.waitForSelector(".rd-node.box.done .rn-pearl");
   await page.waitForFunction(b => +(document.querySelector("#h-fans")?.innerText || "0").replace(/\D/g, "") >= b + 25, before);
   assert.equal(await page.locator(".rd-node.box.now").count(), 0, "opened, the road moves on");
 });
 
-/* Road Ready (step 02) draws the Road anew in the Light and Dark looks (roadready.e2e.mjs); Green Room and Headliner keep this one */
-test("The Road is home (4.0.0, Green Room): stat bar, leg banner, the path with its current stop open, the message, the Songbook bar and the tab bar", { skip: skip() }, async t => {
+/* A saved Green Room is read as Light or Dark, so this is the Road Ready road. The old Green Room road is no longer shown. */
+test("The Road is home: a saved Green Room shows the Road Ready road and keeps the saved look", { skip: skip() }, async t => {
   const y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
   const songs = LIB.songs.map(s => ({ ...s, playLog: { total: 3, last: Date.now() - 86400e3, days: { [y]: 1 } } }));
   const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT + "/road.png" });
   await page.waitForSelector(".rd-path");
-  assert.equal(await page.locator(".hud #h-streak").count(), 1, "the stat bar has the streak");
-  assert.match(await page.innerText("#h-fans"), /\d/, "and your fans");
-  assert.match(await page.innerText(".rd-banner"), /LEG 1[\s\S]*Open chords/);
-  assert.equal(await page.locator(".rd-node.now").count(), 1, "one current stop");
-  assert.equal(await page.locator(".rd-pop, .rd-flag").count(), 0, "4.35.0: nothing open on arrival, no flag");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-node.now .rd-halo")).animationName), "rd-halof", "the halo pulses");
-  await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
-  assert.match(await page.innerText(".rd-pop.now"), /The G chord[\s\S]*\+5 fans[\s\S]*START/, "a tap opens its card: what you'd earn, then Start (4.75.0)");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".rd-pop.now .rd-start")).backgroundColor), "rgb(255, 255, 255)", "4.75.1: Start is white on the card");
-  await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop", { state: "detached" });
-  assert.equal(await page.locator(".rd-node .rd-dot").count() > 3, true, "the lessons are finger dots");
-  assert.equal(await page.locator(".rd-node.now .rd-halo").count(), 1, "a halo behind the next dot");
-  assert.ok(await page.locator(".rd-say svg.louie").count() === 0 && await page.locator(".rd-say #rd-bubble").count() === 1, "the message stays beside the path, without Louie (10b)");
-  assert.equal(await page.locator(".rd-node.headline").count() >= 1, true, "each leg ends in a headline show");
-  assert.equal(await page.locator(".rd-node.headline .rd-inlay").count(), await page.locator(".rd-node.headline").count(), "4.82.0: a show is the double inlay");
-  assert.equal(await page.locator(".rd-tag").count(), 1, "4.75.0: one tag, on the next stop");
-  assert.equal(await page.innerText(".rd-stop.cur .rd-tag"), "G chord");
-  assert.equal(await page.locator(".rd-node.box").count() >= 1, true, "with merch boxes along the way");
-  /* another pick: a small bubble; a tap anywhere else closes it */
-  await page.click(".rd-node.locked >> nth=0");
-  assert.match(await page.innerText(".rd-pop"), /Its lesson opens when you get here\.[\s\S]*Songs count already: play C in \d more songs?, start to finish \(\d of 5\)/, "4.83.0: a locked chord says songs count toward it already");
-  await page.click(".rd-legmark >> nth=1"); await page.waitForSelector(".rd-pop", { state: "detached" });
-  assert.equal(await page.locator(".rd-node.box .rd-inlay").count(), await page.locator(".rd-node.box").count(), "4.82.0: a merch box is a single inlay");
-  /* tonight's song plays as a gig (4.1.0) */
-  await page.click("#rd-tonight");
-  await page.waitForSelector("#gig");
-  assert.ok(await page.evaluate(() => /#\/song\//.test(location.hash)));
-  /* 4.66.0: no X; Pause, and the page's own Back leaves */
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
-  assert.match(await page.evaluate(() => location.hash), /#\/song\//, "paused, you're on the song page");
-  await page.click(".shead .sh-back");
-  await page.waitForSelector(".rd-path");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "and Back goes to the Road");
-  /* 4.9.0: the Road never scrolls; the Songbook is a bar along the bottom that opens its page */
-  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), true, "the Road does not scroll");
-  assert.equal(await page.locator("#rd-drawer").count(), 0, "no drawer");
-  assert.match(await page.innerText("#rd-songbook"), /Songbook[\s\S]*2 songs/);
-  const bar = await page.locator(".rd-sbk").boundingBox(), tabsTop = (await page.locator("#tabs").boundingBox()).y;
-  assert.ok(bar.y + bar.height <= tabsTop, "above the tab bar");
-  await page.click("#rd-songbook"); await page.waitForFunction(() => location.hash === "#/library");
-  assert.match(await page.innerText("h1.title"), /Songbook/);
-  assert.ok(await page.locator("#list .row").first().isVisible(), "the songs");
-  await page.click("#libback"); await page.waitForSelector(".rd-path");
-  await page.click("#rd-search"); await page.waitForFunction(() => location.hash === "#/library" && document.body.classList.contains("searching"));
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
-  /* the tab bar: Road is current; Tour has its quests (4.5.0); Charts (4.6.0) and Your band (4.7.0), from Me since Road Ready 04; the gear on Me reaches Settings; the current stop's Start opens its lesson */
-  assert.equal(await page.getAttribute("#tabs [data-tab=road]", "aria-current"), "page");
-  await page.click("#tabs [data-tab=tour]"); await page.waitForSelector("#tm-month"); /* the Tour tab opens the Tour Map; the month's tour is a button on it */
-  await page.click("#tm-month"); await page.waitForSelector(".tq-head");
-  assert.match(await page.innerText(".tq-head"), /Tour[\s\S]*Play 20 shows[\s\S]*2 \/ 20/, "this month's plays count toward the tour");
-  assert.match(await page.innerText(".tq-req"), /REQUEST LINE[\s\S]*asked for/);
-  assert.equal(await page.locator(".tq-card .tq-row").count(), 4, "three setlist goals and the Friend quest");
-  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-charts"); await settled(page);
-  await page.click("#pf-r-charts"); await page.waitForSelector(".ch-head");
-  assert.match(await page.innerText(".ch-head"), /Garage Chart/, "4.6.0: Charts start at the Garage");
-  assert.equal(await page.locator(".ch-row").count(), 10);
-  assert.match(await page.innerText(".ch-row.you"), /You[\s\S]*\d+ XP/, "your XP this week (4.11.0: with what you did today)");
-  await page.click("#ch-go"); await page.waitForSelector(".bt");
-  assert.match(await page.innerText(".bt"), /wants your spot[\s\S]*TAKE THE STAGE/);
-  await page.click("#bt-no"); await page.waitForSelector(".ch-head");
-  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-r-band"); await settled(page);
-  await page.click("#pf-r-band"); await page.waitForSelector(".bd-head");
-  const joined = +(await page.innerText(".bd-head")).match(/(\d+) OF 27 JOINED/)[1];
-  assert.ok(joined >= 1, "4.7.0: Lola joins after your first song");
-  assert.equal(await page.locator(".bd-card.locked").count(), 27 - joined);
-  assert.match(await page.innerText(".bd-next"), /NEXT TO JOIN[\s\S]*more song/);
-  await page.click("#tabs [data-tab=road]"); await page.waitForSelector(".rd-node.now");
-  await page.click(".rd-node.now"); await page.click(".rd-pop.now .rd-start"); await page.waitForFunction(() => location.hash === "#/practice/c%3AG");
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-path");
-  await page.click("#tabs [data-tab=me]"); await page.waitForSelector("#pf-set"); await settled(page);
-  await page.click("#pf-set"); await page.waitForFunction(() => location.hash === "#/settings");
-  await page.waitForFunction(() => !document.body.classList.contains("tabbed"), null, { timeout: 3000 }); /* no tab bar in Settings */
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green", "the saved look stays");
+  assert.ok(["neon", "festival"].includes(await page.evaluate(() => document.documentElement.dataset.look)), "shown as Light or Dark");
+  assert.equal(await page.locator(".rr-stats #h-streak, header.rr-head").count() >= 1, true, "the Road Ready header");
 });
 
 test("The Road on a new library: the first song is ready to play on the current stop, and Louie's first line waits for the playing screen", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })) }, { home: true });
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator("#rd-bubble").count(), 0, "no message on the Road (one-row header, Grok 2026-11-19)");
-  assert.match(await page.innerText("#rd-tonight"), /TONIGHT\s*River Road/, "Road Ready: Tonight names the song");
+  assert.equal(await page.locator("#rd-tonight").count(), 0, "no Tonight bar on the Road");
+  assert.match(await page.innerText(".rn-now-tx"), /^G$/, "the current stop's name sits on the plate");
 });
 
 test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -453,17 +385,19 @@ test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls u
 });
 
 test("4.0.1: one design system: buttons, chips, sheets and the editor's title field share the version 4 look", { skip: skip() }, async t => {
+  /* 5.x: Settings shows its Back up button only when a backup is due, so only that step gets an old backup date */
+  const due = await phone(t, { ...LIB, settings: { ...LIB.settings, lastBackup: "2020-01-01T00:00:00Z" } });
+  await due.evaluate(() => { location.hash = "#/settings"; }); await due.waitForSelector(".btn.primary");
+  assert.match(await due.evaluate(() => getComputedStyle(document.querySelector(".btn.primary")).fontFamily), /Sora/, "the main button is set in Sora");
   const page = await phone(t);
   const look = sel => page.evaluate(s => { const c = getComputedStyle(document.querySelector(s)); return { r: c.borderTopWidth, f: c.fontFamily }; }, sel);
-  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector(".btn.primary");
-  assert.match((await look(".btn.primary")).f, /Space Grotesk/, "the main button is set in Space Grotesk (Road Ready, 2026-11-17)");
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#stat");
   assert.equal((await look("#stat")).r, "2px", "chips have the 2px rim");
-  assert.match((await look("#stat")).f, /Space Grotesk/);
+  assert.match((await look("#stat")).f, /Sora/);
   await page.evaluate(() => document.querySelector("#more").click()); await page.waitForSelector(".menu");
   assert.equal((await look(".menu")).r, "2px", "menus have the 2px rim");
   await page.evaluate(() => { location.hash = "#/edit/a"; }); await page.waitForSelector("#ed-title");
-  assert.ok(await page.evaluate(() => document.getElementById("ed-title").getBoundingClientRect().width > 200), "the title field has room (the artist line sits below it)");
+  assert.ok((await page.locator("#ed-title").boundingBox()).width > 200, "the title field has room (the artist line sits below it)");
 });
 
 test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply shows the head-to-head", { skip: skip() }, async t => {
@@ -520,8 +454,8 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.equal(await page.evaluate(() => document.activeElement.id), "mc-t-gear");
   assert.equal(await page.locator(".mc-gear").count(), 3);
   assert.match(await page.innerText(".mc-gear[data-id=take]"), /x1/, "the Second take you hold");
-  /* 4.102.0: Louie's finishes are off the table (the tweed Louie); a backdrop is bought and put on instead */
-  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 0, "no Louie finishes");
+  /* His other colours are on the Looks tab. A backdrop is bought and put on as well. */
+  assert.equal(await page.locator(".mc-fin[aria-label$=' Louie']").count(), 7, "Louie's finishes are on the table");
   await page.click("#mc-t-looks"); await page.click(".mc-drop[data-id=brick]"); await page.waitForSelector(".mt-sheet");
   assert.match(await page.innerText(".mt-sheet"), /Brick wall[\s\S]*COSTS[\s\S]*300/);
   await page.click("#mt-buy"); await page.waitForSelector(".mc-drop.on[data-id=brick]");
@@ -542,7 +476,7 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
     { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d", playLog: { total: 1, last: Date.now() - 5 * 864e5, days: {} } }];
   const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
   await page.waitForSelector(".rd-node.now.headline");
-  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rr-art").getBoundingClientRect().width);
+  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rn-pearl").getBoundingClientRect().width);
   assert.ok(w >= 60, `4.34.1: the headline keeps its size (Road Ready: two 24 px pearls, ${w})`);
   await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /Headline show[\s\S]*Low Tide[\s\S]*PLAY LOW TIDE/, "the last played song that fits");
@@ -555,25 +489,15 @@ test("4.35.0 the Road's headline: a tap opens its card, which names a song that 
 
 test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road; before typing only what helps; typing shows your songs, then rows that say what they do", { skip: skip() }, async t => {
   const songs = LIB.songs.map((x, i) => i ? x : { ...x, opened: Date.now() - 3600e3 });
-  /* 4.99.0: the Road's Songbook and search bar stays in Green Room and Headliner (Light and Dark have the Songbook tab) */
+  /* Search starts in the Songbook. A saved Green Room is Light or Dark, so the Road has no search bar of its own. */
   const page = await phone(t, { ...LIB, songs, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true, permissions: ["clipboard-read", "clipboard-write"] });
   await page.route("https://itunes.apple.com/**", r => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ results: [{ trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show", releaseDate: "2004-01-01" }, { trackName: "Wagon Wheel", artistName: "Old Crow Medicine Show" }, { trackName: "Wagon Wheel", artistName: "Darius Rucker" }] }) }));
-  /* the Road: Songbook and Search or add, both labelled */
-  await page.waitForSelector("#rd-search"); await settled(page);
-  assert.match(await page.innerText("#rd-songbook"), /Songbook[\s\S]*2 songs/);
-  assert.match(await page.innerText("#rd-search"), /Search or add a song/);
-  await page.click("#rd-search"); await page.waitForSelector("#sr-browse");
-  assert.match(await page.innerText("#sr-browse"), /Open your Songbook[\s\S]*2 songs/, "from the Road, the Songbook is the first row");
-  assert.match(await page.innerText("#list"), /Not in your Songbook yet\?[\s\S]*Paste[\s\S]*Sing it[\s\S]*Write one from scratch/i);
-  assert.equal(await page.locator(".sr-card").count(), 0, "4.49.2: no recent songs here; the Songbook has those");
-  assert.equal(await page.locator("#sr-scan").count(), 0, "Scan needs the AI");
-  await page.click("#sr-browse"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
-  /* the Songbook: one bar, its + opens the same screen without the Songbook row */
-  assert.equal(await page.getAttribute("#q", "placeholder"), "Search or add a song");
-  assert.ok((await page.locator(".dock .cmd").boundingBox()).width > 300, "a full-width bar");
+  await page.evaluate(() => { location.hash = "#/library"; });
+  await page.waitForSelector("#add"); await settled(page);
   await page.click("#add"); await page.waitForSelector("#sr-paste");
   assert.equal(await page.locator("#sr-browse").count(), 0, "from the Songbook there's no Open your Songbook row");
+  assert.equal(await page.getAttribute("#q", "placeholder"), "Search or add a song");
   await page.fill("#q", LIB.songs[0].title.slice(0, 5)); await page.waitForSelector("#list [data-id]");
   assert.match(await page.innerText("#list"), /In your Songbook/i);
   await page.fill("#q", "wagon wh"); await page.waitForSelector("[data-cat]");
@@ -604,19 +528,15 @@ test("4.49.1 The search screen holds still before you type, and scrolls again on
 });
 
 test("4.49.3 Closing the keyboard keeps the search screen; Cancel goes back where you came from", { skip: skip() }, async t => {
-  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true }); /* the Road search bar: Green Room (4.99.0) */
-  await page.waitForSelector("#rd-search"); await settled(page);
-  await page.click("#rd-search"); await page.waitForSelector("#sr-paste");
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
+  await page.evaluate(() => { location.hash = "#/library"; });
+  await page.waitForSelector("#add"); await settled(page);
+  await page.click("#add"); await page.waitForSelector("#sr-paste");
   await page.evaluate(() => document.activeElement.blur()); /* the keyboard's checkmark */
   await page.waitForTimeout(400); /* real timer: the old screen closed 200 ms after the keyboard did */
   assert.equal(await page.evaluate(() => document.body.classList.contains("searching")), true, "still on the search screen");
-  await page.click("#qcancel"); await page.waitForSelector("#rd-search");
-  assert.equal(await page.evaluate(() => location.hash), "#/", "from the Road, Cancel goes back to the Road");
-  await settled(page);
-  await page.click("#rd-songbook"); await page.waitForSelector("#add"); await settled(page);
-  await page.click("#add"); await page.waitForSelector("#sr-paste");
-  await page.click("#qcancel"); await page.waitForFunction(() => !document.body.classList.contains("searching"));
-  assert.equal(await page.evaluate(() => location.hash), "#/library", "from the Songbook, Cancel stays on the Songbook");
+  await page.click("#qcancel"); await page.waitForSelector("#add");
+  assert.equal(await page.evaluate(() => location.hash), "#/library", "Cancel goes back to the Songbook");
 });
 
 test("4.49.5 Leaving search any way lets the page scroll again (Get the song from the empty search screen left it locked)", { skip: skip() }, async t => {
@@ -650,31 +570,29 @@ test("4.49.8 On an iPhone the search screen finds songs through Apple Music, sin
   assert.equal(itunesAsked, 0, "the closed iTunes search is not tried on an iPhone");
 });
 
-test("4.78.0 the first headline show done: the Road says Headliner is yours, once, and Put it on wears it", { skip: skip() }, async t => {
+test("a headline show does not offer Headliner or switch the look on", { skip: skip() }, async t => {
   const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A", "k:open"].map((c, i) => [c.startsWith("k:") ? c : `c:${c}`, { n: 3, best: 90, at: Date.now() - 1000 + i }]));
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1 } }, { home: true });
-  await page.waitForSelector(".rd-hl:not(.rd-gt)");
-  assert.match(await page.innerText(".rd-hl:not(.rd-gt)"), /You headlined/);
-  await page.click("#hl-on");
-  await page.waitForFunction(() => document.documentElement.dataset.look === "headliner");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).merch.hlseen === 1);
-  await page.reload(); await page.waitForSelector(".rd-node");
-  assert.equal(await page.locator(".rd-hl:not(.rd-gt)").count(), 0, "said once");
+  await page.waitForSelector(".rd-node"); await settled(page);
+  assert.equal(await page.locator(".rd-hl:not(.rd-gt)").count(), 0, "no Headliner sheet");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "headliner");
+  assert.notEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "headliner");
 });
 
 test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the new guitar is announced once", { skip: skip() }, async t => {
   const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A", "k:open"].map((c, i) => [c.startsWith("k:") ? c : `c:${c}`, { n: 3, best: 90, at: Date.now() - 1000 + i }]));
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
-  await page.waitForSelector(".rd-neck");
-  assert.ok(await page.locator(".rd-neck").count() >= 2, "a neck for each leg");
-  assert.match(await page.locator(".rd-neck").first().innerHTML(), /Porch/, "the first guitar is named on its headstock");
-  assert.equal(await page.locator(".rd-tag, #rd-tonight").count(), 1, "one tag, on the next stop (Road Ready: Tonight)");
-  assert.equal(await page.locator(".rd-node.headline .rr-art").count() >= 1, true, "the headline is an inlay");
+  await page.waitForSelector(".rn-neck");
+  assert.equal(await page.locator(".rn-neck").count(), 1, "one rosewood neck for the legs you can see");
+  assert.match(await page.innerText(".rn-legbar"), /Leg 1/);
+  assert.equal(await page.locator(".rn-bubble").count(), 0, "no name bubble in the gutter");
+  assert.equal(await page.locator(".rn-now").count(), 1, "one now plate, for the current stop");
+  assert.equal(await page.locator(".rd-node.headline .rn-pearl").count() >= 1, true, "the headline is an inlay");
   await page.waitForSelector("#gt-x");
   assert.match(await page.innerText(".rd-gt"), /Cornerstone/, "the sheet names the new guitar");
   await page.click("#gt-x");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).guitars?.seen?.includes("open"));
-  await page.reload(); await page.waitForSelector(".rd-neck");
+  await page.reload(); await page.waitForSelector(".rn-neck");
   assert.equal(await page.locator("#gt-x").count(), 0, "said once");
 });
 
@@ -683,10 +601,8 @@ test("4.84.0 a lesson that opens songs you have says how many; an opened merch b
   const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
   /* Green Room: the old Road draws the box in the guitar's material; Road Ready's pearls are tested in roadready.e2e.mjs */
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
-  await page.waitForSelector(".rd-neck");
-  assert.match(await page.innerText(".rd-node.now .rd-songs"), /1/, "Em opens one song");
+  await page.waitForSelector(".rn-neck");
   assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
-  assert.equal(await page.locator(".rd-node.box.done .rd-pearl.crate.mat-pearl").count(), 1, "the opened box is a pearl crate on Porch");
 });
 
 /* ---- Road Ready 9a: the Guitar shop on the Merch table, and the chosen guitar on the Road, Me and Show complete ---- */
@@ -702,7 +618,7 @@ for (const theme of ["dark", "light"]) {
   test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
     const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
     const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
-    assert.deepEqual(heads, ["Gear", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "Louie's finishes are off the table since 4.102.0; the rest keeps its order");
+    assert.deepEqual(heads, ["Gear", "Louie's finishes", "Stage backdrops", "Looks", "Build your guitar", "Guitar shop"], "Louie's other colours are on the table, hats left on 2026-11-23, and the rest keeps its order");
     assert.equal(await page.locator(".mc-gt").count(), 16);
     const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
     /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */
@@ -734,18 +650,18 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   assert.equal(saved.tspent, 90); assert.deepEqual(saved.has, ["g-stickerriot"]);
   await page.waitForSelector('.mc-gt[data-gt="stickerriot"].on'); assert.match(await page.locator('.mc-gt[data-gt="stickerriot"]').innerText(), /ON NOW/);
   assert.equal(await page.locator(".mc-gt-leg").count(), 1, "a way back to the leg's guitar");
-  /* the Road neck of the leg you're on draws it */
-  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rd-neck"); await settled(page);
-  const cur = await page.locator(".rd-legmark.cur ~ .rd-neck, .rd-neck").first().innerHTML();
-  assert.match(cur, /art\/guitars\/streak\/stickerriot-road\.webp/, "the whole painted guitar on the neck (9a, painted necks)");
-  assert.match(await page.locator(".rd-neck").first().getAttribute("aria-label"), /Sticker Riot/);
+  /* the Road is the rosewood neck in every look that uses it; the shop guitar still shows on Me and in your hands */
+  await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rn-neck"); await settled(page);
+  const cur = await page.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage + el.innerHTML);
+  assert.match(cur, /neck-rosewood(?:-v2)?\.webp/, "the Road stays the rosewood neck");
+  assert.doesNotMatch(cur, /stickerriot-road\.webp/, "a shop guitar does not replace the neck");
   /* Me's case has it, and says it is the one you play */
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   assert.ok((await page.$$eval(".rr-gtr", els => els.map(e => e.getAttribute("aria-label")))).includes("Sticker Riot, from the Guitar shop, the one you play"));
   assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
-  /* the guitarist holds it (the small picture in his hands) */
+  /* the guitarist on the card is the painted rock picture */
   const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
-  assert.match(hands, /art\/guitars\/streak\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  assert.match(hands, /art\/guitarist-painted\/genres\/rock-m\.webp/, "the guitarist is the painted rock picture");
   /* back to the leg's guitar, and the saved choice is gone */
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
   await page.click("#mc-gt-leg");
@@ -770,14 +686,13 @@ test("Road Ready 9a: a locked guitar and one you can't afford open a sheet whose
   assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).merch)).tspent, undefined);
 });
 
-test("Road Ready 9a: the Road neck of each leg is its new guitar's picture, with its strings painted once (the Road draws none over the body)", { skip: skip() }, async t => {
+test("Road Ready 9a: the Road is one rosewood neck, with six strings drawn on it", { skip: skip() }, async t => {
   const page = await phone(t, shopLib(0, {}), { home: true });
-  await page.waitForSelector(".rd-neck"); await settled(page);
-  const html = await page.locator(".rd-neck").first().innerHTML();
-  assert.match(html, /art\/guitars\/streak\/porch-road\.webp/); assert.doesNotMatch(html, /porch-(body|head)\.webp/, "one picture, the whole guitar");
-  assert.equal(await page.locator(".rd-neck").first().getAttribute("aria-label"), "Porch");
-  /* the strings are in the painting: the Road draws none over it */
-  assert.equal(await page.locator(".rd-neck").first().locator(".rd-strings").count(), 0, "the painted strings are the only strings");
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  const html = await page.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage + el.innerHTML);
+  assert.match(html, /neck-rosewood(?:-v2)?\.webp/);
+  assert.equal(await page.locator(".rn-string").count(), 6, "six strings");
+  assert.equal(await page.locator(".rn-neck").getAttribute("aria-label"), "The neck");
 });
 
 test("Road Ready 9a fix: for each of the 23 new pictures, lit and shade match the picture's own fretboard", { skip: skip() }, async t => {
