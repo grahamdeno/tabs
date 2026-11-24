@@ -3798,3 +3798,22 @@ test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder 
   assert.deepEqual(C.buildSave(data, "scales", {}), { why: "none" }, "Club Slab waits for Leg 2");
   assert.deepEqual(C.guitarsEarned(data), ["open"], "guitarsEarned stays the headlined legs");
 });
+
+test("5.2.0 imported backups follow the 50% text size: an unmarked backup moves 1 to 0.5, a marked one imports as it is", () => {
+  const song = (id, size) => ({ id, title: id, body: "G\nla", ...(size === undefined ? {} : { size }) });
+  const old = { songs: [song("a", 1), song("b", 1.3), song("c")], sets: [], trash: [{ type: "song", item: song("d", 1), deletedAt: new Date().toISOString() }], settings: {} };
+  const got = C.cleanImport(JSON.parse(JSON.stringify(old)));
+  assert.deepEqual(got.data.songs.map(s => s.size), [0.5, 1.3, undefined], "1 becomes 0.5, 1.3 stays, no size stays none");
+  assert.equal(got.data.trash[0].item.size, 0.5, "a song in Recently deleted moves too");
+  const marked = C.cleanImport({ ...JSON.parse(JSON.stringify(old)), sizes: 2 });
+  assert.deepEqual(marked.data.songs.map(s => s.size), [1, 1.3, undefined], "a backup from 5.2.0 on keeps a song you set to 100%");
+  assert.equal(marked.data.trash[0].item.size, 1);
+  assert.equal("sizes" in marked.data, false, "the marker stays out of the saved library");
+  /* a backup written by this release carries the marker, and round-trips unchanged */
+  const lib = { songs: [song("a", 1)], sets: [], trash: [], settings: {} };
+  const file = JSON.parse(C.Tabs.export(lib));
+  assert.equal(file.sizes, 2, "Tabs.export marks the backup");
+  assert.equal(C.cleanImport(file).data.songs[0].size, 1, "and importing it keeps 100%");
+  assert.equal(C.backupOf(lib, { covers: { x: "data:" } }).sizes, 2, "the cover-photo path is marked too");
+  assert.equal(C.backupOf(lib, { covers: {} }).covers !== undefined, true);
+});

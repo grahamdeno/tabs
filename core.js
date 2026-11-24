@@ -254,7 +254,7 @@ export const Tabs = {
   },
 
   export(data) {
-    return JSON.stringify(withoutGerman(data), null, 2);
+    return JSON.stringify(backupOf(data), null, 2);
   },
 
   // A backup file: checked and cleaned (see docs/DATA.md), then saved.
@@ -352,6 +352,12 @@ const COVER_MAX = 4e6; // characters, about 3 MB of photo
 export const cleanName = v => String(v || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
 /* Green Room and Headliner are retired. A saved one follows the phone, or Dark when the phone doesn't say. The stored value is not changed. */
 export const shownTheme = (stored, phoneIsLight) => (stored === "green" || stored === "headliner") ? (phoneIsLight === true ? "light" : "dark") : (stored || "auto");
+/* 5.2.0 (Graham, 2026-11-24): a backup written from 5.2.0 on says so with sizes: 2 at its top (beside covers, never in
+   the saved library). A backup without it was made when new songs started at 1, so on import a song (or a song in
+   Recently deleted) stored at exactly 1 moves to 0.5; every other size stays. A marked backup imports as it is. */
+export const BACKUP_SIZES = 2;
+export const backupOf = (data, extra = {}) => ({ ...withoutGerman(data), ...extra, sizes: BACKUP_SIZES });
+const size50Import = songs => { for (const s of songs) if (s && s.size === 1) s.size = 0.5; };
 export function cleanImport(parsed) {
   if (!isObj(parsed) || !Array.isArray(parsed.songs)) return null;
   let skipped = 0;
@@ -377,6 +383,7 @@ export function cleanImport(parsed) {
   }
   if (!["auto", "dark", "light", "green", "headliner"].includes(settings.theme)) delete settings.theme;
   if (typeof settings.playerName === "string") settings.playerName = cleanName(settings.playerName);
+  if (parsed.sizes !== BACKUP_SIZES) size50Import([...songs, ...trash.filter(t => t.type === "song").map(t => t.item)]);
   const data = migrate({ songs, sets, trash, settings, ...(isObj(parsed.journal) && parsed.journal.v === 1 ? { journal: parsed.journal } : {}), ...(cleanKept(parsed.kept) ? { kept: cleanKept(parsed.kept) } : {}), ...(cleanTour(parsed.tour) ? { tour: cleanTour(parsed.tour) } : {}), ...(cleanSkills(parsed.skills) ? { skills: cleanSkills(parsed.skills) } : {}), ...(cleanGig(parsed.gig) ? { gig: cleanGig(parsed.gig) } : {}), ...(cleanQuests(parsed.quests) ? { quests: cleanQuests(parsed.quests) } : {}), ...(cleanCharts(parsed.charts) ? { charts: cleanCharts(parsed.charts) } : {}), ...(cleanXP(parsed.xp) ? { xp: cleanXP(parsed.xp) } : {}), ...(cleanBand(parsed.band) ? { band: cleanBand(parsed.band) } : {}), ...(cleanRehearse(parsed.rehearse) ? { rehearse: cleanRehearse(parsed.rehearse) } : {}), ...(cleanDuels(parsed.duels) ? { duels: cleanDuels(parsed.duels) } : {}), ...(cleanMerch(parsed.merch) ? { merch: cleanMerch(parsed.merch) } : {}), ...(cleanBuilds(parsed.builds) ? { builds: cleanBuilds(parsed.builds) } : {}), ...(cleanOpening(parsed.opening) ? { opening: cleanOpening(parsed.opening) } : {}), ...(cleanBoxes(parsed.boxes) ? { boxes: cleanBoxes(parsed.boxes) } : {}), ...(cleanGuitars(parsed.guitars) ? { guitars: cleanGuitars(parsed.guitars) } : {}), ...(cleanFame(parsed.fame) ? { fame: cleanFame(parsed.fame) } : {}), ...(cleanMe(parsed.me) ? { me: cleanMe(parsed.me) } : {}) });
   /* A saved Green Room or Headliner stays in the file. The app maps it when it reads
      the setting (shownTheme), so a backup does not put that look on screen. */

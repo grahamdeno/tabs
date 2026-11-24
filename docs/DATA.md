@@ -41,7 +41,7 @@ Saves are batched (150 ms) and written at once when the app goes to the backgrou
 | `format` | `"chords"` or `"tab"` | Worked out from `body` when missing |
 | `key` | string | `""` means detect from the chords |
 | `transpose` | integer -5 to 6 | Semitones |
-| `size` | number 0.5 to 1.6 | Text size. New songs start at 0.5 (5.2.0; before that 1, and the floor was 0.6 in storage, 0.7 on the buttons). Once, on the first start of 5.2.0, a song stored at exactly 1 moved to 0.5; any other size stayed. The flag is `tabs.size50.v1` in localStorage, so a size you set later is never moved. |
+| `size` | number 0.5 to 1.6 | Text size. New songs start at 0.5 (5.2.0; before that 1, and the floor was 0.6 in storage, 0.7 on the buttons). Once, on the first start of 5.2.0, a song stored at exactly 1 moved to 0.5; any other size stayed. The flag is `tabs.size50.v1` in localStorage, so a size you set later is never moved. An imported backup without the `sizes: 2` marker gets the same move (see Backup file). |
 | `duration` | seconds | Song length speed style. Set from the recording when linked to Apple Music, unless you chose your own |
 | `recLength` | seconds | The recording's length, kept when Get the song adds it, so the metronome can slow with the speed dial (2.41.0) |
 | `groove` | object | What the drums do for this song: `beat` (`"rock"`, `"half"`, `"ballad"` or `"four"`) and `swing` (`"straight"`, `"light"` or `"full"`), each optional (a missing part comes from Settings), and `src`: `"ai"` for what was found, `"you"` once it was changed in Edit. `{ src: "you" }` alone means keep the defaults and don't look it up again. Looked up once, in the background, the first time the song plays with the metronome on, and when Get the song or Play next adds it (2.46.0). A `bass` or `riff` from before 4.42.0 is dropped when it loads |
@@ -229,7 +229,7 @@ The journal keeps `days` (`{ "YYYY-MM-DD": seconds }`, last 60 days) and `daysFr
 
 ## Backup file
 
-The library as above, plus `covers: { [setId]: "data:image/png|jpeg|webp;base64,..." }` when sets have cover photos.
+The library as above, plus `covers: { [setId]: "data:image/png|jpeg|webp;base64,..." }` when sets have cover photos, and `sizes: 2` on every backup written from 5.2.0 on (`backupOf` in `core.js`; never kept in the saved library). Importing a backup without `sizes: 2` moves any song, or song in Recently deleted, stored at exactly `size: 1` to `0.5`, since it was made when new songs started at 1; every other size stays. A backup with the marker imports as it is.
 
 Restoring a backup (`Tabs.import` and `cleanImport` in `core.js`) checks every field before it replaces the library:
 
