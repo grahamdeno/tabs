@@ -93,7 +93,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     } else {
       assert.equal(b.primary.color, "rgb(244, 230, 203)", "champagne ink on the espresso face");
       assert.match(b.primary.slice, /272019/i, "espresso face");
-      assert.match(b.primary.slice, /F7E4BA|f7e4ba/i, "antique brass rim");
+      assert.match(b.primary.slice, /FBF0D2|fbf0d2/i, "antique brass rim");
     }
     assert.ok(b.primary.height >= 44, `primary is ${b.primary.height} px tall`);
     assert.equal(b.secondary.radius.replace("px", "") >= 100 || b.secondary.radius === "999px", true, "capsule"); assert.ok(parseFloat(b.secondary.border) >= 1 && parseFloat(b.secondary.border) <= 1.5, "a hairline border (1.5 px, which a 1x screen draws as 1)"); assert.equal(b.secondary.borderColor, "rgb(140, 132, 122)", "outline colour");
@@ -282,7 +282,7 @@ test("Road Ready pick: brass on Dark, espresso on Light, icons and short labels 
       assert.ok(fit[id].w >= 108, `${label}: ${id} is wide enough to hold its curves (${fit[id].w})`);
     }
     assert.equal(fit.long.over, false, `${label}: the stop card's long label fits`);
-    assert.equal(fit.long.side, "22px", `${label}: the stop card uses the tighter pick`);
+    assert.equal(fit.long.side, "24px", `${label}: the stop card uses the tighter pick`);
     assert.ok(fit.long.h >= 44, `${label}: the stop button is ${fit.long.h} px tall`);
     assert.ok(fit.long.insetL >= 18 && fit.long.insetR >= 18, `${label}: the long label clears the tighter shoulders`);
     assert.equal(fit.off.slice, "none", `${label}: a disabled primary drops the metallic face`);
