@@ -1,10 +1,9 @@
 // Louie, the mascot (Graham, 2026-11-19): a tweed combo amp. His face is on the grille cloth, a gold control plate
 // with two knobs sits under it, and he has cream gloves and brown boots. He is always a picture, never a drawing:
-// art/louie/v5/louie-<pose>.webp, cut out clean from Graham's pictures (the originals stay in
-// docs/louie-tweed/, and the first cut-outs stay in docs/louie-tweed/cutouts/ and art/louie/v4/).
+// art/louie/v5/louie-<pose>.webp, the clean cut-outs (the first cut-outs stay in art/louie/v4).
 // Every earlier Louie (the black one, the blue one and the code drawing) is gone.
-// Ten poses: cheer, horns, idle, listen, nervous, point, proud, sleepy, thumb, wave.
-// A face-only picture is louie-face.webp, and the round badge is louie-face-badge.webp.
+// Ten poses, each with its own picture: cheer, horns, idle, listen, nervous, point, proud, sleepy, thumb, wave.
+// A coloured cabinet is art/louie/colours/<finish>/, the tweed only. The face, grille, panel and limbs stay.
 // louie(mood, { pose, size }) returns an <svg> string that shows the picture.
 //   moods: happy, cheer, sleepy, worried, proud, listen (a hand to his ear, for when the app is listening)
 //   poses: rest, hornsUp, thumb, point, wave, peace
@@ -58,16 +57,23 @@ export function louieArt(mood = "happy", pose, size = Infinity) {
   if (pose === "thumb" && size < THUMB_MIN) return "cheer";
   return ART_POSE[pose] || (mood === "cheer" ? "cheer" : "idle");
 }
-/* Poses with no picture yet, and the one each borrows. Nervous has its own picture now. */
+/* Every pose has its own picture now, including nervous. */
 export const LOUIE_STAND_IN = {};
-export const louiePic = art => `art/louie/v5/louie-${LOUIE_STAND_IN[art] || art}.webp`;
+const FINISHES = new Set(["pink", "teal", "black", "mint", "gold"]);
+export const louiePic = (art, finish = "") => {
+  const pose = LOUIE_STAND_IN[art] || art;
+  let fin = finish;
+  if (!fin && typeof document !== "undefined") fin = document.body?.dataset.wear || "";
+  if (FINISHES.has(fin)) return `art/louie/front/${fin}/louie-${pose}.webp`;
+  return `art/louie/v5/louie-${pose}.webp`;
+};
 
 const ARMS = new Set(["rest", "hornsUp", "thumb", "point", "wave", "peace"]);
-export function louie(mood = "happy", { pose, size = 120, label = "Louie" } = {}) {
+export function louie(mood = "happy", { pose, size = 120, label = "Louie", finish = "" } = {}) {
   /* the frame is the one the earlier Louies had, so every place that shows him keeps its size: wider when a pose has arms */
   const vb = ARMS.has(pose) ? "-34 -30 268 236" : "18 0 164 200";
   const [vx, vy, vw, vh] = vb.split(" ").map(Number);
   return `<svg class="louie ${mood}${pose ? " " + pose : ""}" width="${size}" height="${Math.round(size * vh / vw)}" viewBox="${vb}" role="img" aria-label="${label}">
-  <g class="lv-art-wrap"><image class="lv-art" href="${louiePic(louieArt(mood, pose, size))}" x="${vx}" y="${vy}" width="${vw}" height="${vh}" preserveAspectRatio="xMidYMax meet"/></g>
+  <g class="lv-art-wrap"><image class="lv-art" href="${louiePic(louieArt(mood, pose, size), finish)}" x="${vx}" y="${vy}" width="${vw}" height="${vh}" preserveAspectRatio="xMidYMax meet"/></g>
 </svg>`;
 }
