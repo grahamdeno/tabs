@@ -3722,7 +3722,18 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t"));
+  /* Porch's four pictures are repainted in place. Nothing else under art/ may change. */
+  const PORCH = new Set([
+    "art/guitars/porch-body.webp",
+    "art/guitars/porch-head.webp",
+    "art/guitars/porch-road.webp",
+    "art/guitars/porch-small.webp",
+  ]);
+  const bad = diff.split("\n").filter(Boolean).filter(line => {
+    if (line.startsWith("A\t")) return false;
+    const parts = line.split("\t");
+    return !(parts[0] === "M" && PORCH.has(parts[1]));
+  });
   assert.deepEqual(bad, [], "no existing art file was edited");
 });
 
