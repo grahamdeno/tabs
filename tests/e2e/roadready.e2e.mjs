@@ -450,11 +450,11 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.innerText(".rr-case .sc-over"), "HEADLINE SHOW");
     assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
-    assert.equal(await page.locator(".sc-show.case .sc-corner").count(), 4, "four chrome L corners");
-    assert.match(await page.getAttribute(".sc-show.case .sc-guitar img", "src"), /art\/guitars\/cornerstone-small\.webp/, "the new guitar's own picture in the case (the older case paintings are of the guitars the legs had before Road Ready 9a)");
+    assert.equal(await page.locator(".sc-corner, .rr-gcase").count(), 0, "no velvet case and no chrome corners");
+    assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
     assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
-    assert.equal(await page.getAttribute(".sc-show.case", "aria-hidden"), "true");
+    assert.equal(await page.locator(".gs-back").count(), 1, "the A-frame stand");
     const c = await page.evaluate(() => {
       const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
       const lum = s => { const [a, b, d] = rgb(s).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * a + .7152 * b + .0722 * d; };
