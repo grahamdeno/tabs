@@ -598,7 +598,7 @@ test("4.84.0 a lesson that opens songs you have says how many; an opened merch b
   const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
   /* Green Room: the old Road draws the box in the guitar's material; Road Ready's pearls are tested in roadready.e2e.mjs */
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
-  await page.waitForSelector(".rd-neck");
+  await page.waitForSelector(".rn-neck");
   assert.match(await page.getAttribute(".rd-node.now", "aria-label"), /opens 1 of your songs/, "and says so to a screen reader");
 });
 
@@ -650,7 +650,7 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   /* the Road is the rosewood neck in every look that uses it; the shop guitar still shows on Me and in your hands */
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rn-neck"); await settled(page);
   const cur = await page.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage + el.innerHTML);
-  assert.match(cur, /neck-rosewood\.webp/, "the Road stays the rosewood neck");
+  assert.match(cur, /neck-rosewood(?:-v2)?\.webp/, "the Road stays the rosewood neck");
   assert.doesNotMatch(cur, /stickerriot-road\.webp/, "a shop guitar does not replace the neck");
   /* Me's case has it, and says it is the one you play */
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
@@ -687,7 +687,7 @@ test("Road Ready 9a: the Road is one rosewood neck, with six strings drawn on it
   const page = await phone(t, shopLib(0, {}), { home: true });
   await page.waitForSelector(".rn-neck"); await settled(page);
   const html = await page.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage + el.innerHTML);
-  assert.match(html, /neck-rosewood\.webp/);
+  assert.match(html, /neck-rosewood(?:-v2)?\.webp/);
   assert.equal(await page.locator(".rn-string").count(), 6, "six strings");
   assert.equal(await page.locator(".rn-neck").getAttribute("aria-label"), "The neck");
 });

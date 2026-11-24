@@ -372,7 +372,7 @@ export function renderRoad() {
   const nxt = curAt >= 0 ? road.legs[curAt + 1] : null;
   const bare = rr ? bareNeckHTML(shown.map(l => ({ title: `Leg ${l.n}`, sub: l.name, aria: `Leg ${l.n}, ${l.name}`, stops: l.stops })), {
     cur, next: nxt ? { title: `Leg ${nxt.n}`, sub: nxt.name, aria: `Leg ${nxt.n}, ${nxt.name}` } : null,
-    id: s => esc(s.id), label: labelOf, num: numOf,
+    id: s => esc(s.id), label: labelOf, num: numOf, songs: opens,
     name: s => esc(s.name || (s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : "Stop"))
   }) : "";
   const legsHTML = rr ? "" : road.legs.map((l, n) => `

@@ -3588,7 +3588,7 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   assert.deepEqual(opening.stops.map(s => s.space), [1, 3, 5, 7, 8, 10, 11, 13, 14]);
   assert.equal(opening.frets.find(f => f.gold).n, 15);
   assert.deepEqual(opening.stops.map(s => s.inlay), ["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon"]);
-  const files = ["neck-rosewood", "nut", "fret-gold", "check", "lock", "check-v2", "lock-v2"].map(n => `art/road-neck/${n}.webp`)
+  const files = ["neck-rosewood", "neck-rosewood-v2", "nut", "nut-v2", "fret-gold", "check", "lock", "check-v2", "lock-v2"].map(n => `art/road-neck/${n}.webp`)
     .concat(["pick", "star", "crown", "flame", "bolt", "block", "fin", "vine", "moon", "diamond", "fin-v2", "vine-v2", "moon-v2"].map(n => `art/road-neck/inlays/${n}.webp`));
   for (const f of files) {
     const st = fs.statSync(path.join(root, f));

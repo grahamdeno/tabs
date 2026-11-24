@@ -127,7 +127,7 @@ test("Builder: a built guitar on the Road keeps every stop where it is on the pa
   const plain = await phone(t, lib("dark", { ring: 3 }), { home: true }); await plain.waitForSelector(".rn-neck"); await settled(plain);
   const built = await phone(t, lib("dark", { ring: 3, builds: { open: { paint: "seafoam", wear: "played", guard: "leopard" } }, merch: { has: ["b-seafoam", "b-played", "b-leopard"] } }), { home: true });
   await built.waitForSelector(".rn-neck"); await settled(built);
-  assert.match(await plain.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage), /neck-rosewood\.webp/, "the Road is the rosewood neck");
+  assert.match(await plain.locator(".rn-neck").evaluate(el => getComputedStyle(el).backgroundImage), /neck-rosewood(?:-v2)?\.webp/, "the Road is the rosewood neck");
   assert.deepEqual(await where(built), await where(plain), "a built guitar does not move the stops");
 });
 

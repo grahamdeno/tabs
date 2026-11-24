@@ -99,15 +99,11 @@ test("Painted necks: on Chord switches, with lesson 2 current, a tap on finished
   const page = await road(t, "dark", doneOf([...OPEN, "k:open", "s:G-C"]));
   assert.equal(await page.locator(".rd-node.cur").getAttribute("data-stop"), "s:C-D");
   const shown = () => page.evaluate(() => document.querySelector(".rd-pop")?.parentElement.querySelector("[data-stop]").dataset.stop);
-  /* the stops sit with empty frets between them, so the one above the current stop may start off the screen */
-  await page.evaluate(s => { const el = document.querySelector(s), path = document.querySelector(".rd-path"), pr = path.getBoundingClientRect(), r = el.getBoundingClientRect(); path.scrollTop += r.top - pr.top - path.clientHeight * 0.4; }, stopSel("s:G-C"));
-  await still(page);
-  const first = await rect(page, stopSel("s:G-C"));
-  await page.mouse.click(first.x, first.y); await page.waitForSelector(".rd-pop");
+  /* the stops sit with empty frets between them, so bring each one into view before the tap */
+  await page.locator(stopSel("s:G-C")).click(); await page.waitForSelector(".rd-pop");
   assert.equal(await shown(), "s:G-C", "lesson 1's card, not lesson 2's");
   await page.keyboard.press("Escape"); await page.waitForSelector(".rd-pop", { state: "detached" }); await still(page);
-  const cur = await rect(page, stopSel("s:C-D"));
-  await page.mouse.click(cur.x, cur.y); await page.waitForSelector(".rd-pop");
+  await page.locator(stopSel("s:C-D")).click(); await page.waitForSelector(".rd-pop");
   assert.equal(await shown(), "s:C-D", "lesson 2's card");
 });
 

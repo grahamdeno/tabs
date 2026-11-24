@@ -6021,13 +6021,15 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
    Wood, then pearls, then fret wires, then thin strings, then the check and the lock. */
 :root[data-look="neon"] .rn-stage, :root[data-look="neon"] .rd-path.rn { background: #181614; }
 :root[data-look="festival"] .rn-stage, :root[data-look="festival"] .rd-path.rn { background: #F6EFE2; }
+:root:is([data-look="neon"], [data-look="festival"]) body.is-home .app:has(> .rr-head):has(.rn-stage) { padding-bottom: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-path.rr.rn { padding: 0; margin: 0; gap: 0; }
 .rd-path.rn { padding: 0; gap: 0; align-items: stretch; }
-.rn-board { position: relative; width: 100%; flex: none; min-height: 100%; }
-.rn-neck { position: relative; height: 100%; margin: 0 auto; box-sizing: border-box; border-left: 4px solid #E8D7B8; border-right: 4px solid #E8D7B8;
-  background-image: url("art/road-neck/neck-rosewood.webp"); background-repeat: repeat-y; background-size: 100% auto;
+.rn-board { position: relative; width: 100%; flex: none; box-sizing: content-box; min-height: 100%; padding-bottom: var(--tabs); }
+.rn-neck { position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: var(--rn-w); height: auto; margin: 0 auto; box-sizing: border-box; border-left: 4px solid #E8D7B8; border-right: 4px solid #E8D7B8;
+  background-image: url("art/road-neck/neck-rosewood-v2.webp"); background-repeat: repeat-y; background-size: 100% auto;
   box-shadow: inset 1px 0 0 #2C2118, inset -1px 0 0 #2C2118, 0 0 0 1px #C9B08A, 8px 0 16px rgba(20, 12, 6, .42), -8px 0 16px rgba(20, 12, 6, .42); }
 .rn-neck::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(90deg, rgba(48, 20, 10, .42), rgba(255, 214, 160, .07) 24%, rgba(255, 232, 196, .14) 50%, rgba(255, 214, 160, .07) 76%, rgba(48, 20, 10, .42)); }
-.rn-nut { position: absolute; z-index: 5; left: -5px; width: calc(100% + 10px); top: 0; height: 18px; object-fit: fill; pointer-events: none; background: #F3E6D0; }
+.rn-nut { position: absolute; z-index: 5; left: -5px; width: calc(100% + 10px); top: 0; height: 18px; object-fit: fill; pointer-events: none; background: #E8D7B8; }
 .rn-string { position: absolute; z-index: 3; top: 18px; bottom: 0; width: calc(var(--sw) * 1px); margin-left: calc(var(--sw) * -.5px); border-radius: 2px; opacity: .85; pointer-events: none; box-shadow: 0 0.6px 1px rgba(40, 24, 8, .35); }
 .rn-string.wound { background: linear-gradient(90deg, #8d6840, #f4e4c8 46%, #b89060); }
 .rn-string.plain { background: linear-gradient(90deg, #a7b0ba, #f8fbff 48%, #c9d2da); }
@@ -6039,13 +6041,13 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
 .rn-neck .rn-slot .rd-node.rn-stop, .rn-neck .rn-slot .rd-node.rn-stop.now, .rn-neck .rn-slot .rd-node.rn-stop.locked, .rn-neck .rn-slot .rd-node.rn-stop.done, .rn-neck .rn-slot .rd-node.rn-stop.open { position: relative; width: 64px; height: 64px; min-width: 64px; min-height: 64px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transform: none; color: inherit; }
 .rn-neck .rn-slot .rd-node.rn-stop:active { transform: none; box-shadow: none; }
 .rn-pearl { position: relative; z-index: 1; width: 64px; height: 64px; object-fit: contain; pointer-events: none; display: block; }
-.rn-stop.done .rn-pearl { filter: sepia(.85) saturate(1.7) hue-rotate(-12deg) brightness(.96) contrast(1.05); }
-.rn-stop.now .rn-pearl { filter: sepia(.55) saturate(2.1) hue-rotate(-8deg) brightness(1.08) contrast(1.04); }
+.rn-stop.done .rn-pearl { filter: sepia(.92) saturate(2.4) hue-rotate(-10deg) brightness(.58) contrast(1.18); }
+.rn-stop.now .rn-pearl { filter: sepia(.88) saturate(2.6) hue-rotate(-8deg) brightness(.66) contrast(1.16); }
 .rn-stop.locked .rn-pearl { filter: none; }
 .rn-stop.now .rr-glow { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%); border-radius: 50%; z-index: 0; pointer-events: none; background: radial-gradient(circle, rgba(255, 186, 72, .72) 0%, rgba(214, 120, 28, .28) 42%, transparent 72%); animation: rn-breathe 1.6s ease-in-out infinite alternate; }
 @keyframes rn-breathe { from { opacity: .55; } to { opacity: 1; } }
 .rn-mark { position: absolute; z-index: 4; transform: translate(-50%, -50%); pointer-events: none; }
-.rn-check { width: 20px; height: 20px; }
+.rn-check { width: 20px; height: 20px; filter: drop-shadow(0 0.6px 0 rgba(42, 22, 6, .55)); }
 .rn-lock { width: 22px; height: 22px; }
 .rn-num { position: absolute; z-index: 5; left: calc(50% - var(--rn-w) / 2 - 8px); transform: translate(-100%, -50%); font: 700 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #8a7d70; pointer-events: none; }
 :root[data-look="festival"] .rn-num { color: #7a6856; }

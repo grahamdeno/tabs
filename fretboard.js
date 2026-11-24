@@ -595,9 +595,10 @@ export function bareNeckHTML(legs, o = {}) {
   const stops = board.stops.map(sp => {
     const s = sp.stop, cur = isCur(s), state = s.state || "locked";
     const n = o.num ? o.num(s) : sp.i + 1;
+    const songs = o.songs ? o.songs(s) : 0;
     const glow = state === "now" ? `<span class="rr-glow" aria-hidden="true"></span>` : "";
     return `<div class="rd-stop rn-slot${cur ? " cur" : ""}" data-y0="${sp.y0.toFixed(1)}" data-y1="${sp.y1.toFixed(1)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
-      <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${cur ? ". Double tap to open." : ""}">${neckImg(inlayFile(sp.inlay), "rn-pearl")}${glow}</button></div>`;
+      <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${songs > 0 ? `, opens ${songs} of your songs` : ""}${cur ? ". Double tap to open." : ""}">${neckImg(inlayFile(sp.inlay), "rn-pearl")}${glow}</button></div>`;
   }).join("");
   const marks = board.stops.map(sp => {
     const s = sp.stop, state = s.state || "locked";
@@ -623,6 +624,6 @@ export function bareNeckHTML(legs, o = {}) {
   const next = o.next && end ? `<div class="rn-leg rd-legmark rn-next" role="group" aria-label="${o.next.aria || `${o.next.title}, ${o.next.sub}`}" style="top:${(end.y + 10).toFixed(1)}px"><b>${o.next.title}</b><small>${o.next.sub}</small></div>` : "";
   return `<div class="rn-board" style="height:${Math.round(board.height)}px;--rn-w:${w}%">
     <div class="rn-neck" style="width:var(--rn-w)" role="group" aria-label="The neck">
-      ${neckImg("nut", "rn-nut")}${stops}${wires}${strings}${marks}
+      ${neckImg("nut-v2", "rn-nut")}${stops}${wires}${strings}${marks}
     </div>${nums}${labels}${next}${bub}</div>`;
 }

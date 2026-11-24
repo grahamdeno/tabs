@@ -121,7 +121,7 @@ test("4.40.0 Opening night: Skip asks first; afterwards the stat bar names its t
   await page.waitForSelector("#ask-ok");
   assert.match(await page.innerText(".ask .panel"), /Skip opening night\?[\s\S]*replay it/);
   await page.click("#ask-ok");
-  await page.waitForSelector("#rd-tonight");
+  await page.waitForSelector(".rn-neck");
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).skipped > 0); /* skipped is kept */
   await page.waitForFunction(() => !!JSON.parse(localStorage.getItem("tabs-v1")).me); /* 4.99.0: Skip keeps the default guitarist and opens no sheet */
   assert.equal(await page.locator(".gm").count(), 0, "no maker after skipping");
