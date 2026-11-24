@@ -81,7 +81,7 @@ test("4.85.0 a duel shows your guitarist, worried when you lost", { skip: skip()
 test("painted-only: no hat is on the Merch table, a hat can't be bought, and a hat already bought stays", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, merch: { tips: 400, has: ["wear-cap"] }, songs: PLAYED(LIB.songs) }, { home: true });
   await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/merch/looks"); await page.waitForSelector(".mc");
-  assert.equal(await page.locator(".mc-fin, [data-id^='wear-']").count(), 0, "no hat is offered");
+  assert.equal(await page.locator("[data-id^='wear-'], .mc-fin[aria-label$='for your guitarist']").count(), 0, "no hat is offered");
   const r = await page.evaluate(async () => { const C = await import("/core.js"), app = await import("/app.js"); const out = C.merchBuy(app.data, "wear-beanie"); return { out, has: app.data.merch.has, spent: app.data.merch.tspent || 0 }; });
   assert.equal(r.out.why, "retired"); assert.equal(r.spent, 0, "nothing is charged");
   assert.ok(r.has.includes("wear-cap"), "a hat bought earlier stays saved");
@@ -119,4 +119,33 @@ test("painted-only: the portrait database and the xAI key are deleted once on fi
   assert.equal(await page.evaluate(() => localStorage.getItem("tabs.xaikey.v1")), "again", "it runs once");
   /* Settings has no xAI section and the CSP no longer names xAI */
   assert.ok(!(await page.evaluate(() => document.querySelector('meta[http-equiv="Content-Security-Policy"]').content)).includes("x.ai"));
+});
+
+test("painted-only: a player with an old guitarist (no genre) gets Who's playing tonight? once", { skip: skip() }, async t => {
+  const page = await phone(t, { ...NOME, songs: PLAYED(LIB.songs), me: { skin: 4, hair: "locs", hairCol: "purple", top: "teal" } }, { home: true });
+  await page.waitForSelector(".gm");
+  assert.match(await page.innerText(".gm"), /Who's playing tonight\?/);
+  await page.click('.gm [data-k="genre"][data-v="folk"]');
+  await page.click("#gm-ok");
+  await page.waitForFunction(() => { const m = JSON.parse(localStorage.getItem("tabs-v1")).me; return m?.genre === "folk" && !("skin" in m); });
+  await page.reload(); await page.waitForSelector("#rd-bubble, .rr-stats"); await settled(page);
+  assert.equal(await page.locator(".gm").count(), 0, "asked once");
+});
+
+test("painted-only: the profile share card mirrors the painting for a left-handed player and not for a right-handed one", { skip: skip() }, async t => {
+  for (const lefty of [false, true]) {
+    const page = await phone(t, { ...LIB, songs: LIB.songs.map((s, i) => ({ ...s, playLog: { total: i === 0 ? 6 : 1, last: Date.now() - (i === 0 ? 1 : 40) * 86400e3, days: {} } })), me: { genre: "rock", who: "m", lefty } }, { home: true });
+    await page.waitForSelector("#rd-bubble, .rr-stats"); await hash(page, "#/you"); await page.waitForSelector("#pf-share", { state: "attached" });
+    await page.evaluate(() => {
+      window.__mirror = 0; window.__img = 0;
+      const sc = CanvasRenderingContext2D.prototype.scale; CanvasRenderingContext2D.prototype.scale = function (x, y) { if (x === -1 && y === 1) window.__mirror++; return sc.call(this, x, y); };
+      const di = CanvasRenderingContext2D.prototype.drawImage; CanvasRenderingContext2D.prototype.drawImage = function (im, ...r) { if (im instanceof HTMLCanvasElement) window.__img++; return di.call(this, im, ...r); };
+      Object.defineProperty(navigator, "canShare", { value: () => false, configurable: true });
+    });
+    await page.click("#pf-share");
+    await page.waitForFunction(() => /Saved the picture/.test(document.body.innerText));
+    const r = await page.evaluate(() => ({ mirror: window.__mirror, img: window.__img }));
+    assert.equal(r.mirror, lefty ? 1 : 0, lefty ? "mirrored on the canvas" : "not mirrored");
+    assert.equal(r.img, lefty ? 1 : 0, "the mirrored copy is the one drawn on the card");
+  }
 });
