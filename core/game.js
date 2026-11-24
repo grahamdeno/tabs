@@ -281,9 +281,13 @@ export function roadHit(pts, tap, cur = -1) {
 export const guitarsEarned = (data, now = Date.now()) => roadPath(data, now).legs.filter(l => l.done).map(l => l.id);
 /* The Road guitars you own (2026-11-23), the one rule for the Guitar case, the builder and buildSave: each
    headlined leg's own guitar plus the next leg's guitar (the one guitarNew announces, "Cornerstone is yours").
-   { id, li } in road order; li is the index of the leg that earned it (the first headlined leg that did). */
+   { id, li } in road order; li is the index of the leg that earned it (the first headlined leg that did).
+   5.5.0 (Graham, 2026-11-24): you need a guitar to play at all, so the first leg's guitar (Porch, the worn
+   starter) is yours from the first launch, with li -1. Headlining Leg 1 then earns Cornerstone. */
+export const GUITAR_START = -1;
 export function roadGuitars(data, now = Date.now()) {
   const legs = roadPath(data, now).legs, won = new Map();
+  if (legs[0]) won.set(legs[0].id, GUITAR_START);
   legs.forEach((l, li) => {
     if (!l.done) return;
     if (!won.has(l.id)) won.set(l.id, li);

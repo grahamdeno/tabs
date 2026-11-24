@@ -56,28 +56,29 @@ const seen = async page => page.evaluate(() => {
   };
 });
 
-test("Me (dark): no guitar leaves the empty stand and the way to earn one", { skip: skip() }, async t => {
+test("Me (dark, 5.5.0): before any show Porch stands alone, your first guitar", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })), settings: { ...LIB.settings, v: 6, theme: "dark" } }, { home: true });
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
-  assert.match(await page.innerText(".rr-case-card"), /0 guitars[\s\S]*Headline a leg to earn your first guitar\./);
-  assert.equal(await page.locator(".gs-item").count(), 0);
-  assert.equal(await page.locator(".gs-back").count(), 1, "the empty stand");
-  assert.equal(await page.locator(".gs-ghost").count(), 1, "a faint guitar waits on the empty stand");
+  assert.match(await page.innerText(".rr-case-card"), /1 guitar\b/);
+  assert.equal(await page.locator(".gs-item").count(), 1, "one guitar on the stand");
+  assert.equal(await page.locator(".gs-item.is-on").getAttribute("aria-label"), "Porch, your first guitar");
+  assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/streak\/porch-road\.webp/, "the worn Porch, the large picture");
+  assert.match(await page.innerText(".gs-cap"), /Porch[\s\S]*Your first guitar/);
+  assert.equal(await page.locator(".gs-ghost").count(), 0, "no empty-stand outline: the stand is never empty");
+  assert.equal(await page.locator(".rr-case-note").count(), 0, "no line about earning a first guitar");
   const stage = await page.evaluate(() => document.querySelector(".rr-case-card .gs-stage").getBoundingClientRect().height / innerHeight);
-  assert.ok(stage >= 0.44 && stage <= 0.46, `empty stand is ${(stage * 100).toFixed(1)}% of the screen`);
-  assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".gs-glow")).backgroundImage), /radial-gradient/);
-  assert.equal(await page.locator(".rr-gcase, .rr-latch").count(), 0);
+  assert.ok(stage >= 0.44 && stage <= 0.50, `the stand is ${(stage * 100).toFixed(1)}% of the screen`);
 });
 
 test("Me (dark): one guitar sits alone in the cradle, with its name", { skip: skip() }, async t => {
-  /* 2026-11-23: a headlined leg now earns two road guitars (its own and the next), so one guitar is a shop guitar */
-  const page = await openMe(t, "dark", { merch: { has: [shopIds[0]] } });
+  /* 5.5.0: with nothing earned or bought, the one guitar is Porch, the guitar you start with */
+  const page = await openMe(t, "dark", {});
   await page.waitForFunction(() => document.querySelector(".gs-item.is-on img")?.naturalWidth > 0);
   const s = await seen(page);
   assert.equal(s.n, 1);
   assert.equal(s.count, "1 of 1");
-  assert.equal(s.name, GUITAR_SHOP[0].name);
-  assert.match(s.status, /Guitar shop|you play/);
+  assert.equal(s.name, "Porch");
+  assert.match(s.status, /Your first guitar/);
   assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".gs-track")).touchAction), /pan-y/, "2026-11-23: a vertical swipe on the stand scrolls the page");
   assert.equal(s.prev, null); assert.equal(s.next, null);
   assert.ok(s.hero.shown > 0.95, "the one guitar is fully in view");

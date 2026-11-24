@@ -1,7 +1,7 @@
 // The guitar stand (Road Ready Dark and Light): one hero guitar in an A-frame cradle, the
 // previous and next guitars peeking at the sides, and a dot pager under the feet. Me and the
 // new-guitar sheet share this. Green Room and Headliner never call it.
-import { VERSION, GUITARS, roadGuitars, roadPath, shopState } from "./core.js";
+import { VERSION, GUITARS, GUITAR_START, roadGuitars, roadPath, shopState } from "./core.js";
 import { guitarPic, largeGuitar } from "./fretboard.js";
 import { buildPic } from "./buildart.js";
 import { esc } from "./ui.js";
@@ -38,11 +38,11 @@ export function collectionOf(data, extraId) {
     const g = GUITARS[id], li = wonOn[id] ?? legs.findIndex(l => l.id === id), lg = li >= 0 ? legs[li] : null;
     const painted = standPic(g.body);
     const bp = data.builds?.[id] ? buildPic(id, data.builds[id], painted) : { src: painted, attr: "" };
-    const got = earned.has(id) && lg;
+    const got = earned.has(id) && lg, first = wonOn[id] === GUITAR_START; /* 5.5.0: the guitar you start with */
     items.push({
       id, name: g.name, src: bp.src || painted, attr: bp.attr || "",
-      label: got ? `${g.name}, earned on Leg ${li + 1}, ${lg.name}` : g.name,
-      status: got ? `Earned on Leg ${li + 1}` : (extraId === id ? "New" : "Yours"),
+      label: first ? `${g.name}, your first guitar` : got ? `${g.name}, earned on Leg ${li + 1}, ${lg.name}` : g.name,
+      status: first ? "Your first guitar" : got ? `Earned on Leg ${li + 1}` : (extraId === id ? "New" : "Yours"),
       on: false, road: true
     });
   }
