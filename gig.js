@@ -53,7 +53,7 @@ function shell(song) {
       ${["neon", "festival"].includes(document.documentElement.dataset.look)
         ? /* 4.108.0 (Graham, 2026-11-19): a control bar like an amp's: Speed, a lit Pause, then Loop and Tools as small knobs */
           `<div class="gg-bar" role="group" aria-label="Song controls"><button class="gg-sb gg-speed" id="gg-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>
-          <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button><small aria-hidden="true">Pause</small></div>
+          <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>
           <span class="gg-knobs"><button class="gg-sb gg-knob" id="gg-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button><button class="gg-sb gg-knob" id="gg-tools" aria-label="Tools"><i aria-hidden="true"></i><small>Tools</small></button></span></div>`
         : `<div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>`}
     </div>
