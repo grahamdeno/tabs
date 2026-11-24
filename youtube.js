@@ -27,7 +27,6 @@ function loadApi() {
   });
 }
 /* the card: in the top right, above the line you're on; in a Gig, under the crowd */
-let placed = 0;
 function place() {
   if (!card) return;
   const fans = document.getElementById("gg-fans"), now = document.querySelector("#sheet > .st-now");
@@ -56,7 +55,7 @@ function show(on) {
   if (on) makeCard();
   if (!card) return;
   cap();
-  if (on) place();
+  if (on) { place(); document.fonts?.ready?.then(() => { if (card?.classList.contains("on")) place(); }); }
   card.classList.toggle("on", on);
   document.body.classList.toggle("yt-on", on);
 }
@@ -102,7 +101,7 @@ export function ytStart(song, at = 0, rate = 1) {
 /* where the song is, from the video: null when we're not playing it, -1 while waiting (an ad, buffering, not started) */
 export function ytClock(song) {
   if (!want || !player || !ytOn(song) || playerId !== song.yt.id) return null;
-  if (performance.now() - placed > 500) { placed = performance.now(); place(); } /* the line you're on settles once the page starts moving */
+  place(); /* the page moves on this same tick, and the card has to be above the line after that move */
   if (state === PLAYING) { const t = player.getCurrentTime?.(); return Number.isFinite(t) ? ytSong(song.yt, t) : -1; }
   if (performance.now() - wantAt > (started ? 3500 : 1500) && !hinted) { hinted = 1; toast(!started ? "Tap the video to start. Your phone only lets a video start from a tap on it, and the page waits for it." : state === PAUSED ? "The video is paused. Tap it to carry on." : "Waiting for YouTube. If it doesn't start, tap the video (an ad may be playing)."); }
   return -1;
@@ -112,6 +111,8 @@ export function ytPause() { want = false; try { player?.pauseVideo?.(); } catch 
 export function ytRate(rate) { try { player?.setPlaybackRate?.(Math.min(2, Math.max(0.25, rate || 1))); return true; } catch { return false; } }
 export const ytPlaying = song => ytOn(song) && playerId === song.yt.id && state === PLAYING;
 onLeave(() => { ytPause(); });
+/* scrollBy reports the new position before it returns, so the card clears the line on the same move */
+addEventListener("scroll", () => { if (card?.classList.contains("on")) place(); }, { passive: true });
 addEventListener("resize", place);
 
 /* ---- About this song > YouTube video: find, pick or paste a song's video, and line it up ---- */
