@@ -576,55 +576,63 @@ export function guitarSVG(id, { full = false } = {}) {
 }
 
 /* The neck-only Road: rosewood, a bone nut, straight strings and one pearl inlay per stop.
-   legs: [{ title, sub, aria, cls, stops }]. The title is not drawn in the gutter. A zero-size marker
-   (.rn-lat) records where each leg starts so the row under the stats can name the leg in view.
-   o.next marks the peek of the following leg the same way. */
+   legs: [{ title, sub, aria, cls, stops, upcoming }]. The title is not drawn in the gutter. A zero-size
+   marker (.rn-lat) records where each leg starts so the row under the stats can name the leg in view.
+   A leg with upcoming is the next leg, drawn in full under the gold fret and grayed out. Its marker
+   carries rn-next, so the row switches as that gold fret reaches the top. No empty frets are added
+   past the last gold fret. */
 const NECK_ART = "art/road-neck";
 const INLAY_V2 = { fin: "fin-v2", vine: "vine-v2", moon: "moon-v2" };
 const neckImg = (file, cls, extra = "") => `<img class="${cls}" src="${NECK_ART}/${file}.webp?v=${VERSION}" alt="" draggable="false"${extra}>`;
 const inlayFile = name => "inlays/" + (INLAY_V2[name] || name);
 export function bareNeckHTML(legs, o = {}) {
   const real = (legs || []).filter(l => l.stops?.length);
-  const board = neckBoard(real, { peek: o.next ? 3 : 0 });
+  const up = real.findIndex(l => l.upcoming || l.dim);
+  const board = neckBoard(real, { peek: 0 });
   const w = (board.width * 100).toFixed(2);
   /* Low E to high E. Each width is one constant, the whole length of the string. */
   const thick = [3.5, 2.7, 2.2, 1.7, 1.2, 0.95];
-  const wires = board.frets.map(f => f.gold
-    ? `<img class="rn-gold" src="${NECK_ART}/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="top:${f.y.toFixed(1)}px">`
-    : `<i class="rn-wire${f.peek ? " peek" : ""}" style="top:${f.y.toFixed(1)}px"></i>`).join("");
+  const dimLeg = li => up >= 0 && li === up;
+  const wires = board.frets.map(f => {
+    const dim = dimLeg(f.leg) ? " rn-dim" : "";
+    return f.gold
+      ? `<img class="rn-gold${dim}" src="${NECK_ART}/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="top:${f.y.toFixed(1)}px">`
+      : `<i class="rn-wire${f.peek ? " peek" : ""}${dim}" style="top:${f.y.toFixed(1)}px"></i>`;
+  }).join("");
   const strings = board.strings.map((x, i) => `<i class="rn-string ${i < 3 ? "wound" : i === 3 ? "wound g" : "plain"}" style="left:${(x * 100).toFixed(2)}%;--sw:${thick[i]}"></i>`).join("");
   const curId = o.cur?.id;
   const isCur = s => s === o.cur || (curId && s.id === curId);
   const stops = board.stops.map(sp => {
-    const s = sp.stop, cur = isCur(s), state = s.state || "locked";
+    const s = sp.stop, dim = dimLeg(sp.li), cur = !dim && isCur(s), state = dim ? "locked" : (s.state || "locked");
     const n = o.num ? o.num(s) : sp.i + 1;
-    const songs = o.songs ? o.songs(s) : 0;
+    const songs = dim ? 0 : (o.songs ? o.songs(s) : 0);
     const glow = state === "now" ? `<span class="rr-glow" aria-hidden="true"></span>` : "";
-    return `<div class="rd-stop rn-slot${cur ? " cur" : ""}" data-y0="${sp.y0.toFixed(1)}" data-y1="${sp.y1.toFixed(1)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
+    return `<div class="rd-stop rn-slot${dim ? " rn-dim" : ""}${cur ? " cur" : ""}" data-y0="${sp.y0.toFixed(1)}" data-y1="${sp.y1.toFixed(1)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%">
       <button class="rd-node rn-stop ${s.kind || ""} ${state}${cur ? " cur" : ""}" data-stop="${o.id(s)}" data-kind="${s.kind || "chord"}" data-n="${n}" aria-label="${o.label(s)}${songs > 0 ? `, opens ${songs} of your songs` : ""}${cur ? ". Double tap to open." : ""}">${neckImg(inlayFile(sp.inlay), "rn-pearl")}${glow}</button></div>`;
   }).join("");
   const marks = board.stops.map(sp => {
-    const s = sp.stop, state = s.state || "locked";
+    const s = sp.stop, dim = dimLeg(sp.li), state = dim ? "locked" : (s.state || "locked");
     const file = state === "done" ? "check-v2" : state === "locked" ? "lock-v2" : "";
     if (!file) return "";
     const cls = state === "done" ? "rn-check" : "rn-lock";
-    return neckImg(file, `rn-mark ${cls}`, ` data-for="${o.id(s)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%"`);
+    return neckImg(file, `rn-mark ${cls}${dim ? " rn-dim" : ""}`, ` data-for="${o.id(s)}" style="top:${sp.cy.toFixed(1)}px;left:${(sp.x * 100).toFixed(2)}%"`);
   }).join("");
   const nums = board.stops.map(sp => {
     const n = o.num ? o.num(sp.stop) : sp.i + 1;
-    return `<span class="rn-num" aria-hidden="true" style="top:${sp.cy.toFixed(1)}px">${n}</span>`;
+    return `<span class="rn-num${dimLeg(sp.li) ? " rn-dim" : ""}" aria-hidden="true" style="top:${sp.cy.toFixed(1)}px">${n}</span>`;
   }).join("");
   const legMark = (leg, top, extra = "") => `<span class="rn-lat${extra}" data-title="${esc(leg.title || "")}" data-sub="${esc(leg.sub || "")}" data-aria="${esc(leg.aria || `${leg.title}, ${leg.sub}`)}" data-cls="${esc(leg.cls || "")}" style="top:${top.toFixed(1)}px"></span>`;
   const labels = real.map((leg, li) => {
     const first = board.stops.find(sp => sp.li === li);
     if (!first) return "";
-    return legMark(leg, li === 0 ? 0 : first.y0);
+    return legMark(leg, li === 0 ? 0 : first.y0, dimLeg(li) ? " rn-next" : "");
   }).join("");
-  const golds = board.frets.filter(f => f.gold);
-  const end = golds[golds.length - 1];
-  const next = o.next && end ? legMark(o.next, end.y + 10, " rn-next") : "";
+  /* The gray band starts just under the gold fret that opens the upcoming leg, and runs to the end of its wood. */
+  const upStop = up > 0 ? board.stops.find(sp => sp.li === up) : null;
+  const veilTop = upStop ? upStop.y0 + 12 : 0;
+  const veil = upStop ? `<div class="rn-upcoming" style="top:${veilTop.toFixed(1)}px;height:${Math.max(0, board.height - veilTop).toFixed(1)}px"></div>` : "";
   return `<div class="rn-board" style="height:${Math.round(board.height)}px;--rn-w:${w}%">
     <div class="rn-neck" style="width:var(--rn-w);height:${Math.round(board.height)}px" role="group" aria-label="The neck">
-      ${neckImg("nut-v2", "rn-nut")}${stops}${wires}${strings}${marks}
-    </div>${nums}${labels}${next}</div>`;
+      ${neckImg("nut-v2", "rn-nut")}${stops}${wires}${strings}${marks}${veil}
+    </div>${nums}${labels}</div>`;
 }

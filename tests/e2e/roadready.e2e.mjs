@@ -358,6 +358,8 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
       return {
         frac: n.width / innerWidth, strings: document.querySelectorAll(".rn-string").length,
         stops: document.querySelectorAll(".rn-neck .rd-node").length,
+        live: document.querySelectorAll(".rn-slot:not(.rn-dim)").length,
+        dim: document.querySelectorAll(".rn-slot.rn-dim").length,
         num: [...document.querySelectorAll(".rn-num")].find(el => el.style.top === cur.parentElement.style.top)?.textContent,
         pearl: Math.round(pearl.width), glow: !!cur.querySelector(".rr-glow"),
         check: document.querySelectorAll(".rn-check").length,
@@ -372,7 +374,8 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     });
     assert.ok(neck.frac >= 0.55 && neck.frac <= 0.6, `the neck is ${neck.frac} of the screen`);
     assert.equal(neck.strings, 6);
-    assert.equal(neck.stops, 10, "one inlay per stop on the first leg");
+    assert.equal(neck.live, 10, "one inlay per stop on the leg you are on");
+    assert.ok(neck.dim > 0, "the next leg is drawn in full, grayed out");
     assert.equal(neck.num, "6");
     assert.equal(neck.pearl, 64);
     assert.equal(neck.glow, true);
@@ -398,17 +401,25 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
   });
 }
 
-test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is only a peek", { skip: skip() }, async t => {
+test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is grayed out in full", { skip: skip() }, async t => {
   const page = await road(t, "dark", LEG1, {}, { merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] } });
   const m = await page.evaluate(() => ({
     gold: document.querySelectorAll(".rn-gold").length,
     cur: document.querySelector(".rd-node.cur")?.getAttribute("aria-label") || "",
-    next: document.querySelector(".rn-next")?.dataset.title || "",
-    stops: document.querySelectorAll(".rn-neck .rd-node").length
+    next: document.querySelector(".rn-lat.rn-next")?.dataset.title || "",
+    stops: document.querySelectorAll(".rn-neck .rd-node").length,
+    peek: document.querySelectorAll(".rn-wire.peek").length,
+    dim: document.querySelectorAll(".rn-slot.rn-dim .rn-stop.locked").length,
+    dimGlow: document.querySelectorAll(".rn-slot.rn-dim .rr-glow").length,
+    veil: document.querySelectorAll(".rn-upcoming").length
   }));
   assert.ok(m.gold >= 1, "the leg change is a gold fret");
   assert.match(m.cur, /^Show 1 of 11,/);
   assert.match(m.next, /Leg 3/);
+  assert.equal(m.peek, 0, "no empty fret stub under the gold");
+  assert.ok(m.dim >= 5, "the next leg's stops are on the neck");
+  assert.equal(m.dimGlow, 0, "a grayed stop does not glow");
+  assert.equal(m.veil, 1, "one gray band over the next leg");
   assert.ok(m.stops > 10, "the finished leg stays on the neck with the one you are on");
   await page.evaluate(() => {
     const path = document.getElementById("rd-path");
