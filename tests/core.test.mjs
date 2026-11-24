@@ -2866,13 +2866,23 @@ test("4.87.0 every guitar is a picture: head, body and small picture saved for o
   }
 });
 
+test("Dark Road leather: the agreed near-black tile is what Dark shows, and the older pebble is kept", () => {
+  const css = read("styles.css"), shell = read("sw.js");
+  assert.match(css, /art\/surfaces\/tolex-dark-levant\.webp/);
+  assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark.webp")), "the older pebble stays");
+  assert.ok(fs.existsSync(path.join(root, "art/surfaces/tolex-dark-fine.webp")), "the fine tile stays");
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-fine.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-levant.webp"'));
+  assert.ok(shell.includes('"art/surfaces/tolex-dark-leather.webp"'), "the earlier leather tile stays");
+  assert.ok(!/luminosity/.test(css.split(".rd-path")[1] || ""), "the Road no longer washes the leather flat");
+});
 test("Road Ready: the switch leg uses the sunburst cutaway and the tolex comes from bitmap tiles, all saved for offline", async () => {
   const shell = read("sw.js"), PICS = (await import("../art/guitars/pics.js")).default;
   const fb = read("fretboard.js");
   /* Road Ready 9a: the switch leg is Cornerstone now; the sunburst cutaway is still built and still named by its body */
   assert.match(fb, /switch: "cornerstone"/); assert.match(fb, /cutaway: "cutaway-sunburst"/);
   assert.ok(PICS["cutaway-sunburst"] && PICS.cornerstone, "the sunburst and Cornerstone have numbers");
-  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-cream.webp"])) {
+  for (const f of ["cutaway-sunburst-head", "cutaway-sunburst-body", "cutaway-sunburst-small"].map(n => `art/guitars/${n}.webp`).concat(["art/surfaces/tolex-dark.webp", "art/surfaces/tolex-dark-leather.webp", "art/surfaces/tolex-cream.webp"])) {
     assert.ok(fs.existsSync(path.join(root, f)), f); assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`); assert.ok(fs.statSync(path.join(root, f)).size <= 60000, `${f} is small`);
   }
 });
