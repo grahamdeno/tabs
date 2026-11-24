@@ -126,10 +126,11 @@ navigator.storage?.persist?.().then(ok => { storageKept = ok; }).catch(() => {})
 navigator.storage?.persisted?.().then(ok => { if (storageKept === null) storageKept = ok; }).catch(() => {});
 
 const WEEK = 7 * 86400000;
-function needsBackup() {
+/* ignoreSnooze: Settings shows the backup line whenever one is due, even after "Later" on the Songbook */
+function needsBackup({ ignoreSnooze = false } = {}) {
   if (!data.songs.length) return false;
   const s = data.settings, now = Date.now();
-  if (s.backupSnooze && now < s.backupSnooze) return false;
+  if (!ignoreSnooze && s.backupSnooze && now < s.backupSnooze) return false;
   return !s.lastBackup || now - Date.parse(s.lastBackup) > WEEK;
 }
 function ago(iso) {

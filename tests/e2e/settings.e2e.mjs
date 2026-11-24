@@ -538,5 +538,17 @@ test("5.x Settings: the backup line shows at the top only when a backup is due",
   const box = await page.locator("#s-backup").boundingBox();
   assert.ok(box.height >= 44, "Back up is at least 44 px tall");
   assert.equal(await page.locator(".s-dock").count(), 0);
+  await page.click("#s-backup");
+  await page.waitForFunction(() => !document.querySelector(".s-due"));
+  assert.equal(await page.locator("[data-page]").count(), 10, "the menu is back without the line");
   assert.deepEqual(errs, []);
+});
+
+test("5.x Settings: the backup line ignores the Songbook's Later; the Keys page is titled API keys", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lastBackup: "2020-01-01T00:00:00Z", backupSnooze: Date.now() + 86400000 } });
+  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector("[data-page]");
+  assert.equal(await page.locator(".s-due").count(), 1, "snoozed on the Songbook, still shown in Settings");
+  await page.click("[data-page='keys']");
+  await page.waitForFunction(() => document.querySelector("h1.title")?.textContent.trim() !== "Settings");
+  assert.equal((await page.innerText("h1.title")).trim(), "API keys");
 });

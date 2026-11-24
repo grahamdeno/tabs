@@ -3,7 +3,7 @@ import { IMG_STORE, imgKey } from "./portrait.js";
 import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
-import { ago, backupNow, copyDiagnostics, problems, storageKept, where } from "./store.js";
+import { ago, backupNow, copyDiagnostics, needsBackup, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
 // ---------- Settings ----------
@@ -111,7 +111,7 @@ function renderSettings() {
       <div id="s-cities"></div>` : ""}
     </div>
     <p class="foot">Under the Songbook's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day, and when the air has changed a lot since your last play the song page says to tune up first. Only the city's position is sent, once a day; Louie asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
-    keys: ["Keys", `
+    keys: ["API keys", `
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>
     <div class="set-group glass">
@@ -222,7 +222,7 @@ function renderSettings() {
     const row = (id, ic, name, val, act = false) => `<button class="set" data-page="${id}"><span class="tile">${icon(ic)}</span><span class="name">${name}</span><span class="val ${act ? "act" : "muted"}">${val}</span>${icon("chev", "chev")}</button>`;
     const n = data.songs.length;
     const keys = [aiKey(), bpmKey(), imgKey()], setN = keys.filter(Boolean).length;
-    const due = n > 0 && (!s.lastBackup || Date.now() - Date.parse(s.lastBackup) > 7 * 86400000);
+    const due = needsBackup({ ignoreSnooze: true });
     const appleNoToken = s.appleMusic && !s.appleMusicToken;
     app.innerHTML = head("Settings", "Back") + `
     ${due ? `<div class="s-due" role="status"><span class="s-due-ic">${icon("cloud")}</span><span class="s-due-t"><b>${s.lastBackup ? "Not backed up this week" : "Not backed up yet"}</b><span>${n} song${n === 1 ? "" : "s"} on this phone only</span></span><button class="btn sm primary" id="s-backup">Back up</button></div>` : ""}

@@ -13,7 +13,7 @@ import { BOOTH_MAX, BOOTH_PLACES, BOOTH_RATE, BOOTH_RIVALS, boothCall, boothChor
 import { ytId, cleanYt, ytAt, ytSong, ytMatches } from "./core/youtube.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "4.121.0";
+export const VERSION = "4.120.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
