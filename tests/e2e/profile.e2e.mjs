@@ -92,7 +92,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitars\n3 guitars");
     const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); const tf = getComputedStyle(im).transform; return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf, hidden: im.getAttribute("aria-hidden"), on: li.classList.contains("is-on") }; }));
     assert.equal(gs.length, 3);
-    assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 1, Open chords", "Club Slab, earned on Leg 2, Chord switches"], "2026-11-23: headlining a leg earns the next leg's guitar");
+    assert.deepEqual(gs.map(g => g.label), ["Porch, your first guitar", "Cornerstone, earned on Leg 1, Open chords", "Club Slab, earned on Leg 2, Chord switches"], "2026-11-23: headlining a leg earns the next leg's guitar");
     for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.ok(!/matrix\(/.test(g.tf) || /matrix\([^,]+, 0, 0,/.test(g.tf), `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.ok(Math.abs(g.w / g.h - g.nw / g.nh) < 0.05, `${g.label}: natural shape`); }
     assert.equal(gs.filter(g => g.on).length, 1, "one guitar in the cradle");
     /* criterion 3: game money and real money are apart */
@@ -219,11 +219,12 @@ test("Road Ready 08: at large text the tiles stack, the rows grow and the stand 
   for (const [h, clip] of m.rows) assert.ok(h >= 52 && !clip, "a row is 52 tall or more and doesn't clip");
 });
 
-test("Road Ready 08: with no guitar earned the case says how to earn one; a library with no plays has no share row and no Milestones gap", { skip: skip() }, async t => {
+test("Road Ready 08 (5.5.0): before any show the stand holds Porch, your first guitar; a library with no plays has no share row and no Milestones gap", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: LIB.songs.map(s => ({ ...s, playLog: undefined })), settings: { ...LIB.settings, v: 6, theme: "dark" } }, { home: true });
   await page.waitForSelector("#h-fans"); await settled(page);
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
-  assert.match(await page.innerText(".rr-case-card"), /0 guitars[\s\S]*Headline a leg to earn your first guitar\./);
+  assert.match(await page.innerText(".rr-case-card"), /1 guitar\b[\s\S]*Porch[\s\S]*Your first guitar/);
+  assert.equal(await page.locator(".rr-case-note").count(), 0, "5.5.0: no 'earn your first guitar' line, you start with one");
   assert.equal(await page.locator("#pf-share").count(), 0, "no share row until there is something to share");
   assert.equal(await page.locator("#pf-r-support").count(), 1, "Support the app is still there");
 });
