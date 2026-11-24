@@ -1260,6 +1260,42 @@ test("profile: the journal is worked out once from songs already played, then co
   assert.equal(C.profileOf(data, now).practiceSecs, 600, "practice time is told apart (3.24.2)");
 });
 
+test("when you play: one line from the grid, and the hours chart falls back to four weeks", () => {
+  const blank = () => Array.from({ length: 7 }, () => [0, 0, 0, 0]);
+  assert.equal(C.whenYouPlay(blank()), "");
+  const evenings = blank();
+  evenings[0][2] = 5; evenings[1][2] = 4;
+  assert.equal(C.whenYouPlay(evenings), "You play most on Sunday and Monday evenings");
+  const one = blank();
+  one[0][0] = 10;
+  assert.equal(C.whenYouPlay(one), "You play most on Sunday mornings");
+  const split = blank();
+  split[0][0] = 10; split[6][3] = 10;
+  assert.equal(C.whenYouPlay(split), "You play most on Sunday and Saturday");
+  const even = Array.from({ length: 7 }, () => [1, 1, 1, 1]);
+  assert.equal(C.whenYouPlay(even), "You play across the week, with no one time standing out");
+  const now = new Date(2026, 10, 24, 15).getTime();
+  const key = off => { const d = new Date(now - off * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  assert.equal(C.playBars({}, now).mode, "none", "no days and no weeks: no flat chart");
+  const recent = C.playBars({ [key(1)]: 600, [key(3)]: 300 }, now);
+  assert.equal(recent.mode, "days");
+  assert.equal(recent.bars.length, 7);
+  assert.equal(recent.bars.reduce((a, b) => a + b.secs, 0), 900);
+  assert.equal(recent.caption, "");
+  const older = C.playBars({ [key(10)]: 3600, [key(18)]: 1800 }, now);
+  assert.equal(older.mode, "weeks");
+  assert.equal(older.caption, "Your last 4 weeks");
+  assert.equal(older.bars.length, 4);
+  assert.equal(older.bars.reduce((a, b) => a + b.secs, 0), 5400);
+  assert.ok(older.bars.some(b => b.secs === 0) && older.bars.some(b => b.secs > 0), "empty weeks stay in the row, with no invented time");
+  const data = { songs: [], sets: [], settings: {}, journal: { v: 1, since: "2026-01-01", seeded: "2026-01-01", secs: 0, chords: {}, changes: {}, keys: {}, months: {}, week: Array(168).fill(0), best: 0, firsts: [], tune: { n: 0, checked: Array(6).fill(0), drift: Array(6).fill(0) }, days: { [key(10)]: 3600 } } };
+  data.journal.week[0 * 24 + 19] = 3; data.journal.week[1 * 24 + 18] = 3;
+  const p = C.profileOf(data, now);
+  assert.equal(p.whenLine, "You play most on Sunday and Monday evenings");
+  assert.equal(p.bars.mode, "weeks");
+  assert.equal(p.bars.caption, "Your last 4 weeks");
+});
+
 test("profile: tuner sessions show which string drifts; a journal from a backup is repaired", () => {
   const data = { songs: [], sets: [], settings: {} };
   for (let i = 0; i < 4; i++) C.journalTune(data, [1, -2, 0, 3, i < 3 ? -12 : 2, 0]);
@@ -1609,7 +1645,7 @@ test("The security policy lets MusicKit fetch Apple's certificate bundle and str
   const part = name => csp.split(";").map(x => x.trim()).find(x => x.startsWith(name + " "));
   for (const h of ["https://*.mzstatic.com", "https://*.cdn-apple.com", "https://*.aaplimg.com"]) assert.ok(part("connect-src").includes(h), "connect-src " + h);
   assert.ok(part("media-src").includes("https://*.mzstatic.com"));
-  /* 'wasm-unsafe-eval' only lets the page compile WebAssembly (the selfie face finder); plain 'unsafe-eval' stays banned */
+  /* 'wasm-unsafe-eval' only lets the page compile WebAssembly (the pitch model's tfjs); plain 'unsafe-eval' stays banned */
   assert.ok(!/(?<!wasm-)unsafe-eval|script-src[^;]*\*[^.]/.test(csp), "scripts stay limited");
 });
 
@@ -2687,31 +2723,26 @@ test("4.84.0 every guitar has its own inlay material, and the solid-body is on m
   assert.ok(Object.values(C.GUITARS).every(g => g.head === "plain"), "no slotted, book or pointed heads left");
 });
 
-test("4.85.0 your guitarist: cleanMe keeps good fields, drops bad ones, and a backup keeps data.me", () => {
+test("painted-only: cleanMe keeps only genre, who and left-handed; older fields are dropped; a backup keeps data.me", () => {
   assert.equal(C.cleanMe(null), null);
-  const me = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1", "leg:open", "bad id!", 5] });
-  assert.deepEqual(me, { skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", extraCol: "teal", top: "blue", lefty: true, patches: ["leg:open", "b:song1"] });
-  /* the face parts (2026-11-20): kept when valid and not the default, so a guitarist saved before them is unchanged */
-  const parts = C.cleanMe({ ...C.ME_DEFAULT, skin: 8, face: "heart", eyes: "round", eyeCol: "green", brows: "nope", nose: "broad", specs: "shades", freckles: "yes" });
-  assert.equal(parts.skin, 8);
-  assert.deepEqual([parts.face, parts.eyes, parts.eyeCol, parts.brows, parts.nose, parts.specs, parts.freckles], ["heart", undefined, "green", undefined, "broad", "shades", undefined]);
-  assert.deepEqual(C.cleanMe(C.ME_DEFAULT), { ...C.ME_DEFAULT }, "a guitarist from before keeps exactly its fields");
-  const bad = C.cleanMe({ skin: 9, hair: "mullet", hairCol: "x", beard: 3, extra: "crown", top: "plaid", lefty: "yes", patches: new Array(9).fill(0).map((_, i) => "p" + i) });
-  assert.equal(bad.skin, C.ME_DEFAULT.skin);
-  assert.equal(bad.hair, C.ME_DEFAULT.hair);
-  assert.equal(bad.beard, "none");
-  assert.equal(bad.extra, "none");
-  assert.equal(bad.top, C.ME_DEFAULT.top);
-  assert.equal(bad.lefty, false);
-  assert.equal(bad.patches.length, C.ME_PATCHES, "at most five patches");
-  assert.equal(C.ME_STARTERS.length, 8);
-  assert.ok(C.ME_STARTERS.every(s => C.cleanMe(s).hair === s.hair && s.extra === "none" && !("name" in s)), "starters are valid, hat-free and nameless");
-  const back = C.cleanImport(JSON.parse(JSON.stringify({ songs: [], sets: [], trash: [], settings: {}, me })));
-  assert.deepEqual(back.data.me, me, "an import keeps data.me");
+  assert.equal(C.cleanMe({ skin: 4, hair: "locs", top: "blue", lefty: true }), null, "an old guitarist with no genre is null, so the Road asks once");
+  assert.equal(C.cleanImport({ songs: [], sets: [], trash: [], settings: {}, me: { skin: 4, hair: "locs" } }).data.me, undefined, "an old save loads with no guitarist");
+  assert.deepEqual(C.cleanMe({ genre: "blues", who: "w" }), { genre: "blues", who: "w", lefty: false }, "the new shape is kept");
+  const old = C.cleanMe({ skin: 4, hair: "locs", hairCol: "pink", beard: "stubble", glasses: true, extra: "cap", top: "blue", face: "heart", specs: "shades", patches: ["leg:open"], lefty: true, genre: "funk", who: "w" });
+  assert.deepEqual(old, { genre: "funk", who: "w", lefty: true }, "only three fields");
+  assert.deepEqual(Object.keys(C.cleanMe(C.ME_DEFAULT)).sort(), ["genre", "lefty", "who"]);
+  assert.deepEqual(C.ME_DEFAULT, { lefty: false, genre: "rock", who: "m" });
+  const bad = C.cleanMe({ genre: "ska", who: "x", lefty: "yes" });
+  assert.deepEqual(bad, { genre: "rock", who: "m", lefty: false }, "bad values fall back");
+  assert.equal(C.ME_GENRE.length, 12, "12 genres, a man and a woman each: 24 paintings");
+  assert.deepEqual(C.meOf({ songs: [] }), C.ME_DEFAULT, "no data.me, the default");
+  const back = C.cleanImport(JSON.parse(JSON.stringify({ songs: [], sets: [], trash: [], settings: {}, me: old })));
+  assert.deepEqual(back.data.me, old, "an import keeps data.me");
   assert.equal(C.cleanImport({ songs: [], sets: [], trash: [], settings: {} }).data.me, undefined, "no me, none made up");
+  for (const gone of ["ME_HAIR", "ME_HAIR_COL", "ME_TOP_COL", "ME_BEARD", "ME_HATS", "ME_PATCHES", "ME_FACE", "ME_EYES", "ME_EYE_COL", "ME_BROWS", "ME_NOSE", "ME_SPECS", "ME_SKINS", "ME_STARTERS", "selfieGuess", "beardGuess", "rgbLab", "nearestInk", "rivalMe", "patchesOf"]) assert.equal(C[gone], undefined, gone + " is gone");
 });
 
-test("4.85.0 your guitarist: the look follows the venue and never drops; a hat shows only once bought", () => {
+test("painted-only: the look follows the venue and never drops; hats are off the Merch table, bought ones stay", () => {
   assert.equal(C.stageLookOf(0), "tee");
   assert.equal(C.stageLookOf(1), "tee");
   assert.equal(C.stageLookOf(3), "vest");
@@ -2720,20 +2751,15 @@ test("4.85.0 your guitarist: the look follows the venue and never drops; a hat s
   assert.equal(C.stageLookOf(99), "stage", "beyond the Festival headliner stays the stage jacket");
   const data = { songs: [], sets: [], trash: [], settings: {}, fame: { down: 2 } };
   assert.equal(C.stageLook(data), "tee", "no plays, a tee");
-  data.me = { ...C.ME_DEFAULT, extra: "cap" };
-  assert.equal(C.meOf(data).extra, "none", "a hat you haven't bought doesn't show");
-  data.merch = { has: ["wear-cap"] };
-  assert.equal(C.meOf(data).extra, "cap");
-  assert.equal(C.meOf({ songs: [] }).skin, C.ME_DEFAULT.skin, "no data.me, the default");
-  const buy = { songs: [], sets: [], trash: [], settings: {}, merch: { tips: 300 }, me: { ...C.ME_DEFAULT } };
-  assert.equal(C.merchBuy(buy, "wear-beanie").ok, true);
-  assert.equal(buy.me.extra, "beanie", "buying a hat puts it on");
-  assert.equal(C.merchBuy(buy, "wear-beanie").why, "have");
+  const buy = { songs: [], sets: [], trash: [], settings: {}, merch: { tips: 300, has: ["wear-cap"] }, me: { ...C.ME_DEFAULT } };
+  assert.equal(C.merchBuy(buy, "wear-beanie").why, "retired", "a hat can't be bought");
+  assert.equal(buy.merch.tspent || 0, 0, "nothing is charged");
+  assert.deepEqual(buy.me, { ...C.ME_DEFAULT }, "nothing is put on");
+  assert.ok(C.cleanMerch(buy.merch).has.includes("wear-cap"), "a hat bought before stays saved");
 });
 
-test("4.85.0 your guitarist: patches, moods and seeded rivals", () => {
+test("painted-only: your guitarist's mood follows your streak", () => {
   const data = { songs: [], sets: [], trash: [], settings: {} };
-  assert.deepEqual(C.patchesOf(data), [], "nothing earned, nothing worn");
   assert.equal(C.meMood(data, Date.now()), "happy");
   const day = new Date(2026, 9, 28, 21, 0).getTime(), yesterday = new Date(2026, 9, 27, 12, 0).getTime();
   const key = t => C.dayKey(t);
@@ -2741,39 +2767,63 @@ test("4.85.0 your guitarist: patches, moods and seeded rivals", () => {
   const streaky = { songs: [song], sets: [], trash: [], settings: {} };
   assert.equal(C.meMood(streaky, day), "sleepy", "a streak to lose and not played tonight, late");
   assert.equal(C.meMood(streaky, new Date(2026, 9, 28, 10, 0).getTime()), "happy", "in the morning there's time");
-  const a = C.rivalMe("Neon Jen", 2), b = C.rivalMe("Neon Jen", 2);
-  assert.deepEqual(a, b, "a rival looks the same every time");
-  assert.equal(a.look, "vest");
-  assert.equal(C.rivalMe("Neon Jen", 5).look, "leather");
-  assert.notDeepEqual(C.rivalMe("Basement Ray", 2), a, "different names look different");
-  assert.ok(C.cleanMe(a), "a rival is a valid guitarist");
-  const worn = C.cleanMe({ ...C.ME_DEFAULT, patches: ["b:nope"] });
-  assert.deepEqual(C.patchesOf({ ...data, me: worn }), [], "a patch you haven't earned isn't worn");
 });
 
-test("4.85.0 guitarist.js draws every hair, pose, mood, look and guitar, and lefty mirrors the body", async () => {
-  const { guitarist } = await import("../guitarist.js");
-  const looks = ["tee", "vest", "leather", "stage"], P = [{ kind: "leg", color: "#8a6a4a", top: "1" }, { kind: "show", color: "#ff5fa8", top: "10" }];
-  for (const hair of C.ME_HAIR) for (const pose of ["play", "hornsUp", "rest"]) for (const mood of ["happy", "cheer", "worried", "sleepy", "proud"]) {
-    const i = hair.length + mood.length, face = { face: C.ME_FACE[i % 4], eyes: C.ME_EYES[i % 3], brows: C.ME_BROWS[i % 4], nose: C.ME_NOSE[i % 4], eyeCol: C.ME_EYE_COL[i % 6], specs: C.ME_SPECS[i % 3], freckles: i % 2 === 0, skin: i % 9 };
-    const s = guitarist({ ...C.ME_DEFAULT, ...face, hair, beard: C.ME_BEARD[i % 4], glasses: true, extra: C.ME_HATS[i % 3] }, { mood, pose, crop: ["full", "three", "bust", "face"][i % 4], card: i % 2 === 1, look: looks[mood.length % 4], patches: P, guitar: C.GUITARS.strum });
-    assert.ok(s.startsWith("<svg") && s.endsWith("</svg>") && !s.includes("undefined") && !s.includes("NaN"), `${hair} ${pose} ${mood}`);
+test("painted-only: guitarist.js has no ink drawing, and every caller gets a painting", async () => {
+  const G = await import("../guitarist.js");
+  assert.deepEqual(Object.keys(G).sort(), ["GENRE_DEFAULT", "GENRE_IDS", "genreCast", "genreFile", "genreForName", "genreIdOf", "rival", "you"]);
+  const shapes = [G.you({}, {}), G.you({}, { crop: "bust", size: 32 }), G.you({}, { crop: "face" }), G.you({}, { card: true, look: "vest", headline: "Tonight" }), G.rival("Neon Jen", 2, { size: 40 }), G.rival("Basement Ray", 5, { crop: "bust" })];
+  for (const v of shapes) { assert.match(v, /<image href="art\/guitarist-painted\/genres\/[a-z0-9-]+\.webp"/); assert.doesNotMatch(v, /feMorphology|undefined/); }
+  assert.ok(G.you({}, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
+  assert.ok(G.you({}, { mood: "worried" }).includes('data-mood="worried"'));
+  assert.ok(G.you({}, { label: "Neon Jen" }).includes('aria-label="Neon Jen"'));
+  assert.ok(G.you({ me: { genre: "rock", lefty: true } }, {}).includes("scale(-1 1)"), "left-handed mirrors");
+  assert.ok(!G.you({}, {}).includes("scale(-1 1)"));
+  assert.notEqual(G.you({}, { crop: "bust" }).match(/id="gp\d+/)[0], G.you({}, { crop: "bust" }).match(/id="gp\d+/)[0], "ids are unique");
+  for (const gone of ["art/guitarist.js", "art/guitarist-poster.js", "selfie.js", "portrait.js", "vendor/mediapipe"]) assert.ok(!fs.existsSync(path.join(root, gone)), gone + " is gone");
+  const shell = read("sw.js").match(/const SHELL = \[[^\]]*\]/)[0];
+  assert.ok(!/selfie\.js|portrait\.js|mediapipe|guitarist-poster|art\/guitarist\.js/.test(shell), "none of them is saved for offline");
+});
+
+test("painted genre guitarists stand in for the ink drawing, and the three fixes use the new files", async () => {
+  const { genreFile, genreCast, GENRE_DEFAULT, genreForName, you, rival } = await import("../guitarist.js");
+  assert.equal(GENRE_DEFAULT, "rock-m");
+  assert.equal(genreFile("rock-m"), "art/guitarist-painted/genres/rock-m.webp");
+  assert.equal(genreFile("punk-w"), "art/guitarist-painted/genres/punk-w-v3.webp");
+  assert.equal(genreFile("country-m"), "art/guitarist-painted/genres/country-m-v2.webp");
+  assert.equal(genreFile("country-w"), "art/guitarist-painted/genres/country-w-v2.webp");
+  assert.equal(genreFile("jazz-w"), "art/guitarist-painted/genres/jazz-w-v2.webp", "the grey wedge is gone");
+  assert.equal(genreFile("funk-w"), "art/guitarist-painted/genres/funk-w-v2.webp");
+  const cast = genreCast();
+  assert.equal(cast.length, 24);
+  assert.equal(genreForName("Ada"), genreForName("Ada"), "a rival's picture stays put");
+  assert.ok(cast.includes(genreForName("Ada")));
+  const seen = new Set(cast.map(genreForName));
+  assert.ok(seen.size > 1, "different names can be different pictures");
+  const pic = you({ me: C.ME_DEFAULT }, { size: 80 });
+  assert.match(pic, /art\/guitarist-painted\/genres\/rock-m\.webp/);
+  assert.match(pic, /aria-label="Your guitarist"/);
+  assert.match(pic, /data-genre="rock-m"/);
+  assert.doesNotMatch(pic, /feMorphology/, "the player is not the ink drawing");
+  assert.match(you({ me: { ...C.ME_DEFAULT, lefty: true } }, {}), /scale\(-1 1\)/, "lefty mirrors the painting");
+  const rv = rival("Ada", 1, { size: 42 });
+  assert.match(rv, /art\/guitarist-painted\/genres\//);
+  assert.match(rv, /aria-hidden="true"/);
+  assert.doesNotMatch(rv, /feMorphology/);
+  const shell = read("sw.js");
+  for (const id of cast) {
+    const file = genreFile(id);
+    const dim = webpSize(fs.readFileSync(path.join(root, file)));
+    assert.equal(dim.w, 800, id); assert.equal(dim.h, 800, id); assert.equal(dim.alpha, true, id);
+    assert.ok(shell.includes(`"${file}"`), `${file} is saved for offline`);
   }
-  for (const g of Object.values(C.GUITARS)) assert.ok(!guitarist(C.ME_DEFAULT, { guitar: g }).includes("undefined"), g.name);
-  assert.ok(guitarist(C.ME_DEFAULT, {}).includes('aria-label="Your guitarist"'));
-  assert.ok(guitarist(C.ME_DEFAULT, { label: "Neon Jen" }).includes('aria-label="Neon Jen"'));
-  assert.ok(guitarist({ ...C.ME_DEFAULT, lefty: true }, {}).includes("scale(-1 1)"), "lefty mirrors");
-  assert.ok(!guitarist(C.ME_DEFAULT, {}).includes("scale(-1 1)"));
-  const bust = guitarist(C.ME_DEFAULT, { crop: "bust", patches: [...P].reverse() });
-  assert.equal((bust.match(/font-size="9.5"/g) || []).length, 1, "the bust wears only the newest patch");
-  assert.notEqual(guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], guitarist(C.ME_DEFAULT, {}).match(/id="gt\d+/)[0], "ids are unique");
-  /* the inked cartoon (2026-11-20): one dark outline round the parts, a stage card when asked, no Gig poster print */
-  const big = guitarist(C.ME_DEFAULT, { size: 160 }), small = guitarist(C.ME_DEFAULT, { crop: "bust", size: 32 });
-  for (const s of [big, small]) assert.ok(/<feMorphology[^>]+dilate/.test(s) && s.includes('flood-color="#24160E"') && !s.includes("grain.webp") && !s.includes("guitarist-poster"), "the ink outline, no poster print");
-  assert.ok(guitarist(C.ME_DEFAULT, { card: true, look: "vest" }).includes('fill="#131A29"'), "the stage card in the venue's colours");
-  assert.ok(guitarist(C.ME_DEFAULT, { mood: "worried" }).includes('data-mood="worried"'));
-  assert.ok(guitarist(C.ME_DEFAULT, { guitar: C.GUITARS.strum }).includes("<image "), "the Road guitar's painting in the hands");
-  assert.ok(!guitarist(C.ME_DEFAULT, { pose: "hornsUp", guitar: C.GUITARS.strum }).includes("<image "), "horns up: no guitar");
+  const cleaned = C.cleanMe({ ...C.ME_DEFAULT, genre: "punk", who: "w" });
+  assert.equal(cleaned.genre, "punk", "a valid genre is kept");
+  assert.equal(cleaned.who, "w", "a valid who is kept");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "jazz", who: "w" } }, { size: 80 }), /art\/guitarist-painted\/genres\/jazz-w-v2\.webp/, "the profile picture is the one you picked");
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "punk", who: "w" } }, {}), /punk-w-v3\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "m" } }, {}), /country-m-v2\.webp/);
+  assert.match(you({ me: { ...C.ME_DEFAULT, genre: "country", who: "w" } }, {}), /country-w-v2\.webp/);
 });
 
 test("the tweed Louie (Graham, 2026-11-19): every mood and pose shows a picture that is in the repo and saved for offline, and no earlier Louie is left", async () => {
@@ -3162,7 +3212,7 @@ test("Sora is the Road Ready heading font, and Green Room and Headliner keep Fre
   assert.ok(shell.includes("vendor/fonts/sora-600.woff2"), "Sora SemiBold is in the app shell");
   assert.ok(shell.includes("vendor/fonts/sora-700.woff2"), "Sora Bold is in the app shell");
   assert.ok(!shell.some(f => /spacegrotesk|Space Grotesk/.test(f)));
-  assert.doesNotMatch(read("guitarist.js") + read("portrait.js"), /Space Grotesk/);
+  assert.doesNotMatch(read("guitarist.js"), /Space Grotesk/);
 });
 
 /* ---- Road Ready 9a: the 23 guitars and the Guitar shop ---- */
@@ -3507,7 +3557,7 @@ test("Road Ready 9b: a locked part can't be bought, an open one can, and a bough
   let d = earnedB(2); /* Coffeehouse: shop parts are open, custom parts are not */
   assert.deepEqual(C.buildSave(d, "open", { guard: "leopard" }), { why: "locked", id: "leopard" }); assert.equal(d.merch.tspent, undefined, "a locked part costs nothing"); assert.equal(d.builds, undefined);
   assert.deepEqual(C.buildSave(d, "open", { top: "koa" }), { why: "locked", id: "koa" });
-  assert.deepEqual(C.buildSave(d, "switch", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built");
+  assert.deepEqual(C.buildSave(d, "scales", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built (2026-11-23: Leg 1 earns Cornerstone, so Club Slab)");
   assert.equal(C.buildCost(d, "open", { paint: "seafoam", wear: "played" }), 65, "the running total is the new parts");
   d.merch.tips = 0; assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam" }), { why: "tips", cost: 25 });
   d = earnedB(2);
@@ -3546,46 +3596,9 @@ test("Road Ready 9b: the offline copy has the builder's code and art, and the te
   assert.ok(!shell.some(f => f.includes("builder/tex/")), "the 13 textures are cached when first used, not at install");
 });
 
-test("Selfie: colours snap to the guitarist's own inks; a darker chin is a beard; only skin, hair colour and beard are guessed", async () => {
-  const { SKIN, HAIR_COL } = await import("../guitarist.js");
-  const rgb = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-  SKIN.forEach((h, i) => assert.equal(C.nearestInk(rgb(h), SKIN), i, `skin ${i}`));
-  for (const [k, h] of Object.entries(HAIR_COL)) assert.equal(C.nearestInk(rgb(h), HAIR_COL), k, k);
-  assert.equal(C.beardGuess([60, 45, 35], [150, 100, 70]), "beard");
-  assert.equal(C.beardGuess([140, 95, 66], [150, 100, 70]), "none");
-  assert.equal(C.beardGuess(null, [150, 100, 70]), "none");
-  const g = C.selfieGuess({ skin: [rgb(SKIN[4]), [150, 98, 64]], hair: [[30, 26, 27]], chin: [58, 42, 32], cheek: rgb(SKIN[4]) }, { skin: SKIN, hair: HAIR_COL });
-  assert.deepEqual(g, { skin: 4, hairCol: "black", beard: "beard" });
-  assert.deepEqual(C.selfieGuess({}, { skin: SKIN, hair: HAIR_COL }), { beard: "none" }, "nothing read, nothing guessed");
-});
-
-test("Selfie: the face finder is loaded on first use, never in the up-front list, and the page may run its WebAssembly", () => {
-  const shell = read("sw.js"), html = read("index.html");
-  assert.ok(shell.includes('"selfie.js"'), "selfie.js is saved for offline");
-  assert.ok(!/vendor\/mediapipe/.test(shell.match(/const SHELL = \[[^\]]*\]/)[0]), "no MediaPipe file in SHELL");
-  assert.match(html, /script-src 'self' 'wasm-unsafe-eval'/);
-  assert.ok(!/localStorage|indexedDB|caches\.|fetch\(/.test(read("selfie.js").replace(/\/\/.*$/gm, "")), "selfie.js stores nothing and sends nothing");
-});
-
 test("Opening night: every step's pick has an icon, so no pick says undefined (fixed 2026-11-19)", () => {
   const src = read("road.js"), block = src.slice(src.indexOf("const OIC = {"), src.indexOf("};", src.indexOf("const OIC = {")));
   for (const o of C.OPENING) assert.ok(new RegExp(`\\b${o.id}:`).test(block), `an icon for ${o.id}`);
-});
-
-test("4.98.1 the beard's own colour: optional, absent means the hair colour, unknown values dropped; the renderer reads it", () => {
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beard: "beard" }).beardCol, undefined, "a saved guitarist without one stays without one");
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beard: "beard", beardCol: "black" }).beardCol, "black");
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "brown" }).beardCol, undefined, "the same as the hair is not stored");
-  assert.equal(C.cleanMe({ ...C.ME_DEFAULT, beardCol: "<x>" }).beardCol, undefined, "unknown colours are dropped");
-});
-
-test("4.99.0 selfie: a light wall beside dark hair doesn't make it grey; photos guess natural colours; a beard gets its own colour", async () => {
-  const { SKIN, HAIR_COL } = await import("../guitarist.js");
-  const wall = [205, 200, 192], black = [28, 24, 26];
-  assert.equal(C.selfieGuess({ hair: [black, wall, [40, 34, 33]] }, { skin: SKIN, hair: HAIR_COL }).hairCol, "black", "the darker two of three samples");
-  assert.ok(["black", "brown", "blonde", "red", "grey"].includes(C.selfieGuess({ hair: [[120, 70, 230]] }, { skin: SKIN, hair: HAIR_COL }).hairCol), "no purple from a photo");
-  const g = C.selfieGuess({ hair: [[230, 200, 120]], chin: [70, 44, 28], cheek: [200, 160, 130] }, { skin: SKIN, hair: HAIR_COL });
-  assert.equal(g.hairCol, "blonde"); assert.equal(g.beard, "beard"); assert.equal(g.beardCol, "brown", "a brown beard under blonde hair");
 });
 
 // ---------- App icon, launch screens and theme colour (black Louie) ----------
@@ -3651,6 +3664,33 @@ test("the loading screen shows Louie on the Dark ground, then hides once the app
     assert.ok(shell.includes(`"${f}"`), `${f} is saved for offline`);
   }
 });
+
+function webpSize(buf) {
+  assert.equal(buf.toString("ascii", 0, 4), "RIFF");
+  assert.equal(buf.toString("ascii", 8, 12), "WEBP");
+  let o = 12;
+  while (o + 8 <= buf.length) {
+    const tag = buf.toString("ascii", o, o + 4);
+    const size = buf.readUInt32LE(o + 4);
+    const data = o + 8;
+    if (tag === "VP8X" && data + 10 <= buf.length) {
+      return {
+        w: 1 + buf.readUIntLE(data + 4, 3),
+        h: 1 + buf.readUIntLE(data + 7, 3),
+        alpha: (buf[data] & 16) !== 0
+      };
+    }
+    if (tag === "VP8L" && data + 5 <= buf.length) {
+      const bits = buf.readUInt32LE(data + 1);
+      return { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1, alpha: ((bits >> 28) & 1) === 1 };
+    }
+    if (tag === "VP8 " && data + 10 <= buf.length) {
+      return { w: buf.readUInt16LE(data + 6) & 0x3fff, h: buf.readUInt16LE(data + 8) & 0x3fff, alpha: false };
+    }
+    o = data + size + (size & 1);
+  }
+  throw new Error("webp size not found");
+}
 
 test("knob tab bar: the off and lit faces, and both grilles, are in the offline copy", () => {
   const shell = read("sw.js"), hud = read("hud.js");
@@ -3722,8 +3762,8 @@ test("Neck-only Road: frets follow the 12th root of 2, every stop is centred cle
   for (const f of ["art/guitars/porch-road.webp", "art/louie/v4/louie-idle.webp"]) assert.ok(fs.existsSync(path.join(root, f)), f);
   let diff = "";
   try { diff = execFileSync("git", ["diff", "--name-status", "origin/main", "--", "art"], { encoding: "utf8" }); } catch { diff = ""; }
-  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t"));
-  assert.deepEqual(bad, [], "no existing art file was edited");
+  const bad = diff.split("\n").filter(Boolean).filter(line => !line.startsWith("A\t") && !/^D\tart\/(guitarist\.js|guitarist-poster)/.test(line) && !/^D\tart\/guitarist-painted\/pilot/.test(line));
+  assert.deepEqual(bad, [], "no existing art file was edited (the old ink drawing was deleted on Graham's go, 2026-11-23)");
 });
 
 test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a sheet", () => {
@@ -3741,4 +3781,20 @@ test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a s
   assert.match(hud, /data\.journal\.best/, "best streak comes from the journal already stored");
   assert.match(css, /\.sk-card[^}]*var\(--rr-card\)/, "the sheet uses Road Ready tokens");
   assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
+});
+
+test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder and buildSave all accept Cornerstone", () => {
+  const data = { songs: [], sets: [], trash: [], settings: {} };
+  assert.deepEqual(C.guitarsOwned(data), [], "nothing headlined, no Road guitar");
+  assert.deepEqual(C.buildSave(data, "switch", {}), { why: "none" });
+  for (const c of ["G", "C", "D", "Em", "Am", "E", "A"]) C.skillDone(data, "c:" + c);
+  C.skillDone(data, "k:open");
+  const said = C.guitarNew(data);
+  assert.equal(said.guitar.name, "Cornerstone", "the sheet announces Cornerstone");
+  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: 0 }, { id: "switch", li: 0 }], "Porch and Cornerstone, both earned on Leg 1");
+  assert.ok(C.guitarsOwned(data).includes("switch"), "the case and the builder (both read guitarsOwned) hold Cornerstone");
+  assert.ok(C.guitarsOwned(data).filter(id => C.BUILD_TAKES[id]).includes("switch"), "the builder's list includes Cornerstone");
+  assert.notDeepEqual(C.buildSave(data, "switch", {}), { why: "none" }, "buildSave accepts Cornerstone");
+  assert.deepEqual(C.buildSave(data, "scales", {}), { why: "none" }, "Club Slab waits for Leg 2");
+  assert.deepEqual(C.guitarsEarned(data), ["open"], "guitarsEarned stays the headlined legs");
 });

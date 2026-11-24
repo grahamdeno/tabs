@@ -385,17 +385,19 @@ test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls u
 });
 
 test("4.0.1: one design system: buttons, chips, sheets and the editor's title field share the version 4 look", { skip: skip() }, async t => {
+  /* 5.x: Settings shows its Back up button only when a backup is due, so only that step gets an old backup date */
+  const due = await phone(t, { ...LIB, settings: { ...LIB.settings, lastBackup: "2020-01-01T00:00:00Z" } });
+  await due.evaluate(() => { location.hash = "#/settings"; }); await due.waitForSelector(".btn.primary");
+  assert.match(await due.evaluate(() => getComputedStyle(document.querySelector(".btn.primary")).fontFamily), /Sora/, "the main button is set in Sora");
   const page = await phone(t);
   const look = sel => page.evaluate(s => { const c = getComputedStyle(document.querySelector(s)); return { r: c.borderTopWidth, f: c.fontFamily }; }, sel);
-  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector(".btn.primary");
-  assert.match((await look(".btn.primary")).f, /Sora/, "the main button is set in Sora");
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#stat");
   assert.equal((await look("#stat")).r, "2px", "chips have the 2px rim");
   assert.match((await look("#stat")).f, /Sora/);
   await page.evaluate(() => document.querySelector("#more").click()); await page.waitForSelector(".menu");
   assert.equal((await look(".menu")).r, "2px", "menus have the 2px rim");
   await page.evaluate(() => { location.hash = "#/edit/a"; }); await page.waitForSelector("#ed-title");
-  assert.ok(await page.evaluate(() => document.getElementById("ed-title").getBoundingClientRect().width > 200), "the title field has room (the artist line sits below it)");
+  assert.ok((await page.locator("#ed-title").boundingBox()).width > 200, "the title field has room (the artist line sits below it)");
 });
 
 test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply shows the head-to-head", { skip: skip() }, async t => {
@@ -616,7 +618,7 @@ for (const theme of ["dark", "light"]) {
   test(`Road Ready 9a (${theme}): the Guitar shop sits after every existing section; a locked guitar says it opens at a venue, an open one it can't afford says how many tips more, and one is Next up`, { skip: skip() }, async t => {
     const page = await openShop(t, 3, { tips: 160 }, theme);   /* Club: Sticker Riot to Walnut Hall are open */
     const heads = await page.$$eval(".mc .mc-h span", els => els.map(e => e.textContent));
-    assert.deepEqual(heads, ["Gear", "Louie's finishes", "Stage backdrops", "Hats", "Looks", "Build your guitar", "Guitar shop"], "Louie's other colours are on the table, and the rest keeps its order");
+    assert.deepEqual(heads, ["Gear", "Louie's finishes", "Stage backdrops", "Looks", "Build your guitar", "Guitar shop"], "Louie's other colours are on the table, hats left on 2026-11-23, and the rest keeps its order");
     assert.equal(await page.locator(".mc-gt").count(), 16);
     const row = id => page.locator(`.mc-gt[data-gt="${id}"]`);
     /* a locked guitar: a lock and "Opens at Theater", read as "Locked, opens at Theater", and it can't be bought */
@@ -657,9 +659,9 @@ test("Road Ready 9a: buying a shop guitar takes its price once, saves it as g-<s
   await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
   assert.ok((await page.$$eval(".rr-gtr", els => els.map(e => e.getAttribute("aria-label")))).includes("Sticker Riot, from the Guitar shop, the one you play"));
   assert.match(await page.innerText(".rr-case-card .rr-card-h"), /1 guitar\b/);
-  /* the guitarist holds it (the small picture in his hands) */
+  /* the guitarist on the card is the painted rock picture */
   const hands = await page.evaluate(async () => { const g = await import("./guitarist.js"); return g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }); });
-  assert.match(hands, /art\/guitars\/stickerriot-small\.webp/, "the guitarist holds the guitar you chose");
+  assert.match(hands, /art\/guitarist-painted\/genres\/rock-m\.webp/, "the guitarist is the painted rock picture");
   /* back to the leg's guitar, and the saved choice is gone */
   await page.evaluate(() => { location.hash = "#/merch"; }); await page.waitForSelector("#mc-gt-leg"); await settled(page);
   await page.click("#mc-gt-leg");

@@ -11,7 +11,14 @@ test("Settings: menu rows show their state, open their page, and Back returns to
   assert.equal(await page.locator("[data-page]").count(), 10, "4.36.0: with Language practice; 4.96.0: YouTube");
   assert.match(await page.innerText("[data-page='today']"), /Wilmington/);
   assert.equal(await page.locator("[data-page='diagrams']").count(), 0, "4.15.0: Chord diagrams folded into Playing");
-  assert.equal(await page.locator(".s-dock #s-backup").count(), 1, "Back up now is docked at the bottom");
+  assert.equal(await page.locator(".s-dock").count(), 0, "5.x: no floating Back up now button");
+  assert.equal(await page.locator(".s-due").count(), 0, "backed up this week: no backup line");
+  assert.deepEqual(await page.locator(".label").allInnerTexts().then(a => a.map(x => x.trim().toLowerCase())), ["playing", "connections", "your data"], "named groups");
+  assert.equal(await page.locator(".s-head #back + h1").count(), 1, "Back and the title share one row");
+  assert.match(await page.getAttribute("[data-page='look'] .val", "class"), /muted/, "values are in the quiet colour");
+  assert.match(await page.getAttribute("[data-page='keys'] .val", "class"), /act/, "keys not set need doing: teal");
+  assert.match(await page.innerText("[data-page='keys']"), /API keys\s*Not set/);
+  assert.doesNotMatch(await page.innerText("#app"), /Portrait/, "no grey key dots");
 
   await page.click("[data-page='playing']"); await page.waitForSelector("#s-count");
   assert.match(await page.evaluate(() => location.hash), /#\/settings\/playing/);
@@ -520,4 +527,28 @@ test("Looks at the Merch table are Light and Dark only", { skip: skip() }, async
   assert.equal(await page.evaluate(() => document.documentElement.dataset.look), "festival", "trying Light on still works");
   await page.click("#mt-not");
   assert.notEqual(await page.evaluate(() => document.documentElement.dataset.look), "green");
+});
+
+test("5.x Settings: the backup line shows at the top only when a backup is due", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lastBackup: "2020-01-01T00:00:00Z" } });
+  const errs = []; page.on("pageerror", e => errs.push(e.message));
+  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector("[data-page]");
+  assert.match(await page.innerText(".s-due"), /Not backed up this week/);
+  assert.equal(await page.locator(".s-due + .label").count(), 1, "the line sits above the groups");
+  const box = await page.locator("#s-backup").boundingBox();
+  assert.ok(box.height >= 44, "Back up is at least 44 px tall");
+  assert.equal(await page.locator(".s-dock").count(), 0);
+  await page.click("#s-backup");
+  await page.waitForFunction(() => !document.querySelector(".s-due"));
+  assert.equal(await page.locator("[data-page]").count(), 10, "the menu is back without the line");
+  assert.deepEqual(errs, []);
+});
+
+test("5.x Settings: the backup line ignores the Songbook's Later; the Keys page is titled API keys", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, settings: { ...LIB.settings, lastBackup: "2020-01-01T00:00:00Z", backupSnooze: Date.now() + 86400000 } });
+  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector("[data-page]");
+  assert.equal(await page.locator(".s-due").count(), 1, "snoozed on the Songbook, still shown in Settings");
+  await page.click("[data-page='keys']");
+  await page.waitForFunction(() => document.querySelector("h1.title")?.textContent.trim() !== "Settings");
+  assert.equal((await page.innerText("h1.title")).trim(), "API keys");
 });
