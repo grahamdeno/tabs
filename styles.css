@@ -2556,7 +2556,7 @@ body.gigging .fp, body.gigging .fp-nav, body.gigging .coach, body.gigging .coach
 /* 4.66.0: Show complete under the backdrop you wear */
 .gc-hero { position: relative; width: 100%; flex: none; display: flex; align-items: flex-end; justify-content: center; min-height: 190px; padding-top: 52px; box-sizing: border-box; border-radius: 22px; overflow: hidden; }
 .gc-hero > .gc-bd { position: absolute; inset: 0; z-index: 0; }
-.gc-bd svg { width: 100%; height: 100%; display: block; }
+.gc-bd svg, .gc-bd img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .gc-hero > :not(.gc-bd, .gc-conf, .gc-bdc) { position: relative; z-index: 1; }
 .gc-hero > .gc-conf { z-index: 1; height: 100%; }
 .gc-hero .gc-bdc { position: absolute; top: 8px; right: 8px; z-index: 2; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 0; border-radius: 999px; background: rgba(20, 33, 61, .82); color: #fff; font: 700 14px var(--sans); }
@@ -2988,7 +2988,7 @@ body.gigging .ask { z-index: 66; }
 .mc-fin { flex: 0 0 84px; } .mc-fin .louie { width: 54px; height: auto; }
 .mc-fin b, .mc-drop b { margin: 2px 0 5px; font-size: 13.5px; }
 .mc-drop { flex: 0 0 106px; padding: 6px; }
-.mc-art { width: 100%; height: 54px; border-radius: 12px; display: block; }
+.mc-art { width: 100%; height: 54px; border-radius: 12px; display: block; object-fit: cover; }
 .mc-fin.on, .mc-drop.on { border: 3px solid var(--strings); }
 .mc-have { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 9px; background: var(--fg); color: var(--bg); font: 700 12px var(--display); }
 .mc-price { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 11px; background: var(--fans); box-shadow: 0 3px 0 var(--fans-deep); color: #14213D; font: 700 14px var(--display); }
@@ -3000,7 +3000,7 @@ body.gigging .ask { z-index: 66; }
 /* try it on */
 .mt { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: #1D1640; animation: fade .2s; }
 .mt-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; color: #fff; display: flex; flex-direction: column; align-items: center; padding: calc(10px + var(--safe-t)) 16px 14px; }
-.mt-art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .9; }
+.mt-art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .9; object-fit: cover; }
 .mt-stage::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 70% at 50% 0%, rgba(255,246,200,.3), transparent 70%); pointer-events: none; }
 .mt-stage > :not(.mt-art) { position: relative; z-index: 1; }
 .mt-top { align-self: stretch; display: flex; justify-content: space-between; align-items: center; }
