@@ -68,7 +68,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
 
     /* tolex ground: the grain is there, and the average stays the base colour */
     const bg = await page.evaluate(() => { const c = getComputedStyle(document.body); return { img: c.backgroundImage, col: c.backgroundColor }; });
-    assert.match(bg.img, /art\/surfaces\/tolex-(dark|cream)\.webp/, "the tolex bitmap tile is on the body");
+    assert.match(bg.img, /art\/surfaces\/tolex-(dark-levant|dark-fine|dark-leather|dark|cream)\.webp/, "the tolex bitmap tile is on the body");
     assert.equal(bg.col, `rgb(${rgb.join(", ")})`, "under the grain is the base colour");
     /* the page's own cards are hidden while the ground is measured (the Songbook's cards filled this band from step 07) */
     await page.evaluate(() => { document.getElementById("app").style.visibility = "hidden"; });
