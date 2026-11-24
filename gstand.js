@@ -8,6 +8,14 @@ import { esc } from "./ui.js";
 import PICS from "./art/guitars/pics.js";
 
 const STAND = `art/case/guitar-stand`;
+/* A faint guitar waiting on the empty stand. Inline only, so no picture under art/ changes. */
+const GHOST = `<svg class="gs-ghost" viewBox="0 0 100 250" aria-hidden="true">
+  <path class="gs-ghost-fill" d="M38 6h24c5 0 8 3 8 8v14c0 3-3 6-6 6H36c-3 0-6-3-6-6V14c0-5 3-8 8-8z"/>
+  <path class="gs-ghost-line" d="M30 14H16M30 26H16M70 14h14M70 26h14"/>
+  <path class="gs-ghost-fill" d="M46 32h8v70H46z"/>
+  <path class="gs-ghost-fill" d="M50 100 Q34 102 24 114 Q14 128 26 140 Q34 148 32 162 Q28 180 18 198 Q12 214 30 226 Q42 234 50 232 Q58 234 70 226 Q88 214 82 198 Q72 180 68 162 Q66 148 74 140 Q86 128 76 114 Q66 102 50 100z"/>
+  <path class="gs-ghost-line" d="M38 156h24M36 172h28"/>
+</svg>`;
 
 /* The crisp full guitar: the painted -road.webp when that body has one, else the small picture. */
 export function standPic(body) {
@@ -93,6 +101,7 @@ export function standHTML(items, o = {}) {
     <div class="gs-hero">
       <div class="gs-glow" aria-hidden="true"></div>
       <div class="gs-floor" aria-hidden="true"></div>
+      ${n ? "" : GHOST}
       <img class="gs-back" src="${STAND}-back.webp${v}" alt="" aria-hidden="true">
       ${n ? `<div class="gs-track" role="group" aria-label="Your guitars, earned and bought">${pics}</div>` : ""}
     </div>

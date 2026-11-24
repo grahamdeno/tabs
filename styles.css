@@ -5161,20 +5161,24 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look] .ib.pf-back { width: 44px; height: 44px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me { display: flex; flex-direction: column; gap: 12px; padding: 0 2px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-avatar { flex: none; width: 80px; height: 80px; padding: 0; border-radius: 50%; border: 3px solid #D9CBB0; background: var(--rr-card); box-shadow: 0 0 0 2px var(--rr-outline); overflow: hidden; display: grid; place-items: center; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-avatar { flex: none; width: 76px; height: 76px; padding: 0; border-radius: 50%; border: 1.25px solid transparent; background: linear-gradient(var(--rr-card), var(--rr-card)) padding-box, linear-gradient(145deg, #F4E7D2 0%, #C4B49A 26%, #6A5E50 52%, #E6D5B8 76%, #8C7B66 100%) border-box; box-shadow: none; overflow: hidden; display: grid; place-items: center; }
+:root[data-look="festival"] .rr-avatar { background: linear-gradient(var(--rr-card), var(--rr-card)) padding-box, linear-gradient(145deg, #FFF8EC 0%, #E4C99A 28%, #A48458 52%, #F3E4C8 78%, #C4A56A 100%) border-box; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-avatar svg { width: 100%; height: 100%; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-who { min-width: 0; flex: 1; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-name { margin: 0; font: var(--type-title-w) var(--type-title) / 1.15 "Sora", var(--display); color: var(--rr-text); overflow-wrap: anywhere; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-venue { display: block; min-height: 44px; padding: 0; margin: 0; background: none; border: 0; text-align: left; font: var(--type-subhead-w) var(--type-subhead) / 1.3 var(--sans); color: var(--rr-text-2); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level { margin-top: -6px; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rr-outline); overflow: hidden; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--rr-amber-text); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-tile { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 14px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b { font: 700 var(--type-title) / 1.1 "Sora", var(--display); color: var(--rr-text); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-tile b span { font: var(--type-footnote-w) var(--type-footnote) var(--sans); color: var(--rr-text-2); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-tile small { font: var(--type-footnote-w) var(--type-footnote) / 1.25 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level { margin-top: -2px; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level span { display: block; padding-right: 56px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i { display: block; height: 7px; margin-top: 6px; border-radius: 999px; background: var(--rr-hairline); box-shadow: inset 0 0 0 1px var(--rr-outline); overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-level i::after { content: ""; display: block; height: 100%; width: var(--w); border-radius: inherit; background: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; background: var(--rr-card); border: 1px solid var(--rr-hairline); border-radius: 14px; overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles .rr-tile { background: none; border: 0; border-radius: 0; padding: 8px 4px 9px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles .rr-tile + .rr-tile { box-shadow: inset 1px 0 0 var(--rr-hairline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles .rr-tile b { font: 700 var(--type-headline) / 1.05 "Sora", var(--display); color: var(--rr-text); white-space: nowrap; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles .rr-tile b span { font: 600 var(--type-caption) / 1 var(--sans); color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles .rr-tile small { font: 500 var(--type-footnote) / 1.1 var(--sans); color: var(--rr-text-2); white-space: nowrap; }
 :root[data-ax="1"]:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles { grid-template-columns: 1fr; }
+:root[data-ax="1"]:is([data-look="neon"], [data-look="festival"]) .rr-me-tiles .rr-tile + .rr-tile { box-shadow: inset 0 1px 0 var(--rr-hairline); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-card { background: var(--rr-card); border: 1px solid var(--rr-outline); border-radius: 16px; padding: 14px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-card-h h2 { margin: 0; font: 700 var(--type-headline) / 1.2 "Sora", var(--display); color: var(--rr-text); }
@@ -5186,8 +5190,10 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gtr { flex: none; min-width: 44px; min-height: 44px; display: flex; align-items: flex-end; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gtr img { display: block; height: 176px; width: auto; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55)); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-empty { align-self: center; margin: 12px auto; padding: 10px 12px; border-radius: 8px; background: #1E1008; text-align: center; color: #FFF3E0; font: var(--type-callout-w) var(--type-callout) / 1.35 var(--sans); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-merch { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-top: 10px; padding: 8px 12px; border: 1.5px solid var(--rr-amber-text); border-radius: 12px; color: var(--rr-amber-text); text-decoration: none; font: 600 var(--type-callout) / 1.3 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch { display: flex; align-items: center; gap: 10px; min-height: 52px; margin: 0; padding: 8px 12px; border: 1px solid var(--rr-hairline); border-radius: 16px; background: var(--rr-card); color: var(--rr-text); text-decoration: none; font: 600 var(--type-callout) / 1.3 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch.lit { border: 1.5px solid var(--rr-amber-text); color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-merch > span:nth-child(2) { flex: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-merch .chev { color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-coinic svg { width: 24px; height: 24px; display: block; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-merch .chev, :root:is([data-look="neon"], [data-look="festival"]) .rr-row .chev { width: 20px; height: 20px; flex: none; }
 /* Milestones: small engraved plates */
@@ -5201,7 +5207,7 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* the list of rows: 52 px or taller, icon, label, chevron */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-rows { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-row { display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; min-height: 52px; padding: 6px 14px; background: none; border: 0; border-radius: 0; box-shadow: none; text-align: left; text-decoration: none; color: var(--rr-text); font: var(--type-body-w) var(--type-body) / 1.3 var(--sans); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-row + .rr-row { border-top: 1px solid var(--rr-outline); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-row + .rr-row { border-top: 1px solid var(--rr-hairline); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-row .more-ic { background: none; color: var(--rr-text-2); width: 32px; height: 32px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-row-t { flex: 1; min-width: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-row-t small { display: block; font: var(--type-footnote-w) var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); }
@@ -5481,8 +5487,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-case-card {
   background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0;
 }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .rr-card-h { padding: 0 2px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 4px 2px 0; color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .rr-card-h { padding: 0 2px; margin-bottom: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 2px 12px 0; text-align: center; color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
 .gs-stage { --gs-h: 328px; --gs-leg: 32px; --gs-stride: 136px; --gs-b: .78; --gs-o: .84; position: relative; }
 .gs-sheet { --gs-h: 276px; --gs-leg: 28px; --gs-stride: 132px; }
 :root[data-look="festival"] .gs-stage { --gs-b: .96; --gs-o: .76; }
@@ -5541,6 +5547,44 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .gs-empty { height: 136px; }
 .gs-empty .gs-hero { height: 100%; }
 .gs-empty .gs-back { height: 132px; }
+/* Me only: the stand is just under half the screen. The new-guitar sheet keeps the shorter stage above. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-empty {
+  height: clamp(220px, 45vh, 388px);
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-empty .gs-hero { height: 100%; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-empty .gs-back { height: 34%; z-index: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-empty .gs-glow {
+  top: auto; bottom: 0; height: 72%; width: 78%;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-stage:not(.gs-empty) {
+  --gs-h: clamp(168px, calc(45vh - 76px), 332px);
+  --gs-leg: 28px;
+  --gs-stride: 122px;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-stage:not(.gs-empty) .gs-back { height: 112px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-glow {
+  top: auto; bottom: 6px; height: 68%; width: 64%;
+  background: radial-gradient(ellipse 50% 64% at 50% 62%, rgba(232, 160, 68, .46) 0%, rgba(220, 140, 52, .22) 30%, transparent 72%);
+}
+:root[data-look="festival"] .rr-case-card .gs-glow {
+  background: radial-gradient(ellipse 52% 66% at 50% 62%, rgba(214, 146, 62, .34) 0%, rgba(196, 130, 52, .14) 34%, transparent 72%);
+}
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-floor {
+  bottom: 0; width: 58%; height: 42px;
+  background: radial-gradient(ellipse at center, rgba(232, 168, 72, .46), transparent 72%);
+}
+:root[data-look="festival"] .rr-case-card .gs-floor {
+  background: radial-gradient(ellipse at center, rgba(120, 72, 28, .28), transparent 72%);
+}
+.gs-ghost {
+  position: absolute; z-index: 2; left: 50%; bottom: 4%; height: 86%; width: auto;
+  transform: translateX(-50%); pointer-events: none; color: var(--rr-text, #F6EEE0);
+}
+.gs-ghost .gs-ghost-fill { fill: currentColor; fill-opacity: .1; stroke: currentColor; stroke-opacity: .4; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.gs-ghost .gs-ghost-line { fill: none; stroke: currentColor; stroke-opacity: .4; stroke-width: 1.7; stroke-linecap: round; }
+:root[data-look="festival"] .gs-ghost .gs-ghost-fill { fill-opacity: .08; stroke-opacity: .5; }
+:root[data-look="festival"] .gs-ghost .gs-ghost-line { stroke-opacity: .5; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-pager { margin-top: -14px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case .pbody { gap: 4px; }
 .rr-case .sc-who { min-height: 0; }
 .rr-case .sc-who .sc-louie, .rr-case .sc-who .sc-louie .louie { width: 58px; }
@@ -5980,7 +6024,9 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 /* the gear sits at the top right beside your name, as in r10-06, not on a row of its own */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-top { position: relative; z-index: 2; height: 0; min-height: 0; margin: 0; padding: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-me-top .rr-gear { position: absolute; right: 0; top: 2px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { padding-right: 56px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-head { padding-right: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-name,
+:root:is([data-look="neon"], [data-look="festival"]) .rr-me-venue { padding-right: 56px; }
 /* the case lies open on its side (r10-06): wide and low, three compartments, each guitar standing in its slot */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr { aspect-ratio: 116 / 168; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img { height: 92%; margin-bottom: 3%; }

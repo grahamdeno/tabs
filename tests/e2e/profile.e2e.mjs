@@ -85,11 +85,11 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal((await page.innerText(".rr-me-venue")).trim(), `${n.venue} · ${fmt(n.fans)} fans`);
     assert.match(await page.innerText(".rr-me-level"), new RegExp(`Level ${n.lvl} ·`));
     const tiles = await page.$$eval(".rr-tile", ts => ts.map(x => ({ n: x.querySelector("b").textContent.replace(/\s+/g, " ").trim(), l: x.querySelector("small").textContent.trim() })));
-    assert.deepEqual(tiles.map(x => x.l), ["songs you can play", "chords", "plays"], "three tiles");
+    assert.deepEqual(tiles.map(x => x.l), ["Songs", "Chords", "Plays"], "three tiles on one line each");
     assert.equal(tiles[0].n, `${n.now} of ${n.of}`); assert.equal(tiles[1].n, fmt(n.chords)); assert.equal(tiles[2].n, fmt(n.plays));
     assert.ok(n.plays >= 1 && n.chords >= 1, "the fixture has something to count");
     /* the stand: the guitars of the legs you finished, upright, each with a spoken name and where it was earned */
-    assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitar case\n3 guitars");
+    assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitars\n3 guitars");
     const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); const tf = getComputedStyle(im).transform; return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf, hidden: im.getAttribute("aria-hidden"), on: li.classList.contains("is-on") }; }));
     assert.equal(gs.length, 3);
     assert.deepEqual(gs.map(g => g.label), ["Porch, earned on Leg 1, Open chords", "Cornerstone, earned on Leg 2, Chord switches", "Club Slab, earned on Leg 3, Scales"]);
@@ -115,9 +115,9 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal(await page.locator("#pf-r-support svg:not(.chev)").count(), 1, "a heart"); assert.equal(await page.locator("#pf-r-support .rr-coin").count(), 0, "no coin");
     assert.equal(await page.getAttribute("#pf-r-support img.rr-badge", "src"), "art/louie/v5/louie-face-badge.webp", "the face badge");
     assert.equal(await page.locator(".rr-me >> text=SUPPORT THE APP").count(), 1);
-    /* the order: header, tiles, case (Merch inside), Milestones, rows, Support the app last */
-    const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
-    assert.deepEqual([order[0], order[1], order[2], order[3], order[4], order.at(-2), order.at(-1)], ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-miles", "rr-rows", "rr-support-h", "rr-support"]);
+    /* the order: header, tiles, guitars, Merch, one card for Milestones and the two rows, then the rest, Support last */
+    const order = await page.$$eval(".rr-me > *", els => els.map(e => ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-merch", "rr-places", "rr-support-h", "rr-support", "rr-rows"].find(c => e.classList.contains(c)) || "").filter(Boolean));
+    assert.deepEqual(order, ["rr-me-head", "rr-me-tiles", "rr-case-card", "rr-merch", "rr-places", "rr-rows", "rr-support-h", "rr-support"]);
     /* Milestones as plates; the same badges as before */
     /* 4.103.0 (agreed r10-06): Milestones is one row; the badges open in a sheet */
     assert.match(await page.innerText("#pf-miles"), /Milestones\s*\d+ of 26/);
@@ -128,7 +128,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     /* the rows and their destinations, each 52 px or taller, with a name; no streak or "you missed" copy */
     for (const [id, href] of [["#pf-r-band", "#/band"], ["#pf-r-charts", "#/charts"], ["#pf-r-help", "#/settings/help"], ["#pf-r-support", "#/support"]]) assert.equal(await page.getAttribute(id, "href"), href, id);
     const rows = await page.$$eval(".rr-me .rr-row", rs => rs.map(r => ({ id: r.id, h: r.getBoundingClientRect().height, name: (r.getAttribute("aria-label") || r.innerText).trim(), chev: !!r.querySelector(".chev"), ic: !!r.querySelector(".more-ic svg") })));
-    assert.deepEqual(rows.map(r => r.id), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-share", "pf-r-help", "pf-r-support"]);
+    assert.deepEqual(rows.map(r => r.id), ["pf-miles", "pf-r-band", "pf-r-charts", "pf-r-tune", "pf-share", "pf-r-help", "pf-r-support"]);
     assert.match(await page.innerText("#pf-r-charts"), /^Charts and duels/);
     for (const r of rows) { assert.ok(r.h >= 52, `${r.id} is ${r.h} tall`); assert.ok(r.name && r.chev && r.ic, `${r.id}: a name, an icon and a chevron`); }
     assert.doesNotMatch(await page.innerText(".rr-me"), /you missed|missed a day|lost your streak|streak (lost|broken)/i);
@@ -146,9 +146,47 @@ test("Me: $0 tips says to earn them at shows, and a balance keeps the spend line
   const zero = await openMe(t, "dark", { merch: { ...base, tips: 0 } });
   assert.equal((await zero.innerText("#pf-r-merch")).trim(), "Merch table: earn tips at your shows");
   assert.equal(await zero.getAttribute("#pf-r-merch", "aria-label"), "Merch table: earn tips at your shows");
+  assert.equal(await zero.locator("#pf-r-merch.lit").count(), 0, "$0 stays on the quiet card");
   const paid = await openMe(t, "light", { merch: { ...base, tips: 12 } });
   assert.equal((await paid.innerText("#pf-r-merch")).trim(), "Merch: spend $12 tips on new looks");
   assert.equal(await paid.getAttribute("#pf-r-merch", "aria-label"), "Merch: spend $12 tips on new looks");
+  assert.equal(await paid.locator("#pf-r-merch.lit").count(), 0, "$12 cannot buy an item yet, so the row stays quiet");
+  const rich = await openMe(t, "dark", { merch: { ...base, tips: 240 } });
+  assert.equal(await rich.locator("#pf-r-merch.lit").count(), 1, "tips that can buy something light the row");
+});
+
+test("Me polish: one stat bar, one places card, and the XP track lines up with the cards", { skip: skip() }, async t => {
+  const page = await openMe(t, "dark");
+  const lay = await page.evaluate(() => {
+    const tiles = document.querySelector(".rr-me-tiles");
+    const cols = getComputedStyle(tiles).gridTemplateColumns.split(" ").length;
+    const labels = [...tiles.querySelectorAll("small")].map(el => ({ t: el.textContent.trim(), lines: el.getClientRects().length, over: el.scrollWidth > el.clientWidth + 1 }));
+    const bar = document.querySelector(".rr-me-level i").getBoundingClientRect();
+    const card = tiles.getBoundingClientRect();
+    const places = [...document.querySelectorAll(".rr-places .rr-row")].map(el => el.id);
+    return { cols, labels, edge: Math.abs(bar.right - card.right), places, dots: document.querySelectorAll(".rr-mdots").length, medal: !!document.querySelector("#pf-miles .more-ic svg") };
+  });
+  assert.equal(lay.cols, 3, "one row of three");
+  assert.deepEqual(lay.labels.map(l => l.t), ["Songs", "Chords", "Plays"]);
+  for (const l of lay.labels) assert.ok(l.lines === 1 && !l.over, `${l.t} stays on one line`);
+  assert.ok(lay.edge < 2, `XP track and the stat bar share a right edge (${lay.edge})`);
+  assert.deepEqual(lay.places, ["pf-miles", "pf-r-band", "pf-r-charts"]);
+  assert.equal(lay.dots, 0, "no hollow milestone dots");
+  assert.equal(lay.medal, true);
+});
+
+test("Me at 320 wide: the stat words stay on one line and the page does not scroll sideways", { skip: skip() }, async t => {
+  const page = await phone(t, meLib("dark"), { viewport: { width: 320, height: 568 }, deviceScaleFactor: 1, home: true });
+  await page.evaluate(() => { location.hash = "#/you"; });
+  await page.waitForSelector(".rr-me"); await settled(page);
+  const m = await page.evaluate(() => ({
+    labels: [...document.querySelectorAll(".rr-me-tiles small, .rr-me-tiles b")].map(el => el.getClientRects().length === 1 && el.scrollWidth <= el.clientWidth + 1),
+    side: document.scrollingElement.scrollWidth <= innerWidth + 1,
+    stage: document.querySelector(".rr-case-card .gs-stage").getBoundingClientRect().height / innerHeight
+  }));
+  assert.ok(m.labels.every(Boolean), "nothing in the stat bar wraps");
+  assert.equal(m.side, true, "no sideways scroll");
+  assert.ok(m.stage >= 0.4 && m.stage <= 0.5, `the stand still fits a short phone (${(m.stage * 100).toFixed(1)}%)`);
 });
 
 test("Road Ready 08: at large text the tiles stack, the rows grow and the stand scrolls sideways with each guitar a 44 px target; nothing runs off the screen", { skip: skip() }, async t => {

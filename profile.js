@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
+import { MERCH, PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, levelOf, merchState, playableSongs, profileOf, shopState, lifetimePlays, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie, louiePic } from "./louie.js";
@@ -24,6 +24,20 @@ const hoursText = h => h >= 10 ? Math.round(h).toString() : h >= 1 ? h.toFixed(1
 const hoursUnit = h => h >= 1 ? "hours" : "minutes";
 /* Road Ready 08: the Dark and Light looks (data-look neon and festival) draw Me as r10-06; Green Room and Headliner keep the earlier page */
 const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+/* The Merch row stays on the same card as the others until tips can buy something
+   (gear, a finish, a hat, a backdrop, or a shop guitar that is open). */
+function merchLit(d) {
+  const tips = fansToSpend(d);
+  if (!(tips > 0)) return false;
+  const st = merchState(d);
+  const item = MERCH.some(it => {
+    if (!(it.price > 0) || it.earn || it.kind === "look") return false;
+    if (tips < it.price) return false;
+    if (it.kind === "gear") return (st.own[it.id] || 0) + (it.adds || 1) <= it.max;
+    return !st.has.has(it.id);
+  });
+  return item || shopState(d).rows.some(g => g.open && !g.owned && tips >= g.price);
+}
 const COIN = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" class="rr-coin"/><circle cx="12" cy="12" r="7.4" fill="none" class="rr-coin-ring"/><path d="M14.6 9.2c-.6-.8-1.5-1.1-2.6-1.1-1.5 0-2.5.7-2.5 1.8 0 2.6 5.2 1.3 5.2 4.1 0 1.2-1.1 1.9-2.7 1.9-1.2 0-2.2-.4-2.8-1.3M12 6.6v1.5M12 15.9v1.5" fill="none" class="rr-coin-ink" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 
 export function renderProfile() {
@@ -112,6 +126,7 @@ export function renderProfile() {
   const guitars = collectionOf(data), nGuitars = guitars.length;
   const mer = fansToSpend(data);
   const name = cleanName(data.settings.playerName);
+  const merchLine = mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows";
   const rrHTML = `
     <div class="head rr-me-top"><a class="pf-gear rr-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}<small>Settings</small></a></div>
     <div class="rr-me">
@@ -122,19 +137,21 @@ export function renderProfile() {
         <div class="rr-me-level"><span>Level ${lv.level} · ${num(lv.into)} / ${num(lv.need)} XP</span><i style="--w:${Math.round(lv.into / lv.need * 100)}%"></i></div></div>
     </section>
     <div class="rr-me-tiles">
-      <div class="rr-tile"><b>${can.now}${can.of ? ` <span>of ${can.of}</span>` : ""}</b><small>songs you can play</small></div>
-      <div class="rr-tile"><b>${num(p.chords.length)}</b><small>chords</small></div>
-      <div class="rr-tile"><b>${num(p.plays)}</b><small>plays</small></div>
+      <div class="rr-tile"><b>${can.now}${can.of ? ` <span>of ${can.of}</span>` : ""}</b><small>Songs</small></div>
+      <div class="rr-tile"><b>${num(p.chords.length)}</b><small>Chords</small></div>
+      <div class="rr-tile"><b>${num(p.plays)}</b><small>Plays</small></div>
     </div>
-    <section class="rr-card rr-case-card" aria-label="Guitar case"><div class="rr-card-h"><h2>Guitar case</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
+    <section class="rr-card rr-case-card" aria-label="Guitars"><div class="rr-card-h"><h2>Guitars</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${standHTML(guitars, { active: standIndex(guitars) })}
       ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
-      <a href="#/merch" id="pf-r-merch" class="rr-merch" aria-label="${mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows"}"><span class="rr-coinic">${COIN}</span><span>${mer > 0 ? `Merch: spend $${num(mer)} tips on new looks` : "Merch table: earn tips at your shows"}</span>${icon("chev", "chev")}</a>
     </section>
-    <button class="rr-card rr-miles rr-miles-row" id="pf-miles" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="rr-mdots" aria-hidden="true">${[1, 2, 3].map(k => `<i${badges.got.length >= k * badges.all.length / 3 || (k === 1 && badges.got.length) ? ' class="on"' : ""}></i>`).join("")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
-    <nav class="rr-card rr-rows" aria-label="Your places">
+    <a href="#/merch" id="pf-r-merch" class="rr-merch${merchLit(data) ? " lit" : ""}" aria-label="${merchLine}"><span class="rr-coinic">${COIN}</span><span>${merchLine}</span>${icon("chev", "chev")}</a>
+    <nav class="rr-card rr-rows rr-places" aria-label="Your places">
+      <button id="pf-miles" class="pf-row rr-row rr-miles-row" aria-label="Milestones, ${badges.got.length} of ${badges.all.length}. Open them"><span class="more-ic">${icon("medal")}</span><span class="rr-row-t">Milestones</span><span class="rr-miles-n">${badges.got.length} of ${badges.all.length}</span>${icon("chev", "chev")}</button>
       ${rrRow("pf-r-band", "amp", "Your band", "", "#/band")}
       ${rrRow("pf-r-charts", "star", "Charts and duels", "", "#/charts")}
+    </nav>
+    <nav class="rr-card rr-rows" aria-label="More on Me">
       ${rrRow("pf-r-tune", "fork", "Tuner", tunedRecently() ? "Tuned in the last few hours" : "Not tuned in the last few hours", "", !tunedRecently())}
       ${nothing ? "" : rrRow("pf-share", "share", "Share your player card", "", "")}
       ${rrRow("pf-r-help", "info", "Help and feedback", "", "#/settings/help")}
