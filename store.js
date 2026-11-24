@@ -163,3 +163,16 @@ async function backupNow() {
 }
 
 export { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError, problems, storageKept, where };
+
+/* Painted guitarist (2026-11-23): the selfie portrait and the xAI key are gone. On the first start after that, once, delete the
+   portrait database and the key this phone may still hold. Nothing here was ever in the library or a backup. */
+export const GONE_FLAG = "tabs.portraitgone.v1";
+export async function clearPortraitLeftovers() {
+  try {
+    if (localStorage.getItem(GONE_FLAG)) return false;
+    localStorage.removeItem("tabs.xaikey.v1");
+    try { await new Promise(ok => { const r = indexedDB.deleteDatabase("tabs-portrait"); r.onsuccess = r.onerror = r.onblocked = () => ok(); }); } catch { /* none to delete */ }
+    localStorage.setItem(GONE_FLAG, "1");
+    return true;
+  } catch { return false; }
+}

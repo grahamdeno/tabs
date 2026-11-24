@@ -7,7 +7,7 @@
 // got?", "what do I practice most?", "when do I play?"). Each card opens with
 // a plain sentence that answers it, then a small picture. Cards with nothing
 // to say yet stay hidden. Sharing is a button in thumb reach at the bottom.
-import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, venueOf } from "./core.js";
+import { PASSPORT, STREAK_GOALS, Tabs, badgesOf, cleanName, bandState, chartState, fansNow, fansToSpend, friendsOf, levelOf, playableSongs, profileOf, lifetimePlays, meOf, venueOf } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { chordSVG, data, go, openTuner, route, tunedRecently } from "./app.js";
 import { louie, louiePic } from "./louie.js";
@@ -184,9 +184,16 @@ function stampSheet(c) {
 /* Louie for the share card: a canvas can't read the page's CSS variables, so his Festival colours are written into the picture itself. */
 /* your guitarist for the profile share card (inline colours, so a canvas can draw it as it is) */
 async function meCardImage() {
-  const svg = you(data, { pose: "hornsUp", mood: "cheer", size: 400, grain: false, portrait: true }).replace(/^<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
-  const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await im.decode();
-  return im;
+  /* the painting is a file: the canvas draws that file, not the svg around it. A left-handed player is mirrored on the canvas. */
+  const svg = you(data, { size: 400 });
+  const href = svg.match(/href="(art\/guitarist-painted\/genres\/[^"]+)"/)[1];
+  const im = new Image();
+  im.src = href;
+  await im.decode();
+  if (!meOf(data).lefty) return im;
+  const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const x = c.getContext("2d"); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(im, 0, 0);
+  return Object.assign(c, { naturalWidth: c.width, naturalHeight: c.height });
 }
 async function louieCardImage() {
   const im = new Image(); im.src = louiePic("horns"); await im.decode();
