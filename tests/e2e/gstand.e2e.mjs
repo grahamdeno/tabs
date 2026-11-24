@@ -62,6 +62,9 @@ test("Me (dark): no guitar leaves the empty stand and the way to earn one", { sk
   assert.match(await page.innerText(".rr-case-card"), /0 guitars[\s\S]*Headline a leg to earn your first guitar\./);
   assert.equal(await page.locator(".gs-item").count(), 0);
   assert.equal(await page.locator(".gs-back").count(), 1, "the empty stand");
+  assert.equal(await page.locator(".gs-ghost").count(), 1, "a faint guitar waits on the empty stand");
+  const stage = await page.evaluate(() => document.querySelector(".rr-case-card .gs-stage").getBoundingClientRect().height / innerHeight);
+  assert.ok(stage >= 0.44 && stage <= 0.46, `empty stand is ${(stage * 100).toFixed(1)}% of the screen`);
   assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".gs-glow")).backgroundImage), /radial-gradient/);
   assert.equal(await page.locator(".rr-gcase, .rr-latch").count(), 0);
 });
@@ -108,6 +111,8 @@ for (const theme of ["dark", "light"]) {
     assert.equal(s.pagerWrap, false);
     assert.match(s.glow, /radial-gradient/);
     assert.equal(s.stand, true);
+    const stage = await page.evaluate(() => document.querySelector(".rr-case-card .gs-stage").getBoundingClientRect().height / innerHeight);
+    assert.ok(stage >= 0.44 && stage <= 0.46, `${theme}: the stand is ${(stage * 100).toFixed(1)}% of the screen`);
     /* arrow key moves the count */
     await page.locator(".gs-item.is-on").focus();
     await page.keyboard.press("ArrowRight");

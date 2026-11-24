@@ -94,7 +94,7 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
   await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
   const large = await size();
-  assert.deepEqual(large.map(r => r.id).filter(id => id !== "pf-share"), ["pf-r-band", "pf-r-charts", "pf-r-tune", "pf-r-help", "pf-r-support"], "band, charts, tuner, help and support (and Share only once something is played)");
+  assert.deepEqual(large.map(r => r.id).filter(id => id !== "pf-share"), ["pf-miles", "pf-r-band", "pf-r-charts", "pf-r-tune", "pf-r-help", "pf-r-support"], "milestones, band, charts, tuner, help and support (and Share only once something is played)");
   for (let i = 0; i < large.length; i++) {
     assert.ok(large[i].name > normal[i].name && large[i].small >= normal[i].small, `${large[i].id}: the text grows (${normal[i].name}/${normal[i].small} to ${large[i].name}/${large[i].small})`);
     if (normal[i].small) assert.ok(large[i].small > normal[i].small, `${large[i].id}: the small line grows too`);
