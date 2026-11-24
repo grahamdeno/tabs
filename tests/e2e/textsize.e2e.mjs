@@ -99,3 +99,16 @@ test("5.2.0 at 320 px no two bar buttons overlap, on the paused song page and in
   await page.click("#play"); await page.waitForSelector("#gg-pause"); await settled(page);
   assert.equal(await noOverlap(page, ["gg-speed", "gg-pause", "gg-loop", "gg-tools"]), 4, "the Gig bar has all four buttons");
 });
+
+test("5.2.1 no section rail; a long line runs to 12 px from the right edge; Play is centred top to bottom in the bar", { skip: skip() }, async t => {
+  const LONG = "[Verse]\nG\nWhere all good men are trampled down and more words here too, and more\n[Chorus]\nC\nla la";
+  const page = await phone(t, { ...LIB, songs: [{ ...song("a", 1), body: LONG }], settings: PLAIN }, { home: true, size50: true });
+  await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");
+  assert.equal(await page.locator(".smap").count(), 0, "no rail");
+  const right = await page.evaluate(() => document.getElementById("sheet").getBoundingClientRect().right);
+  assert.ok(Math.abs(right - (390 - 12)) <= 1, `the song's lines may run to 12 px from the edge (${right})`);
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .pr, #sheet > .ly")).marginRight), "0px", "no right margin kept for a rail");
+  const r = await page.evaluate(() => { const b = document.querySelector(".player").getBoundingClientRect(), p = document.getElementById("play").getBoundingClientRect(); return { bar: b.top + b.height / 2, play: p.top + p.height / 2 }; });
+  assert.ok(Math.abs(r.bar - r.play) <= 1.5, `Play's middle ${r.play} is the bar's middle ${r.bar}`);
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "Play keeps its spoken name");
+});
