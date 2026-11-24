@@ -5040,7 +5040,12 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 .sc-show.case .sc-case .sc-guitar { position: absolute; left: 67.5%; top: 6%; bottom: 3%; width: 48%; transform: translateX(-50%); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .45)); }
 .sc-show.case .sc-louie { z-index: 3; }
 .sc-show.case .sc-label { z-index: 3; }
-:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--rr-base); }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case { background: var(--tolex); background-color: var(--rr-base); }
+.rr-case .sc-who { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 72px; }
+.rr-case .sc-who .sc-louie { position: static; width: 76px; margin: 0; animation: sc-hop .4s ease-out .2s 1; }
+.rr-case .sc-who .sc-louie .louie { width: 76px; height: auto; }
+.rr-case .sc-who .sc-label { position: static; max-width: 68%; }
+.rr-case .sc-who .sc-label::before { content: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case .pbody { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5434,37 +5439,76 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root[data-look="festival"] .rr-tn-tx b, :root[data-look="festival"] .rr-tn-tx small { text-shadow: 0 0 6px rgba(246, 239, 226, .95); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-tn-stop:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: 2px; border-radius: 22px; }
 .rd-path.has-pop .rr-tn-stop { display: none; }
-/* the guitar case on Me (Grok, 2026-11-19, r10-06): an open hard case in black tolex with chrome piping and two latches, lined in
-   Grok's painted brown-orange crushed velvet (art/case/velvet-slot.webp), one padded compartment per guitar and at least three.
-   Each earned or bought guitar stands in its own compartment on a soft shadow; more than three scroll sideways. The case is an
-   object, so it looks the same in Light and Dark. Class rr-gcase, so the Show complete sheet's .rr-case is not touched. */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase {
-  position: relative; margin-top: var(--sp-1); padding: 12px 10px 10px; border-radius: 16px;
-  background: linear-gradient(rgba(0, 0, 0, .35), rgba(0, 0, 0, .55)), url("art/surfaces/tolex-dark.webp") 0 0 / 256px; background-color: #15110D;
-  box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, inset 0 2px 0 3.5px rgba(255, 255, 255, .25), 0 10px 22px rgba(0, 0, 0, .45);
+/* the guitar stand on Me and the new-guitar sheet (gstand.js). No velvet box: the guitars sit on the tolex,
+   the hero in an A-frame cradle with a warm oval glow behind the body and the neck. */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card {
+  background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0;
 }
-:root[data-look="festival"] .rr-gcase { box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #A9A49C, inset 0 0 0 3.5px #2A2622, 0 10px 20px rgba(60, 40, 20, .3); }
-.rr-latch { position: absolute; top: -7px; z-index: 2; width: 36px; height: 22px; background: url("art/case/latch.webp") 0 0 / 100% 100%; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .5)); }
-.rr-latch.l { left: 22%; } .rr-latch.r { right: 22%; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in {
-  display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 8px) / 3); gap: 0; margin: 0; padding: 0; min-height: 0; list-style: none;
-  overflow-x: auto; scroll-snap-type: x mandatory; border-radius: 8px; background: #3A1A08;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), inset 0 6px 14px rgba(0, 0, 0, .55); scrollbar-width: none;
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .rr-card-h { padding: 0 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 4px 2px 0; color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
+.gs-stage { --gs-h: 328px; --gs-leg: 32px; --gs-stride: 136px; --gs-b: .78; --gs-o: .84; position: relative; }
+.gs-sheet { --gs-h: 276px; --gs-leg: 28px; --gs-stride: 132px; }
+:root[data-look="festival"] .gs-stage { --gs-b: .96; --gs-o: .76; }
+.gs-hero { position: relative; }
+.gs-glow {
+  position: absolute; left: 50%; top: -10px; z-index: 0; width: 58%; height: calc(var(--gs-h) + 20px); transform: translateX(-50%); pointer-events: none;
+  background: radial-gradient(ellipse 46% 56% at 50% 46%, rgba(232, 160, 68, .42) 0%, rgba(220, 140, 52, .24) 24%, rgba(176, 98, 30, .11) 46%, transparent 72%);
 }
-.rr-gcase .rr-case-in::-webkit-scrollbar { display: none; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr {
-  position: relative; display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 116 / 300; min-width: 0; min-height: 44px; overflow: hidden; scroll-snap-align: start;
-  background: url("art/case/velvet-slot.webp") center / 100% 100%;
+:root[data-look="festival"] .gs-glow {
+  background: radial-gradient(ellipse 50% 58% at 50% 46%, rgba(214, 146, 62, .30) 0%, rgba(196, 130, 52, .12) 32%, transparent 72%);
 }
-/* the guitar sits low in the bed, its neck on the rest, with a soft shadow on the velvet under it */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-gtr img {
-  position: relative; z-index: 1; height: 86%; width: auto; max-width: 92%; object-fit: contain; object-position: bottom; margin-bottom: 4%;
-  filter: drop-shadow(2px 7px 6px rgba(40, 10, 0, .6)) drop-shadow(0 1px 1px rgba(0, 0, 0, .45));
+.gs-empty .gs-glow { top: 4%; height: 96%; width: 86%; }
+.gs-floor { position: absolute; left: 50%; bottom: 8px; z-index: 0; width: 50%; height: 36px; transform: translateX(-50%); pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(220, 140, 52, .28), transparent 72%); }
+:root[data-look="festival"] .gs-floor { background: radial-gradient(ellipse at center, rgba(80, 48, 20, .24), transparent 70%); }
+.gs-back {
+  position: absolute; left: 50%; bottom: 0; z-index: 1; width: auto; height: 148px; transform: translateX(-50%); pointer-events: none; user-select: none;
 }
-/* an empty compartment just shows the velvet, a touch darker, so it reads as waiting for a guitar */
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-slot-empty::after { content: ""; position: absolute; inset: 0; background: rgba(30, 10, 0, .22); }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-gcase .rr-case-in:focus-visible { outline: 3px solid var(--rr-amber-text); outline-offset: 3px; }
-:root:is([data-look="neon"], [data-look="festival"]) .rr-case-note { margin: 0 0 var(--sp-2); color: var(--rr-text-2); font: var(--type-subhead-w, 500) var(--type-subhead) / 1.35 "Inter", var(--sans); }
+.gs-track {
+  position: relative; z-index: 2; display: flex; align-items: flex-end; box-sizing: border-box;
+  height: calc(var(--gs-h) + var(--gs-leg) + 4px);
+  padding-bottom: var(--gs-leg);
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none;
+  overscroll-behavior-x: contain; touch-action: pan-x;
+}
+.gs-track::-webkit-scrollbar { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .gs-track::before,
+:root:is([data-look="neon"], [data-look="festival"]) .gs-track::after { content: ""; flex: 0 0 calc((100% - var(--gs-stride)) / 2); }
+:root:is([data-look="neon"], [data-look="festival"]) .gs-item {
+  flex: 0 0 var(--gs-stride); scroll-snap-align: center; display: flex; align-items: flex-end; justify-content: center;
+  min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; background: none; color: inherit; cursor: pointer;
+}
+:root:is([data-look="neon"], [data-look="festival"]) .gs-item img {
+  display: block; height: var(--gs-h); width: auto; max-width: none; object-fit: contain; object-position: center bottom; transform-origin: center bottom;
+  transform: scale(calc(1 - .13 * var(--gs-p, 0)));
+  filter: brightness(calc(1 - (1 - var(--gs-b)) * var(--gs-p, 0))) drop-shadow(0 8px 8px rgba(0, 0, 0, .28));
+  opacity: calc(1 - (1 - var(--gs-o)) * var(--gs-p, 0));
+  transition: transform .35s ease, filter .35s ease, opacity .35s ease;
+}
+:root[data-look="neon"] .gs-item.is-on img {
+  filter: brightness(1) drop-shadow(0 0 14px rgba(242, 168, 76, .52)) drop-shadow(0 0 34px rgba(208, 124, 38, .30)) drop-shadow(0 8px 10px rgba(0, 0, 0, .32));
+}
+:root[data-look="festival"] .gs-item.is-on img {
+  filter: brightness(1) drop-shadow(0 0 12px rgba(214, 146, 62, .40)) drop-shadow(0 0 28px rgba(186, 118, 42, .18)) drop-shadow(0 8px 8px rgba(70, 42, 16, .22));
+}
+.gs-item:focus-visible { outline: 2px solid var(--rr-amber-text); outline-offset: 2px; border-radius: 8px; }
+.gs-pager { position: relative; z-index: 5; display: flex; align-items: center; justify-content: center; flex-wrap: nowrap; gap: 7px; min-height: 22px; margin: -18px 0 0; white-space: nowrap; }
+.gs-dots { display: inline-flex; align-items: center; gap: 5px; }
+.gs-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--rr-text-2); opacity: .42; display: block; }
+.gs-dots i.on { width: 7px; height: 7px; opacity: 1; background: var(--rr-amber); }
+.gs-dots i.far { width: 4px; height: 4px; opacity: .28; }
+.gs-count { font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .03em; color: var(--rr-text-2); }
+.gs-cap { margin: 2px 8px 0; text-align: center; }
+.gs-cap b { display: block; font: 700 var(--type-headline, 17px)/1.2 "Space Grotesk", var(--display); color: var(--rr-text); }
+.gs-cap small { display: block; margin-top: 1px; font: 500 var(--type-footnote, 13px)/1.3 "Inter", var(--sans); color: var(--rr-text-2); }
+.gs-empty { height: 136px; }
+.gs-empty .gs-hero { height: 100%; }
+.gs-empty .gs-back { height: 132px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rd-gt.rr-case .pbody { gap: 4px; }
+.rr-case .sc-who { min-height: 0; }
+.rr-case .sc-who .sc-louie, .rr-case .sc-who .sc-louie .louie { width: 58px; }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-case-card .gs-stage { width: calc(100% + 44px); margin-left: -22px; margin-right: -22px; }
+.rr-case .gs-stage { width: calc(100% + 8px); margin-left: -4px; margin-right: -4px; }
 
 /* Full-size lyrics (Grok, 2026-11-19, spec 6, wrapping approved by Graham): app.js lays every line out at the current-line size
    (--type-lyric-now, 34 pt at the default text size) and the line keeps that box. Inside it the words are drawn by a transform
