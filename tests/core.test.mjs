@@ -3452,11 +3452,13 @@ test("Guitars with elevation: the streak copies match the flat pictures, and the
     assert.ok(FB.guitarPic(slug).startsWith(`art/guitars/streak/${slug}-small.webp`), `${slug}: the shop uses the elevated picture`);
     assert.equal(FB.largeGuitar(FB.guitarPic(slug)), `art/guitars/streak/${slug}-road.webp`, `${slug}: the stand uses the large picture`);
   }
-  /* the eight older guitars are still head and body, from the elevated set */
+  /* the eight older guitars still have head and body copies in streak/. Nothing draws those, so they stay out of the offline list. The small picture is the one the shop uses. */
   for (const name of ["parlor", "cutaway", "cutaway-sunburst", "solid", "hollow", "single", "classical", "headliner"]) {
     for (const part of ["head", "body", "small"]) {
       const elev = `art/guitars/streak/${name}-${part}.webp`;
-      assert.ok(fs.existsSync(path.join(root, elev)) && shell.includes(`"${elev}"`), elev);
+      assert.ok(fs.existsSync(path.join(root, elev)), elev);
+      if (part === "small") assert.ok(shell.includes(`"${elev}"`), `${elev} is saved for offline`);
+      else assert.ok(!shell.includes(`"${elev}"`), `${elev} stays out of the offline list`);
       assert.deepEqual(elevBox(fs.readFileSync(path.join(root, elev))), elevBox(fs.readFileSync(path.join(root, `art/guitars/${name}-${part}.webp`))), `${name} ${part}`);
     }
   }
@@ -3466,9 +3468,16 @@ test("Guitars with elevation: the streak copies match the flat pictures, and the
   const stops = [...Array.from({ length: 5 }, () => ({ kind: "chord", state: "locked" })), { kind: "headline", state: "locked" }];
   const html = FB.neckHTML({ id: "open", name: "Porch", done: false, stops }, { rr: true, id: () => "s", num: () => 1, label: () => "stop", tag: () => "" });
   assert.doesNotMatch(html, /feOffset|feGaussianBlur/, "the Road drawing has no shadow under the body");
-  assert.ok(fs.existsSync(path.join(root, "art/guitars/elev/porch-road.webp")), "the first elevated set is kept");
-  assert.ok(fs.existsSync(path.join(root, "art/guitars/lift/porch-road.webp")), "the wide sheen is kept");
-  assert.ok(fs.existsSync(path.join(root, "art/guitars/sheen/porch-road.webp")), "the faint streak is kept");
+  for (const folder of ["elev", "lift", "sheen"]) {
+    assert.ok(fs.existsSync(path.join(root, `docs/guitars/elevation-tryouts/${folder}/porch-road.webp`)), `${folder} is kept with the tryouts`);
+    assert.ok(!fs.existsSync(path.join(root, `art/guitars/${folder}`)), `${folder} left the app art`);
+  }
+});
+test("the offline list does not carry the elevation tryouts", () => {
+  const shell = JSON.parse(read("sw.js").match(/const SHELL = (\[.*?\]);/s)[1]);
+  for (const prefix of ["art/guitars/elev/", "art/guitars/lift/", "art/guitars/sheen/"]) {
+    assert.equal(shell.filter(u => u.includes(prefix)).length, 0, prefix);
+  }
 });
 test("Painted necks: the height of a guitar is the same for 5, 9 and 12 stops, and the stops stay inside the picture", async () => {
   const { FB, PICS } = await wired(), mk = n => Array.from({ length: n }, (_, i) => ({ kind: i % 4 === 3 ? "box" : "chord", state: "locked" }));
