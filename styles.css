@@ -6017,3 +6017,30 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 :root:is([data-look="neon"], [data-look="festival"]) .pf-learn { min-height: 44px; min-width: 44px; margin-top: auto; padding: 0 12px; border: 0; border-radius: 999px; background: var(--rr-amber); color: var(--rr-on-amber); font: 700 13px / 1 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .pf-stats-page .foot { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) :is(.pf-ccard, .pf-learn, .pf-stats-page .pf-drill, .pf-jump, .pf-ch-top .ib):focus-visible { outline: 2px solid var(--rr-chord); outline-offset: 2px; }
+
+/* The song screen and the Gig share one amp bar in Dark and Light. It stays put. Green Room and Headliner keep their own bar. */
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .dock:has(.amp-bar) { left: 0; right: 0; width: 100%; transform: none; bottom: 0; box-sizing: border-box; padding: 10px 14px calc(10px + var(--safe-b)); background: #141210; border-radius: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) body.gigging.staged .app.viewer > .dock:has(.amp-bar) { visibility: visible; z-index: 56; }
+:root:is([data-look="neon"], [data-look="festival"]) body:has(#gig .gc) .app.viewer .dock:has(.amp-bar) { visibility: hidden; pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"]) body.covered .app.viewer .dock:has(.amp-bar) { background: #141210; }
+:root:is([data-look="neon"], [data-look="festival"]) .gig > .gg-hint:not(.gg-first) { bottom: calc(168px + var(--safe-b)); }
+:root:is([data-look="neon"], [data-look="festival"]) body.gigging.staged:has(.on-count) .app.viewer > .dock:has(.amp-bar) { visibility: hidden; pointer-events: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer:has(.amp-bar) { padding-bottom: calc(156px + var(--safe-b)); }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; box-sizing: border-box; padding: 8px 4px 10px; background: #12100e; border-radius: 22px; overflow: hidden; box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px #8e8a84; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-slot { height: 96px; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: #eadbc0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; position: relative; cursor: pointer; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-bar #play { width: auto; height: 96px; min-width: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: #eadbc0; font-size: inherit; position: relative; display: flex; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-knob { position: relative; width: 36px; height: 36px; border-radius: 50%; flex: none; background: radial-gradient(circle at 42% 35%, #8f8a84 0, #4a4642 55%, #2a2725 100%); box-shadow: 0 0 0 2px #1a1816, 0 0 0 3px #6b655e; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-knob::before { content: ""; position: absolute; left: 50%; top: 5px; width: 2px; height: 8px; margin-left: -1px; border-radius: 1px; background: linear-gradient(#f3ece0, #8d877e); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, .45); }
+:root:is([data-look="neon"], [data-look="festival"]) #pw-loop .amp-knob::before { transform: rotate(-36deg); transform-origin: 1px 13px; }
+:root:is([data-look="neon"], [data-look="festival"]) #more .amp-knob::before { transform: rotate(36deg); transform-origin: 1px 13px; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-face { width: 56px; height: 56px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--rr-amber); color: var(--rr-on-amber); box-shadow: 0 0 0 3px #1a1816, 0 0 16px var(--rr-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-face svg { width: 22px; height: 22px; fill: currentColor; margin: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-lab { height: 28px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; font: 600 12px/1.15 var(--sans); color: #eadbc0; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-lab .sp-val { font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: inherit; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-slot.sp-off .sp-val { color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-meta { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; margin-top: 4px; padding: 0 16px; font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace; color: #eadbc0; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-bar .amp-track { display: block; height: 2px; min-height: 2px; border-radius: 2px; background: #8a8174; overflow: hidden; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-bar .amp-track i { display: block; height: 2px; width: 0; background: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-slot .newdot { position: absolute; top: 8px; right: 18px; }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-meta .setdial { height: 32px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: #eadbc0; font: 700 12px/1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) .amp-slot:focus-visible, :root:is([data-look="neon"], [data-look="festival"]) .amp-bar #play:focus-visible { outline: 2px solid var(--rr-amber-text); outline-offset: 3px; border-radius: 12px; }

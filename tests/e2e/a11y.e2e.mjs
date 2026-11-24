@@ -110,10 +110,10 @@ for (const [theme, look] of [["dark", "neon"], ["light", "festival"], ["light", 
       problems.push(...found.map(f => `${screen}: ${f}`));
     };
     await sweep("song page, before Play");
-    await page.click("#play"); await page.waitForSelector("#gig #gg-pause");
+    await page.click("#play"); await page.waitForSelector("#amp-bar #play");
     await sweep("playing");
     /* 4.60.1: paused, the page and the Tools sheet are dark too (they were white on white in the light palettes) */
-    await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+    await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
     await sweep("paused");
     await page.click("#more"); await page.waitForSelector(".menu.tools"); await settled(page);
     await sweep("Tools open");

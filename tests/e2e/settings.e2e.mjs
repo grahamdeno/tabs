@@ -303,7 +303,7 @@ test("Apple Music: the Recording sheet switches recording and band, and resets w
     document.dispatchEvent(new Event("musickitloaded"));` }));
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(x => x.id === "a"));
   await page.evaluate(() => { location.hash = "#/song/a"; }); await page.waitForSelector("#about.rec.on");
-  assert.match(await page.innerText("#play"), /with the recording/i, "4.31.0: Play's second line says what it plays with");
+  assert.equal((await page.innerText("#play")).trim(), "Play", "the amp knob says Play");
   assert.equal(await page.locator(".player #listen").count(), 0, "4.31.0: no second button beside Play");
   await page.click("#about"); await page.waitForSelector("#rs");
   assert.match(await page.innerText("#rs"), /2 spots learned/);

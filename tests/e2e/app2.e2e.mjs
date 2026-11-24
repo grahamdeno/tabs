@@ -330,10 +330,10 @@ test("2.0 one hand: on a phone held upright the controls sit at the bottom; iPad
   await page.goto(base + "#/song/a"); await page.waitForSelector('.metarow');
   /* 4.2.0: one song screen. Back, the title and the heart at the top; Tools and a big Play at the bottom. */
   assert.ok((await box(".shead .sh-back")).top < 100 && (await box(".shead .fav")).top < 100, "back and the heart beside the title");
-  for (const sel of ["#more", "#play"]) assert.ok((await box(sel)).top > H * 0.85, `${sel} in the bar`);
+  for (const sel of ["#more", "#play"]) { const b = await box(sel); assert.ok(b && b.bottom > H * 0.85 && b.top > H * 0.5, `${sel} in the bar`); }
   assert.equal(await page.locator(".player .fav, .player #nnbtn, .player .oh-back").count(), 0, "just Tools and Play");
-  /* 4.109.0 (Graham, 2026-11-19): in Dark and Light the bar is the amp-style bar, Play in the middle at the bottom, still in thumb reach */
-  { const p = await box("#play"); assert.ok(p.bottom > H * 0.85 && p.left > 120 && p.right < 270, "Play in the middle of the bottom bar, in thumb reach"); }
+  /* Dark and Light: the amp bar, Play in the middle at the bottom, still in thumb reach */
+  { const p = await box("#play"); const cx = (p.left + p.right) / 2; assert.ok(p.bottom > H * 0.85 && Math.abs(cx - 195) < 50, `Play in the middle of the bottom bar (${cx})`); }
   assert.equal(await page.locator(".secbar").count(), 0, "4.55.0: no row of section chips on the song page");
   await page.click("#more"); await page.waitForSelector('.menu');
   await page.waitForFunction(() => !document.querySelector(".menu").getAnimations().length); const m = await box(".menu");
@@ -417,29 +417,29 @@ test("2.1 glow: the count-in glows; gig day counts down on Up Next", { skip: ski
   assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".countin")).textShadow), /px/, "the count-in glows");
 });
 
-test("3.19.0 one hand: paused the whole bar shows; Play folds it into its corner while playing, and there is no ring", { skip: skip() }, async t => {
+test("3.19.0 one hand: the amp bar stays put while playing, and there is no ring", { skip: skip() }, async t => {
   const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900 } : s), settings: { ...LIB.settings, countIn: false } };
   const page = await phone(t, lib);
-  const center = () => page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  const state = () => page.evaluate(() => ({ one: document.body.classList.contains("one"), fold: document.body.classList.contains("fold"), inBar: !!document.getElementById("play").closest(".player"), bar: getComputedStyle(document.querySelector(".app.viewer .dock")).display !== "none" }));
-  await page.goto(base + "#/song/a"); await page.waitForSelector('#play');
+  const slots = () => page.evaluate(() => [...document.querySelectorAll("#amp-bar .amp-slot")].map(b => { const r = b.getBoundingClientRect(); return [b.id, Math.round(r.left), Math.round(r.top)]; }));
+  const state = () => page.evaluate(() => ({ one: document.body.classList.contains("one"), fold: document.body.classList.contains("fold"), inBar: !!document.getElementById("play").closest("#amp-bar"), bar: getComputedStyle(document.querySelector(".app.viewer .dock")).display !== "none" }));
+  await page.goto(base + "#/song/a"); await page.waitForSelector('#amp-bar');
+  const idle = await slots();
   assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "paused: the bar is out with Play in it");
-  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll");
-  assert.deepEqual(await state(), { one: true, fold: true, inBar: false, bar: false }, "playing: the bar folds away");
-  /* wait for the fold to finish moving (it springs past the corner and back) */
-  await page.waitForFunction(() => { const p = document.getElementById('play'), r = p.getBoundingClientRect(); return !document.getAnimations().some(a => a.playState === 'running' && (a.effect?.target === p || a.effect?.target?.contains?.(p))) && r.left + r.width / 2 > 320 && r.top + r.height / 2 > 760; });
-  const c = await center();
-  assert.ok(c.x > 320 && c.y > 760, `Play waits in the corner (${c.x}, ${c.y})`);
-  assert.equal(await page.locator("#fp-nav:visible").count(), 0, "4.73.0: no Songbook button beside Pause (left from version 3); a set still offers the next song");
-  await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains('fold'));
+  assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "playing: the amp bar stays");
+  const moved = await slots();
+  idle.forEach((s, i) => { assert.equal(moved[i][0], s[0]); assert.ok(Math.abs(moved[i][1] - s[1]) <= 2 && Math.abs(moved[i][2] - s[2]) <= 2, `${s[0]} stayed put`); });
+  assert.equal(await page.locator("#fp-nav:visible").count(), 0, "no Songbook button beside Pause");
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Start auto-scroll");
   await page.goto(base + "#/song/a"); await page.waitForSelector('#play');
-  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
+  const c = await page.evaluate(() => { const r = document.getElementById("play").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   /* a long hold is still a tap: nothing opens, and it pauses */
   await page.mouse.move(c.x, c.y); await page.mouse.down(); await page.waitForTimeout(900); /* real timer */ await page.mouse.up(); await page.waitForFunction(() => document.getElementById('play').getAttribute('aria-label') === 'Start auto-scroll');
   assert.equal(await page.locator(".ringx, .rc-track, .rc-isl").count(), 0, "no ring, arc or island");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll");
-  assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "paused again: the bar unfolds");
+  assert.deepEqual(await state(), { one: true, fold: false, inBar: true, bar: true }, "paused again: the bar is still there");
   /* Tools has the beat (4.69.0: Off, Bass drum, Metronome) now that the ring is gone */
   await page.click("#more"); await page.waitForSelector(".menu");
   assert.equal(await page.locator(".menu [data-beat]").count(), 3);
@@ -526,10 +526,12 @@ test("4.69.0 the beat from the song screen: Off, Bass drum or Metronome and up t
   const page = await phone(t, lib);
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings);
   await page.goto(base + "#/song/a"); await page.waitForSelector("#play");
-  assert.match(await page.innerText("#play"), /WITH THE BASS DRUM/, "an old drums setting is the bass drum now");
-  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("fold"));
-  await page.waitForSelector("#fp-band", { state: "visible" });
-  await page.click("#fp-band"); await page.waitForSelector("#band-sheet");
+  await page.click("#more"); await page.waitForSelector(".menu [data-beat]");
+  assert.equal(await page.getAttribute(".menu [data-beat='kick']", "aria-checked"), "true", "an old drums setting is the bass drum now");
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
+  await page.evaluate(() => import("/app.js").then(m => m.bandSheet(m.viewing)));
+  await page.waitForSelector("#band-sheet");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "the song keeps playing");
   assert.equal(await page.getAttribute("#band-sheet [data-beat='kick']", "aria-pressed"), "true");
   await page.click("#band-sheet [data-beat='off']"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.metronome === false);
@@ -541,7 +543,7 @@ test("4.69.0 the beat from the song screen: Off, Bass drum or Metronome and up t
   assert.equal(await page.innerText("#bs-v"), "150%");
   assert.equal(await page.getAttribute("#play", "aria-label"), "Pause auto-scroll", "still playing");
   await page.click("#bs-x"); await page.waitForSelector("#band-sheet", { state: "detached" });
-  await page.click("#play"); await page.waitForFunction(() => !document.body.classList.contains("fold"));
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Start auto-scroll");
   /* paused, Tools has the same choice and no Band row */
   await settled(page); await page.click("#more"); await page.waitForSelector(".menu [data-beat]");
   assert.equal(await page.locator(".menu [data-m='band']").count(), 0, "4.69.0: no Band row");
@@ -552,7 +554,7 @@ test("4.44.0 an achievement callout bursts over a playing song, takes no taps, c
   const lib = { ...LIB, songs: LIB.songs.map(s => s.id === "a" ? { ...s, duration: 900 } : s), settings: { ...LIB.settings, countIn: false } };
   const page = await phone(t, lib);
   await page.goto(base + "#/song/a"); await page.waitForSelector("#play");
-  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains("fold"));
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll" && !document.body.classList.contains("fold"));
   await page.evaluate(() => import("/app.js").then(m => { m.showCallout({ kind: "combo", word: "COMBO", big: "x10" }); m.showCallout({ kind: "level", word: "LEVEL UP", big: "3" }); }));
   await page.waitForSelector(".co");
   assert.equal(await page.locator(".co").count(), 1, "one at a time");
