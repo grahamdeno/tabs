@@ -276,8 +276,22 @@ export function roadHit(pts, tap, cur = -1) {
   pts.forEach((p, i) => { const m = Math.hypot(tap.x - p.x, tap.y - p.y); if (m < d) { d = m; at = i; } });
   return at;
 }
-/* The guitars you've earned: every leg whose headline show is done, in order, plus the first. Shown once each. */
+/* The legs whose headline show is done, in road order. guitarNew uses it to know what to announce; for the
+   guitars a player owns, use guitarsOwned. */
 export const guitarsEarned = (data, now = Date.now()) => roadPath(data, now).legs.filter(l => l.done).map(l => l.id);
+/* The Road guitars you own (2026-11-23), the one rule for the Guitar case, the builder and buildSave: each
+   headlined leg's own guitar plus the next leg's guitar (the one guitarNew announces, "Cornerstone is yours").
+   { id, li } in road order; li is the index of the leg that earned it (the first headlined leg that did). */
+export function roadGuitars(data, now = Date.now()) {
+  const legs = roadPath(data, now).legs, won = new Map();
+  legs.forEach((l, li) => {
+    if (!l.done) return;
+    if (!won.has(l.id)) won.set(l.id, li);
+    const nx = legs[li + 1]; if (nx && !won.has(nx.id)) won.set(nx.id, li);
+  });
+  return legs.filter(l => won.has(l.id)).map(l => ({ id: l.id, li: won.get(l.id) }));
+}
+export const guitarsOwned = (data, now = Date.now()) => roadGuitars(data, now).map(g => g.id);
 export function cleanGuitars(raw) {
   if (!isObj(raw)) return null;
   return { seen: [...new Set((Array.isArray(raw.seen) ? raw.seen : []).filter(x => typeof x === "string" && /^[\w-]{1,40}$/.test(x)))].slice(0, 20) };
@@ -1491,7 +1505,7 @@ export function buildNew(data, legId, b) {
 export const buildCost = (data, legId, b) => buildNew(data, legId, b).reduce((a, r) => a + r.price, 0);
 /* save a build to a guitar you've earned: { ok, cost } or { why: "none" | "locked" | "tips", id } */
 export function buildSave(data, legId, choice) {
-  if (!BUILD_TAKES[legId] || !guitarsEarned(data).includes(legId)) return { why: "none" };
+  if (!BUILD_TAKES[legId] || !guitarsOwned(data).includes(legId)) return { why: "none" };
   const b = cleanBuilds({ [legId]: choice })?.[legId] || {};
   const st = buildState(data);
   for (const r of buildNew(data, legId, b)) if (!r.open || r.hidden) return { why: "locked", id: r.id };

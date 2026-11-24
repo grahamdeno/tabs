@@ -5,7 +5,7 @@
 //   renderMerch()        the page at #/merch
 //   applyWear()          puts the worn finish on every Louie (body[data-wear])
 //   backdropBanner(id)   the backdrop you wear, as the banner at the top of Show complete (4.66.0)
-import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, guitarsEarned, shopBuy, shopChoose, shopState } from "./core.js";
+import { MERCH, Tabs, merchBuy, merchState, merchWear, merchWorn, guitarsOwned, shopBuy, shopChoose, shopState } from "./core.js";
 import { app, esc, icon, layer, toast } from "./ui.js";
 import { applyTheme, data, go } from "./app.js";
 import { louie } from "./louie.js";
@@ -123,7 +123,7 @@ function shopSay(g, st) {
 }
 /* Road Ready 9b: the guitar builder, for the Road guitars you've earned (not the shop guitars) */
 function buildEntry() {
-  const k = guitarsEarned(data).length;
+  const k = guitarsOwned(data).length;
   return `<h2 class="mc-h"><span>Build your guitar</span><small>looks only</small></h2>
     <button class="mc-build" id="mc-build" ${k ? "" : "disabled"}><span class="mc-build-t"><b>Build your guitar</b><small>${k ? "Paint, tops, guards, wear and hardware for the guitars you've earned" : "Finish a leg to earn your first guitar"}</small></span>${icon("chev", "chev")}</button>`;
 }
