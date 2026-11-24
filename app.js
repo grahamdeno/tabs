@@ -171,7 +171,7 @@ function renderViewer(id) {
   setTimeout(() => { if (viewing === song) timeLines(song, lyricLines); }, 700);
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
   if (song.speed === undefined) song.speed = data.settings.startSpeed || SPEEDS.medium; // then each song keeps its own
-  if (song.size === undefined) song.size = 1;
+  if (song.size === undefined) song.size = 0.5; /* 5.2.0: new songs start at 50% */
   song.opened = Date.now();
   Tabs.save(data);
 
@@ -1309,7 +1309,7 @@ function songMenu(song, anchor, redrawSong) {
     ev.stopPropagation();
     const d = ev.target.closest("[data-d]");
     if (d) {
-      song.size = Math.min(1.6, Math.max(0.7, +(song.size + (+d.dataset.d) * 0.1).toFixed(2)));
+      song.size = Math.min(1.6, Math.max(0.5, +(song.size + (+d.dataset.d) * 0.1).toFixed(2)));
       Tabs.save(data); paint(); redrawSong();
       return;
     }

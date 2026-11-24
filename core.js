@@ -314,7 +314,7 @@ export function cleanSong(raw) {
   if (s.timed) { s.timed = cleanTimed(s.timed); if (!s.timed) delete s.timed; }
   if (s.drums) { s.drums = cleanDrums(s.drums); if (!s.drums) delete s.drums; }
   if (s.transpose !== undefined) s.transpose = fit(Math.round(s.transpose), -5, 6);
-  if (s.size !== undefined) s.size = fit(s.size, 0.6, 1.6);
+  if (s.size !== undefined) s.size = fit(s.size, 0.5, 1.6);
   if (s.duration !== undefined) s.duration = fit(s.duration, 10, 3600);
   if (s.speed !== undefined) s.speed = fit(s.speed, 1, 200);
   if (s.bpm !== undefined) s.bpm = fit(Math.round(s.bpm), 30, 260);
